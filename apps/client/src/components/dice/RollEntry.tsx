@@ -32,6 +32,16 @@ function badgesFor(roll: RollLogEntry): string[] {
 }
 
 /**
+ * The colour a hand-entered result wears everywhere in this row.
+ *
+ * Deliberately NOT the gold a rolled total uses. The whole point of the feature
+ * is that a number a person typed must never be mistakable for one the server
+ * threw — nobody is pretending otherwise, so the row says so in the one channel
+ * a reader takes in before they read any words.
+ */
+const ENTERED_COLOR = "var(--hero-danger)";
+
+/**
  * Component for rendering a single roll entry
  * Handles both compact and expanded views for long formulas
  */
@@ -99,6 +109,25 @@ export const RollEntry: React.FC<{
               }}
             >
               {sanitizeText(roll.label)}
+            </span>
+          ) : null}
+          {/* Its own element rather than a badgesFor() string, because it is
+              the one badge that is not merely informational: it carries the
+              colour the rest of the row keys off, and it must not be able to
+              drift from that colour by sitting in a generic list. */}
+          {roll.handEntered ? (
+            <span
+              data-testid="roll-entered-badge"
+              title="A player typed this result — the server did not roll it"
+              style={{
+                marginLeft: "6px",
+                padding: "1px 4px",
+                fontSize: "8px",
+                border: `1px solid ${ENTERED_COLOR}`,
+                color: ENTERED_COLOR,
+              }}
+            >
+              BY HAND
             </span>
           ) : null}
           {badges.map((badge) => (
@@ -244,11 +273,32 @@ export const RollEntry: React.FC<{
           className="jrpg-text-command"
           style={{
             fontSize: "16px",
-            color: "var(--jrpg-gold)",
+            color: roll.handEntered ? ENTERED_COLOR : "var(--jrpg-gold)",
             textShadow: "2px 2px 0 var(--jrpg-border-shadow)",
+            display: "flex",
+            alignItems: "baseline",
+            gap: "6px",
           }}
         >
-          = {roll.total}
+          {/* The superseded total, struck, BEFORE the number that replaced it —
+              reading order matches what happened: this was the roll, then this
+              was typed instead. Absent on a first-time entry, which is the
+              common case at a table that uses physical dice for everything. */}
+          {roll.handEntered && roll.supersededTotal !== undefined ? (
+            <span
+              data-testid="roll-superseded"
+              title="The server's roll, replaced by a hand-entered result"
+              style={{
+                fontSize: "12px",
+                textDecoration: "line-through",
+                opacity: 0.6,
+                textShadow: "none",
+              }}
+            >
+              {roll.supersededTotal}
+            </span>
+          ) : null}
+          <span>= {roll.total}</span>
         </div>
         {isLong && (
           <div

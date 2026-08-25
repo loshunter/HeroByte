@@ -337,18 +337,30 @@ describe("InitiativeMessageHandler", () => {
   });
 
   describe("a hand-entered initiative reaches the roll log", () => {
-    it("records it as a d20 result, labelled as entered rather than rolled", () => {
+    it("marks it hand-entered STRUCTURALLY, and claims no die", () => {
       state.characters[0].initiativeModifier = 3;
 
       handler.handleSetInitiative(state, "char1", "player1", 17, 3, false);
 
       expect(state.diceRolls).toHaveLength(1);
       const roll = state.diceRolls[0];
-      expect(roll.label).toBe("Fighter — initiative (entered)");
-      expect(roll.formula).toBe("d20 + 3");
+
+      // The marker is the load-bearing part. It used to be the word "(entered)"
+      // inside a free-text label, which no renderer could act on — so the row
+      // looked identical to a rolled one. This is what the log colours.
+      expect(roll.handEntered).toBe(true);
+      expect(roll.label).toBe("Fighter — initiative");
+
+      // And it no longer says "d20": a row claiming a die is a row claiming the
+      // server rolled it, which is the one thing this entry must not say.
+      expect(roll.formula).toBe("14 + 3");
+      expect(roll.formula).not.toMatch(/d20/);
+      expect(roll.breakdown[0].die).toBeUndefined();
+      expect(roll.breakdown[0].rolls).toBeUndefined();
+      expect(roll.breakdown[0].subtotal).toBe(14);
+      expect(roll.breakdown[1].subtotal).toBe(3);
+
       expect(roll.total).toBe(17);
-      // The implied face: what the player says the physical die showed.
-      expect(roll.breakdown[0].rolls).toEqual([14]);
       expect(roll.playerUid).toBe("player1");
     });
 
@@ -371,7 +383,7 @@ describe("InitiativeMessageHandler", () => {
       expect(state.diceRolls[0].visibility).toBe("dm");
     });
 
-    it("strikes the superseded value through, in the channel advantage uses", () => {
+    it("carries the superseded TOTAL, not the die face it used to", () => {
       // First value, then the override the DM allowed after a physical re-roll.
       handler.handleSetInitiative(state, "char1", "player1", 4, 0, false);
       state.characters[0].initiative = 4;
@@ -380,24 +392,34 @@ describe("InitiativeMessageHandler", () => {
       handler.handleSetInitiative(state, "char1", "player1", 18, 0, false);
 
       expect(state.diceRolls).toHaveLength(2);
-      expect(state.diceRolls[1].breakdown[0].rolls).toEqual([18]);
-      expect(state.diceRolls[1].breakdown[0].dropped).toEqual([4]);
+      // Roll-level, and the whole result. A struck-out FACE only means anything
+      // beside a number claiming to be a die, and this one no longer does —
+      // what a reader wants is "it was 4, now it is 18".
+      expect(state.diceRolls[1].supersededTotal).toBe(4);
+      expect(state.diceRolls[1].total).toBe(18);
+      expect(state.diceRolls[1].breakdown[0].dropped).toBeUndefined();
     });
 
     it("has nothing to strike through on a first entry", () => {
+      // The COMMON case at a physical-dice table: there was never a server roll
+      // to supersede, so the row shows the number alone.
       handler.handleSetInitiative(state, "char1", "player1", 11, 0, false);
 
-      expect(state.diceRolls[0].breakdown[0].dropped).toBeUndefined();
+      expect(state.diceRolls[0].handEntered).toBe(true);
+      expect(state.diceRolls[0].supersededTotal).toBeUndefined();
     });
 
-    it("refuses to call an impossible number a d20 roll", () => {
-      // A DM typing 47 for a monster is legitimate; logging it as "d20 rolled
-      // 47" would make the log the one thing at the table lying about dice.
+    it("takes a number no die could produce without complaint", () => {
+      // A DM typing 47 for a monster is legitimate. This used to need a special
+      // shape, because the ordinary shape claimed a d20 and 47 is not a face.
+      // With no die claimed anywhere, there is nothing left to be inconsistent
+      // with, and the two cases produce one shape.
       handler.handleSetInitiative(state, "char3", "dm-uid", 47, 0, true);
 
       const roll = state.diceRolls[0];
       expect(roll.formula).toBe("47");
       expect(roll.total).toBe(47);
+      expect(roll.handEntered).toBe(true);
       expect(roll.breakdown[0].die).toBeUndefined();
       expect(roll.breakdown[0].rolls).toBeUndefined();
     });

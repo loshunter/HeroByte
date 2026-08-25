@@ -123,12 +123,13 @@ export class InitiativeMessageHandler {
     );
 
     // Read BEFORE applyInitiative overwrites it: this is the value the entry
-    // supersedes, and the log strikes it through. The stored modifier is the
-    // one it was set with, so the difference is the face that was claimed.
-    const supersededFace =
-      character.initiative === undefined
-        ? undefined
-        : character.initiative - (character.initiativeModifier ?? 0);
+    // supersedes, and the log strikes it through.
+    //
+    // The whole TOTAL, not the implied die face it used to be. A struck-out
+    // face only means anything next to a number that claims to be a die, and
+    // this entry no longer claims one — what a reader wants to see is "it was
+    // 9, now it is 17", which is the pair of totals.
+    const supersededTotal = character.initiative;
 
     if (applyInitiative(this.characterService, state, characterId, initiative, modifier)) {
       this.logManualEntry(
@@ -137,7 +138,7 @@ export class InitiativeMessageHandler {
         character.name,
         initiative,
         modifier,
-        supersededFace,
+        supersededTotal,
         character.visibleToPlayers === false,
       );
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
@@ -161,7 +162,7 @@ export class InitiativeMessageHandler {
     characterName: string,
     initiative: number,
     modifier: number,
-    supersededFace?: number,
+    supersededTotal?: number,
     concealed = false,
   ): void {
     const author = this.playerService.findPlayer(state, senderUid);
@@ -170,15 +171,19 @@ export class InitiativeMessageHandler {
       return;
     }
 
-    const record = buildManualInitiativeRecord(initiative, modifier, supersededFace);
+    const record = buildManualInitiativeRecord(initiative, modifier);
     this.diceService.recordManual(state, {
       playerUid: senderUid,
       playerName: author.name,
       formula: record.formula,
       total: record.total,
       breakdown: record.breakdown,
-      // Says what it is. A hand-entered number must not read as a server roll.
-      label: `${characterName} — initiative (entered)`,
+      supersededTotal,
+      // No "(entered)" suffix any more: the roll now carries `handEntered`, so
+      // the log says it in colour, in a badge, and in the struck-through value
+      // beside the total. A parenthetical in a free-text label was the weakest
+      // of the four and the only one a renderer could not act on.
+      label: `${characterName} — initiative`,
       // A hidden creature's name must not reach the table by this path either.
       // Fixing only the ROLLED path would have moved the leak here rather than
       // closed it — hand entry is the ordinary physical-dice workflow.

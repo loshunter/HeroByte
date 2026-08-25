@@ -229,6 +229,34 @@ export interface DiceRoll {
    * same client-asserted-uid caveat as whispers — see visibleRollsFor.
    */
   visibility?: DiceVisibility;
+  /**
+   * Set when a PERSON typed this result instead of the server rolling it —
+   * the physical-dice workflow, for tables that roll real dice at a real table.
+   *
+   * This is the one field on this interface whose `total` the client asserted,
+   * and it exists to say so out loud rather than to hide it. Everything else
+   * here is still server-bound: `playerUid` and `playerName` come from the
+   * connection, and the server bounds the number it accepts. The guarantee this
+   * relaxes is arc defect D2's — "nothing on the wire from a client can set
+   * `total`" — and the reason it is safe to relax HERE and nowhere else is that
+   * the log renders it as visibly different from a rolled result. A table using
+   * physical dice is not being defrauded by a number it watched someone throw;
+   * it would be defrauded by that number being indistinguishable from the
+   * server's. So the marker is not decoration — it is the thing that makes the
+   * feature honest, and any renderer that drops it reintroduces the deceit.
+   */
+  handEntered?: boolean;
+  /**
+   * The total a hand-entered value REPLACED, when it replaced one — the server
+   * rolled, the DM allowed a physical re-roll, and this is what the log strikes
+   * through beside the new number.
+   *
+   * Roll-level rather than per-term, unlike `breakdown[].dropped`: advantage
+   * discards a die FACE within one term, while this supersedes a whole result.
+   * Absent on a first-time hand entry, which is the common case at a table that
+   * uses physical dice for everything — there was never a server roll to strike.
+   */
+  supersededTotal?: number;
   timestamp: number; // When the roll occurred
 }
 

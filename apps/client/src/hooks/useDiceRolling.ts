@@ -163,6 +163,11 @@ export function useDiceRolling({
       total: roll.total,
       mode: roll.mode,
       visibility: roll.visibility,
+      // Named here for the reason the comment above gives, and this pair is the
+      // costliest possible omission: dropping them does not blank a row, it
+      // renders a number a person typed as though the server had rolled it.
+      handEntered: roll.handEntered,
+      supersededTotal: roll.supersededTotal,
       timestamp: roll.timestamp,
     }));
   }, [snapshot]);

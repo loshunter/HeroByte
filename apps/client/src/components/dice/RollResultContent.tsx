@@ -98,7 +98,11 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
                 {roll.dropped && roll.dropped.length > 0 && (
                   <div
                     data-testid="roll-dropped"
-                    title="Discarded by advantage/disadvantage"
+                    title={
+                      result.handEntered
+                        ? "Superseded by a hand-entered result"
+                        : "Discarded by advantage/disadvantage"
+                    }
                     style={{
                       fontSize: "14px",
                       color: "var(--hero-text-dim)",
@@ -177,7 +181,7 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
               fontFamily: "var(--font-pixel)",
             }}
           >
-            TOTAL
+            {result.handEntered ? "ENTERED" : "TOTAL"}
           </div>
           <div
             style={{
@@ -189,6 +193,20 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
             }}
             data-testid="roll-result-total"
           >
+            {result.handEntered && result.supersededTotal !== undefined ? (
+              <span
+                data-testid="roll-result-superseded"
+                style={{
+                  fontSize: "20px",
+                  textDecoration: "line-through",
+                  opacity: 0.55,
+                  marginRight: "10px",
+                  textShadow: "none",
+                }}
+              >
+                {result.supersededTotal}
+              </span>
+            ) : null}
             {result.total}
           </div>
         </div>
