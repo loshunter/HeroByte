@@ -17,7 +17,7 @@ import { isRecord } from "./validators/index.js";
 // Token validators
 import { validateForkTableMessage } from "./validators/forkValidators.js";
 import { validateChatMessage, validateClearChatLogMessage } from "./validators/chatValidators.js";
-import { validateDiceRollMessage } from "./validators/diceValidators.js";
+import { validateDiceRollMessage, validateEnterRollMessage } from "./validators/diceValidators.js";
 import { validateLoadSessionMessage } from "./validators/sessionValidators.js";
 import {
   validateMoveMessage,
@@ -58,6 +58,9 @@ import {
   validateLinkTokenMessage,
   validateSetInitiativeMessage,
   validateCombatControlMessage,
+  validateRollInitiativeMessage,
+  validateRollInitiativeAllMessage,
+  validateSetInitiativeManualOverrideMessage,
 } from "./validators/index.js";
 
 // Map validators
@@ -183,6 +186,9 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "next-turn": validateCombatControlMessage,
   "previous-turn": validateCombatControlMessage,
   "clear-all-initiative": validateCombatControlMessage,
+  "roll-initiative": validateRollInitiativeMessage,
+  "roll-initiative-all": validateRollInitiativeAllMessage,
+  "set-initiative-manual-override": validateSetInitiativeManualOverrideMessage,
 
   // ==========================================================================
   // MAP MESSAGES
@@ -263,6 +269,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   // DICE / RTC MESSAGES
   // ==========================================================================
   "dice-roll": validateDiceRollMessage,
+  "enter-roll": validateEnterRollMessage,
   "clear-roll-history": validateRoomControlMessage,
 
   // ==========================================================================

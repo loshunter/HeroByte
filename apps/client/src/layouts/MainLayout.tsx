@@ -32,6 +32,7 @@ import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
 import { useNpcVisibility } from "../hooks/useNpcVisibility";
 import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 import { buildDMMenuProps } from "../features/dm/buildDMMenuProps";
+import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
 
 // Re-export for backward compatibility
 export type { MainLayoutProps, RollLogEntry };
@@ -170,6 +171,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleSendChat,
     viewingRoll,
     handleRoll,
+    handleEnterRoll,
+    canEnterOver,
     latestOwnRoll,
     handleClearLog,
     handleViewRoll,
@@ -209,6 +212,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     isSetting: isSettingInitiative,
     setInitiative,
     clearInitiative,
+    rollInitiative,
+    rollAllInitiative,
     error: initiativeError,
   } = useInitiativeSetting({
     snapshot,
@@ -220,8 +225,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
   // The one mapping from the props bag onto DMMenuContainer's shape — shared
   // with the mobile shell, so a DM feature is wired once, not per layout.
-  // setInitiative rides as an extra because it is a hook result, not bag state.
-  const dmMenuProps = buildDMMenuProps(props, { setInitiative });
+  // rollAllInitiative rides as an extra because it is a hook result, not bag state.
+  const dmMenuProps = buildDMMenuProps(props, { rollAllInitiative });
 
   // Turn navigation handlers for combat controls
   const handleNextTurn = useCallback(() => {
@@ -379,6 +384,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         combatActive={snapshot?.combatActive}
         currentTurnCharacterId={snapshot?.currentTurnCharacterId}
         onSetInitiative={setInitiative}
+        onRollInitiative={rollInitiative}
+        manualInitiativeAllowed={manualInitiativeAllowedFor(snapshot, isDM)}
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
         onClearInitiative={clearInitiative}
@@ -397,6 +404,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         diceRollerOpen={diceRollerOpen}
         toggleDiceRoller={toggleDiceRoller}
         handleRoll={handleRoll}
+        handleEnterRoll={handleEnterRoll}
+        canEnterOver={canEnterOver}
         latestOwnRoll={latestOwnRoll}
         rollLogOpen={rollLogOpen}
         rollHistory={rollHistory}

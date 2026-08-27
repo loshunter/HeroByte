@@ -29,7 +29,7 @@ Top to bottom:
 - **PLACE ON MAP** drops its token at the map's top-left corner cell — not at the center of your
   view — so recenter or drag it across from there. Pressing it again relocates that same token back
   to the corner rather than adding a second one.
-- **⚔️ ROLL MISSING INITIATIVE** rolls a d20 + modifier for every NPC that doesn't have initiative yet — one click to get the whole opposing side into the turn order.
+- **⚔️ ROLL MISSING INITIATIVE** asks the server to roll a d20 + modifier for every NPC that doesn't have initiative yet — one click to get the whole opposing side into the turn order. Each creature gets its own named line in the roll log, so you can see which goblin rolled what. A creature you've hidden with the **👁️ eye** rolls into **your** log only — the ambush stays an ambush until you reveal it. NPCs that already have a value are left alone.
 - NPC cards appear in the Entities panel labeled **Enemy**. The **👁️ eye button** on an NPC's card toggles whether players can see it at all — prep an ambush hidden, reveal it on the pounce. (Hidden NPCs stay visible to you.)
 - **DELETE** removes the NPC and its token.
 
@@ -86,6 +86,14 @@ Habits that save campaigns:
 - Save before risky experiments (mass-deleting, big map surgery).
 - On free-tier hosting the server's disk can reset when it idles — a session file in your downloads folder is your real persistence.
 - The save is a **DM artifact**: it contains secret doors, hidden NPCs, and GM notes in plain text. Don't hand it to players.
+
+### Rolls entered by hand
+
+Ticking **Players can enter rolls by hand** is for tables that roll physical dice. Players can type what they threw — for initiative, in the dice roller, or over a result the app already gave — and the entry lands in the shared log wearing a **BY HAND** badge, in its own colour, with anything it replaced struck through beside it. Nothing typed is disguised as an app roll, which is the point: your table is not being deceived by a number it watched someone throw, only by one it cannot tell apart.
+
+Who may correct what: a player can rewrite **their own** rolls, and you can rewrite anybody's, because you adjudicate the table. Correcting the same roll twice keeps the **original** app roll struck through rather than the intermediate guess.
+
+Untick it and the app's dice become the only way in **for players**. You keep hand entry either way — the switch exists for you to grant, not to take a vow.
 
 ### Player props
 

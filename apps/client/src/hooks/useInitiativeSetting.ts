@@ -127,5 +127,46 @@ export function useInitiativeSetting({
     [sendInitiativeUpdate],
   );
 
-  return { isSetting, setInitiative, clearInitiative, error };
+  /**
+   * Ask the SERVER to roll initiative for a character.
+   *
+   * Fire-and-forget, unlike setInitiative, and that is not laziness on two
+   * counts. The server applies the value as it rolls, and the result reaches
+   * every seat through the public roll log — so there is no pending state worth
+   * holding and nothing here to await. More importantly, reusing the
+   * confirmation machinery above would be actively WRONG for a roll: it
+   * resolves by noticing that the character's initiative CHANGED, and a roll
+   * that lands on the number already stored changes nothing. That request would
+   * hang for the full five seconds and then report a timeout for a roll the
+   * table watched succeed.
+   *
+   * @param characterId - Who to roll for
+   * @param initiativeModifier - The dial's current value; the server persists
+   *   it and rolls with it. Omitted means "use the stored modifier".
+   */
+  const rollInitiative = useCallback(
+    (characterId: string, initiativeModifier?: number) => {
+      sendMessage({
+        t: "roll-initiative",
+        characterId,
+        ...(initiativeModifier !== undefined ? { modifier: initiativeModifier } : {}),
+      });
+    },
+    [sendMessage],
+  );
+
+  /**
+   * Ask the SERVER to roll for every NPC that still has no initiative.
+   *
+   * ONE message, not one per NPC. The client used to run that loop itself; the
+   * limiter allows 100 messages per client per second and drops the rest
+   * silently, so a large enough encounter left its tail without initiative
+   * while the toast reported the full count. The loop lives on the server now,
+   * where nothing rate-limits one iteration from the next.
+   */
+  const rollAllInitiative = useCallback(() => {
+    sendMessage({ t: "roll-initiative-all" });
+  }, [sendMessage]);
+
+  return { isSetting, setInitiative, clearInitiative, rollInitiative, rollAllInitiative, error };
 }

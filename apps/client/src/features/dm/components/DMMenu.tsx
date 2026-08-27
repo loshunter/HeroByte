@@ -93,9 +93,11 @@ export function DMMenu({
   onNextTurn,
   onPreviousTurn,
   toast,
-  onSetInitiative,
+  onRollAllInitiative,
   playerPropsEnabled,
   onPlayerPropsEnabledChange,
+  initiativeManualOverride,
+  onInitiativeManualOverrideChange,
   mapStudio,
   presentation = "window",
 }: DMMenuProps) {
@@ -191,7 +193,7 @@ export function DMMenu({
           tokenPlacementError={tokenPlacementError}
           placingTokenForNpcId={placingTokenForNpcId}
           toast={toast}
-          onSetInitiative={onSetInitiative}
+          onRollAllInitiative={onRollAllInitiative}
         />
       )}
       {activeTab === "props" && (
@@ -242,6 +244,8 @@ export function DMMenu({
           playerCount={playerCount}
           playerPropsEnabled={playerPropsEnabled}
           onPlayerPropsEnabledChange={onPlayerPropsEnabledChange}
+          initiativeManualOverride={initiativeManualOverride}
+          onInitiativeManualOverrideChange={onInitiativeManualOverrideChange}
         />
       )}
     </div>

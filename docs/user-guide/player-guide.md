@@ -81,6 +81,19 @@ The dice tumble, land with a satisfying rattle, and the result panel breaks down
 - Natural 20 on a d20 → a gold **★ CRITICAL! ★** banner (and a sting). Natural 1 → **✖ FUMBLE! ✖**.
 - Every roll lands in the **📜 ROLL LOG** with your name, timestamp, formula, and total — shared with the whole table, newest first. Long formulas collapse; click an entry for its full breakdown.
 
+### Rolling real dice instead
+
+If your table rolls physical dice, HeroByte will take your word for it — and say so, loudly, so nobody has to wonder which numbers came from the app.
+
+There are two ways in, and they cover the two moments you need them:
+
+- **Before rolling.** Build the formula if you like, then press **✋ I ROLLED IT** instead of ROLL and type what the dice came to. You do not have to build anything first — with an empty tray, type `17` and that is what lands.
+- **After rolling.** The result panel offers **✋ THAT'S NOT WHAT I ROLLED**. Type the real number and the log entry is rewritten in place: the app's total struck through, yours beside it.
+
+Either way the entry wears a **BY HAND** badge in the log, in its own colour, with anything it replaced struck through. Nothing typed is ever dressed up as something the server rolled. Correct the same roll twice and the struck-through number stays the app's **original** roll, which is the one worth being able to check.
+
+You can correct your own rolls; the DM can correct anybody's. And your DM can switch hand entry off for players entirely (**DM Menu → Session**), in which case the app's dice are the only way in.
+
 ### Advantage and disadvantage
 
 **ADV** rolls the first die of your formula twice and keeps the higher; **DIS** keeps the
@@ -153,7 +166,7 @@ If your DM ticks **Players can add props** in their menu, a **📦 PROPS** butto
 - **Add a prop** — upload an image or paste a URL, give it a label, pick a size, press **+ ADD PROP**. It lands at the centre of your view; drag it into place. Generate a treasure chest in your favorite image tool and put it on the table while the DM describes the room — that's exactly what this is for.
 - **Scatter** — set **×N** before adding and that many copies land in a loose pile, numbered, each grabbable on its own.
 - **Reshape it** — the **🔄 Transform** tool puts scale and rotate handles on your props, the same handles drawings get.
-- **Yours are yours** — you can edit and delete only the props *you* created. The DM can adjust or remove anything.
+- **Yours are yours** — you can edit and delete only the props _you_ created. The DM can adjust or remove anything.
 
 If the button isn't there, the table has props switched off — ask your DM.
 
@@ -172,8 +185,9 @@ Press **INIT** on your card to set initiative:
 
 ![The initiative dialog: modifier, roll, or enter a physical die](img/initiative-modal.jpg)
 
-- Drag the **Initiative Modifier** number left/right (or roll with it at 0), then **ROLL INITIATIVE** — or press **USE PHYSICAL DICE** and type the d20 you rolled at your real table.
-- **The first initiative saved starts combat** for the whole table: cards reorder by initiative, a **⚔️ Combat Active** banner appears with `Turn N of M`, and the current combatant's card glows gold.
+- Drag the **Initiative Modifier** number left/right (or roll with it at 0), then **ROLL INITIATIVE**. The **server** throws the die, on the same generator the dice roller uses, and the result appears in the roll log for the whole table with your character's name on it. The dialog closes itself — there is nothing further to save.
+- Or press **USE PHYSICAL DICE**, type the d20 you rolled at your real table, and press **SAVE**. That reaches the log too, badged **BY HAND** — see [Rolling real dice instead](#rolling-real-dice-instead), which works the same way everywhere else you roll.
+- **The first initiative set starts combat** for the whole table: cards reorder by initiative, a **⚔️ Combat Active** banner appears with `Turn N of M`, and the current combatant's card glows gold.
 
 ![Combat active: turn banner, ordered cards, and the current turn highlighted](img/combat-active.jpg)
 

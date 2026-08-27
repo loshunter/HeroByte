@@ -18,18 +18,33 @@ import { DiceBar } from "./DiceBar";
 import { BuildStrip } from "./BuildStrip";
 import { MacroBar } from "./MacroBar";
 import { MobileResultOverlay } from "./MobileResultOverlay";
+import { HandEntry } from "./HandEntry";
 import { RollOptions } from "./RollOptions";
 import { JRPGButton } from "../ui/JRPGPanel";
 
 interface MobileDiceRollerProps {
   onRoll?: (request: { formula: string; mode: DiceRollMode; visibility: DiceVisibility }) => void;
   latestOwnRoll?: RollLogEntry | null;
+  /**
+   * Record what was thrown on physical dice instead of asking the server to
+   * roll. Absent hides the control entirely, so a surface that has not wired
+   * it up shows nothing rather than a button that does nothing.
+   */
+  onEnterRoll?: (request: { total: number; formula?: string; visibility: DiceVisibility }) => void;
+  /**
+   * Correct the result the server just returned. Separate from onEnterRoll
+   * because it rewrites a roll that exists rather than recording a new one —
+   * the id is the roller's own `result`.
+   */
+  onOverrideRoll?: (rollId: string, total: number) => void;
   onClose: () => void;
 }
 
 export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
   onRoll,
   latestOwnRoll,
+  onEnterRoll,
+  onOverrideRoll,
   onClose,
 }) => {
   const {
@@ -186,10 +201,36 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
             ⚂ ROLL!
           </JRPGButton>
         </div>
+
+        {/* Same control as the desktop roller, same slice — the standing rule
+            is that a feature ships its mobile surface with it. */}
+        {onEnterRoll && (
+          <div style={{ marginTop: "12px" }}>
+            <HandEntry
+              testId="mobile-roller-hand-entry"
+              compact
+              label="✋ I ROLLED IT"
+              prompt={
+                formulaFromBuild(build)
+                  ? `What did ${formulaFromBuild(build)} come to?`
+                  : "What did you roll?"
+              }
+              onSubmit={(total) =>
+                onEnterRoll({ total, formula: formulaFromBuild(build) || undefined, visibility })
+              }
+            />
+          </div>
+        )}
       </div>
 
       {/* Result Overlay - full-screen centered card so the total is always visible */}
-      <MobileResultOverlay result={result} onClose={() => setResult(null)} />
+      <MobileResultOverlay
+        result={result}
+        onClose={() => setResult(null)}
+        onEnterRoll={
+          onOverrideRoll && result ? (total) => onOverrideRoll(result.id, total) : undefined
+        }
+      />
     </div>
   );
 };

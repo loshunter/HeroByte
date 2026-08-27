@@ -15,6 +15,7 @@ import { BuildStrip } from "./BuildStrip";
 import { MacroBar } from "./MacroBar";
 import { ResultPanel } from "./ResultPanel";
 import { RollOptions } from "./RollOptions";
+import { HandEntry } from "./HandEntry";
 import { DraggableWindow } from "./DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 
@@ -23,10 +24,28 @@ interface DiceRollerProps {
   onRoll?: (request: { formula: string; mode: DiceRollMode; visibility: DiceVisibility }) => void;
   /** Newest roll in history authored by this player. */
   latestOwnRoll?: RollLogEntry | null;
+  /**
+   * Record what was thrown on physical dice instead of asking the server to
+   * roll. Absent hides the control entirely, so a surface that has not wired
+   * it up shows nothing rather than a button that does nothing.
+   */
+  onEnterRoll?: (request: { total: number; formula?: string; visibility: DiceVisibility }) => void;
+  /**
+   * Correct the result the server just returned. Separate from onEnterRoll
+   * because it rewrites a roll that exists rather than recording a new one —
+   * the id is the roller's own `result`.
+   */
+  onOverrideRoll?: (rollId: string, total: number) => void;
   onClose?: () => void;
 }
 
-export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, latestOwnRoll, onClose }) => {
+export const DiceRoller: React.FC<DiceRollerProps> = ({
+  onRoll,
+  latestOwnRoll,
+  onEnterRoll,
+  onOverrideRoll,
+  onClose,
+}) => {
   const {
     build,
     setBuild,
@@ -146,8 +165,36 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, latestOwnRoll, o
             </JRPGButton>
           </div>
 
+          {/* Typing a result is NOT gated on a build: "I rolled 17, put it on
+              the table" is the fastest path at a physical table, and the server
+              makes the total its own notation when no dice were named. */}
+          {onEnterRoll && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "8px" }}>
+              <HandEntry
+                testId="roller-hand-entry"
+                label="✋ I ROLLED IT"
+                prompt={
+                  formulaFromBuild(build)
+                    ? `What did ${formulaFromBuild(build)} come to?`
+                    : "What did you roll?"
+                }
+                onSubmit={(total) =>
+                  onEnterRoll({ total, formula: formulaFromBuild(build) || undefined, visibility })
+                }
+              />
+            </div>
+          )}
+
           {/* Result panel */}
-          {result && <ResultPanel result={result} onClose={() => setResult(null)} />}
+          {result && (
+            <ResultPanel
+              result={result}
+              onClose={() => setResult(null)}
+              onEnterRoll={
+                onOverrideRoll && result ? (total) => onOverrideRoll(result.id, total) : undefined
+              }
+            />
+          )}
         </div>
       </JRPGPanel>
     </DraggableWindow>

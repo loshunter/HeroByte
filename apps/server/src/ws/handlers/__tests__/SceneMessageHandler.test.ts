@@ -67,6 +67,27 @@ describe("SceneMessageHandler", () => {
     expect(roomState.playerPropsEnabled).toBe(false);
   });
 
+  it("stores the initiative-override toggle for the DM and refuses players", () => {
+    // Defaults ON, unlike every other flag here — so the meaningful DM action
+    // is turning it OFF, and that is what this asserts first.
+    expect(roomState.initiativeManualOverride).toBe(true);
+
+    expect(
+      handler.handle({ t: "set-initiative-manual-override", enabled: false }, "room", true),
+    ).toEqual({ broadcast: true, save: true });
+    expect(roomState.initiativeManualOverride).toBe(false);
+
+    // A player switching their own override back on is self-authorization, and
+    // the refusal must leave the stored value alone.
+    expect(() =>
+      handler.handle({ t: "set-initiative-manual-override", enabled: true }, "room", false),
+    ).toThrow("Initiative override changes require DM permission");
+    expect(roomState.initiativeManualOverride).toBe(false);
+
+    handler.handle({ t: "set-initiative-manual-override", enabled: true }, "room", true);
+    expect(roomState.initiativeManualOverride).toBe(true);
+  });
+
   it("stores the table sight default for a DM and refuses a player", () => {
     expect(handler.handle({ t: "set-default-vision-radius", radius: 60 }, "room", true)).toEqual({
       broadcast: true,

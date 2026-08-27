@@ -334,10 +334,29 @@ describe("the map-edit palette", () => {
       // A tap generates compat mouse events where a drag does not, so a click
       // tool on the phone would drop two stamps per tap. These must not appear
       // until that design pass lands (M6/M7).
-      for (const absent of [/Place/, /Scatter/, /Light/, /Paint/, /Erase/, /Select/]) {
+      //
+      // Select is NOT in this list, and the difference is not an oversight.
+      // The double-fire the others suffer needs BOTH paths to act: the native
+      // touch path arms only when mapEditDragMode, which is false for select,
+      // so only the compat-mouse path resolves it — once, and idempotently.
+      for (const absent of [/Place/, /Scatter/, /Light/, /Paint/, /Erase/]) {
         expect(within(grid).queryByRole("button", { name: absent })).toBeNull();
       }
       expect(MOBILE_TOOL_TILES.every((tile) => isDragTool(tile.id))).toBe(true);
+    });
+
+    // Select is reachable but is NOT a tile — the assertion above still pins
+    // MOBILE_TOOL_TILES as drag-only, so this proves the control exists without
+    // that list having grown a non-drag member to carry it.
+    it("arms Select from the sheet without adding it to the tile list", () => {
+      const bar = toolbar({ isLive: true });
+      render(<MobileFloatingControls {...props({ surface: "tools", mapEditToolbarProps: bar })} />);
+
+      const sheet = screen.getByRole("dialog", { name: /map tools/i });
+      fireEvent.click(within(sheet).getByRole("button", { name: /^Select$/ }));
+
+      expect(bar.onSelectSubTool).toHaveBeenCalledWith("select");
+      expect(MOBILE_TOOL_TILES.some((tile) => (tile.id as string) === "select")).toBe(false);
     });
   });
 });

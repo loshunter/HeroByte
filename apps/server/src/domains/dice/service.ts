@@ -30,6 +30,13 @@ export interface DiceRollRequest {
   terms: DiceTerm[];
   mode: DiceRollMode;
   visibility: DiceVisibility;
+  /**
+   * Optional "what this was for" line. Set by callers that roll on behalf of
+   * something the table needs named — initiative is the first. Never from the
+   * wire: `{ t: "dice-roll" }` has no field for it, so a client cannot caption
+   * its own roll.
+   */
+  label?: string;
 }
 
 /**
@@ -66,6 +73,108 @@ export class DiceService {
     // reads as normal/public, which is what every pre-S5 roll already means.
     if (rolled.mode !== "normal") roll.mode = rolled.mode;
     if (request.visibility !== "public") roll.visibility = request.visibility;
+    if (request.label !== undefined) roll.label = request.label;
+
+    this.addRoll(state, roll);
+    return roll;
+  }
+
+  /**
+   * Record a roll the server did NOT throw: a physical die, reported by hand.
+   *
+   * Read the file header first, because this is the one method that bends it.
+   * `rollFor` refuses a client-built DiceRoll on purpose — that shape is what
+   * made dice forgeable (arc defect D2). Here a client number really does
+   * reach the log, and the reason it is not the same hole is worth being
+   * precise about:
+   *
+   *   - identity is still the connection's. `playerUid` and `playerName` come
+   *     from the caller's own record, exactly as in `rollFor`
+   *   - `id` and `timestamp` are still minted here, so history cannot be
+   *     back-dated or given a colliding id
+   *   - the entry is LABELLED. A manual initiative says so in the log; it is
+   *     not passed off as something the server rolled
+   *   - and it buys nothing a player did not already have: hand-entered
+   *     initiative predates this method, and the DM can switch it off
+   *
+   * It WAS documented here that this "must never become a general 'record my
+   * roll' entry point". The owner overturned that on 2026-08-24, deliberately
+   * and with the reason stated: their table plays with physical dice, and a VTT
+   * that cannot record what the table actually threw is not usable for them.
+   *
+   * The guarantee that lock was protecting is preserved by other means, and it
+   * is worth being precise about which part was load-bearing. It was never
+   * "the client must not send a number" for its own sake — it was "a number the
+   * client sent must not be mistakable for one the server rolled". So:
+   *
+   *   - `playerUid` and `playerName` are still bound from the connection here,
+   *     exactly as in `rollFor`. A caller cannot forge WHO rolled, only WHAT
+   *   - every entry through this path sets `handEntered`, which the log renders
+   *     in a different colour with a BY HAND badge and the superseded value
+   *     struck through beside it. Dropping that marker is the actual regression
+   *     to guard against, and it is pinned by tests on both sides of the wire
+   *   - the table setting still gates it, defaulting ON but the DM's to revoke
+   *
+   * What remains true: this takes a PRESENTATION, not a formula. It does not
+   * parse, does not roll, and must never acquire an RNG — `cryptoDiceRng` has
+   * exactly one caller and this is not it.
+   */
+  recordManual(
+    state: RoomState,
+    request: {
+      playerUid: string;
+      playerName: string;
+      formula: string;
+      total: number;
+      breakdown: DiceRoll["breakdown"];
+      /**
+       * What the roll was FOR. Optional since the generic physical-dice path
+       * joined initiative here: "Goblin A — initiative" names a creature the
+       * roller is not, but a player typing their own attack total has nothing
+       * to say that `playerName` does not already say.
+       */
+      label?: string;
+      /**
+       * Absent means public, the same rule `rollFor` follows. Supplied when the
+       * SUBJECT of the entry is concealed: a hidden NPC's name must not travel
+       * in the roll log, which `visibleRollsFor` filters on the roll's own
+       * visibility without ever consulting state.characters.
+       */
+      visibility?: DiceVisibility;
+      /**
+       * The server-rolled total this replaces, when it replaces one. Absent on
+       * a first-time entry — the common case at a physical-dice table, where
+       * there was never a server roll to supersede.
+       */
+      supersededTotal?: number;
+    },
+    now: number = Date.now(),
+  ): DiceRoll {
+    const roll: DiceRoll = {
+      id: randomUUID(),
+      playerUid: request.playerUid,
+      playerName: request.playerName,
+      formula: request.formula,
+      total: request.total,
+      breakdown: request.breakdown,
+      timestamp: now,
+      // Unconditional, and every caller gets it whether they asked or not.
+      // This is the marker that makes a client-asserted number honest, so it
+      // is set HERE rather than passed in — a caller that could omit it is a
+      // caller that could launder a typed number into looking rolled.
+      handEntered: true,
+    };
+    if (request.label !== undefined) {
+      roll.label = request.label;
+    }
+    if (request.supersededTotal !== undefined) {
+      roll.supersededTotal = request.supersededTotal;
+    }
+    // Set only when it carries information, exactly as rollFor does: an absent
+    // visibility already reads as public everywhere downstream.
+    if (request.visibility !== undefined && request.visibility !== "public") {
+      roll.visibility = request.visibility;
+    }
 
     this.addRoll(state, roll);
     return roll;

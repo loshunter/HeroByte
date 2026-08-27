@@ -100,6 +100,7 @@ describe("MessageRouter - Authorization Characterization", () => {
       monsterHpDisplay: "exact" as const,
       diagonalRule: "5e" as const,
       playerPropsEnabled: false,
+      initiativeManualOverride: true,
       defaultVisionRadius: null,
     };
 

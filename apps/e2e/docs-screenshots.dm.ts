@@ -76,8 +76,10 @@ test.describe("docs screenshots: DM", () => {
       await expect(page.getByText(/Initiative:/).first()).toBeVisible();
       await shotPage(page, "initiative-modal");
       await page.getByRole("button", { name: "Roll Initiative" }).click();
-      await page.getByRole("button", { name: "Save", exact: true }).click();
-      // First saved initiative auto-starts combat; the banner appears for all.
+      // Rolling is ONE press now. The server rolls, applies the value and the
+      // modal closes itself, so the Save that used to follow this line no
+      // longer exists on the roll path — Save belongs to manual entry only.
+      // The first applied initiative auto-starts combat; the banner is public.
       await expect(page.getByText("Combat Active")).toBeVisible({ timeout: 10_000 });
       await shotPage(page, "combat-active");
       await selectDMTab(page, "Players");

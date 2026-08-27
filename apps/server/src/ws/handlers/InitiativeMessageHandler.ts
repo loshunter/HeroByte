@@ -18,10 +18,13 @@
  * @module ws/handlers/InitiativeMessageHandler
  */
 
-import type {} from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { RoomService } from "../../domains/room/service.js";
+import type { DiceService } from "../../domains/dice/service.js";
+import type { PlayerService } from "../../domains/player/service.js";
+import { applyInitiative } from "./applyInitiative.js";
+import { buildManualInitiativeRecord } from "./initiativeRollRecord.js";
 
 /**
  * Result of handling an initiative message
@@ -39,10 +42,19 @@ export interface InitiativeMessageResult {
 export class InitiativeMessageHandler {
   private characterService: CharacterService;
   private roomService: RoomService;
+  private diceService: DiceService;
+  private playerService: PlayerService;
 
-  constructor(characterService: CharacterService, roomService: RoomService) {
+  constructor(
+    characterService: CharacterService,
+    roomService: RoomService,
+    diceService: DiceService,
+    playerService: PlayerService,
+  ) {
     this.characterService = characterService;
     this.roomService = roomService;
+    this.diceService = diceService;
+    this.playerService = playerService;
   }
 
   /**
@@ -81,6 +93,21 @@ export class InitiativeMessageHandler {
       return { broadcast: false, save: false };
     }
 
+    // The manual path is a DM-toggleable table setting, ON by default. The DM
+    // is never blocked: they are who the toggle exists for, and they are the
+    // one who authorises a physical re-roll in the first place.
+    //
+    // Gated on SETTING a value, not on clearing one. Clearing is not an
+    // override — a player withdrawing from a fight is not claiming a number —
+    // and folding the two together would make "turn off overrides" quietly
+    // mean "players can never remove themselves from the order".
+    if (!isDM && initiative !== undefined && !state.initiativeManualOverride) {
+      console.warn(
+        `Player ${senderUid} attempted manual initiative entry while the table has it disabled`,
+      );
+      return { broadcast: false, save: false };
+    }
+
     if (initiative === undefined) {
       if (this.characterService.clearInitiative(state, characterId)) {
         console.log(`[Server] Cleared initiative for ${character.name}`);
@@ -95,32 +122,73 @@ export class InitiativeMessageHandler {
       `[Server] Setting initiative for ${character.name} (${characterId}): initiative=${initiative}, modifier=${modifier}`,
     );
 
-    if (this.characterService.setInitiative(state, characterId, initiative, modifier)) {
+    // Read BEFORE applyInitiative overwrites it: this is the value the entry
+    // supersedes, and the log strikes it through.
+    //
+    // The whole TOTAL, not the implied die face it used to be. A struck-out
+    // face only means anything next to a number that claims to be a die, and
+    // this entry no longer claims one — what a reader wants to see is "it was
+    // 9, now it is 17", which is the pair of totals.
+    const supersededTotal = character.initiative;
+
+    if (applyInitiative(this.characterService, state, characterId, initiative, modifier)) {
+      this.logManualEntry(
+        state,
+        senderUid,
+        character.name,
+        initiative,
+        modifier,
+        supersededTotal,
+        character.visibleToPlayers === false,
+      );
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
-
-      // Auto-start combat if not already active and this is the first initiative roll
-      if (!state.combatActive) {
-        state.combatActive = true;
-        state.currentTurnCharacterId = characterId;
-        console.log(
-          `[Server] Auto-starting combat with first initiative roll from ${character.name}`,
-        );
-      }
-      // If combat is active but no turn is set, set the first character with initiative as current turn
-      else if (!state.currentTurnCharacterId) {
-        const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
-        if (charactersInOrder.length > 0) {
-          state.currentTurnCharacterId = charactersInOrder[0].id;
-          console.log(
-            `[Server] Combat active with no current turn, setting first character as current turn: ${charactersInOrder[0].name}`,
-          );
-        }
-      }
-
       return { broadcast: true, save: true };
     }
 
     return { broadcast: false, save: false };
+  }
+
+  /**
+   * Put a hand-entered initiative in the roll log.
+   *
+   * Best-effort by design: a missing player record drops the LOG LINE, never
+   * the initiative itself. The value is already stored by the time this runs,
+   * and refusing to record it would be a strictly worse outcome than recording
+   * nothing — the table would have a turn order with no explanation.
+   */
+  private logManualEntry(
+    state: RoomState,
+    senderUid: string,
+    characterName: string,
+    initiative: number,
+    modifier: number,
+    supersededTotal?: number,
+    concealed = false,
+  ): void {
+    const author = this.playerService.findPlayer(state, senderUid);
+    if (!author) {
+      console.warn(`[Initiative] No player record for ${senderUid}; entry stored but not logged`);
+      return;
+    }
+
+    const record = buildManualInitiativeRecord(initiative, modifier);
+    this.diceService.recordManual(state, {
+      playerUid: senderUid,
+      playerName: author.name,
+      formula: record.formula,
+      total: record.total,
+      breakdown: record.breakdown,
+      supersededTotal,
+      // No "(entered)" suffix any more: the roll now carries `handEntered`, so
+      // the log says it in colour, in a badge, and in the struck-through value
+      // beside the total. A parenthetical in a free-text label was the weakest
+      // of the four and the only one a renderer could not act on.
+      label: `${characterName} — initiative`,
+      // A hidden creature's name must not reach the table by this path either.
+      // Fixing only the ROLLED path would have moved the leak here rather than
+      // closed it — hand entry is the ordinary physical-dice workflow.
+      visibility: concealed ? "dm" : "public",
+    });
   }
 
   /**

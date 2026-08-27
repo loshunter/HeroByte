@@ -59,6 +59,16 @@ export class SceneMessageHandler {
       this.getRoomState(roomId).playerPropsEnabled = message.enabled;
       return { broadcast: true, save: true };
     }
+    if (message.t === "set-initiative-manual-override") {
+      if (!isDM) {
+        throw new Error("Initiative override changes require DM permission");
+      }
+      // Stored only, like every setting here. The initiative handler re-reads
+      // it per message; a client whose control is still rendered gets refused
+      // rather than obeyed.
+      this.getRoomState(roomId).initiativeManualOverride = message.enabled;
+      return { broadcast: true, save: true };
+    }
     if (message.t === "set-default-vision-radius") {
       if (!isDM) {
         throw new Error("Default vision radius changes require DM permission");

@@ -12,7 +12,7 @@ import { DiceRoller } from "../components/dice/DiceRoller";
 import { ResultPanel } from "../components/dice/ResultPanel";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollLogEntry } from "../components/dice/rollLogTypes";
-import type { DiceRollRequest } from "../hooks/useDiceRolling";
+import type { DiceRollRequest, EnterRollRequest } from "../hooks/useDiceRolling";
 
 export interface DicePanelsProps {
   diceRollerOpen: boolean;
@@ -21,6 +21,10 @@ export interface DicePanelsProps {
   handleRoll: (request: DiceRollRequest) => void;
   /** Newest roll authored by this player — how the roller learns its result. */
   latestOwnRoll: RollLogEntry | null;
+  /** Record what was thrown on physical dice, fresh or over an existing roll. */
+  handleEnterRoll: (request: EnterRollRequest) => void;
+  /** Whether this viewer may rewrite that roll — the server enforces it too. */
+  canEnterOver: (roll: RollLogEntry | null | undefined) => boolean;
   rollLogOpen: boolean;
   toggleRollLog: (open: boolean) => void;
   rollHistory: RollLogEntry[];
@@ -40,6 +44,8 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
   toggleDiceRoller,
   handleRoll,
   latestOwnRoll,
+  handleEnterRoll,
+  canEnterOver,
   rollLogOpen,
   toggleRollLog,
   rollHistory,
@@ -57,6 +63,8 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
       <DiceRoller
         onRoll={handleRoll}
         latestOwnRoll={latestOwnRoll}
+        onEnterRoll={handleEnterRoll}
+        onOverrideRoll={(rollId, total) => handleEnterRoll({ rollId, total })}
         onClose={() => toggleDiceRoller(false)}
       />
     )}
@@ -90,6 +98,14 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
         second, empty DiceRoller — `viewingRoll` was read as a boolean — so the
         desktop "view roll" gesture showed a blank roller instead of the roll,
         and that roller could fire real rolls into a no-op onRoll. */}
-    <ResultPanel result={viewingRoll} onClose={() => handleViewRoll(null)} />
+    <ResultPanel
+      result={viewingRoll}
+      onClose={() => handleViewRoll(null)}
+      onEnterRoll={
+        canEnterOver(viewingRoll) && viewingRoll
+          ? (total) => handleEnterRoll({ rollId: viewingRoll.id, total })
+          : undefined
+      }
+    />
   </>
 );

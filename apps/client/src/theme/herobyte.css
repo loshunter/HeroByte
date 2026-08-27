@@ -1479,6 +1479,21 @@ h4 {
   margin-top: 8px;
 }
 
+/* DELETE is the one destructive control in the sheet, and it fires on a single
+   tap with no confirm — the same contract the desktop Inspector's DELETE has.
+   It reads as destructive rather than relying on the DM reading the label.
+   Min-height/width still come from the shared floor rule above; only colour
+   changes here, so the 44px target is unaffected. */
+.mobile-tool-sheet__button--danger {
+  border-color: var(--hero-danger);
+  color: var(--hero-danger);
+}
+
+.mobile-tool-sheet__button--danger:disabled {
+  border-color: var(--hero-gold-light);
+  color: var(--hero-text-light);
+}
+
 .mobile-tool-sheet__label {
   display: block;
   margin-bottom: 4px;

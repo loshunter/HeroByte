@@ -108,10 +108,17 @@ export interface DMMenuProps {
     success: (message: string) => void;
     error: (message: string) => void;
   };
-  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  onRollAllInitiative?: () => void;
   /** Player-props toggle (Session tab): players may manage their OWN props. */
   playerPropsEnabled?: boolean;
   onPlayerPropsEnabledChange?: (enabled: boolean) => void;
+  /**
+   * Initiative manual-override toggle (Session tab): players may enter a
+   * number by hand instead of rolling. Unlike the flag above this one is ON by
+   * default, so the caller derives it with `!== false`.
+   */
+  initiativeManualOverride?: boolean;
+  onInitiativeManualOverrideChange?: (enabled: boolean) => void;
   mapStudio?: MapStudioController;
   /**
    * How the menu presents (M4b). "window" is the desktop shape: the floating

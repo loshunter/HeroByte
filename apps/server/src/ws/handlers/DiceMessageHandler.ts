@@ -42,6 +42,92 @@ export class DiceMessageHandler {
   ) {}
 
   /**
+   * Record what was thrown on physical dice — a fresh entry, or a rewrite of a
+   * roll the server already made.
+   *
+   * Three gates, and they answer different questions:
+   *
+   *   - the TABLE setting decides whether players may do this at all. The DM is
+   *     never blocked by it: they are who the switch exists for. Same rule, and
+   *     the same `!state.initiativeManualOverride` test, as hand-entered
+   *     initiative — one switch governs both, which is why its DM-menu copy no
+   *     longer names initiative
+   *   - OWNERSHIP decides whose roll may be rewritten. A player may correct
+   *     their own number; the DM may correct anybody's, because they adjudicate
+   *     the table. Rewriting someone else's roll is otherwise a forgery with
+   *     their name on it, which is the one thing the marker cannot excuse
+   *   - and the shape gate has already bounded `total`
+   *
+   * A rewrite keeps the FIRST superseded value. Override twice and the log
+   * still shows what the SERVER rolled struck through, not the intermediate
+   * guess — the original is the thing a table would want to audit.
+   */
+  handleEnterRoll(
+    state: RoomState,
+    senderUid: string,
+    isDM: boolean,
+    total: number,
+    rollId?: string,
+    formula?: string,
+    visibility?: DiceVisibility,
+  ): DiceMessageResult {
+    if (!isDM && !state.initiativeManualOverride) {
+      console.warn(`[Dice] ${senderUid} tried to enter a roll while the table has it disabled`);
+      return { broadcast: false, save: false };
+    }
+
+    if (rollId !== undefined) {
+      return this.rewriteRoll(state, senderUid, isDM, rollId, total);
+    }
+
+    const author = this.playerService.findPlayer(state, senderUid);
+    if (!author) {
+      console.warn(`[Dice] No player record for ${senderUid}; entered roll not recorded`);
+      return { broadcast: false, save: false };
+    }
+
+    this.diceService.recordManual(state, {
+      playerUid: senderUid,
+      playerName: author.name,
+      // A bare entry carries no notation, and the total IS the notation then.
+      formula: formula ?? String(total),
+      total,
+      breakdown: [{ tokenId: "t0", subtotal: total }],
+      visibility: coerceDiceVisibility(visibility),
+    });
+    return { broadcast: true, save: true };
+  }
+
+  /** Rewrite one roll in place. See handleEnterRoll for the rules. */
+  private rewriteRoll(
+    state: RoomState,
+    senderUid: string,
+    isDM: boolean,
+    rollId: string,
+    total: number,
+  ): DiceMessageResult {
+    const roll = state.diceRolls.find((candidate) => candidate.id === rollId);
+    if (!roll) {
+      console.warn(`[Dice] ${senderUid} tried to enter a roll that is not in history`);
+      return { broadcast: false, save: false };
+    }
+
+    if (!isDM && roll.playerUid !== senderUid) {
+      console.warn(`[Dice] ${senderUid} tried to rewrite a roll belonging to ${roll.playerUid}`);
+      return { broadcast: false, save: false };
+    }
+
+    // First writer wins: the value worth keeping is what the SERVER rolled, not
+    // whatever the last correction happened to replace.
+    if (roll.supersededTotal === undefined) {
+      roll.supersededTotal = roll.total;
+    }
+    roll.total = total;
+    roll.handEntered = true;
+    return { broadcast: true, save: true };
+  }
+
+  /**
    * Roll `formula` on behalf of `senderUid` and record the result.
    *
    * The display name is read from the sender's own player record rather than

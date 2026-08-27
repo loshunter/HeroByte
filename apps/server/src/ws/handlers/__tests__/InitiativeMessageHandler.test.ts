@@ -22,11 +22,17 @@ import { createEmptyRoomState } from "../../../domains/room/model.js";
 import type { RoomState } from "../../../domains/room/model.js";
 import type { CharacterService } from "../../../domains/character/service.js";
 import type { RoomService } from "../../../domains/room/service.js";
+import { DiceService } from "../../../domains/dice/service.js";
+import type { PlayerService } from "../../../domains/player/service.js";
 
 describe("InitiativeMessageHandler", () => {
   let handler: InitiativeMessageHandler;
   let mockCharacterService: CharacterService;
   let mockRoomService: RoomService;
+  // Real, not a stub: commit 4 makes the manual path WRITE to the log, and a
+  // stub would let "it was recorded" pass while nothing was.
+  let diceService: DiceService;
+  let mockPlayerService: PlayerService;
   let state: RoomState;
 
   beforeEach(() => {
@@ -115,7 +121,19 @@ describe("InitiativeMessageHandler", () => {
       saveState: vi.fn(),
     } as unknown as RoomService;
 
-    handler = new InitiativeMessageHandler(mockCharacterService, mockRoomService);
+    diceService = new DiceService();
+    mockPlayerService = {
+      findPlayer: vi.fn((_state: RoomState, uid: string) =>
+        uid === "ghost" ? undefined : { uid, name: `Player ${uid}` },
+      ),
+    } as unknown as PlayerService;
+
+    handler = new InitiativeMessageHandler(
+      mockCharacterService,
+      mockRoomService,
+      diceService,
+      mockPlayerService,
+    );
   });
 
   describe("handleSetInitiative", () => {
@@ -276,6 +294,150 @@ describe("InitiativeMessageHandler", () => {
       expect(state.combatActive).toBe(true);
       // Current turn should remain with first character who rolled
       expect(state.currentTurnCharacterId).toBe("char1");
+    });
+  });
+
+  describe("the manual-entry toggle", () => {
+    it("defaults ON, so manual entry works with nothing configured", () => {
+      expect(state.initiativeManualOverride).toBe(true);
+
+      const result = handler.handleSetInitiative(state, "char1", "player1", 15, 2, false);
+
+      expect(result).toEqual({ broadcast: true, save: true });
+    });
+
+    it("refuses a player's manual entry when the DM has turned it off", () => {
+      state.initiativeManualOverride = false;
+
+      const result = handler.handleSetInitiative(state, "char1", "player1", 15, 2, false);
+
+      expect(result).toEqual({ broadcast: false, save: false });
+      expect(mockCharacterService.setInitiative).not.toHaveBeenCalled();
+    });
+
+    it("never blocks the DM, who is who the toggle exists for", () => {
+      state.initiativeManualOverride = false;
+
+      const result = handler.handleSetInitiative(state, "char1", "dm-uid", 15, 2, true);
+
+      expect(result).toEqual({ broadcast: true, save: true });
+    });
+
+    it("still lets a player CLEAR their initiative while the toggle is off", () => {
+      // Clearing is not an override: a player withdrawing from a fight is not
+      // claiming a number. Folding the two together would make "no overrides"
+      // quietly mean "you can never leave the order".
+      state.initiativeManualOverride = false;
+
+      const result = handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false);
+
+      expect(result).toEqual({ broadcast: true, save: true });
+      expect(mockCharacterService.clearInitiative).toHaveBeenCalledWith(state, "char1");
+    });
+  });
+
+  describe("a hand-entered initiative reaches the roll log", () => {
+    it("marks it hand-entered STRUCTURALLY, and claims no die", () => {
+      state.characters[0].initiativeModifier = 3;
+
+      handler.handleSetInitiative(state, "char1", "player1", 17, 3, false);
+
+      expect(state.diceRolls).toHaveLength(1);
+      const roll = state.diceRolls[0];
+
+      // The marker is the load-bearing part. It used to be the word "(entered)"
+      // inside a free-text label, which no renderer could act on — so the row
+      // looked identical to a rolled one. This is what the log colours.
+      expect(roll.handEntered).toBe(true);
+      expect(roll.label).toBe("Fighter — initiative");
+
+      // And it no longer says "d20": a row claiming a die is a row claiming the
+      // server rolled it, which is the one thing this entry must not say.
+      expect(roll.formula).toBe("14 + 3");
+      expect(roll.formula).not.toMatch(/d20/);
+      expect(roll.breakdown[0].die).toBeUndefined();
+      expect(roll.breakdown[0].rolls).toBeUndefined();
+      expect(roll.breakdown[0].subtotal).toBe(14);
+      expect(roll.breakdown[1].subtotal).toBe(3);
+
+      expect(roll.total).toBe(17);
+      expect(roll.playerUid).toBe("player1");
+    });
+
+    it("is public for a visible character", () => {
+      handler.handleSetInitiative(state, "char1", "player1", 17, 3, false);
+
+      // Absent means public, the convention rollFor already follows.
+      expect(state.diceRolls[0].visibility).toBeUndefined();
+    });
+
+    it("keeps a HIDDEN character's hand-entered line away from players", () => {
+      // The rolled path and this one both name the creature, so gating only
+      // the roll would have moved the leak here rather than closed it — and
+      // hand entry is the ordinary physical-dice workflow, not an edge case.
+      const target = state.characters.find((character) => character.id === "char1");
+      if (target) target.visibleToPlayers = false;
+
+      handler.handleSetInitiative(state, "char1", "player1", 17, 3, true);
+
+      expect(state.diceRolls[0].visibility).toBe("dm");
+    });
+
+    it("carries the superseded TOTAL, not the die face it used to", () => {
+      // First value, then the override the DM allowed after a physical re-roll.
+      handler.handleSetInitiative(state, "char1", "player1", 4, 0, false);
+      state.characters[0].initiative = 4;
+      state.characters[0].initiativeModifier = 0;
+
+      handler.handleSetInitiative(state, "char1", "player1", 18, 0, false);
+
+      expect(state.diceRolls).toHaveLength(2);
+      // Roll-level, and the whole result. A struck-out FACE only means anything
+      // beside a number claiming to be a die, and this one no longer does —
+      // what a reader wants is "it was 4, now it is 18".
+      expect(state.diceRolls[1].supersededTotal).toBe(4);
+      expect(state.diceRolls[1].total).toBe(18);
+      expect(state.diceRolls[1].breakdown[0].dropped).toBeUndefined();
+    });
+
+    it("has nothing to strike through on a first entry", () => {
+      // The COMMON case at a physical-dice table: there was never a server roll
+      // to supersede, so the row shows the number alone.
+      handler.handleSetInitiative(state, "char1", "player1", 11, 0, false);
+
+      expect(state.diceRolls[0].handEntered).toBe(true);
+      expect(state.diceRolls[0].supersededTotal).toBeUndefined();
+    });
+
+    it("takes a number no die could produce without complaint", () => {
+      // A DM typing 47 for a monster is legitimate. This used to need a special
+      // shape, because the ordinary shape claimed a d20 and 47 is not a face.
+      // With no die claimed anywhere, there is nothing left to be inconsistent
+      // with, and the two cases produce one shape.
+      handler.handleSetInitiative(state, "char3", "dm-uid", 47, 0, true);
+
+      const roll = state.diceRolls[0];
+      expect(roll.formula).toBe("47");
+      expect(roll.total).toBe(47);
+      expect(roll.handEntered).toBe(true);
+      expect(roll.breakdown[0].die).toBeUndefined();
+      expect(roll.breakdown[0].rolls).toBeUndefined();
+    });
+
+    it("logs nothing when initiative is CLEARED — there is no roll to show", () => {
+      handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false);
+
+      expect(state.diceRolls).toHaveLength(0);
+    });
+
+    it("stores the value even when the log line cannot be written", () => {
+      // A missing player record must cost the LOG LINE, never the initiative:
+      // a turn order with no explanation beats no turn order.
+      const result = handler.handleSetInitiative(state, "char3", "ghost", 12, 0, true);
+
+      expect(result).toEqual({ broadcast: true, save: true });
+      expect(mockCharacterService.setInitiative).toHaveBeenCalledWith(state, "char3", 12, 0);
+      expect(state.diceRolls).toHaveLength(0);
     });
   });
 

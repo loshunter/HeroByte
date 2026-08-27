@@ -1334,8 +1334,37 @@ describe("validateMessage", () => {
         }),
       ).toMatchObject({
         valid: false,
-        error: "set-initiative: initiativeModifier must be a number",
+        error: "set-initiative: initiativeModifier must be -20 to 20",
       });
+    });
+
+    it("rejects set-initiative with an out-of-range initiativeModifier", () => {
+      // The bound this gained: previously any finite number was accepted, which
+      // left a hand-crafted message able to store an enormous stored modifier
+      // and make every later roll win. Both client editors clamp to +/-20.
+      for (const initiativeModifier of [21, -21, 9999, 2.5]) {
+        expect(
+          validateMessage({
+            t: "set-initiative",
+            characterId: "char-123",
+            initiative: 15,
+            initiativeModifier,
+          }).valid,
+        ).toBe(false);
+      }
+    });
+
+    it("still accepts set-initiative at the range endpoints", () => {
+      for (const initiativeModifier of [20, -20, 0]) {
+        expect(
+          validateMessage({
+            t: "set-initiative",
+            characterId: "char-123",
+            initiative: 15,
+            initiativeModifier,
+          }).valid,
+        ).toBe(true);
+      }
     });
   });
 

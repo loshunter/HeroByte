@@ -34,6 +34,15 @@ export type RollResult = {
   playerUid?: string;
   /** Canonical notation the server rolled, e.g. "2d20 + 5". */
   formula: string;
+  /**
+   * What the roll was FOR, when it was not a bare `/roll` — e.g. "Goblin A —
+   * initiative". Server-set; absent on an ordinary dice roll.
+   *
+   * `playerUid`/`playerName` answer "who rolled", which for initiative is not
+   * the interesting question: a DM rolling five goblins would otherwise get
+   * five identical rows under their own name.
+   */
+  label?: string;
   perDie: {
     tokenId: string;
     die?: DieType;
@@ -45,6 +54,18 @@ export type RollResult = {
   total: number;
   mode?: DiceRollMode;
   visibility?: DiceVisibility;
+  /**
+   * A person typed this total; the server did not roll it. The log renders it
+   * visibly differently, which is the whole reason the flag travels — see the
+   * field's note on the wire `DiceRoll`.
+   *
+   * Reaching this type is not enough to reach the SCREEN: `useDiceRolling`'s
+   * rollHistory mapper enumerates the fields it copies, so a wire field that is
+   * not named there renders undefined for ever with a green typecheck.
+   */
+  handEntered?: boolean;
+  /** The total a hand-entered value replaced, struck through beside it. */
+  supersededTotal?: number;
   timestamp: number;
 };
 

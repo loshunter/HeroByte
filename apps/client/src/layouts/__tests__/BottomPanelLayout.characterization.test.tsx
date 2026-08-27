@@ -190,6 +190,7 @@ export interface BottomPanelLayoutProps {
   onDeleteCharacter: (characterId: string) => void;
   onFocusToken: (tokenId: string) => void;
   onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
+  onRollInitiative: (characterId: string, modifier?: number) => void;
 }
 
 // Import EntitiesPanel AFTER the mock is set up
@@ -272,6 +273,7 @@ describe("BottomPanelLayout - Characterization Tests", () => {
     onDeleteCharacter: vi.fn(),
     onFocusToken: vi.fn(),
     onSetInitiative: vi.fn(),
+    onRollInitiative: vi.fn(),
   });
 
   beforeEach(() => {

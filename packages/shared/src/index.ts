@@ -182,12 +182,18 @@ export interface Token {
 /**
  * DiceRoll: one settled roll, as the SERVER produced it.
  *
- * Every field here is the server's own work. `playerUid` and `playerName` are
- * stamped from the sending connection (like ChatMessage below), and `total`,
- * `breakdown` and `formula` come from evaluating the client's formula with the
- * server's RNG. Nothing on the wire from a client can set any of them — which
- * is the whole of arc defect D2, and why `{ t: "dice-roll" }` carries a
+ * Identity here is always the server's own work: `playerUid` and `playerName`
+ * are stamped from the sending connection (like ChatMessage below), and no
+ * client can roll — or type — under someone else's name. That part of arc
+ * defect D2 is closed for good, and is why `{ t: "dice-roll" }` carries a
  * formula rather than a result.
+ *
+ * The RESULT has one deliberate exception, added 2026-08-24: `{ t: "enter-roll" }`
+ * lets a player record what they threw on physical dice. It does not reopen D2,
+ * because the defect was never "a client sent a number" — it was "a client's
+ * number was indistinguishable from the server's". Such a roll always carries
+ * `handEntered`, and the log renders it in its own colour with the superseded
+ * value struck through. Read that field's note before touching either path.
  */
 export interface DiceRoll {
   id: string; // Server-minted roll identifier
@@ -210,6 +216,18 @@ export interface DiceRoll {
   /** Absent means "normal" — the wire default and every pre-S5 roll. */
   mode?: DiceRollMode;
   /**
+   * What the roll was FOR, when it was not a bare `/roll` — e.g. "Goblin A —
+   * initiative". Server-set like everything else here; absent on a plain dice
+   * roll, which is every roll before initiative moved server-side.
+   *
+   * It exists because `playerName` answers "who rolled", and for initiative
+   * that is not the interesting question: a DM rolling for five goblins would
+   * otherwise produce five identical log lines under their own name. Putting
+   * the character in `playerName` instead would be a lie in the data model —
+   * that field is bound from the connection.
+   */
+  label?: string;
+  /**
    * Who may see this roll. Absent means public.
    *
    * SECRECY: filtered per recipient in the snapshot, so a `self` or `dm` roll
@@ -217,6 +235,34 @@ export interface DiceRoll {
    * same client-asserted-uid caveat as whispers — see visibleRollsFor.
    */
   visibility?: DiceVisibility;
+  /**
+   * Set when a PERSON typed this result instead of the server rolling it —
+   * the physical-dice workflow, for tables that roll real dice at a real table.
+   *
+   * This is the one field on this interface whose `total` the client asserted,
+   * and it exists to say so out loud rather than to hide it. Everything else
+   * here is still server-bound: `playerUid` and `playerName` come from the
+   * connection, and the server bounds the number it accepts. The guarantee this
+   * relaxes is arc defect D2's — "nothing on the wire from a client can set
+   * `total`" — and the reason it is safe to relax HERE and nowhere else is that
+   * the log renders it as visibly different from a rolled result. A table using
+   * physical dice is not being defrauded by a number it watched someone throw;
+   * it would be defrauded by that number being indistinguishable from the
+   * server's. So the marker is not decoration — it is the thing that makes the
+   * feature honest, and any renderer that drops it reintroduces the deceit.
+   */
+  handEntered?: boolean;
+  /**
+   * The total a hand-entered value REPLACED, when it replaced one — the server
+   * rolled, the DM allowed a physical re-roll, and this is what the log strikes
+   * through beside the new number.
+   *
+   * Roll-level rather than per-term, unlike `breakdown[].dropped`: advantage
+   * discards a die FACE within one term, while this supersedes a whole result.
+   * Absent on a first-time hand entry, which is the common case at a table that
+   * uses physical dice for everything — there was never a server roll to strike.
+   */
+  supersededTotal?: number;
   timestamp: number; // When the roll occurred
 }
 
@@ -565,6 +611,20 @@ export interface RoomSnapshot {
    */
   defaultVisionRadius?: number;
   /**
+   * DM setting: players may enter their own initiative BY HAND, overriding a
+   * server roll (absent = ON, today's behaviour and the default).
+   *
+   * Reads inverted from every other flag here on purpose. `playerPropsEnabled`
+   * defaults off, so it persists and loads as `=== true`; this one defaults on,
+   * so it must be `!== false` everywhere it is read back. A saved session that
+   * coerces it the usual way comes back with the override silently disabled.
+   *
+   * A capability flag, not a secret — every recipient needs it to decide
+   * whether the manual-entry control renders. Enforcement is in the initiative
+   * handler, which re-checks room state per message rather than trusting the UI.
+   */
+  initiativeManualOverride?: boolean;
+  /**
    * True only for the default table WHILE it still opens with the password
    * published in the setup docs — i.e. it is genuinely reachable by anyone, and
    * the server clears it when it empties. Setting any other password (a DM via
@@ -773,12 +833,34 @@ type ClientMessagePayload =
   | { t: "toggle-npc-visibility"; id: string; visible: boolean }
 
   // Initiative/Combat actions
+  //
+  // `set-initiative` is the MANUAL path and carries a number on purpose: a bad
+  // roll, the DM allows a physical re-roll, and the real value is entered by
+  // hand. It is not a forgery hole — the server checks ownership — but it is
+  // the reason the two messages below exist rather than this one growing a
+  // "roll it for me" flag.
   | {
       t: "set-initiative";
       characterId: string;
       initiative?: number;
       initiativeModifier?: number;
     }
+  // Rolling. Carries a TARGET and no result: the server rolls d20 on
+  // cryptoDiceRng — the same generator dice use — and appends the roll to the
+  // log so the table witnesses it. Strictly less for a tampered client to lie
+  // about than `dice-roll`, which at least carries a formula.
+  //
+  // `modifier` is the one number that may ride along, and it is deliberately
+  // not a roll result — it is the character's own stat, which `set-initiative`
+  // has always accepted off the wire. It exists because the modal lets you drag
+  // the dial and roll in a single gesture: without it the server applies the
+  // STORED modifier and the dial silently stops contributing. Omitted means
+  // "use what is stored"; supplied means "persist this, then roll with it".
+  | { t: "roll-initiative"; characterId: string; modifier?: number }
+  // DM-only, and ONE message rather than one per NPC: the server loops over
+  // every NPC that has no initiative yet. N separate messages is what made the
+  // old client loop yield around the rate limiter.
+  | { t: "roll-initiative-all" }
   | { t: "start-combat" } // Activates combat mode, sorts by initiative
   | { t: "end-combat" } // Clears all initiative and exits combat mode
   | { t: "next-turn" } // Advances to next character in initiative order
@@ -862,6 +944,35 @@ type ClientMessagePayload =
   | { t: "set-diagonal-rule"; rule: DiagonalRule } // DM-only: how the table counts diagonal distance
   | { t: "set-player-props-enabled"; enabled: boolean } // DM-only: players may place/manage their own props
   | { t: "set-default-vision-radius"; radius: number | null } // DM-only: table-wide sight limit in feet for tokens with none of their own, null = unlimited
+  | { t: "set-initiative-manual-override"; enabled: boolean } // DM-only: players may enter initiative by hand (absent = ON — see the snapshot field)
+
+  /**
+   * Record what was actually thrown on the table.
+   *
+   * The ONE client message that carries a result rather than a formula, and
+   * the deliberate exception to the rule stated above `{ t: "dice-roll" }`.
+   * It exists because a table that plays with physical dice cannot use a VTT
+   * that refuses to hear what the dice said.
+   *
+   * What keeps it from being arc defect D2 again is not that the number is
+   * trusted — it is that the number is MARKED. Every roll this produces or
+   * rewrites carries `handEntered`, which the log renders in its own colour
+   * with a BY HAND badge and the superseded value struck through. Identity is
+   * still bound from the connection, the total is still bounded server-side,
+   * and the table setting still gates it for players.
+   *
+   * `rollId` present rewrites that roll in place — one row showing what the
+   * server rolled, struck, beside what the table actually threw. Absent
+   * records a fresh entry, which is the common case at a table that never asks
+   * the server to roll at all.
+   */
+  | {
+      t: "enter-roll";
+      rollId?: string; // The roll to rewrite. Absent records a fresh one.
+      total: number; // What the person read off the table
+      formula?: string; // Notation for a FRESH entry ("2d6 + 3"); ignored when rewriting
+      visibility?: DiceVisibility; // For a FRESH entry; a rewrite keeps the original's
+    }
 
   // The measurement in progress. Carries NO author — the server stamps
   // identity from the connection, the same rule chat and dice follow. `measure`

@@ -5,7 +5,7 @@
 
 import { NPC_CREATE_LIMITS } from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
-import { isFiniteNumber, isIntegerInRange } from "./commonValidators.js";
+import { isFiniteNumber, isIntegerInRange, isInitiativeModifier } from "./commonValidators.js";
 import { ARRAY_LIMITS, PAYLOAD_LIMITS, STRING_LIMITS } from "./constants.js";
 
 /**
@@ -332,9 +332,9 @@ export function validateSetInitiativeMessage(message: MessageRecord): Validation
   if (
     "initiativeModifier" in message &&
     message.initiativeModifier !== undefined &&
-    !isFiniteNumber(message.initiativeModifier)
+    !isInitiativeModifier(message.initiativeModifier)
   ) {
-    return { valid: false, error: "set-initiative: initiativeModifier must be a number" };
+    return { valid: false, error: "set-initiative: initiativeModifier must be -20 to 20" };
   }
   return { valid: true };
 }

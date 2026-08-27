@@ -35,6 +35,17 @@ export const MAX_PARTIAL_SEGMENTS = 50;
 export const MAX_SEGMENT_POINTS = 10_000;
 
 /**
+ * How far an initiative modifier may run either way.
+ *
+ * Matches what both client editors already clamp to — the modal's dial
+ * (InitiativeModal) and the NPC editor — so the server is not the surface that
+ * disagrees. It lives here because BOTH initiative paths must enforce it:
+ * `set-initiative` carries one, and so does `roll-initiative`, and a bound on
+ * only one of them is a bound on neither.
+ */
+export const INITIATIVE_MODIFIER_LIMIT = 20;
+
+/**
  * Valid token sizes
  */
 export const VALID_TOKEN_SIZES = [
@@ -77,6 +88,20 @@ export function isFiniteNumber(value: unknown): value is number {
  */
 export function isIntegerInRange(value: unknown, min: number, max: number): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max;
+}
+
+/**
+ * Type guard: a legal initiative modifier.
+ *
+ * A named predicate rather than an inline `isIntegerInRange(x, -LIMIT, LIMIT)`
+ * at each site, for two reasons. Both initiative messages must apply the SAME
+ * bound — a limit on one path is a limit on neither, since either can write the
+ * stored modifier — and characterValidators.ts sits two lines under the 350-LOC
+ * guard, where the inline form wraps across five lines under prettier and trips
+ * it. One short call site keeps that file legal.
+ */
+export function isInitiativeModifier(value: unknown): value is number {
+  return isIntegerInRange(value, -INITIATIVE_MODIFIER_LIMIT, INITIATIVE_MODIFIER_LIMIT);
 }
 
 /**

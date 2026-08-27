@@ -13,12 +13,16 @@ import { RollResultContent } from "./RollResultContent";
 interface MobileResultOverlayProps {
   result: RollResult | null;
   onClose: () => void;
+  /** Rewrite this roll with what was actually thrown. Absent hides the control. */
+  onEnterRoll?: (total: number) => void;
+
   zIndex?: number;
 }
 
 export const MobileResultOverlay: React.FC<MobileResultOverlayProps> = ({
   result,
   onClose,
+  onEnterRoll,
   zIndex = 2100,
 }) => {
   // A click retargets to the backdrop when a press starts on the card and is
@@ -112,7 +116,7 @@ export const MobileResultOverlay: React.FC<MobileResultOverlayProps> = ({
         {/* Scrollable result body - sole scroller; contain so swipe-down at the
             top can't chain into browser pull-to-refresh and drop the session */}
         <div style={{ overflowY: "auto", overscrollBehavior: "contain" }}>
-          <RollResultContent result={result} constrainHeight={false} />
+          <RollResultContent result={result} constrainHeight={false} onEnterRoll={onEnterRoll} />
         </div>
       </div>
     </div>

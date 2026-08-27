@@ -22,15 +22,25 @@ import type { DragTool } from "../mapEditToolKinds";
 import type { MapEditSplineKind, MapEditToolbarProps, MapEditWallFamily } from "../mapEditTypes";
 import { MobileFloorPicker } from "./MobileFloorPicker";
 import { MobileGeneratePanel } from "./MobileGeneratePanel";
+import { MobileSelectPanel } from "./MobileSelectPanel";
 import { MobileSwatchRow } from "./MobileSwatchRow";
 
+/**
+ * A tool the sheet can render a panel for. Every drag tool qualifies, plus
+ * "select" — which is NOT a drag tool and must never become one (it arms no
+ * touch gesture at all; see MobileSelectPanel for why it works anyway), but
+ * does own a panel and so obeys the same open/close rule as the rest.
+ */
+export type SheetPanelTool = DragTool | "select";
+
 /** The tools whose panel below is non-empty — the sheet's open/close rule. */
-export const PANEL_TOOLS: ReadonlySet<DragTool> = new Set<DragTool>([
+export const PANEL_TOOLS: ReadonlySet<SheetPanelTool> = new Set<SheetPanelTool>([
   "room",
   "hallway",
   "row",
   "spline",
   "generate",
+  "select",
 ]);
 
 const HALLWAY_WIDTHS = [1, 2, 3, 4] as const;
@@ -67,6 +77,11 @@ export function MobileMapEditToolPanels(props: MapEditToolbarProps): JSX.Element
   // Generate takes the whole bag: it reads eight fields, and listing them here
   // to forward them one by one is how a forwarding prop goes missing.
   if (props.activeSubTool === "generate") return <MobileGeneratePanel {...props} />;
+  // Select's panel is a readout of the current selection plus DELETE — it takes
+  // the bag for the same reason, and is imported STATICALLY: React caches a
+  // rejected lazy chunk forever, and the phone's only delete route is the last
+  // thing that should be reachable only on a good network.
+  if (props.activeSubTool === "select") return <MobileSelectPanel {...props} />;
   return <ToolDials {...props} />;
 }
 

@@ -56,8 +56,10 @@ describe("useDiceRolling", () => {
     ...overrides,
   });
 
-  const renderDice = (snapshot: RoomSnapshot | null) =>
-    renderHook(() => useDiceRolling({ snapshot, sendMessage: mockSendMessage, uid: mockUid }));
+  const renderDice = (snapshot: RoomSnapshot | null, isDM = false) =>
+    renderHook(() =>
+      useDiceRolling({ snapshot, sendMessage: mockSendMessage, uid: mockUid, isDM }),
+    );
 
   // --------------------------------------------------------------------------
   // Panels
@@ -207,6 +209,51 @@ describe("useDiceRolling", () => {
           timestamp: 1000,
         },
       ]);
+    });
+
+    it("carries the server's label, so an initiative roll says which creature", () => {
+      // This mapper ENUMERATES the fields it copies. Adding `label` to the
+      // client type alone leaves TypeScript green while the log renders
+      // undefined for ever — and a component test built on a hand-made
+      // RollLogEntry would pass without ever crossing the wire boundary. This
+      // is the only assertion in the suite that catches that.
+      const { result } = renderDice(
+        createMockSnapshot([createServerRoll({ label: "Goblin A — initiative" })]),
+      );
+
+      expect(result.current.rollHistory[0]?.label).toBe("Goblin A — initiative");
+    });
+
+    it("carries the hand-entered marker and the value it superseded", () => {
+      // The costliest field this mapper could drop. Losing `label` blanks a bit
+      // of text; losing these renders a number a PERSON typed exactly as though
+      // the server had rolled it — the deceit the whole feature exists to
+      // avoid. The exact-object assertion above cannot catch it: `toEqual`
+      // treats an undefined-valued key as absent, so a mapper that never names
+      // these stays green there for ever.
+      const { result } = renderDice(
+        createMockSnapshot([createServerRoll({ handEntered: true, supersededTotal: 4 })]),
+      );
+
+      const entry = result.current.rollHistory[0]!;
+      expect(entry.handEntered).toBe(true);
+      expect(entry.supersededTotal).toBe(4);
+    });
+
+    it("leaves a server-rolled entry unmarked, so the badge means something", () => {
+      // The contrast is the point: if every row carried the marker it would say
+      // nothing. An ordinary roll must come back clean.
+      const { result } = renderDice(createMockSnapshot([createServerRoll()]));
+
+      const entry = result.current.rollHistory[0]!;
+      expect(entry.handEntered).toBeUndefined();
+      expect(entry.supersededTotal).toBeUndefined();
+    });
+
+    it("leaves the label undefined on an ordinary dice roll", () => {
+      const { result } = renderDice(createMockSnapshot([createServerRoll()]));
+
+      expect(result.current.rollHistory[0]?.label).toBeUndefined();
     });
 
     it("carries advantage's discarded dice and the visibility badge", () => {

@@ -18,6 +18,7 @@ import type { Camera } from "../../../hooks/useCamera";
 import { useDMContext, type UseDMContextOptions } from "../hooks/useDMContext";
 import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
+import { manualInitiativeEnabled } from "../../initiative/manualOverride";
 
 // Exported for buildDMMenuProps, which maps the MainLayoutProps bag onto this
 // shape once, for BOTH layouts. Import it `type`-only: a value import here
@@ -92,7 +93,7 @@ export interface DMMenuContainerProps {
 
   // Other actions
   onSelectPlayerTokens: (playerUid: string) => void;
-  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  onRollAllInitiative?: () => void;
   mapStudio?: MapStudioController;
   /** "window" (desktop launcher + DraggableWindow) or "content" (bare, for
    *  a host that provides the surface — the mobile DM screen). */
@@ -151,7 +152,7 @@ export function DMMenuContainer({
   camera,
   toast,
   onSelectPlayerTokens,
-  onSetInitiative,
+  onRollAllInitiative,
   mapStudio,
   presentation,
 }: DMMenuContainerProps) {
@@ -255,12 +256,19 @@ export function DMMenuContainer({
       onNextTurn={dmContext.combatControls.handleNextTurn}
       onPreviousTurn={dmContext.combatControls.handlePreviousTurn}
       toast={toast}
-      onSetInitiative={onSetInitiative}
+      onRollAllInitiative={onRollAllInitiative}
       playerPropsEnabled={snapshot?.playerPropsEnabled ?? false}
       // Sent inline rather than through useDMContext — that hook sits at the
       // 350-line ceiling, and this is one message with no state to manage.
       onPlayerPropsEnabledChange={(enabled) =>
         sendMessage({ t: "set-player-props-enabled", enabled })
+      }
+      // A named rule, NOT `?? false` like the line above: this flag defaults
+      // ON and the snapshot carries the key only when it is off. See
+      // features/initiative/manualOverride.ts.
+      initiativeManualOverride={manualInitiativeEnabled(snapshot)}
+      onInitiativeManualOverrideChange={(enabled) =>
+        sendMessage({ t: "set-initiative-manual-override", enabled })
       }
       defaultVisionRadius={snapshot?.defaultVisionRadius}
       // Inline for the same reason: one message, no state to manage.

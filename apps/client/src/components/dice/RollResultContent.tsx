@@ -8,17 +8,25 @@ import React from "react";
 import type { RollResult } from "./types";
 import { DIE_SYMBOLS } from "./types";
 import { detectRollFlavor } from "../../features/juice";
+import { HandEntry } from "./HandEntry";
 
 interface RollResultContentProps {
   result: RollResult;
   /** Cap the breakdown at 400px with its own scroller (desktop window mode).
    *  Pass false when the host surface owns scrolling (mobile overlay). */
   constrainHeight?: boolean;
+  /**
+   * Rewrite this roll with what was actually thrown. Absent hides the control —
+   * a viewer who may not correct THIS roll is not shown a button that the
+   * server would refuse. The server enforces the same rule regardless.
+   */
+  onEnterRoll?: (total: number) => void;
 }
 
 export const RollResultContent: React.FC<RollResultContentProps> = ({
   result,
   constrainHeight = true,
+  onEnterRoll,
 }) => {
   const flavor = detectRollFlavor(result);
   const totalFlourish =
@@ -98,7 +106,11 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
                 {roll.dropped && roll.dropped.length > 0 && (
                   <div
                     data-testid="roll-dropped"
-                    title="Discarded by advantage/disadvantage"
+                    title={
+                      result.handEntered
+                        ? "Superseded by a hand-entered result"
+                        : "Discarded by advantage/disadvantage"
+                    }
                     style={{
                       fontSize: "14px",
                       color: "var(--hero-text-dim)",
@@ -177,7 +189,7 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
               fontFamily: "var(--font-pixel)",
             }}
           >
-            TOTAL
+            {result.handEntered ? "ENTERED" : "TOTAL"}
           </div>
           <div
             style={{
@@ -189,9 +201,38 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
             }}
             data-testid="roll-result-total"
           >
+            {result.handEntered && result.supersededTotal !== undefined ? (
+              <span
+                data-testid="roll-result-superseded"
+                style={{
+                  fontSize: "20px",
+                  textDecoration: "line-through",
+                  opacity: 0.55,
+                  marginRight: "10px",
+                  textShadow: "none",
+                }}
+              >
+                {result.supersededTotal}
+              </span>
+            ) : null}
             {result.total}
           </div>
         </div>
+
+        {/* The after-the-fact half of the feature: the server rolled, the table
+            rolled too, and the table's number is the real one. Rewrites the row
+            in place rather than appending — one row showing both, which is what
+            "record the original and strike it out" means. */}
+        {onEnterRoll && (
+          <div style={{ marginTop: "12px", display: "flex", justifyContent: "center" }}>
+            <HandEntry
+              testId="result-hand-entry"
+              label={result.handEntered ? "✋ CHANGE IT AGAIN" : "✋ THAT'S NOT WHAT I ROLLED"}
+              prompt="What did you actually roll?"
+              onSubmit={onEnterRoll}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

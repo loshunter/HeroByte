@@ -16,7 +16,7 @@
 import React, { Suspense, lazy } from "react";
 import type { RoomSnapshot, ChatMessage } from "@herobyte/shared";
 import type { RollLogEntry } from "../components/dice/rollLogTypes";
-import type { DiceRollRequest } from "../hooks/useDiceRolling";
+import type { DiceRollRequest, EnterRollRequest } from "../hooks/useDiceRolling";
 import type { DMMenuContainerProps } from "../features/dm/components/DMMenuContainer";
 import { DMMenuLoadFailure } from "../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../components/ErrorBoundary";
@@ -60,6 +60,10 @@ export interface FloatingPanelsLayoutProps {
   diceRollerOpen: boolean;
   toggleDiceRoller: (open: boolean) => void;
   handleRoll: (request: DiceRollRequest) => void;
+  /** Record what was thrown on physical dice, fresh or over an existing roll. */
+  handleEnterRoll: (request: EnterRollRequest) => void;
+  /** Whether this viewer may rewrite that roll — the server enforces it too. */
+  canEnterOver: (roll: RollLogEntry | null | undefined) => boolean;
   /** Newest roll authored by this player — how the roller learns its result. */
   latestOwnRoll: RollLogEntry | null;
   // Roll Log
@@ -100,6 +104,8 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     diceRollerOpen,
     toggleDiceRoller,
     handleRoll,
+    handleEnterRoll,
+    canEnterOver,
     latestOwnRoll,
     rollLogOpen,
     rollHistory,
@@ -183,6 +189,8 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           diceRollerOpen={diceRollerOpen}
           toggleDiceRoller={toggleDiceRoller}
           handleRoll={handleRoll}
+          handleEnterRoll={handleEnterRoll}
+          canEnterOver={canEnterOver}
           latestOwnRoll={latestOwnRoll}
           rollLogOpen={rollLogOpen}
           toggleRollLog={toggleRollLog}
