@@ -12,10 +12,10 @@ production. Where something is a judgement call rather than a fact, it says so.
 `main` as `a78dd0e7` and deployed to Render + Cloudflare on 2026-08-18. It closes five of the six
 "unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable but not closed).
 
-| Branch | Commit     | State                                                                                   |
-| ------ | ---------- | --------------------------------------------------------------------------------------- |
-| `dev`  | `ac47ab9e` | pushed, CI **#808** green — carries the initiative slice, 13 commits past `main`'s tree |
-| `main` | `a78dd0e7` | **PRODUCTION**, deployed 2026-08-18, CI **#798** green, probe-verified                  |
+| Branch | Commit     | State                                                                               |
+| ------ | ---------- | ----------------------------------------------------------------------------------- |
+| `dev`  | `6a605af4` | level with `main`; new work lands here first                                        |
+| `main` | `6a605af4` | **PRODUCTION**, deployed 2026-08-26, CI **#814** green, probe- and browser-verified |
 
 > **Update (2026-08-24).** The initiative slice (server-side rolls on the crypto RNG, the roll
 > log naming the character, manual override with strikethrough, DM toggle on by default — §3D's
@@ -871,29 +871,30 @@ turns a cone into something else.
    - ~~**Initiative → server-side + roll log + manual override.** Owner-chosen design, 2026-08-14;
      the full shape and the machinery to reuse are in §3D. This is the biggest _user-visible_ item
      outstanding.~~ — **DONE — see the §0 update (2026-08-24)**.
-   - **Mobile element removal — the Select half of M8** (`mobile-authoring-arc.md:594`; M6 is
-     Paint/Erase, `mobile-authoring-arc.md:579`) — the largest gap left, and genuinely unstarted as
-     of this writing. There is **no** mobile-reachable way to delete a single map element:
-     `MOBILE_TOOL_TILES` is typed `id: DragTool` so `"select"` cannot compile as a tile, no
-     inspector or layers popover is mounted under `features/map-edit/mobile/`, the quick wheel is
-     desktop-right-click only, and there is no Delete hotkey. Dock Undo is a document-wide
-     map-studio undo, not a targeted delete — so a Row or Spline laid down on a phone can be
-     created but never removed, which the user guide now warns about. The desktop path to copy is
-     Select → Inspect popover → `onRemove` → `{ type: "remove-element" }`. **The owner made the
-     affordance decision on 2026-08-24**: a Select mode in the map-edit tool sheet now; long-press
-     is a recorded deferral, to be unified later with the quick wheel's already-deferred touch
-     variant. The "dock is pinned at five slots" blocker is dissolved — the affordance never
-     needed a dock slot; it lives in the sheet. Full plan:
-     `docs/planning/PROMPT-mobile-element-delete.md`.
+   - ~~**Mobile element removal — the Select half of M8.**~~ — **IN PRODUCTION 2026-08-26**
+     (merge `6a605af4`). The affordance is a Select mode in the map-edit tool sheet; the "dock is
+     pinned at five slots" blocker never applied, because it never needed a dock slot. Plan and
+     the traps it cost: `docs/planning/PROMPT-mobile-element-delete.md`.
+   - ~~**Physical dice / hand-entered rolls.**~~ — **IN PRODUCTION 2026-08-26**. Every roll can be
+     hand-entered, before rolling or over a result, desktop and mobile. `{ t: "enter-roll" }` is
+     the one client message carrying a RESULT; safety is the `handEntered` MARKER, not trust.
+   - **Element proximity selection — IN PROGRESS.** Five of the eight kinds (wall, door, light,
+     text, spline) could not be selected and so could not be deleted, on any platform. Found on
+     2026-08-26 when an e2e tried to delete a wall. Plan:
+     `docs/planning/PROMPT-element-proximity-select.md`.
    - **Smaller work**: §3D's remainder, or the vision-default follow-ups in that plan doc's banner
      (the per-token card showing the inherited NUMBER, the stale Map Setup screenshot, the
-     DM-menu 44px panel-wide pass). One more now on that list: **prove the `ref: dev` fix**
-     (`a7bfb961`) the first time `dev` and `main` differ, by reading the full-suite job's checkout
-     step — #798 could not, because the merge left the two trees byte-identical, and **#808**
-     could not either, because that push was **to** `dev`, so the old hardcoded `ref: dev` and the
-     new event-ref default resolve to the same SHA. The discriminating case is the next push to
-     `main`.
+     DM-menu 44px panel-wide pass). ~~Prove the `ref: dev` fix~~ — **DONE 2026-08-26**: runs #798,
+     #808 and #811 could none of them prove it, each being a push TO `dev` where the old hardcoded
+     ref and the new event-ref default resolve to the same SHA. The merge-to-main run (**#814**,
+     `6a605af4`) discriminates, and its `e2e-full-suite` checkout logs
+     `rev-parse refs/remotes/origin/main -> 6a605af4` — main, not dev's `720443ab`.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
+
+**Note (2026-08-26):** this section has now gone stale twice in one week — both times because the
+work it described as outstanding shipped, and nobody rewrote §0's table. If you finish something
+here, correct §0 AND this list in the same commit; the doc's whole value is that the next session
+trusts it.
 
 ## 11. The completeness critic's list — CLEARED 2026-08-09
 

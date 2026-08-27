@@ -100,7 +100,11 @@ Drag a region (at least **20×20 cells** — zoom out if needed), pick a theme (
 
 ## 👆 Select and 🔍 Inspect — precision edits
 
-**Select** clicks the topmost placed element (stamps, tiles, splines); **Inspect** then edits it numerically: X/Y, scale, rotation, layer, a **Hidden** checkbox, **DELETE** — and the door state controls. Walls and lights aren't clickable; they're managed by their tools and undo.
+**Select** clicks the topmost element under the cursor — **everything you can place**: objects, floor tiles, shapes, walls, doors, lights, text and splines. **Inspect** then edits it numerically: X/Y, scale, rotation, layer, a **Hidden** checkbox, **DELETE** — and the door state controls.
+
+Walls, doors and splines are thin, and lights are a single point, so those are caught by proximity: click within half a cell and the dashed outline traces what you actually got. It follows the wall itself rather than boxing it, so you can see you have the right one before you delete it. Where a door crosses a wall the **door** wins, since that is what you were almost certainly aiming at. A light's ring is drawn at that same half-cell — worth knowing, because a light with the Lighting layer at full day draws nothing else at all.
+
+Two things Select still cannot reach. A room's **floor is terrain**, not an element, so it comes off with **🧹 Erase**. And a room's walls are separate pieces — deleting one cuts a gap rather than removing the room, which is what you want when you are opening a doorway.
 
 ## 〰️ Spline — rope, chain, ribbon, filigree
 
@@ -158,7 +162,9 @@ The dock becomes five slots:
 
 What is missing is the tap-and-brush half of the toolbox — **Place**, **Scatter**, **Light**, **Paint** and **Erase**. A touch tap generates compatibility mouse events that a drag does not, so arming those on a phone would drop two stamps per tap. They are absent by design until that gets its own pass, not by oversight.
 
-> **Deleting on a phone.** Tap **⚒ Tool**, tap **👆 SELECT**, then tap the thing on the map — the sheet names what you picked — and tap **🗑 DELETE**. Select reaches placed objects, floor tiles, and shapes; **walls, doors, lights and splines cannot be picked**, on a phone or at a desktop, so **↶ Undo** is still the only way to take one of those back — and only until you have made other edits on top of it. If you lay down a spline you are unsure about, check it before you carry on.
+> **Deleting on a phone.** Tap **⚒ Tool**, tap **👆 SELECT**, then tap the thing on the map — the sheet names what you picked — and tap **🗑 DELETE**. Select reaches everything you can place: objects, floor tiles, shapes, walls, doors, lights, text and splines. Walls and the like are thin, so you get a half-cell of slack — tap near one and it will take it, and the dashed outline traces what you actually caught before you commit to deleting it.
+>
+> Two things it cannot do. A room's **floor is terrain**, not an element, so it comes off with **🧹 Erase** rather than Select. And a room's walls are separate pieces, so deleting one cuts a gap rather than removing the room — which is exactly what you want when you are opening a doorway.
 
 Two things behave differently from a mouse, and both are worth knowing before your first drag:
 

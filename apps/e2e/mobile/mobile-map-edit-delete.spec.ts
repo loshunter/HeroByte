@@ -11,12 +11,14 @@
  *     touch path (verified by disabling an experimental arm and watching this
  *     spec stay green), which is also why it cannot double-fire the way the
  *     click tools would;
- *   - the target is a Row's STAMP, and it is located by reading the document
- *     rather than by aiming at the drag. `selectElementAtPoint` resolves tiles,
- *     stamps and shapes only — walls, doors, lights, text and splines are not
- *     selectable on ANY platform, desktop included — and a Room is no good
- *     either: its floor is terrain and its walls are filtered out of
- *     `mapElements`. Both were earlier targets here and neither could pass;
+ *   - the target is a Row's STAMP, located by reading the document rather than
+ *     by aiming at the drag. When this spec was written a wall could not be
+ *     selected at ALL — `selectElementAtPoint` resolved tiles, stamps and
+ *     shapes only — and a Room was no good either, since its floor is terrain
+ *     and its walls are filtered out of `mapElements`. Proximity hit testing
+ *     has since made every kind selectable, so a wall would work now; the stamp
+ *     stays because reading the element's real position out of the document
+ *     beats aiming at a drag whose jitter is deliberate;
  *   - `test`/`expect` come from `../fixtures`, NOT `@playwright/test` — the
  *     resetRoom fixture rides on that import, and without it this spec inherits
  *     whatever the previous file left in the room and the counts drift.
@@ -43,16 +45,18 @@ const elements = (page: Page) =>
  * Viewport position of the first SELECTABLE element, read from the live
  * document rather than guessed from the drag.
  *
- * Guessing is what the first two cuts of this spec did, and both were wrong for
- * different reasons: a wall is not selectable at all, and Row scatters its
- * stamps along the drag with deliberate jitter and gaps, so the drag midpoint
- * is not where a stamp is. The seam already carries the answer.
+ * Guessing is what the first two cuts of this spec did, and Row is the reason
+ * the remaining one still would be: it scatters its stamps along the drag with
+ * deliberate jitter and gaps, so the drag midpoint is not where a stamp is. The
+ * seam already carries the answer.
  *
- * `mapElements` is the privacy-filtered projection, which is exactly the right
- * source here — it holds the visible art (tiles, stamps, shapes) and drops the
- * walls, which mirrors what `selectElementAtPoint` will resolve. Element
- * transforms are document PIXELS (unlike tokens, which are cells), so the
- * cell-size multiply the token helper needs is absent here.
+ * `mapElements` is the privacy-filtered projection — the visible art, with the
+ * walls dropped. That used to mirror what `selectElementAtPoint` resolved; it
+ * NO LONGER DOES, since proximity hit testing made walls selectable on the
+ * canvas while they are still absent from this projection. So this helper can
+ * only aim at what `mapElements` carries, which is why the target is a stamp.
+ * Element transforms are document PIXELS (unlike tokens, which are cells), so
+ * the cell-size multiply the token helper needs is absent here.
  *
  * Aims the element's CENTRE, not its transform origin. `transform.x/y` is the
  * top-LEFT, and the hit test is an inclusive bounds check — tapping the exact
@@ -147,9 +151,10 @@ test.describe("mobile map edit — select and delete", () => {
       y: box.y + box.height * fy,
     });
 
-    // ---- author with Row: it lays STAMPS, and stamps are what select can
-    // resolve. A Room's floor is terrain and its walls are filtered out of
-    // mapElements entirely, so a room leaves nothing to pick. ----
+    // ---- author with Row: it lays STAMPS, which are what this spec can AIM at.
+    // A Room is no good here — its floor is terrain and its walls never reach
+    // the mapElements projection, so there is nothing to read a position from,
+    // even though a wall is perfectly selectable by hand now. ----
     await armAndClose(page, /^Row$/);
     await touchDrag(cdp, at(0.28, 0.22), [at(0.66, 0.22)]);
     await expect.poll(() => elements(page), { timeout: 30_000 }).toBeGreaterThan(0);
