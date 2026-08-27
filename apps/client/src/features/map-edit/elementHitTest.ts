@@ -69,6 +69,7 @@ function proximityPoints(element: MapElement): Point[] | null {
 }
 
 export interface SelectionRect {
+  kind: "rect";
   x: number;
   y: number;
   width: number;
@@ -82,6 +83,38 @@ export interface SelectionRect {
    */
   pivotX: number;
   pivotY: number;
+}
+
+/**
+ * The outline for an element with no interior — a wall, door or spline.
+ *
+ * Points are DOCUMENT space and come from the same `proximityPoints` the hit
+ * test measures against, which is the point: the outline a DM sees is drawn
+ * from the geometry that decides what they can actually grab, so the two cannot
+ * drift into disagreeing.
+ */
+export interface SelectionPolyline {
+  kind: "polyline";
+  points: Point[];
+}
+
+/**
+ * The outline for a light or text — a circle at the element's origin, drawn at
+ * exactly the hit tolerance, so the highlight IS the grab area rather than a
+ * decoration near it.
+ */
+export interface SelectionPoint {
+  kind: "point";
+  x: number;
+  y: number;
+  radius: number;
+}
+
+export type SelectionShape = SelectionRect | SelectionPolyline | SelectionPoint;
+
+/** The hit tolerance in document units, for a given grid. */
+export function selectTolerance(gridSize: number): number {
+  return gridSize * SELECT_TOLERANCE_CELLS;
 }
 
 /** The top-most visible element under a document-space point, or null. */
@@ -133,26 +166,45 @@ export function selectElementAtPoint(
   return null;
 }
 
-/** Highlight footprint (document px) for the selected element; null for wall/door/light. */
-export function elementSelectionRect(element: MapElement, gridSize: number): SelectionRect | null {
+/**
+ * The highlight for the selected element, in document px.
+ *
+ * Was `elementSelectionRect`, and returned null for the five kinds with no
+ * interior. It is a SHAPE now because a rectangle is the wrong outline for a
+ * line: the bounding box of a diagonal wall is a large square that touches the
+ * wall at two corners and says nothing true about what is selected.
+ */
+export function elementSelectionShape(
+  element: MapElement,
+  gridSize: number,
+): SelectionShape | null {
+  const proximity = proximityPoints(element);
+  if (proximity) {
+    if (element.type === "light" || element.type === "text") {
+      const origin = proximity[0]!;
+      return { kind: "point", x: origin.x, y: origin.y, radius: selectTolerance(gridSize) };
+    }
+    return { kind: "polyline", points: proximity };
+  }
+
   const { x, y, scaleX, scaleY, rotation } = element.transform;
   if (element.type === "tile") {
     const width = element.data.columns * gridSize * scaleX;
     const height = element.data.rows * gridSize * scaleY;
     // Footprint elements rotate about their visual center.
-    return { x, y, width, height, rotation, pivotX: width / 2, pivotY: height / 2 };
+    return { kind: "rect", x, y, width, height, rotation, pivotX: width / 2, pivotY: height / 2 };
   }
   if (element.type === "stamp") {
     const width = element.data.width * scaleX;
     const height = element.data.height * scaleY;
-    return { x, y, width, height, rotation, pivotX: width / 2, pivotY: height / 2 };
+    return { kind: "rect", x, y, width, height, rotation, pivotX: width / 2, pivotY: height / 2 };
   }
   if (element.type === "shape") {
     const b = shapeBounds(element);
     if (!b) return null;
     // Shapes rotate about the transform origin (x, y), which sits at the box's
     // top-left minus the shape's local offset (left*scaleX, top*scaleY).
-    return { ...b, rotation, pivotX: x - b.x, pivotY: y - b.y };
+    return { kind: "rect", ...b, rotation, pivotX: x - b.x, pivotY: y - b.y };
   }
   return null;
 }

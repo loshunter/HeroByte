@@ -22,7 +22,7 @@ import { useMapEditDragPreview } from "./useMapEditDragPreview";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
 import { useMapEditSelection } from "./useMapEditSelection";
 import { usePointerToDoc } from "./usePointerToDoc";
-import type { SelectionRect } from "./elementHitTest";
+import type { SelectionShape } from "./elementHitTest";
 import type {
   MapEditFloorFamily,
   MapEditSplineKind,
@@ -85,7 +85,7 @@ interface UseMapEditToolReturn {
   /** True-result scatter-cluster footprints under the cursor (P2 ghosts). */
   draftGhosts: PlacementGhost[];
   /** Highlight footprint around the selected element (select sub-tool). */
-  selectionRect: SelectionRect | null;
+  selectionShape: SelectionShape | null;
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
@@ -338,7 +338,7 @@ export function useMapEditTool({
     strokeCells,
     placementGhost: placement.ghost,
     draftGhosts: placement.draftGhosts,
-    selectionRect: selection.selectionRect,
+    selectionShape: selection.selectionShape,
     onMouseDown,
     onMouseMove,
     onMouseUp,

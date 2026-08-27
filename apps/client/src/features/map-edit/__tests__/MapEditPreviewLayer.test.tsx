@@ -273,7 +273,8 @@ describe("MapEditPreviewLayer", () => {
         previewDrag={null}
         activeSubTool="select"
         gridSize={50}
-        selectionRect={{
+        selectionShape={{
+          kind: "rect",
           x: 100,
           y: 100,
           width: 50,
@@ -340,5 +341,86 @@ describe("MapEditPreviewLayer", () => {
     const mapGroup = groupProps.find((g) => g.x === 5 && g.y === 7);
     expect(camGroup).toBeDefined();
     expect(mapGroup).toBeDefined();
+  });
+});
+
+/**
+ * The highlight for elements with no interior.
+ *
+ * A rectangle was the only shape this layer could draw, and it returned null
+ * for these kinds — so selecting a wall drew nothing at all. Worth pinning the
+ * SHAPE rather than just "something rendered": the bounding box of a diagonal
+ * wall is a large square touching it at two corners, which is the wrong answer
+ * drawn confidently.
+ */
+describe("MapEditPreviewLayer — selection outlines with no interior", () => {
+  // The mock prop arrays are module-level and the sibling describe's reset does
+  // not reach here — without this, "draws nothing" sees the renders above it
+  // and fails for a reason that has nothing to do with the code.
+  beforeEach(() => {
+    lineProps.length = 0;
+    circleProps.length = 0;
+    groupProps.length = 0;
+    rectProps.length = 0;
+    textProps.length = 0;
+    shapeProps.length = 0;
+  });
+
+  it("traces a wall along its own points, not around them", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={null}
+        activeSubTool="select"
+        gridSize={50}
+        selectionShape={{
+          kind: "polyline",
+          points: [
+            { x: 100, y: 100 },
+            { x: 300, y: 200 },
+          ],
+        }}
+      />,
+    );
+
+    const outline = lineProps.find((p) => p.name === "map-edit-preview:selection");
+    expect(outline).toBeDefined();
+    // Flattened for Konva, and in order — a diagonal, not a box.
+    expect(outline?.points).toEqual([100, 100, 300, 200]);
+    // And NO rect: drawing both would put a misleading box around it anyway.
+    expect(rectProps.filter((p) => p.name === "map-edit-preview:selection")).toHaveLength(0);
+  });
+
+  it("rings a light at the grab radius, which is the only cue an unlit one gives", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={null}
+        activeSubTool="select"
+        gridSize={50}
+        selectionShape={{ kind: "point", x: 400, y: 400, radius: 25 }}
+      />,
+    );
+
+    const ring = circleProps.find((p) => p.name === "map-edit-preview:selection");
+    expect(ring).toBeDefined();
+    expect(ring).toMatchObject({ x: 400, y: 400, radius: 25 });
+  });
+
+  it("draws nothing when nothing is selected", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={null}
+        activeSubTool="select"
+        gridSize={50}
+        selectionShape={null}
+      />,
+    );
+
+    const named = [...lineProps, ...circleProps, ...rectProps].filter(
+      (p) => p.name === "map-edit-preview:selection",
+    );
+    expect(named).toHaveLength(0);
   });
 });

@@ -109,7 +109,7 @@ describe("useMapEditSelection", () => {
     expect(consumed).toBe(false);
   });
 
-  it("exposes the selection highlight rect for the selected element", () => {
+  it("exposes the selection highlight shape for the selected element", () => {
     const { result } = renderHook(() =>
       useMapEditSelection({
         active: true,
@@ -119,7 +119,8 @@ describe("useMapEditSelection", () => {
         onSampleAsset: vi.fn(),
       }),
     );
-    expect(result.current.selectionRect).toEqual({
+    expect(result.current.selectionShape).toEqual({
+      kind: "rect",
       x: 100,
       y: 100,
       width: 50,

@@ -14,13 +14,16 @@
 // primitives live in MapEditPreviewParts (structure cap).
 
 import { useEffect, useSyncExternalStore } from "react";
-import { Group, Rect } from "react-konva";
+import { Circle, Group, Line, Rect } from "react-konva";
 import type { SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
 import type { Camera } from "../map/types";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
 import type { PlacementGhost } from "./useMapEditPlacement";
+
+/** One colour for every selection outline, whatever shape it takes. */
+const SELECTION_STROKE = "#57d6ff";
 import { hallwayBoundsFromDrag } from "./hallwayBuilder";
-import type { SelectionRect } from "./elementHitTest";
+import type { SelectionShape } from "./elementHitTest";
 import type { MapEditSplineKind, MapEditSubTool } from "./mapEditTypes";
 import {
   getBrushThumbnailVersion,
@@ -53,7 +56,7 @@ interface MapEditPreviewLayerProps {
   /** True-result draft footprints (scatter cluster, populate preview). */
   draftGhosts?: PlacementGhost[];
   /** Highlight footprint around the selected element (select sub-tool). */
-  selectionRect?: SelectionRect | null;
+  selectionShape?: SelectionShape | null;
   /** Armed spline curve kind — the drag paints the REAL splineDetail art. */
   splineKind?: MapEditSplineKind;
   /** Armed paint family — the room/hallway fill uses its real baked chip. */
@@ -72,7 +75,7 @@ export function MapEditPreviewLayer({
   strokeCells = [],
   placementGhost = null,
   draftGhosts = [],
-  selectionRect = null,
+  selectionShape = null,
   splineKind = "rope",
   floorFamily,
   gridOffsetX = 0,
@@ -97,7 +100,7 @@ export function MapEditPreviewLayer({
     strokeCells.length === 0 &&
     !placementGhost &&
     draftGhosts.length === 0 &&
-    !selectionRect
+    !selectionShape
   ) {
     return null;
   }
@@ -115,25 +118,57 @@ export function MapEditPreviewLayer({
             {renderGhost(ghost, cam.scale)}
           </Group>
         ))}
-        {selectionRect && (
+        {selectionShape?.kind === "rect" && (
           <Group
-            x={selectionRect.x + selectionRect.pivotX}
-            y={selectionRect.y + selectionRect.pivotY}
-            offsetX={selectionRect.pivotX}
-            offsetY={selectionRect.pivotY}
-            rotation={selectionRect.rotation}
+            x={selectionShape.x + selectionShape.pivotX}
+            y={selectionShape.y + selectionShape.pivotY}
+            offsetX={selectionShape.pivotX}
+            offsetY={selectionShape.pivotY}
+            rotation={selectionShape.rotation}
             listening={false}
           >
             <Rect
-              width={selectionRect.width}
-              height={selectionRect.height}
-              stroke="#57d6ff"
+              width={selectionShape.width}
+              height={selectionShape.height}
+              stroke={SELECTION_STROKE}
               strokeWidth={2 / cam.scale}
               dash={[6 / cam.scale, 4 / cam.scale]}
               listening={false}
               name="map-edit-preview:selection"
             />
           </Group>
+        )}
+        {/* A wall, door or spline traced along its own geometry. A bounding box
+            would be actively misleading here: the box of a diagonal wall is a
+            large square touching it at two corners. The points come from the
+            same function the hit test measures, so the outline always shows
+            what is really grabbable. */}
+        {selectionShape?.kind === "polyline" && (
+          <Line
+            points={selectionShape.points.flatMap((p) => [p.x, p.y])}
+            stroke={SELECTION_STROKE}
+            strokeWidth={4 / cam.scale}
+            dash={[6 / cam.scale, 4 / cam.scale]}
+            lineCap="round"
+            lineJoin="round"
+            listening={false}
+            name="map-edit-preview:selection"
+          />
+        )}
+        {/* A light or text: drawn at exactly the hit tolerance, so the ring IS
+            the grab area. Worth the honesty — an unlit light renders nothing at
+            all, and this circle is the only thing telling a DM what they picked. */}
+        {selectionShape?.kind === "point" && (
+          <Circle
+            x={selectionShape.x}
+            y={selectionShape.y}
+            radius={selectionShape.radius}
+            stroke={SELECTION_STROKE}
+            strokeWidth={2 / cam.scale}
+            dash={[6 / cam.scale, 4 / cam.scale]}
+            listening={false}
+            name="map-edit-preview:selection"
+          />
         )}
         {previewDrag &&
           (activeSubTool === "room" || activeSubTool === "generate" ? (

@@ -351,7 +351,7 @@ export default function MapBoard({
     strokeCells: mapEditStrokeCells,
     placementGhost: mapEditPlacementGhost,
     draftGhosts: mapEditDraftGhosts,
-    selectionRect: mapEditSelectionRect,
+    selectionShape: mapEditSelectionRect,
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
     onMouseUp: handleMapEditMouseUp,
@@ -867,7 +867,7 @@ export default function MapBoard({
             placementGhost={mapEditPlacementGhost}
             // Scatter cluster + armed POPULATE preview — both true-result drafts.
             draftGhosts={[...mapEditDraftGhosts, ...(mapEditPopulateGhosts ?? [])]}
-            selectionRect={mapEditSelectionRect}
+            selectionShape={mapEditSelectionRect}
             splineKind={mapEditSplineKind}
             floorFamily={mapEditFloorFamily}
           />

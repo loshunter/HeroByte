@@ -4,13 +4,13 @@
 // The "select" sub-tool and the Ctrl/Cmd-click eyedropper, composed by
 // useMapEditTool. handleClick consumes a pointer-down when it is a selection
 // (select tool) or a sample (Ctrl held over place/scatter/terrain) — returning
-// true so the tool skips its normal placement/paint. selectionRect is the
+// true so the tool skips its normal placement/paint. selectionShape is the
 // highlight footprint the preview draws around the current selection.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MapDocument } from "@herobyte/shared";
 import { sampleAssetAtPoint } from "../map-studio/components/mapStudioWorkspaceUtils";
-import { elementSelectionRect, selectElementAtPoint, type SelectionRect } from "./elementHitTest";
+import { elementSelectionShape, selectElementAtPoint, type SelectionShape } from "./elementHitTest";
 import type { MapEditSubTool } from "./mapEditTypes";
 
 const SAMPLEABLE: MapEditSubTool[] = ["place", "scatter", "terrain"];
@@ -27,7 +27,7 @@ interface UseMapEditSelectionOptions {
 }
 
 interface UseMapEditSelectionReturn {
-  selectionRect: SelectionRect | null;
+  selectionShape: SelectionShape | null;
   /** Consume a pointer-down as a select/sample; returns true when it did. */
   handleClick: (point: { x: number; y: number }, subTool: MapEditSubTool) => boolean;
 }
@@ -83,11 +83,11 @@ export function useMapEditSelection({
     [document, layers, ctrlHeld, onSampleAsset, onSelectElement],
   );
 
-  const selectionRect = useMemo(() => {
+  const selectionShape = useMemo(() => {
     if (!document || !selectedElementId) return null;
     const element = document.elements.find((candidate) => candidate.id === selectedElementId);
-    return element ? elementSelectionRect(element, document.grid.size) : null;
+    return element ? elementSelectionShape(element, document.grid.size) : null;
   }, [document, selectedElementId]);
 
-  return { selectionRect, handleClick };
+  return { selectionShape, handleClick };
 }

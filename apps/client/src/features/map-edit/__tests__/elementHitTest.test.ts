@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
-import { elementSelectionRect, selectElementAtPoint } from "../elementHitTest";
+import { elementSelectionShape, selectElementAtPoint } from "../elementHitTest";
 
 function layer(id: string, kind: MapLayer["kind"], zIndex: number): MapLayer {
   return { id, name: id, kind, visible: true, locked: false, opacity: 1, zIndex };
@@ -161,9 +161,10 @@ describe("selectElementAtPoint", () => {
   });
 });
 
-describe("elementSelectionRect", () => {
+describe("elementSelectionShape", () => {
   it("sizes a tile by its grid footprint and pivots about its center", () => {
-    expect(elementSelectionRect(tile, 50)).toEqual({
+    expect(elementSelectionShape(tile, 50)).toEqual({
+      kind: "rect",
       x: 100,
       y: 100,
       width: 50,
@@ -175,7 +176,8 @@ describe("elementSelectionRect", () => {
   });
 
   it("carries a stamp's footprint and rotation, pivoting about its center", () => {
-    expect(elementSelectionRect(stamp, 50)).toEqual({
+    expect(elementSelectionShape(stamp, 50)).toEqual({
+      kind: "rect",
       x: 300,
       y: 300,
       width: 100,
@@ -187,7 +189,8 @@ describe("elementSelectionRect", () => {
   });
 
   it("bounds a shape from its points and pivots about the transform origin", () => {
-    expect(elementSelectionRect(shape, 50)).toEqual({
+    expect(elementSelectionShape(shape, 50)).toEqual({
+      kind: "rect",
       x: 500,
       y: 500,
       width: 50,
@@ -211,7 +214,8 @@ describe("elementSelectionRect", () => {
         ],
       },
     };
-    expect(elementSelectionRect(offsetShape, 50)).toEqual({
+    expect(elementSelectionShape(offsetShape, 50)).toEqual({
+      kind: "rect",
       x: 520,
       y: 510,
       width: 40,
@@ -222,7 +226,12 @@ describe("elementSelectionRect", () => {
     });
   });
 
-  it("returns null for a wall (not selectable via the rect)", () => {
+  it("traces a wall along its own points instead of boxing it", () => {
+    // This test used to assert NULL, which pinned the limitation rather than a
+    // behaviour: a wall had no highlight because it had no selection at all.
+    // Rewritten rather than deleted — the interesting claim now is that the
+    // outline follows the wall, since a bounding box would be a large square
+    // touching a diagonal wall at two corners and saying nothing true.
     const wall: MapElement = {
       id: "w",
       layerId: "walls",
@@ -239,7 +248,33 @@ describe("elementSelectionRect", () => {
         blocksVision: true,
       },
     };
-    expect(elementSelectionRect(wall, 50)).toBeNull();
+    expect(elementSelectionShape(wall, 50)).toEqual({
+      kind: "polyline",
+      points: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
+    });
+  });
+
+  it("rings a light at the grab tolerance, not at its light radius", () => {
+    // A torch pool can span half the map; drawing THAT would suggest the whole
+    // lit area is what got picked. The ring is the grab area.
+    const lit: MapElement = {
+      id: "l",
+      layerId: "walls",
+      type: "light",
+      locked: false,
+      hidden: false,
+      transform: { x: 700, y: 800, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { radius: 4000, color: "#fff", intensity: 1, castsShadows: false },
+    };
+    expect(elementSelectionShape(lit, 50)).toEqual({
+      kind: "point",
+      x: 700,
+      y: 800,
+      radius: 25,
+    });
   });
 });
 
