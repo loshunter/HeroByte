@@ -2,13 +2,71 @@
 // rotation-aware tile/stamp hit-test (topmostTileAtPoint) and adds a bounds test
 // for shapes, so a click picks the top-most element under the cursor in document
 // space. elementSelectionRect returns the highlight footprint the preview draws.
+//
+// The other five kinds — wall, door, light, text, spline — are hit by PROXIMITY
+// rather than containment, because none of them encloses an area you could
+// click inside. Before that pass existed they could not be selected at all, and
+// therefore could not be deleted: on a phone or at a desktop, Undo was the only
+// way to take a misplaced wall back, and only until the next edit.
 
+import { toWorld } from "@herobyte/shared";
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
 import {
   isVisible,
   layerOrder,
   topmostTileAtPoint,
 } from "../map-studio/components/mapStudioWorkspaceUtils";
+import { distanceToPolyline, type Point } from "./elementGeometry";
+
+/**
+ * How close a click has to be, in CELLS, to count as "on" a line or a point.
+ *
+ * Cells rather than screen pixels, and the difference is a deliberate owner
+ * decision (2026-08-26): a document-space tolerance feels identical at every
+ * zoom, where a pixel tolerance spans several cells zoomed out — grabbing a
+ * neighbouring wall — and feels unforgivingly precise zoomed in.
+ *
+ * Half a cell is forgiving without reaching the far side of a one-cell
+ * corridor, where two walls sit exactly one cell apart.
+ */
+const SELECT_TOLERANCE_CELLS = 0.5;
+
+/**
+ * The kinds hit by proximity, MOST SPECIFIC FIRST.
+ *
+ * Order is load-bearing, not tidiness. A door sits ON a wall, so a click at a
+ * doorway is inside tolerance of both; resolving the wall first would mean a DM
+ * aiming at a door deletes the wall behind it. Lights and text are points and
+ * cannot tie with anything.
+ */
+const PROXIMITY_KINDS: readonly MapElement["type"][] = ["door", "light", "text", "spline", "wall"];
+
+/**
+ * The world-space geometry a proximity hit measures against, or null when the
+ * kind is not hit this way.
+ *
+ * A door has no points of its own: it is a segment of `data.width` centred on
+ * the transform origin and rotated with it, so its ends are derived here the
+ * same way the compiler derives them. Lights and text are single points — note
+ * that a light's `data.radius` is deliberately NOT used, because a torch pool
+ * can span half the map and would make a click anywhere in the room select it.
+ */
+function proximityPoints(element: MapElement): Point[] | null {
+  switch (element.type) {
+    case "wall":
+    case "spline":
+      return element.data.points.map((p) => toWorld(element.transform, p.x, p.y));
+    case "door": {
+      const half = element.data.width / 2;
+      return [toWorld(element.transform, -half, 0), toWorld(element.transform, half, 0)];
+    }
+    case "light":
+    case "text":
+      return [{ x: element.transform.x, y: element.transform.y }];
+    default:
+      return null;
+  }
+}
 
 export interface SelectionRect {
   x: number;
@@ -26,7 +84,7 @@ export interface SelectionRect {
   pivotY: number;
 }
 
-/** The top-most visible tile/stamp/shape under a document-space point, or null. */
+/** The top-most visible element under a document-space point, or null. */
 export function selectElementAtPoint(
   document: MapDocument,
   layers: Map<string, MapLayer>,
@@ -46,7 +104,33 @@ export function selectElementAtPoint(
         layerOrder(layers.get(b.element.layerId)) - layerOrder(layers.get(a.element.layerId)) ||
         b.index - a.index,
     );
-  return shapes.find(({ element }) => shapeContainsPoint(element, point))?.element ?? null;
+  const shape = shapes.find(({ element }) => shapeContainsPoint(element, point))?.element;
+  if (shape) return shape;
+
+  // Finally the kinds with no interior. Ordered by KIND first (door before
+  // wall), then by the same layer-then-index rule the tile pass uses — a second
+  // ordering convention here would drift from that one exactly as a second
+  // copy of `toWorld` would.
+  const tolerance = document.grid.size * SELECT_TOLERANCE_CELLS;
+  for (const kind of PROXIMITY_KINDS) {
+    const candidates = document.elements
+      .map((element, index) => ({ element, index }))
+      .filter(({ element }) => element.type === kind)
+      .filter(({ element }) => isVisible(element, layers.get(element.layerId)))
+      .sort(
+        (a, b) =>
+          layerOrder(layers.get(b.element.layerId)) - layerOrder(layers.get(a.element.layerId)) ||
+          b.index - a.index,
+      );
+
+    const hit = candidates.find(({ element }) => {
+      const points = proximityPoints(element);
+      return points !== null && distanceToPolyline(point, points) <= tolerance;
+    });
+    if (hit) return hit.element;
+  }
+
+  return null;
 }
 
 /** Highlight footprint (document px) for the selected element; null for wall/door/light. */

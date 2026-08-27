@@ -43,6 +43,65 @@ const shape: MapElement = {
   },
 };
 
+/**
+ * A wall from (1000,1000) to (1200,1000) in DOCUMENT space — expressed as local
+ * points plus a transform, which is how walls really are stored. A hit test
+ * reading `data.points` as document coordinates passes every test built on an
+ * element at the origin and fails on this one.
+ */
+const wall: MapElement = {
+  id: "wall1",
+  layerId: "walls",
+  type: "wall",
+  locked: false,
+  hidden: false,
+  transform: { x: 1000, y: 1000, scaleX: 1, scaleY: 1, rotation: 0 },
+  data: {
+    points: [
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+    ],
+    blocksMovement: true,
+    blocksVision: true,
+  },
+};
+/** A door ON that wall: width 60 centred at (1100,1000), so they overlap. */
+const door: MapElement = {
+  id: "door1",
+  layerId: "walls",
+  type: "door",
+  locked: false,
+  hidden: false,
+  transform: { x: 1100, y: 1000, scaleX: 1, scaleY: 1, rotation: 0 },
+  data: { width: 60, state: "closed", blocksMovement: true, blocksVision: false },
+};
+/** A light with a HUGE radius, to prove the radius is not the grab handle. */
+const light: MapElement = {
+  id: "light1",
+  layerId: "walls",
+  type: "light",
+  locked: false,
+  hidden: false,
+  transform: { x: 4000, y: 4000, scaleX: 1, scaleY: 1, rotation: 0 },
+  data: { radius: 5000, color: "#fff", intensity: 1, castsShadows: true },
+};
+/** A rotated spline, so the transform is doing real work. */
+const spline: MapElement = {
+  id: "spline1",
+  layerId: "walls",
+  type: "spline",
+  locked: false,
+  hidden: false,
+  transform: { x: 3000, y: 3000, scaleX: 1, scaleY: 1, rotation: 90 },
+  data: {
+    points: [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+    ],
+    kind: "rope",
+  },
+};
+
 function makeDocument(): MapDocument {
   return {
     schemaVersion: 1,
@@ -59,8 +118,12 @@ function makeDocument(): MapDocument {
       visible: true,
       snap: true,
     },
-    layers: [layer("shapes", "objects", 10), layer("objects", "objects", 20)],
-    elements: [shape, tile, stamp],
+    layers: [
+      layer("shapes", "objects", 10),
+      layer("objects", "objects", 20),
+      layer("walls", "walls", 30),
+    ],
+    elements: [shape, tile, stamp, wall, door, light, spline],
     revision: 1,
     createdAt: 1,
     updatedAt: 1,
@@ -177,5 +240,78 @@ describe("elementSelectionRect", () => {
       },
     };
     expect(elementSelectionRect(wall, 50)).toBeNull();
+  });
+});
+
+/**
+ * The five kinds that could not be selected — and therefore could not be
+ * deleted — on any platform until proximity hit testing existed.
+ *
+ * Grid size is 50 in this fixture, so the half-cell tolerance is 25 document
+ * units. Every "just outside" case below sits at 30, comfortably past it, so
+ * these do not turn red on a tolerance tweak of a unit or two — only on the
+ * tolerance being wrong by a lot, or gone.
+ */
+describe("selectElementAtPoint — kinds with no interior", () => {
+  const doc = makeDocument();
+
+  it("picks a WALL from beside it, through its transform", () => {
+    // (1010, 1010) is 10 from a wall whose local points are (0,0)-(200,0) and
+    // whose transform puts it at y=1000. Reading the points as document
+    // coordinates would look for a wall near the ORIGIN and find nothing.
+    //
+    // Deliberately clear of the door, which spans x 1070-1130: the first draft
+    // of this probed x=1050, which is 22 units from the door's end and so
+    // inside the 25-unit tolerance. The door won, correctly, and the test was
+    // wrong — worth recording, because it is the same arithmetic a DM does by
+    // eye when they wonder why they grabbed the wrong thing.
+    expect(selectElementAtPoint(doc, layers, { x: 1010, y: 1010 })?.id).toBe("wall1");
+  });
+
+  it("does NOT pick a wall from outside the tolerance", () => {
+    expect(selectElementAtPoint(doc, layers, { x: 1050, y: 1030 })).toBeNull();
+  });
+
+  it("does NOT pick a wall past its END, which distance-to-line would", () => {
+    // 300 past the far end but exactly on the infinite line. Without the clamp
+    // in distanceToSegment this selects the wall from right across the map.
+    expect(selectElementAtPoint(doc, layers, { x: 1500, y: 1000 })).toBeNull();
+  });
+
+  it("picks the DOOR where a door overlaps a wall", () => {
+    // The tie that bites: both are within tolerance at (1100,1000). Resolving
+    // the wall first would mean a DM aiming at a door deletes the wall behind.
+    expect(selectElementAtPoint(doc, layers, { x: 1100, y: 1000 })?.id).toBe("door1");
+  });
+
+  it("picks the wall again just OUTSIDE the door's span", () => {
+    // Proves the door does not simply win everywhere along the wall.
+    expect(selectElementAtPoint(doc, layers, { x: 1180, y: 1000 })?.id).toBe("wall1");
+  });
+
+  it("picks a LIGHT by a small handle, not by its radius", () => {
+    expect(selectElementAtPoint(doc, layers, { x: 4010, y: 4000 })?.id).toBe("light1");
+    // radius is 5000 here. If the radius were the grab area, a click a
+    // thousand units away — anywhere in the room it lights — would select it.
+    expect(selectElementAtPoint(doc, layers, { x: 5000, y: 4000 })?.id).not.toBe("light1");
+  });
+
+  it("picks a SPLINE through a rotated transform", () => {
+    // Local (0,0)-(100,0) rotated 90° about (3000,3000) runs DOWN, not right.
+    // A hit test ignoring rotation looks along the wrong axis entirely.
+    expect(selectElementAtPoint(doc, layers, { x: 3000, y: 3050 })?.id).toBe("spline1");
+    expect(selectElementAtPoint(doc, layers, { x: 3050, y: 3000 })?.id).not.toBe("spline1");
+  });
+
+  it("refuses an element on a HIDDEN layer, exactly as the tile pass does", () => {
+    const hidden = makeDocument();
+    hidden.layers = hidden.layers.map((l) => (l.id === "walls" ? { ...l, visible: false } : l));
+    const hiddenLayers = new Map(hidden.layers.map((l) => [l.id, l]));
+
+    expect(selectElementAtPoint(hidden, hiddenLayers, { x: 1010, y: 1010 })).toBeNull();
+  });
+
+  it("still prefers a TILE where one overlaps — the interior pass runs first", () => {
+    expect(selectElementAtPoint(doc, layers, { x: 120, y: 120 })?.id).toBe("tile1");
   });
 });
