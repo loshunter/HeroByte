@@ -176,7 +176,20 @@ export function getVisionBlockingSegments(scene: CompiledScene): BlockingSegment
 
 // Matches the SVG export transform `translate(x y) rotate(r) scale(sx sy)`:
 // scale applies first, then rotation (degrees), then translation.
-function toWorld(
+/**
+ * An element's LOCAL point in document space — scale, then rotate, then
+ * translate by the transform.
+ *
+ * Exported for the map-edit hit test, which has to answer "is the cursor on
+ * this wall" and must get the SAME answer the compiler gets. `data.points` on
+ * a wall or spline are transform-relative, so a hit test that read them as
+ * document coordinates would be right for every element at the origin with no
+ * rotation — most of them, in a fresh document — and quietly wrong for the
+ * rest. A second copy of this arithmetic is how a selection outline ends up
+ * drawn a few pixels off the wall it claims to be selecting: not a rendering
+ * bug, a second definition of where the wall is.
+ */
+export function toWorld(
   transform: MapElementTransform,
   localX: number,
   localY: number,
