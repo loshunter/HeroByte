@@ -290,7 +290,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🏗️ Map",
         detail:
-          "The live map editor — rooms, walls, doors, terrain, lighting, generator. On a phone or tablet it lives at DM → 🏗️ Edit the live map, and the bottom dock becomes the palette: Exit, Tool, Undo, Redo, Abort. Every tool is reachable by finger — Paint, Erase, Room, Hall, Wall, Door, Place, Scatter, Light, Row, Spline and Gen — plus 👆 Select for picking a piece to delete and 💧 Sample to arm Place with whatever you tap. Place, Scatter and Light AIM while your finger is down and drop when you lift, because a phone has no hover to preview with. ⨯ ABORT discards the gesture in progress, because lifting a finger commits.",
+          "The live map editor — rooms, walls, doors, terrain, lighting, generator. On a phone or tablet it lives at DM → 🏗️ Edit the live map, and the bottom dock becomes the palette: Exit, Tool, Undo, Redo, Abort. Every tool is reachable by finger — Paint, Erase, Room, Hall, Wall, Door, Place, Scatter, Light, Row, Spline and Gen — plus 👆 Select for picking a piece (then ✎ Edit to turn, resize, re-layer or hide it), 💧 Sample to arm Place with whatever you tap, and 🗂 Layers — where the Lighting layer’s opacity is the ambient light, so that is how a tablet makes it night. Place, Scatter and Light AIM while your finger is down and drop when you lift, because a phone has no hover to preview with. ⨯ ABORT discards the gesture in progress, because lifting a finger commits.",
       },
       {
         term: "SAVE GAME STATE",

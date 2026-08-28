@@ -176,7 +176,15 @@ That also means you can change your mind. Slide to a better spot before lifting,
 
 The one thing that is still desktop-only is **My Stuff** — your own uploaded art. The phone's picker offers every bundled asset; images you uploaded yourself still need a desktop to place.
 
+> **Editing what you picked.** With something selected, **✎ Edit** opens under the readout: **↺ / ↻** turn it in fifteens, **− / +** resize it in tenths, a **Layer** picker moves it between layers, and one button hides it from players. Press **✓ Apply** and all of it goes as a single change. A door also gets **Closed / Open / Locked / Secret**, which applies the moment you tap it — a door is opened during play, not authored.
+>
+> The desktop's X and Y boxes are not here: typing an absolute pixel coordinate for a thing you can see is a mouse's idea of editing. If a piece is in the wrong place, delete it and place it again.
+
+> **🗂 Layers.** In the tool sheet, beside Select. Each layer gets a show/hide eye, a lock, and an opacity slider — and **the Lighting layer's opacity is the ambient light**: 1 is broad day, and torch pools only start to glow as you bring it down. That is how you make it night from a tablet. Reordering the stack stays on the desktop.
+
 > **Deleting on a phone.** Tap **⚒ Tool**, tap **👆 SELECT**, then tap the thing on the map — the sheet names what you picked — and tap **🗑 DELETE**. Select reaches everything you can place: objects, floor tiles, shapes, walls, doors, lights, text and splines. Walls and the like are thin, so you get a half-cell of slack — tap near one and it will take it, and the dashed outline traces what you actually caught before you commit to deleting it.
+>
+> On a phone the sheet covers the map, so Select takes two extra taps: arm it, close the sheet with **✕**, tap the thing, then reopen **⚒ Tool** — your pick is still there, with Edit and Delete under it. On a tablet there is room for both at once and you can skip that.
 >
 > Two things it cannot do. A room's **floor is terrain**, not an element, so it comes off with **🧹 Erase** rather than Select — which is now a tool you have on the phone too. And a room's walls are separate pieces, so deleting one cuts a gap rather than removing the room — which is exactly what you want when you are opening a doorway.
 

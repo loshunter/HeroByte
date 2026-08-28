@@ -695,7 +695,48 @@ replace Alt (`:105-117`); on-screen rotate buttons to replace R/Shift+R
 modifier (`useMapEditSelection.ts:16, :42-75`). The most novel design in the
 arc.
 
-### M8 🟢 — Select + Inspector + a mobile DM sheet
+### M8 ✅ — Select + Inspector + a mobile DM sheet — **COMPLETE 2026-08-27**
+
+The Select+delete half shipped 2026-08-26 (`PROMPT-mobile-element-delete.md`).
+The rest landed with M7's slice.
+
+**The "minimum DM chrome" item was already closed and this doc did not know it.**
+It listed publish-to-live, grid size, background and fog as missing; M4b gave the
+phone the FULL DM menu, MapTab and all, and `apps/e2e/mobile/mobile-dm.spec.ts`
+has been asserting Map Background / Grid Controls / Grid Size / Fog of War on a
+375px phone ever since. Publish-to-live is `MapStudioControl`, the Studio's
+button — the live map publishes on every command by construction, so it never
+applied to this path.
+
+So M8's real remainder was two surfaces, both now built:
+
+- **The element inspector** (`MobileElementInspector`), inside the Select panel
+  and closed by default. The desktop's five numeric spinners become relative
+  controls: turn by 15°, resize by 10%, a layer picker, a hide toggle, and a
+  door STATE row that applies on the tap because a door is opened during play.
+  Everything else batches into ONE `update-element` on Apply — not for
+  tidiness, but because the controller drops a command that arrives while
+  another is in flight. X/Y and non-uniform scale are deliberately absent.
+- **The layer stack** (`MobileLayersPanel`). Not a convenience: **the Lighting
+  layer's opacity IS the ambient light**, so without it a touch DM could place
+  lights and never turn the lights down. Show/hide, lock and opacity; reordering
+  stays on the desktop.
+
+**Two things measurement decided.**
+
+Select on a PHONE cannot tap the map with the sheet open — measured, the sheet
+spans y 79..742 of 844. But the selection SURVIVES closing and reopening the
+sheet, so the phone workflow is arm → ✕ → tap → ⚒ Tool, two extra taps rather
+than a gap, and there is a test for exactly that. The tablet keeps both at once.
+
+And the sheet's column count is now DERIVED
+(`repeat(auto-fill, minmax(120px, 1fr))` at ≥700px) rather than chosen. A
+hand-picked five columns fixed M7's fourth row and broke again one commit later
+when Sample and Layers made it sixteen buttons. The Layers toggle is a grid
+CELL for the same reason — as a full-width row it cost 16px of map, and the
+floor in `mobile-map-edit-panels.spec.ts` caught it.
+
+The original framing follows.
 
 The Select + delete half is planned in `PROMPT-mobile-element-delete.md` (owner affordance
 decision 2026-08-24: sheet mode now, long-press later); the Inspector's edit fields and the
