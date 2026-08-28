@@ -1442,6 +1442,25 @@ h4 {
   gap: 7px;
 }
 
+/* A tablet gets a fifth column, and the reason is the MAP, not the grid.
+   M7 took the tool count from eleven buttons to fourteen, which at four
+   columns is a fourth row — and the sheet is bottom-anchored, so a row is
+   ~56px of map the DM can no longer tap. That matters most in Select, the one
+   mode where you must tap the map WITH the sheet open (the readout and DELETE
+   live in it). Measured on an 820x1180 tablet: the sheet top moved from 588px
+   to 533px, and a spec that tapped "empty canvas" at 566px started hitting the
+   sheet instead. Five columns puts it back at three rows.
+
+   796/5 = 159px per button, so the 44px touch floor is nowhere near threatened
+   — the constraint here is the LABEL, and "Scatter" is the longest at seven
+   characters. Phones stay at three columns (and two below 420px is not offered:
+   the sheet scrolls instead, which M3 built it to do). */
+@media (min-width: 700px) {
+  .mobile-tool-sheet__grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 .mobile-tool-sheet__button {
   display: flex;
   min-width: 0;

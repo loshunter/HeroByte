@@ -234,7 +234,17 @@ test.describe("mobile map edit — select and delete", () => {
     // Miss the stamp by a wide margin: the readout must fall back to the prompt
     // and DELETE must go cold, or a stale selection is one tap from deleting
     // something the DM can no longer see highlighted.
-    await touchTap(cdp, at(0.88, 0.48));
+    //
+    // The empty point is derived from the SHEET rather than written as a
+    // fraction of the canvas. A fixed 0.48 cleared the sheet's top edge by
+    // ~20px until M7 added three tiles and a fourth grid row; the tap then
+    // landed on the sheet, the selection never cleared, and the failure read as
+    // a selection bug rather than a layout one. Anything above the sheet is a
+    // point the finger can actually reach.
+    const sheetTop = (await page.locator(".mobile-tool-sheet").boundingBox())!.y;
+    const emptyY = sheetTop - 80;
+    expect(emptyY).toBeGreaterThan(box.y + 40); // the miss must still be ON the map
+    await touchTap(cdp, { x: box.x + box.width * 0.88, y: emptyY });
     await expect(status).toHaveText(/tap an element/i, { timeout: 10_000 });
     await expect(page.getByTestId("mobile-select-delete")).toBeDisabled();
     expect(await elements(page)).toBe(authored);

@@ -64,6 +64,65 @@ function measure(page: Page): Promise<Fit> {
   });
 }
 
+/**
+ * How much MAP the sheet leaves, which is a different question from whether the
+ * sheet fits. The measurements below all ask "is the sheet inside the
+ * viewport"; a sheet can satisfy every one of them and still cover the half of
+ * the map the DM needs to tap.
+ *
+ * It matters most in Select, the one mode where you must tap the map WITH the
+ * sheet open — the readout and DELETE live in it. M7 is what made the question
+ * real: three new tiles took the grid from eleven buttons to fourteen, which at
+ * four columns is a fourth row, and on an 820x1180 tablet the sheet top moved
+ * from 588px to 533px. A sibling spec that tapped "empty canvas" at 566px
+ * started hitting the sheet, and the failure read as a selection bug.
+ *
+ * A fifth column at >=700px put it back. This is what stops the next tool
+ * quietly taking it again — and it is a floor on the MAP, not a ceiling on the
+ * sheet, because the sheet is allowed to grow as long as the map does not
+ * shrink past what a hand can aim at.
+ */
+const MIN_TABLET_MAP_HEIGHT = 560;
+
+test.describe("the map-edit sheet's footprint on the map", () => {
+  test("leaves a tablet DM enough map to aim at with the sheet open", async ({ page }) => {
+    test.setTimeout(150_000);
+    await page.setViewportSize({ width: 820, height: 1180 });
+    await joinMobileTable(page);
+    await elevateToDM(page);
+
+    await page.getByRole("button", { name: /^DM$/i }).click();
+    await page.getByRole("button", { name: /Edit the live map/i }).click();
+    const dock = page.getByRole("navigation", { name: /Map edit actions/i });
+    await dock.getByRole("button", { name: /Tool/ }).click();
+    await page.getByRole("button", { name: /Start live map/i }).click();
+    await page.waitForFunction(
+      () => Boolean(window.__HERO_BYTE_E2E__?.snapshot?.liveMapDocumentId),
+      undefined,
+      { timeout: 30_000 },
+    );
+
+    // Select is the mode this is about, and it also carries a panel — so this
+    // measures the grid AND a panel under it, the shape a DM actually aims
+    // through.
+    await page
+      .locator(".mobile-tool-sheet__grid")
+      .first()
+      .getByRole("button", { name: /^Select$/ })
+      .click();
+    await expect(page.getByTestId("mobile-select-status")).toBeVisible();
+
+    const sheet = (await page.locator(".mobile-tool-sheet").boundingBox())!;
+    const canvas = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
+    const mapAbove = sheet.y - canvas.y;
+
+    expect(
+      mapAbove,
+      `the sheet leaves only ${Math.round(mapAbove)}px of map above it`,
+    ).toBeGreaterThanOrEqual(MIN_TABLET_MAP_HEIGHT);
+  });
+});
+
 test.describe("the map-edit sheet at its tallest", () => {
   test("fits, scrolls and keeps its close reachable in both orientations", async ({ page }) => {
     test.setTimeout(150_000);
