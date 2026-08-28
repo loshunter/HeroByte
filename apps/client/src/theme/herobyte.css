@@ -1315,6 +1315,42 @@ h4 {
   pointer-events: none;
 }
 
+/*
+ * THE PANEL-WIDE TOUCH PASS.
+ *
+ * The list above is the mobile SHELL's own controls. The panels a phone shows
+ * inside that shell — chat, the roll log, the dice roller, the entity cards —
+ * are the DESKTOP components, and every button in them is a JRPGButton at
+ * `font-size: 10px; padding: 6px 12px`, which measures about 25px. Chat's SEND
+ * was the one that got reported, and fixing SEND alone would have been the
+ * wrong shape: it is not special, it is simply the one a player presses most.
+ *
+ * Scoped to `(pointer: coarse)` so the desktop keeps its density, which is
+ * deliberate and owner-tuned rather than an accident.
+ *
+ * min-height/min-width, NOT padding, and that is what makes this work at all:
+ * several of these buttons carry an inline `style={{ padding }}` that would
+ * beat any class rule, but nothing sets a min-* inline — and min-* constrains
+ * the used value even against an inline `height`. So one rule reaches every
+ * button in every panel without editing a single component.
+ */
+@media (pointer: coarse) {
+  .jrpg-button {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* The one form control that shares the panels' text class — chat's message
+     box, which sits beside SEND and would otherwise be a 24px line under a
+     44px button. Element-qualified so the class keeps meaning "small text"
+     everywhere else it is used, which is mostly on spans. */
+  input.jrpg-text-small,
+  textarea.jrpg-text-small {
+    min-height: 44px;
+  }
+}
+
 .mobile-dock-button,
 .mobile-tool-sheet__button,
 .mobile-tool-sheet__close,
