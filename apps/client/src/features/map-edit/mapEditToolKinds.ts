@@ -29,10 +29,23 @@ export const BRUSH_TOOLS = ["terrain", "erase"] as const;
 /** A sub-tool that drives the pointer-STREAM brush machine. */
 export type BrushTool = (typeof BRUSH_TOOLS)[number];
 
-/** Every sub-tool a finger is armed for — the drag machine plus the brush one. */
-export type TouchTool = DragTool | BrushTool;
+/**
+ * Exported since M7, when the click tools reached a finger too. Same contract
+ * as the two sets above: a member without a phone tile does not compile.
+ */
+export const CLICK_TOOLS = ["place", "scatter", "light"] as const;
 
-const CLICK_TOOLS: MapEditSubTool[] = ["place", "scatter", "light"];
+/** A sub-tool that resolves at ONE point: no drag, no stream. */
+export type ClickTool = (typeof CLICK_TOOLS)[number];
+
+/**
+ * Every sub-tool a finger is armed for — which since M7 is all three machines.
+ *
+ * `select` is the one map-edit tool NOT in here, and deliberately: it arms no
+ * touch gesture at all and resolves through the compat mouse path instead (see
+ * MobileSelectPanel). Widening this to "every sub-tool" would arm it twice.
+ */
+export type TouchTool = DragTool | BrushTool | ClickTool;
 
 /** Wall, door, room, hallway, and generate all drive the same drag machine. */
 export function isDragTool(subTool: MapEditSubTool): subTool is DragTool {
@@ -60,12 +73,12 @@ export function isBrushTool(subTool: MapEditSubTool): subTool is BrushTool {
 
 /** True for every sub-tool the touch path arms — see `TouchTool`. */
 export function isTouchTool(subTool: MapEditSubTool): subTool is TouchTool {
-  return isDragTool(subTool) || isBrushTool(subTool);
+  return isDragTool(subTool) || isBrushTool(subTool) || isClickTool(subTool);
 }
 
-/** Place + scatter are click tools: one pointer-down drops (no drag, no stream). */
-export function isClickTool(subTool: MapEditSubTool): boolean {
-  return CLICK_TOOLS.includes(subTool);
+/** Place + scatter + light are click tools: they resolve at one point. */
+export function isClickTool(subTool: MapEditSubTool): subTool is ClickTool {
+  return (CLICK_TOOLS as readonly MapEditSubTool[]).includes(subTool);
 }
 
 /**

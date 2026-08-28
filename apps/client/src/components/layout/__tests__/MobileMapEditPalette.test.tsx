@@ -331,19 +331,29 @@ describe("the map-edit palette", () => {
       render(<MobileFloatingControls {...live()} />);
       const grid = screen.getByRole("dialog", { name: /map tools/i });
 
-      // A tap generates compat mouse events where a drag does not, so a CLICK
-      // tool on the phone would drop two stamps per tap. Those must not appear
-      // until M7's reticle lands. Paint and Erase left this list in M6: a
-      // brush tap repeats one cell rather than stamping a second object.
-      //
-      // Select is NOT in this list, and the difference is not an oversight.
-      // The double-fire the others suffer needs BOTH paths to act: the native
-      // touch path arms only when mapEditTouchMode, which is false for select,
-      // so only the compat-mouse path resolves it — once, and idempotently.
-      for (const absent of [/Place/, /Scatter/, /Light/]) {
-        expect(within(grid).queryByRole("button", { name: absent })).toBeNull();
-      }
+      // This list is EMPTY as of M7, and that is the point rather than a gap.
+      // It once held Paint, Erase, Place, Scatter and Light because a tap
+      // synthesises compat mouse events a drag does not, so those tools ran
+      // twice per tap; M6 closed that at source and M7 gave the click three an
+      // aim. There is now no map-edit tool that is shown but unarmed — so what
+      // this test defends is the INVARIANT, not the old list: every tile is a
+      // tool the touch path arms.
       expect(MOBILE_TOOL_TILES.every((tile) => isTouchTool(tile.id))).toBe(true);
+
+      // And the invariant has teeth only if the grid really is the tile list.
+      // A stray hand-written button would be a tool with no arming behind it,
+      // which is exactly the silent-no-op this mode is worst at. Select and
+      // Recenter are the two deliberate extras; Select gets its own test below.
+      //
+      // The TOOL grid specifically, not the dialog: the dialog also holds the
+      // ✕ close button and the populate footer, and a panel's swatch row wears
+      // the same grid class further down.
+      const tiles = grid.querySelector(".mobile-tool-sheet__grid") as HTMLElement;
+      const labels = within(tiles)
+        .getAllByRole("button")
+        .map((button) => button.textContent?.replace(/^\P{L}+/u, "") ?? "");
+      const known = new Set([...MOBILE_TOOL_TILES.map((tile) => tile.label), "Select", "Recenter"]);
+      for (const label of labels) expect(known).toContain(label);
     });
 
     // Select is reachable but is NOT a tile — the assertion above still pins

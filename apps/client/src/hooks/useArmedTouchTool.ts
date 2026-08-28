@@ -14,13 +14,17 @@
  * (room, wall, door, hallway, row, spline, generate) since M4c, and the BRUSH
  * sub-tools (terrain, erase) since M6.
  *
- * Not the CLICK ones — but the reason is no longer the compat-event trap. That
- * trap (a touch TAP generates a full synthetic mouse pair, and the mouse path
- * routes to these same handlers) is closed at source since M6:
- * useTouchGestureRouter cancels the touchstart it claims, so a finger a tool
- * owns is not also delivered as a mouse. What keeps place/scatter/light out is
- * their MODEL: each is aimed by a hover ghost, and a finger produces no hover.
- * M7 is the slice that gives them a reticle to aim with.
+ * The CLICK ones joined in M7, and needed two separate things to be true.
+ * First the compat-event trap had to close — a touch TAP generates a full
+ * synthetic mouse pair, and the mouse path routes to these same handlers, so
+ * one tap used to drop two stamps. useTouchGestureRouter cancels the
+ * touchstart a tool claims, so that is gone (M6). Second they needed an AIM: a
+ * hover ghost is how all three are pointed, and a finger produces no hover. So
+ * the finger gets a different gesture — press aims, release drops — which is
+ * what the `input` argument below selects. useMapEditTouchAim owns it.
+ *
+ * `select` is still armed by NOTHING here, and must stay that way: it resolves
+ * through the compat mouse path, and arming it too would run it twice.
  *
  * The three modes are mutually exclusive by construction — all three are
  * `activeTool === x` on one piece of state — so the order below is for
@@ -32,6 +36,7 @@
 import { useMemo, type RefObject } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
+import type { PointerInput } from "../features/map-edit/useMapEditTool";
 
 /**
  * A tool's gesture lifecycle, normalised.
@@ -64,9 +69,12 @@ export interface UseArmedTouchToolProps {
   handleMarqueePointerUp: () => void;
   handleMarqueeCancel: () => void;
 
-  handleMapEditMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
-  handleMapEditMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
-  handleMapEditMouseUp: () => void;
+  /* The map-edit handlers take an `input` discriminator the others do not:
+     the click tools drop on PRESS for a mouse and on RELEASE for a finger, and
+     this is the only caller that can say which is happening. */
+  handleMapEditMouseDown: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
+  handleMapEditMouseMove: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
+  handleMapEditMouseUp: (input?: PointerInput) => void;
   handleMapEditCancel: () => void;
 }
 
@@ -93,9 +101,9 @@ export function useArmedTouchTool({
       return {
         // Same shape as drawing: the stage carries the pointer, the event
         // carries nothing map-edit needs.
-        start: (_event, stageRef) => handleMapEditMouseDown(stageRef),
-        move: (stageRef) => handleMapEditMouseMove(stageRef),
-        commit: handleMapEditMouseUp,
+        start: (_event, stageRef) => handleMapEditMouseDown(stageRef, "touch"),
+        move: (stageRef) => handleMapEditMouseMove(stageRef, "touch"),
+        commit: () => handleMapEditMouseUp("touch"),
         // The one that matters on a finger. Releasing is what commits, so a
         // second finger reaching for the pinch must DISCARD the half-built
         // room — or the half-painted stroke — rather than stamp it onto the

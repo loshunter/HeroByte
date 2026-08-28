@@ -24,6 +24,7 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import { useDoubleTap } from "./useDoubleTap";
 import { useTouchGestureRouter } from "./useTouchGestureRouter";
 import { useArmedTouchTool } from "./useArmedTouchTool";
+import type { PointerInput } from "../features/map-edit/useMapEditTool";
 
 /**
  * Props for useStageEventRouter hook
@@ -50,20 +51,20 @@ export interface UseStageEventRouterProps {
     shouldPan: boolean,
   ) => void;
   handleDrawMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
-  handleMapEditMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
+  handleMapEditMouseDown: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
   handleMarqueePointerDown: (event: KonvaEventObject<PointerEvent>) => void;
 
   // Mouse move handlers
   handleCameraMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   handlePointerMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   handleDrawMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
-  handleMapEditMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
+  handleMapEditMouseMove: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
   handleMarqueePointerMove: () => void;
 
   // Mouse up handlers
   handleCameraMouseUp: () => void;
   handleDrawMouseUp: () => void;
-  handleMapEditMouseUp: () => void;
+  handleMapEditMouseUp: (input?: PointerInput) => void;
   handleMarqueePointerUp: () => void;
 
   /** Discard an in-progress stroke (a second finger, or an OS interrupt). */

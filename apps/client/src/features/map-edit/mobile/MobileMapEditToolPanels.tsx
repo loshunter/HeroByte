@@ -20,6 +20,7 @@ import { MAP_STUDIO_TILE_ASSETS } from "../../map-studio/starterTiles";
 import { PAINT_FAMILIES, WALL_FAMILIES } from "../mapEditFamilies";
 import type { TouchTool } from "../mapEditToolKinds";
 import type { MapEditSplineKind, MapEditToolbarProps, MapEditWallFamily } from "../mapEditTypes";
+import { MobileAssetPicker } from "./MobileAssetPicker";
 import { MobileFloorPicker } from "./MobileFloorPicker";
 import { MobileGeneratePanel } from "./MobileGeneratePanel";
 import { MobileSelectPanel } from "./MobileSelectPanel";
@@ -35,13 +36,16 @@ export type SheetPanelTool = TouchTool | "select";
 
 /** The tools whose panel below is non-empty — the sheet's open/close rule.
  *
- * Paint is here and Erase is not, which is the whole difference between them:
- * Paint carries the family picker, Erase takes no argument at all, so it closes
- * the sheet and puts the DM straight on the map. */
+ * The pattern across all of them: a tool that takes an ARGUMENT keeps the sheet
+ * open so the DM can set it, and a tool that takes none closes it and puts them
+ * on the map. Paint needs a family, Place and Scatter need an asset; Erase and
+ * Light need nothing, which is the whole difference. */
 export const PANEL_TOOLS: ReadonlySet<SheetPanelTool> = new Set<SheetPanelTool>([
   "terrain",
   "room",
   "hallway",
+  "place",
+  "scatter",
   "row",
   "spline",
   "generate",
@@ -152,6 +156,20 @@ function ToolDials({
       <MobileSwatchRow
         label="Stamp"
         options={ROW_ASSETS}
+        selected={selectedAssetId}
+        onSelect={onSelectAsset}
+      />
+    );
+  }
+
+  // Place and Scatter share `selectedAssetId` with Row and with the desktop
+  // palette, so this is the SAME armed asset seen through a bigger picker —
+  // Row narrows to bundled objects because a row of floor tiles is not a thing
+  // anyone drags, while these two can drop anything in the catalog.
+  if (activeSubTool === "place" || activeSubTool === "scatter") {
+    return (
+      <MobileAssetPicker
+        label={activeSubTool === "place" ? "Place" : "Scatter"}
         selected={selectedAssetId}
         onSelect={onSelectAsset}
       />

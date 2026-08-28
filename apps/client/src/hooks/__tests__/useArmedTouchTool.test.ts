@@ -52,9 +52,13 @@ describe("useArmedTouchTool", () => {
     result.current!.move(stageRef);
     result.current!.commit();
 
-    expect(props.handleMapEditMouseDown).toHaveBeenCalledWith(stageRef);
-    expect(props.handleMapEditMouseMove).toHaveBeenCalledWith(stageRef);
-    expect(props.handleMapEditMouseUp).toHaveBeenCalledTimes(1);
+    // The "touch" discriminator is the whole reason these handlers take one:
+    // a click tool drops on PRESS for a mouse and on RELEASE for a finger, and
+    // this hook is the only caller that knows which is happening. Passing the
+    // stageRef alone would silently give a finger the mouse's gesture.
+    expect(props.handleMapEditMouseDown).toHaveBeenCalledWith(stageRef, "touch");
+    expect(props.handleMapEditMouseMove).toHaveBeenCalledWith(stageRef, "touch");
+    expect(props.handleMapEditMouseUp).toHaveBeenCalledWith("touch");
     // Nothing else may be listening to the same finger.
     expect(props.handleDrawMouseDown).not.toHaveBeenCalled();
     expect(props.handleMarqueePointerDown).not.toHaveBeenCalled();
@@ -71,11 +75,12 @@ describe("useArmedTouchTool", () => {
     expect(props.handleDrawCancel).not.toHaveBeenCalled();
   });
 
-  it("map-edit with a CLICK sub-tool arms nothing", () => {
-    // mapEditTouchMode is false for place/scatter/light. Those would
-    // double-fire through the compat mouse path a tap generates — measured for
-    // drawing at four drawings from two taps — and stay out until M7 gives
-    // them a reticle. Camera-only is the correct answer, not a fallback.
+  it("map-edit with SELECT arms nothing — it resolves on the compat mouse path", () => {
+    // mapEditTouchMode is false for select alone now that M6 and M7 armed the
+    // brush and click classes. Arming it here would run it TWICE: the compat
+    // mouse pair already resolves it, and a claimed touchstart would suppress
+    // that pair and change a working tool for no reason. Camera-only is the
+    // correct answer, not a fallback.
     const { result } = renderHook(() => useArmedTouchTool(makeProps({ mapEditTouchMode: false })));
     expect(result.current).toBeNull();
   });
@@ -109,7 +114,7 @@ describe("useArmedTouchTool", () => {
 
     expect(result.current).not.toBe(drawTool);
     result.current!.start(touchEvent, stageRef);
-    expect(props.handleMapEditMouseDown).toHaveBeenCalledWith(stageRef);
+    expect(props.handleMapEditMouseDown).toHaveBeenCalledWith(stageRef, "touch");
     expect(props.handleDrawMouseDown).not.toHaveBeenCalled();
   });
 });
