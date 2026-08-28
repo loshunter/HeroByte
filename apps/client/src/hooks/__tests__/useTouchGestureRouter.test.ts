@@ -4,10 +4,21 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTouchGestureRouter } from "../useTouchGestureRouter";
 
-/** Konva hands the raw TouchEvent through on `.evt`; only `touches.length` is read. */
-function touchEvent(fingers: number): KonvaEventObject<TouchEvent> {
+/**
+ * Konva hands the raw TouchEvent through on `.evt`. `touches.length` is what
+ * the finger-count arbitration reads; `cancelable` + `preventDefault` are what
+ * the compat-mouse claim reads (see the hook's note on event duplication).
+ */
+function touchEvent(
+  fingers: number,
+  options: { cancelable?: boolean } = {},
+): KonvaEventObject<TouchEvent> {
   return {
-    evt: { touches: { length: fingers } },
+    evt: {
+      touches: { length: fingers },
+      cancelable: options.cancelable ?? true,
+      preventDefault: vi.fn(),
+    },
   } as unknown as KonvaEventObject<TouchEvent>;
 }
 
@@ -205,6 +216,54 @@ describe("useTouchGestureRouter", () => {
       expect(freshCommit).toHaveBeenCalledTimes(1);
       expect(staleMove).not.toHaveBeenCalled();
       expect(staleCommit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("claiming the finger from the compat mouse path", () => {
+    // The failure this closes is invisible in the DOM: the compat pair runs the
+    // SAME handlers, so a doubled gesture leaves the map looking right and the
+    // undo stack twice as deep. Measured on the wire at 2 paint-terrain
+    // commands per tap before this, 1 after.
+    it("cancels the touchstart a tool takes, so the browser sends no mouse pair", () => {
+      const { result } = setup(true);
+      const event = touchEvent(1);
+
+      act(() => result.current.onTouchStart(event));
+
+      expect(event.evt.preventDefault).toHaveBeenCalledTimes(1);
+      expect(onToolStart).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves a camera gesture alone — nothing armed means the tap is the map's", () => {
+      const { result } = setup(false);
+      const event = touchEvent(1);
+
+      act(() => result.current.onTouchStart(event));
+
+      expect(event.evt.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it("leaves the SECOND finger alone: a pinch must keep the browser's default", () => {
+      const { result } = setup(true);
+      act(() => result.current.onTouchStart(touchEvent(1)));
+
+      const second = touchEvent(2);
+      act(() => result.current.onTouchStart(second));
+
+      expect(second.evt.preventDefault).not.toHaveBeenCalled();
+      expect(onToolCancel).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not call preventDefault on an uncancelable touchstart", () => {
+      // The browser has already committed that gesture to scrolling; calling it
+      // there earns a console warning and changes nothing.
+      const { result } = setup(true);
+      const event = touchEvent(1, { cancelable: false });
+
+      act(() => result.current.onTouchStart(event));
+
+      expect(event.evt.preventDefault).not.toHaveBeenCalled();
+      expect(onToolStart).toHaveBeenCalledTimes(1);
     });
   });
 

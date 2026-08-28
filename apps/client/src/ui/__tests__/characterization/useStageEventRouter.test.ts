@@ -55,7 +55,7 @@ describe("useStageEventRouter", () => {
     measureMode: false,
     drawMode: false,
     mapEditMode: false,
-    mapEditDragMode: false,
+    mapEditTouchMode: false,
     handleAlignmentClick: mockHandleAlignmentClick,
     handlePointerClick: mockHandlePointerClick,
     handleCameraMouseDown: mockHandleCameraMouseDown,

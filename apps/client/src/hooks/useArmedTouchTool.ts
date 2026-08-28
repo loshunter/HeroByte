@@ -10,16 +10,17 @@
  * the camera BEFORE it dispatches, so it needs a single answer rather than a
  * broadcast.
  *
- * Tools reached by touch: draw, marquee-select, and — since M4c — the map-edit
- * DRAG sub-tools (room, wall, door, hallway, row, spline, generate).
+ * Tools reached by touch: draw, marquee-select, the map-edit DRAG sub-tools
+ * (room, wall, door, hallway, row, spline, generate) since M4c, and the BRUSH
+ * sub-tools (terrain, erase) since M6.
  *
- * Only the drag ones, and the reason is the compat-event trap documented in
- * useTouchGestureRouter: a touch DRAG generates no synthetic mouse events, but
- * a TAP generates a full pair, and the mouse path routes to these same
- * handlers. A drag tool is safe either way — a tap makes a zero-length drag
- * and wallDraftFromDrag/commitSegmentDrag reject it. The CLICK sub-tools
- * (place, scatter, light) are not: one tap would drop two stamps, one per
- * path. The brush sub-tools still want a design pass of their own.
+ * Not the CLICK ones — but the reason is no longer the compat-event trap. That
+ * trap (a touch TAP generates a full synthetic mouse pair, and the mouse path
+ * routes to these same handlers) is closed at source since M6:
+ * useTouchGestureRouter cancels the touchstart it claims, so a finger a tool
+ * owns is not also delivered as a mouse. What keeps place/scatter/light out is
+ * their MODEL: each is aimed by a hover ghost, and a finger produces no hover.
+ * M7 is the slice that gives them a reticle to aim with.
  *
  * The three modes are mutually exclusive by construction — all three are
  * `activeTool === x` on one piece of state — so the order below is for
@@ -50,8 +51,8 @@ export interface ArmedTouchTool {
 export interface UseArmedTouchToolProps {
   drawMode: boolean;
   selectMode: boolean;
-  /** Map-edit mode AND a sub-tool that is drag-shaped (see the note above). */
-  mapEditDragMode: boolean;
+  /** Map-edit mode AND a sub-tool a finger is armed for (see the note above). */
+  mapEditTouchMode: boolean;
 
   handleDrawMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   handleDrawMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
@@ -73,7 +74,7 @@ export interface UseArmedTouchToolProps {
 export function useArmedTouchTool({
   drawMode,
   selectMode,
-  mapEditDragMode,
+  mapEditTouchMode,
   handleDrawMouseDown,
   handleDrawMouseMove,
   handleDrawMouseUp,
@@ -88,7 +89,7 @@ export function useArmedTouchTool({
   handleMapEditCancel,
 }: UseArmedTouchToolProps): ArmedTouchTool | null {
   return useMemo(() => {
-    if (mapEditDragMode) {
+    if (mapEditTouchMode) {
       return {
         // Same shape as drawing: the stage carries the pointer, the event
         // carries nothing map-edit needs.
@@ -97,7 +98,8 @@ export function useArmedTouchTool({
         commit: handleMapEditMouseUp,
         // The one that matters on a finger. Releasing is what commits, so a
         // second finger reaching for the pinch must DISCARD the half-built
-        // room rather than stamp it onto the table.
+        // room — or the half-painted stroke — rather than stamp it onto the
+        // table. useMapEditCancel covers both.
         cancel: handleMapEditCancel,
       };
     }
@@ -140,7 +142,7 @@ export function useArmedTouchTool({
   }, [
     drawMode,
     selectMode,
-    mapEditDragMode,
+    mapEditTouchMode,
     handleDrawMouseDown,
     handleDrawMouseMove,
     handleDrawMouseUp,

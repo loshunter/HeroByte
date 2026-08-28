@@ -17,9 +17,9 @@ import { render, screen, fireEvent, cleanup, within } from "@testing-library/rea
 import { MobileFloatingControls } from "../MobileFloatingControls";
 import type { MobileSurface } from "../../../hooks/useMobileSurface";
 import type { MapEditToolbarProps } from "../../../features/map-edit/mapEditTypes";
-import { isDragTool } from "../../../features/map-edit/mapEditToolKinds";
+import { isTouchTool } from "../../../features/map-edit/mapEditToolKinds";
 import {
-  DRAG_TOOL_COUNT,
+  TOUCH_TOOL_COUNT,
   MOBILE_TOOL_TILES,
 } from "../../../features/map-edit/mobile/mobileToolTiles";
 
@@ -324,30 +324,31 @@ describe("the map-edit palette", () => {
         expect(bar.onSelectSubTool).toHaveBeenCalledWith(tile.id);
       }
       // A tile list that silently lost one would still pass the loop above.
-      expect(MOBILE_TOOL_TILES).toHaveLength(DRAG_TOOL_COUNT);
+      expect(MOBILE_TOOL_TILES).toHaveLength(TOUCH_TOOL_COUNT);
     });
 
     it("offers NOTHING the touch path refuses to arm", () => {
       render(<MobileFloatingControls {...live()} />);
       const grid = screen.getByRole("dialog", { name: /map tools/i });
 
-      // A tap generates compat mouse events where a drag does not, so a click
-      // tool on the phone would drop two stamps per tap. These must not appear
-      // until that design pass lands (M6/M7).
+      // A tap generates compat mouse events where a drag does not, so a CLICK
+      // tool on the phone would drop two stamps per tap. Those must not appear
+      // until M7's reticle lands. Paint and Erase left this list in M6: a
+      // brush tap repeats one cell rather than stamping a second object.
       //
       // Select is NOT in this list, and the difference is not an oversight.
       // The double-fire the others suffer needs BOTH paths to act: the native
-      // touch path arms only when mapEditDragMode, which is false for select,
+      // touch path arms only when mapEditTouchMode, which is false for select,
       // so only the compat-mouse path resolves it — once, and idempotently.
-      for (const absent of [/Place/, /Scatter/, /Light/, /Paint/, /Erase/]) {
+      for (const absent of [/Place/, /Scatter/, /Light/]) {
         expect(within(grid).queryByRole("button", { name: absent })).toBeNull();
       }
-      expect(MOBILE_TOOL_TILES.every((tile) => isDragTool(tile.id))).toBe(true);
+      expect(MOBILE_TOOL_TILES.every((tile) => isTouchTool(tile.id))).toBe(true);
     });
 
     // Select is reachable but is NOT a tile — the assertion above still pins
-    // MOBILE_TOOL_TILES as drag-only, so this proves the control exists without
-    // that list having grown a non-drag member to carry it.
+    // MOBILE_TOOL_TILES to the armable set, so this proves the control exists
+    // without that list having grown an unarmable member to carry it.
     it("arms Select from the sheet without adding it to the tile list", () => {
       const bar = toolbar({ isLive: true });
       render(<MobileFloatingControls {...props({ surface: "tools", mapEditToolbarProps: bar })} />);

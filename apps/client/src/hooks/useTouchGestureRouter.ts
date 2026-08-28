@@ -34,14 +34,28 @@
  *   DRAG - zero mousedown, zero mouseup. Movement past the tap slop cancels
  *          the tap gesture, so no compat events are generated. Strokes drawn
  *          by dragging commit exactly once.
- *   TAP  - compat events DO fire. Measured directly: with the degenerate-shape
- *          guard removed, two taps produced FOUR drawings, one per path per
- *          tap. The guard in useDrawingTool.onMouseUp rejects a zero-size
- *          shape, which closes both paths at once rather than trying to
- *          de-duplicate the events.
+ *   TAP  - compat events fire unless the touchstart is cancelled. Measured
+ *          directly: with the degenerate-shape guard removed, two taps
+ *          produced FOUR drawings, one per path per tap.
  *
- * So a drag is safe by mechanism and a tap is safe by the send gate. If that
- * gate is ever loosened, this is the seam where doubling reappears.
+ * So the drag half is safe by mechanism. The tap half is closed HERE, by
+ * calling preventDefault on the touchstart that a tool takes ownership of —
+ * the Touch Events spec's own way of saying "this finger is not also a mouse".
+ * Only when a tool owns it: a camera gesture wants the browser's default
+ * behaviour, and a tap with nothing armed must still reach the map (which is
+ * why mobile-draw's idle-tap recorder still sees the pair).
+ *
+ * M6 is why this became necessary rather than merely tidy. A drag tool
+ * survived the doubling because a tap makes a zero-length drag that
+ * commitSegmentDrag rejects, and drawing survives it by the same kind of send
+ * gate. A BRUSH has no such guard — painting one cell is exactly what a tap is
+ * for — so the repeat committed a second identical paint-terrain command and
+ * cost two undo steps for one cell. Measured at 2 before this line existed and
+ * 1 after, in mobile-map-edit-paint.spec.ts.
+ *
+ * Konva's own `tap` is unaffected: it is synthesised from the touch events
+ * themselves, not from the compat mouse pair, so onTap keeps firing and the
+ * click-shaped tools keep working.
  *
  * @module hooks/useTouchGestureRouter
  */
@@ -120,6 +134,11 @@ export function useTouchGestureRouter({
         }
       } else if (tool) {
         toolGestureActive.current = true;
+        // Claim the finger from the compat mouse path — see the note above.
+        // Guarded on `cancelable` only to be honest about it: a touchstart the
+        // browser has already committed to scrolling cannot be taken back, and
+        // calling preventDefault on one logs a console warning for nothing.
+        if (event.evt.cancelable) event.evt.preventDefault();
         tool.start(event, stageRef);
       }
 

@@ -7,18 +7,31 @@ import type { MapEditSubTool } from "./mapEditTypes";
 
 /**
  * Exported and `as const` so the mobile tool grid can be DERIVED from it rather
- * than hand-listed beside it. The phone arms exactly this set (MapBoard's
- * mapEditDragMode is `isDragTool(activeSubTool)`), so a second hand-kept list
- * would be a way for the two to disagree — the trap mapEditFamilies.ts records
- * killing for swatches. A new drag tool now has to be given a phone tile before
- * it compiles.
+ * than hand-listed beside it. Since M6 the phone arms this set PLUS the brush
+ * one (MapBoard's mapEditTouchMode is `isTouchTool(activeSubTool)`), so a
+ * second hand-kept list would be a way for the two to disagree — the trap
+ * mapEditFamilies.ts records killing for swatches. A new drag tool now has to
+ * be given a phone tile before it compiles.
  */
 export const DRAG_TOOLS = ["wall", "door", "room", "hallway", "generate", "row", "spline"] as const;
 
 /** A sub-tool that drives the drag machine — the set touch is armed for. */
 export type DragTool = (typeof DRAG_TOOLS)[number];
 
-const BRUSH_TOOLS: MapEditSubTool[] = ["terrain", "erase"];
+/**
+ * Exported for the same reason DRAG_TOOLS is: since M6 the phone arms brushes
+ * too, and its tile grid is a Record over the union of the two sets. A brush
+ * added here without a tile is a compile error rather than a tool that is
+ * armable on a phone with no way to reach it.
+ */
+export const BRUSH_TOOLS = ["terrain", "erase"] as const;
+
+/** A sub-tool that drives the pointer-STREAM brush machine. */
+export type BrushTool = (typeof BRUSH_TOOLS)[number];
+
+/** Every sub-tool a finger is armed for — the drag machine plus the brush one. */
+export type TouchTool = DragTool | BrushTool;
+
 const CLICK_TOOLS: MapEditSubTool[] = ["place", "scatter", "light"];
 
 /** Wall, door, room, hallway, and generate all drive the same drag machine. */
@@ -41,8 +54,13 @@ export function isAimTool(subTool: MapEditSubTool): boolean {
 }
 
 /** Terrain + erase are pointer-STREAM brushes (paint cells while down). */
-export function isBrushTool(subTool: MapEditSubTool): boolean {
-  return BRUSH_TOOLS.includes(subTool);
+export function isBrushTool(subTool: MapEditSubTool): subTool is BrushTool {
+  return (BRUSH_TOOLS as readonly MapEditSubTool[]).includes(subTool);
+}
+
+/** True for every sub-tool the touch path arms — see `TouchTool`. */
+export function isTouchTool(subTool: MapEditSubTool): subTool is TouchTool {
+  return isDragTool(subTool) || isBrushTool(subTool);
 }
 
 /** Place + scatter are click tools: one pointer-down drops (no drag, no stream). */

@@ -9,11 +9,14 @@
 // small. A tap (unlike a drag) makes the browser synthesize compat mouse
 // events; useStageEventRouter binds mousedown UNCONDITIONALLY and every handler
 // self-gates on its own mode, so useMapEditTool's select branch already runs on
-// a phone the moment activeSubTool is "select". Select is also the one non-drag
-// tool that is SAFE that way: the click tools (place/scatter/light) drop two
-// stamps per tap because the native-touch path fires too, but for "select" that
-// path is inert (useArmedTouchTool arms only when mapEditDragMode, false here),
-// so it resolves once — and re-selecting the same element is idempotent anyway.
+// a phone the moment activeSubTool is "select". Select is safe that way because
+// only ONE path acts: useArmedTouchTool arms nothing for it (mapEditTouchMode
+// is false here), so the touch path never claims the finger and the compat
+// pair is delivered — resolving once, and idempotently even if it were not.
+//
+// M6 note: the compat pair now exists only for gestures no tool owns. A tool
+// that IS armed cancels its touchstart (useTouchGestureRouter), so select is
+// unaffected precisely because it stays unarmed.
 //
 // So this file is a readout and a button. The selection, the hit test, the wire
 // command and the server's checks are all the desktop ones, untouched.

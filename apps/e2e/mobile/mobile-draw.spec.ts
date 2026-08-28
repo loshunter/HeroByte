@@ -228,6 +228,12 @@ test.describe("mobile touch — event model", () => {
    * commits nothing (degenerate strokes are rejected), and with them the mouse
    * path commits nothing for the same reason. The number is recorded so a
    * future change to that gate knows which mechanism it is dealing with.
+   *
+   * This taps with NOTHING armed, which is why it still sees the compat pair
+   * after M6. useTouchGestureRouter cancels the touchstart only when a tool
+   * takes ownership of it, so an idle tap keeps the browser's default and the
+   * numbers below are unchanged. The armed case is pinned elsewhere: by the
+   * hook's own unit tests, and on the wire by mobile-map-edit-paint.spec.ts.
    */
   test("records whether a bare tap synthesises compatibility mouse events", async ({ page }) => {
     await joinMobileTable(page);

@@ -19,7 +19,7 @@ function makeProps(overrides: Partial<UseArmedTouchToolProps> = {}): UseArmedTou
   return {
     drawMode: false,
     selectMode: false,
-    mapEditDragMode: false,
+    mapEditTouchMode: false,
     handleDrawMouseDown: vi.fn(),
     handleDrawMouseMove: vi.fn(),
     handleDrawMouseUp: vi.fn(),
@@ -44,8 +44,8 @@ describe("useArmedTouchTool", () => {
     expect(result.current).toBeNull();
   });
 
-  it("map-edit's drag sub-tools take the finger: down, move, up all reach the tool", () => {
-    const props = makeProps({ mapEditDragMode: true });
+  it("map-edit's armed sub-tools take the finger: down, move, up all reach the tool", () => {
+    const props = makeProps({ mapEditTouchMode: true });
     const { result } = renderHook(() => useArmedTouchTool(props));
 
     result.current!.start(touchEvent, stageRef);
@@ -61,7 +61,7 @@ describe("useArmedTouchTool", () => {
   });
 
   it("cancel is map-edit's OWN cancel — the second finger must discard, never commit", () => {
-    const props = makeProps({ mapEditDragMode: true });
+    const props = makeProps({ mapEditTouchMode: true });
     const { result } = renderHook(() => useArmedTouchTool(props));
 
     result.current!.cancel();
@@ -71,13 +71,12 @@ describe("useArmedTouchTool", () => {
     expect(props.handleDrawCancel).not.toHaveBeenCalled();
   });
 
-  it("map-edit with a NON-drag sub-tool arms nothing", () => {
-    // mapEditDragMode is false for place/scatter/light/terrain/erase. The
-    // click ones would double-fire through the compat mouse path a tap
-    // generates — measured for drawing at four drawings from two taps — and
-    // the brush ones want a design pass. Camera-only is the correct answer,
-    // not a fallback.
-    const { result } = renderHook(() => useArmedTouchTool(makeProps({ mapEditDragMode: false })));
+  it("map-edit with a CLICK sub-tool arms nothing", () => {
+    // mapEditTouchMode is false for place/scatter/light. Those would
+    // double-fire through the compat mouse path a tap generates — measured for
+    // drawing at four drawings from two taps — and stay out until M7 gives
+    // them a reticle. Camera-only is the correct answer, not a fallback.
+    const { result } = renderHook(() => useArmedTouchTool(makeProps({ mapEditTouchMode: false })));
     expect(result.current).toBeNull();
   });
 
@@ -106,7 +105,7 @@ describe("useArmedTouchTool", () => {
 
     rerender({ ...props, drawMode: true });
     const drawTool = result.current;
-    rerender({ ...props, drawMode: false, mapEditDragMode: true });
+    rerender({ ...props, drawMode: false, mapEditTouchMode: true });
 
     expect(result.current).not.toBe(drawTool);
     result.current!.start(touchEvent, stageRef);

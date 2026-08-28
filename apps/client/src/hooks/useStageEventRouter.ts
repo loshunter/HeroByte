@@ -36,8 +36,8 @@ export interface UseStageEventRouterProps {
   measureMode: boolean;
   drawMode: boolean;
   mapEditMode: boolean;
-  /** Map-edit with a DRAG sub-tool — the subset the touch path arms. */
-  mapEditDragMode: boolean;
+  /** Map-edit with a drag or brush sub-tool — the subset the touch path arms. */
+  mapEditTouchMode: boolean;
 
   // Click handlers
   handleAlignmentClick: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
@@ -140,7 +140,7 @@ export function useStageEventRouter({
   measureMode,
   drawMode,
   mapEditMode,
-  mapEditDragMode,
+  mapEditTouchMode,
   handleAlignmentClick,
   handlePointerClick,
   handleCameraMouseDown,
@@ -304,7 +304,7 @@ export function useStageEventRouter({
   const armedTouchTool = useArmedTouchTool({
     drawMode,
     selectMode,
-    mapEditDragMode,
+    mapEditTouchMode,
     handleDrawMouseDown,
     handleDrawMouseMove,
     handleDrawMouseUp,

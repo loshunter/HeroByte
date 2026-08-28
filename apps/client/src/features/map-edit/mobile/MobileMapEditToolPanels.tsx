@@ -18,7 +18,7 @@
 import React from "react";
 import { MAP_STUDIO_TILE_ASSETS } from "../../map-studio/starterTiles";
 import { PAINT_FAMILIES, WALL_FAMILIES } from "../mapEditFamilies";
-import type { DragTool } from "../mapEditToolKinds";
+import type { TouchTool } from "../mapEditToolKinds";
 import type { MapEditSplineKind, MapEditToolbarProps, MapEditWallFamily } from "../mapEditTypes";
 import { MobileFloorPicker } from "./MobileFloorPicker";
 import { MobileGeneratePanel } from "./MobileGeneratePanel";
@@ -26,15 +26,20 @@ import { MobileSelectPanel } from "./MobileSelectPanel";
 import { MobileSwatchRow } from "./MobileSwatchRow";
 
 /**
- * A tool the sheet can render a panel for. Every drag tool qualifies, plus
- * "select" — which is NOT a drag tool and must never become one (it arms no
- * touch gesture at all; see MobileSelectPanel for why it works anyway), but
- * does own a panel and so obeys the same open/close rule as the rest.
+ * A tool the sheet can render a panel for. Every tool a finger arms qualifies,
+ * plus "select" — which arms no touch gesture at all (see MobileSelectPanel for
+ * why it works anyway), but does own a panel and so obeys the same open/close
+ * rule as the rest.
  */
-export type SheetPanelTool = DragTool | "select";
+export type SheetPanelTool = TouchTool | "select";
 
-/** The tools whose panel below is non-empty — the sheet's open/close rule. */
+/** The tools whose panel below is non-empty — the sheet's open/close rule.
+ *
+ * Paint is here and Erase is not, which is the whole difference between them:
+ * Paint carries the family picker, Erase takes no argument at all, so it closes
+ * the sheet and puts the DM straight on the map. */
 export const PANEL_TOOLS: ReadonlySet<SheetPanelTool> = new Set<SheetPanelTool>([
+  "terrain",
   "room",
   "hallway",
   "row",
@@ -98,6 +103,17 @@ function ToolDials({
   selectedAssetId,
   onSelectAsset,
 }: MapEditToolbarProps): JSX.Element | null {
+  // Paint writes the SAME family Room and Hall fill with — one swatch state,
+  // exactly as the desktop toolbar shares MapEditBrushDeck across the three.
+  // A separate mobile-only brush family would be a second source of truth for
+  // "what colour am I painting", and the two would disagree the first time a
+  // DM armed Room after painting.
+  if (activeSubTool === "terrain") {
+    return (
+      <MobileFloorPicker label="Paint" selected={floorFamily} onSelect={onSelectFloorFamily} />
+    );
+  }
+
   if (activeSubTool === "room" || activeSubTool === "hallway") {
     return (
       <>
