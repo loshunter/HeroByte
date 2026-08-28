@@ -576,7 +576,40 @@ width/kind/theme sub-panels (`MapEditToolbar.tsx:168-185`, `MapEditToolPanels.ts
 (`usePopulate.ts:94, :118`) — that adjacency is invisible in a sheet-based UI and needs an explicit
 affordance.
 
-### M6 🟡 — Paint / Erase + a touch brush deck
+### M6 ✅ — Paint / Erase + a touch brush deck — **SHIPPED 2026-08-27**
+
+Two commits on `dev`: `deb82b4c` (arming) and `cfa60f95` (the deck's memory).
+
+**The deck did not need rebuilding.** `MobileFloorPicker` — built for Room/Hall's floor dial in
+M5 — already was the touch answer to `MapEditBrushDeck`: material shelves over
+`buildBrushDeckGroups()`, the same pure data, already in the entry chunk. Paint reuses it, which is
+why the arming half cost **+0.04 KB**. What it was missing was the localStorage half, and the trap
+below was right: ★ and Recent now read and write the SAME keys, so a desktop pin is on the phone's
+star shelf. Pinning by right-click has no touch equivalent, so the affordance is one
+**☆ Pin &lt;family&gt;** button under the swatches rather than a star on all 19 chips.
+
+**The real work was the input layer, and it was found by measuring rather than by design.** With a
+brush armed, ONE tap sent TWO `paint-terrain` commands: a tap synthesises a compatibility mouse
+pair and `useStageEventRouter` fans `mousedown` out unconditionally, so the mouse path re-ran the
+stroke the touch path had just committed — two undo steps for one cell, and invisible in the
+terrain because both commands paint the same thing. The drag tools survive that by accident (a tap
+makes a zero-length drag their commit rejects) and drawing survives it by its send gate; a brush
+can have no such guard, because painting one cell IS what a tap is for.
+
+Closed at source: `useTouchGestureRouter` now calls `preventDefault` on the touchstart a tool takes
+ownership of — the Touch Events spec's own way of saying "this finger is not also a mouse". Only
+when a tool owns it, so an idle tap keeps the browser's default (which is why `mobile-draw`'s
+compat-event recorder is unchanged). Konva's `tap` is synthesised from the touch events rather than
+the compat pair, so `onTap` is unaffected. Measured 2 → 1 in `mobile-map-edit-paint.spec.ts`.
+
+`mapEditDragMode` is `mapEditTouchMode`, and the tile Record is over
+`TouchTool = DragTool | BrushTool`, so a tool added to either set is a compile error until it has a
+tile.
+
+**What this hands M7:** the compat-doubling reason for keeping place/scatter/light off a phone is
+now GONE. What keeps them off is only their aiming model — a hover ghost a finger cannot produce.
+
+The original framing follows.
 
 The tool `VISION.md:46` actually promises. Brush stream at `useMapEditTool.ts:204, :243, :268-274`.
 The deck (`MapEditBrushDeck.tsx:42-246`) must be rebuilt for touch: the hover preview card

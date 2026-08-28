@@ -28,10 +28,11 @@ export interface MobileToolTile {
 // Erase lead: VISION.md:46 promises painting on a touch device, and the two
 // brushes are what a DM reaches for most between structural passes. Room, Hall,
 // Wall and Door follow as the structural four; Row, Spline and Gen last.
-// Labels stay short — the grid is 3 columns under 420px.
+// Labels stay short — the grid is 3 columns under 420px — and the icons are
+// the DESKTOP palette's, so the two surfaces name the same tool the same way.
 const PRESENTATION: Record<TouchTool, { icon: string; label: string }> = {
-  terrain: { icon: "🖌", label: "Paint" },
-  erase: { icon: "🧽", label: "Erase" },
+  terrain: { icon: "🖌️", label: "Paint" },
+  erase: { icon: "🧹", label: "Erase" },
   room: { icon: "🏠", label: "Room" },
   hallway: { icon: "🚇", label: "Hall" },
   wall: { icon: "▬", label: "Wall" },
