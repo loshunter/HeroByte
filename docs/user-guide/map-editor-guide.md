@@ -158,13 +158,19 @@ The dock becomes five slots:
 | **↶ Undo / ↷ Redo** | The same map-edit history the desktop palette drives. Both stay greyed until the map is live.                                                                                                                                                                                                         |
 | **⨯ Abort**         | Abandons the drag in progress.                                                                                                                                                                                                                                                                        |
 
-**Nine tools are here.** **🖌️ Paint** and **🧹 Erase** lead, then the seven drag tools — **🏠 Room**, **🚇 Hall**, **▬ Wall**, **🚪 Door**, **📏 Row**, **〰️ Spline** and **🏰 Gen**. All nine work the same way with a finger: press, move, lift. **👆 Select** sits beside them and is the exception — it is a tap, not a drag, and it is there so you can delete something (see below).
+**Every tool is here.** **🖌️ Paint** and **🧹 Erase** lead, then the four structural drags — **🏠 Room**, **🚇 Hall**, **▬ Wall**, **🚪 Door** — then **📦 Place**, **🎲 Scatter** and **💡 Light**, then **📏 Row**, **〰️ Spline** and **🏰 Gen**. All of them work the same way with a finger: press, move, lift. **👆 Select** sits beside them and is the exception — it is a tap, not a drag, and it is there so you can delete something (see below).
 
 **Painting.** Arm **🖌️ Paint** and the sheet stays open over the family picker, because Paint needs to know what to paint with. Pick a material shelf, then a floor, then **▶ To the map** and drag. A tap paints a single cell. **🧹 Erase** takes no such argument, so it closes the sheet and puts you straight on the map — drag over anything you want to take back up, including a room's floor.
 
 > **The picker is a deck, and it remembers.** Two extra shelves appear once there is something to remember: **★** for the floors you pinned and **Recent** for the last six you used. They are the same memory the desktop palette keeps, so a floor you pin at the desk is on the star shelf when you pick up the tablet. **☆ Pin** under the swatches pins whatever is armed — the desktop pins by right-click, which a finger cannot make.
 
-What is still desktop-only is the click half — **Place**, **Scatter** and **Light**. Each is aimed by a ghost that follows the mouse, and a finger has no hover to follow: you would be dropping objects blind. They are waiting on an aiming design of their own, not on an oversight.
+**Placing.** **📦 Place** and **🎲 Scatter** ask what to drop, so their sheet stays open over a picker: category chips, then that category's assets. **💡 Light** asks nothing and closes the sheet.
+
+Here they behave differently from a mouse, and it is worth knowing before your first drop. On a desktop these three drop the moment you click. On a touch device **your press only AIMS** — the translucent ghost appears under your finger and follows it while you slide — and the drop happens **when you lift**. There is no hover on a phone, so a tap that dropped immediately would be dropping blind, which matters most for Scatter: its cluster is seeded from the exact point, so "roughly there" is a different handful of objects.
+
+That also means you can change your mind. Slide to a better spot before lifting, or reach for a second finger and the drop is abandoned along with everything else in flight.
+
+The one thing that is still desktop-only is **My Stuff** — your own uploaded art. The phone's picker offers every bundled asset; images you uploaded yourself still need a desktop to place.
 
 > **Deleting on a phone.** Tap **⚒ Tool**, tap **👆 SELECT**, then tap the thing on the map — the sheet names what you picked — and tap **🗑 DELETE**. Select reaches everything you can place: objects, floor tiles, shapes, walls, doors, lights, text and splines. Walls and the like are thin, so you get a half-cell of slack — tap near one and it will take it, and the dashed outline traces what you actually caught before you commit to deleting it.
 >

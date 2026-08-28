@@ -617,12 +617,63 @@ The deck (`MapEditBrushDeck.tsx:42-246`) must be rebuilt for touch: the hover pr
 needs a real control. **Trap:** pins/recents live in localStorage (`brushDeck.ts:75-125`) — keep
 the same keys so a DM's desktop pins follow them.
 
-### M7 🟡 — Place / Scatter / Light with a reticle
+### M7 ✅ — Place / Scatter / Light with a reticle — **SHIPPED 2026-08-27**
 
-The hover-ghost problem (`useMapEditPlacement.ts:128-159`). Needs a reticle or drag-then-confirm
-placement model; an explicit **stamp vs tile** toggle to replace Alt (`:105-117`); on-screen rotate
-buttons to replace R/Shift+R (`:36, :86-98`); and an eyedropper as a real sub-tool rather than a
-Ctrl modifier (`useMapEditSelection.ts:16, :42-75`). The most novel design in the arc.
+The three click tools reach a finger. Not with a reticle in the end: the design
+that shipped is **press aims, release drops**, which is the same "lifting your
+finger commits" contract every other touch tool here already teaches — so it
+needed no new idea in the guide, and ⨯ ABORT and the second-finger pinch abandon
+a drop exactly as they abandon a half-built room. A fixed centre-screen reticle
+would have been a second gesture vocabulary for three tools.
+
+The compat-mouse half of the problem was already gone: M6 closed it at source.
+What was left was purely AIMING — all three are pointed by a hover ghost, and a
+finger produces no hover, so a tap would drop blind. That matters most for
+Scatter, whose cluster is seeded from the exact point, so "roughly there" is a
+different handful of objects.
+
+`useMapEditTouchAim` owns the difference, and the handlers take an
+`input: "mouse" | "touch"` discriminator — the touch router is the only caller
+that knows which device is driving. Everything else ignores it.
+
+**The extraction this cost, and it was owed.** `useMapEditTool.ts` was at 347 of
+a 350-line guard with nothing left to spend, exactly as the handoff warned. The
+drag lifecycle came out into `useMapEditDragGesture.ts` — the split that pays,
+because the two really are different machines (one accumulates a rectangle in a
+ref and commits one command on release; the point tools each resolve at a single
+unsnapped point). `commitClickTool.ts` came out too, the moment there were two
+callers for the same three-way dispatch. The hook is 330 and behaviour is
+unchanged; the characterization suites are what say so.
+
+**Two things measurement corrected.**
+
+The e2e "a second finger abandons the drop" does NOT prove the aim is cleared —
+sabotaging `useMapEditTouchAim.cancel` left it green, because the router stops
+calling `commit` either way. The ghost half is pinned in the hook's own unit
+test, where it is visible. The e2e still earns its place: the promotion crosses
+three hooks.
+
+And the three new tiles took the grid to a fourth row, which on an 820x1180
+tablet moved the sheet top from 588px to 533px — 56px of map the DM could no
+longer tap, in Select, the one mode where you must tap the map WITH the sheet
+open. A sibling spec that tapped "empty canvas" at 566px started hitting the
+sheet, and read as a selection bug. Fixed with a fifth grid column at >=700px,
+and guarded by a floor on the MAP rather than a ceiling on the sheet
+(`mobile-map-edit-panels.spec.ts`) — the sheet may grow, the map may not shrink.
+
+**Deliberately not in it:** the stamp-vs-tile toggle (Alt), on-screen rotate
+(R / Shift+R), the eyedropper as a sub-tool, and My Stuff uploads in the mobile
+asset picker. Each is a control, not a gesture, and they are M7's remainder
+rather than blockers — a DM can place every bundled asset today.
+
+The original framing follows.
+
+The hover-ghost problem (`useMapEditPlacement.ts:128-159`). Needs a reticle or
+drag-then-confirm placement model; an explicit **stamp vs tile** toggle to
+replace Alt (`:105-117`); on-screen rotate buttons to replace R/Shift+R
+(`:36, :86-98`); and an eyedropper as a real sub-tool rather than a Ctrl
+modifier (`useMapEditSelection.ts:16, :42-75`). The most novel design in the
+arc.
 
 ### M8 🟢 — Select + Inspector + a mobile DM sheet
 
