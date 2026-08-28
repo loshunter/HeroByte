@@ -14,8 +14,38 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 | Branch | Commit     | State                                                                               |
 | ------ | ---------- | ----------------------------------------------------------------------------------- |
-| `dev`  | `6a605af4` | level with `main`; new work lands here first                                        |
+| `dev`  | `96c68da4` | **the mobile authoring arc is COMPLETE** (§0.1); not pushed, not merged             |
 | `main` | `6a605af4` | **PRODUCTION**, deployed 2026-08-26, CI **#814** green, probe- and browser-verified |
+
+## 0.1 The mobile authoring arc is COMPLETE (2026-08-27)
+
+**M6, M7 and M8 all shipped to `dev` in one session, and with them the arc that has been
+running since 2026-08-09.** Every map-edit tool now reaches a finger. Nineteen commits on
+top of `16499eb2`, each behind the §2 gate and each sabotage-proven before commit. Nothing
+is pushed and nothing is deployed — that is the owner's call.
+
+Read [mobile-authoring-arc.md](./mobile-authoring-arc.md) §4 for the per-slice write-ups.
+The four things a next session most needs to know:
+
+- **The compat-mouse trap is CLOSED at source.** A touch tap synthesises a mouse pair and
+  the mouse path routes to the same handlers; `useTouchGestureRouter` now cancels the
+  touchstart a tool takes ownership of. MEASURED at 2 `paint-terrain` commands per tap
+  before, 1 after. Every "this tool cannot be armed on touch because it would double-fire"
+  comment in the tree is now history — the reasons that remain are about AIMING.
+- **Click tools have a different gesture from a mouse**: press AIMS, release DROPS
+  (`useMapEditTouchAim`). The map-edit handlers take an `input: "mouse" | "touch"`
+  discriminator; nothing else cares.
+- **Two hooks were extracted because they had to be**, exactly as this file predicted:
+  `useMapEditTool.ts` (350 cap) lost its drag lifecycle to `useMapEditDragGesture.ts`, and
+  `useMapEditState.ts` (350 cap) lost the placement dials to `usePlacementDials.ts`.
+- **Adding a tool tile costs MAP.** The sheet is bottom-anchored, so a new grid row is
+  ~56px a DM can no longer tap — which broke a spec that tapped "empty canvas". The column
+  count is now derived (`auto-fill, minmax(120px, 1fr)` at ≥700px) and
+  `mobile-map-edit-panels.spec.ts` holds a floor on the MAP, not a ceiling on the sheet.
+
+Also closed in the same session: the initiative e2e that had zero `expect()` calls, the
+last two `window.prompt()` dialogs, the 44px panel-wide pass (now one `(pointer: coarse)`
+rule scoped to `[data-mobile-surface]`), and two of the three vision-default follow-ups.
 
 > **Update (2026-08-24).** The initiative slice (server-side rolls on the crypto RNG, the roll
 > log naming the character, manual override with strikethrough, DM toggle on by default — §3D's
@@ -878,13 +908,19 @@ turns a cone into something else.
    - ~~**Physical dice / hand-entered rolls.**~~ — **IN PRODUCTION 2026-08-26**. Every roll can be
      hand-entered, before rolling or over a result, desktop and mobile. `{ t: "enter-roll" }` is
      the one client message carrying a RESULT; safety is the `handEntered` MARKER, not trust.
-   - **Element proximity selection — IN PROGRESS.** Five of the eight kinds (wall, door, light,
-     text, spline) could not be selected and so could not be deleted, on any platform. Found on
-     2026-08-26 when an e2e tried to delete a wall. Plan:
-     `docs/planning/PROMPT-element-proximity-select.md`.
-   - **Smaller work**: §3D's remainder, or the vision-default follow-ups in that plan doc's banner
-     (the per-token card showing the inherited NUMBER, the stale Map Setup screenshot, the
-     DM-menu 44px panel-wide pass). ~~Prove the `ref: dev` fix~~ — **DONE 2026-08-26**: runs #798,
+   - ~~**Element proximity selection — IN PROGRESS.**~~ — shipped to `dev` (`4b6cc7f9`). Five of
+     the eight kinds (wall, door, light, text, spline) could not be selected and so could not be
+     deleted, on any platform. Plan: `docs/planning/PROMPT-element-proximity-select.md`.
+   - ~~**M6, M7 and M8** of the mobile authoring arc~~ — **DONE 2026-08-27, and the arc is
+     COMPLETE**; see §0.1. With them: ~~the vacuous initiative e2e~~, ~~the last two
+     `window.prompt()` dialogs~~ and ~~the 44px panel-wide pass~~.
+   - **Smaller work**: §3D's remainder. Of the vision-default follow-ups, two are DONE (the
+     per-token card now reads "Table default — 60 ft"; the 44px pass covers the DM menu) and ONE
+     REMAINS — the Map Setup screenshot, which a re-record does NOT fix: the harness scrolls that
+     panel past the control it is meant to show, and `docs:screenshots` additionally fails partway
+     through its map-authoring walkthrough on a pre-existing strict-mode violation
+     (`getByText("saving…")` resolves to two elements).
+     ~~Prove the `ref: dev` fix~~ — **DONE 2026-08-26**: runs #798,
      #808 and #811 could none of them prove it, each being a push TO `dev` where the old hardcoded
      ref and the new event-ref default resolve to the same SHA. The merge-to-main run (**#814**,
      `6a605af4`) discriminates, and its `e2e-full-suite` checkout logs

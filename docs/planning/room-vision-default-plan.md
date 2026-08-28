@@ -39,7 +39,14 @@
 > though `PlayerSettingsMenu`'s own note says "a DM sets the darkness on every token,
 > including their own". Now wired, same gate as the player section.
 > `img/dm-menu-map-setup.jpg`
-> predates the new panel and was deliberately not re-recorded; ~~DM-menu controls on mobile
+> predates the new panel and was deliberately not re-recorded — **still open 2026-08-27, and
+> re-recording is not the fix**: the harness scrolls that panel to the Player Staging Zone,
+> so a fresh capture still does not show the sight-radius control. It needs a new step in
+> `apps/e2e/docs-screenshots.dm.ts` that scrolls to the control and shoots it, not a
+> re-run. (The DM guide's PROSE now carries what the control says, which was the part a
+> reader actually needed.) Note also that `docs:screenshots` currently fails on the "live
+> map authoring walkthrough" — a pre-existing strict-mode violation on `getByText("saving…")`,
+> which resolves to two elements; ~~DM-menu controls on mobile
 > are sub-44px exactly like every neighbour on that tab, which is the panel-wide pass the
 > handoff already identified for the chat SEND button~~ — **DONE 2026-08-27**: the pass
 > landed as one `(pointer: coarse)` rule scoped to `[data-mobile-surface]` rather than to
