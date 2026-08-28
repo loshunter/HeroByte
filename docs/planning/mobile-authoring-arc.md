@@ -661,10 +661,30 @@ sheet, and read as a selection bug. Fixed with a fifth grid column at >=700px,
 and guarded by a floor on the MAP rather than a ceiling on the sheet
 (`mobile-map-edit-panels.spec.ts`) — the sheet may grow, the map may not shrink.
 
-**Deliberately not in it:** the stamp-vs-tile toggle (Alt), on-screen rotate
-(R / Shift+R), the eyedropper as a sub-tool, and My Stuff uploads in the mobile
-asset picker. Each is a control, not a gesture, and they are M7's remainder
-rather than blockers — a DM can place every bundled asset today.
+**The controls followed in the same slice** (`7b28f576` and the eyedropper
+commit after it). Alt, R/Shift+R and Ctrl-click are all keys a phone does not
+have, so those three modifiers were not "hard to reach" on touch — they were
+unreachable. Both modifiers moved OUT of `useMapEditPlacement` into
+`usePlacementDials` at App level so the keys and the buttons write ONE state,
+and the desktop palette gained the same controls: a DM who stamped on a tablet
+and rotated into the desktop layout previously had a mode showing nowhere.
+Sampling became a sub-tool (`"eyedropper"`) that shares one branch with the
+Ctrl shortcut, and is deliberately NOT a `TouchTool` — like `select`, it
+resolves once through the compat mouse path and places nothing.
+
+That lift needed the second extraction the handoff predicted:
+`useMapEditState.ts` was at 348/350, so the placement dials came out as a unit.
+
+**Still deliberately out:** My Stuff uploads in the mobile asset picker. That
+needs the upload pipeline and its quota errors, and when it lands it wants
+ImageField — the surface every other mobile upload already goes through — not a
+port of the desktop popover.
+
+**One measurement worth keeping.** The eyedropper spec first tapped where it had
+PLACED and sampled nothing: a tile snaps to the NEAREST cell corner, so a tap at
+doc (176, 295) with a 50px grid lands the tile at (200, 300), 24px away. Aim a
+sample at the element's centre (`firstElementScreenPos`), never at the point
+that placed it.
 
 The original framing follows.
 

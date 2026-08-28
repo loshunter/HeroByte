@@ -158,7 +158,7 @@ The dock becomes five slots:
 | **↶ Undo / ↷ Redo** | The same map-edit history the desktop palette drives. Both stay greyed until the map is live.                                                                                                                                                                                                         |
 | **⨯ Abort**         | Abandons the drag in progress.                                                                                                                                                                                                                                                                        |
 
-**Every tool is here.** **🖌️ Paint** and **🧹 Erase** lead, then the four structural drags — **🏠 Room**, **🚇 Hall**, **▬ Wall**, **🚪 Door** — then **📦 Place**, **🎲 Scatter** and **💡 Light**, then **📏 Row**, **〰️ Spline** and **🏰 Gen**. All of them work the same way with a finger: press, move, lift. **👆 Select** sits beside them and is the exception — it is a tap, not a drag, and it is there so you can delete something (see below).
+**Every tool is here.** **🖌️ Paint** and **🧹 Erase** lead, then the four structural drags — **🏠 Room**, **🚇 Hall**, **▬ Wall**, **🚪 Door** — then **📦 Place**, **🎲 Scatter** and **💡 Light**, then **📏 Row**, **〰️ Spline** and **🏰 Gen**. All of them work the same way with a finger: press, move, lift. **👆 Select** and **💧 Sample** sit beside them and are the exceptions — both are a single tap and neither puts anything on the map.
 
 **Painting.** Arm **🖌️ Paint** and the sheet stays open over the family picker, because Paint needs to know what to paint with. Pick a material shelf, then a floor, then **▶ To the map** and drag. A tap paints a single cell. **🧹 Erase** takes no such argument, so it closes the sheet and puts you straight on the map — drag over anything you want to take back up, including a room's floor.
 
@@ -169,6 +169,10 @@ The dock becomes five slots:
 Here they behave differently from a mouse, and it is worth knowing before your first drop. On a desktop these three drop the moment you click. On a touch device **your press only AIMS** — the translucent ghost appears under your finger and follows it while you slide — and the drop happens **when you lift**. There is no hover on a phone, so a tap that dropped immediately would be dropping blind, which matters most for Scatter: its cluster is seeded from the exact point, so "roughly there" is a different handful of objects.
 
 That also means you can change your mind. Slide to a better spot before lifting, or reach for a second finger and the drop is abandoned along with everything else in flight.
+
+**Free stamp, and turning it.** By default Place drops a **grid tile**, snapped to the lattice. **Drop as → Free stamp** puts it wherever your finger is instead, and a **Rotation** row appears with **↺ −15°** and **↻ +15°**. (On a desktop these are Alt and R / Shift+R, and still are — the buttons and the keys write the same setting, so what is armed is visible on both.) Scatter always flings free stamps, so it gets the rotation row and not the choice.
+
+**💧 Sample** is the eyedropper. Tap it, then tap anything on the map, and Place arms itself with what you pointed at — a floor, an object, a wall band. It hands over after one tap, so it is a moment rather than a mode. On a desktop this is Ctrl-click while holding Place, Scatter or Paint, which a phone cannot do; that is why it has a tile of its own here.
 
 The one thing that is still desktop-only is **My Stuff** — your own uploaded art. The phone's picker offers every bundled asset; images you uploaded yourself still need a desktop to place.
 
