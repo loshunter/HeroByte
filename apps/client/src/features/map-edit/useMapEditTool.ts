@@ -14,13 +14,13 @@ import { useTerrainBrush } from "../map-studio/components/useTerrainBrush";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
 import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
-import { commitDragTool } from "./commitDragTool";
-import { placeLightAt } from "./lightPlacement";
-import { effectiveGrid, isAimTool, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
+import { commitClickTool } from "./commitClickTool";
+import { isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
 import { useMapEditCancel } from "./useMapEditCancel";
-import { useMapEditDragPreview } from "./useMapEditDragPreview";
+import { useMapEditDragGesture } from "./useMapEditDragGesture";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
 import { useMapEditSelection } from "./useMapEditSelection";
+import { useMapEditTouchAim } from "./useMapEditTouchAim";
 import { usePointerToDoc } from "./usePointerToDoc";
 import type { SelectionShape } from "./elementHitTest";
 import type {
@@ -31,6 +31,10 @@ import type {
 } from "./mapEditTypes";
 
 const NO_OP_PAINT = (_cells: TerrainPaintCell[]) => {};
+
+/** Which device is driving the handler. Only the click tools care — see the
+ * note on onMouseDown in UseMapEditToolReturn. */
+export type PointerInput = "mouse" | "touch";
 
 interface UseMapEditToolOptions {
   mapEditMode: boolean;
@@ -86,9 +90,12 @@ interface UseMapEditToolReturn {
   draftGhosts: PlacementGhost[];
   /** Highlight footprint around the selected element (select sub-tool). */
   selectionShape: SelectionShape | null;
-  onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
-  onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
-  onMouseUp: () => void;
+  /** `input` is "mouse" unless a finger is driving. It changes ONE thing: a
+   * mouse drops a click tool on press, a finger aims on press and drops on
+   * release (useMapEditTouchAim). Every other tool ignores it. */
+  onMouseDown: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
+  onMouseMove: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
+  onMouseUp: (input?: PointerInput) => void;
   /** Abandon the gesture in flight — the touch path's "not this one". */
   onCancel: () => void;
 }
@@ -117,13 +124,6 @@ export function useMapEditTool({
   toWorld,
   mapTransform,
 }: UseMapEditToolOptions): UseMapEditToolReturn {
-  const {
-    previewDrag,
-    current: currentDrag,
-    begin,
-    extend,
-    clear: clearDrag,
-  } = useMapEditDragPreview();
   const brushingRef = useRef(false);
 
   const { addStrokePoint, flushStroke, discardStroke, strokeCells } = useTerrainBrush({
@@ -165,11 +165,45 @@ export function useMapEditTool({
   // Terrain family "terrain:grass" for the paint brush; null erases.
   const brushAssetId = activeSubTool === "terrain" ? `terrain:${floorFamily}` : null;
 
+  const dropAt = useCallback(
+    (point: { x: number; y: number }) => {
+      const document = liveDocument;
+      if (!document) return;
+      commitClickTool({ subTool: activeSubTool, controller, document, point, placement });
+    },
+    [liveDocument, activeSubTool, controller, placement],
+  );
+
+  const touchAim = useMapEditTouchAim({
+    active: mapEditMode && isClick,
+    updateCursor: placement.updateCursor,
+    commit: dropAt,
+  });
+
+  const { toDocPoint, toSnappedDocPoint } = usePointerToDoc(toWorld, mapTransform);
+
+  const drag = useMapEditDragGesture({
+    active,
+    activeSubTool,
+    controller,
+    liveDocumentId,
+    floorFamily,
+    roomWallFamily,
+    hallwayWidth,
+    selectedAssetId,
+    splineKind,
+    onRoomRejected,
+    onGestureDropped,
+    onRegionPlaced,
+    onRegionDragged,
+    toSnappedDocPoint,
+  });
+
   const cancelGesture = useMapEditCancel({
     active,
     cancelSignal,
-    currentDrag,
-    clearDrag,
+    currentDrag: drag.current,
+    clearDrag: drag.clear,
     brushingRef,
     discardStroke,
   });
@@ -177,18 +211,16 @@ export function useMapEditTool({
   // Leaving map-edit abandons any drag and commits any in-progress brush stroke.
   useEffect(() => {
     if (!active) {
-      clearDrag();
+      drag.clear();
       if (brushingRef.current) {
         brushingRef.current = false;
         flushStroke();
       }
     }
-  }, [active, clearDrag, flushStroke]);
-
-  const { toDocPoint, toSnappedDocPoint } = usePointerToDoc(toWorld, mapTransform);
+  }, [active, drag, flushStroke]);
 
   const onMouseDown = useCallback(
-    (stageRef: RefObject<Konva.Stage | null>) => {
+    (stageRef: RefObject<Konva.Stage | null>, input: PointerInput = "mouse") => {
       if (!active) return;
       const document = controller?.activeDocument;
       // Author ONLY into the live-bound document — never a stray Studio doc.
@@ -201,19 +233,16 @@ export function useMapEditTool({
         if (selection.handleClick(point, activeSubTool)) return;
         if (isSelect) return;
         if (isClick) {
-          if (activeSubTool === "light") {
-            if (controller) placeLightAt(controller, document, point);
-          } else if (activeSubTool === "scatter") placement.scatter(point);
-          else placement.place(point);
+          // A finger AIMS here and drops on release; a mouse drops now.
+          if (input === "touch") touchAim.start(point);
+          else commitClickTool({ subTool: activeSubTool, controller, document, point, placement });
           return;
         }
         brushingRef.current = true; // terrain/erase brush
         addStrokePoint(point, brushAssetId);
         return;
       }
-      const point = toSnappedDocPoint(stageRef, effectiveGrid(document.grid, activeSubTool));
-      if (!point) return;
-      begin(point);
+      drag.press(stageRef);
     },
     [
       active,
@@ -226,21 +255,23 @@ export function useMapEditTool({
       brushAssetId,
       placement,
       selection,
+      touchAim,
       toDocPoint,
       addStrokePoint,
-      toSnappedDocPoint,
-      begin,
+      drag,
     ],
   );
 
   const onMouseMove = useCallback(
-    (stageRef: RefObject<Konva.Stage | null>) => {
+    (stageRef: RefObject<Konva.Stage | null>, input: PointerInput = "mouse") => {
       if (!active) return;
       const document = controller?.activeDocument;
       if (!document) return;
       if (isClick) {
         // Track the cursor so the ghost follows it (ghost gates on the live doc).
-        placement.updateCursor(toDocPoint(stageRef));
+        // On touch the aim remembers the point too, since the drop reads it.
+        if (input === "touch") touchAim.move(toDocPoint(stageRef));
+        else placement.updateCursor(toDocPoint(stageRef));
         return;
       }
       if (isBrush) {
@@ -249,92 +280,44 @@ export function useMapEditTool({
         if (point) addStrokePoint(point, brushAssetId);
         return;
       }
-      if (!currentDrag()) return;
-      const point = toSnappedDocPoint(stageRef, effectiveGrid(document.grid, activeSubTool));
-      if (!point) return;
-      extend(point);
+      drag.move(stageRef);
     },
     [
       active,
       controller,
-      activeSubTool,
       isClick,
       isBrush,
       brushAssetId,
       placement,
+      touchAim,
       toDocPoint,
       addStrokePoint,
-      toSnappedDocPoint,
-      currentDrag,
-      extend,
+      drag,
     ],
   );
 
-  const onMouseUp = useCallback(() => {
-    if (isBrush) {
-      if (brushingRef.current) {
-        brushingRef.current = false;
-        // Terrain strokes must NOT gate on `saving` (a mid-stroke ack would
-        // freeze the brush); the one-in-flight command queue serializes commits.
-        flushStroke();
+  const onMouseUp = useCallback(
+    (input: PointerInput = "mouse") => {
+      if (isClick) {
+        if (input === "touch") touchAim.commit();
+        return;
       }
-      return;
-    }
-    const drag = currentDrag();
-    if (!active || !drag) {
-      clearDrag();
-      return;
-    }
-    const document = controller?.activeDocument;
-    // The live-binding re-check stays SILENT when it fails: refusing to author
-    // into a stray Studio doc is a guard working, not a gesture going missing.
-    if (document && controller && document.id === liveDocumentId) {
-      // Tools do not self-gate on `saving`; skip the commit while a command is
-      // in flight (the Studio's rule) so drags don't pile up. A skip never sets
-      // controller.error and clearDrag() runs anyway, so this must say so.
-      // Aim-only tools are exempt — nothing of theirs can pile up.
-      if (controller.saving && !isAimTool(activeSubTool)) {
-        onGestureDropped?.();
-      } else {
-        commitDragTool({
-          subTool: activeSubTool,
-          drag,
-          document,
-          controller,
-          floorFamily,
-          roomWallFamily,
-          hallwayWidth,
-          selectedAssetId,
-          splineKind,
-          onRoomRejected,
-          onRegionPlaced,
-          onRegionDragged,
-        });
+      if (isBrush) {
+        if (brushingRef.current) {
+          brushingRef.current = false;
+          // Terrain strokes must NOT gate on `saving` (a mid-stroke ack would
+          // freeze the brush); the one-in-flight command queue serializes commits.
+          flushStroke();
+        }
+        return;
       }
-    }
-    clearDrag();
-  }, [
-    isBrush,
-    flushStroke,
-    active,
-    controller,
-    liveDocumentId,
-    activeSubTool,
-    floorFamily,
-    roomWallFamily,
-    hallwayWidth,
-    selectedAssetId,
-    splineKind,
-    onRoomRejected,
-    onGestureDropped,
-    onRegionPlaced,
-    onRegionDragged,
-    currentDrag,
-    clearDrag,
-  ]);
+      drag.release();
+    },
+    [isClick, touchAim, isBrush, flushStroke, brushingRef, drag],
+  );
 
   return {
-    previewDrag,
+    previewDrag: drag.previewDrag,
     strokeCells,
     placementGhost: placement.ghost,
     draftGhosts: placement.draftGhosts,
