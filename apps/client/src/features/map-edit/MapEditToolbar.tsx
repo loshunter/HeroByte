@@ -75,6 +75,10 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
     uploadAsset,
     assetPickerOpen,
     onToggleAssetPicker,
+    stampMode,
+    onToggleStampMode,
+    stampRotation,
+    onRotateStamp,
     hallwayWidth,
     onSelectHallwayWidth,
   } = props;
@@ -231,6 +235,46 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
                         ? "Drag a line — stamps repeat with seeded jitter and skips"
                         : "Click to scatter a seeded cluster"}
                   </p>
+                  {/* The controls M7 built for the phone, shown here too. Alt
+                      and R are faster and are staying, but they left the armed
+                      state INVISIBLE: a DM who stamped on a tablet and rotated
+                      the window into this layout had a stamp mode showing
+                      nowhere. Both write the same state (usePlacementDials), so
+                      this is a readout as much as a control. */}
+                  {activeSubTool === "place" && (
+                    <JRPGButton
+                      onClick={onToggleStampMode}
+                      variant={stampMode ? "primary" : "default"}
+                      style={{ fontSize: "8px", padding: "6px 4px", width: "100%", marginTop: 4 }}
+                    >
+                      {stampMode ? "◆ Free stamp" : "▦ Grid tile"}
+                    </JRPGButton>
+                  )}
+                  {(stampMode || activeSubTool === "scatter") && (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "4px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      <JRPGButton
+                        onClick={() => onRotateStamp(-1)}
+                        style={{ fontSize: "8px", padding: "6px 4px" }}
+                        title="Rotate counter-clockwise (Shift+R)"
+                      >
+                        ↺ {stampRotation}°
+                      </JRPGButton>
+                      <JRPGButton
+                        onClick={() => onRotateStamp(1)}
+                        style={{ fontSize: "8px", padding: "6px 4px" }}
+                        title="Rotate clockwise (R)"
+                      >
+                        ↻
+                      </JRPGButton>
+                    </div>
+                  )}
                 </div>
               )}
 

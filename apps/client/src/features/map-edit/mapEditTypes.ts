@@ -107,6 +107,21 @@ export interface MapEditToolbarProps {
     file: File,
   ) => Promise<import("../map-studio/uploads/assetUpload").UploadedAssetInfo>;
   assetPickerOpen: boolean;
+  /**
+   * Drop as a free STAMP centred on the point rather than a snapped grid tile.
+   *
+   * The desktop reaches this by holding Alt, which is faster than any button
+   * and is staying. A phone has no Alt, so the state is here rather than inside
+   * useMapEditPlacement — the two write the same value, and an armed mode with
+   * no visible control is the failure this arc keeps paying for.
+   */
+  stampMode: boolean;
+  onToggleStampMode: () => void;
+  /** Degrees a free stamp is turned by. R and Shift+R on a desktop; two
+   * buttons on a touch device. Applies to STAMPS only — the tile lattice is
+   * axis-aligned, matching createTileElement. */
+  stampRotation: number;
+  onRotateStamp: (steps: number) => void;
   onToggleAssetPicker: () => void;
   // --- Hallway + POPULATE ---
   hallwayWidth: number; // corridor width in cells (1–4)

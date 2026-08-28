@@ -604,7 +604,36 @@ describe("useMapEditTool", () => {
     expect(controller.addStamp).not.toHaveBeenCalled();
   });
 
-  it("Alt+click free-places a rotated stamp (R steps 15°)", () => {
+  // Rotation moved OUT of this hook in M7, and the test had to move with it.
+  // R used to hold its own counter here; a phone has no R, so the value lives
+  // in usePlacementDials at App level and BOTH the key and the on-screen
+  // buttons write it. So there are two claims now where there was one, and
+  // collapsing them back into a single "press R, get 15°" would hide exactly
+  // the seam a forgotten prop goes missing at.
+  it("R asks the dials to turn — it no longer keeps its own angle", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const onRotateStamp = vi.fn();
+    renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "place",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        onRotateStamp,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "r" })));
+    expect(onRotateStamp).toHaveBeenCalledWith(1);
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "r", shiftKey: true })));
+    expect(onRotateStamp).toHaveBeenLastCalledWith(-1);
+  });
+
+  it("Alt+click free-places a stamp turned by whatever the dials say", () => {
     const controller = makeController({ activeDocument: makeObjectsDocument() });
     const { result } = renderHook(() =>
       useMapEditTool({
@@ -614,12 +643,12 @@ describe("useMapEditTool", () => {
         liveDocumentId: "live",
         floorFamily: "grass",
         selectedAssetId: "objects:crate",
+        stampRotation: 15,
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
     );
 
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "r" })));
     act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Alt" })));
     act(() => result.current.onMouseDown(makeStage({ x: 200, y: 200 }).ref));
     act(() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "Alt" })));
@@ -634,6 +663,32 @@ describe("useMapEditTool", () => {
       height: 50,
       rotation: 15,
     });
+  });
+
+  // The other half of what Alt used to be alone. A phone has no Alt, so the
+  // sticky toggle must reach the same branch — and it must not need Alt held.
+  it("the stamp TOGGLE free-places without Alt, which a phone cannot press", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "place",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        stampMode: true,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 200, y: 200 }).ref));
+
+    expect(controller.addTile).not.toHaveBeenCalled();
+    expect(controller.addStamp).toHaveBeenCalledWith(
+      expect.objectContaining({ assetId: "objects:crate", width: 50, height: 50 }),
+    );
   });
 
   it("scatters a seeded cluster as ONE add-elements command", () => {

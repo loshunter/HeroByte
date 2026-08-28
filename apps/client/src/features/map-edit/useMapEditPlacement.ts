@@ -7,6 +7,13 @@
 // reverses — the tile lattice path is axis-aligned, so rotation applies to
 // stamps only, matching createTileElement). Scatter flings a seeded handful of
 // stamps as ONE add-elements command. A translucent ghost previews the drop.
+//
+// Since M7 the two MODIFIER states live outside this hook, in usePlacementDials
+// at App level, because a phone has no Alt and no R and the on-screen controls
+// have to reach them. Alt and R are still here and still fastest — they now
+// write the same state the buttons do, instead of a second copy nothing else
+// can see. `altHeld` ORs with the sticky toggle: holding Alt is a momentary
+// stamp, the toggle is a mode.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MapDocument } from "@herobyte/shared";
@@ -33,8 +40,6 @@ export interface PlacementGhost {
   stroke: string;
 }
 
-const STAMP_ROTATION_STEP = 15; // degrees; free stamps turn in fifteens (Studio's Shelf spec)
-
 interface UseMapEditPlacementOptions {
   /** place or scatter sub-tool active in map-edit AND authoring the live doc. */
   active: boolean;
@@ -43,6 +48,12 @@ interface UseMapEditPlacementOptions {
   document: MapDocument | null;
   selectedAssetId: string;
   saving: boolean;
+  /** Sticky "drop a free stamp" toggle; ORed with a held Alt. */
+  stampMode: boolean;
+  /** Degrees the pending stamp is turned by (0..359). */
+  stampRotation: number;
+  /** Turn the pending stamp by one step; negative reverses. */
+  onRotateStamp: (steps: number) => void;
   /** A drop was SKIPPED because a command was in flight. Without this the click
    * vanishes with the ghost still under the cursor and nothing added. */
   onGestureDropped?: () => void;
@@ -70,13 +81,19 @@ export function useMapEditPlacement({
   document,
   selectedAssetId,
   saving,
+  stampMode,
+  stampRotation,
+  onRotateStamp,
   onGestureDropped,
   addTile,
   addStamp,
   addStamps,
 }: UseMapEditPlacementOptions): UseMapEditPlacementReturn {
   const [altHeld] = useAltKeyTracking();
-  const [rotation, setRotation] = useState(0);
+  // Either input stamps. Neither is authoritative over the other, so a DM can
+  // hold Alt over a tile-mode toggle and get one stamp without changing modes.
+  const stamping = altHeld || stampMode;
+  const rotation = stampRotation;
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
 
   const asset = useMemo(() => getMapStudioTileAsset(selectedAssetId), [selectedAssetId]);
@@ -86,20 +103,19 @@ export function useMapEditPlacement({
     if (!active) setCursor(null);
   }, [active]);
 
-  // R rotates the pending stamp (Shift reverses). Ctrl/Cmd+R stays browser reload.
+  // R rotates the pending stamp (Shift reverses). Ctrl/Cmd+R stays browser
+  // reload. The step and the wrap live in usePlacementDials now, so the key and
+  // the on-screen buttons cannot turn by different amounts.
   useEffect(() => {
     if (!active) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== "r" || event.ctrlKey || event.metaKey) return;
       event.preventDefault();
-      setRotation((current) => {
-        const delta = event.shiftKey ? -STAMP_ROTATION_STEP : STAMP_ROTATION_STEP;
-        return (current + delta + 360) % 360;
-      });
+      onRotateStamp(event.shiftKey ? -1 : 1);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [active]);
+  }, [active, onRotateStamp]);
 
   const updateCursor = useCallback(
     (point: { x: number; y: number } | null) => setCursor(point),
@@ -117,7 +133,7 @@ export function useMapEditPlacement({
         onGestureDropped?.();
         return;
       }
-      if (altHeld) {
+      if (stamping) {
         const draft = buildStampPlacement(document, asset, point, rotation);
         if (draft) addStamp(draft);
         return;
@@ -125,7 +141,7 @@ export function useMapEditPlacement({
       const draft = buildTilePlacement(document, asset, point);
       if (draft) addTile(draft);
     },
-    [document, saving, onGestureDropped, altHeld, asset, rotation, addStamp, addTile],
+    [document, saving, onGestureDropped, stamping, asset, rotation, addStamp, addTile],
   );
 
   const scatter = useCallback(
@@ -146,7 +162,7 @@ export function useMapEditPlacement({
     // Scatter previews its whole cluster (draftGhosts below), not a footprint.
     if (subTool === "scatter") return null;
     const paint = { fill: asset.fill, stroke: asset.stroke };
-    if (altHeld) {
+    if (stamping) {
       const width = asset.columns * document.grid.size;
       const height = asset.rows * document.grid.size;
       const x = clampFootprint(cursor.x - width / 2, document.width - width);
@@ -155,7 +171,7 @@ export function useMapEditPlacement({
     }
     const foot = tileFootprint(document, asset, cursor);
     return { ...foot, rotation: 0, ...paint };
-  }, [active, document, cursor, asset, subTool, altHeld, rotation]);
+  }, [active, document, cursor, asset, subTool, stamping, rotation]);
 
   // Ghost-before-commit (P2): the scatter cluster IS the commit — same
   // builder, same point-derived seed — so every footprint lands exactly

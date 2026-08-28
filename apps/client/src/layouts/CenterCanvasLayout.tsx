@@ -98,6 +98,8 @@ export interface CenterCanvasLayoutProps {
   mapEditRoomWallFamily: MapEditWallFamily | "none";
   /** Asset the place/scatter tools drop */
   mapEditSelectedAssetId: string;
+  /** Stamp-vs-tile and rotation, as one object — see MapBoardProps. */
+  mapEditPlacementDials?: import("../features/map-edit/usePlacementDials").PlacementModifiers;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind;
@@ -234,6 +236,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditFloorFamily,
     mapEditRoomWallFamily,
     mapEditSelectedAssetId,
+    mapEditPlacementDials,
     mapEditHallwayWidth,
     mapEditSplineKind,
     mapEditPopulateGhosts,
@@ -292,6 +295,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditFloorFamily={mapEditFloorFamily}
             mapEditRoomWallFamily={mapEditRoomWallFamily}
             mapEditSelectedAssetId={mapEditSelectedAssetId}
+            mapEditPlacementDials={mapEditPlacementDials}
             mapEditHallwayWidth={mapEditHallwayWidth}
             mapEditSplineKind={mapEditSplineKind}
             mapEditPopulateGhosts={mapEditPopulateGhosts}

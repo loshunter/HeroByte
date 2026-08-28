@@ -44,6 +44,15 @@ export interface MapBoardProps {
   mapEditFloorFamily?: MapEditFloorFamily; // Floor terrain family the room tool paints
   mapEditRoomWallFamily?: MapEditWallFamily | "none"; // Room tool's painted wall-ring material
   mapEditSelectedAssetId?: string; // Asset the place/scatter tools drop
+  /**
+   * The placement dials — stamp-vs-tile and rotation — as ONE object rather
+   * than three props, for the reason the dock takes the whole toolbar bag: a
+   * subset is how a forwarding prop goes missing with a green typecheck. Alt
+   * and R still work without it, so the field is optional and the tool falls
+   * back to tile-at-0°; a layout that forgets it loses the on-screen controls,
+   * not the tool.
+   */
+  mapEditPlacementDials?: import("../features/map-edit/usePlacementDials").PlacementModifiers;
   mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind; // Spline tool curve kind
   mapEditPopulateGhosts?:

@@ -13,8 +13,8 @@ import type { MapStudioController } from "../map-studio/types";
 import { useMapEditHotkeys } from "./useMapEditHotkeys";
 import { usePopulate } from "./usePopulate";
 import { useGenerate } from "./useGenerate";
+import { usePlacementDials } from "./usePlacementDials";
 import type { RoomBounds } from "./roomBuilder";
-import { floorFamilyFromAssetId } from "./mapEditFamilies";
 import type {
   MapEditFloorFamily,
   MapEditSplineKind,
@@ -79,7 +79,6 @@ interface UseMapEditStateReturn {
 
 const LIVE_MAP_SIZE = 8192;
 /** A crate is the friendliest first set-dressing default. */
-const DEFAULT_ASSET_ID = "objects:crate";
 
 export function useMapEditState({
   controller,
@@ -98,12 +97,14 @@ export function useMapEditState({
   // Rooms ship with a stone wall band by default — the Czepeku look out of the
   // box; "none" restores the bare floor-plus-perimeter behaviour.
   const [roomWallFamily, setRoomWallFamily] = useState<MapEditWallFamily | "none">("wall-stone");
-  const [selectedAssetId, setSelectedAssetId] = useState<string>(DEFAULT_ASSET_ID);
-  const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   const [hallwayWidth, setHallwayWidth] = useState(2);
   // Rope is the friendliest first spline: a two-anchor drag sags immediately.
   const [splineKind, setSplineKind] = useState<MapEditSplineKind>("rope");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  // What Place/Scatter/Row drop and how — asset, picker flag, stamp-vs-tile and
+  // rotation, in one hook so a phone control and the Alt/R keys write the same
+  // state rather than two that can disagree.
+  const dials = usePlacementDials({ setFloorFamily, setActiveSubTool });
   const [layersOpen, setLayersOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const populate = usePopulate(controller, notifyError);
@@ -245,18 +246,8 @@ export function useMapEditState({
 
   const onClose = useCallback(() => setActiveTool(null), [setActiveTool]);
   const onToggleWallsOverlay = useCallback(() => setWallsOverlayPinned((pinned) => !pinned), []);
-  const onToggleAssetPicker = useCallback(() => setAssetPickerOpen((open) => !open), []);
   const onToggleLayers = useCallback(() => setLayersOpen((open) => !open), []);
   const onToggleInspector = useCallback(() => setInspectorOpen((open) => !open), []);
-
-  // Eyedropper re-arm: sampling a terrain family also updates the floor picker;
-  // the place tool takes over so the next click drops the sampled asset.
-  const onSampleAsset = useCallback((assetId: string) => {
-    setSelectedAssetId(assetId);
-    const family = floorFamilyFromAssetId(assetId);
-    if (family) setFloorFamily(family);
-    setActiveSubTool("place");
-  }, []);
 
   // Quick-wheel dispatch pair (P5): useState setters are identity-stable, so
   // one memo keeps the pair stable for MapBoard.
@@ -292,11 +283,15 @@ export function useMapEditState({
     error: controller.error,
     wallsOverlayPinned,
     onToggleWallsOverlay,
-    selectedAssetId,
-    onSelectAsset: setSelectedAssetId,
+    selectedAssetId: dials.selectedAssetId,
+    onSelectAsset: dials.onSelectAsset,
     uploadAsset: controller.uploadAsset,
-    assetPickerOpen,
-    onToggleAssetPicker,
+    assetPickerOpen: dials.assetPickerOpen,
+    onToggleAssetPicker: dials.onToggleAssetPicker,
+    stampMode: dials.stampMode,
+    onToggleStampMode: dials.onToggleStampMode,
+    stampRotation: dials.stampRotation,
+    onRotateStamp: dials.onRotateStamp,
     hallwayWidth,
     onSelectHallwayWidth: setHallwayWidth,
     splineKind,
@@ -332,7 +327,7 @@ export function useMapEditState({
     activeSubTool,
     floorFamily,
     roomWallFamily,
-    selectedAssetId,
+    selectedAssetId: dials.selectedAssetId,
     hallwayWidth,
     splineKind,
     onRegionPlaced: populate.onRegionPlaced,
@@ -341,7 +336,7 @@ export function useMapEditState({
     onRegionDragged: generate.onRegionDragged,
     selectedElementId,
     onSelectElement: setSelectedElementId,
-    onSampleAsset,
+    onSampleAsset: dials.onSampleAsset,
     wallsOverlayPinned,
     toolbarProps,
   };

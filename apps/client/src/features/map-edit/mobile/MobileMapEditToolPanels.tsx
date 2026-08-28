@@ -54,6 +54,15 @@ export const PANEL_TOOLS: ReadonlySet<SheetPanelTool> = new Set<SheetPanelTool>(
 
 const HALLWAY_WIDTHS = [1, 2, 3, 4] as const;
 
+/** Alt on a desktop; a two-option row on a finger. Named for the OUTCOME
+ * ("Grid tile" / "Free stamp") rather than the key, which a phone does not
+ * have — the desktop's own hint calls it "Alt = free stamp" and that sentence
+ * is useless here. */
+const DROP_MODES = [
+  { id: "tile" as const, label: "Grid tile" },
+  { id: "stamp" as const, label: "Free stamp" },
+];
+
 const SPLINE_KINDS: { id: MapEditSplineKind; label: string }[] = [
   { id: "rope", label: "Rope" },
   { id: "chain", label: "Chain" },
@@ -94,6 +103,43 @@ export function MobileMapEditToolPanels(props: MapEditToolbarProps): JSX.Element
   return <ToolDials {...props} />;
 }
 
+/** R and Shift+R on a desktop. The readout is not decoration: a stamp turned
+ * 180° looks identical to one at 0° for a symmetric asset, so without a number
+ * the DM cannot tell an armed rotation from a stuck control. */
+function MobileRotateRow({
+  rotation,
+  onRotate,
+}: {
+  rotation: number;
+  onRotate: (steps: number) => void;
+}): JSX.Element {
+  return (
+    <div className="mobile-tool-sheet__section">
+      <span className="mobile-tool-sheet__label">Rotation — {rotation}°</span>
+      <div className="mobile-tool-sheet__grid">
+        <button
+          type="button"
+          className="mobile-tool-sheet__button"
+          onClick={() => onRotate(-1)}
+          aria-label="Rotate stamp counter-clockwise"
+        >
+          <span aria-hidden="true">↺</span>
+          -15°
+        </button>
+        <button
+          type="button"
+          className="mobile-tool-sheet__button"
+          onClick={() => onRotate(1)}
+          aria-label="Rotate stamp clockwise"
+        >
+          <span aria-hidden="true">↻</span>
+          +15°
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ToolDials({
   activeSubTool,
   floorFamily,
@@ -106,6 +152,10 @@ function ToolDials({
   onSelectSplineKind,
   selectedAssetId,
   onSelectAsset,
+  stampMode,
+  onToggleStampMode,
+  stampRotation,
+  onRotateStamp,
 }: MapEditToolbarProps): JSX.Element | null {
   // Paint writes the SAME family Room and Hall fill with — one swatch state,
   // exactly as the desktop toolbar shares MapEditBrushDeck across the three.
@@ -168,11 +218,28 @@ function ToolDials({
   // anyone drags, while these two can drop anything in the catalog.
   if (activeSubTool === "place" || activeSubTool === "scatter") {
     return (
-      <MobileAssetPicker
-        label={activeSubTool === "place" ? "Place" : "Scatter"}
-        selected={selectedAssetId}
-        onSelect={onSelectAsset}
-      />
+      <>
+        <MobileAssetPicker
+          label={activeSubTool === "place" ? "Place" : "Scatter"}
+          selected={selectedAssetId}
+          onSelect={onSelectAsset}
+        />
+        {/* Scatter always flings free stamps, so the choice is Place's alone —
+            offering it under Scatter would be a control that does nothing. */}
+        {activeSubTool === "place" && (
+          <MobileSwatchRow
+            label="Drop as"
+            options={DROP_MODES}
+            selected={stampMode ? "stamp" : "tile"}
+            onSelect={(mode) => {
+              if ((mode === "stamp") !== stampMode) onToggleStampMode();
+            }}
+          />
+        )}
+        {(stampMode || activeSubTool === "scatter") && (
+          <MobileRotateRow rotation={stampRotation} onRotate={onRotateStamp} />
+        )}
+      </>
     );
   }
 

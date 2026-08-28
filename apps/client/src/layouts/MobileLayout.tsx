@@ -165,6 +165,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             mapEditFloorFamily={mapEditFloorFamily}
             mapEditRoomWallFamily={mapEditRoomWallFamily}
             mapEditSelectedAssetId={mapEditSelectedAssetId}
+            mapEditPlacementDials={mapEditToolbarProps}
             mapEditHallwayWidth={mapEditHallwayWidth}
             mapEditSplineKind={mapEditSplineKind}
             mapEditPopulateGhosts={mapEditPopulateGhosts}

@@ -296,6 +296,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapEditFloorFamily={mapEditFloorFamily}
         mapEditRoomWallFamily={mapEditRoomWallFamily}
         mapEditSelectedAssetId={mapEditSelectedAssetId}
+        mapEditPlacementDials={mapEditToolbarProps}
         mapEditHallwayWidth={mapEditHallwayWidth}
         mapEditSplineKind={mapEditSplineKind}
         mapEditPopulateGhosts={mapEditPopulateGhosts}

@@ -31,6 +31,7 @@ import type {
 } from "./mapEditTypes";
 
 const NO_OP_PAINT = (_cells: TerrainPaintCell[]) => {};
+const NO_OP_ROTATE = (_steps: number) => {};
 
 /** Which device is driving the handler. Only the click tools care — see the
  * note on onMouseDown in UseMapEditToolReturn. */
@@ -52,6 +53,12 @@ interface UseMapEditToolOptions {
   roomWallFamily?: MapEditWallFamily | "none";
   /** Asset the place/scatter sub-tools drop (defaults to a crate). */
   selectedAssetId?: string;
+  /** Drop a free stamp rather than a snapped tile — the sticky half of Alt. */
+  stampMode?: boolean;
+  /** Degrees a free stamp is turned by. */
+  stampRotation?: number;
+  /** Turn the pending stamp by one step; negative reverses. */
+  onRotateStamp?: (steps: number) => void;
   /** Corridor width in cells for the hallway sub-tool (1–4). */
   hallwayWidth?: number;
   /** Curve kind the spline sub-tool authors (defaults to rope). */
@@ -111,6 +118,9 @@ export function useMapEditTool({
   floorFamily,
   roomWallFamily = "none",
   selectedAssetId = "objects:crate",
+  stampMode = false,
+  stampRotation = 0,
+  onRotateStamp,
   hallwayWidth = 2,
   splineKind = "rope",
   onRoomRejected,
@@ -150,6 +160,9 @@ export function useMapEditTool({
     document: liveDocument,
     selectedAssetId,
     saving: Boolean(controller?.saving),
+    stampMode,
+    stampRotation,
+    onRotateStamp: onRotateStamp ?? NO_OP_ROTATE,
     onGestureDropped,
     addTile: controller?.addTile ?? (() => null),
     addStamp: controller?.addStamp ?? (() => null),
