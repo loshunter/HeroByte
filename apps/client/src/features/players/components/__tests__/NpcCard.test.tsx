@@ -10,7 +10,7 @@
 
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import type { SnapshotCharacter, Character, TokenSize } from "@herobyte/shared";
 
 // ============================================================================
@@ -475,135 +475,79 @@ describe("NpcCard", () => {
   // ============================================================================
 
   describe("Name Editing", () => {
-    it("shows pointer cursor on name when isDM is true", () => {
-      const props = createDefaultProps({ isDM: true });
-      const { container } = render(<NpcCard {...props} />);
+    /*
+     * This suite used to drive window.prompt() through a DOUBLE-CLICK. Both
+     * halves were desktop-only: a double-click is a gesture a touch device does
+     * not have, and prompt() is a blocking modal a phone handles badly. The
+     * card renames through the same inline NameEditor the player card uses now,
+     * so the tests below make the SAME behavioural claims — blank ignored,
+     * unchanged ignored, trimmed, correct id, non-DM refused — through the
+     * control a DM can actually reach.
+     */
+    const openEditor = () => {
+      fireEvent.click(screen.getByText("Goblin"));
+      return screen.getByRole("textbox");
+    };
 
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      expect(nameElement).toHaveStyle({ cursor: "pointer" });
-    });
-
-    it("shows default cursor on name when isDM is false", () => {
-      const props = createDefaultProps({ isDM: false });
-      const { container } = render(<NpcCard {...props} />);
-
-      const nameElements = container.querySelectorAll("div");
-      // Find the name element (it won't have the title when isDM is false)
-      const nameElement = Array.from(nameElements).find((el) => el.textContent === "Goblin");
-      expect(nameElement).toHaveStyle({ cursor: "default" });
-    });
-
-    it("shows prompt on double-click when isDM is true", () => {
-      mockPrompt.mockReturnValue("New Name");
-      const props = createDefaultProps({ isDM: true });
-      const { container } = render(<NpcCard {...props} />);
-
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      fireEvent.doubleClick(nameElement!);
-
-      expect(mockPrompt).toHaveBeenCalledWith("Rename NPC", "Goblin");
-    });
-
-    it("does not show prompt on double-click when isDM is false", () => {
-      const props = createDefaultProps({ isDM: false });
-      const { container } = render(<NpcCard {...props} />);
-
-      const nameElements = container.querySelectorAll("div");
-      const nameElement = Array.from(nameElements).find((el) => el.textContent === "Goblin");
-      fireEvent.doubleClick(nameElement!);
-
-      expect(mockPrompt).not.toHaveBeenCalled();
-    });
-
-    it("uses current name as default in prompt", () => {
-      mockPrompt.mockReturnValue("New Name");
-      const props = createDefaultProps({
-        character: createMockCharacter({ name: "Dragon" }),
-      });
-      const { container } = render(<NpcCard {...props} />);
-
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      fireEvent.doubleClick(nameElement!);
-
-      expect(mockPrompt).toHaveBeenCalledWith("Rename NPC", "Dragon");
-    });
-
-    it("does not update name when prompt returns null", () => {
-      mockPrompt.mockReturnValue(null);
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({ onUpdate });
-      const { container } = render(<NpcCard {...props} />);
-
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      fireEvent.doubleClick(nameElement!);
-
-      expect(onUpdate).not.toHaveBeenCalled();
-    });
-
-    it("does not update name when prompt returns empty string", () => {
-      mockPrompt.mockReturnValue("");
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({ onUpdate });
-      const { container } = render(<NpcCard {...props} />);
-
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      fireEvent.doubleClick(nameElement!);
-
-      expect(onUpdate).not.toHaveBeenCalled();
-    });
-
-    it("does not update name when new name equals current name", () => {
-      mockPrompt.mockReturnValue("Goblin");
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({ onUpdate });
-      const { container } = render(<NpcCard {...props} />);
-
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      fireEvent.doubleClick(nameElement!);
-
-      expect(onUpdate).not.toHaveBeenCalled();
-    });
-
-    it("does not update name when trimmed name equals current name", () => {
-      mockPrompt.mockReturnValue("  Goblin  ");
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({ onUpdate });
-      const { container } = render(<NpcCard {...props} />);
-
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      fireEvent.doubleClick(nameElement!);
-
-      expect(onUpdate).not.toHaveBeenCalled();
-    });
-
-    it("calls onUpdate with trimmed name", () => {
-      mockPrompt.mockReturnValue("  New Name  ");
-      const onUpdate = vi.fn();
+    /** One card per call — these cases assert a REFUSAL, and two cards in the
+     * document would make the name query ambiguous rather than the assertion
+     * fail honestly. */
+    const rename = (value: string, onUpdate = vi.fn()) => {
+      cleanup();
       const props = createDefaultProps({
         character: createMockCharacter({ id: "npc-123" }),
         onUpdate,
       });
-      const { container } = render(<NpcCard {...props} />);
+      render(<NpcCard {...props} />);
+      const input = openEditor();
+      fireEvent.change(input, { target: { value } });
+      fireEvent.keyDown(input, { key: "Enter" });
+      return onUpdate;
+    };
 
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      fireEvent.doubleClick(nameElement!);
-
-      expect(onUpdate).toHaveBeenCalledWith("npc-123", { name: "New Name" });
+    it("a single tap opens the editor seeded with the current name", () => {
+      render(<NpcCard {...createDefaultProps({ isDM: true })} />);
+      // A tap, not a double-click: the whole reason this changed.
+      expect(openEditor()).toHaveValue("Goblin");
     });
 
-    it("calls onUpdate with character.id", () => {
-      mockPrompt.mockReturnValue("Updated");
+    it("a player cannot open it at all", () => {
+      render(<NpcCard {...createDefaultProps({ isDM: false })} />);
+      fireEvent.click(screen.getByText("Goblin"));
+      expect(screen.queryByRole("textbox")).toBeNull();
+    });
+
+    it("commits a trimmed name against the character's own id", () => {
+      expect(rename("  New Name  ")).toHaveBeenCalledWith("npc-123", { name: "New Name" });
+    });
+
+    it("commits on blur as well as on Enter — a phone has no Enter key", () => {
       const onUpdate = vi.fn();
-      const props = createDefaultProps({
-        character: createMockCharacter({ id: "npc-999" }),
-        onUpdate,
-      });
-      const { container } = render(<NpcCard {...props} />);
+      render(<NpcCard {...createDefaultProps({ onUpdate })} />);
+      const input = openEditor();
+      fireEvent.change(input, { target: { value: "Blurred" } });
+      fireEvent.blur(input);
+      expect(onUpdate).toHaveBeenCalledWith("npc-1", { name: "Blurred" });
+    });
 
-      const nameElement = container.querySelector("div[title='Double-click to rename']");
-      fireEvent.doubleClick(nameElement!);
+    it("an emptied box means 'I changed my mind', not 'call it nothing'", () => {
+      // The server rejects a blank name anyway (S8's whitespace fix), so
+      // sending one would round-trip to an error the DM never asked for.
+      expect(rename("")).not.toHaveBeenCalled();
+      expect(rename("   ")).not.toHaveBeenCalled();
+    });
 
-      expect(onUpdate).toHaveBeenCalledWith("npc-999", { name: "Updated" });
+    it("sends nothing when the name did not actually change", () => {
+      expect(rename("Goblin")).not.toHaveBeenCalled();
+      expect(rename("  Goblin  ")).not.toHaveBeenCalled();
+    });
+
+    it("closes the editor after committing, so the card reads as a card again", () => {
+      render(<NpcCard {...createDefaultProps()} />);
+      const input = openEditor();
+      fireEvent.change(input, { target: { value: "Renamed" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+      expect(screen.queryByRole("textbox")).toBeNull();
     });
   });
 

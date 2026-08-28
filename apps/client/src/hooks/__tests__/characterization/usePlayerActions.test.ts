@@ -294,11 +294,15 @@ describe("usePlayerActions - Characterization Tests", () => {
       confirmSpy.mockRestore();
     });
 
-    it("should prompt for new character after deleting last character", () => {
-      vi.useFakeTimers();
+    it("replaces the last character immediately, with no dialogs in the way", () => {
+      // This used to alert() and then prompt() for a name — two blocking modals
+      // in a row, on a path the player did not choose to be on, and prompt() is
+      // a dialog a phone handles badly and cannot cancel out of cleanly. A seat
+      // still needs a character, so one is created with the same default name
+      // the prompt offered; the card renames in place with one tap.
       const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
       const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
-      const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("New Hero");
+      const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Should never be asked");
 
       const snapshot = {
         ...mockSnapshot,
@@ -326,29 +330,62 @@ describe("usePlayerActions - Characterization Tests", () => {
         result.current.deleteCharacter("char-1");
       });
 
-      // First call: delete character
       expect(mockSendMessage).toHaveBeenCalledWith({
         t: "delete-player-character",
         characterId: "char-1",
       });
-
-      // Fast-forward timers to trigger setTimeout
-      act(() => {
-        vi.advanceTimersByTime(100);
-      });
-
-      expect(alertSpy).toHaveBeenCalledWith("You have no characters. Please create a new one.");
-      expect(promptSpy).toHaveBeenCalledWith("Enter character name:", "New Character");
       expect(mockSendMessage).toHaveBeenCalledWith({
         t: "add-player-character",
-        name: "New Hero",
+        name: "New Character",
         maxHp: 100,
       });
+      // Both halves: the replacement arrives AND nothing was asked for it.
+      expect(alertSpy).not.toHaveBeenCalled();
+      expect(promptSpy).not.toHaveBeenCalled();
+      // No timer either — the replacement is not deferred behind a setTimeout
+      // whose only purpose was to let a modal finish.
+      expect(mockSendMessage).toHaveBeenCalledTimes(2);
 
       confirmSpy.mockRestore();
       alertSpy.mockRestore();
       promptSpy.mockRestore();
-      vi.useRealTimers();
+    });
+
+    it("does NOT replace a character while others remain", () => {
+      // The positive control for the test above: the auto-create is gated on
+      // this being the player's last character, and an ungated version would
+      // hand out a spare character on every delete.
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+      // mockSnapshot carries exactly ONE character, which is the case above —
+      // so this needs a second one to be a control rather than a repeat.
+      const snapshot = {
+        ...mockSnapshot,
+        characters: [
+          ...mockSnapshot.characters,
+          {
+            id: "char-2",
+            name: "Spare",
+            ownedByPlayerUID: "player-1",
+            type: "pc",
+            hp: 100,
+            maxHp: 100,
+          },
+        ] as Character[],
+      };
+      const { result } = renderHook(() =>
+        usePlayerActions({
+          sendMessage: mockSendMessage,
+          snapshot,
+          uid: "player-1",
+        }),
+      );
+
+      act(() => {
+        result.current.deleteCharacter("char-1");
+      });
+
+      expect(mockSendMessage).toHaveBeenCalledTimes(1);
+      confirmSpy.mockRestore();
     });
   });
 

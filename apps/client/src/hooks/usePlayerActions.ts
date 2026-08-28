@@ -289,14 +289,16 @@ export function usePlayerActions({
       // Send delete message
       sendMessage({ t: "delete-player-character", characterId });
 
-      // If was last character, immediately prompt for replacement
+      // A table seat needs a character, so deleting the last one immediately
+      // creates a replacement. It used to alert() and then prompt() for the
+      // name — two blocking modals in a row, on a path the player did not ask
+      // to be on, and prompt() is a dialog a phone handles badly and cannot be
+      // styled or cancelled cleanly.
+      //
+      // The name is the same default the prompt offered, and the card renames
+      // in place with one tap, so nothing is lost but the interruption.
       if (isLastCharacter) {
-        setTimeout(() => {
-          alert("You have no characters. Please create a new one.");
-          const name = prompt("Enter character name:", "New Character");
-          const finalName = name && name.trim() ? name.trim() : "New Character";
-          sendMessage({ t: "add-player-character", name: finalName, maxHp: 100 });
-        }, 100);
+        sendMessage({ t: "add-player-character", name: "New Character", maxHp: 100 });
       }
     },
     [sendMessage, snapshot?.characters, uid],

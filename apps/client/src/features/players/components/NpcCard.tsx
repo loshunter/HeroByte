@@ -10,8 +10,8 @@ import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shar
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { RedactedHpBadge } from "./RedactedHpBadge";
+import { NpcNameEditor } from "./NpcNameEditor";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
-import { sanitizeText } from "../../../utils/sanitize";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 
 interface NpcCardProps {
@@ -200,24 +200,12 @@ export function NpcCard({
             ⚔️ CURRENT TURN
           </div>
         )}
-        <div
-          className="player-card-title"
-          style={{
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            cursor: canEdit ? "pointer" : "default",
-          }}
-          title={canEdit ? "Double-click to rename" : undefined}
-          onDoubleClick={() => {
-            if (!canEdit) return;
-            const newName = prompt("Rename NPC", character.name);
-            if (!newName || newName.trim() === character.name) return;
-            onUpdate?.(character.id, { name: newName.trim() });
-          }}
-        >
-          {sanitizeText(character.name)}
-        </div>
+        <NpcNameEditor
+          id={character.id}
+          name={character.name}
+          canEdit={canEdit}
+          onRename={(id, name) => onUpdate?.(id, { name })}
+        />
         <span className="jrpg-text-small player-card-role" style={{ color: "var(--jrpg-gold)" }}>
           Enemy
         </span>
