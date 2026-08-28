@@ -21,10 +21,26 @@
 // The open shelf FOLLOWS the armed family until the DM picks a shelf. Opening
 // on "Ground" while a Stone floor is armed would hide the selection and read as
 // having lost it.
+//
+// M6 added the two shelves that make this a deck rather than a browser. ★ and
+// Recent read and write the SAME localStorage keys the desktop deck uses
+// (brushDeck.ts), so a DM's pins and their last six floors follow them between
+// the desk and the tablet rather than being two separate memories that quietly
+// disagree. Pinning is a right-click on the desktop, which a finger cannot
+// make, so the touch affordance is a single button under the swatches that
+// pins whatever is armed — one control instead of a per-tile one, because a
+// 19-tile grid with a star on every chip is how the 44px floor gets lost.
 
 import React, { useMemo, useState } from "react";
 import type { TileMaterial } from "../../map-studio/starterTiles";
-import { buildBrushDeckGroups } from "../brushDeck";
+import {
+  buildBrushDeckGroups,
+  loadBrushPins,
+  loadBrushRecents,
+  pushBrushRecent,
+  toggleBrushPin,
+} from "../brushDeck";
+import { PAINT_FAMILIES } from "../mapEditFamilies";
 import type { MapEditFloorFamily } from "../mapEditTypes";
 import { MobileSwatchRow } from "./MobileSwatchRow";
 
@@ -34,35 +50,78 @@ interface MobileFloorPickerProps {
   onSelect: (family: MapEditFloorFamily) => void;
 }
 
+/** The two memory shelves sit before the material ones and are keyed apart from
+ * TileMaterial so a shelf id can never collide with a material id. */
+type ShelfId = TileMaterial | "pinned" | "recent";
+
 export function MobileFloorPicker({
   label,
   selected,
   onSelect,
 }: MobileFloorPickerProps): JSX.Element | null {
   const groups = useMemo(() => buildBrushDeckGroups(), []);
-  const [pickedShelf, setPickedShelf] = useState<TileMaterial | null>(null);
+  const byFamily = useMemo(() => new Map(PAINT_FAMILIES.map((entry) => [entry.family, entry])), []);
+  const [pickedShelf, setPickedShelf] = useState<ShelfId | null>(null);
+  // Seeded from storage on mount and updated locally afterwards: the deck is
+  // the only writer, and re-reading on every render would re-parse JSON for
+  // nothing.
+  const [pins, setPins] = useState<string[]>(loadBrushPins);
+  const [recents, setRecents] = useState<string[]>(loadBrushRecents);
 
   if (groups.length === 0) return null;
+
+  const resolve = (families: readonly string[]) =>
+    families.map((family) => byFamily.get(family)).filter((entry) => entry !== undefined);
+
+  const pinnedEntries = resolve(pins);
+  const recentEntries = resolve(recents);
 
   const shelfOfSelected = groups.find((group) =>
     group.entries.some((entry) => entry.family === selected),
   )?.material;
-  const openShelf = pickedShelf ?? shelfOfSelected ?? groups[0]!.material;
-  const entries = groups.find((group) => group.material === openShelf)?.entries ?? [];
+  // A memory shelf that has gone empty must not stay open — it would render as
+  // a heading over nothing and look like the picker had broken.
+  const wanted = pickedShelf ?? shelfOfSelected ?? groups[0]!.material;
+  const openShelf: ShelfId =
+    (wanted === "pinned" && pinnedEntries.length === 0) ||
+    (wanted === "recent" && recentEntries.length === 0)
+      ? (shelfOfSelected ?? groups[0]!.material)
+      : wanted;
+
+  const entries =
+    openShelf === "pinned"
+      ? pinnedEntries
+      : openShelf === "recent"
+        ? recentEntries
+        : (groups.find((group) => group.material === openShelf)?.entries ?? []);
+
+  const shelves: { id: ShelfId; label: string }[] = [
+    ...(pinnedEntries.length > 0 ? [{ id: "pinned" as const, label: "★" }] : []),
+    ...(recentEntries.length > 0 ? [{ id: "recent" as const, label: "Recent" }] : []),
+    ...groups.map((group) => ({ id: group.material as ShelfId, label: group.label })),
+  ];
+
+  const pick = (family: MapEditFloorFamily) => {
+    onSelect(family);
+    setRecents(pushBrushRecent(family));
+  };
+
+  const armedIsPinned = pins.includes(selected);
+  const armedName = byFamily.get(selected)?.name ?? selected;
 
   return (
     <div className="mobile-tool-sheet__section">
       <span className="mobile-tool-sheet__label">{label}</span>
       <div className="mobile-tool-sheet__shelves">
-        {groups.map((group) => (
+        {shelves.map((shelf) => (
           <button
-            key={group.material}
+            key={shelf.id}
             type="button"
-            aria-pressed={group.material === openShelf}
-            className={`mobile-chip${group.material === openShelf ? " mobile-chip--active" : ""}`}
-            onClick={() => setPickedShelf(group.material)}
+            aria-pressed={shelf.id === openShelf}
+            className={`mobile-chip${shelf.id === openShelf ? " mobile-chip--active" : ""}`}
+            onClick={() => setPickedShelf(shelf.id)}
           >
-            {group.label}
+            {shelf.label}
           </button>
         ))}
       </div>
@@ -74,8 +133,22 @@ export function MobileFloorPicker({
           stroke: entry.stroke,
         }))}
         selected={selected}
-        onSelect={onSelect}
+        onSelect={pick}
       />
+      {/* Names the family rather than saying "Pin": the armed swatch can be off
+          the open shelf entirely (★ and Recent both show families from other
+          materials), so "Pin Stone Floor" is the only wording that says what
+          the button will actually remember. */}
+      <button
+        type="button"
+        aria-pressed={armedIsPinned}
+        className={`mobile-tool-sheet__button mobile-tool-sheet__button--wide${
+          armedIsPinned ? " mobile-tool-sheet__button--active" : ""
+        }`}
+        onClick={() => setPins(toggleBrushPin(selected))}
+      >
+        {armedIsPinned ? `★ Unpin ${armedName}` : `☆ Pin ${armedName}`}
+      </button>
     </div>
   );
 }
