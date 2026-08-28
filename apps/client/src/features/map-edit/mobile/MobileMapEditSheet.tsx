@@ -124,6 +124,22 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
             <span aria-hidden="true">👆</span>
             Select
           </button>
+          {/* Sample joins Select outside MOBILE_TOOL_TILES for the same reason:
+              neither is a TouchTool. A tap resolves both through the compat
+              mouse path, once, and neither places anything — so arming them
+              would run them twice for nothing. On a desktop this is Ctrl-click
+              and still is; a phone has no Ctrl, which is why it needs a tile of
+              its own here. It hands over to Place after one sample, so it is a
+              MOMENT rather than a mode. */}
+          <button
+            type="button"
+            aria-pressed={activeSubTool === "eyedropper"}
+            className={subToolClass("eyedropper")}
+            onClick={() => selectSubTool("eyedropper")}
+          >
+            <span aria-hidden="true">💧</span>
+            Sample
+          </button>
           <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
             <span aria-hidden="true">◇</span>
             Recenter

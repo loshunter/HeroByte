@@ -27,12 +27,15 @@ import { MobileSelectPanel } from "./MobileSelectPanel";
 import { MobileSwatchRow } from "./MobileSwatchRow";
 
 /**
- * A tool the sheet can render a panel for. Every tool a finger arms qualifies,
- * plus "select" — which arms no touch gesture at all (see MobileSelectPanel for
- * why it works anyway), but does own a panel and so obeys the same open/close
- * rule as the rest.
+ * A tool the sheet can offer, and so a tool the open/close rule has to answer
+ * for. Every tool a finger arms qualifies, plus the two that arm NO touch
+ * gesture at all and resolve through the compat mouse path instead — "select",
+ * which owns a panel, and "eyedropper", which does not. Both are named here
+ * rather than waved through by widening this to MapEditSubTool: a tool that
+ * reaches the sheet without reaching the canvas is the silent no-op this mode
+ * is worst at, and the union is what makes adding one deliberate.
  */
-export type SheetPanelTool = TouchTool | "select";
+export type SheetPanelTool = TouchTool | "select" | "eyedropper";
 
 /** The tools whose panel below is non-empty — the sheet's open/close rule.
  *
@@ -50,6 +53,9 @@ export const PANEL_TOOLS: ReadonlySet<SheetPanelTool> = new Set<SheetPanelTool>(
   "spline",
   "generate",
   "select",
+  // "eyedropper" is deliberately absent: it takes no argument, so the sheet
+  // closes and puts the DM on the map — and it hands over to Place after one
+  // sample, so a panel would be showing for a tool already gone.
 ]);
 
 const HALLWAY_WIDTHS = [1, 2, 3, 4] as const;

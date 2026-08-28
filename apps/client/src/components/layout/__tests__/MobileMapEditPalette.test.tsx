@@ -352,7 +352,15 @@ describe("the map-edit palette", () => {
       const labels = within(tiles)
         .getAllByRole("button")
         .map((button) => button.textContent?.replace(/^\P{L}+/u, "") ?? "");
-      const known = new Set([...MOBILE_TOOL_TILES.map((tile) => tile.label), "Select", "Recenter"]);
+      // The three deliberate extras. Select and Sample resolve on the compat
+      // mouse path rather than being armed (so they are not TouchTools and not
+      // tiles); Recenter is a camera action, not a tool at all.
+      const known = new Set([
+        ...MOBILE_TOOL_TILES.map((tile) => tile.label),
+        "Select",
+        "Sample",
+        "Recenter",
+      ]);
       for (const label of labels) expect(known).toContain(label);
     });
 

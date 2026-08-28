@@ -25,6 +25,11 @@ export type MapEditSubTool =
   | "scatter"
   | "row"
   | "select"
+  // Sampling used to be Ctrl+click over place/scatter/terrain, which a phone
+  // cannot press. As a sub-tool it is armable anywhere and, like "select", it
+  // is deliberately NOT a TouchTool: a tap resolves it once through the compat
+  // mouse path, it places nothing, and sampling twice is sampling once.
+  | "eyedropper"
   | "generate"
   | "spline";
 

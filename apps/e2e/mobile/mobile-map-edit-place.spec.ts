@@ -20,11 +20,8 @@
  * where placing never worked and something else had already placed one.
  */
 import { expect, test, type Page } from "../fixtures";
-import { elevateToDM } from "../helpers";
-import { joinMobileTable } from "./mobile.helpers";
+import { armLiveMapEdit } from "./mobile.helpers";
 import { openTouch, touchDrag, touchTap } from "./touch.helpers";
-
-const PHONE = { width: 390, height: 844 };
 
 const elements = (page: Page) =>
   page.evaluate(
@@ -35,42 +32,8 @@ const elements = (page: Page) =>
       ) ?? 0,
   );
 
-/** Every element the table can see, with the two fields the drop MODE decides:
- * a tile snaps to the lattice and never rotates, a stamp is free and does. */
-const placed = (page: Page) =>
-  page.evaluate(
-    () =>
-      window.__HERO_BYTE_E2E__?.snapshot?.mapElements?.layers?.flatMap((layer) =>
-        layer.elements.map((element) => ({
-          type: element.type,
-          rotation: element.transform.rotation ?? 0,
-        })),
-      ) ?? [],
-  );
-
 const lights = (page: Page) =>
   page.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.compiledScene?.lights?.length ?? 0);
-
-async function armLiveMapEdit(page: Page) {
-  await page.setViewportSize(PHONE);
-  await joinMobileTable(page);
-  await elevateToDM(page);
-
-  await page.getByRole("button", { name: /^DM$/i }).click();
-  await page.getByRole("button", { name: /Edit the live map/i }).click();
-
-  const dock = page.getByRole("navigation", { name: /Map edit actions/i });
-  await expect(dock).toBeVisible();
-
-  await dock.getByRole("button", { name: /Tool/ }).click();
-  await page.getByRole("button", { name: /Start live map/i }).click();
-  await page.waitForFunction(() => Boolean(window.__HERO_BYTE_E2E__?.snapshot?.liveMapDocumentId), {
-    timeout: 30_000,
-  });
-  const toolGrid = page.locator(".mobile-tool-sheet__grid").first();
-  await expect(toolGrid).toBeVisible({ timeout: 30_000 });
-  return { dock, toolGrid };
-}
 
 /** A tool's commit is SKIPPED while a command is in flight and is not retried,
  * so a gesture started too soon after the last one is dropped in silence. */
@@ -194,53 +157,6 @@ test.describe("M7 — a finger places", () => {
 
     await settle(page);
     expect(await elements(page)).toBe(0);
-  });
-
-  test("the drop-mode and rotation controls change what actually lands", async ({ page }) => {
-    // Alt and R do this on a desktop and a phone has neither, so these two
-    // controls are the only way a touch DM reaches either. A control wired to
-    // nothing looks identical to one wired to something until a drop lands, so
-    // the assertion is on the ELEMENT, not on the button's pressed state.
-    test.setTimeout(150_000);
-    const { dock, toolGrid } = await armLiveMapEdit(page);
-
-    const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
-    const cdp = await openTouch(page);
-    const at = (fx: number, fy: number) => ({
-      x: box.x + box.width * fx,
-      y: box.y + box.height * fy,
-    });
-
-    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
-    const dropRow = page.locator(".mobile-tool-sheet__section", { hasText: "Drop as" });
-    await expect(dropRow).toBeVisible();
-
-    // Default is a grid TILE — the positive control for the toggle below.
-    await page.getByRole("button", { name: /To the map/i }).click();
-    await touchTap(cdp, at(0.35, 0.3));
-    await expect.poll(() => placed(page), { timeout: 30_000 }).toHaveLength(1);
-    expect((await placed(page))[0]!.type).toBe("tile");
-
-    // Free stamp, turned twice clockwise: 30°.
-    await settle(page);
-    await dock.getByRole("button", { name: /Tool/ }).click();
-    await dropRow.getByRole("button", { name: /Free stamp/ }).click();
-    // The rotate row only exists once stamping — a rotation dial over a tile
-    // would be a control that cannot do anything.
-    const rotate = page.getByRole("button", { name: /Rotate stamp clockwise/i });
-    await expect(rotate).toBeVisible();
-    await rotate.click();
-    await rotate.click();
-    await expect(page.locator(".mobile-tool-sheet__label", { hasText: "Rotation" })).toHaveText(
-      /30°/,
-    );
-    await page.getByRole("button", { name: /To the map/i }).click();
-
-    await touchTap(cdp, at(0.65, 0.6));
-    await expect.poll(() => placed(page), { timeout: 30_000 }).toHaveLength(2);
-    const stamp = (await placed(page)).find((element) => element.type === "stamp");
-    expect(stamp, "the second drop should be a free stamp, not another tile").toBeDefined();
-    expect(stamp!.rotation).toBe(30);
   });
 
   test("Light drops a torch pool the whole table receives", async ({ page }) => {

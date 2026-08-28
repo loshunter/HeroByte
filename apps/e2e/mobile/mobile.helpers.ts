@@ -6,6 +6,7 @@
  * tool sheet and is not rendered until the sheet is open.
  */
 import { expect, type Page } from "@playwright/test";
+import { elevateToDM } from "../helpers";
 import type { Pt } from "./touch.helpers";
 
 const ROOM_PASSWORD = process.env.E2E_ROOM_PASSWORD ?? "Fun1";
@@ -120,4 +121,87 @@ export async function readDrawings(page: Page) {
       lastPointCount: Array.isArray(last?.points) ? last.points.length : 0,
     };
   });
+}
+
+/**
+ * A DM on a touch device, in map-edit, with a live document bound.
+ *
+ * Lives here because a fourth map-edit spec was about to copy it. The earlier
+ * copies differ only in viewport and in whether they return the dock, which is
+ * exactly the kind of near-duplicate that drifts — one of them gaining a wait
+ * the others need is invisible until the others start flaking. New map-edit
+ * specs should take this one; the older copies are left where they are rather
+ * than rewritten under a slice that is not about them.
+ */
+export async function armLiveMapEdit(
+  page: Page,
+  viewport: { width: number; height: number } = { width: 390, height: 844 },
+) {
+  await page.setViewportSize(viewport);
+  await joinMobileTable(page);
+  await elevateToDM(page);
+
+  await page.getByRole("button", { name: /^DM$/i }).click();
+  await page.getByRole("button", { name: /Edit the live map/i }).click();
+
+  const dock = page.getByRole("navigation", { name: /Map edit actions/i });
+  await expect(dock).toBeVisible();
+
+  await dock.getByRole("button", { name: /Tool/ }).click();
+  await page.getByRole("button", { name: /Start live map/i }).click();
+  await page.waitForFunction(() => Boolean(window.__HERO_BYTE_E2E__?.snapshot?.liveMapDocumentId), {
+    timeout: 30_000,
+  });
+  const toolGrid = page.locator(".mobile-tool-sheet__grid").first();
+  await expect(toolGrid).toBeVisible({ timeout: 30_000 });
+  return { dock, toolGrid };
+}
+
+/** Every element the table can see, with the field the drop MODE decides. */
+export const placedElements = (page: Page) =>
+  page.evaluate(
+    () =>
+      window.__HERO_BYTE_E2E__?.snapshot?.mapElements?.layers?.flatMap((layer) =>
+        layer.elements.map((element) => ({
+          type: element.type,
+          rotation: element.transform.rotation ?? 0,
+        })),
+      ) ?? [],
+  );
+
+/**
+ * The screen centre of the first placed element.
+ *
+ * A sample or a selection has to land INSIDE what it is aiming at, and the
+ * point you clicked to PLACE a tile is not inside it: a tile snaps to the
+ * NEAREST cell corner, so a tap at doc (176, 295) with a 50px grid puts the
+ * tile at (200, 300) covering [200,250)x[300,350) — 24px away in x. Measured,
+ * after a first version of the eyedropper spec tapped where it had placed and
+ * sampled nothing at all.
+ */
+export async function firstElementScreenPos(page: Page): Promise<Pt | null> {
+  const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
+  const local = await page.evaluate(() => {
+    const data = window.__HERO_BYTE_E2E__;
+    const cam = data?.cam;
+    const gridSize = data?.gridSize ?? 0;
+    const element = (data?.snapshot?.mapElements?.layers ?? []).flatMap(
+      (layer) => layer.elements,
+    )[0] as
+      | {
+          type?: string;
+          transform?: { x: number; y: number; scaleX: number; scaleY: number };
+          data?: { width?: number; height?: number; columns?: number; rows?: number };
+        }
+      | undefined;
+    if (!element?.transform || !cam) return null;
+    const t = element.transform;
+    const d = element.data ?? {};
+    const w =
+      element.type === "tile" ? (d.columns ?? 1) * gridSize * t.scaleX : (d.width ?? 0) * t.scaleX;
+    const h =
+      element.type === "tile" ? (d.rows ?? 1) * gridSize * t.scaleY : (d.height ?? 0) * t.scaleY;
+    return { x: (t.x + w / 2) * cam.scale + cam.x, y: (t.y + h / 2) * cam.scale + cam.y };
+  });
+  return local ? { x: box.x + local.x, y: box.y + local.y } : null;
 }

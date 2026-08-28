@@ -27,6 +27,7 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "scatter", label: "🎲 Scatter" },
   { id: "row", label: "📏 Row" },
   { id: "select", label: "👆 Select" },
+  { id: "eyedropper", label: "💧 Sample" },
   { id: "generate", label: "🏰 Gen" },
   { id: "spline", label: "〰️ Spline" },
 ];

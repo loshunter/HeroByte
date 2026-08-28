@@ -144,7 +144,12 @@ export function useMapEditTool({
   const isDrag = isDragTool(activeSubTool);
   const isBrush = isBrushTool(activeSubTool);
   const isClick = isClickTool(activeSubTool);
-  const isSelect = activeSubTool === "select";
+  // Select and the eyedropper share a branch: both consume a press through
+  // `selection.handleClick` and place nothing. Grouping them here is what makes
+  // the eyedropper reach the canvas at all — `active` gates every handler, and
+  // a sub-tool missing from it looks armed and silently does nothing, which is
+  // the failure this mode is worst at.
+  const isSelect = activeSubTool === "select" || activeSubTool === "eyedropper";
   const active = mapEditMode && (isDrag || isBrush || isClick || isSelect);
 
   // The live-bound active document (null when the controller is on a Studio

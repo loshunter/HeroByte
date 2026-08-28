@@ -893,6 +893,49 @@ describe("useMapEditTool", () => {
     expect(controller.addTile).not.toHaveBeenCalled();
   });
 
+  // The same sample with NO key held. Ctrl is the desktop shortcut and is
+  // staying; a phone has no Ctrl, so M7 gave sampling a sub-tool of its own and
+  // both land on one branch.
+  it("the eyedropper SUB-TOOL samples with no key held, and places nothing", () => {
+    const base = makeObjectsDocument();
+    const controller = makeController({
+      activeDocument: {
+        ...base,
+        elements: [
+          {
+            id: "tile1",
+            layerId: "objects",
+            type: "tile",
+            locked: false,
+            hidden: false,
+            transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+            data: { assetId: "objects:table", columns: 2, rows: 1 },
+          },
+        ],
+      },
+    });
+    const onSampleAsset = vi.fn();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "eyedropper",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        onSampleAsset,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 120, y: 120 }).ref));
+
+    expect(onSampleAsset).toHaveBeenCalledWith("objects:table");
+    expect(controller.addTile).not.toHaveBeenCalled();
+    expect(controller.addStamp).not.toHaveBeenCalled();
+  });
+
   it("cancels an in-progress drag on Escape without committing", () => {
     const controller = makeController();
     const { result } = renderHook(() =>

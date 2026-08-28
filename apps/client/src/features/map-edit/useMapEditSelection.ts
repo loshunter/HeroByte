@@ -1,11 +1,18 @@
 // ============================================================================
 // MAP-EDIT SELECTION + EYEDROPPER
 // ============================================================================
-// The "select" sub-tool and the Ctrl/Cmd-click eyedropper, composed by
-// useMapEditTool. handleClick consumes a pointer-down when it is a selection
-// (select tool) or a sample (Ctrl held over place/scatter/terrain) — returning
-// true so the tool skips its normal placement/paint. selectionShape is the
-// highlight footprint the preview draws around the current selection.
+// The "select" sub-tool and the eyedropper, composed by useMapEditTool.
+// handleClick consumes a pointer-down when it is a selection (select tool) or a
+// sample — returning true so the tool skips its normal placement/paint.
+// selectionShape is the highlight footprint the preview draws around the
+// current selection.
+//
+// The eyedropper has TWO ways in since M7. Ctrl/Cmd held over place, scatter or
+// terrain is the desktop shortcut and is staying: it samples without giving up
+// the tool you are holding, which is the whole point at a mouse. It is also a
+// sub-tool of its own now, because a phone has no Ctrl and the shortcut left
+// sampling unreachable on the surface this arc exists for. Both land on the
+// same branch, so they cannot drift.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MapDocument } from "@herobyte/shared";
@@ -68,10 +75,14 @@ export function useMapEditSelection({
   const handleClick = useCallback(
     (point: { x: number; y: number }, subTool: MapEditSubTool): boolean => {
       if (!document) return false;
-      if (ctrlHeld && SAMPLEABLE.includes(subTool)) {
+      const sampling = subTool === "eyedropper" || (ctrlHeld && SAMPLEABLE.includes(subTool));
+      if (sampling) {
         const sampled = sampleAssetAtPoint(document, layers, point);
         if (sampled) onSampleAsset(sampled);
-        return true; // Ctrl held = intent to sample, never place
+        // True either way. A miss must still CONSUME the press: falling through
+        // would place a crate where the DM was pointing at empty floor, which
+        // is the opposite of what they asked for.
+        return true;
       }
       if (subTool === "select") {
         const element = selectElementAtPoint(document, layers, point);
