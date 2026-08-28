@@ -176,6 +176,8 @@ export interface BottomPanelLayoutProps {
   /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
    * optional so the layout fixtures stay untouched). */
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
+  /** The table default, shown on a token that inherits it. */
+  tableVisionDefault?: number;
   /** Handler to change token image */
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
 
@@ -315,6 +317,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onToggleTokenLock,
     onTokenSizeChange,
     onTokenVisionRadiusChange,
+    tableVisionDefault,
     onTokenImageChange,
     onAddCharacter,
     onDeleteCharacter,
@@ -378,6 +381,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onToggleTokenLock={onToggleTokenLock}
         onTokenSizeChange={onTokenSizeChange}
         onTokenVisionRadiusChange={onTokenVisionRadiusChange}
+        tableVisionDefault={tableVisionDefault}
         onTokenImageChange={onTokenImageChange}
         onAddCharacter={onAddCharacter}
         onDeleteCharacter={onDeleteCharacter}

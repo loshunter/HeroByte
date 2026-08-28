@@ -41,6 +41,9 @@ interface EntitiesPanelProps {
   onNameEdit: (uid: string, currentName: string) => void;
   onNameSubmit: () => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
+  /** The table's default sight radius in feet, shown on a token that inherits
+   *  it. Undefined means no default is set, which is unlimited. */
+  tableVisionDefault?: number;
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   onToggleMic: () => void;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
@@ -112,6 +115,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   editingTempHpUID,
   tempHpInput,
   onCharacterNameUpdate,
+  tableVisionDefault,
   onCharacterPortraitUpdate,
   onToggleMic,
   onCharacterHpChange,
@@ -434,6 +438,19 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                                 ? (size: TokenSize) => onTokenSizeChange(token.id, size)
                                 : undefined
                             }
+                            // The DM's OWN card was the one place this control never
+                            // reached, though PlayerSettingsMenu's note says "a DM sets
+                            // the darkness on every token, including their own". The
+                            // player section below has always had it; this section is a
+                            // separate render and was never given it. Same gate as there.
+                            tokenVisionRadius={token?.visionRadius}
+                            tableVisionDefault={tableVisionDefault}
+                            onTokenVisionRadiusChange={
+                              currentIsDM && token && onTokenVisionRadiusChange
+                                ? (radiusFeet: number | null) =>
+                                    onTokenVisionRadiusChange(token.id, radiusFeet)
+                                : undefined
+                            }
                             onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
                             isCreatingCharacter={isMe ? characterCreation.isCreating : false}
                             characterId={character.id}
@@ -584,6 +601,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                               : undefined
                           }
                           tokenVisionRadius={token?.visionRadius}
+                          tableVisionDefault={tableVisionDefault}
                           onTokenVisionRadiusChange={
                             currentIsDM && token && onTokenVisionRadiusChange
                               ? (radiusFeet: number | null) =>

@@ -61,6 +61,10 @@ export interface PlayerCardProps {
   onTokenSizeChange?: (size: TokenSize) => void;
   /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
   tokenVisionRadius?: number;
+  /** The table's default sight radius in feet, so a token that INHERITS it can
+   *  say what it inherited. Undefined means no default is set, which is
+   *  unlimited — a real answer, not a missing one. */
+  tableVisionDefault?: number;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   onAddCharacter?: (name: string) => boolean;
   isCreatingCharacter?: boolean;
@@ -121,6 +125,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     tokenSize,
     onTokenSizeChange,
     tokenVisionRadius,
+    tableVisionDefault,
     onTokenVisionRadiusChange,
     onStatusEffectsChange,
     onAddCharacter,
@@ -367,6 +372,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
           tokenVisionRadius={tokenVisionRadius}
+          tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
           onAddCharacter={onAddCharacter}
           isCreatingCharacter={isCreatingCharacter}

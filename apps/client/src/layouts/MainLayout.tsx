@@ -378,6 +378,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
         onTokenVisionRadiusChange={updateTokenVisionRadius}
+        tableVisionDefault={snapshot?.defaultVisionRadius}
         onTokenImageChange={updateTokenImage}
         onAddCharacter={playerActions.addCharacter}
         onDeleteCharacter={playerActions.deleteCharacter}

@@ -37,6 +37,15 @@ interface VisionRadiusFieldProps {
    * default IS unlimited, so the label stays honest either way.
    */
   inheritsTableDefault?: boolean;
+  /**
+   * The table default in FEET, so the control can say what "Table Default"
+   * actually means. Undefined is a real answer — no default set, which IS
+   * unlimited — and is rendered as such rather than as a blank.
+   *
+   * Only meaningful alongside `inheritsTableDefault`; the room-level control
+   * IS the default and has nothing to inherit.
+   */
+  tableDefault?: number;
 }
 
 /** Darkvision as the rulebooks hand it out, plus the two ends of the scale. */
@@ -56,10 +65,17 @@ export function VisionRadiusField({
   subject = "This token",
   inputAriaLabel = "Sight radius in feet",
   inheritsTableDefault = false,
+  tableDefault,
 }: VisionRadiusFieldProps) {
+  // "Table Default" alone told a DM which RULE applied but not what it meant,
+  // so checking what a token could actually see was a trip to the DM menu. The
+  // number goes where the value would be if there were one — the empty box's
+  // placeholder — which is the only place on this control that is about what
+  // is currently in force.
+  const defaultText = tableDefault === undefined ? "unlimited" : `${tableDefault} ft`;
   const clearLabel = inheritsTableDefault ? "Table Default" : "Unlimited";
   const clearTitle = inheritsTableDefault
-    ? "Follow the table default, set on the DM menu's Map tab"
+    ? `Follow the table default (${defaultText}), set on the DM menu's Map tab`
     : "Sight is stopped only by walls";
   // Local draft so a half-typed number ("6" on the way to "60") does not
   // broadcast a radius nobody asked for. Re-synced whenever the authoritative
@@ -143,7 +159,7 @@ export function VisionRadiusField({
           min={VISION_RADIUS_MIN_FEET}
           max={VISION_RADIUS_MAX_FEET}
           step={5}
-          placeholder={inheritsTableDefault ? "Table default" : "Unlimited"}
+          placeholder={inheritsTableDefault ? `Table default — ${defaultText}` : "Unlimited"}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={(event) => commit(event.target.value)}

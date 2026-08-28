@@ -100,6 +100,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             onCharacterPortraitUpdate={props.playerActions.setCharacterPortrait}
             tokens={props.snapshot?.tokens || []}
             onTokenVisionRadiusChange={props.updateTokenVisionRadius}
+            tableVisionDefault={props.snapshot?.defaultVisionRadius}
           />
         </MobileScreen>
       )}

@@ -26,12 +26,26 @@
 > argument and the `DMMenu` forwarding pin. An optional one can be deleted with ZERO
 > typecheck errors and every suite green — the M4b defect shape, reproduced twice here.
 >
-> **Follow-ups, none of them defects:** the per-token card says "Table Default" but not the
+> **Follow-ups, none of them defects:** ~~the per-token card says "Table Default" but not the
 > inherited NUMBER (needs a new field through `MainLayoutProps` → `EntitiesPanel` →
-> `PlayerCard` → `MobilePlayerRow`, plus four layout fixtures); `img/dm-menu-map-setup.jpg`
-> predates the new panel and was deliberately not re-recorded; DM-menu controls on mobile
+> `PlayerCard` → `MobilePlayerRow`, plus four layout fixtures)~~ — **DONE 2026-08-27**: the
+> number went in the PLACEHOLDER ("Table default — 60 ft") rather than the button label,
+> because the empty box is the one part of that control that is about what is currently in
+> force. `tableVisionDefault` rides the same route `onTokenVisionRadiusChange` already
+> takes, so no layout fixture moved. It is OPTIONAL and therefore droppable with a green
+> typecheck, which is why the guard is an e2e over the whole chain rather than a unit test
+> on the field. **And it turned up a real gap while being wired:** the DM's OWN card is a
+> separate render in `EntitiesPanel` and had never been given the sight control at all,
+> though `PlayerSettingsMenu`'s own note says "a DM sets the darkness on every token,
+> including their own". Now wired, same gate as the player section.
+> `img/dm-menu-map-setup.jpg`
+> predates the new panel and was deliberately not re-recorded; ~~DM-menu controls on mobile
 > are sub-44px exactly like every neighbour on that tab, which is the panel-wide pass the
-> handoff already identified for the chat SEND button.
+> handoff already identified for the chat SEND button~~ — **DONE 2026-08-27**: the pass
+> landed as one `(pointer: coarse)` rule scoped to `[data-mobile-surface]` rather than to
+> any component's class, because the reused panels are a wide family and a class list is
+> something the next panel silently falls off. All five DM tabs are asserted clear in
+> `apps/e2e/mobile/mobile-panel-touch-floor.spec.ts`.
 
 Owner chose this slice on 2026-08-11, over M5 of the mobile authoring arc. Every path and line
 number below was verified against `dev` = `5b79f1aa` on 2026-08-11 by reading the files, not from

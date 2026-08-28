@@ -33,6 +33,9 @@ interface MobilePlayerRowProps {
   onStatusEffectsChange?: (effects: string[]) => void;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
+  /** The table's default sight radius in feet, shown on a token that inherits
+   *  it. Undefined means no default is set, which is unlimited. */
+  tableVisionDefault?: number;
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   /** This player's token, for the DM-only sight controls (S7). */
   token?: Token;
@@ -58,6 +61,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onStatusEffectsChange,
     onCharacterHpChange,
     onCharacterNameUpdate,
+    tableVisionDefault,
     onCharacterPortraitUpdate,
     token,
     onTokenVisionRadiusChange,
@@ -276,6 +280,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           isOpen={settingsOpen}
           onClose={() => setSettingsOpen(false)}
           tokenVisionRadius={token?.visionRadius}
+          tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
           compactControls
           nameInput={localNameInput}

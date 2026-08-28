@@ -58,6 +58,10 @@ interface PlayerSettingsMenuProps {
   onTokenSizeChange?: (size: TokenSize) => void;
   /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
   tokenVisionRadius?: number;
+  /** The table's default sight radius in feet, so a token that INHERITS it can
+   *  say what it inherited. Undefined means no default is set, which is
+   *  unlimited — a real answer, not a missing one. */
+  tableVisionDefault?: number;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   /** Render the sight controls at the 44px touch floor (mobile rows). */
   compactControls?: boolean;
@@ -98,6 +102,7 @@ export function PlayerSettingsMenu({
   tokenSize = "medium",
   onTokenSizeChange,
   tokenVisionRadius,
+  tableVisionDefault,
   onTokenVisionRadiusChange,
   compactControls = false,
   onAddCharacter,
@@ -402,6 +407,7 @@ export function PlayerSettingsMenu({
             <VisionRadiusField
               value={tokenVisionRadius}
               inheritsTableDefault
+              tableDefault={tableVisionDefault}
               onChange={onTokenVisionRadiusChange}
               compact={compactControls}
             />

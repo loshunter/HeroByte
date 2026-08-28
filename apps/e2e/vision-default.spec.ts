@@ -204,4 +204,36 @@ test.describe("Table default sight radius", () => {
       await dmContext.close();
     }
   });
+
+  test("a token that INHERITS the default says what it inherited", async ({ page }) => {
+    // The follow-up the slice's review left open: the per-token control said
+    // "Table Default" but never the NUMBER, so a DM checking what a token could
+    // actually see had to leave the card and go to the Map tab.
+    //
+    // End to end rather than a unit test on the field, because the value
+    // crosses seven components to get there (App → MainLayout →
+    // BottomPanelLayout → EntitiesPanel → PlayerCard → PlayerSettingsMenu →
+    // VisionRadiusField) on an OPTIONAL prop — the shape that can be dropped
+    // anywhere along the way with a green typecheck and every unit suite
+    // passing.
+    test.setTimeout(120_000);
+    await joinDefaultRoomAsDM(page);
+
+    // The settings window opens from the PORTRAIT, not from a gear — the gear
+    // in the header is the app's own settings.
+    const settings = page.getByRole("button", { name: "Change portrait" }).first();
+    await settings.click();
+    const radius = page.getByPlaceholder(/Table default/i);
+    // No default set yet, and "unlimited" is a real answer rather than a blank:
+    // a table with no default IS unlimited.
+    await expect(radius).toHaveAttribute("placeholder", /unlimited/i);
+    await page.keyboard.press("Escape");
+
+    await setDefaultFromMapTab(page, "60");
+    await waitForSnap(page, () => window.__HERO_BYTE_E2E__?.snapshot?.defaultVisionRadius === 60);
+    await page.keyboard.press("Escape");
+
+    await settings.click();
+    await expect(page.getByPlaceholder(/Table default/i)).toHaveAttribute("placeholder", /60 ft/);
+  });
 });

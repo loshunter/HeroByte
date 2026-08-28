@@ -187,12 +187,45 @@ describe("VisionRadiusField under a table default", () => {
 
     const clear = preset("Table Default");
     expect(clear).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: "Unlimited" })).not.toBeInTheDocument();
+    // With no default set, the table default IS unlimited — a real answer, and
+    // the one this control used to give without saying it was the TABLE's.
     expect(clear).toHaveAttribute(
       "title",
-      "Follow the table default, set on the DM menu's Map tab",
+      "Follow the table default (unlimited), set on the DM menu's Map tab",
     );
-    expect(screen.queryByRole("button", { name: "Unlimited" })).not.toBeInTheDocument();
-    expect(input()).toHaveAttribute("placeholder", "Table default");
+    expect(input()).toHaveAttribute("placeholder", "Table default — unlimited");
+  });
+
+  it("says what the inherited radius actually IS, not just that it is inherited", () => {
+    // The follow-up the slice's review left open. "Table Default" told a DM
+    // which rule applied but not what it meant, so checking what a token could
+    // see was a trip to the DM menu. The number goes in the placeholder,
+    // because the empty box is the one part of this control that is about what
+    // is currently in force.
+    render(
+      <VisionRadiusField
+        value={undefined}
+        onChange={vi.fn()}
+        inheritsTableDefault
+        tableDefault={60}
+      />,
+    );
+
+    expect(input()).toHaveAttribute("placeholder", "Table default — 60 ft");
+    expect(preset("Table Default")).toHaveAttribute(
+      "title",
+      "Follow the table default (60 ft), set on the DM menu's Map tab",
+    );
+  });
+
+  it("says nothing about a table default on the control that IS the default", () => {
+    // The room-level control has nothing to inherit, so the number would be
+    // the field describing itself back to the DM.
+    render(<VisionRadiusField value={undefined} onChange={vi.fn()} tableDefault={60} />);
+
+    expect(input()).toHaveAttribute("placeholder", "Unlimited");
+    expect(preset("Unlimited")).toHaveAttribute("title", "Sight is stopped only by walls");
   });
 
   // The label changed; the wire value must not. null is exactly what makes the

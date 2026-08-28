@@ -32,6 +32,9 @@ interface MobileEntitiesListProps {
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
+  /** The table's default sight radius in feet, shown on a token that inherits
+   *  it. Undefined means no default is set, which is unlimited. */
+  tableVisionDefault?: number;
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   /** Live tokens, so a DM can set each player's sight radius from a phone (S7). */
   tokens?: Token[];
@@ -57,6 +60,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onCharacterHpChange,
   onCharacterStatusEffectsChange,
   onCharacterNameUpdate,
+  tableVisionDefault,
   onCharacterPortraitUpdate,
   tokens,
   onTokenVisionRadiusChange,
@@ -180,6 +184,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
               onCharacterStatusEffectsChange(entity.characterId, effects)
             }
             onCharacterNameUpdate={onCharacterNameUpdate}
+            tableVisionDefault={tableVisionDefault}
             onCharacterPortraitUpdate={onCharacterPortraitUpdate}
           />
         );
