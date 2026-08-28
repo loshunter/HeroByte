@@ -177,6 +177,7 @@ export function InitiativeModal({
                 Initiative Modifier
               </label>
               <div
+                data-testid="initiative-modifier-dial"
                 onPointerDown={handleModifierDrag}
                 style={{
                   padding: "12px",
