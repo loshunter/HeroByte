@@ -17,6 +17,7 @@
  * fail for the wrong reason.
  */
 import { expect, test, type Page } from "../fixtures";
+import { elevateToDM } from "../helpers";
 import { joinMobileTable } from "./mobile.helpers";
 
 const PHONE = { width: 390, height: 844 };
@@ -91,5 +92,27 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     await page.getByRole("button", { name: "CHAT" }).click();
     const chat = await undersizedControls(page, "[data-mobile-surface]");
     expect(chat, `chat controls under 44px: ${chat.join(", ")}`).toEqual([]);
+  });
+
+  test("no control in any DM-menu tab is under the floor", async ({ page }) => {
+    // The vision-default slice left this as an explicit follow-up: "DM-menu
+    // controls on mobile are sub-44px exactly like every neighbour on that
+    // tab, which is the panel-wide pass the handoff already identified for the
+    // chat SEND button." Same pass, so this is where that closes — and
+    // mobile-dm.spec.ts's fit test can stop calling the floor a non-goal.
+    test.setTimeout(120_000);
+    await page.setViewportSize(PHONE);
+    await joinMobileTable(page);
+    await elevateToDM(page);
+    await page.getByRole("button", { name: /^DM$/i }).click();
+
+    const dialog = page.getByRole("dialog", { name: "DM Menu" });
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+
+    for (const tab of ["Map Setup", "NPCs & Monsters", "Props & Objects", "Players", "Session"]) {
+      await dialog.getByRole("button", { name: tab, exact: true }).click();
+      const small = await undersizedControls(page, "[data-mobile-surface='dm']");
+      expect(small, `${tab}: controls under 44px — ${small.join(", ")}`).toEqual([]);
+    }
   });
 });

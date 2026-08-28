@@ -151,9 +151,13 @@ test.describe("mobile — the DM screen", () => {
       // The chip row scrolls horizontally BY DESIGN; anything else that makes
       // the body wider than the screen is content a phone can never reach —
       // .mobile-layout-root is overflow:hidden, so clipped-right is gone, not
-      // scrollable. (44px floors INSIDE the reused tab views are a deliberate
-      // non-goal here: that is the owner's deferred panel-wide pass, same as
-      // chat's SEND button.)
+      // scrollable.
+      //
+      // This used to add "44px floors inside the reused tab views are a
+      // deliberate non-goal — the owner's deferred panel-wide pass". That pass
+      // has landed, and the floor is asserted across all five tabs in
+      // mobile-panel-touch-floor.spec.ts. Width is still this test's job;
+      // height is that one's.
       const tabs = ["Map Setup", "NPCs & Monsters", "Props & Objects", "Players", "Session"];
       for (const tab of tabs) {
         await dialog.getByRole("button", { name: tab, exact: true }).click();

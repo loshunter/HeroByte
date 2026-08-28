@@ -1341,10 +1341,29 @@ h4 {
     touch-action: manipulation;
   }
 
-  /* The one form control that shares the panels' text class — chat's message
-     box, which sits beside SEND and would otherwise be a 24px line under a
-     44px button. Element-qualified so the class keeps meaning "small text"
-     everywhere else it is used, which is mostly on spans. */
+  /*
+   * And everything else the mobile shell hosts, scoped by the CONTAINER rather
+   * than by class. The reused panels are a wide family — JRPGButton is only
+   * some of it, and the DM menu alone measured a bare <button> at 102x24, a
+   * <select> at 322x28, and eight text inputs between 20px and 33px tall.
+   * Chasing each component's own class would be a list that the next panel
+   * silently falls off; "inside a mobile surface" cannot go stale.
+   *
+   * Ranges, checkboxes and radios are excluded: their hit area is not their box
+   * (a 44px checkbox is a huge tick), and the ones that matter carry their own
+   * rule — see .mobile-layer-row__slider.
+   */
+  [data-mobile-surface] button,
+  [data-mobile-surface] select,
+  [data-mobile-surface] textarea,
+  [data-mobile-surface] input:not([type="range"]):not([type="checkbox"]):not([type="radio"]) {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Chat's message box lives OUTSIDE a surface on the desktop layout too, so it
+     keeps a rule of its own. Element-qualified, because .jrpg-text-small is
+     mostly used on spans. */
   input.jrpg-text-small,
   textarea.jrpg-text-small {
     min-height: 44px;
