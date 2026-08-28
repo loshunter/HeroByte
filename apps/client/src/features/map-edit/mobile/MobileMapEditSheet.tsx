@@ -23,6 +23,7 @@ import {
   PANEL_TOOLS,
   type SheetPanelTool,
 } from "./MobileMapEditToolPanels";
+import { MobileLayersPanel } from "./MobileLayersPanel";
 import { MobilePopulateBlock } from "./MobilePopulateBlock";
 import { MOBILE_TOOL_TILES } from "./mobileToolTiles";
 
@@ -140,6 +141,22 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
             <span aria-hidden="true">💧</span>
             Sample
           </button>
+          {/* Layers is a document control, not a tool, so it sits with Select
+              and Sample rather than among the tiles — and as a GRID cell rather
+              than a full-width row, because 14 buttons over five columns leave
+              a slot empty and a row of its own cost 16px of map on a tablet
+              (mobile-map-edit-panels.spec.ts caught exactly that). Its body
+              renders below Populate. */}
+          <button
+            type="button"
+            aria-expanded={Boolean(toolbar.layersOpen)}
+            className={`mobile-tool-sheet__button${toolbar.layersOpen ? " mobile-tool-sheet__button--active" : ""}`}
+            onClick={toolbar.onToggleLayers}
+            data-testid="mobile-layers-toggle"
+          >
+            <span aria-hidden="true">🗂</span>
+            Layers
+          </button>
           <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
             <span aria-hidden="true">◇</span>
             Recenter
@@ -168,6 +185,19 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
           there is nowhere else it could live — so gating it behind a
           particular armed tool would make it unreachable by accident. */}
       {isLive && <MobilePopulateBlock {...toolbar} />}
+
+      {/* The layer stack's BODY. Its toggle is a cell in the grid above; this
+          renders nothing until that is pressed. It edits the document rather
+          than drawing on it — and the Lighting layer's opacity is the ambient
+          light — so it stays reachable whatever tool is armed. */}
+      {isLive && (
+        <MobileLayersPanel
+          layers={toolbar.layers ?? []}
+          open={Boolean(toolbar.layersOpen)}
+          saving={Boolean(toolbar.busy)}
+          onUpdateLayer={toolbar.onUpdateLayer}
+        />
+      )}
 
       {toolbar.error && (
         <p className="mobile-tool-sheet__note" role="alert">

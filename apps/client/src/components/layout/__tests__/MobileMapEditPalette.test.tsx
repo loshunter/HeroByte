@@ -352,13 +352,16 @@ describe("the map-edit palette", () => {
       const labels = within(tiles)
         .getAllByRole("button")
         .map((button) => button.textContent?.replace(/^\P{L}+/u, "") ?? "");
-      // The three deliberate extras. Select and Sample resolve on the compat
+      // The four deliberate extras. Select and Sample resolve on the compat
       // mouse path rather than being armed (so they are not TouchTools and not
-      // tiles); Recenter is a camera action, not a tool at all.
+      // tiles); Recenter is a camera action; Layers edits the DOCUMENT rather
+      // than drawing on it, and is a grid cell only because a full-width row
+      // cost 16px of map (see mobile-map-edit-panels.spec.ts).
       const known = new Set([
         ...MOBILE_TOOL_TILES.map((tile) => tile.label),
         "Select",
         "Sample",
+        "Layers",
         "Recenter",
       ]);
       for (const label of labels) expect(known).toContain(label);

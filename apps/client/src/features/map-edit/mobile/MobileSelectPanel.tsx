@@ -24,6 +24,7 @@
 import React from "react";
 import type { MapElement } from "@herobyte/shared";
 import type { MapEditToolbarProps } from "../mapEditTypes";
+import { MobileElementInspector } from "./MobileElementInspector";
 
 /** Short, phone-width names for the eight element kinds. The union is closed in
  * shared, so a new kind is a compile error here rather than a blank readout. */
@@ -41,6 +42,12 @@ const ELEMENT_LABELS: Record<MapElement["type"], string> = {
 export function MobileSelectPanel({
   selectedElement,
   onRemoveElement,
+  layers,
+  inspectorOpen,
+  onToggleInspector,
+  onUpdateElement,
+  onUpdateDoor,
+  busy,
 }: MapEditToolbarProps): JSX.Element {
   // Falsy, not `=== null`: selectedElement is absent from partial toolbar bags
   // in tests, and an undefined element must read as "nothing picked" rather
@@ -62,6 +69,21 @@ export function MobileSelectPanel({
             ? `${ELEMENT_LABELS[element.type]} — locked, unlock it on a desktop to delete.`
             : `${ELEMENT_LABELS[element.type]} picked.`}
       </p>
+
+      {/* Edit BEFORE delete, and closed by default: picking a thing to remove
+          it is the common case, so the destructive button stays where the
+          thumb already expects it and the editor costs one collapsed row. */}
+      {element && !locked && (
+        <MobileElementInspector
+          element={element}
+          layers={layers ?? []}
+          open={Boolean(inspectorOpen)}
+          onToggle={onToggleInspector ?? (() => {})}
+          disabled={Boolean(busy)}
+          onUpdate={onUpdateElement}
+          onUpdateDoor={onUpdateDoor}
+        />
+      )}
 
       <button
         type="button"

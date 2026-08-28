@@ -1442,22 +1442,27 @@ h4 {
   gap: 7px;
 }
 
-/* A tablet gets a fifth column, and the reason is the MAP, not the grid.
-   M7 took the tool count from eleven buttons to fourteen, which at four
-   columns is a fourth row — and the sheet is bottom-anchored, so a row is
-   ~56px of map the DM can no longer tap. That matters most in Select, the one
-   mode where you must tap the map WITH the sheet open (the readout and DELETE
-   live in it). Measured on an 820x1180 tablet: the sheet top moved from 588px
-   to 533px, and a spec that tapped "empty canvas" at 566px started hitting the
-   sheet instead. Five columns puts it back at three rows.
+/* A tablet fits as many columns as it has room for, and the reason is the MAP,
+   not the grid. The sheet is bottom-anchored, so every ROW the tool grid grows
+   is ~56px of map the DM can no longer tap — which matters most in Select, the
+   one mode where you must tap the map WITH the sheet open (the readout and
+   DELETE both live in it).
 
-   796/5 = 159px per button, so the 44px touch floor is nowhere near threatened
-   — the constraint here is the LABEL, and "Scatter" is the longest at seven
-   characters. Phones stay at three columns (and two below 420px is not offered:
-   the sheet scrolls instead, which M3 built it to do). */
+   That cost was paid twice before this rule existed. M7's three new tiles took
+   the grid from eleven buttons to fourteen and the sheet top from 588px to
+   533px on an 820x1180 tablet, breaking a spec that tapped "empty canvas" at
+   566px. A hand-picked FIVE columns fixed that and then broke again one commit
+   later, when Sample and Layers made it sixteen. So the column count is
+   derived, not chosen: a fixed number is a thing the next tool silently
+   invalidates.
+
+   120px is the floor a label needs, not the touch floor — "Scatter" is the
+   longest at seven characters and 44px is nowhere near threatened at this
+   width. Phones keep three and four columns and SCROLL instead, which is what
+   M3 built the sheet to do. */
 @media (min-width: 700px) {
   .mobile-tool-sheet__grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
 }
 
@@ -1474,6 +1479,52 @@ h4 {
    spans the sheet rather than sitting in a lone 1-of-4 column. */
 .mobile-tool-sheet__button--wide {
   width: 100%;
+}
+
+/* The element inspector's layer picker. A NATIVE select on purpose: iOS and
+   Android both render one as a full-screen wheel, which is the best listbox a
+   phone has and nothing hand-built here would beat. It only needs the touch
+   floor and the sheet's own colours. */
+.mobile-tool-sheet__select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 2px solid var(--jrpg-border-gold, #8a7445);
+  background: var(--jrpg-navy, #1b1e2a);
+  color: var(--hero-text-light, #fff);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+}
+
+/* One layer: two square toggles, then the name and its opacity slider taking
+   the rest. The slider is the ambient-light control when the row is Lighting,
+   so it gets the width rather than the buttons. */
+.mobile-layer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.mobile-layer-row .mobile-tool-sheet__button {
+  flex: 0 0 auto;
+  width: 44px;
+}
+
+.mobile-layer-row__slider {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 44px of TRACK to drag, not 44px of thumb — a 4px range input is the classic
+   control that passes a hit-target audit on its bounding box and is still
+   unusable, because the pointer has to land on the line. */
+.mobile-layer-row__slider input[type="range"] {
+  width: 100%;
+  min-height: 44px;
 }
 
 /* Prose inside a sheet — the live-map explainer and the controller's errors.
