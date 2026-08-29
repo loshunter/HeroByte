@@ -194,7 +194,10 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
         <MobileLayersPanel
           layers={toolbar.layers ?? []}
           open={Boolean(toolbar.layersOpen)}
-          saving={Boolean(toolbar.busy)}
+          // `saving`, NOT `busy`: busy is the create/open/bind round trip, over
+          // before this panel can render, so a guard fed busy is inert exactly
+          // when a command is in flight — the confusion mapEditTypes warns about.
+          saving={Boolean(toolbar.saving)}
           onUpdateLayer={toolbar.onUpdateLayer}
         />
       )}

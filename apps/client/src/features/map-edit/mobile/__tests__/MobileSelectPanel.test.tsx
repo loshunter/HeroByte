@@ -113,4 +113,40 @@ describe("MobileSelectPanel", () => {
       unmount();
     }
   });
+
+  // `saving` (a command in flight) is what gates edits; `busy` is the
+  // create/open/bind round trip, over before this panel can render. The panel
+  // shipped reading `busy`, so its guard was inert exactly when it was needed.
+  // The pair below is DISCRIMINATING — a swap back fails one of them.
+  it("disables the inspector's Apply while a command is in flight (saving)", () => {
+    render(
+      <MobileSelectPanel
+        {...bag({
+          selectedElement: element(),
+          inspectorOpen: true,
+          onToggleInspector: vi.fn(),
+          layers: [],
+          saving: true,
+          busy: false,
+        })}
+      />,
+    );
+    expect(screen.getByTestId("mobile-inspector-apply")).toBeDisabled();
+  });
+
+  it("does NOT gate the inspector on the bind round-trip flag (busy)", () => {
+    render(
+      <MobileSelectPanel
+        {...bag({
+          selectedElement: element(),
+          inspectorOpen: true,
+          onToggleInspector: vi.fn(),
+          layers: [],
+          saving: false,
+          busy: true,
+        })}
+      />,
+    );
+    expect(screen.getByTestId("mobile-inspector-apply")).toBeEnabled();
+  });
 });

@@ -47,7 +47,7 @@ export function MobileSelectPanel({
   onToggleInspector,
   onUpdateElement,
   onUpdateDoor,
-  busy,
+  saving,
 }: MapEditToolbarProps): JSX.Element {
   // Falsy, not `=== null`: selectedElement is absent from partial toolbar bags
   // in tests, and an undefined element must read as "nothing picked" rather
@@ -79,7 +79,9 @@ export function MobileSelectPanel({
           layers={layers ?? []}
           open={Boolean(inspectorOpen)}
           onToggle={onToggleInspector ?? (() => {})}
-          disabled={Boolean(busy)}
+          // `saving`, NOT `busy` — busy is the bind round trip, already over by
+          // the time this panel exists (mapEditTypes' two-flag warning).
+          disabled={Boolean(saving)}
           onUpdate={onUpdateElement}
           onUpdateDoor={onUpdateDoor}
         />

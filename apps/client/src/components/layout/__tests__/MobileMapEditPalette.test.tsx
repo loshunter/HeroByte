@@ -380,5 +380,47 @@ describe("the map-edit palette", () => {
       expect(bar.onSelectSubTool).toHaveBeenCalledWith("select");
       expect(MOBILE_TOOL_TILES.some((tile) => (tile.id as string) === "select")).toBe(false);
     });
+
+    // The SAME two-flag rule the SAVING chip above pins, applied to the layers
+    // panel's guard: it shipped fed `busy`, which is over before the panel can
+    // render, so every disable and throttle in it was inert while a command
+    // was actually in flight. Discriminating pair — a swap back fails one.
+    it("the layers panel gates on saving, not on the bind round trip", () => {
+      const layer = {
+        id: "lighting",
+        name: "Lighting",
+        kind: "lighting",
+        visible: true,
+        locked: false,
+        opacity: 1,
+        zIndex: 40,
+      };
+      const { unmount } = render(
+        <MobileFloatingControls
+          {...live({
+            layersOpen: true,
+            layers: [layer],
+            onUpdateLayer: vi.fn(),
+            saving: true,
+            busy: false,
+          })}
+        />,
+      );
+      expect(screen.getByRole("button", { name: /Hide Lighting/ })).toBeDisabled();
+      unmount();
+
+      render(
+        <MobileFloatingControls
+          {...live({
+            layersOpen: true,
+            layers: [layer],
+            onUpdateLayer: vi.fn(),
+            saving: false,
+            busy: true,
+          })}
+        />,
+      );
+      expect(screen.getByRole("button", { name: /Hide Lighting/ })).toBeEnabled();
+    });
   });
 });
