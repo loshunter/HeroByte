@@ -1368,6 +1368,24 @@ h4 {
   textarea.jrpg-text-small {
     min-height: 44px;
   }
+
+  /* The dice build's corner ✕ badges. The surface rule above stretched their
+     20px box to 44px — and `top` is their anchor, so the growth went DOWNWARD
+     and covered the right half of the 48px chip each sits on, so a tap meant
+     to open the quantity editor deleted the die instead. The box stays 20px
+     and the ::after is the touch target (44x44 centred on the badge): the
+     checkbox carve-out's philosophy — hit area is not the box. Placed after
+     the surface rule because the specificity ties and order decides. */
+  button.dice-token__remove {
+    min-height: 0;
+    min-width: 0;
+  }
+  button.dice-token__remove::after {
+    content: "";
+    position: absolute;
+    /* 24px border box + 10px each side = the 44px target, exactly. */
+    inset: -10px;
+  }
 }
 
 .mobile-dock-button,

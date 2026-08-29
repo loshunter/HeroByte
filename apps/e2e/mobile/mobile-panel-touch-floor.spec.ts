@@ -19,6 +19,7 @@
 import { expect, test, type Page } from "../fixtures";
 import { elevateToDM } from "../helpers";
 import { joinMobileTable } from "./mobile.helpers";
+import { openTouch, touchTap } from "./touch.helpers";
 
 const PHONE = { width: 390, height: 844 };
 
@@ -114,5 +115,39 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
       const small = await undersizedControls(page, "[data-mobile-surface='dm']");
       expect(small, `${tab}: controls under 44px — ${small.join(", ")}`).toEqual([]);
     }
+  });
+
+  test("the dice chip's ✕ stays a corner badge, and the chip still opens its editor", async ({
+    page,
+  }) => {
+    // The floor's min-height stretched this 20px badge to 44px — and `top` is
+    // its anchor, so the growth went DOWNWARD, covering the right half of the
+    // 48px chip it sits on. A tap meant to open the quantity editor deleted
+    // the die instead. The fix keeps the 20px box and moves the 44px touch
+    // target into a ::after — hit area, not box, the checkbox carve-out's own
+    // philosophy — which is why this measures the box SMALL on purpose.
+    await page.setViewportSize(PHONE);
+    await joinMobileTable(page);
+
+    await page.getByRole("button", { name: /^Dice$/ }).click();
+    await page.getByRole("button", { name: "Add d20" }).click();
+
+    const chip = page.locator(".dice-token").first();
+    await expect(chip).toBeVisible();
+    const badge = (await page.locator("button.dice-token__remove").first().boundingBox())!;
+    expect(badge.height, `the ✕ box is ${Math.round(badge.height)}px tall`).toBeLessThanOrEqual(24);
+
+    // The functional half: a tap on the chip's lower-right — inside the zone
+    // the stretched badge used to cover (it reached nearly the chip's full
+    // height), but clear of the fixed badge's 44px hit-slop, which stops
+    // ~29px down. Opens the editor, not the trash.
+    const chipBox = (await chip.boundingBox())!;
+    const cdp = await openTouch(page);
+    await touchTap(cdp, {
+      x: chipBox.x + chipBox.width - 12,
+      y: chipBox.y + chipBox.height - 14,
+    });
+    await expect(chip.locator("input")).toBeVisible();
+    await expect(page.locator(".dice-token")).toHaveCount(1);
   });
 });

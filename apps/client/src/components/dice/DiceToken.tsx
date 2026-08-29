@@ -147,8 +147,13 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
           </div>
         )}
 
-        {/* Remove button */}
+        {/* Remove button. The class opts it OUT of the panel touch floor:
+            min-height there stretched this 20px badge to 44px DOWNWARD (top is
+            its anchor), covering the right half of the chip and eating the
+            taps that open the quantity editor. herobyte.css gives it a 44px
+            ::after hit target instead — hit area, not box. */}
         <button
+          className="dice-token__remove"
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
@@ -241,8 +246,13 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
           />
         )}
 
-        {/* Remove button */}
+        {/* Remove button. The class opts it OUT of the panel touch floor:
+            min-height there stretched this 20px badge to 44px DOWNWARD (top is
+            its anchor), covering the right half of the chip and eating the
+            taps that open the quantity editor. herobyte.css gives it a 44px
+            ::after hit target instead — hit area, not box. */}
         <button
+          className="dice-token__remove"
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
