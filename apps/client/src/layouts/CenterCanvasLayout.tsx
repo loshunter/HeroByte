@@ -123,7 +123,7 @@ export interface CenterCanvasLayoutProps {
   /** Called when the select tool picks an element (or clears) */
   onMapEditSelectElement: (elementId: string | null) => void;
   /** Called when the eyedropper samples an asset */
-  onMapEditSampleAsset: (assetId: string) => void;
+  onMapEditSampleAsset: (assetId: string, source: "tool" | "shortcut") => void;
 
   // Selection State (4 props)
   /** Currently selected single object ID (or null if none) */

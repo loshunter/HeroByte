@@ -75,7 +75,7 @@ interface UseMapEditToolOptions {
   selectedElementId?: string | null;
   onSelectElement?: (elementId: string | null) => void;
   /** Re-arm the place tool with an eyedropper-sampled asset id. */
-  onSampleAsset?: (assetId: string) => void;
+  onSampleAsset?: (assetId: string, source: "tool" | "shortcut") => void;
   /**
    * Bumped by a control OUTSIDE the canvas to abandon the gesture in flight.
    * A finger has no Escape key and releasing it commits, so this is the only

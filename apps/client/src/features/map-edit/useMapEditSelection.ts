@@ -30,7 +30,7 @@ interface UseMapEditSelectionOptions {
   selectedElementId: string | null;
   onSelectElement: (elementId: string | null) => void;
   /** Re-arm the place tool with an eyedropper-sampled asset id. */
-  onSampleAsset: (assetId: string) => void;
+  onSampleAsset: (assetId: string, source: "tool" | "shortcut") => void;
 }
 
 interface UseMapEditSelectionReturn {
@@ -78,7 +78,9 @@ export function useMapEditSelection({
       const sampling = subTool === "eyedropper" || (ctrlHeld && SAMPLEABLE.includes(subTool));
       if (sampling) {
         const sampled = sampleAssetAtPoint(document, layers, point);
-        if (sampled) onSampleAsset(sampled);
+        // Same branch, different hand-back: the TOOL re-arms Place, the Ctrl
+        // shortcut keeps whatever the DM is holding.
+        if (sampled) onSampleAsset(sampled, subTool === "eyedropper" ? "tool" : "shortcut");
         // True either way. A miss must still CONSUME the press: falling through
         // would place a crate where the DM was pointing at empty floor, which
         // is the opposite of what they asked for.

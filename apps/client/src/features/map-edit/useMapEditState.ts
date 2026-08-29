@@ -71,7 +71,7 @@ interface UseMapEditStateReturn {
   selectedElementId: string | null;
   onSelectElement: (elementId: string | null) => void;
   /** Re-arm the place tool with an eyedropper-sampled asset (fed to the tool). */
-  onSampleAsset: (assetId: string) => void;
+  onSampleAsset: (assetId: string, source: "tool" | "shortcut") => void;
   /** Keep the DM walls overlay visible even outside map-edit mode. */
   wallsOverlayPinned: boolean;
   toolbarProps: MapEditToolbarProps;

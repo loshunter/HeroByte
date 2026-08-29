@@ -407,4 +407,37 @@ describe("useMapEditState", () => {
     );
     expect(notifyError).not.toHaveBeenCalled();
   });
+
+  // The two ways INTO a sample, and the split that matters: the eyedropper
+  // TOOL hands over to Place (a phone samples in order to drop), the desktop
+  // Ctrl shortcut keeps the tool in hand — "it samples without giving up the
+  // tool you are holding, which is the whole point at a mouse"
+  // (useMapEditSelection's header). The dial callback used to re-arm Place
+  // for BOTH, so Ctrl-sampling mid-paint stole the terrain brush.
+  it("a sample re-arms Place for the tool, and keeps the tool for the shortcut", () => {
+    const methods = makeMethods();
+    const { result } = renderHook(() =>
+      useMapEditState({
+        controller: makeController(methods, doc("live-id")),
+        sendMessage: vi.fn(),
+        mapEditMode: true,
+        setActiveTool: vi.fn(),
+        isDM: true,
+        snapshotLoaded: true,
+        liveMapDocumentId: "live-id",
+        roomGridSize: 50,
+        hasRasterBackground: false,
+      }),
+    );
+
+    act(() => result.current.toolbarProps.onSelectSubTool("terrain"));
+    act(() => result.current.onSampleAsset("objects:crate", "shortcut"));
+    expect(result.current.toolbarProps.selectedAssetId).toBe("objects:crate");
+    expect(result.current.toolbarProps.activeSubTool).toBe("terrain");
+
+    act(() => result.current.toolbarProps.onSelectSubTool("eyedropper"));
+    act(() => result.current.onSampleAsset("objects:barrel", "tool"));
+    expect(result.current.toolbarProps.selectedAssetId).toBe("objects:barrel");
+    expect(result.current.toolbarProps.activeSubTool).toBe("place");
+  });
 });

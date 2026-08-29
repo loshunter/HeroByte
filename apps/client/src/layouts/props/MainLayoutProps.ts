@@ -154,7 +154,7 @@ export interface MainLayoutProps {
   /** Called when the select tool picks an element (or clears) */
   onMapEditSelectElement: (elementId: string | null) => void;
   /** Called when the eyedropper samples an asset */
-  onMapEditSampleAsset: (assetId: string) => void;
+  onMapEditSampleAsset: (assetId: string, source: "tool" | "shortcut") => void;
   /** Props for the lazy-loaded map-edit palette */
   mapEditToolbarProps: MapEditToolbarProps;
 

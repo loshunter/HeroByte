@@ -889,7 +889,8 @@ describe("useMapEditTool", () => {
     act(() => result.current.onMouseDown(makeStage({ x: 120, y: 120 }).ref));
     act(() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "Control" })));
 
-    expect(onSampleAsset).toHaveBeenCalledWith("objects:table");
+    // "shortcut": the Ctrl path samples without giving up the tool in hand.
+    expect(onSampleAsset).toHaveBeenCalledWith("objects:table", "shortcut");
     expect(controller.addTile).not.toHaveBeenCalled();
   });
 
@@ -931,7 +932,8 @@ describe("useMapEditTool", () => {
 
     act(() => result.current.onMouseDown(makeStage({ x: 120, y: 120 }).ref));
 
-    expect(onSampleAsset).toHaveBeenCalledWith("objects:table");
+    // "tool": the eyedropper SUB-TOOL hands over to Place after one sample.
+    expect(onSampleAsset).toHaveBeenCalledWith("objects:table", "tool");
     expect(controller.addTile).not.toHaveBeenCalled();
     expect(controller.addStamp).not.toHaveBeenCalled();
   });

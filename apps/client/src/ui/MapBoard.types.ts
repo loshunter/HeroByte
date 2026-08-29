@@ -68,7 +68,7 @@ export interface MapBoardProps {
   onMapEditRegionPlaced?: (bounds: RoomBounds) => void; // Room/hallway placed → POPULATE target
   onMapEditRegionDragged?: (bounds: RoomBounds) => void; // Generate region swept → recipe target
   onMapEditSelectElement?: (elementId: string | null) => void; // Select tool picked an element
-  onMapEditSampleAsset?: (assetId: string) => void; // Eyedropper sampled an asset
+  onMapEditSampleAsset?: (assetId: string, source: "tool" | "shortcut") => void; // sampled an asset
   mapEditCancelSignal?: number; // Bumped OUTSIDE the canvas to abandon the gesture in flight
   isDM: boolean; // Whether the current user can manage all objects
   alignmentMode: boolean; // Alignment tool active

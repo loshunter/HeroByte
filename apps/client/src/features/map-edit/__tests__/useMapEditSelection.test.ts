@@ -89,7 +89,30 @@ describe("useMapEditSelection", () => {
       window.dispatchEvent(new KeyboardEvent("keyup", { key: "Control" }));
     });
     expect(consumed).toBe(true);
-    expect(onSampleAsset).toHaveBeenCalledWith("objects:crate");
+    // "shortcut" is load-bearing: the Ctrl path samples WITHOUT giving up the
+    // tool in hand (this file's own header), and the dial callback re-arms
+    // Place only for source "tool". Shipping both on one unmarked call is how
+    // Ctrl-sampling mid-paint stole the brush.
+    expect(onSampleAsset).toHaveBeenCalledWith("objects:crate", "shortcut");
+  });
+
+  it("the eyedropper TOOL samples with source 'tool', which re-arms Place", () => {
+    const onSampleAsset = vi.fn();
+    const { result } = renderHook(() =>
+      useMapEditSelection({
+        active: true,
+        document: makeDocument(),
+        selectedElementId: null,
+        onSelectElement: vi.fn(),
+        onSampleAsset,
+      }),
+    );
+    let consumed = false;
+    act(() => {
+      consumed = result.current.handleClick({ x: 120, y: 120 }, "eyedropper");
+    });
+    expect(consumed).toBe(true);
+    expect(onSampleAsset).toHaveBeenCalledWith("objects:crate", "tool");
   });
 
   it("does not consume a normal place click (no Ctrl, not select)", () => {
