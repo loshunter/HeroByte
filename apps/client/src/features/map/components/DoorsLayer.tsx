@@ -21,6 +21,15 @@ interface DoorsLayerProps {
   onToggleDoor: (doorId: string) => void;
   /** DM alt-click: lock cycle (closed/open -> locked -> closed, secret -> revealed). */
   onSetDoorState: (doorId: string, state: CompiledDoorState) => void;
+  /**
+   * Map-edit Select or Sample is armed, so the door must YIELD its press to
+   * the stage: a listening hit line preventDefaults the touchstart (Konva's
+   * shape default), which kills the compat mouse pair those two tools resolve
+   * on — so a tap landing ON a door swung it open and could never pick it.
+   * REQUIRED, not optional: an optional flag here is deletable with every
+   * suite green, which is how wiring like this went missing before.
+   */
+  selectArmed: boolean;
 }
 
 const FRAME_COLOR = "#4a3b28";
@@ -35,6 +44,7 @@ export function DoorsLayer({
   isDM,
   onToggleDoor,
   onSetDoorState,
+  selectArmed,
 }: DoorsLayerProps) {
   if (!doors.length) return null;
 
@@ -50,6 +60,7 @@ export function DoorsLayer({
             isDM={isDM}
             onToggleDoor={onToggleDoor}
             onSetDoorState={onSetDoorState}
+            selectArmed={selectArmed}
           />
         ))}
       </Group>
@@ -62,9 +73,10 @@ interface DoorSpriteProps {
   isDM: boolean;
   onToggleDoor: (doorId: string) => void;
   onSetDoorState: (doorId: string, state: CompiledDoorState) => void;
+  selectArmed: boolean;
 }
 
-function DoorSprite({ door, isDM, onToggleDoor, onSetDoorState }: DoorSpriteProps) {
+function DoorSprite({ door, isDM, onToggleDoor, onSetDoorState, selectArmed }: DoorSpriteProps) {
   const midX = (door.x1 + door.x2) / 2;
   const midY = (door.y1 + door.y2) / 2;
 
@@ -128,12 +140,18 @@ function DoorSprite({ door, isDM, onToggleDoor, onSetDoorState }: DoorSpriteProp
           )}
         </Fragment>
       )}
+      {/* While Select/Sample is armed the hit line goes deaf on purpose: the
+          press falls through to the stage, the compat mouse pair survives, and
+          proximity selection resolves the door (it beats a wall on a tie). A
+          dead-on click selecting rather than toggling is what a Select tool
+          means on any device. */}
       <Line
         name={`door-hit:${door.id}`}
         points={[door.x1, door.y1, door.x2, door.y2]}
         stroke="transparent"
         strokeWidth={18}
         hitStrokeWidth={18}
+        listening={!selectArmed}
         onClick={handleActivate}
         onTap={handleActivate}
       />

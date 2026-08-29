@@ -715,6 +715,13 @@ export default function MapBoard({
               isDM={dmView}
               onToggleDoor={handleToggleDoor}
               onSetDoorState={handleSetDoorState}
+              // Select and Sample resolve on the compat mouse pair, which a
+              // LISTENING door hit line preventDefaults away — the door must
+              // yield the press to the stage while either is armed.
+              selectArmed={
+                mapEditMode &&
+                (mapEditActiveSubTool === "select" || mapEditActiveSubTool === "eyedropper")
+              }
             />
           )}
           {/* DM-only walls overlay: shown while authoring, or pinned to persist. */}

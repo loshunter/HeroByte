@@ -99,6 +99,30 @@ async function firstElementScreenPos(page: Page): Promise<{ x: number; y: number
  */
 const settle = (page: Page) => page.waitForTimeout(800);
 
+const doorState = (page: Page) =>
+  page.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.compiledScene?.doors?.[0]?.state ?? null);
+
+/**
+ * Screen position of the first compiled door's midpoint. Doors never reach the
+ * mapElements projection (the privacy filter drops the wall family), so the
+ * stamp helper above cannot aim here — but the compiled scene carries the
+ * endpoints in document pixels, and the camera math is the same.
+ */
+async function firstDoorScreenPos(page: Page): Promise<{ x: number; y: number } | null> {
+  const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
+  const local = await page.evaluate(() => {
+    const data = window.__HERO_BYTE_E2E__;
+    const cam = data?.cam;
+    const door = data?.snapshot?.compiledScene?.doors?.[0];
+    if (!door || !cam) return null;
+    return {
+      x: ((door.x1 + door.x2) / 2) * cam.scale + cam.x,
+      y: ((door.y1 + door.y2) / 2) * cam.scale + cam.y,
+    };
+  });
+  return local ? { x: box.x + local.x, y: box.y + local.y } : null;
+}
+
 /** Armed, live, and with the sheet CLOSED so the canvas is uncovered. */
 async function enterLiveMapEdit(page: Page): Promise<void> {
   await joinMobileTable(page);
@@ -248,5 +272,47 @@ test.describe("mobile map edit — select and delete", () => {
     await expect(status).toHaveText(/tap an element/i, { timeout: 10_000 });
     await expect(page.getByTestId("mobile-select-delete")).toBeDisabled();
     expect(await elements(page)).toBe(authored);
+  });
+
+  test("a tap ON a door selects it instead of swinging it open", async ({ page }) => {
+    // The door sprite's hit line is a listening Konva shape, and Konva
+    // preventDefaults the touchstart on listening shapes — which kills the
+    // compat mouse pair Select resolves on. So a tap landing dead-on a door
+    // (its 18px hit band is the natural finger target) toggled the door and
+    // could never pick it. While Select is armed the line now yields the press
+    // to the stage, and proximity selection resolves the door.
+    await page.setViewportSize({ width: 820, height: 1180 });
+    await enterLiveMapEdit(page);
+
+    const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
+    const cdp = await openTouch(page);
+    const at = (fx: number, fy: number) => ({
+      x: box.x + box.width * fx,
+      y: box.y + box.height * fy,
+    });
+
+    // ---- author a door; it compiles closed ----
+    await armAndClose(page, /^Door$/);
+    await touchDrag(cdp, at(0.3, 0.2), [at(0.5, 0.2)]);
+    await expect.poll(() => doorState(page), { timeout: 30_000 }).toBe("closed");
+    await settle(page);
+    const target = await firstDoorScreenPos(page);
+    expect(target, "no compiled door to aim at").not.toBeNull();
+
+    // ---- arm Select; its panel is the readout ----
+    const dock = page.getByRole("navigation", { name: /Map edit actions/i });
+    await dock.getByRole("button", { name: /Tool/ }).click();
+    await page
+      .locator(".mobile-tool-sheet__grid")
+      .getByRole("button", { name: /^Select$/ })
+      .click();
+    const status = page.getByTestId("mobile-select-status");
+    await expect(status).toHaveText(/tap an element/i);
+
+    // ---- the dead-on tap ----
+    await touchTap(cdp, target!);
+    await expect(status).toHaveText(/Door/i, { timeout: 10_000 });
+    // And the door did NOT swing: selecting and toggling are different verbs.
+    expect(await doorState(page)).toBe("closed");
   });
 });

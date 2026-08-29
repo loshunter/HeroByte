@@ -68,6 +68,7 @@ describe("DoorsLayer", () => {
   it("renders nothing when there are no doors", () => {
     const { container } = render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[]}
         isDM={false}
@@ -81,6 +82,7 @@ describe("DoorsLayer", () => {
   it("nests the camera and map transforms exactly like the background image", () => {
     render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[door()]}
         mapTransform={{ x: 5, y: 6, scaleX: 2, scaleY: 3, rotation: 45 }}
@@ -97,6 +99,7 @@ describe("DoorsLayer", () => {
   it("renders a closed door as a solid bar with a frame", () => {
     render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[door()]}
         isDM={false}
@@ -115,6 +118,7 @@ describe("DoorsLayer", () => {
   it("renders an open door as two hinge stubs", () => {
     render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[door({ state: "open" })]}
         isDM={false}
@@ -132,6 +136,7 @@ describe("DoorsLayer", () => {
   it("marks locked doors with a lock badge", () => {
     render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[door({ state: "locked" })]}
         isDM={false}
@@ -147,6 +152,7 @@ describe("DoorsLayer", () => {
   it("renders secret doors as a dashed seam", () => {
     render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[door({ state: "secret" })]}
         isDM
@@ -163,6 +169,7 @@ describe("DoorsLayer", () => {
     const onToggleDoor = vi.fn();
     render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[door()]}
         isDM={false}
@@ -180,6 +187,7 @@ describe("DoorsLayer", () => {
     const onSetDoorState = vi.fn();
     render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[
           door(),
@@ -208,6 +216,7 @@ describe("DoorsLayer", () => {
     const onSetDoorState = vi.fn();
     render(
       <DoorsLayer
+        selectArmed={false}
         cam={cam}
         doors={[door()]}
         isDM={false}
@@ -219,5 +228,40 @@ describe("DoorsLayer", () => {
     (hitLine().onClick as (event: unknown) => void)(clickEvent(true));
     expect(onToggleDoor).toHaveBeenCalledWith("door-1");
     expect(onSetDoorState).not.toHaveBeenCalled();
+  });
+
+  // A LISTENING hit line preventDefaults the touchstart (Konva's shape
+  // default), which kills the compat mouse pair Select and Sample resolve on —
+  // so a tap landing ON a door swung it open and could never pick it. While
+  // either pick tool is armed the line must go deaf and let the press reach
+  // the stage, where proximity selection resolves the door.
+  it("goes deaf while Select/Sample is armed, so the press reaches the stage", () => {
+    render(
+      <DoorsLayer
+        selectArmed
+        cam={cam}
+        doors={[door()]}
+        isDM
+        onToggleDoor={vi.fn()}
+        onSetDoorState={vi.fn()}
+      />,
+    );
+
+    expect(hitLine().listening).toBe(false);
+  });
+
+  it("listens again the moment the pick tools are put away", () => {
+    render(
+      <DoorsLayer
+        selectArmed={false}
+        cam={cam}
+        doors={[door()]}
+        isDM
+        onToggleDoor={vi.fn()}
+        onSetDoorState={vi.fn()}
+      />,
+    );
+
+    expect(hitLine().listening).toBe(true);
   });
 });
