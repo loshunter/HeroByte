@@ -1349,9 +1349,11 @@ h4 {
    * Chasing each component's own class would be a list that the next panel
    * silently falls off; "inside a mobile surface" cannot go stale.
    *
-   * Ranges, checkboxes and radios are excluded: their hit area is not their box
-   * (a 44px checkbox is a huge tick), and the ones that matter carry their own
-   * rule — see .mobile-layer-row__slider.
+   * Checkboxes and radios are excluded: their hit area is not their box
+   * (a 44px checkbox is a huge tick). Ranges are NOT excluded any more — the
+   * old carve-out claimed "the ones that matter carry their own rule", which
+   * was true of the layers panel and false of the DM menu's four Map Setup
+   * sliders, left at the UA default with the sweep excluding them too.
    */
   [data-mobile-surface] button,
   [data-mobile-surface] select,
@@ -1359,6 +1361,15 @@ h4 {
   [data-mobile-surface] input:not([type="range"]):not([type="checkbox"]):not([type="radio"]) {
     min-height: 44px;
     touch-action: manipulation;
+  }
+
+  /* 44px of TRACK to drag, exactly as .mobile-layer-row__slider already does:
+     a 4px range passes a hit-target audit on its bounding box and is still
+     unusable, because the pointer has to land on the line. Kept out of the
+     rule above so ranges do not inherit touch-action: manipulation — the
+     drag IS the gesture. */
+  [data-mobile-surface] input[type="range"] {
+    min-height: 44px;
   }
 
   /* Chat's message box lives OUTSIDE a surface on the desktop layout too, so it

@@ -31,12 +31,14 @@ async function undersizedControls(page: Page, selector: string): Promise<string[
     return [...scope.querySelectorAll<HTMLElement>("button, input, select, textarea")]
       .filter((control) => {
         const rect = control.getBoundingClientRect();
-        // A zero box is scrolled out of a scroller or genuinely hidden; a range
-        // and the checkbox family are excluded because they are dragged and
-        // tapped rather than pressed, and their own rules cover them.
+        // A zero box is scrolled out of a scroller or genuinely hidden; the
+        // checkbox family is excluded because its hit area is not its box.
+        // Ranges are SWEPT: the old exclusion said "their own rules cover
+        // them", and for the DM menu's Map Setup sliders no such rule existed
+        // — the one control class neither the floor nor this sweep touched.
         if (rect.height === 0 || rect.width === 0) return false;
         const type = (control as HTMLInputElement).type;
-        if (type === "range" || type === "checkbox" || type === "radio") return false;
+        if (type === "checkbox" || type === "radio") return false;
         return rect.height < 44 || rect.width < 44;
       })
       .map((control) => {
