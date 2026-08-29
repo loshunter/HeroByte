@@ -24,7 +24,11 @@ running since 2026-08-09.** Every map-edit tool now reaches a finger. Nineteen c
 top of `16499eb2`, each behind the §2 gate and each sabotage-proven before commit. Nothing
 is pushed and nothing is deployed — that is the owner's call.
 
-Read [mobile-authoring-arc.md](./mobile-authoring-arc.md) §4 for the per-slice write-ups.
+**[PROMPT-mobile-arc-ship.md](./PROMPT-mobile-arc-ship.md) is the handoff for what happens
+next** — the review/push/merge fork, the exact baselines at `36633e14`, the three items
+deliberately left open, and the traps this arc paid for. Read that first if you are picking
+this up cold. [mobile-authoring-arc.md](./mobile-authoring-arc.md) §4 has the per-slice
+write-ups.
 The four things a next session most needs to know:
 
 - **The compat-mouse trap is CLOSED at source.** A touch tap synthesises a mouse pair and
