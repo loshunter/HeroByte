@@ -112,4 +112,28 @@ describe("the live palette's in-flight indicator", () => {
     expect(screen.getByText("loading…")).toBeVisible();
     expect(screen.getByText("saving…")).toBeVisible();
   });
+
+  // The rotate pair reaches only a FREE STAMP — scatter and row roll their
+  // angles from their own seeds. It rendered under Scatter always, and under
+  // Row whenever stamp mode was left sticky-on from Place, turning nothing.
+  it("shows the rotate pair only for a free stamp — not Scatter, not Row", () => {
+    const dials = {
+      stampMode: true,
+      stampRotation: 0,
+      onRotateStamp: vi.fn(),
+      onToggleStampMode: vi.fn(),
+    };
+    const { unmount } = render(
+      <MapEditToolbar {...toolbar({ activeSubTool: "place", ...dials })} />,
+    );
+    expect(screen.getByRole("button", { name: /↺/ })).toBeVisible();
+    unmount();
+
+    const second = render(<MapEditToolbar {...toolbar({ activeSubTool: "scatter", ...dials })} />);
+    expect(screen.queryByRole("button", { name: /↺/ })).toBeNull();
+    second.unmount();
+
+    render(<MapEditToolbar {...toolbar({ activeSubTool: "row", ...dials })} />);
+    expect(screen.queryByRole("button", { name: /↺/ })).toBeNull();
+  });
 });

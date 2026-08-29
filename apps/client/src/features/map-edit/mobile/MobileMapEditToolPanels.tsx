@@ -242,7 +242,11 @@ function ToolDials({
             }}
           />
         )}
-        {(stampMode || activeSubTool === "scatter") && (
+        {/* Rotation reaches ONLY a free stamp (buildStampPlacement). Scatter
+            derives every angle from its own seeded rolls, so under it this
+            dial was a live readout wired to nothing — the same rule the
+            Drop-as comment above already states. */}
+        {activeSubTool === "place" && stampMode && (
           <MobileRotateRow rotation={stampRotation} onRotate={onRotateStamp} />
         )}
       </>

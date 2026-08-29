@@ -165,4 +165,43 @@ describe("the phone's tool dials", () => {
     expect(container.querySelector(".mobile-tool-sheet__section")).not.toBeNull();
     expect(screen.getByText(/Wall ring/i)).toBeInTheDocument();
   });
+
+  // The rotate pair reaches only a FREE STAMP: buildStampPlacement is the one
+  // draft builder that takes the angle, scatter rolls its own from the seed.
+  // It rendered under Scatter regardless — a live readout turning nothing.
+  it("shows the rotate pair only where rotation is read: Place in stamp mode", () => {
+    const dials = {
+      stampMode: true,
+      stampRotation: 0,
+      onRotateStamp: vi.fn(),
+      onToggleStampMode: vi.fn(),
+      assetPickerOpen: false,
+      onToggleAssetPicker: vi.fn(),
+    };
+    const { unmount } = render(
+      <MobileMapEditToolPanels {...bag({ activeSubTool: "place", ...dials })} />,
+    );
+    expect(screen.getByText(/Rotation — 0°/)).toBeInTheDocument();
+    unmount();
+
+    render(<MobileMapEditToolPanels {...bag({ activeSubTool: "scatter", ...dials })} />);
+    expect(screen.queryByText(/Rotation — /)).toBeNull();
+  });
+
+  it("keeps the rotate pair hidden for a grid tile, which rotation also ignores", () => {
+    render(
+      <MobileMapEditToolPanels
+        {...bag({
+          activeSubTool: "place",
+          stampMode: false,
+          stampRotation: 0,
+          onRotateStamp: vi.fn(),
+          onToggleStampMode: vi.fn(),
+          assetPickerOpen: false,
+          onToggleAssetPicker: vi.fn(),
+        })}
+      />,
+    );
+    expect(screen.queryByText(/Rotation — /)).toBeNull();
+  });
 });

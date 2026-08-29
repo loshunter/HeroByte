@@ -251,7 +251,11 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
                       {stampMode ? "◆ Free stamp" : "▦ Grid tile"}
                     </JRPGButton>
                   )}
-                  {(stampMode || activeSubTool === "scatter") && (
+                  {/* Rotation reaches ONLY a free stamp: scatter and row roll
+                      their angles from their own seeds, so this pair showed
+                      under Scatter always — and under Row whenever stamp mode
+                      was left sticky-on from Place — turning nothing. */}
+                  {activeSubTool === "place" && stampMode && (
                     <div
                       style={{
                         display: "grid",
