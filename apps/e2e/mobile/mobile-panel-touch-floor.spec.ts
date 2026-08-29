@@ -117,6 +117,22 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     }
   });
 
+  test("the player settings window joins the touch floor", async ({ page }) => {
+    // PlayerSettingsMenu portals to document.body, OUTSIDE every mobile
+    // surface — so the phone Party screen's only rename and portrait fields
+    // sat at their desktop ~23-28px, and this file's own sweep (scoped to the
+    // same attribute) could never see them. The portal now carries its own
+    // surface, which both the floor and this sweep resolve.
+    await page.setViewportSize(PHONE);
+    await joinMobileTable(page);
+
+    await page.getByRole("button", { name: /^Party$/ }).click();
+    await page.getByRole("button", { name: "⚙️ EDIT" }).first().click();
+
+    const small = await undersizedControls(page, "[data-mobile-surface='settings']");
+    expect(small, `settings controls under 44px: ${small.join(", ")}`).toEqual([]);
+  });
+
   test("the dice chip's ✕ stays a corner badge, and the chip still opens its editor", async ({
     page,
   }) => {
