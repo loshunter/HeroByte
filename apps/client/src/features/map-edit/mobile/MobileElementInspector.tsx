@@ -9,9 +9,9 @@
 // So this is the same COMMANDS through relative controls. Turn by 15°, resize
 // by 10%, both aimed at "that crate is facing the wrong way", which is what a
 // DM actually wants mid-session. It batches into ONE update-element on APPLY,
-// exactly as the desktop does — not because batching is tidy, but because the
-// controller drops a command that arrives while another is in flight, so a
-// per-tap command would silently lose taps on a phone's round trip.
+// exactly as the desktop does — the controller queues commands one-in-flight,
+// so per-tap commands would each round-trip, re-parse the document, and land
+// as an undo entry of their own on a phone's latency.
 //
 // DELIBERATELY ABSENT: X/Y and non-uniform scale. Nudging by an arbitrary
 // number of pixels is not a control anyone wants, a cell-sized nudge would need
@@ -25,7 +25,7 @@
 // they can no longer reach (see mobile-map-edit-panels.spec.ts). Picking a
 // thing to delete it is the common case and costs one row; editing costs a tap.
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { MapDoorState, MapElement, MapLayer } from "@herobyte/shared";
 import { STAMP_ROTATION_STEP } from "../usePlacementDials";
 import { MobileSwatchRow } from "./MobileSwatchRow";
@@ -73,30 +73,46 @@ export function MobileElementInspector({
     element.type === "door" ? element.data.state : "closed",
   );
 
+  // True while the DM has staged edits that Apply has not sent. A REF, not
+  // state: the draft setters already re-render, and making it state would put
+  // it in the effect's deps, where clearing it re-seeds from the PRE-ack prop
+  // and flashes the server's old numbers for a round trip.
+  const dirtyRef = useRef(false);
+  const seededId = useRef(element.id);
+
   // Re-seed whenever a DIFFERENT element is picked, or the one in hand comes
-  // back changed from the server. Without this the panel keeps showing the
-  // previous element's numbers over the new one's name.
+  // back changed from the server AND nothing is staged. Every applied command
+  // re-parses the whole document, so the SAME element returns as a NEW object
+  // on every ack — re-seeding on identity alone wiped un-applied edits, and
+  // the Door row's own on-the-spot command was enough to trigger it.
   useEffect(() => {
+    if (element.id === seededId.current && dirtyRef.current) return;
+    seededId.current = element.id;
+    dirtyRef.current = false;
     setTransform(element.transform);
     setLayerId(element.layerId);
     setHidden(element.hidden);
     if (element.type === "door") setDoorState(element.data.state);
   }, [element]);
 
-  const rotate = (steps: number) =>
+  const rotate = (steps: number) => {
+    dirtyRef.current = true;
     setTransform((current) => ({
       ...current,
       rotation: (current.rotation + steps * STAMP_ROTATION_STEP + 360) % 360,
     }));
+  };
 
   // Uniform, and the clamp is per-axis so an element that arrived stretched
   // stays stretched rather than being silently squared up by the first tap.
-  const resize = (steps: number) =>
+  const resize = (steps: number) => {
+    dirtyRef.current = true;
     setTransform((current) => ({
       ...current,
       scaleX: clampScale(current.scaleX + steps * SCALE_STEP),
       scaleY: clampScale(current.scaleY + steps * SCALE_STEP),
     }));
+  };
 
   const percent = Math.round(transform.scaleX * 100);
 
@@ -157,7 +173,10 @@ export function MobileElementInspector({
             aria-label="Element layer"
             className="mobile-tool-sheet__select"
             value={layerId}
-            onChange={(event) => setLayerId(event.target.value)}
+            onChange={(event) => {
+              dirtyRef.current = true;
+              setLayerId(event.target.value);
+            }}
           >
             {layers
               .filter((layer) => !layer.locked || layer.id === element.layerId)
@@ -174,7 +193,10 @@ export function MobileElementInspector({
             className={`mobile-tool-sheet__button mobile-tool-sheet__button--wide${
               hidden ? " mobile-tool-sheet__button--active" : ""
             }`}
-            onClick={() => setHidden((current) => !current)}
+            onClick={() => {
+              dirtyRef.current = true;
+              setHidden((current) => !current);
+            }}
           >
             {hidden ? "🙈 Hidden from players" : "👁 Visible to players"}
           </button>
@@ -200,7 +222,12 @@ export function MobileElementInspector({
             type="button"
             className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
             disabled={disabled}
-            onClick={() => onUpdate(element.id, { transform, layerId, hidden })}
+            onClick={() => {
+              // Applied means the server owns the values again: the ack's
+              // fresh object may re-seed the panel from then on.
+              dirtyRef.current = false;
+              onUpdate(element.id, { transform, layerId, hidden });
+            }}
             data-testid="mobile-inspector-apply"
           >
             ✓ Apply
