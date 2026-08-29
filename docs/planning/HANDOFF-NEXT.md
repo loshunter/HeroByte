@@ -14,7 +14,7 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 | Branch | Commit     | State                                                                               |
 | ------ | ---------- | ----------------------------------------------------------------------------------- |
-| `dev`  | `96c68da4` | **the mobile authoring arc is COMPLETE** (§0.1); not pushed, not merged             |
+| `dev`  | `45ead008` | arc COMPLETE (§0.1) **+ adversarially reviewed, all 9 findings fixed** (2026-08-29, see the UPDATE atop PROMPT-mobile-arc-ship.md); not pushed, not merged |
 | `main` | `6a605af4` | **PRODUCTION**, deployed 2026-08-26, CI **#814** green, probe- and browser-verified |
 
 ## 0.1 The mobile authoring arc is COMPLETE (2026-08-27)

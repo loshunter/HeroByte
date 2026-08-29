@@ -24,9 +24,11 @@
 //
 // M6 added the two shelves that make this a deck rather than a browser. ★ and
 // Recent read and write the SAME localStorage keys the desktop deck uses
-// (brushDeck.ts), so a DM's pins and their last six floors follow them between
-// the desk and the tablet rather than being two separate memories that quietly
-// disagree. Pinning is a right-click on the desktop, which a finger cannot
+// (brushDeck.ts), so within one browser the desktop and mobile layouts share
+// one memory rather than two that quietly disagree. localStorage is
+// per-browser, so pins do NOT follow a DM from a desk PC to a tablet — the
+// user guide once claimed they did, and it was wrong.
+// Pinning is a right-click on the desktop, which a finger cannot
 // make, so the touch affordance is a single button under the swatches that
 // pins whatever is armed — one control instead of a per-tile one, because a
 // 19-tile grid with a star on every chip is how the 44px floor gets lost.

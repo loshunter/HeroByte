@@ -4,6 +4,27 @@ Written 2026-08-27 at `dev` = `36633e14`. Everything below was measured in this 
 recalled. Read `docs/planning/HANDOFF-NEXT.md` §2 (the gate), §5 (traps), §8 (method) and §9
 (settled owner decisions) before touching anything — this file does not repeat them.
 
+> **UPDATE (2026-08-29) — fork A is DONE, and it earned its keep.** The adversarial review of
+> `16499eb2..c17e0ab7` ran clean (35 agents, `agents_error: 0`, tree audited unmutated): 22 raw
+> findings merged to 8 distinct, **all 8 survived 3-of-3 adversarial verification**, and the
+> completeness critic added a 9th (Ctrl-sample stole the armed tool). Every finding was
+> hand-verified against the source before being believed, and **all nine are FIXED on `dev`**
+> (`40c38179..45ead008`), each in its own commit behind the full §2 gate, every new test
+> sabotage-proven independently. The two worst: ⨯ Abort did not stop a touch-aimed
+> Place/Scatter/Light drop (`touchAim.cancel` had ZERO call sites), and both new mobile panels
+> gated on `busy` where they meant `saving`. Baselines moved: e2e **165 passed / 3 skipped**,
+> client unit **5416 tests / 36 batches**, all green at `45ead008`.
+>
+> Two of this file's own claims were WRONG and are corrected in place below: the map-studio
+> controller **QUEUES** a command that arrives mid-flight (one in flight at a time,
+> `useMapStudio.ts` `applyMessage`→`dispatchNextCommand`); the silent drop is the CLIENT-side
+> `saving` gate in useMapEditPlacement/useMapEditTool, before the queue. And the 44px floor is
+> THREE rules, two deliberately unscoped — `.jrpg-button` and chat's `.jrpg-text-small` inputs
+> reach the whole document on coarse pointers, only the middle rule is scoped to
+> `[data-mobile-surface]`.
+>
+> **B (push + merge) remains the owner's call and deploys. C's three items are untouched.**
+
 ## 0. Where things stand, exactly
 
 | Branch | Commit     | State                                                    |
@@ -78,8 +99,10 @@ actually changed:
 - **The touch floor is now a broad CSS rule**, matching every button, select, textarea and
   text input inside `[data-mobile-surface]`. What did it resize that nobody looked at?
 - **Batching vs the in-flight queue.** The mobile inspector batches into one `update-element`
-  on Apply because the controller DROPS a command that arrives while another is in flight. Are
-  there paths that still fire per-tap?
+  on Apply because per-tap commands would each round-trip and land as their own undo entries —
+  the controller QUEUES one-in-flight (the premise "it drops" was wrong; the drop is the
+  pre-queue `saving` gate). Are there paths that still fire per-tap? _(Answered: the panels
+  gated on `busy`, so their throttles were inert — fixed, see the UPDATE above.)_
 
 Review agents must be read-only, and `git status` must be audited afterwards — a past run left
 a mutation probe in the tree.
