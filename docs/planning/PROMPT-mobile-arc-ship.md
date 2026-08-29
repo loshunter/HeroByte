@@ -23,9 +23,29 @@ recalled. Read `docs/planning/HANDOFF-NEXT.md` §2 (the gate), §5 (traps), §8 
 > reach the whole document on coarse pointers, only the middle rule is scoped to
 > `[data-mobile-surface]`.
 >
-> **B (push + merge) remains the owner's call and deploys. C's three items are untouched.**
+> **B IS DONE TOO — this is IN PRODUCTION as of 2026-08-29.** The owner called it, and the
+> recorded order held: push `dev` (CI **#819** green, `e2e-full-suite` confirmed RUN with its
+> step at `success` — not the #796 skip) → fast-forward merge to `main` → push
+> (`6a605af4..6dd9e864`) → CI **#820** green, whose `e2e-full-suite` checked out **main** at
+> the pushed SHA, so the `ref: dev` conditional resolves correctly on a push → probe.
+>
+> **The probe, for the next person who has to do one.** Cloudflare had NOT published yet two
+> minutes after the push, and the tell was not the markers reading zero — it was the entry
+> bundle still being byte-identical to the pre-deploy baseline (`index-BRg7T1dK.js`). Poll
+> the entry hash until it CHANGES, then probe; a zero read before that is a build that has
+> not landed, not a failed deploy. After it published (`index-bl2h1vX2.js`): marker
+> `dice-token__remove` **4 hits** across the JS _and_ the CSS asset, marker
+> `Turn element clockwise` **1 hit**, control `Table password` **6 hits** (so the zeros
+> earlier were real absences, not a broken method). A pre-deploy BASELINE run is what makes
+> that argument — take one before merging. Server HTTP 200 after its usual restart 502s; the
+> app mounts with "Connected" and zero console errors.
+>
+> **C's three items are untouched** and are now the only open work here.
 
 ## 0. Where things stand, exactly
+
+_Superseded by the UPDATE above — this table is the 2026-08-27 snapshot, kept as history.
+Both branches are now `6dd9e864` and that is in production._
 
 | Branch | Commit     | State                                                    |
 | ------ | ---------- | -------------------------------------------------------- |

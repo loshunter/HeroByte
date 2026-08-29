@@ -12,17 +12,19 @@ production. Where something is a judgement call rather than a fact, it says so.
 `main` as `a78dd0e7` and deployed to Render + Cloudflare on 2026-08-18. It closes five of the six
 "unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable but not closed).
 
-| Branch | Commit     | State                                                                               |
-| ------ | ---------- | ----------------------------------------------------------------------------------- |
-| `dev`  | `45ead008` | arc COMPLETE (§0.1) **+ adversarially reviewed, all 9 findings fixed** (2026-08-29, see the UPDATE atop PROMPT-mobile-arc-ship.md); not pushed, not merged |
-| `main` | `6a605af4` | **PRODUCTION**, deployed 2026-08-26, CI **#814** green, probe- and browser-verified |
+| Branch | Commit     | State                                                                                                                                                                                                 |
+| ------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`  | `6dd9e864` | = `main`. CI **#819** green                                                                                                                                                                           |
+| `main` | `6dd9e864` | **PRODUCTION**, deployed **2026-08-29** — the mobile authoring arc + its adversarial review's nine fixes. CI **#820** green (`e2e-full-suite` verified RUN, not skipped), probe- and browser-verified |
 
 ## 0.1 The mobile authoring arc is COMPLETE (2026-08-27)
 
 **M6, M7 and M8 all shipped to `dev` in one session, and with them the arc that has been
 running since 2026-08-09.** Every map-edit tool now reaches a finger. Nineteen commits on
-top of `16499eb2`, each behind the §2 gate and each sabotage-proven before commit. Nothing
-is pushed and nothing is deployed — that is the owner's call.
+top of `16499eb2`, each behind the §2 gate and each sabotage-proven before commit.
+**IN PRODUCTION since 2026-08-29** (`6dd9e864`), together with the nine fixes its
+adversarial review produced — see the UPDATE atop
+[PROMPT-mobile-arc-ship.md](./PROMPT-mobile-arc-ship.md).
 
 **[PROMPT-mobile-arc-ship.md](./PROMPT-mobile-arc-ship.md) is the handoff for what happens
 next** — the review/push/merge fork, the exact baselines at `36633e14`, the three items
@@ -915,9 +917,13 @@ turns a cone into something else.
    - ~~**Element proximity selection — IN PROGRESS.**~~ — shipped to `dev` (`4b6cc7f9`). Five of
      the eight kinds (wall, door, light, text, spline) could not be selected and so could not be
      deleted, on any platform. Plan: `docs/planning/PROMPT-element-proximity-select.md`.
-   - ~~**M6, M7 and M8** of the mobile authoring arc~~ — **DONE 2026-08-27, and the arc is
-     COMPLETE**; see §0.1. With them: ~~the vacuous initiative e2e~~, ~~the last two
-     `window.prompt()` dialogs~~ and ~~the 44px panel-wide pass~~.
+   - ~~**M6, M7 and M8** of the mobile authoring arc~~ — **DONE 2026-08-27, the arc is
+     COMPLETE, and it is IN PRODUCTION 2026-08-29** with the nine fixes its adversarial
+     review produced; see §0.1. With them: ~~the vacuous initiative e2e~~, ~~the last two
+     `window.prompt()` dialogs~~ and ~~the 44px panel-wide pass~~. **What is open here now is
+     only fork C** of [PROMPT-mobile-arc-ship.md](./PROMPT-mobile-arc-ship.md): the
+     `docs:screenshots` strict-mode failure plus the wrong Map Setup shot, the
+     `TokenMessageHandler` recolour flake, and My Stuff uploads in the mobile asset picker.
    - **Smaller work**: §3D's remainder. Of the vision-default follow-ups, two are DONE (the
      per-token card now reads "Table default — 60 ft"; the 44px pass covers the DM menu) and ONE
      REMAINS — the Map Setup screenshot, which a re-record does NOT fix: the harness scrolls that
