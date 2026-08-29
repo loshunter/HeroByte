@@ -31,7 +31,6 @@ import type {
 } from "./mapEditTypes";
 
 const NO_OP_PAINT = (_cells: TerrainPaintCell[]) => {};
-const NO_OP_ROTATE = (_steps: number) => {};
 
 /** Which device is driving the handler. Only the click tools care — see the
  * note on onMouseDown in UseMapEditToolReturn. */
@@ -167,7 +166,7 @@ export function useMapEditTool({
     saving: Boolean(controller?.saving),
     stampMode,
     stampRotation,
-    onRotateStamp: onRotateStamp ?? NO_OP_ROTATE,
+    onRotateStamp: onRotateStamp ?? (() => {}),
     onGestureDropped,
     addTile: controller?.addTile ?? (() => null),
     addStamp: controller?.addStamp ?? (() => null),
@@ -224,6 +223,7 @@ export function useMapEditTool({
     clearDrag: drag.clear,
     brushingRef,
     discardStroke,
+    cancelAim: touchAim.cancel,
   });
 
   // Leaving map-edit abandons any drag and commits any in-progress brush stroke.

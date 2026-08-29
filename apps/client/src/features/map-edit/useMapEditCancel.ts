@@ -3,8 +3,10 @@
 // ============================================================================
 // Every way an in-flight gesture ends WITHOUT being committed, in one place,
 // because M4c added a second way and the two must agree about what "abandon"
-// means: a drag loses its preview AND an accumulating terrain stroke is thrown
-// away rather than painted.
+// means: a drag loses its preview, an accumulating terrain stroke is thrown
+// away rather than painted, AND a click tool's touch aim forgets its point —
+// without that last one, ⨯ Abort cleared the drag that wasn't there and the
+// finger's lift still dropped at the aimed point.
 //
 // Why a SIGNAL and not a callback prop. The control that cancels lives in the
 // mobile dock, which is MapBoard's SIBLING, not its ancestor — there is no
@@ -35,6 +37,10 @@ interface UseMapEditCancelOptions {
   brushingRef: MutableRefObject<boolean>;
   /** Throw an accumulating stroke away without painting it. */
   discardStroke: () => void;
+  /** Forget a click tool's touch aim (and its ghost) so the lift drops nothing.
+   * REQUIRED, not optional: an optional callback here is deletable with every
+   * suite green, which is exactly how this wiring went missing the first time. */
+  cancelAim: () => void;
 }
 
 /** @returns cancelGesture — abandon whatever gesture is in flight, if any. */
@@ -45,12 +51,14 @@ export function useMapEditCancel({
   clearDrag,
   brushingRef,
   discardStroke,
+  cancelAim,
 }: UseMapEditCancelOptions): () => void {
   // Not a useCallback: the ref and the two callbacks it closes over are all
   // identity-stable, and the latest-ref effect below reads it through a ref
   // anyway, so memoizing would buy nothing and hide the dependency.
   const cancelGesture = () => {
     clearDrag();
+    cancelAim();
     if (brushingRef.current) {
       brushingRef.current = false;
       discardStroke();

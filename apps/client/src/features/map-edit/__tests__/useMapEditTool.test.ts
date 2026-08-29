@@ -971,7 +971,10 @@ describe("useMapEditTool", () => {
 describe("useMapEditTool — cancelling from outside the canvas", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  function renderWithSignal(subTool: "wall" | "terrain", controller: MapStudioController) {
+  function renderWithSignal(
+    subTool: "wall" | "terrain" | "place",
+    controller: MapStudioController,
+  ) {
     return renderHook(
       ({ cancelSignal }: { cancelSignal: number }) =>
         useMapEditTool({
@@ -1057,5 +1060,54 @@ describe("useMapEditTool — cancelling from outside the canvas", () => {
     act(() => result.current.onMouseUp());
 
     expect(controller.paintTerrain).not.toHaveBeenCalled();
+  });
+
+  // The click tools are the third gesture family the cancel must reach. Their
+  // touch aim is a REF the release reads, so a cancel that only clears the drag
+  // leaves the lift committing the drop it was meant to stop — that shipped
+  // once: touchAim.cancel existed, was unit-tested, and had zero call sites.
+  it("a bumped signal mid-AIM makes the touch release drop nothing, and takes the ghost", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const { result, rerender } = renderWithSignal("place", controller);
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref, "touch"));
+    expect(result.current.placementGhost).not.toBeNull();
+
+    // ⨯ Abort is a DOM button OUTSIDE the stage: the stage never sees a second
+    // touch, so the first finger's lift still arrives after the signal.
+    act(() => rerender({ cancelSignal: 1 }));
+    expect(result.current.placementGhost).toBeNull();
+
+    act(() => result.current.onMouseUp("touch"));
+    expect(controller.addTile).not.toHaveBeenCalled();
+    expect(controller.addStamp).not.toHaveBeenCalled();
+  });
+
+  it("onCancel (second finger / touchcancel) clears the aim and its ghost too", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const { result } = renderWithSignal("place", controller);
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref, "touch"));
+    expect(result.current.placementGhost).not.toBeNull();
+
+    act(() => result.current.onCancel());
+    expect(result.current.placementGhost).toBeNull();
+
+    act(() => result.current.onMouseUp("touch"));
+    expect(controller.addTile).not.toHaveBeenCalled();
+  });
+
+  it("a cancelled aim is not sticky — the NEXT press-and-lift drops", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const { result, rerender } = renderWithSignal("place", controller);
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref, "touch"));
+    act(() => rerender({ cancelSignal: 1 }));
+    act(() => result.current.onMouseUp("touch"));
+    expect(controller.addTile).not.toHaveBeenCalled();
+
+    act(() => result.current.onMouseDown(makeStage({ x: 300, y: 300 }).ref, "touch"));
+    act(() => result.current.onMouseUp("touch"));
+    expect(controller.addTile).toHaveBeenCalledTimes(1);
   });
 });

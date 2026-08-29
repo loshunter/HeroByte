@@ -19,12 +19,21 @@
  */
 import { expect, test, type Page } from "../fixtures";
 import { elevateToDM } from "../helpers";
-import { joinMobileTable } from "./mobile.helpers";
-import { openTouch, touchDrag, touchDragThenTapElsewhere } from "./touch.helpers";
+import { armLiveMapEdit, joinMobileTable } from "./mobile.helpers";
+import { openTouch, touchDrag, touchDragThenTapElsewhere, touchTap } from "./touch.helpers";
 
 function wallCount(page: Page): Promise<number> {
   return page.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.compiledScene?.walls?.length ?? 0);
 }
+
+const elements = (page: Page) =>
+  page.evaluate(
+    () =>
+      window.__HERO_BYTE_E2E__?.snapshot?.mapElements?.layers?.reduce(
+        (total, layer) => total + layer.elements.length,
+        0,
+      ) ?? 0,
+  );
 
 /** Arm the mode from the DM screen and bind a live map, all by tapping. */
 async function enterLiveMapEdit(page: Page): Promise<void> {
@@ -87,5 +96,48 @@ test.describe("the abort slot", () => {
     // And the abort is not sticky: the mode still works afterwards.
     await touchDrag(cdp, at(0.3, 0.7), [at(0.7, 0.7)]);
     await expect.poll(() => wallCount(page), { timeout: 30_000 }).toBe(2);
+  });
+
+  // The click tools are the OTHER gesture family this button serves. Their
+  // touch gesture is press-AIMS / lift-DROPS (M7), so the abort has to clear
+  // the AIM, not a drag ref — and it shipped once clearing only the drag:
+  // touchAim.cancel existed, was unit-tested, and had zero call sites, so this
+  // exact two-thumb gesture still dropped the crate after the ⨯.
+  test("a tap on ABORT mid-AIM makes the lift drop nothing", async ({ page }) => {
+    test.setTimeout(120_000);
+    const { dock, toolGrid } = await armLiveMapEdit(page, { width: 820, height: 1180 });
+
+    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+    await page.getByRole("button", { name: /To the map/i }).click();
+
+    const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
+    const at = (fx: number, fy: number) => ({
+      x: box.x + box.width * fx,
+      y: box.y + box.height * fy,
+    });
+    const abortBox = (await dock.getByRole("button", { name: /Abort/ }).boundingBox())!;
+    const abortCentre = {
+      x: abortBox.x + abortBox.width / 2,
+      y: abortBox.y + abortBox.height / 2,
+    };
+
+    const cdp = await openTouch(page);
+
+    // Positive control first: an aim-and-lift must drop, or "nothing landed"
+    // below would be satisfied by a build where placing never worked at all.
+    expect(await elements(page)).toBe(0);
+    await touchTap(cdp, at(0.4, 0.3));
+    await expect.poll(() => elements(page), { timeout: 30_000 }).toBe(1);
+    // A commit still in flight would eat the next drop silently — let it land.
+    await page.waitForTimeout(800);
+
+    // Aim, hold STILL, ⨯ with the other thumb, lift.
+    await touchDragThenTapElsewhere(cdp, at(0.3, 0.5), at(0.5, 0.5), abortCentre);
+    await page.waitForTimeout(2_000);
+    expect(await elements(page)).toBe(1);
+
+    // Not sticky: the next press-and-lift still drops.
+    await touchTap(cdp, at(0.6, 0.35));
+    await expect.poll(() => elements(page), { timeout: 30_000 }).toBe(2);
   });
 });
