@@ -12,10 +12,37 @@ production. Where something is a judgement call rather than a fact, it says so.
 `main` as `a78dd0e7` and deployed to Render + Cloudflare on 2026-08-18. It closes five of the six
 "unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable but not closed).
 
-| Branch | Commit     | State                                                                                                                                                                                                 |
-| ------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dev`  | `6dd9e864` | = `main`. CI **#819** green                                                                                                                                                                           |
-| `main` | `6dd9e864` | **PRODUCTION**, deployed **2026-08-29** — the mobile authoring arc + its adversarial review's nine fixes. CI **#820** green (`e2e-full-suite` verified RUN, not skipped), probe- and browser-verified |
+| Branch | Commit     | State                                                                                                                                                                                                                           |
+| ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`  | `1eaf2f1b` | = `main`. CI **#822** green                                                                                                                                                                                                     |
+| `main` | `1eaf2f1b` | **PRODUCTION**, deployed **2026-08-29** — the mobile authoring arc, its adversarial review’s nine fixes, AND fork C’s three (§0.2). CI **#823** green (`e2e-full-suite` verified RUN, not skipped), probe- and browser-verified |
+
+## 0.2 Fork C is closed too, and it is IN PRODUCTION (2026-08-29)
+
+`PROMPT-mobile-arc-ship.md` has nothing open left. Its three deferred items are fixed and
+deployed at `1eaf2f1b` (CI **#822** dev / **#823** main, both with `e2e-full-suite` verified
+RUN; probe- and browser-verified). The lesson worth carrying: **in all three the symptom named
+the wrong bug.**
+
+- **`pnpm docs:screenshots` passes all five walkthroughs** (`50977c48`) — two had failed since
+  before 2026-08-09. The generator's "Region badge never appears" was a drag whose MOUSEUP
+  landed on the entities panel, so it never reached the Konva stage; `computeGenRegion` now
+  probes `elementFromPoint` inward for canvas it can actually reach. `closeTopWindow` matched a
+  button named `×` when DraggableWindow's `aria-label` ("Close <title>") WINS — it had been
+  closing NOTHING, leaving windows open to intercept later clicks. And `getByText("saving…")`
+  hits TWO render sites, so it needs `toHaveCount(0)`, not `toBeHidden`.
+- **The recolour flake is a product fix** (`a008bcf5`): the draw was free over 360 hues, so 1
+  press in 360 redrew the hue already showing. It now draws an offset of 1..359 and always
+  changes. RNG injected — and the default must CALL `Math.random`, not capture it, or
+  `vi.spyOn` in that suite stops reaching it.
+- **My Stuff reaches a phone** (`bf02f9fe`) via ImageField. ImageField commits a URL and never
+  the File, so the hash is parsed back out of it and the footprint measured from the URL,
+  BOUNDED at 5s — an unbounded measure leaves a stalled upload never arming.
+
+**Deploy note, for the next probe:** the first `200` from Render after a main push can be the
+OLD process still running — the restart came later, and the browser showed "Reconnecting" with
+CORS errors on `/healthz` (a 502 response carries no `Access-Control-Allow-Origin`). Wait out a
+real 502 window, then re-check; a fresh tab is what tells you the errors were the restart.
 
 ## 0.1 The mobile authoring arc is COMPLETE (2026-08-27)
 
@@ -923,8 +950,8 @@ turns a cone into something else.
      `window.prompt()` dialogs~~ and ~~the 44px panel-wide pass~~. **What is open here now is
      fork C too** — ~~the `docs:screenshots` failures plus the wrong Map Setup shot~~,
      ~~the `TokenMessageHandler` recolour flake~~ and ~~My Stuff uploads in the mobile asset
-     picker~~ are all CLOSED (2026-08-29, `a008bcf5`/`50977c48`/`bf02f9fe`, on `dev` and NOT
-     merged). `pnpm docs:screenshots` passes all five walkthroughs for the first time. That
+     picker~~ are all CLOSED (2026-08-29, `a008bcf5`/`50977c48`/`bf02f9fe`, IN PRODUCTION
+     2026-08-29, CI #822/#823). `pnpm docs:screenshots` passes all five walkthroughs for the first time. That
      file's UPDATE block has the three diagnoses, each of which was a different bug from the
      one its symptom named.
    - **Smaller work**: §3D's remainder. Of the vision-default follow-ups, two are DONE (the

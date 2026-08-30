@@ -40,7 +40,8 @@ recalled. Read `docs/planning/HANDOFF-NEXT.md` §2 (the gate), §5 (traps), §8 
 > that argument — take one before merging. Server HTTP 200 after its usual restart 502s; the
 > app mounts with "Connected" and zero console errors.
 >
-> **C IS DONE TOO (2026-08-29), so this file has nothing open left.** All three:
+> **C IS DONE TOO, and IN PRODUCTION (2026-08-29, `1eaf2f1b`, CI #822 dev / #823 main,
+> probe- and browser-verified). This file has nothing open left.** All three:
 >
 > - **`docs:screenshots` now passes all five walkthroughs** (`50977c48`) — it had two failing
 >   since before 2026-08-09. THREE bugs, none of them re-recordable: the `"saving…"`
