@@ -111,7 +111,14 @@ export async function waitSnap(page: Page, predicate: () => boolean, timeout = 2
 // exact on the new one: Playwright's default string match is a case-insensitive
 // SUBSTRING, and both upload buttons render "Uploading…", which contains it.
 export async function waitBake(page: Page, extraMs = 1_200) {
-  await expect(page.getByText("saving…")).toBeHidden({ timeout: 15_000 });
+  // toHaveCount(0), NOT toBeHidden: "saving…" has TWO render sites — the live
+  // palette (MapEditToolbar) and the Map Setup tab's document line
+  // (MapStudioControl, " · saving…"). With both on screen a strict-mode
+  // violation killed this helper, and with it the whole map-authoring
+  // walkthrough. Counting to zero is also the assertion actually wanted: no
+  // command outstanding ANYWHERE, rather than one named element being hidden.
+  // Both sites are conditional renders, so absent IS the idle state.
+  await expect(page.getByText("saving…")).toHaveCount(0, { timeout: 15_000 });
   await expect(page.getByText("loading…", { exact: true })).toBeHidden({ timeout: 15_000 });
   await expect(page.getByText(/Painting terrain/)).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(extraMs);
@@ -132,6 +139,34 @@ export async function computeGenRegion(
   const anchor = { x: box.x + box.width / 2, y: box.y + 50 };
   await page.mouse.move(anchor.x, anchor.y);
 
+  // The map board's BOX is not all reachable. Other panels overlay its bottom
+  // and its right on this viewport, and a drag that ENDS over one of them never
+  // delivers its mouseup to the Konva stage — so the drag never completes and
+  // the region is silently never aimed. That is what made the generator step
+  // fail for months while reading as "the Region badge never appears".
+  //
+  // Probed, not assumed: a hard-coded inset rots the moment a panel changes
+  // size. Walk the bottom-right corner inward — up first, then left — until it
+  // lands on the canvas itself.
+  const corner = await page.evaluate(
+    ({ left, right, top, bottom }) => {
+      const isCanvas = (x: number, y: number) =>
+        document.elementFromPoint(x, y)?.tagName === "CANVAS";
+      let x = right;
+      let y = bottom;
+      while (y > top && !isCanvas(x, y)) y -= 8;
+      while (x > left && !isCanvas(x, y)) x -= 8;
+      return { x, y, ok: isCanvas(x, y) };
+    },
+    {
+      left: box.x + 300,
+      right: box.x + box.width - 5,
+      top: box.y + 40,
+      bottom: box.y + box.height - 5,
+    },
+  );
+  if (!corner.ok) throw new Error("No reachable canvas corner for a generator region");
+
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const view = await page.evaluate(() => ({
       cam: window.__HERO_BYTE_E2E__?.cam ?? { x: 0, y: 0, scale: 1 },
@@ -148,8 +183,8 @@ export async function computeGenRegion(
     // Usable screen band: right of the floating palette, inside the canvas.
     const col1 = Math.max(clearCols, Math.ceil(worldColAt(box.x + 285)), 0);
     const row1 = Math.max(clearRows, Math.ceil(worldRowAt(box.y + 25)), 0);
-    const col2 = Math.floor(worldColAt(box.x + box.width - 25));
-    const row2 = Math.floor(worldRowAt(box.y + box.height - 25));
+    const col2 = Math.floor(worldColAt(corner.x));
+    const row2 = Math.floor(worldRowAt(corner.y));
 
     if (col2 - col1 >= minCells && row2 - row1 >= minCells) {
       return { from: toScreen(col1, row1), to: toScreen(col2, row2) };
@@ -181,9 +216,21 @@ export async function elevateViaUI(page: Page, opts: { onModal?: () => Promise<v
 // some windows close themselves (e.g. player settings after a DM status
 // change), so finding no × is success, not an error.
 export async function closeTopWindow(page: Page, _nearText?: string) {
-  const closers = page.getByRole("button", { name: "×" });
-  const count = await closers.count();
-  if (count > 0) {
+  // Matched on the × glyph for a long time and therefore closed NOTHING: that
+  // glyph is the button's TEXT, and DraggableWindow gives the control an
+  // aria-label ("Close <title>") which WINS as the accessible name. count()
+  // was 0, this helper returned happily, and the window stayed open — which is
+  // how the player walkthrough's settings window survived to intercept the
+  // dice bar's clicks two steps later. §5's own trap: getByRole matches the
+  // ACCESSIBLE NAME, not the text and not the title.
+  //
+  // The LAST such button is the top-most window, which is this helper's whole
+  // contract. Deliberately NOT narrowed by the caller's hint: a window
+  // retitles itself per subject (player settings takes the character's name
+  // once one is set), so matching on a title is the part that rots — and
+  // building a RegExp out of a title is §5's "(DM)" trap.
+  const closers = page.getByRole("button", { name: /^Close / });
+  if ((await closers.count()) > 0) {
     await closers.last().click();
   }
 }

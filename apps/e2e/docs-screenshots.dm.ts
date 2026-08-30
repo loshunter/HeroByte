@@ -40,8 +40,19 @@ test.describe("docs screenshots: DM", () => {
       { required: true },
     );
 
+    // TWO shots: the Map tab is taller than the panel, and setStagingZone types
+    // into its LAST control, so a single capture was always scrolled to the
+    // bottom and silently lost everything above it — the Table Sight Default
+    // included. Each scroll is anchored deliberately. getByRole for the
+    // background field: the file input beside it is labelled "…URL upload" and
+    // getByLabel is a SUBSTRING match, so the plain label matches both.
     await step("map setup tab + staging zone", async () => {
       await setStagingZone(page, { x: 8, y: 8, w: 4, h: 4 });
+
+      await page.getByLabel("Default sight radius in feet").scrollIntoViewIfNeeded();
+      await shotPage(page, "dm-menu-map-sight");
+
+      await page.getByRole("textbox", { name: "Map Background URL" }).scrollIntoViewIfNeeded();
       await shotPage(page, "dm-menu-map-setup");
     });
 
@@ -229,6 +240,11 @@ test.describe("docs screenshots: DM", () => {
       // the authored room/hall) fits on screen, verified via the live camera.
       const region = await computeGenRegion(page, box);
       await page.getByRole("button", { name: /🏰 Gen/ }).click();
+      // Arming and aiming are separate failures and used to report as one: the
+      // region badge never appearing reads as "the drag did not take" whether
+      // the tool armed or not. The idle prompt is the Generate panel saying it
+      // IS armed and waiting.
+      await expect(page.getByText("Drag a region on the map…")).toBeVisible();
       await dragBoard(page, region.from, region.to);
       await expect(page.getByText(/Region: \d+ × \d+ cells/)).toBeVisible();
       const wallsBefore = await page.evaluate(
