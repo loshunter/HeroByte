@@ -224,3 +224,66 @@ describe("vision radius inheritance on token creation", () => {
     expect(new TokenService().createToken(state, "player-1", 1, 1).visionRadius).toBeUndefined();
   });
 });
+
+describe("TokenService recolouring", () => {
+  // The defect this pins: recolorToken drew freely from 360 hues, so one press
+  // in 360 redrew the hue it already had and the button visibly did nothing.
+  // TokenMessageHandler.test.ts asserts "the colour CHANGED", so that 1-in-360
+  // was a real flake in CI (observed 2026-08-27) — but the flake was the
+  // messenger. The contract is that a recolour recolours.
+
+  function stateWithToken(color: string) {
+    const state = createEmptyRoomState();
+    const service = new TokenService();
+    const token = service.createToken(state, "owner-1");
+    token.color = color;
+    return { state, token };
+  }
+
+  it("NEVER returns the colour it started from, for any draw", () => {
+    // Exhaustive over the generator's range rather than sampled: the old bug
+    // lived at exactly one input value, which sampling can miss.
+    const current = "hsl(200, 70%, 50%)";
+    for (let i = 0; i < 359; i += 1) {
+      const rng = () => (i + 0.5) / 359;
+      const state = createEmptyRoomState();
+      const service = new TokenService(rng);
+      const token = service.createToken(state, "owner-1");
+      token.color = current;
+
+      expect(service.recolorToken(state, token.id, "owner-1")).toBe(true);
+      expect(token.color, `draw ${i} reproduced the current colour`).not.toBe(current);
+      expect(token.color).toMatch(/^hsl\(\d{1,3}, 70%, 50%\)$/);
+    }
+  });
+
+  it("covers every OTHER hue across the draw range — it is not a fixed step", () => {
+    // The cheap "always +1 hue" fix would pass the test above and make every
+    // recolour predictable. This is what rules that out.
+    const seen = new Set<string>();
+    for (let i = 0; i < 359; i += 1) {
+      const state = createEmptyRoomState();
+      const service = new TokenService(() => (i + 0.5) / 359);
+      const token = service.createToken(state, "owner-1");
+      token.color = "hsl(0, 70%, 50%)";
+      service.recolorToken(state, token.id, "owner-1");
+      seen.add(token.color);
+    }
+    expect(seen.size).toBe(359);
+    expect(seen.has("hsl(0, 70%, 50%)")).toBe(false);
+  });
+
+  it("falls back to a free draw for a colour it did not author", () => {
+    const { state, token } = stateWithToken("rebeccapurple");
+    const service = new TokenService(() => 0.5);
+    expect(service.recolorToken(state, token.id, "owner-1")).toBe(true);
+    expect(token.color).toBe("hsl(180, 70%, 50%)");
+  });
+
+  it("still refuses a recolour from someone who owns nothing", () => {
+    const { state, token } = stateWithToken("hsl(10, 70%, 50%)");
+    const service = new TokenService(() => 0.5);
+    expect(service.recolorToken(state, token.id, "intruder")).toBe(false);
+    expect(token.color).toBe("hsl(10, 70%, 50%)");
+  });
+});

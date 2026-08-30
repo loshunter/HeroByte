@@ -190,7 +190,11 @@ describe("TokenMessageHandler - Characterization Tests", () => {
 
       const state = roomService.getState();
       const token = state.tokens.find((t) => t.id === tokenId);
-      expect(token?.color).not.toBe("hsl(0, 70%, 50%)"); // Color should change
+      // Guaranteed, not lucky: recolorToken draws from the 359 hues that are
+      // NOT the current one. This assertion used to be a 1-in-360 flake,
+      // because the draw was free over all 360 (tokenService.test.ts pins the
+      // invariant exhaustively).
+      expect(token?.color).not.toBe("hsl(0, 70%, 50%)");
     });
   });
 

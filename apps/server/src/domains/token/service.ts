@@ -13,10 +13,39 @@ import { isTokenMoveBlocked } from "../room/scene/movementBlocking.js";
  */
 export class TokenService {
   /**
+   * The generator is injected with a production default, matching the dice
+   * roller's `rng: DiceRng = cryptoDiceRng` shape. Token colour is cosmetic,
+   * so `Math.random` is the right source here — what the seam buys is a
+   * DETERMINISTIC test, not unpredictability.
+   *
+   * The default CALLS Math.random rather than capturing the reference: bound
+   * at construction, a later `vi.spyOn(Math, "random")` would no longer reach
+   * it, silently breaking every existing test that mocks it that way.
+   */
+  constructor(private readonly rng: () => number = () => Math.random()) {}
+
+  /**
    * Generate a random HSL color for tokens
    */
   private randomColor(): string {
-    return `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
+    return colorForHue(Math.floor(this.rng() * 360));
+  }
+
+  /**
+   * A colour that is never the one already showing.
+   *
+   * The old version drew freely from 360 hues, so one recolour in 360 landed
+   * on the hue it started from and the button visibly did nothing. Drawing an
+   * OFFSET of 1..359 instead is uniform over every hue EXCEPT the current one,
+   * so "recolour" always recolours — no re-roll loop, which could repeat.
+   *
+   * A colour we cannot parse (not one of ours) has no hue to avoid, so it
+   * falls back to a free draw.
+   */
+  private recolorFrom(current: string): string {
+    const hue = hueOf(current);
+    if (hue === null) return this.randomColor();
+    return colorForHue((hue + 1 + Math.floor(this.rng() * 359)) % 360);
   }
 
   /**
@@ -131,7 +160,7 @@ export class TokenService {
   ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (token && (token.owner === ownerUid || isDM)) {
-      token.color = this.randomColor();
+      token.color = this.recolorFrom(token.color);
       return true;
     }
     return false;
@@ -286,4 +315,17 @@ export class TokenService {
     }
     return false;
   }
+}
+
+/** The one place a token colour string is built, so parsing can mirror it. */
+function colorForHue(hue: number): string {
+  return `hsl(${hue}, 70%, 50%)`;
+}
+
+/** The hue of a colour this service produced, or null for anything else. */
+function hueOf(color: string): number | null {
+  const match = /^hsl\((\d{1,3}), 70%, 50%\)$/.exec(color);
+  if (!match) return null;
+  const hue = Number(match[1]);
+  return Number.isInteger(hue) && hue >= 0 && hue < 360 ? hue : null;
 }
