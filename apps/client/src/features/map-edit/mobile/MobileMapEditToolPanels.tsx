@@ -162,6 +162,7 @@ function ToolDials({
   onToggleStampMode,
   stampRotation,
   onRotateStamp,
+  uploadAsset,
 }: MapEditToolbarProps): JSX.Element | null {
   // Paint writes the SAME family Room and Hall fill with — one swatch state,
   // exactly as the desktop toolbar shares MapEditBrushDeck across the three.
@@ -229,6 +230,7 @@ function ToolDials({
           label={activeSubTool === "place" ? "Place" : "Scatter"}
           selected={selectedAssetId}
           onSelect={onSelectAsset}
+          uploadAsset={uploadAsset}
         />
         {/* Scatter always flings free stamps, so the choice is Place's alone —
             offering it under Scatter would be a control that does nothing. */}

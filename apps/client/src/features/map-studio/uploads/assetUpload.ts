@@ -77,6 +77,25 @@ export function uploadedAssetUrl(hash: string, wsUrl: string = WS_URL): string {
   return `${httpBaseFromWsUrl(wsUrl)}/assets/${hash}`;
 }
 
+/**
+ * The inverse: the content hash inside an asset URL, or null for anything else.
+ *
+ * ImageField hands its callers a committed URL rather than the upload record,
+ * so a surface that wants to shelve what was just uploaded has to read the hash
+ * back out. Deliberately matches on the /assets/<sha256> TAIL and ignores the
+ * origin: the same table is reachable over several (localhost vs LAN vs the
+ * deployed host), and pinning the origin would make a shelf silently refuse
+ * uploads that had in fact just succeeded.
+ *
+ * A pasted third-party URL has no hash and returns null — which is correct, not
+ * a limitation: a placed element stores `upload:<hash>`, so art that does not
+ * live in this table's content-addressed store cannot be placed at all.
+ */
+export function uploadHashFromUrl(url: string): string | null {
+  const match = /\/assets\/([a-f0-9]{64})(?:[?#].*)?$/.exec(url.trim());
+  return match ? match[1] : null;
+}
+
 const STATUS_ERRORS: Record<number, { code: AssetUploadErrorCode; message: string }> = {
   401: { code: "unauthorized", message: "The table credentials were rejected." },
   413: { code: "too-large", message: "That image is over the 5MB upload limit." },
