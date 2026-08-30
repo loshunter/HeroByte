@@ -44,6 +44,55 @@
   <body style="margin:0;background:#0b0d12;color:#dbe1ff;">
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <main id="root"></main>
+    <script>
+      // BOOT WATCHDOG. The app is an ES-module graph, and ONE failed chunk
+      // fetch kills the whole graph silently: no error boundary (those live
+      // inside React, which never ran), no retry, a permanently blank page.
+      // Not hypothetical — reproduced 2026-08-30 with full network forensics:
+      // index.js 200, vendor-react 200, vendor-konva 200, vendor-voice
+      // net::ERR_CONNECTION_FAILED (one refused connection between two that
+      // succeeded), mounted:false. It was also the e2e suite's only recurring
+      // flake, ~1 in 1900 page loads across 41 preserved runs.
+      //
+      // If the mount point is still empty well after load, reload ONCE
+      // (sessionStorage-guarded, so a genuinely broken deploy cannot loop);
+      // if the retry fails too, say so visibly instead of staying blank.
+      // The module graph executes before `load` fires (modules are deferred),
+      // so on a healthy boot the root is already filled when this timer is
+      // armed and the check is a no-op.
+      (function () {
+        var KEY = "herobyte-boot-retried";
+        window.addEventListener("load", function () {
+          setTimeout(function () {
+            var root = document.getElementById("root");
+            if (root && root.childElementCount > 0) {
+              try {
+                sessionStorage.removeItem(KEY);
+              } catch (ignored) {}
+              return;
+            }
+            var retried = false;
+            try {
+              retried = sessionStorage.getItem(KEY) === "1";
+            } catch (ignored) {}
+            if (!retried) {
+              try {
+                sessionStorage.setItem(KEY, "1");
+              } catch (ignored) {}
+              location.reload();
+              return;
+            }
+            if (root) {
+              root.innerHTML =
+                '<div style="font-family:system-ui,sans-serif;max-width:28rem;margin:20vh auto;padding:0 1rem;text-align:center;">' +
+                "<h1 style=\"font-size:1.2rem;\">HeroByte didn't load</h1>" +
+                '<p>Part of the app failed to download. Check your connection, then refresh to try again.</p>' +
+                "</div>";
+            }
+          }, 4000);
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

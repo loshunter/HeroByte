@@ -44,6 +44,30 @@ OLD process still running — the restart came later, and the browser showed "Re
 CORS errors on `/healthz` (a 502 response carries no `Access-Control-Allow-Origin`). Wait out a
 real 502 window, then re-check; a fresh tab is what tells you the errors were the restart.
 
+## 0.3 The login flake is SOLVED — it was a real product bug (2026-08-30)
+
+The suite's one recurring flake (`join*` timing out on the password field; four sightings
+across 41 preserved gate runs ≈ 1 in 1,900 page loads) is diagnosed, reproduced, and fixed.
+
+**Mechanism, named by forensics:** the app is an ES-module graph, and ONE failed vendor-chunk
+fetch kills the whole graph silently — React never runs, so no error boundary exists yet, and
+the page stays blank. Reproduced under a 3,000-load hunt (6 workers, request forensics armed
+before each load): `vendor-voice` answered `net::ERR_CONNECTION_FAILED` between two requests
+that SUCCEEDED milliseconds apart on the same vite preview; `mounted:false`, zero websocket
+contact — matching every archaeological sighting (the server was idle in all four failure
+windows; the 2026-08-18 note's "look at client asset delivery" guess was right).
+
+**The fix is in the PRODUCT, not the harness:** a boot watchdog in `apps/client/index.html`
+reloads ONCE if the mount point is still empty 4s after `load` (sessionStorage-guarded, so a
+truly broken deploy cannot loop), and paints a visible "HeroByte didn't load" message if the
+retry fails too. A real player losing one chunk on a flaky connection used to get a silent
+forever-blank page. `apps/e2e/boot-recovery.spec.ts` is the flake made DETERMINISTIC via
+route interception — with the watchdog disarmed, its first test IS the original bug.
+
+**Base-rate lesson, §8-grade:** the earlier "cannot reproduce" verdict came from 25 repeats
+against a 1-in-1,900 event — about a 2% chance of a sighting. Mine the corpus for the
+denominator BEFORE declaring something unreproducible.
+
 ## 0.1 The mobile authoring arc is COMPLETE (2026-08-27)
 
 **M6, M7 and M8 all shipped to `dev` in one session, and with them the arc that has been
