@@ -40,7 +40,27 @@ recalled. Read `docs/planning/HANDOFF-NEXT.md` §2 (the gate), §5 (traps), §8 
 > that argument — take one before merging. Server HTTP 200 after its usual restart 502s; the
 > app mounts with "Connected" and zero console errors.
 >
-> **C's three items are untouched** and are now the only open work here.
+> **C IS DONE TOO (2026-08-29), so this file has nothing open left.** All three:
+>
+> - **`docs:screenshots` now passes all five walkthroughs** (`50977c48`) — it had two failing
+>   since before 2026-08-09. THREE bugs, none of them re-recordable: the `"saving…"`
+>   strict-mode violation (two render sites, so `toHaveCount(0)` not `toBeHidden`); the
+>   generator drag ENDING on the entities panel, so its mouseup never reached the Konva stage
+>   — the badge was never the problem, and `computeGenRegion` now probes for canvas it can
+>   actually reach; and `closeTopWindow` matching a button named `×` when DraggableWindow's
+>   aria-label ("Close <title>") wins, so it had been closing NOTHING and leaving windows to
+>   intercept later clicks. The Map Setup shot is now two anchored frames, and
+>   `dm-menu-map-sight.jpg` finally shows the Table Sight Default control.
+> - **The recolour flake is fixed at the root** (`a008bcf5`). Not a test problem: `randomColor`
+>   drew freely from 360 hues, so 1 press in 360 redrew the hue already showing and the button
+>   visibly did nothing. Recolour now draws an offset of 1..359, so it ALWAYS changes and the
+>   assertion holds by construction. RNG injected (the dice roller's shape) — and note the
+>   default CALLS `Math.random` rather than capturing it, or `vi.spyOn` in that suite stops
+>   reaching it.
+> - **My Stuff reaches a phone** (`bf02f9fe`), through ImageField exactly as the note predicted.
+>   The seam: ImageField commits a URL, never the File — so the hash is read back out of it and
+>   the footprint is measured from the URL (bounded at 5s, or a stalled load leaves the upload
+>   never arming). Same localStorage shelf as the desktop.
 
 ## 0. Where things stand, exactly
 

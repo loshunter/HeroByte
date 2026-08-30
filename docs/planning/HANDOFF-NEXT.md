@@ -921,9 +921,12 @@ turns a cone into something else.
      COMPLETE, and it is IN PRODUCTION 2026-08-29** with the nine fixes its adversarial
      review produced; see §0.1. With them: ~~the vacuous initiative e2e~~, ~~the last two
      `window.prompt()` dialogs~~ and ~~the 44px panel-wide pass~~. **What is open here now is
-     only fork C** of [PROMPT-mobile-arc-ship.md](./PROMPT-mobile-arc-ship.md): the
-     `docs:screenshots` strict-mode failure plus the wrong Map Setup shot, the
-     `TokenMessageHandler` recolour flake, and My Stuff uploads in the mobile asset picker.
+     fork C too** — ~~the `docs:screenshots` failures plus the wrong Map Setup shot~~,
+     ~~the `TokenMessageHandler` recolour flake~~ and ~~My Stuff uploads in the mobile asset
+     picker~~ are all CLOSED (2026-08-29, `a008bcf5`/`50977c48`/`bf02f9fe`, on `dev` and NOT
+     merged). `pnpm docs:screenshots` passes all five walkthroughs for the first time. That
+     file's UPDATE block has the three diagnoses, each of which was a different bug from the
+     one its symptom named.
    - **Smaller work**: §3D's remainder. Of the vision-default follow-ups, two are DONE (the
      per-token card now reads "Table default — 60 ft"; the 44px pass covers the DM menu) and ONE
      REMAINS — the Map Setup screenshot, which a re-record does NOT fix: the harness scrolls that
