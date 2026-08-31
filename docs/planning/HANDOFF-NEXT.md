@@ -12,10 +12,10 @@ production. Where something is a judgement call rather than a fact, it says so.
 `main` as `a78dd0e7` and deployed to Render + Cloudflare on 2026-08-18. It closes five of the six
 "unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable but not closed).
 
-| Branch | Commit     | State                                                                                                                                                                                                                           |
-| ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dev`  | `1eaf2f1b` | = `main`. CI **#822** green                                                                                                                                                                                                     |
-| `main` | `1eaf2f1b` | **PRODUCTION**, deployed **2026-08-29** — the mobile authoring arc, its adversarial review’s nine fixes, AND fork C’s three (§0.2). CI **#823** green (`e2e-full-suite` verified RUN, not skipped), probe- and browser-verified |
+| Branch | Commit     | State                                                                                                                                                                                                                                                                                                                                             |
+| ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`  | `a37a068f` | = `main`. CI **#829** green                                                                                                                                                                                                                                                                                                                       |
+| `main` | `a37a068f` | **PRODUCTION**, deployed **2026-08-31** — adds the boot watchdog (one lost chunk no longer blanks the page; §0.3), the sentinel time-bomb fix (`leakSentinels.ts` — CI #828 was a CLOCK collision, not a leak), and the login-flake e2e diagnostic. CI on main watched; marker-probed (watchdog string in served index.html) and browser-verified |
 
 ## 0.2 Fork C is closed too, and it is IN PRODUCTION (2026-08-29)
 
