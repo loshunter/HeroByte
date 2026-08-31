@@ -619,8 +619,9 @@ _(The second gap listed here — "there is no mobile DM menu at all" — was clo
   2026-08-12** (`ba48e741`); it sits beside `measure` in `ephemeralTypes` at
   `MessageQueueManager.ts:119`. This bullet just was never updated.
 - ~~The asset-store dedup path double-counts existing bytes~~ — **DONE 2026-08-14** (`a5059036`).
-- **A background-task chip is already queued** for wiring `characterDrawings.ts` to the shared
-  `DRAWING_TYPES` instead of its hand-copied `VALID_DRAWING_TYPES` (see §7).
+- ~~A background-task chip is queued for wiring `characterDrawings.ts` to the shared
+  `DRAWING_TYPES`~~ — **DONE, and had been since §11 closed it (2026-08-09)**: the file imports
+  `DRAWING_TYPES` from `@herobyte/shared` (verified 2026-08-30). This bullet outlived its fix.
 
 ## 4. What S8 actually built, if you have to touch it
 
@@ -979,11 +980,11 @@ turns a cone into something else.
      file's UPDATE block has the three diagnoses, each of which was a different bug from the
      one its symptom named.
    - **Smaller work**: §3D's remainder. Of the vision-default follow-ups, two are DONE (the
-     per-token card now reads "Table default — 60 ft"; the 44px pass covers the DM menu) and ONE
-     REMAINS — the Map Setup screenshot, which a re-record does NOT fix: the harness scrolls that
-     panel past the control it is meant to show, and `docs:screenshots` additionally fails partway
-     through its map-authoring walkthrough on a pre-existing strict-mode violation
-     (`getByText("saving…")` resolves to two elements).
+     per-token card now reads "Table default — 60 ft"; the 44px pass covers the DM menu) and ~~the ONE that
+     remained — the Map Setup screenshot~~ is **DONE with fork C (2026-08-29, `50977c48`)**:
+     the shot is two anchored frames now, `dm-menu-map-sight.jpg` shows the Table Sight
+     Default control, and the strict-mode `getByText("saving…")` failure is fixed —
+     `docs:screenshots` passes all five walkthroughs.
      ~~Prove the `ref: dev` fix~~ — **DONE 2026-08-26**: runs #798,
      #808 and #811 could none of them prove it, each being a push TO `dev` where the old hardcoded
      ref and the new event-ref default resolve to the same SHA. The merge-to-main run (**#814**,
