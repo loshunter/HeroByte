@@ -30,6 +30,7 @@ import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
 import { DisconnectionCleanupManager } from "../lifecycle/DisconnectionCleanupManager.js";
+import { sentinelHits, sentinelHitsIn } from "./leakSentinels.js";
 
 const ALICE = "player-alice";
 const BOB = "player-bob";
@@ -189,7 +190,7 @@ describe("dice secrecy and forgery contracts", () => {
 
     // ...and the claimed number never appears in what ANY socket received.
     for (const socket of [aliceWs, bobWs, dmWs]) {
-      expect(rawBytesSentTo(socket)).not.toContain(String(FORGED_TOTAL));
+      expect(sentinelHits(socket, FORGED_TOTAL)).toEqual([]);
     }
   });
 
@@ -250,8 +251,8 @@ describe("dice secrecy and forgery contracts", () => {
     expect(rollsSeenBy(dmWs).map((r) => r.formula)).not.toContain(SECRET_FORMULA);
 
     // The claim that actually matters: the string is nowhere in their bytes.
-    expect(rawBytesSentTo(bobWs)).not.toContain(String(SECRET_MOD));
-    expect(rawBytesSentTo(dmWs)).not.toContain(String(SECRET_MOD));
+    expect(sentinelHits(bobWs, SECRET_MOD)).toEqual([]);
+    expect(sentinelHits(dmWs, SECRET_MOD)).toEqual([]);
   });
 
   it("delivers a `dm` roll to its author and the DM, and nobody else", () => {
@@ -263,7 +264,7 @@ describe("dice secrecy and forgery contracts", () => {
     expect(rollsSeenBy(aliceWs).map((r) => r.formula)).toContain(SECRET_FORMULA);
     expect(rollsSeenBy(dmWs).map((r) => r.formula)).toContain(SECRET_FORMULA);
     expect(rollsSeenBy(bobWs).map((r) => r.formula)).not.toContain(SECRET_FORMULA);
-    expect(rawBytesSentTo(bobWs)).not.toContain(String(SECRET_MOD));
+    expect(sentinelHits(bobWs, SECRET_MOD)).toEqual([]);
   });
 
   it("a player cannot reveal someone else's private roll by re-rolling it", () => {
@@ -304,8 +305,8 @@ describe("dice secrecy and forgery contracts", () => {
     });
     route({ t: "dice-roll", formula: "d6" }, BOB); // force a broadcast
 
-    expect(rawBytesSentTo(bobWs)).not.toContain(String(SECRET_MOD));
-    expect(rawBytesSentTo(dmWs)).not.toContain(String(SECRET_MOD));
+    expect(sentinelHits(bobWs, SECRET_MOD)).toEqual([]);
+    expect(sentinelHits(dmWs, SECRET_MOD)).toEqual([]);
     expect(rollsSeenBy(aliceWs).map((r) => r.id)).toContain("poisoned");
   });
 
@@ -353,8 +354,8 @@ describe("dice secrecy and forgery contracts", () => {
     }
     expect(rollsSeenBy(aliceWs).map((r) => r.formula)).toContain(SECRET_FORMULA);
     // ...and it still does not reach anyone else.
-    expect(rawBytesSentTo(bobWs)).not.toContain(String(SECRET_MOD));
-    expect(rawBytesSentTo(dmWs)).not.toContain(String(SECRET_MOD));
+    expect(sentinelHits(bobWs, SECRET_MOD)).toEqual([]);
+    expect(sentinelHits(dmWs, SECRET_MOD)).toEqual([]);
   });
 
   it("does not let a player wipe rolls they were never allowed to see", () => {
@@ -396,7 +397,9 @@ describe("dice secrecy and forgery contracts", () => {
 
     const forkSeed = roomService.createSnapshot();
     expect(forkSeed.diceRolls.map((r) => r.formula)).toContain("d20");
-    expect(JSON.stringify(forkSeed)).not.toContain(String(SECRET_MOD));
+    // Structural: forkSeed is a FULL snapshot, heartbeats included — the
+    // raw-substring form is the same clock bomb hpSecrecy tripped in #828.
+    expect(sentinelHitsIn(forkSeed, SECRET_MOD)).toEqual([]);
   });
 
   it("keeps private rolls out of an exported session file", () => {

@@ -24,6 +24,7 @@ import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
 import { DisconnectionCleanupManager } from "../lifecycle/DisconnectionCleanupManager.js";
+import { sentinelHits } from "./leakSentinels.js";
 
 const ALICE = "player-alice";
 const BOB = "player-bob";
@@ -154,7 +155,10 @@ describe("chat secrecy contracts", () => {
     // ...and the string never appears anywhere in what his socket received,
     // which is the claim that actually matters. A renderer-side filter would
     // pass the assertion above and fail this one.
-    expect(rawBytesSentTo(bobWs)).not.toContain("4471");
+    // Structural (leakSentinels.ts): "4471" as a raw substring collides with
+    // Date.now() heartbeats sooner or later — the hpSecrecy suite's "9973"
+    // did exactly that in CI #828.
+    expect(sentinelHits(bobWs, 4471)).toEqual([]);
   });
 
   it("a whisper between two players is invisible to the DM", () => {

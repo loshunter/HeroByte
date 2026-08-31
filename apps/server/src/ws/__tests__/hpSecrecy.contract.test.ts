@@ -21,12 +21,15 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import type { AuthService } from "../../domains/auth/service.js";
+import { sentinelHits } from "./leakSentinels.js";
 
 const ALICE = "alice-uid";
 const DM = "dm-uid";
 
-// Values that cannot collide with anything else in a frame, so a raw-bytes
-// not.toContain is meaningful.
+// Distinctive sentinels, checked STRUCTURALLY (leakSentinels.ts): the old
+// raw-substring bar collided with `lastHeartbeat: Date.now()` — epoch
+// 1788145099738 contains "9973", which is how CI #828 went red on
+// byte-identical code that #827 had passed.
 const SECRET_HP = 4471;
 const SECRET_MAX_HP = 9973;
 const SECRET_TEMP_HP = 3319;
@@ -38,10 +41,6 @@ interface FakeSocket {
 
 function fakeSocket(): FakeSocket {
   return { readyState: 1, send: vi.fn() };
-}
-
-function rawBytesSentTo(socket: FakeSocket): string {
-  return socket.send.mock.calls.map(([payload]) => String(payload)).join("\n");
 }
 
 /** NPC records from every full snapshot this socket received. */
@@ -166,9 +165,34 @@ describe("monster HP secrecy contracts", () => {
     expect(npc?.hpBadge).toBeUndefined();
     // The raw-bytes bar: a renderer-side filter would pass the object checks
     // above and fail these.
-    expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_HP));
-    expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_MAX_HP));
-    expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_TEMP_HP));
+    expect(sentinelHits(aliceWs, SECRET_HP)).toEqual([]);
+    expect(sentinelHits(aliceWs, SECRET_MAX_HP)).toEqual([]);
+    expect(sentinelHits(aliceWs, SECRET_TEMP_HP)).toEqual([]);
+  });
+
+  it("a heartbeat that spells the sentinel is not a leak — CI #828, replayed", () => {
+    // The exact wild value: 2026-08-31T02:58:19.738Z, whose epoch contains
+    // "9973". Under the old substring bar this test is red; the redaction
+    // itself was working the whole time.
+    for (const entry of roomService.getState().players) {
+      entry.lastHeartbeat = 1788145099738;
+    }
+    route({ t: "set-monster-hp-display", mode: "hidden" }, DM);
+
+    expect(npcsSeenBy(aliceWs).at(-1)?.maxHp).toBeUndefined();
+    expect(sentinelHits(aliceWs, SECRET_MAX_HP)).toEqual([]);
+  });
+
+  it("the walk itself can fail: planted leaks are found, timestamps are not", () => {
+    const planted = fakeSocket();
+    planted.send(JSON.stringify({ renamed: { sneakyField: SECRET_MAX_HP } }));
+    planted.send(JSON.stringify({ chatLog: [{ text: `the goblin has ${SECRET_MAX_HP} hp` }] }));
+    planted.send(JSON.stringify({ lastHeartbeat: 1788145099738 }));
+
+    const hits = sentinelHits(planted, SECRET_MAX_HP);
+    expect(hits).toHaveLength(2);
+    expect(hits[0]).toContain("sneakyField");
+    expect(hits[1]).toContain("chatLog");
   });
 
   it("bloodied mode: players get the coarse badge, never the numbers", () => {
@@ -179,9 +203,9 @@ describe("monster HP secrecy contracts", () => {
     expect(npc?.hpBadge).toBe("bloodied");
     expect(npc?.hp).toBeUndefined();
     expect(npc?.tempHp).toBeUndefined();
-    expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_HP));
-    expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_MAX_HP));
-    expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_TEMP_HP));
+    expect(sentinelHits(aliceWs, SECRET_HP)).toEqual([]);
+    expect(sentinelHits(aliceWs, SECRET_MAX_HP)).toEqual([]);
+    expect(sentinelHits(aliceWs, SECRET_TEMP_HP)).toEqual([]);
   });
 
   it("the DM always sees exact numbers, whatever the mode", () => {
@@ -204,8 +228,10 @@ describe("monster HP secrecy contracts", () => {
     });
     route({ t: "set-monster-hp-display", mode: "hidden" }, DM);
 
-    expect(rawBytesSentTo(aliceWs)).toContain("7717");
-    expect(rawBytesSentTo(aliceWs)).toContain("7919");
+    // Structural, not substring: a timestamp that happened to spell these
+    // digits would satisfy a raw toContain even with the PC over-redacted.
+    expect(sentinelHits(aliceWs, 7717)).not.toEqual([]);
+    expect(sentinelHits(aliceWs, 7919)).not.toEqual([]);
   });
 
   it("a player cannot change the mode", () => {
