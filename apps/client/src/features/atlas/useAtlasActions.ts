@@ -10,12 +10,19 @@ import { useMemo } from "react";
 import type { AtlasNodeKind, ClientMessage } from "@herobyte/shared";
 import { generateUUID } from "../../utils/uuid";
 
+export interface AtlasGenerateParams {
+  theme: "stone" | "wood";
+  density: "low" | "medium" | "high";
+  size: "small" | "medium" | "large";
+}
+
 export interface AtlasActions {
   createNode: (kind: AtlasNodeKind, name: string, parentId?: string) => void;
   renameNode: (nodeId: string, name: string) => void;
   setDiscovered: (nodeId: string, discovered: boolean) => void;
   deleteNode: (nodeId: string) => void;
   linkMap: (nodeId: string, documentId: string) => void;
+  generateNode: (nodeId: string, seed: number, params: AtlasGenerateParams) => void;
 }
 
 export function useAtlasActions(sendAtlasMessage: (message: ClientMessage) => void): AtlasActions {
@@ -33,6 +40,17 @@ export function useAtlasActions(sendAtlasMessage: (message: ClientMessage) => vo
       deleteNode: (nodeId) => sendAtlasMessage({ t: "atlas-delete-node", nodeId }),
       linkMap: (nodeId, documentId) =>
         sendAtlasMessage({ t: "atlas-link-map", nodeId, documentId }),
+      generateNode: (nodeId, seed, params) =>
+        sendAtlasMessage({
+          t: "atlas-generate-node",
+          nodeId,
+          // Minted explicitly (not left to the ack layer's stamp) because it
+          // is ALSO the recipe's element idPrefix — the value is meaningful,
+          // not just transport bookkeeping.
+          commandId: generateUUID(),
+          seed,
+          params,
+        }),
     }),
     [sendAtlasMessage],
   );

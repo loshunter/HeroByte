@@ -32,6 +32,13 @@ describe("atlas message validators", () => {
       { t: "atlas-link-map", nodeId: "node-1", documentId: "doc-1" },
       { t: "atlas-create-link", link: LINK },
       { t: "atlas-delete-link", linkId: "link-1" },
+      {
+        t: "atlas-generate-node",
+        nodeId: "node-1",
+        commandId: "cmd-1",
+        seed: 42,
+        params: { theme: "stone", density: "medium", size: "small" },
+      },
     ];
     for (const message of valid) {
       const result = validateMessage(message as never);
@@ -74,6 +81,34 @@ describe("atlas message validators", () => {
       { t: "atlas-create-link", link: { ...LINK, anchor: { x: 2_000_000, y: 0 } } },
       { t: "atlas-create-link", link: { ...LINK, visibleToPlayers: "yes" } },
       { t: "atlas-delete-link", linkId: 7 },
+      {
+        t: "atlas-generate-node",
+        nodeId: "node-1",
+        commandId: "cmd-1",
+        seed: 4.5,
+        params: { theme: "stone", density: "medium", size: "small" },
+      },
+      {
+        t: "atlas-generate-node",
+        nodeId: "node-1",
+        commandId: "cmd-1",
+        seed: 42,
+        params: { theme: "stone", density: "medium", size: "gargantuan" },
+      },
+      {
+        t: "atlas-generate-node",
+        nodeId: "node-1",
+        commandId: "c".repeat(121),
+        seed: 42,
+        params: { theme: "stone", density: "medium", size: "small" },
+      },
+      {
+        t: "atlas-generate-node",
+        nodeId: "node-1",
+        commandId: "cmd-1",
+        seed: 42,
+        params: { theme: "stone", density: "medium", size: "small", smuggled: true },
+      },
     ];
     for (const message of invalid) {
       const result = validateMessage(message as never);

@@ -807,6 +807,18 @@ cache CANNOT provide cross-attempt idempotency here (its key contains the per-at
 the node guard does.
 **Escalate if:** the handler can't stay a thin composition of existing pieces.
 
+> **A3 SHIPPED** (2026-09-01, one commit; gate: shared 424, server **2236** (+6), client
+> **5445** (+3), e2e 167/3/0). Sabotage 7/7 red (node guard, orphan cleanup, both mint caps,
+> provenance, client commandId, panel mount). Browser-verified: a promise node cashed into a
+> 28-wall / 6-door dungeon with terrain, live on the table, `currentAtlasNodeId` reading
+> "you are here", provenance seed on the node, ZERO bytes of it on the player wire; the
+> mobile generate panel measured 327px inside the 375px DM screen. As planned, the handler
+> extracted to `atlasGenerate.ts` BEFORE the case landed (AtlasMessageHandler was at 282);
+> the `map-studio-create` mint cap ships in the same slice with its own test. One deviation:
+> size presets are a `size` param on the message (small/medium/large → GENERATE_PRESETS in
+> the server module), not client-sent bounds — the client cannot mis-size a document it
+> never measures.
+
 ---
 
 ### A4 🔴 — SceneState + travel (the keystone)

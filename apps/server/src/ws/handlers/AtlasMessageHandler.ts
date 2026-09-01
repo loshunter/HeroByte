@@ -24,8 +24,10 @@ import {
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
+import { handleAtlasGenerateNode } from "./atlasGenerate.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
+type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
 type GetRoomState = (roomId: string) => RoomState;
 
 export const ATLAS_DM_REQUIRED = "Atlas actions require DM permission";
@@ -44,6 +46,7 @@ export class AtlasMessageHandler {
     private readonly getRoomState: GetRoomState,
     private readonly sendMessage: SendMessage,
     private readonly mapStudioService: MapStudioService,
+    private readonly broadcastToDMs: BroadcastToDMs = () => {},
     private readonly now: () => number = Date.now,
   ) {}
 
@@ -74,6 +77,20 @@ export class AtlasMessageHandler {
         return this.createLink(state, senderUid, roomId, message.link);
       case "atlas-delete-link":
         return this.deleteLink(state, message.linkId);
+      case "atlas-generate-node":
+        // Extracted for the 350-LOC cap; validate-then-persist lives there.
+        return handleAtlasGenerateNode(
+          {
+            mapStudioService: this.mapStudioService,
+            broadcastToDMs: this.broadcastToDMs,
+            sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
+            now: this.now,
+          },
+          state,
+          senderUid,
+          roomId,
+          message,
+        );
       default:
         // Future atlas-* types (generate, travel) land in their own slices;
         // an unrouted one must FAIL LOUDLY rather than ack success.

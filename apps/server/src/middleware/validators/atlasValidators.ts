@@ -79,6 +79,23 @@ const deleteLinkSchema = z.object({
   linkId: id,
 });
 
+// The commandId becomes every generated element's id prefix (`${id}:e<n>`) and
+// the element-id contract caps ids at 128 chars — 120 leaves room for the
+// suffix (the generationValidators precedent).
+const generateNodeSchema = z.object({
+  t: z.literal("atlas-generate-node"),
+  nodeId: id,
+  commandId: z.string().trim().min(1).max(120),
+  seed: z.number().int(),
+  params: z
+    .object({
+      theme: z.enum(["stone", "wood"]),
+      density: z.enum(["low", "medium", "high"]),
+      size: z.enum(["small", "medium", "large"]),
+    })
+    .strict(),
+});
+
 function run(schema: z.ZodTypeAny, message: MessageRecord): ValidationResult {
   const result = schema.safeParse(message);
   if (result.success) {
@@ -109,4 +126,7 @@ export function validateAtlasCreateLinkMessage(message: MessageRecord): Validati
 }
 export function validateAtlasDeleteLinkMessage(message: MessageRecord): ValidationResult {
   return run(deleteLinkSchema, message);
+}
+export function validateAtlasGenerateNodeMessage(message: MessageRecord): ValidationResult {
+  return run(generateNodeSchema, message);
 }

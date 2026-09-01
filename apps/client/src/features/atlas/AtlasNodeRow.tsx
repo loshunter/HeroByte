@@ -9,6 +9,7 @@
 import { useState } from "react";
 import type { AtlasNodeSnapshot, MapDocumentSummary } from "@herobyte/shared";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
+import { AtlasGeneratePanel } from "./AtlasGeneratePanel";
 import type { AtlasActions } from "./useAtlasActions";
 
 const KIND_ICONS: Record<string, string> = {
@@ -31,6 +32,7 @@ interface AtlasNodeRowProps {
 export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: AtlasNodeRowProps) {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [linkDocId, setLinkDocId] = useState("");
+  const [generateOpen, setGenerateOpen] = useState(false);
 
   const status = isCurrent ? "▶" : node.mapDocumentId ? "▣" : "⬒";
   const statusLabel = isCurrent ? "you are here" : node.mapDocumentId ? "mapped" : "promise";
@@ -110,7 +112,16 @@ export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: Atl
           >
             🔗 Link existing map
           </JRPGButton>
+          <JRPGButton
+            onClick={() => setGenerateOpen((open) => !open)}
+            style={{ fontSize: "9px", padding: "2px 6px" }}
+          >
+            🎲 Generate…
+          </JRPGButton>
         </div>
+      )}
+      {!node.mapDocumentId && generateOpen && (
+        <AtlasGeneratePanel nodeId={node.id} nodeName={node.name} actions={actions} />
       )}
     </li>
   );

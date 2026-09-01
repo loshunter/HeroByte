@@ -281,6 +281,7 @@ export class MessageRouter {
       () => this.roomService.getState(),
       (targetUid, message) => this.sendControlMessage(targetUid, message),
       mapStudioService,
+      (roomId, message) => this.sendMapStudioMessageToDMs(roomId, message),
     );
     this.sceneMessageHandler = new SceneMessageHandler(() => this.roomService.getState());
   }

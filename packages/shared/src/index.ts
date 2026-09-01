@@ -995,6 +995,21 @@ type ClientMessagePayload =
   | { t: "atlas-link-map"; nodeId: string; documentId: string } // cash a promise with an existing document; 1:1 node↔document enforced
   | { t: "atlas-create-link"; link: MapLink } // a travel sprite; anchor is DOCUMENT px on the from-node's map
   | { t: "atlas-delete-link"; linkId: string }
+  | {
+      t: "atlas-generate-node";
+      nodeId: string;
+      // Client-minted; doubles as the recipe's element idPrefix and the
+      // place-room dedupe key. NOT the cross-attempt idempotency — the dedupe
+      // cache key contains the (per-attempt, server-minted) document id, so
+      // the node-already-mapped guard is what makes a retry safe.
+      commandId: string;
+      seed: number;
+      params: {
+        theme: "stone" | "wood";
+        density: "low" | "medium" | "high";
+        size: "small" | "medium" | "large"; // preset cols×rows — see GENERATE_PRESETS
+      };
+    } // Cash a promise: mint a document, run the dungeon recipe into it, record provenance
 
   // Live scene interactions (compiled doors are clickable at the table)
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles

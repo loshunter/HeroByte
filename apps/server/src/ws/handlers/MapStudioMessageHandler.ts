@@ -26,6 +26,7 @@ import {
 } from "../../domains/generation/recipeContext.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
+import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -61,6 +62,15 @@ export class MapStudioMessageHandler {
         });
         break;
       case "map-studio-create": {
+        // The mint ceiling (A3): a room past MAX_SESSION_DOCUMENTS writes a
+        // session file its OWN reimport rejects — the DM's backup silently
+        // stops being a backup. Thrown like the duplicate-id case: the nack
+        // carries the reason and the create simply does not happen.
+        if (this.service.list(roomId).length >= MAX_SESSION_DOCUMENTS) {
+          throw new Error(
+            `This table already holds the maximum of ${MAX_SESSION_DOCUMENTS} map documents — delete one first.`,
+          );
+        }
         const document = this.service.create(roomId, {
           ...message.document,
           timestamp: this.now(),

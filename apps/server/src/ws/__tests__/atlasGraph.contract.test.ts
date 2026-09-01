@@ -463,6 +463,127 @@ describe("atlas graph contracts", () => {
     expect(errors.some((entry) => entry.code === "rejected")).toBe(true);
   });
 
+  function generateMessage(nodeId: string, commandId: string, seed = SENTINEL_SEED): ClientMessage {
+    return {
+      t: "atlas-generate-node",
+      nodeId,
+      commandId,
+      seed,
+      params: { theme: "stone", density: "medium", size: "small" },
+    };
+  }
+
+  it("cashes a promise: document minted at preset size, node mapped with provenance, seed never on a player's wire", async () => {
+    createNode("promise-1");
+    route({ t: "atlas-update-node", nodeId: "promise-1", patch: { discovered: true } }, DM);
+
+    route(generateMessage("promise-1", "gen-1"), DM);
+    await flush();
+
+    const node = nodes().find((entry) => entry.id === "promise-1");
+    expect(node?.mapDocumentId).toBeDefined();
+    expect(node?.recipe).toEqual({
+      recipeId: "dungeon",
+      seed: SENTINEL_SEED,
+      theme: "stone",
+      density: "medium",
+    });
+    const document = mapStudioService.get("default", node!.mapDocumentId!);
+    expect({ width: document.width, height: document.height }).toEqual({
+      width: 24 * 50,
+      height: 20 * 50,
+    });
+    expect(document.elements.length).toBeGreaterThan(0);
+    // The DM's studio channel learned about the new document...
+    expect(
+      (messagesOf(dmWs, "map-studio-document") as { document?: { id?: string } }[]).some(
+        (frame) => frame.document?.id === node!.mapDocumentId,
+      ),
+    ).toBe(true);
+    // ...while the DISCOVERED node's provenance seed still never reaches the
+    // player (the projection strips recipe even on visible nodes).
+    expect(sentinelHits(playerWs, SENTINEL_SEED)).toEqual([]);
+    expect(messagesOf(playerWs, "map-studio-document")).toHaveLength(0);
+  });
+
+  it("acks a replayed generate as a no-op — the node guard, not the dedupe cache, is the idempotency", async () => {
+    createNode("promise-1");
+    route(generateMessage("promise-1", "gen-1"), DM);
+    const firstDocId = nodes().find((entry) => entry.id === "promise-1")?.mapDocumentId;
+
+    route(generateMessage("promise-1", "gen-1"), DM);
+    await flush();
+
+    expect(nodes().find((entry) => entry.id === "promise-1")?.mapDocumentId).toBe(firstDocId);
+    expect(mapStudioService.list("default")).toHaveLength(1);
+    expect(messagesOf(dmWs, "atlas-error")).toHaveLength(0);
+  });
+
+  it("deletes the minted document when the apply fails — a failed generate persists NOTHING", async () => {
+    createNode("promise-1");
+    const applySpy = vi.spyOn(mapStudioService, "apply").mockImplementationOnce(() => {
+      throw new Error("forced apply failure");
+    });
+    try {
+      route(generateMessage("promise-1", "gen-fail"), DM);
+      await flush();
+
+      expect(mapStudioService.list("default")).toHaveLength(0);
+      expect(nodes().find((entry) => entry.id === "promise-1")?.mapDocumentId).toBeUndefined();
+      const errors = messagesOf(dmWs, "atlas-error") as { code?: string }[];
+      expect(errors.some((entry) => entry.code === "rejected")).toBe(true);
+
+      // ...and a RETRY after the transient failure succeeds with exactly one document.
+      route(generateMessage("promise-1", "gen-retry"), DM);
+      expect(mapStudioService.list("default")).toHaveLength(1);
+      expect(nodes().find((entry) => entry.id === "promise-1")?.mapDocumentId).toBeDefined();
+    } finally {
+      applySpy.mockRestore();
+    }
+  });
+
+  it("refuses to mint past MAX_SESSION_DOCUMENTS on BOTH create paths — the export must stay re-importable", async () => {
+    for (let index = 0; index < 64; index += 1) {
+      mapStudioService.create("default", { id: `doc-${index}`, name: `doc ${index}` });
+    }
+    createNode("promise-1");
+
+    route(generateMessage("promise-1", "gen-cap"), DM);
+    await flush();
+    expect(mapStudioService.list("default")).toHaveLength(64);
+    const errors = messagesOf(dmWs, "atlas-error") as { code?: string }[];
+    expect(errors.some((entry) => entry.code === "at-cap")).toBe(true);
+
+    // The map-studio-create path refuses too (thrown → routed error log).
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      route({ t: "map-studio-create", document: { id: "doc-65", name: "one too many" } }, DM);
+      expect(mapStudioService.list("default")).toHaveLength(64);
+      expect(errorLog).toHaveBeenCalled();
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
+
+  it("generates identical geometry from identical seed+params — provenance is reproducible", async () => {
+    createNode("a-node");
+    createNode("b-node");
+    route(generateMessage("a-node", "gen-a", 424242), DM);
+    route(generateMessage("b-node", "gen-b", 424242), DM);
+
+    const docA = mapStudioService.get(
+      "default",
+      nodes().find((entry) => entry.id === "a-node")!.mapDocumentId!,
+    );
+    const docB = mapStudioService.get(
+      "default",
+      nodes().find((entry) => entry.id === "b-node")!.mapDocumentId!,
+    );
+    const geometryOf = (doc: typeof docA) => doc.elements.map(({ id: _id, ...rest }) => rest);
+    expect(geometryOf(docA)).toEqual(geometryOf(docB));
+    expect(docA.terrain).toEqual(docB.terrain);
+  });
+
   it("refuses the 65th node with at-cap", async () => {
     const state = roomService.getState();
     for (let index = 0; index < ATLAS_LIMITS.nodes; index += 1) {

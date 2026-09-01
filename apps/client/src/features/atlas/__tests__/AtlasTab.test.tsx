@@ -135,4 +135,20 @@ describe("AtlasTab", () => {
     expect(screen.queryByRole("button", { name: "🔗 Link existing map" })).toBeNull();
     expect(screen.getByLabelText("mapped: name-n1")).toBeInTheDocument();
   });
+
+  it("opens the generate panel on a promise node and sends the message with a minted commandId", () => {
+    const { onAtlasMessage } = renderTab({ atlasNodes: [node("n1")] });
+    fireEvent.click(screen.getByRole("button", { name: "🎲 Generate…" }));
+    fireEvent.click(screen.getByRole("button", { name: "🎲 GENERATE" }));
+
+    expect(onAtlasMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        t: "atlas-generate-node",
+        nodeId: "n1",
+        commandId: expect.any(String),
+        seed: expect.any(Number),
+        params: { theme: "stone", density: "medium", size: "medium" },
+      }),
+    );
+  });
 });
