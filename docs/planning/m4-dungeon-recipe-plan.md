@@ -5,6 +5,7 @@
 > **What this document is now:** the record of how M4 Phase 1 was built, including the places the plan was WRONG and what replaced it. Read the `[G*-RESOLVED]` / `[G*-SHIPPED]` notes before touching the generator — each one is a bug the arc already paid for.
 >
 > **The two spec errors, found in flight:**
+>
 > - **G2** — a rolled room side of up to 9 cannot fit the 8×8 minimum; sides are CLAMPED, not rejected (§5 G2, which also guarantees ≥1 room for every seed).
 > - **G3** — the wall rule was flat wrong: door sites sit on room↔corridor seams where BOTH cells are floor, so "floor↔non-floor minus door sites" removed nothing and left every wide corridor holed. See `[G3-RESOLVED]`.
 >
@@ -13,8 +14,8 @@
 > **[G7-SHIPPED] Generated dungeons author NO secret doors — the dial is gone.** The three G4.5 attacks were beaten, but a fourth channel could not be: `mapTerrain` ships the whole floor plan unfiltered, a wall with floor on both sides can only be a room/corridor seam, and every honest seam group carries exactly one door — so a doorless seam group **is** a secret door, recovered at **202/202 with no false positives**, no matter what the geometry does. That is a property of shipping the floor plan, not of the disguise. Rather than sell a dial that lies, `emitDoors` authors every generated door `closed`, the wire schema `.strict()`-rejects a stale client still sending `secretDoorChance`, and the panel says so out loud. **Hand-placed secret doors are unaffected** — the disguise still ships for them and is still tested (`domains/room/__tests__/compiledSceneView.test.ts`, now hand-authored). **Restoring the dial requires fog-aware terrain** (VISION's memory fog: stop shipping unexplored floor), not a tweak to the generator. See §7.
 >
 > **Deferred to later M4 phases:** §7.
-**Mission:** The first Living World recipe. A DM drags a rectangle with the new GENERATE tool, picks a theme and density, and a dungeon exists on the live table in seconds — rooms, corridors, blocking walls, clickable doors, brazier lights, and GM-only spawn markers — deterministic by seed, applied as **ONE undoable command**, with fog and vision live by construction. Same seed, same params → bit-identical dungeon, forever (the foundation of Cartridge Codes).
-**Vision alignment:** VISION.md Pillar 1 ("generators emit MapDocument elements, never rasters") and milestone M4. The prior plan's §7 explicitly deferred "generation recipes emitting into the live-bound document (M4 — the whole point of these rails)" — this plan cashes that IOU. Shipping order per VISION: **dungeon first**; building/wilderness/town/world recipes, the Atlas, and SceneStates are later M4 phases (§7).
+> **Mission:** The first Living World recipe. A DM drags a rectangle with the new GENERATE tool, picks a theme and density, and a dungeon exists on the live table in seconds — rooms, corridors, blocking walls, clickable doors, brazier lights, and GM-only spawn markers — deterministic by seed, applied as **ONE undoable command**, with fog and vision live by construction. Same seed, same params → bit-identical dungeon, forever (the foundation of Cartridge Codes).
+> **Vision alignment:** VISION.md Pillar 1 ("generators emit MapDocument elements, never rasters") and milestone M4. The prior plan's §7 explicitly deferred "generation recipes emitting into the live-bound document (M4 — the whole point of these rails)" — this plan cashes that IOU. Shipping order per VISION: **dungeon first**; building/wilderness/town/world recipes, the Atlas, and SceneStates are later M4 phases (§7).
 
 ---
 
@@ -22,7 +23,7 @@
 
 Same method as `live-map-toolbar-plan.md` (small verifiable slices). Rules, unchanged and binding:
 
-1. **Do the slices in order** (G1→G6). Don't start a slice until the previous one's *Done when* is fully green.
+1. **Do the slices in order** (G1→G6). Don't start a slice until the previous one's _Done when_ is fully green.
 2. **Read only the Context Capsule files.** Anchors are from 2026-07-14 (`7c21198e`); match on the quoted code, not the line number.
 3. **Never exceed 348 lines in a NEW file.** The guard fails at `loc >= 350`, the trailing newline counts, and `prettier --fix` can EXPAND a file over the cap. `.json` fixtures are not scanned — prefer them for goldens.
 4. **Write the slice's tests in the same commit.** Run the full verification ritual (§8) before claiming done.
@@ -59,7 +60,7 @@ Every hard problem this feature has was already solved by the live-map arc:
 
 - **One-undo cross-type application exists:** the `place-room` command paints terrain cells AND adds elements under a single `commit()` — one revision bump, one undo step, all-or-nothing (`placeRoom`, `packages/shared/src/mapStudioElements.ts:67-76`). The dungeon is just a much bigger `place-room` payload.
 - **Live recompile exists:** applying any command to the live-bound document triggers `recompileLiveScene` — compiled walls/doors (door runtime states preserved), `mapTerrain`, player-safe `mapElements`, broadcast, save (`MapStudioMessageHandler.ts:67-88, 175-191`). Generation inherits fog, vision, movement blocking, and the secret-door disguise with zero new code.
-- **Privacy exists:** `deriveMapElements` strips `kind: "notes"` layers entirely (`scenePublish.ts:110`) — GM spawn markers are DM-only *by construction*. Secret doors are disguised as anonymous walls in player payloads (`model.ts:297-325`). Both are already contract-tested.
+- **Privacy exists:** `deriveMapElements` strips `kind: "notes"` layers entirely (`scenePublish.ts:110`) — GM spawn markers are DM-only _by construction_. Secret doors are disguised as anonymous walls in player payloads (`model.ts:297-325`). Both are already contract-tested.
 - **Determinism exists:** `createSeededRng` (mulberry32, `packages/shared/src/rng.ts`) — its header names "generation recipes, and Cartridge Codes" as intended consumers. `populateRoom.ts` established the discipline: fixed rolls-per-cell before any skip, seed threading, no `Math.random()`.
 - **Undo/idempotency/conflicts exist:** `MapStudioService.apply` gives command dedupe (`roomId:docId:commandId` cache), per-doc undo history, and revision-conflict errors to anything that speaks `MapStudioCommand` (`domains/mapStudio/service.ts:76-105`).
 
@@ -91,6 +92,7 @@ DM palette drag ──► { t: "map-studio-generate", documentId, commandId, rec
 **Deterministic ids (the golden-snapshot landmine, solved by construction):** the recipe NEVER calls `generateUUID`. Every element id comes from ONE shared counter: `${idPrefix}:e<n>` (e.g. `abc123:e0`, `abc123:e17`), where `idPrefix = message.commandId`. The commandId is client-minted per generation (unique → no collision with prior generations in the same doc), and a network retry with the same commandId hits the dedupe cache instead of double-applying. Golden tests pin `idPrefix: "golden"` + a fixed seed + a fixed timestamp → byte-stable output.
 **Why ONE counter and NO kind letters (security, do not "improve"):** player payloads disguise secret doors as anonymous wall segments with id `${door.id}#0` next to real walls' `${wall.id}#<i>`. If door ids carried a `d` marker and walls a `w`, a player reading frames could fingerprint every disguised secret door by its id shape. A uniform `e<n>` space makes them indistinguishable.
 **[G4.5 — the above was NOT ENOUGH. Two more properties are load-bearing; the gate broke the disguise three ways.]**
+
 1. **The ids must be PERMUTED, not sequential.** A kind-free counter still leaks when the emission order is kind-grouped: walls took `e0..e(W-1)` and doors `e(W)..`, so the ORDINAL was the kind tag and a disguised door arrived in the wall list carrying a door-range number (gate: 27/32 recall, 0 false positives). `dungeonRecipe` now re-mints every id from a seeded Fisher-Yates permutation on its own frozen `ID_STREAM`. This also makes id GAPS meaningless, which matters because of (2).
 2. **The player's blocking set must be RE-MERGED** (`compiledSceneView.compiledSceneFor`). Generated walls are maximal runs, so among real walls no two segments are ever collinear AND touching; splicing a 1-cell disguised door into a run creates exactly that impossible junction (gate: 30/32 recall, 0 false positives — and a `secretDoorChance: 0` control flagged ZERO, which is what made it conclusive). Merging fuses the door back into its neighbours, so the payload becomes what a plain wall on that seam would emit. It also makes the door's own id vanish. **Fusion must never join segments that block differently** (a window beside a wall) — blocking is the one thing that may never be cosmetic.
 3. **Secret doors must bake AS WALL in the raster** (`exportMapDocument`). Walls leave a one-cell gap where a door sits and `DoorsLayer` only covers doors the recipient received — never the secret ones — so baking nothing left a bare hole in the published art that read as "secret door here" with no socket inspection at all.
@@ -101,7 +103,7 @@ DM palette drag ──► { t: "map-studio-generate", documentId, commandId, rec
 
 ### 2.3 Why not alternatives (recorded so nobody relitigates)
 
-- **A new `MapStudioCommand` variant ("generate-dungeon") applied in shared:** puts recipe params in the wire command union and the recipe inside `applyMapDocumentCommand` — bloats the shared protocol, and `mapStudioValidators.ts` sits AT the 349-line structure ceiling. The recipe's *output* is already expressible as `place-room`. Rejected.
+- **A new `MapStudioCommand` variant ("generate-dungeon") applied in shared:** puts recipe params in the wire command union and the recipe inside `applyMapDocumentCommand` — bloats the shared protocol, and `mapStudioValidators.ts` sits AT the 349-line structure ceiling. The recipe's _output_ is already expressible as `place-room`. Rejected.
 - **A new `GenerationService` in the Container:** the recipe is stateless; a service adds a 13th MessageRouter constructor param, and four contract tests construct MessageRouter with exactly 12 positional args relying on defaulted trailing params (`messageRouter.ts:129-144`). Pure imports carry zero risk. Rejected (revisit when recipes need stores — e.g. custom recipe packs).
 - **Client-side generation (POPULATE-style drafts):** works today, but VISION mandates server-side recipes ("pure, seeded server-side functions in a DI-registered domains/generation") because mid-session generation must be server-authoritative and Cartridge Codes need one canonical implementation. Also: a maxed dungeon payload as a client message flirts with the 1MB WS cap; the trigger message is ~200 bytes. Rejected.
 - **Generating into a fresh document + auto-binding it:** hostile to the "kick in a door mid-session" flow (the party is standing on the current map) and adds a bind/unbind state machine. The recipe generates into the CURRENT live doc at the dragged bounds. Rejected for this phase.
@@ -111,15 +113,16 @@ DM palette drag ──► { t: "map-studio-generate", documentId, commandId, rec
 
 ## 3. Units and spaces (memorize this)
 
-| Space | Used by | Convert |
-|---|---|---|
-| **Grid cells** (integer) | `bounds` in the generate message; `TerrainPaintCell.x/y`; layout algorithm (G2) | cell → document px: `px = cell * grid.size + grid.offsetX` (corner), center adds `grid.size / 2` |
-| **Document px** | element transforms, wall `data.points`, door `transform.x/y` + `data.width`, light radius | px → cell: `Math.round((px - grid.offsetX) / grid.size)` |
-| **Wall lattice** | wall polylines run along CELL EDGES (corners at `cell * size + offset`), not cell centers | a door's `transform.x/y` is the edge's START corner (the lower-coordinate end); the compiled segment runs from the transform to `(width, 0)` THROUGH the transform (`sceneCompiler.ts:91-94`) — so a door on edge (x,y)→(x+1,y) has transform at the (x,y) corner, `width = grid.size`, rotation 0 (horizontal) or 90 (vertical) |
+| Space                    | Used by                                                                                   | Convert                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Grid cells** (integer) | `bounds` in the generate message; `TerrainPaintCell.x/y`; layout algorithm (G2)           | cell → document px: `px = cell * grid.size + grid.offsetX` (corner), center adds `grid.size / 2`                                                                                                                                                                                                                                 |
+| **Document px**          | element transforms, wall `data.points`, door `transform.x/y` + `data.width`, light radius | px → cell: `Math.round((px - grid.offsetX) / grid.size)`                                                                                                                                                                                                                                                                         |
+| **Wall lattice**         | wall polylines run along CELL EDGES (corners at `cell * size + offset`), not cell centers | a door's `transform.x/y` is the edge's START corner (the lower-coordinate end); the compiled segment runs from the transform to `(width, 0)` THROUGH the transform (`sceneCompiler.ts:91-94`) — so a door on edge (x,y)→(x+1,y) has transform at the (x,y) corner, `width = grid.size`, rotation 0 (horizontal) or 90 (vertical) |
 
 The recipe works internally in cells and converts to px exactly once, in G3's emission step, using the document's OWN `grid` (from `RecipeContext`) — never a hardcoded 50. Client-side, the drag rect converts world→doc px via the existing `usePointerToDoc`, then px→cells with the math above. **If a wall lands offset from a floor by half a cell, you have mixed corner-lattice and center-lattice — stop and re-read this table.**
 
 Caps the recipe must respect **by construction** (validated in G1's context resolver, not after the fact):
+
 - `MAX_TERRAIN_PAINT_CELLS = 16384` floor cells per command (shared, thrown, all-or-nothing — `mapStudio.ts:200`) → bounds are clamped to ≤ 16384 total cells (e.g. 128×128) at the validator AND the resolver.
 - 5000 elements per command (zod `elementsBatch`; server-initiated applies bypass zod, respect it anyway). Recipe budget: walls+doors+lights+notes ≤ 1000, stamps ≤ 2000 (`MAX_POPULATE_STAMPS` precedent).
 - Integer cell coords, `|cell| ≤ 65536`; terrain palette ≤ 512 (a theme uses ~2 families — fine).
@@ -130,14 +133,14 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 ## 4. Golden rules (violating any of these fails CI or ships a bug)
 
 1. **Determinism is the product.** No `Math.random()`, no `Date.now()`, no `crypto.randomUUID()`, no iteration over object-key order anywhere in `domains/generation`. All randomness flows from the three derived `createSeededRng` streams (§2.2 — do NOT reimplement the seeding; the float64 seed-hash collision was already found and fixed once). All ids from the single `idPrefix` counter (§2.2 — the kind-free shape is a SECURITY property). Timestamps come from the handler's injectable `this.now()`.
-1b. **"Identity transform at (x, y)" means `{ x, y, scaleX: 1, scaleY: 1, rotation: r }`.** NEVER emit scale 0: `sanitizeElement` requires POSITIVE scaleX/scaleY (`mapStudioValidation.ts:20-21`) and one bad element aborts the whole all-or-nothing command. Wherever this plan says a wall has an "identity transform", the points carry the geometry and the transform is `{x:0, y:0, scaleX:1, scaleY:1, rotation:0}`.
-2. **RNG-stream stability discipline** (from `populateRoom.ts:103-108`): draw a FIXED number of rolls per decision point *before* any conditional skip, so adding a skip case never shifts the stream for everything after it.
+   1b. **"Identity transform at (x, y)" means `{ x, y, scaleX: 1, scaleY: 1, rotation: r }`.** NEVER emit scale 0: `sanitizeElement` requires POSITIVE scaleX/scaleY (`mapStudioValidation.ts:20-21`) and one bad element aborts the whole all-or-nothing command. Wherever this plan says a wall has an "identity transform", the points carry the geometry and the transform is `{x:0, y:0, scaleX:1, scaleY:1, rotation:0}`.
+2. **RNG-stream stability discipline** (from `populateRoom.ts:103-108`): draw a FIXED number of rolls per decision point _before_ any conditional skip, so adding a skip case never shifts the stream for everything after it.
 3. **One command = one undo step.** The whole dungeon rides ONE `place-room`. If any output exceeds a cap, the recipe FAILS (clear error to the DM) — it never silently chunks into multiple commands.
 4. **The validator registry is a hard gate:** `map-studio-generate` must be registered in `apps/server/src/middleware/validation.ts` (the mapped type makes omission a COMPILE error once the message joins `ClientMessage`). New zod goes in a NEW module — `mapStudioValidators.ts` is AT the 349-line ceiling. Top-level message schemas must NOT be `.strict()` (the client ack layer stamps `commandId` onto outgoing messages).
 5. **Layer-kind discipline:** walls+doors → the `kind: "walls"` layer; lights → `"lighting"`; spawn markers → `"notes"` (this IS the privacy boundary); stamps → `"objects"`. Never the locked `"background"` layer (`requireEditableLayer` throws → all-or-nothing abort). Resolve by kind, never by hardcoded id.
 6. **Doors author `"closed"`** (or `"secret"`). An authored-open door compiles to nothing blocking — an invisible hole in the wall (`wallDoorDrafts.ts:29-35` documents this).
 7. **Stale shared dist / frozen test / 350-LOC guard / bundle budget:** all prior rules apply verbatim (prior plan §4). `apps/server/src/domains/room/model.ts` is AT the cap — this plan never touches it (nothing here changes RoomState).
-8. **Secrecy invariant:** `deriveMapElements` stays the SOLE producer of `RoomSnapshot.mapElements`. The recipe gets privacy by *emitting onto the right layers*, never by post-filtering.
+8. **Secrecy invariant:** `deriveMapElements` stays the SOLE producer of `RoomSnapshot.mapElements`. The recipe gets privacy by _emitting onto the right layers_, never by post-filtering.
 9. **`terrain` is shared-by-reference in store clones** (`cloneMapDocument` doesn't deep-clone it): never mutate `TerrainMap` chunks in place — always go through `placeRoom`/`paintTerrainCells` (immutable by design).
 
 ---
@@ -153,6 +156,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 **Goal:** the thinnest full vertical, pure backend: a `map-studio-generate` message with a TRIVIAL placeholder recipe (floored rect + perimeter wall — a server-side twin of the client room tool) lands on the live table as one undoable command. After this slice the rails are proven; G2–G4 only ever swap the recipe's brain.
 
 **Context capsule (read these, nothing else):**
+
 - `apps/server/src/ws/handlers/MapStudioMessageHandler.ts` — whole file. The `map-studio-command` case (67-88) is your template: `isLive` check at 69, pre-edit snapshot at 72-74 (needed by door-state preservation), `this.service.apply(roomId, message.command, this.now())` at 75, `broadcastDocument` at 76, `recompileLiveScene(roomId, previous, result.document)` at 80-82, `return { broadcast: true, save: true }`. Errors → `sendCommandError` (206-220) sends `{ t: "map-studio-error", commandId, documentId, code: "revision-conflict" | "command-rejected", reason }`. The `t.startsWith("map-studio-")` guard (256-260) + the DM throw (41-43) give the new message routing and DM-gating for free. Constructor (23-30) already injects `this.now` — thread it to the recipe's timestamp.
 - `apps/server/src/domains/mapStudio/service.ts:76-105` — `apply(roomId, command, timestamp)`: dedupe cache keyed `${roomId}:${documentId}:${commandId}` (replay returns cached result — this is why `idPrefix = commandId` is retry-safe); undo push (HISTORY_LIMIT 100); throws `MapDocumentNotFoundError` / `MapDocumentRevisionConflictError`. `get(roomId, documentId)` at 62-69 — read `baseRevision` from `.revision` immediately before `apply`.
 - `packages/shared/src/mapStudioCommands.ts:28-59` — the `place-room` variant: `MapCommandBase & { type: "place-room"; cells: TerrainPaintCell[]; elements: MapElement[] }`. `packages/shared/src/mapStudioElements.ts:67-76` — `placeRoom` is all-or-nothing under one commit.
@@ -162,6 +166,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 - Test templates: `apps/server/src/ws/__tests__/liveMapBinding.contract.test.ts:154-233` — real MessageRouter (12-arg construction) + real MapStudioService, `flush()` = 25ms sleep for the 16ms broadcast debounce, `snapshotsOf` frame filtering, DM/player socket assertions. `packages/shared/src/__tests__/placeRoom.test.ts:44-93` — the one-revision / all-or-nothing assertions to mirror.
 
 **Changes:**
+
 1. `packages/shared/src/index.ts`: add to ClientMessage:
    `| { t: "map-studio-generate"; documentId: string; commandId: string; recipe: "dungeon"; seed: number; bounds: { x: number; y: number; cols: number; rows: number }; params: { theme: "stone" | "wood"; density: "low" | "medium" | "high"; secretDoorChance: number } }`
    (bounds in CELLS; `secretDoorChance` 0..1). **Rebuild shared.**
@@ -173,6 +178,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 6. NEW `apps/server/src/middleware/validators/generationValidators.ts` (~70): zod for the message — ids ≤128 chars, `recipe: z.literal("dungeon")`, integer bounds with `cols/rows: z.number().int().min(8).max(16384)` PLUS a `.refine(b => b.cols * b.rows <= 16384, ...)` on the bounds object (per-field caps cannot express the product), `seed: z.number().int()`, params enums, `secretDoorChance: z.number().min(0).max(1)`; NOT `.strict()` at top level. Register in `validation.ts`; re-export via `validators/index.ts`.
 
 **Tests:**
+
 - `domains/generation/__tests__/recipeContext.test.ts`: layer resolution by kind; locked/missing kind errors; bounds cap math (16384 boundary, 16385 rejected); id factory sequence.
 - NEW `apps/server/src/ws/__tests__/generateDungeon.contract.test.ts` (liveMapBinding template): DM sends `map-studio-generate` against the live-bound doc → player snapshot gains `compiledScene.walls` + `mapTerrain` with NO publish; document revision advanced by exactly 1; DM `map-studio-document` frame carries `appliedCommandId === message.commandId`; a follow-up `{ type: "undo" }` command removes floor AND wall together; replaying the SAME message (same commandId) does not double-apply (revision unchanged); non-DM sender → nack, nothing applied; unknown documentId → `map-studio-error`, no crash.
 - Validator tests: acceptance + rejections (non-integer bounds, over-cap area, bad enum, chance > 1).
@@ -193,6 +199,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 **Goal:** `dungeonLayout.ts` — the algorithmic heart. Pure cell-space layout: non-overlapping rooms, connecting corridors, door sites. No elements, no px, no I/O. This slice is graded on its property tests.
 
 **Context capsule:**
+
 - `packages/shared/src/rng.ts:9-29` — `createSeededRng(seed): () => number` in `[0,1)`. The ONLY randomness source.
 - `apps/client/src/features/map-edit/populateRoom.ts:82-156` — the determinism discipline to copy (fixed rolls before skips; seed threading; caps as exported constants).
 - `apps/client/src/features/map-edit/hallwayBuilder.ts:118-160` — corridor band math precedent (axis-dominant, width band centered on the low cell).
@@ -200,6 +207,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 
 **Changes — NEW `apps/server/src/domains/generation/dungeonLayout.ts` (≤300, split `dungeonLayoutCorridors.ts` if needed):**
 `generateLayout(rng, cols, rows, density): DungeonLayout` (takes the ALREADY-CREATED `layoutRng` — §2.2 stream split) where `DungeonLayout = { rooms: CellRect[]; floor: Set-like of cells (encode "x,y" strings or a typed 2D bitset — pick one and document it); doorSites: Array<{ edge: { x: number; y: number; orientation: "h" | "v" }; roomIndex: number }> }`. Algorithm (deterministic by contract — where this spec leaves slack, the FIRST green implementation's golden freezes the choice; do not "improve" it later without owner sign-off):
+
 1. Room count target: `clamp(Math.round(area / divisor), 2, 40)` with divisor 140 (low), 90 (medium), 60 (high).
 2. Rejection-sample room rects: per attempt draw EXACTLY 4 rolls in order — `w = 3 + floor(rng()*7)`, `h = 3 + floor(rng()*7)`, `x = 1 + floor(rng()*(cols-w-1))`, `y = 1 + floor(rng()*(rows-h-1))` — BEFORE any overlap test; accept iff the rect plus a 1-cell margin overlaps no accepted room; stop at `attempts = target * 12` or when the target is met.
    **[G2-RESOLVED]** The spec gap: a rolled side of up to 9 does not fit the 8×8 minimum, so `x`'s span goes negative. Shipped resolution — CLAMP each side to what fits (`min(rolled, cols-2)`) instead of rejecting the attempt. Keeps the 4-roll stream, and makes the first attempt always accept, so every legal region yields ≥1 room for EVERY seed rather than leaving "did anything generate?" to chance.
@@ -208,15 +216,16 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 5. Floor = union of room interiors + corridor cells.
 
 **Tests (`__tests__/dungeonLayout.test.ts`) — the properties ARE the spec:**
+
 - **Determinism pair:** same (seed, cols, rows, density) twice → deep-equal; 5 different seeds → all pairwise different floor sets.
 - **Connectivity:** flood-fill from the first floor cell reaches EVERY floor cell (4-connected), for seeds 1..25 × three densities (cheap: ≤128×128).
 - **Bounds:** no floor cell outside (0..cols-1, 0..rows-1); no room touches another (gap ≥1) for seeds 1..25.
 - **Door sites** lie on a room boundary edge with corridor floor on the outside and room floor on the inside.
 - **[G2-ADDED] Walkability** (the load-bearing one — plain floor connectivity passes even if every room is walled shut): flood-fill where crossing a room/corridor seam is legal ONLY through a door site — i.e. simulate what G3 builds. Must reach every floor cell, seeds 1..25 × three densities. This is what proves a seam group can never lose its door.
 - **Caps:** floor count ≤ cols·rows ≤ 16384 by construction; minimum bounds (8×8) yield ≥1 room, no throw; below-minimum bounds never reach the layout (G1's validator + resolver reject them — assert that in G1's tests, not here).
-**Done when:** all green; run the determinism suite TWICE in a row (`pnpm --filter vtt-server test -- dungeonLayout`) to shake out accidental global state.
-**Traps:** never iterate a JS `Set`/object keys to make a random choice (insertion order is deterministic here, but make the *roll count* independent of it anyway — rule §4.2); Manhattan-nearest with index tie-break, or two runs on different V8 versions may disagree.
-**Escalate if:** connectivity requires post-hoc repair passes (a correct connector never disconnects — repair loops are where determinism dies).
+  **Done when:** all green; run the determinism suite TWICE in a row (`pnpm --filter vtt-server test -- dungeonLayout`) to shake out accidental global state.
+  **Traps:** never iterate a JS `Set`/object keys to make a random choice (insertion order is deterministic here, but make the _roll count_ independent of it anyway — rule §4.2); Manhattan-nearest with index tie-break, or two runs on different V8 versions may disagree.
+  **Escalate if:** connectivity requires post-hoc repair passes (a correct connector never disconnects — repair loops are where determinism dies).
 
 ---
 
@@ -225,6 +234,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 **Goal:** `dungeonGeometry.ts` turns a `DungeonLayout` into the `place-room` payload: floor `TerrainPaintCell`s, merged wall polylines with gaps at door sites, door elements (some secret). Wire it into `dungeonRecipe.ts`, replacing G1's placeholder. First golden snapshot.
 
 **Context capsule:**
+
 - §3's unit table (the corner-lattice rule) — this slice is where it bites.
 - `packages/shared/src/mapStudioTypes.ts:69-88` — wall `data.points` (absolute doc px, zeroed transform, ≥2 points); door: point element at `transform.x/y`, `data.width`, rotation degrees in transform.
 - `apps/client/src/features/map-edit/roomBuilder.ts:39-91` + `hallwayBuilder.ts:118-160` — px conversion + wall element construction precedents (client-side; you are re-implementing the ~30 relevant lines server-side, NOT importing client files).
@@ -232,25 +242,27 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 - Golden precedent: `packages/shared/src/__tests__/terrain.test.ts:134-149` (pinned JSON: "Changing it is a schema migration, not a refactor"). Fixture as `.json` (not scanned by the structure guard).
 
 **Changes:**
+
 1. NEW `apps/server/src/domains/generation/dungeonGeometry.ts` (≤300): `emitGeometry(layout, params, ctx, rng): RecipeOutput` (rng = `geometryRng`, §2.2 — layout's stream is spent and never leaves `generateLayout`):
    - **Floors:** every floor cell → `{ x, y, assetId: theme family }` (offset by `bounds.x/y` — layout is bounds-local, cells are document-absolute). Emit in scan order (y, then x) so the golden is order-stable.
    - **Walls:** collect boundary edges (floor cell ↔ non-floor neighbor), REMOVE door-site edges, merge collinear adjacent edges into maximal runs, SORT runs by (min y, min x, horizontal-before-vertical), then assign factory ids in that sorted order. Each run → one `MapWallElement` (2-point polyline in doc px on the corner lattice, identity transform per §4.1b, `blocksMovement/blocksVision: true`, walls layer).
-   **[G3-RESOLVED — the text above was WRONG; shipped code does this]** Door sites sit on room↔corridor seams, where BOTH cells are floor — so they are never in the floor↔non-floor set, and "remove door-site edges" removes nothing while every non-door seam of a wide corridor goes unwalled (a hole into the room). Wall edges are TWO families minus the doors:
-   `wallEdges = (floor ↔ non-floor)  ∪  (room ↔ corridor seams)  −  doorSites`
-   Family 1 is the outer shell; family 2 is the doorway line, where G2's grouping already left exactly one door per seam group and every other seam must be walled. G2's walkability property is what pins this, and G3's sealed-dungeon property verifies it from the emitted geometry alone.
+     **[G3-RESOLVED — the text above was WRONG; shipped code does this]** Door sites sit on room↔corridor seams, where BOTH cells are floor — so they are never in the floor↔non-floor set, and "remove door-site edges" removes nothing while every non-door seam of a wide corridor goes unwalled (a hole into the room). Wall edges are TWO families minus the doors:
+     `wallEdges = (floor ↔ non-floor)  ∪  (room ↔ corridor seams)  −  doorSites`
+     Family 1 is the outer shell; family 2 is the doorway line, where G2's grouping already left exactly one door per seam group and every other seam must be walled. G2's walkability property is what pins this, and G3's sealed-dungeon property verifies it from the emitted geometry alone.
    - **Doors:** each door site (already one per contiguous group — G2 rule 4) → `MapDoorElement` with `transform.x/y` at the edge's START corner (§3 — the compiled segment runs from the transform toward `(width, 0)`), `width = grid.size`, rotation 0 (h) / 90 (v), `state: rng() < secretDoorChance ? "secret" : "closed"` (one roll per door, drawn in door-site order), both blocks true.
      **[G7-SHIPPED] every door is authored `"closed"`, with no roll at all.** The secret state was unsellable (banner), so `emitDoors` takes no rng and GEOMETRY_STREAM (`0x1f123bb5`) is retired — reserved, not reused, so a future stream salt cannot silently collide with an old one. Authored-`closed` (never `open`) matters independently: an authored-open door compiles to nothing blocking, i.e. an invisible hole.
 2. `dungeonRecipe.ts`: `generateLayout` → `emitGeometry`; delete the G1 placeholder body (keep the signature).
 3. Contract test extension (`generateDungeon.contract.test.ts`): a generated `"secret"` door appears in the PLAYER payload only as a `#0`-suffixed anonymous wall id (mirror `roomModel.test.ts:92-121` assertions) and in the DM payload as a door.
    **[G7-SHIPPED] inverted:** the shipped test asserts the recipe authors NO secret door and that the player's door count equals the DM's. The disguise assertions moved to `domains/room/__tests__/compiledSceneView.test.ts` against a HAND-AUTHORED room, which is where the disguise still has to hold.
-**Tests (`__tests__/dungeonGeometry.test.ts` + golden):**
+   **Tests (`__tests__/dungeonGeometry.test.ts` + golden):**
+
 - **Sealed-dungeon property (the correctness gate):** for seeds 1..15 — every boundary edge between floor and non-floor is covered by exactly one wall run or one door; no wall run crosses a door site; no zero-length or duplicate wall.
   **[G3-SHIPPED]** Stated as the full invariant, re-derived from the EMITTED geometry (walls expanded back to unit edges), across 15 seeds × 3 densities: shell edge → exactly 1 wall, 0 doors · room/corridor seam → exactly 1 blocker (wall XOR door) · open floor (same room, or corridor-to-corridor) → 0 blockers. The third clause is what catches a wall that leaks into walkable space.
 - **Unit property:** every wall endpoint ≡ `cell * grid.size + grid.offset` on its axis, for a non-default ASYMMETRIC grid (size 64, offsetX 13, offsetY 7 — equal offsets would hide an x/y swap; the default grid hides offsets entirely).
 - **Golden:** `__tests__/fixtures/dungeon-seed1-16x12-stone.json` — full `RecipeOutput` for (seed 1, 16×12 bounds at offset (4,4), medium, chance 0.15, idPrefix "golden") asserted with `toEqual(JSON.parse(fixture))`. Comment: regenerating this fixture is a determinism-contract change, owner sign-off required.
-**Done when:** all green + G1's contract suite still green with the real recipe; manual harness generate shows rooms/corridors with working doors and correct fog on the player tab.
-**Traps:** door state rolls draw one-per-site unconditionally (rule §4.2); wall ids in scan order, not Set-iteration order; the door element sits at the EDGE, not the cell center (§3 table).
-**Escalate if:** the sealed-dungeon property needs edge-case whack-a-mole (>2 fix rounds means the edge-collection model is wrong — stop and report).
+  **Done when:** all green + G1's contract suite still green with the real recipe; manual harness generate shows rooms/corridors with working doors and correct fog on the player tab.
+  **Traps:** door state rolls draw one-per-site unconditionally (rule §4.2); wall ids in scan order, not Set-iteration order; the door element sits at the EDGE, not the cell center (§3 table).
+  **Escalate if:** the sealed-dungeon property needs edge-case whack-a-mole (>2 fix rounds means the edge-collection model is wrong — stop and report).
 
 ---
 
@@ -261,17 +273,19 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 **Goal:** dungeons arrive stocked, not just drawn: brazier lights in rooms and DM-only spawn markers. VISION's "stocked, not just drawn," v0.
 
 **Context capsule:**
+
 - `mapStudioTypes.ts:90-98` — light `data { radius, color, intensity, castsShadows }` (compiled but unrendered today — authoring them now is deliberate: they become live the day the light system ships); text `data { text, color, fontSize, visibleToPlayers }`.
 - `packages/shared/src/scenePublish.ts:104-110` — `deriveMapElements` skips `kind: "notes"` layers entirely; secrecy contract style: `visionChannels.contract.test.ts` (grep the raw frame string).
 - Element budget constants from G1 (`types.ts`).
 
 **Changes:**
+
 1. NEW `apps/server/src/domains/generation/dungeonStocking.ts` (~140): `emitStocking(layout, params, ctx, rng): MapElement[]` (rng = `stockingRng`, §2.2) — per room (one fixed roll-block per room, §4.2): a brazier `MapLightElement` at a deterministic corner (radius `3 * grid.size` px, warm color `#ffb347`, intensity 0.8, castsShadows true, lighting layer) for ~60% of rooms; a spawn marker `MapTextElement` on the notes layer (`visibleToPlayers: false`, text from a fixed table — `["SPAWN: 2d4 skeletons", "SPAWN: 3 giant rats", "LOOT: locked chest — DC 12", "EMPTY — dust and echoes", …]` indexed by roll) for every room. Append output in `dungeonRecipe.ts` before the element-budget check.
 2. NEW `apps/client/src/features/map-edit/NotesOverlayLayer.tsx` (~90): the DM has no way to SEE notes-layer elements at the live table (`deriveMapElements` strips `kind: "notes"` from `mapElements` for EVERY recipient, DM included — the raw document only reaches the DM as data). Clone the `WallsOverlayLayer.tsx` pattern (45 LOC — DM-only, `listening={false}`, nested cam + mapTransform groups, mounted in MapBoard gated `isDM && mapEditMode`): render text elements from `controller.activeDocument` whose layer kind is `"notes"` as small gold Konva.Text labels. Without this, generated spawn markers are invisible to everyone and stocking is dead weight.
-**Tests:** determinism pair; budget respected at max bounds/high density; **the secrecy gate** (contract): generate with markers → serialize the PLAYER snapshot frame → `expect(frame).not.toContain("SPAWN")` and no notes-layer element ids present; DM frame contains them (via the `map-studio-document` channel). Client: NotesOverlayLayer div-mock render (DM in map-edit mode sees labels; `isDM=false` renders nothing).
-**Done when:** all green; golden fixture regenerated ONCE to include stocking (owner-visible diff); manual: DM sees "SPAWN: …" labels at the table in map-edit mode, the player tab never does.
-**Traps:** markers go on the notes layer — do NOT also set `hidden: true` (hidden hides from the DM's own render too); `visibleToPlayers: false` is belt-and-suspenders on top of the notes-layer strip, keep both; NotesOverlayLayer reads the DM's own `activeDocument`, NEVER `snapshot.mapElements` (§4.8 — don't create a second producer).
-**🔎 SENIOR REVIEW GATE:** determinism + secrecy lenses (the golden's stability across Node versions; any channel where marker text could reach a player frame).
+   **Tests:** determinism pair; budget respected at max bounds/high density; **the secrecy gate** (contract): generate with markers → serialize the PLAYER snapshot frame → `expect(frame).not.toContain("SPAWN")` and no notes-layer element ids present; DM frame contains them (via the `map-studio-document` channel). Client: NotesOverlayLayer div-mock render (DM in map-edit mode sees labels; `isDM=false` renders nothing).
+   **Done when:** all green; golden fixture regenerated ONCE to include stocking (owner-visible diff); manual: DM sees "SPAWN: …" labels at the table in map-edit mode, the player tab never does.
+   **Traps:** markers go on the notes layer — do NOT also set `hidden: true` (hidden hides from the DM's own render too); `visibleToPlayers: false` is belt-and-suspenders on top of the notes-layer strip, keep both; NotesOverlayLayer reads the DM's own `activeDocument`, NEVER `snapshot.mapElements` (§4.8 — don't create a second producer).
+   **🔎 SENIOR REVIEW GATE:** determinism + secrecy lenses (the golden's stability across Node versions; any channel where marker text could reach a player frame).
 
 ---
 
@@ -282,6 +296,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 **Architecture note (from the Rev-1 adversarial review — §2.3 last bullet):** generate MUST ride the controller's one-in-flight queue. Raw `sendMessage` has no error channel (the controller drops foreign-commandId errors at `useMapStudio.ts:243`) and no reply channel (`registerServerEventHandler` is single-slot — a second registration clobbers the whole control plane). The queue gives generate everything for free: `saving` as the pending state, `error` + the existing palette toast, revision-conflict refetch, reconnect re-send (dedupe-safe), and the loading watchdog.
 
 **Context capsule:**
+
 - `apps/client/src/features/map-studio/useMapStudio.ts` — the queue you are extending: `dispatchNextCommand` (146-172) mints the commandId, sets `inFlightCommandId`/`inFlightMessage`, and today HARDCODES the envelope `{ t: "map-studio-command", command: queued.build(document, commandId) }` (164-167); resolution at 282-291 (`message.appliedCommandId === inFlightCommandId.current` → shift queue, clear in-flight, drain `saving`); the error guard at 242-257 (matching commandId → `setError`, conflict → refetch); reconnect re-send at 179-189. 309 LOC — ~40 free; the change below is ~4 lines.
 - `apps/client/src/features/map-studio/useMapStudioActions.ts` (286 LOC, ~62 free) — every action enqueues a `CommandBuilder` via `applyCommand`; clone that shape for `generate`. `apps/client/src/features/map-studio/types.ts` (120 LOC) — the `MapStudioController` interface to extend.
 - `apps/client/src/features/map-edit/mapEditTypes.ts:16-25` — `MapEditSubTool` union (9 members; add `"generate"`); header rule: sub-tools are palette state, not ToolModes. `MapEditToolbarProps` (41-88) — POPULATE's prop cluster (69-74) is the shape for the generate cluster. **Trap (from memory + prior arc): every new prop that reaches `MainLayoutProps` must be added to all FOUR layout characterization fixtures** (CenterCanvas/TopPanel/FloatingPanels/Mobile tests).
@@ -290,6 +305,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 - `apps/client/src/features/map-edit/usePopulate.ts:34-81` — the hook shape to clone: busy guard (`controller.saving`), error callback, bounds tracking, `populateSeedFromBounds`.
 
 **Changes:**
+
 1. `useMapStudio.ts`: generalize the queue item — `queued.build(document, commandId)` returns a full `ClientMessage` instead of a command (each existing builder wraps itself in the `map-studio-command` envelope; the generate builder returns the `map-studio-generate` message with `commandId` and `documentId: document.id`). Resolution/error/reconnect logic is UNTOUCHED — the server echoes the same commandId through `map-studio-document.appliedCommandId` (G1) and `map-studio-error.commandId`, which is all the queue keys on.
 2. `useMapStudioActions.ts` + `types.ts`: add `generate(input: { recipe: "dungeon"; seed: number; bounds: CellBounds; params: DungeonParams }): void` — enqueues via `applyCommand` exactly like `placeRoom`. `controller.saving` is now the generate pending state; `controller.error` surfaces rejections through the EXISTING palette toast (S7 wiring) — no new error plumbing anywhere.
 3. `mapEditTypes.ts`: add `"generate"` to the union + a `GenerateParams` type + prop cluster (`generateParams/onGenerateParamsChange/onGenerate/canGenerate`).
@@ -297,10 +313,10 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 5. NEW `apps/client/src/features/map-edit/GeneratePanel.tsx` (~140): JRPG-styled params popover (theme/density/secret%/seed/reroll/GENERATE, disabled per `canGenerate`; busy label while `controller.saving`). Mounted from `MapEditToolPanels` when the sub-tool is `"generate"`.
 6. Wire the rect-drag: reuse the room tool's drag machinery for the `"generate"` sub-tool (dashed rect + "W × H" label via `MapEditPreviewLayer`), committing to `useGenerate.setBounds` instead of `place-room`. If `useMapEditTool.ts` needs more than ~2 lines, FIRST extract its rect-commit dispatch into `commitDragTool.ts` (~277 lines of headroom).
 7. SUB_TOOLS entry `🎲 Generate`; fixture updates (all four layouts).
-**Tests:** `useMapStudio.test.ts` extension — a queued generate message round-trips: dispatch sends the generate envelope with the queue's commandId; a `map-studio-document` with that `appliedCommandId` drains it; a `map-studio-error` with that commandId sets `controller.error` (this is the regression test for the Rev-1 design bug). `useGenerate.test.ts` — bounds→cells conversion against an asymmetric grid (size 64, offsetX 13, offsetY 7); `canGenerate` gates (no bounds / saving / unbound); reroll changes seed. `GeneratePanel.test.tsx` — render states. Fixture-prop sweep green.
-**Verify:** client tests + typecheck + lint + structure + `pnpm --filter herobyte-client build:check` (palette-side, already lazy — budget must not move) + full `pnpm test`.
-**Done when:** manual: DM drags a rect, tweaks density, GENERATE → dungeon appears for DM and player tabs; a locked walls layer produces a visible error toast and a re-enabled button; Ctrl+Z removes the dungeon; GENERATE again same seed → identical; reroll → different.
-**Traps:** the four-fixture prop trap; do not put params state in `useMapEditTool` (frozen); NEVER send map-studio traffic via raw `sendMessage` (the §2.3 rejection — the queue is the only legal transport); the builder runs at DISPATCH time with the then-current document, so `documentId` is always fresh; disable the tool when `!snapshot.liveMapDocumentId`.
+   **Tests:** `useMapStudio.test.ts` extension — a queued generate message round-trips: dispatch sends the generate envelope with the queue's commandId; a `map-studio-document` with that `appliedCommandId` drains it; a `map-studio-error` with that commandId sets `controller.error` (this is the regression test for the Rev-1 design bug). `useGenerate.test.ts` — bounds→cells conversion against an asymmetric grid (size 64, offsetX 13, offsetY 7); `canGenerate` gates (no bounds / saving / unbound); reroll changes seed. `GeneratePanel.test.tsx` — render states. Fixture-prop sweep green.
+   **Verify:** client tests + typecheck + lint + structure + `pnpm --filter herobyte-client build:check` (palette-side, already lazy — budget must not move) + full `pnpm test`.
+   **Done when:** manual: DM drags a rect, tweaks density, GENERATE → dungeon appears for DM and player tabs; a locked walls layer produces a visible error toast and a re-enabled button; Ctrl+Z removes the dungeon; GENERATE again same seed → identical; reroll → different.
+   **Traps:** the four-fixture prop trap; do not put params state in `useMapEditTool` (frozen); NEVER send map-studio traffic via raw `sendMessage` (the §2.3 rejection — the queue is the only legal transport); the builder runs at DISPATCH time with the then-current document, so `documentId` is always fresh; disable the tool when `!snapshot.liveMapDocumentId`.
 
 ---
 
@@ -311,12 +327,13 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 **Goal:** lock the arc in.
 
 **Changes:**
+
 1. NEW `apps/e2e/dungeon-generate.smoke.spec.ts` (≤348 — spec files COUNT): DM page: elevate → create → set-live → send `map-studio-generate` via the harness (`window.__HERO_BYTE_E2E__` / `sendMessage` — canvas dragging is not the point here); poll DM snapshot for `compiledScene.walls.length > 4` and `mapTerrain` present; player page (own `browser.newContext()` — shared-context UID collision trap): fog present, a door click round-trips, and the raw player snapshot contains no `"SPAWN"` text and no notes-layer ids. Run serially (`pnpm test:e2e -- dungeon-generate`; NEVER `node scripts/run-e2e.mjs`).
 2. `SnapshotCompressionGuard.test.ts`: sibling case — a max-bounds high-density generated dungeon stays under the 750KB guard.
 3. Docs: `docs/planning/map-studio-roadmap.md` gets a "generation shipped (M4 Phase 1)" note; VISION.md M4 line gets a checkmark note for the dungeon recipe; this plan's §7 stays the deferral record.
 4. Sweep: full ritual (§8) end-to-end, restate suite counts in the final report (recon counts are stale — re-run, don't copy).
-**Done when:** everything green end to end.
-**🔎 SENIOR REVIEW GATE (final):** determinism lens (goldens, Node-version stability), info-leak lens (markers, secret doors, all preview channels), units lens (non-default grid), race lens (generate racing a DM edit → revision-conflict path), cap lens (all four budgets).
+   **Done when:** everything green end to end.
+   **🔎 SENIOR REVIEW GATE (final):** determinism lens (goldens, Node-version stability), info-leak lens (markers, secret doors, all preview channels), units lens (non-default grid), race lens (generate racing a DM edit → revision-conflict path), cap lens (all four budgets).
 
 > **G6 SHIPPED.** `apps/e2e/dungeon-generate.smoke.spec.ts` (127 LOC) drives the whole arc through a real socket: DM starts a live map, the 🏰 Gen palette tool and panel are asserted present, generate lands >4 walls + doors + terrain + braziers, a player joining AFTERWARDS receives it, the wire carries no spawn keys / notes layer / lights, a generated door round-trips, and one Undo clears every screen. The generate itself goes through the harness, not a canvas drag: the recipe needs ≥8×8 cells, which the e2e board does not reliably offer — the drag→panel→GENERATE path is unit-tested and was manually verified live in G5. `SnapshotCompressionGuard` gained a MAXED (128×128, high-density) case built by the REAL recipe, so the budget tracks the generator rather than a guess about it.
 
@@ -324,27 +341,27 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 
 ## 6. Failure drills (when X happens, do Y — do not improvise)
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| `map-studio-generate` never reaches the handler, no error | validator not registered in `middleware/validation.ts` | add the registry entry (compile error says the same) |
-| Generate fails silently; button wedged in pending | generate sent via raw `sendMessage` instead of the controller queue | §2.3 last bullet — the queue is the only legal transport; the controller drops foreign-commandId errors by design |
-| A reconnect re-send of a generate is REJECTED though the dungeon is on the map | validation ran before the dedupe cache was consulted | ack replays from `service.cachedResult` FIRST, before `get`/resolver/recipe (G1 fix, gate-confirmed) |
-| Generated rooms don't line up with the visible grid | the document is hex/isometric; recipes are square-lattice only | the resolver refuses non-square grids — don't "fix" by fudging the math |
-| Players can pick out secret doors from wall ids | kind-marked element ids (`:d2`), or a SEQUENTIAL counter over kind-grouped emission (the ordinal is then the kind tag) | §2.2 — one uniform counter, re-minted through a seeded permutation |
-| Players can pick out secret doors from the wall GEOMETRY | the disguised 1-cell segment splices a maximal run — a junction real walls can never have | §2.2 — `compiledSceneFor` re-merges the player's blocking set; never regress this to a plain append |
-| Secret doors visible as holes in a published raster | walls bake with a gap at every door site; `DoorsLayer` covers only the doors a recipient received | §2.2 — secret doors bake as WALL in `exportMapDocument` |
-| A DM changes density and nothing happens | all densities saturated ONE shared MAX_ROOMS | per-density ceilings (`dungeonLayout.MAX_ROOMS`) |
-| `command-rejected` on every generate | zod mismatch, or the resolver threw (missing/locked layer kind) | diff payload vs `generationValidators.ts`; check the target doc's layers |
-| `revision-conflict` errors under concurrent DM edits | a DM edit landed between `get().revision` and `apply` | expected — surface the error; the DM retries (dedupe makes retry safe) |
-| Golden test flaps between runs | nondeterminism: uuid, Date.now, Set-iteration choice, roll-count drift | audit against §4.1/§4.2; diff the two outputs to localize the first diverging id |
-| Golden differs on another machine/Node | float math in cell logic or locale-dependent sort | integers only in layout; explicit comparators everywhere |
-| Walls offset from floors by half a cell | corner-lattice vs center-lattice mixup | §3 table; the non-default-grid unit test catches it |
-| Doors don't block fog | doors authored `"open"`, or door edge not removed from wall runs | §4.6; sealed-dungeon property |
-| Dungeon half-applies | impossible if via one `place-room` (all-or-nothing) — you chunked | one command, always; shrink bounds instead |
-| Players see "SPAWN:" text | markers not on the notes layer / a new producer of mapElements | §4.8; secrecy contract test pins it |
-| Handler file trips the 350 guard | generate case inlined | extract to `mapStudioGenerate.ts` (G1 escape hatch) |
-| Typecheck nonsense after shared edits | stale dist | `pnpm --filter @herobyte/shared build` |
-| `pnpm lint` fails on the frozen test | you touched terrain render output | fix product code; never the frozen file |
+| Symptom                                                                        | Cause                                                                                                                  | Fix                                                                                                               |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `map-studio-generate` never reaches the handler, no error                      | validator not registered in `middleware/validation.ts`                                                                 | add the registry entry (compile error says the same)                                                              |
+| Generate fails silently; button wedged in pending                              | generate sent via raw `sendMessage` instead of the controller queue                                                    | §2.3 last bullet — the queue is the only legal transport; the controller drops foreign-commandId errors by design |
+| A reconnect re-send of a generate is REJECTED though the dungeon is on the map | validation ran before the dedupe cache was consulted                                                                   | ack replays from `service.cachedResult` FIRST, before `get`/resolver/recipe (G1 fix, gate-confirmed)              |
+| Generated rooms don't line up with the visible grid                            | the document is hex/isometric; recipes are square-lattice only                                                         | the resolver refuses non-square grids — don't "fix" by fudging the math                                           |
+| Players can pick out secret doors from wall ids                                | kind-marked element ids (`:d2`), or a SEQUENTIAL counter over kind-grouped emission (the ordinal is then the kind tag) | §2.2 — one uniform counter, re-minted through a seeded permutation                                                |
+| Players can pick out secret doors from the wall GEOMETRY                       | the disguised 1-cell segment splices a maximal run — a junction real walls can never have                              | §2.2 — `compiledSceneFor` re-merges the player's blocking set; never regress this to a plain append               |
+| Secret doors visible as holes in a published raster                            | walls bake with a gap at every door site; `DoorsLayer` covers only the doors a recipient received                      | §2.2 — secret doors bake as WALL in `exportMapDocument`                                                           |
+| A DM changes density and nothing happens                                       | all densities saturated ONE shared MAX_ROOMS                                                                           | per-density ceilings (`dungeonLayout.MAX_ROOMS`)                                                                  |
+| `command-rejected` on every generate                                           | zod mismatch, or the resolver threw (missing/locked layer kind)                                                        | diff payload vs `generationValidators.ts`; check the target doc's layers                                          |
+| `revision-conflict` errors under concurrent DM edits                           | a DM edit landed between `get().revision` and `apply`                                                                  | expected — surface the error; the DM retries (dedupe makes retry safe)                                            |
+| Golden test flaps between runs                                                 | nondeterminism: uuid, Date.now, Set-iteration choice, roll-count drift                                                 | audit against §4.1/§4.2; diff the two outputs to localize the first diverging id                                  |
+| Golden differs on another machine/Node                                         | float math in cell logic or locale-dependent sort                                                                      | integers only in layout; explicit comparators everywhere                                                          |
+| Walls offset from floors by half a cell                                        | corner-lattice vs center-lattice mixup                                                                                 | §3 table; the non-default-grid unit test catches it                                                               |
+| Doors don't block fog                                                          | doors authored `"open"`, or door edge not removed from wall runs                                                       | §4.6; sealed-dungeon property                                                                                     |
+| Dungeon half-applies                                                           | impossible if via one `place-room` (all-or-nothing) — you chunked                                                      | one command, always; shrink bounds instead                                                                        |
+| Players see "SPAWN:" text                                                      | markers not on the notes layer / a new producer of mapElements                                                         | §4.8; secrecy contract test pins it                                                                               |
+| Handler file trips the 350 guard                                               | generate case inlined                                                                                                  | extract to `mapStudioGenerate.ts` (G1 escape hatch)                                                               |
+| Typecheck nonsense after shared edits                                          | stale dist                                                                                                             | `pnpm --filter @herobyte/shared build`                                                                            |
+| `pnpm lint` fails on the frozen test                                           | you touched terrain render output                                                                                      | fix product code; never the frozen file                                                                           |
 
 ---
 
@@ -354,7 +371,7 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 
 The dial is removed, not postponed-in-place: today a DM cannot ask for a generated secret door, and the panel says why. Restoring it is a **terrain-channel** job, not a generator one.
 
-**Why it leaks (the fourth attack, unbeaten):** `mapTerrain` ships every floor cell to every player, unfiltered by fog. Given the floor plan, a wall with floor on *both* sides can only be a room/corridor seam; G2 guarantees each contiguous seam group carries exactly one door; so a seam group with no visible door **is** a secret door. Recovery was **202/202 with zero false positives** across the test seeds. The G4.5 fixes (id permutation, blocking-set re-merge, bake-as-wall) all still hold — they are simply irrelevant to an attacker who never looks at the wall list.
+**Why it leaks (the fourth attack, unbeaten):** `mapTerrain` ships every floor cell to every player, unfiltered by fog. Given the floor plan, a wall with floor on _both_ sides can only be a room/corridor seam; G2 guarantees each contiguous seam group carries exactly one door; so a seam group with no visible door **is** a secret door. Recovery was **202/202 with zero false positives** across the test seeds. The G4.5 fixes (id permutation, blocking-set re-merge, bake-as-wall) all still hold — they are simply irrelevant to an attacker who never looks at the wall list.
 
 **What unblocks it:** VISION's memory fog — terrain shipped per-recipient, limited to explored cells. That is the same per-recipient filter `deriveMapElements` already applies to scenery; the work is making `deriveMapTerrain` fog-aware and incremental without flooding the wire on every step. Once unexplored floor stops shipping, the seam inference has nothing to run on, and the dial can come back by reverting this removal (add `secretDoorChance` to the params + schema, restore a rng-taking `emitDoors`, and take a FRESH stream salt — `0x1f123bb5` is retired and must not be reused).
 
@@ -364,7 +381,19 @@ The dial is removed, not postponed-in-place: today a DM cannot ask for a generat
 
 ### 7.2 Everything else
 
-The Atlas graph (`AtlasNode`/`MapLink`, discovered-only player world map via the per-recipient filter), SceneStates with suspend/resume travel, building/wilderness/town/world recipes, recipe `provenance { recipeId, seed }` + `pinned` for keep-this-reroll-that, Bestiary-linked encounter manifests replacing text markers, the one-keystroke Kicked-In Door UX (needs Atlas targets), Cartridge Codes UI (the determinism contract this plan ships is its foundation), multi-floor dungeons with stair links, room-shape variety (non-rect rooms, diagonal corridors), theme packs beyond stone/wood (blocked on the art track), density-aware corridor widths, generation into non-live documents from the palette, per-room-type populate grammars (the prior plan's IOU — partially cashed by stocking v0).
+**[CASHED 2026-09-01 by the Atlas arc — [atlas-arc-plan.md](./atlas-arc-plan.md)]:** the Atlas
+graph (`AtlasNode`/`MapLink`, discovered-only player world map via the per-recipient filter, on
+both platforms), SceneStates with suspend/resume travel (behind the iris wipe), generation into
+non-live documents (atlas-generate-node cashes a promise without touching the live binding), and
+recipe `provenance { recipeId, seed }` (recorded on generated nodes; `pinned` still open).
+
+Still deferred: building/wilderness/town/world recipes, `pinned` for keep-this-reroll-that,
+Bestiary-linked encounter manifests replacing text markers, the one-keystroke Kicked-In Door UX
+(its Atlas targets now exist), Cartridge Codes UI (the determinism contract this plan ships is
+its foundation), multi-floor dungeons with stair links, room-shape variety (non-rect rooms,
+diagonal corridors), theme packs beyond stone/wood (blocked on the art track), density-aware
+corridor widths, per-room-type populate grammars (the prior plan's IOU — partially cashed by
+stocking v0).
 
 ---
 
@@ -383,6 +412,6 @@ pnpm test                                # full suite
 pnpm test:e2e -- dungeon-generate        # serial; ports 5175/8788; passwords Fun1 / FunDM
 ```
 
-**Glossary:** *recipe* — a pure server function `(seed, bounds, params, ctx) → { cells, elements }`; deterministic by contract. *RecipeContext* — grid + layer ids by kind + id factory, resolved from the target document. *idPrefix* — the generate message's commandId; every generated element id is `${idPrefix}:e<n>` (one counter, no kind letters — §2.2). *Sealed-dungeon property* — every floor/non-floor boundary edge is covered by exactly one wall or door (G3's correctness gate). *One-in-flight queue* — `useMapStudio`'s serial dispatcher; after G5 it carries `map-studio-generate` alongside `map-studio-command`, and it remains the ONLY legal way to send either. *Live-bound document / compiled scene* — see the prior plan's glossary; unchanged.
+**Glossary:** _recipe_ — a pure server function `(seed, bounds, params, ctx) → { cells, elements }`; deterministic by contract. _RecipeContext_ — grid + layer ids by kind + id factory, resolved from the target document. _idPrefix_ — the generate message's commandId; every generated element id is `${idPrefix}:e<n>` (one counter, no kind letters — §2.2). _Sealed-dungeon property_ — every floor/non-floor boundary edge is covered by exactly one wall or door (G3's correctness gate). _One-in-flight queue_ — `useMapStudio`'s serial dispatcher; after G5 it carries `map-studio-generate` alongside `map-studio-command`, and it remains the ONLY legal way to send either. _Live-bound document / compiled scene_ — see the prior plan's glossary; unchanged.
 
 **Senior-gate sizing (lesson from this plan's own review):** run gate Workflows in small waves — ≤4 concurrent agents. This plan's Rev-1 review lost 29 of 39 agents to the session limit mid-verify; unverified findings then masquerade as "refuted". An empty or partially-errored verify pass is an infrastructure failure, NOT a clean pass — re-verify inline or re-run after the limit resets.

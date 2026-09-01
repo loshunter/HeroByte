@@ -389,6 +389,90 @@ describe("session round trip", () => {
     expect(after.sceneStates.live?.mapBackground).toBe("https://i.imgur.com/suspended.png");
   });
 
+  it("a realistically LARGE suspended campaign survives export→import inside the wire ceiling (A7)", () => {
+    // Eight fought-over dungeons suspended at once — far past any friendly
+    // game, still legitimate. The bound that matters is the ws server's
+    // maxPayload (1 MiB): the load-session message must carry the whole file
+    // through one frame, so the FILE gets a 90% ceiling here and the margin
+    // is the message envelope's.
+    const fatScene = (documentId: string): SceneState => ({
+      mapDocumentId: documentId,
+      suspendedAt: 7,
+      tokens: Array.from({ length: 30 }, (_, i) => ({
+        id: `${documentId}-token-${i}`,
+        owner: `player-${i % 6}`,
+        x: i * 2,
+        y: i * 3,
+        color: "#a0b1c2",
+      })) as SceneState["tokens"],
+      props: [],
+      drawings: Array.from({ length: 20 }, (_, i) => ({
+        id: `${documentId}-draw-${i}`,
+        type: "freehand" as const,
+        points: Array.from({ length: 50 }, (_, p) => ({ x: p * 3.5, y: p * 2.25 })),
+        color: "#ffffff",
+        width: 2,
+        opacity: 1,
+      })) as unknown as SceneState["drawings"],
+      sceneObjects: [],
+      characterLinks: Object.fromEntries(
+        Array.from({ length: 12 }, (_, i) => [`char-${i}`, `${documentId}-token-${i}`]),
+      ),
+      doorStates: Object.fromEntries(
+        Array.from({ length: 40 }, (_, i) => [
+          `door-${i}`,
+          { state: "open" as const, authored: "closed" as const },
+        ]),
+      ),
+      combatActive: true,
+      currentTurnCharacterId: "char-3",
+      initiatives: Object.fromEntries(
+        Array.from({ length: 12 }, (_, i) => [`char-${i}`, { initiative: 20 - i }]),
+      ),
+      fogEnabled: true,
+      defaultVisionRadius: 30,
+    });
+    // The scenes must key REAL documents — the loader deliberately drops a
+    // scene whose document is not in the file (the ghost-scene degrade).
+    for (let i = 0; i < 8; i++) {
+      origin.route({
+        t: "map-studio-create",
+        document: { id: `suspended-doc-${i}`, name: `Suspended ${i}` },
+      });
+    }
+    origin.roomService.setState({
+      sceneStates: Object.fromEntries(
+        Array.from({ length: 8 }, (_, i) => [`suspended-doc-${i}`, fatScene(`suspended-doc-${i}`)]),
+      ),
+    });
+
+    const file = exportSession();
+    const fileBytes = Buffer.byteLength(JSON.stringify(file), "utf8");
+    expect(file.sceneStates).toHaveLength(8);
+    expect(fileBytes).toBeLessThan(1024 * 1024 * 0.9);
+
+    const restored = bootServer();
+    restored.route({
+      t: "load-session",
+      snapshot: file.snapshot as never,
+      mapDocuments: file.mapDocuments,
+      liveMapDocumentId: file.liveMapDocumentId,
+      sceneStates: file.sceneStates,
+    });
+    const after = restored.roomService.getState();
+    expect(Object.keys(after.sceneStates)).toHaveLength(8);
+    // Deep content survives, not just the keys.
+    expect(after.sceneStates["suspended-doc-3"]?.tokens).toHaveLength(30);
+    expect(after.sceneStates["suspended-doc-3"]?.drawings[5]?.points).toHaveLength(50);
+    expect(after.sceneStates["suspended-doc-7"]?.doorStates["door-39"]).toEqual({
+      state: "open",
+      authored: "closed",
+    });
+    expect(after.sceneStates["suspended-doc-0"]?.initiatives["char-11"]).toEqual({
+      initiative: 9,
+    });
+  });
+
   it("writes a file the loaders can actually read", () => {
     // THE REGRESSION GUARD, and the bug that made every saved file unloadable:
     // toSnapshot diverts drawings and mapBackground into assets/assetRefs and

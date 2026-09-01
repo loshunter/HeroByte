@@ -1,5 +1,14 @@
 # The Atlas — M4 Phase 2 — Execution Plan
 
+> **THE ARC IS COMPLETE — all seven slices SHIPPED on `dev`, 2026-09-01, NOT pushed/merged
+> (the owner's call).** A1 `fd7afb17` → A2 `a17d6b99` → review fixes `1543a08e..effddc5b` →
+> A3 `7d7251a5` → A4 `3fcce20b` → A5 `efabc884` → A6 `c4d86c97` → A7 (this commit). Every
+> slice: full gate, sabotage-all-red, live browser verification on desktop AND phone. The
+> per-slice SHIPPED banners below carry every deviation and every number; §6's failure drills
+> and §7's deferrals are the map for whoever comes next. Maya's Tuesday works: promise →
+> GENERATE → TRAVEL behind the iris → suspend/resume that survives a round trip, links on the
+> map, and a discovered-only world in every player's pocket.
+
 **Status:** Rev 2 — authored 2026-08-31 after a 6-reader recon at `dev` = `567c57cb`;
 **adversarially reviewed before execution** (four attack lenses at `5260cadb`; one lens died to a
 session limit mid-report and was re-run in full — an errored review is unexamined ground, not a
@@ -1134,6 +1143,28 @@ don't drift).
 **🔎 SENIOR REVIEW GATE (final):** the standing adversarial review of the arc (finder lenses +
 independent refuters + completeness critic), then `agents_error` checked and `git status`
 audited.
+
+> **A7 SHIPPED** (2026-09-01, one commit; the final ladder ran TWICE with e2e — run 1 fell to
+> ONE unused eslint-disable in the new budget test (removed), run 2 fully green: shared 424,
+> server **2249** (+3), client 5477, e2e **169/3/0** (+2 — the two new atlas specs). The
+> journey spec passes in 23s: promise → generate → travel → player-wire whitelist (`{discovered,
+id, kind, name}` exactly, no `"recipe"`, no `"sceneStates"`, no hidden name — KEY asserts,
+> never value substrings; the CI #828 shape) → door opened on A → travel B → world map's
+> here-marker → a stair pinned by ⚓ aim → travel back → **the door is still open**. The mobile
+> leg passed FIRST RUN (21s): DM-sheet Atlas chip → generate panel → TRAVEL by finger; player's
+> Tools → World → here-marker. Budgets: a both-caps atlas (64 max-name nodes / 256 links,
+> built by the REAL handlers) weighs in under a THIRD of the snapshot guard; 8 fat suspended
+> scenes = **260,289 bytes**, full-state `JSON.stringify` averages **1.40ms** — the §2.2
+> store-extraction question is answered NO with two orders of headroom; the 8-scene campaign
+> export→imports inside the 1 MiB wire ceiling (scenes must key REAL documents — the loader's
+> ghost-scene degrade eats orphans, which the test now proves from both sides). Spec-writing
+> traps recorded: Playwright role-name matching is SUBSTRING by default ("🎲 GENERATE" resolves
+> to every "🎲 Generate…" — scope to the panel testid), and 🛠️ DM MENU is a TOGGLE (a helper
+> that blindly clicks it closes the menu and the next locator waits forever — the 180s-timeout
+> shape with a stack pointing at the finally block). Deviations: (1) the plan's e2e rows landed
+> as TWO specs (journey + mobile reachability) instead of one; (2) VISION's "documents fetch
+> over HTTP" line stays as-written in §2.1's refutation — the wire note in VISION.md was left
+> untouched, the M4 banner carries the shipped truth.
 
 ---
 
