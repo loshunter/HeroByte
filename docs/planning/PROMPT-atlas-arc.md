@@ -18,10 +18,11 @@ planning docs' tactical backlog is EMPTY — every §10 bullet in HANDOFF-NEXT i
 through. The owner accepted this path on 2026-08-30: watchdog deploy (done), then **the
 Atlas arc**.
 
-**One unverified loose end:** CI run **#830** (main, `a37a068f`) — its conclusion was never
-read; the watcher hit GitHub's unauthenticated rate limit mid-poll. The SAME sha passed
-everything as #829 on dev and the deploy was probe-verified, so this is bookkeeping — but
-close it first (one API call) rather than let an unread run become folklore.
+~~**One unverified loose end:** CI run **#830** (main, `a37a068f`) — its conclusion was never
+read; the watcher hit GitHub's unauthenticated rate limit mid-poll.~~ **CLOSED 2026-08-31:
+#830 = completed/success** at `a37a068f` (read from the Actions API after the rate limit
+reset), and the scheduled run **#832** on the same sha is also success. Production bookkeeping
+is fully clean.
 
 ## 1. The mission
 
@@ -127,10 +128,11 @@ the plan if recon disproves it — but this is the default.
 
 ## 5. Small open items (none block the arc; fold in opportunistically)
 
-1. **Verify CI #830's conclusion** (rate limit has reset by now).
-2. **`recordManual` reconcile**: memory says the judgement call was DECIDED (overturned);
-   `PROMPT-initiative-client.md`'s banner still says open-for-owner. Five minutes to
-   reconcile doc vs reality before anyone acts on either.
+1. ~~**Verify CI #830's conclusion**~~ — **DONE 2026-08-31**: success (see §0).
+2. ~~**`recordManual` reconcile**~~ — **DONE 2026-08-31**: `PROMPT-initiative-client.md`'s
+   banner and §5 now record the owner's 2026-08-24 decision (lock overturned; docstring
+   rewritten in place; physical-dice-entry shipped on it, production 2026-08-26). Verified
+   against `domains/dice/service.ts`'s method comment before editing.
 3. **Q4** — the in-app "use the desktop layout" switch for tablet DMs. Open design
    question; blocks nothing; worth surfacing to the owner once, with the M4c
    resize-crossing evidence.
