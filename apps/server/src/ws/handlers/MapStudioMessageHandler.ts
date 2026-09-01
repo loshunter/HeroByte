@@ -173,13 +173,33 @@ export class MapStudioMessageHandler {
           t: "map-studio-deleted",
           documentId: message.documentId,
         });
-        // Deleting the live-bound document must not leave a dangling binding: a
-        // later document that reuses the same id (import round-trips ids) would
-        // otherwise auto-broadcast to players on the DM's first edit, with no
-        // explicit bind.
+        // Deleting a document must not leave DANGLING atlas state, for the
+        // same id-reuse reason the binding is cleared below (import
+        // round-trips ids): a suspended scene keyed to the dead id would
+        // silently re-attach to whatever document reuses it, and a "mapped"
+        // node would open onto a 12s timeout. The node survives — its name
+        // and place in the tree are real work — degraded back to a promise,
+        // exactly as the session loader already does for a missing document.
         const state = this.getRoomState(roomId);
+        let atlasMutated = false;
+        if (state.sceneStates[message.documentId]) {
+          delete state.sceneStates[message.documentId];
+          atlasMutated = true;
+        }
+        for (const node of state.atlasNodes) {
+          if (node.mapDocumentId === message.documentId) {
+            node.mapDocumentId = undefined;
+            node.updatedAt = this.now();
+            atlasMutated = true;
+          }
+        }
+        // Deleting the live-bound document must not leave a dangling binding
+        // either: same hazard, older rule.
         if (state.liveMapDocumentId === message.documentId) {
           state.liveMapDocumentId = undefined;
+          return { broadcast: true, save: true };
+        }
+        if (atlasMutated) {
           return { broadcast: true, save: true };
         }
         break;

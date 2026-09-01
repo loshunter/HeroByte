@@ -322,10 +322,34 @@ describe("atlas graph contracts", () => {
     expect(sentinelHits(playerWs, SENTINEL_SCENE_NAME)).toEqual([]);
     // Suspended scenes serialize to NO recipient — the DM included.
     expect(sentinelHits(dmWs, SENTINEL_SCENE_NAME)).toEqual([]);
-    // Control: the DM legitimately sees the hidden node's name (their graph is
-    // whole) — proving the walk CAN find the sentinel, so the zeros above are
-    // evidence, not vacuity.
+    // Controls: the DM legitimately sees BOTH the hidden node's name and the
+    // discovered node's recipe seed (their graph is whole) — proving the walk
+    // CAN find each sentinel, so the zeros above are evidence, not vacuity.
     expect(sentinelHits(dmWs, SENTINEL_HIDDEN_NAME).length).toBeGreaterThan(0);
+    expect(sentinelHits(dmWs, SENTINEL_SEED).length).toBeGreaterThan(0);
+  });
+
+  it("deleting a document degrades its node to a promise and drops its suspended scene", async () => {
+    // The id-reuse bomb, disarmed at RUNTIME, not just at session load:
+    // map-studio-import round-trips ids, so a scene keyed to a deleted
+    // document would silently re-attach to whatever reuses the id, and a
+    // still-"mapped" node would open onto a 12s timeout.
+    route({ t: "map-studio-create", document: { id: "doc-a", name: "Doc A" } }, DM);
+    createNode("n1");
+    route({ t: "atlas-link-map", nodeId: "n1", documentId: "doc-a" }, DM);
+    roomService.getState().sceneStates["doc-a"] = sentinelScene("doc-a");
+
+    route({ t: "map-studio-delete", documentId: "doc-a" }, DM);
+    await flush();
+
+    const state = roomService.getState();
+    expect(state.sceneStates["doc-a"]).toBeUndefined();
+    expect(state.atlasNodes.find((entry) => entry.id === "n1")?.mapDocumentId).toBeUndefined();
+    // ...and the degrade reached the DM's wire (the broadcast fired).
+    const dmSnapshot = latestSnapshot(dmWs);
+    expect(
+      dmSnapshot?.atlasNodes?.find((entry) => entry.id === "n1")?.mapDocumentId,
+    ).toBeUndefined();
   });
 
   it("links an existing document 1:1 — replays no-op, second claimants are refused", async () => {
