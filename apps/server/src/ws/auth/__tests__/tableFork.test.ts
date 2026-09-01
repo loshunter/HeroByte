@@ -121,13 +121,23 @@ describe("handleForkTable", () => {
     );
 
     const copy = rooms.get("table-keeper")!.getState();
-    // The graph rides the snapshot copy; suspended scenes CANNOT (they
-    // serialize to no recipient), so the fork copies them out of band.
+    // The whole atlas trio is copied out of band with structuredClone —
+    // suspended scenes because they CANNOT ride a snapshot, nodes and links
+    // because the fork is the one IN-PROCESS snapshot copy (no JSON crossing
+    // to sever references) and the DM projection hands over LIVE objects.
     expect(copy.atlasNodes.map((node) => node.id)).toEqual(["n1"]);
     expect(copy.sceneStates["doc-x"]?.doorStates.d1?.state).toBe("open");
     // ...and never by reference: the source mutating later must not reach in.
     source.getState().sceneStates["doc-x"]!.combatActive = false;
     expect(copy.sceneStates["doc-x"]?.combatActive).toBe(true);
+    // The A1 review's probe: an in-place discover/rename in the SOURCE bled
+    // into the fork (and vice versa) because both rooms held the same node
+    // object. `discovered` is privacy-bearing — this cross-tenant bleed is
+    // the finding, and this assertion is its regression pin.
+    source.getState().atlasNodes[0]!.discovered = true;
+    source.getState().atlasNodes[0]!.name = "SourceEditedName";
+    expect(copy.atlasNodes[0]?.discovered).toBe(false);
+    expect(copy.atlasNodes[0]?.name).toBe("Kept Vault");
   });
 
   it("carries hidden NPCs across — the copy is the DM's view, not a player's", async () => {
