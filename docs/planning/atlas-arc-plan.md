@@ -914,6 +914,23 @@ doesn't name — that's a spec bug, report it before coding around it.
 privacy lens (sceneStates + travel frames), race lens (travel vs in-flight commands vs
 reconnect vs fork).
 
+> **A4 SHIPPED** (2026-09-01, one commit; gate: shared 424, server **2246** (+10), client 5445,
+> e2e 167/3/0 with every START-LIVE-MAP flow green — the set-live rebuild's riskiest claim,
+> proven by the suite that existed before it). Sabotage 11/11 red (two REDONE after the first
+> pass: a vacuous clear-list assert — empty stacks in, empty out — and a sabotage that crashed
+> inside route()'s catch and read as a no-op; both now red for the right reason). Live-verified
+> on the dev table: travel to a generated node turned fog ON and auto-discovered it, all 8
+> party tokens followed, a door opened on Vault A was STILL OPEN after a round trip through
+> Vault B, currentAtlasNodeId tracked every hop. Deviations, recorded: (1) BOTH handler bodies
+> extracted into sceneTravel.ts (`bindLiveDocument` + `handleAtlasTravel`) — the case-in-place
+> versions blew the 348 ceiling at 359/353; (2) the compile-only row ALSO applies the
+> first-visit fog default — the tests caught it eating the recipe-node concealment when
+> traveling from an unbound table, and for set-live the assignment is an identity so START
+> LIVE MAP is untouched; (3) initiative restore clears UNCAPTURED characters' initiative (the
+> B-only-bandit case) but never touches modifiers — modifiers are character-sheet data. Known
+> noise, not this slice's: ~287 Windows EPERM tmp-rename warnings across a dozen contract
+> suites' durability saves — pre-existing, every test green.
+
 ---
 
 ### A5 🟡 — The travel experience (client)

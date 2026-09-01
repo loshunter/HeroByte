@@ -130,3 +130,12 @@ export function validateAtlasDeleteLinkMessage(message: MessageRecord): Validati
 export function validateAtlasGenerateNodeMessage(message: MessageRecord): ValidationResult {
   return run(generateNodeSchema, message);
 }
+
+const travelSchema = z.object({
+  t: z.literal("atlas-travel"),
+  nodeId: id,
+});
+
+export function validateAtlasTravelMessage(message: MessageRecord): ValidationResult {
+  return run(travelSchema, message);
+}

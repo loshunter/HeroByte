@@ -39,6 +39,7 @@ describe("atlas message validators", () => {
         seed: 42,
         params: { theme: "stone", density: "medium", size: "small" },
       },
+      { t: "atlas-travel", nodeId: "node-1" },
     ];
     for (const message of valid) {
       const result = validateMessage(message as never);
@@ -109,6 +110,8 @@ describe("atlas message validators", () => {
         seed: 42,
         params: { theme: "stone", density: "medium", size: "small", smuggled: true },
       },
+      { t: "atlas-travel" },
+      { t: "atlas-travel", nodeId: "" },
     ];
     for (const message of invalid) {
       const result = validateMessage(message as never);

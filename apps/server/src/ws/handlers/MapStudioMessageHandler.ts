@@ -27,6 +27,7 @@ import {
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
+import { bindLiveDocument } from "./sceneTravel.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -255,31 +256,16 @@ export class MapStudioMessageHandler {
     roomId: string,
     documentId: string | null,
   ): RouteHandlerResult {
-    const state = this.getRoomState(roomId);
-    if (documentId === null) {
-      // Unbind: the table keeps its last compiled scene, but future edits stop
-      // auto-compiling. Clearing a raster background is a separate DM action.
-      state.liveMapDocumentId = undefined;
-      return { broadcast: true, save: true };
-    }
-    let document: MapDocument;
-    try {
-      document = this.service.get(roomId, documentId);
-    } catch (error) {
-      this.sendMessage(senderUid, {
-        t: "map-studio-error",
-        commandId: `set-live:${documentId}`,
-        documentId,
-        code: "command-rejected",
-        reason: error instanceof Error ? error.message : "Map document not found",
-      });
-      return { broadcast: false, save: false };
-    }
-    state.liveMapDocumentId = documentId;
-    // Binding is an explicit (re)start of the live scene: compile fresh from
-    // authored state (no previous document, so no runtime carry-over).
-    this.recompileLiveScene(roomId, undefined, document);
-    return { broadcast: true, save: true };
+    // Extracted for the 350-LOC cap; the suspend/resume physics live in
+    // sceneTravel.ts, SHARED with atlas-travel (plan §4.8).
+    return bindLiveDocument(
+      { mapStudioService: this.service, now: this.now },
+      this.getRoomState(roomId),
+      senderUid,
+      roomId,
+      documentId,
+      (uid, message) => this.sendMessage(uid, message),
+    );
   }
 
   /**

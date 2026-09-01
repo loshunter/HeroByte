@@ -1010,6 +1010,7 @@ type ClientMessagePayload =
         size: "small" | "medium" | "large"; // preset cols×rows — see GENERATE_PRESETS
       };
     } // Cash a promise: mint a document, run the dungeon recipe into it, record provenance
+  | { t: "atlas-travel"; nodeId: string } // Suspend the current scene, resume the node's (auto-discovers on first visit); idempotent when already there
 
   // Live scene interactions (compiled doors are clickable at the table)
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles

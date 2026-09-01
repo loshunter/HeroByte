@@ -25,6 +25,7 @@ import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { handleAtlasGenerateNode } from "./atlasGenerate.js";
+import { handleAtlasTravel } from "./sceneTravel.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -77,6 +78,17 @@ export class AtlasMessageHandler {
         return this.createLink(state, senderUid, roomId, message.link);
       case "atlas-delete-link":
         return this.deleteLink(state, message.linkId);
+      case "atlas-travel":
+        // Extracted for the 350-LOC cap; the suspend/resume physics live in
+        // sceneTravel.ts, SHARED with map-studio-set-live (plan §4.8).
+        return handleAtlasTravel(
+          { mapStudioService: this.mapStudioService, now: this.now },
+          state,
+          senderUid,
+          roomId,
+          message.nodeId,
+          (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
+        );
       case "atlas-generate-node":
         // Extracted for the 350-LOC cap; validate-then-persist lives there.
         return handleAtlasGenerateNode(
