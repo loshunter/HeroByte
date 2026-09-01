@@ -198,6 +198,11 @@ export function DMMenuContainer({
       camera={camera}
       playerCount={playerCount}
       characters={characters}
+      atlasNodes={snapshot?.atlasNodes ?? []}
+      currentAtlasNodeId={snapshot?.currentAtlasNodeId}
+      // Atlas ops are room mutations like set-player-props-enabled below —
+      // sendMessage rides through whole; the tab's useAtlasActions shapes them.
+      onAtlasMessage={sendMessage}
       onRequestSaveSession={snapshot ? dmContext.sessionManagement.handleSaveSession : undefined}
       onRequestLoadSession={dmContext.sessionManagement.handleLoadSession}
       onCreateNPC={dmContext.npcManagement.createNpc}

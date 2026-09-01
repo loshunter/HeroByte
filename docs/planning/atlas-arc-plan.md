@@ -724,9 +724,17 @@ on the mobile DM screen, measured.
 **Escalate if:** the tab needs data that snapshot + sendMessage + the mapStudio controller do not
 already carry.
 
----
-
-### A3 🟢 — Cashing a promise (atlas-generate-node)
+> **A2 SHIPPED** (2026-09-01, one commit; gate: shared 424, server 2225, client **5442** (+13),
+> e2e 167/3/0 with the six-chip guard passing LIVE as `ok 96`). Sabotage 6/6 red. The audit's
+> zero-churn claim held exactly: no new prop-bag keys, no MainLayoutProps change, the 42-key
+> literal untouched — DMMenu's own props gained three REQUIRED fields (one fixture site).
+> Browser-verified desktop AND mobile (375px: six chips, one row, 44px floor, row scrolls; tab
+> content + a live node fit the width). Deviations from the spec, recorded: the `atlas-error`
+> toast lives in `useServerEventHandlers`' existing control-message chain (no new plumbing —
+> the dm-password-failed idiom), and DMMenu gained a MOUNT test (chip + props both survive
+> deleting the `activeTab === "atlas"` block; only rendered content proves the wiring — the
+> M4b lesson applied before it could bite). In-pane manual checks need `/DM$/`-style text
+> matching: the dock buttons' textContent carries their glyph (`♛DM`).
 
 **Goal:** GENERATE on a promise node mints a document server-side (validate-then-persist),
 runs the dungeon recipe into it, records provenance on the node. The first Atlas moment.

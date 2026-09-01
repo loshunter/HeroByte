@@ -1,5 +1,6 @@
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
+import { AtlasTab } from "../../atlas/AtlasTab";
 import MapTab from "./tab-views/MapTab";
 import NPCsTab from "./tab-views/NPCsTab";
 import PropsTab from "./tab-views/PropsTab";
@@ -35,6 +36,9 @@ export function DMMenu({
   camera,
   playerCount,
   characters,
+  atlasNodes,
+  currentAtlasNodeId,
+  onAtlasMessage,
   onRequestSaveSession,
   onRequestLoadSession,
   onCreateNPC,
@@ -173,6 +177,14 @@ export function DMMenu({
           onStagingZoneLockToggle={onStagingZoneLockToggle}
           onSetPlayerStagingZone={onSetPlayerStagingZone}
           onClearDrawings={onClearDrawings}
+          mapStudio={mapStudio}
+        />
+      )}
+      {activeTab === "atlas" && (
+        <AtlasTab
+          atlasNodes={atlasNodes}
+          currentAtlasNodeId={currentAtlasNodeId}
+          onAtlasMessage={onAtlasMessage}
           mapStudio={mapStudio}
         />
       )}

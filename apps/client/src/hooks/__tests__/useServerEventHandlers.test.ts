@@ -805,4 +805,35 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       });
     });
   });
+
+  describe("atlas-error events", () => {
+    it("surfaces the reason as an error toast — this channel is the atlas ops' only failure surface", () => {
+      const registerServerEventHandler = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
+      const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
+
+      act(() => {
+        handler({
+          t: "atlas-error",
+          code: "rejected",
+          reason: "That node already has a map.",
+          nodeId: "n1",
+        });
+      });
+
+      expect(toast.error).toHaveBeenCalledWith("Atlas: That node already has a map.", 5000);
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+  });
 });

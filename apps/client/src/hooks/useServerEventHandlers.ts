@@ -251,6 +251,11 @@ export function useServerEventHandlers({
           message.t === "map-studio-error")
       ) {
         onMapStudioMessage?.(message);
+      } else if ("t" in message && message.t === "atlas-error") {
+        // Atlas ops are fire-and-forget room mutations confirmed by the next
+        // snapshot; this channel is their ONLY failure surface (sent to the
+        // acting DM alone), so a swallowed one is a silently dead button.
+        toastError(`Atlas: ${message.reason}`, 5000);
       }
     });
   }, [

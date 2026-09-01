@@ -17,7 +17,7 @@ import type { SnapshotCharacter } from "@herobyte/shared";
 /**
  * Type for DMMenu tab identifiers
  */
-export type DMMenuTab = "map" | "npcs" | "props" | "players" | "session";
+export type DMMenuTab = "map" | "atlas" | "npcs" | "props" | "players" | "session";
 
 /**
  * State object returned by useDMMenuState hook

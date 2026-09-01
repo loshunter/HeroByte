@@ -1,5 +1,7 @@
 import type {
+  AtlasNodeSnapshot,
   Character,
+  ClientMessage,
   PlayerStagingZone,
   Prop,
   Player,
@@ -41,6 +43,13 @@ export interface DMMenuProps {
   camera: Camera;
   playerCount: number;
   characters: SnapshotCharacter[];
+  // The Atlas tab (A2). REQUIRED on purpose — required options over optional
+  // ones for wiring that must not silently unwire (arc rule §6): an optional
+  // prop here is exactly the shape M4b's review proved can be deleted while
+  // every suite stays green.
+  atlasNodes: AtlasNodeSnapshot[];
+  currentAtlasNodeId?: string;
+  onAtlasMessage: (message: ClientMessage) => void;
   onRequestSaveSession?: (sessionName: string) => void;
   onRequestLoadSession?: (file: File) => void;
   onCreateNPC: (request?: CreateNpcRequest) => void;

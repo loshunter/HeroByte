@@ -61,6 +61,9 @@ const createProps = () => ({
   playerCount: 2,
   camera: { x: 0, y: 0, scale: 1 },
   characters: [] as Character[],
+  atlasNodes: [],
+  currentAtlasNodeId: undefined as string | undefined,
+  onAtlasMessage: vi.fn(),
   props: [],
   players: [],
   onCreateProp: vi.fn(),
@@ -168,6 +171,24 @@ describe("DMMenu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "+ Add NPC" }));
     expect(props.onCreateNPC).toHaveBeenCalledTimes(1);
+  });
+
+  it("switches to the Atlas tab and actually MOUNTS the tree (a dropped mount compiles clean)", () => {
+    // The M4b lesson, applied forward: the chip existing and the props being
+    // wired both survive deleting the `activeTab === "atlas"` mount block —
+    // only rendering the tab's content proves the wiring end to end.
+    const props = createProps();
+    render(<DMMenu {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
+    expect(screen.getByText(/Nothing lies within/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("New node name"), { target: { value: "The Docks" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ CREATE NODE" }));
+    expect(props.onAtlasMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ t: "atlas-create-node" }),
+    );
   });
 
   describe('presentation="content" (the mobile DM screen, M4b)', () => {
