@@ -41,15 +41,32 @@ describe("normalizeAtlasState", () => {
     expect(result).toEqual({ atlasNodes: [], atlasLinks: [], sceneStates: {} });
   });
 
+  it("drops a link whose anchor cannot be dereferenced — the one inner field the broadcast path reads", () => {
+    // projectAtlasFor builds `{ x: link.anchor.x, … }` for players; an
+    // anchor-less link surviving normalize is a TypeError inside the debounced
+    // broadcast timer, persisted into a crash-on-every-restart loop.
+    const result = normalizeAtlasState({
+      atlasLinks: [
+        { id: "good", fromNodeId: "a", toNodeId: "b", anchor: { x: 1, y: 2 } },
+        { id: "no-anchor", fromNodeId: "a", toNodeId: "b", visibleToPlayers: true },
+        { id: "poison-anchor", fromNodeId: "a", toNodeId: "b", anchor: "nope" },
+        { id: "nan-anchor", fromNodeId: "a", toNodeId: "b", anchor: { x: Number.NaN, y: 2 } },
+      ],
+    });
+    expect(result.atlasLinks.map((link) => link.id)).toEqual(["good"]);
+  });
+
   it("drops primitive entries from arrays and non-record values from the scene map", () => {
     const good = scene("doc-a");
     const result = normalizeAtlasState({
       atlasNodes: [{ id: "a" }, 42, null, "x"],
-      atlasLinks: [null, { id: "l" }],
+      // The surviving link must carry an anchor — anchor-less records are the
+      // separate broadcast-crash class the dedicated test above covers.
+      atlasLinks: [null, { id: "l", anchor: { x: 0, y: 0 } }],
       sceneStates: { "doc-a": good, "doc-b": 7, "doc-c": null },
     });
     expect(result.atlasNodes).toEqual([{ id: "a" }]);
-    expect(result.atlasLinks).toEqual([{ id: "l" }]);
+    expect(result.atlasLinks).toEqual([{ id: "l", anchor: { x: 0, y: 0 } }]);
     expect(Object.keys(result.sceneStates)).toEqual(["doc-a"]);
   });
 });

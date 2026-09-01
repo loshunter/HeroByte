@@ -27,6 +27,23 @@ function recordArray<T>(value: unknown): T[] {
 }
 
 /**
+ * `anchor` is the ONE inner field the broadcast path dereferences
+ * (`projectAtlasFor` builds `{ x: link.anchor.x, … }` for players), so
+ * record-level filtering alone left an anchor-less link as a TypeError inside
+ * the debounced broadcast timer — persisted, that is a crash on every restart.
+ * Node fields need no such pass: strict `=== true` checks and Set lookups
+ * tolerate any poison.
+ */
+function hasFiniteAnchor(link: MapLink): boolean {
+  const anchor = (link as { anchor?: unknown }).anchor;
+  return (
+    isRecord(anchor) &&
+    Number.isFinite((anchor as { x?: unknown }).x) &&
+    Number.isFinite((anchor as { y?: unknown }).y)
+  );
+}
+
+/**
  * File-authoritative and poison-proof: absent keys become empties (NEVER the
  * room's current values — the mergeSnapshot mapElements lesson), and any
  * non-array/non-record shape a hand-edited file smuggled in is dropped rather
@@ -45,7 +62,7 @@ export function normalizeAtlasState(data: {
   }
   return {
     atlasNodes: recordArray<AtlasNode>(data.atlasNodes),
-    atlasLinks: recordArray<MapLink>(data.atlasLinks),
+    atlasLinks: recordArray<MapLink>(data.atlasLinks).filter(hasFiniteAnchor),
     sceneStates,
   };
 }
