@@ -10,7 +10,7 @@ repeat them, it curates what the ATLAS arc specifically will hit.
 | Branch | Commit     | State                                                                                                                                                                  |
 | ------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `main` | `a37a068f` | **PRODUCTION**, deployed 2026-08-31 — the mobile arc, its review's nine fixes, fork C's three, the boot watchdog, the sentinel-clock fix. Probe- and browser-verified. |
-| `dev`  | `41df84a6` | One docs-only commit ahead (the deploy record). Pushed.                                                                                                                |
+| `dev`  | `d0ac6fac` | Docs-only commits ahead of `main` (the deploy record + this handoff). Pushed.                                                                                          |
 
 Ladder at last full run: shared **424**, server **2191**, client **5426** / 36 batches, e2e
 **167 passed / 3 skipped / 0 failed** (`boot-recovery.spec.ts`'s two tests joined). The
