@@ -198,7 +198,16 @@ export class RoomMessageHandler {
     const roomId = this.getRoomIdForUid?.(senderUid);
     const mapDocuments = roomId && this.mapStudioService ? this.mapStudioService.list(roomId) : [];
 
-    const suspendedScenes = Object.values(state.sceneStates);
+    // Only schema-conforming scenes: the disk path is record-shallow while
+    // the reimport envelope is zod-shaped, so a poisoned scene written into
+    // the file would make the DM's OWN export fail its reimport — the exact
+    // "backup silently stops being a backup" failure the caps exist to
+    // prevent. Skipped loudly, never silently.
+    const suspendedScenes = Object.values(state.sceneStates).filter((scene) => {
+      const usable = typeof scene?.mapDocumentId === "string" && scene.mapDocumentId.length > 0;
+      if (!usable) console.warn("session-export: skipped a malformed suspended scene");
+      return usable;
+    });
     this.sendControlMessage(senderUid, {
       t: "session-file",
       file: {

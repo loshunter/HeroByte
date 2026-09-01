@@ -434,6 +434,40 @@ describe("session round trip", () => {
     ).toBe(true);
   });
 
+  it("skips a malformed suspended scene at export instead of writing an unimportable file", () => {
+    // The disk path is record-shallow while the reimport envelope is
+    // zod-shaped: a poisoned scene in the state file would otherwise ride
+    // into the export and make the DM's own backup fail its reimport.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const state = origin.roomService.getState();
+      state.sceneStates.live = {
+        mapDocumentId: "live",
+        suspendedAt: 1,
+        tokens: [],
+        props: [],
+        drawings: [],
+        sceneObjects: [],
+        characterLinks: {},
+        doorStates: {},
+        combatActive: false,
+        initiatives: {},
+        fogEnabled: false,
+        defaultVisionRadius: null,
+      };
+      state.sceneStates.poisoned = { foo: 1 } as never;
+
+      const file = exportSession();
+      expect(file.sceneStates?.map((scene) => scene.mapDocumentId)).toEqual(["live"]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("malformed suspended scene"));
+      expect(validateLoadSessionEnvelope({ sceneStates: file.sceneStates } as never).valid).toBe(
+        true,
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("keeps a map background in the file as a plain value", () => {
     // It rides assetRefs on the wire; a file must be self-contained.
     origin.roomService.setState({ mapBackground: "https://i.imgur.com/abc.png" });
