@@ -995,6 +995,25 @@ from the Stage, not the viewport.
 **Escalate if:** the wipe wants an old-frame capture after all — that is a spike, not a slice
 item; report instead of improvising canvas readback.
 
+> **A5 SHIPPED** (2026-09-01, one commit; gate: shared 424, server 2246, client **5454** (+9),
+> e2e 167/3/0 — the first run caught this slice's own help topic against THREE pinned counts
+> (desktop topics 8→9, mobile manual sheet 13→14 in both orientations); they were re-measured,
+> not auto-accepted, and the re-run then proved all 14 mobile targets hold the 44px floor).
+> Sabotage 13/13 red; the two follow-the-live rows re-proven after their effect changed files.
+> Live-verified two-tab: the iris caught by MutationObserver in BOTH directions and absent on
+> the first bind (undefined→A); a mid-flight phone screenshot shows the full-viewport cover;
+> mobile arrival recentered the camera (0,0)→(−1012.5,−494) with the whole party warped into
+> the staging room; the player's nodes carried EXACTLY `{id, kind, name, discovered}`; the DM
+> palette's LIVE badge followed travel with the menu open. Deviations, recorded: (1) the camera
+> command shipped as `focus-point` (staging zone's CELL center at +0.5, else scene center) —
+> `focus-rect` was more plumbing than an arrival needs; (2) the fog registry holds **4 rooms**,
+> not 8 (24 masks/room ≈ 1MB — the whole store stays at HALF the old budget on purpose); (3)
+> the follow-the-live effect lives in its own `useFollowLiveDocument.ts` (the 350 guard read
+> useMapEditState at 360; extract-before-add); (4) the plan's e2e travel legs are A7's journey
+> spec by design — they ran LIVE here instead, which minted the traps: the browser pane's
+> navigate STRIPS query strings, two same-origin tabs share `herobyte-session-uid` (pin
+> per-tab identity with `?sessionUid=`), and `?mobile=true` — not `=1` — forces the layout.
+
 ---
 
 ### A6 🟡 — Links on the map + the player world map

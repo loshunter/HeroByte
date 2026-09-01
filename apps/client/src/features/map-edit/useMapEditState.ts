@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ClientMessage } from "@herobyte/shared";
 import type { ToolMode } from "../../components/layout/Header";
 import type { MapStudioController } from "../map-studio/types";
+import { useFollowLiveDocument } from "./useFollowLiveDocument";
 import { useMapEditHotkeys } from "./useMapEditHotkeys";
 import { usePopulate } from "./usePopulate";
 import { useGenerate } from "./useGenerate";
@@ -230,6 +231,8 @@ export function useMapEditState({
   // reported the document gone) is never re-opened — without that guard this
   // effect looped open → not-found → open forever, pinning the palette on
   // STARTING… after a server-side maps-store reset.
+  useFollowLiveDocument({ mapEditMode, liveMapDocumentId, loading, activeId, openDocument });
+
   useEffect(() => {
     if (!mapEditMode || !liveMapDocumentId || pendingLiveId || loading) return;
     if (activeId || bindingDangling) return;

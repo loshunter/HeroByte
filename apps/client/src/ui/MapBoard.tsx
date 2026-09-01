@@ -62,6 +62,7 @@ import { exploredFogKey } from "../features/map/exploredFogStore";
 import { currentRoomId } from "../features/rooms/roomDirectory";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
+import { MapTransitionOverlay } from "../features/map/MapTransitionOverlay";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 import { STATUS_OPTIONS, type StatusOption } from "../features/players/constants/statusOptions";
 
@@ -638,6 +639,10 @@ export default function MapBoard({
         alignmentMode={alignmentMode}
         alignmentInstruction={alignmentInstruction}
       />
+      {/* The iris on travel — keyed on the PLAYER-visible scene id, never the
+          DM-only binding. A DOM overlay above the Stage: no Konva, no pixels
+          of the old frame (see the component's header). */}
+      <MapTransitionOverlay sourceDocumentId={snapshot?.compiledScene?.sourceDocumentId} />
       {wheelAt && mapEditWheelActions && (
         <MapEditQuickWheel
           x={wheelAt.x}

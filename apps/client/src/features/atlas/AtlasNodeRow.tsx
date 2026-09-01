@@ -90,6 +90,23 @@ export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: Atl
         >
           ✕ Delete
         </JRPGButton>
+        {node.mapDocumentId && !isCurrent && (
+          <JRPGButton
+            variant="primary"
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Travel the whole table to "${node.name}"? The current scene is suspended exactly as it stands.`,
+                )
+              ) {
+                actions.travel(node.id);
+              }
+            }}
+            style={{ fontSize: "9px", padding: "2px 6px" }}
+          >
+            🚩 TRAVEL
+          </JRPGButton>
+        )}
       </div>
       {!node.mapDocumentId && (
         <div style={{ display: "flex", gap: "6px", marginTop: "4px", alignItems: "center" }}>

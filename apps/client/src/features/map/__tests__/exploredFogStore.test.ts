@@ -168,22 +168,22 @@ describe("saving and loading a mask", () => {
 
   // No other client store prunes by prefix, so this index is the only thing
   // stopping one entry per map a player has ever visited, forever.
-  it("evicts the least recently used map past the cap", () => {
+  it("evicts the least recently used map past the PER-ROOM cap (v2: 24, an Atlas graph's worth)", () => {
     const meta = metaFor();
-    const keys = Array.from({ length: 8 }, (_, i) => `${KEY}-${i}`);
+    const keys = Array.from({ length: 26 }, (_, i) => `${KEY}-${i}`);
     for (const key of keys) {
       saveExploredMask(key, { ...meta, ...SCENE }, bitsWith([1], meta));
     }
 
     const survivors = keys.filter((key) => loadExploredMask(key, { ...meta, ...SCENE }) !== null);
-    expect(survivors).toHaveLength(6);
-    // The six most recent, not the first six.
+    expect(survivors).toHaveLength(24);
+    // The 24 most recent, not the first 24.
     expect(survivors).toEqual(keys.slice(2));
   });
 
   it("keeps a map alive by re-saving it", () => {
     const meta = metaFor();
-    const keys = Array.from({ length: 6 }, (_, i) => `${KEY}-${i}`);
+    const keys = Array.from({ length: 24 }, (_, i) => `${KEY}-${i}`);
     for (const key of keys) saveExploredMask(key, { ...meta, ...SCENE }, bitsWith([1], meta));
 
     saveExploredMask(keys[0]!, { ...meta, ...SCENE }, bitsWith([2], meta)); // touch the oldest
@@ -215,5 +215,49 @@ describe("when localStorage refuses to cooperate", () => {
     });
 
     expect(loadExploredMask("k", { ...metaFor(), ...SCENE })).toBeNull();
+  });
+});
+
+describe("the v2 per-room LRU (A5)", () => {
+  beforeEach(installStorage);
+
+  function save(room: string, doc: string): string {
+    const meta = metaFor();
+    const key = exploredFogKey(room, "uid-1", doc);
+    saveExploredMask(key, { ...meta, ...SCENE }, new Uint8Array(byteLengthFor(meta)));
+    return key;
+  }
+
+  it("keeps 24 maps per room, and a second room does not evict the first's", () => {
+    const first = save("room-a", "doc-0");
+    for (let i = 1; i <= 23; i += 1) save("room-a", `doc-${i}`);
+    for (let i = 0; i < 10; i += 1) save("room-b", `b-doc-${i}`);
+
+    expect(store[first]).toBeDefined(); // room-b's touring cannot evict room-a
+    const twentyFifth = save("room-a", "doc-24");
+    expect(store[twentyFifth]).toBeDefined();
+    expect(store[first]).toBeUndefined(); // room-a's own 25th evicts its oldest
+  });
+
+  it("evicting a ROOM takes all of its masks with it — nothing orphans", () => {
+    const evicted = save("room-0", "doc-x");
+    for (let i = 1; i <= 4; i += 1) save(`room-${i}`, "doc-x"); // 4-room registry cap
+
+    expect(store[evicted]).toBeUndefined();
+    expect(store["herobyte:fog-explored-index:v2:room-0"]).toBeUndefined();
+  });
+
+  it("migrates the legacy GLOBAL index: masks re-file under their rooms, the old index dies", () => {
+    const meta = metaFor();
+    const legacyKey = exploredFogKey("old-room", "uid-1", "old-doc");
+    // A v1-era store: the mask exists and the GLOBAL index references it.
+    store[legacyKey] = JSON.stringify({ ...meta, ...SCENE, bits: "" });
+    store["herobyte:fog-explored:v1:index"] = JSON.stringify([legacyKey]);
+
+    save("room-a", "doc-0"); // any write triggers the migration
+
+    expect(store["herobyte:fog-explored:v1:index"]).toBeUndefined();
+    expect(store[legacyKey]).toBeDefined(); // the mask survived the migration
+    expect(store["herobyte:fog-explored-index:v2:old-room"]).toContain("old-doc");
   });
 });

@@ -88,6 +88,15 @@ export function useGenerate(
     if (!armed) setBounds(null);
   }, [armed]);
 
+  // A DOCUMENT SWAP disarms the aim too (A5): the bounds are cell coordinates
+  // computed against the ACTIVE document's grid, and travel can repoint the
+  // palette at another map — the same rectangle there is a different place,
+  // silently. The blind spot the disarm-on-exit note above predicts.
+  const activeDocumentId = controller.activeDocument?.id;
+  useEffect(() => {
+    setBounds(null);
+  }, [activeDocumentId]);
+
   const onRegionDragged = useCallback(
     (dragged: RoomBounds) => {
       const grid = controller.activeDocument?.grid;

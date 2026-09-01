@@ -136,6 +136,28 @@ describe("AtlasTab", () => {
     expect(screen.getByLabelText("mapped: name-n1")).toBeInTheDocument();
   });
 
+  it("TRAVEL is confirm-gated, sends atlas-travel, and never shows on the current node", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { onAtlasMessage } = renderTab({
+      atlasNodes: [
+        node("here", { mapDocumentId: "doc-here", discovered: true }),
+        node("there", { mapDocumentId: "doc-there", discovered: true }),
+      ],
+      currentAtlasNodeId: "here",
+    });
+    // Exactly ONE travel button: the current node offers none.
+    const buttons = screen.getAllByRole("button", { name: "🚩 TRAVEL" });
+    expect(buttons).toHaveLength(1);
+
+    confirmSpy.mockReturnValue(false);
+    fireEvent.click(buttons[0]!);
+    expect(onAtlasMessage).not.toHaveBeenCalled();
+
+    confirmSpy.mockReturnValue(true);
+    fireEvent.click(buttons[0]!);
+    expect(onAtlasMessage).toHaveBeenCalledWith({ t: "atlas-travel", nodeId: "there" });
+  });
+
   it("opens the generate panel on a promise node and sends the message with a minted commandId", () => {
     const { onAtlasMessage } = renderTab({ atlasNodes: [node("n1")] });
     fireEvent.click(screen.getByRole("button", { name: "🎲 Generate…" }));

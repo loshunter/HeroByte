@@ -11,6 +11,7 @@ function actionsMock(): AtlasActions {
     deleteNode: vi.fn(),
     linkMap: vi.fn(),
     generateNode: vi.fn(),
+    travel: vi.fn(),
   };
 }
 

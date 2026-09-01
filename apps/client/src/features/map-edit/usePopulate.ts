@@ -10,7 +10,7 @@
 // button would commit (same builder, same bounds-derived seed) as translucent
 // footprints for MapEditPreviewLayer.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MapDocument } from "@herobyte/shared";
 import { getMapStudioTileAsset, MAP_STUDIO_TILE_ASSETS } from "../map-studio/starterTiles";
 import { pickPlacementLayer } from "../map-studio/components/mapStudioWorkspaceUtils";
@@ -72,6 +72,15 @@ export function usePopulate(
   const [lastPlacedBounds, setLastPlacedBounds] = useState<RoomBounds | null>(null);
 
   const onRegionPlaced = useCallback((bounds: RoomBounds) => setLastPlacedBounds(bounds), []);
+
+  // A DOCUMENT SWAP drops the target (A5): the pixel rectangle was placed on
+  // the OLD document, and regionHasFloor only saves us when the new map
+  // happens to be empty there — floor at the same coordinates would scatter
+  // props into the wrong map.
+  const activeDocumentId = controller.activeDocument?.id;
+  useEffect(() => {
+    setLastPlacedBounds(null);
+  }, [activeDocumentId]);
 
   const onPopulate = useCallback(() => {
     const document = controller.activeDocument;

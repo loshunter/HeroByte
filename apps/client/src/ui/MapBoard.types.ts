@@ -13,7 +13,12 @@ import type { RoomBounds } from "../features/map-edit/roomBuilder";
  * Camera command for programmatic camera control.
  * Used to focus on tokens or reset the camera view.
  */
-export type CameraCommand = { type: "focus-token"; tokenId: string } | { type: "reset" };
+export type CameraCommand =
+  | { type: "focus-token"; tokenId: string }
+  | { type: "reset" }
+  // WORLD-pixel target — travel's arrival recenter (staging-zone or scene
+  // center). "reset" goes to origin, which is NOT the map's middle.
+  | { type: "focus-point"; x: number; y: number };
 
 /**
  * Options for selection operations.

@@ -23,6 +23,7 @@ export interface AtlasActions {
   deleteNode: (nodeId: string) => void;
   linkMap: (nodeId: string, documentId: string) => void;
   generateNode: (nodeId: string, seed: number, params: AtlasGenerateParams) => void;
+  travel: (nodeId: string) => void;
 }
 
 export function useAtlasActions(sendAtlasMessage: (message: ClientMessage) => void): AtlasActions {
@@ -51,6 +52,7 @@ export function useAtlasActions(sendAtlasMessage: (message: ClientMessage) => vo
           seed,
           params,
         }),
+      travel: (nodeId) => sendAtlasMessage({ t: "atlas-travel", nodeId }),
     }),
     [sendAtlasMessage],
   );

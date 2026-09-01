@@ -30,7 +30,7 @@
  * @module useCameraCommands
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { RoomSnapshot } from "@herobyte/shared";
 import type { CameraCommand } from "../ui/MapBoard";
 
@@ -71,6 +71,28 @@ export function useCameraCommands({
 }: UseCameraCommandsParams): UseCameraCommandsReturn {
   // State: Current camera command (null when no command pending)
   const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
+
+  // TRAVEL ARRIVAL (A5): when the scene under the table CHANGES (the
+  // player-visible sourceDocumentId moves between two defined values — the
+  // same transition the iris wipe keys on), recenter on the destination's
+  // staging zone, else the scene's middle. Without this the camera keeps the
+  // OLD map's pan, which is usually empty void on the new one. First bind and
+  // reload (undefined→A) deliberately do not fire.
+  const previousSceneId = useRef<string | undefined>(snapshot?.compiledScene?.sourceDocumentId);
+  useEffect(() => {
+    const sceneId = snapshot?.compiledScene?.sourceDocumentId;
+    const before = previousSceneId.current;
+    previousSceneId.current = sceneId;
+    if (!before || !sceneId || before === sceneId) return;
+    const scene = snapshot?.compiledScene;
+    if (!scene) return;
+    const zone = snapshot?.playerStagingZone;
+    const gridSize = snapshot?.gridSize ?? 50;
+    const target = zone
+      ? { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize }
+      : { x: scene.width / 2, y: scene.height / 2 };
+    setCameraCommand({ type: "focus-point", x: target.x, y: target.y });
+  }, [snapshot?.compiledScene, snapshot?.playerStagingZone, snapshot?.gridSize]);
 
   /**
    * Focus camera on the user's token.

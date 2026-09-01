@@ -73,7 +73,7 @@ test.describe("desktop — the help panel", () => {
     expect(report!.fitsInViewport).toBe(true);
     // …and nothing may be drawn on top of it.
     expect(report!.probeIsInsidePanel).toBe(true);
-    expect(report!.topicCount).toBe(8);
+    expect(report!.topicCount).toBe(9);
     expect(report!.linkCount).toBe(4);
   });
 
