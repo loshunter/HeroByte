@@ -74,6 +74,9 @@ describe("MessageRouter", () => {
       playerPropsEnabled: false,
       initiativeManualOverride: true,
       defaultVisionRadius: null,
+      atlasNodes: [],
+      atlasLinks: [],
+      sceneStates: {},
     };
 
     const snapshotTemplate: RoomSnapshot = {

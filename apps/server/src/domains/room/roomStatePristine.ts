@@ -34,6 +34,12 @@ export function isRoomStatePristine(state: RoomState): boolean {
     state.mapElements === undefined &&
     state.liveMapDocumentId === undefined &&
     state.playerStagingZone === undefined &&
-    state.combatActive === false
+    state.combatActive === false &&
+    // The campaign graph is content someone built — an atlas-only room must
+    // not read as untouched, or the public table's idle sweep skips wiping it
+    // and a visitor's graph persists for the next stranger indefinitely.
+    state.atlasNodes.length === 0 &&
+    state.atlasLinks.length === 0 &&
+    Object.keys(state.sceneStates).length === 0
   );
 }

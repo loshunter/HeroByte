@@ -18,8 +18,9 @@ import type { RoomState } from "../../domains/room/model.js";
 import type { RoomService } from "../../domains/room/service.js";
 import type { AuthService } from "../../domains/auth/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
-import type { MapDocument, RoomSnapshot, ServerMessage } from "@herobyte/shared";
+import type { MapDocument, RoomSnapshot, SceneState, ServerMessage } from "@herobyte/shared";
 import { toSnapshot } from "../../domains/room/model.js";
+import { sceneStatesFromEnvelope } from "../../domains/room/atlasState.js";
 import { getDefaultRoomId, getRoomSecret } from "../../config/auth.js";
 
 /**
@@ -123,6 +124,7 @@ export class RoomMessageHandler {
     isDM: boolean,
     mapDocuments?: MapDocument[],
     liveMapDocumentId?: string,
+    sceneStates?: SceneState[],
   ): RoomMessageResult {
     if (!isDM) {
       console.warn(`Non-DM ${senderUid} attempted to load session`);
@@ -152,6 +154,25 @@ export class RoomMessageHandler {
       );
     }
 
+    // Suspended scenes ride the ENVELOPE (mergeSnapshot cleared the room's) —
+    // installed AFTER the document restore for the same reason the binding
+    // check runs after it: an orphan scene is dropped, not left to resurrect
+    // stale content the first time a later document reuses its id.
+    state.sceneStates = sceneStatesFromEnvelope(sceneStates, (documentId) =>
+      this.hasDocument(roomId, documentId),
+    );
+
+    // Same rule for the graph: a "mapped" node whose document did not restore
+    // degrades back to a promise rather than a 12s open-timeout on travel.
+    for (const node of state.atlasNodes) {
+      if (node.mapDocumentId && !this.hasDocument(roomId, node.mapDocumentId)) {
+        console.warn(
+          `load-session: node "${node.name}" degraded to a promise — no document ${node.mapDocumentId}`,
+        );
+        node.mapDocumentId = undefined;
+      }
+    }
+
     console.log(
       `Loaded session for room ${roomId ?? "(default)"}: restored ${restored} map document(s)`,
     );
@@ -177,6 +198,7 @@ export class RoomMessageHandler {
     const roomId = this.getRoomIdForUid?.(senderUid);
     const mapDocuments = roomId && this.mapStudioService ? this.mapStudioService.list(roomId) : [];
 
+    const suspendedScenes = Object.values(state.sceneStates);
     this.sendControlMessage(senderUid, {
       t: "session-file",
       file: {
@@ -184,9 +206,14 @@ export class RoomMessageHandler {
         savedAt: Date.now(),
         // The DM's view on purpose — a session file must round-trip the secrets
         // a player snapshot strips, or reloading one would quietly disarm the map.
+        // (The graph rides INSIDE this snapshot — the DM view carries it whole,
+        // provenance included; sceneStates never can, so they ride below.)
         snapshot: flattenForFile(toSnapshot(state, true, senderUid), state),
         mapDocuments,
         liveMapDocumentId: state.liveMapDocumentId,
+        // Envelope-only, and omitted when empty so a pre-Atlas room's file is
+        // byte-identical to what it was before this field existed.
+        ...(suspendedScenes.length > 0 ? { sceneStates: suspendedScenes } : {}),
       },
     });
     return { broadcast: false, save: false };

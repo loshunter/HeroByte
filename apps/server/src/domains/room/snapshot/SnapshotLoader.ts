@@ -11,6 +11,7 @@ import {
   coerceTokenVisionRadii,
   normalizeHPValues,
 } from "@herobyte/shared";
+import { normalizeAtlasState } from "../atlasState.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
@@ -196,6 +197,17 @@ export class SnapshotLoader {
       // Same clamp, for the least trustworthy source there is. Absent reads as
       // no default, which is how every session file written before now loads.
       defaultVisionRadius: coerceDefaultVisionRadius(snapshot.defaultVisionRadius),
+      // FILE-AUTHORITATIVE, exactly like mapElements above: an atlas-free file
+      // loads an EMPTY graph, never the room's current one — "preserved" here
+      // would bleed campaign A's nodes (and, via document-id reuse, its
+      // suspended scenes) into campaign B. Poison-proofed by the same helper
+      // the disk loader uses.
+      ...normalizeAtlasState({ atlasNodes: snapshot.atlasNodes, atlasLinks: snapshot.atlasLinks }),
+      // ENVELOPE-only: the snapshot half of a session file never carries
+      // scenes (plan §3's single-carriage rule). handleLoadSession installs
+      // the envelope's validated copy AFTER this merge; a bare-snapshot load
+      // (a fork, a legacy file) starts with none.
+      sceneStates: {},
     };
   }
 }

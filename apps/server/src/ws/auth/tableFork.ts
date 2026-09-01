@@ -117,7 +117,16 @@ export async function handleForkTable(
     // Unfiltered DM view (createSnapshot with no recipient), so secret doors
     // and hidden NPCs survive the copy. Same path load-session uses.
     target.loadSnapshot(deps.sourceRoomService.createSnapshot());
-    target.setState({ tableName: name, isPublicTable: false });
+    target.setState({
+      tableName: name,
+      isPublicTable: false,
+      // Suspended scenes can NEVER ride a snapshot (they serialize to no
+      // recipient), so the snapshot copy above starts the fork with none —
+      // and this fork exists precisely to "keep what I built". Copied
+      // server-side, out of band, like the documents below; structuredClone
+      // so the fork never aliases the source's live state.
+      sceneStates: structuredClone(deps.sourceRoomService.getState().sceneStates),
+    });
 
     // Map documents are the live map itself — the whole point of keeping the
     // table — and they live outside room state.

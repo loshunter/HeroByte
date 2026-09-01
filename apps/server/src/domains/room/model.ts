@@ -4,10 +4,13 @@
 // Defines the room state structure and snapshot
 
 import type {
+  AtlasNode,
   CompiledScene,
   MapElementsSnapshot,
+  MapLink,
   MapTerrainSnapshot,
   RoomSnapshot,
+  SceneState,
   Token,
   Player,
   Pointer,
@@ -75,6 +78,10 @@ export interface RoomState {
   isPublicTable?: boolean;
   /** Display name a private table was created or forked with. */
   tableName?: string;
+  atlasNodes: AtlasNode[]; // The campaign graph (players get a discovered-only projection)
+  atlasLinks: MapLink[]; // Travel sprites between nodes (players get a filtered projection)
+  /** Suspended scenes keyed by mapDocumentId. NEVER serialized to any recipient. */
+  sceneStates: Record<string, SceneState>;
 }
 
 /**
@@ -112,6 +119,9 @@ export function createEmptyRoomState(): RoomState {
     playerPropsEnabled: false,
     initiativeManualOverride: true,
     defaultVisionRadius: null,
+    atlasNodes: [],
+    atlasLinks: [],
+    sceneStates: {},
   };
 }
 
@@ -203,6 +213,15 @@ export function toSnapshot(
   if (isDM && state.liveMapDocumentId) {
     snapshot.liveMapDocumentId = state.liveMapDocumentId;
   }
+
+  // The Atlas, already projected per recipient inside buildRecipientView.
+  // OMITTED when the RECIPIENT's projected array is empty — an `[]` for a
+  // player whose atlas is all-undiscovered would itself announce the atlas
+  // exists. `sceneStates` is deliberately absent here: it serializes to NO
+  // recipient, DM included (plan §4.1; the leak test pins it).
+  if (view.atlasNodes.length > 0) snapshot.atlasNodes = view.atlasNodes;
+  if (view.atlasLinks.length > 0) snapshot.atlasLinks = view.atlasLinks;
+  if (view.currentAtlasNodeId) snapshot.currentAtlasNodeId = view.currentAtlasNodeId;
 
   if (assets.length > 0) {
     snapshot.assets = assets;

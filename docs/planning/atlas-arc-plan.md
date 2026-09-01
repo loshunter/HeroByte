@@ -655,9 +655,22 @@ call site + RecipientView fields, or fixture ripple exceeds the named files by m
 **🔎 SENIOR REVIEW GATE:** privacy lens (every projection rule attacked at the frames level) +
 persistence lens (old files, dangling refs, the fork) before any UI exists.
 
----
-
-### A2 🟡 — The DM sees the Atlas (tree UI, desktop + mobile)
+> **A1 SHIPPED** (2026-09-01, one commit, full gate: shared 424, server **2225** (+34),
+> client **5429** (+3), e2e 167/3/0, dev boot clean with the new shared const). Sabotage:
+> 12/12 red — one initially stayed green and it was the TEST's fault (a swallowed throw is
+> invisible to frame counts when no commandId rides the message; the replay test now pins the
+> routing-error log). Browser-verified live: a fresh-uid player received exactly
+> `[discovered, id, kind, name]` for the discovered node, zero bytes of the hidden one, no
+> sceneStates key, and the atlasNodes key left the wire entirely once the graph emptied.
+> Three discoveries for later slices: (1) the client has **THREE** ControlMessage hand-lists,
+> not two — `services/websocket.ts:77` keeps a config copy of the union (tsc catches it
+> drifting; the runtime guard is still the only behavioral one); (2) `.claude/launch.json` is
+> GITIGNORED (machine-local) — which is why HANDOFF §1's "it really does exist" claim went
+> stale: the file evaporates with the machine. Recreated locally; and the preview harness injects
+> `PORT=<preview port>` into the child env, so the entry pins `PORT=8787` via cross-env or the
+> server collides with Vite; (3) two same-profile browser tabs share `herobyte-session-uid`
+> and fight (the documented connection war) — the A7 journey spec keeps its two
+> `browser.newContext()`s, and any in-pane manual check needs a hand-minted uid.
 
 **Goal:** the 🗺 Atlas DM Menu tab: tree render, create/rename/discover/delete, LINK EXISTING MAP,
 status badges. Mobile via the DM screen's existing `presentation="content"` chip row.

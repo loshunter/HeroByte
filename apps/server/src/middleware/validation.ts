@@ -83,6 +83,12 @@ import {
   validateMapStudioPublishMessage,
   validateMapStudioSetLiveMessage,
   validateMapStudioGenerateMessage,
+  validateAtlasCreateNodeMessage,
+  validateAtlasUpdateNodeMessage,
+  validateAtlasDeleteNodeMessage,
+  validateAtlasLinkMapMessage,
+  validateAtlasCreateLinkMessage,
+  validateAtlasDeleteLinkMessage,
   validateToggleDoorMessage,
   validateSetDoorStateMessage,
   validateSetFogEnabledMessage,
@@ -216,6 +222,16 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "map-studio-publish": validateMapStudioPublishMessage,
   "map-studio-set-live": validateMapStudioSetLiveMessage,
   "map-studio-generate": validateMapStudioGenerateMessage,
+
+  // ==========================================================================
+  // ATLAS MESSAGES (campaign graph)
+  // ==========================================================================
+  "atlas-create-node": validateAtlasCreateNodeMessage,
+  "atlas-update-node": validateAtlasUpdateNodeMessage,
+  "atlas-delete-node": validateAtlasDeleteNodeMessage,
+  "atlas-link-map": validateAtlasLinkMapMessage,
+  "atlas-create-link": validateAtlasCreateLinkMessage,
+  "atlas-delete-link": validateAtlasDeleteLinkMessage,
   "toggle-door": validateToggleDoorMessage,
   "set-door-state": validateSetDoorStateMessage,
   "set-fog-enabled": validateSetFogEnabledMessage,

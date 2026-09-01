@@ -20,6 +20,7 @@ import {
   coerceTokenVisionRadii,
 } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
+import { normalizeAtlasState } from "../atlasState.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
@@ -161,6 +162,9 @@ export class StatePersistence {
           // ABSENT is the normal case — every state file already on the
           // production disk predates the field and must read as no default.
           defaultVisionRadius: coerceDefaultVisionRadius(data.defaultVisionRadius),
+          // Poison-proof (`?? []` keeps a truthy `{}`) and shared with the
+          // Redis hydrate path — see atlasState.ts.
+          ...normalizeAtlasState(data),
         };
 
         this.setState(loadedState);
@@ -264,6 +268,10 @@ export class StatePersistence {
       // launch gate): a mid-fight crash or redeploy must not lose initiative.
       combatActive: state.combatActive,
       currentTurnCharacterId: state.currentTurnCharacterId,
+      // The campaign graph and its suspended scenes are game state.
+      atlasNodes: state.atlasNodes,
+      atlasLinks: state.atlasLinks,
+      sceneStates: state.sceneStates,
     };
 
     // Serialize NOW (synchronously) so the queued write captures a consistent

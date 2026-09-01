@@ -18,10 +18,30 @@ import type { DiagonalRule, MeasurePoint } from "./measurement.js";
 import type { AreaTemplate, AreaTemplateTool } from "./areaTemplates.js";
 // Imported as well as re-exported below: the barrel's own declarations use it.
 import type { DrawingType } from "./drawingTypes.js";
+// Imported as well as re-exported below: RoomSnapshot/SessionFile/ClientMessage use them.
+import type {
+  AtlasNodeKind,
+  AtlasNodeSnapshot,
+  MapLink,
+  MapLinkSnapshot,
+  SceneState,
+} from "./atlas.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
 export { WS_CLOSE_AUTH_REJECTED, WS_CLOSE_REPLACED } from "./wsCloseCodes.js";
+
+// The Atlas — campaign graph types + limits. Value re-export from a sub-module
+// (same rule as wsCloseCodes: a direct `export const` here erases at runtime).
+export { ATLAS_LIMITS } from "./atlas.js";
+export type {
+  AtlasNode,
+  AtlasNodeKind,
+  AtlasNodeSnapshot,
+  MapLink,
+  MapLinkSnapshot,
+  SceneState,
+} from "./atlas.js";
 
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
@@ -635,6 +655,21 @@ export interface RoomSnapshot {
   isPublicTable?: boolean;
   /** Display name of a private table, so every member sees it, not just its creator. */
   tableName?: string;
+  /**
+   * The campaign graph, already projected for THIS recipient (DM: whole;
+   * players: discovered-only whitelist — see atlasProjection.ts). OMITTED when
+   * the recipient's projected array is empty: an `[]` for a player whose atlas
+   * is all-undiscovered would itself announce that an atlas exists.
+   */
+  atlasNodes?: AtlasNodeSnapshot[];
+  /** Same per-recipient projection + omission rule as atlasNodes. */
+  atlasLinks?: MapLinkSnapshot[];
+  /**
+   * The node whose map is live on the table — derived, never stored. Players
+   * only receive it when that node passes their projection, so standing on an
+   * undiscovered node's map shows no "you are here".
+   */
+  currentAtlasNodeId?: string;
   assets?: SnapshotAsset[];
   assetRefs?: SnapshotAssetRefs;
 }
@@ -680,6 +715,13 @@ export interface SessionFile {
   mapDocuments: MapDocument[];
   /** Which document was bound to the table, if any. */
   liveMapDocumentId?: string;
+  /**
+   * Every suspended scene, keyed inside each record by its mapDocumentId.
+   * ENVELOPE-only on purpose: sceneStates can never ride a RoomSnapshot (they
+   * serialize to no recipient), so the snapshot half of this file never holds
+   * them — one carriage, no unvalidated decoy copy. Absent in older files.
+   */
+  sceneStates?: SceneState[];
   /**
    * The BYTES behind every `upload:<hash>` / `/assets/<hash>` reference anywhere
    * in this file. Optional: a file saved before this existed simply has none,
@@ -936,6 +978,24 @@ type ClientMessagePayload =
       // payload. See dungeonGeometry.emitDoors.
     } // Run a server-side recipe; output applies to the document as ONE place-room command
 
+  // The Atlas (DM-only; the campaign graph — see atlas.ts). Every mutation is
+  // REPLAY-IDEMPOTENT by contract: the ack layer retries a missed ack with the
+  // same commandId, so create-with-existing-id, delete-absent, and
+  // link-already-same must ack success rather than error.
+  | {
+      t: "atlas-create-node";
+      node: { id: string; kind: AtlasNodeKind; name: string; parentId?: string };
+    }
+  | {
+      t: "atlas-update-node";
+      nodeId: string;
+      patch: { name?: string; discovered?: boolean; parentId?: string | null };
+    }
+  | { t: "atlas-delete-node"; nodeId: string } // children reparent to the deleted node's parent; its links are removed; the DOCUMENT (and its scene) is untouched
+  | { t: "atlas-link-map"; nodeId: string; documentId: string } // cash a promise with an existing document; 1:1 node↔document enforced
+  | { t: "atlas-create-link"; link: MapLink } // a travel sprite; anchor is DOCUMENT px on the from-node's map
+  | { t: "atlas-delete-link"; linkId: string }
+
   // Live scene interactions (compiled doors are clickable at the table)
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles
   | { t: "set-door-state"; doorId: string; state: CompiledDoorState } // DM-only: set any door state (lock, unlock, reveal)
@@ -1009,6 +1069,9 @@ type ClientMessagePayload =
       // map that cannot be edited afterwards.
       mapDocuments?: MapDocument[];
       liveMapDocumentId?: string;
+      // Suspended scenes from the file's ENVELOPE (older files carry none).
+      // Validated + orphan-dropped server-side against the restored documents.
+      sceneStates?: SceneState[];
     } // Load a saved session state
   | { t: "request-room-resync"; lastSeenVersion?: number; reason?: string } // Request fresh snapshot when client detects version gap
   | {
@@ -1088,6 +1151,16 @@ export type ServerMessage =
       code: "revision-conflict" | "command-rejected" | "not-found";
       reason: string;
       actualRevision?: number;
+    }
+  | {
+      t: "atlas-error";
+      // Sent to the ACTING DM only (sendControlMessage — single recipient).
+      // The non-DM rejection path never reaches here: the family gate throws
+      // FIRST with one constant reason, so the nack channel cannot become a
+      // node-status oracle for players.
+      code: "rejected" | "not-found" | "at-cap";
+      reason: string;
+      nodeId?: string;
     }
   | { t: "dm-status"; isDM: boolean } // DM elevation status update
   | { t: "dm-elevation-failed"; reason?: string } // DM elevation failed

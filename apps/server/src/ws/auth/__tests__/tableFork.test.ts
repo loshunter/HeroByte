@@ -82,6 +82,54 @@ describe("handleForkTable", () => {
     expect(copy.getState().isPublicTable).toBe(false);
   });
 
+  it("carries the atlas graph AND its suspended scenes — the one flow that exists to keep work", async () => {
+    const { ws, source, rooms, deps } = setup();
+    source.setState({
+      atlasNodes: [
+        {
+          id: "n1",
+          kind: "dungeon",
+          name: "Kept Vault",
+          discovered: false,
+          mapDocumentId: "doc-x",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      sceneStates: {
+        "doc-x": {
+          mapDocumentId: "doc-x",
+          suspendedAt: 1,
+          tokens: [{ id: "goblin-token", owner: "dm", x: 1, y: 1, color: "#0f0" } as never],
+          props: [],
+          drawings: [],
+          sceneObjects: [],
+          characterLinks: {},
+          doorStates: { d1: { state: "open", authored: "closed" } },
+          combatActive: true,
+          initiatives: {},
+          fogEnabled: true,
+          defaultVisionRadius: null,
+        },
+      },
+    });
+
+    await handleForkTable(
+      ws,
+      { roomId: "table-keeper", name: "Sunday Game", roomPassword: "a-good-password" },
+      deps,
+    );
+
+    const copy = rooms.get("table-keeper")!.getState();
+    // The graph rides the snapshot copy; suspended scenes CANNOT (they
+    // serialize to no recipient), so the fork copies them out of band.
+    expect(copy.atlasNodes.map((node) => node.id)).toEqual(["n1"]);
+    expect(copy.sceneStates["doc-x"]?.doorStates.d1?.state).toBe("open");
+    // ...and never by reference: the source mutating later must not reach in.
+    source.getState().sceneStates["doc-x"]!.combatActive = false;
+    expect(copy.sceneStates["doc-x"]?.combatActive).toBe(true);
+  });
+
   it("carries hidden NPCs across — the copy is the DM's view, not a player's", async () => {
     const { ws, rooms, deps } = setup();
 

@@ -91,6 +91,9 @@ describe("MessageRouter - Error Handling Characterization", () => {
       playerPropsEnabled: false,
       initiativeManualOverride: true,
       defaultVisionRadius: null,
+      atlasNodes: [],
+      atlasLinks: [],
+      sceneStates: {},
     };
 
     mockRoomService = {

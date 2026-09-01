@@ -195,6 +195,9 @@ export function useSessionManagement({
           snapshot: session.snapshot,
           mapDocuments: session.mapDocuments,
           liveMapDocumentId: session.liveMapDocumentId,
+          // Envelope-only cargo: the snapshot half never carries scenes, so
+          // omitting this line is the silent-suspended-scene-loss bug.
+          sceneStates: session.sceneStates,
         });
 
         if (warnings.length > 0) {

@@ -59,6 +59,9 @@ describe("AuthorizationService", () => {
       playerPropsEnabled: false,
       initiativeManualOverride: true,
       defaultVisionRadius: null,
+      atlasNodes: [],
+      atlasLinks: [],
+      sceneStates: {},
     };
   });
 
