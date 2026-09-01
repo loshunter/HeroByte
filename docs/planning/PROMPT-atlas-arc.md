@@ -62,10 +62,13 @@ the plan if recon disproves it — but this is the default.
   **Restoring that dial needs fog-aware terrain** — if SceneState's per-player fog memory
   makes unexplored-terrain stripping feasible, that is this arc's candidate bonus, not a
   side quest to start with.
-- **The wire has rules already**: documents fetch over HTTP with WS notify; generation lands
-  as batch commands under `baseRevision` (one undo step); only the active compiled scene
-  broadcasts. The Atlas must stay metadata — the 750KB snapshot guard and 1MB message cap
-  are respected by design, not luck (VISION Pillar 1, last bullet).
+- **The wire has rules already**: ~~documents fetch over HTTP with WS notify~~ — **REFUTED by
+  the 2026-08-31 recon**: there is no MapDocument HTTP route; documents are WS-only and
+  DM-only (`map-studio-get`/`map-studio-document`), which is BETTER for Atlas privacy (see
+  [atlas-arc-plan.md](./atlas-arc-plan.md) §2.1). Generation lands as batch commands under
+  `baseRevision` (one undo step); only the active compiled scene broadcasts. The Atlas must
+  stay metadata — the 750KB snapshot guard and 1MB message cap are respected by design, not
+  luck (VISION Pillar 1, last bullet).
 - **Travel = rebind, probably.** The live table already has ONE live-bound document
   (`liveMapDocumentId`) and the client controller queues one-in-flight commands against the
   ACTIVE document (`useMapStudio`). Recon question one: is travel "set-live to another
