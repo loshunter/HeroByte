@@ -32,9 +32,13 @@ export class RedisRoomStore implements RoomStore {
         }
         try {
           const parsed = JSON.parse(payload) as RoomState;
-          // A pre-Atlas payload lacks the three required graph fields, and this
-          // hydrate has no other compat layer — the same normalize the disk
-          // loader uses keeps the broadcast walk from crashing the process.
+          // Covers the THREE ATLAS FIELDS ONLY: a pre-Atlas payload lacks the
+          // required graph fields, and this hydrate has no other compat layer.
+          // The rest of the payload is still hydrated as-is — notably
+          // `selectionState` (a Map) round-trips Redis as `{}` and would break
+          // its serializer at broadcast time — a pre-existing gap of this
+          // opt-in store, NOT closed here. A real fix is the disk loader's
+          // full reset discipline (createSelectionMap, cleared ephemera).
           const state: RoomState = { ...parsed, ...normalizeAtlasState(parsed) };
           this.cache.set(roomId, state);
         } catch (error) {

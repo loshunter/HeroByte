@@ -671,6 +671,28 @@ persistence lens (old files, dangling refs, the fork) before any UI exists.
 > server collides with Vite; (3) two same-profile browser tabs share `herobyte-session-uid`
 > and fight (the documented connection war) — the A7 journey spec keeps its two
 > `browser.newContext()`s, and any in-pane manual check needs a hand-minted uid.
+>
+> **A1's SENIOR REVIEW GATE RAN** (2026-09-01, privacy + persistence lenses, both complete).
+> Five findings accepted and FIXED in the commits that follow the A2 slice: (1) **the table
+> fork aliased live node/link objects across rooms** — the one in-process snapshot copy, so an
+> in-place discover/rename bled between the public table and a private fork (probe-confirmed;
+> `discovered` is privacy-bearing) → the whole atlas trio is now structuredClone'd out of
+> band; (2) **normalize was one level too shallow** — `projectAtlasFor` dereferences
+> `link.anchor.x`, so an anchor-less link in a loaded file crashed the debounced broadcast
+> timer, persisted into a crash-on-every-restart loop → anchors are now finiteness-checked in
+> the one shared normalize; (3) **`map-studio-delete` left the id-reuse bomb armed at
+> runtime** — orphan scene kept, node still "mapped" → the delete case now drops the scene
+> and degrades the node, broadcasting the change; (4) **a poisoned scene exported an
+> unimportable file** → export skips schema-non-conforming scenes with a warn; (5) **the
+> disk-file round trip was untested and the save list is an untyped literal** — deleting
+> `sceneStates:` from it compiled clean through the whole gate → StatePersistence now has the
+> promised round-trip/poison tests, and that exact deletion sabotage goes red. Accepted
+> WITHOUT code: a server ROLLBACK sheds the atlas keys from `herobyte-state.json` on its
+> next save (the client-side old-client caveat's server twin — stated here); Redis hydrate's
+> normalize covers the three atlas fields ONLY (`selectionState`'s Map→`{}` flattening is a
+> pre-existing gap of that opt-in store, now said honestly at the site). Everything else
+> held, including gate-first/constant-reason, single-carriage, replay-idempotency, and the
+> loadSnapshot identity-preservation question the lens called sharpest.
 
 **Goal:** the 🗺 Atlas DM Menu tab: tree render, create/rename/discover/delete, LINK EXISTING MAP,
 status badges. Mobile via the DM screen's existing `presentation="content"` chip row.
@@ -959,7 +981,10 @@ map on both platforms.
   nesting exactly; DM-only affordances gate on `dmViewActive` (`playerLens.ts:25-27`), not raw
   isDM).
 - `snapshot/atlasProjection.ts` (A1 — links arrive filtered; the client renders what it is
-  given, no client-side privacy).
+  given, no client-side privacy). **The no-client-refilter posture is DELIBERATE** (A1 review,
+  recorded): the player surfaces trust the server projection and do not re-assert
+  `discovered` — defense-in-depth here would be a second implementation of the privacy rules
+  that could silently disagree with the real one.
 - The shipped touch-aim pattern (`useMapEditTouchAim` consumers — press AIMS, release DROPS) and
   `usePointerToDoc.ts` (world→doc px). Link placement is an ATLAS action with a one-shot canvas
   aim, NOT a map-edit sub-tool — links are room state, not document elements (§2.3), so the
