@@ -38,6 +38,7 @@ import {
   MapImageLayer,
   TerrainLayer,
   MapElementsLayer,
+  AtlasLinksLayer,
   DoorsLayer,
   FogLayer,
   TokensLayer,
@@ -54,6 +55,7 @@ import {
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
+import { usePointerToDoc } from "../features/map-edit/usePointerToDoc";
 import { isTouchTool } from "../features/map-edit/mapEditToolKinds";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
 import { MapEditQuickWheel } from "../features/map-edit/MapEditQuickWheel";
@@ -120,6 +122,9 @@ export default function MapBoard({
   alignmentPoints = [],
   alignmentSuggestion = null,
   onAlignmentPointCapture,
+  linkAimMode = false,
+  onLinkAnchorCapture,
+  onLinkAimCancel,
   drawTool,
   drawColor,
   drawWidth,
@@ -444,6 +449,16 @@ export default function MapBoard({
     [toWorld, sendMessage],
   );
 
+  // Atlas-link aim (A6): the one-shot capture converts the click to DOCUMENT
+  // px through the same hop the map-edit tools use, then hands it up — the
+  // aim's owner (useAtlasLinkAim) does the sending and the disarming.
+  const { toDocPoint } = usePointerToDoc(toWorld, mapObject?.transform);
+  const handleLinkAimClick = useCallback(() => {
+    if (!onLinkAnchorCapture) return;
+    const point = toDocPoint(stageRef);
+    if (point) onLinkAnchorCapture(point);
+  }, [onLinkAnchorCapture, toDocPoint]);
+
   // Event router coordinates all mouse/pointer events across tools
   const {
     onStageClick,
@@ -464,7 +479,9 @@ export default function MapBoard({
     // Drag and brush sub-tools take the finger — useArmedTouchTool explains
     // why the click ones would double-fire through the compat mouse path.
     mapEditTouchMode: mapEditMode && isTouchTool(mapEditActiveSubTool),
+    linkAimMode,
     handleAlignmentClick,
+    handleLinkAimClick,
     handlePointerClick,
     handleCameraMouseDown,
     handleDrawMouseDown,
@@ -553,6 +570,21 @@ export default function MapBoard({
     [sendMessage],
   );
 
+  // DM sprite-click travel: the A5 confirm, worded from the target's name.
+  const handleLinkTravel = useCallback(
+    (toNodeId: string) => {
+      const name = snapshot?.atlasNodes?.find((node) => node.id === toNodeId)?.name ?? "that place";
+      if (
+        window.confirm(
+          `Travel the whole table to "${name}"? The current scene is suspended exactly as it stands.`,
+        )
+      ) {
+        sendMessage({ t: "atlas-travel", nodeId: toNodeId });
+      }
+    },
+    [snapshot?.atlasNodes, sendMessage],
+  );
+
   // Callback to receive node reference from MapImageLayer
   const handleMapNodeReady = useCallback(
     (node: Konva.Node | null) => {
@@ -639,6 +671,12 @@ export default function MapBoard({
         alignmentMode={alignmentMode}
         alignmentInstruction={alignmentInstruction}
       />
+      {/* The same instruction chrome, reused for the one-shot link aim. */}
+      <AlignmentInstructionOverlay
+        alignmentMode={linkAimMode}
+        title="Link Placement"
+        alignmentInstruction="Place the link: click the spot on the map it sits at. ESC cancels."
+      />
       {/* The iris on travel — keyed on the PLAYER-visible scene id, never the
           DM-only binding. A DOM overlay above the Stage: no Konva, no pixels
           of the old frame (see the component's header). */}
@@ -667,7 +705,16 @@ export default function MapBoard({
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
-        onTouchStart={onTouchStart}
+        onTouchStart={(event) => {
+          // A second finger cancels the one-shot link aim — the shipped
+          // cancel semantics (a lifted finger commits, so the escape hatch
+          // must be another finger, not a lift).
+          if (linkAimMode && event.evt.touches.length > 1) {
+            onLinkAimCancel?.();
+            return;
+          }
+          onTouchStart(event);
+        }}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         style={{ cursor }}
@@ -727,6 +774,19 @@ export default function MapBoard({
                 mapEditMode &&
                 (mapEditActiveSubTool === "select" || mapEditActiveSubTool === "eyedropper")
               }
+            />
+          )}
+          {/* Atlas travel sprites (A6): per-recipient filtered server-side;
+              anchors are DOCUMENT px, so the layer copies DoorsLayer's
+              transform nesting. Only the DM's sprites listen. */}
+          {snapshot?.atlasLinks && snapshot.atlasLinks.length > 0 && (
+            <AtlasLinksLayer
+              cam={cam}
+              links={snapshot.atlasLinks}
+              currentNodeId={snapshot.currentAtlasNodeId}
+              mapTransform={mapObject?.transform}
+              dmView={dmView}
+              onTravel={dmView ? handleLinkTravel : undefined}
             />
           )}
           {/* DM-only walls overlay: shown while authoring, or pinned to persist. */}

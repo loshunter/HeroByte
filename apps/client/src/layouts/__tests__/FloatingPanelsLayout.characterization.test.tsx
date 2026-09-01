@@ -529,6 +529,19 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("dm-menu")).not.toBeInTheDocument();
     });
 
+    it("mounts the player's 🗺 WORLD launcher (A6), and never the DM's — a missed mount is silent otherwise", () => {
+      const props = createDefaultProps();
+      props.isDM = false;
+      const { unmount } = render(<MainLayout {...props} />);
+      expect(screen.getByRole("button", { name: "🗺 WORLD" })).toBeInTheDocument();
+      unmount();
+
+      const dmProps = createDefaultProps();
+      dmProps.isDM = true;
+      render(<MainLayout {...dmProps} />);
+      expect(screen.queryByRole("button", { name: "🗺 WORLD" })).not.toBeInTheDocument();
+    });
+
     it("should pass gridSize prop to DMMenu", async () => {
       const props = createDefaultProps();
       props.isDM = true;

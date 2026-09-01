@@ -14,8 +14,10 @@ import type { AtlasNodeKind, AtlasNodeSnapshot, ClientMessage } from "@herobyte/
 import { JRPGButton } from "../../components/ui/JRPGPanel";
 import type { MapStudioController } from "../map-studio";
 import { atlasTreeRows } from "./atlasTree";
+import { AtlasLinkPlacer } from "./AtlasLinkPlacer";
 import { AtlasNodeRow } from "./AtlasNodeRow";
 import { useAtlasActions } from "./useAtlasActions";
+import type { PendingLink } from "./useAtlasLinkAim";
 
 const NODE_KINDS: AtlasNodeKind[] = [
   "world",
@@ -31,6 +33,9 @@ export interface AtlasTabProps {
   currentAtlasNodeId?: string;
   onAtlasMessage: (message: ClientMessage) => void;
   mapStudio?: MapStudioController;
+  /** Link placement (A6): armed flag + the arm callback from useAtlasLinkAim. */
+  linkAimActive?: boolean;
+  onArmLinkAim?: (pending: PendingLink) => void;
 }
 
 export function AtlasTab({
@@ -38,6 +43,8 @@ export function AtlasTab({
   currentAtlasNodeId,
   onAtlasMessage,
   mapStudio,
+  linkAimActive,
+  onArmLinkAim,
 }: AtlasTabProps) {
   const actions = useAtlasActions(onAtlasMessage);
   const [newName, setNewName] = useState("");
@@ -53,6 +60,8 @@ export function AtlasTab({
   }, [refresh]);
 
   const rows = atlasTreeRows(atlasNodes);
+  // Placement starts from the CURRENT node — the map the DM can see and click.
+  const currentNode = atlasNodes.find((node) => node.id === currentAtlasNodeId);
 
   return (
     <div>
@@ -89,6 +98,15 @@ export function AtlasTab({
           + CREATE NODE
         </JRPGButton>
       </div>
+
+      {onArmLinkAim && currentNode?.mapDocumentId && (
+        <AtlasLinkPlacer
+          currentNode={currentNode}
+          nodes={atlasNodes}
+          linkAimActive={linkAimActive ?? false}
+          onArmLinkAim={onArmLinkAim}
+        />
+      )}
 
       {rows.length === 0 ? (
         <p style={{ fontSize: "11px", opacity: 0.8 }}>

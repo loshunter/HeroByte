@@ -32,6 +32,7 @@ import type {
 } from "../../features/map-edit/mapEditTypes";
 import type { RoomBounds } from "../../features/map-edit/roomBuilder";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
+import type { PendingLink } from "../../features/atlas/useAtlasLinkAim";
 import type { RollLogEntry } from "../../components/dice/rollLogTypes";
 import type { DiceRollRequest, EnterRollRequest } from "../../hooks/useDiceRolling";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
@@ -363,6 +364,17 @@ export interface MainLayoutProps {
   handleAlignmentApply: () => void;
   /** Handler for alignment point capture */
   handleAlignmentPointCapture: (point: AlignmentPoint) => void;
+
+  // --- Atlas-link aim (A6). OPTIONAL on purpose: the four layout fixtures
+  // predate the feature, and the aim degrades to "not offered" without them.
+  /** One-shot atlas-link placement aim is armed */
+  linkAimActive?: boolean;
+  /** Arm the aim with everything but the anchor (from the Atlas tab) */
+  armLinkAim?: (pending: PendingLink) => void;
+  /** Cancel the aim (ESC does this too, inside the hook) */
+  cancelLinkAim?: () => void;
+  /** MapBoard hands the clicked DOCUMENT-px point here */
+  captureLinkAnchor?: (point: { x: number; y: number }) => void;
 
   // -------------------------------------------------------------------------
   // Dice

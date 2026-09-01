@@ -14,6 +14,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignme
 import type { Camera } from "../../../hooks/useCamera";
 import type { CreateNpcRequest } from "../hooks/useNpcCreation";
 import type { MapStudioController } from "../../map-studio";
+import type { PendingLink } from "../../atlas/useAtlasLinkAim";
 
 export interface DMMenuProps {
   isDM: boolean;
@@ -50,6 +51,11 @@ export interface DMMenuProps {
   atlasNodes: AtlasNodeSnapshot[];
   currentAtlasNodeId?: string;
   onAtlasMessage: (message: ClientMessage) => void;
+  // Link placement (A6). Optional AT THIS SEAM only because the desktop and
+  // mobile hosts share the container, which defaults them — the wiring that
+  // must not unwire is pinned by the AtlasTab tests instead.
+  linkAimActive?: boolean;
+  onArmLinkAim?: (pending: PendingLink) => void;
   onRequestSaveSession?: (sessionName: string) => void;
   onRequestLoadSession?: (file: File) => void;
   onCreateNPC: (request?: CreateNpcRequest) => void;

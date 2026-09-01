@@ -80,6 +80,9 @@ export interface MapBoardProps {
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points
   alignmentSuggestion?: AlignmentSuggestion | null; // Preview transform for alignment
   onAlignmentPointCapture?: (point: AlignmentPoint) => void;
+  linkAimMode?: boolean; // One-shot atlas-link placement aim (A6)
+  onLinkAnchorCapture?: (point: { x: number; y: number }) => void; // Clicked, in DOCUMENT px
+  onLinkAimCancel?: () => void; // Second finger / external cancel
   drawTool: DrawTool; // Active drawing tool
   drawColor: string; // Drawing color
   drawWidth: number; // Drawing brush size

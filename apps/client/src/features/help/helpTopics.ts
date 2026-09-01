@@ -84,6 +84,11 @@ export const HELP_TOPICS: HelpTopic[] = [
         detail:
           "Players only see nodes you've marked 👁 Discovered (first travel discovers automatically). Hidden nodes never reach their screens at all.",
       },
+      {
+        term: "🗺 World Map & links",
+        detail:
+          "Players carry the discovered world: the 🗺 WORLD button (on a phone, Tools → World). The DM can also pin door/stair/signpost sprites onto the map itself — ⚓ in the Atlas tab, then click where it sits — and click one to travel there.",
+      },
     ],
   },
   {

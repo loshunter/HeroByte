@@ -32,6 +32,7 @@ import { useCreateRoom } from "../features/rooms/useCreateRoom";
 import { useForkTable } from "../features/rooms/useForkTable";
 import { useMapActions } from "../hooks/useMapActions";
 import { useMapAlignment } from "../features/map";
+import { useAtlasLinkAim } from "../features/atlas/useAtlasLinkAim";
 import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
@@ -623,6 +624,14 @@ function AuthenticatedApp({
     transformSceneObject,
   });
 
+  // Atlas-link placement (A6): the one-shot canvas aim, armed from the Atlas
+  // tab, captured by MapBoard, sent from the hook.
+  const { linkAimActive, armLinkAim, cancelLinkAim, captureLinkAnchor } = useAtlasLinkAim({
+    activeTool,
+    setActiveTool,
+    sendMessage,
+  });
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     selectedObjectIds,
@@ -846,6 +855,11 @@ function AuthenticatedApp({
     handleAlignmentCancel,
     handleAlignmentApply,
     handleAlignmentPointCapture,
+    // Atlas-link aim (A6)
+    linkAimActive,
+    armLinkAim,
+    cancelLinkAim,
+    captureLinkAnchor,
     // Dice
     rollHistory,
     chatMessages,

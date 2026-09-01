@@ -1078,6 +1078,30 @@ accessible-name discipline.
 **Escalate if:** the aim flow wants to become a map-edit sub-tool (settled in §2.3 — report,
 don't drift).
 
+> **A6 SHIPPED** (2026-09-01, one commit; gate: shared 424, server 2246, client **5467** (+13,
+> full 289-file run — the first attempt's batched runner fail-fasted with 7 batches unreported,
+> so the suite was re-run whole), e2e 167/3/0 at identical production code. TWO deliberate
+> guards tripped and re-pinned: the buildDMMenuProps exhaustive-key test (42→44 keys) and
+> nothing else — the tool-sheet guard is scroll-tolerant as predicted. Sabotage **16/16 red**
+> (links scope/mystery/transform/player-hit/hidden-marker, aim one-shot/ESC-guard/axis-steal,
+> placer visibility+promise-gate, router slot, mobile mount, DM tile gate, you-are-here,
+> desktop mount, arming-clears-surface). Live-verified: DM placed a door by AIM→click and the
+> anchor landed at the EXACT doc point; sprite-click → confirm → the whole table hopped;
+> the player saw the sprite (and fog covered it until fog was lifted — door semantics), their
+> click was inert, their link carried no `visibleToPlayers` byte; the world map's ◀ you are
+> here moved LIVE mid-wipe; on a phone the DM sheet closed itself on arming and a TAP placed
+> a link at the tapped point. Deviations, recorded: (1) the desktop world map is a
+> self-launching floating panel (the PlayerPropsPanel idiom, 🗺 WORLD at bottom-right) — a
+> Header button would have threaded new props through four fixtures for no gain; (2) the aim
+> banner is AlignmentInstructionOverlay with a new `title` prop, not a new component; (3) the
+> A6 e2e rows live in A7's journey spec by design — driven live here instead; (4) the 350
+> guard forced useStageEventRouter's prop types into a types file and killed
+> CenterCanvasLayout's stale @example prop inventory. And ONE REAL BUG the browser found that
+> jsdom never could: fill+stroke+opacity<1 sends Konva down its buffer-canvas path, the buffer
+> is STAGE-sized, and a 0-size first frame (mobile viewport emulation) made its drawImage
+> throw — the error boundary ate the WHOLE table. `perfectDrawEnabled={false}` on the badge;
+> remember the pattern: any Konva shape combining those three is a mobile-mount grenade.
+
 ---
 
 ### A7 🟢 — The journey, the budgets, the docs, the sweep

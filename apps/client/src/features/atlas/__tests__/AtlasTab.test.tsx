@@ -158,6 +158,51 @@ describe("AtlasTab", () => {
     expect(onAtlasMessage).toHaveBeenCalledWith({ t: "atlas-travel", nodeId: "there" });
   });
 
+  it("the link placer arms the aim FROM the current node with the chosen target, type and visibility", () => {
+    const onArmLinkAim = vi.fn();
+    renderTab({
+      atlasNodes: [
+        node("here", { mapDocumentId: "doc-here", discovered: true }),
+        node("there", { discovered: true }),
+      ],
+      currentAtlasNodeId: "here",
+      linkAimActive: false,
+      onArmLinkAim,
+    });
+    fireEvent.change(screen.getByLabelText("Link target from name-here"), {
+      target: { value: "there" },
+    });
+    fireEvent.change(screen.getByLabelText("Link type"), { target: { value: "stair" } });
+    fireEvent.click(screen.getByLabelText("players see it"));
+    fireEvent.click(screen.getByRole("button", { name: "⚓ AIM ON MAP" }));
+    expect(onArmLinkAim).toHaveBeenCalledWith({
+      fromNodeId: "here",
+      toNodeId: "there",
+      linkType: "stair",
+      visibleToPlayers: false,
+    });
+  });
+
+  it("no placer without a mapped current node, and the aiming state replaces the form", () => {
+    const onArmLinkAim = vi.fn();
+    // The current node exists but is a PROMISE — nothing to click an anchor on.
+    renderTab({
+      atlasNodes: [node("here"), node("other")],
+      currentAtlasNodeId: "here",
+      onArmLinkAim,
+    });
+    expect(screen.queryByRole("button", { name: "⚓ AIM ON MAP" })).toBeNull();
+
+    renderTab({
+      atlasNodes: [node("here", { mapDocumentId: "doc-here" }), node("there")],
+      currentAtlasNodeId: "here",
+      linkAimActive: true,
+      onArmLinkAim,
+    });
+    expect(screen.getByText(/Aiming — click the spot/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "⚓ AIM ON MAP" })).toBeNull();
+  });
+
   it("opens the generate panel on a promise node and sends the message with a minted commandId", () => {
     const { onAtlasMessage } = renderTab({ atlasNodes: [node("n1")] });
     fireEvent.click(screen.getByRole("button", { name: "🎲 Generate…" }));

@@ -578,6 +578,34 @@ describe("MobileLayout", () => {
       expect(openSurfaces()).toEqual(["dice"]);
     });
 
+    it("the World tile MOUNTS the atlas surface for a player (A6) — the machine test alone cannot see a missing mount", () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      fireEvent.click(dock(/tools/i));
+      fireEvent.click(screen.getByRole("button", { name: /^world$/i }));
+      expect(openSurfaces()).toEqual(["atlas"]);
+      expect(screen.getByRole("dialog", { name: /world map/i })).toBeInTheDocument();
+      // Nothing discovered in the default props: the friendly empty state.
+      expect(screen.getByText(/The map is blank/)).toBeInTheDocument();
+    });
+
+    it("arming the link aim clears whatever surface is up — capturing needs the MAP (A6)", () => {
+      const props = createDefaultProps();
+      const { rerender } = render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual(["party"]);
+
+      rerender(<MobileLayout {...{ ...props, linkAimActive: true }} />);
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("the DM's tool sheet offers no World tile — the Atlas tab is theirs", () => {
+      const props = createDefaultProps();
+      props.isDM = true;
+      render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/tools/i));
+      expect(screen.queryByRole("button", { name: /^world$/i })).toBeNull();
+    });
+
     it("derives one surface even when the prop-controlled panels disagree", () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;

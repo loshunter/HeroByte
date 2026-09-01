@@ -69,6 +69,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     transformMode,
     selectMode,
     alignmentMode,
+    linkAimActive,
+    cancelLinkAim,
+    captureLinkAnchor,
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
@@ -291,6 +294,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         transformMode={transformMode}
         selectMode={selectMode}
         alignmentMode={alignmentMode}
+        linkAimMode={linkAimActive ?? false}
+        onLinkAnchorCapture={captureLinkAnchor}
+        onLinkAimCancel={cancelLinkAim}
         mapEditMode={mapEditMode}
         mapEditActiveSubTool={mapEditActiveSubTool}
         mapEditFloorFamily={mapEditFloorFamily}

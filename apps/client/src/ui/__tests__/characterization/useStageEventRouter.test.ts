@@ -24,6 +24,7 @@ import type { KonvaEventObject } from "konva/lib/Node";
 describe("useStageEventRouter", () => {
   // Mock dependencies
   const mockHandleAlignmentClick = vi.fn();
+  const mockHandleLinkAimClick = vi.fn();
   const mockHandlePointerClick = vi.fn();
   const mockHandleCameraMouseDown = vi.fn();
   const mockHandleDrawMouseDown = vi.fn();
@@ -56,7 +57,9 @@ describe("useStageEventRouter", () => {
     drawMode: false,
     mapEditMode: false,
     mapEditTouchMode: false,
+    linkAimMode: false,
     handleAlignmentClick: mockHandleAlignmentClick,
+    handleLinkAimClick: mockHandleLinkAimClick,
     handlePointerClick: mockHandlePointerClick,
     handleCameraMouseDown: mockHandleCameraMouseDown,
     handleDrawMouseDown: mockHandleDrawMouseDown,
@@ -100,6 +103,22 @@ describe("useStageEventRouter", () => {
       result.current.onStageClick(mockEvent);
 
       expect(mockHandleAlignmentClick).toHaveBeenCalledWith(mockEvent);
+      expect(mockHandlePointerClick).not.toHaveBeenCalled();
+      expect(mockOnSelectObject).not.toHaveBeenCalled();
+    });
+
+    it("routes to the atlas-link aim when linkAimMode is armed (A6) — nothing else fires", () => {
+      const { result } = renderHook(() =>
+        useStageEventRouter({
+          ...defaultProps,
+          linkAimMode: true,
+        }),
+      );
+
+      const mockEvent = {} as KonvaEventObject<MouseEvent>;
+      result.current.onStageClick(mockEvent);
+
+      expect(mockHandleLinkAimClick).toHaveBeenCalledTimes(1);
       expect(mockHandlePointerClick).not.toHaveBeenCalled();
       expect(mockOnSelectObject).not.toHaveBeenCalled();
     });

@@ -21,6 +21,7 @@ import type { DMMenuContainerProps } from "../features/dm/components/DMMenuConta
 import { DMMenuLoadFailure } from "../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { PlayerPropsPanel } from "../features/props/PlayerPropsPanel";
+import { WorldMapPanel } from "../features/atlas/WorldMapPanel";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { DicePanels } from "./DicePanels";
@@ -176,6 +177,11 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
             camera={dmMenuProps.camera}
           />
         )}
+
+        {/* The player's world map (A6). Always offered to players — its empty
+            state explains itself before anything is discovered. Same eager,
+            self-launching shape as the props panel: zero new threaded props. */}
+        {!isDM && <WorldMapPanel snapshot={snapshot} />}
 
         <ContextMenu
           menu={contextMenu}

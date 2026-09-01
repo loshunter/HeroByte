@@ -39,6 +39,8 @@ export function DMMenu({
   atlasNodes,
   currentAtlasNodeId,
   onAtlasMessage,
+  linkAimActive,
+  onArmLinkAim,
   onRequestSaveSession,
   onRequestLoadSession,
   onCreateNPC,
@@ -186,6 +188,8 @@ export function DMMenu({
           currentAtlasNodeId={currentAtlasNodeId}
           onAtlasMessage={onAtlasMessage}
           mapStudio={mapStudio}
+          linkAimActive={linkAimActive}
+          onArmLinkAim={onArmLinkAim}
         />
       )}
       {activeTab === "npcs" && (

@@ -18,6 +18,8 @@ export interface AlignmentInstructionOverlayProps {
   alignmentMode: boolean;
   /** Instruction text to display */
   alignmentInstruction: string | null;
+  /** Heading above the instruction (the atlas-link aim reuses this chrome). */
+  title?: string;
 }
 
 /**
@@ -29,6 +31,7 @@ export interface AlignmentInstructionOverlayProps {
 export function AlignmentInstructionOverlay({
   alignmentMode,
   alignmentInstruction,
+  title = "Alignment Mode",
 }: AlignmentInstructionOverlayProps) {
   // Don't render if alignment mode is off or no instruction exists
   if (!alignmentMode || !alignmentInstruction) {
@@ -51,7 +54,7 @@ export function AlignmentInstructionOverlay({
         pointerEvents: "none",
       }}
     >
-      <strong style={{ color: "var(--jrpg-gold)" }}>Alignment Mode</strong>
+      <strong style={{ color: "var(--jrpg-gold)" }}>{title}</strong>
       <div style={{ marginTop: "4px" }}>{alignmentInstruction}</div>
     </div>
   );

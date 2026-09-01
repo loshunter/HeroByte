@@ -88,6 +88,12 @@ export interface CenterCanvasLayoutProps {
   selectMode: boolean;
   /** Whether alignment mode is active (alignment assistance) */
   alignmentMode: boolean;
+  /** One-shot atlas-link placement aim (A6) */
+  linkAimMode?: boolean;
+  /** Clicked link anchor, in DOCUMENT px */
+  onLinkAnchorCapture?: (point: { x: number; y: number }) => void;
+  /** Second finger / external cancel for the link aim */
+  onLinkAimCancel?: () => void;
   /** Whether live on-table map-edit mode is active */
   mapEditMode: boolean;
   /** Selected map-edit sub-tool (wall, …) */
@@ -181,40 +187,7 @@ export interface CenterCanvasLayoutProps {
  *
  * @param props - CenterCanvasLayoutProps with all MapBoard state and handlers
  * @returns Fixed-position wrapper containing MapBoard
- *
- * @example
- * ```tsx
- * <CenterCanvasLayout
- *   topHeight={180}
- *   bottomHeight={210}
- *   snapshot={roomSnapshot}
- *   uid="player-123"
- *   gridSize={50}
- *   snapToGrid={true}
- *   isDM={false}
- *   pointerMode={true}
- *   measureMode={false}
- *   drawMode={false}
- *   transformMode={false}
- *   selectMode={false}
- *   alignmentMode={false}
- *   selectedObjectId={null}
- *   selectedObjectIds={[]}
- *   onSelectObject={handleSelectObject}
- *   onSelectObjects={handleSelectObjects}
- *   cameraCommand={null}
- *   onCameraCommandHandled={handleCameraCommandHandled}
- *   onCameraChange={handleCameraChange}
- *   alignmentPoints={[]}
- *   alignmentSuggestion={null}
- *   onAlignmentPointCapture={handleAlignmentPointCapture}
- *   onRecolorToken={handleRecolorToken}
- *   onTransformObject={handleTransformObject}
- *   drawingProps={drawingProps}
- *   sendMessage={sendMessage}
- * />
- * ```
- */
+ * */
 export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
   ({
     topHeight,
@@ -231,6 +204,9 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     transformMode,
     selectMode,
     alignmentMode,
+    linkAimMode = false,
+    onLinkAnchorCapture,
+    onLinkAimCancel,
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
@@ -315,6 +291,9 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             alignmentPoints={alignmentPoints}
             alignmentSuggestion={alignmentSuggestion}
             onAlignmentPointCapture={onAlignmentPointCapture}
+            linkAimMode={linkAimMode}
+            onLinkAnchorCapture={onLinkAnchorCapture}
+            onLinkAimCancel={onLinkAimCancel}
             {...drawingProps}
             onRecolorToken={onRecolorToken}
             onTransformObject={onTransformObject}

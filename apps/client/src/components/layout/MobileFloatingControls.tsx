@@ -177,6 +177,18 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
                 Props
               </button>
             )}
+            {/* The world map (A6): a surface with a tile here for the same
+                reason Props has one. DMs have the Atlas tab instead. */}
+            {!isDM && (
+              <button
+                type="button"
+                className="mobile-tool-sheet__button"
+                onClick={() => onToggleSurface("atlas")}
+              >
+                <span aria-hidden="true">🗺</span>
+                World
+              </button>
+            )}
             <button
               type="button"
               className="mobile-tool-sheet__button"

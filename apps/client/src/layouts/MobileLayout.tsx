@@ -118,7 +118,10 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     toggleDiceRoller,
     toggleRollLog,
     mapEditMode,
-    alignmentMode,
+    // The atlas-link aim is alignment's species exactly (A6): not a Mode,
+    // armed from a full-height screen, and capturing needs the MAP — so
+    // arming it must clear the surface the same way.
+    alignmentMode: alignmentMode || (props.linkAimActive ?? false),
   });
   const { surface, toggleSurface } = machine;
   // The two tool-derived sheets share the bottom-sheet slot with these
@@ -185,6 +188,9 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             alignmentPoints={alignmentPoints}
             alignmentSuggestion={alignmentSuggestion}
             onAlignmentPointCapture={handleAlignmentPointCapture}
+            linkAimMode={props.linkAimActive ?? false}
+            onLinkAnchorCapture={props.captureLinkAnchor}
+            onLinkAimCancel={props.cancelLinkAim}
             {...drawingProps}
             onRecolorToken={recolorToken}
             onTransformObject={transformSceneObject}

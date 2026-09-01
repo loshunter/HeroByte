@@ -107,6 +107,10 @@ export function buildDMMenuProps(
     camera: props.camera,
     toast: props.toast,
 
+    // Atlas-link aim (A6)
+    linkAimActive: props.linkAimActive ?? false,
+    onArmLinkAim: props.armLinkAim,
+
     // Other actions
     onSelectPlayerTokens: props.selectPlayerTokens,
     onRollAllInitiative: extras.rollAllInitiative,
