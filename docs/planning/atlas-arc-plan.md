@@ -1,7 +1,8 @@
 # The Atlas — M4 Phase 2 — Execution Plan
 
-> **THE ARC IS COMPLETE — all seven slices SHIPPED on `dev`, 2026-09-01, NOT pushed/merged
-> (the owner's call).** A1 `fd7afb17` → A2 `a17d6b99` → review fixes `1543a08e..effddc5b` →
+> **THE ARC IS COMPLETE AND IN PRODUCTION — all seven slices plus the final review's four fix
+> commits, merged to `main` as `a0434d39` on 2026-09-02 (CI #838, e2e-full-suite run; deploy
+> probe-verified on Cloudflare, Render restart observed).** A1 `fd7afb17` → A2 `a17d6b99` → review fixes `1543a08e..effddc5b` →
 > A3 `7d7251a5` → A4 `3fcce20b` → A5 `efabc884` → A6 `c4d86c97` → A7 (this commit). Every
 > slice: full gate, sabotage-all-red, live browser verification on desktop AND phone. The
 > per-slice SHIPPED banners below carry every deviation and every number; §6's failure drills
