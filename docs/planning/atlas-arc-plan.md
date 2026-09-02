@@ -1166,6 +1166,35 @@ id, kind, name}` exactly, no `"recipe"`, no `"sceneStates"`, no hidden name — 
 > over HTTP" line stays as-written in §2.1's refutation — the wire note in VISION.md was left
 > untouched, the M4 banner carries the shipped truth.
 
+> **🔎 FINAL REVIEW — RUN, AND ACTED ON** (2026-09-01/02). The workflow (6 finder lenses →
+> 2 independent refuters per finding → completeness critic, 55 agents) was launched THREE
+> times and each run died to the session limit mid-refutation (49 / 37 / 39 of 55 errored);
+> `git status` was clean after every run. Its first-pass "confirmed: [], refuted: 24" was
+> VOID — errored refuters read as refutations — and was treated as unexamined ground. What
+> survived: 5 finder lenses (the mobile lens never ran) produced **24 findings**; the two
+> that reached both refuters were CONFIRMED (the vacuous non-DM export test; import outside
+> the mint ceiling); the other 22 were triaged BY READING THE SOURCE rather than by burning a
+> fourth 40-agent run. All 24 were real. Disposition, in four commits each behind its own
+> sabotage pass: **`69e83c45` travel physics** — the BLOCKER three lenses found
+> independently (same-doc guards keyed on the BINDING while capture keys on the SCENE: unbind →
+> rebind first-visit-WIPED the live table uncaptured; fixed by a re-attach branch), resume
+> now CONSUMES its record, first visits clear the roster's initiative, modifiers are never
+> captured (the A4 banner had said so; the code disagreed), limbo travel warps, and
+> already-live travel still discovers — nine contracts including the S1 keystone (capture key
+> reverted → red). **`c9726ce8` session** — the ceiling on import AND on load-session's
+> upsert (whole-refuse, pre-mutation), ONE scene sanitizer (`parseSceneState`) for the disk
+> boundary and the export filter, delete drops anchored links, the export test asserts on the
+> attacker's socket with a sentinel walk, the fork test seeds a link. **`c1738db6` client** —
+> the aim cancels on a scene change, the lens mirrors the link projection, links are deletable
+> from the placer, the camera fallback goes through the map transform, the aim is the mobile
+> machine's own rising edge, the iris is a layout effect (jsdom-blind — recorded, not pinned).
+> **Journey spec** — the sceneStates secrecy assert re-runs AFTER a real suspension. Recorded
+> partials: travel from the pre-Atlas limbo warps the party but deliberately leaves the limbo
+> table's raster/drawings in place (START LIVE MAP's protection wins over the haunting); the
+> FIELD_BUCKETS table is now `satisfies keyof RoomState`. Lesson for the next arc: a 55-agent
+> review needs the budget to FINISH — run it in lens-sized workflows, and never read a
+> refuter-less result as clean.
+
 ---
 
 ## 6. Failure drills (when X happens, do Y — do not improvise)

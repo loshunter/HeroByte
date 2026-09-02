@@ -170,6 +170,14 @@ test.describe("Atlas journey smoke", () => {
       expect(await player.evaluate(() => window.__HERO_BYTE_E2E__!.snapshot!.fogEnabled)).toBe(
         true,
       );
+      // NOW a scene is actually suspended (A, with its open door) — the only
+      // moment the sceneStates secrecy claim can be non-vacuous. The first
+      // wire capture ran before any suspension existed (the arc's review).
+      const suspendedWire = await player.evaluate(() =>
+        JSON.stringify(window.__HERO_BYTE_E2E__!.snapshot),
+      );
+      expect(suspendedWire).not.toContain('"sceneStates"');
+      expect(suspendedWire).not.toContain('"doorStates"');
 
       // ---- The player's world map: both discovered, "you are here" on B ----
       await player.getByRole("button", { name: "🗺 WORLD" }).click();
