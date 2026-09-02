@@ -76,15 +76,12 @@ export function captureSceneState(
     }
   }
 
+  // Initiative VALUES are scene data; modifiers are character-sheet data and
+  // never ride a capture (a level-up while the scene sleeps must survive it).
   const initiatives: SceneState["initiatives"] = {};
   for (const character of state.characters) {
     if (character.initiative !== undefined) {
-      initiatives[character.id] = {
-        initiative: character.initiative,
-        ...(character.initiativeModifier !== undefined
-          ? { initiativeModifier: character.initiativeModifier }
-          : {}),
-      };
+      initiatives[character.id] = { initiative: character.initiative };
     }
   }
 
@@ -183,17 +180,10 @@ export function restoreCollections(
     // every OTHER character's initiative clears, so the resumed order is
     // exactly this scene's (a fight fought elsewhere while this scene slept
     // legitimately rewrote the roster's values). Modifiers are character-sheet
-    // data, NOT scene data — never cleared, only restored where captured.
+    // data, NOT scene data — never captured, never touched.
     for (const character of state.characters) {
       const capturedInitiative = saved.initiatives[character.id];
-      if (capturedInitiative) {
-        character.initiative = capturedInitiative.initiative;
-        if (capturedInitiative.initiativeModifier !== undefined) {
-          character.initiativeModifier = capturedInitiative.initiativeModifier;
-        }
-      } else {
-        character.initiative = undefined;
-      }
+      character.initiative = capturedInitiative ? capturedInitiative.initiative : undefined;
     }
     // The active combatant must still resolve to a character IN the order,
     // or next-turn's findIndex(-1)+1 lands on whoever sorts first.
@@ -205,13 +195,19 @@ export function restoreCollections(
         ? saved.currentTurnCharacterId
         : undefined;
   } else {
-    // FIRST VISIT: an empty room, the party walking in.
+    // FIRST VISIT: an empty room, the party walking in. The previous scene's
+    // fight was captured under ITS map, so the roster's initiative values
+    // clear here exactly as the saved branch clears them — otherwise the next
+    // capture would bake the old fight into this scene's record.
     state.tokens = [...travelers];
     state.props = [];
     state.drawings = [];
     state.sceneObjects = [...travelerEntries];
     state.combatActive = false;
     state.currentTurnCharacterId = undefined;
+    for (const character of state.characters) {
+      character.initiative = undefined;
+    }
     state.fogEnabled = options.firstVisitFogEnabled;
     state.playerStagingZone = undefined;
     state.mapBackground = undefined;

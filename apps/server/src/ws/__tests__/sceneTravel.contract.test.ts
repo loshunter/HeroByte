@@ -29,6 +29,7 @@ import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
 import { MapStudioService } from "../../domains/mapStudio/service.js";
+import type { RoomState } from "../../domains/room/model.js";
 import { sentinelHits } from "./leakSentinels.js";
 
 const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "sceneTravel-state.json");
@@ -509,10 +510,182 @@ describe("scene travel contracts", () => {
   });
 
   // --------------------------------------------------------------------------
+  // THE ORPHAN ROW (§2.2) — binding and scene DIVERGE after an unbind, and the
+  // arc's final review found every same-document guard keyed on the wrong one.
+  // --------------------------------------------------------------------------
+
+  it("unbind → rebind the SAME document keeps the live scene — it was first-visit-WIPING it uncaptured", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "toggle-door", doorId: "door-1" });
+    route({ t: "map-studio-set-live", documentId: null }); // unbind: the scene keeps playing
+    const state = roomService.getState();
+    expect(state.liveMapDocumentId).toBeUndefined();
+    expect(state.compiledScene?.sourceDocumentId).toBe("doc-a");
+    state.drawings.push({
+      id: "d-interlude",
+      type: "freehand",
+      points: [],
+      color: "#fff",
+    } as never);
+
+    route({ t: "map-studio-set-live", documentId: "doc-a" });
+    const after = roomService.getState();
+    expect(after.liveMapDocumentId).toBe("doc-a");
+    // Nothing was suspended, so nothing may vanish or roll back.
+    expect(after.tokens.map((token) => token.id).sort()).toEqual(["dm-scenery", "gob-t", "pc-t"]);
+    expect(after.drawings.some((drawing) => drawing.id === "d-interlude")).toBe(true);
+    expect(after.compiledScene?.doors.find((door) => door.id === "door-1")?.state).toBe("open");
+    expect(after.sceneStates["doc-a"]).toBeUndefined();
+  });
+
+  it("unbind → atlas-travel to the node of the scene already on the table is the same re-attach", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "map-studio-set-live", documentId: null });
+
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const after = roomService.getState();
+    expect(after.liveMapDocumentId).toBe("doc-a");
+    expect(after.tokens.map((token) => token.id).sort()).toEqual(["dm-scenery", "gob-t", "pc-t"]);
+  });
+
+  it("the post-unbind interlude is captured under the SCENE's id at the next real transition (the S1 keystone, pinned)", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "map-studio-set-live", documentId: null });
+    // The interlude: a goblin placed while unbound.
+    const state = roomService.getState();
+    state.tokens.push({ id: "late-gob", owner: DM, x: 2, y: 2, color: "#f00" } as never);
+
+    route({ t: "atlas-travel", nodeId: "nB" });
+    const savedA = roomService.getState().sceneStates["doc-a"];
+    expect(savedA?.tokens.map((token) => token.id).sort()).toEqual([
+      "dm-scenery",
+      "gob-t",
+      "late-gob",
+    ]);
+  });
+
+  it("resume CONSUMES the record — a sceneStates entry exists only for a scene that is actually suspended", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "atlas-travel", nodeId: "nB" });
+    expect(roomService.getState().sceneStates["doc-a"]).toBeDefined();
+
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const state = roomService.getState();
+    expect(state.sceneStates["doc-a"]).toBeUndefined();
+    expect(state.sceneStates["doc-b"]).toBeDefined();
+    // And the live collections are NOT aliased to any record: a live push
+    // reaches no suspended scene.
+    state.props.push({ id: "live-prop" } as never);
+    expect(Object.values(state.sceneStates).some((scene) => scene.props.length > 0)).toBe(false);
+  });
+
+  it("a FIRST visit clears the previous scene's initiative values — they were captured under its map", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "set-initiative", characterId: "gob", initiative: 17 });
+    route({ t: "set-initiative", characterId: "pc1", initiative: 11 });
+
+    route({ t: "atlas-travel", nodeId: "nB" });
+    const state = roomService.getState();
+    expect(state.combatActive).toBe(false);
+    expect(state.characters.every((character) => character.initiative === undefined)).toBe(true);
+    // ...and A's order is intact where it belongs.
+    expect(state.sceneStates["doc-a"]?.initiatives).toEqual({
+      gob: { initiative: 17 },
+      pc1: { initiative: 11 },
+    });
+  });
+
+  it("initiative MODIFIERS are character-sheet data: never captured, never reverted by a resume", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const gob = () => roomService.getState().characters.find((entry) => entry.id === "gob")!;
+    gob().initiativeModifier = 3;
+    route({ t: "set-initiative", characterId: "gob", initiative: 17 });
+    route({ t: "atlas-travel", nodeId: "nB" });
+    expect(roomService.getState().sceneStates["doc-a"]?.initiatives.gob).toEqual({
+      initiative: 17,
+    });
+
+    gob().initiativeModifier = 5; // a level-up while A sleeps
+    route({ t: "atlas-travel", nodeId: "nA" });
+    expect(gob().initiativeModifier).toBe(5);
+    expect(gob().initiative).toBe(17);
+  });
+
+  it("restore-GC's second clause: a character RE-LINKED to a new token while its old one slept wakes with ONE body", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "atlas-travel", nodeId: "nB" });
+
+    // The place-npc-token analog: the goblin gets a fresh token on B.
+    const state = roomService.getState();
+    state.tokens.push({ id: "gob-t2", owner: DM, x: 3, y: 3, color: "#f00" } as never);
+    state.characters.find((entry) => entry.id === "gob")!.tokenId = "gob-t2";
+
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const resumed = roomService.getState();
+    expect(resumed.tokens.some((token) => token.id === "gob-t")).toBe(false);
+    expect(resumed.tokens.some((token) => token.id === "dm-scenery")).toBe(true);
+  });
+
+  it("travel from the pre-Atlas limbo (no compiled scene) still WARPS the party — the table row holds", () => {
+    setupTwoNodes();
+    seedEntities();
+    expect(roomService.getState().compiledScene).toBeUndefined();
+
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const state = roomService.getState();
+    // The pc landed at A's center cell (2048² document, 50px grid → cell 19);
+    // the limbo table's stayers were left exactly in place (START LIVE MAP).
+    expect(state.tokens.find((token) => token.id === "pc-t")).toMatchObject({ x: 19, y: 19 });
+    expect(state.tokens.find((token) => token.id === "gob-t")).toMatchObject({ x: 8, y: 9 });
+  });
+
+  it("traveling to the node of the ALREADY-LIVE document still discovers it — the adopt-my-live-map flow", async () => {
+    route({ t: "map-studio-create", document: { id: "live-doc", name: "Live" } });
+    route({ t: "map-studio-set-live", documentId: "live-doc" });
+    route({ t: "atlas-create-node", node: { id: "adopt", kind: "dungeon", name: "Adopted" } });
+    route({ t: "atlas-link-map", nodeId: "adopt", documentId: "live-doc" });
+    expect(roomService.getState().atlasNodes[0]?.discovered).toBe(false);
+
+    playerWs.send.mockClear();
+    route({ t: "atlas-travel", nodeId: "adopt" });
+    await flush();
+    expect(roomService.getState().atlasNodes[0]?.discovered).toBe(true);
+    // The reveal reached the player (a broadcast happened).
+    expect(
+      snapshotsOf(playerWs)
+        .at(-1)
+        ?.atlasNodes?.map((node) => node.name),
+    ).toEqual(["Adopted"]);
+    // A REPLAY of the same travel is the no-op it always was.
+    playerWs.send.mockClear();
+    route({ t: "atlas-travel", nodeId: "adopt" });
+    await flush();
+    expect(snapshotsOf(playerWs)).toHaveLength(0);
+  });
+
+  // --------------------------------------------------------------------------
   // THE CAPTURE-COMPLETENESS SWEEP (§4.10) — a future RoomState field fails
   // here BY NAME until someone classifies it into a bucket.
   // --------------------------------------------------------------------------
-  const FIELD_BUCKETS: Record<string, "captured" | "cleared" | "global" | "derived" | "infra"> = {
+  // `satisfies keyof RoomState` makes the table exhaustive at COMPILE time:
+  // the runtime walk below sees only own keys, and an optional field set
+  // conditionally (isPublicTable's shape) would never appear in it.
+  type Bucket = "captured" | "cleared" | "global" | "derived" | "infra";
+  const FIELD_BUCKETS = {
     tokens: "captured", // stayers; travelers ride with the party
     props: "captured",
     drawings: "captured",
@@ -548,11 +721,14 @@ describe("scene travel contracts", () => {
     users: "infra",
     stateVersion: "infra",
     liveMapDocumentId: "infra", // the binding travel itself mutates
-  };
+  } satisfies Record<keyof RoomState, Bucket>;
 
   it("classifies EVERY RoomState field into a §4.10 bucket — a new field fails here by name", () => {
     for (const key of Object.keys(roomService.getState())) {
-      expect(FIELD_BUCKETS[key], `unclassified RoomState field: ${key}`).toBeDefined();
+      expect(
+        (FIELD_BUCKETS as Record<string, Bucket>)[key],
+        `unclassified RoomState field: ${key}`,
+      ).toBeDefined();
     }
   });
 });

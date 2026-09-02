@@ -66,27 +66,43 @@ export function travelToDocument(
   const now = deps.now();
   const outgoingId = state.compiledScene?.sourceDocumentId;
   const saved = state.sceneStates[document.id];
+  // Split travelers from the CURRENT table before anything mutates.
+  const travelers = state.tokens.filter((token) => isTravelingToken(token, state));
+
+  // The destination IS the scene already on the table. The callers' no-op
+  // guards key on the BINDING, but the binding and the scene diverge after an
+  // unbind, a publish, or a delete-of-live (the §2.2 orphan row) — and a
+  // "travel" here has nothing to suspend and nothing to resume. Re-attach:
+  // recompile (edits made while unbound land) with door runtime preserved,
+  // and leave every collection exactly as it stands. Falling through instead
+  // skipped the capture and then first-visit-WIPED the live table uncaptured
+  // (the arc's final review, three lenses independently).
+  if (outgoingId === document.id) {
+    const { saved: runtime } = captureSceneState(state, document, now);
+    compileOnto(state, document, now, runtime);
+    return;
+  }
 
   // The START LIVE MAP row: nothing to replace, nothing to resume — compile
   // the document onto the table and leave every collection exactly in place.
   // Fog still takes the first-visit default: for a set-live that value IS the
   // room's current fog (an identity assignment), while TRAVELING from the
-  // pre-Atlas limbo to a GENERATED node must still arrive concealed.
+  // pre-Atlas limbo to a GENERATED node must still arrive concealed — and
+  // travel still WARPS the party (the table row), even from limbo.
   if (!outgoingId && !saved) {
     compileOnto(state, document, now, undefined);
     state.fogEnabled = options.firstVisitFogEnabled;
+    if (options.warpTravelers) {
+      placeArrivals(state, travelers, document, options.rng);
+    }
     return;
   }
-
-  // Split travelers from the CURRENT table before anything mutates.
-  const travelers = state.tokens.filter((token) => isTravelingToken(token, state));
 
   // Capture the outgoing scene under ITS OWN document id — when that document
   // still exists. A deleted document's scene is uncapturable (and its record
   // was already dropped by map-studio-delete); stayers on it are lost with
-  // their map, which is the honest outcome. Same-document "travel" never
-  // reaches here (callers no-op it), so outgoingId !== document.id holds.
-  if (outgoingId && outgoingId !== document.id) {
+  // their map, which is the honest outcome.
+  if (outgoingId) {
     try {
       const outgoingDocument = deps.mapStudioService.get(roomId, outgoingId);
       const capture = captureSceneState(state, outgoingDocument, now);
@@ -102,6 +118,12 @@ export function travelToDocument(
   restoreCollections(state, saved, travelers, {
     firstVisitFogEnabled: options.firstVisitFogEnabled,
   });
+  // A resumed scene's record is CONSUMED: a record exists only for scenes
+  // that are actually suspended. Left in place it aliased the live
+  // collections (restore installs the saved arrays by reference), rode every
+  // export as a phantom suspension of the map the party is standing on, and
+  // was serialized on every save.
+  delete state.sceneStates[document.id];
   // mapBackground is part of the scene (plan §4.11): restoreCollections set it
   // from the saved scene (or cleared it on a first visit) — recompile
   // deliberately never touches it, so without that a raster from the OLD map
@@ -189,7 +211,15 @@ export function handleAtlasTravel(
     );
   }
   if (state.liveMapDocumentId === node.mapDocumentId) {
-    return { broadcast: false, save: false }; // already there — a replayed travel no-ops
+    // Already there: a replayed travel no-ops — but "travel to the node I
+    // just linked my live map to" is the natural way to REVEAL it, and
+    // set-live deliberately never discovers, so discovery still runs here.
+    if (node.discovered) {
+      return { broadcast: false, save: false };
+    }
+    node.discovered = true;
+    node.updatedAt = deps.now();
+    return { broadcast: true, save: true };
   }
   let document: MapDocument;
   try {
