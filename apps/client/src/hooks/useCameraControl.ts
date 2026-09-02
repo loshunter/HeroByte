@@ -162,6 +162,16 @@ export function useCameraControl({
       return;
     }
 
+    if (cameraCommand.type === "focus-point") {
+      setCam((prevCam) => ({
+        ...prevCam,
+        x: w / 2 - cameraCommand.x * prevCam.scale,
+        y: h / 2 - cameraCommand.y * prevCam.scale,
+      }));
+      onCameraCommandHandled();
+      return;
+    }
+
     if (cameraCommand.type === "focus-token") {
       const token = snapshot?.tokens?.find((t) => t.id === cameraCommand.tokenId);
       if (!token) {

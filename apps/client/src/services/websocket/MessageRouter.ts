@@ -58,6 +58,7 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "map-studio-document" }>
   | Extract<ServerMessage, { t: "map-studio-deleted" }>
   | Extract<ServerMessage, { t: "map-studio-error" }>
+  | Extract<ServerMessage, { t: "atlas-error" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>;
 
@@ -360,6 +361,10 @@ export class MessageRouter {
       candidate.t === "map-studio-document" ||
       candidate.t === "map-studio-deleted" ||
       candidate.t === "map-studio-error" ||
+      // This runtime list is the one that changes behavior — the type union
+      // above compiles nothing away, and an unlisted type is silently
+      // warn-dropped at the router's floor. Both lists change together.
+      candidate.t === "atlas-error" ||
       candidate.t === "room-created" ||
       candidate.t === "room-create-failed"
     );

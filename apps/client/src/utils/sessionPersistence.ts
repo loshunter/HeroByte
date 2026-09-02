@@ -170,6 +170,13 @@ export function loadSession(file: File): Promise<SessionFile> {
             : [],
           liveMapDocumentId:
             typeof parsed.liveMapDocumentId === "string" ? parsed.liveMapDocumentId : undefined,
+          // Suspended scenes live in the ENVELOPE only (never the snapshot),
+          // so dropping this field here would silently destroy them on every
+          // real save→re-upload while the server-side round-trip tests stayed
+          // green. Absent in files saved before the Atlas existed.
+          ...(Array.isArray(parsed.sceneStates)
+            ? { sceneStates: parsed.sceneStates as SessionFile["sceneStates"] }
+            : {}),
           // Absent in files saved before assets were inlined, and in sessions
           // that only use external image URLs. Both are normal.
           assets: Array.isArray(parsed.assets) ? (parsed.assets as SessionFile["assets"]) : [],

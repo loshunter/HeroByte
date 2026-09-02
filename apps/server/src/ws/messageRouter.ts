@@ -49,6 +49,7 @@ import { ChatMessageHandler } from "./handlers/ChatMessageHandler.js";
 import { ChatService } from "../domains/chat/service.js";
 import { RoomMessageHandler } from "./handlers/RoomMessageHandler.js";
 import { TransformMessageHandler } from "./handlers/TransformMessageHandler.js";
+import { AtlasMessageHandler } from "./handlers/AtlasMessageHandler.js";
 import { MapStudioMessageHandler } from "./handlers/MapStudioMessageHandler.js";
 import { SceneMessageHandler } from "./handlers/SceneMessageHandler.js";
 import { AuthorizationService } from "./services/AuthorizationService.js";
@@ -112,6 +113,7 @@ export class MessageRouter {
   private roomMessageHandler: RoomMessageHandler;
   private transformMessageHandler: TransformMessageHandler;
   private mapStudioMessageHandler: MapStudioMessageHandler;
+  private atlasMessageHandler: AtlasMessageHandler;
   private sceneMessageHandler: SceneMessageHandler;
   private tokenDispatcher: TokenDispatcher;
   private characterDispatcher: CharacterDispatcher;
@@ -275,6 +277,12 @@ export class MessageRouter {
       (roomId, message) => this.sendMapStudioMessageToDMs(roomId, message),
       () => this.roomService.getState(),
     );
+    this.atlasMessageHandler = new AtlasMessageHandler(
+      () => this.roomService.getState(),
+      (targetUid, message) => this.sendControlMessage(targetUid, message),
+      mapStudioService,
+      (roomId, message) => this.sendMapStudioMessageToDMs(roomId, message),
+    );
     this.sceneMessageHandler = new SceneMessageHandler(() => this.roomService.getState());
   }
 
@@ -321,6 +329,18 @@ export class MessageRouter {
       );
       if (mapStudioResult) {
         this.handleRouteResult(mapStudioResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      const atlasResult = this.atlasMessageHandler.handle(
+        message,
+        senderUid,
+        this.getRoomIdForUid(senderUid),
+        context.isDM(),
+      );
+      if (atlasResult) {
+        this.handleRouteResult(atlasResult, message.t);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }

@@ -7,6 +7,7 @@ export { MapImageLayer } from "./MapImageLayer";
 export { TerrainLayer } from "./TerrainLayer";
 export { withEmissiveLights } from "./emissiveLights";
 export { MapElementsLayer } from "./MapElementsLayer";
+export { AtlasLinksLayer } from "./AtlasLinksLayer";
 export { DoorsLayer } from "./DoorsLayer";
 export { FogLayer } from "./FogLayer";
 export { TokensLayer } from "./TokensLayer";

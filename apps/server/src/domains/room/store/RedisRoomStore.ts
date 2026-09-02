@@ -1,4 +1,5 @@
 import type { Redis } from "ioredis";
+import { normalizeAtlasState } from "../atlasState.js";
 import type { RoomState } from "../../room/model.js";
 import type { RoomStore } from "./RoomStore.js";
 
@@ -30,7 +31,15 @@ export class RedisRoomStore implements RoomStore {
           return;
         }
         try {
-          const state = JSON.parse(payload) as RoomState;
+          const parsed = JSON.parse(payload) as RoomState;
+          // Covers the THREE ATLAS FIELDS ONLY: a pre-Atlas payload lacks the
+          // required graph fields, and this hydrate has no other compat layer.
+          // The rest of the payload is still hydrated as-is — notably
+          // `selectionState` (a Map) round-trips Redis as `{}` and would break
+          // its serializer at broadcast time — a pre-existing gap of this
+          // opt-in store, NOT closed here. A real fix is the disk loader's
+          // full reset discipline (createSelectionMap, cleared ephemera).
+          const state: RoomState = { ...parsed, ...normalizeAtlasState(parsed) };
           this.cache.set(roomId, state);
         } catch (error) {
           console.warn(`[RedisRoomStore] Failed to parse cached state for ${roomId}`, error);

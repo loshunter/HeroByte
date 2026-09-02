@@ -26,6 +26,8 @@ import {
 } from "../../domains/generation/recipeContext.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
+import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
+import { bindLiveDocument } from "./sceneTravel.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -61,6 +63,7 @@ export class MapStudioMessageHandler {
         });
         break;
       case "map-studio-create": {
+        this.assertMintCeiling(roomId);
         const document = this.service.create(roomId, {
           ...message.document,
           timestamp: this.now(),
@@ -173,18 +176,50 @@ export class MapStudioMessageHandler {
           t: "map-studio-deleted",
           documentId: message.documentId,
         });
-        // Deleting the live-bound document must not leave a dangling binding: a
-        // later document that reuses the same id (import round-trips ids) would
-        // otherwise auto-broadcast to players on the DM's first edit, with no
-        // explicit bind.
+        // Deleting a document must not leave DANGLING atlas state, for the
+        // same id-reuse reason the binding is cleared below (import
+        // round-trips ids): a suspended scene keyed to the dead id would
+        // silently re-attach to whatever document reuses it, and a "mapped"
+        // node would open onto a 12s timeout. The node survives — its name
+        // and place in the tree are real work — degraded back to a promise,
+        // exactly as the session loader already does for a missing document.
         const state = this.getRoomState(roomId);
+        let atlasMutated = false;
+        if (state.sceneStates[message.documentId]) {
+          delete state.sceneStates[message.documentId];
+          atlasMutated = true;
+        }
+        const degraded = new Set<string>();
+        for (const node of state.atlasNodes) {
+          if (node.mapDocumentId === message.documentId) {
+            node.mapDocumentId = undefined;
+            node.updatedAt = this.now();
+            degraded.add(node.id);
+            atlasMutated = true;
+          }
+        }
+        // A link's anchor is DOCUMENT px on its from-node's map: with that map
+        // gone the sprite has nowhere to be, and it would resurface at a
+        // meaningless spot on whatever map the node is given next. Links TO
+        // the node stay — the node itself survives as a promise.
+        const linksBefore = state.atlasLinks.length;
+        state.atlasLinks = state.atlasLinks.filter((link) => !degraded.has(link.fromNodeId));
+        if (state.atlasLinks.length !== linksBefore) atlasMutated = true;
+        // Deleting the live-bound document must not leave a dangling binding
+        // either: same hazard, older rule.
         if (state.liveMapDocumentId === message.documentId) {
           state.liveMapDocumentId = undefined;
+          return { broadcast: true, save: true };
+        }
+        if (atlasMutated) {
           return { broadcast: true, save: true };
         }
         break;
       }
       case "map-studio-import": {
+        // Import MINTS (it rejects duplicate ids, so every success adds one) —
+        // the third create path the arc's review found outside the ceiling.
+        this.assertMintCeiling(roomId);
         const document = this.service.import(roomId, message.document, this.now());
         this.broadcastDocument(roomId, document);
         break;
@@ -225,31 +260,16 @@ export class MapStudioMessageHandler {
     roomId: string,
     documentId: string | null,
   ): RouteHandlerResult {
-    const state = this.getRoomState(roomId);
-    if (documentId === null) {
-      // Unbind: the table keeps its last compiled scene, but future edits stop
-      // auto-compiling. Clearing a raster background is a separate DM action.
-      state.liveMapDocumentId = undefined;
-      return { broadcast: true, save: true };
-    }
-    let document: MapDocument;
-    try {
-      document = this.service.get(roomId, documentId);
-    } catch (error) {
-      this.sendMessage(senderUid, {
-        t: "map-studio-error",
-        commandId: `set-live:${documentId}`,
-        documentId,
-        code: "command-rejected",
-        reason: error instanceof Error ? error.message : "Map document not found",
-      });
-      return { broadcast: false, save: false };
-    }
-    state.liveMapDocumentId = documentId;
-    // Binding is an explicit (re)start of the live scene: compile fresh from
-    // authored state (no previous document, so no runtime carry-over).
-    this.recompileLiveScene(roomId, undefined, document);
-    return { broadcast: true, save: true };
+    // Extracted for the 350-LOC cap; the suspend/resume physics live in
+    // sceneTravel.ts, SHARED with atlas-travel (plan §4.8).
+    return bindLiveDocument(
+      { mapStudioService: this.service, now: this.now },
+      this.getRoomState(roomId),
+      senderUid,
+      roomId,
+      documentId,
+      (uid, message) => this.sendMessage(uid, message),
+    );
   }
 
   /**
@@ -277,6 +297,21 @@ export class MapStudioMessageHandler {
     state.mapElements = deriveMapElements(document);
     state.gridSize = toLiveGridSize(document.grid.size);
     state.gridSquareSize = document.grid.squareSize;
+  }
+
+  /**
+   * The mint ceiling (A3): a room past MAX_SESSION_DOCUMENTS writes a session
+   * file its OWN reimport rejects — the DM's backup silently stops being a
+   * backup. Thrown like the duplicate-id case: the nack carries the reason and
+   * the mint simply does not happen. Every path that creates a document calls
+   * this (create, import; atlas-generate-node has its own atlas-error twin).
+   */
+  private assertMintCeiling(roomId: string): void {
+    if (this.service.list(roomId).length >= MAX_SESSION_DOCUMENTS) {
+      throw new Error(
+        `This table already holds the maximum of ${MAX_SESSION_DOCUMENTS} map documents — delete one first.`,
+      );
+    }
   }
 
   private broadcastDocument(

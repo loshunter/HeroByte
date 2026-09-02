@@ -87,6 +87,82 @@ describe("StatePersistence - Characterization Tests", () => {
     }
   });
 
+  describe("the atlas trio (atlasNodes, atlasLinks, sceneStates)", () => {
+    it("round-trips a populated graph and its suspended scenes through the state file", async () => {
+      const state = roomService.getState();
+      state.atlasNodes.push({
+        id: "n1",
+        kind: "dungeon",
+        name: "Disk Vault",
+        discovered: true,
+        mapDocumentId: "doc-a",
+        recipe: { recipeId: "dungeon", seed: 777, theme: "stone", density: "low" },
+        createdAt: 1,
+        updatedAt: 2,
+      });
+      state.atlasLinks.push({
+        id: "l1",
+        fromNodeId: "n1",
+        toNodeId: "n1",
+        anchor: { x: 10, y: 20 },
+        linkType: "door",
+        visibleToPlayers: false,
+      });
+      state.sceneStates["doc-a"] = {
+        mapDocumentId: "doc-a",
+        suspendedAt: 9,
+        tokens: [],
+        props: [],
+        drawings: [],
+        sceneObjects: [],
+        characterLinks: {},
+        doorStates: { d1: { state: "open", authored: "closed" } },
+        combatActive: true,
+        initiatives: { c1: { initiative: 15 } },
+        fogEnabled: true,
+        defaultVisionRadius: 30,
+      };
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const restored = new RoomService({ stateFile: PROD_STATE_FILE });
+      restored.loadState();
+      expect(restored.getState().atlasNodes).toEqual(state.atlasNodes);
+      expect(restored.getState().atlasLinks).toEqual(state.atlasLinks);
+      expect(restored.getState().sceneStates).toEqual(state.sceneStates);
+    });
+
+    it("reads a pre-Atlas file as empties, and disarms a poisoned shape instead of crashing on every restart", async () => {
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      // A pre-Atlas file: strip the keys entirely.
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      delete raw.atlasNodes;
+      delete raw.atlasLinks;
+      delete raw.sceneStates;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const legacy = new RoomService({ stateFile: PROD_STATE_FILE });
+      legacy.loadState();
+      expect(legacy.getState().atlasNodes).toEqual([]);
+      expect(legacy.getState().atlasLinks).toEqual([]);
+      expect(legacy.getState().sceneStates).toEqual({});
+
+      // The chatLog crash shape: `{}` is truthy AND non-nullish, so a `?? []`
+      // would keep it and the broadcast walk would kill the process — again on
+      // every restart, because the poison persists.
+      raw.atlasNodes = {};
+      raw.atlasLinks = "poison";
+      raw.sceneStates = [];
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+      poisoned.loadState();
+      expect(poisoned.getState().atlasNodes).toEqual([]);
+      expect(poisoned.getState().atlasLinks).toEqual([]);
+      expect(poisoned.getState().sceneStates).toEqual({});
+    });
+  });
+
   describe("published terrain (mapTerrain)", () => {
     it("persists published terrain across save/load", async () => {
       const state = roomService.getState();

@@ -21,6 +21,7 @@ import { buildDMMenuProps } from "../../features/dm/buildDMMenuProps";
 import { DMMenuLoadFailure } from "../../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { PlayerPropsPanel } from "../../features/props/PlayerPropsPanel";
+import { WorldMapPanel } from "../../features/atlas/WorldMapPanel";
 import { MobileScreen } from "./MobileScreen";
 
 // The same lazy split the desktop uses: DM-only code stays out of the entry
@@ -169,6 +170,15 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             camera={props.camera}
             presentation="content"
           />
+        </MobileScreen>
+      )}
+
+      {/* The player's world map (A6). Gated !isDM like the props screen —
+          DMs have the Atlas tab, and elevation with this open must not leave
+          a player surface up. */}
+      {surface === "atlas" && !props.isDM && (
+        <MobileScreen title="World Map" surface="atlas" onClose={closeSurface}>
+          <WorldMapPanel snapshot={props.snapshot} presentation="content" />
         </MobileScreen>
       )}
 

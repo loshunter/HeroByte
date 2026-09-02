@@ -131,6 +131,9 @@ describe("buildDMMenuProps", () => {
         "sendMessage",
         "camera",
         "toast",
+        // Atlas-link aim (A6) — the arm callback and its armed flag.
+        "linkAimActive",
+        "onArmLinkAim",
         "onSelectPlayerTokens",
         "onRollAllInitiative",
         "mapStudio",

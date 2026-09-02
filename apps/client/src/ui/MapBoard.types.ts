@@ -13,7 +13,12 @@ import type { RoomBounds } from "../features/map-edit/roomBuilder";
  * Camera command for programmatic camera control.
  * Used to focus on tokens or reset the camera view.
  */
-export type CameraCommand = { type: "focus-token"; tokenId: string } | { type: "reset" };
+export type CameraCommand =
+  | { type: "focus-token"; tokenId: string }
+  | { type: "reset" }
+  // WORLD-pixel target — travel's arrival recenter (staging-zone or scene
+  // center). "reset" goes to origin, which is NOT the map's middle.
+  | { type: "focus-point"; x: number; y: number };
 
 /**
  * Options for selection operations.
@@ -75,6 +80,9 @@ export interface MapBoardProps {
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points
   alignmentSuggestion?: AlignmentSuggestion | null; // Preview transform for alignment
   onAlignmentPointCapture?: (point: AlignmentPoint) => void;
+  linkAimMode?: boolean; // One-shot atlas-link placement aim (A6)
+  onLinkAnchorCapture?: (point: { x: number; y: number }) => void; // Clicked, in DOCUMENT px
+  onLinkAimCancel?: () => void; // Second finger / external cancel
   drawTool: DrawTool; // Active drawing tool
   drawColor: string; // Drawing color
   drawWidth: number; // Drawing brush size

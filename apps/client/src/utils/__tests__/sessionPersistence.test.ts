@@ -110,6 +110,50 @@ describe("loadSession", () => {
     });
   });
 
+  it("carries the ENVELOPE's suspended scenes — the field only the envelope holds", () => {
+    // sceneStates never ride the snapshot half, so a whitelist here that drops
+    // them silently destroys every suspended scene on a real save→re-upload
+    // while the server-side round-trip tests stay green (they hand-build the
+    // message from the server's own frame and never cross this loader).
+    const scene = {
+      mapDocumentId: "doc-A",
+      suspendedAt: 9,
+      tokens: [],
+      props: [],
+      drawings: [],
+      sceneObjects: [],
+      characterLinks: {},
+      doorStates: { d1: { state: "open", authored: "closed" } },
+      combatActive: true,
+      initiatives: {},
+      fogEnabled: true,
+      defaultVisionRadius: null,
+    };
+    const file = {
+      schemaVersion: 1,
+      savedAt: 123,
+      snapshot: snapshot(),
+      mapDocuments: [DOCUMENT],
+      sceneStates: [scene],
+    };
+
+    return loadSession(fileOf(file)).then((loaded) => {
+      expect(loaded.sceneStates).toEqual([scene]);
+    });
+  });
+
+  it("tolerates files with no sceneStates (every file saved before the Atlas)", () => {
+    const file = {
+      schemaVersion: 1,
+      savedAt: 123,
+      snapshot: snapshot(),
+      mapDocuments: [],
+    };
+    return loadSession(fileOf(file)).then((loaded) => {
+      expect(loaded.sceneStates).toBeUndefined();
+    });
+  });
+
   it("carries the authored map documents, not just the derived map", () => {
     // Without these a restore onto a wiped server gives a map you can look at
     // but never edit, bound to a document that no longer exists.

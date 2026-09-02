@@ -117,7 +117,23 @@ export async function handleForkTable(
     // Unfiltered DM view (createSnapshot with no recipient), so secret doors
     // and hidden NPCs survive the copy. Same path load-session uses.
     target.loadSnapshot(deps.sourceRoomService.createSnapshot());
-    target.setState({ tableName: name, isPublicTable: false });
+    const sourceState = deps.sourceRoomService.getState();
+    target.setState({
+      tableName: name,
+      isPublicTable: false,
+      // The atlas trio is cloned OUT OF BAND, structuredClone each, because
+      // this is the ONE in-process snapshot copy (no JSON crossing to sever
+      // references): the DM projection returns LIVE node/link objects and the
+      // loader's normalize keeps the same element objects — so without these
+      // clones, an in-place `atlas-update-node` (rename, discover) in either
+      // room bled into the other. The A1 review proved it with a probe:
+      // toggling `discovered` in a private fork changed the PUBLIC table's
+      // player projection. sceneStates additionally can never ride a snapshot
+      // at all (they serialize to no recipient).
+      atlasNodes: structuredClone(sourceState.atlasNodes),
+      atlasLinks: structuredClone(sourceState.atlasLinks),
+      sceneStates: structuredClone(sourceState.sceneStates),
+    });
 
     // Map documents are the live map itself — the whole point of keeping the
     // table — and they live outside room state.

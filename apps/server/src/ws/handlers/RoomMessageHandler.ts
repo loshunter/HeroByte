@@ -18,8 +18,14 @@ import type { RoomState } from "../../domains/room/model.js";
 import type { RoomService } from "../../domains/room/service.js";
 import type { AuthService } from "../../domains/auth/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
-import type { MapDocument, RoomSnapshot, ServerMessage } from "@herobyte/shared";
+import type { MapDocument, RoomSnapshot, SceneState, ServerMessage } from "@herobyte/shared";
 import { toSnapshot } from "../../domains/room/model.js";
+import { sceneStatesFromEnvelope } from "../../domains/room/atlasState.js";
+import {
+  MAX_SESSION_DOCUMENTS,
+  documentsPastCap,
+  parseSceneState,
+} from "../../middleware/validators/sessionValidators.js";
 import { getDefaultRoomId, getRoomSecret } from "../../config/auth.js";
 
 /**
@@ -104,18 +110,7 @@ export class RoomMessageHandler {
     this.mapStudioService = mapStudioService;
   }
 
-  /**
-   * Handle load-session message
-   *
-   * Loads a session snapshot.
-   * Only DMs can load sessions.
-   *
-   * @param state - Current room state
-   * @param senderUid - UID of the sender
-   * @param snapshot - Session snapshot data
-   * @param isDM - Whether sender is DM
-   * @returns Result indicating if broadcast/save is needed
-   */
+  /** load-session (DM only): documents, then the snapshot, then the envelope's scenes. */
   handleLoadSession(
     state: RoomState,
     senderUid: string,
@@ -123,6 +118,7 @@ export class RoomMessageHandler {
     isDM: boolean,
     mapDocuments?: MapDocument[],
     liveMapDocumentId?: string,
+    sceneStates?: SceneState[],
   ): RoomMessageResult {
     if (!isDM) {
       console.warn(`Non-DM ${senderUid} attempted to load session`);
@@ -152,6 +148,25 @@ export class RoomMessageHandler {
       );
     }
 
+    // Suspended scenes ride the ENVELOPE (mergeSnapshot cleared the room's) —
+    // installed AFTER the document restore for the same reason the binding
+    // check runs after it: an orphan scene is dropped, not left to resurrect
+    // stale content the first time a later document reuses its id.
+    state.sceneStates = sceneStatesFromEnvelope(sceneStates, (documentId) =>
+      this.hasDocument(roomId, documentId),
+    );
+
+    // Same rule for the graph: a "mapped" node whose document did not restore
+    // degrades back to a promise rather than a 12s open-timeout on travel.
+    for (const node of state.atlasNodes) {
+      if (node.mapDocumentId && !this.hasDocument(roomId, node.mapDocumentId)) {
+        console.warn(
+          `load-session: node "${node.name}" degraded to a promise — no document ${node.mapDocumentId}`,
+        );
+        node.mapDocumentId = undefined;
+      }
+    }
+
     console.log(
       `Loaded session for room ${roomId ?? "(default)"}: restored ${restored} map document(s)`,
     );
@@ -177,6 +192,15 @@ export class RoomMessageHandler {
     const roomId = this.getRoomIdForUid?.(senderUid);
     const mapDocuments = roomId && this.mapStudioService ? this.mapStudioService.list(roomId) : [];
 
+    // Only schema-conforming scenes — the SAME schema the reimport envelope
+    // enforces, so a poisoned scene can never write a file the DM's OWN export
+    // fails to reimport (the "backup silently stops being a backup" failure the
+    // caps exist to prevent). Skipped loudly, never silently.
+    const suspendedScenes = Object.values(state.sceneStates).filter((scene) => {
+      const usable = parseSceneState(scene) !== null;
+      if (!usable) console.warn("session-export: skipped a malformed suspended scene");
+      return usable;
+    });
     this.sendControlMessage(senderUid, {
       t: "session-file",
       file: {
@@ -184,17 +208,34 @@ export class RoomMessageHandler {
         savedAt: Date.now(),
         // The DM's view on purpose — a session file must round-trip the secrets
         // a player snapshot strips, or reloading one would quietly disarm the map.
+        // (The graph rides INSIDE this snapshot — the DM view carries it whole,
+        // provenance included; sceneStates never can, so they ride below.)
         snapshot: flattenForFile(toSnapshot(state, true, senderUid), state),
         mapDocuments,
         liveMapDocumentId: state.liveMapDocumentId,
+        // Envelope-only, and omitted when empty so a pre-Atlas room's file is
+        // byte-identical to what it was before this field existed.
+        ...(suspendedScenes.length > 0 ? { sceneStates: suspendedScenes } : {}),
       },
     });
     return { broadcast: false, save: false };
   }
 
-  /** Upsert each document, skipping (not failing) any single bad one. */
+  /**
+   * Upsert each document, skipping (not failing) any single bad one — after
+   * the mint ceiling: a load that would leave the table past the cap is
+   * refused WHOLE, before anything mutates (thrown like map-studio-create's,
+   * so the nack carries it). This runs before the snapshot merge.
+   */
   private restoreMapDocuments(roomId: string | undefined, documents?: MapDocument[]): number {
     if (!roomId || !this.mapStudioService || !documents?.length) return 0;
+    const existing = this.mapStudioService.list(roomId).map((document) => document.id);
+    const past = documentsPastCap(existing, documents);
+    if (past) {
+      throw new Error(
+        `Loading this file would leave the table with ${past} map documents — the maximum is ${MAX_SESSION_DOCUMENTS}. Delete some maps first.`,
+      );
+    }
     let restored = 0;
     for (const document of documents) {
       try {

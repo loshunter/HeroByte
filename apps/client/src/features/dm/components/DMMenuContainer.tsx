@@ -18,6 +18,7 @@ import type { Camera } from "../../../hooks/useCamera";
 import { useDMContext, type UseDMContextOptions } from "../hooks/useDMContext";
 import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
+import type { PendingLink } from "../../atlas/useAtlasLinkAim";
 import { manualInitiativeEnabled } from "../../initiative/manualOverride";
 
 // Exported for buildDMMenuProps, which maps the MainLayoutProps bag onto this
@@ -84,6 +85,9 @@ export interface DMMenuContainerProps {
   snapshot: RoomSnapshot | null;
   sendMessage: (message: ClientMessage) => void;
   camera: Camera;
+  /** Atlas-link aim (A6): armed flag + the Atlas tab's arm callback. */
+  linkAimActive?: boolean;
+  onArmLinkAim?: (pending: PendingLink) => void;
   toast: {
     info: (message: string, duration?: number) => void;
     success: (message: string, duration?: number) => void;
@@ -155,6 +159,8 @@ export function DMMenuContainer({
   onRollAllInitiative,
   mapStudio,
   presentation,
+  linkAimActive,
+  onArmLinkAim,
 }: DMMenuContainerProps) {
   // Instantiate DM context with all DM-specific hooks
   const dmContext = useDMContext({
@@ -198,6 +204,14 @@ export function DMMenuContainer({
       camera={camera}
       playerCount={playerCount}
       characters={characters}
+      atlasNodes={snapshot?.atlasNodes ?? []}
+      atlasLinks={snapshot?.atlasLinks ?? []}
+      currentAtlasNodeId={snapshot?.currentAtlasNodeId}
+      // Atlas ops are room mutations like set-player-props-enabled below —
+      // sendMessage rides through whole; the tab's useAtlasActions shapes them.
+      onAtlasMessage={sendMessage}
+      linkAimActive={linkAimActive}
+      onArmLinkAim={onArmLinkAim}
       onRequestSaveSession={snapshot ? dmContext.sessionManagement.handleSaveSession : undefined}
       onRequestLoadSession={dmContext.sessionManagement.handleLoadSession}
       onCreateNPC={dmContext.npcManagement.createNpc}

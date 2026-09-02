@@ -85,6 +85,12 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "map-studio-document" }>
   | Extract<ServerMessage, { t: "map-studio-deleted" }>
   | Extract<ServerMessage, { t: "map-studio-error" }>
+  // THREE hand-lists must agree on a new server message: this config copy,
+  // MessageRouter's type union, and MessageRouter's runtime isControlMessage
+  // guard — and only the guard changes behavior. tsc catches this copy
+  // drifting (the two unions meet at the config boundary); nothing but a test
+  // catches the guard.
+  | Extract<ServerMessage, { t: "atlas-error" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>;
 

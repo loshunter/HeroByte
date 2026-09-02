@@ -18,101 +18,18 @@
  * @module hooks/useStageEventRouter
  */
 
-import { useCallback, type RefObject } from "react";
-import type Konva from "konva";
+import { useCallback } from "react";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useDoubleTap } from "./useDoubleTap";
 import { useTouchGestureRouter } from "./useTouchGestureRouter";
 import { useArmedTouchTool } from "./useArmedTouchTool";
-import type { PointerInput } from "../features/map-edit/useMapEditTool";
 
-/**
- * Props for useStageEventRouter hook
- */
-export interface UseStageEventRouterProps {
-  // Tool mode flags
-  alignmentMode: boolean;
-  selectMode: boolean;
-  pointerMode: boolean;
-  measureMode: boolean;
-  drawMode: boolean;
-  mapEditMode: boolean;
-  /** Map-edit with a drag or brush sub-tool — the subset the touch path arms. */
-  mapEditTouchMode: boolean;
+import type {
+  UseStageEventRouterProps,
+  UseStageEventRouterReturn,
+} from "./useStageEventRouter.types";
 
-  // Click handlers
-  handleAlignmentClick: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
-  handlePointerClick: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
-
-  // Mouse down handlers
-  handleCameraMouseDown: (
-    event: KonvaEventObject<PointerEvent>,
-    stageRef: RefObject<Konva.Stage | null>,
-    shouldPan: boolean,
-  ) => void;
-  handleDrawMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
-  handleMapEditMouseDown: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
-  handleMarqueePointerDown: (event: KonvaEventObject<PointerEvent>) => void;
-
-  // Mouse move handlers
-  handleCameraMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
-  handlePointerMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
-  handleDrawMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
-  handleMapEditMouseMove: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
-  handleMarqueePointerMove: () => void;
-
-  // Mouse up handlers
-  handleCameraMouseUp: () => void;
-  handleDrawMouseUp: () => void;
-  handleMapEditMouseUp: (input?: PointerInput) => void;
-  handleMarqueePointerUp: () => void;
-
-  /** Discard an in-progress stroke (a second finger, or an OS interrupt). */
-  handleDrawCancel: () => void;
-  /** Discard an in-progress marquee, same triggers. */
-  handleMarqueeCancel: () => void;
-  /** Discard an in-progress map-edit drag, same triggers. */
-  handleMapEditCancel: () => void;
-
-  // Touch handlers
-  handleTouchStart: (
-    e: KonvaEventObject<TouchEvent>,
-    stageRef: RefObject<Konva.Stage | null>,
-    shouldPan: boolean,
-  ) => void;
-  handleTouchMove: (
-    e: KonvaEventObject<TouchEvent>,
-    stageRef: RefObject<Konva.Stage | null>,
-  ) => void;
-  handleTouchEnd: () => void;
-
-  // Marquee state
-  isMarqueeActive: boolean;
-
-  // Selection handlers
-  onSelectObject?: ((id: string | null) => void) | undefined;
-  deselectIfEmpty: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
-
-  // Double tap handler
-  handleDoubleTap?: (event: KonvaEventObject<MouseEvent | PointerEvent | TouchEvent>) => void;
-
-  // Stage reference
-  stageRef: RefObject<Konva.Stage | null>;
-}
-
-/**
- * Return type for useStageEventRouter hook
- */
-export interface UseStageEventRouterReturn {
-  onStageClick: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
-  onTap: (event: KonvaEventObject<TouchEvent>) => void;
-  onMouseDown: (event: KonvaEventObject<PointerEvent>) => void;
-  onMouseMove: () => void;
-  onMouseUp: () => void;
-  onTouchStart: (event: KonvaEventObject<TouchEvent>) => void;
-  onTouchMove: (event: KonvaEventObject<TouchEvent>) => void;
-  onTouchEnd: () => void;
-}
+export type { UseStageEventRouterProps, UseStageEventRouterReturn };
 
 /**
  * Hook that provides unified event routing for the map canvas
@@ -142,7 +59,9 @@ export function useStageEventRouter({
   drawMode,
   mapEditMode,
   mapEditTouchMode,
+  linkAimMode,
   handleAlignmentClick,
+  handleLinkAimClick,
   handlePointerClick,
   handleCameraMouseDown,
   handleDrawMouseDown,
@@ -174,7 +93,13 @@ export function useStageEventRouter({
 
   // Camera pans (mouse or touch) only when no placement tool owns the pointer.
   const shouldPan =
-    !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode && !mapEditMode;
+    !alignmentMode &&
+    !linkAimMode &&
+    !pointerMode &&
+    !measureMode &&
+    !drawMode &&
+    !selectMode &&
+    !mapEditMode;
 
   /** Unified stage click handler (routes based on tool priority) */
   const onStageClick = useCallback(
@@ -185,6 +110,13 @@ export function useStageEventRouter({
       // Priority 1: Alignment mode
       if (alignmentMode) {
         handleAlignmentClick(event);
+        return;
+      }
+
+      // Priority 1.5: One-shot atlas-link aim — the capture disarms it, so a
+      // tap's duplicate compat click falls through to the priorities below.
+      if (linkAimMode) {
+        handleLinkAimClick();
         return;
       }
 
@@ -214,12 +146,14 @@ export function useStageEventRouter({
     [
       detectDoubleTap,
       alignmentMode,
+      linkAimMode,
       selectMode,
       pointerMode,
       measureMode,
       drawMode,
       mapEditMode,
       handleAlignmentClick,
+      handleLinkAimClick,
       handlePointerClick,
       onSelectObject,
       deselectIfEmpty,

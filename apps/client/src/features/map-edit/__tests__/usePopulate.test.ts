@@ -93,6 +93,26 @@ describe("usePopulate", () => {
     expect(controller.addStamps).toHaveBeenCalledTimes(1);
   });
 
+  it("drops the aimed region when the ACTIVE DOCUMENT changes underneath it (travel repoints the palette)", () => {
+    // Floor at the same pixels on the NEW map would sail past regionHasFloor
+    // and scatter props into the wrong dungeon.
+    const controllerA = makeController();
+    const { result, rerender } = renderHook(({ c }) => usePopulate(c), {
+      initialProps: { c: controllerA },
+    });
+    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    expect(result.current.canPopulate).toBe(true);
+
+    const controllerB = makeController({
+      activeDocument: { ...makeDocument(), id: "other-doc" },
+    });
+    rerender({ c: controllerB });
+
+    expect(result.current.canPopulate).toBe(false);
+    act(() => result.current.onPopulate());
+    expect(controllerB.addStamps).not.toHaveBeenCalled();
+  });
+
   it("refuses to populate a stale region whose floor is gone (room undone)", () => {
     // The region was recorded, but the active document now has NO terrain there
     // (e.g. the DM undid the place-room). Populate must no-op and clear the target.

@@ -17,7 +17,7 @@
 import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage, MapDocument, ServerMessage } from "@herobyte/shared";
+import type { ClientMessage, MapDocument, SceneState, ServerMessage } from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
 import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { RoomService } from "../../domains/room/service.js";
@@ -29,13 +29,20 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
-import { validateLoadSessionMessage } from "../../middleware/validators/sessionValidators.js";
-import { validateLoadSessionEnvelope } from "../../middleware/validators/sessionValidators.js";
+import {
+  MAX_SESSION_DOCUMENTS,
+  validateLoadSessionEnvelope,
+  validateLoadSessionMessage,
+} from "../../middleware/validators/sessionValidators.js";
+import { sentinelHits } from "./leakSentinels.js";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
 // server then fight over (observed: a torn file, quarantined as .corrupt).
 const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "sessionRoundTrip-state.json");
+const PLAYER = "some-player";
+// ≥9-digit, high-entropy (plan §4.2) — never a substring of uuid/epoch soup.
+const HIDDEN_NODE_SENTINEL = "ZVQXJKWPYB-export-veiled-node-557731992847";
 
 const DM = "dm-player";
 
@@ -66,7 +73,7 @@ function player(uid: string, isDM: boolean) {
 function bootServer() {
   const roomService = new RoomService({ stateFile: TEST_STATE_FILE });
   roomService.setState({
-    players: [player(DM, true)],
+    players: [player(DM, true), player(PLAYER, false)],
     tokens: [],
     pointers: [],
     sceneObjects: [],
@@ -75,7 +82,14 @@ function bootServer() {
   });
 
   const dmWs = fakeSocket();
-  const uidToWs = new Map<string, WebSocket>([[DM, dmWs as unknown as WebSocket]]);
+  // The attacker's socket is REGISTERED: a non-DM export addresses the
+  // SENDER, and DirectMessageService silently drops a send to a uid with no
+  // socket — so the old fixture could never see the leak it claimed to guard.
+  const playerWs = fakeSocket();
+  const uidToWs = new Map<string, WebSocket>([
+    [DM, dmWs as unknown as WebSocket],
+    [PLAYER, playerWs as unknown as WebSocket],
+  ]);
   const clients = new Set<WebSocket>(uidToWs.values());
   const mapStudioService = new MapStudioService();
 
@@ -99,6 +113,7 @@ function bootServer() {
     roomService,
     mapStudioService,
     dmWs,
+    playerWs,
     route: (message: ClientMessage, uid = DM) => router.route(message, uid),
   };
 }
@@ -177,6 +192,7 @@ describe("session round trip", () => {
         snapshot: Record<string, unknown>;
         mapDocuments: MapDocument[];
         liveMapDocumentId?: string;
+        sceneStates?: SceneState[];
       };
     }>;
     // Through JSON, always. The first version of this helper handed the live
@@ -270,6 +286,59 @@ describe("session round trip", () => {
         } as never,
       ],
       diceRolls: [{ id: "r-1", uid: DM, formula: "1d20", total: 17 } as never],
+      // POPULATED, not empty: the sweep below skips a field whose origin value
+      // is empty-ish, so `atlasNodes: []` would prove nothing (its hadValue
+      // check treats [] as a value, but the spot-checks would be vacuous).
+      // One discovered node with provenance, one hidden, one link, and one
+      // suspended scene keyed to the exported document.
+      atlasNodes: [
+        {
+          id: "atlas-shown",
+          kind: "dungeon",
+          name: "The Sunken Vault",
+          discovered: true,
+          mapDocumentId: "live",
+          recipe: { recipeId: "dungeon", seed: 424242, theme: "stone", density: "medium" },
+          createdAt: 1,
+          updatedAt: 2,
+        },
+        {
+          id: "atlas-hidden",
+          kind: "settlement",
+          name: "Unrevealed Town",
+          discovered: false,
+          createdAt: 3,
+          updatedAt: 4,
+        },
+      ],
+      atlasLinks: [
+        {
+          id: "atlas-link-1",
+          fromNodeId: "atlas-shown",
+          toNodeId: "atlas-hidden",
+          anchor: { x: 50, y: 60 },
+          linkType: "stair",
+          visibleToPlayers: true,
+        },
+      ],
+      sceneStates: {
+        live: {
+          mapDocumentId: "live",
+          suspendedAt: 99,
+          tokens: [],
+          props: [],
+          drawings: [],
+          sceneObjects: [],
+          characterLinks: {},
+          doorStates: { "door-1": { state: "open", authored: "closed" } },
+          combatActive: true,
+          currentTurnCharacterId: "char-1",
+          initiatives: { "char-1": { initiative: 12 } },
+          fogEnabled: true,
+          defaultVisionRadius: 30,
+          mapBackground: "https://i.imgur.com/suspended.png",
+        },
+      },
     });
 
     const before = origin.roomService.getState();
@@ -280,6 +349,7 @@ describe("session round trip", () => {
       snapshot: file.snapshot as never,
       mapDocuments: file.mapDocuments,
       liveMapDocumentId: file.liveMapDocumentId,
+      sceneStates: file.sceneStates,
     });
     const after = restored.roomService.getState();
 
@@ -320,6 +390,102 @@ describe("session round trip", () => {
     expect(after.compiledScene?.walls.length).toBeGreaterThan(0);
     expect(after.mapTerrain).toBeDefined();
     expect(after.liveMapDocumentId).toBe("live");
+    // The graph rides the SNAPSHOT half (DM view, provenance included)...
+    expect(after.atlasNodes.map((node) => node.id).sort()).toEqual(["atlas-hidden", "atlas-shown"]);
+    expect(after.atlasNodes.find((node) => node.id === "atlas-shown")?.recipe?.seed).toBe(424242);
+    expect(after.atlasLinks).toHaveLength(1);
+    // ...and the suspended scenes ride the ENVELOPE half, exactly once.
+    expect(file.snapshot.sceneStates).toBeUndefined();
+    expect(file.sceneStates).toHaveLength(1);
+    expect(after.sceneStates.live?.doorStates["door-1"]).toEqual({
+      state: "open",
+      authored: "closed",
+    });
+    expect(after.sceneStates.live?.mapBackground).toBe("https://i.imgur.com/suspended.png");
+  });
+
+  it("a realistically LARGE suspended campaign survives export→import inside the wire ceiling (A7)", () => {
+    // Eight fought-over dungeons suspended at once — far past any friendly
+    // game, still legitimate. The bound that matters is the ws server's
+    // maxPayload (1 MiB): the load-session message must carry the whole file
+    // through one frame, so the FILE gets a 90% ceiling here and the margin
+    // is the message envelope's.
+    const fatScene = (documentId: string): SceneState => ({
+      mapDocumentId: documentId,
+      suspendedAt: 7,
+      tokens: Array.from({ length: 30 }, (_, i) => ({
+        id: `${documentId}-token-${i}`,
+        owner: `player-${i % 6}`,
+        x: i * 2,
+        y: i * 3,
+        color: "#a0b1c2",
+      })) as SceneState["tokens"],
+      props: [],
+      drawings: Array.from({ length: 20 }, (_, i) => ({
+        id: `${documentId}-draw-${i}`,
+        type: "freehand" as const,
+        points: Array.from({ length: 50 }, (_, p) => ({ x: p * 3.5, y: p * 2.25 })),
+        color: "#ffffff",
+        width: 2,
+        opacity: 1,
+      })) as unknown as SceneState["drawings"],
+      sceneObjects: [],
+      characterLinks: Object.fromEntries(
+        Array.from({ length: 12 }, (_, i) => [`char-${i}`, `${documentId}-token-${i}`]),
+      ),
+      doorStates: Object.fromEntries(
+        Array.from({ length: 40 }, (_, i) => [
+          `door-${i}`,
+          { state: "open" as const, authored: "closed" as const },
+        ]),
+      ),
+      combatActive: true,
+      currentTurnCharacterId: "char-3",
+      initiatives: Object.fromEntries(
+        Array.from({ length: 12 }, (_, i) => [`char-${i}`, { initiative: 20 - i }]),
+      ),
+      fogEnabled: true,
+      defaultVisionRadius: 30,
+    });
+    // The scenes must key REAL documents — the loader deliberately drops a
+    // scene whose document is not in the file (the ghost-scene degrade).
+    for (let i = 0; i < 8; i++) {
+      origin.route({
+        t: "map-studio-create",
+        document: { id: `suspended-doc-${i}`, name: `Suspended ${i}` },
+      });
+    }
+    origin.roomService.setState({
+      sceneStates: Object.fromEntries(
+        Array.from({ length: 8 }, (_, i) => [`suspended-doc-${i}`, fatScene(`suspended-doc-${i}`)]),
+      ),
+    });
+
+    const file = exportSession();
+    const fileBytes = Buffer.byteLength(JSON.stringify(file), "utf8");
+    expect(file.sceneStates).toHaveLength(8);
+    expect(fileBytes).toBeLessThan(1024 * 1024 * 0.9);
+
+    const restored = bootServer();
+    restored.route({
+      t: "load-session",
+      snapshot: file.snapshot as never,
+      mapDocuments: file.mapDocuments,
+      liveMapDocumentId: file.liveMapDocumentId,
+      sceneStates: file.sceneStates,
+    });
+    const after = restored.roomService.getState();
+    expect(Object.keys(after.sceneStates)).toHaveLength(8);
+    // Deep content survives, not just the keys.
+    expect(after.sceneStates["suspended-doc-3"]?.tokens).toHaveLength(30);
+    expect(after.sceneStates["suspended-doc-3"]?.drawings[5]?.points).toHaveLength(50);
+    expect(after.sceneStates["suspended-doc-7"]?.doorStates["door-39"]).toEqual({
+      state: "open",
+      authored: "closed",
+    });
+    expect(after.sceneStates["suspended-doc-0"]?.initiatives["char-11"]).toEqual({
+      initiative: 9,
+    });
   });
 
   it("writes a file the loaders can actually read", () => {
@@ -339,6 +505,69 @@ describe("session round trip", () => {
     expect(validateLoadSessionMessage({ t: "load-session", snapshot: file.snapshot }).valid).toBe(
       true,
     );
+    // ...both halves of it: the envelope schema (documents + suspended scenes)
+    // must accept the real export's shape too, or every atlas-era save is
+    // rejected at re-upload.
+    origin.roomService.getState().sceneStates.live = {
+      mapDocumentId: "live",
+      suspendedAt: 1,
+      tokens: [],
+      props: [],
+      drawings: [],
+      sceneObjects: [],
+      characterLinks: {},
+      doorStates: {},
+      combatActive: false,
+      initiatives: {},
+      fogEnabled: false,
+      defaultVisionRadius: null,
+    };
+    const withScenes = exportSession();
+    expect(withScenes.sceneStates).toHaveLength(1);
+    expect(
+      validateLoadSessionEnvelope({
+        mapDocuments: withScenes.mapDocuments,
+        liveMapDocumentId: withScenes.liveMapDocumentId,
+        sceneStates: withScenes.sceneStates,
+      } as never).valid,
+    ).toBe(true);
+  });
+
+  it("skips a malformed suspended scene at export instead of writing an unimportable file", () => {
+    // The disk path is record-shallow while the reimport envelope is
+    // zod-shaped: a poisoned scene in the state file would otherwise ride
+    // into the export and make the DM's own backup fail its reimport.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const state = origin.roomService.getState();
+      state.sceneStates.live = {
+        mapDocumentId: "live",
+        suspendedAt: 1,
+        tokens: [],
+        props: [],
+        drawings: [],
+        sceneObjects: [],
+        characterLinks: {},
+        doorStates: {},
+        combatActive: false,
+        initiatives: {},
+        fogEnabled: false,
+        defaultVisionRadius: null,
+      };
+      state.sceneStates.poisoned = { foo: 1 } as never;
+      // The shape the first filter let through: a name, nothing else — the
+      // reimport envelope requires every collection.
+      state.sceneStates.half = { mapDocumentId: "live" } as never;
+
+      const file = exportSession();
+      expect(file.sceneStates?.map((scene) => scene.mapDocumentId)).toEqual(["live"]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("malformed suspended scene"));
+      expect(validateLoadSessionEnvelope({ sceneStates: file.sceneStates } as never).valid).toBe(
+        true,
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("keeps a map background in the file as a plain value", () => {
@@ -412,12 +641,57 @@ describe("session round trip", () => {
     expect(validateLoadSessionEnvelope(hostile).valid).toBe(false);
   });
 
-  it("refuses to export for a non-DM", () => {
-    // The file is built from the DM's view: secret doors, hidden NPCs, GM notes.
+  it("refuses to export for a non-DM — asserted on the ATTACKER's socket, where the file would land", () => {
+    // The file is the arc's largest secrecy payload: the DM-view snapshot with
+    // the full atlas (seeds included) plus every suspended scene. The old
+    // version of this test watched the DM's socket, which a gate-deleted
+    // export never addresses — the arc's final review called it vacuous.
+    origin.roomService.setState({
+      atlasNodes: [
+        {
+          id: "veiled",
+          kind: "dungeon",
+          name: HIDDEN_NODE_SENTINEL,
+          discovered: false,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+    });
     origin.dmWs.send.mockClear();
-    origin.route({ t: "session-export" }, "some-player");
+    origin.playerWs.send.mockClear();
+    origin.route({ t: "session-export" }, PLAYER);
 
+    expect(framesOf(origin.playerWs, "session-file")).toHaveLength(0);
+    expect(sentinelHits(origin.playerWs, HIDDEN_NODE_SENTINEL)).toEqual([]);
     expect(framesOf(origin.dmWs, "session-file")).toHaveLength(0);
+  });
+
+  it("refuses a load that would leave the table past MAX_SESSION_DOCUMENTS — before anything mutates", () => {
+    // The file's documents UPSERT into the room's; a disjoint backup onto a
+    // busy table crossed the ceiling in one click and wrote an unloadable
+    // export. Same throw-shaped refusal as map-studio-create's.
+    const file = exportSession();
+    const restored = bootServer();
+    for (let index = 0; index < MAX_SESSION_DOCUMENTS; index += 1) {
+      restored.mapStudioService.create("default", { id: `busy-${index}`, name: `busy ${index}` });
+    }
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      restored.route({
+        t: "load-session",
+        snapshot: file.snapshot as never,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: file.liveMapDocumentId,
+      });
+      expect(errorLog).toHaveBeenCalled();
+    } finally {
+      errorLog.mockRestore();
+    }
+    // Nothing landed: no new document, no binding, no snapshot merge.
+    expect(restored.mapStudioService.list("default")).toHaveLength(MAX_SESSION_DOCUMENTS);
+    expect(restored.roomService.getState().liveMapDocumentId).toBeUndefined();
+    expect(restored.roomService.getState().compiledScene).toBeUndefined();
   });
 
   it("restores the whole table onto a WIPED server", () => {
@@ -549,5 +823,127 @@ describe("session round trip", () => {
     // The bad document is skipped, so the binding clears — but the room loaded.
     expect(restored.roomService.getState().liveMapDocumentId).toBeUndefined();
     expect(restored.roomService.getState().compiledScene?.walls.length).toBeGreaterThan(0);
+  });
+
+  it("loads an atlas-FREE file as an EMPTY atlas, even over a room that had one", () => {
+    // THE FILE IS AUTHORITATIVE (the mapElements lesson, applied forward):
+    // "preserved" compiles, and the sweep can't see it — but it bleeds campaign
+    // A's graph and, via document-id reuse, its suspended scenes into campaign B.
+    const file = exportSession(); // pre-atlas-shaped: origin has no atlas here
+
+    const restored = bootServer();
+    restored.roomService.setState({
+      atlasNodes: [
+        {
+          id: "stale",
+          kind: "dungeon",
+          name: "Should Not Survive",
+          discovered: true,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      atlasLinks: [],
+      sceneStates: {
+        live: {
+          mapDocumentId: "live",
+          suspendedAt: 1,
+          tokens: [],
+          props: [],
+          drawings: [],
+          sceneObjects: [],
+          characterLinks: {},
+          doorStates: {},
+          combatActive: false,
+          initiatives: {},
+          fogEnabled: false,
+          defaultVisionRadius: null,
+        },
+      },
+    });
+
+    restored.route({
+      t: "load-session",
+      snapshot: file.snapshot as never,
+      mapDocuments: file.mapDocuments,
+      liveMapDocumentId: file.liveMapDocumentId,
+    });
+
+    const state = restored.roomService.getState();
+    expect(state.atlasNodes).toEqual([]);
+    expect(state.atlasLinks).toEqual([]);
+    expect(state.sceneStates).toEqual({});
+  });
+
+  it("drops a suspended scene whose document did not restore, instead of arming an id-reuse bomb", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const file = exportSession();
+      const restored = bootServer();
+      restored.route({
+        t: "load-session",
+        snapshot: file.snapshot as never,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: file.liveMapDocumentId,
+        sceneStates: [
+          {
+            mapDocumentId: "ghost-doc",
+            suspendedAt: 1,
+            tokens: [],
+            props: [],
+            drawings: [],
+            sceneObjects: [],
+            characterLinks: {},
+            doorStates: {},
+            combatActive: false,
+            initiatives: {},
+            fogEnabled: false,
+            defaultVisionRadius: null,
+          },
+        ],
+      });
+
+      expect(restored.roomService.getState().sceneStates).toEqual({});
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("degrades a mapped node to a promise when the file carries no such document", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const file = exportSession();
+      const snapshotWithGhostNode = {
+        ...file.snapshot,
+        atlasNodes: [
+          {
+            id: "ghost-mapped",
+            kind: "dungeon",
+            name: "Ghost Dungeon",
+            discovered: false,
+            mapDocumentId: "ghost-doc",
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      };
+
+      const restored = bootServer();
+      restored.route({
+        t: "load-session",
+        snapshot: snapshotWithGhostNode as never,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: file.liveMapDocumentId,
+      });
+
+      const node = restored.roomService.getState().atlasNodes[0];
+      // The node SURVIVES (its name and place in the tree are real work) but
+      // its map degrades back to a promise — the liveMapDocumentId precedent,
+      // instead of a 12s open-timeout on the first travel.
+      expect(node?.id).toBe("ghost-mapped");
+      expect(node?.mapDocumentId).toBeUndefined();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

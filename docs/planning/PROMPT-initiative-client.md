@@ -9,8 +9,12 @@ wrong, trust the file and say so.
 
 > **DONE 2026-08-24.** All three commits landed, plus the review's fixes (hidden-NPC log leak
 > `d4dfda6e`, modifier bound `ac47ab9e`, vacuous sanitization test `b30fffd8`). Slice complete
-> on `dev` at `ac47ab9e`, CI #808 green. Still open for the owner: the §5 `recordManual`
-> judgement call. Kept for the record — do not execute.
+> on `dev` at `ac47ab9e`, CI #808 green. The §5 `recordManual` judgement call is **DECIDED —
+> the owner OVERTURNED the lock on 2026-08-24**: their table plays with physical dice, so
+> `recordManual` is now exactly the general hand-entry point its old docstring forbade. The
+> docstring was rewritten in place (`domains/dice/service.ts`) rather than silently violated,
+> and the physical-dice-entry slice shipped on it (**in production 2026-08-26**, merge
+> `6a605af4`). Kept for the record — do not execute.
 
 ---
 
@@ -241,9 +245,11 @@ These were mine, not the owner's, and none is load-bearing enough to defend if y
   is off"). If the owner wants clearing gated too, that test is where to start.
 - **`DiceService.recordManual`** bends the rule in that file's header, which says no client-built
   roll shape is accepted. I documented why at length in the method comment; the owner has been
-  asked to review it and has not yet responded. **If they say it is too wide a door, the fix is to
-  move manual logging behind a narrower API — do not just delete the log line**, because "both
-  paths are visible to the table" is the point of the slice.
+  asked to review it. **RESOLVED 2026-08-24: the owner overturned the lock** — their table plays
+  with physical dice, so `recordManual` is deliberately the general hand-entry point now. The
+  method comment was rewritten to state the new rule (a PRESENTATION, never a formula; no RNG;
+  the `handEntered` marker is the safety; the table setting gates it), and the physical-dice-entry
+  slice shipped on top (in production 2026-08-26).
 
 ---
 

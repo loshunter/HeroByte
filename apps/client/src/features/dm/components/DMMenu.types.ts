@@ -1,5 +1,8 @@
 import type {
+  AtlasNodeSnapshot,
+  MapLinkSnapshot,
   Character,
+  ClientMessage,
   PlayerStagingZone,
   Prop,
   Player,
@@ -12,6 +15,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignme
 import type { Camera } from "../../../hooks/useCamera";
 import type { CreateNpcRequest } from "../hooks/useNpcCreation";
 import type { MapStudioController } from "../../map-studio";
+import type { PendingLink } from "../../atlas/useAtlasLinkAim";
 
 export interface DMMenuProps {
   isDM: boolean;
@@ -41,6 +45,19 @@ export interface DMMenuProps {
   camera: Camera;
   playerCount: number;
   characters: SnapshotCharacter[];
+  // The Atlas tab (A2). REQUIRED on purpose — required options over optional
+  // ones for wiring that must not silently unwire (arc rule §6): an optional
+  // prop here is exactly the shape M4b's review proved can be deleted while
+  // every suite stays green.
+  atlasNodes: AtlasNodeSnapshot[];
+  atlasLinks?: MapLinkSnapshot[];
+  currentAtlasNodeId?: string;
+  onAtlasMessage: (message: ClientMessage) => void;
+  // Link placement (A6). Optional AT THIS SEAM only because the desktop and
+  // mobile hosts share the container, which defaults them — the wiring that
+  // must not unwire is pinned by the AtlasTab tests instead.
+  linkAimActive?: boolean;
+  onArmLinkAim?: (pending: PendingLink) => void;
   onRequestSaveSession?: (sessionName: string) => void;
   onRequestLoadSession?: (file: File) => void;
   onCreateNPC: (request?: CreateNpcRequest) => void;

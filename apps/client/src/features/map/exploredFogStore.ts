@@ -31,9 +31,26 @@
  * percent-encoded before joining: a `:` inside it would forge a key segment.
  */
 const KEY_PREFIX = "herobyte:fog-explored:v1";
-const INDEX_KEY = "herobyte:fog-explored:v1:index";
-/** How many maps a player keeps memory of before the oldest is dropped. */
-const MAX_REMEMBERED_MAPS = 6;
+/**
+ * v1's SINGLE global index is retired (A5): one flat 6-entry LRU across every
+ * table and every uid meant an Atlas campaign evicted a player's OWN masks
+ * before they had toured their own graph. v2 keys an index PER ROOM (a
+ * distinct prefix — a roomId could legally spell "index", so the index
+ * namespace cannot share the mask prefix) plus a registry of room indexes.
+ * Mask keys themselves are unchanged, so migration just re-files the old
+ * index's keys under their rooms (each key embeds its room segment).
+ */
+const LEGACY_INDEX_KEY = "herobyte:fog-explored:v1:index";
+const ROOM_INDEX_PREFIX = "herobyte:fog-explored-index:v2";
+const ROOMS_REGISTRY_KEY = "herobyte:fog-explored-rooms:v2";
+/** How many maps per TABLE a player keeps memory of (an Atlas graph's worth). */
+const MAX_REMEMBERED_MAPS = 24;
+/**
+ * How many TABLES keep memory. Quota math, updated for v2: 24 masks × ~44KB
+ * worst-case × 4 rooms ≈ 4.2MB against the ~5MB origin quota — beyond it the
+ * save path already degrades gracefully (the catch below).
+ */
+const MAX_REMEMBERED_ROOMS = 4;
 /**
  * The mask's longest side. Caps a single entry at 512*512 bits = 32KB packed,
  * ~44KB of base64, against a ~5MB origin quota — so six of them cannot fill it.
@@ -178,23 +195,67 @@ export function saveExploredMask(
   }
 }
 
+function readStringArray(store: Storage, key: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(store.getItem(key) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** A mask key's room segment: `herobyte:fog-explored:v1:ROOM:uid:doc`. */
+function roomSegmentOf(maskKey: string): string {
+  return maskKey.split(":")[3] ?? "default";
+}
+
 /**
- * An LRU index over the keys this store has written, so a player who has
- * visited many maps does not accumulate one entry per map forever. No other
- * client store prunes by prefix — there was no prior art to copy, so the index
- * is explicit rather than a scan.
+ * One-time v1→v2 migration. The old GLOBAL index was the only evictor, so
+ * abandoning it without this would orphan every mask it referenced forever.
+ * The masks themselves are valid — they get re-filed under their room's index.
+ */
+function migrateLegacyIndex(store: Storage): void {
+  try {
+    if (store.getItem(LEGACY_INDEX_KEY) === null) return;
+    for (const maskKey of readStringArray(store, LEGACY_INDEX_KEY)) {
+      const roomIndexKey = `${ROOM_INDEX_PREFIX}:${roomSegmentOf(maskKey)}`;
+      const keys = readStringArray(store, roomIndexKey);
+      if (!keys.includes(maskKey)) {
+        store.setItem(roomIndexKey, JSON.stringify([...keys, maskKey]));
+      }
+    }
+    store.removeItem(LEGACY_INDEX_KEY);
+  } catch {
+    // A failed migration costs pruning of the old entries, not correctness.
+  }
+}
+
+/**
+ * Per-ROOM LRU over this store's mask keys, plus an LRU registry of the rooms
+ * themselves: an Atlas campaign keeps a graph's worth of memory (24 maps)
+ * without one table's touring evicting another's — and an evicted ROOM takes
+ * all of its masks with it, so nothing orphans.
  */
 function touchIndex(store: Storage, key: string): void {
   try {
-    const parsed: unknown = JSON.parse(store.getItem(INDEX_KEY) ?? "[]");
-    const keys = Array.isArray(parsed)
-      ? parsed.filter((k): k is string => typeof k === "string")
-      : [];
+    migrateLegacyIndex(store);
+    const roomIndexKey = `${ROOM_INDEX_PREFIX}:${roomSegmentOf(key)}`;
+    const keys = readStringArray(store, roomIndexKey);
     const next = [key, ...keys.filter((k) => k !== key)];
     for (const stale of next.slice(MAX_REMEMBERED_MAPS)) {
       store.removeItem(stale);
     }
-    store.setItem(INDEX_KEY, JSON.stringify(next.slice(0, MAX_REMEMBERED_MAPS)));
+    store.setItem(roomIndexKey, JSON.stringify(next.slice(0, MAX_REMEMBERED_MAPS)));
+
+    const rooms = readStringArray(store, ROOMS_REGISTRY_KEY);
+    const nextRooms = [roomIndexKey, ...rooms.filter((k) => k !== roomIndexKey)];
+    for (const staleRoom of nextRooms.slice(MAX_REMEMBERED_ROOMS)) {
+      for (const staleMask of readStringArray(store, staleRoom)) {
+        store.removeItem(staleMask);
+      }
+      store.removeItem(staleRoom);
+    }
+    store.setItem(ROOMS_REGISTRY_KEY, JSON.stringify(nextRooms.slice(0, MAX_REMEMBERED_ROOMS)));
   } catch {
     // An unreadable index costs pruning, not correctness.
   }

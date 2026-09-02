@@ -60,6 +60,38 @@ export const HELP_LINKS: HelpLink[] = [
 
 export const HELP_TOPICS: HelpTopic[] = [
   {
+    id: "atlas",
+    icon: "🗺️",
+    title: "The Atlas: linked maps & travel",
+    entries: [
+      {
+        term: "The Atlas tab",
+        detail:
+          "DM Menu → Atlas. Your campaign as a tree of maps: create nodes, link maps you built, or GENERATE a dungeon straight into an empty one.",
+      },
+      {
+        term: "Promises",
+        detail:
+          "A node without a map (⬒) is a promise — pick 🎲 Generate… or 🔗 Link existing map to make it real when the party gets there.",
+      },
+      {
+        term: "🚩 TRAVEL",
+        detail:
+          "Moves the whole table to that node. The scene you leave — tokens, open doors, drawings, combat — is suspended exactly as it stands, and coming back resumes it.",
+      },
+      {
+        term: "Discovery",
+        detail:
+          "Players only see nodes you've marked 👁 Discovered (first travel discovers automatically). Hidden nodes never reach their screens at all.",
+      },
+      {
+        term: "🗺 World Map & links",
+        detail:
+          "Players carry the discovered world: the 🗺 WORLD button (on a phone, Tools → World). The DM can also pin door/stair/signpost sprites onto the map itself — ⚓ in the Atlas tab, then click where it sits — and click one to travel there.",
+      },
+    ],
+  },
+  {
     id: "moving",
     icon: "🧭",
     title: "Getting around the map",

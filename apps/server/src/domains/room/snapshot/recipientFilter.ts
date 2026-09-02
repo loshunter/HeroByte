@@ -27,9 +27,10 @@ import { coerceDiceVisibility, gridCellToWorldPoint, hpBadgeFor } from "@herobyt
 import type { RoomState } from "../model.js";
 import { selectionMapToRecord } from "../selectionSerialization.js";
 import { createVisionContext, isWorldPointVisible } from "../scene/visionFilter.js";
+import { projectAtlasFor, type AtlasView } from "./atlasProjection.js";
 
 /** The per-recipient view of every position-sensitive collection. */
-export interface RecipientView {
+export interface RecipientView extends AtlasView {
   tokens: Token[];
   characters: SnapshotCharacter[];
   props: Prop[];
@@ -325,5 +326,8 @@ export function buildRecipientView(
     currentTurnCharacterId: visibleTurnCharacterId,
     chatLog: visibleChatFor(state.chatLog, recipientUid),
     diceRolls: visibleRollsFor(state.diceRolls, isDM, recipientUid),
+    // The campaign graph — discovered-only whitelist for players (its own
+    // module: this file has no LOC headroom, and the rules deserve a name).
+    ...projectAtlasFor(state, isDM),
   };
 }

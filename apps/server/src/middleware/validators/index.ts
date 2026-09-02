@@ -13,6 +13,7 @@ export * from "./mapValidators.js";
 export * from "./mapStudioValidators.js";
 export * from "./mapStudioLiveValidators.js";
 export * from "./generationValidators.js";
+export * from "./atlasValidators.js";
 export * from "./propValidators.js";
 export * from "./roomValidators.js";
 export * from "./sessionValidators.js";

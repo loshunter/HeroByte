@@ -60,6 +60,7 @@ export class RoomDispatcher {
           isDM,
           message.mapDocuments,
           message.liveMapDocumentId,
+          message.sceneStates,
         );
 
       case "session-export":

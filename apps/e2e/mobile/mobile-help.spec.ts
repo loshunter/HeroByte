@@ -97,10 +97,11 @@ test.describe("mobile — the manual", () => {
       // Scrolling has to actually get you to the bottom of the manual.
       expect(report!.scrollable).toBe(true);
       expect(report!.lastLinkReachable).toBe(true);
-      // 13 = the close button + eight topic buttons + four guide links.
-      // Pinned deliberately, as the drawing sheet's count is: adding a control
-      // must be seen and re-measured, not auto-accepted.
-      expect(report!.count).toBe(13);
+      // 14 = the close button + nine topic buttons + four guide links (the
+      // Atlas topic joined in A5). Pinned deliberately, as the drawing sheet's
+      // count is: adding a control must be seen and re-measured, not
+      // auto-accepted.
+      expect(report!.count).toBe(14);
       expect(report!.under44).toEqual([]);
       expect(report!.bodyOverflowsX).toBe(false);
     });

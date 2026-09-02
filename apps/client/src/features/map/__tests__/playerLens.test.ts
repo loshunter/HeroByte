@@ -5,7 +5,13 @@
 
 import { describe, expect, it } from "vitest";
 import type { CompiledDoor, Token } from "@herobyte/shared";
-import { dmViewActive, fogViewers, fogViewerTokens, visibleDoors } from "../playerLens";
+import {
+  dmViewActive,
+  fogViewers,
+  fogViewerTokens,
+  visibleAtlasLinks,
+  visibleDoors,
+} from "../playerLens";
 
 const door = (id: string, state: CompiledDoor["state"]): CompiledDoor =>
   ({ id, state, x1: 0, y1: 0, x2: 50, y2: 0 }) as CompiledDoor;
@@ -99,5 +105,51 @@ describe("fogViewers", () => {
     expect(fogViewers(tokens, "dm-uid", true, 50, 30).map((viewer) => viewer.radiusFeet)).toEqual([
       60, 30,
     ]);
+  });
+});
+
+describe("visibleAtlasLinks — the lens mirrors atlasProjection's player branch", () => {
+  const nodes = [
+    { id: "seen", kind: "dungeon", name: "Seen", discovered: true },
+    { id: "veiled", kind: "dungeon", name: "Veiled", discovered: false },
+  ] as never[];
+  const links = [
+    {
+      id: "shown",
+      fromNodeId: "seen",
+      toNodeId: "veiled",
+      anchor: { x: 1, y: 1 },
+      linkType: "door",
+      visibleToPlayers: true,
+    },
+    {
+      id: "secret",
+      fromNodeId: "seen",
+      toNodeId: "veiled",
+      anchor: { x: 2, y: 2 },
+      linkType: "stair",
+      visibleToPlayers: false,
+    },
+    {
+      id: "from-hidden",
+      fromNodeId: "veiled",
+      toNodeId: "seen",
+      anchor: { x: 3, y: 3 },
+      linkType: "signpost",
+      visibleToPlayers: true,
+    },
+  ] as never[];
+
+  it("hands the DM everything, untouched", () => {
+    const view = visibleAtlasLinks(links, nodes, "veiled", true);
+    expect(view.links.map((link) => link.id)).toEqual(["shown", "secret", "from-hidden"]);
+    expect(view.currentNodeId).toBe("veiled");
+  });
+
+  it("under the lens: visible links from discovered nodes only, and no current node on an undiscovered map", () => {
+    const view = visibleAtlasLinks(links, nodes, "veiled", false);
+    expect(view.links.map((link) => link.id)).toEqual(["shown"]);
+    expect(view.currentNodeId).toBeUndefined();
+    expect(visibleAtlasLinks(links, nodes, "seen", false).currentNodeId).toBe("seen");
   });
 });

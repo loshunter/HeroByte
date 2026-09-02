@@ -102,6 +102,9 @@ describe("MessageRouter - Authorization Characterization", () => {
       playerPropsEnabled: false,
       initiativeManualOverride: true,
       defaultVisionRadius: null,
+      atlasNodes: [],
+      atlasLinks: [],
+      sceneStates: {},
     };
 
     // Create minimal mocks that return success without deep execution

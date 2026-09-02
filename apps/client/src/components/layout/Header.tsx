@@ -16,6 +16,9 @@ export type ToolMode =
   | "transform"
   | "select"
   | "align"
+  // One-shot atlas-link placement aim (armed from the Atlas tab, no Header
+  // button — the alignment precedent).
+  | "atlas-link"
   | "map-edit"
   | null;
 

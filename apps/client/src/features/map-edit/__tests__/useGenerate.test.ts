@@ -45,6 +45,22 @@ const DRAG = { x: 100, y: 100, width: 1200, height: 1000 };
 describe("useGenerate", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("drops the aimed region when the ACTIVE DOCUMENT changes underneath it (travel repoints the palette)", () => {
+    const ctrl1 = controller();
+    const { result, rerender } = renderHook(({ c }) => useGenerate(c, true, "generate", true), {
+      initialProps: { c: ctrl1 },
+    });
+    act(() => result.current.onRegionDragged(DRAG));
+    expect(result.current.region).not.toBeNull();
+
+    const other = controller();
+    (other.activeDocument as { id: string }).id = "another-document";
+    rerender({ c: other });
+    expect(result.current.region).toBeNull();
+    act(() => result.current.onGenerate());
+    expect(other.generate).not.toHaveBeenCalled();
+  });
+
   it("converts a dragged pixel rect into the cell bounds the wire expects", () => {
     const ctrl = controller();
     const { result } = renderHook(() => useGenerate(ctrl, true, "generate", true));

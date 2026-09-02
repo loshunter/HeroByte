@@ -38,6 +38,46 @@ const doc = (id: string) => ({ id }) as MapDocument;
 describe("useMapEditState", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("FOLLOWS a moved live pointer when the palette was ON the old live doc (travel), but never force-reverts an explicit open", () => {
+    const methods = makeMethods();
+    const base = {
+      sendMessage: vi.fn(),
+      mapEditMode: true,
+      setActiveTool: vi.fn(),
+      isDM: true,
+      snapshotLoaded: true,
+      liveMapDocumentId: "doc-a" as string | undefined,
+      roomGridSize: 64,
+      hasRasterBackground: false,
+    };
+    // Palette is on the live doc A…
+    const { rerender } = renderHook((props) => useMapEditState(props), {
+      initialProps: { ...base, controller: makeController(methods, doc("doc-a")) },
+    });
+    methods.openDocument.mockClear();
+    // …and travel moves the table to B: the palette follows.
+    rerender({
+      ...base,
+      liveMapDocumentId: "doc-b",
+      controller: makeController(methods, doc("doc-a")),
+    });
+    expect(methods.openDocument).toHaveBeenCalledWith("doc-b");
+
+    // But an explicitly opened DRAFT stays put when the pointer moves.
+    methods.openDocument.mockClear();
+    rerender({
+      ...base,
+      liveMapDocumentId: "doc-b",
+      controller: makeController(methods, doc("my-draft")),
+    });
+    rerender({
+      ...base,
+      liveMapDocumentId: "doc-c",
+      controller: makeController(methods, doc("my-draft")),
+    });
+    expect(methods.openDocument).not.toHaveBeenCalled();
+  });
+
   it("creates a live document, then binds + syncs its grid once it activates", () => {
     const methods = makeMethods();
     const sendMessage = vi.fn();
