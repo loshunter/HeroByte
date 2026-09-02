@@ -183,6 +183,39 @@ describe("AtlasTab", () => {
     });
   });
 
+  it("lists the links ON the current map and removes one — a misplaced sprite is no longer permanent", () => {
+    const { onAtlasMessage } = renderTab({
+      atlasNodes: [
+        node("here", { mapDocumentId: "doc-here", discovered: true }),
+        node("there", { discovered: true }),
+      ],
+      atlasLinks: [
+        {
+          id: "l-here",
+          fromNodeId: "here",
+          toNodeId: "there",
+          anchor: { x: 1, y: 1 },
+          linkType: "stair",
+        },
+        {
+          id: "l-elsewhere",
+          fromNodeId: "there",
+          toNodeId: "here",
+          anchor: { x: 2, y: 2 },
+          linkType: "door",
+        },
+      ],
+      currentAtlasNodeId: "here",
+      onArmLinkAim: vi.fn(),
+    });
+    const list = screen.getByLabelText("Links on name-here");
+    expect(list).toHaveTextContent("stair → name-there");
+    expect(list).not.toHaveTextContent("door");
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove stair to name-there" }));
+    expect(onAtlasMessage).toHaveBeenCalledWith({ t: "atlas-delete-link", linkId: "l-here" });
+  });
+
   it("no placer without a mapped current node, and the aiming state replaces the form", () => {
     const onArmLinkAim = vi.fn();
     // The current node exists but is a PROMISE — nothing to click an anchor on.

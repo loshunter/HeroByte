@@ -37,6 +37,7 @@ export function DMMenu({
   playerCount,
   characters,
   atlasNodes,
+  atlasLinks,
   currentAtlasNodeId,
   onAtlasMessage,
   linkAimActive,
@@ -185,6 +186,7 @@ export function DMMenu({
       {activeTab === "atlas" && (
         <AtlasTab
           atlasNodes={atlasNodes}
+          atlasLinks={atlasLinks}
           currentAtlasNodeId={currentAtlasNodeId}
           onAtlasMessage={onAtlasMessage}
           mapStudio={mapStudio}

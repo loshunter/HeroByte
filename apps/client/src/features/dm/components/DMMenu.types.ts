@@ -1,5 +1,6 @@
 import type {
   AtlasNodeSnapshot,
+  MapLinkSnapshot,
   Character,
   ClientMessage,
   PlayerStagingZone,
@@ -49,6 +50,7 @@ export interface DMMenuProps {
   // prop here is exactly the shape M4b's review proved can be deleted while
   // every suite stays green.
   atlasNodes: AtlasNodeSnapshot[];
+  atlasLinks?: MapLinkSnapshot[];
   currentAtlasNodeId?: string;
   onAtlasMessage: (message: ClientMessage) => void;
   // Link placement (A6). Optional AT THIS SEAM only because the desktop and

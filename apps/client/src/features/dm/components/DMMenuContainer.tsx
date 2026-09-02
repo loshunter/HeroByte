@@ -205,6 +205,7 @@ export function DMMenuContainer({
       playerCount={playerCount}
       characters={characters}
       atlasNodes={snapshot?.atlasNodes ?? []}
+      atlasLinks={snapshot?.atlasLinks ?? []}
       currentAtlasNodeId={snapshot?.currentAtlasNodeId}
       // Atlas ops are room mutations like set-player-props-enabled below —
       // sendMessage rides through whole; the tab's useAtlasActions shapes them.

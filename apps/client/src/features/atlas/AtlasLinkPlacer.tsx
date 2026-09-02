@@ -7,7 +7,7 @@
 // completes it (one-shot; ESC or a second finger cancels).
 
 import { useState } from "react";
-import type { AtlasNodeSnapshot, MapLink } from "@herobyte/shared";
+import type { AtlasNodeSnapshot, MapLink, MapLinkSnapshot } from "@herobyte/shared";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
 import type { PendingLink } from "./useAtlasLinkAim";
 
@@ -16,15 +16,20 @@ const LINK_TYPES: MapLink["linkType"][] = ["door", "stair", "signpost"];
 export interface AtlasLinkPlacerProps {
   currentNode: AtlasNodeSnapshot;
   nodes: AtlasNodeSnapshot[];
+  /** Every link the DM has (server-filtered for a DM = all of them). */
+  links: MapLinkSnapshot[];
   linkAimActive: boolean;
   onArmLinkAim: (pending: PendingLink) => void;
+  onDeleteLink: (linkId: string) => void;
 }
 
 export function AtlasLinkPlacer({
   currentNode,
   nodes,
+  links,
   linkAimActive,
   onArmLinkAim,
+  onDeleteLink,
 }: AtlasLinkPlacerProps) {
   const [toNodeId, setToNodeId] = useState("");
   const [linkType, setLinkType] = useState<MapLink["linkType"]>("door");
@@ -41,6 +46,12 @@ export function AtlasLinkPlacer({
     );
   }
 
+  // The sprites ON this map, each removable — without this a misplaced sprite
+  // was permanent short of deleting the whole node (the arc's final review).
+  const onThisMap = links.filter((link) => link.fromNodeId === currentNode.id);
+  const nameOf = (nodeId: string | undefined) =>
+    nodes.find((node) => node.id === nodeId)?.name ?? "somewhere hidden";
+
   return (
     <div
       style={{
@@ -51,6 +62,27 @@ export function AtlasLinkPlacer({
         alignItems: "center",
       }}
     >
+      {onThisMap.length > 0 && (
+        <ul
+          aria-label={`Links on ${currentNode.name}`}
+          style={{ margin: 0, padding: 0, width: "100%" }}
+        >
+          {onThisMap.map((link) => (
+            <li key={link.id} style={{ listStyle: "none", fontSize: "10px", marginBottom: "2px" }}>
+              ⚓ {link.linkType} → {nameOf(link.toNodeId)}
+              {link.visibleToPlayers === false ? " (hidden)" : ""}{" "}
+              <JRPGButton
+                variant="danger"
+                aria-label={`Remove ${link.linkType} to ${nameOf(link.toNodeId)}`}
+                onClick={() => onDeleteLink(link.id)}
+                style={{ fontSize: "9px", padding: "1px 5px" }}
+              >
+                ✕
+              </JRPGButton>
+            </li>
+          ))}
+        </ul>
+      )}
       <span style={{ fontSize: "10px" }}>⚓ Link from {currentNode.name} to</span>
       <select
         aria-label={`Link target from ${currentNode.name}`}

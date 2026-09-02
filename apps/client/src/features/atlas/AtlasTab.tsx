@@ -10,7 +10,12 @@
 // DM tab's graph into the entry bundle.
 
 import { useEffect, useState } from "react";
-import type { AtlasNodeKind, AtlasNodeSnapshot, ClientMessage } from "@herobyte/shared";
+import type {
+  AtlasNodeKind,
+  AtlasNodeSnapshot,
+  ClientMessage,
+  MapLinkSnapshot,
+} from "@herobyte/shared";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
 import type { MapStudioController } from "../map-studio";
 import { atlasTreeRows } from "./atlasTree";
@@ -30,6 +35,7 @@ const NODE_KINDS: AtlasNodeKind[] = [
 
 export interface AtlasTabProps {
   atlasNodes: AtlasNodeSnapshot[];
+  atlasLinks?: MapLinkSnapshot[];
   currentAtlasNodeId?: string;
   onAtlasMessage: (message: ClientMessage) => void;
   mapStudio?: MapStudioController;
@@ -40,6 +46,7 @@ export interface AtlasTabProps {
 
 export function AtlasTab({
   atlasNodes,
+  atlasLinks = [],
   currentAtlasNodeId,
   onAtlasMessage,
   mapStudio,
@@ -103,8 +110,10 @@ export function AtlasTab({
         <AtlasLinkPlacer
           currentNode={currentNode}
           nodes={atlasNodes}
+          links={atlasLinks}
           linkAimActive={linkAimActive ?? false}
           onArmLinkAim={onArmLinkAim}
+          onDeleteLink={actions.deleteLink}
         />
       )}
 

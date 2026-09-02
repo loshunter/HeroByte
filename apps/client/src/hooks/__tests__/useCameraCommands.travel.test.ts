@@ -5,7 +5,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { RoomSnapshot } from "@herobyte/shared";
+import { transformScenePoint, type RoomSnapshot } from "@herobyte/shared";
 import { useCameraCommands } from "../useCameraCommands";
 
 function snapshotWith(
@@ -60,6 +60,27 @@ describe("useCameraCommands travel recenter", () => {
     );
     rerender({ s: snapshotWith("doc-b") });
     expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 1000, y: 500 });
+  });
+
+  it("runs the scene-center fallback through the map object's transform — a moved raster must not send the party to the void", () => {
+    const transform = { x: 300, y: -100, scaleX: 2, scaleY: 2, rotation: 0 };
+    const { result, rerender } = renderHook(
+      ({ s }) => useCameraCommands({ snapshot: s, uid: "u" }),
+      { initialProps: { s: snapshotWith("doc-a") } },
+    );
+    rerender({
+      s: snapshotWith("doc-b", {
+        sceneObjects: [{ id: "map", type: "map", transform } as never],
+      }),
+    });
+    const expected = transformScenePoint(transform, { x: 1000, y: 500 });
+    expect(result.current.cameraCommand).toEqual({
+      type: "focus-point",
+      x: expected.x,
+      y: expected.y,
+    });
+    // ...and it is not the untransformed midpoint.
+    expect(expected).not.toEqual({ x: 1000, y: 500 });
   });
 
   it("prefers the staging zone's center — cell-space, center-anchored, so (12,14) is world (625,725)", () => {

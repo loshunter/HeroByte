@@ -37,24 +37,35 @@ interface UseAtlasLinkAimOptions {
   activeTool: ToolMode;
   setActiveTool: (tool: ToolMode) => void;
   sendMessage: (message: ClientMessage) => void;
+  /**
+   * The scene on the table (`compiledScene.sourceDocumentId`). The pending
+   * payload froze `fromNodeId` at arm time, so a travel or rebind underneath
+   * an armed aim would measure the click on the WRONG map and pin the link
+   * on the old one — the same document-swap hazard useGenerate/usePopulate
+   * disarm on (A5); this aim was left out of that fix.
+   */
+  sceneId: string | undefined;
 }
 
 export function useAtlasLinkAim({
   activeTool,
   setActiveTool,
   sendMessage,
+  sceneId,
 }: UseAtlasLinkAimOptions): AtlasLinkAim {
   const pendingRef = useRef<PendingLink | null>(null);
+  const armedSceneRef = useRef<string | undefined>(undefined);
   const [armed, setArmed] = useState(false);
   const linkAimActive = armed && activeTool === "atlas-link";
 
   const armLinkAim = useCallback(
     (pending: PendingLink) => {
       pendingRef.current = pending;
+      armedSceneRef.current = sceneId;
       setArmed(true);
       setActiveTool("atlas-link");
     },
-    [setActiveTool],
+    [setActiveTool, sceneId],
   );
 
   const cancelLinkAim = useCallback(() => {
@@ -98,6 +109,12 @@ export function useAtlasLinkAim({
       sawToolRef.current = false;
     }
   }, [armed, activeTool]);
+
+  // The scene moved under the aim (travel, rebind, publish of another map):
+  // the anchor would be measured on a map the pending fromNodeId is not on.
+  useEffect(() => {
+    if (armed && sceneId !== armedSceneRef.current) cancelLinkAim();
+  }, [armed, sceneId, cancelLinkAim]);
 
   // ESC cancels the aim (the shipped cancel semantics). Guarded so typing
   // Escape in a rename field never reaches the map.

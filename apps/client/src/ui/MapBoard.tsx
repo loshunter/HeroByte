@@ -59,7 +59,12 @@ import { usePointerToDoc } from "../features/map-edit/usePointerToDoc";
 import { isTouchTool } from "../features/map-edit/mapEditToolKinds";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
 import { MapEditQuickWheel } from "../features/map-edit/MapEditQuickWheel";
-import { dmViewActive, fogViewers, visibleDoors } from "../features/map/playerLens";
+import {
+  dmViewActive,
+  fogViewers,
+  visibleAtlasLinks,
+  visibleDoors,
+} from "../features/map/playerLens";
 import { exploredFogKey } from "../features/map/exploredFogStore";
 import { currentRoomId } from "../features/rooms/roomDirectory";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
@@ -782,8 +787,15 @@ export default function MapBoard({
           {snapshot?.atlasLinks && snapshot.atlasLinks.length > 0 && (
             <AtlasLinksLayer
               cam={cam}
-              links={snapshot.atlasLinks}
-              currentNodeId={snapshot.currentAtlasNodeId}
+              // Player lens (P4): mirror the server's per-recipient strip, as
+              // the doors above do — a lensed DM must see a secret sprite
+              // vanish, not glow.
+              {...visibleAtlasLinks(
+                snapshot.atlasLinks,
+                snapshot.atlasNodes ?? [],
+                snapshot.currentAtlasNodeId,
+                dmView,
+              )}
               mapTransform={mapObject?.transform}
               dmView={dmView}
               onTravel={dmView ? handleLinkTravel : undefined}

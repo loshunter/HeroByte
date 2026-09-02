@@ -598,6 +598,18 @@ describe("MobileLayout", () => {
       expect(openSurfaces()).toEqual([]);
     });
 
+    it("arming the aim while ALIGNMENT is already armed still clears the surface — the axis swap has no combined edge", () => {
+      const props = createDefaultProps();
+      props.alignmentMode = true;
+      const { rerender } = render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual(["party"]);
+
+      // One commit: alignment falls as the aim rises (they share ToolMode).
+      rerender(<MobileLayout {...{ ...props, alignmentMode: false, linkAimActive: true }} />);
+      expect(openSurfaces()).toEqual([]);
+    });
+
     it("the DM's tool sheet offers no World tile — the Atlas tab is theirs", () => {
       const props = createDefaultProps();
       props.isDM = true;

@@ -10,7 +10,9 @@
 import {
   effectiveVisionRadiusFeet,
   gridCellToWorldPoint,
+  type AtlasNodeSnapshot,
   type CompiledDoor,
+  type MapLinkSnapshot,
   type ScenePoint,
   type Token,
 } from "@herobyte/shared";
@@ -34,6 +36,31 @@ export function dmViewActive(isDM: boolean, playerLens: boolean): boolean {
  */
 export function visibleDoors(doors: readonly CompiledDoor[], dmView: boolean): CompiledDoor[] {
   return dmView ? [...doors] : doors.filter((door) => door.state !== "secret");
+}
+
+/**
+ * The atlas links (and current node) this view may render. Mirrors the
+ * server's player projection (atlasProjection.ts) for display under the lens:
+ * a player receives a link only when it is visibleToPlayers and its from-node
+ * is discovered, and no current node at all when the node underfoot is
+ * undiscovered (the deliberately mysterious frame). Like visibleDoors this
+ * FILTERS the DM's server-filtered data for display — it produces no new
+ * player-facing data; a real player's list was filtered server-side.
+ */
+export function visibleAtlasLinks(
+  links: readonly MapLinkSnapshot[],
+  nodes: readonly AtlasNodeSnapshot[],
+  currentNodeId: string | undefined,
+  dmView: boolean,
+): { links: MapLinkSnapshot[]; currentNodeId: string | undefined } {
+  if (dmView) return { links: [...links], currentNodeId };
+  const discovered = new Set(nodes.filter((node) => node.discovered).map((node) => node.id));
+  return {
+    links: links.filter(
+      (link) => link.visibleToPlayers !== false && discovered.has(link.fromNodeId),
+    ),
+    currentNodeId: currentNodeId && discovered.has(currentNodeId) ? currentNodeId : undefined,
+  };
 }
 
 /**

@@ -31,8 +31,14 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { RoomSnapshot } from "@herobyte/shared";
+import {
+  transformScenePoint,
+  type RoomSnapshot,
+  type SceneObjectTransform,
+} from "@herobyte/shared";
 import type { CameraCommand } from "../ui/MapBoard";
+
+const IDENTITY_TRANSFORM: SceneObjectTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
 
 interface UseCameraCommandsParams {
   /** Current room snapshot, contains tokens array */
@@ -88,11 +94,23 @@ export function useCameraCommands({
     if (!scene) return;
     const zone = snapshot?.playerStagingZone;
     const gridSize = snapshot?.gridSize ?? 50;
+    // The zone is a cell rect on the WORLD lattice; the scene's midpoint is in
+    // DOCUMENT px and must go through the map object's transform (the scene
+    // renders under it) or a moved/scaled raster sends the party to the void.
+    const mapTransform = snapshot?.sceneObjects?.find((object) => object.type === "map")?.transform;
     const target = zone
       ? { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize }
-      : { x: scene.width / 2, y: scene.height / 2 };
+      : transformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, {
+          x: scene.width / 2,
+          y: scene.height / 2,
+        });
     setCameraCommand({ type: "focus-point", x: target.x, y: target.y });
-  }, [snapshot?.compiledScene, snapshot?.playerStagingZone, snapshot?.gridSize]);
+  }, [
+    snapshot?.compiledScene,
+    snapshot?.playerStagingZone,
+    snapshot?.gridSize,
+    snapshot?.sceneObjects,
+  ]);
 
   /**
    * Focus camera on the user's token.

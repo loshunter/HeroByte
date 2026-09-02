@@ -24,6 +24,7 @@ export interface AtlasActions {
   linkMap: (nodeId: string, documentId: string) => void;
   generateNode: (nodeId: string, seed: number, params: AtlasGenerateParams) => void;
   travel: (nodeId: string) => void;
+  deleteLink: (linkId: string) => void;
 }
 
 export function useAtlasActions(sendAtlasMessage: (message: ClientMessage) => void): AtlasActions {
@@ -53,6 +54,7 @@ export function useAtlasActions(sendAtlasMessage: (message: ClientMessage) => vo
           params,
         }),
       travel: (nodeId) => sendAtlasMessage({ t: "atlas-travel", nodeId }),
+      deleteLink: (linkId) => sendAtlasMessage({ t: "atlas-delete-link", linkId }),
     }),
     [sendAtlasMessage],
   );

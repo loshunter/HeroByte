@@ -16,7 +16,7 @@
 // PLAYER-VISIBLE compiledScene.sourceDocumentId — liveMapDocumentId is
 // DM-only and would leave players wipeless forever.
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 /** The juiceSettings precedent, local because that helper is module-private. */
 function prefersReducedMotion(): boolean {
@@ -38,7 +38,10 @@ export function MapTransitionOverlay({ sourceDocumentId }: MapTransitionOverlayP
   const previous = useRef<string | undefined>(sourceDocumentId);
   const [wipeKey, setWipeKey] = useState(0);
 
-  useEffect(() => {
+  // A LAYOUT effect: the cover must land in the same commit as the new scene,
+  // or the browser can present one uncovered frame of the destination before
+  // the iris begins — the exact flash the wipe exists to mask.
+  useLayoutEffect(() => {
     const before = previous.current;
     previous.current = sourceDocumentId;
     // Only a defined→different-defined transition is a scene CHANGE.

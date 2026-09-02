@@ -630,6 +630,7 @@ function AuthenticatedApp({
     activeTool,
     setActiveTool,
     sendMessage,
+    sceneId: snapshot?.compiledScene?.sourceDocumentId,
   });
 
   // Keyboard shortcuts

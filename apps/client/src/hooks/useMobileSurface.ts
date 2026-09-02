@@ -41,6 +41,11 @@ export interface UseMobileSurfaceOptions {
   // matters here: capturing a point needs the MAP, and it is armed from a
   // full-height screen. So it joins the same edge.
   alignmentMode: boolean;
+  // The atlas-link aim (A6) is alignment's species exactly — and its OWN
+  // input, not OR'd into alignmentMode: the two share the ToolMode axis, so
+  // arming one while the other is armed swaps them in a single commit with no
+  // rising edge on a combined flag (the blind spot the comment below names).
+  linkAimMode?: boolean;
 }
 
 export interface MobileSurfaceMachine {
@@ -54,9 +59,10 @@ export interface MobileSurfaceMachine {
 
 export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfaceMachine {
   const { diceRollerOpen, rollLogOpen, toggleDiceRoller, toggleRollLog, mapEditMode } = options;
-  // The two modes that need the canvas, as one fact. They are separate props
+  const linkAimMode = options.linkAimMode ?? false;
+  // The modes that need the canvas, as one fact. They are separate props
   // because only map-edit re-purposes the dock.
-  const needsTheMap = mapEditMode || options.alignmentMode;
+  const needsTheMap = mapEditMode || options.alignmentMode || linkAimMode;
   const [local, setLocal] = useState<LocalSurface>("none");
 
   // DERIVED, not stored: the prop-controlled panels win, and rendering exactly
@@ -118,13 +124,18 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
   closeRef.current = closeSurface;
   const previousNeed = useRef(needsTheMap);
   const previousMapEdit = useRef(mapEditMode);
+  const previousLinkAim = useRef(linkAimMode);
   useEffect(() => {
     const armedSomething = needsTheMap && !previousNeed.current;
     const modeChanged = mapEditMode !== previousMapEdit.current;
+    // The aim's OWN rising edge: alignment → atlas-link swaps the axis with
+    // needsTheMap true on both sides, so the combined edge never fires.
+    const aimArmed = linkAimMode && !previousLinkAim.current;
     previousNeed.current = needsTheMap;
     previousMapEdit.current = mapEditMode;
-    if (armedSomething || modeChanged) closeRef.current();
-  }, [needsTheMap, mapEditMode]);
+    previousLinkAim.current = linkAimMode;
+    if (armedSomething || modeChanged || aimArmed) closeRef.current();
+  }, [needsTheMap, mapEditMode, linkAimMode]);
 
   return { surface, mode: mapEditMode, openSurface, toggleSurface, closeSurface };
 }

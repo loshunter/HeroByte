@@ -15,12 +15,13 @@ const PENDING: PendingLink = {
   visibleToPlayers: true,
 };
 
-function setup(initialTool: ToolMode = null) {
+function setup(initialTool: ToolMode = null, initialScene: string | undefined = "doc-a") {
   const sendMessage = vi.fn<(message: ClientMessage) => void>();
   const setActiveTool = vi.fn();
   const view = renderHook(
-    ({ tool }) => useAtlasLinkAim({ activeTool: tool, setActiveTool, sendMessage }),
-    { initialProps: { tool: initialTool } },
+    ({ tool, scene }) =>
+      useAtlasLinkAim({ activeTool: tool, setActiveTool, sendMessage, sceneId: scene }),
+    { initialProps: { tool: initialTool, scene: initialScene } },
   );
   return { sendMessage, setActiveTool, ...view };
 }
@@ -30,7 +31,7 @@ describe("useAtlasLinkAim", () => {
     const { result, rerender, sendMessage, setActiveTool } = setup();
     act(() => result.current.armLinkAim(PENDING));
     expect(setActiveTool).toHaveBeenCalledWith("atlas-link");
-    rerender({ tool: "atlas-link" });
+    rerender({ tool: "atlas-link", scene: "doc-a" });
     expect(result.current.linkAimActive).toBe(true);
 
     act(() => result.current.captureLinkAnchor({ x: 640, y: 480 }));
@@ -56,7 +57,7 @@ describe("useAtlasLinkAim", () => {
   it("ESC cancels — and never fires from an editable field", () => {
     const { result, rerender, sendMessage, setActiveTool } = setup();
     act(() => result.current.armLinkAim(PENDING));
-    rerender({ tool: "atlas-link" });
+    rerender({ tool: "atlas-link", scene: "doc-a" });
 
     const input = document.createElement("input");
     document.body.appendChild(input);
@@ -74,11 +75,24 @@ describe("useAtlasLinkAim", () => {
     expect(sendMessage).not.toHaveBeenCalled();
   });
 
+  it("the scene moving under an armed aim cancels it — the anchor would land on the wrong map", () => {
+    const { result, rerender, sendMessage, setActiveTool } = setup();
+    act(() => result.current.armLinkAim(PENDING));
+    rerender({ tool: "atlas-link", scene: "doc-a" });
+    expect(result.current.linkAimActive).toBe(true);
+
+    // Travel (or a rebind, or a publish of another map) lands doc-b.
+    rerender({ tool: "atlas-link", scene: "doc-b" });
+    expect(setActiveTool).toHaveBeenLastCalledWith(null);
+    act(() => result.current.captureLinkAnchor({ x: 5, y: 5 }));
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
   it("another tool taking the axis is a cancel — a later capture sends nothing", () => {
     const { result, rerender, sendMessage } = setup();
     act(() => result.current.armLinkAim(PENDING));
-    rerender({ tool: "atlas-link" });
-    rerender({ tool: "draw" });
+    rerender({ tool: "atlas-link", scene: "doc-a" });
+    rerender({ tool: "draw", scene: "doc-a" });
     expect(result.current.linkAimActive).toBe(false);
     act(() => result.current.captureLinkAnchor({ x: 5, y: 5 }));
     expect(sendMessage).not.toHaveBeenCalled();
