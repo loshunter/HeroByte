@@ -135,7 +135,13 @@ wilderness recipe, Cartridge Codes), the method is the same; only §1 changes.
 2. **Travel from the pre-Atlas limbo** warps the party but deliberately leaves the limbo
    table's raster/drawings in place (START LIVE MAP's protection wins). If a legacy table
    complains about a raster haunting a generated dungeon, this is the recorded decision.
-3. **The `mobile-surface` review lens never ran** (see §3). Run it alone before the next plan.
+3. ~~**The `mobile-surface` review lens never ran** (see §3). Run it alone before the next plan.~~
+   — **DONE 2026-09-02** (12 agents, `agents_error: 0`, tree audited clean): 4 findings confirmed
+   by both refuters — the travel sprite's hit circle ignores armed tools; doors swallow a link-aim
+   tap; the aim freezes the phone camera and a pinch cancels it; the phone World Map shows its
+   empty state on reconnect — and 1 refuted (double activation of a sprite tap: Konva's own
+   shape-level `preventDefault` suppresses the compat pair). They are K0 of
+   `kicked-in-door-arc-plan.md`.
 4. Carried from the previous handoff, still open: **Q4** (an in-app "use the desktop layout"
    switch for tablet DMs — an owner design question); **a11y stragglers** (the Initiative
    Modifier dial is a bare div; `GridControl`'s two sliders lack aria-labels); **critic #10**
