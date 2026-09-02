@@ -63,15 +63,7 @@ export class MapStudioMessageHandler {
         });
         break;
       case "map-studio-create": {
-        // The mint ceiling (A3): a room past MAX_SESSION_DOCUMENTS writes a
-        // session file its OWN reimport rejects — the DM's backup silently
-        // stops being a backup. Thrown like the duplicate-id case: the nack
-        // carries the reason and the create simply does not happen.
-        if (this.service.list(roomId).length >= MAX_SESSION_DOCUMENTS) {
-          throw new Error(
-            `This table already holds the maximum of ${MAX_SESSION_DOCUMENTS} map documents — delete one first.`,
-          );
-        }
+        this.assertMintCeiling(roomId);
         const document = this.service.create(roomId, {
           ...message.document,
           timestamp: this.now(),
@@ -197,13 +189,22 @@ export class MapStudioMessageHandler {
           delete state.sceneStates[message.documentId];
           atlasMutated = true;
         }
+        const degraded = new Set<string>();
         for (const node of state.atlasNodes) {
           if (node.mapDocumentId === message.documentId) {
             node.mapDocumentId = undefined;
             node.updatedAt = this.now();
+            degraded.add(node.id);
             atlasMutated = true;
           }
         }
+        // A link's anchor is DOCUMENT px on its from-node's map: with that map
+        // gone the sprite has nowhere to be, and it would resurface at a
+        // meaningless spot on whatever map the node is given next. Links TO
+        // the node stay — the node itself survives as a promise.
+        const linksBefore = state.atlasLinks.length;
+        state.atlasLinks = state.atlasLinks.filter((link) => !degraded.has(link.fromNodeId));
+        if (state.atlasLinks.length !== linksBefore) atlasMutated = true;
         // Deleting the live-bound document must not leave a dangling binding
         // either: same hazard, older rule.
         if (state.liveMapDocumentId === message.documentId) {
@@ -216,6 +217,9 @@ export class MapStudioMessageHandler {
         break;
       }
       case "map-studio-import": {
+        // Import MINTS (it rejects duplicate ids, so every success adds one) —
+        // the third create path the arc's review found outside the ceiling.
+        this.assertMintCeiling(roomId);
         const document = this.service.import(roomId, message.document, this.now());
         this.broadcastDocument(roomId, document);
         break;
@@ -293,6 +297,21 @@ export class MapStudioMessageHandler {
     state.mapElements = deriveMapElements(document);
     state.gridSize = toLiveGridSize(document.grid.size);
     state.gridSquareSize = document.grid.squareSize;
+  }
+
+  /**
+   * The mint ceiling (A3): a room past MAX_SESSION_DOCUMENTS writes a session
+   * file its OWN reimport rejects — the DM's backup silently stops being a
+   * backup. Thrown like the duplicate-id case: the nack carries the reason and
+   * the mint simply does not happen. Every path that creates a document calls
+   * this (create, import; atlas-generate-node has its own atlas-error twin).
+   */
+  private assertMintCeiling(roomId: string): void {
+    if (this.service.list(roomId).length >= MAX_SESSION_DOCUMENTS) {
+      throw new Error(
+        `This table already holds the maximum of ${MAX_SESSION_DOCUMENTS} map documents — delete one first.`,
+      );
+    }
   }
 
   private broadcastDocument(

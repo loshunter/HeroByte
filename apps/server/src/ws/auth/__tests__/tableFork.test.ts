@@ -96,6 +96,16 @@ describe("handleForkTable", () => {
           updatedAt: 1,
         },
       ],
+      atlasLinks: [
+        {
+          id: "l1",
+          fromNodeId: "n1",
+          toNodeId: "n1",
+          anchor: { x: 40, y: 50 },
+          linkType: "door",
+          visibleToPlayers: false,
+        },
+      ],
       sceneStates: {
         "doc-x": {
           mapDocumentId: "doc-x",
@@ -138,6 +148,13 @@ describe("handleForkTable", () => {
     source.getState().atlasNodes[0]!.name = "SourceEditedName";
     expect(copy.atlasNodes[0]?.discovered).toBe(false);
     expect(copy.atlasNodes[0]?.name).toBe("Kept Vault");
+    // Links are the third clone, and were the third the regression test never
+    // seeded — an in-place visibility flip in the source must not reach the fork.
+    expect(copy.atlasLinks.map((entry) => entry.id)).toEqual(["l1"]);
+    source.getState().atlasLinks[0]!.visibleToPlayers = true;
+    source.getState().atlasLinks[0]!.anchor.x = 999;
+    expect(copy.atlasLinks[0]?.visibleToPlayers).toBe(false);
+    expect(copy.atlasLinks[0]?.anchor.x).toBe(40);
   });
 
   it("carries hidden NPCs across — the copy is the DM's view, not a player's", async () => {

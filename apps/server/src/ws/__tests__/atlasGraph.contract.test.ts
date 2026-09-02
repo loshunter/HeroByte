@@ -554,15 +554,52 @@ describe("atlas graph contracts", () => {
     const errors = messagesOf(dmWs, "atlas-error") as { code?: string }[];
     expect(errors.some((entry) => entry.code === "at-cap")).toBe(true);
 
-    // The map-studio-create path refuses too (thrown → routed error log).
+    // The map-studio-create path refuses too (thrown → routed error log)…
     const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       route({ t: "map-studio-create", document: { id: "doc-65", name: "one too many" } }, DM);
       expect(mapStudioService.list("default")).toHaveLength(64);
       expect(errorLog).toHaveBeenCalled();
+
+      // …and so does map-studio-import, the third mint path the arc's final
+      // review found outside the ceiling (a fresh id per import, so every
+      // success adds a document).
+      errorLog.mockClear();
+      const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
+      route({ t: "map-studio-import", document: { ...template, id: "doc-import-65" } }, DM);
+      expect(mapStudioService.list("default")).toHaveLength(64);
+      expect(errorLog).toHaveBeenCalled();
     } finally {
       errorLog.mockRestore();
     }
+  });
+
+  it("map-studio-delete drops the links ANCHORED on the dead map, and keeps the ones pointing at its node", async () => {
+    // A link's anchor is document px on its from-node's map; with the map
+    // gone it would resurface at a meaningless spot on the node's next map.
+    mapStudioService.create("default", { id: "doc-x", name: "X" });
+    mapStudioService.create("default", { id: "doc-y", name: "Y" });
+    createNode("nx");
+    createNode("ny");
+    route({ t: "atlas-link-map", nodeId: "nx", documentId: "doc-x" }, DM);
+    route({ t: "atlas-link-map", nodeId: "ny", documentId: "doc-y" }, DM);
+    const link = (id: string, from: string, to: string) => ({
+      id,
+      fromNodeId: from,
+      toNodeId: to,
+      anchor: { x: 10, y: 10 },
+      linkType: "door" as const,
+      visibleToPlayers: true,
+    });
+    route({ t: "atlas-create-link", link: link("from-x", "nx", "ny") }, DM);
+    route({ t: "atlas-create-link", link: link("to-x", "ny", "nx") }, DM);
+    await flush();
+
+    route({ t: "map-studio-delete", documentId: "doc-x" }, DM);
+    await flush();
+    const state = roomService.getState();
+    expect(state.atlasNodes.find((node) => node.id === "nx")?.mapDocumentId).toBeUndefined();
+    expect(state.atlasLinks.map((entry) => entry.id)).toEqual(["to-x"]);
   });
 
   it("generates identical geometry from identical seed+params — provenance is reproducible", async () => {

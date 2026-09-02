@@ -21,6 +21,11 @@ import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { MapDocument, RoomSnapshot, SceneState, ServerMessage } from "@herobyte/shared";
 import { toSnapshot } from "../../domains/room/model.js";
 import { sceneStatesFromEnvelope } from "../../domains/room/atlasState.js";
+import {
+  MAX_SESSION_DOCUMENTS,
+  documentsPastCap,
+  parseSceneState,
+} from "../../middleware/validators/sessionValidators.js";
 import { getDefaultRoomId, getRoomSecret } from "../../config/auth.js";
 
 /**
@@ -105,18 +110,7 @@ export class RoomMessageHandler {
     this.mapStudioService = mapStudioService;
   }
 
-  /**
-   * Handle load-session message
-   *
-   * Loads a session snapshot.
-   * Only DMs can load sessions.
-   *
-   * @param state - Current room state
-   * @param senderUid - UID of the sender
-   * @param snapshot - Session snapshot data
-   * @param isDM - Whether sender is DM
-   * @returns Result indicating if broadcast/save is needed
-   */
+  /** load-session (DM only): documents, then the snapshot, then the envelope's scenes. */
   handleLoadSession(
     state: RoomState,
     senderUid: string,
@@ -198,13 +192,12 @@ export class RoomMessageHandler {
     const roomId = this.getRoomIdForUid?.(senderUid);
     const mapDocuments = roomId && this.mapStudioService ? this.mapStudioService.list(roomId) : [];
 
-    // Only schema-conforming scenes: the disk path is record-shallow while
-    // the reimport envelope is zod-shaped, so a poisoned scene written into
-    // the file would make the DM's OWN export fail its reimport — the exact
-    // "backup silently stops being a backup" failure the caps exist to
-    // prevent. Skipped loudly, never silently.
+    // Only schema-conforming scenes — the SAME schema the reimport envelope
+    // enforces, so a poisoned scene can never write a file the DM's OWN export
+    // fails to reimport (the "backup silently stops being a backup" failure the
+    // caps exist to prevent). Skipped loudly, never silently.
     const suspendedScenes = Object.values(state.sceneStates).filter((scene) => {
-      const usable = typeof scene?.mapDocumentId === "string" && scene.mapDocumentId.length > 0;
+      const usable = parseSceneState(scene) !== null;
       if (!usable) console.warn("session-export: skipped a malformed suspended scene");
       return usable;
     });
@@ -228,9 +221,21 @@ export class RoomMessageHandler {
     return { broadcast: false, save: false };
   }
 
-  /** Upsert each document, skipping (not failing) any single bad one. */
+  /**
+   * Upsert each document, skipping (not failing) any single bad one — after
+   * the mint ceiling: a load that would leave the table past the cap is
+   * refused WHOLE, before anything mutates (thrown like map-studio-create's,
+   * so the nack carries it). This runs before the snapshot merge.
+   */
   private restoreMapDocuments(roomId: string | undefined, documents?: MapDocument[]): number {
     if (!roomId || !this.mapStudioService || !documents?.length) return 0;
+    const existing = this.mapStudioService.list(roomId).map((document) => document.id);
+    const past = documentsPastCap(existing, documents);
+    if (past) {
+      throw new Error(
+        `Loading this file would leave the table with ${past} map documents — the maximum is ${MAX_SESSION_DOCUMENTS}. Delete some maps first.`,
+      );
+    }
     let restored = 0;
     for (const document of documents) {
       try {

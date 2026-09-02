@@ -71,6 +71,31 @@ describe("normalizeAtlasState", () => {
   });
 });
 
+describe("normalizeAtlasState — scenes take the envelope's schema at the disk boundary", () => {
+  it("drops a half-shaped scene (travel would throw MID-MUTATION on it) and warns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const result = normalizeAtlasState({
+        sceneStates: {
+          "doc-a": scene("doc-a"),
+          "doc-b": { mapDocumentId: "doc-b" }, // no tokens, no doorStates — restore dereferences both
+          "doc-c": { ...scene("doc-c"), tokens: {} }, // a collection that is not an array
+        },
+      });
+      expect(Object.keys(result.sceneStates)).toEqual(["doc-a"]);
+      expect(warn).toHaveBeenCalledTimes(2);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("keeps a newer server's extra fields — the schema validates, it does not strip", () => {
+    const future = { ...scene("doc-a"), weatherLater: "storm" };
+    const result = normalizeAtlasState({ sceneStates: { "doc-a": future } });
+    expect(result.sceneStates["doc-a"]).toBe(future);
+  });
+});
+
 describe("sceneStatesFromEnvelope", () => {
   it("keys scenes by document id and drops orphans whose document was not restored", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

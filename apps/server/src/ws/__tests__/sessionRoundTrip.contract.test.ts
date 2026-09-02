@@ -29,13 +29,20 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
-import { validateLoadSessionMessage } from "../../middleware/validators/sessionValidators.js";
-import { validateLoadSessionEnvelope } from "../../middleware/validators/sessionValidators.js";
+import {
+  MAX_SESSION_DOCUMENTS,
+  validateLoadSessionEnvelope,
+  validateLoadSessionMessage,
+} from "../../middleware/validators/sessionValidators.js";
+import { sentinelHits } from "./leakSentinels.js";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
 // server then fight over (observed: a torn file, quarantined as .corrupt).
 const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "sessionRoundTrip-state.json");
+const PLAYER = "some-player";
+// ≥9-digit, high-entropy (plan §4.2) — never a substring of uuid/epoch soup.
+const HIDDEN_NODE_SENTINEL = "ZVQXJKWPYB-export-veiled-node-557731992847";
 
 const DM = "dm-player";
 
@@ -66,7 +73,7 @@ function player(uid: string, isDM: boolean) {
 function bootServer() {
   const roomService = new RoomService({ stateFile: TEST_STATE_FILE });
   roomService.setState({
-    players: [player(DM, true)],
+    players: [player(DM, true), player(PLAYER, false)],
     tokens: [],
     pointers: [],
     sceneObjects: [],
@@ -75,7 +82,14 @@ function bootServer() {
   });
 
   const dmWs = fakeSocket();
-  const uidToWs = new Map<string, WebSocket>([[DM, dmWs as unknown as WebSocket]]);
+  // The attacker's socket is REGISTERED: a non-DM export addresses the
+  // SENDER, and DirectMessageService silently drops a send to a uid with no
+  // socket — so the old fixture could never see the leak it claimed to guard.
+  const playerWs = fakeSocket();
+  const uidToWs = new Map<string, WebSocket>([
+    [DM, dmWs as unknown as WebSocket],
+    [PLAYER, playerWs as unknown as WebSocket],
+  ]);
   const clients = new Set<WebSocket>(uidToWs.values());
   const mapStudioService = new MapStudioService();
 
@@ -99,6 +113,7 @@ function bootServer() {
     roomService,
     mapStudioService,
     dmWs,
+    playerWs,
     route: (message: ClientMessage, uid = DM) => router.route(message, uid),
   };
 }
@@ -540,6 +555,9 @@ describe("session round trip", () => {
         defaultVisionRadius: null,
       };
       state.sceneStates.poisoned = { foo: 1 } as never;
+      // The shape the first filter let through: a name, nothing else — the
+      // reimport envelope requires every collection.
+      state.sceneStates.half = { mapDocumentId: "live" } as never;
 
       const file = exportSession();
       expect(file.sceneStates?.map((scene) => scene.mapDocumentId)).toEqual(["live"]);
@@ -623,12 +641,57 @@ describe("session round trip", () => {
     expect(validateLoadSessionEnvelope(hostile).valid).toBe(false);
   });
 
-  it("refuses to export for a non-DM", () => {
-    // The file is built from the DM's view: secret doors, hidden NPCs, GM notes.
+  it("refuses to export for a non-DM — asserted on the ATTACKER's socket, where the file would land", () => {
+    // The file is the arc's largest secrecy payload: the DM-view snapshot with
+    // the full atlas (seeds included) plus every suspended scene. The old
+    // version of this test watched the DM's socket, which a gate-deleted
+    // export never addresses — the arc's final review called it vacuous.
+    origin.roomService.setState({
+      atlasNodes: [
+        {
+          id: "veiled",
+          kind: "dungeon",
+          name: HIDDEN_NODE_SENTINEL,
+          discovered: false,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+    });
     origin.dmWs.send.mockClear();
-    origin.route({ t: "session-export" }, "some-player");
+    origin.playerWs.send.mockClear();
+    origin.route({ t: "session-export" }, PLAYER);
 
+    expect(framesOf(origin.playerWs, "session-file")).toHaveLength(0);
+    expect(sentinelHits(origin.playerWs, HIDDEN_NODE_SENTINEL)).toEqual([]);
     expect(framesOf(origin.dmWs, "session-file")).toHaveLength(0);
+  });
+
+  it("refuses a load that would leave the table past MAX_SESSION_DOCUMENTS — before anything mutates", () => {
+    // The file's documents UPSERT into the room's; a disjoint backup onto a
+    // busy table crossed the ceiling in one click and wrote an unloadable
+    // export. Same throw-shaped refusal as map-studio-create's.
+    const file = exportSession();
+    const restored = bootServer();
+    for (let index = 0; index < MAX_SESSION_DOCUMENTS; index += 1) {
+      restored.mapStudioService.create("default", { id: `busy-${index}`, name: `busy ${index}` });
+    }
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      restored.route({
+        t: "load-session",
+        snapshot: file.snapshot as never,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: file.liveMapDocumentId,
+      });
+      expect(errorLog).toHaveBeenCalled();
+    } finally {
+      errorLog.mockRestore();
+    }
+    // Nothing landed: no new document, no binding, no snapshot merge.
+    expect(restored.mapStudioService.list("default")).toHaveLength(MAX_SESSION_DOCUMENTS);
+    expect(restored.roomService.getState().liveMapDocumentId).toBeUndefined();
+    expect(restored.roomService.getState().compiledScene).toBeUndefined();
   });
 
   it("restores the whole table onto a WIPED server", () => {

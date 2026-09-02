@@ -9,6 +9,7 @@
 // crossed the ceiling when chatLog was added to SNAPSHOT_LIMITS).
 
 import { z } from "zod";
+import type { SceneState } from "@herobyte/shared";
 import type { MessageRecord, ValidationResult } from "./commonValidators.js";
 import { isRecord } from "./commonValidators.js";
 import { importDocument } from "./mapStudioValidators.js";
@@ -16,11 +17,26 @@ import { importDocument } from "./mapStudioValidators.js";
 /**
  * A session file may legitimately carry every map in the room. EXPORTED
  * because it is also the mint ceiling: no path that creates documents
- * (map-studio-create, atlas-generate-node) may take a room past it, or the
- * DM's own export stops being re-importable — the atlas cap tests pin the
- * refusal against this constant.
+ * (map-studio-create, map-studio-import, atlas-generate-node — and the
+ * load-session upsert, via `documentsPastCap`) may take a room past it, or
+ * the DM's own export stops being re-importable — the cap tests pin the
+ * refusal on every path against this constant.
  */
 export const MAX_SESSION_DOCUMENTS = 64;
+
+/**
+ * How many documents a load would leave the room with, or 0 when it fits:
+ * the file's documents UPSERT into whatever the room already holds, so a
+ * disjoint backup loaded onto a busy table can cross the ceiling in one click.
+ */
+export function documentsPastCap(
+  existingIds: Iterable<string>,
+  incoming: { id: string }[],
+): number {
+  const ids = new Set(existingIds);
+  for (const document of incoming) ids.add(document.id);
+  return ids.size > MAX_SESSION_DOCUMENTS ? ids.size : 0;
+}
 
 /**
  * The SAME schema map-studio-import uses — deliberately, not incidentally.
@@ -114,6 +130,19 @@ const envelopeSchema = z.object({
   // One scene per document, so the document ceiling is also the scene ceiling.
   sceneStates: z.array(sceneState).max(MAX_SESSION_DOCUMENTS).optional(),
 });
+
+/**
+ * The ONE scene sanitizer, for the two doors that are not the load-session
+ * message: the DISK/Redis boundary (normalizeAtlasState) and the export
+ * filter. Both used weaker locks — a record check, a mapDocumentId check —
+ * and a half-shaped scene walked through either would throw inside travel
+ * (mid-mutation) or write a file the DM's own reimport rejects. Returns the
+ * ORIGINAL object on success: z.object strips unknown keys, and a newer
+ * server's extra fields must survive a round trip through an older one.
+ */
+export function parseSceneState(value: unknown): SceneState | null {
+  return sceneState.safeParse(value).success ? (value as SceneState) : null;
+}
 
 /**
  * Validate the map-document half of a load-session message. Both fields are
