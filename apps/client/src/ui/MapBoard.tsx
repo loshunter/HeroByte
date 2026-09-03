@@ -33,6 +33,7 @@ import { useObjectTransformHandlers } from "../hooks/useObjectTransformHandlers.
 import { useCameraControl } from "../hooks/useCameraControl.js";
 import { useTransformGizmoIntegration } from "../hooks/useTransformGizmoIntegration.js";
 import { isSceneInputArmed, useStageEventRouter } from "../hooks/useStageEventRouter.js";
+import { useAimTouchGuard } from "../features/atlas/useAimTouchGuard";
 import {
   GridLayer,
   MapImageLayer,
@@ -129,7 +130,6 @@ export default function MapBoard({
   onAlignmentPointCapture,
   linkAimMode = false,
   onLinkAnchorCapture,
-  onLinkAimCancel,
   drawTool,
   drawColor,
   drawWidth,
@@ -458,11 +458,15 @@ export default function MapBoard({
   // px through the same hop the map-edit tools use, then hands it up — the
   // aim's owner (useAtlasLinkAim) does the sending and the disarming.
   const { toDocPoint } = usePointerToDoc(toWorld, mapObject?.transform);
+  // Konva fires a Stage tap at the end of a pan and a pinch too (no movement
+  // slop), so the aim asks the guard whether this lift was a real tap.
+  const aimGuard = useAimTouchGuard();
   const handleLinkAimClick = useCallback(() => {
     if (!onLinkAnchorCapture) return;
+    if (aimGuard.consumeGesture()) return;
     const point = toDocPoint(stageRef);
     if (point) onLinkAnchorCapture(point);
-  }, [onLinkAnchorCapture, toDocPoint]);
+  }, [onLinkAnchorCapture, toDocPoint, aimGuard]);
 
   // Event router coordinates all mouse/pointer events across tools
   const {
@@ -711,16 +715,16 @@ export default function MapBoard({
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onTouchStart={(event) => {
-          // A second finger cancels the one-shot link aim — the shipped
-          // cancel semantics (a lifted finger commits, so the escape hatch
-          // must be another finger, not a lift).
-          if (linkAimMode && event.evt.touches.length > 1) {
-            onLinkAimCancel?.();
-            return;
-          }
+          // The guard remembers whether this gesture moved (a pan) or grew a
+          // second finger (a pinch): the camera takes both under an armed aim
+          // and the aim places only on a real tap — see useAimTouchGuard.
+          aimGuard.onTouchStart(event);
           onTouchStart(event);
         }}
-        onTouchMove={onTouchMove}
+        onTouchMove={(event) => {
+          aimGuard.onTouchMove(event);
+          onTouchMove(event);
+        }}
         onTouchEnd={onTouchEnd}
         style={{ cursor }}
       >

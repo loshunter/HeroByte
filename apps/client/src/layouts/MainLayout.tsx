@@ -70,7 +70,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     selectMode,
     alignmentMode,
     linkAimActive,
-    cancelLinkAim,
     captureLinkAnchor,
     mapEditMode,
     mapEditActiveSubTool,
@@ -296,7 +295,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         alignmentMode={alignmentMode}
         linkAimMode={linkAimActive ?? false}
         onLinkAnchorCapture={captureLinkAnchor}
-        onLinkAimCancel={cancelLinkAim}
         mapEditMode={mapEditMode}
         mapEditActiveSubTool={mapEditActiveSubTool}
         mapEditFloorFamily={mapEditFloorFamily}

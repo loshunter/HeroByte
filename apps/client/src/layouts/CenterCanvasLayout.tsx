@@ -92,8 +92,6 @@ export interface CenterCanvasLayoutProps {
   linkAimMode?: boolean;
   /** Clicked link anchor, in DOCUMENT px */
   onLinkAnchorCapture?: (point: { x: number; y: number }) => void;
-  /** Second finger / external cancel for the link aim */
-  onLinkAimCancel?: () => void;
   /** Whether live on-table map-edit mode is active */
   mapEditMode: boolean;
   /** Selected map-edit sub-tool (wall, …) */
@@ -206,7 +204,6 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     alignmentMode,
     linkAimMode = false,
     onLinkAnchorCapture,
-    onLinkAimCancel,
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
@@ -293,7 +290,6 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             onAlignmentPointCapture={onAlignmentPointCapture}
             linkAimMode={linkAimMode}
             onLinkAnchorCapture={onLinkAnchorCapture}
-            onLinkAimCancel={onLinkAimCancel}
             {...drawingProps}
             onRecolorToken={onRecolorToken}
             onTransformObject={onTransformObject}

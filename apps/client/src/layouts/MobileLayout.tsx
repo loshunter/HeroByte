@@ -192,7 +192,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onAlignmentPointCapture={handleAlignmentPointCapture}
             linkAimMode={props.linkAimActive ?? false}
             onLinkAnchorCapture={props.captureLinkAnchor}
-            onLinkAimCancel={props.cancelLinkAim}
             {...drawingProps}
             onRecolorToken={recolorToken}
             onTransformObject={transformSceneObject}

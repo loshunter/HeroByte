@@ -371,8 +371,6 @@ export interface MainLayoutProps {
   linkAimActive?: boolean;
   /** Arm the aim with everything but the anchor (from the Atlas tab) */
   armLinkAim?: (pending: PendingLink) => void;
-  /** Cancel the aim (ESC does this too, inside the hook) */
-  cancelLinkAim?: () => void;
   /** MapBoard hands the clicked DOCUMENT-px point here */
   captureLinkAnchor?: (point: { x: number; y: number }) => void;
 

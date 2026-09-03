@@ -626,7 +626,7 @@ function AuthenticatedApp({
 
   // Atlas-link placement (A6): the one-shot canvas aim, armed from the Atlas
   // tab, captured by MapBoard, sent from the hook.
-  const { linkAimActive, armLinkAim, cancelLinkAim, captureLinkAnchor } = useAtlasLinkAim({
+  const { linkAimActive, armLinkAim, captureLinkAnchor } = useAtlasLinkAim({
     activeTool,
     setActiveTool,
     sendMessage,
@@ -859,7 +859,6 @@ function AuthenticatedApp({
     // Atlas-link aim (A6)
     linkAimActive,
     armLinkAim,
-    cancelLinkAim,
     captureLinkAnchor,
     // Dice
     rollHistory,

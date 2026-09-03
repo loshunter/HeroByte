@@ -286,9 +286,16 @@ export function useStageEventRouter({
     handleMapEditCancel,
   });
 
+  // The atlas-link aim is a click-shaped tool with NO armed touch tool of
+  // its own, so a finger under it has nothing else to do: let it pan (and
+  // pinch). The mouse path keeps the aim in shouldPan's negation, because a
+  // mouse drag ends in a click Konva would hand to the aim; on touch that
+  // lift is guarded (useAimTouchGuard in MapBoard) — the mobile lens's L3.
+  const touchShouldPan = shouldPan || linkAimMode;
+
   const { onTouchStart, onTouchMove, onTouchEnd } = useTouchGestureRouter({
     tool: armedTouchTool,
-    shouldPan,
+    shouldPan: touchShouldPan,
     stageRef,
     onCameraStart: handleTouchStart,
     onCameraMove: handleTouchMove,
