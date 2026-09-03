@@ -7,6 +7,11 @@
 // idiom: "window" is the desktop shape (floating 🗺 launcher + a
 // DraggableWindow, launcher state local so the layouts thread ZERO new
 // props); "content" is bare, for the mobile atlas screen.
+//
+// A NULL snapshot is a socket drop (every reconnect nulls it while the app
+// stays mounted), not a blank campaign — it says so, and never shows the
+// first-run copy over a world the player had already discovered (the
+// mobile-surface review lens's L4).
 
 import { useState } from "react";
 import type { RoomSnapshot } from "@herobyte/shared";
@@ -37,7 +42,13 @@ export function WorldMapPanel({ snapshot, presentation = "window" }: WorldMapPan
 
   const content = (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px" }}>
-      {rows.length === 0 ? (
+      {snapshot === null ? (
+        <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
+          <span style={{ fontFamily: "var(--font-body)", lineHeight: 1.5 }}>
+            Reconnecting… your discovered world is back the moment the table is.
+          </span>
+        </JRPGPanel>
+      ) : rows.length === 0 ? (
         <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
           <span style={{ fontFamily: "var(--font-body)", lineHeight: 1.5 }}>
             The map is blank… for now. As your party discovers places, they appear here.
