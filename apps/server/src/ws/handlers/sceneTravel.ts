@@ -196,8 +196,13 @@ export function bindLiveDocument(
     return { broadcast: true, save: true };
   }
   // Idempotent: a same-document rebind used to recompile and silently wipe
-  // door runtime state (the A4 rebuild's first casualty fixed).
-  if (documentId === state.liveMapDocumentId) {
+  // door runtime state (the A4 rebuild's first casualty fixed). "Same" means
+  // the binding AND the scene: a publish of another map parts them, and a
+  // rebind of the bound document must then run the physics, not no-op.
+  if (
+    documentId === state.liveMapDocumentId &&
+    state.compiledScene?.sourceDocumentId === documentId
+  ) {
     return { broadcast: false, save: false };
   }
   let document: MapDocument;
@@ -251,10 +256,17 @@ export function handleAtlasTravel(
       nodeId,
     );
   }
-  if (state.liveMapDocumentId === node.mapDocumentId) {
-    // Already there: a replayed travel no-ops — but "travel to the node I
-    // just linked my live map to" is the natural way to REVEAL it, and
-    // set-live deliberately never discovers, so discovery still runs here.
+  // Already there ONLY when the binding and the scene agree. After a publish
+  // of another map they part (the binding says A, the party stands on B),
+  // and keying on the binding alone no-op'd the travel back to A silently
+  // and for good — the table stayed on B with no error (K1's review). A
+  // replayed travel still no-ops, but "travel to the node I just linked my
+  // live map to" is the natural way to REVEAL it, and set-live deliberately
+  // never discovers, so discovery still runs here.
+  const alreadyThere =
+    state.liveMapDocumentId === node.mapDocumentId &&
+    state.compiledScene?.sourceDocumentId === node.mapDocumentId;
+  if (alreadyThere) {
     if (node.discovered) {
       return { broadcast: false, save: false };
     }

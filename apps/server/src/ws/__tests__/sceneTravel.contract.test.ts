@@ -805,6 +805,44 @@ describe("scene travel contracts", () => {
     expect(snapshotsOf(playerWs)).toHaveLength(0);
   });
 
+  it("after a PUBLISH of another map, travel back to the BOUND node runs the physics — 'already there' needs the scene AND the binding", async () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({
+      t: "map-studio-publish",
+      documentId: "doc-b",
+      background: "data:image/png;base64,QUJD",
+    });
+    expect(roomService.getState().liveMapDocumentId).toBe("doc-a");
+    expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("doc-b");
+    await flush();
+    dmWs.send.mockClear();
+
+    route({ t: "atlas-travel", nodeId: "nA" });
+    await flush();
+    const state = roomService.getState();
+    expect(state.compiledScene?.sourceDocumentId).toBe("doc-a");
+    expect(state.liveMapDocumentId).toBe("doc-a");
+    expect(snapshotsOf(dmWs).at(-1)?.currentAtlasNodeId).toBe("nA");
+  });
+
+  it("after a PUBLISH of another map, a set-live of the BOUND document rebinds the scene too", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({
+      t: "map-studio-publish",
+      documentId: "doc-b",
+      background: "data:image/png;base64,QUJD",
+    });
+    expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("doc-b");
+
+    route({ t: "map-studio-set-live", documentId: "doc-a" });
+    expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("doc-a");
+    expect(roomService.getState().liveMapDocumentId).toBe("doc-a");
+  });
+
   // --------------------------------------------------------------------------
   // THE CAPTURE-COMPLETENESS SWEEP (§4.10) — a future RoomState field fails
   // here BY NAME until someone classifies it into a bucket.
