@@ -247,7 +247,7 @@ describe("AtlasTab", () => {
         nodeId: "n1",
         commandId: expect.any(String),
         seed: expect.any(Number),
-        params: { theme: "stone", density: "medium", size: "medium" },
+        recipe: { recipeId: "dungeon", theme: "stone", density: "medium", size: "medium" },
       }),
     );
   });

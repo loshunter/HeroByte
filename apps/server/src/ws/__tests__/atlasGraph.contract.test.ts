@@ -487,7 +487,7 @@ describe("atlas graph contracts", () => {
       nodeId,
       commandId,
       seed,
-      params: { theme: "stone", density: "medium", size: "small" },
+      recipe: { recipeId: "dungeon", theme: "stone", density: "medium", size: "small" },
     };
   }
 
@@ -513,6 +513,13 @@ describe("atlas graph contracts", () => {
       height: 20 * 50,
     });
     expect(document.elements.length).toBeGreaterThan(0);
+    // The entrance rides the node: a center-anchored cell rect inside the document.
+    expect(node?.arrival).toBeDefined();
+    expect(node!.arrival!.x).toBeGreaterThanOrEqual(0);
+    expect(node!.arrival!.x).toBeLessThan(24);
+    expect(node!.arrival!.y).toBeGreaterThanOrEqual(0);
+    expect(node!.arrival!.y).toBeLessThan(20);
+    expect(node!.arrival!.width).toBeGreaterThanOrEqual(3);
     // The DM's studio channel learned about the new document...
     expect(
       (messagesOf(dmWs, "map-studio-document") as { document?: { id?: string } }[]).some(

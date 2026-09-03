@@ -6,8 +6,13 @@
 // makes Cartridge Codes possible, so nothing here may touch Math.random,
 // Date.now, or crypto ids (plan §4.1).
 
-import { createSeededRng, type MapElement, type SeededRng } from "@herobyte/shared";
-import { generateLayout } from "./dungeonLayout.js";
+import {
+  createSeededRng,
+  type MapElement,
+  type PlayerStagingZone,
+  type SeededRng,
+} from "@herobyte/shared";
+import { generateLayout, type CellRect } from "./dungeonLayout.js";
 import { emitGeometry } from "./dungeonGeometry.js";
 import { emitStocking } from "./dungeonStocking.js";
 import { makeIdFactory } from "./types.js";
@@ -47,6 +52,27 @@ export function dungeonRecipe(
       ctx.idPrefix,
       createSeededRng(seed ^ ID_STREAM),
     ),
+    arrival: arrivalZone(layout.rooms[0], bounds),
+  };
+}
+
+/**
+ * The entrance is the FIRST room (placement order is seeded and stable), as
+ * a center-anchored zone in ABSOLUTE document cells: a room covering cells
+ * x..x+w-1 has its center at x + (w-1)/2, which is the cell whose center
+ * pixel ((x + 0.5) × grid) the staging-zone renderer and camera use.
+ */
+function arrivalZone(
+  room: CellRect | undefined,
+  bounds: CellBounds,
+): PlayerStagingZone | undefined {
+  if (!room) return undefined;
+  return {
+    x: bounds.x + room.x + (room.w - 1) / 2,
+    y: bounds.y + room.y + (room.h - 1) / 2,
+    width: room.w,
+    height: room.h,
+    rotation: 0,
   };
 }
 

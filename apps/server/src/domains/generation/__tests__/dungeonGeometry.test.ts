@@ -332,7 +332,17 @@ describe("dungeonRecipe — the determinism contract", () => {
       context({ idPrefix: "golden" }),
     );
 
-    expect(output).toEqual(golden);
+    // The golden pins the place-room payload; the arrival (the first room, as a
+    // center-anchored zone in absolute cells) is pinned as its own literal —
+    // the same contract, spelled out, so a room-order change fails here by name.
+    expect({ cells: output.cells, elements: output.elements }).toEqual(golden);
+    expect(output.arrival).toEqual({
+      x: 17.5,
+      y: 9.5,
+      width: 8,
+      height: 8,
+      rotation: 0,
+    });
     // Guard the guard: a golden of a sealed box would pin the bug, not the
     // contract. This one is a real dungeon.
     expect(output.elements.filter((e) => e.type === "door").length).toBeGreaterThan(0);

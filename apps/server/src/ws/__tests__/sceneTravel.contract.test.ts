@@ -444,7 +444,7 @@ describe("scene travel contracts", () => {
       nodeId: "gen",
       commandId: "gen-fog",
       seed: 7,
-      params: { theme: "stone", density: "low", size: "small" },
+      recipe: { recipeId: "dungeon", theme: "stone", density: "low", size: "small" },
     });
 
     expect(roomService.getState().fogEnabled).toBe(false);
@@ -719,6 +719,53 @@ describe("scene travel contracts", () => {
     expect(state.liveMapDocumentId).toBe("doc-a");
     expect(state.compiledScene?.doors.find((door) => door.id === "door-1")?.state).toBe("open");
     expect(state.tokens.map((token) => token.id).sort()).toEqual(["dm-scenery", "gob-t", "pc-t"]);
+  });
+
+  it("a node's ARRIVAL is installed as the staging zone on a warp that finds none, and never on a set-live", () => {
+    setupTwoNodes();
+    seedEntities();
+    const arrival = { x: 6, y: 7, width: 3, height: 3, rotation: 0 };
+    roomService.getState().atlasNodes.find((node) => node.id === "nA")!.arrival = arrival;
+
+    // A set-live rebind never warps → no install.
+    route({ t: "map-studio-set-live", documentId: "doc-a" });
+    expect(roomService.getState().playerStagingZone).toBeUndefined();
+    route({ t: "map-studio-set-live", documentId: "doc-b" });
+
+    // A travel warps → the entrance is installed, and the party lands in it.
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const state = roomService.getState();
+    expect(state.playerStagingZone).toEqual(arrival);
+    expect(state.playerStagingZone).not.toBe(arrival); // a clone, never the node's own object
+    const pc = state.tokens.find((token) => token.id === "pc-t")!;
+    expect(Math.abs(pc.x - 6)).toBeLessThanOrEqual(1.5);
+    expect(Math.abs(pc.y - 7)).toBeLessThanOrEqual(1.5);
+  });
+
+  it("the install is STICKY: a scene captured zone-less gets its entrance back on the next warp; a captured zone wins", () => {
+    setupTwoNodes();
+    seedEntities();
+    const arrival = { x: 6, y: 7, width: 3, height: 3, rotation: 0 };
+    roomService.getState().atlasNodes.find((node) => node.id === "nA")!.arrival = arrival;
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "set-player-staging-zone", zone: { x: 2, y: 2, width: 1, height: 1, rotation: 0 } });
+    route({ t: "atlas-travel", nodeId: "nB" });
+    route({ t: "atlas-travel", nodeId: "nA" });
+    // The moved zone was captured, so it is restored and NOT re-installed over.
+    expect(roomService.getState().playerStagingZone).toEqual({
+      x: 2,
+      y: 2,
+      width: 1,
+      height: 1,
+      rotation: 0,
+    });
+
+    // The DM clears the zone (or a publish burned it): the capture is zone-less.
+    roomService.getState().playerStagingZone = undefined;
+    route({ t: "atlas-travel", nodeId: "nB" });
+    expect(roomService.getState().sceneStates["doc-a"]?.playerStagingZone).toBeUndefined();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    expect(roomService.getState().playerStagingZone).toEqual(arrival);
   });
 
   it("the OUTGOING scene's door runtime is captured from the scene still on the table — install comes after capture", () => {

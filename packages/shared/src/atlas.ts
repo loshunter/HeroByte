@@ -47,6 +47,15 @@ export interface AtlasNode {
    * `size` is optional because nodes cashed before it was recorded lack it.
    */
   recipe?: RecipeProvenance;
+  /**
+   * Where the party ARRIVES: the recipe's entrance as a center-anchored CELL
+   * rect in the staging-zone convention. Installed as the scene's
+   * playerStagingZone whenever a WARP finds the scene without one (first
+   * visit, or a scene captured zone-less after a publish); a moved zone wins
+   * forever. The rectangle is then ordinary, player-visible scene state —
+   * only this node FIELD is DM-only on the wire (the whitelist projection).
+   */
+  arrival?: PlayerStagingZone;
   createdAt: number;
   updatedAt: number;
 }
@@ -57,7 +66,9 @@ export interface AtlasNode {
  * name, discovered, plus parentId only when the parent is discovered).
  */
 export type AtlasNodeSnapshot = Pick<AtlasNode, "id" | "kind" | "name" | "discovered"> &
-  Partial<Pick<AtlasNode, "parentId" | "mapDocumentId" | "recipe" | "createdAt" | "updatedAt">>;
+  Partial<
+    Pick<AtlasNode, "parentId" | "mapDocumentId" | "recipe" | "arrival" | "createdAt" | "updatedAt">
+  >;
 
 /**
  * A travel affordance drawn ON a map: a door/stair/signpost sprite at `anchor`

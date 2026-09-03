@@ -32,6 +32,7 @@ import {
   toLiveGridSize,
   type CompiledScene,
   type MapDocument,
+  type PlayerStagingZone,
   type SceneState,
   type ServerMessage,
 } from "@herobyte/shared";
@@ -57,6 +58,13 @@ export interface SceneTravelOptions {
   warpTravelers: boolean;
   /** Fog default when the destination has NO saved scene. */
   firstVisitFogEnabled: boolean;
+  /**
+   * The destination node's recorded entrance (a recipe's arrival zone):
+   * installed as the scene's staging zone whenever a WARP finds the scene
+   * without one — a first visit, or a scene captured zone-less after a
+   * publish. Door-independent and sticky; a moved zone wins forever.
+   */
+  firstVisitStagingZone?: PlayerStagingZone;
   /** Injectable for deterministic arrival tests (zone spawns roll dice). */
   rng?: () => number;
 }
@@ -114,6 +122,7 @@ export function travelToDocument(
       // set-live rebind never warps, so the row's "every collection exactly
       // in place" promise still holds for the rebind.)
       state.playerStagingZone = undefined;
+      installArrival(state, options);
       placeArrivals(state, travelers, document, options.rng);
     }
     return;
@@ -153,7 +162,15 @@ export function travelToDocument(
   // deliberately never touches it, so without that a raster from the OLD map
   // would haunt the new one.
   if (options.warpTravelers) {
+    installArrival(state, options);
     placeArrivals(state, travelers, document, options.rng);
+  }
+}
+
+/** The ONE arrival install, immediately before each placeArrivals (plan §2.2's diagram). */
+function installArrival(state: RoomState, options: SceneTravelOptions): void {
+  if (options.warpTravelers && !state.playerStagingZone && options.firstVisitStagingZone) {
+    state.playerStagingZone = structuredClone(options.firstVisitStagingZone);
   }
 }
 
@@ -264,6 +281,7 @@ export function handleAtlasTravel(
     // A FIRST visit to a GENERATED node defaults fog ON — a dungeon unmasked
     // on arrival is an irreversible reveal (review S7). Linked maps inherit.
     firstVisitFogEnabled: node.recipe ? true : state.fogEnabled,
+    firstVisitStagingZone: node.arrival,
   });
   state.liveMapDocumentId = document.id;
   if (!node.discovered) {

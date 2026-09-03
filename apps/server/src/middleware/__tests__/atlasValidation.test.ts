@@ -17,6 +17,18 @@ const LINK = {
   linkType: "door",
   visibleToPlayers: true,
 };
+const RECIPE = { recipeId: "dungeon", theme: "stone", density: "medium", size: "small" };
+const KICK = {
+  t: "atlas-kick",
+  commandId: "kick-1",
+  nodeId: "child-1",
+  originNodeId: "origin-1",
+  linkId: "out-1",
+  returnLinkId: "back-1",
+  name: "Cellar",
+  seed: 42,
+  recipe: RECIPE,
+};
 
 describe("atlas message validators", () => {
   it("accepts every atlas CRUD variation", () => {
@@ -37,9 +49,12 @@ describe("atlas message validators", () => {
         nodeId: "node-1",
         commandId: "cmd-1",
         seed: 42,
-        params: { theme: "stone", density: "medium", size: "small" },
+        recipe: RECIPE,
       },
       { t: "atlas-travel", nodeId: "node-1" },
+      KICK,
+      { ...KICK, linkType: "stair" },
+      { ...KICK, commandId: "c".repeat(120) },
     ];
     for (const message of valid) {
       const result = validateMessage(message as never);
@@ -62,6 +77,14 @@ describe("atlas message validators", () => {
       { t: "atlas-update-node", nodeId: "node-1", patch: { smuggled: true } },
       { t: "atlas-create-link", link: { ...LINK, smuggled: true } },
       { t: "atlas-create-link", link: { ...LINK, anchor: { x: 1, y: 2, z: 3 } } },
+      { ...KICK, recipe: { ...RECIPE, smuggled: true } },
+      {
+        t: "atlas-generate-node",
+        nodeId: "node-1",
+        commandId: "cmd-1",
+        seed: 42,
+        recipe: { ...RECIPE, smuggled: true },
+      },
     ]) {
       expect(validateMessage(message as never).valid).toBe(false);
     }
@@ -82,36 +105,46 @@ describe("atlas message validators", () => {
       { t: "atlas-create-link", link: { ...LINK, anchor: { x: 2_000_000, y: 0 } } },
       { t: "atlas-create-link", link: { ...LINK, visibleToPlayers: "yes" } },
       { t: "atlas-delete-link", linkId: 7 },
-      {
-        t: "atlas-generate-node",
-        nodeId: "node-1",
-        commandId: "cmd-1",
-        seed: 4.5,
-        params: { theme: "stone", density: "medium", size: "small" },
-      },
+      { t: "atlas-generate-node", nodeId: "node-1", commandId: "cmd-1", seed: 4.5, recipe: RECIPE },
       {
         t: "atlas-generate-node",
         nodeId: "node-1",
         commandId: "cmd-1",
         seed: 42,
-        params: { theme: "stone", density: "medium", size: "gargantuan" },
+        recipe: { ...RECIPE, size: "gargantuan" },
       },
       {
         t: "atlas-generate-node",
         nodeId: "node-1",
         commandId: "c".repeat(121),
         seed: 42,
-        params: { theme: "stone", density: "medium", size: "small" },
+        recipe: RECIPE,
       },
       {
         t: "atlas-generate-node",
         nodeId: "node-1",
         commandId: "cmd-1",
         seed: 42,
-        params: { theme: "stone", density: "medium", size: "small", smuggled: true },
+        recipe: { ...RECIPE, recipeId: "castle" },
       },
+      { t: "atlas-generate-node", nodeId: "node-1", commandId: "cmd-1", seed: 42 },
       { t: "atlas-travel" },
       { t: "atlas-travel", nodeId: "" },
+      // The kick: every id required, the commandId bound, the name bounds, the
+      // recipe strict, the link type from the enum, the seed an integer.
+      { ...KICK, commandId: "c".repeat(121) },
+      { ...KICK, commandId: "" },
+      { ...KICK, nodeId: "" },
+      { ...KICK, originNodeId: undefined },
+      { ...KICK, linkId: undefined },
+      { ...KICK, returnLinkId: undefined },
+      { ...KICK, name: "" },
+      { ...KICK, name: "x".repeat(65) },
+      { ...KICK, seed: 1.5 },
+      { ...KICK, recipe: { ...RECIPE, theme: "granite" } },
+      { ...KICK, recipe: { ...RECIPE, recipeId: "castle" } },
+      { ...KICK, recipe: undefined },
+      { ...KICK, linkType: "portal" },
     ];
     for (const message of invalid) {
       const result = validateMessage(message as never);

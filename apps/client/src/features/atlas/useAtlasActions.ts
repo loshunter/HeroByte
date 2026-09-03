@@ -7,14 +7,8 @@
 // replayed create as a no-op, so the retry layer is safe with these.
 
 import { useMemo } from "react";
-import type { AtlasNodeKind, ClientMessage } from "@herobyte/shared";
+import type { AtlasNodeKind, ClientMessage, GenerateRequest } from "@herobyte/shared";
 import { generateUUID } from "../../utils/uuid";
-
-export interface AtlasGenerateParams {
-  theme: "stone" | "wood";
-  density: "low" | "medium" | "high";
-  size: "small" | "medium" | "large";
-}
 
 export interface AtlasActions {
   createNode: (kind: AtlasNodeKind, name: string, parentId?: string) => void;
@@ -22,7 +16,7 @@ export interface AtlasActions {
   setDiscovered: (nodeId: string, discovered: boolean) => void;
   deleteNode: (nodeId: string) => void;
   linkMap: (nodeId: string, documentId: string) => void;
-  generateNode: (nodeId: string, seed: number, params: AtlasGenerateParams) => void;
+  generateNode: (nodeId: string, seed: number, recipe: GenerateRequest) => void;
   travel: (nodeId: string) => void;
   deleteLink: (linkId: string) => void;
 }
@@ -42,7 +36,7 @@ export function useAtlasActions(sendAtlasMessage: (message: ClientMessage) => vo
       deleteNode: (nodeId) => sendAtlasMessage({ t: "atlas-delete-node", nodeId }),
       linkMap: (nodeId, documentId) =>
         sendAtlasMessage({ t: "atlas-link-map", nodeId, documentId }),
-      generateNode: (nodeId, seed, params) =>
+      generateNode: (nodeId, seed, recipe) =>
         sendAtlasMessage({
           t: "atlas-generate-node",
           nodeId,
@@ -51,7 +45,7 @@ export function useAtlasActions(sendAtlasMessage: (message: ClientMessage) => vo
           // not just transport bookkeeping.
           commandId: generateUUID(),
           seed,
-          params,
+          recipe,
         }),
       travel: (nodeId) => sendAtlasMessage({ t: "atlas-travel", nodeId }),
       deleteLink: (linkId) => sendAtlasMessage({ t: "atlas-delete-link", linkId }),

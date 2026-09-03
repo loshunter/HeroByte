@@ -25,6 +25,8 @@ import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { handleAtlasGenerateNode } from "./atlasGenerate.js";
+import { handleAtlasKick } from "./atlasKick.js";
+import { pushLink } from "./atlasLink.js";
 import { handleAtlasTravel } from "./sceneTravel.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
@@ -103,9 +105,24 @@ export class AtlasMessageHandler {
           roomId,
           message,
         );
+      case "atlas-kick":
+        // The kicked-in door: adopt/resolve, mint, cash, pin, travel — one
+        // synchronous block in atlasKick.ts (plan §2.2).
+        return handleAtlasKick(
+          {
+            mapStudioService: this.mapStudioService,
+            broadcastToDMs: this.broadcastToDMs,
+            sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
+            now: this.now,
+          },
+          state,
+          senderUid,
+          roomId,
+          message,
+        );
       default:
-        // Future atlas-* types (generate, travel) land in their own slices;
-        // an unrouted one must FAIL LOUDLY rather than ack success.
+        // Every atlas-* type routes above; an unrouted one must FAIL LOUDLY
+        // rather than ack success.
         throw new Error(`Unhandled atlas message: ${(message as ClientMessage).t}`);
     }
   }
@@ -269,32 +286,12 @@ export class AtlasMessageHandler {
     roomId: string,
     link: RoomState["atlasLinks"][number],
   ): RouteHandlerResult {
-    if (state.atlasLinks.some((existing) => existing.id === link.id)) {
-      return NO_OP; // replay of a create that landed
+    // The core lives in atlasLink.ts — the kick pins its two doors through it.
+    const outcome = pushLink(state, roomId, this.mapStudioService, link);
+    if (!outcome.ok) {
+      return this.error(uid, outcome.code, outcome.reason);
     }
-    if (state.atlasLinks.length >= ATLAS_LIMITS.links) {
-      return this.error(uid, "at-cap", `The atlas holds at most ${ATLAS_LIMITS.links} links.`);
-    }
-    const fromNode = state.atlasNodes.find((existing) => existing.id === link.fromNodeId);
-    if (!fromNode || !state.atlasNodes.some((existing) => existing.id === link.toNodeId)) {
-      return this.error(uid, "not-found", "A link endpoint no longer exists.");
-    }
-    // The sprite renders ON the from-node's map, so a promise can't host one.
-    if (!fromNode.mapDocumentId) {
-      return this.error(uid, "rejected", "The origin node has no map to place a link on.");
-    }
-    let anchor = { x: link.anchor.x, y: link.anchor.y };
-    try {
-      const document = this.mapStudioService.get(roomId, fromNode.mapDocumentId);
-      anchor = {
-        x: Math.min(Math.max(anchor.x, 0), document.width),
-        y: Math.min(Math.max(anchor.y, 0), document.height),
-      };
-    } catch {
-      return this.error(uid, "not-found", "The origin node's map document no longer exists.");
-    }
-    state.atlasLinks.push({ ...link, anchor });
-    return MUTATED;
+    return outcome.pushed ? MUTATED : NO_OP;
   }
 
   private deleteLink(state: RoomState, linkId: string): RouteHandlerResult {

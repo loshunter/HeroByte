@@ -8,7 +8,8 @@
 
 import { useState } from "react";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
-import type { AtlasActions, AtlasGenerateParams } from "./useAtlasActions";
+import type { DungeonRecipeParams, GenerateSize } from "@herobyte/shared";
+import type { AtlasActions } from "./useAtlasActions";
 
 function randomSeed(): number {
   return Math.floor(Math.random() * 2_147_483_647);
@@ -21,9 +22,9 @@ interface AtlasGeneratePanelProps {
 }
 
 export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGeneratePanelProps) {
-  const [theme, setTheme] = useState<AtlasGenerateParams["theme"]>("stone");
-  const [density, setDensity] = useState<AtlasGenerateParams["density"]>("medium");
-  const [size, setSize] = useState<AtlasGenerateParams["size"]>("medium");
+  const [theme, setTheme] = useState<DungeonRecipeParams["theme"]>("stone");
+  const [density, setDensity] = useState<DungeonRecipeParams["density"]>("medium");
+  const [size, setSize] = useState<GenerateSize>("medium");
   const [seed, setSeed] = useState(randomSeed);
 
   return (
@@ -40,7 +41,7 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
       <select
         aria-label={`Theme for ${nodeName}`}
         value={theme}
-        onChange={(event) => setTheme(event.target.value as AtlasGenerateParams["theme"])}
+        onChange={(event) => setTheme(event.target.value as DungeonRecipeParams["theme"])}
         style={{ fontSize: "10px" }}
       >
         <option value="stone">stone</option>
@@ -49,7 +50,7 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
       <select
         aria-label={`Density for ${nodeName}`}
         value={density}
-        onChange={(event) => setDensity(event.target.value as AtlasGenerateParams["density"])}
+        onChange={(event) => setDensity(event.target.value as DungeonRecipeParams["density"])}
         style={{ fontSize: "10px" }}
       >
         <option value="low">low</option>
@@ -59,7 +60,7 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
       <select
         aria-label={`Size for ${nodeName}`}
         value={size}
-        onChange={(event) => setSize(event.target.value as AtlasGenerateParams["size"])}
+        onChange={(event) => setSize(event.target.value as GenerateSize)}
         style={{ fontSize: "10px" }}
       >
         <option value="small">small</option>
@@ -84,7 +85,9 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
       </JRPGButton>
       <JRPGButton
         variant="primary"
-        onClick={() => actions.generateNode(nodeId, seed, { theme, density, size })}
+        onClick={() =>
+          actions.generateNode(nodeId, seed, { recipeId: "dungeon", theme, density, size })
+        }
         style={{ fontSize: "9px", padding: "2px 6px" }}
       >
         🎲 GENERATE

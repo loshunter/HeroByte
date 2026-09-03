@@ -28,6 +28,7 @@ describe("AtlasGeneratePanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "🎲 GENERATE" }));
 
     expect(actions.generateNode).toHaveBeenCalledWith("n1", 1234567, {
+      recipeId: "dungeon",
       theme: "wood",
       density: "high",
       size: "large",

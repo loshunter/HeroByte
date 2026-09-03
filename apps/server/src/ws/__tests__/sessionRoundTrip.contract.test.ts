@@ -324,6 +324,7 @@ describe("session round trip", () => {
             density: "low",
             size: "large",
           },
+          arrival: { x: 7, y: 8.5, width: 5, height: 4, rotation: 0 },
           createdAt: 5,
           updatedAt: 6,
         },
@@ -416,6 +417,13 @@ describe("session round trip", () => {
     expect(after.atlasNodes.find((node) => node.id === "atlas-shown")?.recipe?.seed).toBe(424242);
     // Nested provenance fields are invisible to the top-level sweep — pin them.
     expect(after.atlasNodes.find((node) => node.id === "atlas-sized")?.recipe?.size).toBe("large");
+    expect(after.atlasNodes.find((node) => node.id === "atlas-sized")?.arrival).toEqual({
+      x: 7,
+      y: 8.5,
+      width: 5,
+      height: 4,
+      rotation: 0,
+    });
     expect(after.atlasLinks).toHaveLength(1);
     // ...and the suspended scenes ride the ENVELOPE half, exactly once.
     expect(file.snapshot.sceneStates).toBeUndefined();
