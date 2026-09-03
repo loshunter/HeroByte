@@ -653,6 +653,37 @@ describe("scene travel contracts", () => {
     expect(state.tokens.find((token) => token.id === "gob-t")).toMatchObject({ x: 8, y: 9 });
   });
 
+  it("a WARP from limbo drops the limbo table's staging zone — the party lands at the center, not in a zone drawn for a map that was never a scene", () => {
+    setupTwoNodes();
+    seedEntities();
+    // A 1×1 zone: with the leak the pc would land within half a cell of (12,14).
+    route({
+      t: "set-player-staging-zone",
+      zone: { x: 12, y: 14, width: 1, height: 1, rotation: 0 },
+    });
+    expect(roomService.getState().compiledScene).toBeUndefined();
+
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const state = roomService.getState();
+    expect(state.playerStagingZone).toBeUndefined();
+    expect(state.tokens.find((token) => token.id === "pc-t")).toMatchObject({ x: 19, y: 19 });
+  });
+
+  it("a set-live from the same limbo keeps that zone exactly in place — the drop is the WARP's, not the row's", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({
+      t: "set-player-staging-zone",
+      zone: { x: 12, y: 14, width: 1, height: 1, rotation: 0 },
+    });
+
+    route({ t: "map-studio-set-live", documentId: "doc-b" });
+    const state = roomService.getState();
+    expect(state.compiledScene?.sourceDocumentId).toBe("doc-b");
+    expect(state.playerStagingZone).toEqual({ x: 12, y: 14, width: 1, height: 1, rotation: 0 });
+    expect(state.tokens.find((token) => token.id === "pc-t")).toMatchObject({ x: 5, y: 5 });
+  });
+
   it("traveling to the node of the ALREADY-LIVE document still discovers it — the adopt-my-live-map flow", async () => {
     route({ t: "map-studio-create", document: { id: "live-doc", name: "Live" } });
     route({ t: "map-studio-set-live", documentId: "live-doc" });

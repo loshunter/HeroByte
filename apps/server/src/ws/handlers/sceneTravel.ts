@@ -93,6 +93,11 @@ export function travelToDocument(
     compileOnto(state, document, now, undefined);
     state.fogEnabled = options.firstVisitFogEnabled;
     if (options.warpTravelers) {
+      // The limbo table's staging zone was drawn for a map that was never a
+      // scene; a WARP must not land the party in it on the destination. (A
+      // set-live rebind never warps, so the row's "every collection exactly
+      // in place" promise still holds for the rebind.)
+      state.playerStagingZone = undefined;
       placeArrivals(state, travelers, document, options.rng);
     }
     return;
