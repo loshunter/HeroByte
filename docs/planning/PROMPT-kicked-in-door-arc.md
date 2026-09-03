@@ -141,7 +141,9 @@ wilderness recipe, Cartridge Codes), the method is the same; only §1 changes.
    tap; the aim freezes the phone camera and a pinch cancels it; the phone World Map shows its
    empty state on reconnect — and 1 refuted (double activation of a sprite tap: Konva's own
    shape-level `preventDefault` suppresses the compat pair). They are K0 of
-   `kicked-in-door-arc-plan.md`.
+   `kicked-in-door-arc-plan.md` — **all four FIXED on `dev` 2026-09-02** (`659c65f0`, `1cf4a424`,
+   `1be8913d`, `52d83e50`; the plan's K0 banner records the L3 deviation and the two persistence
+   bugs the gates exposed along the way, `204e7e37` and `58cf6ad5`).
 4. Carried from the previous handoff, still open: **Q4** (an in-app "use the desktop layout"
    switch for tablet DMs — an owner design question); **a11y stragglers** (the Initiative
    Modifier dial is a bare div; `GridControl`'s two sliders lack aria-labels); **critic #10**

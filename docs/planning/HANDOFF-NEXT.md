@@ -7,6 +7,15 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-02, late).** The Kicked-In Door arc has STARTED on `dev`: plan Rev 2 (`285b8a54`,
+recon-grounded and adversarially reviewed) is the spec, and **K0 is SHIPPED** — the Atlas review's
+missing mobile lens's four production fixes (`659c65f0`, `1cf4a424`, `1be8913d`, `52d83e50`) plus two
+persistence bugs the gates exposed (`204e7e37`, `58cf6ad5`), each behind the full ladder and a
+sabotage pass, with a CDP-driven mobile spec as the browser proof. NOT pushed, NOT merged. The plan's K0
+banner records the one deviation (L3 pans under the aim, guarded, not pinch-only). Next: K1, the
+`atlas-kick` server composition. Baselines: shared 424, server 2270, client 5500 (+4 skipped), e2e
+170/3/0 of 173.
+
 **Current state (2026-08-18).** The **loose-ends batch is IN PRODUCTION.** Ten commits,
 `c24845d9..a7bfb961`, each behind the §2 gate and each sabotage-proven before commit, merged to
 `main` as `a78dd0e7` and deployed to Render + Cloudflare on 2026-08-18. It closes five of the six
@@ -990,7 +999,7 @@ turns a cone into something else.
      ref and the new event-ref default resolve to the same SHA. The merge-to-main run (**#814**,
      `6a605af4`) discriminates, and its `e2e-full-suite` checkout logs
      `rev-parse refs/remotes/origin/main -> 6a605af4` — main, not dev's `720443ab`.
-   - ~~**The Atlas arc (VISION Pillar 1 / M4 phase 2)**~~ — **COMPLETE on `dev` 2026-09-01** (seven slices A1–A7, each gated + sabotage-proven + browser-verified on both platforms; see §0's dev row and the plan's SHIPPED banners). What it opens next, per the plan's §7: building-interior recipes cashing town promises, the one-keystroke Kicked-In Door (its Atlas targets now exist), reroll-preserving-pins (`pinned` — provenance already recorded), player-initiated travel/knocking, arrival at the link anchor, art-track link sprites, a spatial world-map view. **The next agent's handoff prompt is [PROMPT-kicked-in-door-arc.md](./PROMPT-kicked-in-door-arc.md)** — the Kicked-In Door + building interiors is the recommended arc (the owner may redirect), and its §7 carries the owner's standing instructions for prompting Claude Fable 5.1. **Update 2026-09-02:** the plan is written — [kicked-in-door-arc-plan.md](./kicked-in-door-arc-plan.md) Rev 1, recon-grounded (six pinned-model readers; every quoted anchor re-verified at HEAD), adversarially REVIEWED before execution — Rev 2 records the 16 findings (8 confirmed by both refuters, 4 contested, 4 refuted) and their dispositions in its §9; four lens-sized workflows, 36 agents, every lens finished with `agents_error: 0` after the session-limit deaths were RESUMED. The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
+   - ~~**The Atlas arc (VISION Pillar 1 / M4 phase 2)**~~ — **COMPLETE on `dev` 2026-09-01** (seven slices A1–A7, each gated + sabotage-proven + browser-verified on both platforms; see §0's dev row and the plan's SHIPPED banners). What it opens next, per the plan's §7: building-interior recipes cashing town promises, the one-keystroke Kicked-In Door (its Atlas targets now exist), reroll-preserving-pins (`pinned` — provenance already recorded), player-initiated travel/knocking, arrival at the link anchor, art-track link sprites, a spatial world-map view. **The next agent's handoff prompt is [PROMPT-kicked-in-door-arc.md](./PROMPT-kicked-in-door-arc.md)** — the Kicked-In Door + building interiors is the recommended arc (the owner may redirect), and its §7 carries the owner's standing instructions for prompting Claude Fable 5.1. **Update 2026-09-02:** the plan is written — [kicked-in-door-arc-plan.md](./kicked-in-door-arc-plan.md) Rev 1, recon-grounded (six pinned-model readers; every quoted anchor re-verified at HEAD), adversarially REVIEWED before execution — Rev 2 records the 16 findings (8 confirmed by both refuters, 4 contested, 4 refuted) and their dispositions in its §9; four lens-sized workflows, 36 agents, every lens finished with `agents_error: 0` after the session-limit deaths were RESUMED. **K0 SHIPPED** (six commits, see the update atop §0); **K1 is next.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 **Note (2026-08-26):** this section has now gone stale twice in one week — both times because the

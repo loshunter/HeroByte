@@ -716,6 +716,7 @@ conversions the arc uses, both shared and already imported server-side:
 | `apps/server/src/domains/generation/dungeonGeometry.ts`                                                       |   338 |            10 | K4 extracts `geometryLattice.ts` (the px/edge helpers, ~36 lines) BEFORE its signature change                         |
 | `apps/client/src/features/help/helpTopics.ts`                                                                 |   334 |            14 | K2 adds ONE ≤6-line entry; if `prettier` lands it ≥345, split the Atlas topic's entries to `helpTopicsAtlas.ts` first |
 | `apps/server/src/domains/room/snapshot/recipientFilter.ts`                                                    |   333 |            15 | untouched                                                                                                             |
+| `apps/server/src/domains/room/persistence/StatePersistence.ts`                                                |   345 |             3 | K0's two bonus fixes took it here — untouched by K1–K6; extract before the next line                                  |
 | `apps/server/src/domains/generation/dungeonLayout.ts`                                                         |   324 |            24 | untouched by K1 (the `arrival` comes from `dungeonRecipe.ts`, 77); K4 must not grow it                                |
 | `apps/server/src/middleware/validation.ts`                                                                    |   321 |            27 | +1 row (K1); watch it                                                                                                 |
 | `apps/client/src/hooks/useKeyboardShortcuts.ts`                                                               |   317 |            31 | untouched — the kick is its own hook                                                                                  |
@@ -874,6 +875,38 @@ rows. `mobile-atlas.spec.ts` gains the sprite-tap leg.
 to a one-shot aim — don't remove them there; `useStageEventRouter.ts` lives in `hooks/`, not
 `features/map/`. **Escalate if:** the pinch path needs `useTouchGestureRouter` to learn a new
 tool kind — that is a design change; report it.
+
+> **K0 SHIPPED** (2026-09-02, four fix commits + two bonus fixes, each behind the full ladder
+> and a sabotage pass — the ladder moved shared 424 → 424, server 2262 → 2270, client 5488 →
+> 5500 (+4 skipped), e2e 169 → 170/3/0 of 173 with the new spec; no flakes). The browser proof
+> is `apps/e2e/mobile/mobile-atlas-aim.spec.ts` under Chromium touch emulation (CDP): a 120 px
+> drag under the aim places nothing and moves the camera, a pinch places nothing and zooms, the
+> banner survives both, a tap then places; an aimed tap on a door places instead of swinging; a
+> tap on a badge with Draw armed opens no travel confirm. **L1 `659c65f0`** — the badge's hit
+> circle listens only when NO tool owns the press: `isSceneInputArmed`, the router's seven-term
+> predicate, exported ONCE and fed as a REQUIRED prop (dropping the wiring is a TS2741).
+> **L2 `1cf4a424`** — doors yield to the link aim (`linkAimArmed`, required). **L3
+> `1be8913d`** — a finger pans and pinches under the aim and only a tap places. **Deviation from
+> Rev 2, recorded:** the plan said pinch-only because Konva's tap has no slop, but a pinch ENDS
+> in a Stage tap too (ListenClick is cleared only after the first finger-lift fires it), so the
+> fix had to be a guard either way — `useAimTouchGuard`, a touchstart/move memory the capture
+> consumes once — and with the lift guarded, one-finger touch pan is safe and restores the
+> DM's ability to bring the target into view (`touchShouldPan = shouldPan || linkAimMode`, touch
+> path only; the mouse path keeps `!linkAimMode` because a mouse drag ends in a click). The
+> second-finger cancel and its `onLinkAimCancel`/`cancelLinkAim` chain (six files) are deleted;
+> a phone DM abandons an aim by picking another tool. **L4 `52d83e50`** — the SHARED
+> WorldMapPanel says "Reconnecting…" on a null snapshot (both platforms; the surface stays
+> mounted). **Two bugs the gates exposed, fixed in their own commits (HANDOFF §8):**
+> `204e7e37` — the state-file rename retries Windows-transient EPERM/EBUSY (`atomicRename.ts`;
+> a contract test asserting a clean error log had reddened a full ladder on it), and
+> `58cf6ad5` — the tmp-file counter is PROCESS-wide (per-instance counters restarted at 1, so
+> two instances on one file renamed the SAME tmp path and the loser logged ENOENT: 234 "Failed to
+> save state" lines per ladder → 0). Traps: a Bash heredoc past ~150 lines is cut off by the tool
+> and bash dies at parse time (no edit runs — use the Write tool + short scripts); TRAVEL on the
+> phone leaves the DM screen up and it COVERS the dock (close it through its own ✕; an
+> `openAtlasChip` helper must skip the dock when the dialog is already visible); the placer's
+> target select starts on "Pick a node…" with AIM disabled; `StatePersistence.ts` is at 345 of
+> 348 — the next line there needs an extraction.
 
 ---
 
