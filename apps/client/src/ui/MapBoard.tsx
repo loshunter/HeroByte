@@ -779,6 +779,9 @@ export default function MapBoard({
                 mapEditMode &&
                 (mapEditActiveSubTool === "select" || mapEditActiveSubTool === "eyedropper")
               }
+              // The aim's capture is the Stage's click; a listening door would
+              // swing for the whole table instead (the mobile lens's L2).
+              linkAimArmed={linkAimMode}
             />
           )}
           {/* Atlas travel sprites (A6): per-recipient filtered server-side;
