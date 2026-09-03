@@ -80,11 +80,13 @@ export function handleAtlasKick(
     return NO_OP;
   }
 
-  // 1. ORIGIN — the scene on the table first, the binding second: they part
-  // after an unbind or a publish, and the party stands on the SCENE. Nothing
-  // compiled and nothing bound is the true limbo: there is no document to
-  // suspend, so there is nothing to kick a door out of.
-  const originDocumentId = state.compiledScene?.sourceDocumentId ?? state.liveMapDocumentId;
+  // 1. ORIGIN — the SCENE on the table, derived exactly the way the
+  // projection derives "you are here" (§4.5): the compiled scene, never the
+  // binding. They part after an unbind or a publish, and the party stands on
+  // the scene. Nothing compiled is the true limbo — a binding alone has no
+  // scene to capture, so the origin's tokens, drawings and raster would ride
+  // into the dungeon uncaptured and be lost on the way back (K1's review).
+  const originDocumentId = state.compiledScene?.sourceDocumentId;
   if (!originDocumentId) {
     return deps.sendError(
       senderUid,

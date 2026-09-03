@@ -416,6 +416,27 @@ describe("atlas kick contracts", () => {
     expect(errors[0]?.reason).toMatch(/live map/i);
   });
 
+  it("a BINDING with nothing compiled is limbo too — the kick refuses, and the table's stayers are not swept away", async () => {
+    // Reachable through the load paths (a state file with a binding and no
+    // compiled scene); the projection calls the same state "nothing on the
+    // table", and the kick must agree with it.
+    route({ t: "map-studio-create", document: { id: "doc-a", name: "Doc A" } });
+    state().liveMapDocumentId = "doc-a";
+    state().compiledScene = undefined;
+    state().tokens.push({ id: "stayer", owner: DM, x: 3, y: 3, color: "#f00" } as never);
+    state().drawings.push({ id: "d-1", type: "freehand", points: [], color: "#fff" } as never);
+    const before = fingerprint();
+    await flush();
+    dmWs.send.mockClear();
+
+    route(kickMessage());
+    await flush();
+    expect(fingerprint()).toBe(before);
+    const errors = messagesOf(dmWs, "atlas-error") as { code?: string; reason?: string }[];
+    expect(errors[0]).toMatchObject({ code: "rejected", nodeId: "kick-child" });
+    expect(errors[0]?.reason).toMatch(/live map/i);
+  });
+
   it("the UNBOUND interlude: after an unbind the origin is the SCENE's node, and its scene is captured under its own id", () => {
     bindAdoptedOrigin();
     seedParty();
