@@ -995,6 +995,29 @@ describe("StatePersistence - Characterization Tests", () => {
       consoleSpy.mockRestore();
     });
 
+    it("mints a tmp name unique across INSTANCES in one process, so two saves never share one", async () => {
+      // A per-instance counter restarts at 1 under one pid, and instances on
+      // one file are normal (every test mints a RoomService; the registry
+      // mints one per room): two of them wrote the SAME tmp path, the first
+      // rename moved it, the second logged ENOENT — 234 times in one ladder.
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const writeFileSpy = fsPromises.writeFile as ReturnType<typeof vi.fn>;
+      const a = new RoomService({ stateFile: PROD_STATE_FILE });
+      const b = new RoomService({ stateFile: PROD_STATE_FILE });
+      a.getState().fogEnabled = true;
+      b.getState().fogEnabled = false;
+
+      a.saveState();
+      b.saveState();
+      await a.awaitPendingWrites();
+      await b.awaitPendingWrites();
+
+      const tmpPaths = writeFileSpy.mock.calls.slice(-2).map(([target]) => String(target));
+      expect(new Set(tmpPaths).size).toBe(2);
+      expect(consoleSpy).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
     it("persists combat state across a RESTART, not just the session export path", async () => {
       // D5: save used to omit combatActive/currentTurnCharacterId as
       // "session-specific" while the explicit session export/import kept them —

@@ -41,11 +41,16 @@ const DEFAULT_STATE_FILE = resolveServerPath("herobyte-state.json");
  * - Data normalization during load
  * - Selective field persistence (excludes ephemeral data)
  */
+/**
+ * Tmp-file counter, PROCESS-wide: per instance it restarts at 1, and two
+ * instances on one file (every test mints a RoomService; the registry mints
+ * one per room) then rename the SAME tmp path — the second finds nothing.
+ */
+let nextWriteId = 0;
+
 export class StatePersistence {
   private readonly stateFile: string;
   private writeQueue: Promise<void> = Promise.resolve();
-  /** Makes each write's tmp file unique alongside the pid (see saveToDisk). */
-  private writeCounter = 0;
 
   /**
    * Creates a new StatePersistence instance.
@@ -293,9 +298,9 @@ export class StatePersistence {
     // Each write is tmp+rename: a crash mid-write truncates only the tmp file,
     // never the state file itself, so the last completed save always survives.
     //
-    // The tmp path is unique per PROCESS and per write, not the fixed
-    // `<file>.tmp` this originally used. The write queue only serializes
-    // within one process, and more than one process legitimately targets the
+    // The tmp path is unique per PROCESS and per write (see nextWriteId), not
+    // the fixed `<file>.tmp` this originally used. The write queue only
+    // serializes within one instance, and more than one process targets the
     // same state file here: the dev server, the e2e server (which also
     // defaults to the package root), and parallel vitest workers. With a
     // shared tmp name two of them interleave their bytes into one file and
@@ -305,7 +310,7 @@ export class StatePersistence {
     // atomic — but Windows refuses it with a transient EPERM while any other
     // handle holds the destination (a sibling's rename, a scanner), so the
     // shared step retries briefly before it is allowed to count as a failure.
-    const tmpPath = `${this.stateFile}.${process.pid}.${(this.writeCounter += 1)}.tmp`;
+    const tmpPath = `${this.stateFile}.${process.pid}.${(nextWriteId += 1)}.tmp`;
     this.writeQueue = this.writeQueue
       .catch(() => {
         // Swallow errors from previous writes so the queue can continue.
