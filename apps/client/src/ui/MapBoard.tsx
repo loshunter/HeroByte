@@ -32,7 +32,7 @@ import { useAlignmentVisualization } from "../hooks/useAlignmentVisualization.js
 import { useObjectTransformHandlers } from "../hooks/useObjectTransformHandlers.js";
 import { useCameraControl } from "../hooks/useCameraControl.js";
 import { useTransformGizmoIntegration } from "../hooks/useTransformGizmoIntegration.js";
-import { useStageEventRouter } from "../hooks/useStageEventRouter.js";
+import { isSceneInputArmed, useStageEventRouter } from "../hooks/useStageEventRouter.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -799,6 +799,18 @@ export default function MapBoard({
               mapTransform={mapObject?.transform}
               dmView={dmView}
               onTravel={dmView ? handleLinkTravel : undefined}
+              // The badge yields whenever ANY tool owns the press (the same
+              // seven-term predicate that gates the camera) — L1 of the
+              // mobile lens: a brush tap over it painted AND prompted travel.
+              sceneInputArmed={isSceneInputArmed({
+                alignmentMode,
+                linkAimMode,
+                pointerMode,
+                measureMode,
+                drawMode,
+                selectMode,
+                mapEditMode,
+              })}
             />
           )}
           {/* DM-only walls overlay: shown while authoring, or pinned to persist. */}
