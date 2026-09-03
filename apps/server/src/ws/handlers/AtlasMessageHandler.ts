@@ -135,10 +135,12 @@ export class AtlasMessageHandler {
       return this.error(uid, "not-found", "The parent node no longer exists.", node.parentId);
     }
     const timestamp = this.now();
+    // The validator trims for its LENGTH check and run() discards the parsed
+    // value, so the raw name reaches here — store it the way it was checked.
     state.atlasNodes.push({
       id: node.id,
       kind: node.kind,
-      name: node.name,
+      name: node.name.trim(),
       parentId: node.parentId,
       discovered: false,
       createdAt: timestamp,
@@ -158,8 +160,9 @@ export class AtlasMessageHandler {
       return this.error(uid, "not-found", "That atlas node no longer exists.", nodeId);
     }
     let changed = false;
-    if (patch.name !== undefined && patch.name !== node.name) {
-      node.name = patch.name;
+    const nextName = patch.name?.trim();
+    if (nextName !== undefined && nextName !== node.name) {
+      node.name = nextName;
       changed = true;
     }
     if (patch.discovered !== undefined && patch.discovered !== node.discovered) {

@@ -211,6 +211,24 @@ describe("atlas graph contracts", () => {
     }
   });
 
+  it("stores node names TRIMMED — the validator trims for its length check, then run() discards the parsed value", async () => {
+    route({ t: "atlas-create-node", node: { id: "n1", kind: "dungeon", name: "  Cellar  " } }, DM);
+    await flush();
+    expect(nodes().find((entry) => entry.id === "n1")?.name).toBe("Cellar");
+
+    route({ t: "atlas-update-node", nodeId: "n1", patch: { name: " Vault\t" } }, DM);
+    await flush();
+    const node = nodes().find((entry) => entry.id === "n1");
+    expect(node?.name).toBe("Vault");
+
+    // The same name with different padding is the no-op it looks like.
+    const updatedAt = node?.updatedAt;
+    route({ t: "atlas-update-node", nodeId: "n1", patch: { name: "Vault   " } }, DM);
+    await flush();
+    expect(nodes().find((entry) => entry.id === "n1")?.updatedAt).toBe(updatedAt);
+    expect(messagesOf(dmWs, "atlas-error")).toHaveLength(0);
+  });
+
   it("rejects every atlas message from a non-DM without touching state, and never explains why in detail", async () => {
     createNode("n1");
     await flush();
