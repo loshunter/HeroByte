@@ -1060,6 +1060,42 @@ report, do not thread a promise); or `arrival` wants to live anywhere but the no
 the Atlas plan, replay, pre-flight, adoption), privacy lens (`arrival`/`recipe`/frames on the
 attacker's socket) — lens-sized workflows, ≤14 agents each.
 
+> **K1 SHIPPED** (2026-09-03, five commits on `dev`, each behind the full ladder and a sabotage
+> pass). The bug commits first: **(a) `c1c946e4`** provenance records `size` through the shared
+> `recipes.ts` vocabulary (GenerateRequest / RecipeProvenance, `size` added per type; RECIPE_IDS a
+> sub-module value; the five fixtures compiled untouched and a type pin proves the optionality);
+> **(b) `23debe85`** a warp from limbo drops the limbo table's zone; **(c) `3e41af54`** travel
+> compiles the destination FIRST (pure), captures SECOND, installs THIRD; **(e) `e38b6576`** node
+> names stored trimmed; and **the composition `116d6443`** — `atlasKick.ts` (steps 0–7 of §2.2),
+> `atlasCash.ts` (the cash core both doors share), `atlasLink.ts` (`pushLink`, the door core),
+> the recipe registry, `RecipeOutput.arrival` → `AtlasNode.arrival` → the door-independent sticky
+> install in `travelToDocument`, the scene-first `currentAtlasNodeId`, the `recipe: GenerateRequest`
+> wire shape on both atlas doors, and the stale `default:` comment (d). **Tests:** the kick contract
+> suite (`atlasKick.contract.test.ts`, through the real router via the new shared
+> `routerHarness.ts`) covers the happy path on an adopted origin (out-door at the exact centroid,
+> return door on the entrance edge, party inside the zone, one frame per recipient, secrecy by KEY
+> with the DM control), adoption, replay ×3, every pre-flight cap, the registry refusal, true
+> limbo, the unbound interlude, scene-first after a publish, the publish-burn row, the moved zone,
+> zero travelers, the raster transform, and the non-DM gate; plus registry, entrance-anchor,
+> projection-by-role and validator units, the sticky-install travel rows, and the golden narrowed
+> to `{cells, elements}` with the arrival pinned as a literal. **Sabotage: 29/29 red.**
+> **Console harness on the dev table** (browser, DM + player tabs): the kick from an UNBOUND
+> interlude adopted the origin, landed the whole party in the arrival room, fog on, both doors
+> rendered (the return sprite on the room's south edge), the player's world map gained the child
+> with whitelist key sets, and the return-door click resumed the origin at its center. **Traps:**
+> the map-studio store CLONES on read — poison a document through a spy on the service's `get`,
+> never through the object it hands back; `mockRestore()` clears a spy's recorded calls, so read
+> the spy BEFORE a `finally` restores it; a second tab in the same browser pane shares the
+> identity and REPLACES the first socket (4002) — pin it with `?sessionUid=` via `location.assign`
+> (the navigate tool strips queries); a dev table whose compiled scene's document is gone from
+> the map store refuses the kick with "missing from the store" exactly as pre-flight promises.
+> **Flake register:** the zero-height mobile canvas at table join (observed ONCE on K1-a's gate,
+> 8/8 isolated repeats green, ~19 prior full runs clean; a spin-off task carries it), and ONE
+> `page.goto` `ERR_CONNECTION_FAILED` to the vite preview on K1-main's gate (`map-navigation` pan
+> spec, 344 ms, the first such line in ~90 gate logs; 6/6 isolated repeats green; artifacts copied
+> aside). Neither reproduces; both are registered, not fixed.
+> `sceneTravel.ts` is at 326, `AtlasMessageHandler.ts` at 311.
+
 ---
 
 ### K2 🟡 — G: the keystroke, the panel, the arrival (desktop)
