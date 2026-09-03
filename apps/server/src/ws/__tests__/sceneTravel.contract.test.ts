@@ -684,6 +684,56 @@ describe("scene travel contracts", () => {
     expect(state.tokens.find((token) => token.id === "pc-t")).toMatchObject({ x: 5, y: 5 });
   });
 
+  it("a destination that fails to COMPILE leaves the room exactly as it was — compile runs before the capture", async () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "toggle-door", doorId: "door-1" });
+    await flush();
+    // Poison what the store hands back for B (the store clones on read, so
+    // the seam is the service's `get`): the compiler walks `elements`, and a
+    // null there throws inside the compile. Capturing BEFORE that throw
+    // persisted A's scene under its id while A stayed live: a phantom
+    // suspension.
+    const realGet = mapStudioService.get.bind(mapStudioService);
+    const getSpy = vi.spyOn(mapStudioService, "get").mockImplementation((roomId, id) => {
+      const document = realGet(roomId, id);
+      return id === "doc-b" ? { ...document, elements: null as never } : document;
+    });
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    let routedThrowsLogged = 0;
+    try {
+      route({ t: "atlas-travel", nodeId: "nB" });
+    } finally {
+      // Read BEFORE restoring: mockRestore clears the recorded calls.
+      routedThrowsLogged = errorLog.mock.calls.length;
+      errorLog.mockRestore();
+      getSpy.mockRestore();
+    }
+    // The compile DID throw (route() logs every routed throw) — not a vacuous pass.
+    expect(routedThrowsLogged).toBeGreaterThan(0);
+
+    const state = roomService.getState();
+    expect(state.compiledScene?.sourceDocumentId).toBe("doc-a");
+    expect(state.sceneStates["doc-a"]).toBeUndefined();
+    expect(state.liveMapDocumentId).toBe("doc-a");
+    expect(state.compiledScene?.doors.find((door) => door.id === "door-1")?.state).toBe("open");
+    expect(state.tokens.map((token) => token.id).sort()).toEqual(["dm-scenery", "gob-t", "pc-t"]);
+  });
+
+  it("the OUTGOING scene's door runtime is captured from the scene still on the table — install comes after capture", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "toggle-door", doorId: "door-1" });
+
+    route({ t: "atlas-travel", nodeId: "nB" });
+    expect(roomService.getState().sceneStates["doc-a"]?.doorStates["door-1"]).toEqual({
+      state: "open",
+      authored: "closed",
+    });
+  });
+
   it("traveling to the node of the ALREADY-LIVE document still discovers it — the adopt-my-live-map flow", async () => {
     route({ t: "map-studio-create", document: { id: "live-doc", name: "Live" } });
     route({ t: "map-studio-set-live", documentId: "live-doc" });
