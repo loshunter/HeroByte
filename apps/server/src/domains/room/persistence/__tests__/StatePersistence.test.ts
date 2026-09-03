@@ -953,6 +953,48 @@ describe("StatePersistence - Characterization Tests", () => {
       consoleSpy.mockRestore();
     });
 
+    it("rides out a transient Windows EPERM on the rename and still lands the save, silently", async () => {
+      // Two instances (or a scanner) can hold the state file for a moment;
+      // that used to log "Failed to save state" and drop the save — which is
+      // how a contract test asserting a clean error log flaked locally.
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const actualFs = await vi.importActual<typeof import("fs/promises")>("fs/promises");
+      const renameSpy = fsPromises.rename as ReturnType<typeof vi.fn>;
+      const eperm = Object.assign(new Error("EPERM: operation not permitted, rename"), {
+        code: "EPERM",
+      });
+      renameSpy.mockRejectedValueOnce(eperm).mockRejectedValueOnce(eperm);
+
+      roomService.getState().fogEnabled = true;
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8")).fogEnabled).toBe(true);
+
+      renameSpy.mockImplementation(actualFs.rename);
+      consoleSpy.mockRestore();
+    });
+
+    it("still reports a rename that never stops failing — once, after the retries", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const actualFs = await vi.importActual<typeof import("fs/promises")>("fs/promises");
+      const renameSpy = fsPromises.rename as ReturnType<typeof vi.fn>;
+      const eperm = Object.assign(new Error("EPERM: operation not permitted, rename"), {
+        code: "EPERM",
+      });
+      renameSpy.mockRejectedValue(eperm);
+
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("Failed to save state:", eperm);
+
+      renameSpy.mockImplementation(actualFs.rename);
+      consoleSpy.mockRestore();
+    });
+
     it("persists combat state across a RESTART, not just the session export path", async () => {
       // D5: save used to omit combatActive/currentTurnCharacterId as
       // "session-specific" while the explicit session export/import kept them —

@@ -12,6 +12,7 @@
 
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
+import { renameWithRetry } from "./atomicRename.js";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
 import {
   coerceDefaultVisionRadius,
@@ -301,7 +302,9 @@ export class StatePersistence {
     // then rename that torn result over the real state — which is exactly
     // how this was found, via a quarantined herobyte-state.json.corrupt.
     // A unique name makes the rename the only shared step, and rename is
-    // atomic.
+    // atomic — but Windows refuses it with a transient EPERM while any other
+    // handle holds the destination (a sibling's rename, a scanner), so the
+    // shared step retries briefly before it is allowed to count as a failure.
     const tmpPath = `${this.stateFile}.${process.pid}.${(this.writeCounter += 1)}.tmp`;
     this.writeQueue = this.writeQueue
       .catch(() => {
@@ -309,7 +312,7 @@ export class StatePersistence {
       })
       .then(async () => {
         await writeFile(tmpPath, serialized);
-        await rename(tmpPath, this.stateFile);
+        await renameWithRetry(tmpPath, this.stateFile, { rename });
       })
       .catch((err) => {
         console.error("Failed to save state:", err);
