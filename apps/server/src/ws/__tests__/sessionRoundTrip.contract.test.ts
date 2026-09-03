@@ -310,6 +310,23 @@ describe("session round trip", () => {
           createdAt: 3,
           updatedAt: 4,
         },
+        // Provenance WITH a size (the shown node's literal above deliberately
+        // has none — that it still compiles is the proof size is optional).
+        {
+          id: "atlas-sized",
+          kind: "dungeon",
+          name: "The Sized Warren",
+          discovered: false,
+          recipe: {
+            recipeId: "dungeon",
+            seed: 515151,
+            theme: "wood",
+            density: "low",
+            size: "large",
+          },
+          createdAt: 5,
+          updatedAt: 6,
+        },
       ],
       atlasLinks: [
         {
@@ -391,8 +408,14 @@ describe("session round trip", () => {
     expect(after.mapTerrain).toBeDefined();
     expect(after.liveMapDocumentId).toBe("live");
     // The graph rides the SNAPSHOT half (DM view, provenance included)...
-    expect(after.atlasNodes.map((node) => node.id).sort()).toEqual(["atlas-hidden", "atlas-shown"]);
+    expect(after.atlasNodes.map((node) => node.id).sort()).toEqual([
+      "atlas-hidden",
+      "atlas-shown",
+      "atlas-sized",
+    ]);
     expect(after.atlasNodes.find((node) => node.id === "atlas-shown")?.recipe?.seed).toBe(424242);
+    // Nested provenance fields are invisible to the top-level sweep — pin them.
+    expect(after.atlasNodes.find((node) => node.id === "atlas-sized")?.recipe?.size).toBe("large");
     expect(after.atlasLinks).toHaveLength(1);
     // ...and the suspended scenes ride the ENVELOPE half, exactly once.
     expect(file.snapshot.sceneStates).toBeUndefined();

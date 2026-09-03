@@ -43,6 +43,18 @@ export type {
   SceneState,
 } from "./atlas.js";
 
+// The recipes' shared vocabulary — RECIPE_IDS is a runtime value, so the same
+// sub-module rule applies (recipes.ts).
+export { RECIPE_IDS } from "./recipes.js";
+export type {
+  DungeonRecipeParams,
+  GenerateRequest,
+  GenerateSize,
+  RecipeId,
+  RecipeParams,
+  RecipeProvenance,
+} from "./recipes.js";
+
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 

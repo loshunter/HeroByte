@@ -13,6 +13,7 @@
 import type { Drawing, PlayerStagingZone, Prop, SceneObject, Token } from "./index.js";
 import type { CompiledDoorState } from "./sceneCompiler.js";
 import type { MapDoorState } from "./mapStudioTypes.js";
+import type { RecipeProvenance } from "./recipes.js";
 
 export type AtlasNodeKind =
   | "world"
@@ -42,14 +43,10 @@ export interface AtlasNode {
   discovered: boolean;
   /**
    * Provenance, recorded when a promise is cashed by a recipe. DM-only on the
-   * wire: a seed plus a reimplemented recipe is a floor-plan oracle.
+   * wire: a seed plus a reimplemented recipe is a floor-plan oracle. Its
+   * `size` is optional because nodes cashed before it was recorded lack it.
    */
-  recipe?: {
-    recipeId: "dungeon";
-    seed: number;
-    theme: "stone" | "wood";
-    density: "low" | "medium" | "high";
-  };
+  recipe?: RecipeProvenance;
   createdAt: number;
   updatedAt: number;
 }

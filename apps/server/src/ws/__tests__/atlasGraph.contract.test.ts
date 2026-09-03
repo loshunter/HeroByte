@@ -487,6 +487,7 @@ describe("atlas graph contracts", () => {
       seed: SENTINEL_SEED,
       theme: "stone",
       density: "medium",
+      size: "small", // the preset that sized the document — provenance dropped it once
     });
     const document = mapStudioService.get("default", node!.mapDocumentId!);
     expect({ width: document.width, height: document.height }).toEqual({

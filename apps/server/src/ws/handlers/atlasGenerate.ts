@@ -179,6 +179,7 @@ export function handleAtlasGenerateNode(
     seed: message.seed,
     theme: message.params.theme,
     density: message.params.density,
+    size: message.params.size,
   };
   node.updatedAt = timestamp;
   deps.broadcastToDMs(roomId, {
