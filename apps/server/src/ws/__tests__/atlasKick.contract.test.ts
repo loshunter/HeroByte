@@ -291,6 +291,15 @@ describe("atlas kick contracts", () => {
     expect(state().compiledScene?.sourceDocumentId).toBe(child()?.mapDocumentId);
   });
 
+  it("an adopted origin's name is trimmed and bounded like every other node name — it is minted discovered", () => {
+    bindDocument("doc-a", `  ${"Long ".repeat(30)}  `);
+    route(kickMessage());
+    const origin = nodes().find((node) => node.id === "kick-origin")!;
+    expect(origin.name.length).toBeLessThanOrEqual(64);
+    expect(origin.name).toBe(origin.name.trim());
+    expect(origin.name.startsWith("Long")).toBe(true);
+  });
+
   it("REPLAY: the same message ×3 lands once — one document, one adopted origin, two links, one travel, NO_OP on 2 and 3", async () => {
     bindDocument();
     seedParty();

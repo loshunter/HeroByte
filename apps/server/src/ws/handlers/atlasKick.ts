@@ -170,7 +170,7 @@ export function handleAtlasKick(
     state.atlasNodes.push({
       id: message.originNodeId,
       kind: "region",
-      name: originDocument.name,
+      name: adoptedName(originDocument.name),
       mapDocumentId: originDocumentId,
       discovered: true,
       createdAt: now,
@@ -213,6 +213,14 @@ export function handleAtlasKick(
     deps.sendError,
   );
   return MUTATED;
+}
+
+/** A node name bound: 64 chars, trimmed — the validator's rule, applied here
+ * to a name that never crossed the validator (a document name can be far
+ * longer, and the adopted node is minted discovered, so players see it). */
+export const ADOPTED_NAME_MAX = 64;
+export function adoptedName(documentName: string): string {
+  return documentName.trim().slice(0, ADOPTED_NAME_MAX).trim() || "Origin";
 }
 
 /**
