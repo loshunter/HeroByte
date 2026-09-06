@@ -11,7 +11,10 @@ production. Where something is a judgement call rather than a fact, it says so.
 its four bug commits (`c1c946e4` provenance size + the shared recipes vocabulary, `23debe85` the
 limbo-zone leak, `3e41af54` compile-before-capture, `e38b6576` trimmed names), each behind the full
 ladder and a sabotage pass (29/29 on the composition), with the console harness run in the browser
-on the dev table. NOT pushed, NOT merged. Next: K2 (G, the panel, the arrival toasts — desktop),
+on the dev table. K1's senior review (two lens-sized workflows, 8 agents, `agents_error: 0`): a
+confirmed guard bug and a contested origin gap FIXED (`4117c195`, `db88f49d`), the adopted name bounded
+(`01338134`), the privacy finding refuted as settled design — plan §9.1. NOT pushed, NOT merged.
+Next: K2 (G, the panel, the arrival toasts — desktop),
 whose drafts are staged. The plan's K1 banner carries the traps and the flake register.
 
 **Update (2026-09-02, late).** The Kicked-In Door arc has STARTED on `dev`: plan Rev 2 (`285b8a54`,

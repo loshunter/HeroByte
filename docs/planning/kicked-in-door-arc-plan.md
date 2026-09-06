@@ -489,9 +489,10 @@ handleAtlasKick(deps, state, uid, roomId, message): RouteHandlerResult
   0. REPLAY: a node with message.nodeId exists → (re-broadcast its document to DMs, the
      generate idiom) → NO_OP. The first attempt is atomic (below), so "node exists" means
      "the whole kick landed" — a replay never re-travels.
-  1. ORIGIN: originDocId = state.compiledScene?.sourceDocumentId ?? state.liveMapDocumentId.
-     No originDocId at all (true limbo: nothing compiled) → atlas-error "Start a live map first"
-     — nothing can be suspended without a document (§2.3 #10).
+  1. ORIGIN: originDocId = state.compiledScene?.sourceDocumentId — the SCENE only, derived the
+     way the projection derives "you are here" (§4.5); no binding fallback (K1's review, SM2).
+     No originDocId (nothing compiled — a binding alone is limbo too) → atlas-error "Start a
+     live map first" — nothing can be suspended without a compiled scene (§2.3 #10).
      origin = atlasNodes.find(n => n.mapDocumentId === originDocId) — when undefined the origin is
      ADOPTED in this same block (step 5): the document the party stands on becomes a node.
   2. PRE-FLIGHT (state untouched on failure; constant reasons; atlas-error carries nodeId):
@@ -756,8 +757,8 @@ conversions the arc uses, both shared and already imported server-side:
 - **4.4 Replay-idempotent on client-minted ids.** `nodeId` exists → NO_OP (+ document
   re-broadcast). The same commandId three times = one dungeon, two links, one travel. A ROLL after
   a timeout reuses the same ids for the same reason.
-- **4.5 The origin is the SCENE's node** — `compiledScene.sourceDocumentId` first,
-  `liveMapDocumentId` second — adopted when the document has none, refused when there is no
+- **4.5 The origin is the SCENE's node** — `compiledScene.sourceDocumentId` only; no
+  binding fallback (K1's review corrected the formula) — adopted when the document has none, refused when there is no
   document — and `projectAtlasFor` derives `currentAtlasNodeId` the same way. The contract
   suite's orphan-row block (`sceneTravel.contract.test.ts:524`) is extended, never bypassed: a
   kick during the unbound interlude parents under the scene's node and pins its door on the
@@ -1471,6 +1472,15 @@ cuts in; a completeness critic last.
   adopted origin is a `region` forever until this exists.
 - **The one-way alternative to adoption** — recorded for the owner: mint a root child, pin no
   doors, say so in the panel.
+- **A phantom suspension record after publish-then-rebind** (K1's review) — the re-attach row
+  leaves `sceneStates[doc]` un-consumed when a suspended document is published onto the table
+  and then rebound; the record rides saves and exports until the next real departure overwrites
+  it. Consuming it on re-attach would lose that scene's stayers (the record is their only copy),
+  so it stays; the real fix is publish going through travel.
+- **The kick panel previews the adoption name** (K1's privacy lens, PR1 — UX, not privacy) —
+  when the table's map has no node, the panel should show "This table becomes: <document name>",
+  editable, and the kick message would carry an `originName` override; today the adopted node is
+  named after its document, as §1.1 says.
 - **An aimed kick** — G, then click where the door goes; the outbound anchor comes from the aim
   instead of the party. Rides `useAtlasLinkAim`'s one-shot capture; must still pin the link
   BEFORE the travel (the scene-change disarm kills an armed aim the instant travel lands).
@@ -1637,3 +1647,60 @@ and whether 4×3 rooms partition every legal footprint for all seeds); the Cartr
 not exist yet; the KickPanel's z-order was not measured; the four layout fixtures were not
 typechecked against the optional prop; landscape behaviour of the kick screen and chip. Each is
 a slice's Done-when, not a plan defect.
+
+### 9.1 K1's senior review (2026-09-03) — two lens-sized workflows, 10 agents, `agents_error: 0`
+
+Method as §9: one finder per lens over the plan + the shipped code, ≤4 findings with file:line
+evidence and a failing scenario, two refuters per finding (by code, by a throwaway contract probe
+against the real router — deleted afterwards, `git status` audited clean). A finding is
+CONFIRMED when neither refutes, CONTESTED when one does, REFUTED when both do.
+
+**State-machine lens** (5 agents; 2 findings):
+
+- **SM1 — CONFIRMED (high) → FIXED `4117c195`.** `handleAtlasTravel`'s "already there" guard
+  keyed on the BINDING (`liveMapDocumentId === node.mapDocumentId`) while K1 moved "where the party
+  is" to the SCENE. After a `map-studio-publish` of another map (binding A, scene B), a travel back
+  to A short-circuited to a silent no-op — forever — and the re-attach row written for exactly
+  that divergence never ran. The same guard shape in `bindLiveDocument` no-op'd a rebind of the
+  bound document. Both guards now require the binding AND the scene to agree; two travel contract
+  rows pin the return trip and the rebind after a publish. Sabotaged both guards.
+- **SM2 — CONTESTED (medium) → FIXED `db88f49d`.** The kick's origin fell back to the binding
+  (`compiledScene?.sourceDocumentId ?? liveMapDocumentId`), so a binding with nothing compiled
+  (reachable through the load paths) passed the limbo refusal and the START LIVE MAP row then
+  swept the table's stayers into the dungeon uncaptured. One refuter reproduced it; the other
+  defended the fallback as §2.2's own formula. Decided for the fix on §4.5: the kick must derive
+  the origin exactly as the projection does, and the projection calls that state "nothing on the
+  table". The fallback is gone; a contract row pins the refusal with the state untouched. (§2.2's
+  step-1 formula is corrected below.)
+- Two footnotes the finder ruled non-findings: the re-attach row leaves a scene's record
+  un-consumed after a publish-then-rebind of the same document (a phantom suspension record for
+  the live scene rides saves and exports until the next real departure overwrites it) —
+  **deferred to §7**: the record is the only copy of that scene's stayers, and consuming it on
+  re-attach would lose them, so the phantom is the lesser harm; and the adopted origin's name
+  came straight from the document — untrimmed, unbounded, and minted discovered — **FIXED
+  `01338134`** (trimmed and bounded to the node-name rule, pinned).
+
+**Privacy lens** (3 agents; 1 findings):
+
+- **PR1 — REFUTED 2/2 (medium as filed).** "The kick's adoption publishes the DM's private
+  map-document name to every player." The mechanism is real and one refuter reproduced it
+  byte-for-byte through the router — but it is the settled design: §1.1 ("named after its
+  document, discovered"), §2.2 step 5 and §2.3 #10 say it in so many words, a discovered node's
+  `name` is the pinned player-facing contract (three exact key-set assertions), and K1's own test
+  list required it. Not a leak of a secret class: `mapDocumentId`, `recipe`, `arrival` and the
+  timestamps stay DM-only. **Follow-up in §7 (UX, not privacy):** the kick panel should preview
+  the adoption name when the table's map has no node yet, so the DM sees what players will see
+  before ROLL — and the kick message may then carry an `originName` override.
+- The finder's clean sweep is worth keeping: the whitelist constructor still omits `arrival`,
+  `recipe`, `mapDocumentId` and the timestamps by construction; `sceneStates` serializes to no
+  recipient; both `map-studio-document` frames go to DMs only; `atlas-error` goes to the acting
+  DM only and the family gate throws before any lookup, so a non-DM's nack carries only the
+  constant; the kick's one frame carries the child already discovered; the return door renders
+  without naming an undiscovered target; no HTTP route serves a state or map file; a player
+  cannot pre-plant a staging zone (DM-gated); `installArrival` and the capture both
+  `structuredClone`, so `node.arrival` is never aliased onto the wire. Noted, pre-existing and
+  not this slice's: the whole floor plan of a kicked dungeon (walls, doors, terrain, elements)
+  reaches every player socket — fog is client-side over that geometry, which is why generated
+  maps author no secret doors; the seed's DM-only status protects nothing about the map the
+  party is standing on. And the non-DM test's frame loop is vacuous by design (the gate throws
+  before any frame) — the fingerprint and the error count carry that test.
