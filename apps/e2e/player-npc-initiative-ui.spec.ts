@@ -177,6 +177,15 @@ test.describe("initiative — the modal a player presses", () => {
       .poll(async () => (await myCharacter(page))?.initiative, { timeout: 15_000 })
       .toBe(17);
 
+    // Wait for the LOG, not just the character. The initiative field and the
+    // roll-log entry are two different pieces of the save, and the character
+    // landing first is enough to satisfy the poll above — so reading the log
+    // straight after it is a race the spec loses roughly one run in a hundred
+    // (observed: `Cannot read properties of undefined (reading 'label')`).
+    await expect
+      .poll(async () => (await rolls(page)).length, { timeout: 15_000 })
+      .toBeGreaterThan(before);
+
     const entry = (await rolls(page))[before]!;
     expect(entry.label).toBe(`${character!.name} — initiative`);
     // The marker is the safety, not the number: without it this row is
