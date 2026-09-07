@@ -205,3 +205,35 @@ export async function firstElementScreenPos(page: Page): Promise<Pt | null> {
   });
   return local ? { x: box.x + local.x, y: box.y + local.y } : null;
 }
+
+/**
+ * Every visible interactive control in a surface that is UNDER the 44px touch
+ * floor, with what it measures. Shared by the touch-floor sweep and the
+ * kick spec (K3) — one definition of "undersized".
+ */
+export async function undersizedControls(page: Page, selector: string): Promise<string[]> {
+  return page.evaluate((root) => {
+    const scope = document.querySelector<HTMLElement>(root);
+    if (!scope) return [`missing surface: ${root}`];
+    return [...scope.querySelectorAll<HTMLElement>("button, input, select, textarea")]
+      .filter((control) => {
+        const rect = control.getBoundingClientRect();
+        // A zero box is scrolled out of a scroller or genuinely hidden; the
+        // checkbox family is excluded because its hit area is not its box.
+        // Ranges are SWEPT: the old exclusion said "their own rules cover
+        // them", and for the DM menu's Map Setup sliders no such rule existed
+        // — the one control class neither the floor nor this sweep touched.
+        if (rect.height === 0 || rect.width === 0) return false;
+        const type = (control as HTMLInputElement).type;
+        if (type === "checkbox" || type === "radio") return false;
+        return rect.height < 44 || rect.width < 44;
+      })
+      .map((control) => {
+        const rect = control.getBoundingClientRect();
+        const label = (control.getAttribute("aria-label") ?? control.textContent ?? "?")
+          .trim()
+          .slice(0, 20);
+        return `${control.tagName}:${label} ${Math.round(rect.width)}x${Math.round(rect.height)}`;
+      });
+  }, selector);
+}

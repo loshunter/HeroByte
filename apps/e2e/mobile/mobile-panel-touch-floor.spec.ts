@@ -18,38 +18,10 @@
  */
 import { expect, test, type Page } from "../fixtures";
 import { elevateToDM } from "../helpers";
-import { joinMobileTable } from "./mobile.helpers";
+import { joinMobileTable, undersizedControls } from "./mobile.helpers";
 import { openTouch, touchTap } from "./touch.helpers";
 
 const PHONE = { width: 390, height: 844 };
-
-/** Every visible interactive control in a surface, with what it measures. */
-async function undersizedControls(page: Page, selector: string): Promise<string[]> {
-  return page.evaluate((root) => {
-    const scope = document.querySelector<HTMLElement>(root);
-    if (!scope) return [`missing surface: ${root}`];
-    return [...scope.querySelectorAll<HTMLElement>("button, input, select, textarea")]
-      .filter((control) => {
-        const rect = control.getBoundingClientRect();
-        // A zero box is scrolled out of a scroller or genuinely hidden; the
-        // checkbox family is excluded because its hit area is not its box.
-        // Ranges are SWEPT: the old exclusion said "their own rules cover
-        // them", and for the DM menu's Map Setup sliders no such rule existed
-        // — the one control class neither the floor nor this sweep touched.
-        if (rect.height === 0 || rect.width === 0) return false;
-        const type = (control as HTMLInputElement).type;
-        if (type === "checkbox" || type === "radio") return false;
-        return rect.height < 44 || rect.width < 44;
-      })
-      .map((control) => {
-        const rect = control.getBoundingClientRect();
-        const label = (control.getAttribute("aria-label") ?? control.textContent ?? "?")
-          .trim()
-          .slice(0, 20);
-        return `${control.tagName}:${label} ${Math.round(rect.width)}x${Math.round(rect.height)}`;
-      });
-  }, selector);
-}
 
 test.describe("the panels a phone hosts clear the touch floor", () => {
   test("chat's SEND and its message box are both pressable", async ({ page }) => {
@@ -112,11 +84,40 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     const dialog = page.getByRole("dialog", { name: "DM Menu" });
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
-    for (const tab of ["Map Setup", "NPCs & Monsters", "Props & Objects", "Players", "Session"]) {
+    // "Atlas" joined in K3: the generate panel's dials and the 🚪 button are now swept too.
+    for (const tab of [
+      "Map Setup",
+      "NPCs & Monsters",
+      "Props & Objects",
+      "Players",
+      "Session",
+      "Atlas",
+    ]) {
       await dialog.getByRole("button", { name: tab, exact: true }).click();
+      if (tab === "Atlas") {
+        // The Atlas tab's dials only EXIST once a node does: an empty atlas
+        // shows the create row and nothing else, so sweeping the tab as-is
+        // would measure a panel the DM never uses. Mint a promise and open
+        // its generate panel, which is where the small controls live.
+        await dialog.getByLabel("New node name").fill("Floor Sweep");
+        await dialog.getByRole("button", { name: "+ CREATE NODE" }).click();
+        const generate = dialog.getByRole("button", { name: "🎲 Generate…" });
+        await generate.scrollIntoViewIfNeeded();
+        await generate.click();
+        await expect(dialog.getByTestId("atlas-generate-panel")).toBeVisible();
+      }
       const small = await undersizedControls(page, "[data-mobile-surface='dm']");
       expect(small, `${tab}: controls under 44px — ${small.join(", ")}`).toEqual([]);
     }
+
+    // The promise the Atlas leg minted is table state — clear it, or the next
+    // run of this spec finds a stranger's node in its way.
+    await page.evaluate(() => {
+      const data = window.__HERO_BYTE_E2E__;
+      for (const node of data?.snapshot?.atlasNodes ?? []) {
+        data?.sendMessage?.({ t: "atlas-delete-node", nodeId: node.id });
+      }
+    });
   });
 
   test("the player settings window joins the touch floor", async ({ page }) => {
