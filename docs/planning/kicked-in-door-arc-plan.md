@@ -1178,6 +1178,34 @@ single-subscriber — never register a second handler for `atlas-error`; the pan
 child of the fixed header.
 **Escalate if:** the panel needs data the snapshot + the DM's node list do not carry.
 
+> **K2 SHIPPED** (2026-09-06, three commits on `dev`, each behind the full ladder and a sabotage
+> pass). The two pre-existing hotkey bugs first: **`9fe080b4`** — the placement tools' bare `r`
+> turned the pending stamp while the DM typed an "r" into any field (every other window-level
+> single-key shortcut asks `isEditableTarget`; this one never did); **`35f1eff5`** —
+> `useKeyboardNavigation` rolled its own typing-surface check covering only input and textarea, so
+> Delete inside a `<select>` deleted the selected drawing. Then **`de2c3102`**: `useKickedInDoor`
+> (App-level beside `useAtlasLinkAim`, so the pending kick survives the layout swap), `KickPanel`
+> (the fields of §1.1, Enter rolls, Escape closes), `kickDefaults` (the collision-suffixed name,
+> a crypto int32 seed, the remembered dials), the ONE optional `kick` prop through MainLayout to
+> FloatingPanelsLayout, the DM bag at 45 keys, the Atlas tab's 🚪 button, the help entry, and two
+> small seams the slice needed: `useToast` now RETURNS the id it minted (the sticky
+> "Kicking in the door…" toast has to be dismissable) and `useServerEventHandlers` gained an
+> optional `onAtlasError` beside its existing toast — a ref the hook fills, because that chain is
+> single-subscriber. **Sabotage: 24/24 red.** **Browser proof on the dev table** (a real DM, real
+> keystrokes): G opened the panel with every §1.1 field; Escape closed it; Ctrl+G and a "g" typed
+> into the Atlas tab's name field did nothing; the Atlas tab's 🚪 button opened the same panel;
+> ROLL closed it, held the sticky "🚪 Kicking in the door…" until the arrival, then toasted
+> "🚪 Proof Cellar — kicked in" — an adopted "K2 Origin" region, the child under it with its
+> arrival installed as the staging zone, both doors pinned, fog on. **Traps K2 paid for:** jsdom's
+> `localStorage` in this config is NOT a full `Storage` (no `clear()`) — install a working one per
+> test, the `juiceSettings.test.ts` precedent, which also isolates the suite from what the last
+> test remembered; a DISABLED submit button does not stop a form submit (Enter still fires it), so
+> the handler's own guard is what makes "disabled" real; a sabotage marker must be a string that
+> actually appears in the runner's output — a test-name fragment, not a source comment the
+> reporter truncates (three of K2's 24 read as green until the markers were fixed, and one of
+> those three was a REAL vacuity: nothing pinned that `loadKickSettings` sanitizes what it read,
+> so a tampered store would have poisoned every ROLL).
+
 ---
 
 ### K3 🟡 — The phone: the verb, the screen, the chip
