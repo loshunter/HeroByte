@@ -9,6 +9,7 @@ import type { IncomingMessage, ServerResponse } from "http";
 import { Readable } from "node:stream";
 import type { ReadableStream } from "node:stream/web";
 import { WebSocketServer } from "ws";
+import { WS_MAX_MESSAGE_BYTES } from "@herobyte/shared";
 import { createRoutes } from "./http/routes.js";
 import { Container } from "./container.js";
 import { ConnectionHandler } from "./ws/connectionHandler.js";
@@ -145,12 +146,13 @@ async function bootstrap() {
 
   // Create WebSocket server with origin validation.
   // maxPayload: ws defaults to 100 MiB per message; the application-level
-  // 1 MB check runs only AFTER a frame has been fully buffered, so without
-  // this socket-level cap a client could make the server buffer 100 MiB per
-  // message before any guard saw it. Matches the pipeline's inbound limit.
+  // check runs only AFTER a frame has been fully buffered, so without this
+  // socket-level cap a client could make the server buffer 100 MiB per message
+  // before any guard saw it. One constant now, shared with the pipeline's
+  // inbound limit and with the client that has to predict it.
   const wss = new WebSocketServer({
     server,
-    maxPayload: 1024 * 1024,
+    maxPayload: WS_MAX_MESSAGE_BYTES,
     verifyClient: (info, done) => {
       if (!isOriginAllowed(info.origin)) {
         console.warn(`Rejected WebSocket connection from disallowed origin: ${info.origin}`);

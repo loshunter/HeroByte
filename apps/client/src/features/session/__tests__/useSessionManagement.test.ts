@@ -16,7 +16,7 @@
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { SessionFile } from "@herobyte/shared";
+import { WS_MAX_MESSAGE_BYTES, type SessionFile } from "@herobyte/shared";
 import { useSessionManagement } from "../useSessionManagement";
 import { deliverSessionFile } from "../sessionBridge";
 import { saveSessionFile, loadSession } from "../../../utils/sessionPersistence";
@@ -207,6 +207,60 @@ describe("useSessionManagement — load", () => {
       mapDocuments: file.mapDocuments,
       liveMapDocumentId: "doc-A",
     });
+  });
+
+  it("refuses a file too large for one wire frame, instead of toasting success over a dead socket", async () => {
+    // A load-session frame past the wire limit is dropped by ws at the SOCKET
+    // level: the close arrives with 1009 before any handler runs, so the server
+    // never says no. This hook used to toast "loaded successfully!" over a
+    // table that had not changed at all. A DM with a handful of generated maps
+    // can reach that size — the plan's section 7 has the measurements.
+    const fat = "x".repeat(WS_MAX_MESSAGE_BYTES);
+    const file = sessionFile({
+      snapshot: { gridSize: 50 } as never,
+      mapDocuments: [{ id: "doc-A", name: fat } as never],
+      liveMapDocumentId: "doc-A",
+      assets: [{ hash: "h", dataUrl: "data:image/png;base64,AA==" } as never],
+    });
+    vi.mocked(loadSession).mockResolvedValue(file);
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "huge.json"));
+    });
+
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    // The file carries an asset and `sessionAssets` is NOT mocked here, so a
+    // load that reached the restore would have failed on the real upload and
+    // said something else entirely. Getting the size message back is what
+    // shows the weigh-in happens first, before a doomed load costs uploads.
+    expect(vi.mocked(toast.error)).toHaveBeenCalledTimes(1);
+    const said = vi.mocked(toast.error).mock.calls[0]?.[0] ?? "";
+    expect(said).toContain("too large to load");
+    expect(said).toContain("has NOT been changed");
+  });
+
+  it("sends a file that fits, so the guard above is a ceiling and not a wall", async () => {
+    // Guard the guard: a check that refused everything would pass the test
+    // above while making the feature useless.
+    const file = sessionFile({
+      // Populated, so the load takes the clean path and reports success rather
+      // than the "no characters / no scene objects" warning branch.
+      snapshot: { gridSize: 50, sceneObjects: [{}], characters: [{}] } as never,
+      mapDocuments: [{ id: "doc-A", name: "x".repeat(1024) } as never],
+      liveMapDocumentId: "doc-A",
+    });
+    vi.mocked(loadSession).mockResolvedValue(file);
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "fine.json"));
+    });
+
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(toast.success).toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("warns when a session names a map it does not carry", async () => {

@@ -17,7 +17,13 @@
 import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage, MapDocument, SceneState, ServerMessage } from "@herobyte/shared";
+import {
+  WS_MAX_MESSAGE_BYTES,
+  type ClientMessage,
+  type MapDocument,
+  type SceneState,
+  type ServerMessage,
+} from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
 import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { RoomService } from "../../domains/room/service.js";
@@ -448,6 +454,11 @@ describe("session round trip", () => {
     // measured against scene payloads alone and said nothing about the
     // document a kicked-in door actually mints — which is the biggest thing
     // in the file.
+    //
+    // ONE such document is what this test weighs, and one is all it proves.
+    // It is NOT evidence that a real campaign's export fits: see the
+    // characterization test below, which shows a room well inside every cap
+    // minting a file that cannot be loaded back.
     const fatScene = (documentId: string): SceneState => ({
       mapDocumentId: documentId,
       suspendedAt: 7,
@@ -522,9 +533,21 @@ describe("session round trip", () => {
     });
 
     const file = exportSession();
-    const fileBytes = Buffer.byteLength(JSON.stringify(file), "utf8");
+    // Weigh the FRAME the client actually sends, not the file: `load-session`
+    // must cross the socket in one message, and ws checks the declared frame
+    // length. `useSessionManagement.ts` builds exactly this object.
+    const frameBytes = Buffer.byteLength(
+      JSON.stringify({
+        t: "load-session",
+        snapshot: file.snapshot,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: file.liveMapDocumentId,
+        sceneStates: file.sceneStates,
+      }),
+      "utf8",
+    );
     expect(file.sceneStates).toHaveLength(8);
-    expect(fileBytes).toBeLessThan(1024 * 1024 * 0.9);
+    expect(frameBytes).toBeLessThan(WS_MAX_MESSAGE_BYTES * 0.9);
 
     const restored = bootServer();
     restored.route({
@@ -550,6 +573,58 @@ describe("session round trip", () => {
     expect(restored.mapStudioService.get("default", buildingDocId).elements.length).toBeGreaterThan(
       50,
     );
+  });
+
+  it("CHARACTERIZES A KNOWN GAP: the document COUNT cap does not bound the export's BYTES", () => {
+    // This test asserts the DEFECT, on purpose, and must be inverted the day it
+    // is fixed. `MAX_SESSION_DOCUMENTS` (64) is documented as the mint ceiling
+    // that keeps a DM's own export re-importable — but the gate that actually
+    // refuses a load is a BYTE ceiling, and 1 MiB / 64 means a count cap only
+    // holds if the average document is under 16 KB. A generated building is an
+    // order of magnitude past that, so a room nowhere near any cap writes a
+    // file whose `load-session` frame ws drops at the socket level, with a 1009
+    // close no handler ever sees. Found by the final review's recipe lens and
+    // reproduced twice independently; the plan's section 7 prices the fixes.
+    //
+    // The client now weighs the frame before sending and tells the DM
+    // (`useSessionManagement.ts`), so the failure is visible rather than a
+    // success toast over a dead socket — but the room can still reach this
+    // state, which is what this pins.
+    const generated = 6;
+    for (let i = 0; i < generated; i++) {
+      origin.route({
+        t: "atlas-create-node",
+        node: { id: `n-${i}`, kind: "building", name: `Warehouse ${i}` },
+      });
+      origin.route({
+        t: "atlas-generate-node",
+        nodeId: `n-${i}`,
+        commandId: `gen-${i}`,
+        seed: 1000 + i,
+        recipe: { recipeId: "building", kind: "warehouse", size: "large" },
+      });
+    }
+
+    const documents = origin.mapStudioService.list("default");
+    // Well inside every cap the mint path enforces — that is the whole point.
+    expect(documents.length).toBeLessThan(MAX_SESSION_DOCUMENTS);
+    // Guard the guard: real maps, not empty shells.
+    for (const document of documents.filter((entry) => entry.id !== "live")) {
+      expect(document.elements.length).toBeGreaterThan(50);
+    }
+
+    const file = exportSession();
+    const frameBytes = Buffer.byteLength(
+      JSON.stringify({
+        t: "load-session",
+        snapshot: file.snapshot,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: file.liveMapDocumentId,
+        sceneStates: file.sceneStates,
+      }),
+      "utf8",
+    );
+    expect(frameBytes).toBeGreaterThan(WS_MAX_MESSAGE_BYTES);
   });
 
   it("writes a file the loaders can actually read", () => {
