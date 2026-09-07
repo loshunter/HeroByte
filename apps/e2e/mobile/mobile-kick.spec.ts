@@ -98,8 +98,14 @@ test.describe("mobile — the kicked-in door", () => {
       await player.getByRole("button", { name: /^World$/i }).click();
       const world = player.getByRole("dialog", { name: /World Map/i });
       await expect(world).toBeVisible();
+      // ONE locator, not two. Both the adopted origin and Cellar are discovered
+      // and on the player's map by now, so "Cellar is visible" AND "something
+      // says you are here" would both pass with the marker on the ORIGIN — i.e.
+      // with the player-side projection of `currentAtlasNodeId` broken. This is
+      // the only place the PHONE's player projection is checked; the desktop
+      // journey already binds the two together this way.
       await expect(world.getByText(/Cellar/)).toBeVisible({ timeout: 15_000 });
-      await expect(world.getByText(/you are here/i)).toBeVisible();
+      await expect(world.getByLabel("you are here: Cellar")).toBeVisible();
     } finally {
       await dm
         .evaluate(() => {

@@ -14,11 +14,8 @@ import { useState } from "react";
 import type { GenerateRequest } from "@herobyte/shared";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
 import { RecipeDials } from "./RecipeDials";
+import { freshSeed } from "./kickDefaults";
 import type { AtlasActions } from "./useAtlasActions";
-
-function randomSeed(): number {
-  return Math.floor(Math.random() * 2_147_483_647);
-}
 
 const DEFAULT_RECIPE: GenerateRequest = {
   recipeId: "dungeon",
@@ -35,7 +32,7 @@ interface AtlasGeneratePanelProps {
 
 export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGeneratePanelProps) {
   const [recipe, setRecipe] = useState<GenerateRequest>(DEFAULT_RECIPE);
-  const [seed, setSeed] = useState(randomSeed);
+  const [seed, setSeed] = useState(freshSeed);
 
   return (
     <div
@@ -52,6 +49,10 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
       <input
         aria-label={`Seed for ${nodeName}`}
         data-testid="atlas-generate-seed"
+        // A phone must offer digits for a digits-only field. Recorded by the
+        // Atlas arc's mobile lens and folded into K2 — which then built a NEW
+        // panel and left this one exactly as it was.
+        inputMode="numeric"
         value={seed}
         onChange={(event) => {
           const next = Number.parseInt(event.target.value, 10);
@@ -60,7 +61,7 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
         style={{ fontSize: "10px", width: "90px" }}
       />
       <JRPGButton
-        onClick={() => setSeed(randomSeed())}
+        onClick={() => setSeed(freshSeed())}
         style={{ fontSize: "9px", padding: "2px 6px" }}
       >
         ⟳ Reroll

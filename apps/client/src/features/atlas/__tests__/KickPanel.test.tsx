@@ -25,6 +25,14 @@ function controls(overrides: Partial<KickControls> = {}): KickControls {
 }
 
 describe("KickPanel", () => {
+  it("offers a phone a numeric keypad for the seed", () => {
+    // K2's own Tests list promised this assertion and it was never written, so
+    // deleting the attribute reddened nothing. Its twin now covers the Atlas
+    // tab's panel, which had neither the attribute nor the test.
+    render(<KickPanel kick={controls()} atlasNodes={[]} />);
+    expect(screen.getByTestId("kick-seed")).toHaveAttribute("inputmode", "numeric");
+  });
+
   it("opens on the remembered dials with a non-colliding name, every field by its accessible name", () => {
     render(<KickPanel kick={controls()} atlasNodes={[{ name: "Dungeon" }]} />);
     const dialog = screen.getByRole("dialog", { name: "Kick in a door" });
