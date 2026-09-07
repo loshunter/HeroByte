@@ -53,8 +53,28 @@ async function armAim(page: Page): Promise<void> {
   await aim.scrollIntoViewIfNeeded();
   await aim.click();
   // Arming closes the DM screen (the surface machine's rising edge) and the
-  // aim banner takes its place.
+  // aim banner takes its place. The banner is React's signal; the hit graph
+  // needs a painted frame before the doors are actually deaf to a tap.
   await expect(page.getByText("Link Placement")).toBeVisible();
+  await settleHitGraph(page);
+}
+
+/**
+ * Konva rebuilds its HIT graph on the next draw, not when React sets a prop.
+ * So `listening={false}` (a door yielding to the aim) and a camera move are
+ * both only true for hit-testing once a frame has been painted — tap sooner
+ * and the tap lands on the stale graph, which is how one full-suite run saw a
+ * door BOTH swing (its old listening region caught the tap) and place the link
+ * (the same tap bubbled to the Stage, where the armed aim took it). Two frames,
+ * because the first can be the one that schedules the redraw.
+ */
+async function settleHitGraph(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
 }
 
 /** Put a DOCUMENT-px point at the centre of the canvas, and return its screen position. */
@@ -69,6 +89,7 @@ async function centreOn(page: Page, doc: Pt): Promise<Pt> {
     { doc, w: box.width, h: box.height },
   );
   await page.waitForTimeout(100);
+  await settleHitGraph(page);
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
