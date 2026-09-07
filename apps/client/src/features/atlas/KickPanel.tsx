@@ -8,14 +8,10 @@
 // survives a layout crossing. Enter rolls, Escape closes.
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import type {
-  AtlasNodeSnapshot,
-  DungeonRecipeParams,
-  GenerateSize,
-  MapLink,
-} from "@herobyte/shared";
+import type { AtlasNodeSnapshot, GenerateRequest, MapLink } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../components/ui/JRPGPanel";
 import { defaultName, freshSeed } from "./kickDefaults";
+import { RecipeDials } from "./RecipeDials";
 import type { KickControls } from "./useKickedInDoor";
 
 export const KICK_NEEDS_LIVE_MAP = "Start a live map first (🏗️ MAP → START LIVE MAP)";
@@ -42,10 +38,11 @@ const labelStyle = {
 
 export function KickPanel({ kick, atlasNodes, presentation = "panel" }: KickPanelProps) {
   const { settings, pending, canKick } = kick;
+  const [recipe, setRecipe] = useState<GenerateRequest>(settings.recipe);
+  // The name follows the recipe until the DM types over it: picking `building`
+  // should prefill "Tavern", not leave "Dungeon" on a tavern.
   const [name, setName] = useState(() => defaultName(atlasNodes, settings.recipe));
-  const [theme, setTheme] = useState<DungeonRecipeParams["theme"]>(settings.recipe.theme);
-  const [density, setDensity] = useState<DungeonRecipeParams["density"]>(settings.recipe.density);
-  const [size, setSize] = useState<GenerateSize>(settings.recipe.size);
+  const [renamed, setRenamed] = useState(false);
   const [seed, setSeed] = useState<number>(freshSeed);
   const [linkType, setLinkType] = useState<MapLink["linkType"]>(settings.linkType);
   const nameRef = useRef<HTMLInputElement | null>(null);
@@ -61,12 +58,7 @@ export function KickPanel({ kick, atlasNodes, presentation = "panel" }: KickPane
   const roll = (event?: FormEvent) => {
     event?.preventDefault();
     if (rollDisabled) return;
-    kick.kick({
-      name,
-      seed,
-      recipe: { recipeId: "dungeon", theme, density, size },
-      linkType,
-    });
+    kick.kick({ name, seed, recipe, linkType });
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -96,60 +88,21 @@ export function KickPanel({ kick, atlasNodes, presentation = "panel" }: KickPane
           aria-label="Name"
           value={name}
           maxLength={64}
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) => {
+            setRenamed(true);
+            setName(event.target.value);
+          }}
           style={{ fontSize: "11px" }}
         />
       </label>
       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-        <label style={labelStyle}>
-          Recipe
-          <select
-            aria-label="Recipe"
-            value="dungeon"
-            onChange={() => undefined}
-            style={selectStyle}
-          >
-            <option value="dungeon">dungeon</option>
-          </select>
-        </label>
-        <label style={labelStyle}>
-          Theme
-          <select
-            aria-label="Theme"
-            value={theme}
-            onChange={(event) => setTheme(event.target.value as DungeonRecipeParams["theme"])}
-            style={selectStyle}
-          >
-            <option value="stone">stone</option>
-            <option value="wood">wood</option>
-          </select>
-        </label>
-        <label style={labelStyle}>
-          Density
-          <select
-            aria-label="Density"
-            value={density}
-            onChange={(event) => setDensity(event.target.value as DungeonRecipeParams["density"])}
-            style={selectStyle}
-          >
-            <option value="low">low</option>
-            <option value="medium">medium</option>
-            <option value="high">high</option>
-          </select>
-        </label>
-        <label style={labelStyle}>
-          Size
-          <select
-            aria-label="Size"
-            value={size}
-            onChange={(event) => setSize(event.target.value as GenerateSize)}
-            style={selectStyle}
-          >
-            <option value="small">small</option>
-            <option value="medium">medium</option>
-            <option value="large">large</option>
-          </select>
-        </label>
+        <RecipeDials
+          recipe={recipe}
+          onChange={(next) => {
+            setRecipe(next);
+            if (!renamed) setName(defaultName(atlasNodes, next));
+          }}
+        />
         <label style={labelStyle}>
           Door
           <select

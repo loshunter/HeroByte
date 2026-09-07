@@ -18,6 +18,7 @@ const LINK = {
   visibleToPlayers: true,
 };
 const RECIPE = { recipeId: "dungeon", theme: "stone", density: "medium", size: "small" };
+const BUILDING = { recipeId: "building", kind: "tavern", size: "medium" };
 const KICK = {
   t: "atlas-kick",
   commandId: "kick-1",
@@ -55,6 +56,15 @@ describe("atlas message validators", () => {
       KICK,
       { ...KICK, linkType: "stair" },
       { ...KICK, commandId: "c".repeat(120) },
+      { ...KICK, recipe: BUILDING },
+      { ...KICK, recipe: { ...BUILDING, entrySide: "north" } },
+      {
+        t: "atlas-generate-node",
+        nodeId: "node-1",
+        commandId: "cmd-1",
+        seed: 42,
+        recipe: BUILDING,
+      },
     ];
     for (const message of valid) {
       const result = validateMessage(message as never);
@@ -142,6 +152,13 @@ describe("atlas message validators", () => {
       { ...KICK, name: "x".repeat(65) },
       { ...KICK, seed: 1.5 },
       { ...KICK, recipe: { ...RECIPE, theme: "granite" } },
+      // Each recipe's params are its OWN: the discriminated union rejects a
+      // building with a dungeon's theme, and a dungeon with a building's kind.
+      { ...KICK, recipe: { ...BUILDING, theme: "stone" } },
+      { ...KICK, recipe: { ...RECIPE, kind: "tavern" } },
+      { ...KICK, recipe: { ...BUILDING, kind: "castle" } },
+      { ...KICK, recipe: { ...BUILDING, entrySide: "up" } },
+      { ...KICK, recipe: { recipeId: "building", kind: "tavern" } },
       { ...KICK, recipe: { ...RECIPE, recipeId: "castle" } },
       { ...KICK, recipe: undefined },
       { ...KICK, linkType: "portal" },

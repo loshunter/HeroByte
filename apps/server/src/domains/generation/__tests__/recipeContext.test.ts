@@ -7,11 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import { DEFAULT_MAP_LAYERS, type MapDocument, type MapElement } from "@herobyte/shared";
-import {
-  assertGenerateRequest,
-  assertRecipeBudget,
-  resolveRecipeContext,
-} from "../recipeContext.js";
+import { assertGenerateSeed, assertRecipeBudget, resolveRecipeContext } from "../recipeContext.js";
 import { makeIdFactory, MAX_ID_PREFIX_LENGTH, MAX_RECIPE_ELEMENTS } from "../types.js";
 
 function doc(overrides: Partial<MapDocument> = {}): MapDocument {
@@ -130,16 +126,15 @@ describe("resolveRecipeContext", () => {
   });
 });
 
-describe("assertGenerateRequest", () => {
-  const params = { theme: "stone", density: "medium" } as const;
-
-  it("accepts a well-formed request", () => {
-    expect(() => assertGenerateRequest(42, params)).not.toThrow();
+describe("assertGenerateSeed", () => {
+  it("accepts an integer seed", () => {
+    expect(() => assertGenerateSeed(42)).not.toThrow();
+    expect(() => assertGenerateSeed(-2_147_483_648)).not.toThrow();
   });
 
-  it("rejects a NaN seed before it can poison the RNG stream", () => {
-    expect(() => assertGenerateRequest(Number.NaN, params)).toThrow(/seed must be an integer/);
-    expect(() => assertGenerateRequest(1.5, params)).toThrow(/seed must be an integer/);
+  it("rejects a NaN or fractional seed before it can poison the RNG stream", () => {
+    expect(() => assertGenerateSeed(Number.NaN)).toThrow(/seed must be an integer/);
+    expect(() => assertGenerateSeed(1.5)).toThrow(/seed must be an integer/);
   });
 });
 

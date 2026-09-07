@@ -56,11 +56,21 @@ export function emitGeometry(
   ctx: RecipeContext,
   /** Shared with the other stages so ONE counter spans the whole document. */
   nextId: () => string = makeIdFactory(ctx.idPrefix),
+  /**
+   * Which room each floor cell belongs to. Defaults to deriving it from
+   * `layout.rooms`, which is right for a dungeon: every floor cell is either
+   * inside a room rect or corridor. A BUILDING punches its doors as floor
+   * cells THROUGH its partition lines, outside every rect — derive there and
+   * both of a doorway's edges read as seams, only one is a door site, and the
+   * other gets walled: a door that opens onto a wall. The building passes its
+   * own index, in which each punched cell belongs to one side.
+   */
+  roomIndexByCell: Map<string, number> = indexRoomCells(layout.rooms),
 ): RecipeOutput {
   return {
     cells: emitFloor(layout, bounds, materials),
     elements: [
-      ...emitWalls(layout, bounds, ctx, nextId),
+      ...emitWalls(layout, bounds, ctx, nextId, roomIndexByCell),
       ...emitDoors(layout, bounds, ctx, nextId),
     ],
   };
@@ -132,8 +142,9 @@ function emitWalls(
   bounds: CellBounds,
   ctx: RecipeContext,
   nextId: () => string,
+  roomIndexByCell: Map<string, number>,
 ): MapWallElement[] {
-  const runs = mergeRuns(wallEdgesOf(layout));
+  const runs = mergeRuns(wallEdgesOf(layout, roomIndexByCell));
   return runs.map((run) => ({
     id: nextId(),
     layerId: ctx.layerIds.walls,
@@ -152,8 +163,7 @@ function emitWalls(
 }
 
 /** Every edge that must block, minus the door sites. See the header note. */
-function wallEdgesOf(layout: DungeonLayout): LayoutEdge[] {
-  const roomOf = indexRoomCells(layout.rooms);
+function wallEdgesOf(layout: DungeonLayout, roomOf: Map<string, number>): LayoutEdge[] {
   const blocking = new Map<string, LayoutEdge>();
   const add = (edge: LayoutEdge) => blocking.set(edgeKey(edge), edge);
 

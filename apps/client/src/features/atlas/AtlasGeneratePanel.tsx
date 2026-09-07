@@ -1,19 +1,31 @@
 // ============================================================================
-// ATLAS GENERATE PANEL — cash a promise into a dungeon
+// ATLAS GENERATE PANEL — cash a promise into a real place
 // ============================================================================
 // Mounted per promise-node row behind a toggle. Seed prefills random and ⟳
 // reroll re-mints — UI-side nondeterminism is fine, only the recipe is pure
 // (the GeneratePanel precedent). Failure surfaces through the atlas-error
 // toast; success arrives as the node flipping to ▣ on the next snapshot.
+//
+// The recipe picker is RecipeDials, shared with the kick panel: the two
+// surfaces offer the same choice, and two copies of it would drift the moment
+// a third recipe lands.
 
 import { useState } from "react";
+import type { GenerateRequest } from "@herobyte/shared";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
-import type { DungeonRecipeParams, GenerateSize } from "@herobyte/shared";
+import { RecipeDials } from "./RecipeDials";
 import type { AtlasActions } from "./useAtlasActions";
 
 function randomSeed(): number {
   return Math.floor(Math.random() * 2_147_483_647);
 }
+
+const DEFAULT_RECIPE: GenerateRequest = {
+  recipeId: "dungeon",
+  theme: "stone",
+  density: "medium",
+  size: "medium",
+};
 
 interface AtlasGeneratePanelProps {
   nodeId: string;
@@ -22,9 +34,7 @@ interface AtlasGeneratePanelProps {
 }
 
 export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGeneratePanelProps) {
-  const [theme, setTheme] = useState<DungeonRecipeParams["theme"]>("stone");
-  const [density, setDensity] = useState<DungeonRecipeParams["density"]>("medium");
-  const [size, setSize] = useState<GenerateSize>("medium");
+  const [recipe, setRecipe] = useState<GenerateRequest>(DEFAULT_RECIPE);
   const [seed, setSeed] = useState(randomSeed);
 
   return (
@@ -35,38 +45,10 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
         gap: "6px",
         marginTop: "4px",
         flexWrap: "wrap",
-        alignItems: "center",
+        alignItems: "flex-end",
       }}
     >
-      <select
-        aria-label={`Theme for ${nodeName}`}
-        value={theme}
-        onChange={(event) => setTheme(event.target.value as DungeonRecipeParams["theme"])}
-        style={{ fontSize: "10px" }}
-      >
-        <option value="stone">stone</option>
-        <option value="wood">wood</option>
-      </select>
-      <select
-        aria-label={`Density for ${nodeName}`}
-        value={density}
-        onChange={(event) => setDensity(event.target.value as DungeonRecipeParams["density"])}
-        style={{ fontSize: "10px" }}
-      >
-        <option value="low">low</option>
-        <option value="medium">medium</option>
-        <option value="high">high</option>
-      </select>
-      <select
-        aria-label={`Size for ${nodeName}`}
-        value={size}
-        onChange={(event) => setSize(event.target.value as GenerateSize)}
-        style={{ fontSize: "10px" }}
-      >
-        <option value="small">small</option>
-        <option value="medium">medium</option>
-        <option value="large">large</option>
-      </select>
+      <RecipeDials recipe={recipe} onChange={setRecipe} labelSuffix={nodeName} />
       <input
         aria-label={`Seed for ${nodeName}`}
         data-testid="atlas-generate-seed"
@@ -85,9 +67,7 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
       </JRPGButton>
       <JRPGButton
         variant="primary"
-        onClick={() =>
-          actions.generateNode(nodeId, seed, { recipeId: "dungeon", theme, density, size })
-        }
+        onClick={() => actions.generateNode(nodeId, seed, recipe)}
         style={{ fontSize: "9px", padding: "2px 6px" }}
       >
         🎲 GENERATE

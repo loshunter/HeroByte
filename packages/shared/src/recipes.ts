@@ -24,8 +24,19 @@ export interface DungeonRecipeParams {
   // recipe's regularity makes them recoverable from a player's own payload).
 }
 
-/** Every recipe's parameters, discriminated by `recipeId`. The building recipe joins here. */
-export type RecipeParams = DungeonRecipeParams;
+export interface BuildingRecipeParams {
+  recipeId: "building";
+  kind: "tavern" | "shop" | "warehouse" | "house";
+  /**
+   * Which side the front door sits on — the party's way in. Absent means
+   * "south"; it is never rolled, so a caller that knows where the party came
+   * from can face the building at them (§7).
+   */
+  entrySide?: "north" | "south" | "east" | "west";
+}
+
+/** Every recipe's parameters, discriminated by `recipeId`. */
+export type RecipeParams = DungeonRecipeParams | BuildingRecipeParams;
 export type RecipeId = RecipeParams["recipeId"];
 
 /** What the atlas doors send: a recipe's parameters plus a preset size. */
@@ -42,4 +53,4 @@ export type RecipeProvenance = RecipeParams & { seed: number; size?: GenerateSiz
  * The registry's key set, for validators and pickers to enumerate. Pinned to
  * the RecipeId union in both directions by recipes.test.ts.
  */
-export const RECIPE_IDS = ["dungeon"] as const;
+export const RECIPE_IDS = ["dungeon", "building"] as const;

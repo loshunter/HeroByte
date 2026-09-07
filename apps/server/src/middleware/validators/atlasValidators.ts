@@ -95,6 +95,14 @@ const generateRequest = z.discriminatedUnion("recipeId", [
       size: z.enum(["small", "medium", "large"]),
     })
     .strict(),
+  z
+    .object({
+      recipeId: z.literal("building"),
+      kind: z.enum(["tavern", "shop", "warehouse", "house"]),
+      entrySide: z.enum(["north", "south", "east", "west"]).optional(),
+      size: z.enum(["small", "medium", "large"]),
+    })
+    .strict(),
 ]);
 
 const generateNodeSchema = z.object({

@@ -19,7 +19,7 @@ import {
 } from "@herobyte/shared";
 import { randomUUID } from "node:crypto";
 import {
-  assertGenerateRequest,
+  assertGenerateSeed,
   assertRecipeBudget,
   resolveRecipeContext,
 } from "../../domains/generation/recipeContext.js";
@@ -90,7 +90,7 @@ export function cashNode(
   try {
     const minted = createMapDocument(documentInput);
     const ctx = resolveRecipeContext(minted, bounds, commandId);
-    assertGenerateRequest(seed, request);
+    assertGenerateSeed(seed);
     output = runRecipe(seed, bounds, request, ctx);
     assertRecipeBudget(output);
   } catch (error) {

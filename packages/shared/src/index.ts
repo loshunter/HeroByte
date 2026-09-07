@@ -48,6 +48,7 @@ export type {
 // sub-module rule applies (recipes.ts).
 export { RECIPE_IDS } from "./recipes.js";
 export type {
+  BuildingRecipeParams,
   DungeonRecipeParams,
   GenerateRequest,
   GenerateSize,
@@ -55,6 +56,15 @@ export type {
   RecipeParams,
   RecipeProvenance,
 } from "./recipes.js";
+
+// The catalog ids the server's recipes paint and stamp with. Runtime values,
+// so the same sub-module rule applies (recipeAssets.ts).
+export {
+  RECIPE_ASSET_IDS,
+  RECIPE_FLOOR_ASSETS,
+  RECIPE_OBJECT_ASSETS,
+  RECIPE_WALL_ASSETS,
+} from "./recipeAssets.js";
 
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";

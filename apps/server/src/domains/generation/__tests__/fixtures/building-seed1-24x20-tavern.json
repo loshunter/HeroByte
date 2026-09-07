@@ -1,0 +1,5514 @@
+{
+  "cells": [
+    {
+      "x": 5,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 5,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 6,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 7,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 13,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 8,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 9,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 10,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 11,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 12,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 19,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 13,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 14,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 15,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 15,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 13,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 16,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 13,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 17,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 13,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 18,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 9,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 13,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 14,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 19,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 13,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 20,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 13,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 21,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 5,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 6,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 7,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 8,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 10,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 11,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 12,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 13,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 15,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 16,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 17,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 18,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 20,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 21,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 22,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 23,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 24,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 25,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 26,
+      "y": 22,
+      "assetId": "terrain:wood-floor"
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 5,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 6,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 7,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 8,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 10,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 11,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 12,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 15,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 16,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 17,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 18,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 20,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 21,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 22,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 23,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 24,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 25,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 26,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 4,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 5,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 5,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 5,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 6,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 6,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 6,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 6,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 7,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 7,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 20,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 21,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 22,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 24,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 25,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 26,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 8,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 5,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 6,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 7,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 10,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 11,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 12,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 9,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 10,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 10,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 10,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 15,
+      "y": 10,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 17,
+      "y": 10,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 18,
+      "y": 10,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 10,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 10,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 11,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 11,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 11,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 11,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 12,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 12,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 12,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 12,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 13,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 13,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 13,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 14,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 14,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 14,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 14,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 5,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 6,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 7,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 8,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 10,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 12,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 15,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 16,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 17,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 18,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 20,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 21,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 22,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 24,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 25,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 26,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 15,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 16,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 16,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 16,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 16,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 16,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 17,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 17,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 17,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 17,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 17,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 18,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 18,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 18,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 18,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 18,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 20,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 21,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 22,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 24,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 25,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 26,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 19,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 20,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 20,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 20,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 20,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 20,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 21,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 21,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 21,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 21,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 21,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 22,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 22,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 22,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 22,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 22,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 4,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 5,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 6,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 7,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 8,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 9,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 10,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 11,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 12,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 13,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 14,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 15,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 16,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 17,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 18,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 19,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 20,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 21,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 22,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 23,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 24,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 25,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 26,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    },
+    {
+      "x": 27,
+      "y": 23,
+      "assetId": "terrain:wall-timber"
+    }
+  ],
+  "elements": [
+    {
+      "id": "golden:e50",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 250
+          },
+          {
+            "x": 650,
+            "y": 250
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e2",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 250
+          },
+          {
+            "x": 250,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e46",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 650,
+            "y": 250
+          },
+          {
+            "x": 650,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e45",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 250
+          },
+          {
+            "x": 950,
+            "y": 250
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e61",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 250
+          },
+          {
+            "x": 700,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e33",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 950,
+            "y": 250
+          },
+          {
+            "x": 950,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e53",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 250
+          },
+          {
+            "x": 1350,
+            "y": 250
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e85",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 250
+          },
+          {
+            "x": 1000,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e52",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1350,
+            "y": 250
+          },
+          {
+            "x": 1350,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e28",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 650,
+            "y": 400
+          },
+          {
+            "x": 700,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e97",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 400
+          },
+          {
+            "x": 1150,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e119",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1150,
+            "y": 400
+          },
+          {
+            "x": 1150,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e94",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 400
+          },
+          {
+            "x": 1350,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e14",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 400
+          },
+          {
+            "x": 1200,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e4",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 450
+          },
+          {
+            "x": 400,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e10",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 400,
+            "y": 450
+          },
+          {
+            "x": 400,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e63",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 450
+          },
+          {
+            "x": 700,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e82",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 450
+          },
+          {
+            "x": 450,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e24",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 450
+          },
+          {
+            "x": 700,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e9",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 450
+          },
+          {
+            "x": 1150,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e96",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 450
+          },
+          {
+            "x": 1000,
+            "y": 650
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e29",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 450
+          },
+          {
+            "x": 1350,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e84",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1350,
+            "y": 450
+          },
+          {
+            "x": 1350,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e54",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 500
+          },
+          {
+            "x": 400,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e111",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 500
+          },
+          {
+            "x": 250,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e107",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 500
+          },
+          {
+            "x": 650,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e8",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 650,
+            "y": 500
+          },
+          {
+            "x": 650,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e38",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 500
+          },
+          {
+            "x": 800,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e26",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 800,
+            "y": 500
+          },
+          {
+            "x": 800,
+            "y": 550
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e110",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 850,
+            "y": 500
+          },
+          {
+            "x": 950,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e27",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 850,
+            "y": 500
+          },
+          {
+            "x": 850,
+            "y": 550
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e100",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 550
+          },
+          {
+            "x": 800,
+            "y": 550
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e13",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 550
+          },
+          {
+            "x": 700,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e15",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 850,
+            "y": 550
+          },
+          {
+            "x": 950,
+            "y": 550
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e106",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 950,
+            "y": 550
+          },
+          {
+            "x": 950,
+            "y": 650
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e70",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 950,
+            "y": 650
+          },
+          {
+            "x": 1000,
+            "y": 650
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e6",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 950,
+            "y": 700
+          },
+          {
+            "x": 1000,
+            "y": 700
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e18",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 950,
+            "y": 700
+          },
+          {
+            "x": 950,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e56",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 700
+          },
+          {
+            "x": 1000,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e68",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 750
+          },
+          {
+            "x": 550,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e80",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 550,
+            "y": 750
+          },
+          {
+            "x": 550,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e78",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 600,
+            "y": 750
+          },
+          {
+            "x": 650,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e121",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 600,
+            "y": 750
+          },
+          {
+            "x": 600,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e86",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 750
+          },
+          {
+            "x": 950,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e7",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 750
+          },
+          {
+            "x": 1150,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e51",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1150,
+            "y": 750
+          },
+          {
+            "x": 1150,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e69",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 750
+          },
+          {
+            "x": 1350,
+            "y": 750
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e59",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 750
+          },
+          {
+            "x": 1200,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e71",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 800
+          },
+          {
+            "x": 450,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e76",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 800
+          },
+          {
+            "x": 250,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e81",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 800
+          },
+          {
+            "x": 450,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e64",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 500,
+            "y": 800
+          },
+          {
+            "x": 550,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e79",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 500,
+            "y": 800
+          },
+          {
+            "x": 500,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e104",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 600,
+            "y": 800
+          },
+          {
+            "x": 700,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e0",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 800
+          },
+          {
+            "x": 700,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e73",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 750,
+            "y": 800
+          },
+          {
+            "x": 950,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e35",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 750,
+            "y": 800
+          },
+          {
+            "x": 750,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e40",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 950,
+            "y": 800
+          },
+          {
+            "x": 950,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e11",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 800
+          },
+          {
+            "x": 1150,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e39",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 800
+          },
+          {
+            "x": 1000,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e49",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 800
+          },
+          {
+            "x": 1350,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e91",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1350,
+            "y": 800
+          },
+          {
+            "x": 1350,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e37",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 950
+          },
+          {
+            "x": 500,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e42",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 950
+          },
+          {
+            "x": 750,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e101",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 950
+          },
+          {
+            "x": 1150,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e118",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1150,
+            "y": 950
+          },
+          {
+            "x": 1150,
+            "y": 1000
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e1",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 950
+          },
+          {
+            "x": 1350,
+            "y": 950
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e30",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 950
+          },
+          {
+            "x": 1200,
+            "y": 1000
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e72",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 1000
+          },
+          {
+            "x": 500,
+            "y": 1000
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e116",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 1000
+          },
+          {
+            "x": 450,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e5",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 500,
+            "y": 1000
+          },
+          {
+            "x": 500,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e114",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 1000
+          },
+          {
+            "x": 750,
+            "y": 1000
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e58",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 1000
+          },
+          {
+            "x": 700,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e113",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 750,
+            "y": 1000
+          },
+          {
+            "x": 750,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e65",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 1000
+          },
+          {
+            "x": 1150,
+            "y": 1000
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e89",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 1000
+          },
+          {
+            "x": 1000,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e98",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1200,
+            "y": 1000
+          },
+          {
+            "x": 1350,
+            "y": 1000
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e20",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1350,
+            "y": 1000
+          },
+          {
+            "x": 1350,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e90",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 1150
+          },
+          {
+            "x": 450,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e93",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 500,
+            "y": 1150
+          },
+          {
+            "x": 700,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e57",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 800,
+            "y": 1150
+          },
+          {
+            "x": 950,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e115",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 1150
+          },
+          {
+            "x": 1350,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e120",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1000,
+        "y": 650,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e102",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 550,
+        "y": 800,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e88",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 700,
+        "y": 400,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e22",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 400,
+        "y": 500,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e44",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 800,
+        "y": 550,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e105",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 500,
+        "y": 950,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e108",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 750,
+        "y": 950,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e87",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1150,
+        "y": 450,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e83",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1150,
+        "y": 800,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e99",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1150,
+        "y": 1000,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e43",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 750,
+        "y": 1150,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e3",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 425,
+        "y": 325,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e41",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 425,
+        "y": 625,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e66",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 825,
+        "y": 375,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e117",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 825,
+        "y": 625,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e55",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 325,
+        "y": 975,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e12",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 575,
+        "y": 975,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e31",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 825,
+        "y": 975,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e74",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1175,
+        "y": 325,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e95",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1175,
+        "y": 575,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e19",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1175,
+        "y": 875,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e67",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1175,
+        "y": 1075,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 200,
+        "color": "#ffd58a",
+        "intensity": 0.7,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e60",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 275,
+        "y": 275,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "EMPTY — closed for the night, the fire still warm",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e34",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 275,
+        "y": 525,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "LOOT: strongbox under the counter — DC 14",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e48",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 725,
+        "y": 275,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "THE KEEPER: knows every rumour, sells none cheap",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e103",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 725,
+        "y": 575,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "PATRONS: 2d4 locals, one of them listening",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e112",
+      "layerId": "objects",
+      "type": "stamp",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 725,
+        "y": 575,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "assetId": "objects:crate",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "golden:e47",
+      "layerId": "objects",
+      "type": "stamp",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 925,
+        "y": 575,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "assetId": "objects:crate",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "golden:e122",
+      "layerId": "objects",
+      "type": "stamp",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 925,
+        "y": 625,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "assetId": "objects:crate",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "golden:e77",
+      "layerId": "objects",
+      "type": "stamp",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 925,
+        "y": 675,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "assetId": "objects:crate",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "golden:e62",
+      "layerId": "objects",
+      "type": "stamp",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 775,
+        "y": 725,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "assetId": "objects:crate",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "golden:e21",
+      "layerId": "objects",
+      "type": "stamp",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 875,
+        "y": 725,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "assetId": "objects:crate",
+        "width": 50,
+        "height": 50
+      }
+    },
+    {
+      "id": "golden:e16",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 275,
+        "y": 825,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "THE KEEPER: knows every rumour, sells none cheap",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e25",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 525,
+        "y": 825,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "LOOT: strongbox under the counter — DC 14",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e17",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 775,
+        "y": 825,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "A BRAWL waiting — two mercenaries, one tab",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e109",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1025,
+        "y": 275,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "THE KEEPER: knows every rumour, sells none cheap",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e23",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1025,
+        "y": 475,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "EMPTY — closed for the night, the fire still warm",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e92",
+      "layerId": "objects",
+      "type": "stamp",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1200,
+        "y": 575,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "assetId": "objects:table",
+        "width": 100,
+        "height": 50
+      }
+    },
+    {
+      "id": "golden:e32",
+      "layerId": "objects",
+      "type": "stamp",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1200,
+        "y": 675,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "assetId": "objects:table",
+        "width": 100,
+        "height": 50
+      }
+    },
+    {
+      "id": "golden:e75",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1025,
+        "y": 825,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "THE KEEPER: knows every rumour, sells none cheap",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e36",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1025,
+        "y": 1025,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "THE KEEPER: knows every rumour, sells none cheap",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    }
+  ]
+}

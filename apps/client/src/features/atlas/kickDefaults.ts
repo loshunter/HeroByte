@@ -22,16 +22,27 @@ export const DEFAULT_KICK_SETTINGS: KickSettings = {
   linkType: "door",
 };
 
+/** The dungeon's dials, kept so a recipe swap can restore what was chosen. */
+export const DEFAULT_DUNGEON = { theme: "stone", density: "medium" } as const;
+export const DEFAULT_BUILDING_KIND = "tavern";
+
 const THEMES = new Set(["stone", "wood"]);
 const DENSITIES = new Set(["low", "medium", "high"]);
 const SIZES = new Set(["small", "medium", "large"]);
+const KINDS = new Set(["tavern", "shop", "warehouse", "house"]);
 const LINK_TYPES = new Set(["door", "stair", "signpost"]);
 
-/** The kind label a recipe's node takes; the building recipe adds its kinds. */
+/**
+ * The name a node takes when the DM does not rename it. A building is named
+ * for its KIND — "Tavern", not "Building" — because that is what the players
+ * are about to walk into, and the node auto-discovers on arrival.
+ */
 export function recipeLabel(recipe: GenerateRequest): string {
   switch (recipe.recipeId) {
     case "dungeon":
       return "Dungeon";
+    case "building":
+      return recipe.kind.charAt(0).toUpperCase() + recipe.kind.slice(1);
   }
 }
 
@@ -60,27 +71,47 @@ export function freshSeed(): number {
   return values[0]! | 0;
 }
 
-/** Anything that is not exactly a known dial falls back field by field. */
+/**
+ * Anything that is not exactly a known dial falls back field by field. The
+ * stored value is attacker-adjacent in the mundane sense — devtools, a future
+ * build's shape, a half-written entry — and a junk dial that rode into the
+ * message would be rejected by the server's validator on EVERY roll, with no
+ * way out but clearing site data.
+ */
 export function sanitizeKickSettings(input: unknown): KickSettings {
-  const record = (input ?? {}) as Partial<Record<keyof KickSettings, unknown>>;
-  const recipe = (record.recipe ?? {}) as Partial<Record<keyof GenerateRequest, unknown>>;
-  const fallback = DEFAULT_KICK_SETTINGS.recipe;
+  const record = (input ?? {}) as { recipe?: unknown; linkType?: unknown };
+  const recipe = (record.recipe ?? {}) as Record<string, unknown>;
+  const size = SIZES.has(recipe.size as string)
+    ? (recipe.size as GenerateRequest["size"])
+    : DEFAULT_KICK_SETTINGS.recipe.size;
+  const linkType = LINK_TYPES.has(record.linkType as string)
+    ? (record.linkType as MapLink["linkType"])
+    : DEFAULT_KICK_SETTINGS.linkType;
+
+  if (recipe.recipeId === "building") {
+    return {
+      recipe: {
+        recipeId: "building",
+        kind: KINDS.has(recipe.kind as string)
+          ? (recipe.kind as "tavern" | "shop" | "warehouse" | "house")
+          : DEFAULT_BUILDING_KIND,
+        size,
+      },
+      linkType,
+    };
+  }
   return {
     recipe: {
       recipeId: "dungeon",
       theme: THEMES.has(recipe.theme as string)
         ? (recipe.theme as "stone" | "wood")
-        : fallback.theme,
+        : DEFAULT_DUNGEON.theme,
       density: DENSITIES.has(recipe.density as string)
         ? (recipe.density as "low" | "medium" | "high")
-        : fallback.density,
-      size: SIZES.has(recipe.size as string)
-        ? (recipe.size as GenerateRequest["size"])
-        : fallback.size,
+        : DEFAULT_DUNGEON.density,
+      size,
     },
-    linkType: LINK_TYPES.has(record.linkType as string)
-      ? (record.linkType as MapLink["linkType"])
-      : DEFAULT_KICK_SETTINGS.linkType,
+    linkType,
   };
 }
 

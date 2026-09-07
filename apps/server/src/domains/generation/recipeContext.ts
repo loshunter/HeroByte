@@ -12,10 +12,10 @@ import {
   MAX_ID_PREFIX_LENGTH,
   MAX_RECIPE_CELLS,
   MAX_RECIPE_ELEMENTS,
+  MAX_STAMP_ELEMENTS,
   MIN_RECIPE_COLS,
   MIN_RECIPE_ROWS,
   type CellBounds,
-  type DungeonParams,
   type RecipeContext,
   type RecipeOutput,
 } from "./types.js";
@@ -45,12 +45,14 @@ export function resolveRecipeContext(
 }
 
 /**
- * Validate the recipe inputs the RecipeContext doesn't carry. The WS edge zod
- * already covers these for client messages; this is the gate for any
- * server-side caller that bypasses it (a future Atlas auto-generation), and it
- * stops a NaN seed from silently poisoning the RNG stream.
+ * The seed is the one recipe input the RecipeContext doesn't carry and the
+ * recipes cannot check for themselves — a NaN would silently poison every RNG
+ * stream. The WS edge zod covers it for client messages; this is the gate for
+ * any server-side caller that bypasses that. PARAMS are not checked here: the
+ * registry's own `assertParams` owns them, because what is valid depends on
+ * which recipe is about to run.
  */
-export function assertGenerateRequest(seed: number, _params: DungeonParams): void {
+export function assertGenerateSeed(seed: number): void {
   if (!Number.isInteger(seed)) {
     throw new Error("Generate seed must be an integer");
   }
@@ -63,6 +65,16 @@ export function assertGenerateRequest(seed: number, _params: DungeonParams): voi
  * catches the element side, which no shared code caps.
  */
 export function assertRecipeBudget(output: RecipeOutput): void {
+  // The stamp cap was declared with the others and never enforced. A building
+  // is the first recipe that stamps at all, and a warehouse lines its walls —
+  // so this is where an unbounded scatter would land as one un-undoable
+  // command rather than a refusal.
+  const stamps = output.elements.filter((element) => element.type === "stamp").length;
+  if (stamps > MAX_STAMP_ELEMENTS) {
+    throw new Error(
+      `Generated map exceeds the ${MAX_STAMP_ELEMENTS}-stamp budget for one command — generate a smaller region`,
+    );
+  }
   if (output.elements.length > MAX_RECIPE_ELEMENTS) {
     throw new Error(
       `Generated map exceeds the ${MAX_RECIPE_ELEMENTS}-element budget for one command — generate a smaller region`,

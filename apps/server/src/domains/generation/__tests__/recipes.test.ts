@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { RECIPE_IDS, createMapDocument } from "@herobyte/shared";
+import { buildingRecipe } from "../buildingRecipe.js";
 import { dungeonRecipe } from "../dungeonRecipe.js";
 import { resolveRecipeContext } from "../recipeContext.js";
 import { RECIPES, runRecipe } from "../recipes.js";
@@ -60,5 +61,33 @@ describe("the recipe registry", () => {
 
   it("names the node kind a cashed promise takes", () => {
     expect(RECIPES.dungeon.nodeKind).toBe("dungeon");
+    expect(RECIPES.building.nodeKind).toBe("building");
+  });
+
+  it("dispatches a BUILDING to the building recipe, and guards its own params", () => {
+    const ctx = context();
+    const viaRegistry = runRecipe(5, BOUNDS, { recipeId: "building", kind: "shop" }, ctx);
+    const direct = buildingRecipe(5, BOUNDS, { recipeId: "building", kind: "shop" }, context());
+    expect(viaRegistry).toEqual(direct);
+
+    expect(() =>
+      runRecipe(5, BOUNDS, { recipeId: "building", kind: "castle" } as never, ctx),
+    ).toThrow(/kind/);
+    expect(() =>
+      runRecipe(5, BOUNDS, { recipeId: "building", kind: "shop", entrySide: "up" } as never, ctx),
+    ).toThrow(/entry side/);
+  });
+
+  it("keeps each recipe's params to itself — a dungeon cannot run a building's", () => {
+    expect(() =>
+      RECIPES.dungeon.assertParams({ recipeId: "building", kind: "shop" } as never),
+    ).toThrow(/dungeon recipe cannot run/);
+    expect(() =>
+      RECIPES.building.assertParams({
+        recipeId: "dungeon",
+        theme: "stone",
+        density: "low",
+      } as never),
+    ).toThrow(/building recipe cannot run/);
   });
 });

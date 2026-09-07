@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import {
   RECIPE_IDS,
+  type BuildingRecipeParams,
   type GenerateRequest,
   type RecipeId,
   type RecipeProvenance,
@@ -22,7 +23,7 @@ const noneExtra: [ExtraInList] extends [never] ? true : false = true;
 describe("recipes — the shared vocabulary", () => {
   it("RECIPE_IDS enumerates exactly the RecipeId union", () => {
     expect(noneMissing && noneExtra).toBe(true);
-    expect(RECIPE_IDS).toEqual(["dungeon"]);
+    expect(RECIPE_IDS).toEqual(["dungeon", "building"]);
   });
 
   it("size is REQUIRED on a request and OPTIONAL on provenance — added per type, never by intersection", () => {
@@ -50,5 +51,18 @@ describe("recipes — the shared vocabulary", () => {
     expect(provenanceWithSize.size).toBe("small");
     expect(request.size).toBe("medium");
     expect(requestWithoutSize.recipeId).toBe("dungeon");
+  });
+
+  it("a building's params are its own — entrySide optional, and no theme", () => {
+    const building: BuildingRecipeParams = { recipeId: "building", kind: "tavern" };
+    const faced: GenerateRequest = { ...building, entrySide: "north", size: "medium" };
+    // @ts-expect-error — theme belongs to the dungeon, not to a building
+    const themed: GenerateRequest = { ...building, size: "small", theme: "stone" };
+    const provenance: RecipeProvenance = { ...building, seed: 7 };
+
+    expect(building.entrySide).toBeUndefined();
+    expect(faced.entrySide).toBe("north");
+    expect(themed.recipeId).toBe("building");
+    expect(provenance.seed).toBe(7);
   });
 });
