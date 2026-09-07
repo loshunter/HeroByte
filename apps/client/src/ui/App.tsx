@@ -33,6 +33,7 @@ import { useForkTable } from "../features/rooms/useForkTable";
 import { useMapActions } from "../hooks/useMapActions";
 import { useMapAlignment } from "../features/map";
 import { useAtlasLinkAim } from "../features/atlas/useAtlasLinkAim";
+import { useKickedInDoor, type AtlasErrorMessage } from "../features/atlas/useKickedInDoor";
 import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
@@ -369,6 +370,10 @@ function AuthenticatedApp({
   const forkTable = useForkTable(sendMessage, (handler) => {
     forkReplyRef.current = handler;
   });
+  // The kicked-in door's failure seam: the hook that owns the pending kick
+  // mounts 250 lines below, so it fills this ref and the single-subscriber
+  // chain calls through it.
+  const atlasErrorRef = useRef<((message: AtlasErrorMessage) => void) | null>(null);
   const {
     roomPasswordStatus,
     roomPasswordPending,
@@ -381,6 +386,7 @@ function AuthenticatedApp({
     onDMElevationFailed: routeDMElevationFailed,
     onTableForkMessage: routeTableForkMessage,
     onMapStudioMessage: mapStudio.handleServerMessage,
+    onAtlasError: (message) => atlasErrorRef.current?.(message),
   });
 
   // Mobile detection. The rule itself lives in utils/mobileLayout so that
@@ -633,6 +639,18 @@ function AuthenticatedApp({
     sceneId: snapshot?.compiledScene?.sourceDocumentId,
   });
 
+  // The kicked-in door (K2): G, the panel, the pending kick — App-level so
+  // the pending state survives the desktop/mobile layout swap.
+  const kick = useKickedInDoor({
+    isDM,
+    snapshot,
+    sendMessage,
+    activeTool,
+    toast,
+    atlasErrorRef,
+    pendingToast: !isMobile,
+  });
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     selectedObjectIds,
@@ -860,6 +878,7 @@ function AuthenticatedApp({
     linkAimActive,
     armLinkAim,
     captureLinkAnchor,
+    kick,
     // Dice
     rollHistory,
     chatMessages,

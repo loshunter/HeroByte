@@ -89,6 +89,11 @@ export const HELP_TOPICS: HelpTopic[] = [
         detail:
           "Players carry the discovered world: the 🗺 WORLD button (on a phone, Tools → World). The DM can also pin door/stair/signpost sprites onto the map itself — ⚓ in the Atlas tab, then click where it sits — and click one to travel there.",
       },
+      {
+        term: "🚪 Kick in a door",
+        detail:
+          "The party kicked in a door you never prepped? Press G (or 🚪 KICK IN A DOOR in the Atlas tab; on a phone, DM → 🚪 Kick in a door): name it, pick the dials, ROLL — the whole table is standing in a fresh, stocked scene under the node you were on, with a door back.",
+      },
     ],
   },
   {

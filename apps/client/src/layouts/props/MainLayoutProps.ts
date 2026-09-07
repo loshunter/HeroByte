@@ -33,6 +33,7 @@ import type {
 import type { RoomBounds } from "../../features/map-edit/roomBuilder";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { PendingLink } from "../../features/atlas/useAtlasLinkAim";
+import type { KickControls } from "../../features/atlas/useKickedInDoor";
 import type { RollLogEntry } from "../../components/dice/rollLogTypes";
 import type { DiceRollRequest, EnterRollRequest } from "../../hooks/useDiceRolling";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
@@ -373,6 +374,8 @@ export interface MainLayoutProps {
   armLinkAim?: (pending: PendingLink) => void;
   /** MapBoard hands the clicked DOCUMENT-px point here */
   captureLinkAnchor?: (point: { x: number; y: number }) => void;
+  /** The kicked-in door (K2): the App-level controls both layouts render from. */
+  kick?: KickControls;
 
   // -------------------------------------------------------------------------
   // Dice

@@ -22,6 +22,8 @@ import { DMMenuLoadFailure } from "../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { PlayerPropsPanel } from "../features/props/PlayerPropsPanel";
 import { WorldMapPanel } from "../features/atlas/WorldMapPanel";
+import { KickPanel } from "../features/atlas/KickPanel";
+import type { KickControls } from "../features/atlas/useKickedInDoor";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { DicePanels } from "./DicePanels";
@@ -57,6 +59,8 @@ export interface FloatingPanelsLayoutProps {
   dmMenuProps: DMMenuContainerProps;
   // Shared data (DicePanels reads the player roster off it)
   snapshot: RoomSnapshot | null;
+  /** The kicked-in door (K2): its panel mounts here for the DM. */
+  kick?: KickControls;
   // Dice Roller
   diceRollerOpen: boolean;
   toggleDiceRoller: (open: boolean) => void;
@@ -102,6 +106,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     setContextMenu,
     dmMenuProps,
     snapshot,
+    kick,
     diceRollerOpen,
     toggleDiceRoller,
     handleRoll,
@@ -182,6 +187,11 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
             state explains itself before anything is discovered. Same eager,
             self-launching shape as the props panel: zero new threaded props. */}
         {!isDM && <WorldMapPanel snapshot={snapshot} />}
+
+        {/* The kicked-in door's panel (K2): fixed and OUTSIDE the header, like
+            the world map — a panel inside the fixed header paints under the
+            entities panel (the S8 stacking-context lesson). */}
+        {isDM && kick?.open && <KickPanel kick={kick} atlasNodes={snapshot?.atlasNodes ?? []} />}
 
         <ContextMenu
           menu={contextMenu}

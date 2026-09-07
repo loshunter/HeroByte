@@ -21,33 +21,28 @@ export function useToast() {
     };
 
     setMessages((prev) => [...prev, toast]);
+    return id;
   }, []);
 
+  // Each returns the id it minted, so a caller can hold a sticky toast
+  // (duration 0) and dismiss it when its moment passes.
   const success = useCallback(
-    (message: string, duration?: number) => {
-      showToast("success", message, duration);
-    },
+    (message: string, duration?: number) => showToast("success", message, duration),
     [showToast],
   );
 
   const error = useCallback(
-    (message: string, duration?: number) => {
-      showToast("error", message, duration);
-    },
+    (message: string, duration?: number) => showToast("error", message, duration),
     [showToast],
   );
 
   const warning = useCallback(
-    (message: string, duration?: number) => {
-      showToast("warning", message, duration);
-    },
+    (message: string, duration?: number) => showToast("warning", message, duration),
     [showToast],
   );
 
   const info = useCallback(
-    (message: string, duration?: number) => {
-      showToast("info", message, duration);
-    },
+    (message: string, duration?: number) => showToast("info", message, duration),
     [showToast],
   );
 

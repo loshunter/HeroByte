@@ -71,6 +71,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     alignmentMode,
     linkAimActive,
     captureLinkAnchor,
+    kick,
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
@@ -407,6 +408,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         setContextMenu={setContextMenu}
         dmMenuProps={dmMenuProps}
         snapshot={snapshot}
+        kick={kick}
         diceRollerOpen={diceRollerOpen}
         toggleDiceRoller={toggleDiceRoller}
         handleRoll={handleRoll}
