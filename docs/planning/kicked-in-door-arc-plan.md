@@ -1,5 +1,16 @@
 # The Kicked-In Door — M4 Phase 3 — Execution Plan
 
+> **THE ARC IS COMPLETE — SHIPPED on `dev` 2026-09-06 (K0–K4 and K6; K5 deferred to §7).**
+> Every slice went in behind the full ladder and a sabotage pass, browser-verified on both
+> platforms, and K1 carried a two-lens senior review whose findings are recorded in §9.1. The
+> keystone commits are **`116d6443`** (the `atlas-kick` server composition) and
+> **`f869d200`** (the building recipe); each slice's own banner below records its commits,
+> its sabotage count and the traps it paid for. **Cartridge Codes (K5) did NOT ship** — it was the
+> one slice the plan marked optional, and the arc's value does not depend on it; it moves to §7 as
+> a recorded follow-up with its groundwork already in place (provenance now records `size`, so a
+> code has something complete to encode). NOT pushed and NOT merged to `main`: that is the owner's
+> call.
+
 **Status:** Rev 2 — authored 2026-09-02 after a 6-reader recon at `dev` = `59e55a81` (code identical
 to production `main` = `a0434d39`), the Atlas arc's **mobile-surface review lens** run alone first
 (§0.1), and **the pre-execution adversarial review of Rev 1** (`bb27acb2`): four lens-sized
@@ -1469,6 +1480,14 @@ context, or assert the selectable fallback); do NOT put the code in the URL.
 **Escalate if:** "bit-identical" is demanded at the element-id level — §2.3 #8 settles the
 reading; a code-derived `idPrefix` is a design change.
 
+> **K5 NOT SHIPPED — DEFERRED to §7 (2026-09-06).** The one slice this plan marked optional, and
+> the arc's value does not depend on it: the Kicked-In Door works, on both platforms, with two
+> recipes behind it. What K5 would have added is a way to SHARE a place you rolled, which is a
+> nicety beside "the party kicked in a door and there is a tavern there". Its groundwork is done
+> and recorded — provenance has carried `size` since K1, so a generated node already holds
+> everything `{ recipeId, params, size, seed }` a code would encode; what remains is the codec, the
+> two buttons and the paste path. §7 carries it forward.
+
 ---
 
 ### K6 🟢 — The journey, the budgets, the docs, the sweep
@@ -1515,6 +1534,32 @@ reading; a code-derived `idPrefix` is a design change.
 LENS-SIZED workflows (state-machine, privacy, client/mobile, recipe), each ≤14 agents, each
 checked for `agents_error` and followed by a `git status` audit, RESUMED if the session limit
 cuts in; a completeness critic last.
+
+> **K6 SHIPPED — AND WITH IT THE ARC (2026-09-06, three commits on `dev`).** **`eaac49e8`** — a bug
+> the closure gate itself found: `resetRoom` runs before EVERY spec, and its retry ladder tested
+> only `!response.ok()`, so a THROWN transport error (`ECONNRESET`) escaped the 3s budget at the
+> first await and killed `mobile-map-edit-inspect` with a stack it had nothing to do with. Both
+> failure shapes now ride the one budget, pinned by `reset-retry.spec.ts` — which imports `test`
+> from Playwright rather than `./fixtures`, because the auto fixture would need the very server the
+> spec exists to do without. **`10415f67`** — the journey (G on an unadopted table → adoption →
+> a tavern → the player's wire → the return door home → a second kick on the now-adopted origin),
+> the phone's building leg, and budgets that can FAIL: both recipe budget tests were vacuous, since
+> "under 750KB" is trivially true of an empty map and neither the new building test nor the DUNGEON
+> TWIN it was modelled on had a floor. Both now pin one, measured and set well below. The
+> eight-scene export ceiling was weighing eight EMPTY documents; one of them is now a real
+> generated warehouse. **The docs commit** pays the user-guide debt on both guides with re-recorded
+> screenshots, cashes the §7.2 IOUs in `m4-dungeon-recipe-plan.md` and `atlas-arc-plan.md`, and
+> re-reads `helpTopics.ts` against the guides — its Atlas topic still told DMs that GENERATE builds
+> "a dungeon".
+> **Sabotage 14/14 red**, and one that stayed GREEN is the more useful record: mis-anchoring the
+> return door leaves the journey passing, because the spec projects the anchor through the camera
+> and clicks wherever it now is. Not a hole — placement is
+> `atlasKick.contract.test.ts:193`'s rule and that test IS red under it. The journey owns the round
+> trip; the contract owns the geometry. **§4.16 verified by grep:** the three `ServerMessage`
+> hand-lists (`websocket.ts:93`, `MessageRouter.ts:61`, `:367`) are byte-identical to the arc's
+> recon base `59e55a81` — this arc added no server message. **§4.14:** `buildDMMenuProps` pins 45
+> keys, `openKick` the one addition. **Final ladder, quiescent tree:** shared 25/427, server
+> 127/2339, client 298 files / 5553 tests, e2e **176 passed / 3 skipped (179)**.
 
 ---
 
@@ -1576,6 +1621,18 @@ cuts in; a completeness critic last.
   when the table's map has no node, the panel should show "This table becomes: <document name>",
   editable, and the kick message would carry an `originName` override; today the adopted node is
   named after its document, as §1.1 says.
+- **The return door can arrive under a party token** (found by K6's journey spec) — the door sits
+  on the arrival rect's EDGE, which the review chose over its centre precisely so the tokens layer
+  would not cover it; but `placeArrivals` spreads the party randomly INSIDE that rect, so with a
+  small strip a token lands on the door's cell roughly half the time and wins the click (a token is
+  draggable). The DM's workaround is what it looks like — drag the character aside — and the spec
+  does the same. A real fix means choosing a door cell the arrival cannot occupy, which interacts
+  with the strip's size and is a design change, not a tweak.
+- **Cartridge Codes (K5, NOT shipped)** — the one slice this plan marked optional, deferred with
+  the arc otherwise complete. A short code encoding `{{recipeId, params, size, seed}}` on any node
+  this arc generated, copied from a 📼 and pasted into either panel to rebuild the same place. The
+  groundwork is done: provenance records `size` since K1, so a node now carries everything a code
+  would need; the codec, the two buttons and the paste path are what remain.
 - **An aimed kick** — G, then click where the door goes; the outbound anchor comes from the aim
   instead of the party. Rides `useAtlasLinkAim`'s one-shot capture; must still pin the link
   BEFORE the travel (the scene-change disarm kills an armed aim the instant travel lands).

@@ -4,12 +4,12 @@ HeroByte is a retro-inspired virtual tabletop (VTT) that runs entirely in the br
 
 This guide walks through everything a player or a DM needs, with screenshots from the real app.
 
-| Guide | Who it's for | What it covers |
-| --- | --- | --- |
-| [Getting Started](getting-started.md) | Everyone | Joining a table, private tables and invite links, becoming the DM |
-| [Player Guide](player-guide.md) | Players | The table UI, your character card, tokens, dice, drawing, voice, doors and fog, mobile |
-| [DM Guide](dm-guide.md) | Dungeon Masters | The DM Menu, map setup, NPCs and props, initiative and combat, session save/load, table security |
-| [Map Editor Guide](map-editor-guide.md) | Dungeon Masters | The live map editor: rooms, halls, doors, terrain painting, props, lighting, the dungeon generator |
+| Guide                                   | Who it's for    | What it covers                                                                                                                     |
+| --------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| [Getting Started](getting-started.md)   | Everyone        | Joining a table, private tables and invite links, becoming the DM                                                                  |
+| [Player Guide](player-guide.md)         | Players         | The table UI, your character card, tokens, dice, drawing, voice, doors and fog, the world map, mobile                              |
+| [DM Guide](dm-guide.md)                 | Dungeon Masters | The DM Menu, map setup, NPCs and props, initiative and combat, session save/load, table security, the Atlas and the Kicked-In Door |
+| [Map Editor Guide](map-editor-guide.md) | Dungeon Masters | The live map editor: rooms, halls, doors, terrain painting, props, lighting, the dungeon generator                                 |
 
 **Self-hosting or deploying?** See the repo-level [README](../../README.md) for the quick start and [DEPLOYMENT.md](../../DEPLOYMENT.md) for production hosting (Render + Cloudflare Pages, persistent-disk setup, and every environment variable).
 

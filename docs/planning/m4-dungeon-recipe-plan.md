@@ -387,13 +387,19 @@ both platforms), SceneStates with suspend/resume travel (behind the iris wipe), 
 non-live documents (atlas-generate-node cashes a promise without touching the live binding), and
 recipe `provenance { recipeId, seed }` (recorded on generated nodes; `pinned` still open).
 
-Still deferred: building/wilderness/town/world recipes, `pinned` for keep-this-reroll-that,
-Bestiary-linked encounter manifests replacing text markers, the one-keystroke Kicked-In Door UX
-(its Atlas targets now exist), Cartridge Codes UI (the determinism contract this plan ships is
-its foundation), multi-floor dungeons with stair links, room-shape variety (non-rect rooms,
-diagonal corridors), theme packs beyond stone/wood (blocked on the art track), density-aware
-corridor widths, per-room-type populate grammars (the prior plan's IOU — partially cashed by
-stocking v0).
+**[CASHED 2026-09-06 by the Kicked-In Door arc —
+[kicked-in-door-arc-plan.md](./kicked-in-door-arc-plan.md)]:** the one-keystroke Kicked-In Door UX
+(G on desktop, the 🚪 verb on a phone — one `atlas-kick` message adopts an unmapped table, mints
+the child, generates and compiles it, pins a door at each end and travels the table), the
+**building** recipe (tavern/shop/warehouse/house), and provenance gaining `size` — so a node now
+records everything a Cartridge Code would need to encode.
+
+Still deferred: wilderness/town/world recipes, `pinned` for keep-this-reroll-that, Bestiary-linked
+encounter manifests replacing text markers, Cartridge Codes UI (the determinism contract this plan
+ships is its foundation; the Kicked-In Door arc marked it optional and did not ship it),
+multi-floor dungeons with stair links, room-shape variety (non-rect rooms, diagonal corridors),
+theme packs beyond stone/wood (blocked on the art track), density-aware corridor widths,
+per-room-type populate grammars (the prior plan's IOU — partially cashed by stocking v0).
 
 ---
 

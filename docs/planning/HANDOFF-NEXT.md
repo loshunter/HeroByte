@@ -7,6 +7,24 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-06, THE ARC IS COMPLETE).** **The Kicked-In Door arc is finished on `dev`** —
+K0–K4 and K6 shipped, K5 (Cartridge Codes) deferred to the plan's §7 as the one slice the plan
+itself marked optional. A DM presses G (or the phone's 🚪 verb), names the place, and the whole
+table is standing in a generated dungeon or building with a door back; a table that was never on
+the Atlas is adopted by its first kick. K6 closed it in three commits: **`eaac49e8`** (a bug the
+closure gate found — the e2e reset fixture's retry ladder let a THROWN transport error escape its
+budget, so one `ECONNRESET` killed an unrelated spec; both failure shapes now share the budget,
+pinned by a server-free `reset-retry.spec.ts`), **`10415f67`** (the `kicked-in-door.smoke.spec.ts`
+journey — G on an unadopted table → adoption → tavern → the player's wire → the return door home
+→ a second kick on the now-adopted origin — plus the phone's building leg and budgets that can
+actually fail: BOTH recipe budget tests were vacuous, the dungeon twin included, and the
+eight-scene export ceiling was weighing empty documents), and the docs commit (both user guides
+with re-recorded screenshots, the §7.2 IOUs cashed in two older plans, `helpTopics.ts` re-read,
+the VISION M4 Phase 3 banner). Sabotage 14/14; final ladder green on a quiescent tree — e2e 176
+passed / 3 skipped (179), server 127/2339, client 298 files / 5553 tests. NOT pushed, NOT merged —
+that is the owner's call. The final adversarial review is the last step; see the plan's SHIPPED
+banner and each slice's own.
+
 **Update (2026-09-06, K4).** **K4 is SHIPPED on `dev`** — the building recipe (`f869d200`) and its
 behaviour-preserving groundwork (`f0361359`, the dungeon golden byte-identical through it), each
 behind the full ladder (dev boot included: shared gained runtime exports) and a sabotage pass (17/17),
@@ -1032,7 +1050,8 @@ turns a cone into something else.
    - ~~**The Atlas arc (VISION Pillar 1 / M4 phase 2)**~~ — **COMPLETE on `dev` 2026-09-01** (seven slices A1–A7, each gated + sabotage-proven + browser-verified on both platforms; see §0's dev row and the plan's SHIPPED banners). What it opens next, per the plan's §7: building-interior recipes cashing town promises, the one-keystroke Kicked-In Door (its Atlas targets now exist), reroll-preserving-pins (`pinned` — provenance already recorded), player-initiated travel/knocking, arrival at the link anchor, art-track link sprites, a spatial world-map view. **The next agent's handoff prompt is [PROMPT-kicked-in-door-arc.md](./PROMPT-kicked-in-door-arc.md)** — the Kicked-In Door + building interiors is the recommended arc (the owner may redirect), and its §7 carries the owner's standing instructions for prompting Claude Fable 5.1. **Update 2026-09-02:** the plan is written — [kicked-in-door-arc-plan.md](./kicked-in-door-arc-plan.md) Rev 1, recon-grounded (six pinned-model readers; every quoted anchor re-verified at HEAD), adversarially REVIEWED before execution — Rev 2 records the 16 findings (8 confirmed by both refuters, 4 contested, 4 refuted) and their dispositions in its §9; four lens-sized workflows, 36 agents, every lens finished with `agents_error: 0` after the session-limit deaths were RESUMED. **K0 SHIPPED** (six commits, see the update atop §0); **K1 SHIPPED** (2026-09-03, five commits + three review fixes — the plan's K1 banner and
      its §9.1 review record); **K2 SHIPPED** (2026-09-06, three commits — the plan's K2
      banner); **K3 SHIPPED** (2026-09-06, three commits — the plan's K3 banner); **K4 SHIPPED** (2026-09-06, two
-     commits — the plan's K4 banner); **K5/K6 are next.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
+     commits — the plan's K4 banner); **K6 SHIPPED** (2026-09-06 — the journey spec, the budgets, the
+     user-guide debt); **K5 (Cartridge Codes) DEFERRED to the plan's §7.** **The arc is complete.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 **Note (2026-08-26):** this section has now gone stale twice in one week — both times because the

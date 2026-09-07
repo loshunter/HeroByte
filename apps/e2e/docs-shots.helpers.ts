@@ -246,7 +246,7 @@ export async function openDMMenu(page: Page) {
 
 export async function selectDMTab(
   page: Page,
-  tab: "Map Setup" | "NPCs & Monsters" | "Props & Objects" | "Players" | "Session",
+  tab: "Map Setup" | "NPCs & Monsters" | "Props & Objects" | "Players" | "Session" | "Atlas",
 ) {
   await openDMMenu(page);
   await page.getByRole("button", { name: tab }).click();
