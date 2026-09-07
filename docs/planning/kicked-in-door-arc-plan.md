@@ -1266,6 +1266,40 @@ palette REPLACES the player dock while map-edit is armed — the chip belongs to
 only (a kick cannot be started from the palette, by design).
 **Escalate if:** the screen wants a sixth dock slot or a tool tile — settled (§2.3 #6).
 
+> **K3 SHIPPED** (2026-09-06, three commits on `dev`, each behind the full ladder and a sabotage
+> pass). **`149b2b64`** — the DM-menu touch-floor sweep reaches the Atlas tab, and reaches it
+> HONESTLY: an empty atlas shows only the create row, so the Atlas leg mints a promise, opens its
+> generate panel, measures, and deletes the node. The floor itself was already right (the
+> container-scoped `[data-mobile-surface] select` rule covers those dials); proven non-vacuous by
+> dropping `select` from that rule and running the Atlas leg alone, which names all four at 28px.
+> `undersizedControls` moved to `mobile.helpers.ts` so the kick spec measures by the same
+> definition. **`c7ac1506`** — the phone slice: the surface union gains `"kick"`, the DM screen
+> carries a SECOND verb (🚪 Kick in a door) below Edit the live map, and both it and the Atlas
+> tab's button route through the surface MACHINE (`MobileLayout` overrides `openKick` and wraps
+> `kick` so ROLL leaves the surface) — one open signal, so the one-open-surface invariant holds;
+> the ⏳ chip floats over the player dock while a kick is pending and not expired. **Sabotage: 9/9
+> red**, after two of them exposed real gaps: the kick surface's `isDM` guard is about
+> DE-ELEVATION (a player has no way to open it at all), which needed its own test, and a union
+> member is enforced by `tsc`, not by vitest — sabotaging it has to be run against typecheck to
+> mean anything. **The e2e spec found a real bug in K2's own panel:** `KickPanel` set an inline
+> `min-height: 28px` on its five selects, and an inline `min-*` beats the touch floor's rule —
+> which is the very reason that floor uses `min-*` rather than padding. All five dials sat under
+> 44px on a phone; the inline height is gone and a comment says why it must not come back.
+> **Browser proof at 375×812:** the verb measures 44×351, the kick screen fits the viewport, ROLL
+> leaves the surface, and the ⏳ chip sits above the dock (bottom 729 vs dock top 732), overlaps
+> none of the five columns, carries `pointer-events: none` so the DM draws through it, and clears
+> on arrival. **Trap:** the map-edit palette REPLACES the player dock, so a spec that starts the
+> live map must EXIT the mode — the tool sheet's own ✕ says "Close tools" and leaves it armed,
+> which cost this spec one 150 s timeout. **`4ddc2abf`** — K3's gate turned up a first-time
+> failure in K0's OWN spec (`mobile-atlas-aim`): an aimed tap both placed the link and swung the
+> door. The mechanism is Konva's, not the product's — the hit graph is rebuilt on the next PAINT,
+> so `listening={false}` (a door yielding to the aim) and a camera move are only true for
+> hit-testing one frame later; a tap sooner lands on the stale graph, hits the door's old
+> listening region AND bubbles to the Stage where the armed aim takes it, which is exactly the
+> pair of outcomes observed. The spec now waits two animation frames after arming and after
+> centring. It did not reproduce in isolation (4/4) or across the whole mobile project (78/78),
+> so the wait is the fix and the classification is a timing hazard in the test, not a regression.
+
 ---
 
 ### K4 🔴 — The building recipe

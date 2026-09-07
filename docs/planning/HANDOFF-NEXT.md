@@ -7,6 +7,13 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-06, later).** **K3 is SHIPPED on `dev`** — the kicked-in door on a phone
+(`c7ac1506`), the touch-floor sweep's Atlas gap (`149b2b64`), and a hit-graph wait that closes a
+first-time flake in K0's aim spec (`4ddc2abf`), each behind the full ladder and a sabotage pass
+(9/9), measured in a browser at 375×812. The new e2e spec caught a real bug in K2's panel: an
+inline `min-height` on its selects beat the mobile touch floor. NOT pushed, NOT merged. Next: K4,
+the building recipe. The plan's K3 banner carries the traps.
+
 **Update (2026-09-06).** **K2 is SHIPPED on `dev`** — the desktop kicked-in door (`de2c3102`) and
 the two pre-existing hotkey bugs it cleared first (`9fe080b4` the bare `r`, `35f1eff5` Delete in a
 select), each behind the full ladder and a sabotage pass (24/24), with the whole flow driven by real
@@ -1017,7 +1024,7 @@ turns a cone into something else.
      `rev-parse refs/remotes/origin/main -> 6a605af4` — main, not dev's `720443ab`.
    - ~~**The Atlas arc (VISION Pillar 1 / M4 phase 2)**~~ — **COMPLETE on `dev` 2026-09-01** (seven slices A1–A7, each gated + sabotage-proven + browser-verified on both platforms; see §0's dev row and the plan's SHIPPED banners). What it opens next, per the plan's §7: building-interior recipes cashing town promises, the one-keystroke Kicked-In Door (its Atlas targets now exist), reroll-preserving-pins (`pinned` — provenance already recorded), player-initiated travel/knocking, arrival at the link anchor, art-track link sprites, a spatial world-map view. **The next agent's handoff prompt is [PROMPT-kicked-in-door-arc.md](./PROMPT-kicked-in-door-arc.md)** — the Kicked-In Door + building interiors is the recommended arc (the owner may redirect), and its §7 carries the owner's standing instructions for prompting Claude Fable 5.1. **Update 2026-09-02:** the plan is written — [kicked-in-door-arc-plan.md](./kicked-in-door-arc-plan.md) Rev 1, recon-grounded (six pinned-model readers; every quoted anchor re-verified at HEAD), adversarially REVIEWED before execution — Rev 2 records the 16 findings (8 confirmed by both refuters, 4 contested, 4 refuted) and their dispositions in its §9; four lens-sized workflows, 36 agents, every lens finished with `agents_error: 0` after the session-limit deaths were RESUMED. **K0 SHIPPED** (six commits, see the update atop §0); **K1 SHIPPED** (2026-09-03, five commits + three review fixes — the plan's K1 banner and
      its §9.1 review record); **K2 SHIPPED** (2026-09-06, three commits — the plan's K2
-     banner); **K3 is next.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
+     banner); **K3 SHIPPED** (2026-09-06, three commits — the plan's K3 banner); **K4 is next.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 **Note (2026-08-26):** this section has now gone stale twice in one week — both times because the
