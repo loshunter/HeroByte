@@ -27,6 +27,8 @@ interface MobileFloatingControlsProps {
   playerPropsEnabled?: boolean;
   /** Map-edit armed — the dock is REPLACED by the palette (redesign §1). */
   mode: boolean;
+  /** A kick is in flight (pending and not expired): the ⏳ chip floats over the dock. */
+  kickPending?: boolean;
   mapEditToolbarProps: MapEditToolbarProps;
   onCancelMapEditDrag: () => void;
 }
@@ -42,6 +44,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   isDM,
   playerPropsEnabled = false,
   mode,
+  kickPending = false,
   mapEditToolbarProps,
   onCancelMapEditDrag,
 }) => {
@@ -202,6 +205,11 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
       )}
 
       <nav className="mobile-action-dock" aria-label="Mobile actions">
+        {kickPending && (
+          <span className="mobile-dock-saving" data-testid="mobile-kick-pending">
+            ⏳ Kicking…
+          </span>
+        )}
         <button
           type="button"
           className="mobile-dock-button"

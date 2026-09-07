@@ -24,6 +24,18 @@ function options(overrides: Partial<UseMobileSurfaceOptions> = {}): UseMobileSur
   };
 }
 
+describe("useMobileSurface — the kick surface (K3)", () => {
+  it("kick is a local surface: it opens, replaces whatever was up, and closes", () => {
+    const { result } = renderHook(() => useMobileSurface(options()));
+    act(() => result.current.openSurface("dm"));
+    expect(result.current.surface).toBe("dm");
+    act(() => result.current.openSurface("kick"));
+    expect(result.current.surface).toBe("kick");
+    act(() => result.current.openSurface("none"));
+    expect(result.current.surface).toBe("none");
+  });
+});
+
 describe("useMobileSurface — the map-edit mode boundary", () => {
   it("arming the mode closes whatever surface was covering the map", () => {
     const { result, rerender } = renderHook(

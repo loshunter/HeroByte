@@ -104,6 +104,17 @@ describe("MobileFloatingControls", () => {
     });
   });
 
+  describe("the kick chip (K3)", () => {
+    it("renders the ⏳ chip only while kickPending, out of the dock's flow", () => {
+      const { rerender } = render(<MobileFloatingControls {...createProps({ isDM: true })} />);
+      expect(screen.queryByTestId("mobile-kick-pending")).toBeNull();
+      rerender(<MobileFloatingControls {...createProps({ isDM: true, kickPending: true })} />);
+      const chip = screen.getByTestId("mobile-kick-pending");
+      expect(chip).toHaveTextContent("Kicking");
+      expect(chip.className).toContain("mobile-dock-saving");
+    });
+  });
+
   describe("slot five is contextual (M4a)", () => {
     // The dock is a hardcoded 5-column grid; a sixth child overlaps rather
     // than wraps (settled, handoff §9). So the DM entry does not get a sixth

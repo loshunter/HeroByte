@@ -105,9 +105,13 @@ describe("KickPanel", () => {
     expect(screen.getByRole("button", { name: "🚪 ROLL" })).toBeDisabled();
   });
 
-  it("the bare presentation renders the same dialog without the floating frame", () => {
+  it("the bare presentation drops the frame AND the dialog role — its host is already one", () => {
     render(<KickPanel kick={controls()} atlasNodes={[]} presentation="content" />);
-    expect(screen.getByRole("dialog", { name: "Kick in a door" })).toBeInTheDocument();
+    expect(screen.getByTestId("kick-panel")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    // A MobileScreen is role="dialog" with this same title; a second one
+    // inside it would be two dialogs deep for one form.
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByText("🚪 Kick in a door")).toBeNull();
   });
 });

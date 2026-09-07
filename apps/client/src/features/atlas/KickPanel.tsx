@@ -27,7 +27,12 @@ export interface KickPanelProps {
   presentation?: "panel" | "content";
 }
 
-const selectStyle = { fontSize: "11px", minHeight: "28px" } as const;
+// No inline min-height, deliberately: the mobile touch floor is ONE
+// `(pointer: coarse)` rule giving every control inside a mobile surface a
+// 44px min-height, and an inline min-* beats a stylesheet rule — which is the
+// whole reason that floor uses min-* rather than padding. A 28px inline height
+// here put all five of this panel's dials under the floor on a phone.
+const selectStyle = { fontSize: "11px" } as const;
 const labelStyle = {
   fontSize: "9px",
   display: "flex",
@@ -74,8 +79,11 @@ export function KickPanel({ kick, atlasNodes, presentation = "panel" }: KickPane
 
   const form = (
     <form
-      role="dialog"
-      aria-label="Kick in a door"
+      // The host owns the dialog when the panel is embedded: a MobileScreen is
+      // already role="dialog" with this very title, and nesting a second one
+      // inside it is two dialogs deep to a screen reader for one form.
+      role={presentation === "panel" ? "dialog" : undefined}
+      aria-label={presentation === "panel" ? "Kick in a door" : undefined}
       data-testid="kick-panel"
       onSubmit={roll}
       onKeyDown={onKeyDown}

@@ -19,7 +19,8 @@ export type MobileSurface =
   | "help"
   | "dm"
   | "props"
-  | "atlas";
+  | "atlas"
+  | "kick";
 
 /** The surfaces whose open state has no App-level home and so lives here. */
 type LocalSurface = Exclude<MobileSurface, "dice" | "log">;
