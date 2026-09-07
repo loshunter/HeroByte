@@ -144,6 +144,17 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
                 kick.kick(request);
                 openKick("none");
               },
+              // CANCEL and the panel's Escape both land here, and on a phone
+              // the App-level `open` flag they used to flip is read by nobody:
+              // the screen is mounted by the surface machine. Without this
+              // override they were dead controls — the panel stayed up and
+              // nothing happened. The flag is cleared too, so the two signals
+              // cannot disagree if a layout crossing hands this back to the
+              // desktop mount.
+              closeKick: () => {
+                kick.closeKick();
+                openKick("none");
+              },
             },
           }
         : props,

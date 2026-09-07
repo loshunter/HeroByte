@@ -40,6 +40,17 @@ function snapshotWith(currentAtlasNodeId?: string, compiled = true): RoomSnapsho
   } as unknown as RoomSnapshot;
 }
 
+/** What rerender can move. */
+interface HookProps {
+  isDM: boolean;
+  tool: ToolMode;
+  /** Nullable on purpose: a socket close nulls it, and telling that apart from
+   * a de-elevation is a rule this suite pins. */
+  snapshot: RoomSnapshot | null;
+  /** `!isMobile` — so it CHANGES when the layout crosses mid-kick. */
+  pendingToast?: boolean;
+}
+
 function setup(
   options: {
     isDM?: boolean;
@@ -51,14 +62,16 @@ function setup(
   const sendMessage = vi.fn<(message: ClientMessage) => void>();
   let toastCounter = 0;
   const toast = {
-    info: vi.fn(() => `toast-${++toastCounter}`),
+    // Typed args, so a caller reading back `mock.calls[0][0]` is not indexing
+    // an empty tuple: `vi.fn(() => …)` declares a zero-argument mock.
+    info: vi.fn((_message: string, _duration?: number) => `toast-${++toastCounter}`),
     success: vi.fn(),
     error: vi.fn(),
     dismiss: vi.fn(),
   };
   const atlasErrorRef = { current: null as ((message: AtlasErrorMessage) => void) | null };
   const view = renderHook(
-    ({ isDM, tool, snapshot }) =>
+    ({ isDM, tool, snapshot, pendingToast }: HookProps) =>
       useKickedInDoor({
         isDM,
         snapshot,
@@ -66,14 +79,18 @@ function setup(
         activeTool: tool,
         toast,
         atlasErrorRef,
-        pendingToast: options.pendingToast,
+        pendingToast,
       }),
     {
+      // Annotated, not inferred: inference from these VALUES would make
+      // `snapshot` non-nullable and `pendingToast` required, and both have to
+      // move under rerender for the rules below.
       initialProps: {
         isDM: options.isDM ?? true,
         tool: options.tool ?? null,
         snapshot: options.snapshot ?? snapshotWith(undefined),
-      },
+        pendingToast: options.pendingToast,
+      } as HookProps,
     },
   );
   return { sendMessage, toast, atlasErrorRef, ...view };
@@ -109,6 +126,35 @@ describe("useKickedInDoor", () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("a reconnect blip does not close a half-filled panel — a null snapshot is not a de-elevation", () => {
+    // Every socket close nulls the snapshot while the app stays mounted behind
+    // the Reconnecting banner, and `isDM` is derived from that snapshot. So a
+    // one-second wifi hiccup used to read as "this DM is now a player": the
+    // panel closed mid-typing and never came back, taking the name, the dials
+    // and the seed with it.
+    const { result, rerender } = setup();
+    act(() => result.current.openKick());
+    expect(result.current.open).toBe(true);
+
+    rerender({ isDM: false, tool: null, snapshot: null });
+    expect(result.current.open).toBe(true);
+
+    rerender({ isDM: true, tool: null, snapshot: snapshotWith(undefined) });
+    expect(result.current.open).toBe(true);
+  });
+
+  it("a REAL de-elevation still closes the panel — the snapshot says so", () => {
+    // The other half of the rule above: holding through a blip must not turn
+    // into never closing at all. A snapshot that arrives and says this player
+    // is not the DM is exactly the evidence the blip lacked.
+    const { result, rerender } = setup();
+    act(() => result.current.openKick());
+    expect(result.current.open).toBe(true);
+
+    rerender({ isDM: false, tool: null, snapshot: snapshotWith(undefined) });
+    expect(result.current.open).toBe(false);
   });
 
   it("G opens the panel for a DM with no tool armed — and not with a modifier, held, or in a field", () => {
@@ -237,6 +283,30 @@ describe("useKickedInDoor", () => {
     rerender({ isDM: true, tool: null, snapshot: snapshotWith(first.nodeId) });
     expect(result.current.pending).toBeNull();
     expect(toast.success).toHaveBeenCalledWith("🚪 Cellar — kicked in");
+  });
+
+  it("crossing to a layout that shows toasts mints the pending one LATE, exactly once", async () => {
+    // The phone's indicator is the dock chip, which lives in the mobile layout
+    // only — so a kick rolled on a phone and then carried across the breakpoint
+    // had NO indicator at all, right through to a silent timeout.
+    const { result, rerender, toast } = setup({ pendingToast: false });
+    act(() => result.current.kick(REQUEST));
+    expect(toast.info).not.toHaveBeenCalled();
+    expect(result.current.pending).not.toBeNull();
+
+    rerender({
+      isDM: true,
+      tool: null,
+      snapshot: snapshotWith(undefined),
+      pendingToast: true,
+    });
+    expect(toast.info).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(toast.info).mock.calls[0]?.[0]).toContain("Kicking in the door");
+
+    // ...and crossing back and forth does not stack them up.
+    rerender({ isDM: true, tool: null, snapshot: snapshotWith(undefined), pendingToast: false });
+    rerender({ isDM: true, tool: null, snapshot: snapshotWith(undefined), pendingToast: true });
+    expect(toast.info).toHaveBeenCalledTimes(1);
   });
 
   it("canKick follows the compiled scene; a phone shows no sticky toast", () => {

@@ -667,6 +667,52 @@ describe("MobileLayout", () => {
         expect(kick.openKick).not.toHaveBeenCalled();
       });
 
+      // The twin of the ROLL test below, and the half K3 forgot: the slice
+      // pinned that ROLL leaves the surface and never that CANCEL does, so
+      // `closeKick` kept pointing at the desktop-only `open` flag — which
+      // nothing on a phone reads. CANCEL and Escape were dead controls.
+      it("CANCEL leaves the surface, not just the desktop flag", async () => {
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+        expect(openSurfaces()).toEqual(["kick"]);
+
+        fireEvent.click(screen.getByRole("button", { name: "CANCEL" }));
+        expect(openSurfaces()).toEqual([]);
+        expect(screen.queryByTestId("kick-panel")).toBeNull();
+        // ...and the App-level flag is cleared too, so a layout crossing back
+        // to the desktop mount cannot find the two signals disagreeing.
+        expect(kick.closeKick).toHaveBeenCalledTimes(1);
+      });
+
+      it("the screen's own ✕ clears BOTH signals, not just the surface", async () => {
+        // The ✕ and the drag-down dismissal used to call the machine's
+        // closeSurface directly, so they left the App-level `open` flag set —
+        // and a later crossing to the desktop layout would find the panel
+        // already open, with no one having asked for it.
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+        expect(openSurfaces()).toEqual(["kick"]);
+
+        fireEvent.click(screen.getByRole("button", { name: "Close Kick in a door" }));
+        expect(openSurfaces()).toEqual([]);
+        expect(kick.closeKick).toHaveBeenCalledTimes(1);
+      });
+
+      it("Escape on the panel leaves the surface", async () => {
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+
+        fireEvent.keyDown(screen.getByTestId("kick-panel"), { key: "Escape" });
+        expect(openSurfaces()).toEqual([]);
+        expect(kick.closeKick).toHaveBeenCalledTimes(1);
+      });
+
       it("ROLL sends the kick through the App-level controls and LEAVES the surface", async () => {
         const kick = kickControls();
         render(<MobileLayout {...dmProps(kick)} />);

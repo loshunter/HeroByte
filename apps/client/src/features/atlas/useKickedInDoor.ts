@@ -182,6 +182,20 @@ export function useKickedInDoor({
     [isDM, sendMessage, dismissStickyToast, pendingToast, toast, now, clearTimer, pendingTimeoutMs],
   );
 
+  // A LAYOUT CROSSING mid-kick must not leave the DM with no indicator at all.
+  // `pendingToast` is decided by the platform (`!isMobile`) and was read only
+  // once, at ROLL: a kick rolled on a phone mints no toast because the dock
+  // chip is its indicator, but the chip lives in MobileFloatingControls — so
+  // crossing to the desktop layout while the door is still swinging took the
+  // chip away and left nothing behind it, including when it later timed out.
+  // Minting here instead of only at ROLL makes the indicator follow the
+  // layout. Idempotent: the ref is the one that exists, and the arrival and
+  // timeout paths below dismiss it however it was minted.
+  useEffect(() => {
+    if (!pendingToast || !pending || pending.expired || toastIdRef.current) return;
+    toastIdRef.current = toast.info("🚪 Kicking in the door…", 0);
+  }, [pendingToast, pending, toast]);
+
   // ARRIVAL: the snapshot's current node is the child — the kick landed. A
   // late arrival after the timeout still counts.
   const currentAtlasNodeId = snapshot?.currentAtlasNodeId;
@@ -237,11 +251,17 @@ export function useKickedInDoor({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  // A player never holds a panel or a pending kick.
+  // A player never holds a panel or a pending kick — but a DROPPED SNAPSHOT is
+  // not a de-elevation. Every socket close nulls the snapshot while the app
+  // stays mounted behind the Reconnecting banner (K0's `52d83e50`), and `isDM`
+  // is derived from that snapshot, so a one-second wifi hiccup used to read as
+  // "this DM is now a player": the panel closed mid-typing and never came back,
+  // taking the name, the dials and the seed with it. Wait for a snapshot that
+  // actually says they are not the DM.
   useEffect(() => {
-    if (isDM) return;
+    if (isDM || !snapshot) return;
     setOpen(false);
-  }, [isDM]);
+  }, [isDM, snapshot]);
 
   useEffect(() => () => clearTimer(), [clearTimer]);
 

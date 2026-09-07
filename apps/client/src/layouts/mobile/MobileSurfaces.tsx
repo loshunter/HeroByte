@@ -197,9 +197,14 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
 
       {/* The kicked-in door (K3): the same panel the desktop floats, as a full
           screen. Gated isDM like the dm screen — de-elevation must not leave
-          it up. ROLL closes the surface (MobileLayout wrapped kick.kick). */}
+          it up. ROLL closes the surface (MobileLayout wrapped kick.kick).
+          ✕ and the drag-down dismissal close through `kick.closeKick`, NOT the
+          bare `closeSurface`: MobileLayout's wrapper clears the surface AND the
+          App-level `open` flag together, and a screen that closed only the
+          surface would leave that flag set — so a later crossing to the desktop
+          layout would find the panel already open. */}
       {surface === "kick" && props.isDM && props.kick && (
-        <MobileScreen title="Kick in a door" surface="kick" onClose={closeSurface}>
+        <MobileScreen title="Kick in a door" surface="kick" onClose={props.kick.closeKick}>
           <KickPanel
             kick={props.kick}
             atlasNodes={props.snapshot?.atlasNodes ?? []}
