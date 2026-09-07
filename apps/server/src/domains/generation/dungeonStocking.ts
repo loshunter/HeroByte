@@ -17,6 +17,7 @@
 
 import type { MapElement, MapLightElement, MapTextElement, SeededRng } from "@herobyte/shared";
 import type { CellRect, DungeonLayout } from "./dungeonLayout.js";
+import { centreX, centreY } from "./geometryLattice.js";
 import type { CellBounds, RecipeContext } from "./types.js";
 
 /** Fixed table — indexed by roll, so the stream stays stable if entries move. */
@@ -132,12 +133,4 @@ function markerFor(
       visibleToPlayers: false,
     },
   };
-}
-
-function centreX(cellX: number, bounds: CellBounds, ctx: RecipeContext): number {
-  return (bounds.x + cellX) * ctx.grid.size + ctx.grid.offsetX + ctx.grid.size / 2;
-}
-
-function centreY(cellY: number, bounds: CellBounds, ctx: RecipeContext): number {
-  return (bounds.y + cellY) * ctx.grid.size + ctx.grid.offsetY + ctx.grid.size / 2;
 }

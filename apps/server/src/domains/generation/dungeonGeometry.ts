@@ -18,29 +18,30 @@
 
 import type { MapDoorElement, MapWallElement, TerrainPaintCell } from "@herobyte/shared";
 import { cellKey, indexRoomCells, type DungeonLayout, type LayoutEdge } from "./dungeonLayout.js";
+import {
+  edgeKey,
+  lineOf,
+  minXOf,
+  minYOf,
+  parseCell,
+  positionOf,
+  pxX,
+  pxY,
+  type WallRun,
+} from "./geometryLattice.js";
 import { makeIdFactory } from "./types.js";
-import type { CellBounds, DungeonParams, RecipeContext, RecipeOutput } from "./types.js";
+import type { CellBounds, RecipeContext, RecipeOutput } from "./types.js";
 
-const THEME_FLOOR: Record<DungeonParams["theme"], string> = {
-  stone: "terrain:stone-floor",
-  wood: "terrain:wood-floor",
-};
-
-/** Painted wall band around the floor plan — the client's Czepeku wall
- * families (light top + rim + cast shadow), matched to the floor theme. */
-const THEME_WALL: Record<DungeonParams["theme"], string> = {
-  stone: "terrain:wall-stone",
-  wood: "terrain:wall-timber",
-};
-
-/** A merged, maximal line of wall edges along one lattice line. */
-interface WallRun {
-  orientation: "h" | "v";
-  /** Row for "h", column for "v". */
-  line: number;
-  /** Inclusive edge positions along the line. */
-  from: number;
-  to: number;
+/**
+ * The two painted materials a layout is drawn with: the floor inside it, and
+ * the one-cell wall band hugging it (the client's Czepeku wall families —
+ * light top + rim + cast shadow). The CALLER chooses them, because "which
+ * floor goes with which theme" is a recipe's decision, not the emitter's —
+ * and a building's kinds are not a dungeon's themes.
+ */
+export interface GeometryMaterials {
+  floorAssetId: string;
+  wallAssetId: string;
 }
 
 /**
@@ -51,13 +52,13 @@ interface WallRun {
 export function emitGeometry(
   layout: DungeonLayout,
   bounds: CellBounds,
-  params: DungeonParams,
+  materials: GeometryMaterials,
   ctx: RecipeContext,
   /** Shared with the other stages so ONE counter spans the whole document. */
   nextId: () => string = makeIdFactory(ctx.idPrefix),
 ): RecipeOutput {
   return {
-    cells: emitFloor(layout, bounds, params),
+    cells: emitFloor(layout, bounds, materials),
     elements: [
       ...emitWalls(layout, bounds, ctx, nextId),
       ...emitDoors(layout, bounds, ctx, nextId),
@@ -75,9 +76,9 @@ export function emitGeometry(
 function emitFloor(
   layout: DungeonLayout,
   bounds: CellBounds,
-  params: DungeonParams,
+  materials: GeometryMaterials,
 ): TerrainPaintCell[] {
-  const assetId = THEME_FLOOR[params.theme];
+  const assetId = materials.floorAssetId;
   const cells: TerrainPaintCell[] = [];
   for (let y = 0; y < bounds.rows; y++) {
     for (let x = 0; x < bounds.cols; x++) {
@@ -86,7 +87,7 @@ function emitFloor(
       }
     }
   }
-  return [...cells, ...emitWallHalo(layout, bounds, params)];
+  return [...cells, ...emitWallHalo(layout, bounds, materials)];
 }
 
 /**
@@ -100,9 +101,9 @@ function emitFloor(
 function emitWallHalo(
   layout: DungeonLayout,
   bounds: CellBounds,
-  params: DungeonParams,
+  materials: GeometryMaterials,
 ): TerrainPaintCell[] {
-  const assetId = THEME_WALL[params.theme];
+  const assetId = materials.wallAssetId;
   const cells: TerrainPaintCell[] = [];
   for (let y = -1; y <= bounds.rows; y++) {
     for (let x = -1; x <= bounds.cols; x++) {
@@ -298,41 +299,4 @@ function emitDoors(
       },
     };
   });
-}
-
-// ---------------------------------------------------------------------------
-// Lattice helpers — bounds-local cell -> document pixel
-// ---------------------------------------------------------------------------
-
-function pxX(cellX: number, bounds: CellBounds, ctx: RecipeContext): number {
-  return (bounds.x + cellX) * ctx.grid.size + ctx.grid.offsetX;
-}
-
-function pxY(cellY: number, bounds: CellBounds, ctx: RecipeContext): number {
-  return (bounds.y + cellY) * ctx.grid.size + ctx.grid.offsetY;
-}
-
-function parseCell(key: string): [number, number] {
-  const [x, y] = key.split(",").map(Number);
-  return [x!, y!];
-}
-
-function edgeKey(edge: LayoutEdge): string {
-  return `${edge.orientation}:${edge.x},${edge.y}`;
-}
-
-function lineOf(edge: LayoutEdge): number {
-  return edge.orientation === "h" ? edge.y : edge.x;
-}
-
-function positionOf(edge: LayoutEdge): number {
-  return edge.orientation === "h" ? edge.x : edge.y;
-}
-
-function minYOf(run: WallRun): number {
-  return run.orientation === "h" ? run.line : run.from;
-}
-
-function minXOf(run: WallRun): number {
-  return run.orientation === "h" ? run.from : run.line;
 }
