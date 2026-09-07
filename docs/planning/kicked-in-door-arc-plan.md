@@ -1403,6 +1403,39 @@ a 3-cell arrival strip must never cross a partition line.
 **🔎 SENIOR REVIEW GATE:** determinism / recipe lens (streams, salts, shuffle, golden hygiene,
 visibility, budgets) — lens-sized.
 
+> **K4 SHIPPED** (2026-09-06, two commits on `dev`, each behind the full ladder and a sabotage
+> pass). **`f0361359`** — the groundwork, behaviour-preserving and proven so by the dungeon
+> golden staying byte-identical: the lattice helpers leave `dungeonGeometry.ts` (338 of 348) for
+> `geometryLattice.ts`, `shuffleIds` leaves `dungeonRecipe.ts` for `recipeIds.ts` carrying the
+> reasoning that earned it, and `emitGeometry` takes its two painted materials explicitly because
+> a building's kinds are not a dungeon's themes. **`f869d200`** — the recipe: a seeded BSP that
+> RESERVES a one-cell unpainted line between every pair of rooms (that line is the visible wall —
+> `emitWallHalo` paints non-floor cells touching floor, and wall ELEMENTS never render as scenery,
+> so a zero-gap partition would be an invisible blocking line), doors punched through those lines
+> as floor cells, one front door on `entrySide`, the arrival strip inside it, a light per room,
+> kind-specific DM-only keys, and catalog furniture placed clear of every door and the arrival.
+> **The escalation question §2.3 asked is ANSWERED and did not need a fork of the wall tracer:**
+> `emitGeometry` takes the layout's own room index instead of deriving one from `rooms`. A punched
+> door cell sits outside every room rect, so deriving reads BOTH its edges as seams, removes only
+> the one door site, and walls the other — a door that opens onto a wall. Passing the index (in
+> which each punched cell belongs to one side) leaves exactly one seam per doorway.
+> **Tests: 26 properties** over 15 seeds × 4 kinds × 3 presets (one way in; sealed otherwise;
+> every room reachable; no two rooms sharing an edge; stamps on floor and clear of doors and the
+> arrival; every element inside the document; the arrival inside the entry room against its door;
+> deterministic per seed and independent of the idPrefix; `entrySide` moves the way in and nothing
+> else), a pinned golden tavern, and the stamp budget — `MAX_STAMP_ELEMENTS` was declared with the
+> others and never enforced until a recipe stamped at all. **Sabotage: 17/17 red**, one of which
+> found a real gap: the `entrySide` property drove the LAYOUT directly, so nothing pinned that the
+> RECIPE passes the caller's choice through — a DM's pick could have been silently ignored.
+> **Also:** `assertGenerateRequest` became `assertGenerateSeed` (its params argument had never
+> been read, and the registry's `assertParams` owns params now); the recipe picker is ONE shared
+> `RecipeDials`, so the kick panel and the generate panel cannot drift; `recipeAssets.ts` names
+> the catalog ids in shared and a CLIENT test asserts they exist, because only that side sees both
+> and a hand-copied list fails silently at generate time on a DM's table.
+> **Browser proof:** "The Salt Hound" kicked in as a `building` node — a plank floor partitioned
+> by VISIBLE wall bands, 11 doors, 11 lights, fog on, the party standing in the two-cell strip
+> just inside the south door, and the room keys stripped from the player element layer.
+
 ---
 
 ### K5 🟢 — Cartridge Codes (do if budget remains; else §7 — and say so in the banner)
