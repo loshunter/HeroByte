@@ -1703,6 +1703,21 @@ cuts in; a completeness critic last.
   it already refuses one past the document count. That changes when a DM's kick is refused, which
   is a product decision; the alternatives are chunking `load-session` across frames, or raising
   the server's `maxPayload` (which only moves the cliff and widens the buffer a client can force).
+- **Deleting a mapped node leaves its map behind, and nothing tests or documents that** (found by
+  the completeness critic — the lens nobody ran: the kick's LIFECYCLE). `AtlasMessageHandler`'s
+  `deleteNode` removes the node, re-parents its children and drops its links, and says in its own
+  comment that the DOCUMENT and its suspended scene are untouched. That was the Atlas arc's settled
+  design and it was fine when documents were hand-built and rare. This arc made minting a 207-235 KB
+  document a two-keystroke action while leaving reclamation manual, unmentioned in both guides, and
+  untested: `atlas-delete-node`'s contract tests cover ghosts, replay, non-DM and re-parenting, and
+  none deletes a MAPPED node to see what becomes of its document or its `sceneStates` entry. Same
+  currency as the export ceiling above — the arc made the biggest documents and made them cheap to
+  make. A DM's only undo story today is the return door, which travels back and leaves the place
+  built.
+- **`MAX_GEOMETRY_ELEMENTS` is still declared and never enforced.** §2.1 named two dead caps; K4
+  closed `MAX_STAMP_ELEMENTS` and left this one. Recording only — the measured worst case is 789
+  against a cap of 1000, and `MAX_RECIPE_ELEMENTS` would catch anything past it — but it now sits
+  beside three enforced siblings and reads as though it were one. Either enforce it or delete it.
 - **Cartridge Codes (K5, NOT shipped)** — the one slice this plan marked optional, deferred with
   the arc otherwise complete. A short code encoding `{{recipeId, params, size, seed}}` on any node
   this arc generated, copied from a 📼 and pasted into either panel to rebuild the same place. The

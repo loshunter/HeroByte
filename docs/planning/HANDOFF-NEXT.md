@@ -7,6 +7,26 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-07, THE COMPLETENESS CRITIC).** The review's last step found **8 gaps, and the
+two HIGH ones were real misses the four lenses had no reason to look for.** (1) The PLAYER guide,
+written in K6, told players to click a travel sprite — but `AtlasLinksLayer`'s hit circle is gated
+`dmView`, so a player's click does nothing, ever, by design. The same class of overclaim the review
+had already caught once in the DM guide; nobody had re-read the player's. (2) K4's Tests list
+promised "both panels render the picker and send the right shape", and the ATLAS GENERATE panel's
+building path had zero client coverage at any level — the kick panel got all of it. Also real and
+fixed: the generate panel still minted its seed with `Math.random` in violation of invariant §4.8
+(K2's capsule assigned that change and it never happened) and still lacked the `inputMode="numeric"`
+the Atlas arc's mobile lens recorded against it — the note said K2 would fold it in, and K2 built a
+NEW panel and left this one alone; K2's own promised `inputMode` assertion was never written on
+either. And the phone journey's "you are here" used two independent locators, so it passed with the
+marker on the WRONG node — PROVEN vacuous by running the old form against a player-only projection
+break (green) beside the new one (red). Two gaps are recorded in §7 rather than fixed: deleting a
+mapped node leaves its 207-235 KB document with nothing testing or documenting the reclamation
+(the lifecycle lens nobody ran), and `MAX_GEOMETRY_ELEMENTS` is still dead. The critic's clean list
+is worth reading too — it verified K1's whole Tests list, K4's 26 properties, both orientations,
+the validators, §4.16 by its own `git diff`, and confirmed the `entranceAnchor` self-referential
+assertion is NOT vacuous because independent boundary maths back it.
+
 **Update (2026-09-07, THE FINAL REVIEW IS DONE).** Four lens-sized workflows (state-machine,
 privacy, client/mobile, recipe), **22 agents, `agents_error: 0` on every one**, each followed by a
 `git status` audit — the reviews mutated nothing. **8 findings: 1 refuted 2/2, 1 contested, 6

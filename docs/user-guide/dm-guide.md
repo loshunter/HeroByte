@@ -171,6 +171,8 @@ The same panel is on the Atlas tab as **🚪 KICK IN A DOOR**, and on a phone it
 
 Every recipe is **deterministic**: the same seed and dials always produce the same place. Note a seed down and you can rebuild that tavern exactly, forever.
 
+That cuts both ways, so treat a generated room key as a **prep note, not a secret**. Players never receive the keys — they are stripped from every frame that reaches a player's browser — but the map they _can_ see is built from the same seed, so someone determined enough to read HeroByte's source could work back to what the keys say. Anything that must stay hidden belongs in your own notes.
+
 ## DM-only toolbar powers
 
 ### The player lens
