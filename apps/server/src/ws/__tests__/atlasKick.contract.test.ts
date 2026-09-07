@@ -16,6 +16,7 @@ import {
   getTerrainCell,
   type AtlasNode,
   type ClientMessage,
+  type MapTextElement,
   type PlayerStagingZone,
 } from "@herobyte/shared";
 import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
@@ -262,6 +263,53 @@ describe("atlas kick contracts", () => {
     const dmChild = latestSnapshot(dmWs)?.atlasNodes?.find((entry) => entry.id === "kick-child");
     expect(dmChild?.arrival).toEqual(arrival);
     expect(dmChild?.recipe?.size).toBe("small");
+  });
+
+  it("a kicked BUILDING's DM-only room keys reach the DM and no player, on the KICK path", async () => {
+    // The dungeon's keys are pinned on the map-studio-generate path
+    // (generateDungeon.contract.test.ts) and the building's were pinned
+    // NOWHERE, on any path — the final review's privacy lens flagged the gap.
+    // The strip is a shared mechanism, which is exactly why an unpinned second
+    // caller is worth a test: nothing would have gone red if the building had
+    // written its keys to a layer the strip does not cover.
+    //
+    // The assert is on TRANSMISSION, which is what the code controls. The keys
+    // are NOT secret against inference — a player can recover the seed from the
+    // lights they legitimately receive and replay the key roll (plan section 7,
+    // and the note atop dungeonStocking.ts).
+    //
+    // Sabotaging ONE lock leaves this green, and that is not vacuity: there are
+    // two independent locks (scenePublish's notes-layer skip and the text
+    // element's own `visibleToPlayers`), and each alone still holds when the
+    // other is removed. It goes red when BOTH give way — verified.
+    bindAdoptedOrigin();
+    seedParty();
+    await flush();
+    dmWs.send.mockClear();
+    playerWs.send.mockClear();
+
+    route(kickMessage({ recipe: { recipeId: "building", kind: "tavern", size: "small" } }));
+    await flush();
+
+    const child = state().atlasNodes.find((node) => node.id === "kick-child")!;
+    const document = h.mapStudioService.get("default", child.mapDocumentId!);
+    // A type predicate, not a bare boolean: `filter` does not narrow a
+    // discriminated union on its own, so `key.data.text` below would still be
+    // typed against every element kind.
+    const keys = document.elements.filter(
+      (element): element is MapTextElement => element.type === "text" && element.data.text !== "",
+    );
+    // Guard the guard: a tavern with no keys at all would pass every assertion
+    // below while proving nothing.
+    expect(keys.length).toBeGreaterThan(0);
+
+    for (const key of keys) {
+      const text = key.data.text;
+      expect(sentinelHits(playerWs, text)).toEqual([]);
+      // ...and the DM is the positive control: the keys DO reach them, or the
+      // assertion above is passing because nothing was sent to anyone.
+      expect(sentinelHits(dmWs, text).length).toBeGreaterThan(0);
+    }
   });
 
   it("an UNADOPTED origin (a bound document with no node) is adopted: minted `region`, named after the map, discovered, both doors pinned", () => {

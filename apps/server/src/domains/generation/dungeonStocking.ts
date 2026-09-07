@@ -5,11 +5,22 @@
 // competitor has. v0 ships the two cheapest halves of it — a brazier light per
 // lit room, and a GM-only marker saying what lives there.
 //
-// SECRECY: markers are text elements on the "notes"-kind layer, which
-// `deriveMapElements` strips from EVERY recipient's snapshot (scenePublish.ts)
-// — so they are DM-only by construction, not by filtering after the fact.
-// `visibleToPlayers: false` is belt-and-braces on top of that. They are NOT
-// `hidden: true`: hidden would also hide them from the DM's own overlay.
+// SECRECY, and its LIMIT: markers are text elements on the "notes"-kind layer,
+// which `deriveMapElements` strips from EVERY recipient's snapshot
+// (scenePublish.ts) — so they are DM-only by construction, not by filtering
+// after the fact. `visibleToPlayers: false` is belt-and-braces on top of that.
+// They are NOT `hidden: true`: hidden would also hide them from the DM's own
+// overlay.
+//
+// What that guards is TRANSMISSION, not INFERENCE. `emitStocking` draws the
+// brazier, its corner and the key from ONE stream in a fixed order, and the
+// first two are player-visible; `createSeededRng` has a 32-bit state, so a
+// player who knows this source can recover the seed from the lights they
+// legitimately receive and replay the third roll. The final review's privacy
+// lens did exactly that: 68.8 s of single-core plain JS, all 19 keys verbatim.
+// Splitting the streams does NOT close it — every stream derives from the one
+// recoverable seed. Treat a generated marker as a prep hint, not a secret; the
+// plan's §7 prices the three ways out.
 //
 // Lights compile into CompiledScene today but nothing renders them yet — that
 // is deliberate. Authoring them now means every dungeon generated before the
@@ -103,7 +114,8 @@ function brazierFor(
   };
 }
 
-/** The room's key, on the GM Notes layer. Players never receive this. */
+/** The room's key, on the GM Notes layer. Never SENT to a player — see the
+ * secrecy note atop this file for what that does and does not buy. */
 function markerFor(
   room: CellRect,
   keyRoll: number,

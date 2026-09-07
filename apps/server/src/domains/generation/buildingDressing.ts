@@ -246,7 +246,10 @@ function stampAt(
   };
 }
 
-/** The room's key, on the GM Notes layer. Players never receive this. */
+/** The room's key, on the GM Notes layer. Never SENT to a player — but the
+ * key roll shares a stream with player-visible dressing, and every stream
+ * derives from one 32-bit seed, so it is not secret against someone who
+ * knows this source. See dungeonStocking.ts's secrecy note and plan §7. */
 function markerFor(
   room: CellRect,
   text: string,
