@@ -58,6 +58,25 @@ describe("useKeyboardNavigation", () => {
     expect(params.sendMessage).not.toHaveBeenCalled();
   });
 
+  it("ignores Delete inside a <select> and a contentEditable too — the shared editable rule", () => {
+    for (const make of [
+      () => document.createElement("select"),
+      () => {
+        const div = document.createElement("div");
+        Object.defineProperty(div, "isContentEditable", { value: true });
+        return div;
+      },
+    ]) {
+      const params = createParams();
+      const hook = renderHook(() => useKeyboardNavigation(params));
+      const event = new KeyboardEvent("keydown", { key: "Delete" });
+      Object.defineProperty(event, "target", { value: make(), configurable: true });
+      window.dispatchEvent(event);
+      expect(params.sendMessage).not.toHaveBeenCalled();
+      hook.unmount();
+    }
+  });
+
   it("removes listeners on unmount", () => {
     const params = createParams();
     const hook = renderHook(() => useKeyboardNavigation(params));

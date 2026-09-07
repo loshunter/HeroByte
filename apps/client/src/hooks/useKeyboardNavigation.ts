@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isEditableTarget } from "../utils/isEditableTarget";
 
 export interface UseKeyboardNavigationParams {
   selectedDrawingId: string | null;
@@ -23,8 +24,10 @@ export function useKeyboardNavigation({
         return;
       }
 
-      const target = event.target as EventTarget | null;
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+      // The shared definition of "typing surface": the hand-rolled check
+      // missed <select> and contentEditable, so Delete inside a select (the
+      // inspector's, the DM menu's) deleted the selected drawing.
+      if (isEditableTarget(event.target)) {
         return;
       }
 
