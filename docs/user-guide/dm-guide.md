@@ -156,7 +156,8 @@ A small panel opens with the name prefilled, the recipe's dials, and a seed. Cha
 ![Seconds later: a generated tavern, the party in the entrance box just inside its door](img/dm-kick-arrival.jpg)
 
 - The new node hangs **under the one you were on**, and it is already discovered, so the players see its name the moment they arrive.
-- On the map you left there is now a 🚪 sprite where the party was standing. On the new map there is one at the entrance leading **back** — click it, confirm, and the old scene resumes exactly as you left it.
+- On the map you left there is now a 🚪 sprite where the party was standing. On the new map there is one at the entrance leading **back** — click it, confirm, and the old scene resumes as you left it: open doors, drawings, initiative, fog.
+- **Travel re-places the travelling party**, there and back. The scene resumes, but the party tokens are set down together at the destination's entrance — or, on a map with no entrance marked, at its centre. Coming back from a kicked-in door that means the middle of the old map rather than the doorway you left by; drag them where you want them.
 - **A table that was never on the Atlas is adopted by its first kick**: the map you are on becomes the campaign's first node, named after its document and discovered. You do not have to set anything up beforehand.
 - **You need a live map to kick from.** With nothing on the table the panel says so and ROLL is disabled — there is nothing to suspend and nothing to put a door on.
 - If the door does not budge within twenty seconds you get a toast; press ROLL again and it retries safely, without building the place twice.

@@ -7,6 +7,27 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-07, THE FINAL REVIEW IS DONE).** Four lens-sized workflows (state-machine,
+privacy, client/mobile, recipe), **22 agents, `agents_error: 0` on every one**, each followed by a
+`git status` audit — the reviews mutated nothing. **8 findings: 1 refuted 2/2, 1 contested, 6
+confirmed.** Five commits answer them: `26c36486` (an e2e spec race in the initiative suite — a
+bug found mid-review and fixed in its own commit), `4a003551` (a reconnect blip threw away the
+kick form; CANCEL and Escape were dead controls on a phone; the ✕ left the App flag set; a layout
+crossing mid-kick left no pending indicator), `9e14e5fb` (the generated room keys are recoverable
+by INFERENCE — a refuter recovered the seed from the published lights in 68.8 s and reproduced all
+19 keys, so the comments no longer promise secrecy they cannot deliver, and a kicked building's
+keys are pinned off the player wire at last), `2e83124e` (a table's own export can outgrow the
+1 MiB wire frame — the client now weighs it and says so, `WS_MAX_MESSAGE_BYTES` is one shared
+constant, and K6's budget test, which measured ONE real document among seven empty shells and read
+as proof, now weighs the real frame beside a characterization test that pins the gap). Full ladder
+green on a quiescent tree, dev boot included: shared 25/427, server 127/2341, client 298 files /
+5561 tests, e2e 176 passed / 3 skipped (179). **Three findings are recorded in the plan's §7 rather
+than fixed, deliberately and not silently** — the RNG-oracle (three priced options, all costing
+something the owner should choose), the byte-aware mint cap (the real fix for the export ceiling; a
+slice, because refusing a DM's kick is a product decision), and travel re-placing the party at the
+origin's centre (the Atlas arc's settled semantics, whose fix installs a player-visible zone).
+Still NOT pushed and NOT merged.
+
 **Update (2026-09-06, THE ARC IS COMPLETE).** **The Kicked-In Door arc is finished on `dev`** —
 K0–K4 and K6 shipped, K5 (Cartridge Codes) deferred to the plan's §7 as the one slice the plan
 itself marked optional. A DM presses G (or the phone's 🚪 verb), names the place, and the whole

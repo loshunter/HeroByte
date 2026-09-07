@@ -1628,6 +1628,81 @@ cuts in; a completeness critic last.
   draggable). The DM's workaround is what it looks like — drag the character aside — and the spec
   does the same. A real fix means choosing a door cell the arrival cannot occupy, which interacts
   with the strip's size and is a design change, not a tweak.
+- **The return trip re-places the party at the origin's CENTRE** (found by the final review's
+  state-machine lens; CONTESTED 1/2, and both refuters are right about different things). The kick
+  records an `arrival` for the CHILD it cashes but never for the ORIGIN it adopts — `arrival` can
+  only come from a recipe (`atlasCash.ts`), and adoption runs none. So the return leg finds no
+  staging zone (an adopted table typically never placed one), `installArrival` no-ops, and
+  `placeArrivals` takes its centre-spread branch: every travelling PC lands in a 3-wide block at
+  the middle of the origin document, not at the door they came through. The code-refuter is
+  correct that this is the ATLAS arc's specified `atlas-travel` semantics, not a hole this arc
+  opened — travel has always re-placed arrivals, and §2.3 settles the arrival rules it follows.
+  The scenario-refuter is correct that the outcome is still wrong for a DM: it reproduced
+  cell-for-cell against the real router (party at (40,30) → back at (47..49,31) on a 96×64 map).
+  Disposition: NOT fixed at closure, because the obvious fix — record the party's centroid as the
+  adopted origin's `arrival` — installs a staging zone on the origin, and §2.3 settles that an
+  installed zone RENDERS to players; that is a design change to travel, not a tweak to the kick.
+  The dm-guide now says plainly that travel re-places the party, rather than promising the scene
+  comes back exactly as left. A real fix likely belongs with travel: restore the travelling
+  tokens' captured positions instead of re-placing them when the destination scene has a capture.
+- **A generated room key is not secret against a player who knows the source** (found by the final
+  review's privacy lens; CONFIRMED 2/2, and one refuter EXECUTED it). `emitStocking` draws the
+  brazier, its corner and the DM-only key from ONE stream in a fixed order; the first two are
+  published to every player in `mapElements.lighting.lights`, and `createSeededRng` is mulberry32
+  with a 32-bit state and a bijective seed hash. So the light positions a player legitimately
+  receives over-determine the stream state, and replaying the third roll yields the keys. The
+  refuter drove a real `atlas-kick` through the real router with the panel's own defaults, then
+  attacked using ONLY the bytes on the player socket: seed recovered uniquely in 68.8 s of
+  single-core plain JS, all 19 keys reproduced verbatim. `buildingDressing` has the same shape.
+  NOT a transmission bug — the notes-layer strip works, and the review confirmed the keys never
+  ride the wire; the leak is INFERENCE. **Splitting the streams does not fix it**: every stream
+  derives from the one recoverable seed, and widening `freshSeed` does not help either, because
+  the search is over the RNG's 32-bit STATE, not the seed. Note the floor plan itself was already
+  conceded (§9.1: "the seed's DM-only status protects nothing about the map the party is standing
+  on") — what is new is that the KEYS fall out with it. Three ways out, priced, none free:
+  (1) accept it and stop claiming secrecy for generated markers — cheapest, and arguably right for
+  a friends-scale table where a key is a prep hint; (2) draw marker text from a per-generation
+  server secret — closes it completely, but the same seed no longer rebuilds the same keys, which
+  contradicts the determinism contract and the deferred Cartridge Codes that rest on it;
+  (3) stop generating markers at all and let the DM write their own. **This is the owner's call**;
+  the code comments now state the limit honestly rather than promising "players never receive
+  this", which was true of the bytes and misleading about the secret.
+- **On a phone, a reconnect blip still resets the kick form** (the remaining half of the final
+  review's client/mobile finding; the destructive half is FIXED). The hook no longer closes the
+  panel when the snapshot is merely dropped, so a desktop DM keeps their half-filled form through a
+  hiccup. On a phone the surface machine keeps `local === "kick"`, but `MobileSurfaces` gates the
+  screen on the LIVE `props.isDM`, so the screen unmounts for the blip and comes back as a fresh
+  mount: the typed name, the dials and the seed are gone. NOT fixed here because both candidate
+  fixes are wider than the kick. (1) Derive the layouts' DM flag from `layoutSnapshot` the way the
+  snapshot itself already is — `App.tsx` hands the layouts a CACHED snapshot through a blip and the
+  LIVE `isDM` beside it, which is the inconsistency underneath this; that is the right fix and it
+  changes every DM surface's behaviour during a reconnect, which wants its own slice and its own
+  review. (2) Lift `KickPanel`'s five pieces of form state to the hook, which is what invariant
+  §4.15 already argues for the PENDING state ("so a layout crossing cannot drop it") and would make
+  a remount restore rather than reset. Severity is a lost form behind a Reconnecting banner, not
+  lost work on the table.
+- **THE HIGHEST OPEN ITEM: a table's own export can outgrow the wire** (found by the final
+  review's recipe lens; CONFIRMED 2/2, reproduced independently by both refuters against the real
+  router and a real `ws` server). `MAX_SESSION_DOCUMENTS` (64) is documented as the mint ceiling
+  that keeps a DM's export re-importable — but the gate that actually refuses a load is a BYTE
+  ceiling (1 MiB), and 1 MiB / 64 means a COUNT cap only holds if the average document is under
+  16 KB. One `large` generated building is **207-235 KB stored**, so four to five kicked-in doors
+  at `large` (or about ten at `medium`) write a file whose `load-session` frame ws drops at the
+  socket level: closed with 1009 before any handler runs, so the server never says no. The kick is
+  strictly heavier than plain generate, because every kick suspends the scene it leaves and those
+  `sceneStates` ride the same envelope. The arc did not create the mismatch, but K4 made the
+  biggest documents and K6's own budget test measured exactly ONE of them among seven empty
+  shells — which read as proof and was not. **Done at closure:** the budget test now weighs the
+  real `load-session` FRAME, `sessionRoundTrip.contract.test.ts` carries a CHARACTERIZATION test
+  that mints six large buildings well inside every cap and asserts the frame is over the limit
+  (invert it the day this is fixed), and the client weighs the frame before sending and tells the
+  DM the real numbers instead of toasting "loaded successfully!" over a dead socket
+  (`WS_MAX_MESSAGE_BYTES` is now one shared constant, not three copies of `1024 * 1024`).
+  **NOT done — this is the actual fix and it is a slice, not a patch:** make the mint path weigh
+  bytes, so `cashNode` refuses a kick that would take the room past a re-importable export the way
+  it already refuses one past the document count. That changes when a DM's kick is refused, which
+  is a product decision; the alternatives are chunking `load-session` across frames, or raising
+  the server's `maxPayload` (which only moves the cliff and widens the buffer a client can force).
 - **Cartridge Codes (K5, NOT shipped)** — the one slice this plan marked optional, deferred with
   the arc otherwise complete. A short code encoding `{{recipeId, params, size, seed}}` on any node
   this arc generated, copied from a 📼 and pasted into either panel to rebuild the same place. The
