@@ -29,6 +29,8 @@ import {
   type RenderableMapElement,
 } from "@herobyte/shared";
 import { RoomService, SNAPSHOT_SIZE_LIMIT_BYTES } from "../service.js";
+import { GENERATE_PRESETS } from "../../../ws/handlers/atlasCash.js";
+import { buildingRecipe } from "../../generation/buildingRecipe.js";
 import { dungeonRecipe } from "../../generation/dungeonRecipe.js";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
@@ -199,6 +201,158 @@ describe("Snapshot size guard", () => {
       mapTerrain: { terrain, grid: { size: 50, offsetX: 0, offsetY: 0 }, opacity: 1 },
     });
 
+    // Guard the guard: "under the limit" is trivially true of an empty map, so
+    // pin a FLOOR too. A recipe that silently emitted nothing — or a snapshot
+    // that dropped the scene — would sail under the ceiling while proving
+    // nothing. The floors sit well below the measured 701 elements / 5819 cells / 80.4 KB so they cannot
+    // become a brittle target; they only assert a real map is being weighed.
+    expect(output.elements.length).toBeGreaterThan(400);
+    expect(output.cells.length).toBeGreaterThan(4_000);
+    expect(wireBytes(service.createSnapshot())).toBeGreaterThan(40000);
+    expect(wireBytes(service.createSnapshot())).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+  });
+
+  it("keeps a MAXED generated BUILDING, plus a kick's two links, under the guard", () => {
+    // The building's twin. A warehouse is the stamp-heaviest kind (crates
+    // along every wall) at the LARGEST preset a kick can ask for, and a kick
+    // ships TWO atlas links with the frame it lands on — so this is the
+    // largest single thing the kicked-in door can put on a DM's wire. The
+    // bound comes from GENERATE_PRESETS rather than a copied number, so a
+    // preset that grows later grows this guard with it. Built by the REAL
+    // recipe, as its twin is.
+    const bounds = { x: 0, y: 0, ...GENERATE_PRESETS.large };
+    const grid = {
+      type: "square" as const,
+      size: 50,
+      squareSize: 5,
+      offsetX: 0,
+      offsetY: 0,
+      visible: true,
+      snap: true,
+    };
+    const output = buildingRecipe(
+      1,
+      bounds,
+      { recipeId: "building", kind: "warehouse" },
+      {
+        grid,
+        layerIds: { walls: "walls", lighting: "lighting", notes: "notes", objects: "objects" },
+        idPrefix: "budget-building",
+      },
+    );
+
+    let terrain = createTerrainMap();
+    terrain = setTerrainCells(terrain, output.cells);
+    const compiledScene = compileScene(
+      {
+        schemaVersion: 1,
+        id: "live-doc",
+        name: "doc",
+        width: 8192,
+        height: 8192,
+        grid,
+        layers: [
+          {
+            id: "walls",
+            name: "w",
+            kind: "walls",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 0,
+          },
+          {
+            id: "lighting",
+            name: "l",
+            kind: "lighting",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 1,
+          },
+          {
+            id: "notes",
+            name: "n",
+            kind: "notes",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 2,
+          },
+          {
+            id: "objects",
+            name: "o",
+            kind: "objects",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 3,
+          },
+        ],
+        elements: output.elements,
+        revision: 1,
+        createdAt: 0,
+        updatedAt: 0,
+      },
+      1,
+    );
+
+    const service = new RoomService({ stateFile: TEST_STATE_FILE });
+    service.setState({
+      liveMapDocumentId: "live-doc",
+      compiledScene,
+      mapTerrain: { terrain, grid: { size: 50, offsetX: 0, offsetY: 0 }, opacity: 1 },
+      atlasNodes: [
+        {
+          id: "origin",
+          kind: "region",
+          name: "The Harbour Road",
+          discovered: true,
+          mapDocumentId: "origin-doc",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        {
+          id: "child",
+          kind: "building",
+          name: "The Salt Hound",
+          parentId: "origin",
+          discovered: true,
+          mapDocumentId: "live-doc",
+          recipe: { recipeId: "building", kind: "warehouse", seed: 1, size: "large" },
+          arrival: { x: 10, y: 10, width: 3, height: 1, rotation: 0 },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      atlasLinks: [
+        {
+          id: "out",
+          fromNodeId: "origin",
+          toNodeId: "child",
+          anchor: { x: 275, y: 275 },
+          linkType: "door",
+          visibleToPlayers: true,
+        },
+        {
+          id: "back",
+          fromNodeId: "child",
+          toNodeId: "origin",
+          anchor: { x: 525, y: 925 },
+          linkType: "door",
+          visibleToPlayers: true,
+        },
+      ],
+    });
+
+    // Guard the guard: "under the limit" is trivially true of an empty map, so
+    // pin a FLOOR too. A recipe that silently emitted nothing — or a snapshot
+    // that dropped the scene — would sail under the ceiling while proving
+    // nothing. The floors sit well below the measured 1011 elements / 6144 cells / 39.6 KB so they cannot
+    // become a brittle target; they only assert a real map is being weighed.
+    expect(output.elements.length).toBeGreaterThan(500);
+    expect(output.cells.length).toBeGreaterThan(4_000);
+    expect(wireBytes(service.createSnapshot())).toBeGreaterThan(20000);
     expect(wireBytes(service.createSnapshot())).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
   });
 

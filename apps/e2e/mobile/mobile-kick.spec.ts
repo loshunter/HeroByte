@@ -69,6 +69,12 @@ test.describe("mobile — the kicked-in door", () => {
       await dm.setViewportSize(PORTRAIT);
 
       const screen = dm.getByRole("dialog", { name: "Kick in a door" });
+      // A BUILDING from the phone (K4): the picker's second recipe, whose
+      // dials replace the dungeon's — the name follows it until it is typed
+      // over, so filling the name comes after the recipe is chosen.
+      await screen.getByLabel("Recipe").selectOption("building");
+      await screen.getByLabel("Kind").selectOption("shop");
+      await expect(screen.getByLabel("Name")).toHaveValue("Shop");
       await screen.getByLabel("Name").fill("Cellar");
       await screen.getByLabel("Size").selectOption("small");
       await screen.getByRole("button", { name: "🚪 ROLL" }).click();
@@ -81,7 +87,7 @@ test.describe("mobile — the kicked-in door", () => {
           const here = data?.snapshot?.atlasNodes?.find(
             (node) => node.id === data.snapshot?.currentAtlasNodeId,
           );
-          return here?.name === "Cellar" && Boolean(here.parentId);
+          return here?.name === "Cellar" && here.kind === "building" && Boolean(here.parentId);
         },
         undefined,
         { timeout: 30_000 },

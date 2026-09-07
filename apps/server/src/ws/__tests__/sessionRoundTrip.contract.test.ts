@@ -436,11 +436,18 @@ describe("session round trip", () => {
   });
 
   it("a realistically LARGE suspended campaign survives export→import inside the wire ceiling (A7)", () => {
-    // Eight fought-over dungeons suspended at once — far past any friendly
+    // Eight fought-over places suspended at once — far past any friendly
     // game, still legitimate. The bound that matters is the ws server's
     // maxPayload (1 MiB): the load-session message must carry the whole file
     // through one frame, so the FILE gets a 90% ceiling here and the margin
     // is the message envelope's.
+    //
+    // K6: one of the eight is a REAL GENERATED BUILDING, cashed through the
+    // real generate path at the largest preset a kick can ask for. The other
+    // seven documents are empty shells, so before this the ceiling was
+    // measured against scene payloads alone and said nothing about the
+    // document a kicked-in door actually mints — which is the biggest thing
+    // in the file.
     const fatScene = (documentId: string): SceneState => ({
       mapDocumentId: documentId,
       suspendedAt: 7,
@@ -480,16 +487,38 @@ describe("session round trip", () => {
     });
     // The scenes must key REAL documents — the loader deliberately drops a
     // scene whose document is not in the file (the ghost-scene degrade).
-    for (let i = 0; i < 8; i++) {
+    for (let i = 1; i < 8; i++) {
       origin.route({
         t: "map-studio-create",
         document: { id: `suspended-doc-${i}`, name: `Suspended ${i}` },
       });
     }
+    origin.route({
+      t: "atlas-create-node",
+      node: { id: "the-warehouse", kind: "building", name: "The Salt Hound" },
+    });
+    origin.route({
+      t: "atlas-generate-node",
+      nodeId: "the-warehouse",
+      commandId: "gen-warehouse",
+      seed: 12345,
+      recipe: { recipeId: "building", kind: "warehouse", size: "large" },
+    });
+    const buildingDocId = origin.roomService
+      .getState()
+      .atlasNodes.find((node) => node.id === "the-warehouse")!.mapDocumentId!;
+    // Guard the guard: a generate that silently failed would leave an empty
+    // shell here and the ceiling would pass while measuring nothing.
+    expect(origin.mapStudioService.get("default", buildingDocId).elements.length).toBeGreaterThan(
+      50,
+    );
+
+    const suspended = [
+      buildingDocId,
+      ...Array.from({ length: 7 }, (_, i) => `suspended-doc-${i + 1}`),
+    ];
     origin.roomService.setState({
-      sceneStates: Object.fromEntries(
-        Array.from({ length: 8 }, (_, i) => [`suspended-doc-${i}`, fatScene(`suspended-doc-${i}`)]),
-      ),
+      sceneStates: Object.fromEntries(suspended.map((id) => [id, fatScene(id)])),
     });
 
     const file = exportSession();
@@ -514,9 +543,13 @@ describe("session round trip", () => {
       state: "open",
       authored: "closed",
     });
-    expect(after.sceneStates["suspended-doc-0"]?.initiatives["char-11"]).toEqual({
+    expect(after.sceneStates[buildingDocId]?.initiatives["char-11"]).toEqual({
       initiative: 9,
     });
+    // ...and the building came back as a building, not an empty shell.
+    expect(restored.mapStudioService.get("default", buildingDocId).elements.length).toBeGreaterThan(
+      50,
+    );
   });
 
   it("writes a file the loaders can actually read", () => {
