@@ -1,6 +1,6 @@
 # DM Guide
 
-Everything the Dungeon Master runs from — [elevate to DM](getting-started.md#becoming-the-dm) first, then open the **🛠️ DM MENU** (bottom-right). This guide covers the DM Menu's five tabs plus the DM-only toolbar powers. Building the map itself has [its own guide](map-editor-guide.md).
+Everything the Dungeon Master runs from — [elevate to DM](getting-started.md#becoming-the-dm) first, then open the **🛠️ DM MENU** (bottom-right). This guide covers the DM Menu's five tabs plus the DM-only toolbar powers. Building the map itself has [its own guide](map-editor-guide.md), and if you are deciding **how** to run a map at all — your own art, built by hand, or generated on the spot — start with [Running a Game](running-a-game.md).
 
 ## Map Setup
 
@@ -63,7 +63,7 @@ NPCs are yours alone to edit: players can't rename, damage, or move them.
 - **Size** — the same six token sizes.
 - **×N** — type a count before pressing add and that many copies scatter around your view centre in one go, numbered (`Crate 1`…`Crate 6`). Made for crate piles and market stalls; the ceiling is 20 per press.
 
-For _built-in_ scenery art (crates, tables, boats, standing stones…) you'll usually place assets with the [map editor's Place tool](map-editor-guide.md#-place-scatter-and-row--set-dressing) instead; Props shine for custom images and player-ownable objects.
+For _built-in_ scenery art (crates, tables, boats, standing stones…) you'll usually place assets with the [map editor's Place tool](map-editor-guide.md#-place--scatter-and--row--set-dressing) instead; Props shine for custom images and player-ownable objects.
 
 ## Players
 
@@ -147,7 +147,7 @@ Your campaign is a **tree of maps**, and HeroByte can travel the whole table bet
 
 ### 🚪 The Kicked-In Door
 
-The party just kicked in a door you never prepped. **Press G.**
+The party just kicked in a door you never prepped. **Press G.** ([Running a Game](running-a-game.md#c--kick-in-a-door) walks this one step by step, and shows how it combines with the other two ways of putting a map on the table.)
 
 ![The kick panel: name it, pick the recipe, ROLL](img/dm-kick-panel.jpg)
 

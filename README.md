@@ -169,6 +169,7 @@ The server reads more variables than these (storage paths, table limits, feature
 | Guide                                                       | What it covers                                                                                                                     |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **[Getting Started](docs/user-guide/getting-started.md)**   | Joining a table, private tables & invite links, becoming the DM                                                                    |
+| **[Running a Game](docs/user-guide/running-a-game.md)**     | The three ways to run a map — your own art, build it, or generate it mid-session — and how to mix them                             |
 | **[Player Guide](docs/user-guide/player-guide.md)**         | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, the world map, mobile play                      |
 | **[DM Guide](docs/user-guide/dm-guide.md)**                 | The DM Menu: map setup, NPCs & props, combat, session save/load, table security, the Atlas and the Kicked-In Door, the player lens |
 | **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator                           |

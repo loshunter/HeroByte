@@ -4,6 +4,11 @@ HeroByte's map editor runs **on the live table**: every room, wall, door, and br
 
 It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **🏗️ MAP** in the top toolbar. On a phone or tablet the door is a different one — see [On a phone or tablet](#on-a-phone-or-tablet) at the end.
 
+> Building by hand is one of three ways to put a map on the table — the other two are bringing your own
+> art and generating a place mid-session with the Kicked-In Door.
+> [Running a Game](running-a-game.md) compares them and shows how to mix them (including how to get
+> fog and doors onto a downloaded image using only the wall and door tools below).
+
 ## Starting a live map
 
 The palette opens with one button:
