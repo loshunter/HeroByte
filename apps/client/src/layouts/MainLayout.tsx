@@ -406,6 +406,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         contextMenu={contextMenu}
         deleteToken={deleteToken}
         setContextMenu={setContextMenu}
+        onStartLiveMap={mapEditToolbarProps.onStartLiveMap}
         dmMenuProps={dmMenuProps}
         snapshot={snapshot}
         kick={kick}

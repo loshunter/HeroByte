@@ -159,7 +159,7 @@ A small panel opens with the name prefilled, the recipe's dials, and a seed. Cha
 - On the map you left there is now a 🚪 sprite where the party was standing. On the new map there is one at the entrance leading **back** — click it, confirm, and the old scene resumes as you left it: open doors, drawings, initiative, fog.
 - **Travel re-places the travelling party**, there and back. The scene resumes, but the party tokens are set down together at the destination's entrance — or, on a map with no entrance marked, at its centre. Coming back from a kicked-in door that means the middle of the old map rather than the doorway you left by; drag them where you want them.
 - **A table that was never on the Atlas is adopted by its first kick**: the map you are on becomes the campaign's first node, named after its document and discovered. You do not have to set anything up beforehand.
-- **You need a live map to kick from.** With nothing on the table the panel says so and ROLL is disabled — there is nothing to suspend and nothing to put a door on.
+- **You need a live map to kick from** — there is nothing to suspend and nothing to put a door on without one. A background image does not count. If the table has no live map, the panel says so and offers **▶ START LIVE MAP** in place of a dead ROLL button; click it and ROLL enables itself a moment later.
 - If the door does not budge within twenty seconds you get a toast; press ROLL again and it retries safely, without building the place twice.
 
 The same panel is on the Atlas tab as **🚪 KICK IN A DOOR**, and on a phone it is the second verb on the DM screen (**♛ DM → 🚪 Kick in a door**), with a **⏳ Kicking…** chip over the dock while it works.

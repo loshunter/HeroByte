@@ -671,6 +671,26 @@ describe("MobileLayout", () => {
       // pinned that ROLL leaves the surface and never that CANCEL does, so
       // `closeKick` kept pointing at the desktop-only `open` flag — which
       // nothing on a phone reads. CANCEL and Escape were dead controls.
+      it("the phone's kick screen offers START LIVE MAP too — the desktop is not the only half", async () => {
+        // The panel test covers the button; only this one covers the phone
+        // actually HANDING it the action. Deleting the mobile wiring left the
+        // panel suite green, which is how a half-platform fix ships.
+        const kick = kickControls({ canKick: false });
+        const base = dmProps(kick);
+        const onStartLiveMap = vi.fn();
+        render(
+          <MobileLayout
+            {...base}
+            mapEditToolbarProps={{ ...base.mapEditToolbarProps, onStartLiveMap }}
+          />,
+        );
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+
+        fireEvent.click(screen.getByRole("button", { name: "▶ START LIVE MAP" }));
+        expect(onStartLiveMap).toHaveBeenCalledTimes(1);
+      });
+
       it("CANCEL leaves the surface, not just the desktop flag", async () => {
         const kick = kickControls();
         render(<MobileLayout {...dmProps(kick)} />);

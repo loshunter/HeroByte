@@ -108,7 +108,9 @@ place you left is waiting exactly as it stood when you come back.
 
 ### Do this
 
-1. Be on a live map. Path B gives you one, and any place you have already kicked in is one — but a background image on its own is not, and **ROLL** will be greyed out until you start one.
+1. Be on a live map. Path B gives you one, and any place you have already kicked in is one — but a
+   background image on its own is not. If the table has no live map the panel says so and offers
+   **▶ START LIVE MAP** right there; click it, wait a moment, and **ROLL** lights up.
 2. Press **G**. On a phone: **♛ DM** → **🚪 Kick in a door**. There is also
    **🚪 KICK IN A DOOR** on the DM Menu's **Atlas** tab.
 3. The panel opens with the name already filled in and your last dials remembered. Type a name if
@@ -151,7 +153,8 @@ underneath it. A cellar under the tavern under the town is three keystrokes.
 You get a toast after twenty seconds. Press **🚪 ROLL** again — it retries safely and cannot build
 the place twice.
 
-If **ROLL** is greyed out, the table has no live map. Start one (Path B, step 1) and try again.
+If **ROLL** is greyed out, the table has no live map — click **▶ START LIVE MAP** in the panel and
+it will light up on its own.
 
 ### The dials
 

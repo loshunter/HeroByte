@@ -14,10 +14,18 @@ import { defaultName, freshSeed } from "./kickDefaults";
 import { RecipeDials } from "./RecipeDials";
 import type { KickControls } from "./useKickedInDoor";
 
-export const KICK_NEEDS_LIVE_MAP = "Start a live map first (🏗️ MAP → START LIVE MAP)";
+export const KICK_NEEDS_LIVE_MAP =
+  "This table has no live map yet — a background image is a picture, and a kick needs geometry to put a door on.";
 
 export interface KickPanelProps {
   kick: KickControls;
+  /**
+   * Starts a live map from inside the panel. Optional so a caller that has no
+   * map-edit state can still render the form, but BOTH layouts pass it: without
+   * it this panel is a dead end — it told the DM where to go and left them at a
+   * disabled ROLL, which is exactly how a real table lost time on it.
+   */
+  onStartLiveMap?: () => void;
   atlasNodes: readonly Pick<AtlasNodeSnapshot, "name">[];
   /** "panel" floats (desktop); "content" is bare for a phone screen. */
   presentation?: "panel" | "content";
@@ -36,7 +44,12 @@ const labelStyle = {
   gap: "3px",
 } as const;
 
-export function KickPanel({ kick, atlasNodes, presentation = "panel" }: KickPanelProps) {
+export function KickPanel({
+  kick,
+  atlasNodes,
+  onStartLiveMap,
+  presentation = "panel",
+}: KickPanelProps) {
   const { settings, pending, canKick } = kick;
   const [recipe, setRecipe] = useState<GenerateRequest>(settings.recipe);
   // The name follows the recipe until the DM types over it: picking `building`
@@ -81,6 +94,9 @@ export function KickPanel({ kick, atlasNodes, presentation = "panel" }: KickPane
       onKeyDown={onKeyDown}
       style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "260px" }}
     >
+      {/* The name is the identity (VISION's Signature Move 1); the subtitle is
+          what it DOES, for a DM meeting it for the first time. */}
+      <p style={{ margin: 0, fontSize: "9px", opacity: 0.75 }}>Generate a connected location</p>
       <label style={labelStyle}>
         Name
         <input
@@ -141,8 +157,21 @@ export function KickPanel({ kick, atlasNodes, presentation = "panel" }: KickPane
         </JRPGButton>
       </div>
       {!canKick && (
-        <div data-testid="kick-needs-live-map" style={{ fontSize: "9px", opacity: 0.85 }}>
-          {KICK_NEEDS_LIVE_MAP}
+        <div
+          data-testid="kick-needs-live-map"
+          style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "9px" }}
+        >
+          <span style={{ opacity: 0.85 }}>{KICK_NEEDS_LIVE_MAP}</span>
+          {onStartLiveMap && (
+            <JRPGButton
+              type="button"
+              onClick={onStartLiveMap}
+              data-testid="kick-start-live-map"
+              style={{ fontSize: "9px" }}
+            >
+              ▶ START LIVE MAP
+            </JRPGButton>
+          )}
         </div>
       )}
       <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
