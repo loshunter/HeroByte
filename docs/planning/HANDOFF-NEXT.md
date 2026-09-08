@@ -7,6 +7,18 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-07, THE OWNER DECIDED).** The one item the final review put to the owner is
+**CLOSED: generated encounter markers are prep notes, not secrets** — option (1) of the plan's §7
+RNG-oracle entry. Reasoning on the record: the attack costs a deliberate reconstruction from source
+by a player whose own game it spoils. Do NOT reopen it as a defect and do NOT reseed the markers
+(that costs seed-reproducibility, which Cartridge Codes rest on). Transmission secrecy is unchanged
+and must not regress — the keys are still stripped from every player frame by two independent
+locks. One adjacent idea from the same exchange is NOT yet recorded anywhere: a streaming DM's
+screen shows the markers to their own players, which wants a "hide GM notes" toggle; and the same
+conversation raised **stream mode for JOIN CODES** (hidden by default, toggled into a visible
+overlay for open community nights) — that belongs with invite links and the Claim Window in M6, not
+in this arc.
+
 **Update (2026-09-07, THE COMPLETENESS CRITIC).** The review's last step found **8 gaps, and the
 two HIGH ones were real misses the four lenses had no reason to look for.** (1) The PLAYER guide,
 written in K6, told players to click a travel sprite — but `AtlasLinksLayer`'s hit circle is gated

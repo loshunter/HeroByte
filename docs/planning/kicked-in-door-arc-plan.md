@@ -1664,9 +1664,20 @@ cuts in; a completeness critic last.
   a friends-scale table where a key is a prep hint; (2) draw marker text from a per-generation
   server secret — closes it completely, but the same seed no longer rebuilds the same keys, which
   contradicts the determinism contract and the deferred Cartridge Codes that rest on it;
-  (3) stop generating markers at all and let the DM write their own. **This is the owner's call**;
-  the code comments now state the limit honestly rather than promising "players never receive
-  this", which was true of the bytes and misleading about the secret.
+  (3) stop generating markers at all and let the DM write their own.
+  **DECIDED by the owner, 2026-09-07: option (1) — ACCEPT IT. A generated marker is a prep note,
+  not a secret.** The reasoning is the threat model: the attack costs a deliberate reconstruction
+  from source by a player whose own game it spoils, which is not a person at a friends-scale table.
+  So this is CLOSED, not deferred — do NOT reopen it as a defect, and do not "fix" it by reseeding
+  the markers: that would cost seed-reproducibility, which the deferred Cartridge Codes rest on.
+  What stays true and must not regress: the keys are still STRIPPED from every player frame (two
+  independent locks, pinned by `atlasKick.contract.test.ts`), because transmission secrecy is what
+  keeps them off a player's screen in the ordinary case. Only the CLAIM changed — the code comments
+  and the DM guide now say a marker is a prep note rather than promising secrecy they cannot
+  deliver. A DM who needs something genuinely hidden keeps it in their own notes.
+  **Adjacent and still open, from the same conversation:** a streaming DM's screen shows these
+  markers to everyone watching, including their own players. That is a DISPLAY problem, not an
+  inference one — a "hide GM notes" toggle — and it is not recorded anywhere yet.
 - **On a phone, a reconnect blip still resets the kick form** (the remaining half of the final
   review's client/mobile finding; the destructive half is FIXED). The hook no longer closes the
   panel when the snapshot is merely dropped, so a desktop DM keeps their half-filled form through a
