@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import type { ClientMessage, SessionFile } from "@herobyte/shared";
+import { WS_MAX_MESSAGE_BYTES, type ClientMessage, type SessionFile } from "@herobyte/shared";
 import { saveSessionFile, loadSession } from "../../utils/sessionPersistence";
 import { awaitSessionFile, sessionCredentials } from "./sessionBridge";
 import { collectSessionAssets, restoreSessionAssets } from "./sessionAssets";
@@ -178,6 +178,37 @@ export function useSessionManagement({
           return;
         }
 
+        const frame: ClientMessage = {
+          t: "load-session",
+          snapshot: session.snapshot,
+          mapDocuments: session.mapDocuments,
+          liveMapDocumentId: session.liveMapDocumentId,
+          // Envelope-only cargo: the snapshot half never carries scenes, so
+          // omitting this line is the silent-suspended-scene-loss bug.
+          sceneStates: session.sceneStates,
+        };
+
+        // WEIGH IT BEFORE SENDING. A load-session frame past the wire limit is
+        // dropped by ws at the socket level — the close arrives with 1009
+        // before any handler runs, so the server never says no and this hook
+        // used to toast "loaded successfully!" over a table that had not
+        // changed at all. A DM with a few generated maps can reach that size
+        // (see the plan's section 7): the count cap that guards re-importability
+        // only holds if the average document is small, and a generated building
+        // is not. Say the real numbers rather than fail invisibly. Checked
+        // BEFORE restoreSessionAssets so a doomed load costs no uploads.
+        const frameBytes = new TextEncoder().encode(JSON.stringify(frame)).length;
+        if (frameBytes > WS_MAX_MESSAGE_BYTES) {
+          const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+          toast.error(
+            `"${file.name}" is too large to load: ${mb(frameBytes)}, and the server accepts ` +
+              `${mb(WS_MAX_MESSAGE_BYTES)} in one message. The table has NOT been changed. ` +
+              `Delete some maps from the campaign and export again.`,
+            9000,
+          );
+          return;
+        }
+
         // Assets FIRST, and awaited: the snapshot that names them broadcasts as
         // soon as load-session lands, and the asset responses carry an immutable
         // year-long cache header — so a client that asks too early could cache a
@@ -190,15 +221,7 @@ export function useSessionManagement({
           }
         }
 
-        sendMessage({
-          t: "load-session",
-          snapshot: session.snapshot,
-          mapDocuments: session.mapDocuments,
-          liveMapDocumentId: session.liveMapDocumentId,
-          // Envelope-only cargo: the snapshot half never carries scenes, so
-          // omitting this line is the silent-suspended-scene-loss bug.
-          sceneStates: session.sceneStates,
-        });
+        sendMessage(frame);
 
         if (warnings.length > 0) {
           toast.warning(`Session loaded with warnings: ${warnings.join(", ")}`, 5000);

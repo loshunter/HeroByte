@@ -55,6 +55,7 @@ describe("AtlasLinksLayer", () => {
   it("renders only links FROM the current node — anchors belong to that map alone", () => {
     render(
       <AtlasLinksLayer
+        sceneInputArmed={false}
         cam={cam}
         links={[link(), link({ id: "link-2", fromNodeId: "node-elsewhere" })]}
         currentNodeId="node-here"
@@ -69,7 +70,13 @@ describe("AtlasLinksLayer", () => {
 
   it("renders nothing when the current node is unknown (the deliberately mysterious frame)", () => {
     const { container } = render(
-      <AtlasLinksLayer cam={cam} links={[link()]} currentNodeId={undefined} dmView={false} />,
+      <AtlasLinksLayer
+        cam={cam}
+        links={[link()]}
+        currentNodeId={undefined}
+        dmView={false}
+        sceneInputArmed={false}
+      />,
     );
     expect(container.querySelector("[data-testid=konva-group]")).toBeNull();
   });
@@ -77,6 +84,7 @@ describe("AtlasLinksLayer", () => {
   it("nests the camera then the map transform, the DoorsLayer alignment contract", () => {
     render(
       <AtlasLinksLayer
+        sceneInputArmed={false}
         cam={cam}
         links={[link()]}
         currentNodeId="node-here"
@@ -92,6 +100,7 @@ describe("AtlasLinksLayer", () => {
     const onTravel = vi.fn();
     render(
       <AtlasLinksLayer
+        sceneInputArmed={false}
         cam={cam}
         links={[link({ toNodeId: "node-away" })]}
         currentNodeId="node-here"
@@ -113,6 +122,7 @@ describe("AtlasLinksLayer", () => {
     const onTravel = vi.fn();
     render(
       <AtlasLinksLayer
+        sceneInputArmed={false}
         cam={cam}
         // The player projection blanks toNodeId when the target is hidden.
         links={[link()]}
@@ -128,6 +138,7 @@ describe("AtlasLinksLayer", () => {
     // not produce a hit shape — dmView is part of canTravel on purpose.
     render(
       <AtlasLinksLayer
+        sceneInputArmed={false}
         cam={cam}
         links={[link({ toNodeId: "node-away" })]}
         currentNodeId="node-here"
@@ -141,6 +152,7 @@ describe("AtlasLinksLayer", () => {
   it("marks a players-can't-see-this link for the DM alone", () => {
     render(
       <AtlasLinksLayer
+        sceneInputArmed={false}
         cam={cam}
         links={[link({ toNodeId: "node-away", visibleToPlayers: false })]}
         currentNodeId="node-here"
@@ -157,6 +169,7 @@ describe("AtlasLinksLayer", () => {
     // on that alone).
     render(
       <AtlasLinksLayer
+        sceneInputArmed={false}
         cam={cam}
         links={[link({ visibleToPlayers: false })]}
         currentNodeId="node-here"
@@ -164,5 +177,28 @@ describe("AtlasLinksLayer", () => {
       />,
     );
     expect(circleProps.filter((p) => Array.isArray(p.dash))).toHaveLength(0);
+  });
+
+  it("the DM's hit shape goes DEAF while a tool owns the press (the mobile lens's L1)", () => {
+    // A listening shape wins the press: a brush tap over the badge painted AND
+    // opened the whole-table travel confirm; an aimed link tap prompted instead
+    // of placing. The badge stays (the DM can still see the door) but yields —
+    // DoorsLayer's `listening={!selectArmed}` idiom, on the router's own
+    // seven-term predicate so no tool can be missed.
+    const onTravel = vi.fn();
+    render(
+      <AtlasLinksLayer
+        sceneInputArmed={true}
+        cam={cam}
+        links={[link({ toNodeId: "node-away" })]}
+        currentNodeId="node-here"
+        dmView={true}
+        onTravel={onTravel}
+      />,
+    );
+    const hit = circleProps.find((p) => p.name === "atlas-link-hit:link-1");
+    expect(hit).toBeDefined();
+    expect(hit!.listening).toBe(false);
+    expect(circleProps.filter((p) => p.listening === true)).toHaveLength(0);
   });
 });

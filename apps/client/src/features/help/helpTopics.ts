@@ -67,12 +67,12 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "The Atlas tab",
         detail:
-          "DM Menu → Atlas. Your campaign as a tree of maps: create nodes, link maps you built, or GENERATE a dungeon straight into an empty one.",
+          "DM Menu → Atlas. Your campaign as a tree of maps: create nodes, link maps you built, or GENERATE a dungeon or a building straight into an empty one.",
       },
       {
         term: "Promises",
         detail:
-          "A node without a map (⬒) is a promise — pick 🎲 Generate… or 🔗 Link existing map to make it real when the party gets there.",
+          "A node without a map (⬒) is a promise — pick 🎲 Generate… or 🔗 Link existing map to make it real when the party gets there. It costs nothing until then.",
       },
       {
         term: "🚩 TRAVEL",
@@ -88,6 +88,16 @@ export const HELP_TOPICS: HelpTopic[] = [
         term: "🗺 World Map & links",
         detail:
           "Players carry the discovered world: the 🗺 WORLD button (on a phone, Tools → World). The DM can also pin door/stair/signpost sprites onto the map itself — ⚓ in the Atlas tab, then click where it sits — and click one to travel there.",
+      },
+      {
+        term: "The recipes",
+        detail:
+          "Dungeon — rooms, corridors, doors, braziers, and a DM-only key per room. Building — a tavern, shop, warehouse or house, partitioned by real walls with one front door you arrive just inside. Same seed and dials, same place, forever.",
+      },
+      {
+        term: "🚪 Kick in a door",
+        detail:
+          "The party kicked in a door you never prepped? Press G (or 🚪 KICK IN A DOOR in the Atlas tab; on a phone, DM → 🚪 Kick in a door): name it, pick the dials, ROLL — the whole table is standing in a fresh, stocked scene under the node you were on, with a door back. A table that was never on the Atlas is adopted by its first kick.",
       },
     ],
   },

@@ -6,7 +6,7 @@
 
 import type { WebSocket, WebSocketServer } from "ws";
 import type { IncomingMessage } from "http";
-import type { ClientMessage } from "@herobyte/shared";
+import { WS_MAX_MESSAGE_BYTES, type ClientMessage } from "@herobyte/shared";
 import type { Container } from "../container.js";
 import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
 import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";
@@ -70,7 +70,7 @@ export class ConnectionHandler {
     this.idleRoomManager = new IdleRoomUnloadManager(container);
     this.pipelineManager = new MessagePipelineManager(
       {
-        maxMessageSize: 1024 * 1024, // 1MB
+        maxMessageSize: WS_MAX_MESSAGE_BYTES,
         onValidMessage: (message, uid) => this.handleValidatedMessage(message, uid),
       },
       container.rateLimiter,

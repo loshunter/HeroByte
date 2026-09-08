@@ -20,6 +20,16 @@ describe("WorldMapPanel", () => {
     expect(screen.getByText(/The map is blank/)).toBeInTheDocument();
   });
 
+  it("a NULL snapshot is a reconnect, not a blank campaign — says so, never the first-run copy", () => {
+    // Every socket drop nulls the snapshot while the app stays mounted; the
+    // phone's atlas surface stayed up showing "The map is blank" over a world
+    // the player had discovered (the mobile lens's L4).
+    render(<WorldMapPanel snapshot={null} presentation="content" />);
+    expect(screen.getByText(/Reconnecting/)).toBeInTheDocument();
+    expect(screen.queryByText(/The map is blank/)).toBeNull();
+    expect(screen.queryByLabelText("Discovered world")).toBeNull();
+  });
+
   it("renders the discovered tree with depth and marks where the party stands", () => {
     render(
       <WorldMapPanel

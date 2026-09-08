@@ -129,6 +129,50 @@ That mints a brand-new private table and copies the whole thing across — room 
 - It's the DM's view that gets copied, so **secret doors and hidden NPCs come with it** rather than being quietly dropped.
 - Images are shared by content, so the copy claims them too — clearing the Main Hall later can't delete pictures your new table is using.
 
+## The Atlas, travel, and the Kicked-In Door
+
+Your campaign is a **tree of maps**, and HeroByte can travel the whole table between them — or build a new one for you on the spot.
+
+### The Atlas tab
+
+**DM Menu → Atlas.** Every place in your campaign is a node. A node with no map yet is a **promise** (⬒) — about a hundred bytes of "there is a tavern here", costing nothing until the party actually walks in. A node with a map is **mapped** (▣).
+
+![The Atlas tab: the campaign as a tree of maps](img/dm-atlas-tab.jpg)
+
+- **+ CREATE NODE** — name it, pick a kind, and it hangs under the node you have selected.
+- **🎲 Generate…** on a promise — pick a recipe and its dials, then **🎲 GENERATE**, and the engine builds the map into it.
+- **🔗 Link existing map** — cash a promise with a map you built yourself. Nodes and maps pair one to one.
+- **🚩 TRAVEL** — moves the _whole table_ to that node. The scene you leave is suspended exactly as it stands: tokens, open doors, drawings, initiative, fog. Come back and it resumes.
+- **👁 Discovered** — players only ever see nodes you have marked discovered. Undiscovered ones do not reach their screens at all: not the name, not the kind, not the fact that anything is there. Traveling somewhere discovers it automatically.
+
+### 🚪 The Kicked-In Door
+
+The party just kicked in a door you never prepped. **Press G.**
+
+![The kick panel: name it, pick the recipe, ROLL](img/dm-kick-panel.jpg)
+
+A small panel opens with the name prefilled, the recipe's dials, and a seed. Change what you like and hit **ROLL** (or Enter). Seconds later the whole table is standing in a new, stocked place — fog on, the camera on the party, and the party _inside the entrance_ rather than in solid rock.
+
+![Seconds later: a generated tavern, the party in the entrance box just inside its door](img/dm-kick-arrival.jpg)
+
+- The new node hangs **under the one you were on**, and it is already discovered, so the players see its name the moment they arrive.
+- On the map you left there is now a 🚪 sprite where the party was standing. On the new map there is one at the entrance leading **back** — click it, confirm, and the old scene resumes as you left it: open doors, drawings, initiative, fog.
+- **Travel re-places the travelling party**, there and back. The scene resumes, but the party tokens are set down together at the destination's entrance — or, on a map with no entrance marked, at its centre. Coming back from a kicked-in door that means the middle of the old map rather than the doorway you left by; drag them where you want them.
+- **A table that was never on the Atlas is adopted by its first kick**: the map you are on becomes the campaign's first node, named after its document and discovered. You do not have to set anything up beforehand.
+- **You need a live map to kick from.** With nothing on the table the panel says so and ROLL is disabled — there is nothing to suspend and nothing to put a door on.
+- If the door does not budge within twenty seconds you get a toast; press ROLL again and it retries safely, without building the place twice.
+
+The same panel is on the Atlas tab as **🚪 KICK IN A DOOR**, and on a phone it is the second verb on the DM screen (**♛ DM → 🚪 Kick in a door**), with a **⏳ Kicking…** chip over the dock while it works.
+
+### The recipes
+
+- **Dungeon** — rooms joined by corridors, doors between them, a brazier in most rooms, and a DM-only key on the notes layer saying what lives there. Dials: theme (stone/wood) and density.
+- **Building** — a **tavern**, **shop**, **warehouse** or **house**: a footprint partitioned into rooms by real, visible walls, interior doors, exactly one front door with the party arriving just inside it, a light per room, DM-only room keys written for that kind, and the furniture the catalog can offer — tables in a tavern's common room, crates along a warehouse's walls, a counter in a shop.
+
+Every recipe is **deterministic**: the same seed and dials always produce the same place. Note a seed down and you can rebuild that tavern exactly, forever.
+
+That cuts both ways, so treat a generated room key as a **prep note, not a secret**. Players never receive the keys — they are stripped from every frame that reaches a player's browser — but the map they _can_ see is built from the same seed, so someone determined enough to read HeroByte's source could work back to what the keys say. Anything that must stay hidden belongs in your own notes.
+
 ## DM-only toolbar powers
 
 ### The player lens

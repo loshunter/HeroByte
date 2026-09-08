@@ -30,6 +30,14 @@ interface DoorsLayerProps {
    * suite green, which is how wiring like this went missing before.
    */
   selectArmed: boolean;
+  /**
+   * The one-shot atlas-link aim is armed. Its capture resolves ONLY on the
+   * Stage's click/tap, and a listening door wins the press — so an aimed tap
+   * landing on a doorway swung the door for the whole table and placed
+   * nothing (the mobile-surface review lens's L2). The door yields for the
+   * same reason it yields to Select. REQUIRED, for the same reason.
+   */
+  linkAimArmed: boolean;
 }
 
 const FRAME_COLOR = "#4a3b28";
@@ -45,6 +53,7 @@ export function DoorsLayer({
   onToggleDoor,
   onSetDoorState,
   selectArmed,
+  linkAimArmed,
 }: DoorsLayerProps) {
   if (!doors.length) return null;
 
@@ -61,6 +70,7 @@ export function DoorsLayer({
             onToggleDoor={onToggleDoor}
             onSetDoorState={onSetDoorState}
             selectArmed={selectArmed}
+            linkAimArmed={linkAimArmed}
           />
         ))}
       </Group>
@@ -74,9 +84,17 @@ interface DoorSpriteProps {
   onToggleDoor: (doorId: string) => void;
   onSetDoorState: (doorId: string, state: CompiledDoorState) => void;
   selectArmed: boolean;
+  linkAimArmed: boolean;
 }
 
-function DoorSprite({ door, isDM, onToggleDoor, onSetDoorState, selectArmed }: DoorSpriteProps) {
+function DoorSprite({
+  door,
+  isDM,
+  onToggleDoor,
+  onSetDoorState,
+  selectArmed,
+  linkAimArmed,
+}: DoorSpriteProps) {
   const midX = (door.x1 + door.x2) / 2;
   const midY = (door.y1 + door.y2) / 2;
 
@@ -144,14 +162,16 @@ function DoorSprite({ door, isDM, onToggleDoor, onSetDoorState, selectArmed }: D
           press falls through to the stage, the compat mouse pair survives, and
           proximity selection resolves the door (it beats a wall on a tie). A
           dead-on click selecting rather than toggling is what a Select tool
-          means on any device. */}
+          means on any device. The link aim needs the same yield: its capture
+          lives on the Stage's click, and a door that keeps the press would
+          toggle for everyone instead of hosting the link. */}
       <Line
         name={`door-hit:${door.id}`}
         points={[door.x1, door.y1, door.x2, door.y2]}
         stroke="transparent"
         strokeWidth={18}
         hitStrokeWidth={18}
-        listening={!selectArmed}
+        listening={!selectArmed && !linkAimArmed}
         onClick={handleActivate}
         onTap={handleActivate}
       />

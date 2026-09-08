@@ -8,7 +8,7 @@
  * of callbacks — and the surfaces themselves render in MobileSurfaces.
  */
 
-import React, { Suspense, useCallback, useReducer } from "react";
+import React, { useMemo, Suspense, useCallback, useReducer } from "react";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
@@ -126,6 +126,40 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     linkAimMode: props.linkAimActive ?? false,
   });
   const { surface, toggleSurface } = machine;
+  // The kicked-in door on a phone (K3): the Atlas tab's button and the DM
+  // screen's verb both land on the surface MACHINE — one open signal, so the
+  // one-open-surface invariant holds — and ROLL leaves the surface the way
+  // arming a tool does. The App-level pending state rides through untouched.
+  const kick = props.kick;
+  const openKick = machine.openSurface;
+  const surfaceProps = useMemo<MainLayoutProps>(
+    () =>
+      kick
+        ? {
+            ...props,
+            kick: {
+              ...kick,
+              openKick: () => openKick("kick"),
+              kick: (request) => {
+                kick.kick(request);
+                openKick("none");
+              },
+              // CANCEL and the panel's Escape both land here, and on a phone
+              // the App-level `open` flag they used to flip is read by nobody:
+              // the screen is mounted by the surface machine. Without this
+              // override they were dead controls — the panel stayed up and
+              // nothing happened. The flag is cleared too, so the two signals
+              // cannot disagree if a layout crossing hands this back to the
+              // desktop mount.
+              closeKick: () => {
+                kick.closeKick();
+                openKick("none");
+              },
+            },
+          }
+        : props,
+    [props, kick, openKick],
+  );
   // The two tool-derived sheets share the bottom-sheet slot with these
   // surfaces, so they yield while either occupies it: same anchor, same
   // z-index, and stacking them is the bug S8 shipped.
@@ -192,7 +226,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onAlignmentPointCapture={handleAlignmentPointCapture}
             linkAimMode={props.linkAimActive ?? false}
             onLinkAnchorCapture={props.captureLinkAnchor}
-            onLinkAimCancel={props.cancelLinkAim}
             {...drawingProps}
             onRecolorToken={recolorToken}
             onTransformObject={transformSceneObject}
@@ -220,6 +253,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Mobile Floating Controls */}
       <MobileFloatingControls
+        kickPending={Boolean(kick?.pending && !kick.pending.expired)}
         surface={surface}
         onToggleSurface={toggleSurface}
         onToolSelect={setActiveTool}
@@ -266,7 +300,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       )}
 
       {/* Party, dice, log and help all render (one at a time) in here */}
-      <MobileSurfaces props={props} machine={machine} />
+      <MobileSurfaces props={surfaceProps} machine={machine} />
 
       {/* Viewing Roll Result */}
       <MobileResultOverlay result={viewingRoll} onClose={() => handleViewRoll(null)} />

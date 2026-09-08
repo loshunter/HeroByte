@@ -42,6 +42,8 @@ export interface AtlasTabProps {
   /** Link placement (A6): armed flag + the arm callback from useAtlasLinkAim. */
   linkAimActive?: boolean;
   onArmLinkAim?: (pending: PendingLink) => void;
+  /** The kicked-in door (K2): opens the kick panel — discoverability for a DM who does not know G. */
+  onOpenKick?: () => void;
 }
 
 export function AtlasTab({
@@ -52,6 +54,7 @@ export function AtlasTab({
   mapStudio,
   linkAimActive,
   onArmLinkAim,
+  onOpenKick,
 }: AtlasTabProps) {
   const actions = useAtlasActions(onAtlasMessage);
   const [newName, setNewName] = useState("");
@@ -104,6 +107,11 @@ export function AtlasTab({
         >
           + CREATE NODE
         </JRPGButton>
+        {onOpenKick && (
+          <JRPGButton onClick={onOpenKick} title="Kick in a door (G)" style={{ fontSize: "10px" }}>
+            🚪 KICK IN A DOOR
+          </JRPGButton>
+        )}
       </div>
 
       {onArmLinkAim && currentNode?.mapDocumentId && (

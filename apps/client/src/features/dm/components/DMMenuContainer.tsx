@@ -88,6 +88,8 @@ export interface DMMenuContainerProps {
   /** Atlas-link aim (A6): armed flag + the Atlas tab's arm callback. */
   linkAimActive?: boolean;
   onArmLinkAim?: (pending: PendingLink) => void;
+  /** The kicked-in door (K2): opens the kick panel (desktop) or screen (phone). */
+  openKick?: () => void;
   toast: {
     info: (message: string, duration?: number) => void;
     success: (message: string, duration?: number) => void;
@@ -161,6 +163,7 @@ export function DMMenuContainer({
   presentation,
   linkAimActive,
   onArmLinkAim,
+  openKick,
 }: DMMenuContainerProps) {
   // Instantiate DM context with all DM-specific hooks
   const dmContext = useDMContext({
@@ -212,6 +215,7 @@ export function DMMenuContainer({
       onAtlasMessage={sendMessage}
       linkAimActive={linkAimActive}
       onArmLinkAim={onArmLinkAim}
+      onOpenKick={openKick}
       onRequestSaveSession={snapshot ? dmContext.sessionManagement.handleSaveSession : undefined}
       onRequestLoadSession={dmContext.sessionManagement.handleLoadSession}
       onCreateNPC={dmContext.npcManagement.createNpc}

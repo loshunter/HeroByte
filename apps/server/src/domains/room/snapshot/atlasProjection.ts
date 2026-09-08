@@ -32,8 +32,12 @@ export function projectAtlasFor(state: RoomState, isDM: boolean): AtlasView {
   const nodes = Array.isArray(state.atlasNodes) ? state.atlasNodes : [];
   const links = Array.isArray(state.atlasLinks) ? state.atlasLinks : [];
 
-  const currentNode = state.liveMapDocumentId
-    ? nodes.find((node) => node.mapDocumentId === state.liveMapDocumentId)
+  // "You are here" keys on the SCENE on the table, never the binding: travel
+  // binds and compiles together, but an unbind or a publish parts them, and
+  // the party is standing on the compiled map either way.
+  const sceneDocumentId = state.compiledScene?.sourceDocumentId;
+  const currentNode = sceneDocumentId
+    ? nodes.find((node) => node.mapDocumentId === sceneDocumentId)
     : undefined;
 
   if (isDM) {

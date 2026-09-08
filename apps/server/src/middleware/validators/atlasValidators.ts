@@ -82,18 +82,50 @@ const deleteLinkSchema = z.object({
 // The commandId becomes every generated element's id prefix (`${id}:e<n>`) and
 // the element-id contract caps ids at 128 chars — 120 leaves room for the
 // suffix (the generationValidators precedent).
-const generateNodeSchema = z.object({
-  t: z.literal("atlas-generate-node"),
-  nodeId: id,
-  commandId: z.string().trim().min(1).max(120),
-  seed: z.number().int(),
-  params: z
+const commandId = z.string().trim().min(1).max(120);
+
+// One schema per recipe, discriminated by recipeId (the building recipe joins
+// here); nested and strict, so a smuggled key is rejected.
+const generateRequest = z.discriminatedUnion("recipeId", [
+  z
     .object({
+      recipeId: z.literal("dungeon"),
       theme: z.enum(["stone", "wood"]),
       density: z.enum(["low", "medium", "high"]),
       size: z.enum(["small", "medium", "large"]),
     })
     .strict(),
+  z
+    .object({
+      recipeId: z.literal("building"),
+      kind: z.enum(["tavern", "shop", "warehouse", "house"]),
+      entrySide: z.enum(["north", "south", "east", "west"]).optional(),
+      size: z.enum(["small", "medium", "large"]),
+    })
+    .strict(),
+]);
+
+const generateNodeSchema = z.object({
+  t: z.literal("atlas-generate-node"),
+  nodeId: id,
+  commandId,
+  seed: z.number().int(),
+  recipe: generateRequest,
+});
+
+// The kicked-in door: every id client-minted (the replay guard is nodeId),
+// the child's name by the node-name bounds, the recipe as above.
+const kickSchema = z.object({
+  t: z.literal("atlas-kick"),
+  commandId,
+  nodeId: id,
+  originNodeId: id,
+  linkId: id,
+  returnLinkId: id,
+  name: nodeName,
+  seed: z.number().int(),
+  recipe: generateRequest,
+  linkType: linkType.optional(),
 });
 
 function run(schema: z.ZodTypeAny, message: MessageRecord): ValidationResult {
@@ -138,4 +170,7 @@ const travelSchema = z.object({
 
 export function validateAtlasTravelMessage(message: MessageRecord): ValidationResult {
   return run(travelSchema, message);
+}
+export function validateAtlasKickMessage(message: MessageRecord): ValidationResult {
+  return run(kickSchema, message);
 }

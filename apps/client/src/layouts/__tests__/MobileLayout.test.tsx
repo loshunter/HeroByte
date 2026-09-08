@@ -4,6 +4,7 @@ import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MobileLayout } from "../MobileLayout";
 import { HELP_TOPICS } from "../../features/help/helpTopics";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
+import type { KickControls } from "../../features/atlas/useKickedInDoor";
 type DrawingToolbarProps = MainLayoutProps["drawingToolbarProps"];
 type DrawingProps = MainLayoutProps["drawingProps"];
 type PlayerActions = MainLayoutProps["playerActions"];
@@ -64,9 +65,21 @@ vi.mock("../../components/dice/RollLogContent", () => ({
 // the chunk and asserts the shell's half of the contract — that the container
 // mounts inside the dm screen, bare (presentation="content").
 vi.mock("../../features/dm/lazy-entry", () => ({
-  DMMenuContainer: ({ presentation }: { presentation?: string }) => (
+  DMMenuContainer: ({
+    presentation,
+    openKick,
+  }: {
+    presentation?: string;
+    openKick?: () => void;
+  }) => (
     <div data-testid="dm-menu-content" data-presentation={presentation}>
       DMMenuContainer
+      {/* The Atlas tab's 🚪 button, as the bag delivers it (K3). */}
+      {openKick && (
+        <button type="button" onClick={openKick}>
+          🚪 KICK IN A DOOR
+        </button>
+      )}
     </div>
   ),
 }));
@@ -586,6 +599,145 @@ describe("MobileLayout", () => {
       expect(screen.getByRole("dialog", { name: /world map/i })).toBeInTheDocument();
       // Nothing discovered in the default props: the friendly empty state.
       expect(screen.getByText(/The map is blank/)).toBeInTheDocument();
+    });
+
+    describe("the kicked-in door (K3)", () => {
+      const kickControls = (overrides: Partial<KickControls> = {}): KickControls => ({
+        open: false,
+        openKick: vi.fn(),
+        closeKick: vi.fn(),
+        kick: vi.fn(),
+        pending: null,
+        settings: {
+          recipe: { recipeId: "dungeon", theme: "stone", density: "medium", size: "small" },
+          linkType: "door",
+        },
+        canKick: true,
+        ...overrides,
+      });
+
+      const dmProps = (kick: KickControls): MainLayoutProps => ({
+        ...createDefaultProps(),
+        isDM: true,
+        kick,
+      });
+
+      it("the DM screen offers the second verb, which opens the kick SURFACE — not the desktop opener", async () => {
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        expect(openSurfaces()).toEqual(["dm"]);
+        // An exact name: the Atlas tab's button says the same words in caps,
+        // so a case-insensitive match would find both.
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+        expect(openSurfaces()).toEqual(["kick"]);
+        expect(screen.getByRole("dialog", { name: "Kick in a door" })).toBeInTheDocument();
+        expect(screen.getByTestId("kick-panel")).toBeInTheDocument();
+        expect(kick.openKick).not.toHaveBeenCalled();
+      });
+
+      it("a player's DM screen never exists, and no verb renders for them", () => {
+        render(<MobileLayout {...{ ...createDefaultProps(), kick: kickControls() }} />);
+        expect(screen.queryByRole("button", { name: "🚪 Kick in a door" })).toBeNull();
+        expect(openSurfaces()).toEqual([]);
+      });
+
+      it("losing DM while the kick screen is up takes the screen down with it", () => {
+        // The guard is not about a player REACHING this surface — they have no
+        // verb and no DM button. It is about de-elevation mid-screen: EXIT DM
+        // MODE with the kick screen open must not leave an empty shell up, the
+        // same rule the dm and props screens follow.
+        const kick = kickControls();
+        const { rerender } = render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(screen.getByRole("button", { name: "🚪 Kick in a door" }));
+        expect(openSurfaces()).toEqual(["kick"]);
+
+        rerender(<MobileLayout {...{ ...createDefaultProps(), kick }} />);
+        expect(openSurfaces()).toEqual([]);
+        expect(screen.queryByTestId("kick-panel")).toBeNull();
+      });
+
+      it("the Atlas tab's button lands on the SAME surface through the override — the machine test alone cannot see a missing mount", async () => {
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 KICK IN A DOOR" }));
+        expect(openSurfaces()).toEqual(["kick"]);
+        expect(kick.openKick).not.toHaveBeenCalled();
+      });
+
+      // The twin of the ROLL test below, and the half K3 forgot: the slice
+      // pinned that ROLL leaves the surface and never that CANCEL does, so
+      // `closeKick` kept pointing at the desktop-only `open` flag — which
+      // nothing on a phone reads. CANCEL and Escape were dead controls.
+      it("CANCEL leaves the surface, not just the desktop flag", async () => {
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+        expect(openSurfaces()).toEqual(["kick"]);
+
+        fireEvent.click(screen.getByRole("button", { name: "CANCEL" }));
+        expect(openSurfaces()).toEqual([]);
+        expect(screen.queryByTestId("kick-panel")).toBeNull();
+        // ...and the App-level flag is cleared too, so a layout crossing back
+        // to the desktop mount cannot find the two signals disagreeing.
+        expect(kick.closeKick).toHaveBeenCalledTimes(1);
+      });
+
+      it("the screen's own ✕ clears BOTH signals, not just the surface", async () => {
+        // The ✕ and the drag-down dismissal used to call the machine's
+        // closeSurface directly, so they left the App-level `open` flag set —
+        // and a later crossing to the desktop layout would find the panel
+        // already open, with no one having asked for it.
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+        expect(openSurfaces()).toEqual(["kick"]);
+
+        fireEvent.click(screen.getByRole("button", { name: "Close Kick in a door" }));
+        expect(openSurfaces()).toEqual([]);
+        expect(kick.closeKick).toHaveBeenCalledTimes(1);
+      });
+
+      it("Escape on the panel leaves the surface", async () => {
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+
+        fireEvent.keyDown(screen.getByTestId("kick-panel"), { key: "Escape" });
+        expect(openSurfaces()).toEqual([]);
+        expect(kick.closeKick).toHaveBeenCalledTimes(1);
+      });
+
+      it("ROLL sends the kick through the App-level controls and LEAVES the surface", async () => {
+        const kick = kickControls();
+        render(<MobileLayout {...dmProps(kick)} />);
+        fireEvent.click(dock(/^dm$/i));
+        fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+        fireEvent.submit(screen.getByTestId("kick-panel"));
+        expect(kick.kick).toHaveBeenCalledTimes(1);
+        expect(vi.mocked(kick.kick).mock.calls[0]?.[0]).toMatchObject({
+          recipe: { recipeId: "dungeon", theme: "stone", density: "medium", size: "small" },
+          linkType: "door",
+        });
+        expect(openSurfaces()).toEqual([]);
+      });
+
+      it("the ⏳ chip floats over the dock iff a kick is pending and not expired", () => {
+        const pending = { nodeId: "n", name: "Cellar", startedAt: 0, expired: false };
+        const { rerender } = render(<MobileLayout {...dmProps(kickControls({ pending }))} />);
+        expect(screen.getByTestId("mobile-kick-pending")).toHaveTextContent("Kicking");
+        rerender(
+          <MobileLayout {...dmProps(kickControls({ pending: { ...pending, expired: true } }))} />,
+        );
+        expect(screen.queryByTestId("mobile-kick-pending")).toBeNull();
+        rerender(<MobileLayout {...dmProps(kickControls({ pending: null }))} />);
+        expect(screen.queryByTestId("mobile-kick-pending")).toBeNull();
+      });
     });
 
     it("arming the link aim clears whatever surface is up — capturing needs the MAP (A6)", () => {

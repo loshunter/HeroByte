@@ -236,6 +236,16 @@ describe("AtlasTab", () => {
     expect(screen.queryByRole("button", { name: "⚓ AIM ON MAP" })).toBeNull();
   });
 
+  it("offers 🚪 KICK IN A DOOR only when wired, and opens the kick through it", () => {
+    renderTab();
+    expect(screen.queryByRole("button", { name: "🚪 KICK IN A DOOR" })).toBeNull();
+
+    const onOpenKick = vi.fn();
+    renderTab({ onOpenKick });
+    fireEvent.click(screen.getByRole("button", { name: "🚪 KICK IN A DOOR" }));
+    expect(onOpenKick).toHaveBeenCalledTimes(1);
+  });
+
   it("opens the generate panel on a promise node and sends the message with a minted commandId", () => {
     const { onAtlasMessage } = renderTab({ atlasNodes: [node("n1")] });
     fireEvent.click(screen.getByRole("button", { name: "🎲 Generate…" }));
@@ -247,7 +257,7 @@ describe("AtlasTab", () => {
         nodeId: "n1",
         commandId: expect.any(String),
         seed: expect.any(Number),
-        params: { theme: "stone", density: "medium", size: "medium" },
+        recipe: { recipeId: "dungeon", theme: "stone", density: "medium", size: "medium" },
       }),
     );
   });

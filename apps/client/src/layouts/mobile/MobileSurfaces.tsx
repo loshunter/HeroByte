@@ -22,6 +22,7 @@ import { DMMenuLoadFailure } from "../../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { PlayerPropsPanel } from "../../features/props/PlayerPropsPanel";
 import { WorldMapPanel } from "../../features/atlas/WorldMapPanel";
+import { KickPanel } from "../../features/atlas/KickPanel";
 import { MobileScreen } from "./MobileScreen";
 
 // The same lazy split the desktop uses: DM-only code stays out of the entry
@@ -138,6 +139,18 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           >
             🏗️ Edit the live map
           </button>
+          {/* The kicked-in door (K3): the screen's second verb, stacked below.
+              It opens the kick SURFACE through the machine (MobileLayout
+              routed kick.openKick there), which closes this screen by itself. */}
+          {props.kick && (
+            <button
+              type="button"
+              className="mobile-chip mobile-screen__action"
+              onClick={props.kick.openKick}
+            >
+              🚪 Kick in a door
+            </button>
+          )}
           {/* Local boundary: a failed chunk load costs the DM their menu, not
               the table. Without it the throw reaches the app root and replaces
               the whole session with a full-page error. */}
@@ -179,6 +192,24 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
       {surface === "atlas" && !props.isDM && (
         <MobileScreen title="World Map" surface="atlas" onClose={closeSurface}>
           <WorldMapPanel snapshot={props.snapshot} presentation="content" />
+        </MobileScreen>
+      )}
+
+      {/* The kicked-in door (K3): the same panel the desktop floats, as a full
+          screen. Gated isDM like the dm screen — de-elevation must not leave
+          it up. ROLL closes the surface (MobileLayout wrapped kick.kick).
+          ✕ and the drag-down dismissal close through `kick.closeKick`, NOT the
+          bare `closeSurface`: MobileLayout's wrapper clears the surface AND the
+          App-level `open` flag together, and a screen that closed only the
+          surface would leave that flag set — so a later crossing to the desktop
+          layout would find the panel already open. */}
+      {surface === "kick" && props.isDM && props.kick && (
+        <MobileScreen title="Kick in a door" surface="kick" onClose={props.kick.closeKick}>
+          <KickPanel
+            kick={props.kick}
+            atlasNodes={props.snapshot?.atlasNodes ?? []}
+            presentation="content"
+          />
         </MobileScreen>
       )}
 

@@ -81,6 +81,13 @@ export interface UseServerEventHandlersOptions {
       }
     >,
   ) => void;
+
+  /**
+   * Called beside the atlas-error toast, so a pending kick can match its
+   * nodeId. Routed here because registerServerEventHandler is single-
+   * subscriber and this hook owns the subscription.
+   */
+  onAtlasError?: (message: Extract<ServerMessage, { t: "atlas-error" }>) => void;
 }
 
 /**
@@ -151,6 +158,7 @@ export function useServerEventHandlers({
   onDMElevationFailed,
   onTableForkMessage,
   onMapStudioMessage,
+  onAtlasError,
 }: UseServerEventHandlersOptions): UseServerEventHandlersReturn {
   // State for room password operations
   const [roomPasswordStatus, setRoomPasswordStatus] = useState<RoomPasswordStatus | null>(null);
@@ -256,6 +264,7 @@ export function useServerEventHandlers({
         // snapshot; this channel is their ONLY failure surface (sent to the
         // acting DM alone), so a swallowed one is a silently dead button.
         toastError(`Atlas: ${message.reason}`, 5000);
+        onAtlasError?.(message);
       }
     });
   }, [
@@ -265,6 +274,7 @@ export function useServerEventHandlers({
     onDMElevationFailed,
     onTableForkMessage,
     onMapStudioMessage,
+    onAtlasError,
   ]);
 
   return {

@@ -8,7 +8,12 @@
 // property — kind-marked ids would let players fingerprint disguised secret
 // doors in their wire frames).
 
-import type { MapElement, MapGridSettings, TerrainPaintCell } from "@herobyte/shared";
+import type {
+  MapElement,
+  MapGridSettings,
+  PlayerStagingZone,
+  TerrainPaintCell,
+} from "@herobyte/shared";
 
 /** Target region for a recipe, in document-grid CELLS (integers). */
 export interface CellBounds {
@@ -40,10 +45,16 @@ export interface RecipeContext {
   idPrefix: string;
 }
 
-/** A recipe's output is exactly a `place-room` command payload. */
+/** A recipe's output is a `place-room` command payload, plus where the party walks in. */
 export interface RecipeOutput {
   cells: TerrainPaintCell[];
   elements: MapElement[];
+  /**
+   * The entrance: absolute document cells in the staging-zone shape (x/y is
+   * the CENTER cell). Recorded on the cashed node and installed as the scene's
+   * staging zone whenever a warp finds it without one.
+   */
+  arrival?: PlayerStagingZone;
 }
 
 // ---------------------------------------------------------------------------

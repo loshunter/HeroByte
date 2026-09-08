@@ -166,12 +166,12 @@ The server reads more variables than these (storage paths, table limits, feature
 
 **The [User Guide](docs/user-guide/README.md) is the front door** — a full walkthrough of everything a player or DM can do, with screenshots captured from the real app:
 
-| Guide                                                       | What it covers                                                                                           |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **[Getting Started](docs/user-guide/getting-started.md)**   | Joining a table, private tables & invite links, becoming the DM                                          |
-| **[Player Guide](docs/user-guide/player-guide.md)**         | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, mobile play           |
-| **[DM Guide](docs/user-guide/dm-guide.md)**                 | The DM Menu: map setup, NPCs & props, combat, session save/load, table security, the player lens         |
-| **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator |
+| Guide                                                       | What it covers                                                                                                                     |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **[Getting Started](docs/user-guide/getting-started.md)**   | Joining a table, private tables & invite links, becoming the DM                                                                    |
+| **[Player Guide](docs/user-guide/player-guide.md)**         | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, the world map, mobile play                      |
+| **[DM Guide](docs/user-guide/dm-guide.md)**                 | The DM Menu: map setup, NPCs & props, combat, session save/load, table security, the Atlas and the Kicked-In Door, the player lens |
+| **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator                           |
 
 Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwright harness that drives real player and DM sessions — so the docs can't quietly drift from the app.
 

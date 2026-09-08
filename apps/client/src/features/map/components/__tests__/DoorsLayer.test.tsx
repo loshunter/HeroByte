@@ -68,6 +68,7 @@ describe("DoorsLayer", () => {
   it("renders nothing when there are no doors", () => {
     const { container } = render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[]}
@@ -82,6 +83,7 @@ describe("DoorsLayer", () => {
   it("nests the camera and map transforms exactly like the background image", () => {
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[door()]}
@@ -99,6 +101,7 @@ describe("DoorsLayer", () => {
   it("renders a closed door as a solid bar with a frame", () => {
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[door()]}
@@ -118,6 +121,7 @@ describe("DoorsLayer", () => {
   it("renders an open door as two hinge stubs", () => {
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[door({ state: "open" })]}
@@ -136,6 +140,7 @@ describe("DoorsLayer", () => {
   it("marks locked doors with a lock badge", () => {
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[door({ state: "locked" })]}
@@ -152,6 +157,7 @@ describe("DoorsLayer", () => {
   it("renders secret doors as a dashed seam", () => {
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[door({ state: "secret" })]}
@@ -169,6 +175,7 @@ describe("DoorsLayer", () => {
     const onToggleDoor = vi.fn();
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[door()]}
@@ -187,6 +194,7 @@ describe("DoorsLayer", () => {
     const onSetDoorState = vi.fn();
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[
@@ -216,6 +224,7 @@ describe("DoorsLayer", () => {
     const onSetDoorState = vi.fn();
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[door()]}
@@ -238,6 +247,7 @@ describe("DoorsLayer", () => {
   it("goes deaf while Select/Sample is armed, so the press reaches the stage", () => {
     render(
       <DoorsLayer
+        linkAimArmed={false}
         selectArmed
         cam={cam}
         doors={[door()]}
@@ -253,6 +263,41 @@ describe("DoorsLayer", () => {
   it("listens again the moment the pick tools are put away", () => {
     render(
       <DoorsLayer
+        linkAimArmed={false}
+        selectArmed={false}
+        cam={cam}
+        doors={[door()]}
+        isDM
+        onToggleDoor={vi.fn()}
+        onSetDoorState={vi.fn()}
+      />,
+    );
+
+    expect(hitLine().listening).toBe(true);
+  });
+
+  // The atlas-link aim captures on the STAGE's click/tap; a listening door
+  // keeps the press and swings for everyone instead (the mobile lens's L2).
+  it("goes deaf while the atlas-link aim is armed, so the aimed tap reaches the stage", () => {
+    render(
+      <DoorsLayer
+        linkAimArmed
+        selectArmed={false}
+        cam={cam}
+        doors={[door()]}
+        isDM
+        onToggleDoor={vi.fn()}
+        onSetDoorState={vi.fn()}
+      />,
+    );
+
+    expect(hitLine().listening).toBe(false);
+  });
+
+  it("listens again once the aim is disarmed and no pick tool is armed", () => {
+    render(
+      <DoorsLayer
+        linkAimArmed={false}
         selectArmed={false}
         cam={cam}
         doors={[door()]}

@@ -134,6 +134,8 @@ describe("buildDMMenuProps", () => {
         // Atlas-link aim (A6) — the arm callback and its armed flag.
         "linkAimActive",
         "onArmLinkAim",
+        // The kicked-in door (K2) — the Atlas tab's button, through the bag.
+        "openKick",
         "onSelectPlayerTokens",
         "onRollAllInitiative",
         "mapStudio",

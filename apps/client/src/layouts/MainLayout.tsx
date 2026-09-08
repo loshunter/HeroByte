@@ -70,8 +70,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     selectMode,
     alignmentMode,
     linkAimActive,
-    cancelLinkAim,
     captureLinkAnchor,
+    kick,
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
@@ -296,7 +296,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         alignmentMode={alignmentMode}
         linkAimMode={linkAimActive ?? false}
         onLinkAnchorCapture={captureLinkAnchor}
-        onLinkAimCancel={cancelLinkAim}
         mapEditMode={mapEditMode}
         mapEditActiveSubTool={mapEditActiveSubTool}
         mapEditFloorFamily={mapEditFloorFamily}
@@ -409,6 +408,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         setContextMenu={setContextMenu}
         dmMenuProps={dmMenuProps}
         snapshot={snapshot}
+        kick={kick}
         diceRollerOpen={diceRollerOpen}
         toggleDiceRoller={toggleDiceRoller}
         handleRoll={handleRoll}

@@ -21,6 +21,7 @@ import { getMapStudioTileAsset } from "../map-studio/starterTiles";
 import { buildScatterDrafts } from "../map-studio/scatterBrush";
 import type { MapStampDraft, MapTileDraft } from "../map-studio/types";
 import { useAltKeyTracking } from "../map-studio/components/useAltKeyTracking";
+import { isEditableTarget } from "../../utils/isEditableTarget";
 import {
   buildStampPlacement,
   buildTilePlacement,
@@ -110,6 +111,9 @@ export function useMapEditPlacement({
     if (!active) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== "r" || event.ctrlKey || event.metaKey) return;
+      // A typing surface owns its keystrokes: an 'r' typed into the asset
+      // search or an inspector field must not turn the pending stamp.
+      if (isEditableTarget(event.target)) return;
       event.preventDefault();
       onRotateStamp(event.shiftKey ? -1 : 1);
     };

@@ -20,7 +20,7 @@ import {
 } from "./mapStudioHandlerUtils.js";
 import { dungeonRecipe } from "../../domains/generation/dungeonRecipe.js";
 import {
-  assertGenerateRequest,
+  assertGenerateSeed,
   assertRecipeBudget,
   resolveRecipeContext,
 } from "../../domains/generation/recipeContext.js";
@@ -137,7 +137,7 @@ export class MapStudioMessageHandler {
           }
           const document = this.service.get(roomId, message.documentId);
           const ctx = resolveRecipeContext(document, message.bounds, message.commandId);
-          assertGenerateRequest(message.seed, message.params);
+          assertGenerateSeed(message.seed);
           const output = dungeonRecipe(message.seed, message.bounds, message.params, ctx);
           assertRecipeBudget(output);
           const isLive = this.getRoomState(roomId).liveMapDocumentId === message.documentId;

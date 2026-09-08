@@ -42,6 +42,7 @@ export function DMMenu({
   onAtlasMessage,
   linkAimActive,
   onArmLinkAim,
+  onOpenKick,
   onRequestSaveSession,
   onRequestLoadSession,
   onCreateNPC,
@@ -192,6 +193,7 @@ export function DMMenu({
           mapStudio={mapStudio}
           linkAimActive={linkAimActive}
           onArmLinkAim={onArmLinkAim}
+          onOpenKick={onOpenKick}
         />
       )}
       {activeTab === "npcs" && (

@@ -26,10 +26,12 @@ import type {
   MapLinkSnapshot,
   SceneState,
 } from "./atlas.js";
+import type { GenerateRequest } from "./recipes.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
 export { WS_CLOSE_AUTH_REJECTED, WS_CLOSE_REPLACED } from "./wsCloseCodes.js";
+export { WS_MAX_MESSAGE_BYTES } from "./wsLimits.js";
 
 // The Atlas — campaign graph types + limits. Value re-export from a sub-module
 // (same rule as wsCloseCodes: a direct `export const` here erases at runtime).
@@ -42,6 +44,28 @@ export type {
   MapLinkSnapshot,
   SceneState,
 } from "./atlas.js";
+
+// The recipes' shared vocabulary — RECIPE_IDS is a runtime value, so the same
+// sub-module rule applies (recipes.ts).
+export { RECIPE_IDS } from "./recipes.js";
+export type {
+  BuildingRecipeParams,
+  DungeonRecipeParams,
+  GenerateRequest,
+  GenerateSize,
+  RecipeId,
+  RecipeParams,
+  RecipeProvenance,
+} from "./recipes.js";
+
+// The catalog ids the server's recipes paint and stamp with. Runtime values,
+// so the same sub-module rule applies (recipeAssets.ts).
+export {
+  RECIPE_ASSET_IDS,
+  RECIPE_FLOOR_ASSETS,
+  RECIPE_OBJECT_ASSETS,
+  RECIPE_WALL_ASSETS,
+} from "./recipeAssets.js";
 
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
@@ -1004,13 +1028,21 @@ type ClientMessagePayload =
       // the node-already-mapped guard is what makes a retry safe.
       commandId: string;
       seed: number;
-      params: {
-        theme: "stone" | "wood";
-        density: "low" | "medium" | "high";
-        size: "small" | "medium" | "large"; // preset cols×rows — see GENERATE_PRESETS
-      };
-    } // Cash a promise: mint a document, run the dungeon recipe into it, record provenance
+      recipe: GenerateRequest; // which recipe, its params, and the preset size (GENERATE_PRESETS)
+    } // Cash a promise: mint a document, run the recipe into it, record provenance
   | { t: "atlas-travel"; nodeId: string } // Suspend the current scene, resume the node's (auto-discovers on first visit); idempotent when already there
+  | {
+      t: "atlas-kick";
+      commandId: string; // client-minted: the recipe's element idPrefix and the place-room dedupe key (≤120 chars)
+      nodeId: string; // client-minted: the CHILD node — and the replay guard
+      originNodeId: string; // client-minted: used only when the origin must be ADOPTED
+      linkId: string; // client-minted: origin → child, at the party's position
+      returnLinkId: string; // client-minted: child → origin, at the entrance
+      name: string; // the child's name; trimmed by the handler
+      seed: number;
+      recipe: GenerateRequest;
+      linkType?: MapLink["linkType"]; // default "door"
+    } // The kicked-in door: adopt/resolve the origin, mint+cash the child under it, pin both doors, travel — one synchronous block
 
   // Live scene interactions (compiled doors are clickable at the table)
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles

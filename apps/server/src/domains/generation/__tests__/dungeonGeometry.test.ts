@@ -10,6 +10,16 @@
 import { describe, it, expect } from "vitest";
 import { createSeededRng, DEFAULT_MAP_LAYERS, type MapGridSettings } from "@herobyte/shared";
 import { emitGeometry } from "../dungeonGeometry.js";
+
+/**
+ * emitGeometry takes its two painted materials explicitly now; the mapping
+ * from a dungeon THEME to them belongs to dungeonRecipe, and these tests
+ * mirror it so the theming case still exercises a real pair.
+ */
+const THEME_MATERIALS = {
+  stone: { floorAssetId: "terrain:stone-floor", wallAssetId: "terrain:wall-stone" },
+  wood: { floorAssetId: "terrain:wood-floor", wallAssetId: "terrain:wall-timber" },
+} as const;
 import { cellKey, generateLayout, indexRoomCells } from "../dungeonLayout.js";
 import { dungeonRecipe } from "../dungeonRecipe.js";
 import type { CellBounds, DungeonParams, RecipeContext, RecipeOutput } from "../types.js";
@@ -43,7 +53,7 @@ function context(overrides: Partial<RecipeContext> = {}): RecipeContext {
 
 function outputFor(seed: number, params = PARAMS, ctx = context(), bounds = BOUNDS): RecipeOutput {
   const layout = generateLayout(createSeededRng(seed), bounds.cols, bounds.rows, params.density);
-  return emitGeometry(layout, bounds, params, ctx);
+  return emitGeometry(layout, bounds, THEME_MATERIALS[params.theme], ctx);
 }
 
 /**
@@ -105,7 +115,7 @@ describe("emitGeometry — the sealed-dungeon property", () => {
       for (const seed of SEEDS) {
         const params = { ...PARAMS, density };
         const layout = generateLayout(createSeededRng(seed), BOUNDS.cols, BOUNDS.rows, density);
-        const output = emitGeometry(layout, BOUNDS, params, context());
+        const output = emitGeometry(layout, BOUNDS, THEME_MATERIALS[params.theme], context());
         const { walls, doors } = blockersOf(output, context(), BOUNDS);
         const roomOf = indexRoomCells(layout.rooms);
         const problems: string[] = [];
@@ -332,7 +342,17 @@ describe("dungeonRecipe — the determinism contract", () => {
       context({ idPrefix: "golden" }),
     );
 
-    expect(output).toEqual(golden);
+    // The golden pins the place-room payload; the arrival (the first room, as a
+    // center-anchored zone in absolute cells) is pinned as its own literal —
+    // the same contract, spelled out, so a room-order change fails here by name.
+    expect({ cells: output.cells, elements: output.elements }).toEqual(golden);
+    expect(output.arrival).toEqual({
+      x: 17.5,
+      y: 9.5,
+      width: 8,
+      height: 8,
+      rotation: 0,
+    });
     // Guard the guard: a golden of a sealed box would pin the bug, not the
     // contract. This one is a real dungeon.
     expect(output.elements.filter((e) => e.type === "door").length).toBeGreaterThan(0);

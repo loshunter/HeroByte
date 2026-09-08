@@ -130,10 +130,11 @@ describe("projectAtlasFor", () => {
     ]);
   });
 
-  it("derives currentAtlasNodeId for the DM, and for players only when discovered", () => {
+  it("derives currentAtlasNodeId from the SCENE on the table for the DM, and for players only when discovered", () => {
     const state = stateWith({
       atlasNodes: [node("here", { mapDocumentId: "doc-live" })],
       liveMapDocumentId: "doc-live",
+      compiledScene: { sourceDocumentId: "doc-live" } as never,
     });
     expect(projectAtlasFor(state, true).currentAtlasNodeId).toBe("here");
     // Undiscovered current node: the deliberately mysterious frame.
@@ -141,6 +142,55 @@ describe("projectAtlasFor", () => {
 
     state.atlasNodes[0]!.discovered = true;
     expect(projectAtlasFor(state, false).currentAtlasNodeId).toBe("here");
+  });
+
+  it("keys 'you are here' on the scene, never the binding: the unbound interlude, a publish of another map, an empty table", () => {
+    const nodes = [
+      node("here", { mapDocumentId: "doc-live", discovered: true }),
+      node("other", { mapDocumentId: "doc-other" }),
+    ];
+    // The unbound interlude: the binding is gone, the scene is still on the table.
+    const unbound = stateWith({
+      atlasNodes: nodes,
+      liveMapDocumentId: undefined,
+      compiledScene: { sourceDocumentId: "doc-live" } as never,
+    });
+    expect(projectAtlasFor(unbound, true).currentAtlasNodeId).toBe("here");
+    expect(projectAtlasFor(unbound, false).currentAtlasNodeId).toBe("here");
+    // A publish of ANOTHER map: the binding still says doc-live, the party stands on doc-other.
+    const published = stateWith({
+      atlasNodes: nodes,
+      liveMapDocumentId: "doc-live",
+      compiledScene: { sourceDocumentId: "doc-other" } as never,
+    });
+    expect(projectAtlasFor(published, true).currentAtlasNodeId).toBe("other");
+    expect(projectAtlasFor(published, false).currentAtlasNodeId).toBeUndefined(); // undiscovered
+    // Nothing on the table: a binding alone is not "here".
+    const empty = stateWith({ atlasNodes: nodes, liveMapDocumentId: "doc-live" });
+    expect(projectAtlasFor(empty, true).currentAtlasNodeId).toBeUndefined();
+    expect(projectAtlasFor(empty, false).currentAtlasNodeId).toBeUndefined();
+  });
+
+  it("never projects a node's arrival to a player — the key set stays exactly four", () => {
+    const state = stateWith({
+      atlasNodes: [
+        node("a", {
+          discovered: true,
+          mapDocumentId: "doc-a",
+          arrival: { x: 3, y: 4, width: 3, height: 3, rotation: 0 },
+          recipe: { recipeId: "dungeon", seed: 1, theme: "stone", density: "low", size: "small" },
+        }),
+      ],
+    });
+    const view = projectAtlasFor(state, false);
+    expect(Object.keys(view.atlasNodes[0]!).sort()).toEqual(["discovered", "id", "kind", "name"]);
+    expect(projectAtlasFor(state, true).atlasNodes[0]?.arrival).toEqual({
+      x: 3,
+      y: 4,
+      width: 3,
+      height: 3,
+      rotation: 0,
+    });
   });
 
   it("disarms a poisoned non-array instead of walking it (broadcast-timer safety)", () => {

@@ -17,12 +17,23 @@
 //     first bind untouched).
 //   • warping to the staging zone is TRAVEL's flavor only; a set-live rebind
 //     preserves travelers' cells (a prep rebind must not teleport the party).
+//
+// Three phases, in this order and no other: COMPILE the destination (pure —
+// a document that fails to compile throws before anything on the table has
+// moved), CAPTURE the outgoing scene (it reads door runtime from the
+// compiled scene still installed), INSTALL the compiled outputs and the
+// destination's collections. Compiling after the capture once persisted a
+// half-traveled room: the outgoing scene captured under its id, the live
+// scene still live, and a destination that could not be traveled to.
 
 import {
   compileScene,
   deriveMapElements,
   toLiveGridSize,
+  type CompiledScene,
   type MapDocument,
+  type PlayerStagingZone,
+  type SceneState,
   type ServerMessage,
 } from "@herobyte/shared";
 import {
@@ -47,6 +58,13 @@ export interface SceneTravelOptions {
   warpTravelers: boolean;
   /** Fog default when the destination has NO saved scene. */
   firstVisitFogEnabled: boolean;
+  /**
+   * The destination node's recorded entrance (a recipe's arrival zone):
+   * installed as the scene's staging zone whenever a WARP finds the scene
+   * without one — a first visit, or a scene captured zone-less after a
+   * publish. Door-independent and sticky; a moved zone wins forever.
+   */
+  firstVisitStagingZone?: PlayerStagingZone;
   /** Injectable for deterministic arrival tests (zone spawns roll dice). */
   rng?: () => number;
 }
@@ -79,9 +97,15 @@ export function travelToDocument(
   // (the arc's final review, three lenses independently).
   if (outgoingId === document.id) {
     const { saved: runtime } = captureSceneState(state, document, now);
-    compileOnto(state, document, now, runtime);
+    installCompiled(state, compileDocument(document, now, runtime));
     return;
   }
+
+  // PHASE 1 — COMPILE, pure. Nothing on the table has moved yet, so a
+  // document the compiler rejects (poisoned in the store, a shape it cannot
+  // read) throws HERE and the room stays exactly as it was: no capture stored
+  // for a scene that is still live, no half-traveled frame.
+  const outputs = compileDocument(document, now, saved);
 
   // The START LIVE MAP row: nothing to replace, nothing to resume — compile
   // the document onto the table and leave every collection exactly in place.
@@ -90,18 +114,26 @@ export function travelToDocument(
   // pre-Atlas limbo to a GENERATED node must still arrive concealed — and
   // travel still WARPS the party (the table row), even from limbo.
   if (!outgoingId && !saved) {
-    compileOnto(state, document, now, undefined);
+    installCompiled(state, outputs);
     state.fogEnabled = options.firstVisitFogEnabled;
     if (options.warpTravelers) {
+      // The limbo table's staging zone was drawn for a map that was never a
+      // scene; a WARP must not land the party in it on the destination. (A
+      // set-live rebind never warps, so the row's "every collection exactly
+      // in place" promise still holds for the rebind.)
+      state.playerStagingZone = undefined;
+      installArrival(state, options);
       placeArrivals(state, travelers, document, options.rng);
     }
     return;
   }
 
-  // Capture the outgoing scene under ITS OWN document id — when that document
-  // still exists. A deleted document's scene is uncapturable (and its record
-  // was already dropped by map-studio-delete); stayers on it are lost with
-  // their map, which is the honest outcome.
+  // PHASE 2 — CAPTURE the outgoing scene under ITS OWN document id — when
+  // that document still exists. The capture reads door runtime from
+  // `state.compiledScene`, which is still the OUTGOING scene (install comes
+  // next). A deleted document's scene is uncapturable (and its record was
+  // already dropped by map-studio-delete); stayers on it are lost with their
+  // map, which is the honest outcome.
   if (outgoingId) {
     try {
       const outgoingDocument = deps.mapStudioService.get(roomId, outgoingId);
@@ -114,7 +146,8 @@ export function travelToDocument(
     }
   }
 
-  compileOnto(state, document, now, saved);
+  // PHASE 3 — INSTALL the compiled outputs, then the destination's collections.
+  installCompiled(state, outputs);
   restoreCollections(state, saved, travelers, {
     firstVisitFogEnabled: options.firstVisitFogEnabled,
   });
@@ -129,7 +162,15 @@ export function travelToDocument(
   // deliberately never touches it, so without that a raster from the OLD map
   // would haunt the new one.
   if (options.warpTravelers) {
+    installArrival(state, options);
     placeArrivals(state, travelers, document, options.rng);
+  }
+}
+
+/** The ONE arrival install, immediately before each placeArrivals (plan §2.2's diagram). */
+function installArrival(state: RoomState, options: SceneTravelOptions): void {
+  if (options.warpTravelers && !state.playerStagingZone && options.firstVisitStagingZone) {
+    state.playerStagingZone = structuredClone(options.firstVisitStagingZone);
   }
 }
 
@@ -155,8 +196,13 @@ export function bindLiveDocument(
     return { broadcast: true, save: true };
   }
   // Idempotent: a same-document rebind used to recompile and silently wipe
-  // door runtime state (the A4 rebuild's first casualty fixed).
-  if (documentId === state.liveMapDocumentId) {
+  // door runtime state (the A4 rebuild's first casualty fixed). "Same" means
+  // the binding AND the scene: a publish of another map parts them, and a
+  // rebind of the bound document must then run the physics, not no-op.
+  if (
+    documentId === state.liveMapDocumentId &&
+    state.compiledScene?.sourceDocumentId === documentId
+  ) {
     return { broadcast: false, save: false };
   }
   let document: MapDocument;
@@ -210,10 +256,17 @@ export function handleAtlasTravel(
       nodeId,
     );
   }
-  if (state.liveMapDocumentId === node.mapDocumentId) {
-    // Already there: a replayed travel no-ops — but "travel to the node I
-    // just linked my live map to" is the natural way to REVEAL it, and
-    // set-live deliberately never discovers, so discovery still runs here.
+  // Already there ONLY when the binding and the scene agree. After a publish
+  // of another map they part (the binding says A, the party stands on B),
+  // and keying on the binding alone no-op'd the travel back to A silently
+  // and for good — the table stayed on B with no error (K1's review). A
+  // replayed travel still no-ops, but "travel to the node I just linked my
+  // live map to" is the natural way to REVEAL it, and set-live deliberately
+  // never discovers, so discovery still runs here.
+  const alreadyThere =
+    state.liveMapDocumentId === node.mapDocumentId &&
+    state.compiledScene?.sourceDocumentId === node.mapDocumentId;
+  if (alreadyThere) {
     if (node.discovered) {
       return { broadcast: false, save: false };
     }
@@ -240,6 +293,7 @@ export function handleAtlasTravel(
     // A FIRST visit to a GENERATED node defaults fog ON — a dungeon unmasked
     // on arrival is an irreversible reveal (review S7). Linked maps inherit.
     firstVisitFogEnabled: node.recipe ? true : state.fogEnabled,
+    firstVisitStagingZone: node.arrival,
   });
   state.liveMapDocumentId = document.id;
   if (!node.discovered) {
@@ -249,17 +303,36 @@ export function handleAtlasTravel(
   return { broadcast: true, save: true };
 }
 
-/** Fresh compile + derived outputs + grid sync (door overlay when resuming). */
-function compileOnto(
-  state: RoomState,
+/** Everything the compile derives — computed PURE, installed as one assignment. */
+interface CompiledOutputs {
+  compiledScene: CompiledScene;
+  mapTerrain: RoomState["mapTerrain"];
+  mapElements: RoomState["mapElements"];
+  gridSize: RoomState["gridSize"];
+  gridSquareSize: RoomState["gridSquareSize"];
+}
+
+/** Fresh compile + derived outputs + grid sync (door overlay when resuming). Touches no state. */
+function compileDocument(
   document: MapDocument,
   now: number,
-  saved: RoomState["sceneStates"][string] | undefined,
-): void {
+  saved: SceneState | undefined,
+): CompiledOutputs {
   const compiled = compileScene(document, now);
-  state.compiledScene = saved ? overlaySavedDoorStates(compiled, saved, document) : compiled;
-  state.mapTerrain = deriveMapTerrain(document, "elements-only");
-  state.mapElements = deriveMapElements(document);
-  state.gridSize = toLiveGridSize(document.grid.size);
-  state.gridSquareSize = document.grid.squareSize;
+  return {
+    compiledScene: saved ? overlaySavedDoorStates(compiled, saved, document) : compiled,
+    mapTerrain: deriveMapTerrain(document, "elements-only"),
+    mapElements: deriveMapElements(document),
+    gridSize: toLiveGridSize(document.grid.size),
+    gridSquareSize: document.grid.squareSize,
+  };
+}
+
+/** The install — after the capture, which reads the OUTGOING compiled scene. */
+function installCompiled(state: RoomState, outputs: CompiledOutputs): void {
+  state.compiledScene = outputs.compiledScene;
+  state.mapTerrain = outputs.mapTerrain;
+  state.mapElements = outputs.mapElements;
+  state.gridSize = outputs.gridSize;
+  state.gridSquareSize = outputs.gridSquareSize;
 }

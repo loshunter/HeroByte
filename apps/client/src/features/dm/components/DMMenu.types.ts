@@ -58,6 +58,8 @@ export interface DMMenuProps {
   // must not unwire is pinned by the AtlasTab tests instead.
   linkAimActive?: boolean;
   onArmLinkAim?: (pending: PendingLink) => void;
+  /** The kicked-in door (K2): the Atlas tab's 🚪 button. */
+  onOpenKick?: () => void;
   onRequestSaveSession?: (sessionName: string) => void;
   onRequestLoadSession?: (file: File) => void;
   onCreateNPC: (request?: CreateNpcRequest) => void;

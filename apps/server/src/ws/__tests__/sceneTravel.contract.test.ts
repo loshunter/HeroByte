@@ -444,7 +444,7 @@ describe("scene travel contracts", () => {
       nodeId: "gen",
       commandId: "gen-fog",
       seed: 7,
-      params: { theme: "stone", density: "low", size: "small" },
+      recipe: { recipeId: "dungeon", theme: "stone", density: "low", size: "small" },
     });
 
     expect(roomService.getState().fogEnabled).toBe(false);
@@ -653,6 +653,134 @@ describe("scene travel contracts", () => {
     expect(state.tokens.find((token) => token.id === "gob-t")).toMatchObject({ x: 8, y: 9 });
   });
 
+  it("a WARP from limbo drops the limbo table's staging zone — the party lands at the center, not in a zone drawn for a map that was never a scene", () => {
+    setupTwoNodes();
+    seedEntities();
+    // A 1×1 zone: with the leak the pc would land within half a cell of (12,14).
+    route({
+      t: "set-player-staging-zone",
+      zone: { x: 12, y: 14, width: 1, height: 1, rotation: 0 },
+    });
+    expect(roomService.getState().compiledScene).toBeUndefined();
+
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const state = roomService.getState();
+    expect(state.playerStagingZone).toBeUndefined();
+    expect(state.tokens.find((token) => token.id === "pc-t")).toMatchObject({ x: 19, y: 19 });
+  });
+
+  it("a set-live from the same limbo keeps that zone exactly in place — the drop is the WARP's, not the row's", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({
+      t: "set-player-staging-zone",
+      zone: { x: 12, y: 14, width: 1, height: 1, rotation: 0 },
+    });
+
+    route({ t: "map-studio-set-live", documentId: "doc-b" });
+    const state = roomService.getState();
+    expect(state.compiledScene?.sourceDocumentId).toBe("doc-b");
+    expect(state.playerStagingZone).toEqual({ x: 12, y: 14, width: 1, height: 1, rotation: 0 });
+    expect(state.tokens.find((token) => token.id === "pc-t")).toMatchObject({ x: 5, y: 5 });
+  });
+
+  it("a destination that fails to COMPILE leaves the room exactly as it was — compile runs before the capture", async () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "toggle-door", doorId: "door-1" });
+    await flush();
+    // Poison what the store hands back for B (the store clones on read, so
+    // the seam is the service's `get`): the compiler walks `elements`, and a
+    // null there throws inside the compile. Capturing BEFORE that throw
+    // persisted A's scene under its id while A stayed live: a phantom
+    // suspension.
+    const realGet = mapStudioService.get.bind(mapStudioService);
+    const getSpy = vi.spyOn(mapStudioService, "get").mockImplementation((roomId, id) => {
+      const document = realGet(roomId, id);
+      return id === "doc-b" ? { ...document, elements: null as never } : document;
+    });
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    let routedThrowsLogged = 0;
+    try {
+      route({ t: "atlas-travel", nodeId: "nB" });
+    } finally {
+      // Read BEFORE restoring: mockRestore clears the recorded calls.
+      routedThrowsLogged = errorLog.mock.calls.length;
+      errorLog.mockRestore();
+      getSpy.mockRestore();
+    }
+    // The compile DID throw (route() logs every routed throw) — not a vacuous pass.
+    expect(routedThrowsLogged).toBeGreaterThan(0);
+
+    const state = roomService.getState();
+    expect(state.compiledScene?.sourceDocumentId).toBe("doc-a");
+    expect(state.sceneStates["doc-a"]).toBeUndefined();
+    expect(state.liveMapDocumentId).toBe("doc-a");
+    expect(state.compiledScene?.doors.find((door) => door.id === "door-1")?.state).toBe("open");
+    expect(state.tokens.map((token) => token.id).sort()).toEqual(["dm-scenery", "gob-t", "pc-t"]);
+  });
+
+  it("a node's ARRIVAL is installed as the staging zone on a warp that finds none, and never on a set-live", () => {
+    setupTwoNodes();
+    seedEntities();
+    const arrival = { x: 6, y: 7, width: 3, height: 3, rotation: 0 };
+    roomService.getState().atlasNodes.find((node) => node.id === "nA")!.arrival = arrival;
+
+    // A set-live rebind never warps → no install.
+    route({ t: "map-studio-set-live", documentId: "doc-a" });
+    expect(roomService.getState().playerStagingZone).toBeUndefined();
+    route({ t: "map-studio-set-live", documentId: "doc-b" });
+
+    // A travel warps → the entrance is installed, and the party lands in it.
+    route({ t: "atlas-travel", nodeId: "nA" });
+    const state = roomService.getState();
+    expect(state.playerStagingZone).toEqual(arrival);
+    expect(state.playerStagingZone).not.toBe(arrival); // a clone, never the node's own object
+    const pc = state.tokens.find((token) => token.id === "pc-t")!;
+    expect(Math.abs(pc.x - 6)).toBeLessThanOrEqual(1.5);
+    expect(Math.abs(pc.y - 7)).toBeLessThanOrEqual(1.5);
+  });
+
+  it("the install is STICKY: a scene captured zone-less gets its entrance back on the next warp; a captured zone wins", () => {
+    setupTwoNodes();
+    seedEntities();
+    const arrival = { x: 6, y: 7, width: 3, height: 3, rotation: 0 };
+    roomService.getState().atlasNodes.find((node) => node.id === "nA")!.arrival = arrival;
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "set-player-staging-zone", zone: { x: 2, y: 2, width: 1, height: 1, rotation: 0 } });
+    route({ t: "atlas-travel", nodeId: "nB" });
+    route({ t: "atlas-travel", nodeId: "nA" });
+    // The moved zone was captured, so it is restored and NOT re-installed over.
+    expect(roomService.getState().playerStagingZone).toEqual({
+      x: 2,
+      y: 2,
+      width: 1,
+      height: 1,
+      rotation: 0,
+    });
+
+    // The DM clears the zone (or a publish burned it): the capture is zone-less.
+    roomService.getState().playerStagingZone = undefined;
+    route({ t: "atlas-travel", nodeId: "nB" });
+    expect(roomService.getState().sceneStates["doc-a"]?.playerStagingZone).toBeUndefined();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    expect(roomService.getState().playerStagingZone).toEqual(arrival);
+  });
+
+  it("the OUTGOING scene's door runtime is captured from the scene still on the table — install comes after capture", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({ t: "toggle-door", doorId: "door-1" });
+
+    route({ t: "atlas-travel", nodeId: "nB" });
+    expect(roomService.getState().sceneStates["doc-a"]?.doorStates["door-1"]).toEqual({
+      state: "open",
+      authored: "closed",
+    });
+  });
+
   it("traveling to the node of the ALREADY-LIVE document still discovers it — the adopt-my-live-map flow", async () => {
     route({ t: "map-studio-create", document: { id: "live-doc", name: "Live" } });
     route({ t: "map-studio-set-live", documentId: "live-doc" });
@@ -675,6 +803,44 @@ describe("scene travel contracts", () => {
     route({ t: "atlas-travel", nodeId: "adopt" });
     await flush();
     expect(snapshotsOf(playerWs)).toHaveLength(0);
+  });
+
+  it("after a PUBLISH of another map, travel back to the BOUND node runs the physics — 'already there' needs the scene AND the binding", async () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({
+      t: "map-studio-publish",
+      documentId: "doc-b",
+      background: "data:image/png;base64,QUJD",
+    });
+    expect(roomService.getState().liveMapDocumentId).toBe("doc-a");
+    expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("doc-b");
+    await flush();
+    dmWs.send.mockClear();
+
+    route({ t: "atlas-travel", nodeId: "nA" });
+    await flush();
+    const state = roomService.getState();
+    expect(state.compiledScene?.sourceDocumentId).toBe("doc-a");
+    expect(state.liveMapDocumentId).toBe("doc-a");
+    expect(snapshotsOf(dmWs).at(-1)?.currentAtlasNodeId).toBe("nA");
+  });
+
+  it("after a PUBLISH of another map, a set-live of the BOUND document rebinds the scene too", () => {
+    setupTwoNodes();
+    seedEntities();
+    route({ t: "atlas-travel", nodeId: "nA" });
+    route({
+      t: "map-studio-publish",
+      documentId: "doc-b",
+      background: "data:image/png;base64,QUJD",
+    });
+    expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("doc-b");
+
+    route({ t: "map-studio-set-live", documentId: "doc-a" });
+    expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("doc-a");
+    expect(roomService.getState().liveMapDocumentId).toBe("doc-a");
   });
 
   // --------------------------------------------------------------------------

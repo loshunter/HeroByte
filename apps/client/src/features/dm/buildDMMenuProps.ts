@@ -111,6 +111,10 @@ export function buildDMMenuProps(
     linkAimActive: props.linkAimActive ?? false,
     onArmLinkAim: props.armLinkAim,
 
+    // The kicked-in door (K2): the Atlas tab's 🚪 button opens the App-level
+    // panel — on a phone MobileLayout overrides this to the surface machine.
+    openKick: props.kick?.openKick,
+
     // Other actions
     onSelectPlayerTokens: props.selectPlayerTokens,
     onRollAllInitiative: extras.rollAllInitiative,

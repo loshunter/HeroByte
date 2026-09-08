@@ -7,15 +7,125 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-07, THE OWNER DECIDED).** The one item the final review put to the owner is
+**CLOSED: generated encounter markers are prep notes, not secrets** — option (1) of the plan's §7
+RNG-oracle entry. Reasoning on the record: the attack costs a deliberate reconstruction from source
+by a player whose own game it spoils. Do NOT reopen it as a defect and do NOT reseed the markers
+(that costs seed-reproducibility, which Cartridge Codes rest on). Transmission secrecy is unchanged
+and must not regress — the keys are still stripped from every player frame by two independent
+locks. One adjacent idea from the same exchange is NOT yet recorded anywhere: a streaming DM's
+screen shows the markers to their own players, which wants a "hide GM notes" toggle; and the same
+conversation raised **stream mode for JOIN CODES** (hidden by default, toggled into a visible
+overlay for open community nights) — that belongs with invite links and the Claim Window in M6, not
+in this arc.
+
+**Update (2026-09-07, THE COMPLETENESS CRITIC).** The review's last step found **8 gaps, and the
+two HIGH ones were real misses the four lenses had no reason to look for.** (1) The PLAYER guide,
+written in K6, told players to click a travel sprite — but `AtlasLinksLayer`'s hit circle is gated
+`dmView`, so a player's click does nothing, ever, by design. The same class of overclaim the review
+had already caught once in the DM guide; nobody had re-read the player's. (2) K4's Tests list
+promised "both panels render the picker and send the right shape", and the ATLAS GENERATE panel's
+building path had zero client coverage at any level — the kick panel got all of it. Also real and
+fixed: the generate panel still minted its seed with `Math.random` in violation of invariant §4.8
+(K2's capsule assigned that change and it never happened) and still lacked the `inputMode="numeric"`
+the Atlas arc's mobile lens recorded against it — the note said K2 would fold it in, and K2 built a
+NEW panel and left this one alone; K2's own promised `inputMode` assertion was never written on
+either. And the phone journey's "you are here" used two independent locators, so it passed with the
+marker on the WRONG node — PROVEN vacuous by running the old form against a player-only projection
+break (green) beside the new one (red). Two gaps are recorded in §7 rather than fixed: deleting a
+mapped node leaves its 207-235 KB document with nothing testing or documenting the reclamation
+(the lifecycle lens nobody ran), and `MAX_GEOMETRY_ELEMENTS` is still dead. The critic's clean list
+is worth reading too — it verified K1's whole Tests list, K4's 26 properties, both orientations,
+the validators, §4.16 by its own `git diff`, and confirmed the `entranceAnchor` self-referential
+assertion is NOT vacuous because independent boundary maths back it.
+
+**Update (2026-09-07, THE FINAL REVIEW IS DONE).** Four lens-sized workflows (state-machine,
+privacy, client/mobile, recipe), **22 agents, `agents_error: 0` on every one**, each followed by a
+`git status` audit — the reviews mutated nothing. **8 findings: 1 refuted 2/2, 1 contested, 6
+confirmed.** Five commits answer them: `26c36486` (an e2e spec race in the initiative suite — a
+bug found mid-review and fixed in its own commit), `4a003551` (a reconnect blip threw away the
+kick form; CANCEL and Escape were dead controls on a phone; the ✕ left the App flag set; a layout
+crossing mid-kick left no pending indicator), `9e14e5fb` (the generated room keys are recoverable
+by INFERENCE — a refuter recovered the seed from the published lights in 68.8 s and reproduced all
+19 keys, so the comments no longer promise secrecy they cannot deliver, and a kicked building's
+keys are pinned off the player wire at last), `2e83124e` (a table's own export can outgrow the
+1 MiB wire frame — the client now weighs it and says so, `WS_MAX_MESSAGE_BYTES` is one shared
+constant, and K6's budget test, which measured ONE real document among seven empty shells and read
+as proof, now weighs the real frame beside a characterization test that pins the gap). Full ladder
+green on a quiescent tree, dev boot included: shared 25/427, server 127/2341, client 298 files /
+5561 tests, e2e 176 passed / 3 skipped (179). **Three findings are recorded in the plan's §7 rather
+than fixed, deliberately and not silently** — the RNG-oracle (three priced options, all costing
+something the owner should choose), the byte-aware mint cap (the real fix for the export ceiling; a
+slice, because refusing a DM's kick is a product decision), and travel re-placing the party at the
+origin's centre (the Atlas arc's settled semantics, whose fix installs a player-visible zone).
+Still NOT pushed and NOT merged.
+
+**Update (2026-09-06, THE ARC IS COMPLETE).** **The Kicked-In Door arc is finished on `dev`** —
+K0–K4 and K6 shipped, K5 (Cartridge Codes) deferred to the plan's §7 as the one slice the plan
+itself marked optional. A DM presses G (or the phone's 🚪 verb), names the place, and the whole
+table is standing in a generated dungeon or building with a door back; a table that was never on
+the Atlas is adopted by its first kick. K6 closed it in three commits: **`eaac49e8`** (a bug the
+closure gate found — the e2e reset fixture's retry ladder let a THROWN transport error escape its
+budget, so one `ECONNRESET` killed an unrelated spec; both failure shapes now share the budget,
+pinned by a server-free `reset-retry.spec.ts`), **`10415f67`** (the `kicked-in-door.smoke.spec.ts`
+journey — G on an unadopted table → adoption → tavern → the player's wire → the return door home
+→ a second kick on the now-adopted origin — plus the phone's building leg and budgets that can
+actually fail: BOTH recipe budget tests were vacuous, the dungeon twin included, and the
+eight-scene export ceiling was weighing empty documents), and the docs commit (both user guides
+with re-recorded screenshots, the §7.2 IOUs cashed in two older plans, `helpTopics.ts` re-read,
+the VISION M4 Phase 3 banner). Sabotage 14/14; final ladder green on a quiescent tree — e2e 176
+passed / 3 skipped (179), server 127/2339, client 298 files / 5553 tests. NOT pushed, NOT merged —
+that is the owner's call. The final adversarial review is the last step; see the plan's SHIPPED
+banner and each slice's own.
+
+**Update (2026-09-06, K4).** **K4 is SHIPPED on `dev`** — the building recipe (`f869d200`) and its
+behaviour-preserving groundwork (`f0361359`, the dungeon golden byte-identical through it), each
+behind the full ladder (dev boot included: shared gained runtime exports) and a sabotage pass (17/17),
+with a tavern kicked in and inspected in a browser. Both pinned goldens pass. NOT pushed, NOT merged.
+Next: K5 (Cartridge Codes, optional) or K6 (the journey e2e, budgets, user-guide debt, the final
+review). The plan's K4 banner records the answered escalation question.
+
+**Update (2026-09-06, later).** **K3 is SHIPPED on `dev`** — the kicked-in door on a phone
+(`c7ac1506`), the touch-floor sweep's Atlas gap (`149b2b64`), and a hit-graph wait that closes a
+first-time flake in K0's aim spec (`4ddc2abf`), each behind the full ladder and a sabotage pass
+(9/9), measured in a browser at 375×812. The new e2e spec caught a real bug in K2's panel: an
+inline `min-height` on its selects beat the mobile touch floor. NOT pushed, NOT merged. Next: K4,
+the building recipe. The plan's K3 banner carries the traps.
+
+**Update (2026-09-06).** **K2 is SHIPPED on `dev`** — the desktop kicked-in door (`de2c3102`) and
+the two pre-existing hotkey bugs it cleared first (`9fe080b4` the bare `r`, `35f1eff5` Delete in a
+select), each behind the full ladder and a sabotage pass (24/24), with the whole flow driven by real
+keystrokes in a browser on the dev table. NOT pushed, NOT merged. Next: K3 (the phone verb, the kick
+screen, the pending chip), whose drafts are staged. The plan's K2 banner carries the traps.
+
+**Update (2026-09-03).** **K1 is SHIPPED on `dev`** — the `atlas-kick` composition (`116d6443`) and
+its four bug commits (`c1c946e4` provenance size + the shared recipes vocabulary, `23debe85` the
+limbo-zone leak, `3e41af54` compile-before-capture, `e38b6576` trimmed names), each behind the full
+ladder and a sabotage pass (29/29 on the composition), with the console harness run in the browser
+on the dev table. K1's senior review (two lens-sized workflows, 8 agents, `agents_error: 0`): a
+confirmed guard bug and a contested origin gap FIXED (`4117c195`, `db88f49d`), the adopted name bounded
+(`01338134`), the privacy finding refuted as settled design — plan §9.1. NOT pushed, NOT merged.
+Next: K2 (G, the panel, the arrival toasts — desktop),
+whose drafts are staged. The plan's K1 banner carries the traps and the flake register.
+
+**Update (2026-09-02, late).** The Kicked-In Door arc has STARTED on `dev`: plan Rev 2 (`285b8a54`,
+recon-grounded and adversarially reviewed) is the spec, and **K0 is SHIPPED** — the Atlas review's
+missing mobile lens's four production fixes (`659c65f0`, `1cf4a424`, `1be8913d`, `52d83e50`) plus two
+persistence bugs the gates exposed (`204e7e37`, `58cf6ad5`), each behind the full ladder and a
+sabotage pass, with a CDP-driven mobile spec as the browser proof. NOT pushed, NOT merged. The plan's K0
+banner records the one deviation (L3 pans under the aim, guarded, not pinch-only). Next: K1, the
+`atlas-kick` server composition. Baselines: shared 424, server 2270, client 5500 (+4 skipped), e2e
+170/3/0 of 173.
+
 **Current state (2026-08-18).** The **loose-ends batch is IN PRODUCTION.** Ten commits,
 `c24845d9..a7bfb961`, each behind the §2 gate and each sabotage-proven before commit, merged to
 `main` as `a78dd0e7` and deployed to Render + Cloudflare on 2026-08-18. It closes five of the six
 "unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable but not closed).
 
-| Branch | Commit         | State                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dev`  | Atlas arc HEAD | **THE ATLAS ARC IS COMPLETE ON `dev` (2026-09-01), NOT pushed/merged** — A1 `fd7afb17` (graph/wire/projection/persistence/fork) → A2 `a17d6b99` (DM tree, both platforms) → five A1-review fixes `1543a08e..effddc5b` → A3 `7d7251a5` (atlas-generate-node) → A4 `3fcce20b` (sceneSuspend/sceneTravel — set-live REBUILT on the one suspend/resume path) → A5 `efabc884` (iris wipe, focus-point camera, palette follow, fog v2, 🚩 TRAVEL) → A6 `c4d86c97` (link sprites, one-shot ⚓ aim, 🗺 world map both platforms) → A7 `ae43bb8d` (atlas-journey + mobile-atlas e2e, budgets weighed, large-campaign round-trip, docs) → the final adversarial review's fixes: `69e83c45` (travel physics — the unbind→rebind wipe BLOCKER), `c9726ce8` (mint ceiling on import + load, one scene sanitizer), `c1738db6` (client: aim/lens/delete/camera/mobile), then the journey spec's post-suspension assert. [atlas-arc-plan.md](./atlas-arc-plan.md)'s SHIPPED banners carry every deviation; its §6 failure drills and §7 deferrals are the map for what's next |
-| `main` | `a37a068f`     | **PRODUCTION**, deployed **2026-08-31** — adds the boot watchdog (one lost chunk no longer blanks the page; §0.3), the sentinel time-bomb fix (`leakSentinels.ts` — CI #828 was a CLOCK collision, not a leak), and the login-flake e2e diagnostic. CI on main watched; marker-probed (watchdog string in served index.html) and browser-verified                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Branch | Commit         | State                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------ | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`  | Atlas arc HEAD | **THE ATLAS ARC IS COMPLETE, PUSHED (CI #837 green at `8d115c11`) AND IN PRODUCTION via `main` (2026-09-02)** — A1 `fd7afb17` (graph/wire/projection/persistence/fork) → A2 `a17d6b99` (DM tree, both platforms) → five A1-review fixes `1543a08e..effddc5b` → A3 `7d7251a5` (atlas-generate-node) → A4 `3fcce20b` (sceneSuspend/sceneTravel — set-live REBUILT on the one suspend/resume path) → A5 `efabc884` (iris wipe, focus-point camera, palette follow, fog v2, 🚩 TRAVEL) → A6 `c4d86c97` (link sprites, one-shot ⚓ aim, 🗺 world map both platforms) → A7 `ae43bb8d` (atlas-journey + mobile-atlas e2e, budgets weighed, large-campaign round-trip, docs) → the final adversarial review's fixes: `69e83c45` (travel physics — the unbind→rebind wipe BLOCKER), `c9726ce8` (mint ceiling on import + load, one scene sanitizer), `c1738db6` (client: aim/lens/delete/camera/mobile), then the journey spec's post-suspension assert. [atlas-arc-plan.md](./atlas-arc-plan.md)'s SHIPPED banners carry every deviation; its §6 failure drills and §7 deferrals are the map for what's next |
+| `main` | `a0434d39`     | **PRODUCTION**, deployed **2026-09-02** — the Atlas arc merge (no-ff of dev `8d115c11`). CI **#838** green with `e2e-full-suite` RUN (6m05s). Deploy verified: Cloudflare served the arc's bundle within ~1 min (chunk-probed for a string absent from the previous build, control present in both) and Render restarted (502 → `ok` in ~45s). Players must reload. A FUNCTIONAL DM check on production (place a link, travel) was NOT run — it needs the production DM password                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ## 0.2 Fork C is closed too, and it is IN PRODUCTION (2026-08-29)
 
@@ -990,7 +1100,11 @@ turns a cone into something else.
      ref and the new event-ref default resolve to the same SHA. The merge-to-main run (**#814**,
      `6a605af4`) discriminates, and its `e2e-full-suite` checkout logs
      `rev-parse refs/remotes/origin/main -> 6a605af4` — main, not dev's `720443ab`.
-   - ~~**The Atlas arc (VISION Pillar 1 / M4 phase 2)**~~ — **COMPLETE on `dev` 2026-09-01** (seven slices A1–A7, each gated + sabotage-proven + browser-verified on both platforms; see §0's dev row and the plan's SHIPPED banners). What it opens next, per the plan's §7: building-interior recipes cashing town promises, the one-keystroke Kicked-In Door (its Atlas targets now exist), reroll-preserving-pins (`pinned` — provenance already recorded), player-initiated travel/knocking, arrival at the link anchor, art-track link sprites, a spatial world-map view.
+   - ~~**The Atlas arc (VISION Pillar 1 / M4 phase 2)**~~ — **COMPLETE on `dev` 2026-09-01** (seven slices A1–A7, each gated + sabotage-proven + browser-verified on both platforms; see §0's dev row and the plan's SHIPPED banners). What it opens next, per the plan's §7: building-interior recipes cashing town promises, the one-keystroke Kicked-In Door (its Atlas targets now exist), reroll-preserving-pins (`pinned` — provenance already recorded), player-initiated travel/knocking, arrival at the link anchor, art-track link sprites, a spatial world-map view. **The next agent's handoff prompt is [PROMPT-kicked-in-door-arc.md](./PROMPT-kicked-in-door-arc.md)** — the Kicked-In Door + building interiors is the recommended arc (the owner may redirect), and its §7 carries the owner's standing instructions for prompting Claude Fable 5.1. **Update 2026-09-02:** the plan is written — [kicked-in-door-arc-plan.md](./kicked-in-door-arc-plan.md) Rev 1, recon-grounded (six pinned-model readers; every quoted anchor re-verified at HEAD), adversarially REVIEWED before execution — Rev 2 records the 16 findings (8 confirmed by both refuters, 4 contested, 4 refuted) and their dispositions in its §9; four lens-sized workflows, 36 agents, every lens finished with `agents_error: 0` after the session-limit deaths were RESUMED. **K0 SHIPPED** (six commits, see the update atop §0); **K1 SHIPPED** (2026-09-03, five commits + three review fixes — the plan's K1 banner and
+     its §9.1 review record); **K2 SHIPPED** (2026-09-06, three commits — the plan's K2
+     banner); **K3 SHIPPED** (2026-09-06, three commits — the plan's K3 banner); **K4 SHIPPED** (2026-09-06, two
+     commits — the plan's K4 banner); **K6 SHIPPED** (2026-09-06 — the journey spec, the budgets, the
+     user-guide debt); **K5 (Cartridge Codes) DEFERRED to the plan's §7.** **The arc is complete.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 **Note (2026-08-26):** this section has now gone stale twice in one week — both times because the

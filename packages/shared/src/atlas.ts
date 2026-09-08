@@ -13,6 +13,7 @@
 import type { Drawing, PlayerStagingZone, Prop, SceneObject, Token } from "./index.js";
 import type { CompiledDoorState } from "./sceneCompiler.js";
 import type { MapDoorState } from "./mapStudioTypes.js";
+import type { RecipeProvenance } from "./recipes.js";
 
 export type AtlasNodeKind =
   | "world"
@@ -42,14 +43,19 @@ export interface AtlasNode {
   discovered: boolean;
   /**
    * Provenance, recorded when a promise is cashed by a recipe. DM-only on the
-   * wire: a seed plus a reimplemented recipe is a floor-plan oracle.
+   * wire: a seed plus a reimplemented recipe is a floor-plan oracle. Its
+   * `size` is optional because nodes cashed before it was recorded lack it.
    */
-  recipe?: {
-    recipeId: "dungeon";
-    seed: number;
-    theme: "stone" | "wood";
-    density: "low" | "medium" | "high";
-  };
+  recipe?: RecipeProvenance;
+  /**
+   * Where the party ARRIVES: the recipe's entrance as a center-anchored CELL
+   * rect in the staging-zone convention. Installed as the scene's
+   * playerStagingZone whenever a WARP finds the scene without one (first
+   * visit, or a scene captured zone-less after a publish); a moved zone wins
+   * forever. The rectangle is then ordinary, player-visible scene state —
+   * only this node FIELD is DM-only on the wire (the whitelist projection).
+   */
+  arrival?: PlayerStagingZone;
   createdAt: number;
   updatedAt: number;
 }
@@ -60,7 +66,9 @@ export interface AtlasNode {
  * name, discovered, plus parentId only when the parent is discovered).
  */
 export type AtlasNodeSnapshot = Pick<AtlasNode, "id" | "kind" | "name" | "discovered"> &
-  Partial<Pick<AtlasNode, "parentId" | "mapDocumentId" | "recipe" | "createdAt" | "updatedAt">>;
+  Partial<
+    Pick<AtlasNode, "parentId" | "mapDocumentId" | "recipe" | "arrival" | "createdAt" | "updatedAt">
+  >;
 
 /**
  * A travel affordance drawn ON a map: a door/stair/signpost sprite at `anchor`

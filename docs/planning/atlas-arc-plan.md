@@ -1,7 +1,8 @@
 # The Atlas — M4 Phase 2 — Execution Plan
 
-> **THE ARC IS COMPLETE — all seven slices SHIPPED on `dev`, 2026-09-01, NOT pushed/merged
-> (the owner's call).** A1 `fd7afb17` → A2 `a17d6b99` → review fixes `1543a08e..effddc5b` →
+> **THE ARC IS COMPLETE AND IN PRODUCTION — all seven slices plus the final review's four fix
+> commits, merged to `main` as `a0434d39` on 2026-09-02 (CI #838, e2e-full-suite run; deploy
+> probe-verified on Cloudflare, Render restart observed).** A1 `fd7afb17` → A2 `a17d6b99` → review fixes `1543a08e..effddc5b` →
 > A3 `7d7251a5` → A4 `3fcce20b` → A5 `efabc884` → A6 `c4d86c97` → A7 (this commit). Every
 > slice: full gate, sabotage-all-red, live browser verification on desktop AND phone. The
 > per-slice SHIPPED banners below carry every deviation and every number; §6's failure drills
@@ -1243,12 +1244,20 @@ sizing `deriveMapTerrain` per-recipient + incremental reveal, no code. Anything 
 
 ### 7.2 Everything else
 
-The Kicked-In Door keystroke (next arc's opener — it finally has targets); building-interior
-recipes cashing town promises; reroll-preserving-pins (provenance now exists; `pinned` does not);
-split-party simultaneous scenes; player-initiated travel/knocking; arrival at the link anchor;
-link sprites from the art track; a graphical (spatial) world map view; the full APG tree-role
-keyboard pattern for the Atlas tree; per-connection DM re-elevation (the identity hardening the
-Atlas makes worth pricing — review P3); Cartridge Codes UI.
+**[CASHED 2026-09-06 by the Kicked-In Door arc —
+[kicked-in-door-arc-plan.md](./kicked-in-door-arc-plan.md)]:** the Kicked-In Door keystroke (one
+`atlas-kick` message: adopt, mint, generate, compile, pin both doors, travel — the composition
+`travelToDocument` was built for), building-interior recipes cashing town promises, and arrival at
+a REAL entrance (the recipe hands back a `PlayerStagingZone` just inside the front door, so the
+party no longer lands in rock) — which is the practical half of "arrival at the link anchor".
+
+Still deferred: reroll-preserving-pins (provenance now records `recipeId`, params, `seed` AND
+`size`; `pinned` does not exist); split-party simultaneous scenes; player-initiated
+travel/knocking; arrival at the link ANCHOR proper (a door you clicked, rather than the
+destination's own entrance); link sprites from the art track; a graphical (spatial) world map
+view; the full APG tree-role keyboard pattern for the Atlas tree; per-connection DM re-elevation
+(the identity hardening the Atlas makes worth pricing — review P3); Cartridge Codes UI (the
+Kicked-In Door arc marked it optional and did not ship it).
 
 ---
 

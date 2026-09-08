@@ -835,5 +835,36 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       expect(toast.error).toHaveBeenCalledWith("Atlas: That node already has a map.", 5000);
       expect(toast.success).not.toHaveBeenCalled();
     });
+
+    it("hands the message to onAtlasError beside the toast — the pending kick's match seam", () => {
+      const registerServerEventHandler = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+      const onAtlasError = vi.fn();
+      renderHook(() =>
+        useServerEventHandlers({
+          registerServerEventHandler,
+          toast,
+          sendMessage: vi.fn(),
+          onAtlasError,
+        }),
+      );
+      const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
+      const message = {
+        t: "atlas-error",
+        code: "at-cap",
+        reason: "Full.",
+        nodeId: "kick-1",
+      } as const;
+      act(() => handler(message));
+      expect(onAtlasError).toHaveBeenCalledWith(message);
+      expect(toast.error).toHaveBeenCalledWith("Atlas: Full.", 5000);
+    });
   });
 });

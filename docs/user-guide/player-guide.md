@@ -208,6 +208,16 @@ When the DM runs a built map (walls, doors, fog of war):
 - **Secret doors exist.** You won't see them until the DM reveals one — to you it's just wall.
 - At night the whole map cools and darkens, and torches, braziers, and other glowing props cast light pools.
 
+## The World Map
+
+**🗺 WORLD** (on a phone, **⚒ TOOLS → World**) opens your campaign map: every place your party has actually discovered, in a tree, with **◀ you are here** on the one you are standing in.
+
+![The world map: the places your party has discovered](img/player-world-map.jpg)
+
+Places your DM has not revealed are not on it — and they are not hidden from it either, they were never sent to your browser at all.
+
+Some maps have **🚪 door, stair or signpost sprites** on them — a way through to somewhere else. They are signposts, not buttons: your **DM** opens them, and when they do the whole table travels together. When you arrive somewhere new you will often find yourselves in a marked **entrance** — a dashed box just inside the door — which is simply where the party walks in.
+
 ## Look & feel
 
 - **📺 CRT** — scanlines, bloom, and a monitor bezel for the full retro-dungeon experience. Purely local to you.

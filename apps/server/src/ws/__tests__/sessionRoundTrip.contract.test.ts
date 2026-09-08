@@ -17,7 +17,13 @@
 import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage, MapDocument, SceneState, ServerMessage } from "@herobyte/shared";
+import {
+  WS_MAX_MESSAGE_BYTES,
+  type ClientMessage,
+  type MapDocument,
+  type SceneState,
+  type ServerMessage,
+} from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
 import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { RoomService } from "../../domains/room/service.js";
@@ -310,6 +316,24 @@ describe("session round trip", () => {
           createdAt: 3,
           updatedAt: 4,
         },
+        // Provenance WITH a size (the shown node's literal above deliberately
+        // has none — that it still compiles is the proof size is optional).
+        {
+          id: "atlas-sized",
+          kind: "dungeon",
+          name: "The Sized Warren",
+          discovered: false,
+          recipe: {
+            recipeId: "dungeon",
+            seed: 515151,
+            theme: "wood",
+            density: "low",
+            size: "large",
+          },
+          arrival: { x: 7, y: 8.5, width: 5, height: 4, rotation: 0 },
+          createdAt: 5,
+          updatedAt: 6,
+        },
       ],
       atlasLinks: [
         {
@@ -391,8 +415,21 @@ describe("session round trip", () => {
     expect(after.mapTerrain).toBeDefined();
     expect(after.liveMapDocumentId).toBe("live");
     // The graph rides the SNAPSHOT half (DM view, provenance included)...
-    expect(after.atlasNodes.map((node) => node.id).sort()).toEqual(["atlas-hidden", "atlas-shown"]);
+    expect(after.atlasNodes.map((node) => node.id).sort()).toEqual([
+      "atlas-hidden",
+      "atlas-shown",
+      "atlas-sized",
+    ]);
     expect(after.atlasNodes.find((node) => node.id === "atlas-shown")?.recipe?.seed).toBe(424242);
+    // Nested provenance fields are invisible to the top-level sweep — pin them.
+    expect(after.atlasNodes.find((node) => node.id === "atlas-sized")?.recipe?.size).toBe("large");
+    expect(after.atlasNodes.find((node) => node.id === "atlas-sized")?.arrival).toEqual({
+      x: 7,
+      y: 8.5,
+      width: 5,
+      height: 4,
+      rotation: 0,
+    });
     expect(after.atlasLinks).toHaveLength(1);
     // ...and the suspended scenes ride the ENVELOPE half, exactly once.
     expect(file.snapshot.sceneStates).toBeUndefined();
@@ -405,11 +442,23 @@ describe("session round trip", () => {
   });
 
   it("a realistically LARGE suspended campaign survives export→import inside the wire ceiling (A7)", () => {
-    // Eight fought-over dungeons suspended at once — far past any friendly
+    // Eight fought-over places suspended at once — far past any friendly
     // game, still legitimate. The bound that matters is the ws server's
     // maxPayload (1 MiB): the load-session message must carry the whole file
     // through one frame, so the FILE gets a 90% ceiling here and the margin
     // is the message envelope's.
+    //
+    // K6: one of the eight is a REAL GENERATED BUILDING, cashed through the
+    // real generate path at the largest preset a kick can ask for. The other
+    // seven documents are empty shells, so before this the ceiling was
+    // measured against scene payloads alone and said nothing about the
+    // document a kicked-in door actually mints — which is the biggest thing
+    // in the file.
+    //
+    // ONE such document is what this test weighs, and one is all it proves.
+    // It is NOT evidence that a real campaign's export fits: see the
+    // characterization test below, which shows a room well inside every cap
+    // minting a file that cannot be loaded back.
     const fatScene = (documentId: string): SceneState => ({
       mapDocumentId: documentId,
       suspendedAt: 7,
@@ -449,22 +498,56 @@ describe("session round trip", () => {
     });
     // The scenes must key REAL documents — the loader deliberately drops a
     // scene whose document is not in the file (the ghost-scene degrade).
-    for (let i = 0; i < 8; i++) {
+    for (let i = 1; i < 8; i++) {
       origin.route({
         t: "map-studio-create",
         document: { id: `suspended-doc-${i}`, name: `Suspended ${i}` },
       });
     }
+    origin.route({
+      t: "atlas-create-node",
+      node: { id: "the-warehouse", kind: "building", name: "The Salt Hound" },
+    });
+    origin.route({
+      t: "atlas-generate-node",
+      nodeId: "the-warehouse",
+      commandId: "gen-warehouse",
+      seed: 12345,
+      recipe: { recipeId: "building", kind: "warehouse", size: "large" },
+    });
+    const buildingDocId = origin.roomService
+      .getState()
+      .atlasNodes.find((node) => node.id === "the-warehouse")!.mapDocumentId!;
+    // Guard the guard: a generate that silently failed would leave an empty
+    // shell here and the ceiling would pass while measuring nothing.
+    expect(origin.mapStudioService.get("default", buildingDocId).elements.length).toBeGreaterThan(
+      50,
+    );
+
+    const suspended = [
+      buildingDocId,
+      ...Array.from({ length: 7 }, (_, i) => `suspended-doc-${i + 1}`),
+    ];
     origin.roomService.setState({
-      sceneStates: Object.fromEntries(
-        Array.from({ length: 8 }, (_, i) => [`suspended-doc-${i}`, fatScene(`suspended-doc-${i}`)]),
-      ),
+      sceneStates: Object.fromEntries(suspended.map((id) => [id, fatScene(id)])),
     });
 
     const file = exportSession();
-    const fileBytes = Buffer.byteLength(JSON.stringify(file), "utf8");
+    // Weigh the FRAME the client actually sends, not the file: `load-session`
+    // must cross the socket in one message, and ws checks the declared frame
+    // length. `useSessionManagement.ts` builds exactly this object.
+    const frameBytes = Buffer.byteLength(
+      JSON.stringify({
+        t: "load-session",
+        snapshot: file.snapshot,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: file.liveMapDocumentId,
+        sceneStates: file.sceneStates,
+      }),
+      "utf8",
+    );
     expect(file.sceneStates).toHaveLength(8);
-    expect(fileBytes).toBeLessThan(1024 * 1024 * 0.9);
+    expect(frameBytes).toBeLessThan(WS_MAX_MESSAGE_BYTES * 0.9);
 
     const restored = bootServer();
     restored.route({
@@ -483,9 +566,65 @@ describe("session round trip", () => {
       state: "open",
       authored: "closed",
     });
-    expect(after.sceneStates["suspended-doc-0"]?.initiatives["char-11"]).toEqual({
+    expect(after.sceneStates[buildingDocId]?.initiatives["char-11"]).toEqual({
       initiative: 9,
     });
+    // ...and the building came back as a building, not an empty shell.
+    expect(restored.mapStudioService.get("default", buildingDocId).elements.length).toBeGreaterThan(
+      50,
+    );
+  });
+
+  it("CHARACTERIZES A KNOWN GAP: the document COUNT cap does not bound the export's BYTES", () => {
+    // This test asserts the DEFECT, on purpose, and must be inverted the day it
+    // is fixed. `MAX_SESSION_DOCUMENTS` (64) is documented as the mint ceiling
+    // that keeps a DM's own export re-importable — but the gate that actually
+    // refuses a load is a BYTE ceiling, and 1 MiB / 64 means a count cap only
+    // holds if the average document is under 16 KB. A generated building is an
+    // order of magnitude past that, so a room nowhere near any cap writes a
+    // file whose `load-session` frame ws drops at the socket level, with a 1009
+    // close no handler ever sees. Found by the final review's recipe lens and
+    // reproduced twice independently; the plan's section 7 prices the fixes.
+    //
+    // The client now weighs the frame before sending and tells the DM
+    // (`useSessionManagement.ts`), so the failure is visible rather than a
+    // success toast over a dead socket — but the room can still reach this
+    // state, which is what this pins.
+    const generated = 6;
+    for (let i = 0; i < generated; i++) {
+      origin.route({
+        t: "atlas-create-node",
+        node: { id: `n-${i}`, kind: "building", name: `Warehouse ${i}` },
+      });
+      origin.route({
+        t: "atlas-generate-node",
+        nodeId: `n-${i}`,
+        commandId: `gen-${i}`,
+        seed: 1000 + i,
+        recipe: { recipeId: "building", kind: "warehouse", size: "large" },
+      });
+    }
+
+    const documents = origin.mapStudioService.list("default");
+    // Well inside every cap the mint path enforces — that is the whole point.
+    expect(documents.length).toBeLessThan(MAX_SESSION_DOCUMENTS);
+    // Guard the guard: real maps, not empty shells.
+    for (const document of documents.filter((entry) => entry.id !== "live")) {
+      expect(document.elements.length).toBeGreaterThan(50);
+    }
+
+    const file = exportSession();
+    const frameBytes = Buffer.byteLength(
+      JSON.stringify({
+        t: "load-session",
+        snapshot: file.snapshot,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: file.liveMapDocumentId,
+        sceneStates: file.sceneStates,
+      }),
+      "utf8",
+    );
+    expect(frameBytes).toBeGreaterThan(WS_MAX_MESSAGE_BYTES);
   });
 
   it("writes a file the loaders can actually read", () => {

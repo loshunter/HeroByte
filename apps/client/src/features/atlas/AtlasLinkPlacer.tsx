@@ -4,7 +4,8 @@
 // Links anchor in the FROM node's document px, so placement always starts
 // from the CURRENT node: the map the DM can actually see and click. Arming
 // hands everything but the anchor to useAtlasLinkAim; the canvas click
-// completes it (one-shot; ESC or a second finger cancels).
+// completes it (one-shot; ESC, another tool, or a scene change cancels — a
+// second finger PINCHES now, the aim survives).
 
 import { useState } from "react";
 import type { AtlasNodeSnapshot, MapLink, MapLinkSnapshot } from "@herobyte/shared";

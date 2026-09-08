@@ -31,6 +31,37 @@ import type {
 
 export type { UseStageEventRouterProps, UseStageEventRouterReturn };
 
+/** The seven tool modes that can own a press. */
+export interface SceneInputModes {
+  alignmentMode: boolean;
+  linkAimMode: boolean;
+  pointerMode: boolean;
+  measureMode: boolean;
+  drawMode: boolean;
+  selectMode: boolean;
+  mapEditMode: boolean;
+}
+
+/**
+ * True while ANY tool owns the pointer — the ONE statement of "a press belongs
+ * to a tool, not to the scenery". The camera pans on its negation, and every
+ * sprite that could swallow a press (the atlas travel badges) goes deaf on it,
+ * so a brush tap over a badge paints instead of prompting a whole-table
+ * travel. Hand-copying a subset of these terms is how the badge shipped
+ * listening under alignment, ping and measure (the mobile lens's L1).
+ */
+export function isSceneInputArmed(modes: SceneInputModes): boolean {
+  return (
+    modes.alignmentMode ||
+    modes.linkAimMode ||
+    modes.pointerMode ||
+    modes.measureMode ||
+    modes.drawMode ||
+    modes.selectMode ||
+    modes.mapEditMode
+  );
+}
+
 /**
  * Hook that provides unified event routing for the map canvas
  *
@@ -92,14 +123,15 @@ export function useStageEventRouter({
   const detectDoubleTap = useDoubleTap({ onDoubleTap: handleDoubleTap });
 
   // Camera pans (mouse or touch) only when no placement tool owns the pointer.
-  const shouldPan =
-    !alignmentMode &&
-    !linkAimMode &&
-    !pointerMode &&
-    !measureMode &&
-    !drawMode &&
-    !selectMode &&
-    !mapEditMode;
+  const shouldPan = !isSceneInputArmed({
+    alignmentMode,
+    linkAimMode,
+    pointerMode,
+    measureMode,
+    drawMode,
+    selectMode,
+    mapEditMode,
+  });
 
   /** Unified stage click handler (routes based on tool priority) */
   const onStageClick = useCallback(
@@ -254,9 +286,16 @@ export function useStageEventRouter({
     handleMapEditCancel,
   });
 
+  // The atlas-link aim is a click-shaped tool with NO armed touch tool of
+  // its own, so a finger under it has nothing else to do: let it pan (and
+  // pinch). The mouse path keeps the aim in shouldPan's negation, because a
+  // mouse drag ends in a click Konva would hand to the aim; on touch that
+  // lift is guarded (useAimTouchGuard in MapBoard) — the mobile lens's L3.
+  const touchShouldPan = shouldPan || linkAimMode;
+
   const { onTouchStart, onTouchMove, onTouchEnd } = useTouchGestureRouter({
     tool: armedTouchTool,
-    shouldPan,
+    shouldPan: touchShouldPan,
     stageRef,
     onCameraStart: handleTouchStart,
     onCameraMove: handleTouchMove,

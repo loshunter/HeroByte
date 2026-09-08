@@ -211,6 +211,24 @@ describe("atlas graph contracts", () => {
     }
   });
 
+  it("stores node names TRIMMED — the validator trims for its length check, then run() discards the parsed value", async () => {
+    route({ t: "atlas-create-node", node: { id: "n1", kind: "dungeon", name: "  Cellar  " } }, DM);
+    await flush();
+    expect(nodes().find((entry) => entry.id === "n1")?.name).toBe("Cellar");
+
+    route({ t: "atlas-update-node", nodeId: "n1", patch: { name: " Vault\t" } }, DM);
+    await flush();
+    const node = nodes().find((entry) => entry.id === "n1");
+    expect(node?.name).toBe("Vault");
+
+    // The same name with different padding is the no-op it looks like.
+    const updatedAt = node?.updatedAt;
+    route({ t: "atlas-update-node", nodeId: "n1", patch: { name: "Vault   " } }, DM);
+    await flush();
+    expect(nodes().find((entry) => entry.id === "n1")?.updatedAt).toBe(updatedAt);
+    expect(messagesOf(dmWs, "atlas-error")).toHaveLength(0);
+  });
+
   it("rejects every atlas message from a non-DM without touching state, and never explains why in detail", async () => {
     createNode("n1");
     await flush();
@@ -469,7 +487,7 @@ describe("atlas graph contracts", () => {
       nodeId,
       commandId,
       seed,
-      params: { theme: "stone", density: "medium", size: "small" },
+      recipe: { recipeId: "dungeon", theme: "stone", density: "medium", size: "small" },
     };
   }
 
@@ -487,6 +505,7 @@ describe("atlas graph contracts", () => {
       seed: SENTINEL_SEED,
       theme: "stone",
       density: "medium",
+      size: "small", // the preset that sized the document — provenance dropped it once
     });
     const document = mapStudioService.get("default", node!.mapDocumentId!);
     expect({ width: document.width, height: document.height }).toEqual({
@@ -494,6 +513,13 @@ describe("atlas graph contracts", () => {
       height: 20 * 50,
     });
     expect(document.elements.length).toBeGreaterThan(0);
+    // The entrance rides the node: a center-anchored cell rect inside the document.
+    expect(node?.arrival).toBeDefined();
+    expect(node!.arrival!.x).toBeGreaterThanOrEqual(0);
+    expect(node!.arrival!.x).toBeLessThan(24);
+    expect(node!.arrival!.y).toBeGreaterThanOrEqual(0);
+    expect(node!.arrival!.y).toBeLessThan(20);
+    expect(node!.arrival!.width).toBeGreaterThanOrEqual(3);
     // The DM's studio channel learned about the new document...
     expect(
       (messagesOf(dmWs, "map-studio-document") as { document?: { id?: string } }[]).some(

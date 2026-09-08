@@ -30,6 +30,15 @@ interface AtlasLinksLayerProps {
   dmView: boolean;
   /** DM sprite-click travel; players get no handler and no hit shape. */
   onTravel?: (toNodeId: string) => void;
+  /**
+   * A tool owns the pointer (useStageEventRouter's isSceneInputArmed), so the
+   * DM's hit circle must go DEAF: a listening shape wins the press, and a
+   * brush tap over a badge would paint AND open the whole-table travel
+   * confirm, while an aimed link tap would prompt instead of placing.
+   * REQUIRED, not optional — the DoorsLayer lesson: an optional flag is
+   * deletable with every suite green.
+   */
+  sceneInputArmed: boolean;
 }
 
 const BADGE_RADIUS = 16;
@@ -51,6 +60,7 @@ export function AtlasLinksLayer({
   mapTransform,
   dmView,
   onTravel,
+  sceneInputArmed,
 }: AtlasLinksLayerProps) {
   const onThisMap = currentNodeId ? links.filter((link) => link.fromNodeId === currentNodeId) : [];
   if (!onThisMap.length) return null;
@@ -61,7 +71,13 @@ export function AtlasLinksLayer({
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation}>
         {onThisMap.map((link) => (
-          <LinkSprite key={link.id} link={link} dmView={dmView} onTravel={onTravel} />
+          <LinkSprite
+            key={link.id}
+            link={link}
+            dmView={dmView}
+            onTravel={onTravel}
+            sceneInputArmed={sceneInputArmed}
+          />
         ))}
       </Group>
     </Group>
@@ -72,9 +88,10 @@ interface LinkSpriteProps {
   link: MapLinkSnapshot;
   dmView: boolean;
   onTravel?: (toNodeId: string) => void;
+  sceneInputArmed: boolean;
 }
 
-function LinkSprite({ link, dmView, onTravel }: LinkSpriteProps) {
+function LinkSprite({ link, dmView, onTravel, sceneInputArmed }: LinkSpriteProps) {
   // A player snapshot never carries visibleToPlayers; the DM's false means a
   // link the players cannot see, marked so the DM knows they are looking at
   // secret geography.
@@ -126,7 +143,10 @@ function LinkSprite({ link, dmView, onTravel }: LinkSpriteProps) {
         listening={false}
       />
       {/* The hit shape exists ONLY for a DM with somewhere to go — a player's
-          map input must never snag on scenery (plan A6 trap). */}
+          map input must never snag on scenery (plan A6 trap) — and it goes
+          deaf while a tool owns the press, exactly as DoorsLayer's hit line
+          does under Select: the press falls through to the stage, where the
+          armed tool (or the link aim) resolves it. */}
       {canTravel && (
         <Circle
           name={`atlas-link-hit:${link.id}`}
@@ -134,7 +154,7 @@ function LinkSprite({ link, dmView, onTravel }: LinkSpriteProps) {
           y={link.anchor.y}
           radius={BADGE_RADIUS + 4}
           fill="transparent"
-          listening={true}
+          listening={!sceneInputArmed}
           onClick={handleActivate}
           onTap={handleActivate}
         />
