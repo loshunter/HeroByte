@@ -25,6 +25,37 @@ function controls(overrides: Partial<KickControls> = {}): KickControls {
 }
 
 describe("KickPanel", () => {
+  it("offers a way OUT of the dead end: START LIVE MAP, right in the panel", () => {
+    // A real table lost time on this. The panel said "start a live map first"
+    // and left the DM at a disabled ROLL with nothing to click — the advice was
+    // correct and the panel still went nowhere.
+    const onStartLiveMap = vi.fn();
+    render(
+      <KickPanel
+        kick={controls({ canKick: false })}
+        atlasNodes={[]}
+        onStartLiveMap={onStartLiveMap}
+      />,
+    );
+
+    expect(screen.getByTestId("kick-needs-live-map")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "▶ START LIVE MAP" }));
+    expect(onStartLiveMap).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the button when there is nothing to bind, rather than offering a dead one", () => {
+    render(<KickPanel kick={controls({ canKick: false })} atlasNodes={[]} />);
+    expect(screen.queryByRole("button", { name: "▶ START LIVE MAP" })).toBeNull();
+    // ...and the explanation still stands on its own.
+    expect(screen.getByTestId("kick-needs-live-map")).toBeInTheDocument();
+  });
+
+  it("says what the feature DOES under the name that says what it is", () => {
+    // The name is the identity; the subtitle is for a DM meeting it cold.
+    render(<KickPanel kick={controls()} atlasNodes={[]} />);
+    expect(screen.getByText("Generate a connected location")).toBeInTheDocument();
+  });
+
   it("offers a phone a numeric keypad for the seed", () => {
     // K2's own Tests list promised this assertion and it was never written, so
     // deleting the attribute reddened nothing. Its twin now covers the Atlas

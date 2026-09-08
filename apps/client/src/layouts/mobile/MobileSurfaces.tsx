@@ -208,6 +208,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           <KickPanel
             kick={props.kick}
             atlasNodes={props.snapshot?.atlasNodes ?? []}
+            onStartLiveMap={props.mapEditToolbarProps.onStartLiveMap}
             presentation="content"
           />
         </MobileScreen>

@@ -61,6 +61,8 @@ export interface FloatingPanelsLayoutProps {
   snapshot: RoomSnapshot | null;
   /** The kicked-in door (K2): its panel mounts here for the DM. */
   kick?: KickControls;
+  /** Lets the kick panel start a live map itself instead of dead-ending. */
+  onStartLiveMap?: () => void;
   // Dice Roller
   diceRollerOpen: boolean;
   toggleDiceRoller: (open: boolean) => void;
@@ -107,6 +109,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     dmMenuProps,
     snapshot,
     kick,
+    onStartLiveMap,
     diceRollerOpen,
     toggleDiceRoller,
     handleRoll,
@@ -191,7 +194,13 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
         {/* The kicked-in door's panel (K2): fixed and OUTSIDE the header, like
             the world map — a panel inside the fixed header paints under the
             entities panel (the S8 stacking-context lesson). */}
-        {isDM && kick?.open && <KickPanel kick={kick} atlasNodes={snapshot?.atlasNodes ?? []} />}
+        {isDM && kick?.open && (
+          <KickPanel
+            kick={kick}
+            atlasNodes={snapshot?.atlasNodes ?? []}
+            onStartLiveMap={onStartLiveMap}
+          />
+        )}
 
         <ContextMenu
           menu={contextMenu}
