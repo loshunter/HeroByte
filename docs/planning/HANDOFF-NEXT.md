@@ -7,6 +7,16 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-09, DEPLOYED + NEXT ARC PROMPTED).** `dev` merged to `main` as `a41a8065`
+(from `7c555d32`), pushed, deploy probe-verified (bundle `index-DRpA0XA6` → `index-CHR8dA8X`; the
+publish-confirm strings are live in the served `lazy-entry` chunk, control string present). Both
+the publish blank-table fix and the fog opacity fix are IN PRODUCTION. **The next arc is written up
+as its own launch prompt: [PROMPT-keyboard-movement-arc.md](./PROMPT-keyboard-movement-arc.md)** —
+keyboard movement (WASD/arrows, one cell per press), the per-square fog redraw that falls out of it
+for free, and the per-square movement budget, all recon-banked and sliced. Its §7 embeds the
+owner's standing prompting instructions. The §10 keyboard-movement entry below is the source it was
+built from.
+
 **Update (2026-09-08, later — FOG VISIBILITY, investigated + one fix).** The owner noticed a
 player could see the whole map layout dimly through fog. Investigated live: the explored mask is
 per-uid localStorage (survives a DM elevate→revoke round-trip byte-identical — verified; no
