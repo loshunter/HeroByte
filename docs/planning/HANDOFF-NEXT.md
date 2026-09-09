@@ -1115,31 +1115,42 @@ turns a cone into something else.
      banner); **K3 SHIPPED** (2026-09-06, three commits — the plan's K3 banner); **K4 SHIPPED** (2026-09-06, two
      commits — the plan's K4 banner); **K6 SHIPPED** (2026-09-06 — the journey spec, the budgets, the
      user-guide debt); **K5 (Cartridge Codes) DEFERRED to the plan's §7.** **The arc is complete.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
-   - **QUEUED BY THE OWNER 2026-09-08 — `PUBLISH TO LIVE MAP` publishes the WRONG DOCUMENT and
-     blanks the table. ROOT CAUSE CONFIRMED by live reproduction 2026-09-08; the first two
-     hypotheses were both WRONG and are recorded here so nobody re-runs them.** The button publishes
-     `controller.activeDocument` — whatever the Map Studio list has SELECTED — which after a
-     kicked-in door (or any travel) is NOT the document the table is standing on: the studio still
-     holds the map you left. `MapStudioMessageHandler` then, for that wrong document,
-     `compileScene`s it into `state.compiledScene`, clears `state.mapElements`, drops
-     `state.mapTerrain` (because the DM menu sends `backgroundMode: "full"`), and stores its baked
-     background — **but never touches `liveMapDocumentId`.** So the table ends up with the binding
-     pointing at one document and the compiled scene at another, showing nothing but the bounding
-     box and the staging zone, with no error anywhere. Measured, standing in a kicked-in dungeon and
-     publishing the empty origin: `scene: DUNGEON -> ORIGIN`, `live: DUNGEON` (unchanged),
-     `terrain: true -> false`, `elements: true -> false`. That binding/scene split is the same shape
-     as the Atlas arc's own BLOCKER (guards keyed on the binding, capture on the scene).
-     **DEAD HYPOTHESES — do not repeat:** (1) the 8192x8192 canvas is NOT too big — an 8192 square
-     canvas paints and encodes fine in Chrome (tested: pixel drawn, 1.27 MB PNG, no error);
-     (2) the tile atlas is NOT missing — production serves `/tiles/tileset-v1.json` and its 1.1 MB
-     image with 200s. **Also corrected: travel to the node does NOT no-op**, which is what an
-     earlier reading of `sceneTravel.ts:266` predicted — `alreadyThere` needs binding AND scene to
-     agree, and publish is precisely what makes them disagree, so travelling to the node works and
-     is what the owner used to recover. **The fix has a design choice in it and is the owner's:**
-     (a) make publish REFUSE or CONFIRM when the target is not the live scene ("this replaces the
-     live map"); (b) make publish keep binding and scene consistent, which is a straight bug fix
-     since that split is never correct; (c) default the studio selection to the live document.
-     (a)+(b) is the recommendation.
+   - **FIXED 2026-09-08 — `PUBLISH TO LIVE MAP` was publishing the WRONG DOCUMENT and blanking the
+     table.** The button published `controller.activeDocument` — whatever the Map Studio list had
+     SELECTED — which after a kicked-in door is the map the DM LEFT, not the one the table is on.
+     The server compiled that document into `state.compiledScene`, cleared `mapElements`, dropped
+     `mapTerrain`, stored its baked background — and never touched `liveMapDocumentId`, leaving the
+     binding on one document and the scene on another (nothing on screen but the bounding box and
+     the staging zone, no error). The fix is Fable 5.1's (b)+(c)+(a), all three:
+     - **(b) binding and scene never part.** `map-studio-publish` moved out of the 345-line handler
+       into `mapStudioPublish.ts` and now rides `travelToDocument` — the ONE suspend/resume
+       composition, the same road set-live and atlas-travel take. A publish is a travel with a
+       raster on top: it captures the outgoing scene, installs the destination, and sets
+       `liveMapDocumentId` to what it compiled. The split is now unreachable.
+     - **(c) the Studio follows the live pointer even with the palette CLOSED.**
+       `useFollowLiveDocument` was gated on `mapEditMode`; that gate is gone, because the DM menu's
+       Studio panel reads the same active document and the palette is usually shut when a DM opens
+       Map Setup after a kick. The active document now follows travel/publish, so the button acts
+       on the map the DM is standing on.
+     - **(a) a publish that would REPLACE the live scene confirms first,** naming both maps and
+       saying the old one is still reachable by travel (`publishGuard.ts`). Publishing the map the
+       table is already on is a bake and asks nothing.
+       Re-pinned four contracts that encoded the old split (`sceneTravel`, `atlasKick` incl. the
+       retired PUBLISH-BURN row, `liveMapDoorPreservation`, the handler unit test) and added five new
+       pins (the guard both ways, the bake, the palette-closed follow, and the whole
+       bag->container->menu->tab->control threading via the REAL container). Sabotage 9/9 red after
+       two vacuity fixes (a walls-only doc derives no scenery to clear; the threading needed the real
+       container, not a layout stub). LIVE-CHECKED in a browser: the Studio followed origin->dungeon
+       (showed the dungeon's 211 elements) and a bake asked nothing — but the confirm dialog and the
+       accepted server-swap could NOT be exercised locally because asset uploads have no server in
+       the dev preview ("Upload failed"); those rest on the contract/component pins. NOT the
+       Kicked-In Door arc; the map-studio publish path, fixed under fix-bugs-regardless-of-origin.
+       **On `dev`, NOT pushed — the owner's merge call.**
+     - DEAD HYPOTHESES from the diagnosis, kept so nobody re-runs them: the 8192x8192 canvas is not
+       too big (paints + encodes fine, 1.27 MB PNG); the tile atlas is not missing (production
+       serves it 200). And travel to the node does NOT no-op — `alreadyThere` needs binding AND
+       scene to agree, and publish is exactly what parts them, which is why travel was the owner's
+       recovery.
    - **QUEUED BY THE OWNER 2026-09-08 — keyboard movement, one square per press, with sight and
      movement following it.** WASD and the arrow keys move the SELECTED token — or any selected
      item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three
