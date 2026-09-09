@@ -85,18 +85,25 @@ test.describe("mobile touch — selection sheet reach", () => {
       const report = await page.evaluate(() => {
         const el = document.querySelector(".mobile-selection-sheet");
         if (!el) return null;
-        const controls = [...el.querySelectorAll("button")].map((b) => {
-          const r = b.getBoundingClientRect();
-          return {
-            label: (b.textContent || "").trim(),
-            height: Math.round(r.height),
-            onScreen:
-              r.top >= 0 &&
-              r.bottom <= window.innerHeight &&
-              r.left >= 0 &&
-              r.right <= window.innerWidth,
-          };
-        });
+        // A zero box is genuinely hidden (undersizedControls' rule): the move
+        // pad folds its diagonals away in a short landscape viewport.
+        const controls = [...el.querySelectorAll("button")]
+          .filter((b) => {
+            const r = b.getBoundingClientRect();
+            return r.width > 0 && r.height > 0;
+          })
+          .map((b) => {
+            const r = b.getBoundingClientRect();
+            return {
+              label: (b.textContent || "").trim(),
+              height: Math.round(r.height),
+              onScreen:
+                r.top >= 0 &&
+                r.bottom <= window.innerHeight &&
+                r.left >= 0 &&
+                r.right <= window.innerWidth,
+            };
+          });
         return {
           offScreen: controls.filter((c) => !c.onScreen).map((c) => c.label),
           under44: controls.filter((c) => c.height < 44).map((c) => `${c.label}:${c.height}`),

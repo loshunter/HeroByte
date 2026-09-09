@@ -5,8 +5,11 @@ import { describe, expect, it } from "vitest";
 import { measureGridDistance } from "../measurement.js";
 import {
   DEFAULT_MOVEMENT_SPEED_FEET,
+  MOVEMENT_SPEED_MAX_FEET,
+  coerceMovementBudgetFields,
   movementBudgetFor,
   movementCharge,
+  resetMovementBudget,
 } from "../movementBudget.js";
 
 const cell = (x: number, y: number) => ({ x, y });
@@ -152,6 +155,46 @@ describe("movementCharge", () => {
         diagonalsBefore: 0,
       }),
     ).toEqual({ feet: 10, diagonals: 0 });
+  });
+});
+
+describe("coerceMovementBudgetFields — the file roads", () => {
+  it("returns the same object when every field is sane or absent", () => {
+    const sane = { speed: 25, movementUsed: 10, movementDiagonals: 1 };
+    expect(coerceMovementBudgetFields(sane)).toBe(sane);
+    const absent: { name: string; speed?: number } = { name: "x" };
+    expect(coerceMovementBudgetFields(absent)).toBe(absent);
+  });
+
+  it("drops NaN / negative / non-number spend fields and clamps speed to the shared bounds", () => {
+    expect(
+      coerceMovementBudgetFields({
+        speed: 1e9,
+        movementUsed: Number.NaN,
+        movementDiagonals: -3 as number,
+      }),
+    ).toEqual({ speed: MOVEMENT_SPEED_MAX_FEET });
+    expect(
+      coerceMovementBudgetFields({
+        speed: "fast" as unknown as number,
+        movementUsed: "3" as unknown as number,
+        movementDiagonals: null as unknown as number,
+      }),
+    ).toEqual({});
+    expect(coerceMovementBudgetFields({ speed: -5 })).toEqual({ speed: 0 });
+    // Infinity passes `>= 0`; only the finiteness check catches it.
+    expect(
+      coerceMovementBudgetFields({ movementUsed: Number.POSITIVE_INFINITY, movementDiagonals: 1 }),
+    ).toEqual({ movementDiagonals: 1 });
+  });
+});
+
+describe("resetMovementBudget", () => {
+  it("zeroes both counters and tolerates a missing character", () => {
+    const character = { movementUsed: 20, movementDiagonals: 3 };
+    resetMovementBudget(character);
+    expect(character).toEqual({ movementUsed: 0, movementDiagonals: 0 });
+    expect(() => resetMovementBudget(undefined)).not.toThrow();
   });
 });
 

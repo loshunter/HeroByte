@@ -74,6 +74,7 @@ const createProps = () => ({
   onCreateNPC: vi.fn(),
   onDuplicateNPC: vi.fn(),
   onUpdateNPC: vi.fn(),
+  onSetNPCSpeed: vi.fn(),
   onDeleteNPC: vi.fn(),
   onPlaceNPCToken: vi.fn(),
   mapLocked: false,

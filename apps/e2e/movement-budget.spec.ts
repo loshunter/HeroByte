@@ -54,15 +54,32 @@ const readouts = (page: Page) =>
       window as unknown as {
         Konva: {
           stages: Array<{
-            find: (s: string) => Array<{ text: () => string; fontSize: () => number }>;
+            find: (s: string) => Array<{
+              text: () => string;
+              fontSize: () => number;
+              fill: () => string;
+            }>;
           }>;
         };
       }
     ).Konva.stages[0];
     return stage
       .find(".token-move-budget")
-      .map((node) => ({ text: node.text(), size: node.fontSize() }));
+      .map((node) => ({ text: node.text(), size: node.fontSize(), fill: node.fill() }));
   });
+
+const GOLD = "#e0a83c";
+const RED = "#d63c53";
+
+/** The DM sets a character's speed through the card's settings menu (the portrait opens it). */
+async function setSpeedFromCard(dm: Page, characterName: string, speed: string) {
+  const card = dm.locator(".player-card-shell", { hasText: characterName }).first();
+  await card.getByRole("button", { name: "Change portrait" }).click();
+  const field = dm.getByLabel("Movement speed in feet per turn");
+  await field.fill(speed);
+  await field.press("Enter");
+  await dm.keyboard.press("Escape");
+}
 
 /** Advance the order until it is `characterId`'s turn (others may be in it). */
 async function advanceToTurnOf(dm: Page, characterId: string) {
@@ -89,16 +106,25 @@ test.describe("movement budget", () => {
       await joinDefaultRoom(page);
       const me = await ownCharacter(page);
 
-      // The DM puts me in the order at 25 ft per turn and starts combat.
+      // The DM puts me in the order and sets 25 ft per turn THROUGH THE UI —
+      // the card's settings menu — then starts combat. The speed landing on
+      // MY page, keyed by my character, proves the desktop binding.
       await send(dm, { t: "set-initiative", characterId: me.id, initiative: 15 });
-      await send(dm, { t: "set-character-speed", characterId: me.id, speed: 25 });
+      const myName = await page.evaluate(
+        (id) => window.__HERO_BYTE_E2E__!.snapshot!.characters.find((c) => c.id === id)!.name,
+        me.id,
+      );
+      await setSpeedFromCard(dm, myName, "25");
+      await expect
+        .poll(() => readCharacter(page, me.id).then((c) => c.speed), { timeout: 5_000 })
+        .toBe(25);
       await send(dm, { t: "start-combat" });
       await expect
         .poll(() => readCharacter(page, me.id), { timeout: 5_000 })
         .toEqual({ speed: 25, movementUsed: 0, initiative: 15 });
       await expect
         .poll(() => readouts(page), { timeout: 5_000 })
-        .toContainEqual({ text: "25 / 25 ft", size: 11 });
+        .toContainEqual({ text: "25 / 25 ft", size: 11, fill: GOLD });
 
       // Two orthogonal steps: 10 ft under every rule.
       await selectTool(page).click();
@@ -123,7 +149,7 @@ test.describe("movement budget", () => {
         .toBe(10);
       await expect
         .poll(() => readouts(page), { timeout: 5_000 })
-        .toContainEqual({ text: "15 / 25 ft", size: 11 });
+        .toContainEqual({ text: "15 / 25 ft", size: 11, fill: GOLD });
 
       // My turn comes round again: the budget starts over.
       await advanceToTurnOf(dm, me.id);
@@ -132,7 +158,20 @@ test.describe("movement budget", () => {
         .toBe(0);
       await expect
         .poll(() => readouts(page), { timeout: 5_000 })
-        .toContainEqual({ text: "25 / 25 ft", size: 11 });
+        .toContainEqual({ text: "25 / 25 ft", size: 11, fill: GOLD });
+
+      // Overspend: a 5 ft speed and two steps — the readout goes negative and red.
+      await send(dm, { t: "set-character-speed", characterId: me.id, speed: 5 });
+      await page.keyboard.press("ArrowLeft");
+      await page.keyboard.press("ArrowLeft");
+      await expect
+        .poll(() => readouts(page), { timeout: 5_000 })
+        .toContainEqual({ text: "-5 / 5 ft", size: 11, fill: RED });
+      // And back to the default by emptying the field: the plate reads 30 again.
+      await setSpeedFromCard(dm, myName, "");
+      await expect
+        .poll(() => readCharacter(page, me.id).then((c) => c.speed), { timeout: 5_000 })
+        .toBeUndefined();
 
       // Combat off: no budget on any plate.
       await send(dm, { t: "end-combat" });
@@ -166,12 +205,13 @@ test.describe("movement budget", () => {
       );
       npcId = (await characterIds(page)).find((id) => !before.has(id));
       await send(page, { t: "place-npc-token", id: npcId });
+      await send(page, { t: "set-character-speed", characterId: npcId, speed: 40 });
       await send(page, { t: "set-initiative", characterId: npcId, initiative: 9 });
       await send(page, { t: "set-initiative", characterId: pc.id, initiative: 15 });
       await send(page, { t: "start-combat" });
       await expect
-        .poll(() => readCharacter(page, npcId!).then((c) => c.movementUsed), { timeout: 5_000 })
-        .toBe(0);
+        .poll(() => readCharacter(page, npcId!), { timeout: 5_000 })
+        .toMatchObject({ speed: 40, movementUsed: 0 });
 
       // The player's frame: their PC's budget fields present, the NPC's absent.
       await expect

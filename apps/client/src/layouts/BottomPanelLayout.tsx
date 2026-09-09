@@ -177,7 +177,7 @@ export interface BottomPanelLayoutProps {
    * optional so the layout fixtures stay untouched). */
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
   /** DM-only: a character's feet per turn (optional, as above). */
-  onCharacterSpeedChange?: (characterId: string, speedFeet: number) => void;
+  onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
   /** The table default, shown on a token that inherits it. */
   tableVisionDefault?: number;
   /** Handler to change token image */

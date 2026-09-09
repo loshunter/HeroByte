@@ -24,7 +24,10 @@ import type { RoomService } from "../../domains/room/service.js";
 import type { DiceService } from "../../domains/dice/service.js";
 import type { PlayerService } from "../../domains/player/service.js";
 import { applyInitiative } from "./applyInitiative.js";
-import { resetAllMovementBudgets, resetMovementBudget } from "./movementBudgetReset.js";
+import {
+  resetAllMovementBudgets,
+  resetMovementBudget,
+} from "../../domains/room/transform/movementBudgetReset.js";
 import { buildManualInitiativeRecord } from "./initiativeRollRecord.js";
 
 /**
@@ -327,6 +330,12 @@ export class InitiativeMessageHandler {
     }
 
     this.characterService.clearAllInitiative(state);
+    // The order is empty now, so no turn can ever land on anyone: a turn
+    // pointer into the cleared order would send next-turn to whoever sorts
+    // first, and a budget nobody can reset would keep charging invisibly
+    // (combat stays active by this message's contract).
+    state.currentTurnCharacterId = undefined;
+    resetAllMovementBudgets(state);
 
     return { broadcast: true, save: true };
   }

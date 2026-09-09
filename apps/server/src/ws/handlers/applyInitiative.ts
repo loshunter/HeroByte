@@ -15,6 +15,10 @@
 
 import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
+import {
+  resetAllMovementBudgets,
+  resetMovementBudget,
+} from "../../domains/room/transform/movementBudgetReset.js";
 
 /**
  * Store an initiative value and bring combat into a consistent state.
@@ -35,6 +39,9 @@ export function applyInitiative(
   // Auto-start combat if not already active and this is the first initiative roll
   if (!state.combatActive) {
     state.combatActive = true;
+    // The ordinary road into a fight (someone rolls) starts every budget
+    // over exactly as the Start Combat button does.
+    resetAllMovementBudgets(state);
     state.currentTurnCharacterId = characterId;
   }
   // If combat is active but no turn is set, set the first character with
@@ -43,6 +50,7 @@ export function applyInitiative(
     const charactersInOrder = characterService.getCharactersInInitiativeOrder(state);
     if (charactersInOrder.length > 0) {
       state.currentTurnCharacterId = charactersInOrder[0].id;
+      resetMovementBudget(charactersInOrder[0]);
     }
   }
 

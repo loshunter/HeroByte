@@ -14,9 +14,9 @@ unchanged and the fog cone redraws per square from the next snapshot. The phone 
 in the selection sheet (eight 44×44 chips measured at 375×812). Plan, decisions and traps:
 [keyboard-movement-arc-plan.md](./keyboard-movement-arc-plan.md). CORRECTION to the launch
 prompt's recon: the client never sends `move` — every drag is `transform-object`, which is why
-props came for free. Discrete presses only (`event.repeat` swallowed); fast presses chain from the
-last sent cell for 1.5 s so none is lost to latency; a fractional origin (staging-zone spawn) snaps
-to the nearest cell first. Selection still needs Select/Transform mode (existing model). **Slice 2
+props came for free. Fast presses chain from the last sent cell (one direction, at most 4 ahead,
+1.5 s from the first unconfirmed step) so none is lost to latency; a fractional origin
+(staging-zone spawn) snaps to the nearest cell first. Selection still needs Select/Transform mode (existing model). **Slice 2
 (hold-to-repeat) also SHIPPED 2026-09-09:** a held key or a held d-pad button walks at one cell
 per 150 ms. **Slice 3 (the movement budget) SHIPPED 2026-09-09 too — the arc is COMPLETE on
 `dev`:** every token move in combat is charged server-side under the diagonal rule (Pathfinder's

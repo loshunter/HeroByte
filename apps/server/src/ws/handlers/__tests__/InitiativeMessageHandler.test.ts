@@ -552,7 +552,38 @@ describe("InitiativeMessageHandler", () => {
       expect(state.characters[1].movementUsed).toBe(20);
     });
 
-    it("starting or ending combat resets everyone", () => {
+    it("the ORDINARY road into a fight — the first initiative value — resets everyone", () => {
+      // Combat auto-starts on the first initiative (applyInitiative); nobody
+      // has to press Start Combat. Budgets left over from the last fight must
+      // not open this one.
+      state.combatActive = false;
+      state.currentTurnCharacterId = undefined;
+      for (const character of state.characters) character.initiative = undefined;
+      handler.handleSetInitiative(state, "char1", "dmPlayer", 11, 0, true);
+      expect(state.combatActive).toBe(true);
+      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(state.characters.every((c) => c.movementUsed === 0 && c.movementDiagonals === 0)).toBe(
+        true,
+      );
+    });
+
+    it("combat active with no turn set: the first initiative gives the turn AND resets that character", () => {
+      state.currentTurnCharacterId = undefined;
+      for (const character of state.characters) character.initiative = undefined;
+      handler.handleSetInitiative(state, "char3", "dmPlayer", 11, 0, true);
+      expect(state.currentTurnCharacterId).toBe("char3");
+      expect(state.characters[2]).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+      expect(state.characters[0].movementUsed).toBe(20);
+    });
+
+    it("clear-all-initiative leaves combat on but empties the order — so it clears the turn and every budget", () => {
+      handler.handleClearAllInitiative(state, "dmPlayer", true);
+      expect(state.combatActive).toBe(true);
+      expect(state.currentTurnCharacterId).toBeUndefined();
+      expect(state.characters.every((c) => c.movementUsed === 0)).toBe(true);
+    });
+
+    it("the explicit Start Combat / End Combat buttons reset everyone", () => {
       handler.handleStartCombat(state, "dmPlayer", true);
       expect(state.characters.every((c) => c.movementUsed === 0 && c.movementDiagonals === 0)).toBe(
         true,

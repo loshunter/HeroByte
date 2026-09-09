@@ -154,7 +154,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Move",
         detail:
-          "Drag it, or select and step with WASD / arrows (QEZC diagonal; d-pad on phones). In combat the plate reads feet left / speed by the table's diagonal rule, refilled when your turn starts; the DM sets speed in ⚙️ settings.",
+          "Drag it, or select and step with WASD / arrows (QEZC diagonal; d-pad on phones). In combat a combatant's plate reads feet left / speed by the table's diagonal rule, refilled at the start of its turn. The DM sets a player's speed in ⚙️ settings and a monster's in DM Menu → NPCs.",
       },
       { term: "Recolor", detail: "Double-click your own token for a new random colour." },
       {

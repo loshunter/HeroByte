@@ -82,7 +82,7 @@ interface EntitiesPanelProps {
    * optional so the layout fixtures stay untouched). */
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
   /** DM-only: a character's feet per turn — the movement budget's ceiling. */
-  onCharacterSpeedChange?: (characterId: string, speedFeet: number) => void;
+  onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
   onAddCharacter: (name: string) => void;
   onDeleteCharacter: (characterId: string) => void;
   onFocusToken: (tokenId: string) => void;
@@ -457,7 +457,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             characterSpeed={character.speed}
                             onCharacterSpeedChange={
                               currentIsDM && onCharacterSpeedChange
-                                ? (speed: number) => onCharacterSpeedChange(character.id, speed)
+                                ? (speed: number | null) =>
+                                    onCharacterSpeedChange(character.id, speed)
                                 : undefined
                             }
                             onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
@@ -620,7 +621,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           characterSpeed={character.speed}
                           onCharacterSpeedChange={
                             currentIsDM && onCharacterSpeedChange
-                              ? (speed: number) => onCharacterSpeedChange(character.id, speed)
+                              ? (speed: number | null) =>
+                                  onCharacterSpeedChange(character.id, speed)
                               : undefined
                           }
                           onAddCharacter={isMe ? characterCreation.createCharacter : undefined}

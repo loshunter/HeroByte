@@ -226,6 +226,28 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(poisoned.getState().diagonalRule).toBe("5e");
     });
 
+    it("coerces the movement-budget fields off disk like everything beside them", async () => {
+      roomService.getState().characters = [
+        { id: "c1", type: "pc", name: "Runner", hp: 10, maxHp: 10, speed: 25, movementUsed: 5 },
+      ];
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      expect(raw.characters[0]).toMatchObject({ speed: 25, movementUsed: 5 });
+      // A hand-edited file: NaN would poison every later charge; a speed the
+      // wire refuses must not slip in through the back door.
+      raw.characters[0].movementDiagonals = "NaN";
+      raw.characters[0].movementUsed = -4;
+      raw.characters[0].speed = 1e9;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+      poisoned.loadState();
+      const loaded = poisoned.getState().characters[0]!;
+      expect(loaded.speed).toBe(1000);
+      expect("movementUsed" in loaded).toBe(false);
+      expect("movementDiagonals" in loaded).toBe(false);
+    });
+
     it("gives a file written before S6 the corrected default, not Euclidean", async () => {
       roomService.saveState();
       await roomService.awaitPendingWrites();

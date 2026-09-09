@@ -1903,6 +1903,36 @@ h4 {
 .mobile-move-pad__button {
   font-size: 1rem;
   line-height: 1;
+  /* A press-and-hold with thumb drift must not become a scroll of the sheet
+     (that would pointercancel the walk a few hundred ms in). */
+  touch-action: none;
+}
+
+/* A short landscape phone (812x375) cannot fit three rows above the dock —
+   the sheet would clip its own Clear chip — so the pad folds to one row of
+   the four orthogonals, in reading order ← ↑ ↓ →. Diagonals are a keyboard
+   and portrait affordance there. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-move-pad {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: 240px;
+  }
+  .mobile-move-pad__button--diagonal,
+  .mobile-move-pad__centre {
+    display: none;
+  }
+  .mobile-move-pad__button[aria-label="Move left"] {
+    order: 1;
+  }
+  .mobile-move-pad__button[aria-label="Move up"] {
+    order: 2;
+  }
+  .mobile-move-pad__button[aria-label="Move down"] {
+    order: 3;
+  }
+  .mobile-move-pad__button[aria-label="Move right"] {
+    order: 4;
+  }
 }
 
 .mobile-move-pad__centre {

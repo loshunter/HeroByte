@@ -66,7 +66,7 @@ interface PlayerSettingsMenuProps {
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
-  onCharacterSpeedChange?: (speedFeet: number) => void;
+  onCharacterSpeedChange?: (speedFeet: number | null) => void;
   /** Render the sight controls at the 44px touch floor (mobile rows). */
   compactControls?: boolean;
   onAddCharacter?: (name: string) => boolean;

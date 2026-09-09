@@ -32,6 +32,8 @@ interface NPCsTabProps {
   onDuplicateNPC: (id: string) => void;
   /** Callback to update an NPC's properties */
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
+  /** Movement budget: an NPC's feet per turn (null = the shared default). */
+  onSetNPCSpeed: (id: string, speedFeet: number | null) => void;
   /** Callback to place an NPC token on the map */
   onPlaceNPCToken: (id: string) => void;
   /** Callback to delete an NPC */
@@ -77,6 +79,7 @@ export default function NPCsTab({
   onCreateNPC,
   onDuplicateNPC,
   onUpdateNPC,
+  onSetNPCSpeed,
   onPlaceNPCToken,
   onDeleteNPC,
   isCreatingNpc = false,
@@ -216,6 +219,7 @@ export default function NPCsTab({
               key={npc.id}
               npc={npc}
               onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
+              onSpeedChange={(speed) => onSetNPCSpeed(npc.id, speed)}
               onPlace={() => onPlaceNPCToken(npc.id)}
               onDuplicate={() => onDuplicateNPC(npc.id)}
               onDelete={() => onDeleteNPC(npc.id)}

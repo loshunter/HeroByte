@@ -1061,7 +1061,7 @@ type ClientMessagePayload =
   | { t: "set-diagonal-rule"; rule: DiagonalRule } // DM-only: how the table counts diagonal distance
   | { t: "set-player-props-enabled"; enabled: boolean } // DM-only: players may place/manage their own props
   | { t: "set-default-vision-radius"; radius: number | null } // DM-only: table-wide sight limit in feet for tokens with none of their own, null = unlimited
-  | { t: "set-character-speed"; characterId: string; speed: number } // DM sets a character's feet per turn
+  | { t: "set-character-speed"; characterId: string; speed: number | null } // DM sets a character's feet per turn; null = back to the default
   | { t: "set-initiative-manual-override"; enabled: boolean } // DM-only: players may enter initiative by hand (absent = ON — see the snapshot field)
 
   /**

@@ -68,7 +68,7 @@ export interface PlayerCardProps {
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
-  onCharacterSpeedChange?: (speedFeet: number) => void;
+  onCharacterSpeedChange?: (speedFeet: number | null) => void;
   onAddCharacter?: (name: string) => boolean;
   isCreatingCharacter?: boolean;
   characterId?: string;

@@ -83,3 +83,49 @@ export function movementBudgetFor(character: {
   const used = round1(character.movementUsed ?? 0);
   return { speed, used, remaining: round1(speed - used) };
 }
+
+/** A budget starts over: the character's turn began, or combat did. */
+export function resetMovementBudget(
+  character: { movementUsed?: number; movementDiagonals?: number } | undefined,
+): void {
+  if (!character) return;
+  character.movementUsed = 0;
+  character.movementDiagonals = 0;
+}
+
+/**
+ * The three budget fields as they may arrive from a FILE (a session load, a
+ * restart): every other character field beside them is normalised on the way
+ * in, and a hand-edited `movementDiagonals: NaN` would otherwise poison every
+ * later charge (`Math.max(0, Math.floor(NaN))` is NaN). Returns the same
+ * object when nothing needed fixing.
+ */
+export function coerceMovementBudgetFields<
+  T extends { speed?: number; movementUsed?: number; movementDiagonals?: number },
+>(character: T): T {
+  const speed =
+    typeof character.speed === "number" && Number.isFinite(character.speed)
+      ? Math.min(MOVEMENT_SPEED_MAX_FEET, Math.max(MOVEMENT_SPEED_MIN_FEET, character.speed))
+      : undefined;
+  const spend = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+  const used = spend(character.movementUsed);
+  const diagonals = spend(character.movementDiagonals);
+  if (
+    speed === character.speed &&
+    used === character.movementUsed &&
+    diagonals === character.movementDiagonals
+  ) {
+    return character;
+  }
+  const next = { ...character };
+  for (const [key, value] of [
+    ["speed", speed],
+    ["movementUsed", used],
+    ["movementDiagonals", diagonals],
+  ] as const) {
+    if (value === undefined) delete next[key];
+    else next[key] = value;
+  }
+  return next;
+}

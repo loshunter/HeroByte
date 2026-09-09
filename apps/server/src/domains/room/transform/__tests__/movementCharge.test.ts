@@ -7,6 +7,7 @@
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { RoomService } from "../../service.js";
+import { restoreCollections } from "../../scene/sceneSuspend.js";
 
 const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "movementCharge-state.json");
 
@@ -79,12 +80,79 @@ describe("movement budget charge", () => {
 
   it("charges nothing out of combat, and nothing for a token without a character", () => {
     room.getState().combatActive = false;
-    room.applySceneObjectTransform("token:tok-pc", player, { position: { x: 9, y: 9 } });
+    expect(
+      room.applySceneObjectTransform("token:tok-pc", player, { position: { x: 9, y: 9 } }),
+    ).toBe(true);
+    expect(room.getState().tokens.find((t) => t.id === "tok-pc")!.x).toBe(9);
     expect(pc().movementUsed).toBeUndefined();
 
     room.getState().combatActive = true;
-    room.applySceneObjectTransform("token:tok-free", player, { position: { x: 9, y: 9 } });
+    expect(
+      room.applySceneObjectTransform("token:tok-free", player, { position: { x: 9, y: 9 } }),
+    ).toBe(true);
     expect(room.getState().characters.every((c) => c.movementUsed === undefined)).toBe(true);
+  });
+
+  it("a step refused by a wall charges nothing — the budget cannot rise without the token", () => {
+    room.setState({
+      compiledScene: {
+        schemaVersion: 1,
+        sourceDocumentId: "map",
+        sourceRevision: 1,
+        compiledAt: 1,
+        width: 2048,
+        height: 2048,
+        // Token cell (3,4) is world (175,225); a wall at x=200 blocks the step to cell 4.
+        walls: [
+          {
+            id: "w#0",
+            x1: 200,
+            y1: 100,
+            x2: 200,
+            y2: 400,
+            blocksMovement: true,
+            blocksVision: true,
+          },
+        ],
+        doors: [],
+        lights: [],
+      },
+    });
+    expect(
+      room.applySceneObjectTransform("token:tok-pc", player, { position: { x: 4, y: 4 } }),
+    ).toBe(false);
+    expect(room.getState().tokens.find((t) => t.id === "tok-pc")!.x).toBe(3);
+    expect(pc().movementUsed).toBeUndefined();
+  });
+
+  it("a travel resets every budget, arriving fresh or resuming", () => {
+    const state = room.getState();
+    room.applySceneObjectTransform("token:tok-pc", player, { position: { x: 4, y: 4 } });
+    expect(pc().movementUsed).toBe(5);
+    // First visit: an empty room.
+    restoreCollections(state, undefined, state.tokens, { firstVisitFogEnabled: false });
+    expect(pc()).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+    // Spend again, then resume a saved scene.
+    state.combatActive = true;
+    room.applySceneObjectTransform("token:tok-pc", player, { position: { x: 5, y: 4 } });
+    expect(pc().movementUsed).toBe(5);
+    restoreCollections(
+      state,
+      {
+        tokens: [],
+        props: [],
+        drawings: [],
+        sceneObjects: [],
+        characterLinks: {},
+        combatActive: true,
+        fogEnabled: false,
+        initiatives: {},
+        doorStates: {},
+      } as never,
+      state.tokens,
+      { firstVisitFogEnabled: false },
+    );
+    expect(pc()).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
   });
 
   it("a refused move (not the owner) charges nothing", () => {

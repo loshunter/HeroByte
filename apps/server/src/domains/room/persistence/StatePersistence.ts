@@ -18,6 +18,7 @@ import {
   coerceDefaultVisionRadius,
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
+  coerceMovementBudgetFields,
   coerceTokenVisionRadii,
 } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
@@ -119,12 +120,14 @@ export class StatePersistence {
             isDM: player.isDM ?? false,
             statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
           })),
-          characters: (data.characters || []).map((character: Character) => ({
-            ...character,
-            type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
-            tokenImage: character.tokenImage ?? undefined,
-            tokenId: character.tokenId ?? undefined,
-          })),
+          characters: (data.characters || []).map((character: Character) =>
+            coerceMovementBudgetFields({
+              ...character,
+              type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
+              tokenImage: character.tokenImage ?? undefined,
+              tokenId: character.tokenId ?? undefined,
+            }),
+          ),
           props: data.props || [],
           mapBackground: data.mapBackground,
           pointers: [], // Don't persist pointers - they expire

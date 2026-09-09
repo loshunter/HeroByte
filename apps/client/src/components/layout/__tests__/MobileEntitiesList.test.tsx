@@ -67,6 +67,17 @@ describe("movement speed — the DM gate and the character binding", () => {
     expect(onCharacterSpeedChange).toHaveBeenCalledWith("char-1", 35);
   });
 
+  it("a player with NO character (the legacy row) gets no speed field — there is nothing to set it on", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ isDM: true, onCharacterSpeedChange: vi.fn() })}
+        characters={[]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.queryByLabelText("Movement speed in feet per turn")).not.toBeInTheDocument();
+  });
+
   it("a plain player never sees the field, handler or not", () => {
     render(<MobileEntitiesList {...listProps({ isDM: false, onCharacterSpeedChange: vi.fn() })} />);
     fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));

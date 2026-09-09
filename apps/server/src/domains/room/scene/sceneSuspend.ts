@@ -21,6 +21,7 @@ import {
   type Token,
 } from "@herobyte/shared";
 import { createSelectionMap, type RoomState } from "../model.js";
+import { resetAllMovementBudgets } from "../transform/movementBudgetReset.js";
 
 /**
  * A token TRAVELS (follows the party to the destination) iff:
@@ -171,6 +172,10 @@ export function restoreCollections(
     state.drawings = saved.drawings;
     state.sceneObjects = [...saved.sceneObjects, ...travelerEntries];
     state.combatActive = saved.combatActive;
+    // Budgets are roster state (they live on the character), combat is scene
+    // state; a travel is not a turn boundary, so the party arrives fresh in
+    // both directions rather than carrying one fight's spend into another.
+    resetAllMovementBudgets(state);
     state.fogEnabled = saved.fogEnabled;
     state.defaultVisionRadius = saved.defaultVisionRadius;
     state.playerStagingZone = saved.playerStagingZone;
@@ -205,6 +210,7 @@ export function restoreCollections(
     state.sceneObjects = [...travelerEntries];
     state.combatActive = false;
     state.currentTurnCharacterId = undefined;
+    resetAllMovementBudgets(state);
     for (const character of state.characters) {
       character.initiative = undefined;
     }

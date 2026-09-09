@@ -11,6 +11,7 @@ import { JRPGPanel } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
 import { NPCEditorActions } from "./NPCEditorActions";
+import { MovementSpeedField } from "../../players/components/MovementSpeedField";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -31,11 +32,14 @@ interface NPCEditorProps {
   isPlacingToken?: boolean;
   isDuplicating?: boolean;
   tokenPlacementError?: string | null;
+  /** Movement budget: feet per turn (null = the shared default). DM menu only, so DM-only. */
+  onSpeedChange?: (speedFeet: number | null) => void;
 }
 
 export function NPCEditor({
   npc,
   onUpdate,
+  onSpeedChange,
   onPlace,
   onDuplicate,
   onDelete,
@@ -253,6 +257,11 @@ export function NPCEditor({
             }}
           />
         </label>
+        {onSpeedChange && (
+          <div style={{ flex: 1 }}>
+            <MovementSpeedField value={npc.speed} onChange={onSpeedChange} compact />
+          </div>
+        )}
       </div>
 
       <ImageField

@@ -15,6 +15,7 @@
 import {
   hpBadgeFor,
   movementBudgetFor,
+  shouldCharacterParticipateInCombat,
   type MonsterHpDisplay,
   type Player,
   type SnapshotCharacter,
@@ -31,8 +32,10 @@ export function buildTokenPlates(input: {
   lensRedact: boolean;
   /** Combat on: combatants in the order wear their movement budget. */
   combatActive?: boolean;
+  /** The viewer is the DM: an NPC's budget is theirs to see (never a player's). */
+  isDM?: boolean;
 }): Record<string, TokenPlateData> {
-  const { characters, tokens, players, monsterHpDisplay, lensRedact, combatActive } = input;
+  const { characters, tokens, players, monsterHpDisplay, lensRedact, combatActive, isDM } = input;
   const result: Record<string, TokenPlateData> = {};
 
   for (const character of characters) {
@@ -49,13 +52,16 @@ export function buildTokenPlates(input: {
       hp = undefined;
       maxHp = undefined;
     }
-    // The budget rides only on a combatant IN the order while combat is on.
-    // An NPC's is DM information: the server strips it from a player's frame
-    // (movementUsed arrives undefined), and the DM's player lens hides it the
-    // same way — so a redacted monster never shows a fake default budget.
-    const inOrder = combatActive === true && character.initiative !== undefined;
-    const budgetVisible =
-      character.type === "pc" || (character.movementUsed !== undefined && !lensRedact);
+    // The budget rides only on a COMBATANT — in the order, and one a turn can
+    // land on (a DM-owned PC is not, by the participation rule, so it would
+    // never reset) — while combat is on. An NPC's is DM information: the
+    // server strips it from a player's frame and the DM's player lens hides
+    // it the same way, so a redacted monster never shows a fake default.
+    const inOrder =
+      combatActive === true &&
+      character.initiative !== undefined &&
+      shouldCharacterParticipateInCombat(character, players);
+    const budgetVisible = character.type === "pc" || (isDM === true && !lensRedact);
     const move = inOrder && budgetVisible ? movementBudgetFor(character) : undefined;
     result[`token:${character.tokenId}`] = { name: character.name, hp, maxHp, hpBadge, move };
   }

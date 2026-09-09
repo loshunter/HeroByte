@@ -59,7 +59,7 @@ describe("buildTokenPlates — the movement budget", () => {
     expect(notInOrder["token:t1"]!.move).toBeUndefined();
   });
 
-  it("an NPC's budget shows only when the frame carries it (DM), never under the player lens", () => {
+  it("an NPC's budget shows on the DM's frame only — never on a player's, never under the lens", () => {
     const monster = (extra: Partial<SnapshotCharacter>) => ({
       ...npc("t1", 7, 7),
       initiative: 9,
@@ -71,26 +71,52 @@ describe("buildTokenPlates — the movement budget", () => {
       monsterHpDisplay: "exact",
       lensRedact: false,
       combatActive: true,
+      isDM: true,
     });
     expect(dm["token:t1"]!.move).toEqual({ speed: 40, used: 5, remaining: 35 });
-    // A player's frame: the server stripped the numbers — no fake default.
-    const playerFrame = buildTokenPlates({
+    // A monster added mid-fight has no numbers yet: the DM still sees its budget.
+    const fresh = buildTokenPlates({
       ...base,
       characters: [monster({})],
       monsterHpDisplay: "exact",
       lensRedact: false,
       combatActive: true,
+      isDM: true,
+    });
+    expect(fresh["token:t1"]!.move).toEqual({ speed: 30, used: 0, remaining: 30 });
+    // A player's frame never wears one, whatever the record happens to carry.
+    const playerFrame = buildTokenPlates({
+      ...base,
+      characters: [monster({ movementUsed: 5, speed: 40 })],
+      monsterHpDisplay: "exact",
+      lensRedact: false,
+      combatActive: true,
+      isDM: false,
     });
     expect(playerFrame["token:t1"]!.move).toBeUndefined();
-    // The DM's lens simulates that redaction.
+    // The DM's lens simulates the player.
     const lens = buildTokenPlates({
       ...base,
       characters: [monster({ movementUsed: 5, speed: 40 })],
       monsterHpDisplay: "exact",
       lensRedact: true,
       combatActive: true,
+      isDM: true,
     });
     expect(lens["token:t1"]!.move).toBeUndefined();
+  });
+
+  it("a DM-owned PC is not a combatant: no readout, since no turn could ever reset it", () => {
+    const plates = buildTokenPlates({
+      tokens: [token("t1", "dm")],
+      players: [{ uid: "dm", name: "The DM", isDM: true } as unknown as Player],
+      characters: [pc({ initiative: 12, ownedByPlayerUID: "dm" })],
+      monsterHpDisplay: "exact",
+      lensRedact: false,
+      combatActive: true,
+      isDM: true,
+    });
+    expect(plates["token:t1"]!.move).toBeUndefined();
   });
 });
 

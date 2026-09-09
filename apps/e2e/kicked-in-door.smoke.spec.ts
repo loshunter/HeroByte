@@ -203,6 +203,7 @@ test.describe("Kicked-In Door smoke", () => {
       });
       // The move rides the delta channel; wait for the SPRITES to have left,
       // not a fixed time — the click below hits whatever is drawn there.
+      expect(Object.keys(targets).length, "nothing to step aside").toBeGreaterThan(0);
       await dm.waitForFunction((moved) => {
         const objects = window.__HERO_BYTE_E2E__!.snapshot!.sceneObjects ?? [];
         return Object.entries(moved).every((entry) => {

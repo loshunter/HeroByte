@@ -15,8 +15,10 @@ export function validateSetCharacterSpeedMessage(message: MessageRecord): Valida
     return { valid: false, error: "set-character-speed: missing or invalid characterId" };
   }
   const { speed } = message;
+  // null = "back to the shared default" (the field emptied).
+  if (speed === null) return { valid: true };
   if (typeof speed !== "number" || !Number.isFinite(speed)) {
-    return { valid: false, error: "set-character-speed: speed must be a number" };
+    return { valid: false, error: "set-character-speed: speed must be a number or null" };
   }
   if (speed < MOVEMENT_SPEED_MIN_FEET || speed > MOVEMENT_SPEED_MAX_FEET) {
     return {

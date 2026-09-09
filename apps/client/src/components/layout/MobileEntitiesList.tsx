@@ -40,7 +40,7 @@ interface MobileEntitiesListProps {
   tokens?: Token[];
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
   /** DM-only: a character's feet per turn (the movement budget). */
-  onCharacterSpeedChange?: (characterId: string, speedFeet: number) => void;
+  onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
 }
 
 export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
@@ -92,6 +92,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
           hp: player.hp ?? 100,
           maxHp: player.maxHp ?? 100,
           characterId: player.uid,
+          hasCharacter: false,
           speed: undefined as number | undefined,
           tokenId: undefined as SnapshotCharacter["tokenId"],
           ownerTokenFallbackOk: true,
@@ -114,6 +115,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       portrait: character.portrait ?? player.portrait,
       statusEffects: character.statusEffects ?? player.statusEffects,
       characterId: character.id,
+      hasCharacter: true,
       speed: character.speed,
       // The token this ROW is about. Bound through the CHARACTER, as
       // EntitiesPanel does, and not by owner: a player can own several tokens —
@@ -166,8 +168,10 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
                 : undefined
             }
             characterSpeed={entity.speed}
+            // The legacy row's characterId is the player's uid — there is no
+            // character to set a speed on, so the control does not render.
             onCharacterSpeedChange={
-              isDM && onCharacterSpeedChange
+              isDM && entity.hasCharacter && onCharacterSpeedChange
                 ? (speed) => onCharacterSpeedChange(entity.characterId, speed)
                 : undefined
             }

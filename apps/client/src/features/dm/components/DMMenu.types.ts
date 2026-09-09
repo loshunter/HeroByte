@@ -66,6 +66,8 @@ export interface DMMenuProps {
   onRequestLoadSession?: (file: File) => void;
   onCreateNPC: (request?: CreateNpcRequest) => void;
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
+  /** Movement budget: an NPC's feet per turn (null = the shared default). */
+  onSetNPCSpeed: (id: string, speedFeet: number | null) => void;
   onDuplicateNPC: (id: string) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;

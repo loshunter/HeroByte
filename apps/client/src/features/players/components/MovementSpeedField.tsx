@@ -1,15 +1,15 @@
 // ============================================================================
 // MOVEMENT SPEED FIELD (keyboard-movement arc, slice 3)
 // ============================================================================
-// A character's feet per turn — the movement budget's ceiling. One component,
-// the same three homes as VisionRadiusField (the player card's settings menu,
-// the NPC card's, the mobile entities list), and DM-only by the same
-// construction: every call site supplies `onChange` only for a DM, and the
-// server refuses the message from anyone else. A budget a player could raise
-// is not a budget.
+// A character's feet per turn — the movement budget's ceiling. DM-only by
+// construction, the vision-radius rule: every call site supplies `onChange`
+// only for a DM, and the server refuses the message from anyone else. A
+// budget a player could raise is not a budget.
 //
-// Commits on blur or Enter, clamped to the shared bounds; an empty field
-// reads as the shared default so the DM sees what an unset character gets.
+// Commits on blur or Enter, clamped to the shared bounds; an emptied field
+// returns the character to the shared default (the placeholder says which).
+// Two homes: the player settings menu (the desktop card and the phone's EDIT
+// sheet) for PCs, and the DM menu's NPC editor (both layouts) for monsters.
 
 import { useEffect, useState } from "react";
 import {
@@ -21,7 +21,8 @@ import {
 interface MovementSpeedFieldProps {
   /** Feet per turn; undefined means the shared default applies. */
   value?: number;
-  onChange: (speedFeet: number) => void;
+  /** A number, or null to return the character to the shared default. */
+  onChange: (speedFeet: number | null) => void;
   /** 44px inputs for the mobile rows. */
   compact?: boolean;
 }
@@ -45,7 +46,10 @@ export function MovementSpeedField({
   const commit = () => {
     const speed = clampSpeed(text);
     if (speed === null) {
-      setText(value === undefined ? "" : String(value));
+      // An emptied field returns the character to the default; anything
+      // unparseable is simply dropped.
+      if (text.trim() === "" && value !== undefined) onChange(null);
+      else setText(value === undefined ? "" : String(value));
       return;
     }
     setText(String(speed));

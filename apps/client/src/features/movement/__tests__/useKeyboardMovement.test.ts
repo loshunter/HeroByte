@@ -73,15 +73,38 @@ describe("useKeyboardMovement", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
-  it("ArrowUp is one cell up; the diagonal keys are one press each", () => {
+  it("ArrowUp is one cell up; the diagonal keys are one press each; a turn starts from the snapshot", () => {
     const { sendMessage } = setup();
     press("ArrowUp");
     press("q");
     expect(sent(sendMessage).map((m) => m.position)).toEqual([
       { x: 3, y: 3 },
-      // Chained from the pending (3,3): up-left lands on (2,2).
-      { x: 2, y: 2 },
+      // A different direction is a new chain from where the token IS (3,4),
+      // not from the unconfirmed (3,3): up-left lands on (2,3).
+      { x: 2, y: 3 },
     ]);
+  });
+
+  it("a chain survives the snapshot confirming an intermediate step — no press is lost at real latency", () => {
+    const { sendMessage, rerender, initial } = setup();
+    press("d");
+    press("d");
+    rerender({ ...initial, snapshot: snapshotWith([{ id: "mine", owner: "me", x: 4, y: 4 }]) });
+    press("d");
+    expect(sent(sendMessage).map((m) => m.position)).toEqual([
+      { x: 4, y: 4 },
+      { x: 5, y: 4 },
+      { x: 6, y: 4 },
+    ]);
+  });
+
+  it("a held key against a wall cannot march the chain away: it stops PENDING_STEP_MAX_DEPTH ahead and a turn starts from the token", () => {
+    const { sendMessage } = setup();
+    for (let i = 0; i < 8; i += 1) press("d");
+    const eastward = sent(sendMessage).map((m) => m.position!.x);
+    expect(Math.max(...eastward)).toBe(3 + 4);
+    press("s");
+    expect(sent(sendMessage).at(-1)!.position).toEqual({ x: 3, y: 5 });
   });
 
   it("is inert from a typing surface or with any modifier", () => {
@@ -165,16 +188,23 @@ describe("useKeyboardMovement", () => {
     ]);
   });
 
-  it("a refused step stops chaining after the TTL — the snapshot never moved", () => {
+  it("a refused step stops chaining after the TTL — counted from the FIRST unconfirmed step", () => {
     const { sendMessage } = setup();
     press("d");
-    vi.setSystemTime(1_000_000 + 5_000);
-    press("d");
-    // Both from the snapshot's (3,4): the stale pending step is not trusted.
+    vi.setSystemTime(1_000_000 + 1_000);
+    press("d"); // still inside the TTL of the first step: chains to 5
+    vi.setSystemTime(1_000_000 + 1_600);
+    press("d"); // 1.6 s after the FIRST step: the chain is stale, back to the snapshot
     expect(sent(sendMessage).map((m) => m.position)).toEqual([
       { x: 4, y: 4 },
+      { x: 5, y: 4 },
       { x: 4, y: 4 },
     ]);
+  });
+
+  it("map-edit mode zeroes the movable selection for the d-pad too, not only the keys", () => {
+    const { result } = setup({ mapEditMode: true, isDM: true });
+    expect(result.current.movableCount).toBe(0);
   });
 
   it("the DM moves every selected token in one press; move() is the d-pad's road to the same", () => {

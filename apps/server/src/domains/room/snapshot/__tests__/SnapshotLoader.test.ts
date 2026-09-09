@@ -202,6 +202,28 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(players[0].uid).toBe("player-1");
     });
 
+    it("coerces the movement-budget fields on a loaded session", () => {
+      roomService.loadSnapshot({
+        ...roomService.createSnapshot(),
+        characters: [
+          {
+            id: "c1",
+            type: "pc",
+            name: "Runner",
+            hp: 10,
+            maxHp: 10,
+            speed: Number.POSITIVE_INFINITY,
+            movementUsed: Number.NaN,
+            movementDiagonals: 2,
+          },
+        ],
+      });
+      const loaded = roomService.getState().characters.find((c) => c.id === "c1")!;
+      expect("speed" in loaded).toBe(false);
+      expect("movementUsed" in loaded).toBe(false);
+      expect(loaded.movementDiagonals).toBe(2);
+    });
+
     it("should normalize isDM field to false if missing", () => {
       // Setup: Connected player first
       roomService.setState({

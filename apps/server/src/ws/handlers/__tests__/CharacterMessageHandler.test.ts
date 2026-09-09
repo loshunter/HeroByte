@@ -398,6 +398,14 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       expect(roomService.getState().characters.find((c) => c.id === characterId)?.speed).toBe(25);
     });
 
+    it("null returns the character to the shared default — a set speed is not forever", () => {
+      messageRouter.route({ t: "set-character-speed", characterId, speed: 25 }, dmUid);
+      expect(roomService.getState().characters.find((c) => c.id === characterId)?.speed).toBe(25);
+      messageRouter.route({ t: "set-character-speed", characterId, speed: null }, dmUid);
+      const character = roomService.getState().characters.find((c) => c.id === characterId)!;
+      expect("speed" in character).toBe(false);
+    });
+
     it("the character's own player cannot — DM-only, the vision-radius rule", () => {
       messageRouter.route({ t: "set-character-speed", characterId, speed: 90 }, playerUid);
       expect(

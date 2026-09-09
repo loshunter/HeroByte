@@ -42,7 +42,7 @@ interface MobilePlayerRowProps {
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
-  onCharacterSpeedChange?: (speedFeet: number) => void;
+  onCharacterSpeedChange?: (speedFeet: number | null) => void;
 }
 
 export const MobilePlayerRow = memo<MobilePlayerRowProps>(
@@ -91,6 +91,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
 
     return (
       <div
+        data-testid="mobile-player-row"
         style={{
           display: "flex",
           flexDirection: "column",

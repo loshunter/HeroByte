@@ -489,7 +489,31 @@ describe("TransformHandler - Characterization Tests", () => {
       roomService.createSnapshot(); // Triggers rebuildSceneGraph
     });
 
+    it("a player's prop move honours the table's player-props switch (off by default)", () => {
+      // Every other prop road gates on playerPropsEnabled (PropDispatcher);
+      // the transform road — a drag, a keyboard step, the d-pad — did not.
+      const state = roomService.getState();
+      expect(state.playerPropsEnabled).toBe(false);
+      expect(
+        roomService.applySceneObjectTransform("prop:prop-1", playerUid, {
+          position: { x: 7, y: 7 },
+        }),
+      ).toBe(false);
+      expect(roomService.getState().props.find((p) => p.id === "prop-1")?.x).toBe(0);
+      // The DM is never gated by it.
+      expect(
+        roomService.applySceneObjectTransform("prop:prop-1", dmUid, { position: { x: 1, y: 1 } }),
+      ).toBe(true);
+      state.playerPropsEnabled = true;
+      expect(
+        roomService.applySceneObjectTransform("prop:prop-1", playerUid, {
+          position: { x: 7, y: 7 },
+        }),
+      ).toBe(true);
+    });
+
     it("should allow owner to transform their prop", () => {
+      roomService.getState().playerPropsEnabled = true;
       const state = roomService.getState();
       const propObject = state.sceneObjects.find((obj) => obj.id === "prop:prop-1");
       expect(propObject).toBeDefined();
@@ -536,6 +560,7 @@ describe("TransformHandler - Characterization Tests", () => {
     });
 
     it("should allow anyone to transform prop with owner='*'", () => {
+      roomService.getState().playerPropsEnabled = true;
       // Create a shared prop
       const sharedProp: Prop = {
         id: "prop-shared",

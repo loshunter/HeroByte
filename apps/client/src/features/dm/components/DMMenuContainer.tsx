@@ -224,6 +224,9 @@ export function DMMenuContainer({
       onCreateNPC={dmContext.npcManagement.createNpc}
       onDuplicateNPC={dmContext.npcManagement.duplicateNpc}
       onUpdateNPC={dmContext.npcManagement.updateNpc}
+      onSetNPCSpeed={(id, speed) =>
+        sendMessage({ t: "set-character-speed", characterId: id, speed })
+      }
       onDeleteNPC={dmContext.npcManagement.deleteNpc}
       onPlaceNPCToken={dmContext.npcManagement.placeToken}
       isCreatingNpc={dmContext.npcManagement.isCreating}

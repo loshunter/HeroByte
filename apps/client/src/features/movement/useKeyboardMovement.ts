@@ -8,8 +8,8 @@
 //
 // Guard, per invariant 4.17 (the G precedent) MINUS its DM-only clause — a
 // player moving their own token is the point: not from a typing surface, no
-// modifier, not a held key (`event.repeat`), and inert in map-edit mode,
-// where the DM is authoring the map, not moving pieces on it.
+// modifier, and inert in map-edit mode, where the DM is authoring the map,
+// not moving pieces on it (a held key is THROTTLED, not dropped — below).
 //
 // REPEAT MODEL (slice 2): a held key WALKS, at a bounded cadence. The OS
 // repeat rate (~30/s) would be 30 transform-object broadcasts a second, each a
@@ -25,6 +25,7 @@ import { isEditableTarget } from "../../utils/isEditableTarget";
 import {
   deltaForKey,
   movableSelection,
+  nextPendingStep,
   stepOrigin,
   type CellDelta,
   type PendingStep,
@@ -58,9 +59,11 @@ export function useKeyboardMovement({
   mapEditMode,
   sendMessage,
 }: UseKeyboardMovementOptions): MovementControls {
+  // Map-edit mode zeroes the selection for BOTH surfaces (the keys and the
+  // phone d-pad), so a DM authoring the map never shoves a token from either.
   const movable = useMemo(
-    () => movableSelection({ selectedObjectIds, snapshot, uid, isDM }),
-    [selectedObjectIds, snapshot, uid, isDM],
+    () => (mapEditMode ? [] : movableSelection({ selectedObjectIds, snapshot, uid, isDM })),
+    [mapEditMode, selectedObjectIds, snapshot, uid, isDM],
   );
   const pendingRef = useRef(new Map<string, PendingStep>());
   const lastStepAtRef = useRef(0);
@@ -69,13 +72,15 @@ export function useKeyboardMovement({
     ({ dx, dy }: CellDelta) => {
       const now = Date.now();
       lastStepAtRef.current = now;
+      const delta: CellDelta = { dx, dy };
       for (const object of movable) {
         // A token spawned or dragged with Snap off sits on a fractional cell;
         // a keyboard step lands on WHOLE cells, so the origin snaps first.
         const from = { x: Math.round(object.x), y: Math.round(object.y) };
-        const origin = stepOrigin(from, pendingRef.current.get(object.id), now);
+        const pending = pendingRef.current.get(object.id);
+        const origin = stepOrigin(from, pending, delta, now);
         const to = { x: origin.x + dx, y: origin.y + dy };
-        pendingRef.current.set(object.id, { from, to, at: now });
+        pendingRef.current.set(object.id, nextPendingStep(from, origin, to, delta, pending, now));
         sendMessage({ t: "transform-object", id: object.id, position: to });
       }
     },
@@ -83,7 +88,7 @@ export function useKeyboardMovement({
   );
 
   useEffect(() => {
-    if (mapEditMode || movable.length === 0) return;
+    if (movable.length === 0) return;
     const onKeyDown = (event: KeyboardEvent) => {
       const delta = deltaForKey(event);
       if (!delta) return;
@@ -95,7 +100,7 @@ export function useKeyboardMovement({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mapEditMode, movable.length, move]);
+  }, [movable.length, move]);
 
   return useMemo(() => ({ movableCount: movable.length, move }), [movable.length, move]);
 }

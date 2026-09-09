@@ -49,6 +49,7 @@ export function DMMenu({
   onCreateNPC,
   onDuplicateNPC,
   onUpdateNPC,
+  onSetNPCSpeed,
   onDeleteNPC,
   onPlaceNPCToken,
   isCreatingNpc,
@@ -204,6 +205,7 @@ export function DMMenu({
           onCreateNPC={onCreateNPC}
           onDuplicateNPC={onDuplicateNPC}
           onUpdateNPC={onUpdateNPC}
+          onSetNPCSpeed={onSetNPCSpeed}
           onPlaceNPCToken={onPlaceNPCToken}
           onDeleteNPC={onDeleteNPC}
           isCreatingNpc={isCreatingNpc}

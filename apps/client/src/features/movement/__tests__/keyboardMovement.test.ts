@@ -5,10 +5,14 @@
 import { describe, expect, it } from "vitest";
 import type { RoomSnapshot } from "@herobyte/shared";
 import {
+  PENDING_STEP_MAX_DEPTH,
   PENDING_STEP_TTL_MS,
   deltaForKey,
   movableSelection,
+  nextPendingStep,
   stepOrigin,
+  type CellDelta,
+  type PendingStep,
 } from "../keyboardMovement";
 
 function snapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
@@ -66,12 +70,24 @@ describe("movableSelection", () => {
   it("a player moves their own token, a shared prop and their own prop — nothing else", () => {
     const ids = ["token:mine", "token:theirs", "prop:shared", "prop:dmonly", "prop:myprop"];
     expect(
-      movableSelection({ selectedObjectIds: ids, snapshot: snapshot(), uid: "me", isDM: false }),
+      movableSelection({
+        selectedObjectIds: ids,
+        snapshot: snapshot({ playerPropsEnabled: true }),
+        uid: "me",
+        isDM: false,
+      }),
     ).toEqual([
       { id: "token:mine", x: 3, y: 4 },
       { id: "prop:shared", x: 1, y: 1 },
       { id: "prop:myprop", x: 5, y: 6 },
     ]);
+  });
+
+  it("a player moves no prop at all while the table's player-props switch is off", () => {
+    const ids = ["token:mine", "prop:shared", "prop:myprop"];
+    expect(
+      movableSelection({ selectedObjectIds: ids, snapshot: snapshot(), uid: "me", isDM: false }),
+    ).toEqual([{ id: "token:mine", x: 3, y: 4 }]);
   });
 
   it("the DM moves all of them", () => {
@@ -123,21 +139,80 @@ describe("movableSelection", () => {
   });
 });
 
-describe("stepOrigin", () => {
+describe("stepOrigin — the chain", () => {
+  const right: CellDelta = { dx: 1, dy: 0 };
+  const down: CellDelta = { dx: 0, dy: 1 };
   const from = { x: 3, y: 4 };
-  const to = { x: 4, y: 4 };
-
-  it("chains from the last step's target while the snapshot still shows the cell it left", () => {
-    expect(stepOrigin(from, { from, to, at: 1000 }, 1000 + 50)).toEqual(to);
+  const chain = (to: { x: number; y: number }, startedAt = 1000): PendingStep => ({
+    from,
+    to,
+    delta: right,
+    startedAt,
   });
 
-  it("falls back to the snapshot once it has moved on — caught up or moved elsewhere", () => {
-    expect(stepOrigin(to, { from, to, at: 1000 }, 1050)).toEqual(to);
-    expect(stepOrigin({ x: 9, y: 9 }, { from, to, at: 1000 }, 1050)).toEqual({ x: 9, y: 9 });
+  it("chains from the last target while the snapshot still shows the chain's start", () => {
+    expect(stepOrigin(from, chain({ x: 4, y: 4 }), right, 1050)).toEqual({ x: 4, y: 4 });
   });
 
-  it("falls back to the snapshot once the step is stale — a refused step cannot chain forever", () => {
-    expect(stepOrigin(from, { from, to, at: 1000 }, 1000 + PENDING_STEP_TTL_MS + 1)).toEqual(from);
-    expect(stepOrigin(from, undefined, 1050)).toEqual(from);
+  it("stays live while the snapshot is anywhere ON the path — an intermediate confirmed step", () => {
+    // Two steps in flight, the first confirmed: the snapshot at (4,4) is on
+    // the path (3,4)->(5,4), so the next press starts from (5,4), not (4,4).
+    expect(stepOrigin({ x: 4, y: 4 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 5, y: 4 });
+    // Fully caught up: the target itself.
+    expect(stepOrigin({ x: 5, y: 4 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 5, y: 4 });
+  });
+
+  it("falls back to the snapshot when it is OFF the path — moved elsewhere, or past the target", () => {
+    expect(stepOrigin({ x: 9, y: 9 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 9, y: 9 });
+    expect(stepOrigin({ x: 4, y: 5 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 4, y: 5 });
+    expect(stepOrigin({ x: 6, y: 4 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 6, y: 4 });
+  });
+
+  it("a turn starts over from the snapshot — a refused chain is never the origin of another direction", () => {
+    // The teleport: a chain of refused steps east, then a press south used
+    // to land (to.x, to.y + 1) — cells away from where the token really is.
+    expect(stepOrigin(from, chain({ x: 7, y: 4 }), down, 1050)).toEqual(from);
+  });
+
+  it("expires by the chain's FIRST unconfirmed step, not its last press", () => {
+    expect(
+      stepOrigin(from, chain({ x: 4, y: 4 }, 1000), right, 1000 + PENDING_STEP_TTL_MS),
+    ).toEqual({
+      x: 4,
+      y: 4,
+    });
+    expect(
+      stepOrigin(from, chain({ x: 4, y: 4 }, 1000), right, 1000 + PENDING_STEP_TTL_MS + 1),
+    ).toEqual(from);
+    expect(stepOrigin(from, undefined, right, 1050)).toEqual(from);
+  });
+
+  it("caps how far a chain may run ahead of the snapshot", () => {
+    const ahead = { x: from.x + PENDING_STEP_MAX_DEPTH - 1, y: 4 };
+    expect(stepOrigin(from, chain(ahead), right, 1050)).toEqual(ahead);
+    const tooFar = { x: from.x + PENDING_STEP_MAX_DEPTH, y: 4 };
+    expect(stepOrigin(from, chain(tooFar), right, 1050)).toEqual(from);
+  });
+
+  it("nextPendingStep keeps the chain's start and clock only while something is unconfirmed", () => {
+    const pending = chain({ x: 4, y: 4 }, 1000);
+    // Continued: the origin was the chain's target and the snapshot lags.
+    expect(nextPendingStep(from, { x: 4, y: 4 }, { x: 5, y: 4 }, right, pending, 1300)).toEqual({
+      from,
+      to: { x: 5, y: 4 },
+      delta: right,
+      startedAt: 1000,
+    });
+    // Caught up: a fresh chain from here, clock restarted.
+    expect(
+      nextPendingStep({ x: 4, y: 4 }, { x: 4, y: 4 }, { x: 5, y: 4 }, right, pending, 1300),
+    ).toEqual({ from: { x: 4, y: 4 }, to: { x: 5, y: 4 }, delta: right, startedAt: 1300 });
+    // A turn: a fresh chain in the new direction.
+    expect(nextPendingStep(from, from, { x: 3, y: 5 }, down, pending, 1300)).toEqual({
+      from,
+      to: { x: 3, y: 5 },
+      delta: down,
+      startedAt: 1300,
+    });
   });
 });

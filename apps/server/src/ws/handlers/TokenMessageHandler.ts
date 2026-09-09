@@ -85,7 +85,11 @@ export class TokenMessageHandler {
     const before = state.tokens.find((t) => t.id === tokenId);
     const previousCell = before ? { x: before.x, y: before.y } : undefined;
     const moved = this.tokenService.moveToken(state, tokenId, senderUid, x, y, isDM);
-    if (moved && previousCell) chargeTokenMove(state, tokenId, previousCell, { x, y });
+    // A charge lives on the CHARACTER, which the token delta cannot carry —
+    // so a charged step forces the full snapshot (and a save) the delta road
+    // otherwise skips.
+    const charged =
+      Boolean(moved && previousCell) && chargeTokenMove(state, tokenId, previousCell!, { x, y });
     const deltasEnabled = isDeltaChannelEnabled();
     let delta: PendingDelta | undefined;
     const token = state.tokens.find((t) => t.id === tokenId) as Token | undefined;
@@ -94,7 +98,7 @@ export class TokenMessageHandler {
       // the token's authoritative position so optimistic clients snap back.
       delta = { t: "token-updated", token, previousCell };
     }
-    return { broadcast: deltasEnabled ? false : moved, save: false, delta };
+    return { broadcast: deltasEnabled ? charged : moved, save: charged, delta };
   }
 
   /**

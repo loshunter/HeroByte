@@ -530,22 +530,38 @@ describe("MobileLayout", () => {
       act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS * 2));
       expect(move).toHaveBeenCalledTimes(4);
 
-      // Release: the click that follows a pointer press is NOT a fifth step,
-      // and the walk is over.
+      // Release, as a FINGER does it (measured): up, then out/leave, then the
+      // compat click with detail 1. Not a fifth step; the walk is over.
       fireEvent.pointerUp(right);
-      fireEvent.click(right);
+      fireEvent.pointerLeave(right);
+      fireEvent.click(right, { detail: 1 });
       act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS * 5));
       expect(move).toHaveBeenCalledTimes(4);
 
-      // A bare click (keyboard activation) still steps once.
-      fireEvent.click(right);
+      // A keyboard activation (Enter/Space: click with detail 0) steps once.
+      fireEvent.click(right, { detail: 0 });
       expect(move).toHaveBeenCalledTimes(5);
 
-      // A finger that slides off gets no click; the next bare click must not be eaten.
+      // A finger that slides off is CANCELLED and gets no click: one step.
       fireEvent.pointerDown(right);
-      fireEvent.pointerLeave(right);
-      fireEvent.click(right);
-      expect(move).toHaveBeenCalledTimes(7);
+      fireEvent.pointerCancel(right);
+      act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS * 2));
+      expect(move).toHaveBeenCalledTimes(6);
+
+      // A second finger on another button while a hold runs changes nothing:
+      // it neither cuts the walk short nor adds a step on release.
+      const down = screen.getByRole("button", { name: /^move down$/i });
+      fireEvent.pointerDown(right);
+      fireEvent.pointerDown(down);
+      fireEvent.pointerUp(down);
+      fireEvent.click(down, { detail: 1 });
+      act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS));
+      expect(move).toHaveBeenCalledTimes(8); // right's press + one walk step
+      expect(move.mock.calls.at(-1)).toEqual([{ dx: 1, dy: 0 }]);
+      fireEvent.pointerUp(right);
+      fireEvent.click(right, { detail: 1 });
+      act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS * 3));
+      expect(move).toHaveBeenCalledTimes(8);
 
       // Mid-walk the snapshot replaces `move`; the walk must follow it.
       const laterMove = vi.fn();
@@ -553,7 +569,7 @@ describe("MobileLayout", () => {
       rerender(<MobileLayout {...props} movement={{ movableCount: 1, move: laterMove }} />);
       act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS));
       expect(laterMove).toHaveBeenCalledTimes(1);
-      expect(move).toHaveBeenCalledTimes(8);
+      expect(move).toHaveBeenCalledTimes(9);
       fireEvent.pointerUp(right);
     } finally {
       vi.useRealTimers();

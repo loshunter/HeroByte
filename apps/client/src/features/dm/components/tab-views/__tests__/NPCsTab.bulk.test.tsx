@@ -25,6 +25,7 @@ function renderTab(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}
     onCreateNPC: vi.fn(),
     onDuplicateNPC: vi.fn(),
     onUpdateNPC: vi.fn(),
+    onSetNPCSpeed: vi.fn(),
     onPlaceNPCToken: vi.fn(),
     onDeleteNPC: vi.fn(),
     ...overrides,

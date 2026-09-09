@@ -1310,6 +1310,10 @@ describe("validateMessage", () => {
       expect(validateMessage({ t: "set-character-speed", characterId: "c1", speed: 0 })).toEqual({
         valid: true,
       });
+      // null = back to the default; the field emptied.
+      expect(validateMessage({ t: "set-character-speed", characterId: "c1", speed: null })).toEqual(
+        { valid: true },
+      );
       for (const speed of [-5, 1001, Number.NaN, Number.POSITIVE_INFINITY, "30", undefined]) {
         expect(
           validateMessage({ t: "set-character-speed", characterId: "c1", speed }).valid,

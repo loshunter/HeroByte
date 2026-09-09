@@ -20,6 +20,7 @@
 import path from "node:path";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
+import { TokenMessageHandler } from "../TokenMessageHandler.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { PlayerService } from "../../../domains/player/service.js";
 import { TokenService } from "../../../domains/token/service.js";
@@ -167,6 +168,28 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       state.characters[0]!.tokenId = tokenId;
       messageRouter.route({ t: "move", id: tokenId, x: 103, y: 100 }, playerUid);
       expect(state.characters[0]!.movementUsed).toBe(15);
+    });
+
+    it("a charged legacy move forces the full snapshot and a save — the token delta cannot carry a character", () => {
+      const handler = new TokenMessageHandler(
+        tokenService,
+        characterService,
+        selectionService,
+        roomService,
+      );
+      const state = roomService.getState();
+      state.characters[0]!.tokenId = tokenId;
+      // Out of combat: the delta road, no save (unchanged behaviour).
+      state.combatActive = false;
+      const quiet = handler.handleMove(state, tokenId, playerUid, 101, 100, false);
+      expect(quiet.broadcast).toBe(false);
+      expect(quiet.save).toBe(false);
+      expect(quiet.delta?.t).toBe("token-updated");
+      // In combat: the charge lives on the character, so everyone must hear it.
+      state.combatActive = true;
+      const charged = handler.handleMove(state, tokenId, playerUid, 102, 100, false);
+      expect(charged.broadcast).toBe(true);
+      expect(charged.save).toBe(true);
     });
 
     it("should not move token when non-owner tries", () => {

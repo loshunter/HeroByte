@@ -48,10 +48,18 @@ describe("MovementSpeedField", () => {
     fireEvent.change(input, { target: { value: "-10" } });
     fireEvent.blur(input);
     expect(onChange).toHaveBeenLastCalledWith(0);
+    // An emptied field returns the character to the default — sent as null.
     fireEvent.change(input, { target: { value: "" } });
     fireEvent.blur(input);
-    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenLastCalledWith(null);
+    expect(onChange).toHaveBeenCalledTimes(3);
     expect(clampSpeed("abc")).toBeNull();
+    // Emptying a field that is ALREADY at the default sends nothing.
+    cleanup();
+    const unset = field(undefined);
+    fireEvent.change(unset.input, { target: { value: "" } });
+    fireEvent.blur(unset.input);
+    expect(unset.onChange).not.toHaveBeenCalled();
   });
 
   it("compact puts the input on the 44px floor", () => {

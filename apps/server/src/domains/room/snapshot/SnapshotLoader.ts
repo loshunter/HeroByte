@@ -8,6 +8,7 @@ import {
   coerceDefaultVisionRadius,
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
+  coerceMovementBudgetFields,
   coerceTokenVisionRadii,
   normalizeHPValues,
 } from "@herobyte/shared";
@@ -73,14 +74,14 @@ export class SnapshotLoader {
     const loadedCharacters = (snapshot.characters ?? []).map(
       ({ hpBadge: _wireOnly, ...character }) => {
         const { hp, maxHp } = normalizeHPValues(character.hp ?? 0, character.maxHp ?? 1);
-        return {
+        return coerceMovementBudgetFields({
           ...character,
           hp,
           maxHp,
           type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
           tokenId: character.tokenId ?? null,
           tokenImage: character.tokenImage ?? null,
-        };
+        });
       },
     );
 
