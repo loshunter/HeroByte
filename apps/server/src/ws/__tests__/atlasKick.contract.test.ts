@@ -516,7 +516,7 @@ describe("atlas kick contracts", () => {
     expect(state().liveMapDocumentId).toBe(child()?.mapDocumentId);
   });
 
-  it("after a PUBLISH of another map the origin is the SCENE on the table, not the binding", () => {
+  it("after a PUBLISH of another map the origin is that map — publish moves binding and scene together", () => {
     bindAdoptedOrigin();
     seedParty();
     route({ t: "map-studio-create", document: { id: "doc-b", name: "Doc B" } });
@@ -527,8 +527,10 @@ describe("atlas kick contracts", () => {
       documentId: "doc-b",
       background: "data:image/png;base64,QUJD",
     });
-    expect(state().liveMapDocumentId).toBe("doc-a"); // the binding did not move
-    expect(state().compiledScene?.sourceDocumentId).toBe("doc-b"); // the party did
+    // RE-PINNED 2026-09-08: a publish is a travel now, so the binding moves
+    // WITH the scene (it used to stay on doc-a while the party went to doc-b).
+    expect(state().liveMapDocumentId).toBe("doc-b");
+    expect(state().compiledScene?.sourceDocumentId).toBe("doc-b");
 
     route(kickMessage());
 
@@ -538,7 +540,7 @@ describe("atlas kick contracts", () => {
     expect(nodes().some((node) => node.id === "kick-origin")).toBe(false);
   });
 
-  it("the PUBLISH-BURN row: a publish captures the child's scene zone-less, and the next travel to it installs the entrance again", () => {
+  it("a publish is a TRAVEL now: the child's scene, zone included, survives it and resumes on the next visit", () => {
     bindAdoptedOrigin();
     seedParty();
     route({ t: "map-studio-create", document: { id: "doc-b", name: "Doc B" } });
@@ -549,9 +551,11 @@ describe("atlas kick contracts", () => {
     const childDocumentId = child()!.mapDocumentId!;
     expect(state().playerStagingZone).toEqual(arrival);
 
-    // Away (the child's scene is captured WITH its zone), then the burn: a
-    // publish compiles the child's map onto the table outside travel, and the
-    // next departure captures THAT — zone-less — under the child's id.
+    // RE-PINNED 2026-09-08. This was the PUBLISH-BURN row: a publish compiled
+    // the child's map onto the table OUTSIDE travel, so the next departure
+    // captured it zone-less and the entrance had to be re-installed. Publish
+    // rides travelToDocument now — it RESUMES the child's captured scene, zone
+    // and all — so there is no burn to recover from.
     route({ t: "atlas-travel", nodeId: "nA" });
     route({
       t: "map-studio-publish",
@@ -559,8 +563,10 @@ describe("atlas kick contracts", () => {
       background: "data:image/png;base64,QUJD",
     });
     expect(state().compiledScene?.sourceDocumentId).toBe(childDocumentId);
+    expect(state().liveMapDocumentId).toBe(childDocumentId);
+    expect(state().playerStagingZone).toEqual(arrival);
     route({ t: "atlas-travel", nodeId: "nB" });
-    expect(state().sceneStates[childDocumentId]?.playerStagingZone).toBeUndefined();
+    expect(state().sceneStates[childDocumentId]?.playerStagingZone).toEqual(arrival);
 
     route({ t: "atlas-travel", nodeId: "kick-child" });
     expect(state().playerStagingZone).toEqual(arrival);

@@ -805,7 +805,12 @@ describe("scene travel contracts", () => {
     expect(snapshotsOf(playerWs)).toHaveLength(0);
   });
 
-  it("after a PUBLISH of another map, travel back to the BOUND node runs the physics — 'already there' needs the scene AND the binding", async () => {
+  it("a PUBLISH of another map is a TRAVEL: binding and scene move together, the outgoing scene is captured, and travel back resumes it", async () => {
+    // RE-PINNED 2026-09-08. This test used to assert the OPPOSITE — that a
+    // publish parts the binding from the scene — and make travel robust to
+    // that split. The split was the bug: a DM standing in a kicked-in dungeon
+    // published the map the Studio still had selected and watched the table
+    // go blank. Publish rides travelToDocument now, so the split cannot occur.
     setupTwoNodes();
     seedEntities();
     route({ t: "atlas-travel", nodeId: "nA" });
@@ -814,8 +819,10 @@ describe("scene travel contracts", () => {
       documentId: "doc-b",
       background: "data:image/png;base64,QUJD",
     });
-    expect(roomService.getState().liveMapDocumentId).toBe("doc-a");
+    expect(roomService.getState().liveMapDocumentId).toBe("doc-b");
     expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("doc-b");
+    // ...and A was captured on the way out, not dropped.
+    expect(roomService.getState().sceneStates["doc-a"]).toBeDefined();
     await flush();
     dmWs.send.mockClear();
 

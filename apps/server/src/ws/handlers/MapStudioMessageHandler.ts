@@ -28,6 +28,7 @@ import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
 import { bindLiveDocument } from "./sceneTravel.js";
+import { publishDocument } from "./mapStudioPublish.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -225,30 +226,15 @@ export class MapStudioMessageHandler {
         break;
       }
       case "map-studio-publish": {
-        // Publish compiles, never flattens: the background is cosmetic while
-        // the compiled walls/doors/lights become server-enforced live state.
-        //
-        // KNOWN BOUNDARY: `message.background` is a DM-client-rendered raster
-        // (a PNG asset URL or SVG data URL) stored verbatim — the server has no
-        // rasterizer, so the notes-layer/hidden-element privacy rules for this
-        // ONE field are enforced in the DM's client (rasterVisibility.ts,
-        // pinned by its own test suite), unlike mapTerrain/mapElements/
-        // compiledScene which are derived server-side from the stored document.
-        // This is not player-exploitable — only DMs publish, and a DM can set
-        // arbitrary background art via the sibling background control anyway —
-        // but it means a buggy DM client can leak GM notes into player art.
-        const document = this.service.get(roomId, message.documentId);
-        const state = this.getRoomState(roomId);
-        state.mapBackground = message.background;
-        state.mapTerrain = deriveMapTerrain(document, message.backgroundMode);
-        // A publish bakes elements into the background (raster or SVG), so the
-        // data-element channel must be cleared — otherwise a room that was live-
-        // bound would keep rendering its stale mapElements OVER the new raster.
-        state.mapElements = undefined;
-        state.gridSize = toLiveGridSize(document.grid.size);
-        state.gridSquareSize = document.grid.squareSize;
-        state.compiledScene = compileScene(document, this.now());
-        return { broadcast: true, save: true };
+        // A publish is a travel with a raster on top — the physics, the
+        // capture and the binding all live in mapStudioPublish.ts, which rides
+        // sceneTravel's one composition (the 350-LOC cap put it there).
+        return publishDocument(
+          { mapStudioService: this.service, now: this.now },
+          this.getRoomState(roomId),
+          roomId,
+          message,
+        );
       }
     }
 
