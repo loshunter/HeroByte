@@ -7,6 +7,16 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-08, TWO ITEMS QUEUED BY THE OWNER — see §10).** (1) A production BUG:
+`PUBLISH TO LIVE MAP` drops live terrain by design (`backgroundMode: "full"`) and, when the baked
+PNG does not render, leaves the table showing only its bounding box and the staging zone — with no
+error, and with travel-to-the-same-node no-opping so the obvious recovery fails. Recovery that DOES
+work: clear the background, travel away, travel back. (2) A FEATURE: WASD/arrow keys move the
+selected token or item one square per press, so the fog cone redraws per square instead of only on
+drag release, with a per-square movement budget built alongside it. Also confirmed this day: the
+Kicked-In Door's SERVER half works at a real production table — G, reroll, ROLL, adoption, the
+return stair, and fog through the generated doors, all good.
+
 **Update (2026-09-07, THE OWNER DECIDED).** The one item the final review put to the owner is
 **CLOSED: generated encounter markers are prep notes, not secrets** — option (1) of the plan's §7
 RNG-oracle entry. Reasoning on the record: the attack costs a deliberate reconstruction from source
@@ -1105,6 +1115,41 @@ turns a cone into something else.
      banner); **K3 SHIPPED** (2026-09-06, three commits — the plan's K3 banner); **K4 SHIPPED** (2026-09-06, two
      commits — the plan's K4 banner); **K6 SHIPPED** (2026-09-06 — the journey spec, the budgets, the
      user-guide debt); **K5 (Cartridge Codes) DEFERRED to the plan's §7.** **The arc is complete.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
+   - **QUEUED BY THE OWNER 2026-09-08 — `PUBLISH TO LIVE MAP` can blank a live table.** Hit on
+     production. The DM-menu button (`MapStudioControl.handlePublish`) bakes the whole document to
+     a PNG, uploads it, and sends `backgroundMode: "full"`; the server then does
+     `if (backgroundMode !== "elements-only") return undefined` (`mapStudioHandlerUtils.ts:29`) and
+     DROPS `state.mapTerrain` on purpose, because the floor is supposed to live inside that PNG.
+     Walls are invisible to players by design, so when the PNG does not render there is nothing
+     left on screen but the document's bounding box and the staging zone — which reads exactly like
+     losing your map. Three things make it worse than a rendering glitch: **it reports no error**
+     (the publish "succeeded" — a URL landed in `mapBackground`); **the obvious recovery no-ops**,
+     because `sceneTravel.ts:266` treats travel to the node you are already bound to as
+     already-there; and **the real recovery is not discoverable** — clear the background, travel
+     AWAY to another node, then travel back, which re-derives terrain as data via
+     `deriveMapTerrain(document, "elements-only")` at `sceneTravel.ts:324`. Suspected cause, not yet
+     confirmed: `START LIVE MAP` mints an 8192x8192 document and rasterising 67 megapixels is where
+     a client-side bake would fall over. FIRST DIAGNOSTIC: open the `mapBackground` URL directly —
+     shows the map (rendering fault) / blank (bake fault) / 404 (upload or serving fault). Not from
+     the Kicked-In Door arc; it is the map-studio publish path, and it fixes under the
+     fix-bugs-regardless-of-origin rule.
+   - **QUEUED BY THE OWNER 2026-09-08 — keyboard movement, one square per press, with sight and
+     movement following it.** WASD and the arrow keys move the SELECTED token — or any selected
+     item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three
+     reasons it is worth more than the convenience: it makes the fog and line-of-sight work
+     legible, because today the cone only updates when a drag is RELEASED and a per-press move
+     would redraw it square by square; it is the natural home for a **movement budget that ticks
+     down per square**, which the owner wants built at the same time; and the keys are free — the
+     client currently binds only Enter, Escape, z, y, r, g, Delete, Backspace and modifiers, so
+     nothing has to be rebound. Design notes gathered when it was queued, none of them settled:
+     the per-press move is an ordinary `move` message, so fog updates fall out of the existing wire
+     rather than needing a new one, but it is one server round trip and one recipient re-filter PER
+     PRESS — hold-to-repeat needs a think, and a sight radius makes fog dramatically cheaper on a
+     big generated map. A movement counter MUST honour the table's diagonal rule (5e / Pathfinder /
+     Euclidean are all live settings), so a diagonal press is not always one square of budget. It
+     needs the `isEditableTarget` + no-modifier + no-`event.repeat` guard that invariant 4.17 of the
+     Kicked-In Door plan established for `G`, or WASD will fire while a DM types a node name. And
+     the budget wants a per-turn reset, which lands it next to initiative and M5's Battle Strip.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 **Note (2026-08-26):** this section has now gone stale twice in one week — both times because the
