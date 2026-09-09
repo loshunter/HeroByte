@@ -134,7 +134,17 @@ export class SnapshotReconciler {
     } else {
       tokens.push(token);
     }
-    return { ...snapshot, tokens };
+    // The canvas draws tokens from the scene graph, not from `tokens` — so a
+    // delta that patched only `tokens` moved the data and left the sprite
+    // where it was until the next full snapshot (the kicked-in-door spec's
+    // "step the party aside" then clicked a token still drawn on the door).
+    const sceneId = `token:${token.id}`;
+    const sceneObjects = snapshot.sceneObjects?.map((object) =>
+      object.id === sceneId
+        ? { ...object, transform: { ...object.transform, x: token.x, y: token.y } }
+        : object,
+    );
+    return { ...snapshot, tokens, sceneObjects };
   }
 
   private applyPointerDelta(snapshot: RoomSnapshot, pointer: Pointer): RoomSnapshot {

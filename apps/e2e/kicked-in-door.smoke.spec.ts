@@ -187,18 +187,29 @@ test.describe("Kicked-In Door smoke", () => {
       // time — and a token is draggable, so it wins the press. (That is why
       // this failed one run in two until it was instrumented: the projection
       // was landing exactly on the anchor and the click was hitting a token.)
-      // A DM would simply drag the character aside; the spec does the same.
-      await dm.evaluate(() => {
+      // A DM would simply drag the character aside; the spec does the same —
+      // for EVERY token, the DM's own included. The DM's token travels with
+      // the party and is spread into the same zone, and moving only the
+      // players' tokens left it as a coin-flip hazard on the door's cell
+      // (surfaced when a new spec ahead of this one shifted the spread).
+      const targets = await dm.evaluate(() => {
         const data = window.__HERO_BYTE_E2E__!;
-        const snapshot = data.snapshot!;
-        const players = new Set(
-          snapshot.players.filter((entry) => !entry.isDM).map((entry) => entry.uid),
-        );
-        for (const token of snapshot.tokens.filter((entry) => players.has(entry.owner))) {
-          data.sendMessage!({ t: "move", id: token.id, x: token.x, y: token.y - 4 } as never);
+        const moved: Record<string, number> = {};
+        for (const token of data.snapshot!.tokens) {
+          moved[token.id] = token.y - 4;
+          data.sendMessage!({ t: "move", id: token.id, x: token.x, y: moved[token.id] } as never);
         }
+        return moved;
       });
-      await dm.waitForTimeout(500);
+      // The move rides the delta channel; wait for the SPRITES to have left,
+      // not a fixed time — the click below hits whatever is drawn there.
+      await dm.waitForFunction((moved) => {
+        const objects = window.__HERO_BYTE_E2E__!.snapshot!.sceneObjects ?? [];
+        return Object.entries(moved).every((entry) => {
+          const object = objects.find((candidate) => candidate.id === `token:${entry[0]}`);
+          return object !== undefined && Math.abs(object.transform.y - entry[1]) < 1e-6;
+        });
+      }, targets);
 
       // Put the return door's anchor at the CENTRE of the canvas and click
       // there, rather than projecting the anchor to a screen point: the camera

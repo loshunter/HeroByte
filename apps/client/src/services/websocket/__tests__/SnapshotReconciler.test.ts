@@ -55,6 +55,42 @@ describe("SnapshotReconciler", () => {
     expect(requestResync).not.toHaveBeenCalled();
   });
 
+  it("a token delta moves the token's SCENE OBJECT too — the canvas draws from the scene graph", () => {
+    const sceneObject = {
+      id: "token:token-1",
+      type: "token" as const,
+      owner: "p1",
+      zIndex: 10,
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { tokenId: "token-1", color: "#fff" },
+    };
+    const other = {
+      ...sceneObject,
+      id: "token:token-2",
+      data: { tokenId: "token-2", color: "#fff" },
+    };
+    reconciler.applySnapshot(
+      createSnapshot({
+        stateVersion: 5,
+        tokens: [{ id: "token-1", owner: "p1", x: 0, y: 0, color: "#fff" }],
+        sceneObjects: [sceneObject, other] as RoomSnapshot["sceneObjects"],
+      }),
+    );
+    onSnapshot.mockClear();
+
+    reconciler.applyDelta({
+      t: "token-updated",
+      stateVersion: 6,
+      token: { id: "token-1", owner: "p1", x: 10, y: 20, color: "#fff" },
+    });
+
+    const next = onSnapshot.mock.calls[0]![0] as RoomSnapshot;
+    const moved = next.sceneObjects!.find((object) => object.id === "token:token-1")!;
+    expect(moved.transform).toMatchObject({ x: 10, y: 20, scaleX: 1, rotation: 0 });
+    // Untouched neighbours keep their identity; nothing else in the graph moves.
+    expect(next.sceneObjects!.find((object) => object.id === "token:token-2")).toBe(other);
+  });
+
   it("advances the version on state-sync without emitting a snapshot", () => {
     const snapshot = createSnapshot({
       stateVersion: 5,

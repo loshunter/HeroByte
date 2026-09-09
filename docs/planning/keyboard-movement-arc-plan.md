@@ -105,6 +105,23 @@ release → skipped click → bare click → slide-off latch → mid-walk `move`
 pointer hold sent 7 steps at 2/360/515/670/828/983/1139 ms; six landed and the seventh was REFUSED
 by the server's wall block (x=24), which is the guard working, not the walk failing.
 
+## The flake the suite grew when slice 1 joined it — two bugs, both fixed (2026-09-09)
+
+`kicked-in-door.smoke.spec.ts` ("the return door never asked to travel") had never failed in any
+gate log; it failed on the first attempt in BOTH full runs after `keyboard-movement.spec.ts`
+joined the suite immediately ahead of it, passed 3/3 alone, and reproduced 1-in-2 as the pair.
+The screenshot showed the DM's OWN token still drawn on the return door's cell. Two causes:
+
+1. **Client bug (real, pre-existing): a `token-updated` delta patched `tokens[]` only**, while
+   the canvas draws from `sceneObjects[]` — so a `move` over the delta channel moved the data
+   and left the sprite where it was until the next full snapshot (a heartbeat). The spec's
+   "step the party aside" therefore raced the next broadcast. Fixed in `SnapshotReconciler`
+   (`applyTokenDelta` now moves the matching scene object); pinned, sabotage red.
+2. **Spec hazard: it stepped only NON-DM tokens aside.** The DM's token travels with the party
+   and is spread randomly into the same zone, so it was a coin flip on the door's cell; the new
+   spec ahead of it shifted the spread. The spec now moves EVERY token and waits for each
+   sprite to reach its target instead of sleeping 500 ms.
+
 ## Open for slice 3
 
 - Budget charge per press under the table's diagonal rule — `measureGridDistance` is
