@@ -7,6 +7,19 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-08, later — FOG VISIBILITY, investigated + one fix).** The owner noticed a
+player could see the whole map layout dimly through fog. Investigated live: the explored mask is
+per-uid localStorage (survives a DM elevate→revoke round-trip byte-identical — verified; no
+save/load needed), and a fresh player's mask measured only 4% painted. So the dim whole-map look
+was NOT stale exploration — it was the never-seen fog band rendering at opacity 0.97, letting ~3%
+of the terrain bleed through. FIXED (`b055f8e5`): never-seen fog is opacity 1 now, unexplored
+renders black. This closes the VISUAL leak only — geometry still reaches every client (fog is a
+render layer, not a data boundary: `compiledSceneView` sends all non-secret walls, `mapTerrain`
+ships the floor to all roles), so a determined player reading devtools can still reconstruct the
+layout. That is the accepted design (it's why generated dungeons author no secret doors). ALSO
+NOTED, not yet actioned: DM status persists across a page reload (a revoked-then-reloaded session
+came back as DM) — likely intended, worth a conscious yes. On `dev`, not pushed.
+
 **Update (2026-09-08, TWO ITEMS QUEUED BY THE OWNER — see §10).** (1) A production BUG:
 `PUBLISH TO LIVE MAP` drops live terrain by design (`backgroundMode: "full"`) and, when the baked
 PNG does not render, leaves the table showing only its bounding box and the staging zone — with no
