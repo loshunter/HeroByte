@@ -39,6 +39,7 @@ import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { useKeyboardMovement } from "../features/movement/useKeyboardMovement";
 import { useDMManagement } from "../hooks/useDMManagement";
 import { usePlayerTokenSelection } from "../hooks/usePlayerTokenSelection";
 import { MainLayout } from "../layouts/MainLayout";
@@ -666,6 +667,17 @@ function AuthenticatedApp({
     mapEditMode,
   });
 
+  // Keyboard movement: one cell per press for whatever is selected, App-level
+  // so the desktop keys and the phone d-pad drive the same move.
+  const movement = useKeyboardMovement({
+    selectedObjectIds,
+    snapshot,
+    uid,
+    isDM,
+    mapEditMode,
+    sendMessage,
+  });
+
   // -------------------------------------------------------------------------
   // MEMOIZED ARRAY PROPS (Performance optimization)
   // -------------------------------------------------------------------------
@@ -879,6 +891,7 @@ function AuthenticatedApp({
     armLinkAim,
     captureLinkAnchor,
     kick,
+    movement,
     // Dice
     rollHistory,
     chatMessages,

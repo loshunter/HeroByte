@@ -34,6 +34,7 @@ import type { RoomBounds } from "../../features/map-edit/roomBuilder";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { PendingLink } from "../../features/atlas/useAtlasLinkAim";
 import type { KickControls } from "../../features/atlas/useKickedInDoor";
+import type { MovementControls } from "../../features/movement/useKeyboardMovement";
 import type { RollLogEntry } from "../../components/dice/rollLogTypes";
 import type { DiceRollRequest, EnterRollRequest } from "../../hooks/useDiceRolling";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
@@ -376,6 +377,8 @@ export interface MainLayoutProps {
   captureLinkAnchor?: (point: { x: number; y: number }) => void;
   /** The kicked-in door (K2): the App-level controls both layouts render from. */
   kick?: KickControls;
+  /** Keyboard movement's controls, so the phone's d-pad drives the same one-cell move. */
+  movement?: MovementControls;
 
   // -------------------------------------------------------------------------
   // Dice

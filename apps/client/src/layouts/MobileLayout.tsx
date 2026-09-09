@@ -271,6 +271,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       {selectedObjectCount > 0 && (transformMode || selectMode) && !sheetSlotOccupied && (
         <MobileSelectionSheet
           selectedCount={selectedObjectCount}
+          movement={props.movement}
           transformMode={transformMode}
           isDM={isDM}
           onTransform={() => setActiveTool("transform")}

@@ -153,7 +153,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     entries: [
       {
         term: "Move",
-        detail: "Drag it. With Snap on it clicks to grid cells; everyone sees it live.",
+        detail: "Drag it, or select and step with WASD / arrows (QEZC diagonal; d-pad on phones).",
       },
       { term: "Recolor", detail: "Double-click your own token for a new random colour." },
       {

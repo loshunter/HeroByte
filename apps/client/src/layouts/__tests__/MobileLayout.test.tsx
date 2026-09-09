@@ -486,6 +486,39 @@ describe("MobileLayout", () => {
     expect(props.handleObjectSelectionBatch).toHaveBeenCalledWith([]);
   });
 
+  it("the selection sheet carries the d-pad when the actor may move something, and each tap is one cell", () => {
+    // The phone's WASD: threaded App -> MobileLayout -> MobileSelectionSheet ->
+    // MobileMovePad. A d-pad that never receives `movement` renders nothing,
+    // which is exactly the silent unwire this pins against.
+    const props = createDefaultProps();
+    props.activeTool = "select";
+    props.selectMode = true;
+    props.selectedObjectIds = ["token:1"];
+    const move = vi.fn();
+    props.movement = { movableCount: 1, move };
+
+    render(<MobileLayout {...props} />);
+
+    const pad = screen.getByRole("group", { name: /move selection/i });
+    fireEvent.click(within(pad).getByRole("button", { name: /^move right$/i }));
+    fireEvent.click(within(pad).getByRole("button", { name: /^move up-left$/i }));
+    expect(move.mock.calls).toEqual([[{ dx: 1, dy: 0 }], [{ dx: -1, dy: -1 }]]);
+    expect(within(pad).getAllByRole("button")).toHaveLength(8);
+  });
+
+  it("no d-pad when nothing selected is movable by this actor — the sheet still shows", () => {
+    const props = createDefaultProps();
+    props.activeTool = "select";
+    props.selectMode = true;
+    props.selectedObjectIds = ["token:someone-elses"];
+    props.movement = { movableCount: 0, move: vi.fn() };
+
+    render(<MobileLayout {...props} />);
+
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /move selection/i })).not.toBeInTheDocument();
+  });
+
   it("renders DiceRoller when diceRollerOpen is true", () => {
     const props = createDefaultProps();
     props.diceRollerOpen = true;

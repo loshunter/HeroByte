@@ -1884,6 +1884,31 @@ h4 {
   width: 100%;
 }
 
+/* The d-pad: a 3x3 of chips spanning the sheet, each on the 44px floor the
+   chip rule already sets; the centre is a dead spacer so thumbs land where a
+   controller's stick sits. */
+.mobile-move-pad {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 220px;
+  margin: 0 auto;
+}
+
+.mobile-move-pad__button {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.mobile-move-pad__centre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hero-gold);
+  opacity: 0.5;
+}
+
 .mobile-chip {
   flex: 0 0 auto;
   /* Was 38px, which silently undid the 44px touch floor set at :1252 for every

@@ -7,6 +7,18 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-09, later — KEYBOARD MOVEMENT SLICE 1 on `dev`, NOT merged).** WASD / arrows
+(and `Q E Z C` + numpad corners for diagonals) step the SELECTED token or prop one grid cell per
+press over the ordinary `transform-object` road, so the server's ownership/lock/wall checks apply
+unchanged and the fog cone redraws per square from the next snapshot. The phone gets a 3×3 d-pad
+in the selection sheet (eight 44×44 chips measured at 375×812). Plan, decisions and traps:
+[keyboard-movement-arc-plan.md](./keyboard-movement-arc-plan.md). CORRECTION to the launch
+prompt's recon: the client never sends `move` — every drag is `transform-object`, which is why
+props came for free. Discrete presses only (`event.repeat` swallowed); fast presses chain from the
+last sent cell for 1.5 s so none is lost to latency; a fractional origin (staging-zone spawn) snaps
+to the nearest cell first. Selection still needs Select/Transform mode (existing model). Slices 2
+(repeat story) and 3 (the budget) are queued in the plan.
+
 **Update (2026-09-09, DEPLOYED + NEXT ARC PROMPTED).** `dev` merged to `main` as `a41a8065`
 (from `7c555d32`), pushed, deploy probe-verified (bundle `index-DRpA0XA6` → `index-CHR8dA8X`; the
 publish-confirm strings are live in the served `lazy-entry` chunk, control string present). Both
@@ -1174,8 +1186,11 @@ turns a cone into something else.
        serves it 200). And travel to the node does NOT no-op — `alreadyThere` needs binding AND
        scene to agree, and publish is exactly what parts them, which is why travel was the owner's
        recovery.
-   - **QUEUED BY THE OWNER 2026-09-08 — keyboard movement, one square per press, with sight and
-     movement following it.** WASD and the arrow keys move the SELECTED token — or any selected
+   - **IN PROGRESS — keyboard movement. Slice 1 SHIPPED to `dev` 2026-09-09** (see the §0
+     update and [keyboard-movement-arc-plan.md](./keyboard-movement-arc-plan.md)); slices 2–3
+     (repeat story, movement budget) remain. The original queue note follows.
+     ~~QUEUED BY THE OWNER 2026-09-08~~ — keyboard movement, one square per press, with sight and
+     movement following it. WASD and the arrow keys move the SELECTED token — or any selected
      item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three
      reasons it is worth more than the convenience: it makes the fog and line-of-sight work
      legible, because today the cone only updates when a drag is RELEASED and a per-press move

@@ -5,8 +5,13 @@
  * MobileDrawingControls: presentation only, every handler supplied.
  */
 
+import type { MovementControls } from "../features/movement/useKeyboardMovement";
+import { MobileMovePad } from "./MobileMovePad";
+
 interface MobileSelectionSheetProps {
   selectedCount: number;
+  /** The d-pad renders only when the actor may move something selected. */
+  movement?: MovementControls;
   transformMode: boolean;
   isDM: boolean;
   onTransform: () => void;
@@ -17,6 +22,7 @@ interface MobileSelectionSheetProps {
 
 export function MobileSelectionSheet({
   selectedCount,
+  movement,
   transformMode,
   isDM,
   onTransform,
@@ -27,6 +33,7 @@ export function MobileSelectionSheet({
   return (
     <div className="mobile-selection-sheet" role="region" aria-label="Selected object actions">
       <strong>{selectedCount} selected</strong>
+      {movement && movement.movableCount > 0 && <MobileMovePad movement={movement} />}
       <button
         type="button"
         className={transformMode ? "mobile-chip mobile-chip--active" : "mobile-chip"}
