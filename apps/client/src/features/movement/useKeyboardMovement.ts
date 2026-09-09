@@ -11,11 +11,13 @@
 // modifier, not a held key (`event.repeat`), and inert in map-edit mode,
 // where the DM is authoring the map, not moving pieces on it.
 //
-// REPEAT MODEL (slice 1): discrete presses only. A held key at the OS repeat
-// rate would be ~30 transform-object messages a second, each a broadcast and
-// a fog re-filter per recipient; swallowing `repeat` keeps one press = one
-// round trip. Fast discrete presses chain from the last SENT cell while the
-// snapshot catches up (stepOrigin), so a press is never lost to latency.
+// REPEAT MODEL (slice 2): a held key WALKS, at a bounded cadence. The OS
+// repeat rate (~30/s) would be 30 transform-object broadcasts a second, each a
+// fog re-filter per recipient; instead a repeat event steps only when
+// HOLD_STEP_INTERVAL_MS has passed since the last step, so a hold is at most
+// ~6 cells a second — still one press = one round trip, and chained from the
+// last SENT cell while the snapshot catches up (stepOrigin), so no step is
+// lost to latency. The first, non-repeat press is always immediate.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
@@ -27,6 +29,9 @@ import {
   type CellDelta,
   type PendingStep,
 } from "./keyboardMovement";
+
+/** Minimum gap between steps while a key is HELD (a hold walks ~6 cells/s). */
+export const HOLD_STEP_INTERVAL_MS = 150;
 
 export interface UseKeyboardMovementOptions {
   selectedObjectIds: readonly string[];
@@ -58,10 +63,12 @@ export function useKeyboardMovement({
     [selectedObjectIds, snapshot, uid, isDM],
   );
   const pendingRef = useRef(new Map<string, PendingStep>());
+  const lastStepAtRef = useRef(0);
 
   const move = useCallback(
     ({ dx, dy }: CellDelta) => {
       const now = Date.now();
+      lastStepAtRef.current = now;
       for (const object of movable) {
         // A token spawned or dragged with Snap off sits on a fractional cell;
         // a keyboard step lands on WHOLE cells, so the origin snaps first.
@@ -80,9 +87,10 @@ export function useKeyboardMovement({
     const onKeyDown = (event: KeyboardEvent) => {
       const delta = deltaForKey(event);
       if (!delta) return;
-      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       if (isEditableTarget(event.target)) return;
       event.preventDefault();
+      if (event.repeat && Date.now() - lastStepAtRef.current < HOLD_STEP_INTERVAL_MS) return;
       move(delta);
     };
     window.addEventListener("keydown", onKeyDown);

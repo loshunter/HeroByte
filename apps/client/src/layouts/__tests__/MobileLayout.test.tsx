@@ -1,6 +1,8 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, within } from "@testing-library/react";
+import { HOLD_START_DELAY_MS } from "../MobileMovePad";
+import { HOLD_STEP_INTERVAL_MS } from "../../features/movement/useKeyboardMovement";
 import { MobileLayout } from "../MobileLayout";
 import { HELP_TOPICS } from "../../features/help/helpTopics";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
@@ -504,6 +506,58 @@ describe("MobileLayout", () => {
     fireEvent.click(within(pad).getByRole("button", { name: /^move up-left$/i }));
     expect(move.mock.calls).toEqual([[{ dx: 1, dy: 0 }], [{ dx: -1, dy: -1 }]]);
     expect(within(pad).getAllByRole("button")).toHaveLength(8);
+  });
+
+  it("press-and-hold on the d-pad walks at the keyboard's cadence and stops on release", () => {
+    vi.useFakeTimers();
+    try {
+      const props = createDefaultProps();
+      props.activeTool = "select";
+      props.selectMode = true;
+      props.selectedObjectIds = ["token:1"];
+      const move = vi.fn();
+      props.movement = { movableCount: 1, move };
+      const { rerender } = render(<MobileLayout {...props} />);
+      const right = screen.getByRole("button", { name: /^move right$/i });
+
+      // The press steps at once; walking starts after the initial delay.
+      fireEvent.pointerDown(right);
+      expect(move).toHaveBeenCalledTimes(1);
+      act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS - 1));
+      expect(move).toHaveBeenCalledTimes(1);
+      act(() => vi.advanceTimersByTime(1));
+      expect(move).toHaveBeenCalledTimes(2);
+      act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS * 2));
+      expect(move).toHaveBeenCalledTimes(4);
+
+      // Release: the click that follows a pointer press is NOT a fifth step,
+      // and the walk is over.
+      fireEvent.pointerUp(right);
+      fireEvent.click(right);
+      act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS * 5));
+      expect(move).toHaveBeenCalledTimes(4);
+
+      // A bare click (keyboard activation) still steps once.
+      fireEvent.click(right);
+      expect(move).toHaveBeenCalledTimes(5);
+
+      // A finger that slides off gets no click; the next bare click must not be eaten.
+      fireEvent.pointerDown(right);
+      fireEvent.pointerLeave(right);
+      fireEvent.click(right);
+      expect(move).toHaveBeenCalledTimes(7);
+
+      // Mid-walk the snapshot replaces `move`; the walk must follow it.
+      const laterMove = vi.fn();
+      fireEvent.pointerDown(right);
+      rerender(<MobileLayout {...props} movement={{ movableCount: 1, move: laterMove }} />);
+      act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS));
+      expect(laterMove).toHaveBeenCalledTimes(1);
+      expect(move).toHaveBeenCalledTimes(8);
+      fireEvent.pointerUp(right);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("no d-pad when nothing selected is movable by this actor — the sheet still shows", () => {

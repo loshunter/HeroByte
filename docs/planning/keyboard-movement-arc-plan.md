@@ -9,7 +9,7 @@ redraws per square; a movement budget ticks down per square, built alongside.
 | #   | Slice                                           | Status                                  |
 | --- | ----------------------------------------------- | --------------------------------------- |
 | 1   | Keystroke → one-cell move, guard, mobile d-pad  | **SHIPPED to `dev` 2026-09-09** (below) |
-| 2   | Any selected item + the hold-to-repeat story    | queued                                  |
+| 2   | Any selected item + the hold-to-repeat story    | **SHIPPED to `dev` 2026-09-09** (below) |
 | 3   | Movement budget (diagonal rule, display, reset) | queued                                  |
 
 ## Slice 1 — SHIPPED 2026-09-09
@@ -82,9 +82,31 @@ down-right and the desktop tab saw it at (19, 15).
 captured before an await reads a stale snapshot (cost one false "the tap did nothing"). Vite HMR of
 a hook module cleared the server-side selection once (dev-only; the roll log does not).
 
-## Open for slices 2–3
+## Slice 2 — SHIPPED 2026-09-09
 
-- Hold-to-repeat: swallow (current), coalesce, or optimistic-with-reconcile.
+**What a user gets.** A HELD key walks: the first press steps at once, then one cell every
+150 ms (~6 cells/s) until release. The phone d-pad does the same on press-and-hold (350 ms before
+the walk starts, then the same cadence; a slide-off or cancel stops it). "Any selected item" was
+already true after slice 1 (props ride the same road; an NPC token is a token the DM may move).
+
+**Decisions.** The OS repeat (~30/s) is throttled, not honoured: a repeat event steps only when
+`HOLD_STEP_INTERVAL_MS` has passed since the last step — one press is still one round trip, and the
+chain keeps the walk continuous. Swallowed repeats are still `preventDefault`-ed so the page cannot
+scroll under a walking token. A fresh press is never throttled. On the pad, the click that follows
+a pointer press is skipped (a tap is one step; keyboard activation still steps) and the walk timer
+reads the LATEST `movement` through a ref — every snapshot replaces `move`, and a hold longer than
+the chain's 1.5 s TTL would otherwise step from where the token was when the press began (caught
+on read-back, pinned).
+
+**Pins.** +2 hook tests (cadence, fresh press unthrottled), +1 layout test (press → delay → walk →
+release → skipped click → bare click → slide-off latch → mid-walk `move` swap). Sabotage 8/8 red.
+
+**Live-checked.** Desktop: 31 synthetic repeat events in ~1 s → 4 steps (19→23). Phone: a 1.2 s
+pointer hold sent 7 steps at 2/360/515/670/828/983/1139 ms; six landed and the seventh was REFUSED
+by the server's wall block (x=24), which is the guard working, not the walk failing.
+
+## Open for slice 3
+
 - Budget charge per press under the table's diagonal rule — `measureGridDistance` is
   path-independent (from/to), so a per-press charge under Pathfinder needs the count of diagonals
   taken THIS turn (alternating 1/2), and Euclidean needs the running sum; keep the MOVE (one cell)

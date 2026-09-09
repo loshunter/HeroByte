@@ -1894,6 +1894,10 @@ h4 {
   gap: 6px;
   max-width: 220px;
   margin: 0 auto;
+  /* Press-and-hold walks; a long press must not select text or pop a menu. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .mobile-move-pad__button {

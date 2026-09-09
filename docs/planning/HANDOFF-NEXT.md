@@ -16,8 +16,9 @@ in the selection sheet (eight 44×44 chips measured at 375×812). Plan, decision
 prompt's recon: the client never sends `move` — every drag is `transform-object`, which is why
 props came for free. Discrete presses only (`event.repeat` swallowed); fast presses chain from the
 last sent cell for 1.5 s so none is lost to latency; a fractional origin (staging-zone spawn) snaps
-to the nearest cell first. Selection still needs Select/Transform mode (existing model). Slices 2
-(repeat story) and 3 (the budget) are queued in the plan.
+to the nearest cell first. Selection still needs Select/Transform mode (existing model). **Slice 2
+(hold-to-repeat) also SHIPPED 2026-09-09:** a held key or a held d-pad button walks at one cell
+per 150 ms. Slice 3 (the budget) is queued in the plan.
 
 **Update (2026-09-09, DEPLOYED + NEXT ARC PROMPTED).** `dev` merged to `main` as `a41a8065`
 (from `7c555d32`), pushed, deploy probe-verified (bundle `index-DRpA0XA6` → `index-CHR8dA8X`; the

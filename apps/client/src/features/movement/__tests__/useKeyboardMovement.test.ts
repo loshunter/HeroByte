@@ -7,7 +7,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
-import { useKeyboardMovement } from "../useKeyboardMovement";
+import { HOLD_STEP_INTERVAL_MS, useKeyboardMovement } from "../useKeyboardMovement";
 
 function snapshotWith(tokens: Array<{ id: string; owner: string; x: number; y: number }>) {
   return {
@@ -84,7 +84,7 @@ describe("useKeyboardMovement", () => {
     ]);
   });
 
-  it("is inert from a typing surface, with any modifier, or for a held key", () => {
+  it("is inert from a typing surface or with any modifier", () => {
     const { sendMessage } = setup();
     const input = document.createElement("input");
     document.body.appendChild(input);
@@ -94,8 +94,33 @@ describe("useKeyboardMovement", () => {
     press("d", { metaKey: true });
     press("d", { altKey: true });
     press("D", { shiftKey: true });
-    press("d", { repeat: true });
     expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("a held key walks at the bounded cadence: repeats inside the interval send nothing", () => {
+    // The OS repeats ~every 33 ms; only the repeat that crosses the interval
+    // steps, so a one-second hold is ~6 steps, not 30. Swallowed repeats are
+    // still preventDefault-ed (the page must not scroll under a walking token).
+    const { sendMessage } = setup();
+    press("d");
+    const swallowed = press("d", { repeat: true });
+    expect(swallowed.defaultPrevented).toBe(true);
+    vi.setSystemTime(1_000_000 + HOLD_STEP_INTERVAL_MS - 1);
+    press("d", { repeat: true });
+    expect(sent(sendMessage)).toHaveLength(1);
+    vi.setSystemTime(1_000_000 + HOLD_STEP_INTERVAL_MS);
+    press("d", { repeat: true });
+    expect(sent(sendMessage).map((m) => m.position)).toEqual([
+      { x: 4, y: 4 },
+      { x: 5, y: 4 },
+    ]);
+  });
+
+  it("a fresh press is never throttled, even right after a step", () => {
+    const { sendMessage } = setup();
+    press("d");
+    press("d");
+    expect(sent(sendMessage)).toHaveLength(2);
   });
 
   it("is inert in map-edit mode — the DM is authoring, not moving pieces", () => {
