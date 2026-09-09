@@ -88,6 +88,8 @@ export interface MapTabProps {
   // DrawingControls props
   onClearDrawings: () => void;
   mapStudio?: MapStudioController;
+  /** What "the live map" means to PUBLISH: the compiled scene's source document. */
+  liveSceneDocumentId?: string;
 }
 
 /**
@@ -137,6 +139,7 @@ export default function MapTab({
   onSetPlayerStagingZone,
   onClearDrawings,
   mapStudio,
+  liveSceneDocumentId,
 }: MapTabProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -150,6 +153,7 @@ export default function MapTab({
       {mapStudio && (
         <MapStudioControl
           controller={mapStudio}
+          liveSceneDocumentId={liveSceneDocumentId}
           onPublishToLiveMap={({ backgroundUrl, documentId, documentName, backgroundMode }) => {
             // Server-authoritative publish: compiles walls/doors/lights and
             // syncs background + grid in one atomic message. Passing the id +

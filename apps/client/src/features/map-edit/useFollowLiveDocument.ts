@@ -1,26 +1,28 @@
 // ============================================================================
-// TRAVEL FOLLOWS THE PALETTE (A5)
+// TRAVEL FOLLOWS THE STUDIO (A5; widened 2026-09-08)
 // ============================================================================
 // When the room's live pointer MOVES (travel, rebind, publish of another map)
-// while the DM's active document WAS the previous live one, follow it —
-// otherwise NotesOverlayLayer and the preview grid keep rendering the OLD
-// map's notes and lattice over the NEW map until the DM notices. A document
-// the DM deliberately opened (a draft, a backup) is never force-reverted: the
-// follow fires only when the palette was ON the live document.
+// while the DM's active document WAS the previous live one, follow it. Two
+// consumers hang off that active document: the palette's overlays (notes,
+// preview grid), and the DM menu's Map Studio panel — whose PUBLISH TO LIVE
+// MAP acts on whatever is active. This used to fire only while the palette
+// was OPEN, so a DM who closed it, kicked in a door and opened Map Setup was
+// shown the map they had LEFT as active, and publish published that: the
+// table went blank on 2026-09-08. A document the DM deliberately opened (a
+// draft, a backup) is never force-reverted: the follow fires only when the
+// active document was the live one.
 
 import { useEffect, useRef } from "react";
 
 interface FollowLiveDocumentOptions {
-  mapEditMode: boolean;
   liveMapDocumentId: string | undefined;
   loading: boolean;
-  /** The palette's currently open document id, if any. */
+  /** The controller's currently open document id, if any. */
   activeId: string | undefined;
   openDocument: (documentId: string) => void;
 }
 
 export function useFollowLiveDocument({
-  mapEditMode,
   liveMapDocumentId,
   loading,
   activeId,
@@ -30,9 +32,9 @@ export function useFollowLiveDocument({
   useEffect(() => {
     const before = previousLiveId.current;
     previousLiveId.current = liveMapDocumentId;
-    if (!mapEditMode || !liveMapDocumentId || loading) return;
+    if (!liveMapDocumentId || loading) return;
     if (!before || before === liveMapDocumentId) return;
     if (activeId !== before) return; // an explicit open stays put
     openDocument(liveMapDocumentId);
-  }, [mapEditMode, liveMapDocumentId, loading, activeId, openDocument]);
+  }, [liveMapDocumentId, loading, activeId, openDocument]);
 }

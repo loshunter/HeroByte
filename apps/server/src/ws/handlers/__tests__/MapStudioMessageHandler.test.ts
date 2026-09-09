@@ -298,6 +298,65 @@ describe("MapStudioMessageHandler", () => {
       expect(roomState.compiledScene?.doors).toEqual([]);
     });
 
+    it("publishing ANOTHER document is a travel: binding and scene move together, the old scene is captured, the data channels are cleared", () => {
+      // The 2026-09-08 blank table: the Studio published the map the DM had
+      // LEFT, the server compiled it into the scene and left the binding on the
+      // map they were standing in. Binding and scene must never part on a
+      // publish — whichever document it names, both point at it afterwards.
+      createPublishedDocument();
+      service.create("room", { id: "other", name: "Other", timestamp: 1 });
+      // "other" carries SCENERY, so the travel derives a non-empty mapElements
+      // for it and the clear below has something real to clear. A walls-only
+      // document derives nothing, and an assertion that "cleared" something
+      // already absent proved nothing — a sabotage that removed the clear
+      // stayed green until this shape was added.
+      service.apply(
+        "room",
+        {
+          commandId: "seed-other",
+          documentId: "other",
+          baseRevision: 0,
+          type: "add-element",
+          element: {
+            id: "crate",
+            layerId: "objects",
+            type: "shape",
+            locked: false,
+            hidden: false,
+            transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 },
+            data: {
+              shape: "rectangle",
+              points: [
+                { x: 0, y: 0 },
+                { x: 50, y: 50 },
+              ],
+              stroke: "#fff",
+              strokeWidth: 1,
+              opacity: 1,
+            },
+          },
+        },
+        2,
+      );
+      handler.handle({ t: "map-studio-set-live", documentId: "map" }, "dm", "room", true);
+      expect(roomState.liveMapDocumentId).toBe("map");
+      expect(roomState.compiledScene?.sourceDocumentId).toBe("map");
+
+      handler.handle(
+        { t: "map-studio-publish", documentId: "other", background: "data:image/png;base64,QUJD" },
+        "dm",
+        "room",
+        true,
+      );
+
+      expect(roomState.liveMapDocumentId).toBe("other");
+      expect(roomState.compiledScene?.sourceDocumentId).toBe("other");
+      // The scene it replaced was suspended, not dropped — travel brings it back.
+      expect(roomState.sceneStates["map"]).toBeDefined();
+      // A full raster carries the scenery, so the data channel is cleared.
+      expect(roomState.mapElements).toBeUndefined();
+    });
+
     it("rejects publishing a document that does not exist", () => {
       expect(() =>
         handler.handle(

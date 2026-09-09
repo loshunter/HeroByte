@@ -177,6 +177,8 @@ export function DMMenuContainer({
   const characters = snapshot?.characters || [];
   const props = snapshot?.props || [];
   const players = snapshot?.players || [];
+  // What PUBLISH TO LIVE MAP would replace: derived here, beside hasCompiledScene.
+  const liveSceneDocumentId = snapshot?.compiledScene?.sourceDocumentId;
   const sceneObjects = snapshot?.sceneObjects || [];
   const playerCount = snapshot?.players?.length ?? 0;
   const combatActive = snapshot?.combatActive ?? false;
@@ -194,6 +196,7 @@ export function DMMenuContainer({
       onGridSquareSizeChange={onGridSquareSizeChange}
       fogEnabled={fogEnabled}
       hasCompiledScene={hasCompiledScene}
+      liveSceneDocumentId={liveSceneDocumentId}
       onFogEnabledChange={onFogEnabledChange}
       onClearDrawings={onClearDrawings}
       onSetMapBackground={onSetMapBackground}

@@ -7,6 +7,29 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-08, later — FOG VISIBILITY, investigated + one fix).** The owner noticed a
+player could see the whole map layout dimly through fog. Investigated live: the explored mask is
+per-uid localStorage (survives a DM elevate→revoke round-trip byte-identical — verified; no
+save/load needed), and a fresh player's mask measured only 4% painted. So the dim whole-map look
+was NOT stale exploration — it was the never-seen fog band rendering at opacity 0.97, letting ~3%
+of the terrain bleed through. FIXED (`b055f8e5`): never-seen fog is opacity 1 now, unexplored
+renders black. This closes the VISUAL leak only — geometry still reaches every client (fog is a
+render layer, not a data boundary: `compiledSceneView` sends all non-secret walls, `mapTerrain`
+ships the floor to all roles), so a determined player reading devtools can still reconstruct the
+layout. That is the accepted design (it's why generated dungeons author no secret doors). ALSO
+NOTED, not yet actioned: DM status persists across a page reload (a revoked-then-reloaded session
+came back as DM) — likely intended, worth a conscious yes. On `dev`, not pushed.
+
+**Update (2026-09-08, TWO ITEMS QUEUED BY THE OWNER — see §10).** (1) A production BUG:
+`PUBLISH TO LIVE MAP` drops live terrain by design (`backgroundMode: "full"`) and, when the baked
+PNG does not render, leaves the table showing only its bounding box and the staging zone — with no
+error, and with travel-to-the-same-node no-opping so the obvious recovery fails. Recovery that DOES
+work: clear the background, travel away, travel back. (2) A FEATURE: WASD/arrow keys move the
+selected token or item one square per press, so the fog cone redraws per square instead of only on
+drag release, with a per-square movement budget built alongside it. Also confirmed this day: the
+Kicked-In Door's SERVER half works at a real production table — G, reroll, ROLL, adoption, the
+return stair, and fog through the generated doors, all good.
+
 **Update (2026-09-07, THE OWNER DECIDED).** The one item the final review put to the owner is
 **CLOSED: generated encounter markers are prep notes, not secrets** — option (1) of the plan's §7
 RNG-oracle entry. Reasoning on the record: the attack costs a deliberate reconstruction from source
@@ -1105,6 +1128,59 @@ turns a cone into something else.
      banner); **K3 SHIPPED** (2026-09-06, three commits — the plan's K3 banner); **K4 SHIPPED** (2026-09-06, two
      commits — the plan's K4 banner); **K6 SHIPPED** (2026-09-06 — the journey spec, the budgets, the
      user-guide debt); **K5 (Cartridge Codes) DEFERRED to the plan's §7.** **The arc is complete.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
+   - **FIXED 2026-09-08 — `PUBLISH TO LIVE MAP` was publishing the WRONG DOCUMENT and blanking the
+     table.** The button published `controller.activeDocument` — whatever the Map Studio list had
+     SELECTED — which after a kicked-in door is the map the DM LEFT, not the one the table is on.
+     The server compiled that document into `state.compiledScene`, cleared `mapElements`, dropped
+     `mapTerrain`, stored its baked background — and never touched `liveMapDocumentId`, leaving the
+     binding on one document and the scene on another (nothing on screen but the bounding box and
+     the staging zone, no error). The fix is Fable 5.1's (b)+(c)+(a), all three:
+     - **(b) binding and scene never part.** `map-studio-publish` moved out of the 345-line handler
+       into `mapStudioPublish.ts` and now rides `travelToDocument` — the ONE suspend/resume
+       composition, the same road set-live and atlas-travel take. A publish is a travel with a
+       raster on top: it captures the outgoing scene, installs the destination, and sets
+       `liveMapDocumentId` to what it compiled. The split is now unreachable.
+     - **(c) the Studio follows the live pointer even with the palette CLOSED.**
+       `useFollowLiveDocument` was gated on `mapEditMode`; that gate is gone, because the DM menu's
+       Studio panel reads the same active document and the palette is usually shut when a DM opens
+       Map Setup after a kick. The active document now follows travel/publish, so the button acts
+       on the map the DM is standing on.
+     - **(a) a publish that would REPLACE the live scene confirms first,** naming both maps and
+       saying the old one is still reachable by travel (`publishGuard.ts`). Publishing the map the
+       table is already on is a bake and asks nothing.
+       Re-pinned four contracts that encoded the old split (`sceneTravel`, `atlasKick` incl. the
+       retired PUBLISH-BURN row, `liveMapDoorPreservation`, the handler unit test) and added five new
+       pins (the guard both ways, the bake, the palette-closed follow, and the whole
+       bag->container->menu->tab->control threading via the REAL container). Sabotage 9/9 red after
+       two vacuity fixes (a walls-only doc derives no scenery to clear; the threading needed the real
+       container, not a layout stub). LIVE-CHECKED in a browser: the Studio followed origin->dungeon
+       (showed the dungeon's 211 elements) and a bake asked nothing — but the confirm dialog and the
+       accepted server-swap could NOT be exercised locally because asset uploads have no server in
+       the dev preview ("Upload failed"); those rest on the contract/component pins. NOT the
+       Kicked-In Door arc; the map-studio publish path, fixed under fix-bugs-regardless-of-origin.
+       **On `dev`, NOT pushed — the owner's merge call.**
+     - DEAD HYPOTHESES from the diagnosis, kept so nobody re-runs them: the 8192x8192 canvas is not
+       too big (paints + encodes fine, 1.27 MB PNG); the tile atlas is not missing (production
+       serves it 200). And travel to the node does NOT no-op — `alreadyThere` needs binding AND
+       scene to agree, and publish is exactly what parts them, which is why travel was the owner's
+       recovery.
+   - **QUEUED BY THE OWNER 2026-09-08 — keyboard movement, one square per press, with sight and
+     movement following it.** WASD and the arrow keys move the SELECTED token — or any selected
+     item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three
+     reasons it is worth more than the convenience: it makes the fog and line-of-sight work
+     legible, because today the cone only updates when a drag is RELEASED and a per-press move
+     would redraw it square by square; it is the natural home for a **movement budget that ticks
+     down per square**, which the owner wants built at the same time; and the keys are free — the
+     client currently binds only Enter, Escape, z, y, r, g, Delete, Backspace and modifiers, so
+     nothing has to be rebound. Design notes gathered when it was queued, none of them settled:
+     the per-press move is an ordinary `move` message, so fog updates fall out of the existing wire
+     rather than needing a new one, but it is one server round trip and one recipient re-filter PER
+     PRESS — hold-to-repeat needs a think, and a sight radius makes fog dramatically cheaper on a
+     big generated map. A movement counter MUST honour the table's diagonal rule (5e / Pathfinder /
+     Euclidean are all live settings), so a diagonal press is not always one square of budget. It
+     needs the `isEditableTarget` + no-modifier + no-`event.repeat` guard that invariant 4.17 of the
+     Kicked-In Door plan established for `G`, or WASD will fire while a DM types a node name. And
+     the budget wants a per-turn reset, which lands it next to initiative and M5's Battle Strip.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 **Note (2026-08-26):** this section has now gone stale twice in one week — both times because the

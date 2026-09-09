@@ -383,6 +383,17 @@ describe("FogLayer", () => {
   // operation, so a partial-opacity destination-out erases part of the fog —
   // which is what makes "dimmed, not black" a single node rather than a second
   // layer.
+  it("draws the never-seen band FULLY opaque, so the layout cannot bleed through unexplored fog", () => {
+    // Regression: it was 0.97, and 3% of the terrain showed through — a player
+    // could faintly read the whole room layout of a map they had never
+    // explored (owner-reported 2026-09-08). Never-seen must fully occlude.
+    render(<FogLayer cam={cam} compiledScene={scene()} viewers={[]} {...GRID} />);
+
+    const base = rectProps[0]!;
+    expect(base.opacity).toBe(1);
+    expect(base).toMatchObject({ x: 0, y: 0, width: 400, height: 300 });
+  });
+
   describe("explored fog", () => {
     it("renders no explored band when the viewer remembers nothing", () => {
       render(<FogLayer cam={cam} compiledScene={scene()} viewers={[]} {...GRID} />);

@@ -12,7 +12,7 @@
 //
 // Three bands, drawn in this order inside ONE layer so a single composite pass
 // produces all of them:
-//   1. opaque fog over the whole published rect — never seen,
+//   1. FULLY opaque fog over the whole published rect — never seen,
 //   2. the EXPLORED mask punched out at partial opacity — seen before, dimmed,
 //   3. current sightlines punched out fully — seen right now.
 // Konva applies node opacity BEFORE the composite operation, so a
@@ -55,6 +55,12 @@ interface FogLayerProps {
 
 const FOG_COLOR = "#0b0b16";
 /** How much of the fog a remembered area lifts. Dimmed, deliberately not clear. */
+// Never-seen fog is FULLY opaque. It was 0.97 — 3% of the terrain bled through,
+// so a player could faintly read the whole room layout of a map they had never
+// explored (owner-reported 2026-09-08). This only closes the VISUAL leak; the
+// geometry still reaches the client (fog is not a data boundary — see
+// compiledSceneView), so it hides the layout from the eye, not from devtools.
+const NEVER_SEEN_FOG_OPACITY = 1;
 const EXPLORED_LIFT = 0.55;
 
 export function FogLayer({
@@ -148,7 +154,7 @@ export function FogLayer({
             width={compiledScene.width}
             height={compiledScene.height}
             fill={FOG_COLOR}
-            opacity={0.97}
+            opacity={NEVER_SEEN_FOG_OPACITY}
           />
           {explored.canvas && (
             <KonvaImage

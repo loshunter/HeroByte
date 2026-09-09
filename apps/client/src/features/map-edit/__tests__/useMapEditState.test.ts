@@ -78,6 +78,34 @@ describe("useMapEditState", () => {
     expect(methods.openDocument).not.toHaveBeenCalled();
   });
 
+  it("FOLLOWS the live pointer with the palette CLOSED too — the DM menu's Studio panel reads the same active document", () => {
+    // A DM closes the palette, kicks in a door, opens Map Setup: the Studio
+    // must show the map they are standing on, not the one they left. With the
+    // follow gated on the palette being open, PUBLISH TO LIVE MAP acted on the
+    // stale document and blanked the table (2026-09-08).
+    const methods = makeMethods();
+    const base = {
+      sendMessage: vi.fn(),
+      mapEditMode: false,
+      setActiveTool: vi.fn(),
+      isDM: true,
+      snapshotLoaded: true,
+      liveMapDocumentId: "doc-a" as string | undefined,
+      roomGridSize: 64,
+      hasRasterBackground: false,
+    };
+    const { rerender } = renderHook((props) => useMapEditState(props), {
+      initialProps: { ...base, controller: makeController(methods, doc("doc-a")) },
+    });
+    methods.openDocument.mockClear();
+    rerender({
+      ...base,
+      liveMapDocumentId: "doc-b",
+      controller: makeController(methods, doc("doc-a")),
+    });
+    expect(methods.openDocument).toHaveBeenCalledWith("doc-b");
+  });
+
   it("creates a live document, then binds + syncs its grid once it activates", () => {
     const methods = makeMethods();
     const sendMessage = vi.fn();

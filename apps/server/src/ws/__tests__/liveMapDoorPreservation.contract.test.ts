@@ -206,11 +206,14 @@ describe("live-bound door-preservation regressions", () => {
     expect(roomService.getState().compiledScene?.doors[0]?.state).toBe("open");
   });
 
-  it("does not leak a live secret door after a stray publish of a copy that shares its door id", async () => {
-    // Adversarial: d1 is live with a secret door dX; d2 is a copy authoring the
-    // SAME element id dX as "open". Publishing d2 leaves state.compiledScene as
-    // d2's scene; a later edit to live d1 must NOT graft d2's "open" onto d1's
-    // secret door.
+  it("a stray publish of a copy that shares a door id moves the binding with it — the old map's edits no longer reach the table", async () => {
+    // RE-PINNED 2026-09-08. Adversarial: d1 is live with a secret door dX; d2
+    // is a copy authoring the SAME id dX as "open". This test used to guard a
+    // graft across a publish SPLIT (scene d2, binding still d1, then an edit to
+    // d1 recompiling with d2's runtime). Publish is a travel now and moves the
+    // binding to d2, so the split — and the graft path — cannot exist. What
+    // must hold instead: d1 is no longer live, so an edit to it changes
+    // nothing on the table and sends nothing to a player.
     route({ t: "map-studio-create", document: { id: "d1", name: "d1" } }, DM);
     route({ t: "map-studio-set-live", documentId: "d1" }, DM);
     addElement("d1", 0, doorElement("dX", "secret"), "a1"); // d1 rev 1: dX secret
@@ -227,25 +230,21 @@ describe("live-bound door-preservation regressions", () => {
       DM,
     );
 
+    expect(roomService.getState().liveMapDocumentId).toBe("d2");
+    expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("d2");
+    await flush();
     playerWs.send.mockClear();
-    // Unrelated edit to the still-live d1 (does not re-author dX).
+
+    // An edit to d1 — which is NOT live any more — does not recompile the
+    // table (it would have grafted before) and reaches no player at all.
     addElement("d1", 1, wallElement("w1"), "a3"); // d1 rev 2
     await flush();
 
-    // d1's secret door stays secret on the server and disguised for the player.
-    const dx = roomService.getState().compiledScene?.doors.find((d) => d.id === "dX");
-    expect(dx?.state).toBe("secret");
-    const playerScene = latestSnapshot(playerWs)?.compiledScene;
-    expect(playerScene?.doors).toEqual([]);
-    // The disguise now FUSES the door into the wall it interrupts, so not even
-    // its id reaches the wire. What must hold is that the seam it covered still
-    // blocks: the player sees one wall spanning the door's (10..50) run.
-    expect(
-      playerScene?.walls.some(
-        (w) => w.y1 === 0 && w.y2 === 0 && Math.min(w.x1, w.x2) <= 10 && Math.max(w.x1, w.x2) >= 50,
-      ),
-    ).toBe(true);
-    expect(JSON.stringify(playerScene)).not.toContain("dX");
+    expect(roomService.getState().compiledScene?.sourceDocumentId).toBe("d2");
+    expect(roomService.getState().compiledScene?.walls.some((w) => w.id.startsWith("w1"))).toBe(
+      false,
+    );
+    expect(snapshotsOf(playerWs)).toHaveLength(0);
   });
 
   it("clears the binding when the live-bound document is deleted, so no re-bind resurrects it", async () => {
