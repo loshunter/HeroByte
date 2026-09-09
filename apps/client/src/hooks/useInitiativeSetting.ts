@@ -6,8 +6,13 @@ import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
  *
  * Manages the async flow of setting initiative:
  * 1. Sends set-initiative message to server
- * 2. Monitors snapshot for initiative changes
- * 3. Confirms success when initiative updates
+ * 2. Monitors the snapshot for the server's answer
+ * 3. Confirms success when the character carries the requested value on a
+ *    frame newer than the one the request left from — OR when the value
+ *    changes at all (the server may clamp). The "newer frame" road matters:
+ *    a hand entry equal to the number already stored changes nothing, and
+ *    a confirmation keyed on change alone hung five seconds and reported a
+ *    timeout for a save the server had applied (one d20 face in twenty).
  * 4. Provides loading state and error handling
  *
  * @example
@@ -35,6 +40,12 @@ export function useInitiativeSetting({
   // Track previous initiative to detect changes
   const prevInitiativeRef = useRef<number | undefined>(undefined);
   const prevModifierRef = useRef<number | undefined>(undefined);
+  /** What was asked for, and the frame it was asked from (`undefined` = unversioned). */
+  const requestRef = useRef<{
+    initiative: number | undefined;
+    modifier: number | undefined;
+    sentAtVersion: number | undefined;
+  } | null>(null);
 
   // Get current initiative and modifier from snapshot
   const character = snapshot?.characters?.find((char) => char.id === targetCharacterId);
@@ -50,11 +61,25 @@ export function useInitiativeSetting({
       return;
     }
 
-    // Detect successful set when initiative or modifier changes
+    // Detect successful set when initiative or modifier changes...
     const initiativeChanged = currentInitiative !== prevInitiativeRef.current;
     const modifierChanged = currentModifier !== prevModifierRef.current;
+    // ...or when a NEWER frame carries exactly what was asked for (the value
+    // may not have changed at all). An unversioned frame cannot prove it is
+    // newer, so it only confirms through the change road above.
+    const request = requestRef.current;
+    const version = snapshot?.stateVersion;
+    const frameIsNewer =
+      request !== null &&
+      version !== undefined &&
+      request.sentAtVersion !== undefined &&
+      version > request.sentAtVersion;
+    const requestApplied =
+      request !== null &&
+      currentInitiative === request.initiative &&
+      (request.modifier === undefined || currentModifier === request.modifier);
 
-    if (initiativeChanged || modifierChanged) {
+    if (initiativeChanged || modifierChanged || (frameIsNewer && requestApplied)) {
       console.log("[useInitiativeSetting] Initiative update confirmed:", {
         characterId: targetCharacterId,
         initiative: currentInitiative,
@@ -63,10 +88,11 @@ export function useInitiativeSetting({
       setIsSetting(false);
       setError(null);
       setTargetCharacterId(null);
+      requestRef.current = null;
       prevInitiativeRef.current = currentInitiative;
       prevModifierRef.current = currentModifier;
     }
-  }, [currentInitiative, currentModifier, isSetting, targetCharacterId]);
+  }, [currentInitiative, currentModifier, isSetting, targetCharacterId, snapshot?.stateVersion]);
 
   /**
    * Sets initiative for a character and waits for server confirmation.
@@ -90,6 +116,11 @@ export function useInitiativeSetting({
       const char = snapshot?.characters?.find((c) => c.id === characterId);
       prevInitiativeRef.current = char?.initiative;
       prevModifierRef.current = char?.initiativeModifier;
+      requestRef.current = {
+        initiative,
+        modifier: initiativeModifier,
+        sentAtVersion: snapshot?.stateVersion,
+      };
 
       sendMessage({
         t: "set-initiative",
@@ -104,13 +135,14 @@ export function useInitiativeSetting({
             console.error("[useInitiativeSetting] Initiative update timed out");
             setError("Initiative update timed out. Please try again.");
             setTargetCharacterId(null);
+            requestRef.current = null;
             return false;
           }
           return prev;
         });
       }, 5000);
     },
-    [sendMessage, snapshot?.characters],
+    [sendMessage, snapshot?.characters, snapshot?.stateVersion],
   );
 
   const setInitiative = useCallback(

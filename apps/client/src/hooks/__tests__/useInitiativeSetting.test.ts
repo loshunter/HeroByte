@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
 import { useInitiativeSetting } from "../useInitiativeSetting";
@@ -134,5 +134,112 @@ describe("useInitiativeSetting - rollInitiative", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/**
+ * The manual path's confirmation. The value-CHANGED road alone reported a
+ * timeout for a hand entry equal to the number already stored — the server
+ * applied it, logged it "by hand", and the modal sat five seconds then said
+ * "timed out" over a table that had already moved on (one d20 face in twenty;
+ * the e2e suite hit it three times in two days).
+ */
+describe("useInitiativeSetting - setInitiative confirmation", () => {
+  const sendMessage = vi.fn();
+
+  const frame = (
+    stateVersion: number | undefined,
+    initiative: number | undefined,
+    initiativeModifier: number,
+  ): RoomSnapshot =>
+    ({
+      ...(stateVersion !== undefined ? { stateVersion } : {}),
+      characters: [
+        {
+          id: "char-1",
+          name: "Fighter",
+          type: "pc",
+          hp: 10,
+          maxHp: 10,
+          ...(initiative !== undefined ? { initiative } : {}),
+          initiativeModifier,
+        },
+      ],
+    }) as unknown as RoomSnapshot;
+
+  const mount = (snapshot: RoomSnapshot) =>
+    renderHook(
+      ({ snapshot }: { snapshot: RoomSnapshot }) => useInitiativeSetting({ snapshot, sendMessage }),
+      { initialProps: { snapshot } },
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("confirms an entry EQUAL to the stored value once a newer frame carries it", () => {
+    const { result, rerender } = mount(frame(5, 17, 0));
+
+    act(() => result.current.setInitiative("char-1", 17, 0));
+    expect(result.current.isSetting).toBe(true);
+
+    rerender({ snapshot: frame(6, 17, 0) });
+
+    expect(result.current.isSetting).toBe(false);
+    act(() => {
+      vi.advanceTimersByTime(6000);
+    });
+    expect(result.current.error).toBeNull();
+  });
+
+  it("does not take the frame it was sent from as the answer", () => {
+    // Same version, same value: the server has not spoken yet. Confirming here
+    // would close the modal before the request even left the socket.
+    const { result, rerender } = mount(frame(5, 17, 0));
+
+    act(() => result.current.setInitiative("char-1", 17, 0));
+    rerender({ snapshot: frame(5, 17, 0) });
+
+    expect(result.current.isSetting).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(result.current.error).toBe("Initiative update timed out. Please try again.");
+  });
+
+  it("a newer frame carrying a DIFFERENT number than asked is not the answer either", () => {
+    // Another seat's write landing first must not be mistaken for ours. The
+    // change road still confirms a clamped value, but only through the value
+    // moving, which this frame's 17 → 17 does not.
+    const { result, rerender } = mount(frame(5, 17, 0));
+
+    act(() => result.current.setInitiative("char-1", 12, 0));
+    rerender({ snapshot: frame(6, 17, 0) });
+
+    expect(result.current.isSetting).toBe(true);
+  });
+
+  it("still confirms through a value change on an unversioned frame", () => {
+    const { result, rerender } = mount(frame(undefined, 12, 0));
+
+    act(() => result.current.setInitiative("char-1", 15, 2));
+    rerender({ snapshot: frame(undefined, 15, 2) });
+
+    expect(result.current.isSetting).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("confirms a clear of an already-clear initiative on a newer frame", () => {
+    const { result, rerender } = mount(frame(5, undefined, 0));
+
+    act(() => result.current.clearInitiative("char-1"));
+    rerender({ snapshot: frame(6, undefined, 0) });
+
+    expect(result.current.isSetting).toBe(false);
   });
 });

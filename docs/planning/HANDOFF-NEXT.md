@@ -24,7 +24,13 @@ alternation kept per turn), the nameplate reads `remaining / speed ft`, the budg
 character's turn start (once per round — a rewind refills nothing), the DM sets a player's speed from the settings menu on both layouts and a monster's from the DM menu's NPC editor, and a monster's
 budget never reaches a player's frame. Also fixed on the way (own commit `d4240c48`): a
 `token-updated` delta never moved the token's SCENE OBJECT, so a `move` over the delta channel
-left the sprite behind until the next full snapshot. Adversarial review + owner merge pending.
+left the sprite behind until the next full snapshot. Adversarial review rounds 1 (`316c295a`) and
+2 (`b2a0cb20`) are FIXED on `dev`; round 3 (the last under the cap) and the owner's merge are
+pending. A second bug fixed regardless of origin, own commit: the initiative modal confirmed a
+save by watching the value CHANGE, so a physical-die entry equal to the roll on file "timed out"
+after 5 s and STAYED OPEN over the toolbar (one d20 face in twenty; the e2e suite hit it three
+times in two days as a "flake"). `useInitiativeSetting` now also confirms on a newer frame
+(`stateVersion`) carrying the requested value; `initiative-repeat-entry.spec.ts` pins it.
 
 **Update (2026-09-09, DEPLOYED + NEXT ARC PROMPTED).** `dev` merged to `main` as `a41a8065`
 (from `7c555d32`), pushed, deploy probe-verified (bundle `index-DRpA0XA6` → `index-CHR8dA8X`; the
@@ -1196,8 +1202,10 @@ turns a cone into something else.
    - **DONE on `dev` 2026-09-09 — keyboard movement, all three slices** (see the §0 update and
      [keyboard-movement-arc-plan.md](./keyboard-movement-arc-plan.md)): one cell per press +
      phone d-pad; hold-to-walk at a bounded cadence; the movement budget with the diagonal rule,
-     nameplate readout, turn-start reset and DM-set speed. NOT merged — the owner's call after the
-     review. The original queue note follows.
+     nameplate readout, turn-start reset and DM-set speed; review rounds 1 and 2 fixed
+     (`316c295a`, `b2a0cb20`), and on the way the initiative modal's false "timed out" on a
+     hand entry equal to the roll on file. NOT merged — the owner's call after the review. The
+     original queue note follows.
      ~~QUEUED BY THE OWNER 2026-09-08~~ — keyboard movement, one square per press, with sight and
      movement following it. WASD and the arrow keys move the SELECTED token — or any selected
      item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three

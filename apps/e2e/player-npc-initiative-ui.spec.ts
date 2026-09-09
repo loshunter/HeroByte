@@ -161,13 +161,16 @@ test.describe("initiative — the modal a player presses", () => {
       .poll(async () => (await myCharacter(page))?.initiative, { timeout: 15_000 })
       .toEqual(expect.any(Number));
     const superseded = (await myCharacter(page))!.initiative!;
+    // A hand entry that REPLACES the roll must differ from it, or the
+    // strike-out half of this asserts a number against itself.
+    const entered = superseded === 17 ? 18 : 17;
 
     await openInitiativeModal(page);
     await page.getByRole("button", { name: "Use Physical Dice" }).click();
-    await page.getByPlaceholder("Enter roll...").fill("17");
+    await page.getByPlaceholder("Enter roll...").fill(String(entered));
 
     // The panel does the arithmetic before you commit to it.
-    await expect(page.getByText("Initiative: 17")).toBeVisible();
+    await expect(page.getByText(`Initiative: ${entered}`)).toBeVisible();
 
     const before = (await rolls(page)).length;
     await page.getByRole("button", { name: "Save" }).click();
@@ -175,7 +178,7 @@ test.describe("initiative — the modal a player presses", () => {
 
     await expect
       .poll(async () => (await myCharacter(page))?.initiative, { timeout: 15_000 })
-      .toBe(17);
+      .toBe(entered);
 
     // Wait for the LOG, not just the character. The initiative field and the
     // roll-log entry are two different pieces of the save, and the character
