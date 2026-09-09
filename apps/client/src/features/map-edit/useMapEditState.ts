@@ -231,7 +231,7 @@ export function useMapEditState({
   // reported the document gone) is never re-opened — without that guard this
   // effect looped open → not-found → open forever, pinning the palette on
   // STARTING… after a server-side maps-store reset.
-  useFollowLiveDocument({ mapEditMode, liveMapDocumentId, loading, activeId, openDocument });
+  useFollowLiveDocument({ liveMapDocumentId, loading, activeId, openDocument });
 
   useEffect(() => {
     if (!mapEditMode || !liveMapDocumentId || pendingLiveId || loading) return;

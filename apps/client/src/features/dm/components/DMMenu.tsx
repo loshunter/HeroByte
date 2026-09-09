@@ -21,6 +21,7 @@ export function DMMenu({
   onGridSquareSizeChange,
   fogEnabled,
   hasCompiledScene,
+  liveSceneDocumentId,
   onFogEnabledChange,
   defaultVisionRadius,
   onDefaultVisionRadiusChange,
@@ -164,6 +165,7 @@ export function DMMenu({
           onDiagonalRuleChange={onDiagonalRuleChange}
           fogEnabled={fogEnabled}
           hasCompiledScene={hasCompiledScene}
+          liveSceneDocumentId={liveSceneDocumentId}
           onFogEnabledChange={onFogEnabledChange}
           defaultVisionRadius={defaultVisionRadius}
           onDefaultVisionRadiusChange={onDefaultVisionRadiusChange}

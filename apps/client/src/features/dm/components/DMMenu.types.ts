@@ -30,6 +30,8 @@ export interface DMMenuProps {
   onDiagonalRuleChange?: (rule: DiagonalRule) => void;
   fogEnabled?: boolean;
   hasCompiledScene?: boolean;
+  /** The compiled scene's source document — what PUBLISH would replace. */
+  liveSceneDocumentId?: string;
   onFogEnabledChange?: (enabled: boolean) => void;
   defaultVisionRadius?: number;
   onDefaultVisionRadiusChange?: (radiusFeet: number | null) => void;

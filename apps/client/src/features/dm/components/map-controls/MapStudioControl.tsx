@@ -1,17 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import type { MapDocument, MapPublishBackgroundMode } from "@herobyte/shared";
+import type { MapPublishBackgroundMode } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import {
   describePublishFailure,
   rasterizeAndUploadMapBackground,
-  MAX_PUBLISH_BACKGROUND_BYTES,
   type MapStudioController,
 } from "../../../map-studio";
 import { MapStudioExportControls } from "./MapStudioExportControls";
 import { formatUpdatedAt } from "./formatUpdatedAt";
+import { parseBackupImport } from "./importBackup";
+import { describeLiveMapReplacement } from "./publishGuard";
 
 export interface MapStudioControlProps {
   controller: MapStudioController;
+  /**
+   * The document the table's compiled scene came from. A publish of any OTHER
+   * document replaces the table and asks first; without this the panel cannot
+   * tell a bake from a swap, so it asks nothing (the pre-2026-09-08 behaviour).
+   */
+  liveSceneDocumentId?: string;
   onPublishToLiveMap?: (publish: {
     backgroundUrl: string;
     gridSize: number;
@@ -21,7 +28,11 @@ export interface MapStudioControlProps {
   }) => void;
 }
 
-export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioControlProps) {
+export function MapStudioControl({
+  controller,
+  liveSceneDocumentId,
+  onPublishToLiveMap,
+}: MapStudioControlProps) {
   const {
     documents,
     activeDocument,
@@ -50,33 +61,12 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
   const importingIdRef = useRef<string | null>(null);
 
   const handleImportFile = (fileText: string) => {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(fileText);
-    } catch {
-      setPublishStatus("Import failed: that file is not valid JSON.");
+    const parsed = parseBackupImport(fileText);
+    if ("error" in parsed) {
+      setPublishStatus(parsed.error);
       return;
     }
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      (parsed as { schemaVersion?: unknown }).schemaVersion !== 1
-    ) {
-      setPublishStatus("Import failed: that file is not a HeroByte map JSON backup.");
-      return;
-    }
-    // Guard the 1MB inbound WebSocket cap: the whole document ships over that
-    // capped channel, and an oversized import would be dropped by the server
-    // BEFORE any handler runs — silently — leaving the panel wedged in a
-    // loading state. Measure the compact encoding the socket actually sends.
-    const wireBytes = new TextEncoder().encode(JSON.stringify(parsed)).length;
-    if (wireBytes > MAX_PUBLISH_BACKGROUND_BYTES) {
-      setPublishStatus(
-        "Import failed: that backup is too large to send (over ~1MB). Split the map or publish a raster instead.",
-      );
-      return;
-    }
-    const id = importDocument(parsed as MapDocument);
+    const id = importDocument(parsed.document);
     importingIdRef.current = id;
     setSelectedId(id);
     setPublishStatus("Importing map backup…");
@@ -139,6 +129,15 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
   const handlePublish = () => {
     const documentToPublish = activeDocument;
     if (!documentToPublish || !onPublishToLiveMap) return;
+    const replacement = describeLiveMapReplacement(
+      documentToPublish,
+      liveSceneDocumentId,
+      documents,
+    );
+    if (replacement && !window.confirm(replacement.prompt)) {
+      setPublishStatus(`Publish cancelled — the table stays on "${replacement.liveName}".`);
+      return;
+    }
     // Bake + upload run async; the payload captures the document so a mid-bake
     // switch can't mismatch id and background.
     void (async () => {

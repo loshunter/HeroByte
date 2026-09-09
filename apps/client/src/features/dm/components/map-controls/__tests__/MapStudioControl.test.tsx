@@ -147,6 +147,84 @@ describe("MapStudioControl", () => {
     expect(screen.getByRole("status")).toHaveTextContent('Published "Keep" to the live map.');
   });
 
+  it("asks before publishing a document that is NOT the live scene, naming both maps", async () => {
+    // The Studio's active document is the map the DM last looked at — after a
+    // kicked-in door, the map they LEFT. Publishing it silently replaced the
+    // table with a blank raster of the wrong map. Now it asks, and says what
+    // it would replace.
+    const keep = createMapDocument({ id: "keep", name: "Keep", timestamp: 1 });
+    const mapStudio = controller({
+      activeDocument: keep,
+      documents: [
+        { id: "keep", name: "Keep" },
+        { id: "dungeon", name: "Repro Dungeon" },
+      ] as never,
+    });
+    const onPublishToLiveMap = vi.fn();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(
+      <MapStudioControl
+        controller={mapStudio}
+        liveSceneDocumentId="dungeon"
+        onPublishToLiveMap={onPublishToLiveMap}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "PUBLISH TO LIVE MAP" }));
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    const prompt = confirm.mock.calls[0]?.[0] ?? "";
+    expect(prompt).toContain('"Keep"');
+    expect(prompt).toContain('"Repro Dungeon"');
+    await waitFor(() => expect(onPublishToLiveMap).toHaveBeenCalledTimes(1));
+  });
+
+  it("a declined confirm publishes nothing, bakes nothing, and says so", async () => {
+    const keep = createMapDocument({ id: "keep", name: "Keep", timestamp: 1 });
+    const mapStudio = controller({
+      activeDocument: keep,
+      documents: [
+        { id: "keep", name: "Keep" },
+        { id: "dungeon", name: "Repro Dungeon" },
+      ] as never,
+    });
+    const onPublishToLiveMap = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    render(
+      <MapStudioControl
+        controller={mapStudio}
+        liveSceneDocumentId="dungeon"
+        onPublishToLiveMap={onPublishToLiveMap}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "PUBLISH TO LIVE MAP" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent('the table stays on "Repro Dungeon"');
+    // Declining costs no bake and no upload — the check is BEFORE the raster.
+    expect(rasterizeAndUploadMapBackground).not.toHaveBeenCalled();
+    expect(onPublishToLiveMap).not.toHaveBeenCalled();
+  });
+
+  it("publishing the map the table is already on is a bake, and asks nothing", async () => {
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    const mapStudio = controller({ activeDocument: document });
+    const onPublishToLiveMap = vi.fn();
+    const confirm = vi.spyOn(window, "confirm");
+
+    render(
+      <MapStudioControl
+        controller={mapStudio}
+        liveSceneDocumentId="map"
+        onPublishToLiveMap={onPublishToLiveMap}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "PUBLISH TO LIVE MAP" }));
+
+    expect(confirm).not.toHaveBeenCalled();
+    await waitFor(() => expect(onPublishToLiveMap).toHaveBeenCalledTimes(1));
+  });
+
   it("clamps published live grid size to the server-supported range", async () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     document.grid.size = 900;
