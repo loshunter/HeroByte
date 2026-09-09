@@ -17,6 +17,83 @@ function npc(tokenId: string, hp: number, maxHp: number): SnapshotCharacter {
   return { id: `char-${tokenId}`, type: "npc", name: "Goblin 3", tokenId, hp, maxHp };
 }
 
+describe("buildTokenPlates — the movement budget", () => {
+  const base = { tokens: [token("t1", "p1")], players: [player("p1", "P")] };
+  const pc = (extra: Partial<SnapshotCharacter> = {}): SnapshotCharacter => ({
+    id: "c1",
+    type: "pc",
+    name: "Aria",
+    tokenId: "t1",
+    hp: 10,
+    maxHp: 10,
+    ...extra,
+  });
+
+  it("a PC in the order wears remaining / speed while combat is on — defaults included", () => {
+    const plates = buildTokenPlates({
+      ...base,
+      characters: [pc({ initiative: 12, movementUsed: 10 })],
+      monsterHpDisplay: "exact",
+      lensRedact: false,
+      combatActive: true,
+    });
+    expect(plates["token:t1"]!.move).toEqual({ speed: 30, used: 10, remaining: 20 });
+  });
+
+  it("no budget out of combat, and none for a character not in the order", () => {
+    const off = buildTokenPlates({
+      ...base,
+      characters: [pc({ initiative: 12, movementUsed: 10 })],
+      monsterHpDisplay: "exact",
+      lensRedact: false,
+      combatActive: false,
+    });
+    expect(off["token:t1"]!.move).toBeUndefined();
+    const notInOrder = buildTokenPlates({
+      ...base,
+      characters: [pc({ movementUsed: 10 })],
+      monsterHpDisplay: "exact",
+      lensRedact: false,
+      combatActive: true,
+    });
+    expect(notInOrder["token:t1"]!.move).toBeUndefined();
+  });
+
+  it("an NPC's budget shows only when the frame carries it (DM), never under the player lens", () => {
+    const monster = (extra: Partial<SnapshotCharacter>) => ({
+      ...npc("t1", 7, 7),
+      initiative: 9,
+      ...extra,
+    });
+    const dm = buildTokenPlates({
+      ...base,
+      characters: [monster({ movementUsed: 5, speed: 40 })],
+      monsterHpDisplay: "exact",
+      lensRedact: false,
+      combatActive: true,
+    });
+    expect(dm["token:t1"]!.move).toEqual({ speed: 40, used: 5, remaining: 35 });
+    // A player's frame: the server stripped the numbers — no fake default.
+    const playerFrame = buildTokenPlates({
+      ...base,
+      characters: [monster({})],
+      monsterHpDisplay: "exact",
+      lensRedact: false,
+      combatActive: true,
+    });
+    expect(playerFrame["token:t1"]!.move).toBeUndefined();
+    // The DM's lens simulates that redaction.
+    const lens = buildTokenPlates({
+      ...base,
+      characters: [monster({ movementUsed: 5, speed: 40 })],
+      monsterHpDisplay: "exact",
+      lensRedact: true,
+      combatActive: true,
+    });
+    expect(lens["token:t1"]!.move).toBeUndefined();
+  });
+});
+
 describe("buildTokenPlates", () => {
   it("a linked token wears the CHARACTER's name — never token.owner's", () => {
     // NPC tokens are owned by the placing DM; owner-naming would caption

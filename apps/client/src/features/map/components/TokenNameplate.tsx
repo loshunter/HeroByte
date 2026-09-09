@@ -15,7 +15,7 @@
 // (the var() strings elsewhere in TokensLayer silently fall back).
 
 import { Group, Rect, Text, Circle } from "react-konva";
-import type { HpBadge } from "@herobyte/shared";
+import type { HpBadge, MovementBudget } from "@herobyte/shared";
 
 /** What one token's plate shows. Built per token in MapBoard (platesByTokenId). */
 export interface TokenPlateData {
@@ -23,6 +23,13 @@ export interface TokenPlateData {
   hp?: number;
   maxHp?: number;
   hpBadge?: HpBadge;
+  /** Movement budget this turn (combatants in the order, while combat is on). */
+  move?: MovementBudget;
+}
+
+/** "15 / 30 ft" — what is LEFT over what the turn started with. */
+export function movementReadout(move: MovementBudget): string {
+  return `${move.remaining} / ${move.speed} ft`;
 }
 
 interface TokenNameplateProps {
@@ -66,6 +73,7 @@ export function TokenNameplate({ plate, x, y, tokenSize, camScale }: TokenNamepl
   const barWidth = Math.min(72, Math.max(28, tokenSize * camScale));
   const barY = tokenHalfScreen + GAP;
   const nameY = barY + (hasBar || plate.hpBadge ? BAR_HEIGHT + GAP : 0);
+  const moveY = nameY + FONT_SIZE + 2;
 
   return (
     <Group x={x} y={y} scaleX={1 / camScale} scaleY={1 / camScale} listening={false}>
@@ -119,6 +127,23 @@ export function TokenNameplate({ plate, x, y, tokenSize, camScale }: TokenNamepl
         ellipsis
         name="token-nameplate"
       />
+      {plate.move && (
+        <Text
+          x={-NAME_WIDTH / 2}
+          y={moveY}
+          width={NAME_WIDTH}
+          text={movementReadout(plate.move)}
+          align="center"
+          fontSize={FONT_SIZE}
+          // Gold while there is budget left; the HP bar's red once overspent.
+          fill={plate.move.remaining < 0 ? BAR_COLORS.low : BAR_COLORS.medium}
+          shadowColor="#0b0d1f"
+          shadowBlur={3}
+          shadowOpacity={0.9}
+          wrap="none"
+          name="token-move-budget"
+        />
+      )}
     </Group>
   );
 }

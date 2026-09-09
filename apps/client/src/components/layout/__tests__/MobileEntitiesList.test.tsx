@@ -50,6 +50,30 @@ function renderList(isDM: boolean, onTokenVisionRadiusChange = vi.fn()) {
   return onTokenVisionRadiusChange;
 }
 
+describe("movement speed — the DM gate and the character binding", () => {
+  it("a DM's row binds the speed handler to the CHARACTER's id; a player's row gets none", () => {
+    const onCharacterSpeedChange = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({ isDM: true, onCharacterSpeedChange })}
+        characters={[{ ...characters[0]!, speed: 25 }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    const field = screen.getByLabelText("Movement speed in feet per turn");
+    expect(field).toHaveValue(25);
+    fireEvent.change(field, { target: { value: "35" } });
+    fireEvent.blur(field);
+    expect(onCharacterSpeedChange).toHaveBeenCalledWith("char-1", 35);
+  });
+
+  it("a plain player never sees the field, handler or not", () => {
+    render(<MobileEntitiesList {...listProps({ isDM: false, onCharacterSpeedChange: vi.fn() })} />);
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.queryByLabelText("Movement speed in feet per turn")).not.toBeInTheDocument();
+  });
+});
+
 // Everything the base fixture needs except the data under test.
 function listProps(overrides: Partial<Parameters<typeof MobileEntitiesList>[0]> = {}) {
   return {

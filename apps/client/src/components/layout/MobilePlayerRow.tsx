@@ -40,6 +40,9 @@ interface MobilePlayerRowProps {
   /** This player's token, for the DM-only sight controls (S7). */
   token?: Token;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
+  /** Feet per turn (movement budget); DM-only, like the sight radius. */
+  characterSpeed?: number;
+  onCharacterSpeedChange?: (speedFeet: number) => void;
 }
 
 export const MobilePlayerRow = memo<MobilePlayerRowProps>(
@@ -65,6 +68,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onCharacterPortraitUpdate,
     token,
     onTokenVisionRadiusChange,
+    characterSpeed,
+    onCharacterSpeedChange,
   }) => {
     const isEditingHp = editingHpUID === player.characterId;
     const isEditingMaxHp = editingMaxHpUID === player.characterId;
@@ -282,6 +287,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           tokenVisionRadius={token?.visionRadius}
           tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
+          characterSpeed={characterSpeed}
+          onCharacterSpeedChange={onCharacterSpeedChange}
           compactControls
           nameInput={localNameInput}
           onNameInputChange={setLocalNameInput}

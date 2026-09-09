@@ -14,6 +14,7 @@
 
 import {
   hpBadgeFor,
+  movementBudgetFor,
   type MonsterHpDisplay,
   type Player,
   type SnapshotCharacter,
@@ -28,8 +29,10 @@ export function buildTokenPlates(input: {
   monsterHpDisplay: MonsterHpDisplay;
   /** True when a DM is previewing the player view (player lens). */
   lensRedact: boolean;
+  /** Combat on: combatants in the order wear their movement budget. */
+  combatActive?: boolean;
 }): Record<string, TokenPlateData> {
-  const { characters, tokens, players, monsterHpDisplay, lensRedact } = input;
+  const { characters, tokens, players, monsterHpDisplay, lensRedact, combatActive } = input;
   const result: Record<string, TokenPlateData> = {};
 
   for (const character of characters) {
@@ -46,7 +49,15 @@ export function buildTokenPlates(input: {
       hp = undefined;
       maxHp = undefined;
     }
-    result[`token:${character.tokenId}`] = { name: character.name, hp, maxHp, hpBadge };
+    // The budget rides only on a combatant IN the order while combat is on.
+    // An NPC's is DM information: the server strips it from a player's frame
+    // (movementUsed arrives undefined), and the DM's player lens hides it the
+    // same way — so a redacted monster never shows a fake default budget.
+    const inOrder = combatActive === true && character.initiative !== undefined;
+    const budgetVisible =
+      character.type === "pc" || (character.movementUsed !== undefined && !lensRedact);
+    const move = inOrder && budgetVisible ? movementBudgetFor(character) : undefined;
+    result[`token:${character.tokenId}`] = { name: character.name, hp, maxHp, hpBadge, move };
   }
 
   for (const token of tokens) {

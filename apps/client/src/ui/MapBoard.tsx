@@ -236,6 +236,7 @@ export default function MapBoard({
         characters: snapshot?.characters ?? [],
         tokens: snapshot?.tokens ?? [],
         players: snapshot?.players ?? [],
+        combatActive: snapshot?.combatActive ?? false,
         monsterHpDisplay: snapshot?.monsterHpDisplay ?? "exact",
         lensRedact: Boolean(isDM && playerLens),
       }),

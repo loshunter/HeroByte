@@ -18,6 +18,7 @@
 import type { SceneObject } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { isTokenMoveBlocked } from "../scene/movementBlocking.js";
+import { chargeTokenMove } from "./movementCharge.js";
 
 /**
  * Transform changes that can be applied to a scene object
@@ -136,8 +137,9 @@ export class TransformHandler {
       return false;
     }
 
-    // Sync position to Token entity
+    // Sync position to Token entity — and charge the movement budget.
     if (changes.position) {
+      chargeTokenMove(state, tokenId, { x: token.x, y: token.y }, changes.position);
       token.x = changes.position.x;
       token.y = changes.position.y;
     }

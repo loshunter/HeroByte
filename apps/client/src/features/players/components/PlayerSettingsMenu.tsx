@@ -11,6 +11,7 @@ import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
 import { VisionRadiusField } from "./VisionRadiusField";
+import { MovementSpeedField } from "./MovementSpeedField";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
 import { CharacterCreationModal } from "./CharacterCreationModal";
 
@@ -63,6 +64,9 @@ interface PlayerSettingsMenuProps {
    *  unlimited — a real answer, not a missing one. */
   tableVisionDefault?: number;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
+  /** Feet per turn (movement budget); DM-only, like the sight radius. */
+  characterSpeed?: number;
+  onCharacterSpeedChange?: (speedFeet: number) => void;
   /** Render the sight controls at the 44px touch floor (mobile rows). */
   compactControls?: boolean;
   onAddCharacter?: (name: string) => boolean;
@@ -104,6 +108,8 @@ export function PlayerSettingsMenu({
   tokenVisionRadius,
   tableVisionDefault,
   onTokenVisionRadiusChange,
+  characterSpeed,
+  onCharacterSpeedChange,
   compactControls = false,
   onAddCharacter,
   isCreatingCharacter,
@@ -422,6 +428,17 @@ export function PlayerSettingsMenu({
                 inheritsTableDefault
                 tableDefault={tableVisionDefault}
                 onChange={onTokenVisionRadiusChange}
+                compact={compactControls}
+              />
+            </JRPGPanel>
+          )}
+
+          {/* Movement speed — DM-only by the same rule as the sight radius. */}
+          {onCharacterSpeedChange && (
+            <JRPGPanel variant="simple" style={{ display: "flex", padding: "12px" }}>
+              <MovementSpeedField
+                value={characterSpeed}
+                onChange={onCharacterSpeedChange}
                 compact={compactControls}
               />
             </JRPGPanel>

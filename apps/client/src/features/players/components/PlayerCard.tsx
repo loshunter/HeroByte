@@ -66,6 +66,9 @@ export interface PlayerCardProps {
    *  unlimited — a real answer, not a missing one. */
   tableVisionDefault?: number;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
+  /** Feet per turn (movement budget); DM-only, like the sight radius. */
+  characterSpeed?: number;
+  onCharacterSpeedChange?: (speedFeet: number) => void;
   onAddCharacter?: (name: string) => boolean;
   isCreatingCharacter?: boolean;
   characterId?: string;
@@ -127,6 +130,8 @@ export const PlayerCard = memo<PlayerCardProps>(
     tokenVisionRadius,
     tableVisionDefault,
     onTokenVisionRadiusChange,
+    characterSpeed,
+    onCharacterSpeedChange,
     onStatusEffectsChange,
     onAddCharacter,
     isCreatingCharacter,
@@ -374,6 +379,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           tokenVisionRadius={tokenVisionRadius}
           tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
+          characterSpeed={characterSpeed}
+          onCharacterSpeedChange={onCharacterSpeedChange}
           onAddCharacter={onAddCharacter}
           isCreatingCharacter={isCreatingCharacter}
           characterId={characterId}

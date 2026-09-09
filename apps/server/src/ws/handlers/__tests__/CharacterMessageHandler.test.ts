@@ -382,6 +382,30 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
     });
   });
 
+  describe("set-character-speed message", () => {
+    let characterId: string;
+
+    beforeEach(() => {
+      const state = roomService.getState();
+      const character = characterService.createCharacter(state, "Runner", 100, "", "pc");
+      character.ownedByPlayerUID = playerUid;
+      characterId = character.id;
+      roomService.createSnapshot();
+    });
+
+    it("the DM sets a character's speed", () => {
+      messageRouter.route({ t: "set-character-speed", characterId, speed: 25 }, dmUid);
+      expect(roomService.getState().characters.find((c) => c.id === characterId)?.speed).toBe(25);
+    });
+
+    it("the character's own player cannot — DM-only, the vision-radius rule", () => {
+      messageRouter.route({ t: "set-character-speed", characterId, speed: 90 }, playerUid);
+      expect(
+        roomService.getState().characters.find((c) => c.id === characterId)?.speed,
+      ).toBeUndefined();
+    });
+  });
+
   describe("set-character-status-effects message", () => {
     let characterId: string;
 

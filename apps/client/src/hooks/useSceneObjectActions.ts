@@ -112,6 +112,8 @@ export interface UseSceneObjectActionsReturn {
   updateTokenSize: (tokenId: string, size: TokenSize) => void;
   /** DM-only: set a token's sight limit in feet, or null for unlimited (S7). */
   updateTokenVisionRadius: (tokenId: string, radiusFeet: number | null) => void;
+  /** DM-only: a character's feet per turn — the movement budget's ceiling. */
+  updateCharacterSpeed: (characterId: string, speedFeet: number) => void;
 }
 
 /**
@@ -243,6 +245,13 @@ export function useSceneObjectActions({
     [sendMessage],
   );
 
+  const updateCharacterSpeed = useCallback(
+    (characterId: string, speedFeet: number) => {
+      sendMessage({ t: "set-character-speed", characterId, speed: speedFeet });
+    },
+    [sendMessage],
+  );
+
   return {
     recolorToken,
     transformSceneObject,
@@ -251,5 +260,6 @@ export function useSceneObjectActions({
     updateTokenImage,
     updateTokenSize,
     updateTokenVisionRadius,
+    updateCharacterSpeed,
   };
 }

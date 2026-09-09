@@ -523,6 +523,46 @@ describe("InitiativeMessageHandler", () => {
     });
   });
 
+  describe("movement budget resets", () => {
+    beforeEach(() => {
+      state.combatActive = true;
+      state.characters[0].initiative = 15;
+      state.characters[1].initiative = 18;
+      state.characters[2].initiative = 10;
+      // Order: char2, char1, char3. Everyone has spent something.
+      for (const character of state.characters) {
+        character.movementUsed = 20;
+        character.movementDiagonals = 3;
+      }
+      state.currentTurnCharacterId = "char2";
+    });
+
+    it("next-turn resets the budget of the character whose turn STARTS, and no one else's", () => {
+      handler.handleNextTurn(state, "dmPlayer", true);
+      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(state.characters[0]).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+      expect(state.characters[1]).toMatchObject({ movementUsed: 20, movementDiagonals: 3 });
+      expect(state.characters[2]).toMatchObject({ movementUsed: 20, movementDiagonals: 3 });
+    });
+
+    it("previous-turn does the same for the character it lands on", () => {
+      handler.handlePreviousTurn(state, "dmPlayer", true);
+      expect(state.currentTurnCharacterId).toBe("char3");
+      expect(state.characters[2]).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+      expect(state.characters[1].movementUsed).toBe(20);
+    });
+
+    it("starting or ending combat resets everyone", () => {
+      handler.handleStartCombat(state, "dmPlayer", true);
+      expect(state.characters.every((c) => c.movementUsed === 0 && c.movementDiagonals === 0)).toBe(
+        true,
+      );
+      for (const character of state.characters) character.movementUsed = 5;
+      handler.handleEndCombat(state, "dmPlayer", true);
+      expect(state.characters.every((c) => c.movementUsed === 0)).toBe(true);
+    });
+  });
+
   describe("handleNextTurn", () => {
     beforeEach(() => {
       state.combatActive = true;

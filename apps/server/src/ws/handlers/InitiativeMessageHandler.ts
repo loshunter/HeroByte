@@ -24,6 +24,7 @@ import type { RoomService } from "../../domains/room/service.js";
 import type { DiceService } from "../../domains/dice/service.js";
 import type { PlayerService } from "../../domains/player/service.js";
 import { applyInitiative } from "./applyInitiative.js";
+import { resetAllMovementBudgets, resetMovementBudget } from "./movementBudgetReset.js";
 import { buildManualInitiativeRecord } from "./initiativeRollRecord.js";
 
 /**
@@ -209,6 +210,7 @@ export class InitiativeMessageHandler {
     }
 
     state.combatActive = true;
+    resetAllMovementBudgets(state);
     // Set first character with initiative as current turn
     const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
     if (charactersInOrder.length > 0) {
@@ -238,6 +240,7 @@ export class InitiativeMessageHandler {
 
     state.combatActive = false;
     state.currentTurnCharacterId = undefined;
+    resetAllMovementBudgets(state);
     // Deliberately does NOT clear initiative. Ending combat used to wipe every
     // rolled value, which the label, the panel copy, and the existence of a
     // separate "Clear All Initiative" button directly beneath it all imply it
@@ -269,6 +272,7 @@ export class InitiativeMessageHandler {
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const nextIndex = (currentIndex + 1) % charactersInOrder.length;
     state.currentTurnCharacterId = charactersInOrder[nextIndex].id;
+    resetMovementBudget(charactersInOrder[nextIndex]);
     console.log(`Turn advanced to ${charactersInOrder[nextIndex].name} by ${senderUid}`);
 
     return { broadcast: true, save: true };
@@ -295,6 +299,7 @@ export class InitiativeMessageHandler {
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const prevIndex = currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
     state.currentTurnCharacterId = charactersInOrder[prevIndex].id;
+    resetMovementBudget(charactersInOrder[prevIndex]);
     console.log(`Turn moved back to ${charactersInOrder[prevIndex].name} by ${senderUid}`);
 
     return { broadcast: true, save: true };

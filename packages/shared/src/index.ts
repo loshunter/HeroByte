@@ -117,6 +117,9 @@ export * from "./dice.js";
 // so the number on screen and any future range check cannot disagree.
 export * from "./measurement.js";
 export * from "./areaTemplates.js";
+// The movement budget: what a hop costs under the diagonal rule (with
+// Pathfinder's running count) and what a character has left this turn.
+export * from "./movementBudget.js";
 
 // Terrain storage: RLE-compressed 16x16 chunks — the Terrain Brush's wire
 // format (golden-tested; changes are schema migrations).
@@ -513,6 +516,12 @@ export interface Character {
   initiativeModifier?: number; // Initiative modifier (bonus/penalty added to d20 roll)
   statusEffects?: string[]; // Active status effect identifiers/labels (per character)
   visibleToPlayers?: boolean; // DM can hide NPCs from players (undefined/true = visible, false = hidden)
+  /** Movement budget (movementBudget.ts): feet per turn, DM-set; absent = the shared default. */
+  speed?: number;
+  /** Feet spent since this character's turn began — charged SERVER-side on every token move in combat. */
+  movementUsed?: number;
+  /** Diagonal steps this turn, so Pathfinder's every-second-diagonal rule survives across hops. */
+  movementDiagonals?: number;
 
   // Future fields (Phase 2+):
   // templateId?: string;        // Link to character template (for NPCs)
@@ -1052,6 +1061,7 @@ type ClientMessagePayload =
   | { t: "set-diagonal-rule"; rule: DiagonalRule } // DM-only: how the table counts diagonal distance
   | { t: "set-player-props-enabled"; enabled: boolean } // DM-only: players may place/manage their own props
   | { t: "set-default-vision-radius"; radius: number | null } // DM-only: table-wide sight limit in feet for tokens with none of their own, null = unlimited
+  | { t: "set-character-speed"; characterId: string; speed: number } // DM sets a character's feet per turn
   | { t: "set-initiative-manual-override"; enabled: boolean } // DM-only: players may enter initiative by hand (absent = ON — see the snapshot field)
 
   /**

@@ -10,7 +10,7 @@ redraws per square; a movement budget ticks down per square, built alongside.
 | --- | ----------------------------------------------- | --------------------------------------- |
 | 1   | Keystroke → one-cell move, guard, mobile d-pad  | **SHIPPED to `dev` 2026-09-09** (below) |
 | 2   | Any selected item + the hold-to-repeat story    | **SHIPPED to `dev` 2026-09-09** (below) |
-| 3   | Movement budget (diagonal rule, display, reset) | queued                                  |
+| 3   | Movement budget (diagonal rule, display, reset) | **SHIPPED to `dev` 2026-09-09** (below) |
 
 ## Slice 1 — SHIPPED 2026-09-09
 
@@ -105,6 +105,81 @@ release → skipped click → bare click → slide-off latch → mid-walk `move`
 pointer hold sent 7 steps at 2/360/515/670/828/983/1139 ms; six landed and the seventh was REFUSED
 by the server's wall block (x=24), which is the guard working, not the walk failing.
 
+## Slice 3 — SHIPPED 2026-09-09
+
+**What a user gets.** While combat is on, every combatant in the initiative order wears a
+movement readout under its nameplate: `remaining / speed ft`, gold while there is budget left
+and the HP bar's red once overspent. Every token position change in combat is CHARGED server-side
+— a keyboard step, a drag release, the legacy `move` — under the table's diagonal rule and feet
+per square, with Pathfinder's every-second-diagonal alternation carried across hops within the
+turn. The budget resets when that character's turn STARTS (next-turn / previous-turn landing on
+it) and for everyone when combat starts or ends. The DM sets a character's speed (feet per turn;
+unset = 30) from the same settings menu that carries the sight radius, on both layouts — the
+player card's menu on the desktop, the party drawer's EDIT sheet on a phone (44px input,
+reachable by scrolling). A monster's budget is DM information: stripped from a player's frame on
+the wire, and hidden by the DM's player lens.
+
+**Decisions, and why.**
+
+- **The charge lives on the server, on every road a position changes by** (`chargeTokenMove`,
+  called from `TransformHandler.applyTokenTransform` and `TokenMessageHandler.handleMove`). A
+  client-computed number could be edited; and a drag across five cells should cost five.
+- **`movementCharge` is its own shared function, not `measureGridDistance`.** The ruler is
+  path-independent; Pathfinder's alternation needs the count of diagonals already taken this turn
+  (`movementDiagonals`), which only a running charge can keep. Pinned to AGREE with the ruler for
+  any single hop from a clean slate under every rule, so the ruler and the budget never disagree.
+- **Charged only in combat; reset on the character's turn start** — the owner's sanctioned
+  default ("reset on your turn start"). Out of combat there is no turn to budget, so nothing
+  ticks and nothing shows. A DM moving a token out of its turn charges it too (what you moved
+  since your last turn start), and the next turn start wipes it.
+- **Display only, never a block.** Overspend turns the readout red; the DM adjudicates.
+- **Speed is DM-set** (the vision-radius rule: "a budget a player could raise is not a budget"),
+  over a dedicated `set-character-speed` message, validated in its own `movementValidators.ts`
+  (characterValidators sits at the ceiling), refused server-side for anyone but the DM.
+- **Threading follows the vision-radius chain exactly** (App → MainLayoutProps → MainLayout /
+  BottomPanelLayout → EntitiesPanel → PlayerCard → PlayerSettingsMenu; MobileSurfaces →
+  MobileEntitiesList → MobilePlayerRow → PlayerSettingsMenu), so the control reads and behaves
+  identically wherever a DM finds it, and the mobile surface shipped in the same slice.
+- **Only combatants IN the order wear a readout** (`initiative !== undefined`), and an NPC's
+  only when the frame carries its numbers — so a redacted monster never shows a fake default.
+  NOTE: a DM-OWNED PC is not a combatant (`shouldCharacterParticipateInCombat`), so it never gets
+  a turn start; if the DM sets it an initiative it will show and charge but only reset with
+  combat start/end. Consistent with the existing rule; recorded, not changed.
+
+**Files.** `packages/shared/src/movementBudget.ts` (+ barrel re-export, sub-module — no runtime
+const in the barrel), `Character.speed / movementUsed / movementDiagonals`, the
+`set-character-speed` message; server `transform/movementCharge.ts`, `handlers/movementBudgetReset.ts`,
+`validators/movementValidators.ts`, `snapshot/movementRedaction.ts`, plus the wiring in
+TransformHandler, TokenMessageHandler, InitiativeMessageHandler, CharacterMessageHandler,
+CharacterDispatcher, validation.ts, recipientFilter; client `tokenPlates.ts` (`move` on the plate),
+`TokenNameplate.tsx` (`token-move-budget` Konva node), `MovementSpeedField.tsx`, and the chain
+above.
+
+**Pins.** Shared: 8 (each rule, the alternation across hops, ruler agreement, raw euclidean).
+Server: charge suite through the real room service (transform road, combat gate, refused move,
+Pathfinder across hops, euclidean), the legacy road through the router, initiative resets
+(next/previous/start/end), the validator's bounds, the DM-only handler, the redaction pure and
+through `buildRecipientView` (bytes-level: no `"speed":30` in a player frame). Client: plates rules
+(combat gate, order gate, NPC fake-default, lens), the field (clamp, unchanged, Enter, compact
+floor, follows prop), the settings menu, the mobile row, the mobile list's DM gate and
+character-id binding. E2E `movement-budget.spec.ts` (a real player steps twice, the plate reads
+"15 / 25 ft", the DM advances the order until the player's turn and the plate reads
+"25 / 25 ft" again, end-combat clears every plate; a monster's fields never reach the player's
+frame while the PC's do) and `mobile/mobile-movement-budget.spec.ts` (a DM at 375px sets 25 ft
+through the real EDIT sheet, on the floor, and the plate reads it). Sabotage: shared/server
+14/14 red, client 13/13 red, e2e 3/3 red (see the harness logs).
+
+**Live-checked** (two clients, dev server): desktop DM — start → "25 / 25 ft"; `ArrowRight` + `e`
+(a diagonal, one square under 5e) → 10 ft used, "15 / 25 ft"; next-turn → "25 / 25 ft";
+end-combat → no readout. Phone DM at 375×812 — Party → EDIT → the speed field (60px tall, below
+the fold of the scrolling sheet) → 25 → the phone's OWN nameplate updated live to "25 / 25 ft".
+
+**Traps found.** `create-npc` RENAMES through the allocator ("Budget Goblin 1") — find a created
+NPC by id diff, never by the name you sent. A DM-owned PC is not a combatant, so a spec whose
+mover is the DM can never see a turn-start reset (the live check "passed" only because the dev
+table had two DMs). With the browser pane hidden, `element.blur()` fires neither `blur` nor
+`focusout`, so a React `onBlur` commit needs an explicit `focusout` dispatch.
+
 ## The flake the suite grew when slice 1 joined it — two bugs, both fixed (2026-09-09)
 
 `kicked-in-door.smoke.spec.ts` ("the return door never asked to travel") had never failed in any
@@ -122,10 +197,12 @@ The screenshot showed the DM's OWN token still drawn on the return door's cell. 
    spec ahead of it shifted the spread. The spec now moves EVERY token and waits for each
    sprite to reach its target instead of sleeping 500 ms.
 
-## Open for slice 3
+## Open after the arc (owner's calls)
 
-- Budget charge per press under the table's diagonal rule — `measureGridDistance` is
-  path-independent (from/to), so a per-press charge under Pathfinder needs the count of diagonals
-  taken THIS turn (alternating 1/2), and Euclidean needs the running sum; keep the MOVE (one cell)
-  and the CHARGE separate. Reset on a turn boundary drags in initiative — scope with the owner.
-- A "nothing selected → your own token" fallback (owner's call).
+- A "nothing selected → your own token" fallback for WASD in pointer mode.
+- Whether a DM-owned PC with an initiative should be a combatant (today it is not, by the
+  pre-existing participation rule), which decides whether its budget ever resets on a turn.
+- A DM "reset budget" control outside a turn boundary, and any enforcement (a red readout is
+  advisory today).
+- Hold-to-walk on the phone d-pad steps at the keyboard's cadence; a slower phone cadence is a
+  one-constant change if thumbs find it fast.

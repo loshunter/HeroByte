@@ -264,6 +264,27 @@ export class CharacterMessageHandler {
    * @param isDM - Whether sender is a DM
    * @returns Result indicating broadcast/save needs
    */
+  /**
+   * set-character-speed: feet per turn for the movement budget. DM-only by
+   * design, the vision-radius precedent — a budget a player could raise is
+   * not a budget. The validator bounds the number.
+   */
+  handleSetCharacterSpeed(
+    state: RoomState,
+    characterId: string,
+    senderUid: string,
+    speed: number,
+    isDM: boolean,
+  ): CharacterMessageResult {
+    const character = this.characterService.findCharacter(state, characterId);
+    if (!character || !isDM) {
+      console.warn(`Player ${senderUid} attempted to set speed for ${characterId} (dm=${isDM})`);
+      return { broadcast: false, save: false };
+    }
+    character.speed = speed;
+    return { broadcast: true, save: true };
+  }
+
   handleSetCharacterStatusEffects(
     state: RoomState,
     characterId: string,

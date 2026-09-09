@@ -81,6 +81,15 @@ export class CharacterDispatcher {
           isDM,
         );
 
+      case "set-character-speed":
+        return this.characterHandler.handleSetCharacterSpeed(
+          state,
+          message.characterId,
+          senderUid,
+          message.speed,
+          isDM,
+        );
+
       case "set-character-portrait":
         return this.characterHandler.handleSetCharacterPortrait(
           state,

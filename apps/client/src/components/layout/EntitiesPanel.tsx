@@ -81,6 +81,8 @@ interface EntitiesPanelProps {
   /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
    * optional so the layout fixtures stay untouched). */
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
+  /** DM-only: a character's feet per turn — the movement budget's ceiling. */
+  onCharacterSpeedChange?: (characterId: string, speedFeet: number) => void;
   onAddCharacter: (name: string) => void;
   onDeleteCharacter: (characterId: string) => void;
   onFocusToken: (tokenId: string) => void;
@@ -146,6 +148,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onToggleTokenLock,
   onTokenSizeChange,
   onTokenVisionRadiusChange,
+  onCharacterSpeedChange,
   onAddCharacter,
   onDeleteCharacter,
   onFocusToken,
@@ -451,6 +454,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                                     onTokenVisionRadiusChange(token.id, radiusFeet)
                                 : undefined
                             }
+                            characterSpeed={character.speed}
+                            onCharacterSpeedChange={
+                              currentIsDM && onCharacterSpeedChange
+                                ? (speed: number) => onCharacterSpeedChange(character.id, speed)
+                                : undefined
+                            }
                             onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
                             isCreatingCharacter={isMe ? characterCreation.isCreating : false}
                             characterId={character.id}
@@ -606,6 +615,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             currentIsDM && token && onTokenVisionRadiusChange
                               ? (radiusFeet: number | null) =>
                                   onTokenVisionRadiusChange(token.id, radiusFeet)
+                              : undefined
+                          }
+                          characterSpeed={character.speed}
+                          onCharacterSpeedChange={
+                            currentIsDM && onCharacterSpeedChange
+                              ? (speed: number) => onCharacterSpeedChange(character.id, speed)
                               : undefined
                           }
                           onAddCharacter={isMe ? characterCreation.createCharacter : undefined}

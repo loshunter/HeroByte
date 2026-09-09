@@ -22,6 +22,7 @@
 import type { DragPreviewEvent, DragPreviewUpdate, Token, TokenSize } from "@herobyte/shared";
 import { isDeltaChannelEnabled } from "../../config/featureFlags.js";
 import { buildTokenDragPreview } from "./tokenDragPreview.js";
+import { chargeTokenMove } from "../../domains/room/transform/movementCharge.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { CharacterService } from "../../domains/character/service.js";
@@ -84,6 +85,7 @@ export class TokenMessageHandler {
     const before = state.tokens.find((t) => t.id === tokenId);
     const previousCell = before ? { x: before.x, y: before.y } : undefined;
     const moved = this.tokenService.moveToken(state, tokenId, senderUid, x, y, isDM);
+    if (moved && previousCell) chargeTokenMove(state, tokenId, previousCell, { x, y });
     const deltasEnabled = isDeltaChannelEnabled();
     let delta: PendingDelta | undefined;
     const token = state.tokens.find((t) => t.id === tokenId) as Token | undefined;

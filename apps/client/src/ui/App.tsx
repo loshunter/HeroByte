@@ -458,6 +458,7 @@ function AuthenticatedApp({
     updateTokenImage,
     updateTokenSize,
     updateTokenVisionRadius,
+    updateCharacterSpeed,
   } = useSceneObjectActions({ sendMessage });
 
   /**
@@ -877,6 +878,7 @@ function AuthenticatedApp({
     updateTokenImage,
     updateTokenSize,
     updateTokenVisionRadius,
+    updateCharacterSpeed,
     // Alignment
     alignmentPoints,
     alignmentSuggestion,

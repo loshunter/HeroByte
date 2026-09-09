@@ -32,6 +32,29 @@ describe("PlayerSettingsMenu", () => {
     });
   });
 
+  describe("Movement speed", () => {
+    it("renders the DM-only speed field when a handler is supplied, and commits to it", () => {
+      const onCharacterSpeedChange = vi.fn();
+      render(
+        <PlayerSettingsMenu
+          {...defaultProps}
+          characterSpeed={30}
+          onCharacterSpeedChange={onCharacterSpeedChange}
+        />,
+      );
+      const field = screen.getByLabelText("Movement speed in feet per turn");
+      expect(field).toHaveValue(30);
+      fireEvent.change(field, { target: { value: "25" } });
+      fireEvent.blur(field);
+      expect(onCharacterSpeedChange).toHaveBeenCalledWith(25);
+    });
+
+    it("is absent without a handler — a player's own menu never offers it", () => {
+      render(<PlayerSettingsMenu {...defaultProps} />);
+      expect(screen.queryByLabelText("Movement speed in feet per turn")).not.toBeInTheDocument();
+    });
+  });
+
   describe("Status Effects Dropdown", () => {
     it("displays 'No Effects' when no status effects are selected", () => {
       render(<PlayerSettingsMenu {...defaultProps} selectedEffects={[]} />);

@@ -162,6 +162,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     updateTokenImage,
     updateTokenSize,
     updateTokenVisionRadius,
+    updateCharacterSpeed,
 
     // Alignment
     alignmentPoints,
@@ -383,6 +384,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
         onTokenVisionRadiusChange={updateTokenVisionRadius}
+        onCharacterSpeedChange={updateCharacterSpeed}
         tableVisionDefault={snapshot?.defaultVisionRadius}
         onTokenImageChange={updateTokenImage}
         onAddCharacter={playerActions.addCharacter}

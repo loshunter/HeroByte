@@ -346,6 +346,8 @@ export interface MainLayoutProps {
   /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
    * optional so the layout fixtures stay untouched). */
   updateTokenVisionRadius?: (tokenId: string, radiusFeet: number | null) => void;
+  /** DM-only: a character's feet per turn (the movement budget; optional, as above). */
+  updateCharacterSpeed?: (characterId: string, speedFeet: number) => void;
 
   // -------------------------------------------------------------------------
   // Alignment

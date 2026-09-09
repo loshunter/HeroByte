@@ -1303,6 +1303,24 @@ describe("validateMessage", () => {
       });
     });
 
+    it("set-character-speed: a finite number of feet inside the shared bounds", () => {
+      expect(validateMessage({ t: "set-character-speed", characterId: "c1", speed: 30 })).toEqual({
+        valid: true,
+      });
+      expect(validateMessage({ t: "set-character-speed", characterId: "c1", speed: 0 })).toEqual({
+        valid: true,
+      });
+      for (const speed of [-5, 1001, Number.NaN, Number.POSITIVE_INFINITY, "30", undefined]) {
+        expect(
+          validateMessage({ t: "set-character-speed", characterId: "c1", speed }).valid,
+          `speed ${String(speed)}`,
+        ).toBe(false);
+      }
+      expect(validateMessage({ t: "set-character-speed", characterId: "", speed: 30 }).valid).toBe(
+        false,
+      );
+    });
+
     it("validates set-initiative with initiativeModifier", () => {
       expect(
         validateMessage({

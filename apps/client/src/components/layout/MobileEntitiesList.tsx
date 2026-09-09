@@ -39,6 +39,8 @@ interface MobileEntitiesListProps {
   /** Live tokens, so a DM can set each player's sight radius from a phone (S7). */
   tokens?: Token[];
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
+  /** DM-only: a character's feet per turn (the movement budget). */
+  onCharacterSpeedChange?: (characterId: string, speedFeet: number) => void;
 }
 
 export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
@@ -64,6 +66,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onCharacterPortraitUpdate,
   tokens,
   onTokenVisionRadiusChange,
+  onCharacterSpeedChange,
 }) => {
   // One row per (player, character) PAIR — the desktop model, and the same
   // flatMap useCombatOrdering builds EntitiesPanel's rows from. This used to be
@@ -89,6 +92,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
           hp: player.hp ?? 100,
           maxHp: player.maxHp ?? 100,
           characterId: player.uid,
+          speed: undefined as number | undefined,
           tokenId: undefined as SnapshotCharacter["tokenId"],
           ownerTokenFallbackOk: true,
         },
@@ -110,6 +114,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       portrait: character.portrait ?? player.portrait,
       statusEffects: character.statusEffects ?? player.statusEffects,
       characterId: character.id,
+      speed: character.speed,
       // The token this ROW is about. Bound through the CHARACTER, as
       // EntitiesPanel does, and not by owner: a player can own several tokens —
       // one from joining, one per "+ Add Character" — so picking by owner shows
@@ -158,6 +163,12 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
             onTokenVisionRadiusChange={
               isDM && entityToken && onTokenVisionRadiusChange
                 ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
+                : undefined
+            }
+            characterSpeed={entity.speed}
+            onCharacterSpeedChange={
+              isDM && onCharacterSpeedChange
+                ? (speed) => onCharacterSpeedChange(entity.characterId, speed)
                 : undefined
             }
             isDM={isDM}

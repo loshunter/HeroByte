@@ -65,6 +65,22 @@ describe("MobilePlayerRow settings access", () => {
     expect(screen.queryByRole("button", { name: /EDIT/ })).not.toBeInTheDocument();
   });
 
+  it("reaches the movement speed control from a DM's tap, at the 44px floor", () => {
+    const onCharacterSpeedChange = vi.fn();
+    render(
+      <MobilePlayerRow
+        {...props({ isMe: false, isDM: true, characterSpeed: 25, onCharacterSpeedChange })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    const field = screen.getByLabelText("Movement speed in feet per turn");
+    expect(field).toHaveValue(25);
+    expect(field).toHaveStyle({ minHeight: "44px" });
+    fireEvent.change(field, { target: { value: "40" } });
+    fireEvent.blur(field);
+    expect(onCharacterSpeedChange).toHaveBeenCalledWith(40);
+  });
+
   it("reaches the sight radius control from a DM's tap on another player's row", () => {
     const onTokenVisionRadiusChange = vi.fn();
     render(

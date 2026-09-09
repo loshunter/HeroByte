@@ -28,6 +28,7 @@ import type { RoomState } from "../model.js";
 import { selectionMapToRecord } from "../selectionSerialization.js";
 import { createVisionContext, isWorldPointVisible } from "../scene/visionFilter.js";
 import { projectAtlasFor, type AtlasView } from "./atlasProjection.js";
+import { redactNpcMovement } from "./movementRedaction.js";
 
 /** The per-recipient view of every position-sensitive collection. */
 export interface RecipientView extends AtlasView {
@@ -318,7 +319,7 @@ export function buildRecipientView(
 
   return {
     tokens: visibleTokens,
-    characters: hpRedactedCharacters,
+    characters: redactNpcMovement(hpRedactedCharacters, isDM),
     props: visibleProps,
     pointers: visiblePointers,
     sceneObjects: visibleSceneObjects,

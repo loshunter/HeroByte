@@ -161,6 +161,14 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       expect(token?.y).toBe(250);
     });
 
+    it("charges the movement budget in combat — the legacy road pays like the transform road", () => {
+      const state = roomService.getState();
+      state.combatActive = true;
+      state.characters[0]!.tokenId = tokenId;
+      messageRouter.route({ t: "move", id: tokenId, x: 103, y: 100 }, playerUid);
+      expect(state.characters[0]!.movementUsed).toBe(15);
+    });
+
     it("should not move token when non-owner tries", () => {
       const otherPlayerUid = "other-player";
       const moveMessage: ClientMessage = {
