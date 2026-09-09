@@ -21,7 +21,7 @@ props came for free. Fast presses chain from the last sent cell (one direction, 
 per 150 ms. **Slice 3 (the movement budget) SHIPPED 2026-09-09 too — the arc is COMPLETE on
 `dev`:** every token move in combat is charged server-side under the diagonal rule (Pathfinder's
 alternation kept per turn), the nameplate reads `remaining / speed ft`, the budget resets on the
-character's turn start, the DM sets speed from the settings menu on both layouts, and a monster's
+character's turn start (once per round — a rewind refills nothing), the DM sets a player's speed from the settings menu on both layouts and a monster's from the DM menu's NPC editor, and a monster's
 budget never reaches a player's frame. Also fixed on the way (own commit `d4240c48`): a
 `token-updated` delta never moved the token's SCENE OBJECT, so a `move` over the delta channel
 left the sprite behind until the next full snapshot. Adversarial review + owner merge pending.

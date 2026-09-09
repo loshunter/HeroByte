@@ -6,17 +6,22 @@
  *
  * Press-and-HOLD walks, at the keyboard's cadence: one step on the press,
  * then one every HOLD_STEP_INTERVAL_MS after a short initial delay, until the
- * finger lifts or the gesture is cancelled (a finger sliding off a touch
- * target fires `pointercancel` — never `pointerleave` mid-press, which for a
- * touch pointer fires only AFTER `pointerup`, just before the compat `click`).
+ * pointer is released or its capture is lost. The pointer is CAPTURED on the
+ * press, so the release always comes home: a mouse (or pen) released off the
+ * chip, a finger that slid off, a gesture the browser claims — every one of
+ * them ends the walk. (Measured: a finger that slides off a touch target
+ * still delivers `pointerup` to it — implicit touch capture — and no compat
+ * click; `pointercancel` fires only when the browser takes the gesture.)
  *
  * One press = one step, on every kind of pointer. The `click` that follows a
  * pointer sequence carries `detail >= 1` and is ignored — the press already
  * stepped; a keyboard activation (Enter / Space) carries `detail === 0` and
- * steps once. Measured: a finger tap is down, up, out, leave, click; a mouse
+ * steps once, throttled to the same cadence so a held Enter cannot outrun a
+ * held key. Measured: a finger tap is down, up, out, leave, click; a mouse
  * click is down, up, click; a 900 ms press still ends in a click (detail 3).
- * A second finger on another button while a hold is active is ignored, so
- * two fingers can neither cut a walk short nor add a step.
+ *
+ * One hold at a time, keyed by POINTER id: a second finger — on the same
+ * button or another — neither cuts the walk short nor adds a step.
  */
 
 import { useEffect, useRef } from "react";
@@ -36,32 +41,50 @@ interface MobileMovePadProps {
 // Reading order is screen order: top row is "up". Diagonals ride along so a
 // phone can take the same one-press diagonal step a keyboard can. In a short
 // landscape viewport the CSS folds the pad to one row of the four
-// orthogonals (`order` puts them ← ↑ ↓ →), since three rows do not fit.
-const PAD: ReadonlyArray<{ label: string; name: string; delta: CellDelta; diagonal: boolean }> = [
-  { label: "↖", name: "Move up-left", delta: { dx: -1, dy: -1 }, diagonal: true },
-  { label: "↑", name: "Move up", delta: { dx: 0, dy: -1 }, diagonal: false },
-  { label: "↗", name: "Move up-right", delta: { dx: 1, dy: -1 }, diagonal: true },
-  { label: "←", name: "Move left", delta: { dx: -1, dy: 0 }, diagonal: false },
-  { label: "·", name: "", delta: { dx: 0, dy: 0 }, diagonal: true },
-  { label: "→", name: "Move right", delta: { dx: 1, dy: 0 }, diagonal: false },
-  { label: "↙", name: "Move down-left", delta: { dx: -1, dy: 1 }, diagonal: true },
-  { label: "↓", name: "Move down", delta: { dx: 0, dy: 1 }, diagonal: false },
-  { label: "↘", name: "Move down-right", delta: { dx: 1, dy: 1 }, diagonal: true },
+// orthogonals, keyed on `data-dir` (← ↑ ↓ →), never on the label text.
+const PAD: ReadonlyArray<{
+  label: string;
+  name: string;
+  dir: string;
+  delta: CellDelta;
+  diagonal: boolean;
+}> = [
+  { label: "↖", name: "Move up-left", dir: "up-left", delta: { dx: -1, dy: -1 }, diagonal: true },
+  { label: "↑", name: "Move up", dir: "up", delta: { dx: 0, dy: -1 }, diagonal: false },
+  { label: "↗", name: "Move up-right", dir: "up-right", delta: { dx: 1, dy: -1 }, diagonal: true },
+  { label: "←", name: "Move left", dir: "left", delta: { dx: -1, dy: 0 }, diagonal: false },
+  { label: "·", name: "", dir: "centre", delta: { dx: 0, dy: 0 }, diagonal: true },
+  { label: "→", name: "Move right", dir: "right", delta: { dx: 1, dy: 0 }, diagonal: false },
+  {
+    label: "↙",
+    name: "Move down-left",
+    dir: "down-left",
+    delta: { dx: -1, dy: 1 },
+    diagonal: true,
+  },
+  { label: "↓", name: "Move down", dir: "down", delta: { dx: 0, dy: 1 }, diagonal: false },
+  {
+    label: "↘",
+    name: "Move down-right",
+    dir: "down-right",
+    delta: { dx: 1, dy: 1 },
+    diagonal: true,
+  },
 ];
 
 export function MobileMovePad({ movement }: MobileMovePadProps): JSX.Element {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** The button whose hold is running, if any — only it may stop the walk. */
-  const activeRef = useRef<string | null>(null);
+  /** The pointer whose hold is running, if any — only it may stop the walk. */
+  const activePointerRef = useRef<number | null>(null);
+  const lastKeyStepAtRef = useRef(0);
   // Every snapshot during a walk replaces `movement.move` (it closes over the
-  // current cells); the timer must call the LATEST one or a hold longer than
-  // the chain's TTL would step from where the token was when the press began.
+  // current cells); the timer must call the LATEST one.
   const movementRef = useRef(movement);
   movementRef.current = movement;
 
-  const stop = (name: string) => {
-    if (activeRef.current !== name) return;
-    activeRef.current = null;
+  const stop = (pointerId: number) => {
+    if (activePointerRef.current !== pointerId) return;
+    activePointerRef.current = null;
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -74,15 +97,29 @@ export function MobileMovePad({ movement }: MobileMovePadProps): JSX.Element {
     [],
   );
 
-  const startHold = (name: string, delta: CellDelta) => {
-    if (activeRef.current !== null) return; // a second finger changes nothing
-    activeRef.current = name;
+  const startHold = (event: React.PointerEvent<HTMLButtonElement>, delta: CellDelta) => {
+    if (activePointerRef.current !== null) return; // a second finger changes nothing
+    activePointerRef.current = event.pointerId;
+    // A release off the chip (a mouse has no implicit capture) must still end
+    // the walk: capture, so pointerup / lostpointercapture come to this button.
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // jsdom and some pens have no capture; the up/cancel handlers still run.
+    }
     movement.move(delta);
     const walk = () => {
       movementRef.current.move(delta);
       timerRef.current = setTimeout(walk, HOLD_STEP_INTERVAL_MS);
     };
     timerRef.current = setTimeout(walk, HOLD_START_DELAY_MS);
+  };
+
+  const keyboardStep = (delta: CellDelta) => {
+    const now = Date.now();
+    if (now - lastKeyStepAtRef.current < HOLD_STEP_INTERVAL_MS) return;
+    lastKeyStepAtRef.current = now;
+    movement.move(delta);
   };
 
   return (
@@ -100,18 +137,25 @@ export function MobileMovePad({ movement }: MobileMovePadProps): JSX.Element {
             className={`mobile-chip mobile-move-pad__button${
               cell.diagonal ? " mobile-move-pad__button--diagonal" : ""
             }`}
+            data-dir={cell.dir}
             aria-label={cell.name}
-            onPointerDown={() => startHold(cell.name, cell.delta)}
-            onPointerUp={() => stop(cell.name)}
-            onPointerCancel={() => stop(cell.name)}
+            onPointerDown={(event) => startHold(event, cell.delta)}
+            onPointerUp={(event) => stop(event.pointerId)}
+            onPointerCancel={(event) => stop(event.pointerId)}
+            onLostPointerCapture={(event) => stop(event.pointerId)}
             onClick={(event) => {
-              if (event.detail === 0) movement.move(cell.delta);
+              if (event.detail === 0) keyboardStep(cell.delta);
             }}
           >
             {cell.label}
           </button>
         ) : (
-          <span key="centre" className="mobile-move-pad__centre" aria-hidden="true">
+          <span
+            key="centre"
+            className="mobile-move-pad__centre"
+            data-dir="centre"
+            aria-hidden="true"
+          >
             {cell.label}
           </span>
         ),

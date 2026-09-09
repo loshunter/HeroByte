@@ -6,8 +6,9 @@
 // rules (which keys, who may move what, where a chained press starts from)
 // are testable without a DOM.
 //
-// The MOVE is always one cell. What that cell COSTS against a movement budget
-// is the server's business (movementCharge, under the table's diagonal rule).
+// The MOVE is always one cell, and the wire is RELATIVE (`step-object` carries
+// a direction): where the cell IS is the server's business, and so is what it
+// COSTS against a movement budget (movementCharge, under the diagonal rule).
 
 import type { RoomSnapshot } from "@herobyte/shared";
 
@@ -100,91 +101,4 @@ export function movableSelection({
     }
   }
   return out;
-}
-
-/**
- * What the presses in flight have asked for, so the next press can chain
- * from it while the snapshot is still catching up. Two quick presses would
- * otherwise both start from the same origin and the second would land on the
- * first's cell — a lost step on any real latency.
- *
- * A chain is one DIRECTION: every step in it is `delta` from the last, so
- * the path from `from` to `to` is a straight line the snapshot walks along
- * as the server confirms each step.
- */
-export interface PendingStep {
-  /** The snapshot cell the chain started from. */
-  from: { x: number; y: number };
-  /** The cell the last press asked for. */
-  to: { x: number; y: number };
-  delta: CellDelta;
-  /** When the FIRST unconfirmed step of this chain was sent. */
-  startedAt: number;
-}
-
-/** How long a chain is trusted, from its FIRST unconfirmed step. */
-export const PENDING_STEP_TTL_MS = 1500;
-/** Presses a chain may run ahead of the snapshot (~600 ms of round trip). */
-export const PENDING_STEP_MAX_DEPTH = 4;
-
-const sameDelta = (a: CellDelta, b: CellDelta) => a.dx === b.dx && a.dy === b.dy;
-
-/**
- * Where a press starts from: the chain's last target, or the snapshot.
- *
- * The chain is trusted only while ALL of these hold — it is the same
- * direction as this press; it is younger than the TTL, counted from its first
- * unconfirmed step (a refused step never confirms, so a held key against a
- * wall cannot keep a chain alive by pressing); it has not run more than
- * PENDING_STEP_MAX_DEPTH cells ahead of the snapshot; and the snapshot cell
- * lies ON its path (the chain's start, any confirmed step, or its target).
- * Anything else — a turn, a stale chain, a snapshot elsewhere — starts over
- * from where the token really is, so a refused chain can never be the origin
- * of a press in another direction (that is how a token used to teleport).
- */
-export function stepOrigin(
-  current: { x: number; y: number },
-  pending: PendingStep | undefined,
-  delta: CellDelta,
-  now: number,
-): { x: number; y: number } {
-  if (!pending || !sameDelta(pending.delta, delta)) return current;
-  if (now - pending.startedAt > PENDING_STEP_TTL_MS) return current;
-  const ahead = Math.max(Math.abs(pending.to.x - current.x), Math.abs(pending.to.y - current.y));
-  if (ahead >= PENDING_STEP_MAX_DEPTH) return current;
-  // On the path: current = from + k·delta for some 0 ≤ k ≤ length.
-  const { dx, dy } = pending.delta;
-  const length = Math.max(
-    Math.abs(pending.to.x - pending.from.x),
-    Math.abs(pending.to.y - pending.from.y),
-  );
-  const kx = dx === 0 ? null : (current.x - pending.from.x) / dx;
-  const ky = dy === 0 ? null : (current.y - pending.from.y) / dy;
-  const k = kx ?? ky;
-  if (k === null || !Number.isInteger(k) || k < 0 || k > length) return current;
-  if (kx !== null && ky !== null && kx !== ky) return current;
-  if (dx === 0 && current.x !== pending.from.x) return current;
-  if (dy === 0 && current.y !== pending.from.y) return current;
-  return pending.to;
-}
-
-/** The chain after a press that starts from `origin` and asks for `to`. */
-export function nextPendingStep(
-  current: { x: number; y: number },
-  origin: { x: number; y: number },
-  to: { x: number; y: number },
-  delta: CellDelta,
-  pending: PendingStep | undefined,
-  now: number,
-): PendingStep {
-  // Continued only while something is still unconfirmed: once the snapshot
-  // has caught up with the chain's target, a new chain starts here and now.
-  const continued =
-    pending !== undefined &&
-    origin.x === pending.to.x &&
-    origin.y === pending.to.y &&
-    (current.x !== origin.x || current.y !== origin.y);
-  return continued
-    ? { from: pending.from, to, delta, startedAt: pending.startedAt }
-    : { from: current, to, delta, startedAt: now };
 }

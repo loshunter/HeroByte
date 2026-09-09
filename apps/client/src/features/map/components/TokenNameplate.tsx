@@ -16,6 +16,7 @@
 
 import { Group, Rect, Text, Circle } from "react-konva";
 import type { HpBadge, MovementBudget } from "@herobyte/shared";
+import { movementReadout } from "../tokenPlates";
 
 /** What one token's plate shows. Built per token in MapBoard (platesByTokenId). */
 export interface TokenPlateData {
@@ -25,11 +26,6 @@ export interface TokenPlateData {
   hpBadge?: HpBadge;
   /** Movement budget this turn (combatants in the order, while combat is on). */
   move?: MovementBudget;
-}
-
-/** "15 / 30 ft" — what is LEFT over what the turn started with. */
-export function movementReadout(move: MovementBudget): string {
-  return `${move.remaining} / ${move.speed} ft`;
 }
 
 interface TokenNameplateProps {

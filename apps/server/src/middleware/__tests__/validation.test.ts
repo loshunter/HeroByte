@@ -1303,6 +1303,28 @@ describe("validateMessage", () => {
       });
     });
 
+    it("step-object: a direction of -1/0/1 per axis, never a still step, never a cell", () => {
+      expect(validateMessage({ t: "step-object", id: "token:t", dx: 1, dy: 0 })).toEqual({
+        valid: true,
+      });
+      expect(validateMessage({ t: "step-object", id: "token:t", dx: -1, dy: -1 })).toEqual({
+        valid: true,
+      });
+      for (const bad of [
+        { dx: 0, dy: 0 },
+        { dx: 2, dy: 0 },
+        { dx: 1 },
+        { dx: "1", dy: 0 },
+        { dx: 0.5, dy: 0 },
+      ]) {
+        expect(
+          validateMessage({ t: "step-object", id: "token:t", ...bad }).valid,
+          JSON.stringify(bad),
+        ).toBe(false);
+      }
+      expect(validateMessage({ t: "step-object", id: "", dx: 1, dy: 0 }).valid).toBe(false);
+    });
+
     it("set-character-speed: a finite number of feet inside the shared bounds", () => {
       expect(validateMessage({ t: "set-character-speed", characterId: "c1", speed: 30 })).toEqual({
         valid: true,

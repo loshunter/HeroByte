@@ -522,6 +522,8 @@ export interface Character {
   movementUsed?: number;
   /** Diagonal steps this turn, so Pathfinder's every-second-diagonal rule survives across hops. */
   movementDiagonals?: number;
+  /** The combat round this character's budget was last reset in (a turn start resets once per round). */
+  movementRound?: number;
 
   // Future fields (Phase 2+):
   // templateId?: string;        // Link to character template (for NPCs)
@@ -1062,6 +1064,7 @@ type ClientMessagePayload =
   | { t: "set-player-props-enabled"; enabled: boolean } // DM-only: players may place/manage their own props
   | { t: "set-default-vision-radius"; radius: number | null } // DM-only: table-wide sight limit in feet for tokens with none of their own, null = unlimited
   | { t: "set-character-speed"; characterId: string; speed: number | null } // DM sets a character's feet per turn; null = back to the default
+  | { t: "step-object"; id: string; dx: -1 | 0 | 1; dy: -1 | 0 | 1 } // One grid cell from the object's CURRENT cell (keyboard / d-pad); the server resolves the target
   | { t: "set-initiative-manual-override"; enabled: boolean } // DM-only: players may enter initiative by hand (absent = ON — see the snapshot field)
 
   /**

@@ -2,34 +2,30 @@
 // KEYBOARD MOVEMENT — the hook
 // ============================================================================
 // WASD / arrows / QEZC / numpad move the SELECTED objects one grid cell per
-// press, over the same `transform-object` message a drag release sends — so
-// the server's ownership, lock and wall checks apply unchanged, and the fog
-// cone redraws from the next snapshot square by square.
+// press. The wire is RELATIVE: `step-object` carries a direction, never a
+// cell, and the server resolves the target from its own authoritative
+// position (TransformMessageHandler.handleStepObject) over the same road a
+// drag release takes — ownership, lock, wall check, the player-props switch
+// and the movement charge all apply unchanged, and the fog cone redraws from
+// the next snapshot square by square. Because the client never guesses a
+// cell, latency, a refused step or a turn can never send a token anywhere it
+// is not next to: N presses are N one-cell steps, applied in order.
 //
 // Guard, per invariant 4.17 (the G precedent) MINUS its DM-only clause — a
 // player moving their own token is the point: not from a typing surface, no
 // modifier, and inert in map-edit mode, where the DM is authoring the map,
 // not moving pieces on it (a held key is THROTTLED, not dropped — below).
 //
-// REPEAT MODEL (slice 2): a held key WALKS, at a bounded cadence. The OS
-// repeat rate (~30/s) would be 30 transform-object broadcasts a second, each a
-// fog re-filter per recipient; instead a repeat event steps only when
+// REPEAT MODEL: a held key WALKS, at a bounded cadence. The OS repeat rate
+// (~30/s) would be 30 messages a second, each a broadcast and a fog
+// re-filter per recipient; instead a repeat event steps only when
 // HOLD_STEP_INTERVAL_MS has passed since the last step, so a hold is at most
-// ~6 cells a second — still one press = one round trip, and chained from the
-// last SENT cell while the snapshot catches up (stepOrigin), so no step is
-// lost to latency. The first, non-repeat press is always immediate.
+// ~6 cells a second. The first, non-repeat press is always immediate.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
 import { isEditableTarget } from "../../utils/isEditableTarget";
-import {
-  deltaForKey,
-  movableSelection,
-  nextPendingStep,
-  stepOrigin,
-  type CellDelta,
-  type PendingStep,
-} from "./keyboardMovement";
+import { deltaForKey, movableSelection, type CellDelta } from "./keyboardMovement";
 
 /** Minimum gap between steps while a key is HELD (a hold walks ~6 cells/s). */
 export const HOLD_STEP_INTERVAL_MS = 150;
@@ -65,30 +61,26 @@ export function useKeyboardMovement({
     () => (mapEditMode ? [] : movableSelection({ selectedObjectIds, snapshot, uid, isDM })),
     [mapEditMode, selectedObjectIds, snapshot, uid, isDM],
   );
-  const pendingRef = useRef(new Map<string, PendingStep>());
+  // The listener reads the movable set through a ref, and re-registers only
+  // when the set of IDS changes — not on every snapshot (one per step during
+  // a walk, plus every heartbeat).
+  const movableRef = useRef(movable);
+  movableRef.current = movable;
+  const movableKey = useMemo(() => movable.map((object) => object.id).join("|"), [movable]);
   const lastStepAtRef = useRef(0);
 
   const move = useCallback(
     ({ dx, dy }: CellDelta) => {
-      const now = Date.now();
-      lastStepAtRef.current = now;
-      const delta: CellDelta = { dx, dy };
-      for (const object of movable) {
-        // A token spawned or dragged with Snap off sits on a fractional cell;
-        // a keyboard step lands on WHOLE cells, so the origin snaps first.
-        const from = { x: Math.round(object.x), y: Math.round(object.y) };
-        const pending = pendingRef.current.get(object.id);
-        const origin = stepOrigin(from, pending, delta, now);
-        const to = { x: origin.x + dx, y: origin.y + dy };
-        pendingRef.current.set(object.id, nextPendingStep(from, origin, to, delta, pending, now));
-        sendMessage({ t: "transform-object", id: object.id, position: to });
+      lastStepAtRef.current = Date.now();
+      for (const object of movableRef.current) {
+        sendMessage({ t: "step-object", id: object.id, dx, dy });
       }
     },
-    [movable, sendMessage],
+    [sendMessage],
   );
 
   useEffect(() => {
-    if (movable.length === 0) return;
+    if (movableKey === "") return;
     const onKeyDown = (event: KeyboardEvent) => {
       const delta = deltaForKey(event);
       if (!delta) return;
@@ -100,7 +92,7 @@ export function useKeyboardMovement({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [movable.length, move]);
+  }, [movableKey, move]);
 
   return useMemo(() => ({ movableCount: movable.length, move }), [movable.length, move]);
 }

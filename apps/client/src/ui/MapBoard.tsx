@@ -248,6 +248,7 @@ export default function MapBoard({
       snapshot?.monsterHpDisplay,
       isDM,
       playerLens,
+      snapshot?.combatActive,
     ],
   );
 

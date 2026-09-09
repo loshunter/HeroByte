@@ -56,6 +56,10 @@ export interface RoomState {
   selectionState: SelectionStateMap; // Current object selections keyed by player UID
   playerStagingZone?: PlayerStagingZone; // Spawn area for player tokens
   combatActive: boolean; // Whether combat/initiative tracking is active
+  /** Movement-budget round counter: +1 when next-turn wraps, -1 when previous-turn wraps back. A
+   *  turn start resets a character's budget once per round, so a rewind or a ping-pong refills nothing.
+   *  Optional so the four state-literal fixtures stay untouched; absent reads as round 1. */
+  combatRound?: number;
   currentTurnCharacterId?: string; // ID of character whose turn it currently is
   compiledScene?: CompiledScene; // Geometry compiled from the last published Map Studio document
   mapTerrain?: MapTerrainSnapshot; // Painted terrain published as data (elements-only backgrounds)

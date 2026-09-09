@@ -55,16 +55,21 @@ export function movementCharge(input: MovementChargeInput): MovementCharge {
   const dx = Math.abs(Math.round(input.to.x) - Math.round(input.from.x));
   const dy = Math.abs(Math.round(input.to.y) - Math.round(input.from.y));
 
+  // Only Pathfinder reads the running diagonal count, so only Pathfinder
+  // writes it — a table that switches rule mid-turn starts alternating from
+  // a clean count rather than from hops charged under another rule.
   if (input.rule === "euclidean") {
     const squares = round1(Math.hypot(input.to.x - input.from.x, input.to.y - input.from.y));
-    return { feet: round1(squares * feetPerSquare), diagonals: Math.min(dx, dy) };
+    return { feet: round1(squares * feetPerSquare), diagonals: 0 };
   }
 
   const long = Math.max(dx, dy);
   const short = Math.min(dx, dy);
   const before = Math.max(0, Math.floor(input.diagonalsBefore));
-  const extra =
-    input.rule === "pathfinder" ? Math.floor((before + short) / 2) - Math.floor(before / 2) : 0;
+  if (input.rule !== "pathfinder") {
+    return { feet: round1(long * feetPerSquare), diagonals: 0 };
+  }
+  const extra = Math.floor((before + short) / 2) - Math.floor(before / 2);
   return { feet: round1((long + extra) * feetPerSquare), diagonals: short };
 }
 
@@ -86,11 +91,15 @@ export function movementBudgetFor(character: {
 
 /** A budget starts over: the character's turn began, or combat did. */
 export function resetMovementBudget(
-  character: { movementUsed?: number; movementDiagonals?: number } | undefined,
+  character:
+    | { movementUsed?: number; movementDiagonals?: number; movementRound?: number }
+    | undefined,
+  round?: number,
 ): void {
   if (!character) return;
   character.movementUsed = 0;
   character.movementDiagonals = 0;
+  if (round !== undefined) character.movementRound = round;
 }
 
 /**
@@ -101,7 +110,12 @@ export function resetMovementBudget(
  * object when nothing needed fixing.
  */
 export function coerceMovementBudgetFields<
-  T extends { speed?: number; movementUsed?: number; movementDiagonals?: number },
+  T extends {
+    speed?: number;
+    movementUsed?: number;
+    movementDiagonals?: number;
+    movementRound?: number;
+  },
 >(character: T): T {
   const speed =
     typeof character.speed === "number" && Number.isFinite(character.speed)
@@ -111,10 +125,12 @@ export function coerceMovementBudgetFields<
     typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
   const used = spend(character.movementUsed);
   const diagonals = spend(character.movementDiagonals);
+  const round = spend(character.movementRound);
   if (
     speed === character.speed &&
     used === character.movementUsed &&
-    diagonals === character.movementDiagonals
+    diagonals === character.movementDiagonals &&
+    round === character.movementRound
   ) {
     return character;
   }
@@ -123,6 +139,7 @@ export function coerceMovementBudgetFields<
     ["speed", speed],
     ["movementUsed", used],
     ["movementDiagonals", diagonals],
+    ["movementRound", round],
   ] as const) {
     if (value === undefined) delete next[key];
     else next[key] = value;

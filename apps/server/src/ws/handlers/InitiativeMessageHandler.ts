@@ -25,8 +25,10 @@ import type { DiceService } from "../../domains/dice/service.js";
 import type { PlayerService } from "../../domains/player/service.js";
 import { applyInitiative } from "./applyInitiative.js";
 import {
+  currentRound,
+  leaveOrderBudget,
   resetAllMovementBudgets,
-  resetMovementBudget,
+  startTurnBudget,
 } from "../../domains/room/transform/movementBudgetReset.js";
 import { buildManualInitiativeRecord } from "./initiativeRollRecord.js";
 
@@ -115,6 +117,7 @@ export class InitiativeMessageHandler {
     if (initiative === undefined) {
       if (this.characterService.clearInitiative(state, characterId)) {
         console.log(`[Server] Cleared initiative for ${character.name}`);
+        leaveOrderBudget(state, character);
         return { broadcast: true, save: true };
       }
       return { broadcast: false, save: false };
@@ -274,8 +277,9 @@ export class InitiativeMessageHandler {
 
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const nextIndex = (currentIndex + 1) % charactersInOrder.length;
+    if (currentIndex === charactersInOrder.length - 1) state.combatRound = currentRound(state) + 1;
     state.currentTurnCharacterId = charactersInOrder[nextIndex].id;
-    resetMovementBudget(charactersInOrder[nextIndex]);
+    startTurnBudget(state, charactersInOrder[nextIndex]);
     console.log(`Turn advanced to ${charactersInOrder[nextIndex].name} by ${senderUid}`);
 
     return { broadcast: true, save: true };
@@ -301,8 +305,9 @@ export class InitiativeMessageHandler {
 
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const prevIndex = currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
+    // A rewind resets nothing (movementBudgetReset.ts); a backward wrap un-counts the round.
+    if (currentIndex === 0) state.combatRound = Math.max(1, currentRound(state) - 1);
     state.currentTurnCharacterId = charactersInOrder[prevIndex].id;
-    resetMovementBudget(charactersInOrder[prevIndex]);
     console.log(`Turn moved back to ${charactersInOrder[prevIndex].name} by ${senderUid}`);
 
     return { broadcast: true, save: true };

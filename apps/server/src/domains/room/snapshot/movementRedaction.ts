@@ -18,7 +18,8 @@ export function redactNpcMovement(
     if (
       character.speed === undefined &&
       character.movementUsed === undefined &&
-      character.movementDiagonals === undefined
+      character.movementDiagonals === undefined &&
+      character.movementRound === undefined
     ) {
       return character;
     }
@@ -26,6 +27,7 @@ export function redactNpcMovement(
     delete redacted.speed;
     delete redacted.movementUsed;
     delete redacted.movementDiagonals;
+    delete redacted.movementRound;
     return redacted;
   });
 }

@@ -17,7 +17,7 @@ import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import {
   resetAllMovementBudgets,
-  resetMovementBudget,
+  startTurnBudget,
 } from "../../domains/room/transform/movementBudgetReset.js";
 
 /**
@@ -50,7 +50,7 @@ export function applyInitiative(
     const charactersInOrder = characterService.getCharactersInInitiativeOrder(state);
     if (charactersInOrder.length > 0) {
       state.currentTurnCharacterId = charactersInOrder[0].id;
-      resetMovementBudget(charactersInOrder[0]);
+      startTurnBudget(state, charactersInOrder[0]);
     }
   }
 

@@ -248,6 +248,21 @@ describe("StatePersistence - Characterization Tests", () => {
       expect("movementDiagonals" in loaded).toBe(false);
     });
 
+    it("round-trips the combat round, and a poisoned one reads as absent", async () => {
+      roomService.getState().combatRound = 4;
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+      const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+      fresh.loadState();
+      expect(fresh.getState().combatRound).toBe(4);
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      raw.combatRound = -2;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+      poisoned.loadState();
+      expect(poisoned.getState().combatRound).toBeUndefined();
+    });
+
     it("gives a file written before S6 the corrected default, not Euclidean", async () => {
       roomService.saveState();
       await roomService.awaitPendingWrites();

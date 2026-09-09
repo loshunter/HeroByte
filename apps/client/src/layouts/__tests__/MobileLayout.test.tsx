@@ -488,10 +488,11 @@ describe("MobileLayout", () => {
     expect(props.handleObjectSelectionBatch).toHaveBeenCalledWith([]);
   });
 
-  it("the selection sheet carries the d-pad when the actor may move something, and each tap is one cell", () => {
+  it("the selection sheet carries the d-pad when the actor may move something; a keyboard activation is one cell", () => {
     // The phone's WASD: threaded App -> MobileLayout -> MobileSelectionSheet ->
     // MobileMovePad. A d-pad that never receives `movement` renders nothing,
-    // which is exactly the silent unwire this pins against.
+    // which is exactly the silent unwire this pins against. `fireEvent.click`
+    // carries detail 0 — the Enter/Space road; the finger road is the next case.
     const props = createDefaultProps();
     props.activeTool = "select";
     props.selectMode = true;
@@ -503,13 +504,24 @@ describe("MobileLayout", () => {
 
     const pad = screen.getByRole("group", { name: /move selection/i });
     fireEvent.click(within(pad).getByRole("button", { name: /^move right$/i }));
-    fireEvent.click(within(pad).getByRole("button", { name: /^move up-left$/i }));
-    expect(move.mock.calls).toEqual([[{ dx: 1, dy: 0 }], [{ dx: -1, dy: -1 }]]);
+    expect(move.mock.calls).toEqual([[{ dx: 1, dy: 0 }]]);
     expect(within(pad).getAllByRole("button")).toHaveLength(8);
   });
 
   it("press-and-hold on the d-pad walks at the keyboard's cadence and stops on release", () => {
     vi.useFakeTimers();
+    // jsdom has no PointerEvent, so fireEvent.pointer* would arrive with no
+    // pointerId at all and every finger would look like the same one. A
+    // minimal PointerEvent carrying pointerId is what the pad keys its hold on.
+    const NativePointerEvent = window.PointerEvent;
+    class TestPointerEvent extends MouseEvent {
+      pointerId: number;
+      constructor(type: string, init: PointerEventInit = {}) {
+        super(type, init);
+        this.pointerId = init.pointerId ?? 0;
+      }
+    }
+    (window as unknown as { PointerEvent: unknown }).PointerEvent = TestPointerEvent;
     try {
       const props = createDefaultProps();
       props.activeTool = "select";
@@ -517,11 +529,14 @@ describe("MobileLayout", () => {
       props.selectedObjectIds = ["token:1"];
       const move = vi.fn();
       props.movement = { movableCount: 1, move };
-      const { rerender } = render(<MobileLayout {...props} />);
+      const { rerender, unmount } = render(<MobileLayout {...props} />);
       const right = screen.getByRole("button", { name: /^move right$/i });
+      const down = screen.getByRole("button", { name: /^move down$/i });
+      const f1 = { pointerId: 1 };
+      const f2 = { pointerId: 2 };
 
       // The press steps at once; walking starts after the initial delay.
-      fireEvent.pointerDown(right);
+      fireEvent.pointerDown(right, f1);
       expect(move).toHaveBeenCalledTimes(1);
       act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS - 1));
       expect(move).toHaveBeenCalledTimes(1);
@@ -532,46 +547,70 @@ describe("MobileLayout", () => {
 
       // Release, as a FINGER does it (measured): up, then out/leave, then the
       // compat click with detail 1. Not a fifth step; the walk is over.
-      fireEvent.pointerUp(right);
-      fireEvent.pointerLeave(right);
+      fireEvent.pointerUp(right, f1);
+      fireEvent.pointerLeave(right, f1);
       fireEvent.click(right, { detail: 1 });
       act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS * 5));
       expect(move).toHaveBeenCalledTimes(4);
 
-      // A keyboard activation (Enter/Space: click with detail 0) steps once.
-      fireEvent.click(right, { detail: 0 });
+      // A gesture the browser claims (pointercancel) ends the walk too.
+      fireEvent.pointerDown(right, f1);
+      fireEvent.pointerCancel(right, f1);
+      act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS * 2));
       expect(move).toHaveBeenCalledTimes(5);
 
-      // A finger that slides off is CANCELLED and gets no click: one step.
-      fireEvent.pointerDown(right);
-      fireEvent.pointerCancel(right);
+      // A mouse released OFF the chip: capture is lost, the walk ends, and the
+      // pad is not left dead — the next press still steps.
+      fireEvent.pointerDown(right, { pointerId: 7 });
+      fireEvent.lostPointerCapture(right, { pointerId: 7 });
       act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS * 2));
       expect(move).toHaveBeenCalledTimes(6);
+      fireEvent.pointerDown(down, f1);
+      fireEvent.pointerUp(down, f1);
+      expect(move).toHaveBeenCalledTimes(7);
 
-      // A second finger on another button while a hold runs changes nothing:
-      // it neither cuts the walk short nor adds a step on release.
-      const down = screen.getByRole("button", { name: /^move down$/i });
-      fireEvent.pointerDown(right);
-      fireEvent.pointerDown(down);
-      fireEvent.pointerUp(down);
+      // A second finger — on ANOTHER button, or the SAME one — while a hold
+      // runs neither cuts the walk short nor adds a step: the walk keeps
+      // going after the second finger lifts.
+      fireEvent.pointerDown(right, f1);
+      expect(move).toHaveBeenCalledTimes(8);
+      fireEvent.pointerDown(down, f2);
+      fireEvent.pointerUp(down, f2);
       fireEvent.click(down, { detail: 1 });
       act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS));
-      expect(move).toHaveBeenCalledTimes(8); // right's press + one walk step
+      expect(move).toHaveBeenCalledTimes(9); // the walk's first step, not cut short
+      fireEvent.pointerDown(right, f2);
+      fireEvent.pointerUp(right, f2);
+      fireEvent.click(right, { detail: 1 });
+      act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS));
+      expect(move).toHaveBeenCalledTimes(10); // still walking after the same-button finger
       expect(move.mock.calls.at(-1)).toEqual([{ dx: 1, dy: 0 }]);
-      fireEvent.pointerUp(right);
+      fireEvent.pointerUp(right, f1);
       fireEvent.click(right, { detail: 1 });
       act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS * 3));
-      expect(move).toHaveBeenCalledTimes(8);
+      expect(move).toHaveBeenCalledTimes(10);
+
+      // A held Enter on a focused button is throttled to the same cadence.
+      for (let i = 0; i < 10; i += 1) fireEvent.click(right, { detail: 0 });
+      expect(move).toHaveBeenCalledTimes(11);
+      act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS));
+      fireEvent.click(right, { detail: 0 });
+      expect(move).toHaveBeenCalledTimes(12);
 
       // Mid-walk the snapshot replaces `move`; the walk must follow it.
       const laterMove = vi.fn();
-      fireEvent.pointerDown(right);
+      fireEvent.pointerDown(right, f1);
       rerender(<MobileLayout {...props} movement={{ movableCount: 1, move: laterMove }} />);
       act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS));
       expect(laterMove).toHaveBeenCalledTimes(1);
-      expect(move).toHaveBeenCalledTimes(9);
-      fireEvent.pointerUp(right);
+      expect(move).toHaveBeenCalledTimes(13);
+
+      // The pad unmounts mid-walk (selection cleared): the timer dies with it.
+      unmount();
+      act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS + HOLD_STEP_INTERVAL_MS * 5));
+      expect(laterMove).toHaveBeenCalledTimes(1);
     } finally {
+      (window as unknown as { PointerEvent: unknown }).PointerEvent = NativePointerEvent;
       vi.useRealTimers();
     }
   });

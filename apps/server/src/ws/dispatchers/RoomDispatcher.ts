@@ -74,6 +74,15 @@ export class RoomDispatcher {
           locked: message.locked,
         });
 
+      case "step-object":
+        return this.transformHandler.handleStepObject(
+          state,
+          senderUid,
+          message.id,
+          message.dx,
+          message.dy,
+        );
+
       case "rtc-signal":
         this.rtcSignalHandler.forwardSignal(
           message.target,

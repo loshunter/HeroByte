@@ -85,12 +85,13 @@ test.describe("mobile touch — selection sheet reach", () => {
       const report = await page.evaluate(() => {
         const el = document.querySelector(".mobile-selection-sheet");
         if (!el) return null;
-        // A zero box is genuinely hidden (undersizedControls' rule): the move
-        // pad folds its diagonals away in a short landscape viewport.
+        // Hidden ON PURPOSE (the move pad folds its diagonals away in a short
+        // landscape viewport) is excluded by intent — display/visibility —
+        // never by a zero box, so a chip that collapses by accident still fails.
         const controls = [...el.querySelectorAll("button")]
           .filter((b) => {
-            const r = b.getBoundingClientRect();
-            return r.width > 0 && r.height > 0;
+            const cs = getComputedStyle(b);
+            return cs.display !== "none" && cs.visibility !== "hidden";
           })
           .map((b) => {
             const r = b.getBoundingClientRect();

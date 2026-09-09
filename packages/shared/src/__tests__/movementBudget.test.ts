@@ -29,7 +29,7 @@ describe("movementCharge", () => {
     }
   });
 
-  it("5e: a diagonal is one square, always", () => {
+  it("5e: a diagonal is one square, always — and it counts no diagonals (only Pathfinder reads them)", () => {
     for (const before of [0, 1, 7]) {
       expect(
         movementCharge({
@@ -39,7 +39,7 @@ describe("movementCharge", () => {
           gridSquareSize: 5,
           diagonalsBefore: before,
         }),
-      ).toEqual({ feet: 5, diagonals: 1 });
+      ).toEqual({ feet: 5, diagonals: 0 });
     }
   });
 
@@ -84,7 +84,7 @@ describe("movementCharge", () => {
         gridSquareSize: 5,
         diagonalsBefore: 0,
       }),
-    ).toEqual({ feet: 7, diagonals: 1 });
+    ).toEqual({ feet: 7, diagonals: 0 });
     expect(
       movementCharge({
         from: cell(0, 0),
@@ -93,7 +93,7 @@ describe("movementCharge", () => {
         gridSquareSize: 5,
         diagonalsBefore: 0,
       }),
-    ).toEqual({ feet: 25, diagonals: 3 });
+    ).toEqual({ feet: 25, diagonals: 0 });
   });
 
   it("agrees with the ruler for a single hop from a clean slate, under every rule", () => {
@@ -173,27 +173,32 @@ describe("coerceMovementBudgetFields — the file roads", () => {
         movementUsed: Number.NaN,
         movementDiagonals: -3 as number,
       }),
-    ).toEqual({ speed: MOVEMENT_SPEED_MAX_FEET });
+    ).toStrictEqual({ speed: MOVEMENT_SPEED_MAX_FEET });
     expect(
       coerceMovementBudgetFields({
         speed: "fast" as unknown as number,
         movementUsed: "3" as unknown as number,
         movementDiagonals: null as unknown as number,
       }),
-    ).toEqual({});
-    expect(coerceMovementBudgetFields({ speed: -5 })).toEqual({ speed: 0 });
+    ).toStrictEqual({});
+    expect(coerceMovementBudgetFields({ speed: -5 })).toStrictEqual({ speed: 0 });
     // Infinity passes `>= 0`; only the finiteness check catches it.
     expect(
       coerceMovementBudgetFields({ movementUsed: Number.POSITIVE_INFINITY, movementDiagonals: 1 }),
-    ).toEqual({ movementDiagonals: 1 });
+    ).toStrictEqual({ movementDiagonals: 1 });
+    expect(
+      coerceMovementBudgetFields({ movementRound: Number.NaN, movementDiagonals: 1 }),
+    ).toStrictEqual({ movementDiagonals: 1 });
   });
 });
 
 describe("resetMovementBudget", () => {
-  it("zeroes both counters and tolerates a missing character", () => {
+  it("zeroes both counters, stamps the round when given one, and tolerates a missing character", () => {
     const character = { movementUsed: 20, movementDiagonals: 3 };
     resetMovementBudget(character);
-    expect(character).toEqual({ movementUsed: 0, movementDiagonals: 0 });
+    expect(character).toStrictEqual({ movementUsed: 0, movementDiagonals: 0 });
+    resetMovementBudget(character, 3);
+    expect(character).toStrictEqual({ movementUsed: 0, movementDiagonals: 0, movementRound: 3 });
     expect(() => resetMovementBudget(undefined)).not.toThrow();
   });
 });

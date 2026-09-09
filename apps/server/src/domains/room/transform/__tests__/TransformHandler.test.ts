@@ -594,6 +594,8 @@ describe("TransformHandler - Characterization Tests", () => {
     });
 
     it("should deny non-owner from transforming prop", () => {
+      // The switch on: otherwise the gate refuses before ownership is asked.
+      roomService.getState().playerPropsEnabled = true;
       const state = roomService.getState();
       const propObject = state.sceneObjects.find((obj) => obj.id === "prop:prop-1");
 

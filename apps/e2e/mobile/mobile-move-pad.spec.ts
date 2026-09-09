@@ -42,17 +42,39 @@ test.describe("mobile — move pad", () => {
         const clear = [...sheet.querySelectorAll("button")].find((b) =>
           /clear/i.test(b.textContent ?? ""),
         )!;
+        const pad = document.querySelector(".mobile-move-pad")!.getBoundingClientRect();
+        const rects = buttons.map((b) => ({
+          label: b.getAttribute("aria-label"),
+          r: b.getBoundingClientRect(),
+        }));
         return {
           visibleButtons: buttons.map((b) => b.getAttribute("aria-label")),
           allOnScreen: buttons.every((b) => onScreen(b.getBoundingClientRect())),
           clearOnScreen: onScreen(clear.getBoundingClientRect()),
           sheetScrolls: sheet.scrollHeight > sheet.clientHeight,
+          padWidth: Math.round(pad.width),
+          padHeight: Math.round(pad.height),
+          rows: new Set(rects.map((e) => Math.round(e.r.top))).size,
+          readingOrder: [...rects]
+            .sort((a, b) => a.r.top - b.r.top || a.r.left - b.r.left)
+            .map((e) => e.label),
         };
       });
       expect(layout.allOnScreen).toBe(true);
       expect(layout.clearOnScreen).toBe(true);
       expect(layout.sheetScrolls).toBe(false);
       expect(layout.visibleButtons).toHaveLength(viewport.name === "portrait" ? 8 : 4);
+      if (viewport.name === "portrait") {
+        // Three rows of 69px chips: the pad takes the 220px it asks for, not
+        // the 3×44 fit-content a `margin: 0 auto` grid item collapses to.
+        expect(layout.rows).toBe(3);
+        expect(layout.padWidth).toBeGreaterThanOrEqual(200);
+      } else {
+        // ONE row, in reading order — the fold, not two rows led by a dead dot.
+        expect(layout.rows).toBe(1);
+        expect(layout.padHeight).toBeLessThanOrEqual(46);
+        expect(layout.readingOrder).toEqual(["Move left", "Move up", "Move down", "Move right"]);
+      }
 
       const origin = { x: Math.round(token.x), y: Math.round(token.y) };
       const readCell = () =>

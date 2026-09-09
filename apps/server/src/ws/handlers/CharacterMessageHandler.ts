@@ -273,9 +273,10 @@ export class CharacterMessageHandler {
     }
     const character = this.characterService.findCharacter(state, characterId);
     if (!character) return { broadcast: false, save: false };
+    const changed = speed === null ? character.speed !== undefined : character.speed !== speed;
     if (speed === null) delete character.speed;
     else character.speed = speed;
-    return { broadcast: true, save: true };
+    return { broadcast: changed, save: changed };
   }
 
   /**

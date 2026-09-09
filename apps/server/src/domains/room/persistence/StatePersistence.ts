@@ -13,12 +13,12 @@
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import { renameWithRetry } from "./atomicRename.js";
-import type { Player, Character, SceneObject } from "@herobyte/shared";
+import { coerceCombatRound, coerceLoadedCharacters } from "./loadCoercions.js";
+import type { Player, SceneObject } from "@herobyte/shared";
 import {
   coerceDefaultVisionRadius,
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
-  coerceMovementBudgetFields,
   coerceTokenVisionRadii,
 } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
@@ -120,14 +120,7 @@ export class StatePersistence {
             isDM: player.isDM ?? false,
             statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
           })),
-          characters: (data.characters || []).map((character: Character) =>
-            coerceMovementBudgetFields({
-              ...character,
-              type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
-              tokenImage: character.tokenImage ?? undefined,
-              tokenId: character.tokenId ?? undefined,
-            }),
-          ),
+          characters: coerceLoadedCharacters(data.characters),
           props: data.props || [],
           mapBackground: data.mapBackground,
           pointers: [], // Don't persist pointers - they expire
@@ -145,6 +138,7 @@ export class StatePersistence {
           selectionState: createSelectionMap(),
           playerStagingZone: this.stagingManager.sanitize(data.playerStagingZone),
           combatActive: data.combatActive ?? false,
+          combatRound: coerceCombatRound(data.combatRound),
           currentTurnCharacterId: data.currentTurnCharacterId ?? undefined,
           compiledScene: data.compiledScene ?? undefined,
           mapTerrain: data.mapTerrain ?? undefined,
@@ -276,6 +270,7 @@ export class StatePersistence {
       // Combat state survives a restart on purpose (VISION.md calls this a
       // launch gate): a mid-fight crash or redeploy must not lose initiative.
       combatActive: state.combatActive,
+      combatRound: state.combatRound,
       currentTurnCharacterId: state.currentTurnCharacterId,
       // The campaign graph and its suspended scenes are game state.
       atlasNodes: state.atlasNodes,

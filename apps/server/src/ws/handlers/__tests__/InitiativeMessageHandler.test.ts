@@ -545,11 +545,51 @@ describe("InitiativeMessageHandler", () => {
       expect(state.characters[2]).toMatchObject({ movementUsed: 20, movementDiagonals: 3 });
     });
 
-    it("previous-turn does the same for the character it lands on", () => {
+    it("previous-turn is a correction: the pointer moves, nobody's budget refills", () => {
       handler.handlePreviousTurn(state, "dmPlayer", true);
       expect(state.currentTurnCharacterId).toBe("char3");
-      expect(state.characters[2]).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
-      expect(state.characters[1].movementUsed).toBe(20);
+      expect(state.characters.every((c) => c.movementUsed === 20)).toBe(true);
+    });
+
+    it("a turn start resets once per ROUND: PREV then NEXT back onto yourself refills nothing", () => {
+      // Any player can nudge the order (the help text says so), so this is
+      // the road a player would take to refill their own budget.
+      state.combatRound = 1;
+      state.characters[0].movementRound = 1; // char1's turn already started this round
+      state.currentTurnCharacterId = "char2";
+      handler.handleNextTurn(state, "player1", false); // -> char1: first time this round
+      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(state.characters[0]).toMatchObject({ movementUsed: 20 }); // stamped 1 already: no reset
+      state.characters[0].movementUsed = 25;
+      handler.handlePreviousTurn(state, "player1", false); // -> char2
+      handler.handleNextTurn(state, "player1", false); // -> char1 again, same round
+      expect(state.characters[0].movementUsed).toBe(25);
+    });
+
+    it("wrapping the order forward is a new round (everyone resets again); wrapping back un-counts it", () => {
+      state.combatRound = 1;
+      for (const c of state.characters) c.movementRound = 1;
+      state.currentTurnCharacterId = "char3"; // last in the order
+      handler.handleNextTurn(state, "dmPlayer", true); // wraps -> char2, round 2
+      expect(state.combatRound).toBe(2);
+      expect(state.characters[1]).toMatchObject({ movementUsed: 0, movementRound: 2 });
+      state.characters[1].movementUsed = 15;
+      handler.handlePreviousTurn(state, "dmPlayer", true); // wraps back -> char3, round 1
+      expect(state.combatRound).toBe(1);
+      handler.handleNextTurn(state, "dmPlayer", true); // forward again -> char2, round 2: already stamped
+      expect(state.characters[1].movementUsed).toBe(15);
+    });
+
+    it("clearing ONE combatant's initiative drops the turn pointer if it was theirs and zeroes their spend", () => {
+      state.currentTurnCharacterId = "char1";
+      handler.handleSetInitiative(state, "char1", "dmPlayer", undefined, 0, true);
+      expect(state.currentTurnCharacterId).toBeUndefined();
+      expect(state.characters[0]).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+      expect("movementRound" in state.characters[0]).toBe(false);
+      // Someone else's clear leaves the pointer alone.
+      state.currentTurnCharacterId = "char2";
+      handler.handleSetInitiative(state, "char3", "dmPlayer", undefined, 0, true);
+      expect(state.currentTurnCharacterId).toBe("char2");
     });
 
     it("the ORDINARY road into a fight — the first initiative value — resets everyone", () => {
@@ -583,14 +623,25 @@ describe("InitiativeMessageHandler", () => {
       expect(state.characters.every((c) => c.movementUsed === 0)).toBe(true);
     });
 
-    it("the explicit Start Combat / End Combat buttons reset everyone", () => {
+    it("the explicit Start Combat / End Combat buttons reset everyone — both counters, and the round returns to 1", () => {
+      state.combatRound = 4;
       handler.handleStartCombat(state, "dmPlayer", true);
+      expect(state.combatRound).toBe(1);
       expect(state.characters.every((c) => c.movementUsed === 0 && c.movementDiagonals === 0)).toBe(
         true,
       );
-      for (const character of state.characters) character.movementUsed = 5;
+      for (const character of state.characters) {
+        character.movementUsed = 5;
+        character.movementDiagonals = 2;
+      }
+      state.combatRound = 3;
       handler.handleEndCombat(state, "dmPlayer", true);
-      expect(state.characters.every((c) => c.movementUsed === 0)).toBe(true);
+      expect(state.combatRound).toBe(1);
+      expect(
+        state.characters.every(
+          (c) => c.movementUsed === 0 && c.movementDiagonals === 0 && c.movementRound === 1,
+        ),
+      ).toBe(true);
     });
   });
 

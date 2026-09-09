@@ -382,6 +382,18 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
     });
   });
 
+  describe("a monster created mid-fight", () => {
+    it("is born with a zeroed budget stamped with the current round", () => {
+      const state = roomService.getState();
+      state.combatActive = true;
+      state.combatRound = 3;
+      const before = new Set(state.characters.map((c) => c.id));
+      messageRouter.route({ t: "create-npc", name: "Latecomer", hp: 5, maxHp: 5 }, dmUid);
+      const created = roomService.getState().characters.find((c) => !before.has(c.id))!;
+      expect(created).toMatchObject({ movementUsed: 0, movementDiagonals: 0, movementRound: 3 });
+    });
+  });
+
   describe("set-character-speed message", () => {
     let characterId: string;
 
@@ -396,6 +408,22 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
     it("the DM sets a character's speed", () => {
       messageRouter.route({ t: "set-character-speed", characterId, speed: 25 }, dmUid);
       expect(roomService.getState().characters.find((c) => c.id === characterId)?.speed).toBe(25);
+    });
+
+    it("setting the same speed twice, or clearing an unset one, is a no-op: no broadcast, no save", () => {
+      const handler = messageRouter as unknown as {
+        characterHandler?: { handleSetCharacterSpeed: (...args: unknown[]) => unknown };
+      };
+      void handler;
+      const state = roomService.getState();
+      const spy = vi.spyOn(roomService, "saveState");
+      messageRouter.route({ t: "set-character-speed", characterId, speed: null }, dmUid);
+      expect(spy).not.toHaveBeenCalled();
+      messageRouter.route({ t: "set-character-speed", characterId, speed: 25 }, dmUid);
+      expect(spy).toHaveBeenCalledTimes(1);
+      messageRouter.route({ t: "set-character-speed", characterId, speed: 25 }, dmUid);
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(state.characters.find((c) => c.id === characterId)?.speed).toBe(25);
     });
 
     it("null returns the character to the shared default — a set speed is not forever", () => {

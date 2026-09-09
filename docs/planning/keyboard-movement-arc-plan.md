@@ -29,40 +29,45 @@ line-of-sight redraw from the next snapshot, square by square, with no fog code 
   `applyPropTransform` carry the ownership, lock and wall-block checks. Riding that road gives
   "any selected item" for free and adds nothing to the wire. (`move` is a legacy token-only path
   used by e2e seams and tests; it rides the delta channel but does not save.)
-- **Discrete presses only (`event.repeat` swallowed).** A held key at the OS repeat rate would be
-  ~30 transform-object broadcasts a second, each a fog re-filter per recipient. One press = one
-  round trip. Slice 2 owns the repeat story if the owner wants hold-to-run.
-- **Fast presses chain — in ONE direction, bounded.** Two presses inside one round trip used to
-  be a lost step (both computed from the same snapshot cell). The hook keeps a chain per object:
-  the cell the chain started from, the last cell asked for, its direction, and when its FIRST
-  unconfirmed step was sent (`stepOrigin` / `nextPendingStep`). A press chains from the last
-  target only while it is the same direction, the snapshot cell lies on the chain's path (start,
-  any confirmed step, or target), the chain is under 4 cells ahead of the snapshot, and under
-  1.5 s old counted from that first unconfirmed step. A turn, a snapshot elsewhere, a stale or
-  over-deep chain all start over from where the token really is. (Round-1 review: the first
-  version refreshed the clock on every press and did not lock direction, so a held key against a
-  wall marched a phantom chain and a perpendicular press then TELEPORTED the token — the server's
-  wall check is one straight segment and a (10,5)→(44,6) hop slipped under a wall ending at y=5.)
-- **The origin snaps to the nearest cell.** A token spawned from the staging zone sits at a
-  fractional cell (16.97, 14.60 — measured live); a keyboard step lands on whole cells, so the
-  origin rounds first. Verified live: (17.97, 12.6) → `d` → (19, 13).
+- **(Superseded by slice 2 — kept as the slice-1 record.) Discrete presses only.** A held key at
+  the OS repeat rate would be ~30 broadcasts a second, each a fog re-filter per recipient; slice 1
+  swallowed `event.repeat`. Slice 2 replaced that with a throttle (one step per 150 ms).
+- **The wire is RELATIVE: `step-object` carries a direction, never a cell.** The server resolves
+  the target from its own authoritative position (`TransformMessageHandler.handleStepObject`)
+  over the same road a drag release takes, so latency, a refused step or a turn can never make a
+  client ask for a cell nobody is next to: N presses are N one-cell steps, applied in order. This
+  is the second version of this rule. The first sent absolute cells and kept a client-side chain
+  of unconfirmed steps to guess the origin; review round 1 found a held key against a wall marched
+  the chain and a perpendicular press TELEPORTED the token forward (the server's wall check is one
+  straight segment); round 2 found the direction-locked, depth-capped replacement still re-sent a
+  stale absolute cell whenever it distrusted the chain, which is a move order BACKWARD — up to 4
+  cells, overcharged up to 60%. A relative wire has no origin to guess. The chain is gone.
+- **The origin snaps to the nearest cell — on the server.** A token spawned from the staging zone
+  sits at a fractional cell (16.97, 14.60 — measured live); `handleStepObject` rounds the object's
+  current cell before adding the direction, so a step lands on whole cells.
 - **Guard = invariant 4.17 minus the DM clause.** Typing surface (`isEditableTarget`), any
-  modifier, `event.repeat`, and map-edit mode all mean "not for me". Not DM-only: a player moving
-  their own token is the point. When nothing movable is selected the key is left alone (no
-  `preventDefault`), so arrows still scroll a focused panel.
+  modifier, and map-edit mode all mean "not for me". Not DM-only: a player moving their own token
+  is the point. `event.repeat` is NOT a guard clause — slice 2 throttles it to
+  `HOLD_STEP_INTERVAL_MS` (150 ms) and preventDefaults the swallowed ones. When nothing movable is
+  selected the key is left alone (no `preventDefault`), so arrows still scroll a focused panel.
 - **Selection is the existing model.** Selection only lives in Select/Transform mode (it
   auto-clears elsewhere — `useSelectionManager`), so a player must arm Select and pick their
   token before WASD does anything. Kept as is; a "nothing selected → your own token" fallback is
   a scope widening for the owner to call.
 - **Mobile surface = the d-pad in the selection sheet.** No dock slot (the dock is pinned at
   five); the sheet exists exactly when a selection does. Eight chips each ≥ 44×44 (measured 69×44
-  at 375×812, sheet 469–710 px above the dock); in a short landscape viewport (812×375) the pad
-  folds to one row of the four orthogonals, since three rows would clip the sheet's own Clear
-  chip. Renders only when `movableCount > 0`, so a selection the player may not move shows the
-  sheet without a pad. One press is one step on every pointer: the compat `click` after a
-  pointer sequence (`detail ≥ 1`) is ignored, a keyboard activation (`detail 0`) steps — the
-  round-1 review MEASURED that a finger tap is down, up, out, leave, click, so the first version's
-  "pointerleave = slid off" latch double-stepped every phone tap.
+  at 375×812, the pad taking the 220px it asks for — a grid item with `margin: 0 auto` had shrunk
+  it to 3×44, round 2); in a short landscape viewport (812×375) the pad folds to ONE row of the
+  four orthogonals (← ↑ ↓ →, keyed on `data-dir`, never on label text; the fold selector is two
+  classes deep because the later base rule beat it at equal specificity and round 2 measured two
+  rows led by a dead dot). Renders only when `movableCount > 0`, so a selection the player may not
+  move shows the sheet without a pad. One press is one step on every pointer: the compat `click`
+  after a pointer sequence (`detail ≥ 1`) is ignored, a keyboard activation (`detail 0`) steps,
+  throttled to the same cadence — round 1 MEASURED that a finger tap is down, up, out, leave,
+  click, so the first version's "pointerleave = slid off" latch double-stepped every phone tap.
+  The press CAPTURES the pointer, so a mouse released off the chip still ends the walk (round 2:
+  without capture a mouse walk ran forever and the pad went dead); the hold is keyed by POINTER
+  id, so a second finger on the same button changes nothing.
 - **Client pre-filter mirrors the server.** `movableSelection` applies the server's rules
   (owner/DM for tokens; DM, owner or `*` for props; locked = DM only) so a refused press sends
   nothing. The server remains the guard.
@@ -151,9 +156,17 @@ every monster in the order whether or not it has moved yet.
   default ("reset on your turn start"). Out of combat there is no turn to budget, so nothing
   ticks and nothing shows. A DM moving a token out of its turn charges it too (what you moved
   since your last turn start), and the next turn start wipes it. Every road that starts, clears
-  or suspends a fight resets everyone (`resetAllMovementBudgets` in the Start/End buttons,
-  `applyInitiative`'s auto-start, clear-all-initiative — which also drops the turn pointer into
-  the now-empty order — and both branches of a travel's `restoreCollections`).
+  or suspends a fight resets everyone and returns the round to 1 (`resetAllMovementBudgets` in
+  the Start/End buttons, `applyInitiative`'s auto-start, clear-all-initiative — which also drops
+  the turn pointer into the now-empty order — and both branches of a travel's
+  `restoreCollections`); clearing ONE combatant's initiative does the same for that one head.
+  **A turn start resets once per ROUND** (`state.combatRound`: +1 when next-turn wraps the order,
+  −1 when previous-turn wraps it back; a character stamped with the current round is not reset
+  again). Any player can nudge the order — the help text says so — and round 2 showed that with a
+  plain "reset on turn start" a player refilled their own budget with PREV then NEXT, and a DM's
+  PREV correction granted a free turn; the stamp closes both without taking the buttons away. A
+  monster created mid-fight is born with a zeroed record stamped with the round, so the DM's plate
+  shows its budget before its first step.
 - **Display only, never a block.** Overspend turns the readout red; the DM adjudicates.
 - **Speed is DM-set** (the vision-radius rule: "a budget a player could raise is not a budget"),
   over a dedicated `set-character-speed` message (`speed: number | null`, null = back to the
@@ -165,45 +178,13 @@ every monster in the order whether or not it has moved yet.
   BottomPanelLayout → EntitiesPanel → PlayerCard → PlayerSettingsMenu; MobileSurfaces →
   MobileEntitiesList → MobilePlayerRow → PlayerSettingsMenu), so the control reads and behaves
   identically wherever a DM finds it, and the mobile surface shipped in the same slice.
-- **Only combatants IN the order wear a readout** (`initiative !== undefined`), and an NPC's
-  only when the frame carries its numbers — so a redacted monster never shows a fake default.
-  NOTE: a DM-OWNED PC is not a combatant (`shouldCharacterParticipateInCombat`), so it never gets
-  a turn start; if the DM sets it an initiative it will show and charge but only reset with
-  combat start/end. Consistent with the existing rule; recorded, not changed.
-
-**Files.** `packages/shared/src/movementBudget.ts` (+ barrel re-export, sub-module — no runtime
-const in the barrel), `Character.speed / movementUsed / movementDiagonals`, the
-`set-character-speed` message; server `transform/movementCharge.ts`, `handlers/movementBudgetReset.ts`,
-`validators/movementValidators.ts`, `snapshot/movementRedaction.ts`, plus the wiring in
-TransformHandler, TokenMessageHandler, InitiativeMessageHandler, CharacterMessageHandler,
-CharacterDispatcher, validation.ts, recipientFilter; client `tokenPlates.ts` (`move` on the plate),
-`TokenNameplate.tsx` (`token-move-budget` Konva node), `MovementSpeedField.tsx`, and the chain
-above.
-
-**Pins.** Shared: 8 (each rule, the alternation across hops, ruler agreement, raw euclidean).
-Server: charge suite through the real room service (transform road, combat gate, refused move,
-Pathfinder across hops, euclidean), the legacy road through the router, initiative resets
-(next/previous/start/end), the validator's bounds, the DM-only handler, the redaction pure and
-through `buildRecipientView` (bytes-level: no `"speed":30` in a player frame). Client: plates rules
-(combat gate, order gate, NPC fake-default, lens), the field (clamp, unchanged, Enter, compact
-floor, follows prop), the settings menu, the mobile row, the mobile list's DM gate and
-character-id binding. E2E `movement-budget.spec.ts` (a real player steps twice, the plate reads
-"15 / 25 ft", the DM advances the order until the player's turn and the plate reads
-"25 / 25 ft" again, end-combat clears every plate; a monster's fields never reach the player's
-frame while the PC's do) and `mobile/mobile-movement-budget.spec.ts` (a DM at 375px sets 25 ft
-through the real EDIT sheet, on the floor, and the plate reads it). Sabotage: shared/server
-14/14 red, client 13/13 red, e2e 3/3 red (see the harness logs).
-
-**Live-checked** (two clients, dev server): desktop DM — start → "25 / 25 ft"; `ArrowRight` + `e`
-(a diagonal, one square under 5e) → 10 ft used, "15 / 25 ft"; next-turn → "25 / 25 ft";
-end-combat → no readout. Phone DM at 375×812 — Party → EDIT → the speed field (60px tall, below
-the fold of the scrolling sheet) → 25 → the phone's OWN nameplate updated live to "25 / 25 ft".
-
-**Traps found.** `create-npc` RENAMES through the allocator ("Budget Goblin 1") — find a created
-NPC by id diff, never by the name you sent. A DM-owned PC is not a combatant, so a spec whose
-mover is the DM can never see a turn-start reset (the live check "passed" only because the dev
-table had two DMs). With the browser pane hidden, `element.blur()` fires neither `blur` nor
-`focusout`, so a React `onBlur` commit needs an explicit `focusout` dispatch.
+- **Only combatants IN the order wear a readout** (`initiative !== undefined` AND the
+  participation rule), and a monster's only on the DM's frame, and only when the record carries
+  a spend — so a redacted monster never shows a fake default, and during the elevation blip (role
+  flipped, snapshot still the player's) a monster shows nothing rather than a wrong number. A
+  DM-OWNED PC is not a combatant (`shouldCharacterParticipateInCombat`): its plate is suppressed,
+  and the SERVER still charges it — `movementUsed` climbs with nothing displaying it and only
+  combat start/end clears it. Consistent with the existing rule; recorded, not changed.
 
 ## The flake the suite grew when slice 1 joined it — two bugs, both fixed (2026-09-09)
 
@@ -221,6 +202,27 @@ The screenshot showed the DM's OWN token still drawn on the return door's cell. 
    and is spread randomly into the same zone, so it was a coin flip on the door's cell; the new
    spec ahead of it shifted the spread. The spec now moves EVERY token and waits for each
    sprite to reach its target instead of sleeping 500 ms.
+
+## Review round 2 (2026-09-09) — six fresh lenses; 1 critical / 17 major / 30 minor → fixed here
+
+Fresh Opus lenses on the full diff, each reporting what round 1 fixed, regressed, and left
+(critical/major/minor: defects 1/2/3, server 0/3/3, tests 0/3/8, honesty 0/4/8, privacy 0/2/3,
+mobile 0/4/5). FIXED: the absolute-cell fallback (a backward teleport up to 4 cells — replaced by
+the relative `step-object` wire; the chain is gone); a mouse released off a d-pad chip walking
+forever (pointer capture); a held Enter outrunning the throttle; a second finger on the SAME
+button cutting a walk short (pointer-id keyed hold); the landscape fold that rendered two rows
+(selector specificity) and the pad shrunk to 3×44 (`margin: 0 auto` on a grid item); the per-round
+reset stamp (a player refilling their own budget with PREV+NEXT; a PREV correction granting a
+turn); the single-character clear leaving a dangling turn pointer; the redaction gaining
+`movementRound`; `set-character-speed` no-op broadcasts; a monster born mid-fight wearing no
+readout for the DM; the elevation-blip fabricated default; diagonals counted under rules that
+never read them; the "deny non-owner" prop test made vacuous by round 1; three-digit secrecy
+sentinels (a UUID-substring flake); the contract's missing fog/hidden case and positive controls;
+the readout format pinned without Konva; the plates memo's missing `combatActive` dependency;
+`toStrictEqual` where a deleted key mattered; the `mobile-select` sweep filtering by intent
+(`display`/`visibility`) rather than a zero box; the frame-cadence reasoning (corrected above);
+and a dozen stale sentences. REFUTED: the pad hiding when another tool is armed (the selection
+clears; the keys have nothing to move either). The rest is recorded above with its reasoning.
 
 ## Review round 1 (2026-09-09) — six lenses, 12 fixed, the rest recorded
 
@@ -242,25 +244,41 @@ line, the empty-targets wait, a wall-refused step charging nothing, the NPC-spee
 
 RECORDED, NOT FIXED (each an owner call or a pre-existing class):
 
-- **Frame-cadence side channel.** A hidden monster walked by a held key sends a player a frame
-  per step at the 150 ms cadence (byte-identical but for `stateVersion`). Pre-existing class:
-  drag previews already broadcast per pointer move for the same token, so a hidden monster's
-  motion was never silent on the wire. A coalescer for unchanged-view recipients is the fix if
-  the owner wants it.
-- **A save per step.** `transform-object` is `save: true`, so a hold is ~6 full serialisations a
-  second (~0.4 ms and ~100 KB each on the dev table). Pre-existing on every drag release; the
-  hold multiplies it. A trailing debounce in `StatePersistence.saveToDisk` is the fix — its own
-  commit, after this round.
-- **A sub-cell drag with Snap off charges 0 ft** (cells are counted by rounded index under the
-  grid rules — a 0.8-cell drift is no square). Accepted: it is the ruler's rule too.
+- **Frame-cadence side channel.** A hidden monster walked by a held key sends a player a full
+  per-recipient snapshot per step at the 150 ms cadence (byte-identical but for `stateVersion`).
+  Round 2 corrected round 1's reasoning: drag PREVIEWS of a hidden monster are NOT sent to a
+  player at all (`broadcastFilteredDragPreview` drops them), so that was the wrong precedent.
+  The true pre-existing fact is narrower: every drag RELEASE (`transform-object`) already sent
+  every player a full snapshot, and the legacy `move` road sent a `state-sync` per move, so a
+  hidden monster's motion was one frame per gesture before and is one frame per cell now — a
+  WIDENED channel, not a new one. The fix if the owner wants it: in `RoomService.broadcast`, send
+  `{t:"state-sync", stateVersion}` to a recipient whose payload differs from the last only in
+  `stateVersion`.
+- **A save per step.** `step-object` rides the transform road, which is `save: true`, so a hold
+  is ~6 full serialisations a second (~0.4 ms and ~100 KB each on the dev table). Pre-existing on
+  every drag release; the hold multiplies it. A trailing debounce in `StatePersistence.saveToDisk`
+  is the fix — its own commit, after the review.
+- **A sub-cell drag with Snap off charges 0 ft** while it stays inside one rounded cell index;
+  one that crosses a half-cell boundary charges a whole square, however small. Accepted: it is
+  the ruler's rule too.
 - **A fractional feet-per-square distorts per-hop rounding** (0.15 ft/square charges 0.2 per
   step). Exotic; accumulate in squares if it ever matters.
 - **The pad hides when another sheet or screen is up** (Tools/Help sheet, Party/Dice/Log screen)
   while the desktop keys keep working with panels open. A floating pad is the fix if wanted.
+  Round 2 also claimed arming Measure/Pointer/Draw hides the pad while the keys keep working;
+  REFUTED live: arming another tool clears the server-side selection (`useSelectionManager`), so
+  the keys have nothing to move either.
 - **`DraggableWindow` (the settings menu's host) uses `100vh`** on mobile, the unit the sheet
   contract forbids; unmeasurable locally (`vh == dvh` in every local browser). Pre-existing.
 - **A player elevated to DM mid-combat** stops being a combatant, so its plate disappears rather
   than drifting negative — consistent with the participation rule; recorded.
+- **The legacy `move` road, when charged, forces a full snapshot even for a hidden monster** (the
+  delta channel cannot carry a character, so the quiet `state-sync` branch is bypassed).
+  Consistent with `transform-object`, which every real client road uses; the product never sends
+  `move`. A character record riding the DM's delta is the better wire if `move` ever returns.
+- **`load-session` keeps a connected player's live character** and so drops the file's `speed`
+  and spend for them (the pre-existing "the live sheet wins" rule for hp/initiative). A speed the
+  DM set is roster data with no other home, so an overlay is worth doing; recorded.
 
 ## Open after the arc (owner's calls)
 

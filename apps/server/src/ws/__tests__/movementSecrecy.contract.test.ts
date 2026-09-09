@@ -24,10 +24,12 @@ import { sentinelHits } from "./leakSentinels.js";
 
 const ALICE = "alice-uid";
 const DM = "dm-uid";
-// Structural sentinels (leakSentinels.ts), never substrings of a timestamp.
-const GOBLIN_SPEED = 447;
-const GOBLIN_USED = 993;
-const ALICE_SPEED = 331;
+// Structural sentinels (leakSentinels.ts): five digits, like the house
+// suites — a three-digit decimal shows up inside a chat entry's UUID about
+// once in 140 runs, which is the CI #828 flake by another road.
+const GOBLIN_SPEED = 44731;
+const GOBLIN_USED = 99317;
+const ALICE_SPEED = 33119;
 
 interface FakeSocket {
   readyState: number;
@@ -87,6 +89,7 @@ describe("movement budget secrecy contracts", () => {
           speed: GOBLIN_SPEED,
           movementUsed: GOBLIN_USED,
           movementDiagonals: 1,
+          movementRound: 7,
         },
         {
           id: "pc-alice",
@@ -150,6 +153,7 @@ describe("movement budget secrecy contracts", () => {
     expect(goblin?.speed).toBeUndefined();
     expect(goblin?.movementUsed).toBeUndefined();
     expect(goblin?.movementDiagonals).toBeUndefined();
+    expect(goblin?.movementRound).toBeUndefined();
     expect(charactersSeenBy(aliceWs).find((c) => c.id === "pc-alice")?.speed).toBe(ALICE_SPEED);
     // The raw-bytes bar.
     expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
@@ -157,19 +161,66 @@ describe("movement budget secrecy contracts", () => {
     expect(sentinelHits(dmWs, GOBLIN_SPEED)).not.toEqual([]);
   });
 
-  it("the DM stepping the monster (keyboard road) charges it and still leaks nothing", () => {
-    route({ t: "transform-object", id: "token:tok-goblin", position: { x: 4, y: 3 } }, DM);
+  it("the DM stepping the monster (the keyboard's step-object road) charges it and leaks nothing", () => {
+    route({ t: "step-object", id: "token:tok-goblin", dx: 1, dy: 0 }, DM);
     expect(roomService.getState().characters[0]!.movementUsed).toBe(GOBLIN_USED + 5);
+    // Alice DID receive the frame (positive control), and it carries nothing.
+    expect(charactersSeenBy(aliceWs).some((c) => c.id === "npc-goblin")).toBe(true);
     expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
     expect(sentinelHits(aliceWs, GOBLIN_USED + 5)).toEqual([]);
     expect(sentinelHits(dmWs, GOBLIN_USED + 5)).not.toEqual([]);
   });
 
+  it("a drag release (transform-object) charges and leaks nothing", () => {
+    route({ t: "transform-object", id: "token:tok-goblin", position: { x: 4, y: 3 } }, DM);
+    expect(roomService.getState().characters[0]!.movementUsed).toBe(GOBLIN_USED + 5);
+    expect(charactersSeenBy(aliceWs).length).toBeGreaterThan(0);
+    expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
+    expect(sentinelHits(aliceWs, GOBLIN_USED + 5)).toEqual([]);
+  });
+
   it("the legacy move road: a charged step leaks nothing either", () => {
     route({ t: "move", id: "tok-goblin", x: 5, y: 3 }, DM);
     expect(roomService.getState().characters[0]!.movementUsed).toBe(GOBLIN_USED + 10);
+    expect(charactersSeenBy(aliceWs).length).toBeGreaterThan(0);
     expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
     expect(sentinelHits(aliceWs, GOBLIN_USED + 10)).toEqual([]);
+  });
+
+  it("with fog on and the monster HIDDEN, every road (delta re-send included) still leaks nothing", () => {
+    // fogFilteringActive needs a compiled scene AND fog; a hidden NPC takes
+    // the delta road's per-recipient branch, which builds a fresh snapshot.
+    roomService.setState({
+      fogEnabled: true,
+      compiledScene: {
+        schemaVersion: 1,
+        sourceDocumentId: "map",
+        sourceRevision: 1,
+        compiledAt: 1,
+        width: 2048,
+        height: 2048,
+        walls: [],
+        doors: [],
+        lights: [],
+      },
+    });
+    roomService.getState().characters[0]!.visibleToPlayers = false;
+    route({ t: "move", id: "tok-goblin", x: 5, y: 3 }, DM);
+    route({ t: "step-object", id: "token:tok-goblin", dx: 1, dy: 0 }, DM);
+    route({ t: "transform-object", id: "token:tok-goblin", position: { x: 7, y: 3 } }, DM);
+    expect(roomService.getState().characters[0]!.movementUsed).toBe(GOBLIN_USED + 20);
+    expect(aliceWs.send.mock.calls.length).toBeGreaterThan(0);
+    expect(charactersSeenBy(aliceWs).some((c) => c.id === "npc-goblin")).toBe(false);
+    for (const secret of [
+      GOBLIN_SPEED,
+      GOBLIN_USED,
+      GOBLIN_USED + 5,
+      GOBLIN_USED + 15,
+      GOBLIN_USED + 20,
+    ]) {
+      expect(sentinelHits(aliceWs, secret)).toEqual([]);
+    }
+    expect(sentinelHits(dmWs, GOBLIN_USED + 20)).not.toEqual([]);
   });
 
   it("a player cannot set any speed, their own included — nothing changes, nothing is sent", () => {

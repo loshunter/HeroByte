@@ -27,11 +27,12 @@ const npc: SnapshotCharacter = {
   speed: 30,
   movementUsed: 15,
   movementDiagonals: 2,
+  movementRound: 3,
 };
 const bare: SnapshotCharacter = { id: "bare", type: "npc", name: "Statue", hp: 1, maxHp: 1 };
 
 describe("redactNpcMovement", () => {
-  it("strips speed, spend and the diagonal count from NPCs for a player, keeps a PC's whole", () => {
+  it("strips speed, spend, the diagonal count and the round stamp from NPCs for a player, keeps a PC's whole", () => {
     const out = redactNpcMovement([pc, npc, bare], false);
     expect(out[0]).toBe(pc);
     expect(out[1]).toEqual({ id: "npc", type: "npc", name: "Goblin", hp: 7, maxHp: 7 });

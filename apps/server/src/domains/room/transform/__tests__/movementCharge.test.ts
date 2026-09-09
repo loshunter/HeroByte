@@ -75,7 +75,8 @@ describe("movement budget charge", () => {
     expect(
       room.applySceneObjectTransform("token:tok-pc", player, { position: { x: 5, y: 5 } }),
     ).toBe(true);
-    expect(pc()).toMatchObject({ movementUsed: 10, movementDiagonals: 1 });
+    // 5e counts no diagonals: only Pathfinder reads the running count.
+    expect(pc()).toMatchObject({ movementUsed: 10, movementDiagonals: 0 });
   });
 
   it("charges nothing out of combat, and nothing for a token without a character", () => {

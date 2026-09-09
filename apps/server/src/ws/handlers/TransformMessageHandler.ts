@@ -59,4 +59,30 @@ export class TransformMessageHandler {
     }
     return { broadcast: false, save: false };
   }
+
+  /**
+   * step-object: one grid cell from where the object IS. The keyboard and the
+   * phone d-pad send a direction, and the target is resolved here from the
+   * authoritative cell — so latency, a refused step or a turn can never make
+   * a client ask for a cell nobody is next to. Rides the same transform road
+   * as a drag release: ownership, lock, the wall check, the player-props
+   * switch and the movement charge all apply unchanged.
+   */
+  handleStepObject(
+    state: RoomState,
+    senderUid: string,
+    objectId: string,
+    dx: number,
+    dy: number,
+  ): TransformMessageResult {
+    const object = state.sceneObjects.find((candidate) => candidate.id === objectId);
+    if (!object) return { broadcast: false, save: false };
+    // A token spawned or dragged with Snap off sits on a fractional cell; a
+    // step lands on WHOLE cells, so the origin snaps first.
+    const position = {
+      x: Math.round(object.transform.x) + dx,
+      y: Math.round(object.transform.y) + dy,
+    };
+    return this.handleTransformObject(state, senderUid, objectId, { position });
+  }
 }

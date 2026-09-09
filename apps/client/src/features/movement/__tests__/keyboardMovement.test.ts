@@ -1,19 +1,10 @@
 // The pure rules under keyboard movement: which key names which cell delta,
-// who may move what (mirroring the server's TransformHandler so no dead
-// round trip is sent), and where a chained press starts from.
+// and who may move what (mirroring the server's TransformHandler so no dead
+// round trip is sent). Where the cell IS is the server's business now.
 
 import { describe, expect, it } from "vitest";
 import type { RoomSnapshot } from "@herobyte/shared";
-import {
-  PENDING_STEP_MAX_DEPTH,
-  PENDING_STEP_TTL_MS,
-  deltaForKey,
-  movableSelection,
-  nextPendingStep,
-  stepOrigin,
-  type CellDelta,
-  type PendingStep,
-} from "../keyboardMovement";
+import { deltaForKey, movableSelection } from "../keyboardMovement";
 
 function snapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
   return {
@@ -136,83 +127,5 @@ describe("movableSelection", () => {
         isDM: false,
       }),
     ).toEqual([]);
-  });
-});
-
-describe("stepOrigin — the chain", () => {
-  const right: CellDelta = { dx: 1, dy: 0 };
-  const down: CellDelta = { dx: 0, dy: 1 };
-  const from = { x: 3, y: 4 };
-  const chain = (to: { x: number; y: number }, startedAt = 1000): PendingStep => ({
-    from,
-    to,
-    delta: right,
-    startedAt,
-  });
-
-  it("chains from the last target while the snapshot still shows the chain's start", () => {
-    expect(stepOrigin(from, chain({ x: 4, y: 4 }), right, 1050)).toEqual({ x: 4, y: 4 });
-  });
-
-  it("stays live while the snapshot is anywhere ON the path — an intermediate confirmed step", () => {
-    // Two steps in flight, the first confirmed: the snapshot at (4,4) is on
-    // the path (3,4)->(5,4), so the next press starts from (5,4), not (4,4).
-    expect(stepOrigin({ x: 4, y: 4 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 5, y: 4 });
-    // Fully caught up: the target itself.
-    expect(stepOrigin({ x: 5, y: 4 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 5, y: 4 });
-  });
-
-  it("falls back to the snapshot when it is OFF the path — moved elsewhere, or past the target", () => {
-    expect(stepOrigin({ x: 9, y: 9 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 9, y: 9 });
-    expect(stepOrigin({ x: 4, y: 5 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 4, y: 5 });
-    expect(stepOrigin({ x: 6, y: 4 }, chain({ x: 5, y: 4 }), right, 1050)).toEqual({ x: 6, y: 4 });
-  });
-
-  it("a turn starts over from the snapshot — a refused chain is never the origin of another direction", () => {
-    // The teleport: a chain of refused steps east, then a press south used
-    // to land (to.x, to.y + 1) — cells away from where the token really is.
-    expect(stepOrigin(from, chain({ x: 7, y: 4 }), down, 1050)).toEqual(from);
-  });
-
-  it("expires by the chain's FIRST unconfirmed step, not its last press", () => {
-    expect(
-      stepOrigin(from, chain({ x: 4, y: 4 }, 1000), right, 1000 + PENDING_STEP_TTL_MS),
-    ).toEqual({
-      x: 4,
-      y: 4,
-    });
-    expect(
-      stepOrigin(from, chain({ x: 4, y: 4 }, 1000), right, 1000 + PENDING_STEP_TTL_MS + 1),
-    ).toEqual(from);
-    expect(stepOrigin(from, undefined, right, 1050)).toEqual(from);
-  });
-
-  it("caps how far a chain may run ahead of the snapshot", () => {
-    const ahead = { x: from.x + PENDING_STEP_MAX_DEPTH - 1, y: 4 };
-    expect(stepOrigin(from, chain(ahead), right, 1050)).toEqual(ahead);
-    const tooFar = { x: from.x + PENDING_STEP_MAX_DEPTH, y: 4 };
-    expect(stepOrigin(from, chain(tooFar), right, 1050)).toEqual(from);
-  });
-
-  it("nextPendingStep keeps the chain's start and clock only while something is unconfirmed", () => {
-    const pending = chain({ x: 4, y: 4 }, 1000);
-    // Continued: the origin was the chain's target and the snapshot lags.
-    expect(nextPendingStep(from, { x: 4, y: 4 }, { x: 5, y: 4 }, right, pending, 1300)).toEqual({
-      from,
-      to: { x: 5, y: 4 },
-      delta: right,
-      startedAt: 1000,
-    });
-    // Caught up: a fresh chain from here, clock restarted.
-    expect(
-      nextPendingStep({ x: 4, y: 4 }, { x: 4, y: 4 }, { x: 5, y: 4 }, right, pending, 1300),
-    ).toEqual({ from: { x: 4, y: 4 }, to: { x: 5, y: 4 }, delta: right, startedAt: 1300 });
-    // A turn: a fresh chain in the new direction.
-    expect(nextPendingStep(from, from, { x: 3, y: 5 }, down, pending, 1300)).toEqual({
-      from,
-      to: { x: 3, y: 5 },
-      delta: down,
-      startedAt: 1300,
-    });
   });
 });

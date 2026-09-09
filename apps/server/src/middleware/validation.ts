@@ -19,7 +19,10 @@ import { validateForkTableMessage } from "./validators/forkValidators.js";
 import { validateChatMessage, validateClearChatLogMessage } from "./validators/chatValidators.js";
 import { validateDiceRollMessage, validateEnterRollMessage } from "./validators/diceValidators.js";
 import { validateLoadSessionMessage } from "./validators/sessionValidators.js";
-import { validateSetCharacterSpeedMessage } from "./validators/movementValidators.js";
+import {
+  validateSetCharacterSpeedMessage,
+  validateStepObjectMessage,
+} from "./validators/movementValidators.js";
 import {
   validateMoveMessage,
   validateRecolorMessage,
@@ -200,6 +203,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "roll-initiative-all": validateRollInitiativeAllMessage,
   "set-initiative-manual-override": validateSetInitiativeManualOverrideMessage,
   "set-character-speed": validateSetCharacterSpeedMessage,
+  "step-object": validateStepObjectMessage,
 
   // ==========================================================================
   // MAP MESSAGES

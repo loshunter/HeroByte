@@ -1892,8 +1892,11 @@ h4 {
   grid-column: 1 / -1;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+  /* A grid ITEM with `margin: 0 auto` shrinks to fit-content (3 × 44px);
+     centred at full width it takes the 220px it asks for — 69px chips. */
   max-width: 220px;
-  margin: 0 auto;
+  width: 100%;
+  justify-self: center;
   /* Press-and-hold walks; a long press must not select text or pop a menu. */
   user-select: none;
   -webkit-user-select: none;
@@ -1917,20 +1920,24 @@ h4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     max-width: 240px;
   }
-  .mobile-move-pad__button--diagonal,
-  .mobile-move-pad__centre {
+  /* Two selectors deep on purpose: the base `.mobile-move-pad__centre`
+     rule below sets display:flex at equal specificity and LATER in the file,
+     which is why a single-class rule here lost and the fold rendered two rows
+     (measured in review round 2). Keyed on data-dir, never on label text. */
+  .mobile-move-pad .mobile-move-pad__button--diagonal,
+  .mobile-move-pad .mobile-move-pad__centre {
     display: none;
   }
-  .mobile-move-pad__button[aria-label="Move left"] {
+  .mobile-move-pad [data-dir="left"] {
     order: 1;
   }
-  .mobile-move-pad__button[aria-label="Move up"] {
+  .mobile-move-pad [data-dir="up"] {
     order: 2;
   }
-  .mobile-move-pad__button[aria-label="Move down"] {
+  .mobile-move-pad [data-dir="down"] {
     order: 3;
   }
-  .mobile-move-pad__button[aria-label="Move right"] {
+  .mobile-move-pad [data-dir="right"] {
     order: 4;
   }
 }

@@ -17,11 +17,17 @@ import {
   movementBudgetFor,
   shouldCharacterParticipateInCombat,
   type MonsterHpDisplay,
+  type MovementBudget,
   type Player,
   type SnapshotCharacter,
   type Token,
 } from "@herobyte/shared";
 import type { TokenPlateData } from "./components/TokenNameplate";
+
+/** "15 / 30 ft" — what is LEFT over what the turn started with. Pure, so it is pinned without Konva. */
+export function movementReadout(move: MovementBudget): string {
+  return `${move.remaining} / ${move.speed} ft`;
+}
 
 export function buildTokenPlates(input: {
   characters: SnapshotCharacter[];
@@ -61,7 +67,13 @@ export function buildTokenPlates(input: {
       combatActive === true &&
       character.initiative !== undefined &&
       shouldCharacterParticipateInCombat(character, players);
-    const budgetVisible = character.type === "pc" || (isDM === true && !lensRedact);
+    // A monster's readout needs a REAL record: the DM's frame carries one for
+    // every monster in a fight (reset at combat start, or born into it), and
+    // during the elevation blip — role flipped, snapshot still the player's —
+    // a missing record shows nothing rather than a fabricated default.
+    const budgetVisible =
+      character.type === "pc" ||
+      (isDM === true && !lensRedact && character.movementUsed !== undefined);
     const move = inOrder && budgetVisible ? movementBudgetFor(character) : undefined;
     result[`token:${character.tokenId}`] = { name: character.name, hp, maxHp, hpBadge, move };
   }

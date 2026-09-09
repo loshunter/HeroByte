@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { hpBadgeFor, type Player, type SnapshotCharacter, type Token } from "@herobyte/shared";
-import { buildTokenPlates } from "../tokenPlates";
+import { buildTokenPlates, movementReadout } from "../tokenPlates";
 
 function token(id: string, owner: string): Token {
   return { id, owner, x: 0, y: 0, color: "red" };
@@ -74,8 +74,20 @@ describe("buildTokenPlates — the movement budget", () => {
       isDM: true,
     });
     expect(dm["token:t1"]!.move).toEqual({ speed: 40, used: 5, remaining: 35 });
-    // A monster added mid-fight has no numbers yet: the DM still sees its budget.
+    // A monster in a fight always carries a record (reset at combat start,
+    // or born into it with movementUsed 0): the DM sees its full budget.
     const fresh = buildTokenPlates({
+      ...base,
+      characters: [monster({ movementUsed: 0 })],
+      monsterHpDisplay: "exact",
+      lensRedact: false,
+      combatActive: true,
+      isDM: true,
+    });
+    expect(fresh["token:t1"]!.move).toEqual({ speed: 30, used: 0, remaining: 30 });
+    // No record at all (the elevation blip: role flipped, snapshot still the
+    // player's): nothing, rather than a fabricated default.
+    const blip = buildTokenPlates({
       ...base,
       characters: [monster({})],
       monsterHpDisplay: "exact",
@@ -83,7 +95,7 @@ describe("buildTokenPlates — the movement budget", () => {
       combatActive: true,
       isDM: true,
     });
-    expect(fresh["token:t1"]!.move).toEqual({ speed: 30, used: 0, remaining: 30 });
+    expect(blip["token:t1"]!.move).toBeUndefined();
     // A player's frame never wears one, whatever the record happens to carry.
     const playerFrame = buildTokenPlates({
       ...base,
@@ -117,6 +129,13 @@ describe("buildTokenPlates — the movement budget", () => {
       isDM: true,
     });
     expect(plates["token:t1"]!.move).toBeUndefined();
+  });
+});
+
+describe("movementReadout", () => {
+  it("reads what is left over what the turn started with", () => {
+    expect(movementReadout({ speed: 25, used: 10, remaining: 15 })).toBe("15 / 25 ft");
+    expect(movementReadout({ speed: 5, used: 10, remaining: -5 })).toBe("-5 / 5 ft");
   });
 });
 

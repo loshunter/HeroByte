@@ -1,8 +1,9 @@
-// The listener: a bare movement key sends ONE transform-object per movable
-// selected object, one cell over; the 4.17 guard (typing surface, modifier,
-// held key) and map-edit mode make it inert; nothing selected leaves the key
-// alone (no preventDefault — arrows still scroll a focused panel); two quick
-// presses chain so the second lands two cells over, not one.
+// The listener: a bare movement key sends ONE relative step-object per
+// movable selected object; the 4.17 guard (typing surface, modifier) and
+// map-edit mode make it inert; nothing selected leaves the key alone (no
+// preventDefault — arrows still scroll a focused panel); a held key walks at
+// the bounded cadence. There is no client-side chain any more: the server
+// resolves every step from its own cell, so N presses are N steps in order.
 
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -51,7 +52,7 @@ function press(key: string, init: KeyboardEventInit = {}, target: EventTarget = 
 
 function sent(sendMessage: ReturnType<typeof vi.fn>) {
   return sendMessage.mock.calls.map((call) => call[0]) as Array<
-    Extract<ClientMessage, { t: "transform-object" }>
+    Extract<ClientMessage, { t: "step-object" }>
   >;
 }
 
@@ -64,47 +65,26 @@ describe("useKeyboardMovement", () => {
     vi.useRealTimers();
   });
 
-  it("d moves the selected token one cell right over transform-object, and swallows the key", () => {
+  it("d sends ONE relative step for the selected token, and swallows the key", () => {
     const { sendMessage } = setup();
     const event = press("d");
-    expect(sent(sendMessage)).toEqual([
-      { t: "transform-object", id: "token:mine", position: { x: 4, y: 4 } },
-    ]);
+    expect(sent(sendMessage)).toEqual([{ t: "step-object", id: "token:mine", dx: 1, dy: 0 }]);
     expect(event.defaultPrevented).toBe(true);
   });
 
-  it("ArrowUp is one cell up; the diagonal keys are one press each; a turn starts from the snapshot", () => {
+  it("every key is its own direction; a burst of presses is a burst of steps in order, never a cell", () => {
     const { sendMessage } = setup();
     press("ArrowUp");
     press("q");
-    expect(sent(sendMessage).map((m) => m.position)).toEqual([
-      { x: 3, y: 3 },
-      // A different direction is a new chain from where the token IS (3,4),
-      // not from the unconfirmed (3,3): up-left lands on (2,3).
-      { x: 2, y: 3 },
+    press("d");
+    press("d");
+    expect(sent(sendMessage).map((m) => [m.dx, m.dy])).toEqual([
+      [0, -1],
+      [-1, -1],
+      [1, 0],
+      [1, 0],
     ]);
-  });
-
-  it("a chain survives the snapshot confirming an intermediate step — no press is lost at real latency", () => {
-    const { sendMessage, rerender, initial } = setup();
-    press("d");
-    press("d");
-    rerender({ ...initial, snapshot: snapshotWith([{ id: "mine", owner: "me", x: 4, y: 4 }]) });
-    press("d");
-    expect(sent(sendMessage).map((m) => m.position)).toEqual([
-      { x: 4, y: 4 },
-      { x: 5, y: 4 },
-      { x: 6, y: 4 },
-    ]);
-  });
-
-  it("a held key against a wall cannot march the chain away: it stops PENDING_STEP_MAX_DEPTH ahead and a turn starts from the token", () => {
-    const { sendMessage } = setup();
-    for (let i = 0; i < 8; i += 1) press("d");
-    const eastward = sent(sendMessage).map((m) => m.position!.x);
-    expect(Math.max(...eastward)).toBe(3 + 4);
-    press("s");
-    expect(sent(sendMessage).at(-1)!.position).toEqual({ x: 3, y: 5 });
+    expect(sent(sendMessage).every((m) => !("position" in m))).toBe(true);
   });
 
   it("is inert from a typing surface or with any modifier", () => {
@@ -121,9 +101,6 @@ describe("useKeyboardMovement", () => {
   });
 
   it("a held key walks at the bounded cadence: repeats inside the interval send nothing", () => {
-    // The OS repeats ~every 33 ms; only the repeat that crosses the interval
-    // steps, so a one-second hold is ~6 steps, not 30. Swallowed repeats are
-    // still preventDefault-ed (the page must not scroll under a walking token).
     const { sendMessage } = setup();
     press("d");
     const swallowed = press("d", { repeat: true });
@@ -133,10 +110,7 @@ describe("useKeyboardMovement", () => {
     expect(sent(sendMessage)).toHaveLength(1);
     vi.setSystemTime(1_000_000 + HOLD_STEP_INTERVAL_MS);
     press("d", { repeat: true });
-    expect(sent(sendMessage).map((m) => m.position)).toEqual([
-      { x: 4, y: 4 },
-      { x: 5, y: 4 },
-    ]);
+    expect(sent(sendMessage)).toHaveLength(2);
   });
 
   it("a fresh press is never throttled, even right after a step", () => {
@@ -146,8 +120,9 @@ describe("useKeyboardMovement", () => {
     expect(sent(sendMessage)).toHaveLength(2);
   });
 
-  it("is inert in map-edit mode — the DM is authoring, not moving pieces", () => {
-    const { sendMessage } = setup({ mapEditMode: true, isDM: true });
+  it("map-edit mode zeroes the movable selection for the d-pad too, not only the keys", () => {
+    const { sendMessage, result } = setup({ mapEditMode: true, isDM: true });
+    expect(result.current.movableCount).toBe(0);
     press("d");
     expect(sendMessage).not.toHaveBeenCalled();
   });
@@ -167,44 +142,15 @@ describe("useKeyboardMovement", () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
-  it("two quick presses chain: the second lands two cells over, not on the first's cell", () => {
-    const { sendMessage } = setup();
-    press("d");
-    press("d");
-    expect(sent(sendMessage).map((m) => m.position)).toEqual([
-      { x: 4, y: 4 },
-      { x: 5, y: 4 },
-    ]);
-  });
-
-  it("once the snapshot catches up, the next press starts from it", () => {
+  it("a snapshot that moves the token changes nothing about the next press — the server owns the cell", () => {
     const { sendMessage, rerender, initial } = setup();
     press("d");
-    rerender({ ...initial, snapshot: snapshotWith([{ id: "mine", owner: "me", x: 4, y: 4 }]) });
+    rerender({ ...initial, snapshot: snapshotWith([{ id: "mine", owner: "me", x: 9, y: 9 }]) });
     press("d");
-    expect(sent(sendMessage).map((m) => m.position)).toEqual([
-      { x: 4, y: 4 },
-      { x: 5, y: 4 },
+    expect(sent(sendMessage)).toEqual([
+      { t: "step-object", id: "token:mine", dx: 1, dy: 0 },
+      { t: "step-object", id: "token:mine", dx: 1, dy: 0 },
     ]);
-  });
-
-  it("a refused step stops chaining after the TTL — counted from the FIRST unconfirmed step", () => {
-    const { sendMessage } = setup();
-    press("d");
-    vi.setSystemTime(1_000_000 + 1_000);
-    press("d"); // still inside the TTL of the first step: chains to 5
-    vi.setSystemTime(1_000_000 + 1_600);
-    press("d"); // 1.6 s after the FIRST step: the chain is stale, back to the snapshot
-    expect(sent(sendMessage).map((m) => m.position)).toEqual([
-      { x: 4, y: 4 },
-      { x: 5, y: 4 },
-      { x: 4, y: 4 },
-    ]);
-  });
-
-  it("map-edit mode zeroes the movable selection for the d-pad too, not only the keys", () => {
-    const { result } = setup({ mapEditMode: true, isDM: true });
-    expect(result.current.movableCount).toBe(0);
   });
 
   it("the DM moves every selected token in one press; move() is the d-pad's road to the same", () => {
@@ -215,22 +161,22 @@ describe("useKeyboardMovement", () => {
     expect(result.current.movableCount).toBe(2);
     act(() => result.current.move({ dx: 0, dy: 1 }));
     expect(sent(sendMessage)).toEqual([
-      { t: "transform-object", id: "token:mine", position: { x: 3, y: 5 } },
-      { t: "transform-object", id: "token:theirs", position: { x: 7, y: 9 } },
+      { t: "step-object", id: "token:mine", dx: 0, dy: 1 },
+      { t: "step-object", id: "token:theirs", dx: 0, dy: 1 },
     ]);
   });
 
-  it("a fractional origin (Snap off) snaps to the nearest cell before stepping", () => {
-    const { sendMessage } = setup({
-      snapshot: snapshotWith([{ id: "mine", owner: "me", x: 16.97, y: 14.6 }]),
-    });
-    press("d");
-    press("d");
-    expect(sent(sendMessage).map((m) => m.position)).toEqual([
-      { x: 18, y: 15 },
-      // Still chained: the rounded snapshot cell equals the step's `from`.
-      { x: 19, y: 15 },
-    ]);
+  it("re-registers the listener only when the SET of movable ids changes, not on every snapshot", () => {
+    const add = vi.spyOn(window, "addEventListener");
+    const { rerender, initial } = setup();
+    const keydowns = () => add.mock.calls.filter((c) => c[0] === "keydown").length;
+    const before = keydowns();
+    rerender({ ...initial, snapshot: snapshotWith([{ id: "mine", owner: "me", x: 4, y: 4 }]) });
+    expect(keydowns()).toBe(before);
+    rerender({ ...initial, selectedObjectIds: [] });
+    rerender({ ...initial, selectedObjectIds: ["token:mine"] });
+    expect(keydowns()).toBe(before + 1);
+    add.mockRestore();
   });
 
   it("removes its listener on unmount", () => {
