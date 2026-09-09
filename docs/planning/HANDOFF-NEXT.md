@@ -1115,24 +1115,31 @@ turns a cone into something else.
      banner); **K3 SHIPPED** (2026-09-06, three commits — the plan's K3 banner); **K4 SHIPPED** (2026-09-06, two
      commits — the plan's K4 banner); **K6 SHIPPED** (2026-09-06 — the journey spec, the budgets, the
      user-guide debt); **K5 (Cartridge Codes) DEFERRED to the plan's §7.** **The arc is complete.** The Atlas review's missing `mobile-surface` lens RAN first, alone (12 agents, `agents_error: 0`): 4 findings confirmed by both refuters, 1 refuted — they are the plan's K0, four production bugs fixed before the arc starts.
-   - **QUEUED BY THE OWNER 2026-09-08 — `PUBLISH TO LIVE MAP` can blank a live table.** Hit on
-     production. The DM-menu button (`MapStudioControl.handlePublish`) bakes the whole document to
-     a PNG, uploads it, and sends `backgroundMode: "full"`; the server then does
-     `if (backgroundMode !== "elements-only") return undefined` (`mapStudioHandlerUtils.ts:29`) and
-     DROPS `state.mapTerrain` on purpose, because the floor is supposed to live inside that PNG.
-     Walls are invisible to players by design, so when the PNG does not render there is nothing
-     left on screen but the document's bounding box and the staging zone — which reads exactly like
-     losing your map. Three things make it worse than a rendering glitch: **it reports no error**
-     (the publish "succeeded" — a URL landed in `mapBackground`); **the obvious recovery no-ops**,
-     because `sceneTravel.ts:266` treats travel to the node you are already bound to as
-     already-there; and **the real recovery is not discoverable** — clear the background, travel
-     AWAY to another node, then travel back, which re-derives terrain as data via
-     `deriveMapTerrain(document, "elements-only")` at `sceneTravel.ts:324`. Suspected cause, not yet
-     confirmed: `START LIVE MAP` mints an 8192x8192 document and rasterising 67 megapixels is where
-     a client-side bake would fall over. FIRST DIAGNOSTIC: open the `mapBackground` URL directly —
-     shows the map (rendering fault) / blank (bake fault) / 404 (upload or serving fault). Not from
-     the Kicked-In Door arc; it is the map-studio publish path, and it fixes under the
-     fix-bugs-regardless-of-origin rule.
+   - **QUEUED BY THE OWNER 2026-09-08 — `PUBLISH TO LIVE MAP` publishes the WRONG DOCUMENT and
+     blanks the table. ROOT CAUSE CONFIRMED by live reproduction 2026-09-08; the first two
+     hypotheses were both WRONG and are recorded here so nobody re-runs them.** The button publishes
+     `controller.activeDocument` — whatever the Map Studio list has SELECTED — which after a
+     kicked-in door (or any travel) is NOT the document the table is standing on: the studio still
+     holds the map you left. `MapStudioMessageHandler` then, for that wrong document,
+     `compileScene`s it into `state.compiledScene`, clears `state.mapElements`, drops
+     `state.mapTerrain` (because the DM menu sends `backgroundMode: "full"`), and stores its baked
+     background — **but never touches `liveMapDocumentId`.** So the table ends up with the binding
+     pointing at one document and the compiled scene at another, showing nothing but the bounding
+     box and the staging zone, with no error anywhere. Measured, standing in a kicked-in dungeon and
+     publishing the empty origin: `scene: DUNGEON -> ORIGIN`, `live: DUNGEON` (unchanged),
+     `terrain: true -> false`, `elements: true -> false`. That binding/scene split is the same shape
+     as the Atlas arc's own BLOCKER (guards keyed on the binding, capture on the scene).
+     **DEAD HYPOTHESES — do not repeat:** (1) the 8192x8192 canvas is NOT too big — an 8192 square
+     canvas paints and encodes fine in Chrome (tested: pixel drawn, 1.27 MB PNG, no error);
+     (2) the tile atlas is NOT missing — production serves `/tiles/tileset-v1.json` and its 1.1 MB
+     image with 200s. **Also corrected: travel to the node does NOT no-op**, which is what an
+     earlier reading of `sceneTravel.ts:266` predicted — `alreadyThere` needs binding AND scene to
+     agree, and publish is precisely what makes them disagree, so travelling to the node works and
+     is what the owner used to recover. **The fix has a design choice in it and is the owner's:**
+     (a) make publish REFUSE or CONFIRM when the target is not the live scene ("this replaces the
+     live map"); (b) make publish keep binding and scene consistent, which is a straight bug fix
+     since that split is never correct; (c) default the studio selection to the live document.
+     (a)+(b) is the recommendation.
    - **QUEUED BY THE OWNER 2026-09-08 — keyboard movement, one square per press, with sight and
      movement following it.** WASD and the arrow keys move the SELECTED token — or any selected
      item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three
