@@ -28,6 +28,7 @@ vi.mock("fs/promises", async () => {
 
 import * as fsPromises from "fs/promises";
 import { RoomService } from "../../service.js";
+import { awaitAllPendingWrites } from "../StatePersistence.js";
 
 const TEST_STATE_FILE = "./test-herobyte-state.json";
 // A SCRATCH path, deliberately not the real "./herobyte-state.json". This
@@ -62,8 +63,10 @@ describe("StatePersistence - Characterization Tests", () => {
   });
 
   afterEach(async () => {
-    // Wait for any pending async file writes to complete
+    // Wait for any pending async file writes to complete — on EVERY instance
+    // this test minted, or a debounced save lands in the next test.
     await roomService.awaitPendingWrites();
+    await awaitAllPendingWrites();
 
     // Clean up test state file (and atomic-write/quarantine leftovers)
     for (const leftover of [TEST_STATE_FILE, `${PROD_STATE_FILE}.corrupt`]) {
@@ -273,6 +276,31 @@ describe("StatePersistence - Characterization Tests", () => {
       const idle = new RoomService({ stateFile: PROD_STATE_FILE });
       idle.loadState();
       expect(idle.getState().characters.every((c) => !("movementUsed" in c))).toBe(true);
+    });
+
+    it("a burst of saves is ONE write, carrying the last state — a held key no longer writes 6.7 files a second", async () => {
+      const writes = fsPromises.writeFile as ReturnType<typeof vi.fn>;
+      const before = writes.mock.calls.length;
+      for (let step = 1; step <= 20; step += 1) {
+        roomService.getState().gridSquareSize = step;
+        roomService.saveState();
+      }
+      // Nothing has been written yet: the window is still open.
+      expect(writes.mock.calls.length).toBe(before);
+      await roomService.awaitPendingWrites(); // flushes the pending save at once
+      expect(writes.mock.calls.length).toBe(before + 1);
+      expect(JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8")).gridSquareSize).toBe(20);
+      // With no pending save, awaiting writes nothing new.
+      await roomService.awaitPendingWrites();
+      expect(writes.mock.calls.length).toBe(before + 1);
+    });
+
+    it("an unflushed save still lands on its own, after the window", async () => {
+      roomService.getState().gridSquareSize = 42;
+      roomService.saveState();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      await roomService.awaitPendingWrites();
+      expect(JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8")).gridSquareSize).toBe(42);
     });
 
     it("round-trips the combat round (0 and below included), and a poisoned one reads as absent", async () => {
@@ -1174,14 +1202,17 @@ describe("StatePersistence - Characterization Tests", () => {
       const writeFileSpy = fsPromises.writeFile as ReturnType<typeof vi.fn>;
       writeFileSpy.mockClear();
 
+      // Two FLUSHED saves (a burst inside the debounce window is one write —
+      // pinned above); each write mints its own tmp name.
       roomService.setState({ gridSize: 71 });
       roomService.saveState();
+      await roomService.awaitPendingWrites();
       roomService.setState({ gridSize: 72 });
       roomService.saveState();
       await roomService.awaitPendingWrites();
 
       const tmpPaths = writeFileSpy.mock.calls.map(([p]) => String(p));
-      expect(tmpPaths.length).toBeGreaterThanOrEqual(2);
+      expect(tmpPaths.length).toBe(2);
       expect(new Set(tmpPaths).size).toBe(tmpPaths.length); // all distinct
       for (const tmpPath of tmpPaths) {
         expect(tmpPath).toContain(`.${process.pid}.`);

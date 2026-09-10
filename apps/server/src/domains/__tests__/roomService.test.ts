@@ -14,6 +14,7 @@ vi.mock("fs/promises", () => ({
 import { readFileSync, existsSync } from "fs";
 import { writeFile } from "fs/promises";
 import { RoomService } from "../room/service.js";
+import { awaitAllPendingWrites } from "../room/persistence/StatePersistence.js";
 import { WebSocket } from "ws";
 
 const createClient = (): WebSocket => {
@@ -25,7 +26,9 @@ const createClient = (): WebSocket => {
 };
 
 describe("RoomService", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // A save is debounced; the previous test's lands here unless flushed first.
+    await awaitAllPendingWrites();
     vi.clearAllMocks();
   });
 

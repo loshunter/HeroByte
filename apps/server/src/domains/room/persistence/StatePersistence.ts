@@ -14,6 +14,7 @@ import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import { renameWithRetry } from "./atomicRename.js";
 import { coerceCombatRound, coerceLoadedCharacters } from "./loadCoercions.js";
+import { SAVE_DEBOUNCE_MS, TrailingDebounce, flushAllPending } from "./saveDebounce.js";
 import type { Player, SceneObject } from "@herobyte/shared";
 import {
   coerceDefaultVisionRadius,
@@ -48,10 +49,24 @@ const DEFAULT_STATE_FILE = resolveServerPath("herobyte-state.json");
  * one per room) then rename the SAME tmp path — the second finds nothing.
  */
 let nextWriteId = 0;
+/** Every instance's writes, chained — a test teardown awaits ALL of them. */
+let allWrites: Promise<void> = Promise.resolve();
+
+/**
+ * Flush every instance's pending (debounced) save and wait for every queued
+ * write. For test teardown: a debounced save on a second instance would
+ * otherwise land in the NEXT test's assertions.
+ */
+export function awaitAllPendingWrites(): Promise<void> {
+  flushAllPending();
+  return allWrites;
+}
 
 export class StatePersistence {
   private readonly stateFile: string;
   private writeQueue: Promise<void> = Promise.resolve();
+  /** A burst of saves (a held key: ~6.7/s) collapses into one write after the last. */
+  private readonly saveDebounce = new TrailingDebounce(SAVE_DEBOUNCE_MS, () => this.writeNow());
 
   /**
    * Creates a new StatePersistence instance.
@@ -209,8 +224,10 @@ export class StatePersistence {
   /**
    * Saves game state to disk asynchronously.
    *
-   * Called after every state change (via broadcast). Uses fire-and-forget pattern
-   * to prevent blocking the event loop during gameplay.
+   * Called after every state change (via broadcast). Fire-and-forget, and
+   * DEBOUNCED (saveDebounce.ts): the write happens SAVE_DEBOUNCE_MS after the
+   * last request, with the state as it is then; `awaitPendingWrites` flushes
+   * a pending one first. The last completed save always survives a crash.
    *
    * Persisted fields:
    * - tokens, players, characters, props
@@ -226,18 +243,13 @@ export class StatePersistence {
    * - drawingUndoStacks, drawingRedoStacks (runtime-only)
    * - selectionState (UI state, not game state)
    *
-   * Error handling:
-   * - Logs errors to console
-   * - Does not throw or propagate errors
-   * - Game continues even if save fails
-   *
-   * @example
-   * ```typescript
-   * const persistence = new StatePersistence(state, stagingManager);
-   * persistence.saveToDisk(); // Returns immediately, file writes in background
-   * ```
+   * Error handling: logs, never throws — the game continues if a save fails.
    */
   saveToDisk(): void {
+    this.saveDebounce.request();
+  }
+
+  private writeNow(): void {
     const state = this.getState();
     const persistentData = {
       tokens: state.tokens,
@@ -320,24 +332,16 @@ export class StatePersistence {
       .catch((err) => {
         console.error("Failed to save state:", err);
       });
+    allWrites = Promise.all([allWrites, this.writeQueue]).then(() => undefined);
   }
 
   /**
-   * Waits for all pending writes to complete.
-   *
-   * This method is primarily intended for testing to ensure that all
-   * async write operations have finished before making assertions.
-   *
-   * @returns Promise that resolves when all pending writes are complete
-   *
-   * @example
-   * ```typescript
-   * persistence.saveToDisk();
-   * await persistence.awaitPendingWrites(); // Wait for write to finish
-   * // Now safe to read and assert on the file content
-   * ```
+   * Flushes a debounced save, then waits for every queued write to complete.
+   * The shutdown path and the tests rely on this: after it resolves the file
+   * carries the latest state.
    */
   awaitPendingWrites(): Promise<void> {
+    this.saveDebounce.flush();
     return this.writeQueue;
   }
 }

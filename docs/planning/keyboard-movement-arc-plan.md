@@ -327,10 +327,12 @@ RECORDED, NOT FIXED (each an owner call or a pre-existing class):
   WIDENED channel, not a new one. The fix if the owner wants it: in `RoomService.broadcast`, send
   `{t:"state-sync", stateVersion}` to a recipient whose payload differs from the last only in
   `stateVersion`.
-- **A save per step.** `step-object` rides the transform road, which is `save: true`, so a hold
-  is ~6 full serialisations a second (~0.4 ms and ~100 KB each on the dev table). Pre-existing on
-  every drag release; the hold multiplies it. A trailing debounce in `StatePersistence.saveToDisk`
-  is the fix — its own commit, after the review.
+- ~~**A save per step.**~~ FIXED after the review (own commit): `step-object` rides the transform
+  road, which is `save: true`, so a hold was ~6.7 full serialisations and tmp+rename writes a
+  second (~0.4 ms and ~100 KB each on the dev table), N× that for a multi-select. `saveToDisk`
+  is now a trailing debounce (`saveDebounce.ts`, 250 ms after the last request, the state as it
+  is then); `awaitPendingWrites` flushes a pending save first, so the shutdown path and every
+  test still see the latest state on disk. The timer is unref'd.
 - **A sub-cell drag with Snap off charges 0 ft** while it stays inside one rounded cell index;
   one that crosses a half-cell boundary charges a whole square, however small. Accepted (Snap off
   is the exotic case) — but round 3 corrected the reasoning: this is NOT the ruler's boundary. The
