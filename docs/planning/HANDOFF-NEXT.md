@@ -36,7 +36,9 @@ past ~15 objects — one `step-object` per step now carries the whole selection;
 modal did not stop the keys; the d-pad's arrows were 11px on portrait phones and the landscape
 fold made a phone pay double for a diagonal; real holds are now proven over CDP and a mouse) and
 the OWNER decides whether the remaining recorded items — the pad covering the token it moves is
-the biggest — block the merge. The one deferred follow-up is DONE too (own commit): `saveToDisk`
+the biggest — block the merge. **The next agent's prompt is
+[PROMPT-keyboard-movement-followups.md](./PROMPT-keyboard-movement-followups.md)**: the merge
+decision first (theirs), then the pad-covers-token fix and the other owner calls as slices. The one deferred follow-up is DONE too (own commit): `saveToDisk`
 is a trailing debounce (`saveDebounce.ts`, 250 ms), so a held key no longer writes the state file
 ~6.7 times a second; `awaitPendingWrites` flushes first, and a test teardown can
 `awaitAllPendingWrites()` across every instance. A second bug fixed regardless of origin, own commit: the initiative modal confirmed a
