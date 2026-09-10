@@ -58,9 +58,12 @@ line-of-sight redraw from the next snapshot, square by square, with no fog code 
   five); the sheet exists exactly when a selection does. Eight chips each ≥ 44×44 (measured 69×44
   at 375×812, the pad taking the 220px it asks for — a grid item with `margin: 0 auto` had shrunk
   it to 3×44, round 2); in a short landscape viewport (812×375) the pad folds to ONE row of the
-  four orthogonals (← ↑ ↓ →, keyed on `data-dir`, never on label text; the fold selector is two
-  classes deep because the later base rule beat it at equal specificity and round 2 measured two
-  rows led by a dead dot). Renders only when `movableCount > 0`, so a selection the player may not
+  four orthogonals — round 3 changed that to TWO rows of four, orthogonals then diagonals: the
+  budget prices a diagonal at one square and its two orthogonal substitutes at two, so the one-row
+  fold made a landscape phone pay double (keyed on `data-dir`, never on label text; the fold
+  selector is two classes deep because the later base rule beat it at equal specificity and round
+  2 measured two rows led by a dead dot; the button rule is two classes deep too, because the
+  420px `.mobile-chip` rule later in the file shrank the arrows to 11px on every portrait phone). Renders only when `movableCount > 0`, so a selection the player may not
   move shows the sheet without a pad. One press is one step on every pointer: the compat `click`
   after a pointer sequence (`detail ≥ 1`) is ignored, a keyboard activation (`detail 0`) steps,
   throttled to the same cadence — round 1 MEASURED that a finger tap is down, up, out, leave,
@@ -77,7 +80,8 @@ selection, step origin), `useKeyboardMovement.ts` (the listener, returns `Moveme
 `layouts/MobileMovePad.tsx` (the d-pad), threaded App → `MainLayoutProps.movement` (optional, the
 `kick` precedent) → `MobileLayout` → `MobileSelectionSheet`. CSS `.mobile-move-pad`.
 
-**Pins.** 22 unit tests (pure + hook), 2 layout tests (the d-pad through the REAL `MobileLayout`,
+**Pins (as shipped in slice 1; round 2 removed the chain suite — HEAD carries 20 unit cases).**
+22 unit tests (pure + hook), 2 layout tests (the d-pad through the REAL `MobileLayout`,
 including the "no pad when nothing movable" case), e2e `keyboard-movement.spec.ts` (real key
 presses: step, chat-box guard, someone else's token via a SECOND browser context so it never
 skips) and `mobile/mobile-move-pad.spec.ts` (375px: pad present, 44px floor, fits above the dock,
@@ -105,17 +109,27 @@ a hook module cleared the server-side selection once (dev-only; the roll log doe
 the walk starts, then the same cadence; a slide-off or cancel stops it). "Any selected item" was
 already true after slice 1 (props ride the same road; an NPC token is a token the DM may move).
 
-**Decisions.** The OS repeat (~30/s) is throttled, not honoured: a repeat event steps only when
-`HOLD_STEP_INTERVAL_MS` has passed since the last step — one press is still one round trip, and the
-chain keeps the walk continuous. Swallowed repeats are still `preventDefault`-ed so the page cannot
-scroll under a walking token. A fresh press is never throttled. On the pad, the click that follows
-a pointer press is skipped (a tap is one step; keyboard activation still steps) and the walk timer
-reads the LATEST `movement` through a ref — every snapshot replaces `move`, and a hold longer than
-the chain's 1.5 s TTL would otherwise step from where the token was when the press began (caught
-on read-back, pinned).
+**Decisions (the chain sentences are the slice-2 record; round 2 removed the chain — each
+repeat is another relative step against the server's own cell, which is what keeps a walk
+continuous now).** The OS repeat (~30/s) is throttled, not honoured: a repeat event steps only when
+`HOLD_STEP_INTERVAL_MS` has passed since the last step — one press is still one round trip, ONE
+message for the whole selection (round 3: a message per object was 6.7 × N a second, past the
+limiter's 100/s at ~15 objects, and the dropped steps broke formation; the client chunks at
+`MAX_STEP_OBJECTS`). Swallowed repeats are still `preventDefault`-ed so the page cannot scroll
+under a walking token. A fresh press is never throttled. A full-screen modal (`[data-modal-overlay]`
+— initiative, elevation, character creation) makes the keys inert: round 3 showed an arrow pressed
+"into" the initiative panel stepped the token underneath and charged its budget. On the pad, the
+click that follows a pointer press is skipped (a tap is one step; keyboard activation still steps,
+throttled per BUTTON) and the walk timer reads the LATEST `movement` through a ref. The hold delay
+is 500 ms (was 350: a careful thumb stepped twice and paid 10 ft); only the primary button of the
+primary pointer presses (a right-click stepped, its menu suppressed); where capture is refused the
+pointer LEAVING the chip ends the walk, so no walk is unbounded.
 
-**Pins.** +2 hook tests (cadence, fresh press unthrottled), +1 layout test (press → delay → walk →
-release → skipped click → bare click → slide-off latch → mid-walk `move` swap). Sabotage 8/8 red.
+**Pins (slice 2 as shipped; HEAD's layout test also covers pointer capture, pointer id, right
+button, leave-without-capture, per-button throttle).** +2 hook tests (cadence, fresh press
+unthrottled), +1 layout test (press → delay → walk → release → skipped click → bare click →
+slide-off latch → mid-walk `move` swap). Sabotage 8/8 red. Round 3 added the holds a browser engine
+can see — `mobile-move-pad.spec.ts` holds a finger over CDP and a mouse released far off the chip.
 
 **Live-checked.** Desktop: 31 synthetic repeat events in ~1 s → 4 steps (19→23). Phone: a 1.2 s
 pointer hold sent 7 steps at 2/360/515/670/828/983/1139 ms; six landed and the seventh was REFUSED
@@ -235,7 +249,27 @@ as `null`); a charged legacy move no longer sends a delta beside its snapshot; a
 restart back-fills missing records; the round coercions are integer-only; the contract test gained
 the road the secret is WRITTEN on (a DM setting a monster's speed) and a turn-start reset frame,
 a positive control on the player's own frame, the missing `+10` sweep value and a five-digit
-sentinel; the travel bucket map says `cleared`. Sabotage: 17/17 red. RECORDED here, not fixed:
+sentinel; the travel bucket map says `cleared`. Sabotage: 17/17 red.
+
+**Client and mobile half (the second commit).** MAJOR: a multi-select walk sent one message per
+object per step and tripped the limiter past ~15 objects, dropping steps at random — one message
+for the whole selection now, chunked at 64; a full-screen modal did not stop the keys (an arrow
+"into" the initiative panel stepped the token underneath and charged it) — `[data-modal-overlay]`
+makes them inert; the d-pad's arrows rendered at 11px on every portrait phone (a later
+`.mobile-chip` rule at equal specificity) — the button rule is two classes deep; the landscape
+fold dropped the diagonals and so made a landscape phone pay double — two rows of four; the NPC
+editor's stat row went to five `nowrap` columns — it wraps, with an on-screen assertion; the
+pointer-capture fix was proven by nothing on a browser engine — `mobile-move-pad.spec.ts` now
+holds a finger over CDP and releases a mouse far off the chip; the NPC speed editor's id binding
+was pinned only by a one-NPC spec — a two-NPC unit test names the second. Also: a right-click
+stepped (button 2, menu suppressed); a pen without capture walked unbounded — `pointerleave` ends
+it; the hold delay is 500 ms; the Enter throttle is per button; the initiative watchdog is cleared
+on confirm (a second entry inside the first's window was reported as a timeout) and its newer-frame
+road is described honestly; a token born over the delta channel gets a sprite; `MovableSelection`
+lost its dead cells; the mobile speed spec commits by blur (a phone keypad has no Enter); the
+nameplate floor sweep covers the budget line; the budget specs no longer pin the font size; the
+slice-2 decisions carry their supersede banner; HANDOFF's stale chain sentence is gone.
+RECORDED here, not fixed (server half):
 next/previous-turn ignore `combatActive` (a player can walk the pointer out of combat and drift
 the round; nothing charges and the next start returns it to 1); the wall check for a fractional
 origin runs from the raw cell, not the rounded one (over-blocks, never under-blocks); a DM-run
@@ -263,7 +297,7 @@ the readout format pinned without Konva; the plates memo's missing `combatActive
 and a dozen stale sentences. REFUTED: the pad hiding when another tool is armed (the selection
 clears; the keys have nothing to move either). The rest is recorded above with its reasoning.
 
-## Review round 1 (2026-09-09) — six lenses, 12 fixed, the rest recorded
+## Review round 1 (2026-09-09) — six lenses, the defects fixed, the rest recorded
 
 Six read-only Opus lenses on the full arc diff (defects, server semantics, test validity,
 doc-vs-code honesty, privacy/wire, mobile reach), all `MODE: static`, plus the lead's
@@ -332,3 +366,17 @@ RECORDED, NOT FIXED (each an owner call or a pre-existing class):
   advisory today).
 - Hold-to-walk on the phone d-pad steps at the keyboard's cadence; a slower phone cadence is a
   one-constant change if thumbs find it fast.
+- **The pad covers the thing it moves** (round 3): at 375×812 the selection sheet plus the dock is
+  a ~340px band over the map, the budget line sits BELOW the token, and a player walking ↓ walks
+  into the band — every press charged, no undo. The fix is a camera follow while the pad is
+  mounted (pan when the token's screen point enters the sheet's rect), or a plate that flips above
+  the token there; either is a design call.
+- Drawings are not steppable — `movableSelection` and the validator take tokens and props only
+  (a drawing's transform is in pixels). A DM who marquee-selects a spline with a token moves the
+  token alone; "any selected item" in the launch prompt meant tokens, props and NPCs.
+- ~~A blanked number input resets a set speed to the default~~ — fixed in the client half: a
+  rejected entry (`validity.badInput`) snaps back to the value on file; only a real clear means
+  "back to the default".
+- The initiative modal's newer-frame confirmation proves the STATE is what was asked, not that
+  this request produced it; a walk's step can close the wait early in the no-op case (nothing
+  wrong persists). A server ack would be the honest signal.

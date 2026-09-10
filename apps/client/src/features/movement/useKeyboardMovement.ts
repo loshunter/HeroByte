@@ -13,8 +13,15 @@
 //
 // Guard, per invariant 4.17 (the G precedent) MINUS its DM-only clause — a
 // player moving their own token is the point: not from a typing surface, no
-// modifier, and inert in map-edit mode, where the DM is authoring the map,
-// not moving pieces on it (a held key is THROTTLED, not dropped — below).
+// modifier, not while a full-screen modal is up (`[data-modal-overlay]` —
+// the initiative panel has no focus trap, and an arrow pressed "into" it
+// stepped the token underneath and charged its budget), and inert in
+// map-edit mode, where the DM is authoring the map, not moving pieces on it
+// (a held key is THROTTLED, not dropped — below).
+//
+// ONE message per step for the whole selection, chunked at MAX_STEP_OBJECTS:
+// a message per object was 6.7 × N a second under a held key, past the
+// limiter's 100/s at ~15 objects, and the dropped steps broke formation.
 //
 // REPEAT MODEL: a held key WALKS, at a bounded cadence. The OS repeat rate
 // (~30/s) would be 30 messages a second, each a broadcast and a fog
@@ -23,7 +30,7 @@
 // ~6 cells a second. The first, non-repeat press is always immediate.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
+import { MAX_STEP_OBJECTS, type ClientMessage, type RoomSnapshot } from "@herobyte/shared";
 import { isEditableTarget } from "../../utils/isEditableTarget";
 import { deltaForKey, movableSelection, type CellDelta } from "./keyboardMovement";
 
@@ -66,14 +73,15 @@ export function useKeyboardMovement({
   // a walk, plus every heartbeat).
   const movableRef = useRef(movable);
   movableRef.current = movable;
-  const movableKey = useMemo(() => movable.map((object) => object.id).join("|"), [movable]);
+  const movableKey = useMemo(() => movable.join("|"), [movable]);
   const lastStepAtRef = useRef(0);
 
   const move = useCallback(
     ({ dx, dy }: CellDelta) => {
       lastStepAtRef.current = Date.now();
-      for (const object of movableRef.current) {
-        sendMessage({ t: "step-object", id: object.id, dx, dy });
+      const ids = movableRef.current;
+      for (let start = 0; start < ids.length; start += MAX_STEP_OBJECTS) {
+        sendMessage({ t: "step-object", ids: ids.slice(start, start + MAX_STEP_OBJECTS), dx, dy });
       }
     },
     [sendMessage],
@@ -86,6 +94,7 @@ export function useKeyboardMovement({
       if (!delta) return;
       if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       if (isEditableTarget(event.target)) return;
+      if (document.querySelector("[data-modal-overlay]")) return;
       event.preventDefault();
       if (event.repeat && Date.now() - lastStepAtRef.current < HOLD_STEP_INTERVAL_MS) return;
       move(delta);

@@ -234,6 +234,48 @@ describe("useInitiativeSetting - setInitiative confirmation", () => {
     expect(result.current.error).toBeNull();
   });
 
+  it("a second entry inside the first's five-second window is not reported as a timeout", () => {
+    // The first entry's watchdog was never cleared: it fired during the
+    // second's wait, saw `isSetting`, and reported a timeout over a save the
+    // server applied (one pair in ~100 within the window).
+    const { result, rerender } = mount(frame(5, 10, 0));
+    act(() => result.current.setInitiative("char-1", 12, 0));
+    rerender({ snapshot: frame(6, 12, 0) }); // confirmed at once
+    expect(result.current.isSetting).toBe(false);
+    act(() => {
+      vi.advanceTimersByTime(4900);
+    });
+    act(() => result.current.setInitiative("char-1", 14, 0));
+    act(() => {
+      vi.advanceTimersByTime(200); // the FIRST watchdog's moment passes
+    });
+    expect(result.current.isSetting).toBe(true);
+    expect(result.current.error).toBeNull();
+    rerender({ snapshot: frame(7, 14, 0) });
+    expect(result.current.isSetting).toBe(false);
+  });
+
+  it("a new entry inside an UNANSWERED entry's window restarts the watchdog rather than inheriting it", () => {
+    // The first request never got its frame (dropped, refused); the second
+    // must get its own five seconds, not the tail of the first's.
+    const { result } = mount(frame(5, 10, 0));
+    act(() => result.current.setInitiative("char-1", 12, 0));
+    act(() => {
+      vi.advanceTimersByTime(4900);
+    });
+    act(() => result.current.setInitiative("char-1", 14, 0));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(result.current.isSetting).toBe(true);
+    expect(result.current.error).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(4900);
+    });
+    expect(result.current.isSetting).toBe(false);
+    expect(result.current.error).toBe("Initiative update timed out. Please try again.");
+  });
+
   it("confirms a clear of an already-clear initiative on a newer frame", () => {
     const { result, rerender } = mount(frame(5, undefined, 0));
 

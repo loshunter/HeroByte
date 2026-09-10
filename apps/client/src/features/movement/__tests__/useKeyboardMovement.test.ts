@@ -1,6 +1,6 @@
-// The listener: a bare movement key sends ONE relative step-object per
-// movable selected object; the 4.17 guard (typing surface, modifier) and
-// map-edit mode make it inert; nothing selected leaves the key alone (no
+// The listener: a bare movement key sends ONE relative step-object naming
+// every movable selected object; the 4.17 guard (typing surface, modifier, a
+// modal overlay) and map-edit mode make it inert; nothing selected leaves the key alone (no
 // preventDefault — arrows still scroll a focused panel); a held key walks at
 // the bounded cadence. There is no client-side chain any more: the server
 // resolves every step from its own cell, so N presses are N steps in order.
@@ -68,7 +68,7 @@ describe("useKeyboardMovement", () => {
   it("d sends ONE relative step for the selected token, and swallows the key", () => {
     const { sendMessage } = setup();
     const event = press("d");
-    expect(sent(sendMessage)).toEqual([{ t: "step-object", id: "token:mine", dx: 1, dy: 0 }]);
+    expect(sent(sendMessage)).toEqual([{ t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 }]);
     expect(event.defaultPrevented).toBe(true);
   });
 
@@ -148,8 +148,8 @@ describe("useKeyboardMovement", () => {
     rerender({ ...initial, snapshot: snapshotWith([{ id: "mine", owner: "me", x: 9, y: 9 }]) });
     press("d");
     expect(sent(sendMessage)).toEqual([
-      { t: "step-object", id: "token:mine", dx: 1, dy: 0 },
-      { t: "step-object", id: "token:mine", dx: 1, dy: 0 },
+      { t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 },
+      { t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 },
     ]);
   });
 
@@ -161,9 +161,36 @@ describe("useKeyboardMovement", () => {
     expect(result.current.movableCount).toBe(2);
     act(() => result.current.move({ dx: 0, dy: 1 }));
     expect(sent(sendMessage)).toEqual([
-      { t: "step-object", id: "token:mine", dx: 0, dy: 1 },
-      { t: "step-object", id: "token:theirs", dx: 0, dy: 1 },
+      { t: "step-object", ids: ["token:mine", "token:theirs"], dx: 0, dy: 1 },
     ]);
+  });
+
+  it("a selection past the wire's cap goes in chunks, none dropped", () => {
+    const tokens = Array.from({ length: 70 }, (_, i) => ({ id: `t${i}`, owner: "me", x: 0, y: 0 }));
+    const { sendMessage } = setup({
+      snapshot: snapshotWith(tokens),
+      selectedObjectIds: tokens.map((t) => `token:${t.id}`),
+    });
+    press("d");
+    const messages = sent(sendMessage);
+    expect(messages.map((m) => m.ids.length)).toEqual([64, 6]);
+    expect(messages.flatMap((m) => m.ids)).toEqual(tokens.map((t) => `token:${t.id}`));
+  });
+
+  it("is inert while a full-screen modal is up, and leaves the key to the modal", () => {
+    const { sendMessage } = setup();
+    const overlay = document.createElement("div");
+    overlay.setAttribute("data-modal-overlay", "");
+    document.body.appendChild(overlay);
+    try {
+      const event = press("ArrowDown");
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(false);
+    } finally {
+      overlay.remove();
+    }
+    press("ArrowDown");
+    expect(sendMessage).toHaveBeenCalledTimes(1);
   });
 
   it("re-registers the listener only when the SET of movable ids changes, not on every snapshot", () => {

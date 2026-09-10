@@ -15,6 +15,13 @@ import type { DiagonalRule, MeasurePoint } from "./measurement.js";
 
 /** Feet per turn when the DM has not set a character's speed. */
 export const DEFAULT_MOVEMENT_SPEED_FEET = 30;
+/**
+ * How many objects one `step-object` may carry. A walk sends one message per
+ * step for the WHOLE selection (a per-object message tripped the 100/s
+ * limiter past ~15 objects and dropped steps at random); the client chunks a
+ * larger selection.
+ */
+export const MAX_STEP_OBJECTS = 64;
 export const MOVEMENT_SPEED_MIN_FEET = 0;
 export const MOVEMENT_SPEED_MAX_FEET = 1000;
 

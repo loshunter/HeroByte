@@ -3,12 +3,13 @@
 // ============================================================================
 // One press moves the selection exactly one grid cell. Everything here is a
 // pure function over the snapshot so the hook stays a thin listener and the
-// rules (which keys, who may move what, where a chained press starts from)
-// are testable without a DOM.
+// rules (which keys, who may move what) are testable without a DOM.
 //
 // The MOVE is always one cell, and the wire is RELATIVE (`step-object` carries
-// a direction): where the cell IS is the server's business, and so is what it
-// COSTS against a movement budget (movementCharge, under the diagonal rule).
+// a direction and the ids, never a cell): where each cell IS is the server's
+// business, and so is what a step COSTS against a movement budget
+// (movementCharge, under the diagonal rule). Tokens and props only — a
+// drawing's transform is in pixels, so "one cell" means nothing there.
 
 import type { RoomSnapshot } from "@herobyte/shared";
 
@@ -17,13 +18,8 @@ export interface CellDelta {
   dy: -1 | 0 | 1;
 }
 
-/** A selected object the actor is allowed to move, with its current cell. */
-export interface MovableSelection {
-  /** Scene-object id (`token:…` / `prop:…`) — what `transform-object` takes. */
-  id: string;
-  x: number;
-  y: number;
-}
+/** A scene-object id (`token:…` / `prop:…`) the actor is allowed to move — what `step-object` names. */
+export type MovableSelection = string;
 
 // Screen-up is smaller y (Konva's y grows downward). WASD and the arrows are
 // the four orthogonals; Q/E/Z/C and the numpad corners are the diagonals, so
@@ -92,7 +88,7 @@ export function movableSelection({
     if (id.startsWith("token:")) {
       const token = snapshot.tokens?.find((candidate) => candidate.id === id.slice(6));
       if (!token || (!isDM && token.owner !== uid)) continue;
-      out.push({ id, x: token.x, y: token.y });
+      out.push(id);
     } else if (id.startsWith("prop:")) {
       const prop = snapshot.props?.find((candidate) => candidate.id === id.slice(5));
       if (!prop) continue;
@@ -101,7 +97,7 @@ export function movableSelection({
       const mayMove =
         isDM || prop.owner === "*" || (snapshot.playerPropsEnabled === true && prop.owner === uid);
       if (!mayMove) continue;
-      out.push({ id, x: prop.x, y: prop.y });
+      out.push(id);
     }
   }
   return out;

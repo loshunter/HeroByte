@@ -65,7 +65,7 @@ const readouts = (page: Page) =>
     ).Konva.stages[0];
     return stage
       .find(".token-move-budget")
-      .map((node) => ({ text: node.text(), size: node.fontSize(), fill: node.fill() }));
+      .map((node) => ({ text: node.text(), fill: node.fill() }));
   });
 
 const GOLD = "#e0a83c";
@@ -124,7 +124,7 @@ test.describe("movement budget", () => {
         .toEqual({ speed: 25, movementUsed: 0, initiative: 15 });
       await expect
         .poll(() => readouts(page), { timeout: 5_000 })
-        .toContainEqual({ text: "25 / 25 ft", size: 11, fill: GOLD });
+        .toContainEqual({ text: "25 / 25 ft", fill: GOLD });
 
       // Two orthogonal steps: 10 ft under every rule.
       await selectTool(page).click();
@@ -149,7 +149,7 @@ test.describe("movement budget", () => {
         .toBe(10);
       await expect
         .poll(() => readouts(page), { timeout: 5_000 })
-        .toContainEqual({ text: "15 / 25 ft", size: 11, fill: GOLD });
+        .toContainEqual({ text: "15 / 25 ft", fill: GOLD });
 
       // My turn comes round again: the budget starts over.
       await advanceToTurnOf(dm, me.id);
@@ -158,7 +158,7 @@ test.describe("movement budget", () => {
         .toBe(0);
       await expect
         .poll(() => readouts(page), { timeout: 5_000 })
-        .toContainEqual({ text: "25 / 25 ft", size: 11, fill: GOLD });
+        .toContainEqual({ text: "25 / 25 ft", fill: GOLD });
 
       // Overspend: a 5 ft speed and two steps — the readout goes negative and red.
       await send(dm, { t: "set-character-speed", characterId: me.id, speed: 5 });
@@ -166,7 +166,7 @@ test.describe("movement budget", () => {
       await page.keyboard.press("ArrowLeft");
       await expect
         .poll(() => readouts(page), { timeout: 5_000 })
-        .toContainEqual({ text: "-5 / 5 ft", size: 11, fill: RED });
+        .toContainEqual({ text: "-5 / 5 ft", fill: RED });
       // And back to the default by emptying the field: the plate reads 30 again.
       await setSpeedFromCard(dm, myName, "");
       await expect

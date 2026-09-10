@@ -3,7 +3,11 @@
  * sits at the 350-line ceiling.
  */
 
-import { MOVEMENT_SPEED_MAX_FEET, MOVEMENT_SPEED_MIN_FEET } from "@herobyte/shared";
+import {
+  MAX_STEP_OBJECTS,
+  MOVEMENT_SPEED_MAX_FEET,
+  MOVEMENT_SPEED_MIN_FEET,
+} from "@herobyte/shared";
 import type { MessageRecord, ValidationResult } from "./index.js";
 
 const STEP = new Set([-1, 0, 1]);
@@ -11,16 +15,23 @@ const STEP = new Set([-1, 0, 1]);
 const STEPPABLE = /^(token|prop):./;
 
 /**
- * step-object: one grid cell from the object's current cell. The client sends
- * a DIRECTION, never a cell, so it can never ask for a cell the token is not
- * next to — the server resolves the target from its own authoritative
- * position (TransformMessageHandler.handleStepObject).
+ * step-object: one grid cell from each object's current cell, ONE message for
+ * the whole selection. The client sends a DIRECTION, never a cell, so it can
+ * never ask for a cell the token is not next to — the server resolves every
+ * target from its own authoritative position
+ * (TransformMessageHandler.handleStepObjects).
  */
 export function validateStepObjectMessage(message: MessageRecord): ValidationResult {
-  if (typeof message.id !== "string" || !STEPPABLE.test(message.id)) {
-    return { valid: false, error: "step-object: id must name a token or a prop" };
+  const { ids, dx, dy } = message;
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > MAX_STEP_OBJECTS) {
+    return { valid: false, error: `step-object: ids must name 1 to ${MAX_STEP_OBJECTS} objects` };
   }
-  const { dx, dy } = message;
+  if (!ids.every((id) => typeof id === "string" && STEPPABLE.test(id))) {
+    return { valid: false, error: "step-object: every id must name a token or a prop" };
+  }
+  if (new Set(ids).size !== ids.length) {
+    return { valid: false, error: "step-object: an object may appear once" };
+  }
   if (!STEP.has(dx as number) || !STEP.has(dy as number)) {
     return { valid: false, error: "step-object: dx and dy must each be -1, 0 or 1" };
   }

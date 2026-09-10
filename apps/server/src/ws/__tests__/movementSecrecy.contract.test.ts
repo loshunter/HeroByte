@@ -162,7 +162,7 @@ describe("movement budget secrecy contracts", () => {
   });
 
   it("the DM stepping the monster (the keyboard's step-object road) charges it and leaks nothing", () => {
-    route({ t: "step-object", id: "token:tok-goblin", dx: 1, dy: 0 }, DM);
+    route({ t: "step-object", ids: ["token:tok-goblin"], dx: 1, dy: 0 }, DM);
     expect(roomService.getState().characters[0]!.movementUsed).toBe(GOBLIN_USED + 5);
     // Alice DID receive the frame (positive control), and it carries nothing.
     expect(charactersSeenBy(aliceWs).some((c) => c.id === "npc-goblin")).toBe(true);
@@ -225,7 +225,7 @@ describe("movement budget secrecy contracts", () => {
     });
     roomService.getState().characters[0]!.visibleToPlayers = false;
     route({ t: "move", id: "tok-goblin", x: 5, y: 3 }, DM);
-    route({ t: "step-object", id: "token:tok-goblin", dx: 1, dy: 0 }, DM);
+    route({ t: "step-object", ids: ["token:tok-goblin"], dx: 1, dy: 0 }, DM);
     route({ t: "transform-object", id: "token:tok-goblin", position: { x: 7, y: 3 } }, DM);
     expect(roomService.getState().characters[0]!.movementUsed).toBe(GOBLIN_USED + 20);
     expect(aliceWs.send.mock.calls.length).toBeGreaterThan(0);

@@ -139,11 +139,25 @@ export class SnapshotReconciler {
     // where it was until the next full snapshot (the kicked-in-door spec's
     // "step the party aside" then clicked a token still drawn on the door).
     const sceneId = `token:${token.id}`;
-    const sceneObjects = snapshot.sceneObjects?.map((object) =>
+    if (!snapshot.sceneObjects) return { ...snapshot, tokens };
+    const sceneObjects = snapshot.sceneObjects.map((object) =>
       object.id === sceneId
         ? { ...object, transform: { ...object.transform, x: token.x, y: token.y } }
         : object,
     );
+    // A token the base snapshot never had (born over the delta channel) needs
+    // a sprite too, or it has data and no drawing until the next full frame.
+    if (!sceneObjects.some((object) => object.id === sceneId)) {
+      sceneObjects.push({
+        id: sceneId,
+        type: "token",
+        owner: token.owner,
+        locked: false,
+        zIndex: 10,
+        transform: { x: token.x, y: token.y, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { color: token.color, imageUrl: token.imageUrl, size: token.size },
+      });
+    }
     return { ...snapshot, tokens, sceneObjects };
   }
 

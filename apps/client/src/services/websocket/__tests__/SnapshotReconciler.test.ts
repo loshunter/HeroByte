@@ -89,6 +89,29 @@ describe("SnapshotReconciler", () => {
     expect(moved.transform).toMatchObject({ x: 10, y: 20, scaleX: 1, rotation: 0 });
     // Untouched neighbours keep their identity; nothing else in the graph moves.
     expect(next.sceneObjects!.find((object) => object.id === "token:token-2")).toBe(other);
+
+    // A token the base never had is born WITH a sprite; a base with no scene
+    // graph gains none (the key stays absent, not `undefined`).
+    onSnapshot.mockClear();
+    reconciler.applyDelta({
+      t: "token-updated",
+      stateVersion: 7,
+      token: { id: "token-3", owner: "p2", x: 4, y: 5, color: "#0f0" },
+    });
+    const born = (onSnapshot.mock.calls[0]![0] as RoomSnapshot).sceneObjects!.find(
+      (object) => object.id === "token:token-3",
+    )!;
+    expect(born).toMatchObject({ type: "token", owner: "p2", transform: { x: 4, y: 5 } });
+    const bare = createSnapshot({ stateVersion: 8 });
+    delete (bare as { sceneObjects?: unknown }).sceneObjects;
+    reconciler.applySnapshot(bare);
+    onSnapshot.mockClear();
+    reconciler.applyDelta({
+      t: "token-updated",
+      stateVersion: 9,
+      token: { id: "token-1", owner: "p1", x: 1, y: 1, color: "#fff" },
+    });
+    expect("sceneObjects" in (onSnapshot.mock.calls[0]![0] as RoomSnapshot)).toBe(false);
   });
 
   it("advances the version on state-sync without emitting a snapshot", () => {

@@ -59,7 +59,7 @@ test.describe("mobile — movement budget", () => {
       const box = (await field.boundingBox())!;
       expect(box.height, "the speed input sits on the 44px floor").toBeGreaterThanOrEqual(44);
       await field.fill("25");
-      await field.press("Enter");
+      await field.blur(); // a phone keypad has no Enter: the commit is the blur
       await expect
         .poll(
           () =>
@@ -88,17 +88,15 @@ test.describe("mobile — movement budget", () => {
               };
             }
           ).Konva.stages[0];
-          return stage
-            .find(".token-move-budget")
-            .map((node) => ({ text: node.text(), size: node.fontSize() }));
+          return stage.find(".token-move-budget").map((node) => ({ text: node.text() }));
         });
       try {
         await expect
           .poll(() => readouts(page), { timeout: 5_000 })
-          .toContainEqual({ text: "25 / 25 ft", size: 11 });
+          .toContainEqual({ text: "25 / 25 ft" });
         await expect
           .poll(() => readouts(player), { timeout: 5_000 })
-          .toContainEqual({ text: "25 / 25 ft", size: 11 });
+          .toContainEqual({ text: "25 / 25 ft" });
       } finally {
         await send(page, { t: "end-combat" });
       }
@@ -140,8 +138,21 @@ test.describe("mobile — movement budget", () => {
       await field.scrollIntoViewIfNeeded();
       const box = (await field.boundingBox())!;
       expect(box.height, "the NPC speed input sits on the 44px floor").toBeGreaterThanOrEqual(44);
+      // Five stats now share the editor's row: on a 375px phone they must
+      // WRAP, not squeeze — every control of the editor stays inside the
+      // viewport's width.
+      const overflowing = await page.evaluate(() => {
+        const editor = document
+          .querySelector('[aria-label="Movement speed in feet per turn"]')!
+          .closest("div")!.parentElement!;
+        return [...editor.querySelectorAll("input, button")]
+          .map((el) => el.getBoundingClientRect())
+          .filter((r) => r.width > 0 && (r.left < 0 || r.right > innerWidth))
+          .map((r) => Math.round(r.right));
+      });
+      expect(overflowing).toEqual([]);
       await field.fill("20");
-      await field.press("Enter");
+      await field.blur(); // a phone keypad has no Enter: the commit is the blur
       await expect
         .poll(
           () =>

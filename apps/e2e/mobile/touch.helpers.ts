@@ -85,6 +85,13 @@ export async function touchTap(cdp: CDPSession, at: Pt): Promise<void> {
   await send(cdp, "touchEnd", []);
 }
 
+/** One finger held still for `ms`, then lifted — a press-and-hold, on a real touch pointer. */
+export async function touchHold(cdp: CDPSession, at: Pt, ms: number): Promise<void> {
+  await send(cdp, "touchStart", [at]);
+  await new Promise((resolve) => setTimeout(resolve, ms));
+  await send(cdp, "touchEnd", []);
+}
+
 /**
  * Two fingers moving from `start` to `end` positions simultaneously.
  *

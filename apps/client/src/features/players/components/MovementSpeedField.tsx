@@ -43,12 +43,13 @@ export function MovementSpeedField({
     setText(value === undefined ? "" : String(value));
   }, [value]);
 
-  const commit = () => {
+  const commit = (input: HTMLInputElement) => {
     const speed = clampSpeed(text);
+    // A number input reports "" for anything it REJECTED (a stray keypad
+    // character) as well as for a real clear; only the latter means "back to
+    // the default" — the former snaps back to the value on file.
     if (speed === null) {
-      // An emptied field returns the character to the default; anything
-      // unparseable is simply dropped.
-      if (text.trim() === "" && value !== undefined) onChange(null);
+      if (text.trim() === "" && value !== undefined && !input.validity.badInput) onChange(null);
       else setText(value === undefined ? "" : String(value));
       return;
     }
@@ -73,7 +74,7 @@ export function MovementSpeedField({
         placeholder={`Default — ${DEFAULT_MOVEMENT_SPEED_FEET} ft`}
         aria-label="Movement speed in feet per turn"
         onChange={(event) => setText(event.target.value)}
-        onBlur={commit}
+        onBlur={(event) => commit(event.currentTarget)}
         onKeyDown={(event) => {
           if (event.key === "Enter") (event.target as HTMLInputElement).blur();
         }}

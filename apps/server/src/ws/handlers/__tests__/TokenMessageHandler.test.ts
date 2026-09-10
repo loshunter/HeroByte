@@ -150,27 +150,55 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       // Token at (100,100) per the fixture; the scene graph needs rebuilding.
       roomService.getState().tokens[0]!.x = 100.4;
       roomService.createSnapshot();
-      messageRouter.route({ t: "step-object", id: `token:${tokenId}`, dx: 1, dy: 0 }, playerUid);
+      messageRouter.route({ t: "step-object", ids: [`token:${tokenId}`], dx: 1, dy: 0 }, playerUid);
       let token = roomService.getState().tokens.find((t) => t.id === tokenId)!;
       expect({ x: token.x, y: token.y }).toEqual({ x: 101, y: 100 });
-      messageRouter.route({ t: "step-object", id: `token:${tokenId}`, dx: -1, dy: 1 }, playerUid);
+      messageRouter.route(
+        { t: "step-object", ids: [`token:${tokenId}`], dx: -1, dy: 1 },
+        playerUid,
+      );
       token = roomService.getState().tokens.find((t) => t.id === tokenId)!;
       expect({ x: token.x, y: token.y }).toEqual({ x: 100, y: 101 });
     });
 
     it("is refused for a token the sender does not own, and charges the budget in combat", () => {
       roomService.createSnapshot();
-      messageRouter.route({ t: "step-object", id: `token:${tokenId}`, dx: 1, dy: 0 }, "stranger");
+      messageRouter.route(
+        { t: "step-object", ids: [`token:${tokenId}`], dx: 1, dy: 0 },
+        "stranger",
+      );
       expect(roomService.getState().tokens.find((t) => t.id === tokenId)!.x).toBe(100);
       const state = roomService.getState();
       state.combatActive = true;
       state.characters[0]!.tokenId = tokenId;
-      messageRouter.route({ t: "step-object", id: `token:${tokenId}`, dx: 0, dy: -1 }, playerUid);
+      messageRouter.route(
+        { t: "step-object", ids: [`token:${tokenId}`], dx: 0, dy: -1 },
+        playerUid,
+      );
       expect(state.characters[0]!.movementUsed).toBe(5);
     });
 
+    it("ONE message steps the whole selection; an unknown object refuses nothing else", () => {
+      roomService.createSnapshot();
+      const state = roomService.getState();
+      const other = { ...state.tokens[0]!, id: "tok-two", owner: playerUid, x: 200, y: 200 };
+      state.tokens.push(other);
+      roomService.createSnapshot();
+      messageRouter.route(
+        {
+          t: "step-object",
+          ids: ["token:ghost", `token:${tokenId}`, "token:tok-two"],
+          dx: 1,
+          dy: 0,
+        },
+        playerUid,
+      );
+      expect(state.tokens.find((t) => t.id === tokenId)!.x).toBe(101);
+      expect(state.tokens.find((t) => t.id === "tok-two")!.x).toBe(201);
+    });
+
     it("an unknown object is a silent no-op", () => {
-      messageRouter.route({ t: "step-object", id: "token:ghost", dx: 1, dy: 0 }, playerUid);
+      messageRouter.route({ t: "step-object", ids: ["token:ghost"], dx: 1, dy: 0 }, playerUid);
       expect(roomService.getState().tokens.find((t) => t.id === tokenId)!.x).toBe(100);
     });
   });
@@ -238,7 +266,7 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       state.combatActive = false;
       messageRouter.route({ t: "move", id: tokenId, x: 107, y: 100 }, playerUid);
       expect(state.tokens.find((t) => t.id === tokenId)!.x).toBe(107);
-      messageRouter.route({ t: "step-object", id: `token:${tokenId}`, dx: 1, dy: 0 }, playerUid);
+      messageRouter.route({ t: "step-object", ids: [`token:${tokenId}`], dx: 1, dy: 0 }, playerUid);
       expect(state.tokens.find((t) => t.id === tokenId)!.x).toBe(108);
     });
 

@@ -36,6 +36,9 @@ interface NPCEditorProps {
   onSpeedChange?: (speedFeet: number | null) => void;
 }
 
+/** Five stats share one row; on a 375px phone they WRAP rather than squeeze to 60px each. */
+const STAT_CELL = { flex: 1, minWidth: "88px" } as const;
+
 export function NPCEditor({
   npc,
   onUpdate,
@@ -161,8 +164,8 @@ export function NPCEditor({
         </label>
       </div>
 
-      <div style={{ display: "flex", gap: "8px" }}>
-        <label className="jrpg-text-small" style={{ flex: 1 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+        <label className="jrpg-text-small" style={STAT_CELL}>
           HP
           <input
             type="number"
@@ -185,7 +188,7 @@ export function NPCEditor({
             }}
           />
         </label>
-        <label className="jrpg-text-small" style={{ flex: 1 }}>
+        <label className="jrpg-text-small" style={STAT_CELL}>
           Max HP
           <input
             type="number"
@@ -208,7 +211,7 @@ export function NPCEditor({
             }}
           />
         </label>
-        <label className="jrpg-text-small" style={{ flex: 1 }}>
+        <label className="jrpg-text-small" style={STAT_CELL}>
           Temp HP
           <input
             type="number"
@@ -232,7 +235,7 @@ export function NPCEditor({
             }}
           />
         </label>
-        <label className="jrpg-text-small" style={{ flex: 1 }}>
+        <label className="jrpg-text-small" style={STAT_CELL}>
           Init Mod
           <input
             type="number"
@@ -258,7 +261,7 @@ export function NPCEditor({
           />
         </label>
         {onSpeedChange && (
-          <div style={{ flex: 1 }}>
+          <div style={STAT_CELL}>
             <MovementSpeedField value={npc.speed} onChange={onSpeedChange} compact />
           </div>
         )}

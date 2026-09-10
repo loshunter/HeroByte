@@ -2,8 +2,9 @@
  * Keyboard movement — the desktop path, driven by REAL key presses.
  *
  * A bare movement key moves the selected token one whole cell over the
- * ordinary transform-object road; a typing surface keeps its keystrokes
- * (invariant 4.17); a selection the player may not move sends nothing.
+ * relative `step-object` message (the server applies it on the ordinary
+ * transform road); a typing surface keeps its keystrokes (invariant 4.17); a
+ * selection the player may not move sends nothing.
  */
 import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";

@@ -37,6 +37,19 @@ function renderTab(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}
 const countField = () => screen.getByLabelText(/how many npcs to add/i);
 const addButton = () => screen.getByRole("button", { name: /\+ Add \d* ?NPCs?/i });
 
+describe("NPCsTab — the speed field names ITS monster", () => {
+  it("typing into the second editor sets the SECOND monster's speed", () => {
+    // A one-NPC spec cannot see `npcs[0].id` wired in place of `npc.id`.
+    const props = renderTab({ npcs: [npc("n1", "Goblin"), npc("n2", "Ogre")] });
+    const fields = screen.getAllByLabelText("Movement speed in feet per turn");
+    expect(fields).toHaveLength(2);
+    fireEvent.change(fields[1]!, { target: { value: "40" } });
+    fireEvent.blur(fields[1]!);
+    expect(props.onSetNPCSpeed).toHaveBeenCalledTimes(1);
+    expect(props.onSetNPCSpeed).toHaveBeenCalledWith("n2", 40);
+  });
+});
+
 describe("NPCsTab — adding several at once", () => {
   it("defaults to one and reads as the plain button", () => {
     renderTab();

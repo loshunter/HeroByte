@@ -62,6 +62,19 @@ describe("MovementSpeedField", () => {
     expect(unset.onChange).not.toHaveBeenCalled();
   });
 
+  it("an unparseable entry snaps the field back to the value on file, and sends nothing", () => {
+    const onChange = vi.fn();
+    render(<MovementSpeedField value={30} onChange={onChange} />);
+    const input = screen.getByLabelText("Movement speed in feet per turn") as HTMLInputElement;
+    // A number input reports "" for a rejected entry, with `validity.badInput`
+    // set — jsdom sanitises to "" without the flag, so the flag is supplied.
+    fireEvent.change(input, { target: { value: "abc" } });
+    Object.defineProperty(input, "validity", { value: { badInput: true }, configurable: true });
+    fireEvent.blur(input);
+    expect(input).toHaveValue(30);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("compact puts the input on the 44px floor", () => {
     expect(field(30, true).input).toHaveStyle({ minHeight: "44px" });
     cleanup();

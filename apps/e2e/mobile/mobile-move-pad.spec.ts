@@ -4,7 +4,10 @@
  * carries a 3x3 pad — each tap is the same one-cell move, on the 44px floor.
  */
 import { expect, test } from "../fixtures";
+import { HOLD_START_DELAY_MS } from "../../client/src/layouts/MobileMovePad";
+import { HOLD_STEP_INTERVAL_MS } from "../../client/src/features/movement/useKeyboardMovement";
 import { joinMobileTable, selectMobileTool, undersizedControls } from "./mobile.helpers";
+import { openTouch, touchHold } from "./touch.helpers";
 
 test.describe("mobile — move pad", () => {
   for (const viewport of [
@@ -30,8 +33,8 @@ test.describe("mobile — move pad", () => {
       expect(await undersizedControls(page, ".mobile-move-pad")).toEqual([]);
 
       // Every visible pad button, the sheet's Clear chip and the dock all on
-      // screen at once, without scrolling — in landscape the pad folds to one
-      // row of the four orthogonals so this holds there too.
+      // screen at once, without scrolling — in landscape the pad folds to two
+      // rows of four (orthogonals, then diagonals) so this holds there too.
       const layout = await page.evaluate(() => {
         const onScreen = (r: DOMRect) =>
           r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth;
@@ -47,7 +50,12 @@ test.describe("mobile — move pad", () => {
           label: b.getAttribute("aria-label"),
           r: b.getBoundingClientRect(),
         }));
+        const style = getComputedStyle(buttons[0]!);
         return {
+          // The cascade: a later `.mobile-chip` rule shrank the arrows to 11px
+          // on every portrait phone, and a surface rule could re-enable panning.
+          fontPx: parseFloat(style.fontSize),
+          touchAction: style.touchAction,
           visibleButtons: buttons.map((b) => b.getAttribute("aria-label")),
           allOnScreen: buttons.every((b) => onScreen(b.getBoundingClientRect())),
           clearOnScreen: onScreen(clear.getBoundingClientRect()),
@@ -63,17 +71,29 @@ test.describe("mobile — move pad", () => {
       expect(layout.allOnScreen).toBe(true);
       expect(layout.clearOnScreen).toBe(true);
       expect(layout.sheetScrolls).toBe(false);
-      expect(layout.visibleButtons).toHaveLength(viewport.name === "portrait" ? 8 : 4);
+      expect(layout.visibleButtons).toHaveLength(8);
+      expect(layout.fontPx).toBeGreaterThanOrEqual(14);
+      expect(layout.touchAction).toBe("none");
       if (viewport.name === "portrait") {
         // Three rows of 69px chips: the pad takes the 220px it asks for, not
         // the 3×44 fit-content a `margin: 0 auto` grid item collapses to.
         expect(layout.rows).toBe(3);
         expect(layout.padWidth).toBeGreaterThanOrEqual(200);
       } else {
-        // ONE row, in reading order — the fold, not two rows led by a dead dot.
-        expect(layout.rows).toBe(1);
-        expect(layout.padHeight).toBeLessThanOrEqual(46);
-        expect(layout.readingOrder).toEqual(["Move left", "Move up", "Move down", "Move right"]);
+        // TWO rows of four, orthogonals first — never the one-row fold that
+        // dropped the diagonals and made a landscape phone pay double.
+        expect(layout.rows).toBe(2);
+        expect(layout.padHeight).toBeLessThanOrEqual(100);
+        expect(layout.readingOrder).toEqual([
+          "Move left",
+          "Move up",
+          "Move down",
+          "Move right",
+          "Move up-left",
+          "Move up-right",
+          "Move down-left",
+          "Move down-right",
+        ]);
       }
 
       const origin = { x: Math.round(token.x), y: Math.round(token.y) };
@@ -95,6 +115,61 @@ test.describe("mobile — move pad", () => {
       expect(await readCell()).toEqual({ x: origin.x + 1, y: origin.y + 1 });
     });
   }
+
+  test("a real HOLD walks and stops on release — a finger over CDP, and a mouse released off the chip", async ({
+    page,
+  }) => {
+    // Neither jsdom (no setPointerCapture) nor `.tap()` (a touch pointer with
+    // implicit capture, too short to walk) can see the walk or the capture.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await joinMobileTable(page);
+    await selectMobileTool(page, /^Select$/i);
+    const token = await page.evaluate(() => {
+      const data = window.__HERO_BYTE_E2E__!;
+      const own = data.snapshot!.tokens.find((t) => t.owner === data.uid)!;
+      data.sendMessage!({ t: "select-object", uid: data.uid!, objectId: `token:${own.id}` });
+      return { id: own.id, x: own.x, y: own.y };
+    });
+    const pad = page.getByRole("group", { name: "Move selection" });
+    await expect(pad).toBeVisible({ timeout: 5_000 });
+    const readX = () =>
+      page.evaluate(
+        (id) => window.__HERO_BYTE_E2E__!.snapshot!.tokens.find((t) => t.id === id)!.x,
+        token.id,
+      );
+    // "Stopped" = the same cell across a window longer than a walk's start
+    // delay — sampled only AFTER the last step sent before the release has
+    // landed (a step is a round trip; reading at once saw it arrive).
+    const settled = async () => {
+      await page.waitForTimeout(HOLD_STEP_INTERVAL_MS * 3);
+      const x = await readX();
+      await page.waitForTimeout(HOLD_START_DELAY_MS + HOLD_STEP_INTERVAL_MS * 2);
+      expect(await readX()).toBe(x);
+      return x;
+    };
+    const left = pad.getByRole("button", { name: "Move left", exact: true });
+    const leftBox = (await left.boundingBox())!;
+    const centre = { x: leftBox.x + leftBox.width / 2, y: leftBox.y + leftBox.height / 2 };
+
+    // A finger held for the delay plus two steps: the press, then the walk.
+    const start = Math.round(token.x);
+    const cdp = await openTouch(page);
+    await touchHold(cdp, centre, HOLD_START_DELAY_MS + HOLD_STEP_INTERVAL_MS * 2 + 60);
+    await expect.poll(readX, { timeout: 5_000 }).toBeLessThanOrEqual(start - 3);
+    const afterFinger = await settled();
+
+    // A mouse pressed on the chip and released far OFF it: capture brings the
+    // release home, the walk ends, and the pad is not left dead.
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.down();
+    await page.waitForTimeout(HOLD_START_DELAY_MS + HOLD_STEP_INTERVAL_MS + 60);
+    await page.mouse.move(centre.x + 150, centre.y - 300, { steps: 5 });
+    await page.mouse.up();
+    await expect.poll(readX, { timeout: 5_000 }).toBeLessThanOrEqual(afterFinger - 2);
+    const afterMouse = await settled();
+    await pad.getByRole("button", { name: "Move right", exact: true }).tap();
+    await expect.poll(readX, { timeout: 5_000 }).toBe(afterMouse + 1);
+  });
 
   test("no pad when the selection is someone else's token", async ({ page, browser }) => {
     // A second player in its own context guarantees a token that is not ours.

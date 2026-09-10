@@ -61,14 +61,33 @@ export class TransformMessageHandler {
   }
 
   /**
-   * step-object: one grid cell from where the object IS. The keyboard and the
-   * phone d-pad send a direction, and the target is resolved here from the
-   * authoritative cell — so latency, a refused step or a turn can never make
-   * a client ask for a cell nobody is next to. Rides the same transform road
-   * as a drag release: ownership, lock, the wall check, the player-props
-   * switch and the movement charge all apply unchanged.
+   * step-object: one grid cell from where each object IS, one message for the
+   * whole selection (a message per object tripped the limiter past ~15). The
+   * keyboard and the phone d-pad send a direction, and every target is
+   * resolved here from the authoritative cell — so latency, a refused step or
+   * a turn can never make a client ask for a cell nobody is next to. Each
+   * rides the same transform road as a drag release: ownership, lock, the
+   * wall check, the player-props switch and the movement charge all apply
+   * unchanged; one refused object refuses nothing else.
    */
-  handleStepObject(
+  handleStepObjects(
+    state: RoomState,
+    senderUid: string,
+    objectIds: readonly string[],
+    dx: number,
+    dy: number,
+  ): TransformMessageResult {
+    let broadcast = false;
+    let save = false;
+    for (const objectId of objectIds) {
+      const result = this.stepObject(state, senderUid, objectId, dx, dy);
+      broadcast ||= result.broadcast;
+      save ||= result.save;
+    }
+    return { broadcast, save };
+  }
+
+  private stepObject(
     state: RoomState,
     senderUid: string,
     objectId: string,

@@ -44,7 +44,7 @@ async function readPlates(page: import("@playwright/test").Page): Promise<PlateR
         }
       | undefined;
     if (!stage) return [];
-    return stage.find(".token-nameplate").map((node) => ({
+    return [...stage.find(".token-nameplate"), ...stage.find(".token-move-budget")].map((node) => ({
       text: node.text(),
       screenFontPx: node.fontSize() * node.getAbsoluteScale().y,
       // Text → plate group (counter-scaled, absolute scale always ~1) →

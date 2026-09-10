@@ -67,21 +67,14 @@ describe("movableSelection", () => {
         uid: "me",
         isDM: false,
       }),
-    ).toEqual([
-      { id: "token:mine", x: 3, y: 4 },
-      { id: "prop:shared", x: 1, y: 1 },
-      { id: "prop:myprop", x: 5, y: 6 },
-    ]);
+    ).toEqual(["token:mine", "prop:shared", "prop:myprop"]);
   });
 
   it("with the player-props switch off a player still moves a SHARED prop, never their own", () => {
     const ids = ["token:mine", "prop:shared", "prop:myprop"];
     expect(
       movableSelection({ selectedObjectIds: ids, snapshot: snapshot(), uid: "me", isDM: false }),
-    ).toEqual([
-      { id: "token:mine", x: 3, y: 4 },
-      { id: "prop:shared", x: 1, y: 1 },
-    ]);
+    ).toEqual(["token:mine", "prop:shared"]);
   });
 
   it("the DM moves all of them", () => {
@@ -92,7 +85,7 @@ describe("movableSelection", () => {
       uid: "dm",
       isDM: true,
     });
-    expect(out.map((o) => o.id)).toEqual(ids);
+    expect(out).toEqual(ids);
   });
 
   it("a locked object is the DM's only", () => {
@@ -114,7 +107,7 @@ describe("movableSelection", () => {
         uid: "dm",
         isDM: true,
       }),
-    ).toEqual([{ id: "token:mine", x: 3, y: 4 }]);
+    ).toEqual(["token:mine"]);
   });
 
   it("ignores ids that are not tokens or props, unknown ids, and a null snapshot", () => {

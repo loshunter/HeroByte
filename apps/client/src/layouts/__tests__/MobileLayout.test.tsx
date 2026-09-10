@@ -590,12 +590,28 @@ describe("MobileLayout", () => {
       act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS * 3));
       expect(move).toHaveBeenCalledTimes(10);
 
-      // A held Enter on a focused button is throttled to the same cadence.
-      for (let i = 0; i < 10; i += 1) fireEvent.click(right, { detail: 0 });
+      // A right-click (button 2) is a menu, not a press: no step, no hold.
+      fireEvent.pointerDown(right, { pointerId: 9, button: 2 });
+      act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS * 2));
+      expect(move).toHaveBeenCalledTimes(10);
+
+      // Without capture (jsdom has none, nor do some pens) a pointer that
+      // LEAVES the chip ends the walk — no walk is unbounded.
+      fireEvent.pointerDown(right, { pointerId: 8 });
       expect(move).toHaveBeenCalledTimes(11);
+      fireEvent.pointerLeave(right, { pointerId: 8 });
+      act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS * 2));
+      expect(move).toHaveBeenCalledTimes(11);
+
+      // A held Enter on a focused button is throttled to the same cadence —
+      // per BUTTON, so focus moved to another chip still steps at once.
+      for (let i = 0; i < 10; i += 1) fireEvent.click(right, { detail: 0 });
+      expect(move).toHaveBeenCalledTimes(12);
+      fireEvent.click(down, { detail: 0 });
+      expect(move).toHaveBeenCalledTimes(13);
       act(() => vi.advanceTimersByTime(HOLD_STEP_INTERVAL_MS));
       fireEvent.click(right, { detail: 0 });
-      expect(move).toHaveBeenCalledTimes(12);
+      expect(move).toHaveBeenCalledTimes(14);
 
       // Mid-walk the snapshot replaces `move`; the walk must follow it.
       const laterMove = vi.fn();
@@ -603,7 +619,7 @@ describe("MobileLayout", () => {
       rerender(<MobileLayout {...props} movement={{ movableCount: 1, move: laterMove }} />);
       act(() => vi.advanceTimersByTime(HOLD_START_DELAY_MS));
       expect(laterMove).toHaveBeenCalledTimes(1);
-      expect(move).toHaveBeenCalledTimes(13);
+      expect(move).toHaveBeenCalledTimes(15);
 
       // The pad unmounts mid-walk (selection cleared): the timer dies with it.
       unmount();

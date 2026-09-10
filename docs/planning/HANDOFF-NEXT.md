@@ -31,8 +31,12 @@ the plan's "Review round 3" section has the counts and every disposition) so per
 `review-convergence` there is no round 4: its defects are fixed in two commits (server: the
 budget state machine — a player could zero their own spend by clearing their initiative, round-1
 turn starts never reset, the PREV floor minted rounds, a load carried a file's spend, and the
-shared-prop rule was locked to players; then client/mobile) and the OWNER decides whether the
-remaining recorded items block the merge. A second bug fixed regardless of origin, own commit: the initiative modal confirmed a
+shared-prop rule was locked to players; client/mobile: a multi-select walk tripped the limiter
+past ~15 objects — one `step-object` per step now carries the whole selection; a full-screen
+modal did not stop the keys; the d-pad's arrows were 11px on portrait phones and the landscape
+fold made a phone pay double for a diagonal; real holds are now proven over CDP and a mouse) and
+the OWNER decides whether the remaining recorded items — the pad covering the token it moves is
+the biggest — block the merge. A second bug fixed regardless of origin, own commit: the initiative modal confirmed a
 save by watching the value CHANGE, so a physical-die entry equal to the roll on file "timed out"
 after 5 s and STAYED OPEN over the toolbar (one d20 face in twenty; the e2e suite hit it three
 times in two days as a "flake"). `useInitiativeSetting` now also confirms on a newer frame

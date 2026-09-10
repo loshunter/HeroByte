@@ -151,6 +151,7 @@ export function InitiativeModal({
 
   return (
     <div
+      data-modal-overlay=""
       style={{
         position: "fixed",
         top: 0,

@@ -75,10 +75,10 @@ export class RoomDispatcher {
         });
 
       case "step-object":
-        return this.transformHandler.handleStepObject(
+        return this.transformHandler.handleStepObjects(
           state,
           senderUid,
-          message.id,
+          message.ids,
           message.dx,
           message.dy,
         );

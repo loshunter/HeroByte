@@ -1304,12 +1304,12 @@ describe("validateMessage", () => {
     });
 
     it("step-object: a direction of -1/0/1 per axis, never a still step, never a cell", () => {
-      expect(validateMessage({ t: "step-object", id: "token:t", dx: 1, dy: 0 })).toEqual({
+      expect(validateMessage({ t: "step-object", ids: ["token:t"], dx: 1, dy: 0 })).toEqual({
         valid: true,
       });
-      expect(validateMessage({ t: "step-object", id: "token:t", dx: -1, dy: -1 })).toEqual({
-        valid: true,
-      });
+      expect(
+        validateMessage({ t: "step-object", ids: ["token:t", "prop:p"], dx: -1, dy: -1 }),
+      ).toEqual({ valid: true });
       for (const bad of [
         { dx: 0, dy: 0 },
         { dx: 2, dy: 0 },
@@ -1318,16 +1318,20 @@ describe("validateMessage", () => {
         { dx: 0.5, dy: 0 },
       ]) {
         expect(
-          validateMessage({ t: "step-object", id: "token:t", ...bad }).valid,
+          validateMessage({ t: "step-object", ids: ["token:t"], ...bad }).valid,
           JSON.stringify(bad),
         ).toBe(false);
       }
-      expect(validateMessage({ t: "step-object", id: "", dx: 1, dy: 0 }).valid).toBe(false);
+      const step = (ids: unknown) => validateMessage({ t: "step-object", ids, dx: 1, dy: 0 }).valid;
+      expect(step([])).toBe(false);
+      expect(step("token:t")).toBe(false);
+      expect(step([""])).toBe(false);
       // A drawing's transform is in pixels: "one cell" would be one pixel.
-      expect(validateMessage({ t: "step-object", id: "drawing:d1", dx: 1, dy: 0 }).valid).toBe(
-        false,
-      );
-      expect(validateMessage({ t: "step-object", id: "prop:p1", dx: 1, dy: 0 }).valid).toBe(true);
+      expect(step(["drawing:d1"])).toBe(false);
+      expect(step(["prop:p1"])).toBe(true);
+      expect(step(["token:t", "token:t"])).toBe(false);
+      expect(step(Array.from({ length: 64 }, (_, i) => `token:${i}`))).toBe(true);
+      expect(step(Array.from({ length: 65 }, (_, i) => `token:${i}`))).toBe(false);
     });
 
     it("set-character-speed: a finite number of feet inside the shared bounds", () => {

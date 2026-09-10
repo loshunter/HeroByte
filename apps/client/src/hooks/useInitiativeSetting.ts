@@ -13,6 +13,11 @@ import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
  *    a hand entry equal to the number already stored changes nothing, and
  *    a confirmation keyed on change alone hung five seconds and reported a
  *    timeout for a save the server had applied (one d20 face in twenty).
+ *    Honest limits: the newer frame proves the STATE is what was asked, not
+ *    that this request produced it (an unrelated frame — a walk's step —
+ *    closes the wait early in the no-op case; nothing wrong persists), and
+ *    the change road still confirms another seat's write of a different
+ *    number, as it always has.
  * 4. Provides loading state and error handling
  *
  * @example
@@ -46,6 +51,10 @@ export function useInitiativeSetting({
     modifier: number | undefined;
     sentAtVersion: number | undefined;
   } | null>(null);
+  /** The five-second watchdog: the next send clears it, or a second entry
+   *  inside the first's window was reported as a timeout (a stale one that
+   *  fires after a confirm sees `isSetting` false and does nothing). */
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get current initiative and modifier from snapshot
   const character = snapshot?.characters?.find((char) => char.id === targetCharacterId);
@@ -129,7 +138,9 @@ export function useInitiativeSetting({
         ...(initiativeModifier !== undefined ? { initiativeModifier } : {}),
       });
 
-      setTimeout(() => {
+      if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
         setIsSetting((prev) => {
           if (prev) {
             console.error("[useInitiativeSetting] Initiative update timed out");

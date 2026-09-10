@@ -1903,7 +1903,13 @@ h4 {
   -webkit-touch-callout: none;
 }
 
-.mobile-move-pad__button {
+/* Two selectors deep on purpose (0,2,0): the `@media (max-width: 420px)
+   .mobile-chip { font-size: 0.7rem }` rule later in the file is (0,1,0) and
+   won on every portrait phone — the arrows rendered at 11px (review round 3)
+   — and `[data-mobile-surface] button { touch-action: manipulation }` (0,1,1)
+   would re-enable sheet panning mid-hold if the sheet ever gained the
+   surface attribute. */
+.mobile-move-pad .mobile-move-pad__button {
   font-size: 1rem;
   line-height: 1;
   /* A press-and-hold with thumb drift must not become a scroll of the sheet
@@ -1912,9 +1918,12 @@ h4 {
 }
 
 /* A short landscape phone (812x375) cannot fit three rows above the dock —
-   the sheet would clip its own Clear chip — so the pad folds to one row of
-   the four orthogonals, in reading order ← ↑ ↓ →. Diagonals are a keyboard
-   and portrait affordance there. */
+   the sheet would clip its own Clear chip — so the pad folds to TWO rows of
+   four: the orthogonals ← ↑ ↓ → then the diagonals ↖ ↗ ↙ ↘. Not one row:
+   the budget prices a diagonal at one square and its two orthogonal
+   substitutes at two, so dropping the diagonals made a landscape phone pay
+   double (review round 3). Two rows of 44px chips + the label + the Clear
+   chip fit the 231px the sheet may take there. */
 @media (orientation: landscape) and (max-height: 500px) {
   .mobile-move-pad {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1923,8 +1932,8 @@ h4 {
   /* Two selectors deep on purpose: the base `.mobile-move-pad__centre`
      rule below sets display:flex at equal specificity and LATER in the file,
      which is why a single-class rule here lost and the fold rendered two rows
-     (measured in review round 2). Keyed on data-dir, never on label text. */
-  .mobile-move-pad .mobile-move-pad__button--diagonal,
+     led by a dead dot (measured in review round 2). Keyed on data-dir, never
+     on label text. */
   .mobile-move-pad .mobile-move-pad__centre {
     display: none;
   }
@@ -1939,6 +1948,18 @@ h4 {
   }
   .mobile-move-pad [data-dir="right"] {
     order: 4;
+  }
+  .mobile-move-pad [data-dir="up-left"] {
+    order: 5;
+  }
+  .mobile-move-pad [data-dir="up-right"] {
+    order: 6;
+  }
+  .mobile-move-pad [data-dir="down-left"] {
+    order: 7;
+  }
+  .mobile-move-pad [data-dir="down-right"] {
+    order: 8;
   }
 }
 
