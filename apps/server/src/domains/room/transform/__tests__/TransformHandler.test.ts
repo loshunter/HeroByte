@@ -559,8 +559,8 @@ describe("TransformHandler - Characterization Tests", () => {
       expect(updatedProp?.y).toBe(400);
     });
 
-    it("should allow anyone to transform prop with owner='*'", () => {
-      roomService.getState().playerPropsEnabled = true;
+    it("should allow anyone to transform prop with owner='*' — on a DEFAULT table, switch off", () => {
+      roomService.getState().playerPropsEnabled = false;
       // Create a shared prop
       const sharedProp: Prop = {
         id: "prop-shared",

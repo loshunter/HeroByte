@@ -865,7 +865,7 @@ describe("scene travel contracts", () => {
     sceneObjects: "captured", // the fold's residue (map transform feeds fog)
     combatActive: "captured",
     currentTurnCharacterId: "captured",
-    combatRound: "captured", // returns to 1 with the budgets a travel resets
+    combatRound: "cleared", // returns to 1 with the budgets a travel resets (never captured)
     fogEnabled: "captured",
     defaultVisionRadius: "captured",
     playerStagingZone: "captured",

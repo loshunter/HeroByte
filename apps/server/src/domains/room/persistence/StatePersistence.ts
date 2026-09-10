@@ -120,7 +120,7 @@ export class StatePersistence {
             isDM: player.isDM ?? false,
             statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
           })),
-          characters: coerceLoadedCharacters(data.characters),
+          characters: coerceLoadedCharacters(data.characters, data.combatActive === true),
           props: data.props || [],
           mapBackground: data.mapBackground,
           pointers: [], // Don't persist pointers - they expire

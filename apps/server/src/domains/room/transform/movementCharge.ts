@@ -26,6 +26,9 @@ function round1(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
+/** Above this the number means nothing and JSON would write `null` for Infinity. */
+const MOVEMENT_USED_CAP_FEET = 1_000_000_000;
+
 /** @returns true when a character was charged (the table must hear about it). */
 export function chargeTokenMove(state: RoomState, tokenId: string, from: Cell, to: Cell): boolean {
   if (!state.combatActive) return false;
@@ -38,7 +41,13 @@ export function chargeTokenMove(state: RoomState, tokenId: string, from: Cell, t
     gridSquareSize: state.gridSquareSize ?? 5,
     diagonalsBefore: character.movementDiagonals ?? 0,
   });
-  character.movementUsed = round1((character.movementUsed ?? 0) + charge.feet);
+  // A move to the cell it is on costs nothing and changes nothing — no
+  // snapshot, no save (the legacy road forced both on a 0 ft charge).
+  if (charge.feet <= 0) return false;
+  character.movementUsed = Math.min(
+    MOVEMENT_USED_CAP_FEET,
+    round1((character.movementUsed ?? 0) + charge.feet),
+  );
   character.movementDiagonals = (character.movementDiagonals ?? 0) + charge.diagonals;
   return true;
 }

@@ -551,6 +551,44 @@ describe("InitiativeMessageHandler", () => {
       expect(state.characters.every((c) => c.movementUsed === 20)).toBe(true);
     });
 
+    it("in round 1 the FIRST turn start resets a spend made before it (nobody is pre-stamped)", () => {
+      // Review round 3: combat start stamped everyone with round 1, so every
+      // round-1 turn start was a no-op and a pre-turn spend stood through it.
+      handler.handleStartCombat(state, "dmPlayer", true);
+      expect(state.characters.every((c) => !("movementRound" in c))).toBe(true);
+      state.characters[0].movementUsed = 25; // moved out of turn during round 1
+      state.currentTurnCharacterId = "char2";
+      handler.handleNextTurn(state, "dmPlayer", true); // -> char1's first turn
+      expect(state.characters[0]).toMatchObject({ movementUsed: 0, movementRound: 1 });
+    });
+
+    it("PREV then NEXT from the TOP of the order in round 1 refills nothing (no floor on the round)", () => {
+      // The clamp `Math.max(1, round - 1)` ate the backward wrap while the
+      // forward wrap still counted: two presses minted round 2 and a reset.
+      state.combatRound = 1;
+      state.currentTurnCharacterId = "char2"; // first in the order
+      state.characters[1].movementUsed = 30;
+      state.characters[1].movementRound = 1;
+      handler.handlePreviousTurn(state, "player1", false); // wraps back -> char3, round 0
+      expect(state.combatRound).toBe(0);
+      handler.handleNextTurn(state, "player1", false); // wraps forward -> char2, round 1 again
+      expect(state.combatRound).toBe(1);
+      expect(state.currentTurnCharacterId).toBe("char2");
+      expect(state.characters[1].movementUsed).toBe(30);
+    });
+
+    it("a turn pointer OUTSIDE the order (its holder cleared) still counts the lap it opens", () => {
+      state.combatRound = 1;
+      for (const c of state.characters) c.movementRound = 1;
+      state.currentTurnCharacterId = "char3"; // last in the order, its turn running
+      handler.handleSetInitiative(state, "char3", "dmPlayer", undefined, 0, true); // it leaves
+      expect(state.currentTurnCharacterId).toBeUndefined();
+      handler.handleNextTurn(state, "dmPlayer", true); // -> top of the order: a new lap
+      expect(state.combatRound).toBe(2);
+      expect(state.currentTurnCharacterId).toBe("char2");
+      expect(state.characters[1]).toMatchObject({ movementUsed: 0, movementRound: 2 });
+    });
+
     it("a turn start resets once per ROUND: PREV then NEXT back onto yourself refills nothing", () => {
       // Any player can nudge the order (the help text says so), so this is
       // the road a player would take to refill their own budget.
@@ -580,11 +618,14 @@ describe("InitiativeMessageHandler", () => {
       expect(state.characters[1].movementUsed).toBe(15);
     });
 
-    it("clearing ONE combatant's initiative drops the turn pointer if it was theirs and zeroes their spend", () => {
+    it("clearing ONE combatant's initiative drops the turn pointer if it was theirs and its round stamp — never its spend", () => {
+      // Any player may clear their OWN initiative; zeroing here was a
+      // two-click refill (clear, re-roll, walk on) — review round 3.
       state.currentTurnCharacterId = "char1";
-      handler.handleSetInitiative(state, "char1", "dmPlayer", undefined, 0, true);
+      state.characters[0].movementRound = 1;
+      handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false);
       expect(state.currentTurnCharacterId).toBeUndefined();
-      expect(state.characters[0]).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+      expect(state.characters[0]).toMatchObject({ movementUsed: 20, movementDiagonals: 3 });
       expect("movementRound" in state.characters[0]).toBe(false);
       // Someone else's clear leaves the pointer alone.
       state.currentTurnCharacterId = "char2";
@@ -639,7 +680,7 @@ describe("InitiativeMessageHandler", () => {
       expect(state.combatRound).toBe(1);
       expect(
         state.characters.every(
-          (c) => c.movementUsed === 0 && c.movementDiagonals === 0 && c.movementRound === 1,
+          (c) => c.movementUsed === 0 && c.movementDiagonals === 0 && !("movementRound" in c),
         ),
       ).toBe(true);
     });

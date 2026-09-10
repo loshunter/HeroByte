@@ -158,15 +158,18 @@ every monster in the order whether or not it has moved yet.
   since your last turn start), and the next turn start wipes it. Every road that starts, clears
   or suspends a fight resets everyone and returns the round to 1 (`resetAllMovementBudgets` in
   the Start/End buttons, `applyInitiative`'s auto-start, clear-all-initiative — which also drops
-  the turn pointer into the now-empty order — and both branches of a travel's
-  `restoreCollections`); clearing ONE combatant's initiative does the same for that one head.
-  **A turn start resets once per ROUND** (`state.combatRound`: +1 when next-turn wraps the order,
-  −1 when previous-turn wraps it back; a character stamped with the current round is not reset
-  again). Any player can nudge the order — the help text says so — and round 2 showed that with a
-  plain "reset on turn start" a player refilled their own budget with PREV then NEXT, and a DM's
-  PREV correction granted a free turn; the stamp closes both without taking the buttons away. A
-  monster created mid-fight is born with a zeroed record stamped with the round, so the DM's plate
-  shows its budget before its first step.
+  the turn pointer into the now-empty order — both branches of a travel's `restoreCollections`,
+  and a session load, which is a fresh boundary like a travel). **A turn start resets once per
+  ROUND** (`state.combatRound`: +1 when next-turn wraps the order — a pointer left OUTSIDE the
+  order counts as a wrap too — and −1 when previous-turn wraps it back, with NO floor, so a
+  backward wrap exactly undoes a forward one). The stamp (`movementRound`) is written by the turn
+  start itself, never ahead of it: round 3 found that stamping everyone at combat start made
+  every round-1 turn start a no-op, and that the old `Math.max(1, …)` floor let PREV then NEXT
+  from the top of the order in round 1 mint a round and a refill. Clearing ONE combatant's
+  initiative drops the pointer if it was theirs and its stamp — never its spend: any player may
+  clear their own, and round 3 showed zeroing there was a two-click refill (clear, re-roll, walk).
+  A monster created mid-fight is born with a zeroed record and no stamp, so the DM's plate shows
+  its budget before its first step and its first turn start resets it like anyone's.
 - **Display only, never a block.** Overspend turns the readout red; the DM adjudicates.
 - **Speed is DM-set** (the vision-radius rule: "a budget a player could raise is not a budget"),
   over a dedicated `set-character-speed` message (`speed: number | null`, null = back to the
@@ -179,9 +182,11 @@ every monster in the order whether or not it has moved yet.
   MobileEntitiesList → MobilePlayerRow → PlayerSettingsMenu), so the control reads and behaves
   identically wherever a DM finds it, and the mobile surface shipped in the same slice.
 - **Only combatants IN the order wear a readout** (`initiative !== undefined` AND the
-  participation rule), and a monster's only on the DM's frame, and only when the record carries
-  a spend — so a redacted monster never shows a fake default, and during the elevation blip (role
-  flipped, snapshot still the player's) a monster shows nothing rather than a wrong number. A
+  participation rule), and a monster's only on the DM's frame, and only when the record EXISTS
+  (`movementUsed !== undefined` — a zeroed record shows the full budget) — so a redacted monster
+  never shows a fake default, and during the elevation blip (role flipped, snapshot still the
+  player's) a monster shows nothing rather than a wrong number. A fight that survives a restart
+  back-fills a missing record with zero on load, so the DM's plates do not go dark for a round. A
   DM-OWNED PC is not a combatant (`shouldCharacterParticipateInCombat`): its plate is suppressed,
   and the SERVER still charges it — `movementUsed` climbs with nothing displaying it and only
   combat start/end clears it. Consistent with the existing rule; recorded, not changed.
@@ -203,11 +208,45 @@ The screenshot showed the DM's OWN token still drawn on the return door's cell. 
    spec ahead of it shifted the spread. The spec now moves EVERY token and waits for each
    sprite to reach its target instead of sleeping 500 ms.
 
-## Review round 2 (2026-09-09) — six fresh lenses; 1 critical / 17 major / 30 minor → fixed here
+## Review round 3 (2026-09-09) — six fresh lenses; 1 critical / 17 major / 45 minor → PLATEAU
+
+Fresh Opus lenses on the full diff (critical/major/minor: client 0/2/8, server 1/5/7, tests
+0/2/10, honesty 0/2/9, privacy 0/1/3 PASS, mobile 0/5/8). Round 2 was 1/18/30; the count did not
+drop, so under `review-convergence` this is the last round and the owner gets the report — the
+defects are still fixed (fix-bugs rule), in two commits, and NO fourth round is run.
+
+**Server half (this commit).** CRITICAL: round 2 hung the budget reset on the clear-initiative
+road, which any player may use on their own character — clear, re-roll, walk on: a two-click
+refill. `leaveOrderBudget` now drops the pointer and the stamp and keeps the spend. MAJOR: the
+per-round stamp was written for everyone at combat start, so every round-1 turn start was a no-op
+(a spend before your first turn stood through it) — the stamp is now written by the turn start
+only; the backward wrap was floored at 1 while the forward wrap was not, so PREV+NEXT from the
+top of the order in round 1 minted a round and a refill — no floor (0 and below are stamp keys;
+persistence accepts any integer); a turn pointer left outside the order (its holder cleared)
+skipped the round increment, so the lap it opened reset nobody — a pointer outside the order is
+a wrap; `load-session` carried a file's spend into the fight and `combatRound` never rode the
+merge literal — a load now resets everyone (a fresh boundary, like a travel); round 1's prop fix
+put the player-props switch ABOVE the shared-prop rule, so on a default table players could no
+longer move a DM-placed `owner: "*"` prop — PropDispatcher's own shape restored on both sides.
+Also: a step resolves its origin from the TOKEN (the legacy `move` road leaves the scene object
+stale); `step-object` refuses a drawing id (its transform is in pixels); a same-cell move charges
+0 ft and is quiet; the accumulator is capped (a far-flung cell wrote `Infinity`, which JSON writes
+as `null`); a charged legacy move no longer sends a delta beside its snapshot; a fight surviving a
+restart back-fills missing records; the round coercions are integer-only; the contract test gained
+the road the secret is WRITTEN on (a DM setting a monster's speed) and a turn-start reset frame,
+a positive control on the player's own frame, the missing `+10` sweep value and a five-digit
+sentinel; the travel bucket map says `cleared`. Sabotage: 17/17 red. RECORDED here, not fixed:
+next/previous-turn ignore `combatActive` (a player can walk the pointer out of combat and drift
+the round; nothing charges and the next start returns it to 1); the wall check for a fractional
+origin runs from the raw cell, not the rounded one (over-blocks, never under-blocks); a DM-run
+character typed `pc` ships its budget like its HP (the pre-existing `type` axis); a teammate's
+spend ticks for every player while fogged (fog is not a data boundary).
+
+## Review round 2 (2026-09-09) — six fresh lenses; 1 critical / 18 major / 30 minor → fixed here
 
 Fresh Opus lenses on the full diff, each reporting what round 1 fixed, regressed, and left
 (critical/major/minor: defects 1/2/3, server 0/3/3, tests 0/3/8, honesty 0/4/8, privacy 0/2/3,
-mobile 0/4/5). FIXED: the absolute-cell fallback (a backward teleport up to 4 cells — replaced by
+mobile 0/4/5 — 18 major, not the 17 first written). FIXED: the absolute-cell fallback (a backward teleport up to 4 cells — replaced by
 the relative `step-object` wire; the chain is gone); a mouse released off a d-pad chip walking
 forever (pointer capture); a held Enter outrunning the throttle; a second finger on the SAME
 button cutting a walk short (pointer-id keyed hold); the landscape fold that rendered two rows
@@ -259,8 +298,12 @@ RECORDED, NOT FIXED (each an owner call or a pre-existing class):
   every drag release; the hold multiplies it. A trailing debounce in `StatePersistence.saveToDisk`
   is the fix — its own commit, after the review.
 - **A sub-cell drag with Snap off charges 0 ft** while it stays inside one rounded cell index;
-  one that crosses a half-cell boundary charges a whole square, however small. Accepted: it is
-  the ruler's rule too.
+  one that crosses a half-cell boundary charges a whole square, however small. Accepted (Snap off
+  is the exotic case) — but round 3 corrected the reasoning: this is NOT the ruler's boundary. The
+  ruler counts cells by `floor` on world pixels (`worldPointToGridCell`), the charge by `round` on
+  cell indices, so the two disagree for a hop that starts or ends off-grid (3.4 → 3.6 charges 5 ft,
+  the ruler reads 0; 3.6 → 4.4 charges 0, the ruler reads 5). The agreement pin covers whole-cell
+  hops only. A same-cell move charges 0 ft and is quiet (no snapshot, no save).
 - **A fractional feet-per-square distorts per-hop rounding** (0.15 ft/square charges 0.2 per
   step). Exotic; accumulate in squares if it ever matters.
 - **The pad hides when another sheet or screen is up** (Tools/Help sheet, Party/Dice/Log screen)

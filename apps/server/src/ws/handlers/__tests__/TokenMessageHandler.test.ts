@@ -220,6 +220,26 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       const charged = handler.handleMove(state, tokenId, playerUid, 102, 100, false);
       expect(charged.broadcast).toBe(true);
       expect(charged.save).toBe(true);
+      // ...and the snapshot goes ALONE: a delta beside it would build every
+      // hidden-monster recipient's frame twice for one move.
+      expect(charged.delta).toBeUndefined();
+      // A move to the cell it is on charges 0 ft: no snapshot, no save.
+      const still = handler.handleMove(state, tokenId, playerUid, 102, 100, false);
+      expect(still.broadcast).toBe(false);
+      expect(still.save).toBe(false);
+      expect(state.characters[0]!.movementUsed).toBe(5);
+    });
+
+    it("a step after an uncharged legacy move starts from the TOKEN, not the stale scene object", () => {
+      // Out of combat a `move` writes the token and broadcasts nothing, so the
+      // scene graph is not rebuilt; a step resolved from the scene object
+      // would land at the pre-move cell plus one — a yank backward.
+      const state = roomService.getState();
+      state.combatActive = false;
+      messageRouter.route({ t: "move", id: tokenId, x: 107, y: 100 }, playerUid);
+      expect(state.tokens.find((t) => t.id === tokenId)!.x).toBe(107);
+      messageRouter.route({ t: "step-object", id: `token:${tokenId}`, dx: 1, dy: 0 }, playerUid);
+      expect(state.tokens.find((t) => t.id === tokenId)!.x).toBe(108);
     });
 
     it("should not move token when non-owner tries", () => {

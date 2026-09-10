@@ -199,6 +199,12 @@ describe("resetMovementBudget", () => {
     expect(character).toStrictEqual({ movementUsed: 0, movementDiagonals: 0 });
     resetMovementBudget(character, 3);
     expect(character).toStrictEqual({ movementUsed: 0, movementDiagonals: 0, movementRound: 3 });
+  });
+
+  it("the round stamp is any integer — a backward wrap below round 1 is real — never a fraction", () => {
+    expect(coerceMovementBudgetFields({ movementRound: 0 })).toStrictEqual({ movementRound: 0 });
+    expect(coerceMovementBudgetFields({ movementRound: -3 })).toStrictEqual({ movementRound: -3 });
+    expect(coerceMovementBudgetFields({ movementRound: 1.5 })).toStrictEqual({});
     expect(() => resetMovementBudget(undefined)).not.toThrow();
   });
 });

@@ -1323,6 +1323,11 @@ describe("validateMessage", () => {
         ).toBe(false);
       }
       expect(validateMessage({ t: "step-object", id: "", dx: 1, dy: 0 }).valid).toBe(false);
+      // A drawing's transform is in pixels: "one cell" would be one pixel.
+      expect(validateMessage({ t: "step-object", id: "drawing:d1", dx: 1, dy: 0 }).valid).toBe(
+        false,
+      );
+      expect(validateMessage({ t: "step-object", id: "prop:p1", dx: 1, dy: 0 }).valid).toBe(true);
     });
 
     it("set-character-speed: a finite number of feet inside the shared bounds", () => {

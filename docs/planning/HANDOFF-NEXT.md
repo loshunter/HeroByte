@@ -9,14 +9,15 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 **Update (2026-09-09, later — KEYBOARD MOVEMENT SLICE 1 on `dev`, NOT merged).** WASD / arrows
 (and `Q E Z C` + numpad corners for diagonals) step the SELECTED token or prop one grid cell per
-press over the ordinary `transform-object` road, so the server's ownership/lock/wall checks apply
-unchanged and the fog cone redraws per square from the next snapshot. The phone gets a 3×3 d-pad
-in the selection sheet (eight 44×44 chips measured at 375×812). Plan, decisions and traps:
+press over the relative `step-object` message, which the server resolves against its own
+authoritative cell and applies over the ordinary transform road, so the ownership/lock/wall checks
+apply unchanged and the fog cone redraws per square from the next snapshot. The phone gets a 3×3
+d-pad in the selection sheet (eight chips, each ≥ 44×44 — measured 69×44 at 375×812). Plan, decisions and traps:
 [keyboard-movement-arc-plan.md](./keyboard-movement-arc-plan.md). CORRECTION to the launch
 prompt's recon: the client never sends `move` — every drag is `transform-object`, which is why
-props came for free. Fast presses chain from the last sent cell (one direction, at most 4 ahead,
-1.5 s from the first unconfirmed step) so none is lost to latency; a fractional origin
-(staging-zone spawn) snaps to the nearest cell first. Selection still needs Select/Transform mode (existing model). **Slice 2
+props came for free. The wire carries a DIRECTION, never a cell (two absolute-cell versions
+teleported — review rounds 1 and 2), so N presses are N one-cell steps applied in order; the
+server rounds a fractional origin (a staging-zone spawn) before adding the direction. Selection still needs Select/Transform mode (existing model). **Slice 2
 (hold-to-repeat) also SHIPPED 2026-09-09:** a held key or a held d-pad button walks at one cell
 per 150 ms. **Slice 3 (the movement budget) SHIPPED 2026-09-09 too — the arc is COMPLETE on
 `dev`:** every token move in combat is charged server-side under the diagonal rule (Pathfinder's
@@ -25,8 +26,13 @@ character's turn start (once per round — a rewind refills nothing), the DM set
 budget never reaches a player's frame. Also fixed on the way (own commit `d4240c48`): a
 `token-updated` delta never moved the token's SCENE OBJECT, so a `move` over the delta channel
 left the sprite behind until the next full snapshot. Adversarial review rounds 1 (`316c295a`) and
-2 (`b2a0cb20`) are FIXED on `dev`; round 3 (the last under the cap) and the owner's merge are
-pending. A second bug fixed regardless of origin, own commit: the initiative modal confirmed a
+2 (`b2a0cb20`) are FIXED on `dev`; **round 3 PLATEAUED** (1/17/45 against round 2's 1/18/30 —
+the plan's "Review round 3" section has the counts and every disposition) so per
+`review-convergence` there is no round 4: its defects are fixed in two commits (server: the
+budget state machine — a player could zero their own spend by clearing their initiative, round-1
+turn starts never reset, the PREV floor minted rounds, a load carried a file's spend, and the
+shared-prop rule was locked to players; then client/mobile) and the OWNER decides whether the
+remaining recorded items block the merge. A second bug fixed regardless of origin, own commit: the initiative modal confirmed a
 save by watching the value CHANGE, so a physical-die entry equal to the roll on file "timed out"
 after 5 s and STAYED OPEN over the toolbar (one d20 face in twenty; the e2e suite hit it three
 times in two days as a "flake"). `useInitiativeSetting` now also confirms on a newer frame

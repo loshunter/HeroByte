@@ -246,11 +246,14 @@ export class TransformHandler {
     const prop = state.props.find((candidate) => candidate.id === propId);
     if (!prop) return false;
 
-    // Permission check: DM, owner="*" (everyone), or specific owner — and,
-    // like every other prop road (PropDispatcher), only while the table lets
-    // players touch props at all.
-    if (!isDM && !state.playerPropsEnabled) return false;
-    const canEdit = isDM || prop.owner === "*" || prop.owner === actorUid;
+    // Permission check: DM; owner="*" (a DM-placed shared prop — everyone may
+    // MOVE it, PropDispatcher's own words, switch or no switch); or the owner,
+    // but only while the table lets players touch their props at all. Review
+    // round 1 put the switch above the "*" rule and locked every shared prop
+    // to players on a default table; round 3 put it back where PropDispatcher
+    // has it.
+    const canEdit =
+      isDM || prop.owner === "*" || (state.playerPropsEnabled === true && prop.owner === actorUid);
     if (!canEdit) return false;
 
     // Sync to Prop entity

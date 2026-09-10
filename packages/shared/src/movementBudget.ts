@@ -125,7 +125,8 @@ export function coerceMovementBudgetFields<
     typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
   const used = spend(character.movementUsed);
   const diagonals = spend(character.movementDiagonals);
-  const round = spend(character.movementRound);
+  // A stamp key, compared by equality: any integer, 0 and below included.
+  const round = Number.isInteger(character.movementRound) ? character.movementRound : undefined;
   if (
     speed === character.speed &&
     used === character.movementUsed &&

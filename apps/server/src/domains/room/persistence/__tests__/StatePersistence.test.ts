@@ -248,7 +248,34 @@ describe("StatePersistence - Characterization Tests", () => {
       expect("movementDiagonals" in loaded).toBe(false);
     });
 
-    it("round-trips the combat round, and a poisoned one reads as absent", async () => {
+    it("a fight that survives a restart back-fills a missing budget record with zero", async () => {
+      // The DM's monster plate reads only from a record that EXISTS (the
+      // elevation-blip guard); a file written before the budget shipped, or
+      // one whose spend was dropped as poison, would show nothing for a round.
+      roomService.getState().characters = [
+        { id: "c1", type: "npc", name: "Goblin", hp: 7, maxHp: 7 },
+        { id: "c2", type: "pc", name: "Runner", hp: 10, maxHp: 10 },
+      ];
+      roomService.getState().combatActive = true;
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      expect(raw.combatActive).toBe(true);
+      const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+      fresh.loadState();
+      for (const c of fresh.getState().characters) {
+        expect(c).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+        expect("movementRound" in c).toBe(false);
+      }
+      // Out of combat nothing is invented.
+      raw.combatActive = false;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const idle = new RoomService({ stateFile: PROD_STATE_FILE });
+      idle.loadState();
+      expect(idle.getState().characters.every((c) => !("movementUsed" in c))).toBe(true);
+    });
+
+    it("round-trips the combat round (0 and below included), and a poisoned one reads as absent", async () => {
       roomService.getState().combatRound = 4;
       roomService.saveState();
       await roomService.awaitPendingWrites();
@@ -256,7 +283,12 @@ describe("StatePersistence - Characterization Tests", () => {
       fresh.loadState();
       expect(fresh.getState().combatRound).toBe(4);
       const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
-      raw.combatRound = -2;
+      raw.combatRound = -2; // a backward wrap below round 1 is a real stamp key
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const rewound = new RoomService({ stateFile: PROD_STATE_FILE });
+      rewound.loadState();
+      expect(rewound.getState().combatRound).toBe(-2);
+      raw.combatRound = 1.5;
       writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
       const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
       poisoned.loadState();

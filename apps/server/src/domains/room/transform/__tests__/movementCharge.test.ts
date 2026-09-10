@@ -79,6 +79,14 @@ describe("movement budget charge", () => {
     expect(pc()).toMatchObject({ movementUsed: 10, movementDiagonals: 0 });
   });
 
+  it("caps the accumulator — a far-flung cell cannot write Infinity into state or disk", () => {
+    expect(
+      room.applySceneObjectTransform("token:tok-pc", player, { position: { x: 1e300, y: 3 } }),
+    ).toBe(true);
+    expect(Number.isFinite(pc().movementUsed)).toBe(true);
+    expect(pc().movementUsed).toBe(1_000_000_000);
+  });
+
   it("charges nothing out of combat, and nothing for a token without a character", () => {
     room.getState().combatActive = false;
     expect(

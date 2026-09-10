@@ -3,6 +3,7 @@
 // ============================================================================
 // Handles room state management, persistence, and broadcasting
 
+import { resetAllMovementBudgets } from "./transform/movementBudgetReset.js";
 import type { WebSocket } from "ws";
 import type { RoomSnapshot, PlayerStagingZone } from "@herobyte/shared";
 import type { RoomState } from "./model.js";
@@ -147,6 +148,11 @@ export class RoomService {
       this.stagingManager,
     );
     Object.assign(this.state, mergedState);
+    // A loaded session is a fresh boundary, exactly as a travel is: the file's
+    // spend (and a connected player's live one) does not open the fight, and
+    // the round returns to 1 — `combatRound` is server-only and never rides a
+    // snapshot, so the merge literal cannot carry it.
+    resetAllMovementBudgets(this.state);
     this.store.set(this.roomId, this.state);
     this.rebuildSceneGraph();
 

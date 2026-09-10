@@ -220,8 +220,11 @@ describe("SnapshotLoader - Characterization Tests", () => {
       });
       const loaded = roomService.getState().characters.find((c) => c.id === "c1")!;
       expect("speed" in loaded).toBe(false);
-      expect("movementUsed" in loaded).toBe(false);
-      expect(loaded.movementDiagonals).toBe(2);
+      // A loaded session is a fresh boundary: the file's spend never opens the
+      // fight (review round 3 — a file saved mid-round carried its spend in).
+      expect(loaded).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+      expect("movementRound" in loaded).toBe(false);
+      expect(roomService.getState().combatRound).toBe(1);
     });
 
     it("should normalize isDM field to false if missing", () => {

@@ -260,14 +260,8 @@ export class InitiativeMessageHandler {
   /**
    * Handle next-turn message
    *
-   * Advances to the next character in initiative order.
-   * Wraps around to the first character if at the end.
-   * All players can advance turns.
-   *
-   * @param state - Current room state
-   * @param senderUid - UID of the sender
-   * @param isDM - Whether sender is DM
-   * @returns Result indicating if broadcast/save is needed
+   * Advances to the next character in initiative order, wrapping to the first
+   * at the end. All players can advance turns.
    */
   handleNextTurn(state: RoomState, senderUid: string, _isDM: boolean): InitiativeMessageResult {
     const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
@@ -277,7 +271,10 @@ export class InitiativeMessageHandler {
 
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const nextIndex = (currentIndex + 1) % charactersInOrder.length;
-    if (currentIndex === charactersInOrder.length - 1) state.combatRound = currentRound(state) + 1;
+    // A pointer outside the order (its holder cleared, deleted or elevated) lands on the top: a wrap too.
+    if (currentIndex === -1 || currentIndex === charactersInOrder.length - 1) {
+      state.combatRound = currentRound(state) + 1;
+    }
     state.currentTurnCharacterId = charactersInOrder[nextIndex].id;
     startTurnBudget(state, charactersInOrder[nextIndex]);
     console.log(`Turn advanced to ${charactersInOrder[nextIndex].name} by ${senderUid}`);
@@ -288,14 +285,8 @@ export class InitiativeMessageHandler {
   /**
    * Handle previous-turn message
    *
-   * Goes back to the previous character in initiative order.
-   * Wraps around to the last character if at the beginning.
-   * All players can go back turns.
-   *
-   * @param state - Current room state
-   * @param senderUid - UID of the sender
-   * @param isDM - Whether sender is DM
-   * @returns Result indicating if broadcast/save is needed
+   * Goes back to the previous character in initiative order, wrapping to the
+   * last at the beginning. All players can go back turns.
    */
   handlePreviousTurn(state: RoomState, senderUid: string, _isDM: boolean): InitiativeMessageResult {
     const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
@@ -305,8 +296,9 @@ export class InitiativeMessageHandler {
 
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const prevIndex = currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
-    // A rewind resets nothing (movementBudgetReset.ts); a backward wrap un-counts the round.
-    if (currentIndex === 0) state.combatRound = Math.max(1, currentRound(state) - 1);
+    // A rewind resets nothing (movementBudgetReset.ts); a backward wrap un-counts the round —
+    // no floor, so PREV then NEXT from the top in round 1 lands back on round 1 and refills nothing.
+    if (currentIndex === 0) state.combatRound = currentRound(state) - 1;
     state.currentTurnCharacterId = charactersInOrder[prevIndex].id;
     console.log(`Turn moved back to ${charactersInOrder[prevIndex].name} by ${senderUid}`);
 

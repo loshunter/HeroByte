@@ -3,17 +3,21 @@
  *
  * A character's counters reset when THEIR turn starts — but only once per
  * combat ROUND: `state.combatRound` steps forward when next-turn wraps the
- * order and back when previous-turn wraps it the other way, and a character
- * stamped with the current round is not reset again. So a PREV (a correction
- * into a turn already partly spent) refills nothing, and a player who can
- * nudge the order (any player can) cannot refill their own budget by
- * pressing PREV then NEXT.
+ * order and back when previous-turn wraps it the other way (no floor: a
+ * backward wrap must exactly undo a forward one, or the asymmetry is a
+ * refill), and a character STAMPED with the current round is not reset
+ * again. The stamp is written by the turn start itself, never ahead of it:
+ * review round 3 found that pre-stamping everyone at combat start made every
+ * round-1 turn start a no-op, so a spend made before your first turn stood
+ * through it. So a PREV (a correction into a turn already partly spent)
+ * refills nothing, and a player who can nudge the order (any player can)
+ * cannot refill their own budget by pressing PREV then NEXT.
  *
  * Every character's reset — and the round returns to 1 — when combat starts
  * or ends on ANY road (the buttons, the first initiative value, clear-all, a
- * travel that suspends or resumes a fight), so a budget never carries from
- * one fight into the next and never ticks outside one. A travel is not a
- * turn boundary: the party arrives fresh.
+ * travel that suspends or resumes a fight, a session load), so a budget never
+ * carries from one fight into the next and never ticks outside one. A travel
+ * is not a turn boundary: the party arrives fresh.
  */
 
 import { resetMovementBudget } from "@herobyte/shared";
@@ -28,7 +32,10 @@ export function currentRound(state: RoomState): number {
 
 export function resetAllMovementBudgets(state: RoomState): void {
   state.combatRound = 1;
-  for (const character of state.characters) resetMovementBudget(character, 1);
+  for (const character of state.characters) {
+    resetMovementBudget(character);
+    delete character.movementRound; // stamped by the first turn start, not here
+  }
 }
 
 /** The character's turn starts: reset, unless this round already did. */
@@ -41,11 +48,14 @@ export function startTurnBudget(state: RoomState, character: Character | undefin
 
 /**
  * A character leaves the order (its initiative cleared): a turn pointer left
- * on it would send next-turn to whoever sorts first, and a spend nobody can
- * reset would follow it back in — so both go (the clear-all rule, per head).
+ * on it would send next-turn to whoever sorts first, so the pointer goes; and
+ * the round stamp goes, so the next turn start after it re-enters resets it.
+ * The SPEND stays. Any player may clear their own initiative (a withdrawal is
+ * not a claim), and review round 3 showed that zeroing here handed a player a
+ * two-click refill: clear, re-roll, walk on. A budget a player can raise is
+ * not a budget.
  */
 export function leaveOrderBudget(state: RoomState, character: Character): void {
   if (state.currentTurnCharacterId === character.id) state.currentTurnCharacterId = undefined;
-  resetMovementBudget(character);
   delete character.movementRound;
 }

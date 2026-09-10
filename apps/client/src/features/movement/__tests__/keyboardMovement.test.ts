@@ -74,11 +74,14 @@ describe("movableSelection", () => {
     ]);
   });
 
-  it("a player moves no prop at all while the table's player-props switch is off", () => {
+  it("with the player-props switch off a player still moves a SHARED prop, never their own", () => {
     const ids = ["token:mine", "prop:shared", "prop:myprop"];
     expect(
       movableSelection({ selectedObjectIds: ids, snapshot: snapshot(), uid: "me", isDM: false }),
-    ).toEqual([{ id: "token:mine", x: 3, y: 4 }]);
+    ).toEqual([
+      { id: "token:mine", x: 3, y: 4 },
+      { id: "prop:shared", x: 1, y: 1 },
+    ]);
   });
 
   it("the DM moves all of them", () => {

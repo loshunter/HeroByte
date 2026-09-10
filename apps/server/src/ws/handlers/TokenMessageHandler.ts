@@ -93,7 +93,9 @@ export class TokenMessageHandler {
     const deltasEnabled = isDeltaChannelEnabled();
     let delta: PendingDelta | undefined;
     const token = state.tokens.find((t) => t.id === tokenId) as Token | undefined;
-    if (deltasEnabled && token) {
+    // A charged move rides the full snapshot alone — a delta beside it would
+    // build every hidden-monster recipient's frame twice for one move.
+    if (deltasEnabled && token && !charged) {
       // A refused move (blocked by a wall/door or unauthorized) still emits
       // the token's authoritative position so optimistic clients snap back.
       delta = { t: "token-updated", token, previousCell };

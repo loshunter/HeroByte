@@ -185,6 +185,25 @@ describe("movement budget secrecy contracts", () => {
     expect(charactersSeenBy(aliceWs).length).toBeGreaterThan(0);
     expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
     expect(sentinelHits(aliceWs, GOBLIN_USED + 10)).toEqual([]);
+    expect(sentinelHits(aliceWs, ALICE_SPEED)).not.toEqual([]); // her own frame is walkable
+  });
+
+  it("the DM setting a monster's speed — the road the secret is WRITTEN on — never reaches a player", () => {
+    route({ t: "set-character-speed", characterId: "npc-goblin", speed: 51137 }, DM);
+    expect(roomService.getState().characters[0]!.speed).toBe(51137);
+    expect(charactersSeenBy(aliceWs).some((c) => c.id === "npc-goblin")).toBe(true);
+    expect(sentinelHits(aliceWs, 51137)).toEqual([]);
+    expect(sentinelHits(dmWs, 51137)).not.toEqual([]);
+  });
+
+  it("a turn start's reset frame (movementUsed back to 0) carries no monster budget to a player", () => {
+    roomService.setState({ combatActive: true, currentTurnCharacterId: "pc-alice" });
+    route({ t: "next-turn" }, DM); // -> the goblin: its record is reset and broadcast
+    expect(roomService.getState().currentTurnCharacterId).toBe("npc-goblin");
+    const goblinSeen = charactersSeenBy(aliceWs).filter((c) => c.id === "npc-goblin");
+    expect(goblinSeen.length).toBeGreaterThan(0);
+    expect(goblinSeen.some((c) => "movementUsed" in c || "movementRound" in c)).toBe(false);
+    expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
   });
 
   it("with fog on and the monster HIDDEN, every road (delta re-send included) still leaks nothing", () => {
@@ -215,6 +234,7 @@ describe("movement budget secrecy contracts", () => {
       GOBLIN_SPEED,
       GOBLIN_USED,
       GOBLIN_USED + 5,
+      GOBLIN_USED + 10,
       GOBLIN_USED + 15,
       GOBLIN_USED + 20,
     ]) {
@@ -224,12 +244,12 @@ describe("movement budget secrecy contracts", () => {
   });
 
   it("a player cannot set any speed, their own included — nothing changes, nothing is sent", () => {
-    route({ t: "set-character-speed", characterId: "pc-alice", speed: 900 }, ALICE);
-    route({ t: "set-character-speed", characterId: "npc-goblin", speed: 900 }, ALICE);
+    route({ t: "set-character-speed", characterId: "pc-alice", speed: 77123 }, ALICE);
+    route({ t: "set-character-speed", characterId: "npc-goblin", speed: 77123 }, ALICE);
     expect(roomService.getState().characters.map((c) => c.speed)).toEqual([
       GOBLIN_SPEED,
       ALICE_SPEED,
     ]);
-    expect(sentinelHits(dmWs, 900)).toEqual([]);
+    expect(sentinelHits(dmWs, 77123)).toEqual([]);
   });
 });

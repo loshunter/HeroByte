@@ -7,19 +7,32 @@
 
 import { coerceMovementBudgetFields, type Character } from "@herobyte/shared";
 
-export function coerceLoadedCharacters(raw: unknown): Character[] {
+/**
+ * @param combatActive - a fight that survives the restart: every character
+ *   in it carries a budget record (the DM's monster plates read from it),
+ *   so a file written before the budget existed is back-filled with zero.
+ */
+export function coerceLoadedCharacters(raw: unknown, combatActive = false): Character[] {
   if (!Array.isArray(raw)) return [];
-  return (raw as Character[]).map((character) =>
-    coerceMovementBudgetFields({
+  return (raw as Character[]).map((character) => {
+    const coerced = coerceMovementBudgetFields({
       ...character,
       type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
       tokenImage: character.tokenImage ?? undefined,
       tokenId: character.tokenId ?? undefined,
-    }),
-  );
+    });
+    if (combatActive && coerced.movementUsed === undefined) {
+      return { ...coerced, movementUsed: 0, movementDiagonals: 0 };
+    }
+    return coerced;
+  });
 }
 
-/** The movement-budget round: a positive finite number, or absent (round 1). */
+/**
+ * The movement-budget round: any integer (a backward wrap from the top of
+ * the order in round 1 reads 0, and it is a stamp key, not a display), or
+ * absent (round 1).
+ */
 export function coerceCombatRound(raw: unknown): number | undefined {
-  return typeof raw === "number" && Number.isFinite(raw) && raw >= 1 ? raw : undefined;
+  return typeof raw === "number" && Number.isInteger(raw) ? raw : undefined;
 }

@@ -383,14 +383,15 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
   });
 
   describe("a monster created mid-fight", () => {
-    it("is born with a zeroed budget stamped with the current round", () => {
+    it("is born with a zeroed budget and NO round stamp — its first turn start resets it", () => {
       const state = roomService.getState();
       state.combatActive = true;
       state.combatRound = 3;
       const before = new Set(state.characters.map((c) => c.id));
       messageRouter.route({ t: "create-npc", name: "Latecomer", hp: 5, maxHp: 5 }, dmUid);
       const created = roomService.getState().characters.find((c) => !before.has(c.id))!;
-      expect(created).toMatchObject({ movementUsed: 0, movementDiagonals: 0, movementRound: 3 });
+      expect(created).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+      expect("movementRound" in created).toBe(false);
     });
   });
 

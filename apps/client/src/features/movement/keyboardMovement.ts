@@ -94,9 +94,13 @@ export function movableSelection({
       if (!token || (!isDM && token.owner !== uid)) continue;
       out.push({ id, x: token.x, y: token.y });
     } else if (id.startsWith("prop:")) {
-      if (!isDM && snapshot.playerPropsEnabled !== true) continue;
       const prop = snapshot.props?.find((candidate) => candidate.id === id.slice(5));
-      if (!prop || (!isDM && prop.owner !== "*" && prop.owner !== uid)) continue;
+      if (!prop) continue;
+      // TransformHandler's rule: a shared ("*") prop moves for everyone; your
+      // own only while the table's player-props switch is on.
+      const mayMove =
+        isDM || prop.owner === "*" || (snapshot.playerPropsEnabled === true && prop.owner === uid);
+      if (!mayMove) continue;
       out.push({ id, x: prop.x, y: prop.y });
     }
   }

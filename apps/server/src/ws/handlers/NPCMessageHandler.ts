@@ -21,10 +21,7 @@ import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import { allocateNpcNames } from "../../domains/character/npcNaming.js";
 import { SNAPSHOT_LIMITS } from "../../middleware/validators/sessionValidators.js";
-import {
-  currentRound,
-  resetMovementBudget,
-} from "../../domains/room/transform/movementBudgetReset.js";
+import { resetMovementBudget } from "../../domains/room/transform/movementBudgetReset.js";
 
 /**
  * Result of handling an NPC message
@@ -152,8 +149,9 @@ export class NPCMessageHandler {
         created.visibleToPlayers = false;
       }
       // Born into a fight: a zeroed budget from the start, so the DM's plate
-      // never has to wait for its first step to show one.
-      if (state.combatActive) resetMovementBudget(created, currentRound(state));
+      // never has to wait for its first step to show one. No round stamp —
+      // its first turn start writes that (movementBudgetReset.ts).
+      if (state.combatActive) resetMovementBudget(created);
     }
 
     return { broadcast: true, save: true };

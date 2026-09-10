@@ -7,6 +7,8 @@ import { MOVEMENT_SPEED_MAX_FEET, MOVEMENT_SPEED_MIN_FEET } from "@herobyte/shar
 import type { MessageRecord, ValidationResult } from "./index.js";
 
 const STEP = new Set([-1, 0, 1]);
+/** The kinds whose transform is in grid CELLS; a drawing's is in pixels, so "one cell" is a lie there. */
+const STEPPABLE = /^(token|prop):./;
 
 /**
  * step-object: one grid cell from the object's current cell. The client sends
@@ -15,8 +17,8 @@ const STEP = new Set([-1, 0, 1]);
  * position (TransformMessageHandler.handleStepObject).
  */
 export function validateStepObjectMessage(message: MessageRecord): ValidationResult {
-  if (typeof message.id !== "string" || message.id.length === 0) {
-    return { valid: false, error: "step-object: missing or invalid id" };
+  if (typeof message.id !== "string" || !STEPPABLE.test(message.id)) {
+    return { valid: false, error: "step-object: id must name a token or a prop" };
   }
   const { dx, dy } = message;
   if (!STEP.has(dx as number) || !STEP.has(dy as number)) {

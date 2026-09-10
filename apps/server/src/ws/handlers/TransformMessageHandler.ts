@@ -77,12 +77,16 @@ export class TransformMessageHandler {
   ): TransformMessageResult {
     const object = state.sceneObjects.find((candidate) => candidate.id === objectId);
     if (!object) return { broadcast: false, save: false };
+    // The TOKEN is the authority, not its scene object: the legacy `move`
+    // road writes the token without rebuilding the scene graph when nothing
+    // broadcasts, and a step from the stale object would yank it back.
+    const token = objectId.startsWith("token:")
+      ? state.tokens.find((candidate) => candidate.id === objectId.slice(6))
+      : undefined;
+    const origin = token ?? object.transform;
     // A token spawned or dragged with Snap off sits on a fractional cell; a
     // step lands on WHOLE cells, so the origin snaps first.
-    const position = {
-      x: Math.round(object.transform.x) + dx,
-      y: Math.round(object.transform.y) + dy,
-    };
+    const position = { x: Math.round(origin.x) + dx, y: Math.round(origin.y) + dy };
     return this.handleTransformObject(state, senderUid, objectId, { position });
   }
 }
