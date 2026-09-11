@@ -2254,6 +2254,11 @@ h4 {
  */
 .mobile-layout-root .public-table-chip {
   top: calc(var(--mobile-safe-top) + 30px);
+  /* On the phone it floats over the MAP, not a header: it has no controls,
+     and with the move-pad follow parking a token under it in landscape a tap
+     there must reach the token. (Desktop keeps pointer-events on — its band
+     is the header's, see above.) */
+  pointer-events: none;
   box-sizing: border-box;
   width: max-content;
   max-width: calc(100vw - 24px);

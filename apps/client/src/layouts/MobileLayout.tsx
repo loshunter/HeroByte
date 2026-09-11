@@ -314,7 +314,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
           banner rides a stacking context above the screens (and below the dice
           overlay at 2000). position:relative does not move a fixed descendant;
           it only lifts its paint. */}
-      <div style={{ position: "relative", zIndex: 1800 }}>
+      {/* No controls, floats over the map's top band: taps go through. */}
+      <div style={{ position: "relative", zIndex: 1800, pointerEvents: "none" }}>
         <ServerStatus isConnected={props.isConnected} />
       </div>
       {props.snapshot?.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
