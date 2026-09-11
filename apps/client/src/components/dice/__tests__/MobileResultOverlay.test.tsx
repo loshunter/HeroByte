@@ -8,6 +8,8 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { MobileResultOverlay } from "../MobileResultOverlay";
 import type { RollResult } from "../types";
 
@@ -26,6 +28,21 @@ describe("MobileResultOverlay", () => {
     const { container } = render(<MobileResultOverlay result={null} onClose={vi.fn()} />);
 
     expect(container.firstChild).toBeNull();
+  });
+
+  it("caps the card at the VISIBLE viewport, with the vh fallback declared first", () => {
+    // jsdom loads no stylesheet: the class is pinned on the node and the rule
+    // is read from the file, the way MobileFloatingControls.test pins the sheets.
+    render(<MobileResultOverlay result={createResult()} onClose={vi.fn()} />);
+    const card = screen.getByTestId("roll-result-total").closest(".mobile-roll-result__card");
+    expect(card).not.toBeNull();
+    expect((card as HTMLElement).style.maxHeight).toBe("");
+    const css = readFileSync(resolve(__dirname, "../../../theme/herobyte.css"), "utf8");
+    const rule = css.match(/\.mobile-roll-result__card\s*\{([^}]*)\}/)?.[1] ?? "";
+    const vhAt = rule.search(/max-height:\s*80vh\b/);
+    const dvhAt = rule.search(/max-height:\s*80dvh\b/);
+    expect(vhAt).toBeGreaterThanOrEqual(0);
+    expect(dvhAt).toBeGreaterThan(vhAt);
   });
 
   it("should render the total when a result is provided", () => {

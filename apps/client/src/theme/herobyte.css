@@ -1471,6 +1471,14 @@ h4 {
  * of border are added AFTER the calc, so a capped sheet renders 26px taller
  * than it was told to be and spends that out of the 48px of breathing room.
  */
+.mobile-roll-result__card {
+  /* The phone's roll-result card: the same vh-then-dvh pair as the sheets
+     below, for the same reason (the card is centred, so a large-viewport cap
+     lets its bottom band sit under the toolbar). */
+  max-height: 80vh;
+  max-height: 80dvh;
+}
+
 .mobile-tool-sheet,
 .mobile-selection-sheet,
 .mobile-drawing-sheet,

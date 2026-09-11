@@ -63,10 +63,12 @@ export const MobileResultOverlay: React.FC<MobileResultOverlayProps> = ({
       }}
     >
       <div
+        // The height cap lives in herobyte.css (.mobile-roll-result__card):
+        // an inline style cannot carry the vh fallback line under the dvh one.
+        className="mobile-roll-result__card"
         style={{
           width: "100%",
           maxWidth: "400px",
-          maxHeight: "80vh",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",

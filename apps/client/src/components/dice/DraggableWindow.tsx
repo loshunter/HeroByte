@@ -175,7 +175,15 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
     top: 0,
     width: "100%",
     height: "100%",
-    maxHeight: "100vh",
+    // dvh, not vh: vh is the LARGE viewport, taller than what is visible by
+    // the browser chrome (~56px Android Chrome, ~90-110px iOS Safari), so the
+    // overlay's bottom band sat under the toolbar and could not be scrolled
+    // to (the sheets learned this in herobyte.css). An inline style cannot
+    // carry the CSS's vh fallback line; on a browser without dvh this
+    // declaration is dropped and `height: 100%` above bounds the box (the
+    // old vh behaviour). Invisible locally: every browser here makes vh and
+    // dvh equal.
+    maxHeight: "100dvh",
     zIndex: zIndex + 100, // Boost z-index for mobile overlay
     background: "var(--jrpg-navy)", // Solid background for mobile
     border: "none",
@@ -196,7 +204,10 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
     // 100vh-40: a window positioned at y with a viewport-sized cap extends
     // past the bottom of the screen, and content in that clipped band can
     // never be scrolled into view. The 160px floor keeps a window someone
-    // dragged to the bottom edge usable enough to drag back.
+    // dragged to the bottom edge usable enough to drag back. vh, not dvh:
+    // a desktop viewport has no dynamic chrome, so the two are equal, and
+    // vh is the one every browser parses — with dvh alone an old browser
+    // would drop the whole cap and nothing else bounds `height: auto`.
     maxHeight: `max(160px, calc(100vh - ${Math.max(position.y, 0)}px - 20px))`,
     zIndex,
     background:
@@ -270,7 +281,9 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
           flex: 1,
           overflow: "auto",
           pointerEvents: "auto",
-          padding: isMobile ? "16px" : "0", // Add padding on mobile content
+          // The last band clears the home indicator, like every other phone surface.
+          padding: isMobile ? "16px" : "0",
+          paddingBottom: isMobile ? "calc(16px + env(safe-area-inset-bottom, 0px))" : "0", // Add padding on mobile content
         }}
       >
         {children}

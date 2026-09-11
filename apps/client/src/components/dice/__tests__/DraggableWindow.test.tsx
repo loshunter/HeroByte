@@ -552,6 +552,39 @@ describe("DraggableWindow", () => {
       expect(windowElement.style.flexDirection).toBe("column");
     });
 
+    it("caps the desktop window in vh (every browser parses it; a desktop has no dynamic chrome)", () => {
+      const { container } = render(
+        <DraggableWindow title="Test Window" initialY={120}>
+          <div>Content</div>
+        </DraggableWindow>,
+      );
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
+      expect(windowElement.style.maxHeight).toBe("max(160px, calc(100vh - 120px - 20px))");
+    });
+
+    it("on the phone: a dvh cap (the visible viewport) and a safe-area bottom band", () => {
+      // `?mobile=true` is the layout predicate's forcing switch (mobileLayout.ts).
+      window.history.replaceState({}, "", "/?mobile=true");
+      try {
+        const { container } = render(
+          <DraggableWindow title="Test Window">
+            <div>Content</div>
+          </DraggableWindow>,
+        );
+        const windowElement = container.querySelector(
+          "div[style*='position: fixed']",
+        ) as HTMLElement;
+        expect(windowElement.style.maxHeight).toBe("100dvh");
+        expect(windowElement.style.height).toBe("100%"); // the bound when dvh is unknown
+        const content = screen.getByText("Content").parentElement as HTMLElement;
+        // (jsdom re-serialises the calc; the two parts are what matter.)
+        expect(content.style.paddingBottom).toContain("16px");
+        expect(content.style.paddingBottom).toContain("safe-area-inset-bottom");
+      } finally {
+        window.history.replaceState({}, "", "/");
+      }
+    });
+
     it("should have jrpg-text-command class on title bar", () => {
       const { container } = render(
         <DraggableWindow title="Test Window">
