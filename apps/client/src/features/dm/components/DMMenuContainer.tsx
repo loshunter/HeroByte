@@ -227,6 +227,7 @@ export function DMMenuContainer({
       onSetNPCSpeed={(id, speed) =>
         sendMessage({ t: "set-character-speed", characterId: id, speed })
       }
+      onResetNPCBudget={(id) => sendMessage({ t: "reset-movement-budget", characterId: id })}
       onDeleteNPC={dmContext.npcManagement.deleteNpc}
       onPlaceNPCToken={dmContext.npcManagement.placeToken}
       isCreatingNpc={dmContext.npcManagement.isCreating}

@@ -1,8 +1,11 @@
 /**
- * Characterization tests for CharacterMessageHandler
+ * Characterization tests for CharacterMessageHandler — and, since the
+ * keyboard-movement arc, the character road's newer messages routed beside
+ * it: set-character-speed (slice 3) and reset-movement-budget (F2, whose
+ * handler is ws/handlers/movementBudgetMessages.ts, never in messageRouter).
  *
- * These tests capture the behavior of the original code BEFORE extraction.
- * They serve as regression tests during and after refactoring.
+ * The characterization block captures the behavior of the original code
+ * BEFORE extraction and serves as regression tests during and after it.
  *
  * Source: apps/server/src/ws/messageRouter.ts
  * - create-character (lines 213-226)
@@ -16,6 +19,8 @@
  * Target: apps/server/src/ws/handlers/CharacterMessageHandler.ts
  */
 
+import { handleResetMovementBudget } from "../movementBudgetMessages.js";
+import { resetMovementBudget } from "@herobyte/shared";
 import path from "node:path";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
@@ -440,6 +445,102 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       expect(
         roomService.getState().characters.find((c) => c.id === characterId)?.speed,
       ).toBeUndefined();
+    });
+  });
+
+  describe("reset-movement-budget message", () => {
+    let characterId: string;
+    const find = () => roomService.getState().characters.find((c) => c.id === characterId)!;
+
+    beforeEach(() => {
+      const state = roomService.getState();
+      const character = characterService.createCharacter(state, "Runner", 100, "", "pc");
+      character.ownedByPlayerUID = playerUid;
+      character.movementUsed = 15;
+      character.movementDiagonals = 1;
+      // A STALE stamp (round 2 in round 3): a reset that pre-stamped the
+      // current round would make the character's next turn start a no-op.
+      character.movementRound = 2;
+      state.combatActive = true;
+      state.combatRound = 3;
+      characterId = character.id;
+      roomService.createSnapshot();
+    });
+
+    it("the DM zeroes the spend and the diagonal count, and leaves the round stamp alone", () => {
+      const spy = vi.spyOn(roomService, "saveState");
+      messageRouter.route({ t: "reset-movement-budget", characterId }, dmUid);
+      expect(find()).toMatchObject({ movementUsed: 0, movementDiagonals: 0, movementRound: 2 });
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it("a player cannot — not even the character's own (a budget a player could raise is not a budget)", () => {
+      const spy = vi.spyOn(roomService, "saveState");
+      messageRouter.route({ t: "reset-movement-budget", characterId }, playerUid);
+      expect(find()).toMatchObject({ movementUsed: 15, movementDiagonals: 1 });
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("nothing spent, no such character, or a player: the handler's own result is no broadcast AND no save", () => {
+      const state = roomService.getState();
+      resetMovementBudget(find());
+      // The router hides half the result (only saves are observable there);
+      // the function is the contract.
+      expect(handleResetMovementBudget(state, characterId, dmUid, true)).toEqual({
+        broadcast: false,
+        save: false,
+      });
+      expect(handleResetMovementBudget(state, "nobody", dmUid, true)).toEqual({
+        broadcast: false,
+        save: false,
+      });
+      find().movementUsed = 15;
+      expect(handleResetMovementBudget(state, characterId, playerUid, false)).toEqual({
+        broadcast: false,
+        save: false,
+      });
+      expect(find().movementUsed).toBe(15);
+    });
+
+    it("a diagonal count alone is a spend too (the server's idea of spent counts both)", () => {
+      find().movementUsed = 0;
+      find().movementDiagonals = 2;
+      const spy = vi.spyOn(roomService, "saveState");
+      messageRouter.route({ t: "reset-movement-budget", characterId }, dmUid);
+      expect(find()).toMatchObject({ movementUsed: 0, movementDiagonals: 0 });
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it("composes with the turn: after a reset the character's next turn start still resets it", () => {
+      // The stale stamp (round 2) stays stale through the reset; the turn
+      // start, reached WITHOUT a wrap (the round stays 3), writes round 3 and
+      // zeroes a fresh spend. A reset that pre-stamped round 3 would make that
+      // turn start a no-op and leave the 5 ft standing — this is the fixture
+      // where the stamp trap is visible.
+      const state = roomService.getState();
+      const other = characterService.createCharacter(state, "Leader", 100, "", "pc");
+      other.ownedByPlayerUID = "someone-else";
+      other.initiative = 20;
+      state.characters.forEach((c) => {
+        if (c.id !== characterId && c.id !== other.id) c.initiative = undefined;
+      });
+      find().initiative = 10;
+      state.currentTurnCharacterId = other.id;
+      messageRouter.route({ t: "reset-movement-budget", characterId }, dmUid);
+      find().movementUsed = 5;
+      messageRouter.route({ t: "next-turn" }, dmUid);
+      expect(roomService.getState().combatRound).toBe(3);
+      expect(roomService.getState().currentTurnCharacterId).toBe(characterId);
+      expect(find()).toMatchObject({ movementUsed: 0, movementRound: 3 });
+    });
+
+    it("does not require combat — every road out of combat already zeroes every budget, so this only covers a hand-edited state file's stray spend", () => {
+      messageRouter.route({ t: "end-combat" }, dmUid);
+      expect(find().movementUsed).toBe(0); // the ordinary road did it already
+      // A file's stray spend, out of combat: the reset still clears it.
+      find().movementUsed = 20;
+      messageRouter.route({ t: "reset-movement-budget", characterId }, dmUid);
+      expect(find().movementUsed).toBe(0);
     });
   });
 

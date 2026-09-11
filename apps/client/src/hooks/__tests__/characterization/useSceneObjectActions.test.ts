@@ -402,4 +402,33 @@ describe("useSceneObjectActions - Characterization", () => {
       expect(typeof secondRecolor).toBe("function");
     });
   });
+  describe("the DM-only character messages (movement slices)", () => {
+    it("updateCharacterSpeed sends set-character-speed, null clearing to the default", () => {
+      const sendMessage = vi.fn();
+      const { result } = renderHook(() => useSceneObjectActions({ sendMessage }));
+      result.current.updateCharacterSpeed("char-1", 25);
+      expect(sendMessage).toHaveBeenLastCalledWith({
+        t: "set-character-speed",
+        characterId: "char-1",
+        speed: 25,
+      });
+      result.current.updateCharacterSpeed("char-1", null);
+      expect(sendMessage).toHaveBeenLastCalledWith({
+        t: "set-character-speed",
+        characterId: "char-1",
+        speed: null,
+      });
+    });
+
+    it("resetCharacterBudget sends reset-movement-budget with the character id", () => {
+      const sendMessage = vi.fn();
+      const { result } = renderHook(() => useSceneObjectActions({ sendMessage }));
+      result.current.resetCharacterBudget("char-1");
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(sendMessage).toHaveBeenCalledWith({
+        t: "reset-movement-budget",
+        characterId: "char-1",
+      });
+    });
+  });
 });

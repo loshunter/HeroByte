@@ -1,6 +1,7 @@
 import type { ClientMessage } from "@herobyte/shared";
 import type { CharacterMessageHandler } from "../handlers/CharacterMessageHandler.js";
 import type { NPCMessageHandler } from "../handlers/NPCMessageHandler.js";
+import { handleResetMovementBudget } from "../handlers/movementBudgetMessages.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
 import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
@@ -89,6 +90,9 @@ export class CharacterDispatcher {
           message.speed,
           isDM,
         );
+
+      case "reset-movement-budget":
+        return handleResetMovementBudget(state, message.characterId, senderUid, isDM);
 
       case "set-character-portrait":
         return this.characterHandler.handleSetCharacterPortrait(

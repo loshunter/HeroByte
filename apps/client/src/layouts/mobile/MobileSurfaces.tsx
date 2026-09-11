@@ -103,6 +103,8 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             tokens={props.snapshot?.tokens || []}
             onTokenVisionRadiusChange={props.updateTokenVisionRadius}
             onCharacterSpeedChange={props.updateCharacterSpeed}
+            onCharacterBudgetReset={props.resetCharacterBudget}
+            combatActive={props.snapshot?.combatActive ?? false}
             tableVisionDefault={props.snapshot?.defaultVisionRadius}
           />
         </MobileScreen>

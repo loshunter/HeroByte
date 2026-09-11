@@ -41,6 +41,14 @@ export function validateStepObjectMessage(message: MessageRecord): ValidationRes
   return { valid: true };
 }
 
+/** reset-movement-budget: a non-empty string characterId — the DM zeroes its spend. */
+export function validateResetMovementBudgetMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+    return { valid: false, error: "reset-movement-budget: missing or invalid characterId" };
+  }
+  return { valid: true };
+}
+
 /**
  * set-character-speed: a finite number of feet per turn inside the shared
  * bounds. Not an integer check — a 2.5 ft speed is odd but not malformed.

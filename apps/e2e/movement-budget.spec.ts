@@ -8,7 +8,9 @@
  *
  * The mover is a PLAYER in its own context: a DM-owned PC is deliberately not
  * a combatant (shouldCharacterParticipateInCombat), so it never gets a turn
- * start and could never show the reset this pins.
+ * start and could never show the turn-start reset this pins. The third test
+ * is F2's: the DM zeroes a spend from the card's settings — the budget is
+ * advisory, and that is the DM's lever besides the turn.
  */
 import { expect, test, type Page } from "./fixtures";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
@@ -238,6 +240,69 @@ test.describe("movement budget", () => {
       await send(page, { t: "end-combat" }).catch(() => undefined);
       if (npcId) await send(page, { t: "delete-npc", id: npcId }).catch(() => undefined);
       await playerContext.close();
+    }
+  });
+
+  test("the DM resets a player's spend from the card, mid-turn: the readout returns to full", async ({
+    page,
+    browser,
+  }) => {
+    const dmContext = await browser.newContext();
+    const dm = await dmContext.newPage();
+    try {
+      await joinDefaultRoomAsDM(dm);
+      await joinDefaultRoom(page);
+      const me = await ownCharacter(page);
+      await send(dm, { t: "set-initiative", characterId: me.id, initiative: 15 });
+      await send(dm, { t: "start-combat" });
+      await expect
+        .poll(() => readouts(page), { timeout: 5_000 })
+        .toContainEqual({ text: "30 / 30 ft", fill: GOLD });
+
+      // Two steps: 10 ft spent.
+      await selectTool(page).click();
+      const uid = await page.evaluate(() => window.__HERO_BYTE_E2E__!.uid);
+      await send(page, { t: "select-object", uid, objectId: `token:${me.tokenId}` });
+      await page.waitForFunction(
+        (id) => {
+          const data = window.__HERO_BYTE_E2E__!;
+          const entry = data.snapshot!.selectionState?.[data.uid!];
+          return entry?.mode === "single" && entry.objectId === id;
+        },
+        `token:${me.tokenId}`,
+        { timeout: 5_000 },
+      );
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowRight");
+      await expect
+        .poll(() => readCharacter(page, me.id).then((c) => c.movementUsed), { timeout: 5_000 })
+        .toBe(10);
+
+      // The DM's card: the settings menu shows the spend and offers the reset
+      // — the budget is advisory, this is the DM's one lever besides the turn.
+      const myName = await page.evaluate(
+        (id) => window.__HERO_BYTE_E2E__!.snapshot!.characters.find((c) => c.id === id)!.name,
+        me.id,
+      );
+      const card = dm.locator(".player-card-shell", { hasText: myName }).first();
+      await card.getByRole("button", { name: "Change portrait" }).click();
+      await expect(dm.getByText("Used 10 ft")).toBeVisible({ timeout: 5_000 });
+      const reset = dm.getByRole("button", { name: "Reset movement budget" });
+      await expect(reset).toBeEnabled();
+      await reset.click();
+      await expect
+        .poll(() => readCharacter(page, me.id).then((c) => c.movementUsed), { timeout: 5_000 })
+        .toBe(0);
+      await expect
+        .poll(() => readouts(page), { timeout: 5_000 })
+        .toContainEqual({ text: "30 / 30 ft", fill: GOLD });
+      // Nothing left to reset: the control goes inert rather than sending a no-op.
+      await expect(dm.getByText("Used 0 ft")).toBeVisible();
+      await expect(reset).toBeDisabled();
+      await dm.keyboard.press("Escape");
+    } finally {
+      await send(dm, { t: "end-combat" }).catch(() => undefined);
+      await dmContext.close();
     }
   });
 });

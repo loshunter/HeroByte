@@ -1,11 +1,13 @@
-// The phone's party drawer. What this pins is the DM gate on the sight-radius
-// handler, because the obvious test for it is vacuous: MobileLayout hands this
+// The phone's party drawer: the DM gate on the sight-radius handler, the speed
+// field's gate and binding, and the movement-budget reset's gates (the
+// plate's own). The sight-radius case is here because the obvious test for
+// it is vacuous: MobileLayout hands this
 // list `props.updateTokenVisionRadius` UNCONDITIONALLY, so "no handler supplied"
 // never happens in production and a test that omits the handler proves nothing.
 // These supply it exactly as the app does and vary only `isDM`.
 
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
 import { MobileEntitiesList } from "../MobileEntitiesList";
 
@@ -82,6 +84,118 @@ describe("movement speed — the DM gate and the character binding", () => {
     render(<MobileEntitiesList {...listProps({ isDM: false, onCharacterSpeedChange: vi.fn() })} />);
     fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
     expect(screen.queryByLabelText("Movement speed in feet per turn")).not.toBeInTheDocument();
+  });
+});
+
+describe("movement budget reset — the plate's own gate, and the character binding", () => {
+  const inCombat = {
+    isDM: true,
+    combatActive: true,
+    onCharacterSpeedChange: vi.fn(),
+  };
+  const combatant = { ...characters[0]!, initiative: 12, movementUsed: 10 };
+
+  it("a DM's row reads the spend and binds the reset to the CHARACTER's id", () => {
+    const onCharacterBudgetReset = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...inCombat, onCharacterBudgetReset })}
+        characters={[combatant]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.getByText("Used 10 ft")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset movement budget" }));
+    expect(onCharacterBudgetReset).toHaveBeenCalledWith("char-1");
+  });
+
+  it("a plain player never sees it, handler or not — the server would only drop the message", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...inCombat, isDM: false, onCharacterBudgetReset: vi.fn() })}
+        characters={[combatant]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+  });
+
+  it("out of combat, or with no initiative, there is no budget to reset — the plate shows none either", () => {
+    const { unmount } = render(
+      <MobileEntitiesList
+        {...listProps({ ...inCombat, combatActive: false, onCharacterBudgetReset: vi.fn() })}
+        characters={[combatant]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+    unmount();
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...inCombat, onCharacterBudgetReset: vi.fn() })}
+        characters={[{ ...combatant, initiative: undefined, movementUsed: 0 }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+  });
+
+  it("a DM-OWNED character in the order is not a combatant (the participation rule), so its row carries none while a player's does", () => {
+    const dm = {
+      uid: "dm-uid",
+      name: "The DM",
+      hp: 10,
+      maxHp: 10,
+      isDM: true,
+    } as unknown as Player;
+    const dmsOwn = {
+      ...characters[0]!,
+      id: "char-dm",
+      name: "Sidekick",
+      ownedByPlayerUID: "dm-uid",
+      initiative: 15,
+      movementUsed: 0,
+    };
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...inCombat, players: [...players, dm], onCharacterBudgetReset: vi.fn() })}
+        characters={[combatant, dmsOwn]}
+      />,
+    );
+    const rows = screen.getAllByTestId("mobile-player-row");
+    const sidekick = rows.find((row) => row.textContent?.includes("Sidekick"))!;
+    fireEvent.click(within(sidekick).getByRole("button", { name: /EDIT/ }));
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+    // The positive control in the same render: the player's row, same combat,
+    // same initiative shape, carries it — the absence above is participation's.
+    const mine = rows.find((row) => row !== sidekick)!;
+    fireEvent.click(within(mine).getByRole("button", { name: /EDIT/ }));
+    expect(screen.getByRole("button", { name: "Reset movement budget" })).toBeInTheDocument();
+  });
+
+  it("a spend with NO initiative still gets the reset — the server charges any token moved in combat", () => {
+    const onCharacterBudgetReset = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...inCombat, onCharacterBudgetReset })}
+        characters={[{ ...combatant, initiative: undefined, movementUsed: 20 }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.getByText("Used 20 ft")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset movement budget" }));
+    expect(onCharacterBudgetReset).toHaveBeenCalledWith("char-1");
+  });
+
+  it("the legacy row (no character) carries none", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...inCombat, onCharacterBudgetReset: vi.fn() })}
+        characters={[]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
   });
 });
 

@@ -202,8 +202,41 @@ describe("movement budget secrecy contracts", () => {
     expect(roomService.getState().currentTurnCharacterId).toBe("npc-goblin");
     const goblinSeen = charactersSeenBy(aliceWs).filter((c) => c.id === "npc-goblin");
     expect(goblinSeen.length).toBeGreaterThan(0);
-    expect(goblinSeen.some((c) => "movementUsed" in c || "movementRound" in c)).toBe(false);
+    expect(
+      goblinSeen.some(
+        (c) =>
+          "movementUsed" in c || "movementRound" in c || "movementDiagonals" in c || "speed" in c,
+      ),
+    ).toBe(false);
     expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
+  });
+
+  it("the DM resetting a monster's budget — a frame with movementUsed back to 0 — carries no monster budget to a player", () => {
+    route({ t: "reset-movement-budget", characterId: "npc-goblin" }, DM);
+    expect(roomService.getState().characters[0]!.movementUsed).toBe(0);
+    const goblinSeen = charactersSeenBy(aliceWs).filter((c) => c.id === "npc-goblin");
+    expect(goblinSeen.length).toBeGreaterThan(0);
+    // The structural walk carries this case: the spend sentinel is gone from
+    // the state by the time any frame is built, so only the speed's is live.
+    expect(
+      goblinSeen.some(
+        (c) =>
+          "movementUsed" in c || "movementRound" in c || "movementDiagonals" in c || "speed" in c,
+      ),
+    ).toBe(false);
+    expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
+    // The DM's own LATEST frame shows the zeroed record (charactersSeenBy
+    // walks every frame in send order; an earlier one still carries the spend).
+    expect(
+      charactersSeenBy(dmWs)
+        .filter((c) => c.id === "npc-goblin")
+        .at(-1)?.movementUsed,
+    ).toBe(0);
+    // A second reset has nothing to do and sends NOTHING — no frame-cadence
+    // side channel from a DM mashing an already-zero control.
+    const framesBefore = aliceWs.send.mock.calls.length;
+    route({ t: "reset-movement-budget", characterId: "npc-goblin" }, DM);
+    expect(aliceWs.send.mock.calls.length).toBe(framesBefore);
   });
 
   it("with fog on and the monster HIDDEN, every road (delta re-send included) still leaks nothing", () => {

@@ -21,7 +21,7 @@ import { useCombatOrdering } from "../../hooks/useCombatOrdering";
 import { useInitiativeModal } from "../../hooks/useInitiativeModal";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 
-import type { TokenSize } from "@herobyte/shared";
+import { shouldCharacterParticipateInCombat, type TokenSize } from "@herobyte/shared";
 
 interface EntitiesPanelProps {
   players: Player[];
@@ -83,6 +83,8 @@ interface EntitiesPanelProps {
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
   /** DM-only: a character's feet per turn — the movement budget's ceiling. */
   onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
+  /** DM-only: zero a character's spend outside a turn boundary. */
+  onCharacterBudgetReset?: (characterId: string) => void;
   onAddCharacter: (name: string) => void;
   onDeleteCharacter: (characterId: string) => void;
   onFocusToken: (tokenId: string) => void;
@@ -149,6 +151,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onTokenSizeChange,
   onTokenVisionRadiusChange,
   onCharacterSpeedChange,
+  onCharacterBudgetReset,
   onAddCharacter,
   onDeleteCharacter,
   onFocusToken,
@@ -455,6 +458,19 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                                 : undefined
                             }
                             characterSpeed={character.speed}
+                            characterBudget={
+                              currentIsDM &&
+                              combatActive &&
+                              ((character.initiative !== undefined &&
+                                shouldCharacterParticipateInCombat(character, players)) ||
+                                (character.movementUsed ?? 0) > 0) &&
+                              onCharacterBudgetReset
+                                ? {
+                                    used: character.movementUsed ?? 0,
+                                    onReset: () => onCharacterBudgetReset(character.id),
+                                  }
+                                : undefined
+                            }
                             onCharacterSpeedChange={
                               currentIsDM && onCharacterSpeedChange
                                 ? (speed: number | null) =>
@@ -619,6 +635,24 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                               : undefined
                           }
                           characterSpeed={character.speed}
+                          // Where the plate shows a budget (in combat, in the order, a
+                          // combatant — useCombatOrdering has already applied the
+                          // participation filter to this list; it is kept for symmetry with
+                          // the DM section above), OR where there is a spend to clear: the
+                          // server charges any token moved in combat, initiative or not.
+                          characterBudget={
+                            currentIsDM &&
+                            combatActive &&
+                            ((character.initiative !== undefined &&
+                              shouldCharacterParticipateInCombat(character, players)) ||
+                              (character.movementUsed ?? 0) > 0) &&
+                            onCharacterBudgetReset
+                              ? {
+                                  used: character.movementUsed ?? 0,
+                                  onReset: () => onCharacterBudgetReset(character.id),
+                                }
+                              : undefined
+                          }
                           onCharacterSpeedChange={
                             currentIsDM && onCharacterSpeedChange
                               ? (speed: number | null) =>

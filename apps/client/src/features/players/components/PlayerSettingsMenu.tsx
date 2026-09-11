@@ -11,7 +11,7 @@ import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
 import { VisionRadiusField } from "./VisionRadiusField";
-import { MovementSpeedField } from "./MovementSpeedField";
+import { MovementSpeedField, type MovementBudgetControl } from "./MovementSpeedField";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
 import { CharacterCreationModal } from "./CharacterCreationModal";
 
@@ -67,6 +67,12 @@ interface PlayerSettingsMenuProps {
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
   onCharacterSpeedChange?: (speedFeet: number | null) => void;
+  /**
+   * DM-only: the spend and its reset, beside the speed — and only WITH it: the
+   * Movement panel renders on `onCharacterSpeedChange`, so a layout that forwards
+   * the reset without the speed shows neither (both are DM-gated at every call site).
+   */
+  characterBudget?: MovementBudgetControl;
   /** Render the sight controls at the 44px touch floor (mobile rows). */
   compactControls?: boolean;
   onAddCharacter?: (name: string) => boolean;
@@ -110,6 +116,7 @@ export function PlayerSettingsMenu({
   onTokenVisionRadiusChange,
   characterSpeed,
   onCharacterSpeedChange,
+  characterBudget,
   compactControls = false,
   onAddCharacter,
   isCreatingCharacter,
@@ -439,6 +446,7 @@ export function PlayerSettingsMenu({
               <MovementSpeedField
                 value={characterSpeed}
                 onChange={onCharacterSpeedChange}
+                budget={characterBudget}
                 compact={compactControls}
               />
             </JRPGPanel>

@@ -51,12 +51,13 @@ deploy in HANDOFF §0 exactly as the 2026-09-09 update does.
 
 1. ~~**The phone pad covers the token it moves**~~ — DONE on `dev` 2026-09-10 as follow-up F1,
    NOT merged to `main` (the owner chose (a), the camera follow): `useMovePadCameraFollow`,
-   `mobile-move-pad-follow.spec.ts`, plan section "Follow-up F1" with its two review rounds.
-   Start at item 2.
-2. **A DM "reset budget" control** outside a turn boundary. ~~and whether the budget ENFORCES~~
-   — DECIDED 2026-09-10: the budget stays ADVISORY ("it's a VTT, not an RPG game"); a negative
-   readout stays red and the overspending e2e specs (`movement-budget.spec.ts` "-5 / 5 ft") stay
-   as they are. Only the reset control is left to build.
+   `mobile-move-pad-follow.spec.ts`, plan section "Follow-up F1" with its three review rounds.
+   Start at item 3.
+2. ~~**A DM "reset budget" control** outside a turn boundary, and whether the budget ENFORCES~~
+   — DECIDED 2026-09-10 (ADVISORY — "it's a VTT, not an RPG game"; the overspending specs stay)
+   and DONE on `dev` 2026-09-11 as follow-up F2, NOT merged to `main`:
+   `movementBudgetMessages.ts`, `MovementSpeedField`'s `budget` prop, plan section "Follow-up
+   F2" with its review rounds.
 3. **Whether a DM-owned PC with an initiative is a combatant** (today it is not, by
    `shouldCharacterParticipateInCombat`; its plate is suppressed and the server still charges
    it). If yes, the participation rule changes for initiative too — read `initiative-slice.md`

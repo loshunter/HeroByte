@@ -4,6 +4,7 @@
 // Compact player/character row for mobile list view.
 
 import React, { memo, useState } from "react";
+import type { MovementBudgetControl } from "../../features/players/components/MovementSpeedField";
 import type { Player, Token } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
 import { STATUS_OPTIONS } from "../../features/players/constants/statusOptions";
@@ -43,6 +44,8 @@ interface MobilePlayerRowProps {
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
   onCharacterSpeedChange?: (speedFeet: number | null) => void;
+  /** DM-only: the spend and its reset. */
+  characterBudget?: MovementBudgetControl;
 }
 
 export const MobilePlayerRow = memo<MobilePlayerRowProps>(
@@ -70,6 +73,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onTokenVisionRadiusChange,
     characterSpeed,
     onCharacterSpeedChange,
+    characterBudget,
   }) => {
     const isEditingHp = editingHpUID === player.characterId;
     const isEditingMaxHp = editingMaxHpUID === player.characterId;
@@ -290,6 +294,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
           characterSpeed={characterSpeed}
           onCharacterSpeedChange={onCharacterSpeedChange}
+          characterBudget={characterBudget}
           compactControls
           nameInput={localNameInput}
           onNameInputChange={setLocalNameInput}

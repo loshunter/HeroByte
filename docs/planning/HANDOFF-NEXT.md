@@ -7,6 +7,37 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-11 — FOLLOW-UP F2 on `dev`, NOT merged to `main`: a DM reset-budget control;
+the budget stays ADVISORY).** The owner's call ("it's a VTT, not an RPG game"): no enforcement —
+a red readout is a note, not a wall, and the overspending specs stay. The DM's one lever besides
+the turn is a RESET: `reset-movement-budget { characterId }`, DM-only like the speed, routed to
+its own `movementBudgetMessages.ts`, zeroing the spend and the diagonal count and leaving the
+per-round stamp ALONE (a stamp written ahead of its event is a no-op at the event; pinned with a
+stale stamp and composed with `next-turn`); nothing spent, no such character, or a player asking
+is a no-op on the handler's own result; the monster-budget redaction applies unchanged and a
+second reset sends nothing. On the client `MovementSpeedField` gained `budget: { used, onReset }`
+— a "Used N ft" readout and a Reset OUTSIDE the label, inert at 0, 44px when compact — threaded
+the way the speed was, and shown in combat where the plate shows a budget (an initiative,
+`shouldCharacterParticipateInCombat`) OR where there is a spend to clear (the server charges any
+token moved in combat, initiative or not — a DM's own token included, and its card is the only
+lever for that): no dead "Used 0 ft" out of combat; the readout goes red past the speed like the
+plate. Pinned by 8 server cases (6 handler, 1 validator, 1 contract), the field (4), the settings
+menu (2), the actions hook (2), six phone-list cases, a real desktop-panel render of BOTH sites
+(6), the NPC tab (2), the DM menu (1), the portrait preview (3), the window caps (3), and e2e on
+both layouts (the phone also resets a MONSTER through the NPC editor and the real wire, and
+probes the row's one line at 5 and 10 ft). Three review rounds (4 fresh lenses each: 0/7/24 raw →
+0/5/16, 0/4/37 → 0/3/24, 0/10/30 → 0/4/25 — a plateau, no round 4): every finding fixed or
+recorded in the plan's F2 section — the gate on the control, the panel's real render of both
+sites, and round 3's sweep of the prose the widened gate had left behind were the ones that
+mattered. Sabotage: 11 red, then 14 more (12 red; the two green ones are a second DM lock
+behind the speed handler's), then 7 more after round 2 (7 red: the spend clause at each of the three gates, the phone list's participation, a pre-stamp, an object id, the budget-without-speed coupling) — 32 in all, 30 red; then 14 more after round 3 (14 red, one in the browser) — 46 in all, 44 red. Fixed on the way, own commit: the settings overlay's phone branch
+`vh` → `dvh` (desktop stays `vh`, reasoned in place), its safe-area bottom, the dice result
+card's cap moved to CSS with the `vh`/`dvh` pair; the NPC portrait preview keyed on its
+COMMITTED URL. The DM guide gained a Movement bullet. NEXT: F3 (a DM-owned character with an
+initiative is a combatant) — it widens the desktop panel's DM-section reset from the spend clause
+to the ordinary in-the-order case, and it is where the redaction's `type === "npc"` key (a DM-run
+PC-typed character's budget ships to players) gets decided.
+
 **Update (2026-09-10, later — FOLLOW-UP F1 on `dev`, NOT merged to `main`: the phone pad no
 longer covers the piece it moves).** The owner's call (a): a camera follow while the pad is
 mounted. Mobile-local, like the map-edit cancel counter — `useMovePadCameraFollow`
@@ -1276,7 +1307,7 @@ turns a cone into something else.
      hand entry equal to the roll on file. **MERGED and IN PRODUCTION 2026-09-10 (`e42d60bf`,
      CI #857).** The owner's three follow-up calls are decided (§0, 2026-09-10): F1 the camera
      follow — DONE on `dev` 2026-09-10, NOT merged to `main`; F2 a DM reset-budget control with the budget staying
-     ADVISORY — next; F3 a DM-owned character with an initiative is a combatant regardless of
+     ADVISORY — DONE on `dev` 2026-09-11, NOT merged; F3 a DM-owned character with an initiative is a combatant regardless of
      `type` — after F2 (touches the initiative participation rule; read `initiative-slice`
      memory first). The original queue note follows.
      ~~QUEUED BY THE OWNER 2026-09-08~~ — keyboard movement, one square per press, with sight and

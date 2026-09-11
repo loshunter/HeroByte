@@ -34,6 +34,13 @@ interface NPCsTabProps {
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   /** Movement budget: an NPC's feet per turn (null = the shared default). */
   onSetNPCSpeed: (id: string, speedFeet: number | null) => void;
+  /** Movement budget: zero an NPC's spend outside a turn boundary. */
+  onResetNPCBudget: (id: string) => void;
+  /**
+   * The reset shows where the plate shows a budget — in combat, for an NPC in
+   * the order — or wherever there is a spend to clear.
+   */
+  combatActive?: boolean;
   /** Callback to place an NPC token on the map */
   onPlaceNPCToken: (id: string) => void;
   /** Callback to delete an NPC */
@@ -80,6 +87,8 @@ export default function NPCsTab({
   onDuplicateNPC,
   onUpdateNPC,
   onSetNPCSpeed,
+  onResetNPCBudget,
+  combatActive = false,
   onPlaceNPCToken,
   onDeleteNPC,
   isCreatingNpc = false,
@@ -220,6 +229,11 @@ export default function NPCsTab({
               npc={npc}
               onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
               onSpeedChange={(speed) => onSetNPCSpeed(npc.id, speed)}
+              onBudgetReset={
+                combatActive && (npc.initiative !== undefined || (npc.movementUsed ?? 0) > 0)
+                  ? () => onResetNPCBudget(npc.id)
+                  : undefined
+              }
               onPlace={() => onPlaceNPCToken(npc.id)}
               onDuplicate={() => onDuplicateNPC(npc.id)}
               onDelete={() => onDeleteNPC(npc.id)}

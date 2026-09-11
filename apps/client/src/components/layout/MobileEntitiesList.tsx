@@ -7,6 +7,7 @@
 
 import React from "react";
 import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
+import { shouldCharacterParticipateInCombat } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
 
 interface MobileEntitiesListProps {
@@ -41,6 +42,13 @@ interface MobileEntitiesListProps {
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
   /** DM-only: a character's feet per turn (the movement budget). */
   onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
+  /** DM-only: zero a character's spend outside a turn boundary. */
+  onCharacterBudgetReset?: (characterId: string) => void;
+  /**
+   * The reset shows where the plate shows a budget — in combat, for a combatant
+   * in the order — or wherever there is a spend to clear.
+   */
+  combatActive?: boolean;
 }
 
 export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
@@ -67,6 +75,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   tokens,
   onTokenVisionRadiusChange,
   onCharacterSpeedChange,
+  onCharacterBudgetReset,
+  combatActive = false,
 }) => {
   // One row per (player, character) PAIR — the desktop model, and the same
   // flatMap useCombatOrdering builds EntitiesPanel's rows from. This used to be
@@ -94,6 +104,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
           characterId: player.uid,
           hasCharacter: false,
           speed: undefined as number | undefined,
+          movementUsed: undefined as number | undefined,
+          hasBudget: false,
           tokenId: undefined as SnapshotCharacter["tokenId"],
           ownerTokenFallbackOk: true,
         },
@@ -117,6 +129,17 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       characterId: character.id,
       hasCharacter: true,
       speed: character.speed,
+      movementUsed: character.movementUsed,
+      // The plate's own predicate (tokenPlates.ts): a budget exists in combat,
+      // for a combatant in the order — those three gates, OR a spend to clear:
+      // the server charges any token moved in combat, initiative or not, and
+      // that spend needs the DM's lever too (the plate hides it; the card
+      // must not).
+      hasBudget:
+        combatActive &&
+        ((character.initiative !== undefined &&
+          shouldCharacterParticipateInCombat(character, players)) ||
+          (character.movementUsed ?? 0) > 0),
       // The token this ROW is about. Bound through the CHARACTER, as
       // EntitiesPanel does, and not by owner: a player can own several tokens —
       // one from joining, one per "+ Add Character" — so picking by owner shows
@@ -168,6 +191,14 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
                 : undefined
             }
             characterSpeed={entity.speed}
+            characterBudget={
+              isDM && entity.hasBudget && onCharacterBudgetReset
+                ? {
+                    used: entity.movementUsed ?? 0,
+                    onReset: () => onCharacterBudgetReset(entity.characterId),
+                  }
+                : undefined
+            }
             // The legacy row's characterId is the player's uid — there is no
             // character to set a speed on, so the control does not render.
             onCharacterSpeedChange={

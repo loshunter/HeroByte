@@ -49,6 +49,32 @@ describe("PlayerSettingsMenu", () => {
       expect(onCharacterSpeedChange).toHaveBeenCalledWith(25);
     });
 
+    it("carries the DM's reset beside the speed when a budget is supplied, and fires it", () => {
+      const onReset = vi.fn();
+      render(
+        <PlayerSettingsMenu
+          {...defaultProps}
+          characterSpeed={30}
+          onCharacterSpeedChange={vi.fn()}
+          characterBudget={{ used: 10, onReset }}
+        />,
+      );
+      expect(screen.getByText("Used 10 ft")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Reset movement budget" }));
+      expect(onReset).toHaveBeenCalledTimes(1);
+    });
+
+    it("a budget without the speed handler shows nothing — the Movement panel keys on the speed", () => {
+      render(
+        <PlayerSettingsMenu
+          {...defaultProps}
+          characterSpeed={30}
+          characterBudget={{ used: 10, onReset: vi.fn() }}
+        />,
+      );
+      expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+    });
+
     it("is absent without a handler — a player's own menu never offers it", () => {
       render(<PlayerSettingsMenu {...defaultProps} />);
       expect(screen.queryByLabelText("Movement speed in feet per turn")).not.toBeInTheDocument();

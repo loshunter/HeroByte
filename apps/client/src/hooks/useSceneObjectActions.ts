@@ -114,6 +114,8 @@ export interface UseSceneObjectActionsReturn {
   updateTokenVisionRadius: (tokenId: string, radiusFeet: number | null) => void;
   /** DM-only: a character's feet per turn — the movement budget's ceiling. */
   updateCharacterSpeed: (characterId: string, speedFeet: number | null) => void;
+  /** DM-only: zero a character's spend outside a turn boundary (the budget is advisory). */
+  resetCharacterBudget: (characterId: string) => void;
 }
 
 /**
@@ -252,6 +254,13 @@ export function useSceneObjectActions({
     [sendMessage],
   );
 
+  const resetCharacterBudget = useCallback(
+    (characterId: string) => {
+      sendMessage({ t: "reset-movement-budget", characterId });
+    },
+    [sendMessage],
+  );
+
   return {
     recolorToken,
     transformSceneObject,
@@ -261,5 +270,6 @@ export function useSceneObjectActions({
     updateTokenSize,
     updateTokenVisionRadius,
     updateCharacterSpeed,
+    resetCharacterBudget,
   };
 }

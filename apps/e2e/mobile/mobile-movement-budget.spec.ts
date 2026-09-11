@@ -2,7 +2,8 @@
  * The movement budget's phone surface. A DM sets a character's speed from
  * the party drawer's EDIT sheet (the same settings menu that carries the
  * sight radius), on the 44px floor; the token's nameplate — shared with the
- * desktop — then reads remaining / speed once combat is on.
+ * desktop — then reads remaining / speed once combat is on. And (F2) the DM
+ * resets that spend from the same sheet, through a button on the floor.
  */
 import { expect, test, type Page } from "../fixtures";
 import { elevateToDM } from "../helpers";
@@ -97,6 +98,52 @@ test.describe("mobile — movement budget", () => {
         await expect
           .poll(() => readouts(player), { timeout: 5_000 })
           .toContainEqual({ text: "25 / 25 ft" });
+
+        // The player spends 5 ft; the DM resets it from the same EDIT sheet,
+        // through a button on the 44px floor (F2 — the budget is advisory).
+        const tokenId = await player.evaluate(
+          (id) => window.__HERO_BYTE_E2E__!.snapshot!.characters.find((c) => c.id === id)!.tokenId,
+          pc.id,
+        );
+        await send(player, { t: "step-object", ids: [`token:${tokenId}`], dx: 1, dy: 0 });
+        await expect
+          .poll(() => readouts(player), { timeout: 5_000 })
+          .toContainEqual({ text: "20 / 25 ft" });
+        const reset = page.getByRole("button", { name: "Reset movement budget" });
+        await reset.scrollIntoViewIfNeeded();
+        await expect(page.getByText("Used 5 ft")).toBeVisible({ timeout: 5_000 });
+        const resetBox = (await reset.boundingBox())!;
+        expect(resetBox.height, "the reset sits on the 44px floor").toBeGreaterThanOrEqual(44);
+        // The readout and the button share ONE line inside the viewport — at
+        // 5 ft and at 10 ft, the width where a sized button once wrapped to a
+        // second line (the row is flex-wrap, so a wrap is a taller row, never
+        // an overflow: the probe reads the tops, not the widths).
+        const budgetRow = () =>
+          page.evaluate(() => {
+            const button = document.querySelector('button[aria-label="Reset movement budget"]')!;
+            const span = button.parentElement!.querySelector("span")!;
+            const b = button.getBoundingClientRect();
+            const s = span.getBoundingClientRect();
+            return {
+              text: span.textContent,
+              // The row centres its items: the readout's centre sits inside the
+              // 44px button's band, and the readout ends before the button starts.
+              sameLine:
+                (s.top + s.bottom) / 2 >= b.top &&
+                (s.top + s.bottom) / 2 <= b.bottom &&
+                s.right <= b.left,
+              inside: s.left >= 0 && b.right <= innerWidth,
+            };
+          });
+        expect(await budgetRow()).toEqual({ text: "Used 5 ft", sameLine: true, inside: true });
+        await send(player, { t: "step-object", ids: [`token:${tokenId}`], dx: 1, dy: 0 });
+        await expect(page.getByText("Used 10 ft")).toBeVisible({ timeout: 5_000 });
+        expect(await budgetRow()).toEqual({ text: "Used 10 ft", sameLine: true, inside: true });
+        await reset.tap();
+        await expect
+          .poll(() => readouts(player), { timeout: 5_000 })
+          .toContainEqual({ text: "25 / 25 ft" });
+        await expect(reset).toBeDisabled();
       } finally {
         await send(page, { t: "end-combat" });
       }
@@ -153,17 +200,36 @@ test.describe("mobile — movement budget", () => {
       expect(overflowing).toEqual([]);
       await field.fill("20");
       await field.blur(); // a phone keypad has no Enter: the commit is the blur
-      await expect
-        .poll(
-          () =>
-            page.evaluate(
-              (id) =>
-                window.__HERO_BYTE_E2E__!.snapshot!.characters.find((c) => c.id === id)?.speed,
-              npcId,
-            ),
-          { timeout: 5_000 },
-        )
-        .toBe(20);
+      const readNpc = () =>
+        page.evaluate((id) => {
+          const c = window.__HERO_BYTE_E2E__!.snapshot!.characters.find((x) => x.id === id);
+          return c && { speed: c.speed, movementUsed: c.movementUsed, tokenId: c.tokenId };
+        }, npcId);
+      await expect.poll(() => readNpc().then((c) => c?.speed), { timeout: 5_000 }).toBe(20);
+
+      // F2: the MONSTER's reset, through the editor's own button and the real
+      // wire — the road no other test drives. Place its token, put it in the
+      // order, start combat, step it (the DM may move any token), reset.
+      await send(page, { t: "place-npc-token", id: npcId });
+      const tokenId = await expect
+        .poll(() => readNpc().then((c) => c?.tokenId), { timeout: 5_000 })
+        .toBeTruthy()
+        .then(() => readNpc().then((c) => c!.tokenId!));
+      await send(page, { t: "set-initiative", characterId: npcId, initiative: 11 });
+      await send(page, { t: "start-combat" });
+      try {
+        await send(page, { t: "step-object", ids: [`token:${tokenId}`], dx: 1, dy: 0 });
+        await expect.poll(() => readNpc().then((c) => c?.movementUsed), { timeout: 5_000 }).toBe(5);
+        // The new NPC's editor is the last one (the table may carry others).
+        const reset = dialog.getByRole("button", { name: "Reset movement budget" }).last();
+        await reset.scrollIntoViewIfNeeded();
+        await expect(reset).toBeEnabled({ timeout: 5_000 });
+        await reset.tap();
+        await expect.poll(() => readNpc().then((c) => c?.movementUsed), { timeout: 5_000 }).toBe(0);
+        await expect(reset).toBeDisabled();
+      } finally {
+        await send(page, { t: "end-combat" }).catch(() => undefined);
+      }
     } finally {
       await send(page, { t: "delete-npc", id: npcId });
     }

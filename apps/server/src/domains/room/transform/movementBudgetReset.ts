@@ -18,6 +18,11 @@
  * travel that suspends or resumes a fight, a session load), so a budget never
  * carries from one fight into the next and never ticks outside one. A travel
  * is not a turn boundary: the party arrives fresh.
+ *
+ * And the DM may zero ONE character's counters at any time
+ * (`reset-movement-budget`, ws/handlers/movementBudgetMessages.ts) — the
+ * budget is advisory, and that is the DM's lever besides the turn. It leaves
+ * the round stamp alone for the reason above.
  */
 
 import { resetMovementBudget } from "@herobyte/shared";

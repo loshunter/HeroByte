@@ -75,6 +75,7 @@ const createProps = () => ({
   onDuplicateNPC: vi.fn(),
   onUpdateNPC: vi.fn(),
   onSetNPCSpeed: vi.fn(),
+  onResetNPCBudget: vi.fn(),
   onDeleteNPC: vi.fn(),
   onPlaceNPCToken: vi.fn(),
   mapLocked: false,
@@ -172,6 +173,40 @@ describe("DMMenu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "+ Add NPC" }));
     expect(props.onCreateNPC).toHaveBeenCalledTimes(1);
+  });
+
+  it("carries combat to the NPC tab: a monster in the order shows its Reset only while combat is on", () => {
+    const ogre = {
+      id: "ogre",
+      name: "Ogre",
+      type: "npc",
+      hp: 30,
+      maxHp: 30,
+      initiative: 9,
+      movementUsed: 15,
+    };
+    const props = {
+      ...createProps(),
+      characters: [ogre],
+      combatActive: true,
+    } as unknown as ReturnType<typeof createProps>;
+    const { unmount } = render(<DMMenu {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    fireEvent.click(screen.getByRole("button", { name: "NPCs & Monsters" }));
+    // The JRPGButton mock above drops aria-label: the visible "Reset" is the name here.
+    fireEvent.click(screen.getByRole("button", { name: /^Reset$/ }));
+    expect(props.onResetNPCBudget).toHaveBeenCalledWith("ogre");
+    unmount();
+    render(
+      <DMMenu
+        {...({ ...createProps(), characters: [ogre], combatActive: false } as unknown as ReturnType<
+          typeof createProps
+        >)}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    fireEvent.click(screen.getByRole("button", { name: "NPCs & Monsters" }));
+    expect(screen.queryByRole("button", { name: /^Reset$/ })).toBeNull();
   });
 
   it("switches to the Atlas tab and actually MOUNTS the tree (a dropped mount compiles clean)", () => {

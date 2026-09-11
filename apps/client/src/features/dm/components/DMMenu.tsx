@@ -50,6 +50,7 @@ export function DMMenu({
   onDuplicateNPC,
   onUpdateNPC,
   onSetNPCSpeed,
+  onResetNPCBudget,
   onDeleteNPC,
   onPlaceNPCToken,
   isCreatingNpc,
@@ -206,6 +207,8 @@ export function DMMenu({
           onDuplicateNPC={onDuplicateNPC}
           onUpdateNPC={onUpdateNPC}
           onSetNPCSpeed={onSetNPCSpeed}
+          onResetNPCBudget={onResetNPCBudget}
+          combatActive={combatActive}
           onPlaceNPCToken={onPlaceNPCToken}
           onDeleteNPC={onDeleteNPC}
           isCreatingNpc={isCreatingNpc}

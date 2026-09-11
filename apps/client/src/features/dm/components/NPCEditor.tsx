@@ -12,6 +12,7 @@ import { ImageField } from "../../../components/ui/ImageField";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
 import { NPCEditorActions } from "./NPCEditorActions";
 import { MovementSpeedField } from "../../players/components/MovementSpeedField";
+import { NpcPortraitField } from "./NpcPortraitField";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -34,6 +35,8 @@ interface NPCEditorProps {
   tokenPlacementError?: string | null;
   /** Movement budget: feet per turn (null = the shared default). DM menu only, so DM-only. */
   onSpeedChange?: (speedFeet: number | null) => void;
+  /** Movement budget: zero the spend outside a turn boundary. */
+  onBudgetReset?: () => void;
 }
 
 /** Five stats share one row; on a 375px phone they WRAP rather than squeeze to 60px each. */
@@ -43,6 +46,7 @@ export function NPCEditor({
   npc,
   onUpdate,
   onSpeedChange,
+  onBudgetReset,
   onPlace,
   onDuplicate,
   onDelete,
@@ -262,37 +266,34 @@ export function NPCEditor({
         </label>
         {onSpeedChange && (
           <div style={STAT_CELL}>
-            <MovementSpeedField value={npc.speed} onChange={onSpeedChange} compact />
+            <MovementSpeedField
+              value={npc.speed}
+              onChange={onSpeedChange}
+              budget={
+                // No fabricated 0: during the elevation blip the snapshot is
+                // still the player's redacted frame, and a monster's spend is
+                // simply absent — show nothing rather than a wrong number.
+                onBudgetReset && npc.movementUsed !== undefined
+                  ? { used: npc.movementUsed, onReset: onBudgetReset }
+                  : undefined
+              }
+              compact
+            />
           </div>
         )}
       </div>
 
-      <ImageField
-        label="Portrait URL"
-        value={portrait}
+      <NpcPortraitField
+        portrait={portrait}
+        committedPortrait={npc.portrait ?? ""}
+        name={npc.name}
+        disabled={isUpdating}
         onChange={setPortrait}
         onCommit={(url) => {
           setPortrait(url);
           commitUpdate({ portrait: url });
         }}
-        disabled={isUpdating}
-        compact
       />
-      {portrait && (
-        <img
-          src={portrait}
-          alt={`${npc.name} portrait`}
-          style={{
-            width: "100%",
-            maxHeight: "100px",
-            objectFit: "cover",
-            borderRadius: "4px",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
 
       <ImageField
         label="Token Image URL"

@@ -1,5 +1,7 @@
 /**
- * Tests for the NPCs tab's bulk-add and duplicate controls (S8).
+ * Tests for the NPCs tab's bulk-add and duplicate controls (S8), and — since
+ * the keyboard-movement arc — its speed field and movement-budget reset,
+ * which must each name THEIR monster.
  *
  * These drive the REAL NPCsTab. The neighbouring characterization file
  * (components/__tests__/characterization/NPCsTab.test.tsx) re-declares the
@@ -19,17 +21,23 @@ afterEach(() => cleanup());
 const npc = (id: string, name: string): SnapshotCharacter =>
   ({ id, name, type: "npc", hp: 10, maxHp: 10 }) as SnapshotCharacter;
 
-function renderTab(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}) {
-  const props = {
+function renderTabProps(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}) {
+  return {
     npcs: [] as SnapshotCharacter[],
     onCreateNPC: vi.fn(),
     onDuplicateNPC: vi.fn(),
     onUpdateNPC: vi.fn(),
     onSetNPCSpeed: vi.fn(),
+    onResetNPCBudget: vi.fn(),
+    combatActive: true,
     onPlaceNPCToken: vi.fn(),
     onDeleteNPC: vi.fn(),
     ...overrides,
   };
+}
+
+function renderTab(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}) {
+  const props = renderTabProps(overrides);
   render(<NPCsTab {...props} />);
   return props;
 }
@@ -47,6 +55,45 @@ describe("NPCsTab — the speed field names ITS monster", () => {
     fireEvent.blur(fields[1]!);
     expect(props.onSetNPCSpeed).toHaveBeenCalledTimes(1);
     expect(props.onSetNPCSpeed).toHaveBeenCalledWith("n2", 40);
+  });
+
+  it("the reset button names ITS monster too, reads its spend, and is inert with nothing spent", () => {
+    const spent = { ...npc("n2", "Ogre"), initiative: 9, movementUsed: 15 } as SnapshotCharacter;
+    const props = renderTab({
+      npcs: [
+        { ...npc("n1", "Goblin"), initiative: 4, movementUsed: 0 } as SnapshotCharacter,
+        spent,
+      ],
+    });
+    const resets = screen.getAllByRole("button", { name: "Reset movement budget" });
+    expect(resets).toHaveLength(2);
+    expect(resets[0]).toBeDisabled(); // the goblin has spent nothing
+    expect(resets[1]).toBeEnabled();
+    expect(screen.getByText("Used 15 ft")).toBeInTheDocument();
+    fireEvent.click(resets[1]!);
+    expect(props.onResetNPCBudget).toHaveBeenCalledTimes(1);
+    expect(props.onResetNPCBudget).toHaveBeenCalledWith("n2");
+  });
+
+  it("no reset out of combat, for a monster not in the order, or whose spend the frame does not carry", () => {
+    const spent = { ...npc("n2", "Ogre"), initiative: 9, movementUsed: 15 } as SnapshotCharacter;
+    const { unmount } = render(
+      <NPCsTab {...renderTabProps({ npcs: [spent], combatActive: false })} />,
+    );
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+    unmount();
+    // Out of the order but with a spend: the server charged it, so the lever shows.
+    renderTab({ npcs: [{ ...spent, initiative: undefined } as SnapshotCharacter] });
+    expect(screen.getByRole("button", { name: "Reset movement budget" })).toBeEnabled();
+    cleanup();
+    renderTab({
+      npcs: [{ ...spent, initiative: undefined, movementUsed: 0 } as SnapshotCharacter],
+    });
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+    cleanup();
+    // The elevation blip: the frame is still the player's, no spend on it.
+    renderTab({ npcs: [{ ...spent, movementUsed: undefined } as SnapshotCharacter] });
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
   });
 });
 

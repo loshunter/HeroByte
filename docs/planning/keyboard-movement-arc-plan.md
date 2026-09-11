@@ -526,13 +526,203 @@ block's other stale clause, the PROMPT's enforcement branch for F2 and its "thre
 sections". Recorded above: rotation, the two-motion app command, the kick gate residual, the
 dead-branch-turned-comment in `place`, a `role="status"` budget readout.
 
+## Follow-up F2 — a DM reset-budget control; the budget stays advisory (2026-09-11, on `dev`, NOT merged to `main`)
+
+The owner's call (their gut, then "use your best judgment"): the budget does NOT enforce — "it's a
+VTT, not an RPG game" — so a negative readout stays a red note, the overspending specs stay as
+they are, and the DM gets the one lever besides the turn: a RESET that zeroes a character's spend
+outside a turn boundary (a mis-press, a re-adjudication, a spell that restores movement).
+
+Wire: `reset-movement-budget { characterId }`, DM-only like `set-character-speed` (a budget a
+player could raise is not a budget), validated to a non-empty id, routed by the character
+dispatcher to `movementBudgetMessages.ts` (its own module — `CharacterMessageHandler` is seven
+lines from the 350-line guard and this, with its docblock, is ~40). The reset zeroes
+`movementUsed` and `movementDiagonals` and leaves the per-round stamp ALONE: a stamp written
+ahead of its event is a no-op at the event (review round 3 of the arc), so the character's next
+turn start still resets it like anyone else's — pinned with a STALE stamp (round 2 in round 3),
+the only fixture a pre-stamp can fail, and composed with a `next-turn`. Nothing spent, or no such
+character, or a player asking, is a no-op — no broadcast, no save, asserted on the handler's own
+result (the router shows only the save half). It does not check `combatActive`, defensively:
+every ordinary road out of combat already zeroes every budget (end-combat, clear-all, travel, a
+session load) and nothing is charged outside a fight, so out of combat a spend exists only if a
+state file carried one in — and that is the case the test drives. The broadcast rides the
+ordinary snapshot road, so the recipient filter's monster-budget redaction applies unchanged; the
+contract test gained the reset road (the structural walk over `movementUsed`, `movementRound`,
+`movementDiagonals` and `speed`, the speed's five-digit sentinel — the spend's is gone from the
+state by the time a frame is built — and a second reset sending NOTHING).
+
+Client: `MovementSpeedField` gained an optional `budget: { used, onReset }` — a "Used N ft"
+readout (a phrase that never breaks mid-way; the row wraps instead) and a Reset button OUTSIDE
+the label (inside one a click would also activate the input), inert at 0, on the 44px floor when
+compact and at desktop density otherwise. Threaded the way the speed was: `resetCharacterBudget`
+in `useSceneObjectActions` → `MainLayoutProps` (optional, so the layout fixtures stay untouched)
+→ MainLayout / BottomPanelLayout / MobileSurfaces → the party lists (`EntitiesPanel`,
+`MobileEntitiesList`) → `PlayerCard` / `MobilePlayerRow` → `PlayerSettingsMenu` (rendered WITH
+the speed field, which the Movement panel keys on); and for monsters `onResetNPCBudget` on the DM
+menu's props → `NPCsTab` → `NPCEditor` (whose portrait block moved to `NpcPortraitField.tsx` to
+keep the editor under the guard). **The control shows where the plate shows a budget, or where
+there is a spend to clear** — the plate's own gates from `tokenPlates.ts` (combat on, an
+initiative on file, `shouldCharacterParticipateInCombat`; at the NPC tab the third is a
+tautology for a monster and is not written), OR `movementUsed > 0`, because the server charges
+any token moved in combat, initiative or not, and a spend made before a character entered the
+order needs the lever too — so out of combat no card carries a dead "Used 0 ft", and a DM-owned
+PC (not a combatant under today's rule) shows no spend on the card unless it has one — and then
+it does, with the Reset: its token never reaches a turn start, so short of ending combat the
+Reset is the only thing that clears that spend (the DM guide says so). The readout turns red past
+the speed (or the default when none is on file), the plate's own overspend signal on the surface
+where the DM acts. Off the
+player lens: the DM menu is not part of the lens preview, so with the lens on a monster's plate
+drops its budget while the NPC editor still reads it (recorded); the NPC editor also shows nothing when the frame carries no spend (the elevation
+blip's redacted snapshot) rather than a fabricated 0. The panel's DM-section render site is
+live today through the spend clause alone (a DM's own token charged in combat; also a co-DM's PC
+in the order, which `shouldCharacterParticipateInCombat` — keyed on the FIRST DM — lets through);
+its participation arm waits on F3. Pinned at that site (round 3). The server and client define
+"spent" separately (the server also counts diagonals; the button disables on `used` alone) —
+they cannot diverge through the charge road (a 0 ft charge bails before adding diagonals); a
+hand-edited state file carrying diagonals without feet can (`coerceMovementBudgetFields` accepts
+the pair independently), and there the control is inert while the handler would reset — recorded,
+no product road reaches it. On the spend-only arm the control UNMOUNTS on success (the gate goes
+false at 0) where the in-the-order arm goes inert — a decision: latching it would keep a dead
+"Used 0 ft" in an open sheet after combat ends, the very thing round 1 removed; the vanished row
+is the confirmation, and the phone's Token Lock panel moves up one row under the thumb. Help
+copy says the budget is advisory and where the reset lives; the DM guide gained a Movement
+bullet after Table Sight Default.
+
+Tests: the validator (id shape); the routing (the DM zeroes and keeps a stale stamp; the handler's
+own result for nothing-spent / unknown / a player; a diagonal count alone is a spend; reset then
+`next-turn`; out of combat via the ordinary road and a file's stray spend); the secrecy contract
+(reset frame, structural walk, a second reset emits nothing); the field (readout at 11px,
+inert at 0, outside the label — the structural pin — absent without a budget, no inline 44px
+without `compact` and 44px with it, red past the speed and past the default); the settings menu
+(carries and fires it); the actions hook (both DM-only character messages' wire shapes);
+`MobileEntitiesList` (binds the id; never for a player; none out of combat, without an initiative,
+or on the legacy row; a spend with no initiative still gets it); `EntitiesPanel.budget.test.tsx`
+(a real render of BOTH sites: the DM reads and resets a player's card; a player never sees it;
+none out of combat or without an initiative; a spend with no initiative still gets it; the DM's
+OWN character — in the order but no combatant shows none, a spend on its token gets the lever);
+the NPC tab (names ITS monster of two; none out of combat, out of the order, or when the frame
+carries no spend); the DM menu (it carries `combatActive` to the NPC tab); `MobileEntitiesList`
+also pins the participation rule with a DM-owned character beside the player's row that does
+carry it; `NpcPortraitField` (a broken URL hides, a corrected COMMIT recovers, typing does not
+remount); the window caps (desktop `vh`, phone `dvh` + `height: 100%` + the safe-area band) and
+the result card's rule read from the stylesheet (`80vh` before `80dvh`); and e2e:
+`movement-budget.spec.ts` (desktop — two keyboard steps, the player's card on the DM's screen
+shows "Used 10 ft", Reset, the plate reads full, the control goes inert) and
+`mobile-movement-budget.spec.ts` (the phone's EDIT sheet: a step, "Used 5 ft" and the 44px Reset
+on ONE line inside the viewport, again at 10 ft — the spend where a sized button once wrapped —
+then tapped, the plate reads full; and the MONSTER's reset through the NPC editor's own button
+and the real wire — placed, in the order, stepped, reset). Sabotage:
+11 red before the review (a player may reset; the reset pre-stamps the round; a no-op broadcasts;
+diagonals not cleared; an empty id accepted; the dispatcher drops it; the button fires at 0; the
+row inside the label; compact not 44px; the NPC tab resets the first monster; the settings menu
+drops the budget) — 14 more after it — 12 red, 2 green (the reset's own DM clause at each party list: the Movement panel already renders only behind the DM-gated speed handler, a second lock, recorded, not load-bearing) — and 7 more after round 2, all red (the spend clause dropped at the panel, the phone list and the NPC tab; the phone list's participation dropped; the handler pre-stamps; the validator takes an object id; the settings menu renders the budget without the speed handler). 32 in all, 30 red — and 14 more after round 3, all red (the DM-section spend clause; the 11px face; never red, and red by the wrong line; the preview keyed per keystroke, and not keyed; the desktop cap in dvh, the phone cap in vh, the safe-area band dropped; the result card's dvh before its vh, and its class dropped; extra fields refused; the hook's wrong message type; in the browser, the Reset taking the whole row — red at 5 ft). 46 in all, 44 red. Fixed on the way, own commit: the settings
+overlay was sized in `vh` (the large viewport), so its bottom band sat under iOS Safari's toolbar
+— `dvh` on its phone branch (an inline style cannot carry the CSS's `vh` fallback; a browser
+without `dvh` drops the cap and `height: 100%` bounds the box, the old behaviour), `vh` kept on
+its desktop branch (a desktop viewport has no dynamic chrome, and with `dvh` alone an old browser
+would drop the cap with nothing else bounding `height: auto`), its content clears the home
+indicator, and the dice result card's cap moved to `herobyte.css` where it can carry the
+`80vh`-then-`80dvh` pair; the NPC portrait preview is keyed on its COMMITTED URL so a fixed URL
+recovers from a broken one and typing does not remount it.
+
+### Review round 1 (2026-09-11) — four fresh Opus lenses; 0 critical / 7 major / 24 minor raw → 0 / 5 / 16 deduplicated
+
+Static lenses (defects + server semantics, test validity, doc honesty, mobile reach + privacy).
+MAJOR, fixed: the readout and Reset had no combat/participation gate (a dead "Used 0 ft" on every
+card out of combat; a DM's own non-combatant character showing a spend its plate hides) — the
+plate's own three gates at all three homes; the desktop panel had no render test at all — one now covers the PLAYER site (the DM-section
+site was called dormant here — wrong once round 2's spend clause landed; round 3 pinned it) and the phone list gained cases;
+the reset's own DM clause at both lists is redundant behind the speed handler's gate — sabotaging
+it alone stays green; what is pinned is that a player sees no Reset;
+the no-op test could not see a broadcast — the handler's result is asserted directly and the
+contract test counts frames; "a spend that survived combat's end" was false (every road out of
+combat zeroes every budget) — the rationale and the test are honest now; the follow-ups prompt
+still told the next agent to build the reset. MINOR, fixed: the vacuous spend sentinel; the
+structural walk missing `movementDiagonals` and `speed`; the diagonals-only spend, the 44px
+negative and the click-does-not-touch-the-input unpinned; the readout wrapping mid-phrase in the NPC
+editor's speed cell (`STAT_CELL`: flex 1, min 88px — ~174px in the desktop DM menu, ~150px on a
+375px phone; the row needs the span plus the button); the NPC editor's fabricated `?? 0`; the handler importing the reset from
+the shared barrel instead of the documented home (`movementBudgetReset.ts`, whose header now
+lists the manual road); the settings menu's coupling of the reset to the speed handler
+undocumented; "sits at the 350-line guard" (seven lines from it); both e2e docblocks stale; no
+user-guide mention of the budget; the phone overlay's `vh`. Recorded: two definitions of "spent";
+the frame-cadence channel (the plan's standing item — the no-op guard limits it); the redaction
+keys on `type === "npc"`, so a DM-run PC-typed character's budget ships to every player — F3's
+territory, since F3 changes what a DM-owned character is.
+
+### Review round 2 (2026-09-11) — four fresh Opus lenses; 0 critical / 4 major / 37 minor raw → 0 / 3 / 24 deduplicated
+
+Majors down from 7 (5 deduplicated) to 4 (3); minors up, as every round's have. MAJOR, fixed: round
+1's own gate cut the DM's lever off from the one spend it cannot otherwise clear — the server
+charges any token moved in combat, initiative or not, so a character charged before entering the
+order (or after clearing its own initiative, which keeps the spend) had a spend and no control —
+the gate is now "in the order, or a spend to clear"; the participation clause was pinned at none
+of the three homes (the phone list's fixture had no DM, so `shouldCharacterParticipateInCombat`
+was always true) — a DM-owned character in the order now pins it; the monster reset's wire
+(`DMMenuContainer`'s inline send) had no test at any level — the phone's NPC editor now places a
+monster, steps it and resets it through the real wire; the plan's round-1 record claimed the
+DM-section site and the DM clause as fixed — corrected to what is pinned. MINOR, fixed: the
+compose test wrapped the round so a pre-stamp could never fail it — it advances without a wrap;
+the decorative focus/onChange asserts in the field test; the settings menu's budget-without-speed
+coupling; the validator's title ("nothing else" — extra fields pass, as everywhere) and two
+shapes; the NPC-tab test's duplicated props builder; the readout's face (11px in both homes) and
+the button's inline size (the row no longer re-wraps as the spend crosses 10 ft); the `vh`
+sweep's leftovers (the window's desktop branch, its safe-area bottom, the dice result overlay);
+the portrait preview's unrecoverable hide; "12 server cases" (8), "13" sabotages (14, 12 red),
+"161px", "the 349-line guard" (the 350-line guard, seven lines of headroom), the missing DM-menu
+case in both lists, four stale test docblocks, the DM guide's bullet placement, blank line and
+the DM-owned sentence. Recorded: the player-lens gap at the NPC editor; the participation
+conjunct at the panel's player site is dead code (`useCombatOrdering` applied it) — kept for
+symmetry, said so; the handler's out-of-combat branch is reachable only by a hand-sent message;
+`MobileSurfaces`' forwarding and the `dvh` line are e2e-only pins; the elevation-cache window
+(`cachedDmSnapshot`, ≤2 s) can show a spend up to 2 s old — pre-existing cache design.
+
+### Review round 3 (2026-09-11) — four fresh Opus lenses, the LAST round; 0 critical / 10 major / 30 minor raw → 0 / 4 / 25 deduplicated
+
+Static lenses (correctness of wire + threading + gates, test rigour, DM/player experience on
+both layouts, overclaim). One root cause under seven of the ten raw majors: round 2 widened the
+gate to "in the order OR a spend to clear" and the prose was not re-swept, so the DM guide, this
+section (twice), HANDOFF §0, the panel test's docblock and two prop docblocks still said the
+round-1 gate — and called the panel's DM-section render site "dormant until F3" when the spend
+clause makes it live today (a DM's own token charged in combat; the guide told the DM no Reset
+would appear in the one case where it is the only lever). MAJOR, fixed: every one of those
+sentences, and the DM-section site now has its own two cases (in the order but no combatant →
+none; a spend → the lever, bound to that id); the phone's fit probe measured two constants
+(`nowrap` and `flex-wrap`) and never reached the 10 ft spend where the sized button had wrapped —
+it now reads the readout's and the button's tops at 5 ft and at 10 ft; the `vh`→`dvh` sweep and
+the portrait preview's remount had no pin at any level ("e2e-only pins" was an overclaim: CI's
+Chromium makes `vh` and `dvh` equal) — the window caps and the safe-area band are pinned on the
+rendered style, the result card's `80vh`-before-`80dvh` rule is read from the stylesheet, and
+`NpcPortraitField` has three cases. MINOR, fixed: the desktop window branch had gained `dvh` with
+no fallback and nothing else bounding `height: auto` (back to `vh`, reasoned in place); the result
+card's cap moved to CSS for the same reason; the portrait preview remounted per KEYSTROKE (keyed
+on the committed URL now); the readout never went red where the plate does (red past the speed,
+or the default); the 11px face, the validator's "extra fields pass" and the actions hook's two
+wire shapes were asserted nowhere; the phone-list DM-owned case asserted half its title (the
+player's row now opens too); the contract test read the FIRST DM frame, not the latest; the
+`.last()` in the phone NPC block and the field test's inline-only `minHeight` negative say why;
+"349-line guard", "review round" (singular), "beside Sight Radius", "the DM's card", "fires
+without touching the input". Recorded: on the spend-only arm the control unmounts on success (a
+decision, above); a state file carrying diagonals without feet leaves the control inert while the
+handler would reset (above); the desktop e2e's closing plate assert is not filtered to the mover
+(the exact `movementUsed === 0` before it is the load-bearing pin); "Used 15 ft" and the plate's
+"15 / 30 ft" share digits at half speed (the word carries it; the plate reads what is LEFT);
+`JRPGButton`'s disabled face is ≈3.25:1 (house-wide `opacity: 0.5`, not this slice's); every open
+settings window's Reset shares one accessible name (one window per card is the ordinary case);
+the desktop row holds one line below 1000 ft (a wrap, never an overflow, past it); the NPC editor
+passes `compact` on desktop too (slice 3's shape); the reset writes no chat line (the speed's
+pattern); a monster's Reset is in the NPC editor, not its panel card (where its speed lives).
+Plateau: 0/4/25 against round 2's 0/3/24, every major a missing pin or a stale sentence, none a
+wrong server result — no round 4, per the cap. Live-checked after the fixes with two clients on the dev table: the DM's own card (no initiative, DM section) read "Used 5 ft" with a live Reset after one step of its token in combat, and the reset emptied the row; a player's 35 ft on a 30 ft speed read red on the DM's card (`#d63c53`) while the player's plate read "-5 / 30 ft" in the same red; the DM's reset put "30 / 30 ft" back on the plate and left "Used 0 ft" inert on the card.
+
 ## Open after the arc (owner's calls)
 
 - A "nothing selected → your own token" fallback for WASD in pointer mode.
 - Whether a DM-owned PC with an initiative should be a combatant (today it is not, by the
   pre-existing participation rule), which decides whether its budget ever resets on a turn.
-- A DM "reset budget" control outside a turn boundary, and any enforcement (a red readout is
-  advisory today).
+- ~~A DM "reset budget" control outside a turn boundary, and any enforcement (a red readout is
+  advisory today).~~ — DONE as Follow-up F2 (2026-09-11): the reset control shipped; the
+  budget stays ADVISORY by the owner's call.
 - Hold-to-walk on the phone d-pad steps at the keyboard's cadence; a slower phone cadence is a
   one-constant change if thumbs find it fast.
 - ~~**The pad covers the thing it moves** (round 3)~~ — FIXED by Follow-up F1 (2026-09-10, on

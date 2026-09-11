@@ -20,6 +20,7 @@ import { validateChatMessage, validateClearChatLogMessage } from "./validators/c
 import { validateDiceRollMessage, validateEnterRollMessage } from "./validators/diceValidators.js";
 import { validateLoadSessionMessage } from "./validators/sessionValidators.js";
 import {
+  validateResetMovementBudgetMessage,
   validateSetCharacterSpeedMessage,
   validateStepObjectMessage,
 } from "./validators/movementValidators.js";
@@ -203,6 +204,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "roll-initiative-all": validateRollInitiativeAllMessage,
   "set-initiative-manual-override": validateSetInitiativeManualOverrideMessage,
   "set-character-speed": validateSetCharacterSpeedMessage,
+  "reset-movement-budget": validateResetMovementBudgetMessage,
   "step-object": validateStepObjectMessage,
 
   // ==========================================================================

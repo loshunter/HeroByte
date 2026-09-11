@@ -348,6 +348,8 @@ export interface MainLayoutProps {
   updateTokenVisionRadius?: (tokenId: string, radiusFeet: number | null) => void;
   /** DM-only: a character's feet per turn (the movement budget; optional, as above). */
   updateCharacterSpeed?: (characterId: string, speedFeet: number | null) => void;
+  /** DM-only: zero a character's spend outside a turn boundary (optional, as above). */
+  resetCharacterBudget?: (characterId: string) => void;
 
   // -------------------------------------------------------------------------
   // Alignment

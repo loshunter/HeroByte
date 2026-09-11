@@ -5,6 +5,7 @@
 // Memoized to prevent unnecessary re-renders
 
 import { memo, useEffect, useState } from "react";
+import type { MovementBudgetControl } from "./MovementSpeedField";
 import type { Drawing, Player, PlayerState, SceneObject, Token, TokenSize } from "@herobyte/shared";
 import { NameEditor } from "./NameEditor";
 import { PortraitSection } from "./PortraitSection";
@@ -69,6 +70,8 @@ export interface PlayerCardProps {
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
   onCharacterSpeedChange?: (speedFeet: number | null) => void;
+  /** DM-only: the spend and its reset. */
+  characterBudget?: MovementBudgetControl;
   onAddCharacter?: (name: string) => boolean;
   isCreatingCharacter?: boolean;
   characterId?: string;
@@ -132,6 +135,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onTokenVisionRadiusChange,
     characterSpeed,
     onCharacterSpeedChange,
+    characterBudget,
     onStatusEffectsChange,
     onAddCharacter,
     isCreatingCharacter,
@@ -381,6 +385,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
           characterSpeed={characterSpeed}
           onCharacterSpeedChange={onCharacterSpeedChange}
+          characterBudget={characterBudget}
           onAddCharacter={onAddCharacter}
           isCreatingCharacter={isCreatingCharacter}
           characterId={characterId}

@@ -178,6 +178,8 @@ export interface BottomPanelLayoutProps {
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
   /** DM-only: a character's feet per turn (optional, as above). */
   onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
+  /** DM-only: zero a character's spend outside a turn boundary (optional, as above). */
+  onCharacterBudgetReset?: (characterId: string) => void;
   /** The table default, shown on a token that inherits it. */
   tableVisionDefault?: number;
   /** Handler to change token image */
@@ -320,6 +322,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onTokenSizeChange,
     onTokenVisionRadiusChange,
     onCharacterSpeedChange,
+    onCharacterBudgetReset,
     tableVisionDefault,
     onTokenImageChange,
     onAddCharacter,
@@ -385,6 +388,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onTokenSizeChange={onTokenSizeChange}
         onTokenVisionRadiusChange={onTokenVisionRadiusChange}
         onCharacterSpeedChange={onCharacterSpeedChange}
+        onCharacterBudgetReset={onCharacterBudgetReset}
         tableVisionDefault={tableVisionDefault}
         onTokenImageChange={onTokenImageChange}
         onAddCharacter={onAddCharacter}

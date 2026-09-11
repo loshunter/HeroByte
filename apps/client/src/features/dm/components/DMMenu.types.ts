@@ -68,6 +68,8 @@ export interface DMMenuProps {
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   /** Movement budget: an NPC's feet per turn (null = the shared default). */
   onSetNPCSpeed: (id: string, speedFeet: number | null) => void;
+  /** Movement budget: zero an NPC's spend outside a turn boundary. */
+  onResetNPCBudget: (id: string) => void;
   onDuplicateNPC: (id: string) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;

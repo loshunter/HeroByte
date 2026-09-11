@@ -1334,6 +1334,21 @@ describe("validateMessage", () => {
       expect(step(Array.from({ length: 65 }, (_, i) => `token:${i}`))).toBe(false);
     });
 
+    it("reset-movement-budget: a non-empty string characterId (extra fields pass, as everywhere)", () => {
+      expect(validateMessage({ t: "reset-movement-budget", characterId: "c1" })).toEqual({
+        valid: true,
+      });
+      expect(
+        validateMessage({ t: "reset-movement-budget", characterId: "c1", stray: 1 }).valid,
+      ).toBe(true);
+      for (const characterId of ["", 7, null, undefined, {}, []]) {
+        expect(
+          validateMessage({ t: "reset-movement-budget", characterId }).valid,
+          `characterId ${String(characterId)}`,
+        ).toBe(false);
+      }
+    });
+
     it("set-character-speed: a finite number of feet inside the shared bounds", () => {
       expect(validateMessage({ t: "set-character-speed", characterId: "c1", speed: 30 })).toEqual({
         valid: true,
