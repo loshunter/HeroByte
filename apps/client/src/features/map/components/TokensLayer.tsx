@@ -704,7 +704,9 @@ export const TokensLayer = memo(function TokensLayer({
     const { x, y, scaleY } = mapOverrides(object).transform;
     // The gizmo can scale a token beyond its size class — the plate's offset
     // must clear the RENDERED extent or it overlaps the sprite.
-    const tokenSize = gridSize * 0.75 * sizeMultiplier * (scaleY || 1);
+    // |scaleY|: a flipped token is as tall as an unflipped one, and its plate
+    // hangs below the sprite either way (the move-pad follow reserves that side).
+    const tokenSize = gridSize * 0.75 * sizeMultiplier * (Math.abs(scaleY) || 1);
     return (
       <TokenNameplate
         plate={plate}
