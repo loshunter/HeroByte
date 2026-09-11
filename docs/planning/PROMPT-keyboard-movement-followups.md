@@ -2,7 +2,7 @@
 
 Written 2026-09-10 at the close of the keyboard-movement arc. `dev` is at `aacfc2ae`, ten
 commits past production (`a41a8065`), every one gated by the full ladder (last run: 188 e2e
-passed, 0 flaky) and live-checked with two clients. **Nothing is pushed or merged.** Read this
+passed, 0 flaky) and live-checked with two clients. **SUPERSEDED 2026-09-10: merged and DEPLOYED as `e42d60bf` — see HANDOFF §0.** Read this
 file, then `HANDOFF-NEXT.md` §0 (top two updates), §2, §5 and §8, then the plan
 `keyboard-movement-arc-plan.md` (its three "Review round" sections and the "Open after the arc"
 list are the ground truth for what shipped and what did not).
@@ -32,7 +32,7 @@ list are the ground truth for what shipped and what did not).
   server rounds each TOKEN's own cell and applies the step on the transform road. Two earlier
   absolute-cell versions teleported; a per-object message tripped the 100/s limiter past ~15
   objects. Do not reintroduce either.
-- **Production** is still `a41a8065` (publish-blank-table fix + fog opacity). Players there have
+- ~~**Production** is still `a41a8065`~~ — `e42d60bf` since 2026-09-10 (HANDOFF §0). Was: players there had
   none of this arc.
 
 ## 1. The mission (recommended; the owner may redirect)

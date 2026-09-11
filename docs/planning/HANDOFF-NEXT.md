@@ -7,6 +7,24 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-10, DEPLOYED — the keyboard-movement arc is IN PRODUCTION).** The owner said
+merge. `dev` fast-forwarded to `main` as `e42d60bf` (from `a41a8065`, twelve commits: the arc's
+three slices, three review rounds, the two bugs fixed regardless of origin, the save debounce, and
+two docs commits), pushed 2026-09-10, `dev` pushed to match. Deploy probe-verified across all 11
+served chunks (1,205 KB): the entry bundle went `index-CHR8dA8X` → `index-Biz0-AXd`; the
+discriminating strings `step-object` and `Move selection` (absent from the client at `a41a8065`,
+present at `e42d60bf`) read 1 hit each in the new entry bundle, the controls `Apply Portrait` and
+`Portrait Image URL` 2 each, `/health` 200 on Render. NOTE for the next probe: Cloudflare returns
+403 to Python's default user agent — send a browser UA. CI run #857 green, `e2e-full-suite` step `success` (not skipped). The prod
+functional check of the server half (a charged step at a real table) needs the prod DM password
+the owner holds and was NOT run. Players there must reload. The owner's follow-up calls, decided
+the same day (the owner's gut plus "use your best judgment"): (1) pad-covers-token → (a) a
+camera follow while the pad is mounted; (2) the budget stays ADVISORY — "it's a VTT, not an RPG
+game" — with a DM reset-budget control; (3) a DM-owned character with an initiative IS a
+combatant regardless of `type` ("the DM controls all that is not a player" — an ally, a disguised
+villain, anything), reversing the pre-existing DM-owned-PC exclusion. Each ships as its own slice
+in the `PROMPT-keyboard-movement-followups.md` order.
+
 **Update (2026-09-09, later — KEYBOARD MOVEMENT SLICE 1 on `dev`, NOT merged).** WASD / arrows
 (and `Q E Z C` + numpad corners for diagonals) step the SELECTED token or prop one grid cell per
 press over the relative `step-object` message, which the server resolves against its own
