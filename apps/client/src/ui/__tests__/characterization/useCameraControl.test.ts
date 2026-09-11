@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { useCameraControl } from "../../../hooks/useCameraControl";
 import type { CameraCommand } from "../../MapBoard.types";
 import type { RoomSnapshot } from "@herobyte/shared";
+import { setMotionLevel } from "../../../features/juice/juiceSettings";
 
 describe("useCameraControl", () => {
   const mockOnCameraChange = vi.fn();
@@ -228,6 +229,217 @@ describe("useCameraControl", () => {
         });
 
         windowAlertSpy.mockRestore();
+      });
+    });
+
+    describe("focus-point command", () => {
+      it("centres the world point in the whole stage by default — AT ONCE, no glide without `at`", () => {
+        // Hoisted: an inline literal is a new command every render, and the
+        // handler effect would re-fire forever (a real OOM while writing this).
+        const command: CameraCommand = { type: "focus-point", x: 525, y: 1025 };
+        const { result } = renderHook(() =>
+          useCameraControl({
+            cameraCommand: command,
+            onCameraCommandHandled: mockOnCameraCommandHandled,
+            snapshot: mockSnapshot as RoomSnapshot,
+            gridSize: 50,
+            w: 800,
+            h: 600,
+            onCameraChange: mockOnCameraChange,
+          }),
+        );
+        // Synchronous: a travel arrival lands in the same commit, it does not tween.
+        expect(result.current.cam).toEqual({ x: -125, y: -725, scale: 1 });
+        expect(mockOnCameraCommandHandled).toHaveBeenCalled();
+      });
+
+      it("a reset issued during a glide wins: the glide's remaining frames are cancelled", async () => {
+        const glide: CameraCommand = {
+          type: "focus-point",
+          x: 525,
+          y: 1025,
+          at: { x: 150, y: 236 },
+        };
+        let pending: CameraCommand | null = glide;
+        const cancelled = vi.spyOn(window, "cancelAnimationFrame");
+        try {
+          const { result, rerender } = renderHook(() =>
+            useCameraControl({
+              cameraCommand: pending,
+              onCameraCommandHandled: mockOnCameraCommandHandled,
+              snapshot: mockSnapshot as RoomSnapshot,
+              gridSize: 50,
+              w: 375,
+              h: 812,
+              onCameraChange: mockOnCameraChange,
+            }),
+          );
+          // One frame in, then the View button's reset.
+          await act(async () => {
+            await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+          });
+          pending = { type: "reset" };
+          rerender();
+          expect(cancelled).toHaveBeenCalled();
+          expect(result.current.cam).toEqual({ x: 0, y: 0, scale: 1 });
+          // And it STAYS at the origin after the glide would have finished.
+          await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+          });
+          expect(result.current.cam).toEqual({ x: 0, y: 0, scale: 1 });
+        } finally {
+          cancelled.mockRestore();
+        }
+      });
+
+      it("unmounting mid-glide cancels the pending frame", async () => {
+        const glide: CameraCommand = {
+          type: "focus-point",
+          x: 525,
+          y: 1025,
+          at: { x: 150, y: 236 },
+        };
+        const cancelled = vi.spyOn(window, "cancelAnimationFrame");
+        try {
+          const { unmount } = renderHook(() =>
+            useCameraControl({
+              cameraCommand: glide,
+              onCameraCommandHandled: mockOnCameraCommandHandled,
+              snapshot: mockSnapshot as RoomSnapshot,
+              gridSize: 50,
+              w: 375,
+              h: 812,
+              onCameraChange: mockOnCameraChange,
+            }),
+          );
+          unmount();
+          expect(cancelled).toHaveBeenCalled();
+        } finally {
+          cancelled.mockRestore();
+        }
+      });
+
+      it("lands the world point on the `at` screen point — the phone's follow aims into the uncovered map", async () => {
+        // A 375×812 stage: the point goes to screen (150, 236), not the
+        // stage's middle (187.5, 406) — and the two axes are independent.
+        const command: CameraCommand = {
+          type: "focus-point",
+          x: 525,
+          y: 1025,
+          at: { x: 150, y: 236 },
+        };
+        const { result } = renderHook(() =>
+          useCameraControl({
+            cameraCommand: command,
+            onCameraCommandHandled: mockOnCameraCommandHandled,
+            snapshot: mockSnapshot as RoomSnapshot,
+            gridSize: 50,
+            w: 375,
+            h: 812,
+            onCameraChange: mockOnCameraChange,
+          }),
+        );
+        await waitFor(() => {
+          expect(result.current.cam).toEqual({ x: 150 - 525, y: 236 - 1025, scale: 1 });
+          expect(mockOnCameraCommandHandled).toHaveBeenCalled();
+        });
+      });
+
+      it("`at` is a SCREEN point: at scale 2 the world point is scaled, the screen point is not", async () => {
+        const command: CameraCommand = {
+          type: "focus-point",
+          x: 525,
+          y: 1025,
+          at: { x: 150, y: 236 },
+        };
+        let pending: CameraCommand | null = null;
+        const { result, rerender } = renderHook(() =>
+          useCameraControl({
+            cameraCommand: pending,
+            onCameraCommandHandled: mockOnCameraCommandHandled,
+            snapshot: mockSnapshot as RoomSnapshot,
+            gridSize: 50,
+            w: 375,
+            h: 812,
+            onCameraChange: mockOnCameraChange,
+          }),
+        );
+        act(() => result.current.setCam({ x: 0, y: 0, scale: 2 }));
+        pending = command;
+        rerender();
+        await waitFor(() => {
+          expect(result.current.cam).toEqual({ x: 150 - 1050, y: 236 - 2050, scale: 2 });
+        });
+      });
+
+      it("a nonsense `at` (negative or not finite) is caught: negative clamps to the edge, NaN falls back to the centre", async () => {
+        const command: CameraCommand = {
+          type: "focus-point",
+          x: 525,
+          y: 1025,
+          at: { x: -50, y: Number.NaN },
+        };
+        const { result } = renderHook(() =>
+          useCameraControl({
+            cameraCommand: command,
+            onCameraCommandHandled: mockOnCameraCommandHandled,
+            snapshot: mockSnapshot as RoomSnapshot,
+            gridSize: 50,
+            w: 375,
+            h: 812,
+            onCameraChange: mockOnCameraChange,
+          }),
+        );
+        await waitFor(() => {
+          expect(result.current.cam).toEqual({ x: 0 - 525, y: 406 - 1025, scale: 1 });
+        });
+      });
+
+      it("an `at` command GLIDES (several frames, landing exactly) unless motion is off, then it lands at once", async () => {
+        const command: CameraCommand = {
+          type: "focus-point",
+          x: 525,
+          y: 1025,
+          at: { x: 150, y: 236 },
+        };
+        const render = () =>
+          renderHook(() =>
+            useCameraControl({
+              cameraCommand: command,
+              onCameraCommandHandled: mockOnCameraCommandHandled,
+              snapshot: mockSnapshot as RoomSnapshot,
+              gridSize: 50,
+              w: 375,
+              h: 812,
+              onCameraChange: mockOnCameraChange,
+            }),
+          );
+        const glided = render();
+        await waitFor(() => {
+          expect(glided.result.current.cam).toEqual({ x: -375, y: -789, scale: 1 });
+        });
+        // Frames: the initial notification, then more than one step of the
+        // ease — every one between the start and the target, never past it,
+        // and never backwards (an overshooting or oscillating ease would land
+        // exactly too and fool a final-value check).
+        const ys = mockOnCameraChange.mock.calls.map(([cam]) => (cam as { y: number }).y);
+        expect(ys.length).toBeGreaterThan(2);
+        for (let i = 1; i < ys.length; i += 1) {
+          expect(ys[i]).toBeLessThanOrEqual(ys[i - 1]!);
+          expect(ys[i]).toBeGreaterThanOrEqual(-789);
+        }
+        glided.unmount();
+
+        mockOnCameraChange.mockClear();
+        setMotionLevel("off");
+        try {
+          const instant = render();
+          // Synchronous: no frame needed.
+          expect(instant.result.current.cam).toEqual({ x: -375, y: -789, scale: 1 });
+          expect(mockOnCameraChange.mock.calls.length).toBeLessThanOrEqual(2);
+        } finally {
+          setMotionLevel("full");
+        }
       });
     });
 

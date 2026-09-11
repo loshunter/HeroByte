@@ -48,8 +48,11 @@ interface MobileMovePadProps {
 
 // Reading order is screen order: top row is "up". Diagonals ride along so a
 // phone can take the same one-press diagonal step a keyboard can. In a short
-// landscape viewport the CSS folds the pad to one row of the four
-// orthogonals, keyed on `data-dir` (← ↑ ↓ →), never on the label text.
+// landscape viewport the CSS folds the pad to ONE row of eight — the
+// orthogonals, then the diagonals — keyed on `data-dir`, never on the label
+// text (the arc's review rejected a one-row fold that DROPPED the diagonals
+// and made a landscape phone pay double for one; this one keeps them, and
+// the 50px it saves is what lets a token and its plate fit above the sheet).
 const PAD: ReadonlyArray<{
   label: string;
   name: string;

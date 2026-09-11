@@ -7,10 +7,45 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-10, later — FOLLOW-UP F1 on `dev`, NOT merged to `main`: the phone pad no
+longer covers the piece it moves).** The owner's call (a): a camera follow while the pad is
+mounted. Mobile-local, like the map-edit cancel counter — `useMovePadCameraFollow`
+(features/movement) runs in `MobileLayout` only while the d-pad is up and the map is showing,
+follows the first movable token, else prop, as a world-px box (cells → px for both; the sprite
+times the size ladder and the gizmo scale; a token's plate as 40 screen px below), measures the
+sheet's, the combat strip's and the surface's REAL rects, and when the box leaves the open band
+issues one `focus-point` with the SCREEN point to land on (`at`, the command's new optional
+field), on the axis that left the band, a lead inside the crossed edge so a held walk scrolls one
+cell per step (glided 120 ms); the band is chosen so the piece fits (the strip is given up before
+the sheet, and its box now lets taps through between its buttons); the landscape pad is one row
+of eight so a token and its plate fit above the sheet there too; any camera command cancels a
+glide; a pan or pinch absorbs an outside camera change without losing the finger's travel, and a
+thumb on the d-pad no longer turns a one-finger pan into a pinch; app-level commands go first
+and the follow re-evaluates once they have moved the camera; the surface machine DERIVES "none"
+while a screen's role gate refuses it (never latching — `isDM` reads false on every reconnect
+blip). Pinned by 49 unit cases across six files and `mobile-move-pad-follow.spec.ts` in portrait,
+landscape and landscape-in-combat (a DM in a second context; the token's rect from its painted
+Konva node; a tap over the strip's gap reaches the canvas). Three review rounds (4 fresh lenses
+each: 1/14/25, 1/18/38, 1/17/36 raw — the last two dropping once duplicates merge); round 3 was
+the last under review-convergence and every finding is fixed or recorded in the plan's F1
+section and its three round subsections. Sabotage: 13, then 14, then 21, then 17
+red — 65 across the four passes, 59 at unit level and 6 in the browser. Fixed on the way, own commit: a flipped token's nameplate rendered above its sprite.
+TRAPS paid for: a `cameraCommand` built as an inline literal inside `renderHook`'s callback
+re-fires `useCameraControl`'s handler effect forever and the worker dies of a heap limit that
+looks like the suite's batch OOM — hoist it; `requestAnimationFrame`'s timestamp and
+`performance.now()` are different clocks under jsdom — anchor an animation on its first frame; a
+lazy `MapBoard` mock is not mounted when `render` returns — `await screen.findByTestId("map-board")`
+before reading its props; a hidden pane tab freezes Konva's tween AND the camera glide, so a
+sprite read there sits a cell behind the state and the follow appears not to fire; a stage stub
+that returns the same pointer object it later mutates moves the recorded drag origin with it;
+a snapshot-derived flag in a LATCHING effect is a reconnect bug (the map-edit guard's rule, again).
+NEXT: F2 (a DM reset-budget control, the budget stays advisory) and F3 (a DM-owned character with
+an initiative is a combatant).
+
 **Update (2026-09-10, DEPLOYED — the keyboard-movement arc is IN PRODUCTION).** The owner said
 merge. `dev` fast-forwarded to `main` as `e42d60bf` (from `a41a8065`, twelve commits: the arc's
-three slices, three review rounds, the two bugs fixed regardless of origin, the save debounce, and
-two docs commits), pushed 2026-09-10, `dev` pushed to match. Deploy probe-verified across all 11
+three slices, three review rounds in four commits, the two bugs fixed regardless of origin, the
+save debounce, and two docs commits), pushed 2026-09-10, `dev` pushed to match. Deploy probe-verified across all 11
 served chunks (1,205 KB): the entry bundle went `index-CHR8dA8X` → `index-Biz0-AXd`; the
 discriminating strings `step-object` and `Move selection` (absent from the client at `a41a8065`,
 present at `e42d60bf`) read 1 hit each in the new entry bundle, the controls `Apply Portrait` and
@@ -53,10 +88,11 @@ shared-prop rule was locked to players; client/mobile: a multi-select walk tripp
 past ~15 objects — one `step-object` per step now carries the whole selection; a full-screen
 modal did not stop the keys; the d-pad's arrows were 11px on portrait phones and the landscape
 fold made a phone pay double for a diagonal; real holds are now proven over CDP and a mouse) and
-the OWNER decides whether the remaining recorded items — the pad covering the token it moves is
-the biggest — block the merge. **The next agent's prompt is
-[PROMPT-keyboard-movement-followups.md](./PROMPT-keyboard-movement-followups.md)**: the merge
-decision first (theirs), then the pad-covers-token fix and the other owner calls as slices. The one deferred follow-up is DONE too (own commit): `saveToDisk`
+~~the OWNER decides whether the remaining recorded items — the pad covering the token it moves is
+the biggest — block the merge~~ (merged 2026-09-10; the pad item is F1, see above). **The next agent's prompt is
+[PROMPT-keyboard-movement-followups.md](./PROMPT-keyboard-movement-followups.md)**: ~~the merge
+decision first (theirs), then the pad-covers-token fix~~ (both done 2026-09-10 — see the updates
+above) and the other owner calls as slices. The one deferred follow-up is DONE too (own commit): `saveToDisk`
 is a trailing debounce (`saveDebounce.ts`, 250 ms), so a held key no longer writes the state file
 ~6.7 times a second; `awaitPendingWrites` flushes first, and a test teardown can
 `awaitAllPendingWrites()` across every instance. A second bug fixed regardless of origin, own commit: the initiative modal confirmed a
@@ -1237,8 +1273,12 @@ turns a cone into something else.
      phone d-pad; hold-to-walk at a bounded cadence; the movement budget with the diagonal rule,
      nameplate readout, turn-start reset and DM-set speed; review rounds 1 and 2 fixed
      (`316c295a`, `b2a0cb20`), and on the way the initiative modal's false "timed out" on a
-     hand entry equal to the roll on file. NOT merged — the owner's call after the review. The
-     original queue note follows.
+     hand entry equal to the roll on file. **MERGED and IN PRODUCTION 2026-09-10 (`e42d60bf`,
+     CI #857).** The owner's three follow-up calls are decided (§0, 2026-09-10): F1 the camera
+     follow — DONE on `dev` 2026-09-10, NOT merged to `main`; F2 a DM reset-budget control with the budget staying
+     ADVISORY — next; F3 a DM-owned character with an initiative is a combatant regardless of
+     `type` — after F2 (touches the initiative participation rule; read `initiative-slice`
+     memory first). The original queue note follows.
      ~~QUEUED BY THE OWNER 2026-09-08~~ — keyboard movement, one square per press, with sight and
      movement following it. WASD and the arrow keys move the SELECTED token — or any selected
      item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three

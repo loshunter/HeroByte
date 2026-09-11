@@ -33,8 +33,8 @@ test.describe("mobile — move pad", () => {
       expect(await undersizedControls(page, ".mobile-move-pad")).toEqual([]);
 
       // Every visible pad button, the sheet's Clear chip and the dock all on
-      // screen at once, without scrolling — in landscape the pad folds to two
-      // rows of four (orthogonals, then diagonals) so this holds there too.
+      // screen at once, without scrolling — in landscape the pad folds to ONE
+      // row of eight (orthogonals, then diagonals) so this holds there too.
       const layout = await page.evaluate(() => {
         const onScreen = (r: DOMRect) =>
           r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth;
@@ -80,10 +80,12 @@ test.describe("mobile — move pad", () => {
         expect(layout.rows).toBe(3);
         expect(layout.padWidth).toBeGreaterThanOrEqual(200);
       } else {
-        // TWO rows of four, orthogonals first — never the one-row fold that
-        // dropped the diagonals and made a landscape phone pay double.
-        expect(layout.rows).toBe(2);
-        expect(layout.padHeight).toBeLessThanOrEqual(100);
+        // ONE row of eight, orthogonals first, ALL eight — never the one-row
+        // fold that dropped the diagonals and made a landscape phone pay
+        // double. A 44px pad (not 94) is what leaves the map room for a token
+        // and the plate under it above the sheet (the move-pad follow's band).
+        expect(layout.rows).toBe(1);
+        expect(layout.padHeight).toBeLessThanOrEqual(50);
         expect(layout.readingOrder).toEqual([
           "Move left",
           "Move up",

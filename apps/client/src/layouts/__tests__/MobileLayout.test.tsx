@@ -508,6 +508,83 @@ describe("MobileLayout", () => {
     expect(within(pad).getAllByRole("button")).toHaveLength(8);
   });
 
+  it("the d-pad's camera follow reaches the board as a focus-point, and handled clears it without touching the app's", async () => {
+    // jsdom has no layout: the surface and the sheet get real-looking rects
+    // (a 375×812 phone, the sheet's top at 472) by class. The token's cell
+    // y=9 is world 475 — under the sheet — so mounting the pad over it fires.
+    const rectSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        const top = this.classList.contains("mobile-selection-sheet") ? 472 : 0;
+        const height = this.classList.contains("mobile-map-surface") ? 812 : 300;
+        return { top, left: 0, width: 375, height, bottom: top + height, right: 375 } as DOMRect;
+      });
+    try {
+      const props = createDefaultProps();
+      props.activeTool = "select";
+      props.selectMode = true;
+      props.selectedObjectIds = ["token:1"];
+      props.movement = { movableCount: 1, move: vi.fn() };
+      // The LIVE camera is threaded, not an identity: at y=100 cell 6 (world
+      // 325, plate to 490 on screen) is under the sheet; at the identity it
+      // would be 90px clear and nothing would fire.
+      props.cameraState = { x: 0, y: 100, scale: 1 };
+      props.snapshot = {
+        combatActive: false,
+        tokens: [{ id: "1", owner: "test-uid", x: 3, y: 6, color: "hsl(0 0% 0%)" }],
+        props: [],
+        sceneObjects: [],
+      } as unknown as MainLayoutProps["snapshot"];
+      const { rerender } = render(<MobileLayout {...props} />);
+      // MapBoard is lazy: wait for the mock to mount before reading its props.
+      await screen.findByTestId("map-board");
+      expect(mapBoardProps.current?.cameraCommand).toEqual({
+        type: "focus-point",
+        x: 175,
+        y: 325,
+        at: { x: 175, y: 366 },
+      });
+      act(() => (mapBoardProps.current!.onCameraCommandHandled as () => void)());
+      expect(mapBoardProps.current?.cameraCommand).toBeNull();
+      expect(props.handleCameraCommandHandled).not.toHaveBeenCalled();
+      // With nothing of its own showing, handled goes to the app.
+      act(() => (mapBoardProps.current!.onCameraCommandHandled as () => void)());
+      expect(props.handleCameraCommandHandled).toHaveBeenCalledTimes(1);
+      // A Screen (Party) covers the sheet without unmounting it: the follow
+      // is inert behind it — a cell change under an opaque cover moves nothing.
+      fireEvent.click(screen.getByRole("button", { name: /party/i }));
+      rerender(
+        <MobileLayout
+          {...props}
+          snapshot={
+            {
+              ...(props.snapshot as object),
+              tokens: [{ id: "1", owner: "test-uid", x: 3, y: 10, color: "hsl(0 0% 0%)" }],
+            } as MainLayoutProps["snapshot"]
+          }
+        />,
+      );
+      expect(mapBoardProps.current?.cameraCommand).toBeNull();
+      // Closing the Screen resumes the follow: the next cell change fires.
+      // (The open screen carries its own party-named controls; the dock's is first.)
+      fireEvent.click(screen.getAllByRole("button", { name: /party/i })[0]!);
+      rerender(
+        <MobileLayout
+          {...props}
+          snapshot={
+            {
+              ...(props.snapshot as object),
+              tokens: [{ id: "1", owner: "test-uid", x: 3, y: 11, color: "hsl(0 0% 0%)" }],
+            } as MainLayoutProps["snapshot"]
+          }
+        />,
+      );
+      expect(mapBoardProps.current?.cameraCommand).toMatchObject({ type: "focus-point", y: 575 });
+    } finally {
+      rectSpy.mockRestore();
+    }
+  });
+
   it("press-and-hold on the d-pad walks at the keyboard's cadence and stops on release", () => {
     vi.useFakeTimers();
     // jsdom has no PointerEvent, so fireEvent.pointer* would arrive with no
@@ -1021,19 +1098,56 @@ describe("MobileLayout", () => {
       expect(openSurfaces()).toEqual([]);
     });
 
-    it("de-elevating with the DM screen open takes the shell down with it", async () => {
-      const props = createDefaultProps();
-      props.isDM = true;
-      const { rerender } = render(<MobileLayout {...props} />);
+    it("de-elevating with the DM screen open takes the shell down with it — and the machine with it, so the move-pad follow resumes", async () => {
+      // A selected, movable token under the sheet (phone rects stubbed by
+      // class): while the DM screen covers the map the follow is inert; once
+      // the role drops and the screen unmounts, `surface` must read "none"
+      // again or the follow stays inert with the map fully visible.
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+        .mockImplementation(function (this: HTMLElement) {
+          const top = this.classList.contains("mobile-selection-sheet") ? 472 : 0;
+          const height = this.classList.contains("mobile-map-surface") ? 812 : 300;
+          return { top, left: 0, width: 375, height, bottom: top + height, right: 375 } as DOMRect;
+        });
+      try {
+        const props = createDefaultProps();
+        props.isDM = true;
+        props.activeTool = "select";
+        props.selectMode = true;
+        props.selectedObjectIds = ["token:1"];
+        props.movement = { movableCount: 1, move: vi.fn() };
+        props.snapshot = {
+          combatActive: false,
+          tokens: [{ id: "1", owner: "someone", x: 3, y: 9, color: "hsl(0 0% 0%)" }],
+          props: [],
+          sceneObjects: [],
+        } as unknown as MainLayoutProps["snapshot"];
+        const { rerender } = render(<MobileLayout {...props} />);
+        await screen.findByTestId("map-board");
+        // The DM may move anyone's token: the follow fires on mount, and is
+        // consumed so the screen case below starts clean.
+        expect(mapBoardProps.current?.cameraCommand).toMatchObject({ type: "focus-point" });
+        act(() => (mapBoardProps.current!.onCameraCommandHandled as () => void)());
 
-      fireEvent.click(dock(/dm/i));
-      expect(await screen.findByTestId("dm-menu-content")).toBeInTheDocument();
+        fireEvent.click(dock(/dm/i));
+        expect(await screen.findByTestId("dm-menu-content")).toBeInTheDocument();
 
-      // The server revokes DM (or EXIT DM MODE lands): the screen must not
-      // stay up as an empty shell around a menu that renders null.
-      rerender(<MobileLayout {...props} isDM={false} />);
-      expect(screen.queryByRole("dialog", { name: "DM Menu" })).not.toBeInTheDocument();
-      expect(openSurfaces()).toEqual([]);
+        // The server revokes DM (or EXIT DM MODE lands): the screen must not
+        // stay up as an empty shell around a menu that renders null.
+        rerender(<MobileLayout {...props} isDM={false} />);
+        expect(screen.queryByRole("dialog", { name: "DM Menu" })).not.toBeInTheDocument();
+        expect(openSurfaces()).toEqual([]);
+        // Now a player: their own token, under the sheet, moved by a step.
+        const own = {
+          ...(props.snapshot as object),
+          tokens: [{ id: "1", owner: "test-uid", x: 3, y: 10, color: "hsl(0 0% 0%)" }],
+        } as MainLayoutProps["snapshot"];
+        rerender(<MobileLayout {...props} isDM={false} snapshot={own} />);
+        expect(mapBoardProps.current?.cameraCommand).toMatchObject({ type: "focus-point", y: 525 });
+      } finally {
+        rectSpy.mockRestore();
+      }
     });
 
     it("Party and Log open as screens with a labelled exit that closes them", () => {

@@ -1,11 +1,12 @@
 # Handoff — keyboard movement is COMPLETE on `dev`; merge is the owner's, then the follow-ups
 
-Written 2026-09-10 at the close of the keyboard-movement arc. `dev` is at `aacfc2ae`, ten
+Written 2026-09-10 at the close of the keyboard-movement arc. `dev` is at `aacfc2ae`, eleven
 commits past production (`a41a8065`), every one gated by the full ladder (last run: 188 e2e
 passed, 0 flaky) and live-checked with two clients. **SUPERSEDED 2026-09-10: merged and DEPLOYED as `e42d60bf` — see HANDOFF §0.** Read this
 file, then `HANDOFF-NEXT.md` §0 (top two updates), §2, §5 and §8, then the plan
-`keyboard-movement-arc-plan.md` (its three "Review round" sections and the "Open after the arc"
-list are the ground truth for what shipped and what did not).
+`keyboard-movement-arc-plan.md` (its three arc-level "Review round" `##` sections dated
+2026-09-09, F1's three `###` rounds dated 2026-09-10, and the "Open after the arc" list are the
+ground truth for what shipped and what did not).
 
 ## 0. Where things stand, exactly
 
@@ -48,19 +49,14 @@ deploy in HANDOFF §0 exactly as the 2026-09-09 update does.
 
 **Step 2 — the follow-up slice, once the owner has chosen**, in this order of value:
 
-1. **The phone pad covers the token it moves** (round 3, the biggest open item). At 375×812 the
-   selection sheet plus the dock is a ~340px opaque band over the map; the budget line sits BELOW
-   the token (`TokenNameplate.tsx`, `moveY = nameY + FONT_SIZE + 2`); a player walking ↓ walks
-   into the band, every press charged, no undo. Two shapes, the owner picks: (a) a camera follow
-   while the pad is mounted — pan when the selected token's screen point enters the sheet's rect
-   (top = `100dvh − var(--mobile-sheet-offset) − sheet height`; `useKeyboardMovement` already
-   knows the movable ids, `MapBoard` owns the camera); (b) flip the plate above the token when it
-   would land inside that rect. Whichever: ship it with its mobile spec at 375px measuring REAL
-   rects, not the CSS var.
-2. **A DM "reset budget" control** outside a turn boundary, and whether the budget ENFORCES
-   (today a negative readout is advisory and red). If enforcement: the refusal must be visible
-   (a toast, like the dropped-gesture toast), never silent — and it changes the e2e specs that
-   overspend on purpose (`movement-budget.spec.ts` "-5 / 5 ft").
+1. ~~**The phone pad covers the token it moves**~~ — DONE on `dev` 2026-09-10 as follow-up F1,
+   NOT merged to `main` (the owner chose (a), the camera follow): `useMovePadCameraFollow`,
+   `mobile-move-pad-follow.spec.ts`, plan section "Follow-up F1" with its two review rounds.
+   Start at item 2.
+2. **A DM "reset budget" control** outside a turn boundary. ~~and whether the budget ENFORCES~~
+   — DECIDED 2026-09-10: the budget stays ADVISORY ("it's a VTT, not an RPG game"); a negative
+   readout stays red and the overspending e2e specs (`movement-budget.spec.ts` "-5 / 5 ft") stay
+   as they are. Only the reset control is left to build.
 3. **Whether a DM-owned PC with an initiative is a combatant** (today it is not, by
    `shouldCharacterParticipateInCombat`; its plate is suppressed and the server still charges
    it). If yes, the participation rule changes for initiative too — read `initiative-slice.md`

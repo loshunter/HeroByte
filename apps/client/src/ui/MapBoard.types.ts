@@ -18,7 +18,11 @@ export type CameraCommand =
   | { type: "reset" }
   // WORLD-pixel target — travel's arrival recenter (staging-zone or scene
   // center). "reset" goes to origin, which is NOT the map's middle.
-  | { type: "focus-point"; x: number; y: number };
+  // `at` is the SCREEN point (stage px) the world point lands on; without it
+  // the stage's centre. The phone's move-pad follow aims into the part of the
+  // map the sheet does not cover, on the axis that left it (a diagonal step
+  // into a corner may move both), and such a command glides.
+  | { type: "focus-point"; x: number; y: number; at?: { x: number; y: number } };
 
 /**
  * Options for selection operations.

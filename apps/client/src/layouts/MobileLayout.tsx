@@ -20,6 +20,7 @@ import { MobileFloatingControls } from "../components/layout/MobileFloatingContr
 import { useMobileSurface } from "../hooks/useMobileSurface";
 import { MobileDrawingControls } from "./MobileDrawingControls";
 import { MobileSelectionSheet } from "./MobileSelectionSheet";
+import { useMovePadCameraFollow } from "../features/movement/useMovePadCameraFollow";
 import { MobileSurfaces } from "./mobile/MobileSurfaces";
 
 // Lazy load MapBoard to reduce initial bundle size
@@ -124,6 +125,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     // arming it must clear the surface the same way. Its own input, so the
     // machine sees its edge even when alignment was already armed.
     linkAimMode: props.linkAimActive ?? false,
+    isDM,
+    playerPropsEnabled: snapshot?.playerPropsEnabled ?? false,
   });
   const { surface, toggleSurface } = machine;
   // The kicked-in door on a phone (K3): the Atlas tab's button and the DM
@@ -172,6 +175,23 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
   const [mapEditCancelSignal, cancelMapEditDrag] = useReducer((n: number) => n + 1, 0);
 
   const selectedObjectCount = selectedObjectIds.length || (selectedObjectId ? 1 : 0);
+  const selectionSheetMounted =
+    selectedObjectCount > 0 && (transformMode || selectMode) && !sheetSlotOccupied;
+  // The d-pad covers the piece it moves; the follow recentres it above the
+  // sheet on the step that would hide it — only while the map is what is
+  // showing (a Screen at z 1700 covers the sheet without unmounting it).
+  const follow = useMovePadCameraFollow({
+    active: selectionSheetMounted && surface === "none" && (props.movement?.movableCount ?? 0) > 0,
+    snapshot,
+    gridSize,
+    camera: props.cameraState,
+    selectedObjectIds,
+    uid,
+    isDM,
+    mapEditMode,
+    appCommand: cameraCommand,
+    onAppCommandHandled: handleCameraCommandHandled,
+  });
 
   // Turn navigation handlers
   const handleNextTurn = useCallback(() => {
@@ -229,8 +249,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             {...drawingProps}
             onRecolorToken={recolorToken}
             onTransformObject={transformSceneObject}
-            cameraCommand={cameraCommand}
-            onCameraCommandHandled={handleCameraCommandHandled}
+            cameraCommand={follow.cameraCommand}
+            onCameraCommandHandled={follow.onCameraCommandHandled}
             onCameraChange={setCameraState}
             selectedObjectId={selectedObjectId}
             selectedObjectIds={selectedObjectIds}
@@ -268,7 +288,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         onCancelMapEditDrag={cancelMapEditDrag}
       />
 
-      {selectedObjectCount > 0 && (transformMode || selectMode) && !sheetSlotOccupied && (
+      {selectionSheetMounted && (
         <MobileSelectionSheet
           selectedCount={selectedObjectCount}
           movement={props.movement}

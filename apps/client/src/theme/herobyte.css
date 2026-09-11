@@ -1248,6 +1248,13 @@ h4 {
   z-index: 100;
   width: min(92vw, 420px);
   transform: translateX(-50%);
+  /* The box paints nothing between PREV and NEXT, and in landscape the
+     move-pad follow may park a token under it (there is no room below it):
+     only the buttons take the tap, the gaps go to the map. */
+  pointer-events: none;
+}
+
+.mobile-combat-strip button {
   pointer-events: auto;
 }
 
@@ -1925,9 +1932,14 @@ h4 {
    double (review round 3). Two rows of 44px chips + the label + the Clear
    chip fit the 231px the sheet may take there. */
 @media (orientation: landscape) and (max-height: 500px) {
+  /* ONE row of eight (8 × 44 + 7 × 6 = 394px of the 766 the sheet has):
+     a 44px pad instead of 94 buys the map the 50px that lets a token AND the
+     plate under it fit above the sheet (the move-pad follow's band). The
+     diagonals stay — the one-row fold the arc's review rejected had dropped
+     them. */
   .mobile-move-pad {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    max-width: 240px;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    max-width: 394px;
   }
   /* Two selectors deep on purpose: the base `.mobile-move-pad__centre`
      rule below sets display:flex at equal specificity and LATER in the file,

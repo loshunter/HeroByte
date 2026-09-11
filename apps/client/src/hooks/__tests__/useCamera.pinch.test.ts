@@ -34,6 +34,102 @@ function midpoint(a: { x: number; y: number }, b: { x: number; y: number }) {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
+describe("useCamera — a gesture absorbs an outside camera change", () => {
+  it("a one-finger pan continues from where the follow moved the camera, keeping the finger's own travel in full", () => {
+    const { result } = renderHook(() => useCamera());
+    act(() => result.current.onTouchStart(touches({ x: 100, y: 100 }), stageRef, true));
+    act(() => result.current.onTouchMove(touches({ x: 110, y: 100 }), stageRef));
+    expect(result.current.cam).toEqual({ x: 10, y: 0, scale: 1 });
+    // Something else (the move-pad follow gliding) moves the camera mid-gesture,
+    // frame after frame; every finger delta still counts.
+    act(() => result.current.setCam({ x: 10, y: -100, scale: 1 }));
+    act(() => result.current.onTouchMove(touches({ x: 120, y: 100 }), stageRef));
+    expect(result.current.cam).toEqual({ x: 20, y: -100, scale: 1 });
+    act(() => result.current.setCam({ x: 20, y: -200, scale: 1 }));
+    act(() => result.current.onTouchMove(touches({ x: 130, y: 100 }), stageRef));
+    expect(result.current.cam).toEqual({ x: 30, y: -200, scale: 1 });
+    // No outside change between frames: plain accrual, nothing double-counted.
+    act(() => result.current.onTouchMove(touches({ x: 140, y: 100 }), stageRef));
+    expect(result.current.cam).toEqual({ x: 40, y: -200, scale: 1 });
+  });
+
+  it("a MOUSE pan absorbs an outside change the same way, and a wheel zoom mid-pan is one", () => {
+    const pointer = { x: 100, y: 100 };
+    const stage = {
+      current: { getPointerPosition: () => ({ ...pointer }) } as unknown as Konva.Stage,
+    } as React.RefObject<Konva.Stage | null>;
+    const { result } = renderHook(() => useCamera());
+    const down = { evt: { buttons: 1 } } as unknown as KonvaEventObject<PointerEvent>;
+    act(() => result.current.onMouseDown(down, stage, true));
+    pointer.x = 110;
+    act(() => result.current.onMouseMove(stage));
+    expect(result.current.cam).toEqual({ x: 10, y: 0, scale: 1 });
+    act(() => result.current.setCam({ x: 10, y: -200, scale: 1 }));
+    pointer.x = 120;
+    act(() => result.current.onMouseMove(stage));
+    expect(result.current.cam).toEqual({ x: 20, y: -200, scale: 1 });
+    // A wheel zoom (about the pointer) during the pan: the zoom stands and the
+    // pan carries on at the new scale instead of reverting it.
+    const wheel = {
+      evt: { deltaY: -100, preventDefault: () => {} },
+    } as unknown as KonvaEventObject<WheelEvent>;
+    act(() => result.current.onWheel(wheel, stage));
+    const zoomed = result.current.cam;
+    expect(zoomed.scale).toBeGreaterThan(1);
+    pointer.x = 130;
+    act(() => result.current.onMouseMove(stage));
+    expect(result.current.cam).toEqual({ x: zoomed.x + 10, y: zoomed.y, scale: zoomed.scale });
+  });
+
+  it("only touches that STARTED on the stage are the gesture: a thumb on the d-pad plus one finger on the map is a pan, not a pinch", () => {
+    const { result } = renderHook(() => useCamera());
+    const thumb = { x: 300, y: 700 };
+    const finger = { x: 100, y: 100 };
+    const event = (
+      points: Array<{ x: number; y: number }>,
+      onStage: Array<{ x: number; y: number }>,
+    ) =>
+      ({
+        evt: {
+          touches: points.map((p) => ({ clientX: p.x, clientY: p.y })),
+          targetTouches: onStage.map((p) => ({ clientX: p.x, clientY: p.y })),
+          preventDefault: () => {},
+        },
+      }) as unknown as KonvaEventObject<TouchEvent>;
+    act(() => result.current.onTouchStart(event([thumb, finger], [finger]), stageRef, true));
+    expect(result.current.isPanning).toBe(true);
+    act(() =>
+      result.current.onTouchMove(
+        event([thumb, { x: 120, y: 100 }], [{ x: 120, y: 100 }]),
+        stageRef,
+      ),
+    );
+    expect(result.current.cam).toEqual({ x: 20, y: 0, scale: 1 });
+  });
+
+  it("a pinch re-anchors too: the outside change stands and the zoom continues from it", () => {
+    const { result } = renderHook(() => useCamera());
+    const a = { x: 150, y: 400 };
+    const b = { x: 250, y: 400 };
+    act(() => result.current.onTouchStart(touches(a, b), stageRef, false));
+    act(() => result.current.setCam({ x: 0, y: -300, scale: 1 }));
+    // The first frame re-anchors on the fingers as they are now; the next
+    // doubles the separation about a still centre: scale 2, anchored on the
+    // world point under the centre as the camera is NOW.
+    act(() => result.current.onTouchMove(touches(a, b), stageRef));
+    expect(result.current.cam).toEqual({ x: 0, y: -300, scale: 1 });
+    act(() =>
+      result.current.onTouchMove(touches({ x: 100, y: 400 }, { x: 300, y: 400 }), stageRef),
+    );
+    const centre = { x: 200, y: 400 };
+    const grabbed = toWorld({ x: 0, y: -300, scale: 1 }, centre);
+    const under = toWorld(result.current.cam, centre);
+    expect(result.current.cam.scale).toBeCloseTo(2, 6);
+    expect(under.x).toBeCloseTo(grabbed.x, 6);
+    expect(under.y).toBeCloseTo(grabbed.y, 6);
+  });
+});
+
 describe("useCamera — pinch anchor", () => {
   /**
    * The regression case. Zoom roughly 2x while sliding the centre 100px right.

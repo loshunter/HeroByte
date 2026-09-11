@@ -59,6 +59,34 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   const lastCenter = useRef<{ x: number; y: number } | null>(null);
   const lastDist = useRef<number>(0);
 
+  // The camera a gesture last SAW. A gesture computes each frame from the
+  // camera it started on; when something else moved the camera meanwhile (the
+  // phone's move-pad follow gliding, a travel arrival, a wheel zoom mid-pan)
+  // the next frame would snap it straight back — a visible flash-and-revert
+  // per step. Instead the gesture shifts its origin by the outside delta: the
+  // outside change stands, the finger's own travel is kept in full (nothing
+  // absorbed, however many frames the outside writer takes), and the map keeps
+  // moving from where it is.
+  const seen = useRef<Camera | null>(null);
+  const commit = (next: Camera) => {
+    seen.current = next;
+    setCam(next);
+  };
+  const absorbOutsideChange = () => {
+    if (!camOrigin.current || !seen.current || cam === seen.current) return;
+    camOrigin.current = {
+      x: camOrigin.current.x + (cam.x - seen.current.x),
+      y: camOrigin.current.y + (cam.y - seen.current.y),
+      scale: cam.scale,
+    };
+    seen.current = cam;
+  };
+  // A finger resting on the phone's d-pad is a touch too, but not on the map:
+  // only the touches that STARTED on the stage are the gesture (else a thumb
+  // on the pad plus one finger on the map read as a pinch).
+  const stageTouches = (evt: TouchEvent): TouchList =>
+    evt.targetTouches && evt.targetTouches.length > 0 ? evt.targetTouches : evt.touches;
+
   /**
    * Convert screen coordinates to world coordinates
    */
@@ -105,6 +133,8 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
       y: pointer.y - mouseWorld.y * clamped,
     };
 
+    // Plain setCam: a wheel zoom during a mouse pan is an OUTSIDE change to
+    // the pan, which then shifts its origin rather than reverting the zoom.
     setCam({ x: newPos.x, y: newPos.y, scale: clamped });
   };
 
@@ -124,6 +154,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     if (shouldPan || isSpace || middleClick) {
       setIsPanning(true);
       camOrigin.current = cam;
+      seen.current = cam;
       dragOrigin.current = stageRef.current?.getPointerPosition() || null;
     }
   };
@@ -135,11 +166,12 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     if (isPanning && dragOrigin.current && camOrigin.current) {
       const p = stageRef.current?.getPointerPosition();
       if (!p) return;
+      absorbOutsideChange();
 
       const dx = p.x - dragOrigin.current.x;
       const dy = p.y - dragOrigin.current.y;
 
-      setCam({
+      commit({
         ...camOrigin.current,
         x: camOrigin.current.x + dx,
         y: camOrigin.current.y + dy,
@@ -166,12 +198,13 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     stageRef: RefObject<Konva.Stage | null>,
     shouldPan: boolean,
   ) => {
-    const touches = event.evt.touches;
+    const touches = stageTouches(event.evt);
 
     if (touches.length === 1 && shouldPan) {
       // Single finger pan
       setIsPanning(true);
       camOrigin.current = cam;
+      seen.current = cam;
       dragOrigin.current = { x: touches[0].clientX, y: touches[0].clientY };
     } else if (touches.length === 2) {
       // Two finger pinch
@@ -182,6 +215,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
       lastCenter.current = getCenter(p1, p2);
       lastDist.current = getDistance(p1, p2);
       camOrigin.current = cam;
+      seen.current = cam;
     }
   };
 
@@ -192,15 +226,16 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     event: KonvaEventObject<TouchEvent>,
     _stageRef: RefObject<Konva.Stage | null>,
   ) => {
-    const touches = event.evt.touches;
+    const touches = stageTouches(event.evt);
 
     if (touches.length === 1 && isPanning && dragOrigin.current && camOrigin.current) {
       // Single finger pan
       const p = { x: touches[0].clientX, y: touches[0].clientY };
+      absorbOutsideChange();
       const dx = p.x - dragOrigin.current.x;
       const dy = p.y - dragOrigin.current.y;
 
-      setCam({
+      commit({
         ...camOrigin.current,
         x: camOrigin.current.x + dx,
         y: camOrigin.current.y + dy,
@@ -214,6 +249,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
 
       const newCenter = getCenter(p1, p2);
       const newDist = getDistance(p1, p2);
+      absorbOutsideChange();
 
       /*
        * The world point the gesture grabbed, fixed at touchstart.
@@ -250,7 +286,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
         scale: clampedScale,
       };
 
-      setCam(newPos);
+      commit(newPos);
     }
   };
 

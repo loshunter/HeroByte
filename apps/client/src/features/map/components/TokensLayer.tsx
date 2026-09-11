@@ -15,6 +15,7 @@ import type { StatusOption } from "../../players/constants/statusOptions";
 import { TokenHpFeedback } from "../../juice/TokenHpFeedback";
 import { TokenNameplate, type TokenPlateData } from "./TokenNameplate";
 import { decorativeMotionDisabled, motionDisabled, useSfx } from "../../juice";
+import { PROP_SIZE_MULTIPLIERS } from "../propSizing";
 
 interface TokenSpriteProps {
   object: SceneObject & { type: "token" };
@@ -45,16 +46,9 @@ function isKonvaNode(node: Konva.Node | null): node is Konva.Node {
   return !!node && typeof node.getLayer === "function" && typeof node.to === "function";
 }
 
-// Size multiplier per token size category (module scope: stable identity,
-// not re-created on every render)
-const SIZE_MULTIPLIERS: Record<string, number> = {
-  tiny: 0.5,
-  small: 0.75,
-  medium: 1.0,
-  large: 1.5,
-  huge: 2.0,
-  gargantuan: 3.0,
-};
+// Size multiplier per token size category — ONE ladder with the props (and
+// the move-pad follow, which sizes what it keeps on screen from it).
+const SIZE_MULTIPLIERS = PROP_SIZE_MULTIPLIERS;
 
 const TokenSprite = memo(function TokenSprite({
   object,

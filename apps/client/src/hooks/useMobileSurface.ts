@@ -47,6 +47,17 @@ export interface UseMobileSurfaceOptions {
   // arming one while the other is armed swaps them in a single commit with no
   // rising edge on a combined flag (the blind spot the comment below names).
   linkAimMode?: boolean;
+  // The DM/kick screens render only for a DM and the props/atlas screens only
+  // for a player (MobileSurfaces gates each on the role); while the role
+  // refuses one — "Stop being DM" lives INSIDE the DM screen — `surface`
+  // reads "none" so nothing gated on it (the move-pad follow) stays inert
+  // with the map showing. DERIVED, never latched: `isDM` is snapshot-derived
+  // and reads false during EVERY reconnect (the socket close nulls the
+  // snapshot), so a latch would close a DM's open menu on a blip; derived,
+  // the menu hides for the blip and returns with the roster (the same rule
+  // useMapEditState spells out for the map-edit guard).
+  isDM?: boolean;
+  playerPropsEnabled?: boolean;
 }
 
 export interface MobileSurfaceMachine {
@@ -68,8 +79,21 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
 
   // DERIVED, not stored: the prop-controlled panels win, and rendering exactly
   // this value is what makes "at most one surface" true by construction rather
-  // than by callbacks remembering to close each other.
-  const surface: MobileSurface = rollLogOpen ? "log" : diceRollerOpen ? "dice" : local;
+  // than by callbacks remembering to close each other. The role gate is
+  // derived the same way (see the option's comment).
+  const { isDM, playerPropsEnabled } = options;
+  const roleRefuses =
+    isDM !== undefined &&
+    (((local === "dm" || local === "kick") && !isDM) ||
+      ((local === "props" || local === "atlas") && isDM) ||
+      (local === "props" && playerPropsEnabled === false));
+  const surface: MobileSurface = rollLogOpen
+    ? "log"
+    : diceRollerOpen
+      ? "dice"
+      : roleRefuses
+        ? "none"
+        : local;
 
   const openSurface = useCallback(
     (next: MobileSurface) => {

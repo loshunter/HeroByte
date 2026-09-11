@@ -359,6 +359,173 @@ RECORDED, NOT FIXED (each an owner call or a pre-existing class):
   and spend for them (the pre-existing "the live sheet wins" rule for hp/initiative). A speed the
   DM set is roster data with no other home, so an overlay is worth doing; recorded.
 
+## Follow-up F1 — the phone pad no longer covers the token it moves (2026-09-10, on `dev`, NOT merged to `main`)
+
+The owner chose (a), a camera follow, over a flipped plate: a flipped plate keeps the READOUT
+visible while the token itself still walks under an opaque cover. Shape: **mobile-local**, like
+the map-edit cancel counter — `useMovePadCameraFollow` (features/movement) runs in
+`MobileLayout` only while the d-pad is up and the map is what is showing (`surface === "none"`;
+a Screen at z 1700 covers the sheet without unmounting it, and the surface machine now DERIVES
+"none" while a screen's role gate refuses it — "Stop being DM" lives inside the DM screen — never
+latching, because `isDM` reads false during every reconnect blip and a latch would close a DM's
+open menu on one). It follows the first movable token, else the first movable prop (the keys'
+own `movableSelection` rule), as a world-px BOX: both carry CELL coordinates (a prop's scene
+transform too — the first cut read it as pixels and three review lenses caught it); the box is
+the larger of the cell and the sprite (0.75 cell × the size ladder × the gizmo scale from the
+scene object, sign ignored; a token scales about its centre, a prop about its top-left corner so
+it grows right and down — or left and up when mirrored), plus, for a token, the 36 screen px its
+counter-scaled nameplate hangs below it (+4 slack) — the budget readout is what the follow exists
+to show. It measures the sheet's, the combat strip's and the map surface's REAL rects (in the
+surface's frame; the strip by its bottom edge only — it is 420px wide and centred, so the model
+errs conservatively) and, when the box is no longer wholly inside the open band, issues one
+`focus-point` carrying the SCREEN point to land on (`at`, the command's new optional field), per
+axis — the axis that left the band is placed a LEAD (half the piece) inside the edge it crossed,
+the other keeps its screen position; a diagonal step into a corner may move both. So the next
+step in the same direction crosses again and the camera scrolls one step's worth — a scroll at
+the edge, not a whip back to the middle (a 200px correction in 120 ms read as a strobe). The
+vertical band is chosen so the piece FITS: below the strip and inside the 16px pad (the sheet's
+glow) when there is room, giving up the strip (its box is transparent between two opaque
+buttons, and it now lets taps through to the map there — only its buttons take them) when there
+is not, the pad last; the lead goes first when the band is short, then the plate, and when
+nothing fits the piece is leading-edge-aligned. Whenever some band can hold the piece the
+predicate and the placement agree, so a placed piece is inside until the next step; a piece taller
+than the whole open map stays out and is re-issued the same command on every trigger — safe only
+because a bare camera change is never a trigger (do not add that dependency). An `at` command
+GLIDES (120 ms ease-out, `CAMERA_GLIDE_MS`; motion off lands at once; jsdom glides; a hidden tab
+freezes mid-ease until shown); any command — a reset, a focus — cancels a glide in flight. A pan
+or pinch in progress absorbs an outside camera change by shifting its origin (the finger's own
+travel is kept in full, however many frames the glide takes), and a wheel zoom mid-pan is such a
+change; only touches that started on the stage are the gesture, so a thumb on the d-pad plus one
+finger on the map is a pan, not a pinch. The follow evaluates on the box changing (a press, a
+drag, a DM dragging your token — the pad is up, this is the piece being steered), on mounting over
+a piece already under the band, on a resize, a rotation, the sheet changing size (ResizeObserver)
+and combat starting, and once after an app-level camera command (focus self, reset, travel
+arrival — which go FIRST) has moved the camera to a different one (a command that moved nothing
+is forgotten on the next frame); never on a bare camera change — a finger pan is the player's
+choice. `MainLayoutProps` grows nothing; the four desktop layout fixtures are untouched (the
+mobile one gained cases).
+
+Measured, so the next reader has the numbers (50px grid, scale 1): portrait 375×812 leaves a
+player 469px of open map above the sheet (sheet 240.8px tall) and a DM 418px (Lock/Unlock add a
+51px chip row); inside the pad the band is [16, 453] / [16, 402]; at the edge every held ↑/↓
+step scrolls one cell (50px, glided) for player and DM alike, and a horizontal step scrolls
+nothing until the piece meets a side. Landscape 812×375: the pad now folds to ONE row of eight
+(394px of the 766 the sheet has; the arc's review had rejected a one-row fold that dropped the
+diagonals — this keeps them), which takes the sheet from 191 to ~135px and the open map from ~88
+to ~138px; the band [16, 122] holds the cell and its plate (106 ≥ 90) but not a lead as well, so
+the piece is centred with its plate at 49 and the budget line is readable; every held step scrolls
+one cell. With a combat strip (y 20–80) the band below it is 26px, so the strip is given up and
+the token sits over the strip's transparent gap — tappable, since the strip's box no longer takes
+pointer events. A notched iPhone in landscape (safe-bottom 21) leaves a 97px band — still holds
+the plate. A 2× pinch in landscape holds the token alone (100 ≤ 106); past ~2.1× nothing fits and
+the piece is leading-edge-aligned (recorded); in portrait the plate is dropped only past ~7.9× for
+a medium token, the ceiling being 8×. **Not done, recorded:** a multi-select follows its FIRST
+piece only (formation assumed); nothing announces the glide — the canvas has no accessible token
+representation; a `role="status"` line in the sheet reading the followed token's budget would be
+the honest addition, in both orientations; a shared prop walked into a player's unexplored fog is
+followed sight-unseen; drag previews (off by default) would fire the follow mid-drag if ever
+enabled; rotation is ignored (a 45°-rotated large token's box is ~106px, judged 75 — a corner can
+sit under the sheet); an app-level command followed by the follow's correction is two camera
+motions for one button; the kick screen's `props.kick` gate is not part of the surface machine's
+role gate (narrow: the phone never sets the App-level flag). Fixed on the way, own commit: a
+flipped token's nameplate rendered ABOVE its sprite (`scaleY` unsigned in the plate's anchor).
+
+Tests (49 unit cases new to this slice): `movePadCameraFollow.test.ts` (20: both coordinate
+spaces, both anchorings and both signs of gizmo scale, the plate, the scale factor, the pad pinned
+to exactly 16 by a 391/392 literal pair, the lead on every edge, the strip with and without room,
+the too-short band, the too-short surface, a piece bigger than the screen, the surface clamp),
+`useMovePadCameraFollow.test.ts` (13, rects stubbed in a surface 60px down the viewport: mount, a
+step, uid/isDM threading, no camera-change fire, resize + orientationchange + a capturing
+ResizeObserver, the listeners' identity and the observer torn down on unselect and unmount, the
+strip, combat starting, inactive/map-edit/heartbeat, app-first with the one re-evaluation and the
+forgotten no-op arm, the DM's taller sheet, missing and zero-size elements),
+`useCameraControl.test.ts` (7 `focus-point` cases: default lands at once, `at`, `at` at scale 2,
+a nonsense `at`, the glide monotone and landing exactly vs motion off, a reset cancelling a glide,
+unmount cancelling the frame), `MobileLayout.test.tsx` (the live camera threaded; inert behind a
+Screen and resuming; the DM-screen de-elevation case also proves the follow resumes),
+`useMobileSurface.test.ts` (4: the derived gate hides and RETURNS across a role blip; the props
+switch gates only when supplied), `useCamera.pinch.test.ts` (4: a touch pan and a pinch absorbing
+outside changes frame after frame, a mouse pan with a wheel zoom mid-pan, a thumb off the stage),
+and `mobile-move-pad-follow.spec.ts` — portrait (parked off-centre, 20px inside the threshold: ↓
+moves the camera's y and not its x; the PAINTED Konva rect, read after the glide and the tween,
+sits a lead inside the band's bottom with 36px+ to the sheet; ↑ from there moves the camera by
+nothing), landscape (centred with the plate above the sheet), landscape in combat with a DM in a
+second context (over the strip's gap, `elementFromPoint` there is the canvas, combat ended and
+confirmed in the teardown); `mobile-move-pad.spec.ts`'s landscape case now asserts one row. Sabotage, one rule at a time: 13 red before the review (3 in the browser); 12 unit + 2 browser after round 1's fixes; 20 unit + 1 browser after round 2's; 17 unit after round 3's — 65 in all. One stayed green in the last pass: the camera-identity guard on the post-command re-evaluation, because that effect cannot run while neither the camera nor the target changed — belt-and-braces, not load-bearing. The tap-through over the strip went red in the browser BEFORE its fix: the public-table chip and the status pill's wrapper were taking the tap, a pre-existing top-of-map tap swallow fixed in its own commit.
+
+### Review round 1 (2026-09-10) — four fresh Opus lenses; 1 critical / 14 major / 25 minor
+
+Static lenses on the working tree (defects, test validity, doc honesty, mobile reach), union of
+findings. CRITICAL (all three code lenses, independently): a prop's scene transform is CELLS, not
+world px — the first press on a selected prop aimed the camera at the map origin. FIXED. MAJOR,
+fixed: the nameplate below the token outside the judged extent; token/prop size ignored; a
+vertical step recentred both axes; no re-measure on rotation; the combat strip not counted as
+cover; an unfitting band clipped both ends; `within.width` vacuous in its test; the scale factor
+unpinned; the e2e's token rect from the feature's own arithmetic; the docs undecided in two places,
+"the band is 100px" in landscape, "15 unit tests", "four fixtures untouched", "every press
+charged", eleven commits summed as twelve. MINOR, fixed: active behind a Screen; `mapEditMode`,
+the zero-size guard, the literal pad and the left/right payloads unpinned; help copy silent.
+
+### Review round 2 (2026-09-10) — four fresh Opus lenses; 1 critical / 18 major / 38 minor raw → 1 / 14 / 30 deduplicated
+
+Not dropping against round 1, so round 3 is the last (review-convergence: a plateau stops the
+review and the owner gets the report). REGRESSION, CRITICAL (mobile, doc, tests, defects all saw
+it): counting the strip as cover INVERTED the band in landscape with combat (strip bottom 96 vs
+sheet top 72) and the piece was aimed behind the sheet — FIXED by the fitting-band rule above.
+MAJOR, fixed: a token's gizmo scale invisible to the follow; a scaled prop modelled symmetric
+when PropsLayer anchors top-left; the top-aligned placement failed its own predicate (a jump on
+every step, 6.7/s, untweened → the predicate agrees now and `at` commands glide); a stale
+`surface` after a screen closed itself left the follow inert with nothing covering the map; a
+pending app-level command discarded the follow's (app first, then one re-evaluation); the `at`
+clamp pinned a too-large piece to the far edge (the producer aims the screen middle instead;
+only a nonsense value is caught); a pan/pinch mid-walk snapped the camera back (re-base); the
+ResizeObserver, `orientationchange`, the cleanup, `at` at scale ≠ 1, the surface-frame conversion,
+the strip selector, the live camera threading and the resume after a Screen were unpinned; the
+e2e's portrait bound had 200px of slack (now the band's upper part), its frames mixed viewport
+and stage, its preconditions were unasserted; the docs: "three desktop fixtures" (four), "once
+per five held steps" (every fourth), "453px of open map" (the band's edge; 469 open), "~22px",
+"373px", "4.5×" (unreproducible digits, dropped), the landscape claims, contradictory sabotage
+counts, the help sentence. Recorded, not fixed: combat starting re-measures via a dependency, not
+an observer on the surface; drag previews.
+
+### Review round 3 (2026-09-10) — four fresh Opus lenses; 1 critical / 17 major / 36 minor raw → dropping, and the LAST round
+
+Raw counts 1/17/36 against round 2's 1/18/38, lower again once duplicates across lenses are
+merged (the glide cancel, the test counts, the sabotage arithmetic, the strip's pointer box and
+the predicate claim each came from two or three lenses). Under review-convergence round 3 ends
+the review whatever the count: everything flagged is fixed below or recorded above, and the owner
+gets this report. REGRESSION, CRITICAL (defects): the surface-machine gate LATCHED on `isDM`,
+which is snapshot-derived and reads false during every reconnect, so a DM's open menu (or a
+half-filled kick form) closed for good on a socket blip — FIXED by deriving `surface` from the
+gate instead (the map-edit guard's own rule). MAJOR, fixed: the portrait glide was still a whip
+(a 200px correction in 120 ms, 33px/frame) — the placement now leads the crossed edge by half
+the piece so every step at the edge scrolls one cell; the combat strip's `pointer-events: auto`
+box swallowed taps on a token parked over it, and its buttons are opaque — the box lets taps
+through now, only the buttons take them, and the "translucent" wording is corrected; the plan's
+bolded "landscape cannot show a token and its plate" was refuted by the repo's own numbers — the
+landscape pad is one row of eight (394px, the diagonals kept), which buys the 50px the plate
+needs; a `reset` or `focus-token` during a glide was overwritten by its remaining frames — any
+command cancels a glide; the re-base reset the drag origin every frame, so a pan during a glide
+moved nothing — the origin now shifts by the outside delta and the finger's travel is kept in
+full; a thumb resting on the d-pad plus one finger on the map read as a pinch (document-wide
+`touches`) — only touches that started on the stage count; a wheel zoom mid-mouse-pan was
+reverted by the pan; an app command that moved nothing left the re-evaluation armed against the
+next pan — armed by camera identity, forgotten on the next frame; a flipped token's plate rendered
+above its sprite (own commit); the pad was unpinned (any value 6–27 stayed green) — a 391/392
+literal pair pins 16; the listener cleanup test checked names not handlers, and the unselect edge
+and the observer's disconnect were unpinned; the mouse-pan re-base, negative gizmo scales, the
+strict props switch, the glide's shape (now monotone within bounds) and "no `at` ⇒ no glide" were
+unpinned; the combat e2e admitted any placement under the strip (now the centre is pinned and a
+tap there must reach the canvas), mixed frames again (`stripBottom` now in the stage's frame),
+and its teardown did not confirm combat ended; the docs: "24 of them at unit level" (42),
+"every fourth held step" (a DM's band fired on the third — moot now the edge scrolls every step),
+"the predicate and the placement agree" stated unconditionally, jsdom "lands at once" (it
+glides), the test counts, "every held step scrolls one cell" (horizontal steps do not), the help
+sentence ("keep" promised an invariant the follow does not hold — "on a step" now), the 2026-09-09
+block's other stale clause, the PROMPT's enforcement branch for F2 and its "three Review round
+sections". Recorded above: rotation, the two-motion app command, the kick gate residual, the
+dead-branch-turned-comment in `place`, a `role="status"` budget readout.
+
 ## Open after the arc (owner's calls)
 
 - A "nothing selected → your own token" fallback for WASD in pointer mode.
@@ -368,11 +535,10 @@ RECORDED, NOT FIXED (each an owner call or a pre-existing class):
   advisory today).
 - Hold-to-walk on the phone d-pad steps at the keyboard's cadence; a slower phone cadence is a
   one-constant change if thumbs find it fast.
-- **The pad covers the thing it moves** (round 3): at 375×812 the selection sheet plus the dock is
-  a ~340px band over the map, the budget line sits BELOW the token, and a player walking ↓ walks
-  into the band — every press charged, no undo. The fix is a camera follow while the pad is
-  mounted (pan when the token's screen point enters the sheet's rect), or a plate that flips above
-  the token there; either is a design call.
+- ~~**The pad covers the thing it moves** (round 3)~~ — FIXED by Follow-up F1 (2026-09-10, on
+  `dev`, NOT merged to `main`; the camera follow — the plate below the token is inside the judged
+  box, so the readout stays above the sheet too in portrait; in landscape only the sprite fits).
+  See the F1 section above.
 - Drawings are not steppable — `movableSelection` and the validator take tokens and props only
   (a drawing's transform is in pixels). A DM who marquee-selects a spline with a token moves the
   token alone; "any selected item" in the launch prompt meant tokens, props and NPCs.

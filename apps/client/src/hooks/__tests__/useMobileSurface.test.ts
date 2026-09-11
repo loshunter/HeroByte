@@ -36,6 +36,60 @@ describe("useMobileSurface — the kick surface (K3)", () => {
   });
 });
 
+describe("useMobileSurface — a screen whose gate refuses reads as none, DERIVED", () => {
+  it("the DM screen reads none while the DM is not one (its Stop control lives inside it) — and RETURNS when the role does: a reconnect blip must not close it", () => {
+    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+      initialProps: options({ isDM: true }),
+    });
+    act(() => result.current.openSurface("dm"));
+    expect(result.current.surface).toBe("dm");
+    // Every socket close nulls the snapshot, and isDM reads false for the blip.
+    rerender(options({ isDM: false }));
+    expect(result.current.surface).toBe("none");
+    rerender(options({ isDM: true }));
+    expect(result.current.surface).toBe("dm");
+  });
+
+  it("the props switch gates only when SUPPLIED as false (undefined is 'not gated')", () => {
+    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+      initialProps: options({ isDM: false }),
+    });
+    act(() => result.current.openSurface("props"));
+    expect(result.current.surface).toBe("props");
+    rerender(options({ isDM: false, playerPropsEnabled: false }));
+    expect(result.current.surface).toBe("none");
+    rerender(options({ isDM: false, playerPropsEnabled: true }));
+    expect(result.current.surface).toBe("props");
+  });
+
+  it("the kick screen too; and a player's props/atlas screens close on elevation, props on the table switch", () => {
+    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+      initialProps: options({ isDM: true }),
+    });
+    act(() => result.current.openSurface("kick"));
+    rerender(options({ isDM: false }));
+    expect(result.current.surface).toBe("none");
+    act(() => result.current.openSurface("atlas"));
+    expect(result.current.surface).toBe("atlas");
+    rerender(options({ isDM: true }));
+    expect(result.current.surface).toBe("none");
+    rerender(options({ isDM: false, playerPropsEnabled: true }));
+    act(() => result.current.openSurface("props"));
+    expect(result.current.surface).toBe("props");
+    rerender(options({ isDM: false, playerPropsEnabled: false }));
+    expect(result.current.surface).toBe("none");
+  });
+
+  it("a role the caller does not supply gates nothing (the desktop-free machine tests)", () => {
+    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+      initialProps: options(),
+    });
+    act(() => result.current.openSurface("dm"));
+    rerender(options());
+    expect(result.current.surface).toBe("dm");
+  });
+});
+
 describe("useMobileSurface — the map-edit mode boundary", () => {
   it("arming the mode closes whatever surface was covering the map", () => {
     const { result, rerender } = renderHook(
