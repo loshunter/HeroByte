@@ -439,7 +439,14 @@ export const PlayerCard = memo<PlayerCardProps>(
     prevProps.viewerIsDM === nextProps.viewerIsDM &&
     prevProps.initiative === nextProps.initiative &&
     prevProps.initiativeModifier === nextProps.initiativeModifier &&
-    prevProps.isCurrentTurn === nextProps.isCurrentTurn,
+    prevProps.isCurrentTurn === nextProps.isCurrentTurn &&
+    // The movement fields (slice 3 / F2): a spend or a speed changing ALONE —
+    // no token, no drawing, no HP moved — must still repaint "Used N ft" and
+    // the Reset's inert state. Latent while every snapshot mints a fresh
+    // token object, load-bearing the day it does not.
+    prevProps.characterSpeed === nextProps.characterSpeed &&
+    prevProps.characterBudget?.used === nextProps.characterBudget?.used &&
+    prevProps.characterBudget?.onReset === nextProps.characterBudget?.onReset,
 );
 
 PlayerCard.displayName = "PlayerCard";
