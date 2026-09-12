@@ -486,7 +486,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
                             onFocusToken={token ? () => onFocusToken(token.id) : undefined}
                             initiative={character.initiative}
-                            onInitiativeClick={() => openInitiativeModal(character)}
+                            onInitiativeClick={
+                              isMe || currentIsDM ? () => openInitiativeModal(character) : undefined
+                            }
                             initiativeModifier={character.initiativeModifier}
                             onClearInitiative={
                               onClearInitiative ? () => onClearInitiative(character.id) : undefined
@@ -668,7 +670,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
                           onFocusToken={token ? () => onFocusToken(token.id) : undefined}
                           initiative={character.initiative}
-                          onInitiativeClick={() => openInitiativeModal(character)}
+                          onInitiativeClick={
+                            isMe || currentIsDM ? () => openInitiativeModal(character) : undefined
+                          }
                           initiativeModifier={character.initiativeModifier}
                           onClearInitiative={
                             onClearInitiative ? () => onClearInitiative(character.id) : undefined
@@ -727,7 +731,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             : undefined
                         }
                         initiative={entity.character.initiative}
-                        onInitiativeClick={() => openInitiativeModal(entity.character)}
+                        onInitiativeClick={
+                          currentIsDM ? () => openInitiativeModal(entity.character) : undefined
+                        }
                         initiativeModifier={entity.character.initiativeModifier}
                         isDeleting={isDeletingNpc}
                         deletionError={npcDeletionError}
