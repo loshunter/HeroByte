@@ -154,14 +154,18 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
           )}
         </button>
 
-        {/* Initiative button */}
-        {onInitiativeClick && (
+        {/* Initiative badge: READS for every viewer (the number is drawn nowhere
+            else), ACTS only where the roll would land — the owner's card, or any
+            card for a DM (the caller decides by handing a handler). A player
+            reading the DM's ally's 18 must still see the 18. */}
+        {(onInitiativeClick || initiative !== undefined) && (
           <button
             type="button"
             className="jrpg-icon jrpg-text-small"
+            disabled={!onInitiativeClick}
             onClick={(e) => {
               e.stopPropagation();
-              onInitiativeClick();
+              onInitiativeClick?.();
             }}
             style={{
               position: "relative",
@@ -181,12 +185,12 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
                 initiative !== undefined
                   ? "0 0 8px var(--jrpg-gold)"
                   : "0 0 4px var(--jrpg-border-gold)",
-              cursor: "pointer",
+              cursor: onInitiativeClick ? "pointer" : "default",
               padding: 0,
               color: "var(--jrpg-white)",
             }}
             title={initiative !== undefined ? `Initiative: ${initiative}` : "Set Initiative"}
-            aria-label="Set Initiative"
+            aria-label={onInitiativeClick ? "Set Initiative" : `Initiative ${initiative}`}
           >
             {initiative !== undefined ? initiative : "Init"}
           </button>
