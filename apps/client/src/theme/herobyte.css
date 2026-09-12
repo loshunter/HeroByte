@@ -492,7 +492,11 @@ h4 {
 }
 
 .player-card-shell--current-turn {
-  border: 2px solid var(--jrpg-gold);
+  /* A WHITE ring in the gold glow — not a gold ring: a DM's own card wears a
+     gold border of its own (PlayerCard's DM styling), and since F3 that card
+     stands in the order beside the players', so a gold ring here would mean
+     two gold-ringed cards, one of which is never the turn. */
+  border: 3px solid var(--jrpg-white);
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
   border-radius: 8px;
   padding: 8px;

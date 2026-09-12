@@ -187,7 +187,7 @@ Press **INIT** on your card to set initiative:
 
 - Drag the **Initiative Modifier** number left/right (or roll with it at 0), then **ROLL INITIATIVE**. The **server** throws the die, on the same generator the dice roller uses, and the result appears in the roll log for the whole table with your character's name on it. The dialog closes itself — there is nothing further to save.
 - Or press **USE PHYSICAL DICE**, type the d20 you rolled at your real table, and press **SAVE**. That reaches the log too, badged **BY HAND** — see [Rolling real dice instead](#rolling-real-dice-instead), which works the same way everywhere else you roll.
-- **The first initiative set starts combat** for the whole table: cards reorder by initiative, a **⚔️ Combat Active** banner appears with `Turn N of M`, and the current combatant's card glows gold.
+- **The first initiative set starts combat** for the whole table: cards reorder by initiative, a **⚔️ Combat Active** banner appears with `Turn N of M`, and the current combatant's card wears a white ring in a gold glow (a DM's own card has a gold border of its own, so the ring is the cue, not the colour).
 
 ![Combat active: turn banner, ordered cards, and the current turn highlighted](img/combat-active.jpg)
 
