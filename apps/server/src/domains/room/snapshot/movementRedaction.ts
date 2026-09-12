@@ -4,6 +4,12 @@
  * NPC's. Redacted on the WIRE, so devtools show nothing — the same principle
  * as the HP redaction beside it. Shallow clones only: every record here
  * aliases live RoomState.
+ *
+ * Keyed on `type`, not ownership — decided with F3 (a DM-owned character in
+ * the order is a combatant): `type` is the secrecy axis for HP too, and a
+ * DM-run PC-typed character is a party member the players can see the whole
+ * of. A DM who wants an ally's numbers hidden makes it an NPC. Pinned by the
+ * secrecy contract.
  */
 
 import type { SnapshotCharacter } from "@herobyte/shared";

@@ -1,4 +1,5 @@
 // ============================================================================
+import { isInInitiativeOrder } from "@herobyte/shared";
 // SCENE SUSPEND/RESUME — the pure half of travel
 // ============================================================================
 // Capture everything one map's table looked like; restore it exactly when the
@@ -196,7 +197,7 @@ export function restoreCollections(
       (entry) => entry.id === saved.currentTurnCharacterId,
     );
     state.currentTurnCharacterId =
-      turnCharacter && turnCharacter.initiative !== undefined
+      turnCharacter && isInInitiativeOrder(turnCharacter, state.players)
         ? saved.currentTurnCharacterId
         : undefined;
   } else {

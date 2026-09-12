@@ -21,7 +21,7 @@ import { useCombatOrdering } from "../../hooks/useCombatOrdering";
 import { useInitiativeModal } from "../../hooks/useInitiativeModal";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 
-import { shouldCharacterParticipateInCombat, type TokenSize } from "@herobyte/shared";
+import { isInInitiativeOrder, type TokenSize } from "@herobyte/shared";
 
 interface EntitiesPanelProps {
   players: Player[];
@@ -461,12 +461,17 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                                 : undefined
                             }
                             characterSpeed={character.speed}
+                            // The DM's BENCH: a DM-owned character NOT in the ACTIVE
+                            // order — unrolled, or rolled with combat off (END COMBAT
+                            // keeps initiatives; a rolled one renders in the order
+                            // below while combat is on, F3). No plate budget here, so
+                            // the only lever is a spend to clear — the server charges
+                            // any token moved in combat, and nothing but this or the
+                            // end of combat clears it.
                             characterBudget={
                               currentIsDM &&
                               combatActive &&
-                              ((character.initiative !== undefined &&
-                                shouldCharacterParticipateInCombat(character, players)) ||
-                                (character.movementUsed ?? 0) > 0) &&
+                              (character.movementUsed ?? 0) > 0 &&
                               onCharacterBudgetReset
                                 ? {
                                     used: character.movementUsed ?? 0,
@@ -519,7 +524,10 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
               {/* Players and NPCs Section */}
               <div className="entities-panel-card-grid">
                 {orderedEntities.map((entity) => {
-                  if (entity.kind === "character") {
+                  // A DM-owned character that has rolled stands in the order
+                  // (kind "dm", F3): the same card, with the DM's affordances
+                  // (player.isDM below).
+                  if (entity.kind === "character" || entity.kind === "dm") {
                     const { player, character, token, isMe, isCurrentTurn } = entity;
 
                     // Type guard: player is always defined for character entities
@@ -640,16 +648,15 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                               : undefined
                           }
                           characterSpeed={character.speed}
-                          // Where the plate shows a budget (in combat, in the order, a
-                          // combatant — useCombatOrdering has already applied the
-                          // participation filter to this list; it is kept for symmetry with
-                          // the DM section above), OR where there is a spend to clear: the
-                          // server charges any token moved in combat, initiative or not.
+                          // Where the plate shows a budget (in combat, in the order —
+                          // the shared spelling of it; the bench site above is the
+                          // spend clause only), OR where there is a spend to clear:
+                          // the server charges any token moved in combat, initiative or
+                          // not.
                           characterBudget={
                             currentIsDM &&
                             combatActive &&
-                            ((character.initiative !== undefined &&
-                              shouldCharacterParticipateInCombat(character, players)) ||
+                            (isInInitiativeOrder(character, players) ||
                               (character.movementUsed ?? 0) > 0) &&
                             onCharacterBudgetReset
                               ? {

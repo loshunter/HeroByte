@@ -58,14 +58,22 @@ deploy in HANDOFF §0 exactly as the 2026-09-09 update does.
    and DONE on `dev` 2026-09-11 as follow-up F2, NOT merged to `main`:
    `movementBudgetMessages.ts`, `MovementSpeedField`'s `budget` prop, plan section "Follow-up
    F2" with its review rounds.
-3. **Whether a DM-owned PC with an initiative is a combatant** (today it is not, by
+3. ~~**Whether a DM-owned PC with an initiative is a combatant** (today it is not, by
    `shouldCharacterParticipateInCombat`; its plate is suppressed and the server still charges
    it). If yes, the participation rule changes for initiative too — read `initiative-slice.md`
-   memory before touching it.
+   memory before touching it.~~ — DECIDED (yes, regardless of `type`, the owner 2026-09-10)
+   and DONE on `dev` 2026-09-11 as follow-up F3, NOT merged to `main`: the shared rule admits
+   a DM-owned character once it has an initiative; the server's private copy is gone; plan
+   section "Follow-up F3".
 4. Small, do only if the owner asks: a "nothing selected → your own token" fallback for WASD in
    pointer mode; a slower phone hold cadence (one constant, `HOLD_STEP_INTERVAL_MS`); next/prev
-   turn ignoring `combatActive`; a `pc`-typed DM-run boss shipping its budget like its HP (the
-   pre-existing `type` axis — a real redaction change, review it as one).
+   turn ignoring `combatActive` (NOTE from F3's review: if next/prev turn stop ignoring it — or
+   start honouring it — the party panel's bench split (`useCombatOrdering`: a DM-owned character
+   is on the bench unless combat is on AND it is in the order) must move with it, or a DM's rolled
+   character takes turns no card shows); hiding a `pc`-typed DM-run boss's budget (F3 kept the `type`
+   axis — its HP's axis — and pinned it with a contract case; reopening it is a deliberate
+   redaction change, review it as one, and note there is no gesture that changes a
+   character's `type` today: delete and recreate as an NPC).
 
 Each item is its own slice: plan bullet → implement → sabotage → gate → commit → HANDOFF §0 and
 §10 in the same commit → live two-client check. Do not batch them into one commit.

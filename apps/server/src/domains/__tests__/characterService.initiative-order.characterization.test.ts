@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CharacterService } from "../character/service.js";
 import { createEmptyRoomState } from "../room/model.js";
-import type { Character } from "@herobyte/shared";
+import { isInInitiativeOrder, type Character, type Player } from "@herobyte/shared";
 
 /**
  * CHARACTERIZATION TESTS for Initiative Order Tiebreaker Logic
@@ -17,9 +17,40 @@ import type { Character } from "@herobyte/shared";
  * 3. Tertiary: Creation order (preserve array position when type and initiative match)
  *
  * These tests document the DESIRED behavior before implementing the fix.
+ *
+ * The first block is later (F3): the shared participation rule composed with
+ * the initiative filter — asserted as the composition, not the outcome.
  */
 describe("CharacterService - Initiative Order Tiebreaker", () => {
   const service = new CharacterService();
+
+  describe("the DM's own character (F3 — the shared participation rule, one home)", () => {
+    it("the order IS the shared rule composed with the initiative filter (the rolled ally in; the unrolled understudy out by the filter, whoever owns it)", () => {
+      const state = createEmptyRoomState();
+      state.players = [
+        { uid: "dm-uid", name: "The DM", isDM: true },
+        { uid: "p-uid", name: "Pat", isDM: false },
+      ] as unknown as Player[];
+      const ally = service.createCharacter(state, "Sidekick", 30, undefined, "pc");
+      ally.ownedByPlayerUID = "dm-uid";
+      ally.initiative = 18;
+      const bench = service.createCharacter(state, "Understudy", 30, undefined, "pc");
+      bench.ownedByPlayerUID = "dm-uid";
+      const pat = service.createCharacter(state, "Pat", 30, undefined, "pc");
+      pat.ownedByPlayerUID = "p-uid";
+      pat.initiative = 12;
+
+      const ordered = service.getCharactersInInitiativeOrder(state);
+      expect(ordered.map((c) => c.id)).toEqual([ally.id, pat.id]);
+      // The order IS the shared helper's yes-set (sorted): the same spelling
+      // of "in the order" the plates and the reset controls read. Whether the
+      // service consults the helper at all is pinned by the mocked case in
+      // characterService.initiative-order.rule.test.ts.
+      const expected = state.characters.filter((c) => isInInitiativeOrder(c, state.players));
+      expect(new Set(ordered.map((c) => c.id))).toEqual(new Set(expected.map((c) => c.id)));
+      expect(bench.initiative).toBeUndefined();
+    });
+  });
 
   describe("Basic initiative ordering (no ties)", () => {
     it("orders characters by initiative descending when all have different values", () => {

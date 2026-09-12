@@ -140,7 +140,7 @@ describe("movement budget reset — the plate's own gate, and the character bind
     expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
   });
 
-  it("a DM-OWNED character in the order is not a combatant (the participation rule), so its row carries none while a player's does", () => {
+  it("a DM-OWNED character in the order is a combatant (F3): its row carries the reset like a player's", () => {
     const dm = {
       uid: "dm-uid",
       name: "The DM",
@@ -165,12 +165,44 @@ describe("movement budget reset — the plate's own gate, and the character bind
     const rows = screen.getAllByTestId("mobile-player-row");
     const sidekick = rows.find((row) => row.textContent?.includes("Sidekick"))!;
     fireEvent.click(within(sidekick).getByRole("button", { name: /EDIT/ }));
-    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
-    // The positive control in the same render: the player's row, same combat,
-    // same initiative shape, carries it — the absence above is participation's.
+    expect(screen.getByRole("button", { name: "Reset movement budget" })).toBeDisabled();
+    // The player's row in the same render carries it too — two sheets, two
+    // readouts, each the right character's.
     const mine = rows.find((row) => row !== sidekick)!;
     fireEvent.click(within(mine).getByRole("button", { name: /EDIT/ }));
-    expect(screen.getByRole("button", { name: "Reset movement budget" })).toBeInTheDocument();
+    expect(screen.getByText("Used 0 ft")).toBeInTheDocument(); // Sidekick's
+    expect(screen.getByText("Used 10 ft")).toBeInTheDocument(); // the player's
+    expect(screen.getAllByRole("button", { name: "Reset movement budget" })).toHaveLength(2);
+  });
+
+  it("a DM-OWNED character with NO initiative and nothing spent: no reset", () => {
+    const dm = {
+      uid: "dm-uid",
+      name: "The DM",
+      hp: 10,
+      maxHp: 10,
+      isDM: true,
+    } as unknown as Player;
+    const bench = {
+      ...characters[0]!,
+      id: "char-dm",
+      name: "Understudy",
+      ownedByPlayerUID: "dm-uid",
+      initiative: undefined,
+      movementUsed: 0,
+    };
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...inCombat, players: [...players, dm], onCharacterBudgetReset: vi.fn() })}
+        characters={[bench]}
+      />,
+    );
+    const row = screen
+      .getAllByTestId("mobile-player-row")
+      .find((r) => r.textContent?.includes("Understudy"))!;
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+    expect(screen.getByLabelText("Movement speed in feet per turn")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
   });
 
   it("a spend with NO initiative still gets the reset — the server charges any token moved in combat", () => {

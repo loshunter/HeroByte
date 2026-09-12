@@ -81,6 +81,22 @@ describe("EntitiesPanel — the combat banner's turn counter", () => {
     expect(screen.getByText(/Turn 1 of 1/)).toBeInTheDocument();
   });
 
+  it("counts the DM's rolled character (F3) in the denominator and lands the index on it", () => {
+    const sidekick = {
+      ...alice,
+      id: "char-sidekick",
+      name: "Sidekick",
+      ownedByPlayerUID: DM,
+      initiative: 20,
+    } as unknown as SnapshotCharacter;
+    render(
+      <EntitiesPanel
+        {...panelProps({ characters: [alice, sidekick], currentTurnCharacterId: "char-sidekick" })}
+      />,
+    );
+    expect(screen.getByText(/Turn 1 of 2/)).toBeInTheDocument();
+  });
+
   it("reads — while nobody holds the turn, not turn 1", () => {
     render(<EntitiesPanel {...panelProps({ currentTurnCharacterId: undefined })} />);
     expect(screen.getByText(/Turn — of 1/)).toBeInTheDocument();

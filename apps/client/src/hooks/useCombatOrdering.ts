@@ -6,7 +6,7 @@
 
 import { useMemo } from "react";
 import type { Player, Token, SnapshotCharacter } from "@herobyte/shared";
-import { shouldCharacterParticipateInCombat } from "@herobyte/shared";
+import { isInInitiativeOrder, shouldCharacterParticipateInCombat } from "@herobyte/shared";
 
 export interface EntityInfo {
   kind: "character" | "npc" | "dm";
@@ -33,7 +33,12 @@ interface UseCombatOrderingProps {
  *
  * **Responsibilities**:
  * - Order entities by initiative when combat is active
- * - Separate DM entities from combatants (DM always displayed, never in combat)
+ * - Keep the DM's bench apart: a DM-owned character NOT in the ACTIVE order
+ *   (unrolled, or rolled with combat off — END COMBAT keeps initiatives) is
+ *   displayed in its own group; while combat is on, one that has rolled is a
+ *   combatant (the shared participation rule, F3) and takes its place in the
+ *   order like a monster does — so the turn counter and the current-turn mark
+ *   can land on it
  * - Mark current turn entity
  * - Link characters to their tokens and players
  *
@@ -64,10 +69,17 @@ export function useCombatOrdering({
         return [];
       }
 
+      // The by-owner token fallback is only MEANINGFUL when it cannot be
+      // ambiguous: a player with exactly one character whose token predates
+      // linking. With two characters it is guaranteed wrong for at least one
+      // (MobileEntitiesList learned this live); the desktop now agrees.
+      const ownerTokenFallbackOk = playerCharacters.length === 1;
       return playerCharacters.map((character) => {
         const token = character.tokenId
           ? tokens.find((t) => t.id === character.tokenId)
-          : tokens.find((t) => t.owner === player.uid);
+          : ownerTokenFallbackOk
+            ? tokens.find((t) => t.owner === player.uid)
+            : undefined;
 
         // DM characters should be marked with kind "dm"
         const kind = player.isDM ? ("dm" as const) : ("character" as const);
@@ -98,15 +110,27 @@ export function useCombatOrdering({
       }));
 
     // Separate DM from regular entities
-    const dmEntities = characterEntities.filter((e) => e.kind === "dm");
+    const allDmEntities = characterEntities.filter((e) => e.kind === "dm");
     const regularEntities = characterEntities.filter((e) => e.kind === "character");
+
+    // The DM's bench: DM-owned characters that are NOT in the ACTIVE order. A
+    // rolled one is a combatant (shouldCharacterParticipateInCombat — keyed on
+    // any DM, so a co-DM's counts) and joins the order below while combat is
+    // on; it keeps kind "dm" so its card renders with the DM's affordances
+    // wherever it stands. After END COMBAT (which keeps initiatives) it comes
+    // home: the DM's column must not unmount for the rest of the session
+    // because a stale roll is still on file.
+    const dmCombatants = combatActive
+      ? allDmEntities.filter((e) => isInInitiativeOrder(e.character, players))
+      : [];
+    const dmEntities = allDmEntities.filter((e) => !dmCombatants.includes(e));
 
     // Mark first DM for visual separation
     if (dmEntities.length > 0) {
       dmEntities[0].isFirstDM = true;
     }
 
-    // Filter entities for combat eligibility (excludes DM's player characters)
+    // Filter entities for combat eligibility (the shared rule)
     const combatEligibleCharacters = regularEntities.filter((e) =>
       shouldCharacterParticipateInCombat(e.character, players),
     );
@@ -115,7 +139,7 @@ export function useCombatOrdering({
     );
 
     // Check if any combat-eligible entities have initiative set
-    const allCombatants = [...combatEligibleCharacters, ...combatEligibleNpcs];
+    const allCombatants = [...combatEligibleCharacters, ...dmCombatants, ...combatEligibleNpcs];
     const hasAnyInitiative = allCombatants.some((e) => e.character.initiative !== undefined);
 
     // Order based on combat state OR if any initiative is set
@@ -155,11 +179,13 @@ export function useCombatOrdering({
         `[useCombatOrdering] Ordered by initiative (${sorted.length} entities):\n  ${orderSummary}`,
       );
 
-      // In combat mode: DM entities separate, combatants sorted by initiative
+      // In combat mode: the DM's bench separate, combatants sorted by initiative
       return { dmEntities, orderedEntities: sorted };
     }
 
-    // Default order (non-combat): DM separate, then players, then NPCs
+    // Default order (non-combat, nothing rolled among the combatants — a
+    // DM-owned roll does not count here, because dmCombatants is empty with
+    // combat off): DM separate, then players, then NPCs.
     return { dmEntities, orderedEntities: [...regularEntities, ...npcEntities] };
   }, [players, characters, tokens, currentUid, combatActive, currentTurnCharacterId]);
 

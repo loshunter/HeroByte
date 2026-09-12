@@ -140,7 +140,7 @@ by the server's wall block (x=24), which is the guard working, not the walk fail
 **What a user gets.** While combat is on, every combatant in the initiative order wears a
 movement readout under its nameplate: `remaining / speed ft`, gold while there is budget left
 and the HP bar's red once overspent (a combatant = in the order AND one a turn can land on; a
-DM-owned PC is not, by the pre-existing participation rule, so it wears none). Every road a
+DM-owned PC is one once it has rolled — F3; under slice 3's rule it never was). Every road a
 player or DM moves a token by in combat is CHARGED server-side — a keyboard step, a drag
 release, the legacy `move` — under the table's diagonal rule and feet per square, with
 Pathfinder's every-second-diagonal alternation carried across hops within the turn; a travel warp
@@ -201,9 +201,10 @@ every monster in the order whether or not it has moved yet.
   never shows a fake default, and during the elevation blip (role flipped, snapshot still the
   player's) a monster shows nothing rather than a wrong number. A fight that survives a restart
   back-fills a missing record with zero on load, so the DM's plates do not go dark for a round. A
-  DM-OWNED PC is not a combatant (`shouldCharacterParticipateInCombat`): its plate is suppressed,
-  and the SERVER still charges it — `movementUsed` climbs with nothing displaying it and only
-  combat start/end clears it. Consistent with the existing rule; recorded, not changed.
+  DM-OWNED PC was not a combatant under the rule as slice 3 shipped: its plate was suppressed
+  while the SERVER still charged it. **F3 (2026-09-11) reversed this** — rolled, it is a
+  combatant and wears the plate; unrolled, the spend is cleared by F2's Reset or the end of
+  combat.
 
 ## The flake the suite grew when slice 1 joined it — two bugs, both fixed (2026-09-09)
 
@@ -349,8 +350,9 @@ RECORDED, NOT FIXED (each an owner call or a pre-existing class):
   the keys have nothing to move either.
 - **`DraggableWindow` (the settings menu's host) uses `100vh`** on mobile, the unit the sheet
   contract forbids; unmeasurable locally (`vh == dvh` in every local browser). Pre-existing.
-- **A player elevated to DM mid-combat** stops being a combatant, so its plate disappears rather
-  than drifting negative — consistent with the participation rule; recorded.
+- **A player elevated to DM mid-combat** keeps its plate and its place in the order (F3: a rolled
+  DM-owned character is a combatant). Under slice 3's rule it stopped being one and the plate
+  vanished — recorded then, reversed by F3.
 - **The legacy `move` road, when charged, forces a full snapshot even for a hidden monster** (the
   delta channel cannot carry a character, so the quiet `state-sync` branch is bypassed).
   Consistent with `transform-object`, which every real client road uses; the product never sends
@@ -566,17 +568,19 @@ initiative on file, `shouldCharacterParticipateInCombat`; at the NPC tab the thi
 tautology for a monster and is not written), OR `movementUsed > 0`, because the server charges
 any token moved in combat, initiative or not, and a spend made before a character entered the
 order needs the lever too — so out of combat no card carries a dead "Used 0 ft", and a DM-owned
-PC (not a combatant under today's rule) shows no spend on the card unless it has one — and then
-it does, with the Reset: its token never reaches a turn start, so short of ending combat the
-Reset is the only thing that clears that spend (the DM guide says so). The readout turns red past
+PC (not a combatant under today's rule — F3 changed this: rolled, it is one) shows no spend on
+the card unless it has one — and then it does, with the Reset: an UNROLLED one's token never
+reaches a turn start, so short of ending combat the Reset is the only thing that clears that
+spend (the DM guide says so). The readout turns red past
 the speed (or the default when none is on file), the plate's own overspend signal on the surface
 where the DM acts. Off the
 player lens: the DM menu is not part of the lens preview, so with the lens on a monster's plate
 drops its budget while the NPC editor still reads it (recorded); the NPC editor also shows nothing when the frame carries no spend (the elevation
 blip's redacted snapshot) rather than a fabricated 0. The panel's DM-section render site is
-live today through the spend clause alone (a DM's own token charged in combat; also a co-DM's PC
-in the order, which `shouldCharacterParticipateInCombat` — keyed on the FIRST DM — lets through);
-its participation arm waits on F3. Pinned at that site (round 3). The server and client define
+live today through the spend clause alone (a DM's own token charged in combat); its
+participation arm never arrived — F3 moved a rolled DM character (a co-DM's too, the rule keyed
+on any DM) into the order and reduced the bench site to the spend clause. Pinned at that site
+(round 3). The server and client define
 "spent" separately (the server also counts diagonals; the button disables on `used` alone) —
 they cannot diverge through the charge road (a 0 ft charge bails before adding diagonals); a
 hand-edited state file carrying diagonals without feet can (`coerceMovementBudgetFields` accepts
@@ -599,11 +603,12 @@ without `compact` and 44px with it, red past the speed and past the default); th
 or on the legacy row; a spend with no initiative still gets it); `EntitiesPanel.budget.test.tsx`
 (a real render of BOTH sites: the DM reads and resets a player's card; a player never sees it;
 none out of combat or without an initiative; a spend with no initiative still gets it; the DM's
-OWN character — in the order but no combatant shows none, a spend on its token gets the lever);
+OWN character — the cases F3 rewrote: rolled → in the order, the control inert at 0; unrolled →
+the bench, no control; unrolled with a spend → the lever; out of combat → none);
 the NPC tab (names ITS monster of two; none out of combat, out of the order, or when the frame
 carries no spend); the DM menu (it carries `combatActive` to the NPC tab); `MobileEntitiesList`
-also pins the participation rule with a DM-owned character beside the player's row that does
-carry it; `NpcPortraitField` (a broken URL hides, a corrected COMMIT recovers, typing does not
+also pins the participation rule with a DM-owned character (F3: rolled, its row carries the
+reset beside the player's; unrolled, none); `NpcPortraitField` (a broken URL hides, a corrected COMMIT recovers, typing does not
 remount); the window caps (desktop `vh`, phone `dvh` + `height: 100%` + the safe-area band) and
 the result card's rule read from the stylesheet (`80vh` before `80dvh`); and e2e:
 `movement-budget.spec.ts` (desktop — two keyboard steps, the player's card on the DM's screen
@@ -715,11 +720,211 @@ pattern); a monster's Reset is in the NPC editor, not its panel card (where its 
 Plateau: 0/4/25 against round 2's 0/3/24, every major a missing pin or a stale sentence, none a
 wrong server result — no round 4, per the cap. Live-checked after the fixes with two clients on the dev table: the DM's own card (no initiative, DM section) read "Used 5 ft" with a live Reset after one step of its token in combat, and the reset emptied the row; a player's 35 ft on a 30 ft speed read red on the DM's card (`#d63c53`) while the player's plate read "-5 / 30 ft" in the same red; the DM's reset put "30 / 30 ft" back on the plate and left "Used 0 ft" inert on the card.
 
+## Follow-up F3 (2026-09-11) — a DM-owned character with an initiative is a combatant
+
+**The owner's call** (2026-09-10): "a dm owned npc could be either. A npc could be a villain,
+could secretly be a villain tagging along in disguise as an ally and will eventually turn on
+them, it could be 100% an ally, the dm controls all that is not a player." So the DM's own
+character is treated like a monster: **in the fight once it has rolled, on the bench until
+then** — regardless of `type`. Statement: `shouldCharacterParticipateInCombat` (shared, the ONE
+home — the server's `character/service.ts` carried a private copy, now deleted) returns true for
+a PC owned by ANY DM iff `initiative !== undefined` (round 1: keyed on any DM, not the first found
+— the panel groups on `player.isDM`, and the rule must agree with the grouping); a player's PC
+and every NPC as before. What the rule decides is "may be in a fight", not "is in the order":
+every caller but the party panel's ordering hook also asks for an initiative (`isInInitiativeOrder`),
+so the DM clause is load-bearing only at the hook's bench split — the hook's two eligibility lists
+read the rule without a roll gate, and the DM clause never fires there (their entities are non-DM
+PCs and NPCs).
+Round 2 gave "in the order" one spelling too — `isInInitiativeOrder` (the rule AND a roll), which
+the server's order, the plates and both reset controls read, so a future exclusion added to the
+rule reaches every one of them through it (the four sites' own `initiative !== undefined`
+restatements are gone). Consequences: the server's initiative order includes it, so `next-turn` lands on it and
+`startTurnBudget` refills its budget; the plate wears its budget in combat (tokenPlates); the
+party panel's ordering hook moves a rolled DM character out of the DM group into the ORDER while
+combat is on (kind `dm` kept, so its card carries the DM's affordances there; the turn counter
+and the current-turn mark can land on it) — the bench is "DM-owned and not in the ACTIVE order",
+so after END COMBAT, which keeps initiatives on file, the card comes home rather than leaving the
+DM's column unmounted for the rest of the session (round 1); the reset controls' participation
+arm fires for it, and the panel's bench site is reduced to the spend clause (the only live arm
+there now).
+**Redaction stays keyed on `type`**: `type` is the secrecy axis for HP as well, a DM-run PC-typed
+character is a party member the players see the whole of, and a DM who wants an ally's numbers
+hidden makes it an NPC — pinned by the secrecy contract so a later change is deliberate. What F3
+adds to that: the ally's budget was already on the wire; now it is DRAWN on every player's map
+and the ally stands in their order — a disguised villain run as a PC-typed character looks
+like a party member on the map — plate and all — while its CARD wears the DM's gold face and reads
+"Dungeon Master" in the order (round 3: decided to keep that face — the table could already see
+whose card it was on the bench, and hiding it for players is one line if the owner wants the
+disguise to hold at the card too; the DM guide says the table can see it is yours). The remedy the docs name
+has no UI gesture today (the DM-only `update-npc` message does flip `type` to "npc", unguarded —
+`CharacterService.updateNPC` — but the NPC list never offers a PC; the guide says: make it an NPC
+from the start, or delete and recreate) — recorded in the DM guide, and in the prompt's item 4 as
+the owner's to reopen.
+
+Found live before the review, with a second DM at the dev table: the rule keyed on the FIRST DM,
+so a co-DM's character participated like a player's — and the hook's first cut of the bench
+("every DM-owned character the rule admits leaves the bench") sent an UNROLLED co-DM character
+nowhere: off the bench, not in the order (out of combat the order carries only rolled and regular
+entities). Fixed first with a second conjunct on the hook; round 1 then moved the fix to its
+home — the rule keys on ANY DM — and the bench is "DM-owned, not in the active order", pinned by
+three hook cases (a co-DM in combat, the fight ended with the roll kept, nothing rolled anywhere).
+
+Tests: the shared rule (unrolled false, rolled true — 0 included — and a player's PC needs no
+roll; the filter keeps a rolled DM PC); the server's initiative order (the rolled ally in, the
+understudy out); the character handler (`next-turn` lands on the DM's rolled character and its
+turn start zeroes its spend and writes the round stamp; unrolled, the turn wraps past it and its
+spend stands); the secrecy contract (a DM-owned PC-typed character's speed AND spend reach a
+player's frame while the monster beside it is stripped — the `type` axis, decided); the plate
+(rolled: `{ speed 30, used 5, remaining 25 }` on the DM's screen, on a PLAYER's, and under the
+DM's player lens; unrolled: none, spend or not; a player's own PC on a player's screen); the
+ordering hook (the rolled DM character stands in the order at its initiative with kind `dm` and
+the current-turn mark; a co-DM's character benched unrolled and in the order rolled; after END
+COMBAT with the roll kept, home on the bench while the players' order still sorts; nothing rolled
+anywhere, every DM-owned character on the bench); the desktop panel (rolled: in the ordered grid,
+out of the DM group, the control inert at 0; a PLAYER sees it in the order wearing the DM face
+with no settings entry; unrolled: the DM group, no control; unrolled with a spend: the lever; out
+of combat: none even with a spend; after END COMBAT with the roll kept: home on the bench); the phone
+list (rolled: its row's reset beside the player's; unrolled: none); and e2e — `dm-combatant.spec.ts`
+(desktop, two clients on a table the spec quiets first and gives the character a speed of its
+OWN, 35 — so the plate's numbers are this character's, not the default every other plate wears:
+exactly one card carries the name; the DM's own card leaves the DM group once combat is on and
+stands in the ordered grid on both screens, wears the current-turn mark, its plate — keyed by the
+nameplate beside it, the ONLY plate — reads 35 / 35 on the DM's screen and the player's, a step
+charges it (`movementUsed` 5 in the snapshot, 30 / 35 on both screens), `next-turn` wraps onto it
+(0, 35 / 35), and END COMBAT sends it home with the roll still on file and no plate) and
+`mobile/mobile-dm-combatant.spec.ts` (375px: no plate on the quiet table, then the keyed plate at
+35 / 35, the snapshot's 5 ft and 30 / 35, PARTY → the DM's own row → EDIT reads "Used 5 ft" with
+the Reset on the 44px floor, the turn refills it and the sheet reads "Used 0 ft" inert, END COMBAT
+drops the plate). Both specs mutate the shared table inside their `try` and restore only what
+they changed (the speed, and the reverse step only after the step landed). Sabotage, one rule at a time: 10 red before the review (the old rule back; the ownership check ignored; a truthy check on the roll; the server's private copy back; the hook leaving DM combatants out of the order, and keeping a rolled one on the bench too; the panel dropping kind `dm` from the ordered branch; the bench gate losing its combat conjunct; the redaction keyed on ownership; the bench's initiative conjunct dropped — the co-DM hole back). One was green first — the bench gate's combat conjunct had no out-of-combat case — so the panel gained one (a bench card with a stray spend, combat off: no lever) and it went red. After round 1: 5 more, all red (the rule keyed on the first DM again; the hook's combat conjunct dropped — END COMBAT keeps the card in the order; the bench emptied into the order regardless; a PC's plate budget hidden from a player's screen; the ordered branch rendering the DM's card without its DM flag — observable then only once the fixture gave it a token, since the menu's token controls were what the flag hid; after round 2 the menu gates on nothing but handlers, so that sabotage has no observable and the `isDM` prop is pinned by nothing — recorded). A sixth, the server's rule filter deleted, is GREEN today by design: every rolled character passes the rule, so the order test asserts the composition and that sabotage turns red the day the rule grows a real exclusion — recorded, not a hole. 16 in all, 15 red; the 16th green by design (round 2 replaced it: the
+service now reads the shared `isInInitiativeOrder`, and a test that MOCKS the helper pins that the
+order consults it at all). After round 2: 8 more — 7 red (the helper ignoring the roll; the order reading a bare initiative filter instead of the helper — the mocked case; `isDMCharacter` on the first DM again; the banner's denominator dropping the DM's combatant; the hook putting a rolled DM character in the order with combat off; the menu's token-size gate back; the ring gold again) and 1 green by construction: the helper ignoring its RULE conjunct, unobservable while the rule admits every rolled character — the conjunct is the helper's reason to exist, and the day the rule excludes a rolled character the shared cases (an unrolled and a rolled character of every kind) are where it lands. 24 in all, 22 red.
+
+### Review round 1 (2026-09-11) — four fresh Opus lenses; 1 critical / 12 major / 28 minor raw → 0 / 6 / 16 deduplicated
+
+Static lenses (correctness, test rigour, DM/player experience, overclaim). The CRITICAL was the
+co-DM hole found live and fixed before the lenses finished reading (they read a moving tree; the
+round's counts are provisional for that reason, and the fix is listed above). MAJOR, fixed: after
+END COMBAT (which keeps initiatives) the DM's rolled character stayed in the order and, with one
+character, the DM's whole column unmounted for the rest of the session — the bench is now
+"DM-owned, not in the ACTIVE order" (a combat conjunct on the hook's split; pinned on the hook,
+the panel and the desktop e2e); the rule keyed on the FIRST DM while the panel groups on any —
+keyed on any DM now (`isDMCharacter` too), the hook's stopgap conjunct gone; the player-facing
+half of the decision had no render pin — the plate is asserted on a player's screen and under the
+DM's player lens with exact values, the panel renders the rolled DM character for a PLAYER viewer
+(in the order, the DM face, no settings entry), and the desktop e2e opens a second context; the
+e2e's plate reads were a global `toContain` that another combatant's plate could satisfy — keyed
+by the nameplate beside each readout, asserted as the ONLY plate on a table the spec quiets
+first, with the snapshot as the charge's witness; both specs mutated the shared table outside
+their `try` — inside now, the reverse step only after the step landed; the server's second order
+filter is a no-op today (every rolled character passes the rule), which the docblock claimed as
+the point — the order test now asserts the COMPOSITION (rule ∘ initiative filter), so a real
+exclusion is covered the day it exists, and the docblocks say what the rule decides; prose still
+stating the old rule in slice 3's section (twice), HANDOFF's "by that rule alone", F2's test list
+(cases F3 rewrote), two seam comments, `isDMCharacter`'s docblock (no production caller; it now
+says so). MINOR, fixed: the guide names the bulk roll's NPC-only scope, the phone's lack of a
+bench/order, the end-of-combat return, and that a character on the DM's card is visible to the
+table; the "Turn 1 of N" banner while nobody held the turn (own commit, pre-existing);
+`PlayerCard`'s memo comparator omitting the movement fields (own commit, latent); the plate's F3
+assertion made exact; the bench halves of two server cases retitled as the initiative filter's
+pins, not F3's; the co-DM hook case's "three branches" claim (three cases, two paths — reworded);
+the mobile spec's wait order; the prompt's item 4; the service test's header. Recorded: the
+`isFirstDM` flag is written and read by nothing (pre-existing; the separator is gated on the
+bench's length; the F3 assertion on it dropped — the pre-existing separator case still asserts it); `filterCombatEligibleCharacters` and
+`isDMCharacter` have no production caller (barrel exports, said so in place); the four readers'
+own `initiative !== undefined` gates restate the order's admission beside the rule (the rule
+decides "may", the roll decides "in") — a `isInInitiativeOrder` helper would fold them, not done;
+the disguise case (above). NOT filed against the decision: a rolled DM character IS a combatant.
+(Round 3: the F2 record\'s "kept for symmetry, said so" and "in the order but no combatant → none"
+describe comments and cases F3 rewrote — see Follow-up F3.)
+
+### Review round 2 (2026-09-11) — four fresh Opus lenses; 0 critical / 9 major / 28 minor raw → 0 / 7 / 17 deduplicated
+
+Static lenses (correctness PASS 0/0/3; test rigour 0/2/12; DM/player experience 0/3/5; overclaim
+0/4/8). Nothing regressed. MAJOR, fixed: the bench was documented as "no initiative" at four
+seams (the hook's docblock, the panel's bench comment, the panel test's two docblocks) where the
+code says "not in the ACTIVE order" — the comments invited deleting the combat conjunct two
+sabotages had just proven load-bearing; the two e2e specs asserted the DEFAULT speed (30), which
+every plate on the table wears — each now sets 35 in its quiet block (and restores it), so the
+numbers are this character's; the server's "composition assertion" recomputed the production
+expression over the same fixture and could not detect its own filter's removal, today or on the
+day the rule grows an exclusion — replaced by the shared `isInInitiativeOrder` helper (one
+spelling of "in the order" for the server's order, the plates and both reset controls; the four
+restatements gone) plus a server test that MOCKS the helper to pin that the order consults it;
+the plan claimed no message changes a character's `type` — `update-npc` does, unguarded (the NPC
+list never offers a PC; corrected, the guide names the workaround); the guide's remedy was
+unactionable (it now says: make it an NPC from the start, or delete and recreate); HANDOFF's F2
+entry still called the card "the only lever" for a DM's own spend (unrolled, now); the DM card's
+own gold border collided with the current-turn ring the moment F3 put that card in the order —
+the ring is white now, in the gold glow (own commit `7b7827cb`, the player guide says so);
+the phone has no initiative control for a character at all, and the guide's phone clause named
+only the missing group and order — it now says the roll needs the desktop (the missing phone
+initiative for players too is the initiative slice's, recorded there); the settings menu hid a
+DM's card's token image, size and lock behind "DM players don't have tokens" — the only route to
+a PC token's art, size and lock, so F3's combatant could not be made Large or given art, and a
+co-DM lost the controls on their own character — the caller's handler is the gate now (own
+commit `24c5f5b8`). MINOR, fixed: the guide lists HP among what the table sees; the
+`InitiativeMessageHandler` comment's "elevated" (an elevated holder stays in the order under
+F3); the panel test's vacuous tail (assertions on a menu never opened) and its "Dungeon Master
+Mode" comment (gated on ownership, not `isDM`); `isDMCharacter`'s any-DM change pinned; the turn
+banner's denominator counts the DM's combatant (1 of 2); the desktop e2e asserts the order
+positively on both screens and that exactly one card carries the name; the phone spec's two
+bookends (no plate before, none after END COMBAT); the phone-list contrast asserted by each
+sheet's readout, with the count kept as a second check, and its titles no longer name a bench the phone does not have; the
+hook's "combat off, only the DM rolled" case; the dead `isFirstDM` assertion in the F3 case
+dropped (the sentence corrected); "spend or not" → "even with a spend"; "on the roll" → "once
+combat is on"; "waits on F3" → "never arrived"; the sabotage arithmetic (16 in all, 15 red); a
+player could open the initiative modal on any card (the server refused, silently or after the
+5 s hand-entry timeout) — own card or DM only now (own commit `991c8697`, pre-existing).
+Recorded: the panel reflows by a card-plus-gap when the DM's only character rolls and back on
+END COMBAT (the separator and gap hang off the bench's length); 🧹 Clear Initiative from the DM's
+own card's settings relocates the card and closes the menu (two render sites, local menu state);
+out of combat the client's bench and the server's order now disagree on a rolled DM character —
+invisible today (no turn mark, counter or controls out of combat), and the prompt's item 4
+("next/prev turn ignoring `combatActive`") carries the coupling; the hook's two eligibility lists
+read the rule with no roll gate (their grid carries unrolled players and NPCs at the bottom,
+pre-existing); the `.player-card--dm` class has no stylesheet rule (a test hook; the DM face is
+PlayerCard's inline style). Not a plateau (0/7/17 against round 1's 0/6/16, but every major a
+prose or pin defect and none a wrong server result) — round 3 is the last, per the cap.
+
+### Review round 3 (2026-09-11) — four fresh Opus lenses, the LAST round; 1/14/27 raw → 0/9/20 deduplicated
+
+Static lenses (correctness 0/4/4; test rigour 0/2/9; DM/player experience 0/4/4; overclaim 1/4/10 — its critical the lint error).
+REGRESSED, fixed: round 2's initiative-badge gate (`991c8697`) hid the whole badge without a
+handler — and the badge is the only place an initiative number is drawn, so a player lost every
+other combatant's count (the DM's ally's included). The badge now READS on every card and ACTS
+only with a handler (a disabled, value-named element otherwise) — own commit `4c2e7e1a`, pinned
+with rolled cards for a player viewer. Also fixed: the tree did not lint (a dead binding round 2
+left behind); the server still said "DM players should never have tokens" at three sites (the
+join road, the reconnect road, add-player-character), so a DM who pressed their own card's
+Delete Token was left with a combatant pointing at a dead token and no road back — a DM is
+tokened like anyone's now, a DM's added character gets a token, and both delete roads unlink the
+character (own commit `65c7cd67`); "+ Add Character" was hidden on a DM's card, so the only
+DM-run combatant could ever be the one joined with (own commit `44875505`; the `isDM` prop is
+no longer read by the menu); the Token Image field rendered where its Apply could do nothing
+(own commit `0d0fb5bb`); the memo comparator compared a closure the panel mints per render
+(own commit `1e0fb3cf`); the bench split and the travel pointer read the helper too (six sites,
+one spelling); the desktop's by-owner token fallback gained the phone's ambiguity guard (one
+character only); the contract pins HP on the same `type` axis; the ring test pins the variable
+and the DM card's gold half, not one string; the e2e arms its restore at the send and guards the
+player's card count; the panel fixture's `as never` typed; `handleEndCombat`'s docblock; the DM
+guide says where a DM's character comes from and that the table can see the card is the DM's;
+the player guide's phone section says initiative and turns are desktop-only. Recorded: the
+combat-active screenshot in the player guide still shows the old gold ring (`pnpm
+docs:screenshots` regenerates it — the owner's run); the DM card's "Dungeon Master" caption and
+gold face in the order (a decision, above); the bench sabotage of the `isDM` prop has no
+observable now; `isInInitiativeOrder`'s six cases in one `it`; the turn banner's index beyond
+position 1; the join/reconnect DM-token road is pinned by inspection and the live check, not a
+unit fixture (the auth handler has none); the `readouts` helper throws rather than returns if a
+plate ever lacked its nameplate (structurally impossible today). Sabotage after round 3: 11 attempts — 8 red (the badge hidden without a handler again; the badge live for everyone; + Add Character hidden on a DM card; the image handlers always passed — red only once BOTH handlers were un-gated, the menu keys the panel on the pair; the owner-token fallback for any count of characters; add-character skipping a DM's token; a delete leaving the link dangling; `--jrpg-white` undefined), 2 green by construction (the comparator's presence clause — subsumed by the `used` comparison, `undefined` never equals a number, kept for readability; the travel pointer's bare roll — identical behaviour while the rule admits every rolled character, the same class as the helper's own conjunct), 1 with no single-line sabotage (HP's axis is the recipient filter's, pre-existing; the contract case pins presence). 35 in all, 30 red. Live-checked after the round with two clients on the dev table: the DM's card offers + Add Character; the DM rolls 17 and the player's screen shows the card in the order with the DM face, the "Dungeon Master" caption and a read-only "Initiative 17" badge beside their own live one; the DM's Delete Token nulls the character's link, and a reload re-tokens it on the reconnect road with the roll kept and the plate back at 30 / 30. The round's verdict on the tree it read was FAIL on every lens; every major is fixed above and the tree lints, typechecks and passes every suite after them — no round 4, per the cap: the owner decides on this record.
+
 ## Open after the arc (owner's calls)
 
 - A "nothing selected → your own token" fallback for WASD in pointer mode.
-- Whether a DM-owned PC with an initiative should be a combatant (today it is not, by the
-  pre-existing participation rule), which decides whether its budget ever resets on a turn.
+- ~~Whether a DM-owned PC with an initiative should be a combatant (today it is not, by the
+  pre-existing participation rule), which decides whether its budget ever resets on a turn.~~
+  — DECIDED yes and DONE as Follow-up F3 (2026-09-11): rolled, it is a combatant; its budget
+  resets on its turn like anyone's.
 - ~~A DM "reset budget" control outside a turn boundary, and any enforcement (a red readout is
   advisory today).~~ — DONE as Follow-up F2 (2026-09-11): the reset control shipped; the
   budget stays ADVISORY by the owner's call.

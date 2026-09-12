@@ -7,7 +7,7 @@
 
 import React from "react";
 import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
-import { shouldCharacterParticipateInCombat } from "@herobyte/shared";
+import { isInInitiativeOrder } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
 
 interface MobileEntitiesListProps {
@@ -130,16 +130,14 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       hasCharacter: true,
       speed: character.speed,
       movementUsed: character.movementUsed,
-      // The plate's own predicate (tokenPlates.ts): a budget exists in combat,
-      // for a combatant in the order — those three gates, OR a spend to clear:
-      // the server charges any token moved in combat, initiative or not, and
-      // that spend needs the DM's lever too (the plate hides it; the card
-      // must not).
+      // The plate's own predicate (tokenPlates.ts): a budget exists in combat
+      // for a character in the order (the shared spelling of it), OR a spend
+      // to clear: the server charges any token moved in combat, initiative or
+      // not, and that spend needs the DM's lever too (the plate hides it; the
+      // card must not).
       hasBudget:
         combatActive &&
-        ((character.initiative !== undefined &&
-          shouldCharacterParticipateInCombat(character, players)) ||
-          (character.movementUsed ?? 0) > 0),
+        (isInInitiativeOrder(character, players) || (character.movementUsed ?? 0) > 0),
       // The token this ROW is about. Bound through the CHARACTER, as
       // EntitiesPanel does, and not by owner: a player can own several tokens —
       // one from joining, one per "+ Add Character" — so picking by owner shows

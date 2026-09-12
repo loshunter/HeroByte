@@ -6,9 +6,8 @@
  * over the DM-set speed; the budget resets when the character's turn starts
  * and vanishes when combat ends. A monster's budget never reaches a player.
  *
- * The mover is a PLAYER in its own context: a DM-owned PC is deliberately not
- * a combatant (shouldCharacterParticipateInCombat), so it never gets a turn
- * start and could never show the turn-start reset this pins. The third test
+ * The mover is a PLAYER in its own context (a DM-owned PC joins the order
+ * only once it has rolled, F3 — dm-combatant.spec.ts pins that road). The third test
  * is F2's: the DM zeroes a spend from the card's settings — the budget is
  * advisory, and that is the DM's lever besides the turn.
  */

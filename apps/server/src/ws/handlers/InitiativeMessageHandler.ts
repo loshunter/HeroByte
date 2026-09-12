@@ -230,7 +230,7 @@ export class InitiativeMessageHandler {
   /**
    * Handle end-combat message
    *
-   * Deactivates combat mode and clears all initiative values.
+   * Deactivates combat mode (initiatives stay on file — see the body).
    * Only DMs can end combat.
    *
    * @param state - Current room state
@@ -271,7 +271,7 @@ export class InitiativeMessageHandler {
 
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const nextIndex = (currentIndex + 1) % charactersInOrder.length;
-    // A pointer outside the order (its holder cleared, deleted or elevated) lands on the top: a wrap too.
+    // A pointer outside the order (its holder cleared or deleted) lands on the top: a wrap too.
     if (currentIndex === -1 || currentIndex === charactersInOrder.length - 1) {
       state.combatRound = currentRound(state) + 1;
     }

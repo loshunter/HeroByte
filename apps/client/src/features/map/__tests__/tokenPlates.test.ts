@@ -29,7 +29,7 @@ describe("buildTokenPlates — the movement budget", () => {
     ...extra,
   });
 
-  it("a PC in the order wears remaining / speed while combat is on — defaults included", () => {
+  it("a PC in the order wears remaining / speed while combat is on — defaults included, on a PLAYER's screen too", () => {
     const plates = buildTokenPlates({
       ...base,
       characters: [pc({ initiative: 12, movementUsed: 10 })],
@@ -38,6 +38,17 @@ describe("buildTokenPlates — the movement budget", () => {
       combatActive: true,
     });
     expect(plates["token:t1"]!.move).toEqual({ speed: 30, used: 10, remaining: 20 });
+    // isDM: false is every player's screen: a PC's budget is party knowledge.
+    expect(
+      buildTokenPlates({
+        ...base,
+        characters: [pc({ initiative: 3, movementUsed: 10 })],
+        monsterHpDisplay: "exact",
+        lensRedact: false,
+        combatActive: true,
+        isDM: false,
+      })["token:t1"]!.move,
+    ).toEqual({ speed: 30, used: 10, remaining: 20 });
   });
 
   it("no budget out of combat, and none for a character not in the order", () => {
@@ -118,17 +129,41 @@ describe("buildTokenPlates — the movement budget", () => {
     expect(lens["token:t1"]!.move).toBeUndefined();
   });
 
-  it("a DM-owned PC is not a combatant: no readout, since no turn could ever reset it", () => {
-    const plates = buildTokenPlates({
-      tokens: [token("t1", "dm")],
-      players: [{ uid: "dm", name: "The DM", isDM: true } as unknown as Player],
-      characters: [pc({ initiative: 12, ownedByPlayerUID: "dm" })],
-      monsterHpDisplay: "exact",
-      lensRedact: false,
-      combatActive: true,
-      isDM: true,
+  it("a DM-owned PC wears a budget once it has ROLLED (a combatant, F3) — and none on the bench", () => {
+    const build = (extra: Partial<SnapshotCharacter>) =>
+      buildTokenPlates({
+        tokens: [token("t1", "dm")],
+        players: [{ uid: "dm", name: "The DM", isDM: true } as unknown as Player],
+        characters: [pc({ ownedByPlayerUID: "dm", ...extra })],
+        monsterHpDisplay: "exact",
+        lensRedact: false,
+        combatActive: true,
+        isDM: true,
+      });
+    expect(build({ initiative: 12, movementUsed: 5 })["token:t1"]!.move).toEqual({
+      speed: 30,
+      used: 5,
+      remaining: 25,
     });
-    expect(plates["token:t1"]!.move).toBeUndefined();
+    // Unrolled: no turn could ever reset it, so no readout (a spend or not).
+    expect(build({ movementUsed: 5 })["token:t1"]!.move).toBeUndefined();
+    expect(build({})["token:t1"]!.move).toBeUndefined();
+  });
+
+  it("a rolled DM-owned PC's budget is drawn on a PLAYER's screen and under the DM's player lens — the type axis", () => {
+    const build = (isDM: boolean, lensRedact: boolean) =>
+      buildTokenPlates({
+        tokens: [token("t1", "dm")],
+        players: [{ uid: "dm", name: "The DM", isDM: true } as unknown as Player],
+        characters: [pc({ ownedByPlayerUID: "dm", initiative: 12, movementUsed: 5 })],
+        monsterHpDisplay: "exact",
+        lensRedact,
+        combatActive: true,
+        isDM,
+      });
+    const expected = { speed: 30, used: 5, remaining: 25 };
+    expect(build(false, false)["token:t1"]!.move).toEqual(expected); // a player's frame
+    expect(build(true, true)["token:t1"]!.move).toEqual(expected); // the DM's player lens
   });
 });
 

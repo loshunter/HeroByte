@@ -225,6 +225,8 @@ Some maps have **🚪 door, stair or signpost sprites** on them — a way throug
 
 ## Playing on a phone or tablet
 
+Initiative and turns are desktop-only today: the phone's party screen shows no **INIT** badge, no order and no turn mark (your spend and the DM's Reset are still in each row's **⚙ EDIT**).
+
 On a small or touch screen, HeroByte switches to a full-screen map with a five-button dock — no setup required:
 
 |                                                                              |                                                 |

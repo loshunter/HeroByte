@@ -17,8 +17,8 @@ test.describe("mobile — movement budget", () => {
     page,
     browser,
   }) => {
-    // The mover is a player in its own context: a DM-owned PC is not a
-    // combatant, so its plate would (rightly) never wear a budget.
+    // The mover is a player in its own context (the DM's own character joins
+    // the order only once rolled, F3 — mobile-dm-combatant.spec.ts).
     const playerContext = await browser.newContext();
     const player = await playerContext.newPage();
     try {

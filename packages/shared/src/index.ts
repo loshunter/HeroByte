@@ -84,6 +84,7 @@ export type { NormalizedHP } from "./hpUtils.js";
 // Export combat utilities
 export {
   shouldCharacterParticipateInCombat,
+  isInInitiativeOrder,
   filterCombatEligibleCharacters,
   isDMCharacter,
 } from "./combatUtils.js";

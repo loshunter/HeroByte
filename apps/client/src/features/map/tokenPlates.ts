@@ -15,7 +15,7 @@
 import {
   hpBadgeFor,
   movementBudgetFor,
-  shouldCharacterParticipateInCombat,
+  isInInitiativeOrder,
   type MonsterHpDisplay,
   type MovementBudget,
   type Player,
@@ -59,14 +59,11 @@ export function buildTokenPlates(input: {
       maxHp = undefined;
     }
     // The budget rides only on a COMBATANT — in the order, and one a turn can
-    // land on (a DM-owned PC is not, by the participation rule, so it would
-    // never reset) — while combat is on. An NPC's is DM information: the
+    // land on (the shared participation rule: a DM-owned character is one
+    // once it has rolled, F3) — while combat is on. An NPC's is DM information: the
     // server strips it from a player's frame and the DM's player lens hides
     // it the same way, so a redacted monster never shows a fake default.
-    const inOrder =
-      combatActive === true &&
-      character.initiative !== undefined &&
-      shouldCharacterParticipateInCombat(character, players);
+    const inOrder = combatActive === true && isInInitiativeOrder(character, players);
     // A monster's readout needs a REAL record: the DM's frame carries one for
     // every monster in a fight (reset at combat start, or born into it), and
     // during the elevation blip — role flipped, snapshot still the player's —

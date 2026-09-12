@@ -2,14 +2,15 @@
 // PLAYER's card gets the readout and a reset bound to that character; a
 // player never does; and the control exists where the plate shows a budget —
 // in combat, for a combatant in the order — or wherever there is a spend to
-// clear. The DM-section render site (a DM's OWN character) is reachable today
-// only through that spend clause: a DM-owned PC is not a combatant under
-// today's participation rule (F3 widens it), but the server charges its token
+// clear. The DM's own character (F3): in the ACTIVE order (rolled, combat on)
+// it is a combatant and renders in the order like anyone else; otherwise —
+// unrolled, or rolled after END COMBAT — it sits on the bench (the DM group),
+// where the only live arm is the spend clause — the server charges its token
 // like any other, and this is the only lever that clears that spend.
 
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { Player, SnapshotCharacter } from "@herobyte/shared";
+import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
 import { EntitiesPanel } from "../EntitiesPanel";
 
 const DM = "dm-uid";
@@ -90,8 +91,9 @@ function openSettingsOf(name: string) {
 }
 const openAliceSettings = () => openSettingsOf("Alice");
 
-// The DM's OWN character: it renders through the DM section, not the player
-// section — a separate copy of the gate.
+// The DM's OWN character: out of the active order it renders through the DM
+// section (the bench); in it, through the ordered grid below — each site with
+// its own gate.
 const sidekick = {
   ...alice,
   id: "char-sidekick",
@@ -148,11 +150,85 @@ describe("EntitiesPanel — the movement-budget reset on a player's card", () =>
   });
 });
 
-describe("EntitiesPanel — the DM section's copy of the gate (the DM's own character)", () => {
-  it("in the order but no combatant (today's rule) and nothing spent: no control", () => {
+describe("EntitiesPanel — the DM's own character: the bench and the order (F3)", () => {
+  it("rolled, it is a combatant: it renders in the ORDER, not the DM group, with the control (inert at 0)", () => {
     render(
       <EntitiesPanel
-        {...panelProps({ characters: [{ ...sidekick, initiative: 20, movementUsed: 0 }] })}
+        {...panelProps({
+          // With a token: the menu's token controls are the observable
+          // difference between a DM's card and a player's.
+          tokens: [{ id: "tok-s", owner: DM, x: 0, y: 0, color: "red" }] as unknown as Token[],
+          characters: [{ ...sidekick, tokenId: "tok-s", initiative: 20, movementUsed: 0 }],
+        })}
+      />,
+    );
+    expect(screen.getByText("Sidekick").closest(".entities-panel-dm-group")).toBeNull();
+    expect(screen.getByText("Sidekick").closest(".entities-panel-card-grid")).not.toBeNull();
+    openSettingsOf("Sidekick");
+    // The DM's own card's affordances travel with it into the order: the
+    // DM-mode section (gated on ownership, isMe) and the token controls the
+    // menu once hid for any DM's card — it no longer does (own commit), so
+    // this card, like the bench card, can size its own token.
+    expect(screen.getByText("Dungeon Master Mode")).toBeInTheDocument();
+    expect(screen.getByText(/Token Size/i)).toBeInTheDocument();
+    // And "+ Add Character" — the DM\'s card offers it now (own commit), on the
+    // bench and in the order alike.
+    expect(screen.getByText(/Add Character/i)).toBeInTheDocument();
+    expect(screen.getByText("Used 0 ft")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset movement budget" })).toBeDisabled();
+  });
+
+  it("a PLAYER sees the rolled DM character in the order too — wearing the DM face, carrying no DM-only control", () => {
+    render(
+      <EntitiesPanel
+        {...panelProps({
+          currentIsDM: false,
+          uid: ALICE,
+          characters: [alice, { ...sidekick, initiative: 20, movementUsed: 10 }],
+        })}
+      />,
+    );
+    const card = screen.getByText("Sidekick").closest(".player-card-shell")!;
+    expect(card.closest(".entities-panel-dm-group")).toBeNull();
+    expect(card.closest(".entities-panel-card-grid")).not.toBeNull();
+    expect(card.querySelector(".player-card--dm")).not.toBeNull();
+    // Not the player's to edit: no settings entry at all (the portrait is a
+    // plain "Player portrait"), so no speed field and no reset can exist.
+    expect(card.querySelector('button[aria-label="Change portrait"]')).toBeNull();
+    expect(card.querySelector('button[aria-label="Player portrait"]')).not.toBeNull();
+  });
+
+  it("after END COMBAT (initiative kept) the DM's character is home on the bench", () => {
+    render(
+      <EntitiesPanel
+        {...panelProps({
+          combatActive: false,
+          characters: [alice, { ...sidekick, initiative: 20, movementUsed: 0 }],
+        })}
+      />,
+    );
+    expect(screen.getByText("Sidekick").closest(".entities-panel-dm-group")).not.toBeNull();
+  });
+
+  it("unrolled and nothing spent: the bench (the DM group), and no control", () => {
+    render(
+      <EntitiesPanel
+        {...panelProps({ characters: [{ ...sidekick, initiative: undefined, movementUsed: 0 }] })}
+      />,
+    );
+    expect(screen.getByText("Sidekick").closest(".entities-panel-dm-group")).not.toBeNull();
+    openSettingsOf("Sidekick");
+    expect(screen.getByLabelText("Movement speed in feet per turn")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+  });
+
+  it("out of combat the bench card carries none even with a spend (a file's stray spend is the handler's road, not a card's)", () => {
+    render(
+      <EntitiesPanel
+        {...panelProps({
+          combatActive: false,
+          characters: [{ ...sidekick, initiative: undefined, movementUsed: 15 }],
+        })}
       />,
     );
     openSettingsOf("Sidekick");
@@ -160,11 +236,12 @@ describe("EntitiesPanel — the DM section's copy of the gate (the DM's own char
     expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
   });
 
-  it("a spend on the DM's own token gets the lever — the only thing that clears it short of ending combat", () => {
+  it("unrolled with a spend: the bench card gets the lever — the only thing that clears it short of ending combat", () => {
     const props = panelProps({
       characters: [{ ...sidekick, initiative: undefined, movementUsed: 15 }],
     });
     render(<EntitiesPanel {...props} />);
+    expect(screen.getByText("Sidekick").closest(".entities-panel-dm-group")).not.toBeNull();
     openSettingsOf("Sidekick");
     expect(screen.getByText("Used 15 ft")).toBeInTheDocument();
     const reset = screen.getByRole("button", { name: "Reset movement budget" });

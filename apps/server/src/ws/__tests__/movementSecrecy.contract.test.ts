@@ -188,6 +188,37 @@ describe("movement budget secrecy contracts", () => {
     expect(sentinelHits(aliceWs, ALICE_SPEED)).not.toEqual([]); // her own frame is walkable
   });
 
+  it("a DM-owned PC-TYPED character's budget is party knowledge (the type axis, decided with F3), like its HP", () => {
+    const current = roomService.getState();
+    roomService.setState({
+      characters: [
+        ...current.characters,
+        {
+          id: "pc-dm",
+          type: "pc",
+          name: "Sidekick",
+          hp: 41321, // five-digit sentinels: HP rides the same `type` axis
+          maxHp: 52117,
+          tokenId: "tok-dm",
+          ownedByPlayerUID: DM,
+          initiative: 12,
+          speed: 20, // the write below CHANGES it, so a frame goes out
+          movementUsed: 61913,
+        },
+      ],
+      tokens: [...current.tokens, { id: "tok-dm", owner: DM, x: 2, y: 2, color: "#ff0" }],
+    });
+    roomService.createSnapshot(); // the scene graph, so the new token is a scene object
+    route({ t: "set-character-speed", characterId: "pc-dm", speed: 27731 }, DM);
+    expect(charactersSeenBy(aliceWs).some((c) => c.id === "pc-dm")).toBe(true);
+    expect(sentinelHits(aliceWs, 27731)).not.toEqual([]);
+    expect(sentinelHits(aliceWs, 61913)).not.toEqual([]);
+    expect(sentinelHits(aliceWs, 41321)).not.toEqual([]); // hp
+    expect(sentinelHits(aliceWs, 52117)).not.toEqual([]); // maxHp
+    // The monster beside it is still stripped from the same frames.
+    expect(sentinelHits(aliceWs, GOBLIN_SPEED)).toEqual([]);
+  });
+
   it("the DM setting a monster's speed — the road the secret is WRITTEN on — never reaches a player", () => {
     route({ t: "set-character-speed", characterId: "npc-goblin", speed: 51137 }, DM);
     expect(roomService.getState().characters[0]!.speed).toBe(51137);
