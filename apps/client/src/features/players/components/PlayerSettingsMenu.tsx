@@ -35,8 +35,14 @@ interface PlayerSettingsMenuProps {
   onLoadPlayerState?: (file: File) => Promise<void>;
   selectedEffects: string[];
   onStatusEffectsChange: (effects: string[]) => void;
-  /** Whether the player/character this card BELONGS TO is a DM. */
-  isDM: boolean;
+  /**
+   * Whether the player/character this card BELONGS TO is a DM. Gates only
+   * "+ Add Character" now: it once hid the token image, size and lock too,
+   * behind "DM players don't have tokens", which stopped being true the day a
+   * DM's own character got a token (and became a combatant, F3). Sight Radius
+   * and Movement never had the gate.
+   */
+  isDM?: boolean;
   /**
    * Whether the person LOOKING at this card is a DM, and may they toggle it.
    *
@@ -102,7 +108,7 @@ export function PlayerSettingsMenu({
   onLoadPlayerState,
   selectedEffects,
   onStatusEffectsChange,
-  isDM,
+  isDM = false,
   viewerIsDM = false,
   canToggleDM = false,
   onToggleDMMode,
@@ -258,12 +264,13 @@ export function PlayerSettingsMenu({
           )}
 
           {/*
-          DM players don't have tokens, so hide token controls when isDM is true.
-          Also hidden when no handler is supplied: the mobile sheet used to pass
-          a value pinned to "" with a no-op onChange, producing a text field that
-          physically could not be typed into.
+          Hidden when no handler is supplied: the mobile sheet used to pass a
+          value pinned to "" with a no-op onChange, producing a text field that
+          physically could not be typed into. (It also used to hide behind
+          "DM players don't have tokens" — they do, since their own character
+          got one; the caller's handler is the gate now, like Sight Radius.)
         */}
-          {!isDM && onTokenImageInputChange && onTokenImageApply && (
+          {onTokenImageInputChange && onTokenImageApply && (
             <JRPGPanel
               variant="simple"
               style={{
@@ -384,8 +391,8 @@ export function PlayerSettingsMenu({
             </JRPGPanel>
           )}
 
-          {/* Token Size - only show for non-DM players who have tokens */}
-          {!isDM && onTokenSizeChange && (
+          {/* Token Size - whoever the caller hands a handler to (a DM's own token included) */}
+          {onTokenSizeChange && (
             <JRPGPanel
               variant="simple"
               style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
@@ -452,8 +459,8 @@ export function PlayerSettingsMenu({
             </JRPGPanel>
           )}
 
-          {/* Token Lock - only show for non-DM players who have tokens */}
-          {!isDM && onToggleTokenLock && (
+          {/* Token Lock - likewise */}
+          {onToggleTokenLock && (
             <JRPGPanel
               variant="simple"
               style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}

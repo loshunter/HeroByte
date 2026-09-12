@@ -32,6 +32,24 @@ describe("PlayerSettingsMenu", () => {
     });
   });
 
+  describe("a DM's own card keeps its token controls", () => {
+    it("token image, size and lock render for a DM's card whenever a handler is supplied", () => {
+      render(
+        <PlayerSettingsMenu
+          {...defaultProps}
+          isDM={true}
+          onTokenSizeChange={vi.fn()}
+          onToggleTokenLock={vi.fn()}
+          tokenLocked={false}
+        />,
+      );
+      // The image field is on by defaultProps' handlers; size and lock by the ones above.
+      expect(screen.getByText(/Token Size/i)).toBeInTheDocument();
+      expect(screen.getByText(/Token Lock/i)).toBeInTheDocument();
+      expect(screen.getByText(/Token Image/i)).toBeInTheDocument();
+    });
+  });
+
   describe("Movement speed", () => {
     it("renders the DM-only speed field when a handler is supplied, and commits to it", () => {
       const onCharacterSpeedChange = vi.fn();
