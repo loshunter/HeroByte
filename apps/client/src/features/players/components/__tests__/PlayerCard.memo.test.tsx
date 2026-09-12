@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { PlayerCard } from "../PlayerCard";
 import React from "react";
-import type { Player } from "@herobyte/shared";
+import type { Player, TokenSize } from "@herobyte/shared";
 
 const createMockPlayer = (overrides?: Partial<Player>): Player => ({
   uid: "player-1",
