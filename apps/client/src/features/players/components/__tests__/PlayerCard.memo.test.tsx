@@ -103,5 +103,12 @@ describe("PlayerCard memo — the movement fields", () => {
     // And the speed alone.
     rerender(<PlayerCard {...props} characterBudget={{ used: 0, onReset }} characterSpeed={45} />);
     expect(screen.getByLabelText("Movement speed in feet per turn")).toHaveValue(45);
+    // The budget appearing or vanishing (its shape) re-renders; a fresh onReset
+    // closure with the same shape does not have to — the panel mints one per
+    // render, and the one it minted closes over a stable handler.
+    rerender(<PlayerCard {...props} characterBudget={undefined} characterSpeed={45} />);
+    expect(screen.queryByRole("button", { name: "Reset movement budget" })).toBeNull();
+    rerender(<PlayerCard {...props} characterBudget={{ used: 15, onReset }} characterSpeed={45} />);
+    expect(screen.getByText("Used 15 ft")).toBeInTheDocument();
   });
 });

@@ -458,8 +458,11 @@ export const PlayerCard = memo<PlayerCardProps>(
     // the Reset's inert state. Latent while every snapshot mints a fresh
     // token object, load-bearing the day it does not.
     prevProps.characterSpeed === nextProps.characterSpeed &&
-    prevProps.characterBudget?.used === nextProps.characterBudget?.used &&
-    prevProps.characterBudget?.onReset === nextProps.characterBudget?.onReset,
+    // The budget's SHAPE, not its closure: the panel mints `onReset` fresh
+    // every render (it closes over the character id and a stable handler),
+    // so comparing it would defeat the memo for every card in a fight.
+    !!prevProps.characterBudget === !!nextProps.characterBudget &&
+    prevProps.characterBudget?.used === nextProps.characterBudget?.used,
 );
 
 PlayerCard.displayName = "PlayerCard";
