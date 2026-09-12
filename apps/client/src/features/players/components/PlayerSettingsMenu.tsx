@@ -36,11 +36,12 @@ interface PlayerSettingsMenuProps {
   selectedEffects: string[];
   onStatusEffectsChange: (effects: string[]) => void;
   /**
-   * Whether the player/character this card BELONGS TO is a DM. Gates only
-   * "+ Add Character" now: it once hid the token image, size and lock too,
-   * behind "DM players don't have tokens", which stopped being true the day a
-   * DM's own character got a token (and became a combatant, F3). Sight Radius
-   * and Movement never had the gate.
+   * Whether the player/character this card BELONGS TO is a DM. Accepted for
+   * the callers' sake and no longer read: it once hid the token image, size
+   * and lock ("DM players don't have tokens") and "+ Add Character" on a DM's
+   * card — a DM-run ally is a combatant since F3 and needs a card to be added
+   * from, and the server tokens it like anyone's. The caller's handlers are
+   * the gates, as they always were for Sight Radius and Movement.
    */
   isDM?: boolean;
   /**
@@ -108,7 +109,6 @@ export function PlayerSettingsMenu({
   onLoadPlayerState,
   selectedEffects,
   onStatusEffectsChange,
-  isDM = false,
   viewerIsDM = false,
   canToggleDM = false,
   onToggleDMMode,
@@ -571,7 +571,7 @@ export function PlayerSettingsMenu({
           </JRPGPanel>
 
           {/* Add Character - only show for non-DM players */}
-          {!isDM && onAddCharacter && (
+          {onAddCharacter && (
             <JRPGPanel
               variant="simple"
               style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}

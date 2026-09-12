@@ -48,6 +48,11 @@ describe("PlayerSettingsMenu", () => {
       expect(screen.getByText(/Token Lock/i)).toBeInTheDocument();
       expect(screen.getByText(/Token Image/i)).toBeInTheDocument();
     });
+
+    it("+ Add Character renders on a DM's card whenever the caller hands it the handler (a DM-run ally needs a card to be added from)", () => {
+      render(<PlayerSettingsMenu {...defaultProps} isDM={true} onAddCharacter={vi.fn()} />);
+      expect(screen.getByText(/Add Character/i)).toBeInTheDocument();
+    });
   });
 
   describe("Movement speed", () => {
