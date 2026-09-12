@@ -184,6 +184,16 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
   });
 
   describe("add-player-character message", () => {
+    it("a DM's added character gets a token too — a DM-run ally is a combatant (F3) and needs a piece", () => {
+      messageRouter.route({ t: "add-player-character", name: "Sidekick", maxHp: 30 }, dmUid);
+      const state = roomService.getState();
+      const character = state.characters.find((c) => c.name === "Sidekick")!;
+      expect(character.ownedByPlayerUID).toBe(dmUid);
+      const token = state.tokens.find((t) => t.owner === dmUid);
+      expect(token).toBeDefined();
+      expect(character.tokenId).toBe(token!.id);
+    });
+
     it("should create character, auto-claim, and spawn token for player", () => {
       const addMessage: ClientMessage = {
         t: "add-player-character",
@@ -532,6 +542,44 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       expect(roomService.getState().combatRound).toBe(3);
       expect(roomService.getState().currentTurnCharacterId).toBe(characterId);
       expect(find()).toMatchObject({ movementUsed: 0, movementRound: 3 });
+    });
+
+    it("F3: the DM's OWN rolled character is a combatant — next-turn lands on it and its turn start refills it", () => {
+      const state = roomService.getState();
+      const ally = characterService.createCharacter(state, "Sidekick", 100, "", "pc");
+      ally.ownedByPlayerUID = dmUid;
+      ally.initiative = 5; // below Runner's 10: Runner's turn, then the ally's
+      ally.movementUsed = 15;
+      state.characters.forEach((c) => {
+        if (c.id !== characterId && c.id !== ally.id) c.initiative = undefined;
+      });
+      find().initiative = 10;
+      state.currentTurnCharacterId = characterId;
+      messageRouter.route({ t: "next-turn" }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(ally.id);
+      expect(after.combatRound).toBe(3); // no wrap
+      expect(after.characters.find((c) => c.id === ally.id)).toMatchObject({
+        movementUsed: 0,
+        movementRound: 3,
+      });
+    });
+
+    it("unrolled, the DM's own character is out of the order by the initiative filter (whoever owns it): the turn skips it and its spend stands", () => {
+      const state = roomService.getState();
+      const bench = characterService.createCharacter(state, "Understudy", 100, "", "pc");
+      bench.ownedByPlayerUID = dmUid;
+      bench.movementUsed = 15;
+      state.characters.forEach((c) => {
+        if (c.id !== characterId) c.initiative = undefined;
+      });
+      find().initiative = 10;
+      state.currentTurnCharacterId = characterId;
+      messageRouter.route({ t: "next-turn" }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(characterId); // wrapped onto itself
+      expect(after.combatRound).toBe(4);
+      expect(after.characters.find((c) => c.id === bench.id)?.movementUsed).toBe(15);
     });
 
     it("does not require combat — every road out of combat already zeroes every budget, so this only covers a hand-edited state file's stray spend", () => {

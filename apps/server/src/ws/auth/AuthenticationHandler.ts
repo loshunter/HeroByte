@@ -185,17 +185,19 @@ export class AuthenticationHandler {
       );
       this.container.characterService.claimCharacter(state, character.id, uid);
 
-      // Create token for the character (ONLY if not a DM)
-      // DM players should never have tokens on the map
-      if (!player.isDM) {
+      // Create token for the character — a DM's too. "DM players should never
+      // have tokens" was the rule here until F3 made a DM's rolled character a
+      // combatant (and every DM elevates from a tokened join anyway).
+      {
         const spawn = roomService.getPlayerSpawnPosition();
         const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
         this.container.characterService.linkToken(state, character.id, token.id);
       }
     } else {
-      // Player reconnecting - ensure they have a token (ONLY if not a DM)
-      // DM players should never have tokens on the map
-      if (!player.isDM) {
+      // Player reconnecting - ensure they have a token, DM or not: a DM who
+      // deleted their own token must get one back the way a player does, or
+      // their character stands in the order with nothing to step.
+      {
         const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
         if (!existingToken) {
           const spawn = roomService.getPlayerSpawnPosition();

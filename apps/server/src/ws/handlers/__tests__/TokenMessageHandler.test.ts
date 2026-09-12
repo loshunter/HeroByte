@@ -332,6 +332,21 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       expect(state.tokens.find((t) => t.id === tokenId)).toBeUndefined();
     });
 
+    it("unlinks the character that pointed at the deleted token (no dangling tokenId), on both roads", () => {
+      const state = roomService.getState();
+      const mine = characterService.createCharacter(state, "Mine", 10, undefined, "pc");
+      mine.ownedByPlayerUID = playerUid;
+      characterService.linkToken(state, mine.id, tokenId);
+      messageRouter.route({ t: "delete-token", id: tokenId }, playerUid);
+      expect(roomService.getState().characters.find((c) => c.id === mine.id)?.tokenId).toBeNull();
+
+      const other = tokenService.createToken(state, playerUid, 2, 2);
+      const theirs = characterService.createCharacter(state, "Theirs", 10, undefined, "pc");
+      characterService.linkToken(state, theirs.id, other.id);
+      messageRouter.route({ t: "delete-token", id: other.id }, dmUid); // the force road
+      expect(roomService.getState().characters.find((c) => c.id === theirs.id)?.tokenId).toBeNull();
+    });
+
     it("should remove token from selection when deleted", () => {
       // Select the token first
       selectionService.selectObject(roomService.getState(), playerUid, tokenId);

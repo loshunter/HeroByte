@@ -11,6 +11,19 @@ import { isTokenMoveBlocked } from "../room/scene/movementBlocking.js";
 /**
  * Token service - manages tokens on the map
  */
+/**
+ * A deleted token leaves no dangling link: the character that pointed at it
+ * is unlinked (tokenId null), so the reconnect road re-tokens it and the
+ * panel's by-owner fallback can find the replacement. Before this, a DM
+ * deleting their own token left `character.tokenId` pointing at nothing —
+ * a combatant (F3) with a plate keyed to a dead id and nothing to step.
+ */
+function unlinkDeletedToken(state: RoomState, tokenId: string): void {
+  for (const character of state.characters) {
+    if (character.tokenId === tokenId) character.tokenId = null;
+  }
+}
+
 export class TokenService {
   /**
    * The generator is injected with a production default, matching the dice
@@ -173,6 +186,7 @@ export class TokenService {
     const index = state.tokens.findIndex((t) => t.id === tokenId && t.owner === ownerUid);
     if (index !== -1) {
       state.tokens.splice(index, 1);
+      unlinkDeletedToken(state, tokenId);
       return true;
     }
     return false;
@@ -185,6 +199,7 @@ export class TokenService {
     const index = state.tokens.findIndex((t) => t.id === tokenId);
     if (index !== -1) {
       state.tokens.splice(index, 1);
+      unlinkDeletedToken(state, tokenId);
       return true;
     }
     return false;

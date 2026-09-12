@@ -125,10 +125,9 @@ export class CharacterMessageHandler {
     // Auto-claim for the requesting player
     this.characterService.claimCharacter(state, character.id, senderUid);
 
-    // Create and link token at spawn position (ONLY if not a DM)
-    // DM players should never have tokens on the map
-    const player = state.players.find((p) => p.uid === senderUid);
-    if (player && !player.isDM) {
+    // Create and link token at spawn position — a DM's too (a DM-run ally is
+    // a combatant since F3, and a combatant needs a piece).
+    {
       const spawn = this.roomService.getPlayerSpawnPosition();
       const token = this.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
       this.characterService.linkToken(state, character.id, token.id);
