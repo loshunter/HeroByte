@@ -317,7 +317,10 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                   </span>
                   {initiativeCombatants.length > 0 && (
                     <span className="jrpg-text-tiny" style={{ color: "var(--jrpg-white)" }}>
-                      Turn {currentTurnIndexDisplay >= 0 ? currentTurnIndexDisplay + 1 : 1} of{" "}
+                      {/* "—" while nobody holds the turn (a combatant cleared its own
+                          initiative on its turn drops the pointer): the banner must
+                          not claim turn 1 while no card wears the mark. */}
+                      Turn {currentTurnIndexDisplay >= 0 ? currentTurnIndexDisplay + 1 : "—"} of{" "}
                       {initiativeCombatants.length}
                     </span>
                   )}
