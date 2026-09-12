@@ -8,8 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { PlayerCard } from "../PlayerCard";
 import React from "react";
-import type { Player, Token, SceneObject, Drawing, PlayerState, TokenSize } from "@herobyte/shared";
-import { savePlayerState, loadPlayerState } from "../../../../utils/playerPersistence";
+import type { Player } from "@herobyte/shared";
 
 const createMockPlayer = (overrides?: Partial<Player>): Player => ({
   uid: "player-1",
@@ -19,50 +18,6 @@ const createMockPlayer = (overrides?: Partial<Player>): Player => ({
   hp: 80,
   maxHp: 100,
   isDM: false,
-  ...overrides,
-});
-
-const createMockToken = (overrides?: Partial<Token>): Token => ({
-  id: "token-1",
-  owner: "player-1",
-  imageUrl: "token.png",
-  color: "#ff0000",
-  x: 100,
-  y: 150,
-  size: "medium" as TokenSize,
-  ...overrides,
-});
-
-type TokenSceneObject = Extract<SceneObject, { type: "token" }>;
-
-const createMockSceneObject = (
-  overrides?: Partial<Omit<TokenSceneObject, "type">>,
-): TokenSceneObject => ({
-  id: "scene-1",
-  type: "token" as const,
-  owner: "player-1",
-  zIndex: 0,
-  transform: {
-    x: 100,
-    y: 150,
-    rotation: 45,
-    scaleX: 1.5,
-    scaleY: 1.5,
-  },
-  data: { color: "#ff0000", size: "medium" },
-  ...overrides,
-});
-
-const createMockDrawing = (overrides?: Partial<Drawing>): Drawing => ({
-  id: "drawing-1",
-  type: "freehand",
-  points: [
-    { x: 0, y: 0 },
-    { x: 10, y: 10 },
-  ],
-  color: "#000000",
-  width: 2,
-  opacity: 1,
   ...overrides,
 });
 
