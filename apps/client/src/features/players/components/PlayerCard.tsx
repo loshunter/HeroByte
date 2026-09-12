@@ -360,12 +360,25 @@ export const PlayerCard = memo<PlayerCardProps>(
           onClose={() => setSettingsOpen(false)}
           tokenImageInput={tokenImageInput}
           tokenImageUrl={tokenImageUrl}
-          onTokenImageInputChange={setTokenImageInput}
-          onTokenImageApply={(value) => handleTokenImageApply(value)}
-          onTokenImageClear={() => {
-            setTokenImageInput("");
-            handleTokenImageApply("");
-          }}
+          // Only where the apply can ACT (a token to write to, a viewer who may):
+          // the menu keys the Token Image panel on these handlers, and before
+          // this a token-less card rendered a URL field whose Apply did nothing.
+          onTokenImageInputChange={
+            onTokenImageSubmit && (isMe || viewerIsDM) ? setTokenImageInput : undefined
+          }
+          onTokenImageApply={
+            onTokenImageSubmit && (isMe || viewerIsDM)
+              ? (value) => handleTokenImageApply(value)
+              : undefined
+          }
+          onTokenImageClear={
+            onTokenImageSubmit && (isMe || viewerIsDM)
+              ? () => {
+                  setTokenImageInput("");
+                  handleTokenImageApply("");
+                }
+              : undefined
+          }
           onDeleteToken={tokenId && onDeleteToken ? () => onDeleteToken(tokenId) : undefined}
           onSavePlayerState={handleSavePlayerState}
           onLoadPlayerState={handleLoadPlayerState}

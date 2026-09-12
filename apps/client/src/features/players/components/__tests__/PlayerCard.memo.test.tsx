@@ -71,6 +71,20 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Play
   ...overrides,
 });
 
+describe("PlayerCard — the token-image field only where it can act", () => {
+  it("no token (no onTokenImageSubmit): no Token Image panel; with one: the panel", () => {
+    const { unmount } = render(
+      <PlayerCard {...createDefaultProps({ isMe: true, onTokenImageSubmit: undefined })} />,
+    );
+    fireEvent.click(screen.getByLabelText("Change portrait"));
+    expect(screen.queryByText(/Token Image/i)).toBeNull();
+    unmount();
+    render(<PlayerCard {...createDefaultProps({ isMe: true, onTokenImageSubmit: vi.fn() })} />);
+    fireEvent.click(screen.getByLabelText("Change portrait"));
+    expect(screen.getByText(/Token Image/i)).toBeInTheDocument();
+  });
+});
+
 describe("PlayerCard memo — the movement fields", () => {
   it("re-renders when the spend alone changes (same token, same drawings, same HP)", () => {
     const token = { id: "t1", owner: "player-1", x: 0, y: 0, color: "red" };

@@ -271,11 +271,14 @@ vi.mock("../PlayerSettingsMenu", () => ({
       </button>
       <button
         data-testid="settings-change-token-input"
-        onClick={() => onTokenImageInputChange("new-image.png")}
+        onClick={() => onTokenImageInputChange?.("new-image.png")}
       >
         Change Token Input
       </button>
-      <button data-testid="settings-apply-token" onClick={() => onTokenImageApply(tokenImageInput)}>
+      <button
+        data-testid="settings-apply-token"
+        onClick={() => onTokenImageApply?.(tokenImageInput)}
+      >
         Apply Token
       </button>
       <button data-testid="settings-clear-token" onClick={onTokenImageClear}>
