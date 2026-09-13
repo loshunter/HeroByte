@@ -2,7 +2,7 @@
 
 Written 2026-09-10 at the close of the keyboard-movement arc. `dev` is at `aacfc2ae`, eleven
 commits past production (`a41a8065`), every one gated by the full ladder (last run: 188 e2e
-passed, 0 flaky) and live-checked with two clients. **SUPERSEDED 2026-09-10: merged and DEPLOYED as `e42d60bf` — see HANDOFF §0.** Read this
+passed, 0 flaky) and live-checked with two clients. **SUPERSEDED 2026-09-10: merged and DEPLOYED as `e42d60bf` — see HANDOFF §0.** **F1–F3 SUPERSEDED 2026-09-13: merged and DEPLOYED as `41ca0106` (CI #863) — see HANDOFF §0.** Read this
 file, then `HANDOFF-NEXT.md` §0 (top two updates), §2, §5 and §8, then the plan
 `keyboard-movement-arc-plan.md` (its three arc-level "Review round" `##` sections dated
 2026-09-09, F1's three `###` rounds dated 2026-09-10, and the "Open after the arc" list are the
@@ -50,22 +50,23 @@ deploy in HANDOFF §0 exactly as the 2026-09-09 update does.
 **Step 2 — the follow-up slice, once the owner has chosen**, in this order of value:
 
 1. ~~**The phone pad covers the token it moves**~~ — DONE on `dev` 2026-09-10 as follow-up F1,
-   NOT merged to `main` (the owner chose (a), the camera follow): `useMovePadCameraFollow`,
+   ~~NOT merged to `main`~~ IN PRODUCTION 2026-09-13 (the owner chose (a), the camera follow): `useMovePadCameraFollow`,
    `mobile-move-pad-follow.spec.ts`, plan section "Follow-up F1" with its three review rounds.
    Start at item 3.
 2. ~~**A DM "reset budget" control** outside a turn boundary, and whether the budget ENFORCES~~
    — DECIDED 2026-09-10 (ADVISORY — "it's a VTT, not an RPG game"; the overspending specs stay)
-   and DONE on `dev` 2026-09-11 as follow-up F2, NOT merged to `main`:
+   and DONE on `dev` 2026-09-11 as follow-up F2, ~~NOT merged to `main`~~ IN PRODUCTION 2026-09-13:
    `movementBudgetMessages.ts`, `MovementSpeedField`'s `budget` prop, plan section "Follow-up
    F2" with its review rounds.
 3. ~~**Whether a DM-owned PC with an initiative is a combatant** (today it is not, by
    `shouldCharacterParticipateInCombat`; its plate is suppressed and the server still charges
    it). If yes, the participation rule changes for initiative too — read `initiative-slice.md`
    memory before touching it.~~ — DECIDED (yes, regardless of `type`, the owner 2026-09-10)
-   and DONE on `dev` 2026-09-11 as follow-up F3, NOT merged to `main`: the shared rule admits
+   and DONE on `dev` 2026-09-11 as follow-up F3, ~~NOT merged to `main`~~ IN PRODUCTION 2026-09-13: the shared rule admits
    a DM-owned character once it has an initiative; the server's private copy is gone; plan
    section "Follow-up F3".
-4. Small, do only if the owner asks: a "nothing selected → your own token" fallback for WASD in
+4. Small, do only if the owner asks (2026-09-13: the owner asked for the FIRST only — the
+   own-token fallback; the other three stay unqueued): a "nothing selected → your own token" fallback for WASD in
    pointer mode; a slower phone hold cadence (one constant, `HOLD_STEP_INTERVAL_MS`); next/prev
    turn ignoring `combatActive` (NOTE from F3's review: if next/prev turn stop ignoring it — or
    start honouring it — the party panel's bench split (`useCombatOrdering`: a DM-owned character

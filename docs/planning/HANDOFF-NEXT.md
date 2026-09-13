@@ -7,6 +7,22 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-13, DEPLOYED — F1, F2 and F3 are IN PRODUCTION).** The owner said merge.
+`dev` fast-forwarded to `main` as `41ca0106` (from `e42d60bf`, nineteen commits: the three
+follow-ups, the thirteen bugs fixed regardless of origin, two test-hygiene commits and the
+2026-09-10 deploy record), both branches pushed 2026-09-13 and synced. Gated first by the full
+ladder (194 e2e passed, 0 failed; 8,578 unit tests; dev boot clean). Deploy probe-verified across
+all 10 served chunks (1,186 KB): the entry bundle went `index-Biz0-AXd` → `index-DU0TBtuF`; the
+discriminating strings `reset-movement-budget` (absent from the client at `e42d60bf`, present at
+`41ca0106`) read 2 hits (1 in the entry bundle, 1 in `lazy-entry-DKFouw49`) and `Reset movement
+budget` 1, the controls `Apply Portrait` / `Portrait Image URL` 2 each and `step-object` 1,
+`/health` 200 on Render. CI run #863 green, `e2e-full-suite` step `success` (not skipped). The
+prod functional check of the server half (a DM reset at a real table, a DM's rolled character
+taking a turn) needs the prod DM password the owner holds and was NOT run. Players there must
+reload. The owner's next calls, decided the same day: from the follow-ups prompt's item-4 list,
+ONLY the pointer-mode "nothing selected → your own token" WASD fallback (the other three stay
+unqueued); and one Atlas §7 item starts next (the owner's pick — see the later update).
+
 **Update (2026-09-11 — FOLLOW-UP F2 on `dev`, NOT merged to `main`: a DM reset-budget control;
 the budget stays ADVISORY).** The owner's call ("it's a VTT, not an RPG game"): no enforcement —
 a red readout is a note, not a wall, and the overspending specs stay. The DM's one lever besides
@@ -87,7 +103,7 @@ closure clause (`1e0fb3cf`). The DM guide's Movement bullet says how a DM's
 own character joins a fight (from its card; the phone has no initiative control), comes home,
 and that it is visible to the table. NEXT: nothing queued from the keyboard-movement follow-ups — the optional item-4 list in
 `PROMPT-keyboard-movement-followups.md` waits on the owner; F1, F2 and F3 are on `dev` for the
-owner's merge call.
+owner's merge call (MERGED and DEPLOYED 2026-09-13 — the update atop §0).
 
 **Update (2026-09-10, later — FOLLOW-UP F1 on `dev`, NOT merged to `main`: the phone pad no
 longer covers the piece it moves).** The owner's call (a): a camera follow while the pad is
@@ -1361,7 +1377,8 @@ turns a cone into something else.
      ADVISORY — DONE on `dev` 2026-09-11, NOT merged; F3 a DM-owned character with an initiative is a combatant regardless of
      `type` — DONE on `dev` 2026-09-11, NOT merged (the shared rule admits it once rolled; the
      server's private copy deleted; it stands in the visible order; redaction stays on `type`).
-     The original queue note follows.
+     **F1–F3 MERGED and IN PRODUCTION 2026-09-13 (`41ca0106`, CI #863) — see the §0 update;
+     from item 4 the owner queued only the own-token WASD fallback.** The original queue note follows.
      ~~QUEUED BY THE OWNER 2026-09-08~~ — keyboard movement, one square per press, with sight and
      movement following it. WASD and the arrow keys move the SELECTED token — or any selected
      item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three
