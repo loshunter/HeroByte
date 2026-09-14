@@ -95,6 +95,11 @@ export function useObjectSelection({
 }: UseObjectSelectionOptions): UseObjectSelectionResult {
   const serverEntry = snapshot?.selectionState?.[uid] ?? null;
   const [optimisticEntry, setOptimisticEntry] = useState<SelectionStateEntry | null>(null);
+  // A deselect is optimistic too: `optimisticEntry = null` alone falls back
+  // to the server's entry, which stays until the `deselect-object` round trip
+  // lands — and a movement key in that window stepped the piece the player
+  // had just stopped selecting (F4's review, round 3).
+  const [cleared, setCleared] = useState(false);
 
   // Clear optimistic state once the authoritative snapshot catches up
   useEffect(() => {
@@ -103,9 +108,10 @@ export function useObjectSelection({
       serverEntry,
     );
     setOptimisticEntry(null);
+    setCleared(false);
   }, [serverEntry]);
 
-  const activeEntry = optimisticEntry ?? serverEntry;
+  const activeEntry = cleared ? null : (optimisticEntry ?? serverEntry);
   const selectedObjectIds = useMemo(() => entryToIds(activeEntry), [activeEntry]);
   const selectedObjectId = useMemo(() => {
     if (!activeEntry) {
@@ -125,6 +131,7 @@ export function useObjectSelection({
         }
         logSelectionDebugWithStack("[useObjectSelection] selectObject(null) called - deselecting");
         setOptimisticEntry(null);
+        setCleared(true);
         sendMessage({ t: "deselect-object", uid });
         return;
       }
@@ -133,6 +140,7 @@ export function useObjectSelection({
         return;
       }
 
+      setCleared(false);
       setOptimisticEntry({ mode: "single", objectId });
       sendMessage({ t: "select-object", uid, objectId });
     },
@@ -145,11 +153,13 @@ export function useObjectSelection({
     }
     logSelectionDebugWithStack("[useObjectSelection] deselect() called");
     setOptimisticEntry(null);
+    setCleared(true);
     sendMessage({ t: "deselect-object", uid });
   }, [activeEntry, sendMessage, uid]);
 
   const selectMultiple = useCallback(
     (objectIds: string[], mode: SelectionMode = "replace") => {
+      setCleared(false);
       logSelectionDebug("[useObjectSelection] selectMultiple called:", objectIds, "mode:", mode);
       const currentIds = entryToIds(activeEntry);
       const normalizedIncoming = normalizeIds(objectIds);

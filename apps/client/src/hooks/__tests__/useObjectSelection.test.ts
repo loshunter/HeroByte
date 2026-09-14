@@ -22,6 +22,37 @@ function createSnapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
 }
 
 describe("useObjectSelection", () => {
+  it("a deselect is optimistic: the selection is empty at once, before the snapshot returns, and a re-select undoes it", () => {
+    const sendMessage = vi.fn();
+    const selected = {
+      selectionState: { me: { mode: "single", objectId: "token:a" } },
+    } as unknown as RoomSnapshot;
+    const { result, rerender } = renderHook(
+      (props: { snapshot: RoomSnapshot }) =>
+        useObjectSelection({ uid: "me", snapshot: props.snapshot, sendMessage }),
+      { initialProps: { snapshot: selected } },
+    );
+    expect(result.current.selectedObjectIds).toEqual(["token:a"]);
+    act(() => result.current.deselect());
+    expect(result.current.selectedObjectIds).toEqual([]);
+    expect(sendMessage).toHaveBeenCalledWith({ t: "deselect-object", uid: "me" });
+    // The server has not answered yet — the same snapshot object: still empty.
+    rerender({ snapshot: selected });
+    expect(result.current.selectedObjectIds).toEqual([]);
+    // A fresh selection wins immediately over the cleared state.
+    act(() => result.current.selectObject("token:b"));
+    expect(result.current.selectedObjectIds).toEqual(["token:b"]);
+    // And the server's answer, when it lands, is what rules from then on.
+    rerender({ snapshot: { selectionState: {} } as unknown as RoomSnapshot });
+    act(() => result.current.deselect());
+    rerender({
+      snapshot: {
+        selectionState: { me: { mode: "single", objectId: "token:c" } },
+      } as unknown as RoomSnapshot,
+    });
+    expect(result.current.selectedObjectIds).toEqual(["token:c"]);
+  });
+
   it("optimistically selects objects and syncs with server snapshot", () => {
     const sendMessage = vi.fn();
     const baseSnapshot = createSnapshot();

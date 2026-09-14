@@ -550,3 +550,52 @@ describe("the by-owner token fallback never resolves a DM's row to a goblin they
     expect(screen.getByLabelText("Sight radius in feet")).toHaveValue(45);
   });
 });
+
+describe("each row resolves the loose token of ITS player, not the viewer's", () => {
+  it("two players with one loose token each: the rows bind their own", () => {
+    const THEM = "them-uid";
+    render(
+      <MobileEntitiesList
+        {...listProps({ isDM: true })}
+        players={
+          [
+            ...players,
+            {
+              uid: THEM,
+              name: "Them",
+              hp: 8,
+              maxHp: 8,
+              micLevel: 0,
+              isDM: false,
+              statusEffects: [],
+            },
+          ] as unknown as Player[]
+        }
+        characters={
+          [
+            { ...characters[0]!, tokenId: null },
+            {
+              id: "char-2",
+              name: "Them",
+              type: "pc",
+              ownedByPlayerUID: THEM,
+              hp: 8,
+              maxHp: 8,
+              tokenId: null,
+            },
+          ] as unknown as SnapshotCharacter[]
+        }
+        tokens={[
+          { id: "mine", owner: ME, x: 1, y: 1, color: "red", visionRadius: 45 },
+          { id: "theirs", owner: THEM, x: 2, y: 2, color: "blue", visionRadius: 15 },
+        ]}
+      />,
+    );
+    const edits = screen.getAllByRole("button", { name: /EDIT/ });
+    fireEvent.click(edits[0]!);
+    fireEvent.click(edits[1]!);
+    // Both rows open: the controls read, in row order, each player's OWN loose token.
+    const controls = screen.getAllByLabelText("Sight radius in feet");
+    expect(controls.map((c) => (c as HTMLInputElement).value)).toEqual(["45", "15"]);
+  });
+});
