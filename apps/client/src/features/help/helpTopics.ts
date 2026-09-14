@@ -154,7 +154,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Move",
         detail:
-          "Drag it, or step it with WASD / arrows (QEZC diagonal; hold to walk). With nothing selected the keys move your own token if you run just one character — unless you are typing, or you last clicked into a scrolling panel (then the arrows page it; the letters still walk). 🖱️ SELECT, 🔄 TRANSFORM and the drawing / placement tools keep the keys; select a piece to step that instead. On a phone: TOOLS → □ Select, tap the piece, and a d-pad appears. In combat your plate reads feet left / speed, refilled at the start of your turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs) and can reset a spend there — the budget is advisory.",
+          "Drag it, or step it with WASD / arrows (QEZC diagonal; hold to walk). With nothing selected the keys move your own token if you run just one character — except while typing, and ↑/↓ page a panel you last clicked into or scrolled (WASD and ←/→ still walk). 🖱️ SELECT and 🔄 TRANSFORM move only the piece you picked (nothing picked, nothing moves); ✏️ Draw, the grid-alignment wizard and atlas-link take the keys. Phone: TOOLS → □ Select, tap the piece, use the d-pad.",
       },
       { term: "Recolor", detail: "Double-click your own token for a new random colour." },
       {
@@ -285,7 +285,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Combat starts",
         detail:
-          "The first initiative saved starts it for everyone; cards reorder and the current turn glows gold.",
+          "The first initiative saved starts it for everyone; cards reorder and the current turn glows gold. A party member's plate then reads feet left / speed, refilled at the start of its turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs) and can reset a spend there — the budget is advisory, a red readout is a note, not a wall.",
       },
       { term: "◄ PREV / NEXT ►", detail: "Advance the turn — any player can nudge it." },
     ],

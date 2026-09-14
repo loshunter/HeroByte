@@ -482,6 +482,22 @@ describe("App", () => {
       dx: 1,
       dy: 0,
     });
+    // A composing tool owns the keys even with a selection on hand; a selection
+    // tool keeps the selected road.
+    selectionMock.selectedObjectIds = ["token:token-1"];
+    for (const [tool, steps] of [
+      ["draw", false],
+      ["align", false],
+      ["atlas-link", false],
+      ["select", true],
+      ["transform", true],
+    ] as const) {
+      sendMessage.mockClear();
+      act(() => latestHeaderProps!.onToolSelect(tool));
+      press();
+      if (steps) expect(sendMessage, `${tool} keeps the selected road`).toHaveBeenCalled();
+      else expect(sendMessage, `${tool} owns the keys, selection or not`).not.toHaveBeenCalled();
+    }
   });
 
   it("clears selection when transform mode is toggled off", async () => {

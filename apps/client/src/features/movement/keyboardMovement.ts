@@ -81,8 +81,9 @@ export interface MovableSelectionInput {
 /**
  * The scene-object id of the actor's own token when nothing is selected, or
  * null when there is no single answer. The actor must run exactly ONE `pc`
- * character (a DM's own PC counts — F3 made it a combatant; NPC characters
- * are never owned by a player). That character's linked token answers when
+ * character (a DM's own PC counts — F3 made it a combatant; an NPC is unowned
+ * by every road the client drives, and an owned one is filtered by `type`
+ * regardless). That character's linked token answers when
  * the snapshot has it; a link to a token the snapshot lacks (stashed by a
  * scene capture) answers nothing rather than guessing. Only when the
  * character predates linking (`tokenId` unset) does ownership decide, and

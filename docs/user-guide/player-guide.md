@@ -53,7 +53,7 @@ Your token is your presence on the map:
 
 - **Nameplate and HP bar** — every token wears its character's name, and a thin health bar when you're allowed the numbers (your party always; monsters at the DM's discretion — a red dot means bloodied). Names hold their size at any zoom.
 
-- **Move** — drag it. With **SNAP** on (top toolbar) it clicks to grid cells; everyone sees your drag live. Or step it from the keyboard: **WASD** / **arrows** move it one cell (Q E Z C for the diagonals; hold a key to walk). With nothing selected the keys move your own token, as long as you run just the one character (with a second, pick the one you mean first) — unless you are typing, or you last clicked into a scrolling panel such as the log (then the arrows page it; the letters still walk). With **🖱️ SELECT** or **🔄 TRANSFORM** armed the keys move what you have selected and nothing else; to move something else you may move, pick it with one of those tools first.
+- **Move** — drag it. With **SNAP** on (top toolbar) it clicks to grid cells; everyone sees your drag live. Or step it from the keyboard: **WASD** / **arrows** move it one cell (Q E Z C for the diagonals; hold a key to walk). With nothing selected the keys move your own token, as long as you run just the one character (with a second, pick the one you mean first) — except while you are typing, and **↑/↓** page a panel you last clicked into or scrolled, such as the log (WASD and ←/→ still walk). With **🖱️ SELECT** or **🔄 TRANSFORM** armed the keys move only the piece you have picked (nothing picked, nothing moves); **✏️ Draw**, the grid-alignment wizard and atlas-link take the keys entirely. To move something else you may move, pick it with SELECT or TRANSFORM first.
 - **Recolor** — double-click your token for a new random color.
 - **Select** — click it. **Shift-click** adds to a selection, **Ctrl/Cmd-click** toggles. With the **🖱️ SELECT** tool you can drag a marquee to grab several tokens and drawings at once, then drag any one of them to move the whole group.
 - **Resize / rotate** — with the **🔄 TRANSFORM** tool, click a token for Photoshop-style handles: 8 scale handles plus a rotation handle above (rotation snaps to 45°; hold **Ctrl/Cmd** to rotate freely). The center crosshair drags the object.
@@ -244,6 +244,6 @@ Party and Log open as full screens: close them with the **✕**, or drag their t
 
 ![The mobile party screen](img/mobile-party.jpg)
 
-To move a piece by steps on a phone: **TOOLS → □ Select**, tap the piece, and a d-pad appears in its sheet (hold a direction to walk; the map scrolls to keep the piece in view when the strip above the sheet is tall enough to hold it).
+To move a piece by steps on a phone: **TOOLS → □ Select**, tap the piece, and a d-pad appears in its sheet (hold a direction to walk; the map scrolls to keep the piece in view — the whole piece and its nameplate when the strip above the sheet has room, otherwise its top edge).
 
 One finger pans, two fingers pinch-zoom. A few desktop-only extras (CRT, game-feel settings, player-state files) don't exist on mobile. DM map authoring _does_ — see [On a phone or tablet](map-editor-guide.md#on-a-phone-or-tablet) in the map editor guide.

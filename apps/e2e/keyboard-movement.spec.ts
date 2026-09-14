@@ -125,11 +125,11 @@ test.describe("keyboard movement", () => {
     // token it spawns — a precondition here, pinned as a rule in the unit
     // suite, not proven by this spec).
     const linked = await linkedToken(page);
-    // Nothing is selected and nothing was clicked: no tool armed, no click
-    // on a piece (a click on a token selects it under the plain cursor too,
-    // and that selection would carry the key down the OLD road). Settled,
-    // so the guard reads the state the press will meet.
-    await expect.poll(() => selectionEntry(page), { timeout: 2_000 }).toBeNull();
+    // Nothing is selected: no tool armed, and the plain cursor never holds a
+    // selection (the selection manager clears one whenever neither Select nor
+    // Transform is armed) — asserted anyway, against the snapshot linkedToken
+    // already waited for, so the case cannot pass down the selected road.
+    expect(await selectionEntry(page)).toBeNull();
     const origin = await readCell(page, linked);
 
     await page.keyboard.press("ArrowRight");
@@ -154,6 +154,25 @@ test.describe("keyboard movement", () => {
     await expect
       .poll(() => readCell(page, linked), { timeout: 5_000 })
       .toEqual({ x: origin.x, y: origin.y - 1 });
+  });
+
+  test("⚔️ Focus-on-token — a button INSIDE the scrolling party panel — then an ARROW still steps (F4)", async ({
+    page,
+  }) => {
+    await joinDefaultRoom(page);
+    const linked = await linkedToken(page);
+    // The flow the feature exists for, in its real shape: the ⚔️ button lives
+    // in the entities panel, a 320px overflow:auto scroller. A click on a
+    // CONTROL is a click on the control, never "into" the panel — so the
+    // arrows, not only the letters, stay the board's.
+    await page.locator('button[aria-label="Focus camera on token"]').first().click();
+    expect(await selectionEntry(page)).toBeNull();
+    const origin = await readCell(page, linked);
+
+    await page.keyboard.press("ArrowRight");
+    await expect
+      .poll(() => readCell(page, linked), { timeout: 5_000 })
+      .toEqual({ x: origin.x + 1, y: origin.y });
   });
 });
 

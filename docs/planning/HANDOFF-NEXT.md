@@ -8,54 +8,46 @@ production. Where something is a judgement call rather than a fact, it says so.
 ## 0. Where things stand
 
 **Update (2026-09-13, later — FOLLOW-UP F4 on `dev`, NOT merged to `main`: nothing selected →
-your own token; review rounds 1 and 2 answered).** The one item-4 leftover the owner queued.
-With an EMPTY selection the movement keys move the actor's own token: `ownTokenFallback` (the
-pure half of `features/movement`) names the ONE `pc` character owned by the uid — its linked
-`tokenId` when the snapshot has that token (a link to a stashed token answers nothing), else the
-ONE token of theirs that NO character claims (`looseOwnToken`, `utils/` — an NPC token carries
-the placing DM's uid and is linked to its NPC by every client-driven road; round 1's critical:
-"owned by me" alone handed a DM a goblin); zero or two-plus PCs, or two loose tokens, or a claim
-by someone else's character → nothing. The id takes a click's road through `movableSelection` (a
-locked own token stays the DM's; a token someone else owns is refused for a player, stepped by a
-DM) and map-edit zeroes it; a non-empty selection the actor may not move is NOT "nothing". The
-fallback road — never the selected one — yields a key only to a surface that would USE it
-(round 1: the listener had become always-on and swallowed the arrows meant for the roll log;
-round 2: round 1's "last click on the stage" witness over-corrected — ⚔️ then W was dead, and
-its login-click rationale named a mechanism that does not exist): a typing surface or a focused
-arrow widget keeps every movement key, a focused BUTTON keeps none, the ARROWS alone page an
-overflowing panel the last pointer landed in (the stage clears it), and `toolOwnsKeys` (draw,
-align, atlas-link, select, transform — threaded from `App.tsx`, pinned at the App level) makes
-the fallback register nothing; nothing yields on a fresh join. Wire unchanged. Keyboard-only in
-effect: the phone's d-pad needs the selection sheet, which needs a selection — pinned on the
-sheet's region role with an inline control for the sheet AND the pad. Copy: the help entry's Move
-term leads with the keyboard rule, qualified (one character; not while typing; the arrows page a
-scrolling panel you last clicked into; SELECT / TRANSFORM / the drawing and placement tools keep
-the keys; TOOLS → □ Select → tap on a phone); the player guide's Move bullet likewise, and its
-phone section gains the d-pad road the guides never had. Fixed on the way, own commits: (a) the
-reconnect re-token was gated on "any token this uid owns", which a DM's goblin satisfies, so a DM
-who deleted their own token never got one back — `CharacterService.ensureToken` (kept when linked
-and live or stashed in a scene capture; a DEAD link — a table saved before `unlinkDeletedToken`
-shipped, or `clearAllTokensExcept` — is cleared and the character re-tokened; adopted when exactly
-one own token is loose AND the owner runs one PC; else spawned and linked; `findTokenByOwner`
-deleted), the auth road delegating, pinned 10 + 1 ways incl. the real handler on a reconnect that
-is a NEW socket, live-checked in the discriminating scenario; (b) the party panel's ordering hook
-and the phone's party list still resolved a DM's unlinked PC to the first goblin — now
-`looseOwnToken`, pinned at both. Pinned by 9 rule, 20 hook, 1 App, 3 precedent, 1 phone, 2 e2e,
-10 + 1 server cases; sabotage 10/10 before round 1, 14/14 after it, 19/19 (8 at the hook, 2 at the App threading, 1 at the shared helper, 2 at the precedents, 5 on the server, 1 under the e2e spec — its two F4 cases red, the three others green) after round 2 (every
-one on its named case), sources restored byte-identical; both real typechecks and the structure
-guard clean; live-checked with two clients after each round — after round 2: the LOG button then
-`w` SENT (a button keeps nothing), a click into the roll log's scrolling body then ArrowUp sent
-NOTHING and `w` sent again — the server log's send counts are the evidence (3 sends for the three
-letters, 0 for the arrow); the loaded public dev table did not apply those steps at (16,15) within
-5 s (walls, or the late apply seen earlier), so the fresh-table e2e is the landing evidence. Round 1: four lenses, all FAIL (1 critical / 13 major /
-13 minor raw → 1 / 8 / 11); round 2: four fresh lenses, all FAIL (0 / 14 / 28 raw → 0 / 7 / 17)
-— two of round 1's fixes had REGRESSED (the witness; the dead link), both fixed; every finding
-fixed or recorded in the plan's "Review round 1" and "Review round 2" (recorded: an on-screen
-affordance + a desktop camera follow — feature widenings, the owner's call; the help entry's
-split — `helpTopics.ts` is at 345 of 350). Round 3 next — the cap; a count that does not drop
-escalates to the owner. Plan section "Follow-up F4" in `keyboard-movement-arc-plan.md`. NEXT after
-the review: the owner's Atlas §7 pick (asked 2026-09-13); the other three item-4 leftovers stay
-unqueued.
+your own token; three review rounds, the cap — THE OWNER DECIDES ON THE RECORD).** The one
+item-4 leftover the owner queued. With an EMPTY selection the movement keys move the actor's own
+token: `ownTokenFallback` (the pure half of `features/movement`) names the ONE `pc` character
+owned by the uid — its linked `tokenId` when the snapshot has that token (a link to a stashed
+token answers nothing), else the ONE token of theirs that NO character claims (`looseOwnToken`,
+`utils/`, shared with the party panel and the phone list — an NPC token carries the placing DM's
+uid and is linked to its NPC by every client-driven road; round 1's critical: "owned by me" alone
+handed a DM a goblin); zero or two-plus PCs, or two loose tokens, or a claim by someone else's
+character → nothing. The id takes a click's road through `movableSelection` and map-edit zeroes
+it; a non-empty selection the actor may not move is NOT "nothing". The fallback road — never the
+selected one — yields a key only to a surface that would USE it: a typing surface or a focused
+arrow widget keeps every movement key, a focused BUTTON keeps none, ↑/↓ page the panel the player
+last clicked INTO or wheeled over (the hook pages it — the browser has no focused target; a click
+on a control never arms the panel around it, ⚔️ sits inside the scrolling party panel; measured
+at the press; ←/→, the letters and the numpad never page), `composingTool` (draw / align /
+atlas-link — from `App.tsx`) owns the keys selection or not (a deselect is now optimistic in
+`useObjectSelection`), and `selectionTool` (select / transform) owns an empty selection. Nothing
+yields on a fresh join; the plain cursor never holds a selection. Wire unchanged. Keyboard-only in
+effect: the phone's d-pad needs the selection sheet, which needs a selection — pinned. Copy: the
+help entry's Move term, 465 chars (one character; not while typing; ↑/↓ page a panel last clicked
+into or scrolled; SELECT/TRANSFORM move only the picked piece; ✏️ Draw, the grid-alignment wizard
+and atlas-link take the keys; TOOLS → □ Select → tap on a phone), the budget material moved to
+"Combat starts"; the player guide likewise, its phone section carrying the d-pad road. Fixed on
+the way, own commits: (a) the reconnect re-token — `CharacterService.ensureToken` (kept when
+linked and live or stashed; a DEAD link cleared and re-tokened; adopted when exactly one own token
+is loose AND the owner runs one PC; else spawned; `findTokenByOwner` deleted), the auth road
+ensuring EVERY owned PC; (b) the party panel and the phone list's by-owner fallbacks →
+`looseOwnToken`; (c) the optimistic deselect. Pinned by 9 rule, 27 hook blocks (37 instances),
+1 selection, 1 App, 4 precedent, 1 phone, 3 e2e, 12 + 2 server cases; sabotage 10/10, 14/14,
+19/19, 19/19 (12 at the hook and its App threading, 1 at the selection hook, 1 at the phone list, 4 on the server, 1 under the e2e spec — its three F4 cases red, the three others green) across the four passes (every one on its named case), sources restored
+byte-identical; both real typechecks and the structure guard clean; live-checked with two clients
+after rounds 1 and 2 (the server log's send counts are the evidence; the fresh-table e2e is the
+landing evidence). **Review: round 1 (1 / 8 / 11) → round 2 (0 / 7 / 17) → round 3 (0 / 7 / 20)
+deduplicated, every lens FAIL each round, the count never dropping — the plateau rule at the
+cap: no round 4, every finding fixed or recorded in the plan's three round records, and THE OWNER
+DECIDES on the record.** Open owner calls recorded there: an on-screen affordance (a persistent
+"WASD moves <name>" hint, not a toast) + a desktop camera follow; `role="tab"` on the DM menu's
+and the log's tab strips. Plan section "Follow-up F4" in `keyboard-movement-arc-plan.md`. NEXT
+after the owner's call: the Atlas §7 pick (asked 2026-09-13); the other three item-4 leftovers
+stay unqueued.
 
 **Update (2026-09-13, DEPLOYED — F1, F2 and F3 are IN PRODUCTION).** The owner said merge.
 `dev` fast-forwarded to `main` as `41ca0106` (from `e42d60bf`, nineteen commits: the three
