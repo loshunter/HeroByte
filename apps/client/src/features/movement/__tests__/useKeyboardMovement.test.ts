@@ -1,6 +1,8 @@
 // The listener: a bare movement key sends ONE relative step-object naming
 // every movable selected object; the 4.17 guard (typing surface, modifier, a
-// modal overlay) and map-edit mode make it inert; nothing selected leaves the key alone (no
+// modal overlay) and map-edit mode make it inert; nothing selected falls back
+// to the actor's own token (F4) — and where there is no single own token, or
+// the selection is someone else's piece, the key is left alone (no
 // preventDefault — arrows still scroll a focused panel); a held key walks at
 // the bounded cadence. There is no client-side chain any more: the server
 // resolves every step from its own cell, so N presses are N steps in order.
@@ -10,13 +12,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
 import { HOLD_STEP_INTERVAL_MS, useKeyboardMovement } from "../useKeyboardMovement";
 
-function snapshotWith(tokens: Array<{ id: string; owner: string; x: number; y: number }>) {
+function snapshotWith(
+  tokens: Array<{ id: string; owner: string; x: number; y: number }>,
+  characters: Array<{ type: "pc" | "npc"; owner: string; tokenId: string | null }> = [],
+) {
   return {
     tokens: tokens.map((t) => ({ ...t, color: "hsl(0 0% 0%)" })),
     props: [],
     sceneObjects: [],
+    characters: characters.map((c, i) => ({
+      id: `c${i}`,
+      name: `c${i}`,
+      type: c.type,
+      ownedByPlayerUID: c.owner,
+      tokenId: c.tokenId,
+    })),
   } as unknown as RoomSnapshot;
 }
+
+/** The actor's one PC, linked to the token "mine"; "theirs" belongs to someone else. */
+const oneHero = () =>
+  snapshotWith(
+    [
+      { id: "mine", owner: "me", x: 3, y: 4 },
+      { id: "theirs", owner: "them", x: 7, y: 8 },
+    ],
+    [{ type: "pc", owner: "me", tokenId: "mine" }],
+  );
 
 interface HookProps {
   selectedObjectIds: string[];
@@ -204,6 +226,74 @@ describe("useKeyboardMovement", () => {
     rerender({ ...initial, selectedObjectIds: ["token:mine"] });
     expect(keydowns()).toBe(before + 1);
     add.mockRestore();
+  });
+
+  describe("nothing selected → your own token (F4)", () => {
+    it("with nothing selected, d steps the actor's own token and swallows the key", () => {
+      const { sendMessage, result } = setup({ selectedObjectIds: [], snapshot: oneHero() });
+      expect(result.current.movableCount).toBe(1);
+      const event = press("d");
+      expect(sent(sendMessage)).toEqual([{ t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 }]);
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it("two PCs of mine and nothing selected: no guess — the key is left alone", () => {
+      const twoHeroes = snapshotWith(
+        [
+          { id: "mine", owner: "me", x: 3, y: 4 },
+          { id: "mine2", owner: "me", x: 5, y: 5 },
+        ],
+        [
+          { type: "pc", owner: "me", tokenId: "mine" },
+          { type: "pc", owner: "me", tokenId: "mine2" },
+        ],
+      );
+      const { sendMessage, result } = setup({ selectedObjectIds: [], snapshot: twoHeroes });
+      expect(result.current.movableCount).toBe(0);
+      const event = press("ArrowRight");
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it("a selection I may not move is not 'nothing' — no fallback, the key is left alone", () => {
+      const { sendMessage, result } = setup({
+        selectedObjectIds: ["token:theirs"],
+        snapshot: oneHero(),
+      });
+      expect(result.current.movableCount).toBe(0);
+      const event = press("ArrowRight");
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it("the fallback takes a click's road: a locked own token is the DM's alone", () => {
+      const locked = {
+        ...oneHero(),
+        sceneObjects: [{ id: "token:mine", locked: true }],
+      } as unknown as RoomSnapshot;
+      const player = setup({ selectedObjectIds: [], snapshot: locked });
+      expect(player.result.current.movableCount).toBe(0);
+      press("d");
+      expect(player.sendMessage).not.toHaveBeenCalled();
+      player.unmount();
+      const dm = setup({ selectedObjectIds: [], snapshot: locked, isDM: true });
+      expect(dm.result.current.movableCount).toBe(1);
+      press("d");
+      expect(sent(dm.sendMessage)).toEqual([
+        { t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 },
+      ]);
+    });
+
+    it("map-edit mode is inert with the fallback too", () => {
+      const { sendMessage, result } = setup({
+        selectedObjectIds: [],
+        snapshot: oneHero(),
+        mapEditMode: true,
+      });
+      expect(result.current.movableCount).toBe(0);
+      press("d");
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
   });
 
   it("removes its listener on unmount", () => {

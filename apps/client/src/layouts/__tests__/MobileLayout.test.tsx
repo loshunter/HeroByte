@@ -721,6 +721,23 @@ describe("MobileLayout", () => {
     expect(screen.queryByRole("group", { name: /move selection/i })).not.toBeInTheDocument();
   });
 
+  it("the own-token fallback lights nothing here: a movable count with NO selection mounts no sheet and no pad", () => {
+    // useKeyboardMovement reports movableCount 1 with an empty selection when
+    // the actor has one token (F4) — that is the keys' road. The phone's pad
+    // lives in the selection sheet, which needs a selection to mount.
+    const props = createDefaultProps();
+    props.activeTool = "select";
+    props.selectMode = true;
+    props.selectedObjectId = null;
+    props.selectedObjectIds = [];
+    props.movement = { movableCount: 1, move: vi.fn() };
+
+    render(<MobileLayout {...props} />);
+
+    expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /move selection/i })).not.toBeInTheDocument();
+  });
+
   it("renders DiceRoller when diceRollerOpen is true", () => {
     const props = createDefaultProps();
     props.diceRollerOpen = true;

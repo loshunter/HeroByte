@@ -10,6 +10,15 @@
 // business, and so is what a step COSTS against a movement budget
 // (movementCharge, under the diagonal rule). Tokens and props only — a
 // drawing's transform is in pixels, so "one cell" means nothing there.
+//
+// NOTHING SELECTED → YOUR OWN TOKEN (follow-up F4). Selection only lives in
+// Select/Transform mode, so with the plain cursor a player had to arm Select
+// and click their token before a key did anything. With an EMPTY selection
+// the keys now stand in for "my token": the actor's ONE PC character's
+// token — never a guess between two (the by-owner precedent in
+// useCombatOrdering / MobileEntitiesList: with two characters a guess is
+// wrong for one of them). A non-empty selection the actor may not move is a
+// deliberate selection of someone else's piece, not "nothing" — it stays inert.
 
 import type { RoomSnapshot } from "@herobyte/shared";
 
@@ -64,6 +73,29 @@ export interface MovableSelectionInput {
   snapshot: RoomSnapshot | null;
   uid: string;
   isDM: boolean;
+}
+
+/**
+ * The scene-object id of the actor's own token when nothing is selected, or
+ * null when there is no single answer: the actor's ONE `pc` character's
+ * linked token (`character.tokenId`), else — when that one character predates
+ * linking — the one token they own. Zero PCs or two or more → null (a DM's
+ * NPCs never count; a DM's own PC does, as F3 made it a combatant). The id
+ * still goes through `movableSelection`, so a locked own token stays a DM's
+ * to move, exactly as if it had been clicked.
+ */
+export function ownTokenFallback({
+  snapshot,
+  uid,
+}: Pick<MovableSelectionInput, "snapshot" | "uid">): MovableSelection | null {
+  if (!snapshot) return null;
+  const own = (snapshot.characters ?? []).filter(
+    (character) => character.type === "pc" && character.ownedByPlayerUID === uid,
+  );
+  if (own.length !== 1) return null;
+  const tokenId =
+    own[0].tokenId ?? snapshot.tokens?.find((token) => token.owner === uid)?.id ?? null;
+  return tokenId ? `token:${tokenId}` : null;
 }
 
 /**

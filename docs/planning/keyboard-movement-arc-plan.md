@@ -918,9 +918,48 @@ position 1; the join/reconnect DM-token road is pinned by inspection and the liv
 unit fixture (the auth handler has none); the `readouts` helper throws rather than returns if a
 plate ever lacked its nameplate (structurally impossible today). Sabotage after round 3: 11 attempts — 8 red (the badge hidden without a handler again; the badge live for everyone; + Add Character hidden on a DM card; the image handlers always passed — red only once BOTH handlers were un-gated, the menu keys the panel on the pair; the owner-token fallback for any count of characters; add-character skipping a DM's token; a delete leaving the link dangling; `--jrpg-white` undefined), 2 green by construction (the comparator's presence clause — subsumed by the `used` comparison, `undefined` never equals a number, kept for readability; the travel pointer's bare roll — identical behaviour while the rule admits every rolled character, the same class as the helper's own conjunct), 1 with no single-line sabotage (HP's axis is the recipient filter's, pre-existing; the contract case pins presence). 35 in all, 30 red. Live-checked after the round with two clients on the dev table: the DM's card offers + Add Character; the DM rolls 17 and the player's screen shows the card in the order with the DM face, the "Dungeon Master" caption and a read-only "Initiative 17" badge beside their own live one; the DM's Delete Token nulls the character's link, and a reload re-tokens it on the reconnect road with the roll kept and the plate back at 30 / 30. The round's verdict on the tree it read was FAIL on every lens; every major is fixed above and the tree lints, typechecks and passes every suite after them — no round 4, per the cap: the owner decides on this record.
 
+## Follow-up F4 (2026-09-13) — nothing selected → your own token
+
+**The owner's call** (2026-09-13, from the follow-ups prompt's item-4 list — the ONLY one of the
+four queued): the pointer-mode fallback. Selection only lives in Select/Transform mode (it
+auto-clears elsewhere — `useSelectionManager`), so with the plain cursor a player had to arm
+🖱️ Select and click their own token before a key did anything. Statement: with an EMPTY selection
+the keys stand in for "my token". The rule is `ownTokenFallback` (the pure half,
+`keyboardMovement.ts`): the actor's ONE `pc` character owned by their uid → its linked
+`character.tokenId`, else — when that one character predates linking — the one token they own; zero
+PCs or two or more → nothing (the by-owner precedent in `useCombatOrdering` / `MobileEntitiesList`:
+with two characters a guess is wrong for one of them). A DM's NPCs never count; a DM's own PC does
+(F3 made it a combatant). The resolved id then goes through `movableSelection` exactly as a clicked
+one would — so a locked own token stays a DM's alone — and map-edit mode zeroes it with the rest.
+A NON-empty selection the actor may not move is a deliberate selection of someone else's piece,
+not "nothing": it stays inert and the key is left alone, so the "arrows still scroll a focused
+panel" property holds there; with nothing selected and one own token the arrows are now swallowed,
+which is the point. The wire is unchanged (`step-object` naming the own token; the server guards
+as always). **Keyboard-only in effect, by the owner's wording:** the phone's d-pad lives in the
+selection sheet, which mounts only with a selection in Select/Transform (`MobileLayout`), so a
+`movableCount` of 1 with nothing selected lights nothing there — pinned, so the semantics cannot
+drift into a pad that is always up; the phone's road stays tap-select → d-pad. The camera follow
+computes its own movable set and is gated on the same sheet, so the fallback branch is never live
+there. Docs: the help topic's Move entry and the player guide's Move bullet (which had never
+mentioned the keyboard at all — the arc's own doc gap, closed here).
+
+Pinned by the rule (5 cases: linked; unlinked-by-owner; two PCs / none / no snapshot; an NPC never
+counts beside or alone; someone else's PC, and a lone unlinked PC with no owned token), the hook
+(5: the step and the swallow with nothing selected; two PCs → left alone; an unmovable selection →
+no fallback; the locked own token is the DM's alone; map-edit inert), the phone (1: a movable
+count with no selection mounts no sheet and no pad) and e2e (`keyboard-movement.spec.ts`: no tool
+armed, the selection entry asserted absent so the old road cannot carry it, ArrowRight steps the
+own token). Sabotage 10/10 red, sources restored byte-identical: the fallback always null (5 cases
+red); the exactly-one guard dropped (2); the `pc` clause dropped; the by-owner fallback dropped;
+someone else's PC counted as mine; the fallback skipping `movableSelection` (lock ignored); the
+fallback beside an unmovable selection; map-edit no longer zeroing it; the fallback cut under the
+e2e spec (the named case red, 3 others green); the phone sheet mounting on the movable count alone
+(the named case red, 50 green). The client's real typecheck (`tsconfig.typecheck.json`) clean.
+
 ## Open after the arc (owner's calls)
 
-- A "nothing selected → your own token" fallback for WASD in pointer mode.
+- ~~A "nothing selected → your own token" fallback for WASD in pointer mode.~~ — DONE as
+  Follow-up F4 (2026-09-13): `ownTokenFallback`, keyboard-only in effect; see its section.
 - ~~Whether a DM-owned PC with an initiative should be a combatant (today it is not, by the
   pre-existing participation rule), which decides whether its budget ever resets on a turn.~~
   — DECIDED yes and DONE as Follow-up F3 (2026-09-11): rolled, it is a combatant; its budget

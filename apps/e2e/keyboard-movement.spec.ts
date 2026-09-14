@@ -4,7 +4,8 @@
  * A bare movement key moves the selected token one whole cell over the
  * relative `step-object` message (the server applies it on the ordinary
  * transform road); a typing surface keeps its keystrokes (invariant 4.17); a
- * selection the player may not move sends nothing.
+ * selection the player may not move sends nothing; with NOTHING selected the
+ * keys move the player's own token (F4) — no tool armed, no click first.
  */
 import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
@@ -112,5 +113,37 @@ test.describe("keyboard movement", () => {
     } finally {
       await otherContext.close();
     }
+  });
+
+  test("with no tool armed and nothing selected, ArrowRight steps your own token (F4)", async ({
+    page,
+  }) => {
+    await joinDefaultRoom(page);
+    const token = await ownToken(page);
+    // The join road links the character to its token; the fallback reads that link.
+    await page.waitForFunction(() => {
+      const data = window.__HERO_BYTE_E2E__;
+      return Boolean(
+        data?.snapshot?.characters?.some(
+          (c) => c.ownedByPlayerUID === data.uid && typeof c.tokenId === "string",
+        ),
+      );
+    });
+    // Nothing is selected: Select was never armed, and the plain cursor never
+    // holds a selection (it auto-clears outside Select/Transform). Asserted,
+    // so this cannot pass through the selected-token road by accident.
+    expect(
+      await page.evaluate(() => {
+        const data = window.__HERO_BYTE_E2E__!;
+        return data.snapshot!.selectionState?.[data.uid!] ?? null;
+      }),
+    ).toBeNull();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    const origin = { x: Math.round(token.x), y: Math.round(token.y) };
+
+    await page.keyboard.press("ArrowRight");
+    await expect
+      .poll(() => readCell(page, token.id), { timeout: 5_000 })
+      .toEqual({ x: origin.x + 1, y: origin.y });
   });
 });

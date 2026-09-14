@@ -7,6 +7,22 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-13, later — FOLLOW-UP F4 on `dev`, NOT merged to `main`: nothing selected →
+your own token).** The one item-4 leftover the owner queued. With an EMPTY selection the movement
+keys move the actor's own token: `ownTokenFallback` (the pure half of `features/movement`) names
+the ONE `pc` character owned by the uid — its linked `tokenId`, else the one token they own when
+that character predates linking; zero or two-plus PCs → nothing, by the by-owner precedent
+(`useCombatOrdering` / `MobileEntitiesList`); a DM's NPCs never count, a DM's own PC does. The id
+takes a click's road through `movableSelection` (a locked own token stays the DM's) and map-edit
+zeroes it; a non-empty selection the actor may not move is NOT "nothing" and stays inert. Wire
+unchanged. Keyboard-only in effect: the phone's d-pad needs the selection sheet, which needs a
+selection — pinned so a `movableCount` of 1 with nothing selected never lights a pad. Help topic
+and the player guide's Move bullet updated (the guide had never mentioned the keyboard). Pinned by
+5 rule cases, 5 hook cases, 1 phone case and one e2e case (the selection entry asserted absent);
+sabotage 10/10 red (8 unit, 1 e2e, 1 phone), sources restored byte-identical. Plan section
+"Follow-up F4" in `keyboard-movement-arc-plan.md`. NEXT: the owner's Atlas §7 pick (asked
+2026-09-13); the other three item-4 leftovers stay unqueued.
+
 **Update (2026-09-13, DEPLOYED — F1, F2 and F3 are IN PRODUCTION).** The owner said merge.
 `dev` fast-forwarded to `main` as `41ca0106` (from `e42d60bf`, nineteen commits: the three
 follow-ups, the thirteen bugs fixed regardless of origin, two test-hygiene commits and the
@@ -1378,7 +1394,8 @@ turns a cone into something else.
      `type` — DONE on `dev` 2026-09-11, NOT merged (the shared rule admits it once rolled; the
      server's private copy deleted; it stands in the visible order; redaction stays on `type`).
      **F1–F3 MERGED and IN PRODUCTION 2026-09-13 (`41ca0106`, CI #863) — see the §0 update;
-     from item 4 the owner queued only the own-token WASD fallback.** The original queue note follows.
+     from item 4 the owner queued only the own-token WASD fallback — DONE on `dev` 2026-09-13 as
+     Follow-up F4, NOT merged (§0).** The original queue note follows.
      ~~QUEUED BY THE OWNER 2026-09-08~~ — keyboard movement, one square per press, with sight and
      movement following it. WASD and the arrow keys move the SELECTED token — or any selected
      item, so it serves the DM moving an NPC or a prop too — by exactly one grid cell. Three

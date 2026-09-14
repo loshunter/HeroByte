@@ -19,6 +19,14 @@
 // map-edit mode, where the DM is authoring the map, not moving pieces on it
 // (a held key is THROTTLED, not dropped — below).
 //
+// NOTHING SELECTED → the actor's own token (F4, `ownTokenFallback`): the plain
+// cursor never holds a selection, so without this a player had to arm Select
+// first. The fallback is keyboard-only in effect: the phone's d-pad lives in
+// the selection sheet, which mounts only with a selection (MobileLayout), so
+// a `movableCount` of 1 with nothing selected lights nothing there. A
+// selection the actor may not move is NOT "nothing" — it stays inert, and the
+// key is left alone so arrows still scroll a focused panel.
+//
 // ONE message per step for the whole selection, chunked at MAX_STEP_OBJECTS:
 // a message per object was 6.7 × N a second under a held key, past the
 // limiter's 100/s at ~15 objects, and the dropped steps broke formation.
@@ -32,7 +40,12 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { MAX_STEP_OBJECTS, type ClientMessage, type RoomSnapshot } from "@herobyte/shared";
 import { isEditableTarget } from "../../utils/isEditableTarget";
-import { deltaForKey, movableSelection, type CellDelta } from "./keyboardMovement";
+import {
+  deltaForKey,
+  movableSelection,
+  ownTokenFallback,
+  type CellDelta,
+} from "./keyboardMovement";
 
 /** Minimum gap between steps while a key is HELD (a hold walks ~6 cells/s). */
 export const HOLD_STEP_INTERVAL_MS = 150;
@@ -48,7 +61,11 @@ export interface UseKeyboardMovementOptions {
 
 /** What a layout needs to offer the same move without a keyboard (the phone d-pad). */
 export interface MovementControls {
-  /** How many selected objects this actor may move; 0 hides every affordance. */
+  /**
+   * How many objects a step would move; 0 hides every affordance. With
+   * nothing selected this is the own-token fallback (1 or 0) — the phone's
+   * pad still needs a selection to mount, so the fallback is the keys' alone.
+   */
   movableCount: number;
   /** Move every movable selected object by one cell. */
   move: (delta: CellDelta) => void;
@@ -64,10 +81,16 @@ export function useKeyboardMovement({
 }: UseKeyboardMovementOptions): MovementControls {
   // Map-edit mode zeroes the selection for BOTH surfaces (the keys and the
   // phone d-pad), so a DM authoring the map never shoves a token from either.
-  const movable = useMemo(
-    () => (mapEditMode ? [] : movableSelection({ selectedObjectIds, snapshot, uid, isDM })),
-    [mapEditMode, selectedObjectIds, snapshot, uid, isDM],
-  );
+  // An EMPTY selection stands in for the actor's own token, which then takes
+  // the same road (lock, ownership) as a clicked one.
+  const movable = useMemo(() => {
+    if (mapEditMode) return [];
+    const ids =
+      selectedObjectIds.length === 0
+        ? [ownTokenFallback({ snapshot, uid })].filter((id): id is string => id !== null)
+        : selectedObjectIds;
+    return movableSelection({ selectedObjectIds: ids, snapshot, uid, isDM });
+  }, [mapEditMode, selectedObjectIds, snapshot, uid, isDM]);
   // The listener reads the movable set through a ref, and re-registers only
   // when the set of IDS changes — not on every snapshot (one per step during
   // a walk, plus every heartbeat).

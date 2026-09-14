@@ -4,7 +4,17 @@
 
 import { describe, expect, it } from "vitest";
 import type { RoomSnapshot } from "@herobyte/shared";
-import { deltaForKey, movableSelection } from "../keyboardMovement";
+import { deltaForKey, movableSelection, ownTokenFallback } from "../keyboardMovement";
+
+type Owned = { id: string; type: "pc" | "npc"; owner: string | null; tokenId?: string | null };
+const characters = (list: Owned[]): RoomSnapshot["characters"] =>
+  list.map((c) => ({
+    id: c.id,
+    name: c.id,
+    type: c.type,
+    ownedByPlayerUID: c.owner,
+    tokenId: c.tokenId ?? null,
+  })) as unknown as RoomSnapshot["characters"];
 
 function snapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
   return {
@@ -123,5 +133,59 @@ describe("movableSelection", () => {
         isDM: false,
       }),
     ).toEqual([]);
+  });
+});
+
+describe("ownTokenFallback — nothing selected → your own token", () => {
+  it("names the actor's one PC character's linked token", () => {
+    const snap = snapshot({
+      characters: characters([{ id: "hero", type: "pc", owner: "me", tokenId: "mine" }]),
+    });
+    expect(ownTokenFallback({ snapshot: snap, uid: "me" })).toBe("token:mine");
+  });
+
+  it("falls back to the one token the actor owns when that one character predates linking", () => {
+    const snap = snapshot({
+      characters: characters([{ id: "hero", type: "pc", owner: "me", tokenId: null }]),
+    });
+    expect(ownTokenFallback({ snapshot: snap, uid: "me" })).toBe("token:mine");
+  });
+
+  it("is null with two PCs (a guess is wrong for one of them), with none, and without a snapshot", () => {
+    const two = snapshot({
+      characters: characters([
+        { id: "a", type: "pc", owner: "me", tokenId: "mine" },
+        { id: "b", type: "pc", owner: "me", tokenId: "theirs" },
+      ]),
+    });
+    expect(ownTokenFallback({ snapshot: two, uid: "me" })).toBeNull();
+    expect(ownTokenFallback({ snapshot: snapshot(), uid: "me" })).toBeNull();
+    expect(ownTokenFallback({ snapshot: null, uid: "me" })).toBeNull();
+  });
+
+  it("an NPC the actor runs never counts — one PC beside NPCs still resolves, NPCs alone do not", () => {
+    const withNpc = snapshot({
+      characters: characters([
+        { id: "hero", type: "pc", owner: "me", tokenId: "mine" },
+        { id: "goblin", type: "npc", owner: "me", tokenId: "theirs" },
+      ]),
+    });
+    expect(ownTokenFallback({ snapshot: withNpc, uid: "me" })).toBe("token:mine");
+    const onlyNpc = snapshot({
+      characters: characters([{ id: "goblin", type: "npc", owner: "me", tokenId: "theirs" }]),
+    });
+    expect(ownTokenFallback({ snapshot: onlyNpc, uid: "me" })).toBeNull();
+  });
+
+  it("someone else's PC is not mine, and a lone unlinked PC with no owned token is null", () => {
+    const theirs = snapshot({
+      characters: characters([{ id: "hero", type: "pc", owner: "them", tokenId: "theirs" }]),
+    });
+    expect(ownTokenFallback({ snapshot: theirs, uid: "me" })).toBeNull();
+    const noToken = snapshot({
+      tokens: [],
+      characters: characters([{ id: "hero", type: "pc", owner: "me", tokenId: null }]),
+    });
+    expect(ownTokenFallback({ snapshot: noToken, uid: "me" })).toBeNull();
   });
 });
