@@ -338,7 +338,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "SAVE GAME STATE",
         detail:
-          "DM Menu → Session. The whole table as one file, images included. Save before every risky experiment.",
+          "DM Menu → Session. The whole table as one file, images included. Save before every risky experiment. The toast says the file's weight: a load must fit 1 MB, so mints are refused past 0.75 MB.",
       },
     ],
   },

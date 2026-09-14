@@ -30,6 +30,8 @@ import { collectSessionAssets, restoreSessionAssets } from "./sessionAssets";
 /**
  * Toast notification interface for displaying status messages.
  */
+const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+
 export interface ToastManager {
   info: (message: string, duration?: number) => void;
   success: (message: string, duration?: number) => void;
@@ -122,7 +124,26 @@ export function useSessionManagement({
           const parts = [`${maps} map${maps === 1 ? "" : "s"}`];
           if (assets.length > 0)
             parts.push(`${assets.length} image${assets.length === 1 ? "" : "s"}`);
-          toast.success(`Session "${name}" saved — ${parts.join(", ")} included.`, 4000);
+          // SAY THE WEIGHT. The file is the DM's either way, but a save that
+          // will not load back is a backup in name only. Play grows a table
+          // past what one load-session frame carries — tokens, drawings,
+          // suspended scenes — even when every mint stayed under the ceiling,
+          // and this is where that becomes visible before the day it matters.
+          const frameBytes = loadSessionFrameBytes(file);
+          if (frameBytes > WS_MAX_MESSAGE_BYTES) {
+            toast.warning(
+              `Session "${name}" saved (${parts.join(", ")}) — but at ${megabytes(frameBytes)} it will ` +
+                `NOT load back: the server accepts ${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. ` +
+                `Delete some maps and save again.`,
+              9000,
+            );
+          } else {
+            toast.success(
+              `Session "${name}" saved — ${parts.join(", ")} included; ${megabytes(frameBytes)} of ` +
+                `the ${megabytes(WS_MAX_MESSAGE_BYTES)} a load accepts.`,
+              4000,
+            );
+          }
 
           // Never silent: a skipped asset is art the DM will not get back.
           if (skipped.length > 0) {
@@ -202,10 +223,9 @@ export function useSessionManagement({
         // BEFORE restoreSessionAssets so a doomed load costs no uploads.
         const frameBytes = loadSessionFrameBytes(session);
         if (frameBytes > WS_MAX_MESSAGE_BYTES) {
-          const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
           toast.error(
-            `"${file.name}" is too large to load: ${mb(frameBytes)}, and the server accepts ` +
-              `${mb(WS_MAX_MESSAGE_BYTES)} in one message. The table has NOT been changed. ` +
+            `"${file.name}" is too large to load: ${megabytes(frameBytes)}, and the server accepts ` +
+              `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. The table has NOT been changed. ` +
               `Delete some maps from the campaign and export again.`,
             9000,
           );

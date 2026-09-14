@@ -1,15 +1,15 @@
 # The Weighed Campaign — the byte-weighed mint path — Execution Plan
 
-**Status: PLANNED 2026-09-14, on `dev`.** Picked by the owner on 2026-09-13 ("start one now")
+**Status: W0–W2 SHIPPED to `dev` 2026-09-14, NOT merged to `main`; W3 open.** Picked by the owner on 2026-09-13 ("start one now")
 from the Kicked-In Door plan's section 7, on this agent's recommendation: it is that plan's
 highest open item and the one defect left there that a DM can hit by playing normally.
 
-| Slice | What                                                             | Status  |
-| ----- | ---------------------------------------------------------------- | ------- |
-| W0    | One frame builder, one weigher, one ceiling — shared by 3 sites  | PLANNED |
-| W1    | Every mint path weighs bytes before it persists                  | PLANNED |
-| W2    | The save path says the weight; the refusals say the numbers      | PLANNED |
-| W3 🟢 | A DM-facing readout of the campaign's weight (if budget remains) | PLANNED |
+| Slice | What                                                             | Status                                       |
+| ----- | ---------------------------------------------------------------- | -------------------------------------------- |
+| W0    | One frame builder, one weigher, one ceiling — shared by 3 sites  | **SHIPPED to `dev` 2026-09-14** (`9fbd94e9`) |
+| W1    | Every mint path weighs bytes before it persists                  | **SHIPPED to `dev` 2026-09-14** (`6d756ea7`) |
+| W2    | The save path says the weight; the refusals say the numbers      | **SHIPPED to `dev` 2026-09-14** (below)      |
+| W3 🟢 | A DM-facing readout of the campaign's weight (if budget remains) | PLANNED                                      |
 
 ## 0. How to execute this plan
 
@@ -214,6 +214,22 @@ deleted node's document; `MAX_GEOMETRY_ELEMENTS`; the live GENERATE tool's recip
 - Pins: `useSessionManagement.test.ts` — save over the limit warns with both numbers and still
   calls `saveSessionFile`; under it, the success toast names the weight. Proves W.6.
 - Sabotage: skip the weigh on save → the warning pin goes red.
+
+#### W2 — what shipped (2026-09-14)
+
+- **Found on the way and fixed regardless of origin, its own commit:** a refused NEW MAP or
+  IMPORT JSON BACKUP reached NO DM screen — those messages carry no `commandId`, so the router's
+  nack never fires, and the handler's thrown error only reached the server log; the Map Studio
+  panel spun until its watchdog blamed the server. This predates the arc (the COUNT cap has been
+  silent since it shipped). Now `MapStudioMessageHandler.refuseMint` answers with a
+  `map-studio-error` (`commandId: ""`, the document id the client minted) and `useMapStudio`
+  releases the load and shows the reason — for the count cap, the byte ceiling and a duplicate
+  import alike. Pinned on both ends; the graph contract's create/import cases now assert the
+  FRAME the DM sees, not a `console.error`.
+- The save toast says the weight ("3 maps included; 0.61 MB of the 1.00 MB a load accepts");
+  over the wire limit the file still downloads and the toast is a WARNING with both numbers.
+- Copy: `dm-guide.md` "How big can a campaign get?"; the help entry for SAVE GAME STATE.
+- Sabotage 3/3 red on the named cases.
 
 ### W3 🟢 — the readout (only if budget remains; else §7 and say so)
 

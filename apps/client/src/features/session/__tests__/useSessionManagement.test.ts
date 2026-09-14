@@ -160,6 +160,46 @@ describe("useSessionManagement — save", () => {
     expect(sendMessage).toHaveBeenCalledTimes(2);
   });
 
+  it("says the file's weight on a save that will load back", async () => {
+    const { result } = mount();
+    const file = sessionFile({ mapDocuments: [{ id: "doc-A" } as never] });
+
+    act(() => result.current.handleSaveSession("light"));
+    await act(async () => {
+      deliverSessionFile(file);
+    });
+
+    expect(saveSessionFile).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith(
+      expect.stringMatching(/\d\.\d\d MB of the 1\.00 MB/),
+      4000,
+    );
+    expect(toast.warning).not.toHaveBeenCalled();
+  });
+
+  it("still saves a file that will NOT load back — and warns with both numbers instead of congratulating", async () => {
+    // Play grows a table past the wire limit even when every mint stayed
+    // under the ceiling (tokens, drawings, suspended scenes). The bytes are
+    // the DM's — the file downloads — but "saved!" over a backup that cannot
+    // be restored is the failure the whole arc exists to end.
+    const { result } = mount();
+    const file = sessionFile({
+      mapDocuments: [{ id: "doc-A", name: "x".repeat(WS_MAX_MESSAGE_BYTES) } as never],
+    });
+
+    act(() => result.current.handleSaveSession("heavy"));
+    await act(async () => {
+      deliverSessionFile(file);
+    });
+
+    expect(saveSessionFile).toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    const said = vi.mocked(toast.warning).mock.calls[0]?.[0] ?? "";
+    expect(said).toContain("NOT load back");
+    expect(said).toMatch(/1\.0\d MB/);
+    expect(said).toContain("1.00 MB");
+  });
+
   it("drops a bundle nobody asked for", () => {
     // A late reply after a timeout must not spring a download on the DM.
     mount();

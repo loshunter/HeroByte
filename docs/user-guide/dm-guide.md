@@ -83,6 +83,8 @@ For _built-in_ scenery art (crates, tables, boats, standing stones…) you'll us
 
 **LOAD GAME STATE** restores a save. Read the confirmation carefully: loading **replaces the table for everyone connected**. Players currently at the table keep their live connection and their own characters; everything else becomes the file's contents.
 
+**How big can a campaign get?** A save has to load back in one message, and the server accepts 1 MB per message. So a table holds at most 64 maps, and everything that mints a map — **NEW MAP**, **IMPORT JSON BACKUP**, a generated dungeon or building, a kicked-in door — is weighed first: a mint that would push the campaign's export past 0.75 MB is refused, and the refusal tells you both numbers. A `large` generated building is about a quarter of a megabyte, so four of them is the practical ceiling; delete one you are done with to make room. The last quarter is for play. **SAVE GAME STATE** says the file's weight, and if play has carried a table past the limit anyway, the save warns that the file will not load back — delete a map or two and save again.
+
 Habits that save campaigns:
 
 - Save before ending every session, and name files by date (`heist-2026-07-31.json`).
