@@ -581,24 +581,23 @@ describe("atlas graph contracts", () => {
     const errors = messagesOf(dmWs, "atlas-error") as { code?: string }[];
     expect(errors.some((entry) => entry.code === "at-cap")).toBe(true);
 
-    // The map-studio-create path refuses too (thrown → routed error log)…
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
-    try {
-      route({ t: "map-studio-create", document: { id: "doc-65", name: "one too many" } }, DM);
-      expect(mapStudioService.list("default")).toHaveLength(64);
-      expect(errorLog).toHaveBeenCalled();
+    // The map-studio-create path refuses too — as a frame the DM SEES (these
+    // messages carry no commandId, so the router's nack never fires)…
+    const refusals = () =>
+      (messagesOf(dmWs, "map-studio-error") as { documentId?: string; reason?: string }[]).filter(
+        (entry) => entry.reason?.includes("maximum of 64"),
+      );
+    route({ t: "map-studio-create", document: { id: "doc-65", name: "one too many" } }, DM);
+    expect(mapStudioService.list("default")).toHaveLength(64);
+    expect(refusals().map((entry) => entry.documentId)).toEqual(["doc-65"]);
 
-      // …and so does map-studio-import, the third mint path the arc's final
-      // review found outside the ceiling (a fresh id per import, so every
-      // success adds a document).
-      errorLog.mockClear();
-      const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
-      route({ t: "map-studio-import", document: { ...template, id: "doc-import-65" } }, DM);
-      expect(mapStudioService.list("default")).toHaveLength(64);
-      expect(errorLog).toHaveBeenCalled();
-    } finally {
-      errorLog.mockRestore();
-    }
+    // …and so does map-studio-import, the third mint path the arc's final
+    // review found outside the ceiling (a fresh id per import, so every
+    // success adds a document).
+    const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
+    route({ t: "map-studio-import", document: { ...template, id: "doc-import-65" } }, DM);
+    expect(mapStudioService.list("default")).toHaveLength(64);
+    expect(refusals().map((entry) => entry.documentId)).toEqual(["doc-65", "doc-import-65"]);
   });
 
   it("refuses to mint past the BYTE ceiling on all three create paths — the export must fit one frame", async () => {
@@ -619,24 +618,18 @@ describe("atlas graph contracts", () => {
       errors.some((entry) => entry.code === "at-cap" && /\d\.\d\d MB/.test(entry.reason ?? "")),
     ).toBe(true);
 
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
-    try {
-      route({ t: "map-studio-create", document: { id: "doc-heavy", name: "one too heavy" } }, DM);
-      expect(mapStudioService.list("default")).toHaveLength(before);
-      expect(
-        errorLog.mock.calls.some((args) => /\d\.\d\d MB/.test(args.map(String).join(" "))),
-      ).toBe(true);
+    const refusals = () =>
+      (messagesOf(dmWs, "map-studio-error") as { documentId?: string; reason?: string }[]).filter(
+        (entry) => /\d\.\d\d MB/.test(entry.reason ?? ""),
+      );
+    route({ t: "map-studio-create", document: { id: "doc-heavy", name: "one too heavy" } }, DM);
+    expect(mapStudioService.list("default")).toHaveLength(before);
+    expect(refusals().map((entry) => entry.documentId)).toEqual(["doc-heavy"]);
 
-      errorLog.mockClear();
-      const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
-      route({ t: "map-studio-import", document: { ...template, id: "doc-import-heavy" } }, DM);
-      expect(mapStudioService.list("default")).toHaveLength(before);
-      expect(
-        errorLog.mock.calls.some((args) => /\d\.\d\d MB/.test(args.map(String).join(" "))),
-      ).toBe(true);
-    } finally {
-      errorLog.mockRestore();
-    }
+    const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
+    route({ t: "map-studio-import", document: { ...template, id: "doc-import-heavy" } }, DM);
+    expect(mapStudioService.list("default")).toHaveLength(before);
+    expect(refusals().map((entry) => entry.documentId)).toEqual(["doc-heavy", "doc-import-heavy"]);
   });
 
   it("map-studio-delete drops the links ANCHORED on the dead map, and keeps the ones pointing at its node", async () => {

@@ -185,13 +185,18 @@ export function useMapStudio(
 
       if (message.t === "map-studio-error") {
         // A "not-found" for the document we are OPENING is a reply to the
-        // get, not to a queued command: release the load and remember the
-        // dangling id so the open isn't auto-retried forever (the
-        // stuck-STARTING loop after a server-side maps-store reset).
-        if (message.code === "not-found" && requestedDocumentId.current === message.documentId) {
+        // get, not to a queued command; a REFUSED create or import (an empty
+        // commandId — those messages carry none, so the router never nacks
+        // them) is the same shape. Either way: release the load and show the
+        // reason, instead of spinning until the watchdog blames the server.
+        // not-found also remembers the dangling id so the open isn't
+        // auto-retried forever (the stuck-STARTING loop after a server-side
+        // maps-store reset).
+        const refusal = message.code === "not-found" || message.commandId === "";
+        if (refusal && requestedDocumentId.current === message.documentId) {
           requestedDocumentId.current = null;
           watchdogFired.current = false;
-          setMissingDocumentId(message.documentId);
+          if (message.code === "not-found") setMissingDocumentId(message.documentId);
           setLoading(false);
           setError(message.reason);
           return;

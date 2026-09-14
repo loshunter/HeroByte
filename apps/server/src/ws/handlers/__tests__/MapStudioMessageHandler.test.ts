@@ -181,24 +181,59 @@ describe("MapStudioMessageHandler", () => {
       document: { id: "map", name: "Keep", timestamp: 1 },
     } as const;
 
-    it("create refuses with both numbers and mints nothing", () => {
+    it("create refuses with both numbers, mints nothing — and the DM hears it (no commandId, so no nack)", () => {
       roomState.drawings.push(fatDrawing() as never);
 
-      expect(() => handler.handle(create, "dm", "room", true)).toThrow(/\d\.\d\d MB/);
+      expect(handler.handle(create, "dm", "room", true)).toEqual({ broadcast: false, save: false });
       expect(service.list("room")).toHaveLength(0);
       expect(broadcast).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith("dm", {
+        t: "map-studio-error",
+        commandId: "",
+        documentId: "map",
+        code: "command-rejected",
+        reason: expect.stringMatching(/\d\.\d\d MB/),
+        actualRevision: undefined,
+      });
+    });
+
+    it("create refuses at the COUNT cap the same way — a frame the DM sees, not a thrown error", () => {
+      for (let index = 0; index < 64; index += 1) {
+        service.create("room", { id: `filler-${index}`, name: `F${index}`, timestamp: 1 });
+      }
+
+      expect(handler.handle(create, "dm", "room", true)).toEqual({ broadcast: false, save: false });
+      expect(service.list("room")).toHaveLength(64);
+      expect(send).toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({
+          t: "map-studio-error",
+          commandId: "",
+          documentId: "map",
+          reason: expect.stringContaining("maximum of 64"),
+        }),
+      );
     });
 
     it("import refuses with both numbers and mints nothing", () => {
       const source = service.create("room", { id: "source", name: "Backup Keep", timestamp: 1 });
       const document = JSON.parse(JSON.stringify({ ...source, id: "restored" })) as typeof source;
       roomState.drawings.push(fatDrawing() as never);
+      send.mockClear();
 
-      expect(() =>
-        handler.handle({ t: "map-studio-import", document }, "dm", "room", true),
-      ).toThrow(/\d\.\d\d MB/);
+      handler.handle({ t: "map-studio-import", document }, "dm", "room", true);
+
       expect(service.list("room")).toHaveLength(1);
       expect(broadcast).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({
+          t: "map-studio-error",
+          commandId: "",
+          documentId: "restored",
+          reason: expect.stringMatching(/\d\.\d\d MB/),
+        }),
+      );
     });
 
     it("a light room still mints — a ceiling, not a wall", () => {
@@ -229,12 +264,21 @@ describe("MapStudioMessageHandler", () => {
       );
     });
 
-    it("rejects importing over an existing document id", () => {
+    it("rejects importing over an existing document id — as a frame the DM sees", () => {
       const document = serializedDocument("source");
 
-      expect(() =>
-        handler.handle({ t: "map-studio-import", document }, "dm", "room", true),
-      ).toThrow("Map document already exists: source");
+      handler.handle({ t: "map-studio-import", document }, "dm", "room", true);
+
+      expect(send).toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({
+          t: "map-studio-error",
+          commandId: "",
+          documentId: "source",
+          code: "command-rejected",
+          reason: "Map document already exists: source",
+        }),
+      );
     });
   });
 

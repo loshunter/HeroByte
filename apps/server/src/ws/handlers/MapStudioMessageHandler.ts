@@ -62,9 +62,12 @@ export class MapStudioMessageHandler {
         break;
       case "map-studio-create": {
         const input = { ...message.document, timestamp: this.now() };
-        this.assertMintCeiling(roomId, senderUid, createMapDocument(input));
-        const document = this.service.create(roomId, input);
-        this.broadcastDocument(roomId, document);
+        try {
+          this.assertMintCeiling(roomId, senderUid, createMapDocument(input));
+          this.broadcastDocument(roomId, this.service.create(roomId, input));
+        } catch (error) {
+          this.refuseMint(senderUid, input.id, error);
+        }
         break;
       }
       case "map-studio-get":
@@ -184,9 +187,12 @@ export class MapStudioMessageHandler {
         // Import MINTS (it rejects duplicate ids, so every success adds one) —
         // the third create path the arc's review found outside the ceiling.
         const timestamp = this.now();
-        this.assertMintCeiling(roomId, senderUid, importMapDocument(message.document, timestamp));
-        const document = this.service.import(roomId, message.document, timestamp);
-        this.broadcastDocument(roomId, document);
+        try {
+          this.assertMintCeiling(roomId, senderUid, importMapDocument(message.document, timestamp));
+          this.broadcastDocument(roomId, this.service.import(roomId, message.document, timestamp));
+        } catch (error) {
+          this.refuseMint(senderUid, message.document.id, error);
+        }
         break;
       }
       case "map-studio-publish": {
@@ -269,6 +275,17 @@ export class MapStudioMessageHandler {
     if (overflow) {
       throw new Error(mintRefusal(overflow));
     }
+  }
+
+  /**
+   * A refused create or import REACHES the DM. Neither message carries a
+   * commandId, so the router's nack never fires — a thrown error here was a
+   * silent NEW MAP button: the panel spun until its watchdog blamed the
+   * server. The client matches this frame by the document id it asked for
+   * (an empty commandId says "not a queued command").
+   */
+  private refuseMint(senderUid: string, documentId: string, error: unknown): void {
+    this.sendCommandError(senderUid, { commandId: "", documentId }, error);
   }
 
   private mintOverflowWith(

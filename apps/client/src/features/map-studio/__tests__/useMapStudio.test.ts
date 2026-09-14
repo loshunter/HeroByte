@@ -332,6 +332,33 @@ describe("useMapStudio", () => {
     expect(result.current.missingDocumentId).toBeNull();
   });
 
+  it("releases a CREATE the server refused (empty commandId) — the reason shows, nothing is marked missing", () => {
+    // NEW MAP past the mint ceiling (count or bytes): the server answers with
+    // a map-studio-error keyed by the id the client minted, commandId "".
+    // Before this, the panel spun until the watchdog said "server didn't
+    // respond" — a lie over a refusal.
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    let id = "";
+    act(() => {
+      id = result.current.createDocument("Keep");
+    });
+    expect(result.current.loading).toBe(true);
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "",
+        documentId: id,
+        code: "command-rejected",
+        reason:
+          "This would make the campaign's export 0.86 MB — past the 0.75 MB a table can load back in one message. Delete a map first.",
+      }),
+    );
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toMatch(/0\.86 MB/);
+    expect(result.current.missingDocumentId).toBeNull();
+  });
+
   it("ignores a not-found for a document that is not the one being opened", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     act(() => result.current.openDocument("wanted"));
