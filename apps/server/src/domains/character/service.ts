@@ -208,6 +208,44 @@ export class CharacterService {
   /**
    * Place an NPC token on the map at default coordinates
    */
+  /**
+   * A reconnecting character's token: KEPT when linked (the link survives a
+   * scene capture that stashes the token, so a linked character is never
+   * re-tokened — no phantom), ADOPTED when exactly one token of the owner's
+   * is loose (a token that predates linking), else freshly spawned and
+   * linked. "Any token this uid owns" was the gate before: a DM owns the NPC
+   * tokens they placed, so a DM who had deleted their own token never got one
+   * back (F3's road, found by F4's review). NPC tokens are always linked to
+   * their NPC character (placeNPCToken), so the loose set excludes them; two
+   * loose tokens is a guess, and a guess is wrong for one of them.
+   */
+  ensureToken(
+    state: RoomState,
+    tokenService: TokenService,
+    characterId: string,
+    ownerUid: string,
+    spawnAt: () => { x: number; y: number },
+  ): RoomState["tokens"][number] | undefined {
+    const character = this.findCharacter(state, characterId);
+    if (!character) {
+      return undefined;
+    }
+    if (character.tokenId) {
+      const linked = character.tokenId;
+      return state.tokens.find((t) => t.id === linked);
+    }
+    const claimed = new Set(state.characters.flatMap((c) => (c.tokenId ? [c.tokenId] : [])));
+    const loose = state.tokens.filter((t) => t.owner === ownerUid && !claimed.has(t.id));
+    if (loose.length === 1) {
+      this.linkToken(state, character.id, loose[0].id);
+      return loose[0];
+    }
+    const spawn = spawnAt();
+    const token = tokenService.createToken(state, ownerUid, spawn.x, spawn.y);
+    this.linkToken(state, character.id, token.id);
+    return token;
+  }
+
   placeNPCToken(
     state: RoomState,
     tokenService: TokenService,

@@ -194,17 +194,19 @@ export class AuthenticationHandler {
         this.container.characterService.linkToken(state, character.id, token.id);
       }
     } else {
-      // Player reconnecting - ensure they have a token, DM or not: a DM who
-      // deleted their own token must get one back the way a player does, or
-      // their character stands in the order with nothing to step.
-      {
-        const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
-        if (!existingToken) {
-          const spawn = roomService.getPlayerSpawnPosition();
-          const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
-          this.container.characterService.linkToken(state, existingCharacter.id, token.id);
-        }
-      }
+      // Player reconnecting - ensure their CHARACTER has a token, DM or not: a
+      // DM who deleted their own token must get one back the way a player
+      // does, or their character stands in the order with nothing to step.
+      // Keyed on the character's link, never on "any token this uid owns" —
+      // a DM owns the NPC tokens they placed, and that gate left them
+      // tokenless for good (F4's review, round 1).
+      this.container.characterService.ensureToken(
+        state,
+        this.container.tokenService,
+        existingCharacter.id,
+        uid,
+        () => roomService.getPlayerSpawnPosition(),
+      );
     }
 
     // Track authentication state
