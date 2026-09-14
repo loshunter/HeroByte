@@ -1,6 +1,6 @@
 # The Weighed Campaign — the byte-weighed mint path — Execution Plan
 
-**Status: W0–W3 SHIPPED to `dev` 2026-09-14, NOT merged to `main`; live evaluation and review pending.** Picked by the owner on 2026-09-13 ("start one now")
+**Status: W0–W3 SHIPPED to `dev` 2026-09-14 + two fixes found LIVE (below), NOT merged to `main`; the closing review is recorded below when it lands.** Picked by the owner on 2026-09-13 ("start one now")
 from the Kicked-In Door plan's section 7, on this agent's recommendation: it is that plan's
 highest open item and the one defect left there that a DM can hit by playing normally.
 
@@ -250,6 +250,40 @@ type; the three `ServerMessage` hand-lists stay byte-identical.
   back"; nothing until a server has said. One component, both layouts (the DM menu is shared).
 - Sabotage 3/3 red on the named cases; the fixture ripple was two sites, done by hand.
 
+### Live evaluation (2026-09-14) — mode `live-two-client`, and what it found
+
+Local dev server, a DM tab (identity pinned with `?sessionUid=`) and a player tab on the same
+table (a loaded local table: 9 atlas nodes, 29 tokens). Driven from the DM tab, asserted in both.
+
+| Criterion             | Weight | Score   | Evidence                                                                                                                                                                                                                                                                                         |
+| --------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Functionality         | 0.35   | 9       | Kicks at `large`: 0.25 → 0.40 → 0.53 → (bug 1) 0.81 MB; after the fix a kick is refused with "about 1.23 MB — past the 0.75 MB"; NEW MAP refused in the panel with the numbers, no spinner; Save says "10 maps included; 0.81 MB of the 1.00 MB a load accepts" (after bug 2); delete → 0.60 MB. |
+| Multiplayer integrity | 0.30   | 9       | The player tab travelled with every accepted kick (same scene id both tabs) and saw NOTHING of a refusal, a NEW MAP refusal or a save — no frame, no alert.                                                                                                                                      |
+| Craft                 | 0.20   | 8       | Every action answered: the refusal's two numbers, the readout's three states, the save toast's weight. The refusal's "about" over-estimates by the outgoing scene (~0.15 MB at `large`) — an upper bound, said as one.                                                                           |
+| Reach                 | 0.15   | 7       | Not driven at 375 px this pass; the readout and the refusals live in the DM menu both layouts share, and the panels are the same components.                                                                                                                                                     |
+| **Weighted**          |        | **8.5** | Pass at 7.0.                                                                                                                                                                                                                                                                                     |
+
+**Two bugs found live, each fixed in its own commit — the class this evaluation exists for:**
+
+1. **The ceiling missed the scene a kick installs** (`fd05b928`). A large warehouse weighed under
+   0.75 MB by its document alone was allowed, and the readout said "0.81 MB — past the mint
+   ceiling" the moment the party arrived: the compiled scene, terrain and scenery a travel
+   installs ride the snapshot too — ~150 KB for a large warehouse against a 229 KB document.
+   `liveSceneBytes(candidate)` is now added on every mint path; the refusal says "about"
+   because it counts the outgoing scene's derived data as still present (an upper bound).
+   Pinned by a kick contract test that pads the table to ceiling − document − scene/2 and
+   demands the refusal; red without the fix two ways.
+2. **Save Game State was broken in production** (`dcad2654`). `session-file` was never on the
+   client router's runtime control list; it rode the old fallthrough until the forward-compat
+   guard (`a6890e19`) began dropping unknown types, and every save since ended in "the server
+   did not return a session file" with the reply on the wire. No unit test routed the frame and
+   no e2e clicked Save. Fixed in the three hand-lists, pinned by a router test (routes the frame;
+   a SOURCE pin that the three lists agree) and `session-save.smoke.spec.ts` (a real click, a
+   real download parsed, the toast's weight) — red without the fix.
+
+Also seen, pre-existing, recorded in §7: deleting the LIVE map's document leaves the party on a
+compiled scene with no document behind it.
+
 ## 5. Failure drills
 
 - **Boot fails after W0 while every gate is green** → the barrel-const trap: the new export is
@@ -289,4 +323,6 @@ pnpm lint:structure:enforce                   # the 350 guard, NOT part of pnpm 
   more pressing, since the ceiling makes a forgotten 230 KB document cost a kick.
 - **The live GENERATE tool's recipe picker** — W1's extraction gives it `mapStudioGenerate.ts`.
 - **`MAX_GEOMETRY_ELEMENTS`** — still declared, never enforced; enforce or delete.
-- **W3 if skipped.**
+- **Deleting the live map's document** (seen live) leaves the party on a compiled scene whose
+  document is gone — the binding clears, the scene stays. Pre-existing; a delete could refuse
+  while the document is live, or travel the party first.
