@@ -357,6 +357,36 @@ describe("useCombatOrdering", () => {
       ]);
     });
 
+    it("a DM's unlinked PC never resolves to the goblin the DM placed — only to a loose own token", () => {
+      // NPC tokens carry the placing DM's uid and are linked to their NPC; the
+      // by-owner fallback used to hand the DM's card the first goblin.
+      const players = [createMockPlayer("dm-1", true)];
+      const characters = [
+        createMockCharacter("char-dm", "dm-1"),
+        { ...createMockCharacter("npc-g", "", undefined, "npc"), tokenId: "goblin" },
+      ];
+      const goblinOnly = renderHook(() =>
+        useCombatOrdering({
+          players,
+          characters,
+          tokens: [createMockToken("goblin", "dm-1")],
+          currentUid: "dm-1",
+          combatActive: false,
+        }),
+      );
+      expect(goblinOnly.result.current.dmEntities[0].token).toBeUndefined();
+      const withLoose = renderHook(() =>
+        useCombatOrdering({
+          players,
+          characters,
+          tokens: [createMockToken("goblin", "dm-1"), createMockToken("dm-tok", "dm-1")],
+          currentUid: "dm-1",
+          combatActive: false,
+        }),
+      );
+      expect(withLoose.result.current.dmEntities[0].token?.id).toBe("dm-tok");
+    });
+
     it("should link tokens to characters correctly", () => {
       const players = [createMockPlayer("player-1")];
       const characters = [createMockCharacter("char-1", "player-1")];

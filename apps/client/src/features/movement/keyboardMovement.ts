@@ -23,6 +23,7 @@
 // someone else's piece, not "nothing" — it stays inert.
 
 import type { RoomSnapshot } from "@herobyte/shared";
+import { looseOwnToken } from "../../utils/looseOwnToken";
 
 export interface CellDelta {
   dx: -1 | 0 | 1;
@@ -108,9 +109,8 @@ export function ownTokenFallback({
     const linked = tokens.find((token) => token.id === link);
     return linked ? `token:${linked.id}` : null;
   }
-  const claimed = new Set(characters.flatMap((c) => (c.tokenId ? [c.tokenId] : [])));
-  const loose = tokens.filter((token) => token.owner === uid && !claimed.has(token.id));
-  return loose.length === 1 ? `token:${loose[0].id}` : null;
+  const loose = looseOwnToken(tokens, characters, uid);
+  return loose ? `token:${loose.id}` : null;
 }
 
 /**

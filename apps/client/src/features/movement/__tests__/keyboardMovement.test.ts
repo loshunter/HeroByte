@@ -202,6 +202,20 @@ describe("ownTokenFallback — nothing selected → your own token", () => {
     expect(ownTokenFallback({ snapshot: dmWithGoblinAndLoose, uid: "me" })).toBe("token:mine");
   });
 
+  it("predates linking: a token of mine that ANOTHER uid's character claims is not loose — fail closed, on purpose", () => {
+    // `link-token` lets a DM link any character to any token and never clears
+    // the previous claimant. A claim by someone else's character on my token
+    // is not a state this rule can settle, so the keys go quiet rather than
+    // moving a piece two characters think is theirs.
+    const snap = snapshot({
+      characters: characters([
+        { id: "hero", type: "pc", owner: "me", tokenId: null },
+        { id: "squatter", type: "pc", owner: "them", tokenId: "mine" },
+      ]),
+    });
+    expect(ownTokenFallback({ snapshot: snap, uid: "me" })).toBeNull();
+  });
+
   it("predates linking: two loose tokens of mine is a guess — nothing answers", () => {
     const snap = snapshot({
       tokens: tokens([

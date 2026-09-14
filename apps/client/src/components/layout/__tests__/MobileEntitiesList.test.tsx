@@ -510,3 +510,43 @@ describe("MobileEntitiesList sight-radius gate", () => {
     expect(screen.queryByLabelText("Sight radius in feet")).not.toBeInTheDocument();
   });
 });
+
+describe("the by-owner token fallback never resolves a DM's row to a goblin they placed", () => {
+  const goblinNpc = {
+    id: "npc-g",
+    name: "Goblin",
+    type: "npc",
+    ownedByPlayerUID: null,
+    tokenId: "goblin",
+    hp: 7,
+    maxHp: 7,
+  } as unknown as SnapshotCharacter;
+  const unlinkedMe = { ...characters[0]!, tokenId: null } as unknown as SnapshotCharacter;
+
+  it("with only the goblin's token owned, the row has no token — no sight control", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ isDM: true })}
+        characters={[unlinkedMe, goblinNpc]}
+        tokens={[{ id: "goblin", owner: ME, x: 0, y: 0, color: "green", visionRadius: 30 }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.queryByLabelText("Sight radius in feet")).not.toBeInTheDocument();
+  });
+
+  it("with one LOOSE own token beside the goblin's, the row binds to the loose one", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ isDM: true })}
+        characters={[unlinkedMe, goblinNpc]}
+        tokens={[
+          { id: "goblin", owner: ME, x: 0, y: 0, color: "green", visionRadius: 30 },
+          { id: "loose", owner: ME, x: 1, y: 1, color: "red", visionRadius: 45 },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(screen.getByLabelText("Sight radius in feet")).toHaveValue(45);
+  });
+});

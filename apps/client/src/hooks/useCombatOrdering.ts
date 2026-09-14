@@ -5,6 +5,7 @@
 // Separates combat ordering logic from presentation concerns
 
 import { useMemo } from "react";
+import { looseOwnToken } from "../utils/looseOwnToken";
 import type { Player, Token, SnapshotCharacter } from "@herobyte/shared";
 import { isInInitiativeOrder, shouldCharacterParticipateInCombat } from "@herobyte/shared";
 
@@ -72,13 +73,15 @@ export function useCombatOrdering({
       // The by-owner token fallback is only MEANINGFUL when it cannot be
       // ambiguous: a player with exactly one character whose token predates
       // linking. With two characters it is guaranteed wrong for at least one
-      // (MobileEntitiesList learned this live); the desktop now agrees.
+      // (MobileEntitiesList learned this live); the desktop now agrees. And
+      // "owned" alone is not enough either — a DM owns the NPC tokens they
+      // placed — so the fallback is the one LOOSE own token (looseOwnToken).
       const ownerTokenFallbackOk = playerCharacters.length === 1;
       return playerCharacters.map((character) => {
         const token = character.tokenId
           ? tokens.find((t) => t.id === character.tokenId)
           : ownerTokenFallbackOk
-            ? tokens.find((t) => t.owner === player.uid)
+            ? looseOwnToken(tokens, characters, player.uid)
             : undefined;
 
         // DM characters should be marked with kind "dm"

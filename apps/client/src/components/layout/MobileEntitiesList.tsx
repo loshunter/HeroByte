@@ -6,6 +6,7 @@
 // retired the right-edge drawer this file used to be.
 
 import React from "react";
+import { looseOwnToken } from "../../utils/looseOwnToken";
 import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
 import { isInInitiativeOrder } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
@@ -164,11 +165,12 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
     >
       {entities.map((entity) => {
         // Prefer the row's own character token; the by-owner fallback is
-        // gated to rows where it cannot pick the wrong character's token.
+        // gated to rows where it cannot pick the wrong character's token —
+        // and reads the one LOOSE own token, never a goblin the DM placed.
         const entityToken = entity.tokenId
           ? tokens?.find((candidate) => candidate.id === entity.tokenId)
           : entity.ownerTokenFallbackOk
-            ? tokens?.find((candidate) => candidate.owner === entity.uid)
+            ? looseOwnToken(tokens, characters, entity.uid)
             : undefined;
         return (
           <MobilePlayerRow
