@@ -24,13 +24,18 @@ function table() {
 }
 
 describe("CharacterService.ensureToken", () => {
-  it("a linked character keeps its live token — nothing spawned, the link untouched", () => {
+  it("a linked character keeps its live token — nothing spawned, the link untouched, a goblin of the DM's beside it ignored", () => {
     const { characters, tokens, state, pc } = table();
+    // The goblin sorts FIRST among the tokens the DM owns: the link, not
+    // ownership, must decide (round 3: the lookup was unpinned against
+    // "the first token this uid owns").
+    const goblin = tokens.createToken(state, "dm-uid", 9, 9);
     const own = tokens.createToken(state, "dm-uid", 1, 1);
     characters.linkToken(state, pc.id, own.id);
     const token = characters.ensureToken(state, tokens, pc.id, "dm-uid", spawnAt);
     expect(token?.id).toBe(own.id);
-    expect(state.tokens).toHaveLength(1);
+    expect(token?.id).not.toBe(goblin.id);
+    expect(state.tokens).toHaveLength(2);
     expect(pc.tokenId).toBe(own.id);
   });
 
@@ -47,12 +52,39 @@ describe("CharacterService.ensureToken", () => {
     expect(pc.tokenId).toBe(own.id);
   });
 
-  it("a link NO scene holds is dead: cleared, and the character re-tokened like an unlinked one", () => {
+  it("a link NO scene holds is dead: cleared, and the character re-tokened like an unlinked one — never handed a goblin", () => {
     const { characters, tokens, state, pc } = table();
+    const gob = characters.createCharacter(state, "Goblin", 7, undefined, "npc");
+    characters.placeNPCToken(state, tokens, gob.id, "dm-uid");
+    const goblinToken = gob.tokenId as string;
+    pc.tokenId = "deleted-before-unlink-shipped";
+    const token = characters.ensureToken(state, tokens, pc.id, "dm-uid", spawnAt);
+    expect(token).toMatchObject({ owner: "dm-uid", x: 5, y: 5 });
+    expect(token?.id).not.toBe(goblinToken);
+    expect(pc.tokenId).toBe(token?.id);
+    expect(gob.tokenId).toBe(goblinToken);
+    expect(state.tokens).toHaveLength(2);
+  });
+
+  it("a scene capture that holds OTHER tokens does not make a dead link stashed", () => {
+    const { characters, tokens, state, pc } = table();
+    const other = tokens.createToken(state, "player-2", 2, 2);
+    state.sceneStates["doc-a"] = { tokens: [other] } as unknown as RoomState["sceneStates"][string];
+    state.tokens.length = 0;
     pc.tokenId = "deleted-before-unlink-shipped";
     const token = characters.ensureToken(state, tokens, pc.id, "dm-uid", spawnAt);
     expect(token).toMatchObject({ owner: "dm-uid", x: 5, y: 5 });
     expect(pc.tokenId).toBe(token?.id);
+  });
+
+  it("a claimed NPC is not a second PC: the one loose token is still adopted", () => {
+    // claimCharacter has no type gate, so an owned NPC is a producible shape.
+    const { characters, tokens, state, pc } = table();
+    const gob = characters.createCharacter(state, "Goblin", 7, undefined, "npc");
+    characters.claimCharacter(state, gob.id, "dm-uid");
+    const loose = tokens.createToken(state, "dm-uid", 1, 1);
+    const token = characters.ensureToken(state, tokens, pc.id, "dm-uid", spawnAt);
+    expect(token?.id).toBe(loose.id);
     expect(state.tokens).toHaveLength(1);
   });
 

@@ -282,6 +282,36 @@ describe("ConnectionHandler", () => {
     expect(pc.tokenId).not.toBe(goblinToken);
     expect(gob.tokenId).toBe(goblinToken);
     expect(state.tokens.map((t) => t.id).sort()).toEqual([goblinToken, pc.tokenId].sort());
+    // The token is the DM's own, at the table's spawn — not a stranger's, not at 0,0.
+    const spawned = state.tokens.find((t) => t.id === pc.tokenId);
+    expect(spawned?.owner).toBe("user-dm");
+    expect(spawned).toMatchObject(container.roomService.getPlayerSpawnPosition());
+  });
+
+  it("re-tokens EVERY PC a uid owns on reconnect — a second PC's dead link is repaired too", async () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-two" });
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
+
+    const state = container.roomService.getState();
+    const characters = container.characterService!;
+    const first = characters.findCharacterByOwner(state, "user-two");
+    if (!first?.tokenId) throw new Error("the join road links a token");
+    const second = characters.createCharacter(state, "Second", 30, undefined, "pc");
+    characters.claimCharacter(state, second.id, "user-two");
+    second.tokenId = "deleted-before-unlink-shipped";
+
+    const reconnected = new FakeWebSocket();
+    wss.emitConnection(reconnected, { url: "/?uid=user-two" });
+    reconnected.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
+
+    expect(first.tokenId).toBeTruthy();
+    expect(second.tokenId).toBeTruthy();
+    expect(second.tokenId).not.toBe("deleted-before-unlink-shipped");
+    expect(state.tokens.map((t) => t.id).sort()).toEqual([first.tokenId, second.tokenId].sort());
   });
 
   it("refreshes lastHeartbeat immediately on re-authentication", async () => {
