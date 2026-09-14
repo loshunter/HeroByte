@@ -36,6 +36,7 @@ import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { SNAPSHOT_LIMITS } from "../../middleware/validators/sessionValidators.js";
 import { AtlasMessageHandler, ATLAS_DM_REQUIRED } from "../handlers/AtlasMessageHandler.js";
 import { sentinelHits } from "./leakSentinels.js";
+import { fatDrawing } from "./fatDrawing.js";
 
 const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "atlasGraph-state.json");
 
@@ -595,6 +596,44 @@ describe("atlas graph contracts", () => {
       route({ t: "map-studio-import", document: { ...template, id: "doc-import-65" } }, DM);
       expect(mapStudioService.list("default")).toHaveLength(64);
       expect(errorLog).toHaveBeenCalled();
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
+
+  it("refuses to mint past the BYTE ceiling on all three create paths — the export must fit one frame", async () => {
+    // Nowhere near the count cap. The export is heavy for a reason no
+    // document count can see — a table's drawings ride the file verbatim —
+    // and a mint of ANY size would write a file the socket drops on reload.
+    mapStudioService.create("default", { id: "doc-0", name: "doc 0" });
+    roomService.getState().drawings.push(fatDrawing() as never);
+    createNode("promise-1");
+    const before = mapStudioService.list("default").length;
+
+    route(generateMessage("promise-1", "gen-bytes"), DM);
+    await flush();
+    expect(mapStudioService.list("default")).toHaveLength(before);
+    expect(nodes().find((entry) => entry.id === "promise-1")?.mapDocumentId).toBeUndefined();
+    const errors = messagesOf(dmWs, "atlas-error") as { code?: string; reason?: string }[];
+    expect(
+      errors.some((entry) => entry.code === "at-cap" && /\d\.\d\d MB/.test(entry.reason ?? "")),
+    ).toBe(true);
+
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      route({ t: "map-studio-create", document: { id: "doc-heavy", name: "one too heavy" } }, DM);
+      expect(mapStudioService.list("default")).toHaveLength(before);
+      expect(
+        errorLog.mock.calls.some((args) => /\d\.\d\d MB/.test(args.map(String).join(" "))),
+      ).toBe(true);
+
+      errorLog.mockClear();
+      const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
+      route({ t: "map-studio-import", document: { ...template, id: "doc-import-heavy" } }, DM);
+      expect(mapStudioService.list("default")).toHaveLength(before);
+      expect(
+        errorLog.mock.calls.some((args) => /\d\.\d\d MB/.test(args.map(String).join(" "))),
+      ).toBe(true);
     } finally {
       errorLog.mockRestore();
     }

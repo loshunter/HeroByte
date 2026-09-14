@@ -2,7 +2,9 @@ import {
   MapDocumentRevisionConflictError,
   authoredDoorStatesOf,
   compileScene,
+  createMapDocument,
   deriveMapElements,
+  importMapDocument,
   preserveDoorRuntimeStates,
   toLiveGridSize,
   type ClientMessage,
@@ -11,19 +13,14 @@ import {
 } from "@herobyte/shared";
 import { MapDocumentNotFoundError } from "../../domains/mapStudio/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
+import { deriveMapTerrain, isMapStudioMessage, toSummary } from "./mapStudioHandlerUtils.js";
+import { handleMapStudioGenerate } from "./mapStudioGenerate.js";
 import {
-  alreadyApplied,
-  deriveMapTerrain,
-  isMapStudioMessage,
-  REPLAY_LANDED,
-  toSummary,
-} from "./mapStudioHandlerUtils.js";
-import { dungeonRecipe } from "../../domains/generation/dungeonRecipe.js";
-import {
-  assertGenerateSeed,
-  assertRecipeBudget,
-  resolveRecipeContext,
-} from "../../domains/generation/recipeContext.js";
+  mintOverflow,
+  mintRefusal,
+  withCandidate,
+  type MintOverflow,
+} from "../../domains/room/sessionExport.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
@@ -64,11 +61,9 @@ export class MapStudioMessageHandler {
         });
         break;
       case "map-studio-create": {
-        this.assertMintCeiling(roomId);
-        const document = this.service.create(roomId, {
-          ...message.document,
-          timestamp: this.now(),
-        });
+        const input = { ...message.document, timestamp: this.now() };
+        this.assertMintCeiling(roomId, senderUid, createMapDocument(input));
+        const document = this.service.create(roomId, input);
         this.broadcastDocument(roomId, document);
         break;
       }
@@ -120,57 +115,25 @@ export class MapStudioMessageHandler {
       }
       case "map-studio-set-live":
         return this.setLiveDocument(senderUid, roomId, message.documentId);
-      case "map-studio-generate": {
-        // A recipe runs server-side and lands as ONE place-room command, so
-        // undo, retry-dedupe, revision conflicts, and (when the target is the
-        // live-bound document) the recompile all ride the existing rails. The
-        // message's commandId doubles as the element idPrefix — retries hit
-        // the dedupe cache, so generated ids can never collide with themselves.
-        try {
-          // A replay (the client queue re-sends the in-flight message after a
-          // reconnect) must ack from the dedupe cache BEFORE any validation:
-          // re-running the resolver would reject a generate that already landed
-          // if the document changed since (a layer locked, the grid moved).
-          const replay = this.service.cachedResult(roomId, message.documentId, message.commandId);
-          if (replay) {
-            this.broadcastDocument(roomId, replay.document, replay.commandId);
-            break;
-          }
-          const document = this.service.get(roomId, message.documentId);
-          const ctx = resolveRecipeContext(document, message.bounds, message.commandId);
-          assertGenerateSeed(message.seed);
-          const output = dungeonRecipe(message.seed, message.bounds, message.params, ctx);
-          assertRecipeBudget(output);
-          const isLive = this.getRoomState(roomId).liveMapDocumentId === message.documentId;
-          const result = this.service.apply(
-            roomId,
-            {
-              type: "place-room",
-              commandId: message.commandId,
-              documentId: message.documentId,
-              baseRevision: document.revision,
-              cells: output.cells,
-              elements: output.elements,
-            },
-            this.now(),
-          );
-          this.broadcastDocument(roomId, result.document, result.commandId);
-          if (isLive) {
-            // `document` is the pre-apply clone — exactly the "previous" the
-            // door-state preservation wants.
-            this.recompileLiveScene(roomId, document, result.document);
-            return { broadcast: true, save: true };
-          }
-        } catch (error) {
-          // A replay whose dedupe entry has been evicted (the cache is global and
-          // bounded) re-runs the recipe, deterministically re-mints the same ids,
-          // and trips the duplicate-id guard. Nothing half-applies — the batch
-          // validates before it commits — but "Map element already exists:
-          // <uuid>:e17" is a lie dressed as an error: the dungeon IS on the map.
-          this.sendCommandError(senderUid, message, alreadyApplied(error) ? REPLAY_LANDED : error);
-        }
-        break;
-      }
+      case "map-studio-generate":
+        // Extracted for the 350-LOC cap: the recipe, the byte ceiling and the
+        // recompile live in mapStudioGenerate.ts.
+        return handleMapStudioGenerate(
+          {
+            service: this.service,
+            getRoomState: this.getRoomState,
+            now: this.now,
+            broadcastDocument: (room, document, appliedCommandId) =>
+              this.broadcastDocument(room, document, appliedCommandId),
+            recompileLiveScene: (room, previous, document) =>
+              this.recompileLiveScene(room, previous, document),
+            sendCommandError: (uid, command, error) => this.sendCommandError(uid, command, error),
+            weighMint: (room, uid, candidate) => this.mintOverflowWith(room, uid, candidate),
+          },
+          senderUid,
+          roomId,
+          message,
+        );
       case "map-studio-delete": {
         this.service.delete(roomId, message.documentId);
         this.broadcastToDMs(roomId, {
@@ -220,8 +183,9 @@ export class MapStudioMessageHandler {
       case "map-studio-import": {
         // Import MINTS (it rejects duplicate ids, so every success adds one) —
         // the third create path the arc's review found outside the ceiling.
-        this.assertMintCeiling(roomId);
-        const document = this.service.import(roomId, message.document, this.now());
+        const timestamp = this.now();
+        this.assertMintCeiling(roomId, senderUid, importMapDocument(message.document, timestamp));
+        const document = this.service.import(roomId, message.document, timestamp);
         this.broadcastDocument(roomId, document);
         break;
       }
@@ -286,18 +250,37 @@ export class MapStudioMessageHandler {
   }
 
   /**
-   * The mint ceiling (A3): a room past MAX_SESSION_DOCUMENTS writes a session
-   * file its OWN reimport rejects — the DM's backup silently stops being a
-   * backup. Thrown like the duplicate-id case: the nack carries the reason and
-   * the mint simply does not happen. Every path that creates a document calls
-   * this (create, import; atlas-generate-node has its own atlas-error twin).
+   * The mint ceiling — the count half (A3) and the byte half (the Weighed
+   * Campaign plan): a room past MAX_SESSION_DOCUMENTS, or whose export would
+   * outweigh what one load-session frame can carry, writes a session file its
+   * OWN reimport rejects — the DM's backup silently stops being a backup.
+   * Thrown like the duplicate-id case: the nack carries the reason and the
+   * mint simply does not happen. Every path that creates a document calls
+   * this with the document it WOULD create (create, import; generate and the
+   * atlas mints weigh through their own twins).
    */
-  private assertMintCeiling(roomId: string): void {
+  private assertMintCeiling(roomId: string, senderUid: string, candidate: MapDocument): void {
     if (this.service.list(roomId).length >= MAX_SESSION_DOCUMENTS) {
       throw new Error(
         `This table already holds the maximum of ${MAX_SESSION_DOCUMENTS} map documents — delete one first.`,
       );
     }
+    const overflow = this.mintOverflowWith(roomId, senderUid, candidate);
+    if (overflow) {
+      throw new Error(mintRefusal(overflow));
+    }
+  }
+
+  private mintOverflowWith(
+    roomId: string,
+    senderUid: string,
+    candidate: MapDocument,
+  ): MintOverflow | null {
+    return mintOverflow(
+      this.getRoomState(roomId),
+      withCandidate(this.service.list(roomId), candidate),
+      senderUid,
+    );
   }
 
   private broadcastDocument(

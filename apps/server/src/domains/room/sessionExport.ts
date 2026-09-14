@@ -97,6 +97,13 @@ export function buildSessionFile(
   };
 }
 
+/** The room's document list as it would be with `candidate` minted: replaced by id, else appended. */
+export function withCandidate(documents: MapDocument[], candidate: MapDocument): MapDocument[] {
+  return documents.some((entry) => entry.id === candidate.id)
+    ? documents.map((entry) => (entry.id === candidate.id ? candidate : entry))
+    : [...documents, candidate];
+}
+
 /** The would-be export's wire weight and the ceiling it crossed. */
 export interface MintOverflow {
   bytes: number;

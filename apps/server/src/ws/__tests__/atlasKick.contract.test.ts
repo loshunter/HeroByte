@@ -23,6 +23,7 @@ import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValida
 import { ATLAS_DM_REQUIRED } from "../handlers/AtlasMessageHandler.js";
 import { entranceAnchor } from "../handlers/atlasKick.js";
 import { sentinelHits } from "./leakSentinels.js";
+import { fatDrawing } from "./fatDrawing.js";
 import {
   createRouterHarness,
   flush,
@@ -428,6 +429,24 @@ describe("atlas kick contracts", () => {
         route({ t: "map-studio-create", document: { id: `filler-${index}`, name: `F${index}` } });
       }
       await expectRefusal("at-cap");
+    });
+
+    it("documents at the BYTE ceiling — the reason says the numbers, the player hears nothing", async () => {
+      bindAdoptedOrigin();
+      // Nowhere near the count cap: the export is heavy because a table's
+      // drawings ride the file verbatim, and a kick would add a whole
+      // building on top. The refusal must name both numbers, and no frame of
+      // any kind may reach the player.
+      state().drawings.push(fatDrawing() as never);
+      await flush();
+      playerWs.send.mockClear();
+
+      await expectRefusal("at-cap");
+
+      const [error] = messagesOf(dmWs, "atlas-error") as { reason?: string }[];
+      expect(error?.reason).toMatch(/\d\.\d\d MB/);
+      expect(error?.reason).toContain("Delete a map first");
+      expect(playerWs.send).not.toHaveBeenCalled();
     });
 
     it("the origin's document missing from the store (a boot-time desync)", async () => {

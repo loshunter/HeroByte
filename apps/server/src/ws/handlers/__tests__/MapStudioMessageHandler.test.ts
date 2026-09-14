@@ -9,6 +9,7 @@ import type {
 import { MapStudioService } from "../../../domains/mapStudio/service.js";
 import { createEmptyRoomState, type RoomState } from "../../../domains/room/model.js";
 import { MapStudioMessageHandler } from "../MapStudioMessageHandler.js";
+import { fatDrawing } from "../../__tests__/fatDrawing.js";
 
 describe("MapStudioMessageHandler", () => {
   const send = vi.fn<(targetUid: string, message: ServerMessage) => void>();
@@ -168,6 +169,42 @@ describe("MapStudioMessageHandler", () => {
       documentId: "map",
     });
     expect(service.list("room")).toEqual([]);
+  });
+
+  describe("the mint ceiling's byte half", () => {
+    // Weighed on the document the path WOULD create, against the export the
+    // room would then write. A table's drawings ride the export verbatim, so
+    // one heavy drawing puts a near-empty room past the ceiling without going
+    // anywhere near the count cap.
+    const create = {
+      t: "map-studio-create",
+      document: { id: "map", name: "Keep", timestamp: 1 },
+    } as const;
+
+    it("create refuses with both numbers and mints nothing", () => {
+      roomState.drawings.push(fatDrawing() as never);
+
+      expect(() => handler.handle(create, "dm", "room", true)).toThrow(/\d\.\d\d MB/);
+      expect(service.list("room")).toHaveLength(0);
+      expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    it("import refuses with both numbers and mints nothing", () => {
+      const source = service.create("room", { id: "source", name: "Backup Keep", timestamp: 1 });
+      const document = JSON.parse(JSON.stringify({ ...source, id: "restored" })) as typeof source;
+      roomState.drawings.push(fatDrawing() as never);
+
+      expect(() =>
+        handler.handle({ t: "map-studio-import", document }, "dm", "room", true),
+      ).toThrow(/\d\.\d\d MB/);
+      expect(service.list("room")).toHaveLength(1);
+      expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    it("a light room still mints — a ceiling, not a wall", () => {
+      handler.handle(create, "dm", "room", true);
+      expect(service.list("room")).toHaveLength(1);
+    });
   });
 
   describe("map-studio-import", () => {

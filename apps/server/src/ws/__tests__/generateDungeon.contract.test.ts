@@ -24,6 +24,7 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
+import { fatDrawing } from "./fatDrawing.js";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
@@ -434,5 +435,34 @@ describe("map-studio-generate contracts", () => {
     // The DM sees doors, so the player must too: nothing here is being hidden,
     // and a player payload with zero doors would mean the disguise fired.
     expect(latestSnapshot(playerWs)?.compiledScene?.doors.length).toBe(dmScene?.doors.length);
+  });
+
+  it("refuses a generate whose result would outweigh the export ceiling — a nack with the numbers, nothing applied, no player frame", async () => {
+    // The live GENERATE tool is a mint in everything but name: a recipe lands
+    // hundreds of elements on an existing document in one command. The export
+    // here is heavy for a reason no document count can see — a table's
+    // drawings ride the file verbatim — so the dungeon on top must be refused
+    // BEFORE the store sees it.
+    createLiveDoc();
+    roomService.getState().drawings.push(fatDrawing() as never);
+    await flush();
+    dmWs.send.mockClear();
+    playerWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-heavy" }), DM);
+    await flush();
+
+    // No document frame at all (documentRevision scans the DM's frames).
+    expect(documentRevision()).toBe(-1);
+    const errors = messagesOf(dmWs, "map-studio-error") as unknown as Array<{
+      commandId: string;
+      code: string;
+      reason: string;
+    }>;
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ commandId: "gen-heavy", code: "command-rejected" });
+    expect(errors[0]?.reason).toMatch(/\d\.\d\d MB/);
+    expect(roomService.getState().compiledScene?.walls ?? []).toEqual([]);
+    expect(playerWs.send).not.toHaveBeenCalled();
   });
 });

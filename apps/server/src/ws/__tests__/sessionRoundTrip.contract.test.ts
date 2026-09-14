@@ -18,6 +18,7 @@ import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
 import {
+  SESSION_MINT_CEILING_BYTES,
   WS_MAX_MESSAGE_BYTES,
   loadSessionFrame,
   loadSessionFrameBytes,
@@ -559,23 +560,16 @@ describe("session round trip", () => {
     );
   });
 
-  it("CHARACTERIZES A KNOWN GAP: the document COUNT cap does not bound the export's BYTES", () => {
-    // This test asserts the DEFECT, on purpose, and must be inverted the day it
-    // is fixed. `MAX_SESSION_DOCUMENTS` (64) is documented as the mint ceiling
-    // that keeps a DM's own export re-importable — but the gate that actually
-    // refuses a load is a BYTE ceiling, and 1 MiB / 64 means a count cap only
-    // holds if the average document is under 16 KB. A generated building is an
-    // order of magnitude past that, so a room nowhere near any cap writes a
-    // file whose `load-session` frame ws drops at the socket level, with a 1009
-    // close no handler ever sees. Found by the final review's recipe lens and
-    // reproduced twice independently; the plan's section 7 prices the fixes.
-    //
-    // The client now weighs the frame before sending and tells the DM
-    // (`useSessionManagement.ts`), so the failure is visible rather than a
-    // success toast over a dead socket — but the room can still reach this
-    // state, which is what this pins.
-    const generated = 6;
-    for (let i = 0; i < generated; i++) {
+  it("the mint path refuses the building that would overflow — and a table at the ceiling exports a file that loads back onto a wiped server in one frame", () => {
+    // Until 2026-09-14 this test CHARACTERIZED A KNOWN GAP: six `large`
+    // buildings, well under the document COUNT cap (64), wrote a frame the
+    // socket dropped with a 1009 close no handler ever saw — 1 MiB / 64 only
+    // holds if the average document is under 16 KB, and a large building is
+    // 207–235 KB. The mint path now weighs BYTES (the Weighed Campaign plan):
+    // every mint is refused once the export it would write outweighs
+    // SESSION_MINT_CEILING_BYTES. The count cap still holds beside it.
+    const attempted = 6;
+    for (let i = 0; i < attempted; i++) {
       origin.route({
         t: "atlas-create-node",
         node: { id: `n-${i}`, kind: "building", name: `Warehouse ${i}` },
@@ -590,16 +584,43 @@ describe("session round trip", () => {
     }
 
     const documents = origin.mapStudioService.list("default");
-    // Well inside every cap the mint path enforces — that is the whole point.
+    const buildings = documents.filter((entry) => entry.id !== "live");
+    // Some minted, then refused — never all six, never none.
+    expect(buildings.length).toBeGreaterThanOrEqual(2);
+    expect(buildings.length).toBeLessThan(attempted);
     expect(documents.length).toBeLessThan(MAX_SESSION_DOCUMENTS);
     // Guard the guard: real maps, not empty shells.
-    for (const document of documents.filter((entry) => entry.id !== "live")) {
+    for (const document of buildings) {
       expect(document.elements.length).toBeGreaterThan(50);
     }
+    const refusals = framesOf(origin.dmWs, "atlas-error") as unknown as {
+      code: string;
+      reason: string;
+    }[];
+    expect(refusals).toHaveLength(attempted - buildings.length);
+    for (const refusal of refusals) {
+      expect(refusal.code).toBe("at-cap");
+      expect(refusal.reason).toMatch(/\d\.\d\d MB/);
+    }
+    // A refused node stays a promise: no document, no provenance.
+    const mapped = origin.roomService.getState().atlasNodes.filter((node) => node.mapDocumentId);
+    expect(mapped).toHaveLength(buildings.length);
 
     const file = exportSession();
     const frameBytes = loadSessionFrameBytes(file as never);
-    expect(frameBytes).toBeGreaterThan(WS_MAX_MESSAGE_BYTES);
+    // Under the wire limit — the promise — and at or about the ceiling (the
+    // promise nodes created AFTER the last accepted mint add a few bytes).
+    expect(frameBytes).toBeLessThan(WS_MAX_MESSAGE_BYTES);
+    expect(frameBytes).toBeLessThan(SESSION_MINT_CEILING_BYTES + 4096);
+
+    const restored = bootServer();
+    restored.route(loadSessionFrame(file as never));
+    expect(restored.mapStudioService.list("default")).toHaveLength(documents.length);
+    for (const document of buildings) {
+      expect(restored.mapStudioService.get("default", document.id).elements).toHaveLength(
+        document.elements.length,
+      );
+    }
   });
 
   it("writes a file the loaders can actually read", () => {

@@ -12,9 +12,12 @@
 // UNPUSHED node object (the kick) pushes it whole or not at all.
 
 import {
+  applyMapDocumentCommand,
   createMapDocument,
   type AtlasNode,
   type GenerateRequest,
+  type MapDocument,
+  type MapDocumentCommand,
   type ServerMessage,
 } from "@herobyte/shared";
 import { randomUUID } from "node:crypto";
@@ -27,6 +30,7 @@ import { runRecipe } from "../../domains/generation/recipes.js";
 import type { RecipeOutput } from "../../domains/generation/types.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
+import { mintRefusal, type MintOverflow } from "../../domains/room/sessionExport.js";
 
 /**
  * Preset dimensions in CELLS. Every preset must clear the recipe's 20×20
@@ -44,6 +48,12 @@ export interface AtlasCashDeps {
   mapStudioService: MapStudioService;
   broadcastToDMs: (roomId: string, message: ServerMessage) => void;
   now: () => number;
+  /**
+   * The BYTE ceiling (the Weighed Campaign plan): weigh the export the room
+   * would write with `candidate` minted — the finished in-memory document,
+   * recipe applied — and report the overflow, or null when it fits.
+   */
+  weighMint: (candidate: MapDocument) => MintOverflow | null;
 }
 
 export type CashOutcome =
@@ -85,14 +95,27 @@ export function cashNode(
     timestamp,
   };
 
-  // Everything pure runs against the in-memory mint FIRST.
+  // Everything pure runs against the in-memory mint FIRST — the recipe, its
+  // budget, and the place-room itself, so the CANDIDATE document exists in
+  // memory before anything persists and the byte ceiling can weigh it.
   let output: RecipeOutput;
+  let placeRoom: MapDocumentCommand;
+  let candidate: MapDocument;
   try {
     const minted = createMapDocument(documentInput);
     const ctx = resolveRecipeContext(minted, bounds, commandId);
     assertGenerateSeed(seed);
     output = runRecipe(seed, bounds, request, ctx);
     assertRecipeBudget(output);
+    placeRoom = {
+      type: "place-room",
+      commandId,
+      documentId,
+      baseRevision: 0,
+      cells: output.cells,
+      elements: output.elements,
+    };
+    candidate = applyMapDocumentCommand(minted, placeRoom, timestamp).document;
   } catch (error) {
     return {
       ok: false,
@@ -101,22 +124,19 @@ export function cashNode(
     };
   }
 
+  // The BYTE ceiling: the export this mint would write must load back in one
+  // frame. Weighed on the in-memory candidate — a refusal persists nothing,
+  // like every refusal above it.
+  const overflow = deps.weighMint(candidate);
+  if (overflow) {
+    return { ok: false, code: "at-cap", reason: mintRefusal(overflow) };
+  }
+
   // Only now does anything persist — and the one step that can still fail
   // deletes the document on the way out.
   deps.mapStudioService.create(roomId, documentInput);
   try {
-    deps.mapStudioService.apply(
-      roomId,
-      {
-        type: "place-room",
-        commandId,
-        documentId,
-        baseRevision: 0,
-        cells: output.cells,
-        elements: output.elements,
-      },
-      timestamp,
-    );
+    deps.mapStudioService.apply(roomId, placeRoom, timestamp);
   } catch (error) {
     deps.mapStudioService.delete(roomId, documentId);
     return {

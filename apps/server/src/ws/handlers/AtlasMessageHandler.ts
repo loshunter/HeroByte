@@ -28,6 +28,7 @@ import { handleAtlasGenerateNode } from "./atlasGenerate.js";
 import { handleAtlasKick } from "./atlasKick.js";
 import { pushLink } from "./atlasLink.js";
 import { handleAtlasTravel } from "./sceneTravel.js";
+import { mintOverflow, withCandidate } from "../../domains/room/sessionExport.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -99,6 +100,12 @@ export class AtlasMessageHandler {
             broadcastToDMs: this.broadcastToDMs,
             sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
             now: this.now,
+            weighMint: (candidate) =>
+              mintOverflow(
+                state,
+                withCandidate(this.mapStudioService.list(roomId), candidate),
+                senderUid,
+              ),
           },
           state,
           senderUid,
@@ -114,6 +121,12 @@ export class AtlasMessageHandler {
             broadcastToDMs: this.broadcastToDMs,
             sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
             now: this.now,
+            weighMint: (candidate) =>
+              mintOverflow(
+                state,
+                withCandidate(this.mapStudioService.list(roomId), candidate),
+                senderUid,
+              ),
           },
           state,
           senderUid,

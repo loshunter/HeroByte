@@ -18,7 +18,7 @@ import {
   type SceneState,
 } from "@herobyte/shared";
 import { createEmptyRoomState, type RoomState } from "../model.js";
-import { buildSessionFile, mintOverflow, mintRefusal } from "../sessionExport.js";
+import { buildSessionFile, mintOverflow, mintRefusal, withCandidate } from "../sessionExport.js";
 
 const DM = "dm-uid";
 
@@ -138,6 +138,21 @@ describe("mintOverflow", () => {
     const lightBytes = loadSessionFrameBytes(buildSessionFile(light, documents, DM, 0));
     const heavyBytes = loadSessionFrameBytes(buildSessionFile(heavy, documents, DM, 0));
     expect(heavyBytes - lightBytes).toBeGreaterThan(100_000);
+  });
+});
+
+describe("withCandidate", () => {
+  it("appends a new document and REPLACES one that already exists by id — a generate weighs the after, not the before", () => {
+    const a = document("doc-A", "a");
+    const b = document("doc-B", "b");
+    const grownB = document("doc-B", "b".repeat(1000));
+
+    expect(withCandidate([a], b)).toEqual([a, b]);
+    const replaced = withCandidate([a, b], grownB);
+    expect(replaced).toHaveLength(2);
+    expect(replaced[1]).toBe(grownB);
+    // Never both versions of one document.
+    expect(replaced.filter((entry) => entry.id === "doc-B")).toHaveLength(1);
   });
 });
 
