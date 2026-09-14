@@ -60,7 +60,12 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "map-studio-error" }>
   | Extract<ServerMessage, { t: "atlas-error" }>
   | Extract<ServerMessage, { t: "room-created" }>
-  | Extract<ServerMessage, { t: "room-create-failed" }>;
+  | Extract<ServerMessage, { t: "room-create-failed" }>
+  // Save Game State's reply. It was never on this list: it rode the router's
+  // old fallthrough, and the forward-compat guard (a6890e19) that stopped
+  // unknown types blanking the table silently dropped it instead — every save
+  // ended in "the server did not return a session file". Found live 2026-09-14.
+  | Extract<ServerMessage, { t: "session-file" }>;
 
 type HeartbeatAckMessage = Extract<ServerMessage, { t: "heartbeat-ack" }>;
 
@@ -366,7 +371,8 @@ export class MessageRouter {
       // warn-dropped at the router's floor. Both lists change together.
       candidate.t === "atlas-error" ||
       candidate.t === "room-created" ||
-      candidate.t === "room-create-failed"
+      candidate.t === "room-create-failed" ||
+      candidate.t === "session-file"
     );
   }
 
