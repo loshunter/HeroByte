@@ -16,6 +16,7 @@ import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import { deriveMapTerrain, isMapStudioMessage, toSummary } from "./mapStudioHandlerUtils.js";
 import { handleMapStudioGenerate } from "./mapStudioGenerate.js";
 import {
+  exportBytes,
   mintOverflow,
   mintRefusal,
   withCandidate,
@@ -54,12 +55,16 @@ export class MapStudioMessageHandler {
     }
 
     switch (message.t) {
-      case "map-studio-list":
+      case "map-studio-list": {
+        const documents = this.service.list(roomId);
         this.sendMessage(senderUid, {
           t: "map-studio-documents",
-          documents: this.service.list(roomId).map(toSummary),
+          documents: documents.map(toSummary),
+          // The DM's readout: what the campaign's export weighs right now.
+          exportBytes: exportBytes(this.getRoomState(roomId), documents, senderUid),
         });
         break;
+      }
       case "map-studio-create": {
         const input = { ...message.document, timestamp: this.now() };
         try {

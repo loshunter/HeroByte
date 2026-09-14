@@ -40,6 +40,12 @@ export function useMapStudio(
   // the maps store reset under a room that kept its live binding. Glue code
   // uses it to stop re-fetching the dangling id and offer a fresh start.
   const [missingDocumentId, setMissingDocumentId] = useState<string | null>(null);
+  const [exportBytes, setExportBytes] = useState<number | null>(null);
+  // The ids the last list (or a frame since) told us about — a document frame
+  // for an id not here is a MINT, which moves the campaign's weight: re-list.
+  // null until a list has arrived: with no readout to keep fresh, nothing is
+  // re-listed (and a bare command stream costs no extra message).
+  const knownIds = useRef<Set<string> | null>(null);
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const requestedDocumentId = useRef<string | null>(null);
   const activeDocumentRef = useRef<MapDocument | null>(null);
@@ -167,11 +173,18 @@ export function useMapStudio(
     (message: MapStudioServerMessage) => {
       if (message.t === "map-studio-documents") {
         setDocuments(message.documents);
+        knownIds.current = new Set(message.documents.map((document) => document.id));
+        setExportBytes(message.exportBytes ?? null);
         setLoading(false);
         return;
       }
 
       if (message.t === "map-studio-deleted") {
+        // A delete moves the campaign's weight: re-list for the readout.
+        if (knownIds.current) {
+          knownIds.current.delete(message.documentId);
+          sendMessage({ t: "map-studio-list" });
+        }
         setDocuments((current) => current.filter((document) => document.id !== message.documentId));
         setActiveDocument((current) => (current?.id === message.documentId ? null : current));
         if (activeDocumentRef.current?.id === message.documentId) activeDocumentRef.current = null;
@@ -222,6 +235,11 @@ export function useMapStudio(
       // A document that arrives is by definition not missing any more.
       setMissingDocumentId((current) => (current === document.id ? null : current));
       setDocuments((current) => upsertMapDocumentSummary(current, document));
+      if (knownIds.current && !knownIds.current.has(document.id)) {
+        // A mint (create, import, generate, a kick) — re-list for the readout.
+        knownIds.current.add(document.id);
+        sendMessage({ t: "map-studio-list" });
+      }
       const shouldActivate =
         requestedDocumentId.current === document.id ||
         activeDocumentRef.current?.id === document.id ||
@@ -263,6 +281,7 @@ export function useMapStudio(
     saving,
     error,
     missingDocumentId,
+    exportBytes,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
     refresh,

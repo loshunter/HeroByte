@@ -359,6 +359,48 @@ describe("useMapStudio", () => {
     expect(result.current.missingDocumentId).toBeNull();
   });
 
+  it("carries the campaign's weight from the list reply, and re-lists when a map is minted or deleted", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "a", name: "A", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 640_000,
+      }),
+    );
+    expect(result.current.exportBytes).toBe(640_000);
+    sendMessage.mockClear();
+
+    // A frame for a KNOWN document (an edit) is not a mint: no re-list.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "a", name: "A", timestamp: 2 }),
+      }),
+    );
+    expect(sendMessage).not.toHaveBeenCalledWith({ t: "map-studio-list" });
+
+    // A frame for a NEW id is a mint (create, import, generate, a kick): re-list.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "b", name: "B", timestamp: 3 }),
+      }),
+    );
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+    sendMessage.mockClear();
+
+    // ...and so is a delete.
+    act(() => result.current.handleServerMessage({ t: "map-studio-deleted", documentId: "b" }));
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+
+    // An older server's list carries no weight: null, not NaN.
+    act(() => result.current.handleServerMessage({ t: "map-studio-documents", documents: [] }));
+    expect(result.current.exportBytes).toBeNull();
+  });
+
   it("ignores a not-found for a document that is not the one being opened", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     act(() => result.current.openDocument("wanted"));

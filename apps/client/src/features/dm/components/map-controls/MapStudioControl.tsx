@@ -6,6 +6,7 @@ import {
   rasterizeAndUploadMapBackground,
   type MapStudioController,
 } from "../../../map-studio";
+import { CampaignWeight } from "./CampaignWeight";
 import { MapStudioExportControls } from "./MapStudioExportControls";
 import { formatUpdatedAt } from "./formatUpdatedAt";
 import { parseBackupImport } from "./importBackup";
@@ -41,6 +42,7 @@ export function MapStudioControl({
     error,
     canUndo,
     canRedo,
+    exportBytes,
     refresh,
     createDocument,
     openDocument,
@@ -211,6 +213,7 @@ export function MapStudioControl({
               </option>
             ))}
           </select>
+          <CampaignWeight bytes={exportBytes} maps={documents.length} />
           <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
             <JRPGButton
               style={{ flex: 1, fontSize: "10px" }}

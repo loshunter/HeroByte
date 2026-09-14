@@ -104,6 +104,11 @@ export function withCandidate(documents: MapDocument[], candidate: MapDocument):
     : [...documents, candidate];
 }
 
+/** What the export of `state` + `documents` weighs on the wire — the DM's readout and the ceiling's measure. */
+export function exportBytes(state: RoomState, documents: MapDocument[], actingUid: string): number {
+  return loadSessionFrameBytes(buildSessionFile(state, documents, actingUid, 0));
+}
+
 /** The would-be export's wire weight and the ceiling it crossed. */
 export interface MintOverflow {
   bytes: number;
@@ -125,7 +130,7 @@ export function mintOverflow(
   documents: MapDocument[],
   actingUid: string,
 ): MintOverflow | null {
-  const bytes = loadSessionFrameBytes(buildSessionFile(state, documents, actingUid, 0));
+  const bytes = exportBytes(state, documents, actingUid);
   return bytes > SESSION_MINT_CEILING_BYTES ? { bytes, ceiling: SESSION_MINT_CEILING_BYTES } : null;
 }
 

@@ -6,10 +6,12 @@ import type {
   MapDoorElement,
   ServerMessage,
 } from "@herobyte/shared";
+import { loadSessionFrameBytes } from "@herobyte/shared";
 import { MapStudioService } from "../../../domains/mapStudio/service.js";
 import { createEmptyRoomState, type RoomState } from "../../../domains/room/model.js";
 import { MapStudioMessageHandler } from "../MapStudioMessageHandler.js";
 import { fatDrawing } from "../../__tests__/fatDrawing.js";
+import { buildSessionFile } from "../../../domains/room/sessionExport.js";
 
 describe("MapStudioMessageHandler", () => {
   const send = vi.fn<(targetUid: string, message: ServerMessage) => void>();
@@ -78,7 +80,23 @@ describe("MapStudioMessageHandler", () => {
           updatedAt: 1,
         },
       ],
+      exportBytes: expect.any(Number),
     });
+  });
+
+  it("the list carries the campaign's export weight — the weigh of the room's REAL export, documents included", () => {
+    service.create("room", { id: "map", name: "Keep", timestamp: 1 });
+    roomState.drawings.push(fatDrawing(2_000) as never);
+
+    handler.handle({ t: "map-studio-list" }, "dm", "room", true);
+
+    const [, reply] = send.mock.calls[0]!;
+    const sent = reply as { t: string; exportBytes?: number };
+    expect(sent.exportBytes).toBe(
+      loadSessionFrameBytes(buildSessionFile(roomState, service.list("room"), "dm", 0)),
+    );
+    // Guard the guard: the drawing is in the weigh (a 2,000-point drawing is tens of KB).
+    expect(sent.exportBytes).toBeGreaterThan(20_000);
   });
 
   it("retrieves one document directly to the requesting DM", () => {

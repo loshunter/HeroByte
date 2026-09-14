@@ -1,6 +1,6 @@
 # The Weighed Campaign — the byte-weighed mint path — Execution Plan
 
-**Status: W0–W2 SHIPPED to `dev` 2026-09-14, NOT merged to `main`; W3 open.** Picked by the owner on 2026-09-13 ("start one now")
+**Status: W0–W3 SHIPPED to `dev` 2026-09-14, NOT merged to `main`; live evaluation and review pending.** Picked by the owner on 2026-09-13 ("start one now")
 from the Kicked-In Door plan's section 7, on this agent's recommendation: it is that plan's
 highest open item and the one defect left there that a DM can hit by playing normally.
 
@@ -9,7 +9,7 @@ highest open item and the one defect left there that a DM can hit by playing nor
 | W0    | One frame builder, one weigher, one ceiling — shared by 3 sites  | **SHIPPED to `dev` 2026-09-14** (`9fbd94e9`) |
 | W1    | Every mint path weighs bytes before it persists                  | **SHIPPED to `dev` 2026-09-14** (`6d756ea7`) |
 | W2    | The save path says the weight; the refusals say the numbers      | **SHIPPED to `dev` 2026-09-14** (below)      |
-| W3 🟢 | A DM-facing readout of the campaign's weight (if budget remains) | PLANNED                                      |
+| W3 🟢 | A DM-facing readout of the campaign's weight (if budget remains) | **SHIPPED to `dev` 2026-09-14** (below)      |
 
 ## 0. How to execute this plan
 
@@ -236,6 +236,19 @@ deleted node's document; `MAX_GEOMETRY_ELEMENTS`; the live GENERATE tool's recip
 `map-studio-documents` (the list the DM already requests) carries `exportBytes`; the desktop
 DM menu's Atlas tab and the phone's DM screen show "Campaign 0.61 / 0.75 MB". No new message
 type; the three `ServerMessage` hand-lists stay byte-identical.
+
+#### W3 — what shipped (2026-09-14)
+
+- `map-studio-documents` carries `exportBytes` — the weigh of the room's REAL export, computed by
+  the same `exportBytes` the ceiling measures with (the list is on demand, so the cost lands
+  where the DM asks). No new message type; the three `ServerMessage` hand-lists are untouched.
+- `useMapStudio` keeps `exportBytes` and re-lists when a document frame arrives for an id it has
+  not seen (a mint: create, import, generate, a kick) or on a delete — only once a list has
+  arrived, so a bare command stream costs no extra message (four counting tests said so).
+- `CampaignWeight` beside the map list: "Campaign 0.61 MB of 0.75 MB · 4 maps", red past the
+  ceiling with "delete a map to make room", and past the wire limit "a save will NOT load
+  back"; nothing until a server has said. One component, both layouts (the DM menu is shared).
+- Sabotage 3/3 red on the named cases; the fixture ripple was two sites, done by hand.
 
 ## 5. Failure drills
 

@@ -108,6 +108,12 @@ export interface MapStudioController {
   /** A document id the server reported gone on open ("not-found") — glue code
    * stops auto-retrying it and offers a fresh start (dangling live binding). */
   missingDocumentId: string | null;
+  /**
+   * What the campaign's session export weighs on the wire, per the last list
+   * reply (refreshed when the panel opens and when a map is added or removed);
+   * null until a server has said. The readout beside the map list.
+   */
+  exportBytes: number | null;
   canUndo: boolean;
   canRedo: boolean;
   refresh: () => void;

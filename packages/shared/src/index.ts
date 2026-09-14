@@ -1198,7 +1198,17 @@ export type ServerMessage =
   | { t: "pointer-preview"; pointer: Pointer } // Pointer preview event (high-frequency channel)
   | { t: "drag-preview"; preview: DragPreviewEvent } // Drag preview event (high-frequency channel)
   | { t: "measure"; measure: MeasureEvent } // Someone's measurement, live (high-frequency channel)
-  | { t: "map-studio-documents"; documents: MapDocumentSummary[] }
+  | {
+      t: "map-studio-documents";
+      documents: MapDocumentSummary[];
+      /**
+       * What the campaign's session export weighs on the wire right now — the
+       * DM's readout beside the map list. A mint is refused once this would
+       * pass SESSION_MINT_CEILING_BYTES; a load is refused past
+       * WS_MAX_MESSAGE_BYTES. Refreshed with the list. Absent from older servers.
+       */
+      exportBytes?: number;
+    }
   | {
       t: "map-studio-document";
       document: MapDocument;
