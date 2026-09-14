@@ -8,20 +8,40 @@ production. Where something is a judgement call rather than a fact, it says so.
 ## 0. Where things stand
 
 **Update (2026-09-13, later — FOLLOW-UP F4 on `dev`, NOT merged to `main`: nothing selected →
-your own token).** The one item-4 leftover the owner queued. With an EMPTY selection the movement
-keys move the actor's own token: `ownTokenFallback` (the pure half of `features/movement`) names
-the ONE `pc` character owned by the uid — its linked `tokenId`, else the one token they own when
-that character predates linking; zero or two-plus PCs → nothing, by the by-owner precedent
-(`useCombatOrdering` / `MobileEntitiesList`); a DM's NPCs never count, a DM's own PC does. The id
-takes a click's road through `movableSelection` (a locked own token stays the DM's) and map-edit
-zeroes it; a non-empty selection the actor may not move is NOT "nothing" and stays inert. Wire
-unchanged. Keyboard-only in effect: the phone's d-pad needs the selection sheet, which needs a
-selection — pinned so a `movableCount` of 1 with nothing selected never lights a pad. Help topic
-and the player guide's Move bullet updated (the guide had never mentioned the keyboard). Pinned by
-5 rule cases, 5 hook cases, 1 phone case and one e2e case (the selection entry asserted absent);
-sabotage 10/10 red (8 unit, 1 e2e, 1 phone), sources restored byte-identical. Plan section
-"Follow-up F4" in `keyboard-movement-arc-plan.md`. NEXT: the owner's Atlas §7 pick (asked
-2026-09-13); the other three item-4 leftovers stay unqueued.
+your own token; review round 1 answered).** The one item-4 leftover the owner queued. With an
+EMPTY selection the movement keys move the actor's own token: `ownTokenFallback` (the pure half of
+`features/movement`) names the ONE `pc` character owned by the uid — its linked `tokenId` when
+the snapshot has that token (a link to a stashed token answers nothing), else the ONE token of
+theirs that NO character claims (an NPC token carries the placing DM's uid and is linked to its
+NPC — round 1's critical: "owned by me" alone handed a DM a goblin); zero or two-plus PCs, or two
+loose tokens → nothing (the by-owner precedent in `useCombatOrdering` / `MobileEntitiesList`, made
+strict). The id takes a click's road through `movableSelection` (a locked own token stays the
+DM's) and map-edit zeroes it; a non-empty selection the actor may not move is NOT "nothing" and
+stays inert. The fallback road — never the selected one — answers a bare key only while the board
+has the conversation (round 1's other major: the listener had become always-on and swallowed the
+arrows meant for the roll log): the key's target is bare, the last pointer landed on the stage
+(the login click takes the witness down; the first map click arms it), and no composing tool
+(draw / align / atlas-link — `toolOwnsKeys`, threaded from `App.tsx`) is armed. Wire unchanged.
+Keyboard-only in effect: the phone's d-pad needs the selection sheet, which needs a selection —
+pinned on the sheet's region role with an inline control. Copy: the help entry's Move term leads
+with the keyboard rule, qualified (one character, the map last clicked; TOOLS → Select → tap on a
+phone; SELECT or TRANSFORM); the player guide's Move bullet likewise, and its phone section gains
+the d-pad road the guides never had. Fixed on the way, own commit: the reconnect re-token was
+gated on "any token this uid owns", which a DM's goblin satisfies, so a DM who deleted their own
+token never got one back — `CharacterService.ensureToken` (kept when linked, adopted when exactly
+one own token is loose, else spawned and linked), the auth road delegating; live-checked in the
+discriminating scenario. Pinned by 10 rule cases, 18 hook cases, 1 phone case, 1 e2e case and 5
+server cases; sabotage 10/10 before the round and 14/14 after (every one on its named case),
+sources restored byte-identical; both real typechecks and the structure guard clean; live-checked
+with two clients (a player's and a DM's bare key steps their own token and the other client sees
+it; a header click hands the arrows away and a map click takes them back — the server log's send
+counts are the evidence, the public dev table delivering snapshots seconds late). Round 1: four
+lenses, all FAIL (1 critical / 13 major / 13 minor raw → 1 / 8 / 11 deduplicated), every finding
+fixed or recorded in the plan's "Review round 1" (recorded: an on-screen affordance + a desktop
+camera follow — feature widenings, the owner's call; the help entry's length — `helpTopics.ts` is
+at the 350 cap). Round 2 next. Plan section "Follow-up F4" in `keyboard-movement-arc-plan.md`.
+NEXT after round 2: the owner's Atlas §7 pick (asked 2026-09-13); the other three item-4
+leftovers stay unqueued.
 
 **Update (2026-09-13, DEPLOYED — F1, F2 and F3 are IN PRODUCTION).** The owner said merge.
 `dev` fast-forwarded to `main` as `41ca0106` (from `e42d60bf`, nineteen commits: the three

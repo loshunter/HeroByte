@@ -120,7 +120,9 @@ test.describe("keyboard movement", () => {
   }) => {
     await joinDefaultRoom(page);
     const token = await ownToken(page);
-    // The join road links the character to its token; the fallback reads that link.
+    // The join road links the character to its token; the fallback reads that
+    // link — so the token polled below must be the LINKED one, not merely the
+    // first the player owns.
     await page.waitForFunction(() => {
       const data = window.__HERO_BYTE_E2E__;
       return Boolean(
@@ -129,6 +131,31 @@ test.describe("keyboard movement", () => {
         ),
       );
     });
+    const linked = await page.evaluate(() => {
+      const data = window.__HERO_BYTE_E2E__!;
+      return data.snapshot!.characters.find(
+        (c) => c.ownedByPlayerUID === data.uid && typeof c.tokenId === "string",
+      )!.tokenId;
+    });
+    expect(linked).toBe(token.id);
+    // The board must have the conversation: the login button was the last
+    // thing clicked, so click the stage once, as a player would — at a point
+    // where the canvas is the top-most element (the header and the panels
+    // overlay parts of it, and a covered point never becomes clickable).
+    const spot = await page.evaluate(() => {
+      const stage = document.querySelector(".konvajs-content");
+      if (!stage) return null;
+      const r = stage.getBoundingClientRect();
+      for (let y = r.top + 8; y < r.bottom; y += 24) {
+        for (let x = r.left + 8; x < r.right; x += 24) {
+          const el = document.elementFromPoint(x, y);
+          if (el && stage.contains(el)) return { x, y };
+        }
+      }
+      return null;
+    });
+    expect(spot).not.toBeNull();
+    await page.mouse.click(spot!.x, spot!.y);
     // Nothing is selected: Select was never armed, and the plain cursor never
     // holds a selection (it auto-clears outside Select/Transform). Asserted,
     // so this cannot pass through the selected-token road by accident.

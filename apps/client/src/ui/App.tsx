@@ -677,6 +677,9 @@ function AuthenticatedApp({
     uid,
     isDM,
     mapEditMode,
+    // A tool composing on the stage keeps a bare key (draw, align, atlas-link);
+    // map-edit is inert on its own road above.
+    toolOwnsKeys: drawMode || alignmentMode || activeTool === "atlas-link",
     sendMessage,
   });
 

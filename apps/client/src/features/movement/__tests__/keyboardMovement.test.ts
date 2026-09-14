@@ -15,6 +15,14 @@ const characters = (list: Owned[]): RoomSnapshot["characters"] =>
     ownedByPlayerUID: c.owner,
     tokenId: c.tokenId ?? null,
   })) as unknown as RoomSnapshot["characters"];
+const tokens = (list: Array<[id: string, owner: string]>): RoomSnapshot["tokens"] =>
+  list.map(([id, owner]) => ({
+    id,
+    owner,
+    x: 0,
+    y: 0,
+    color: "hsl(0 0% 0%)",
+  })) as unknown as RoomSnapshot["tokens"];
 
 function snapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
   return {
@@ -137,18 +145,72 @@ describe("movableSelection", () => {
 });
 
 describe("ownTokenFallback — nothing selected → your own token", () => {
-  it("names the actor's one PC character's linked token", () => {
+  it("names the actor's one PC character's LINKED token — not merely the first token they own", () => {
+    // "spare" sorts first and is mine too; the link decides (round 1: every
+    // fixture's linked token was also the first owned one, so the link clause
+    // was unpinned).
     const snap = snapshot({
+      tokens: tokens([
+        ["spare", "me"],
+        ["mine", "me"],
+      ]),
       characters: characters([{ id: "hero", type: "pc", owner: "me", tokenId: "mine" }]),
     });
     expect(ownTokenFallback({ snapshot: snap, uid: "me" })).toBe("token:mine");
   });
 
-  it("falls back to the one token the actor owns when that one character predates linking", () => {
+  it("a link to a token the snapshot lacks (stashed by a scene capture) answers nothing", () => {
     const snap = snapshot({
+      characters: characters([{ id: "hero", type: "pc", owner: "me", tokenId: "ghost" }]),
+    });
+    expect(ownTokenFallback({ snapshot: snap, uid: "me" })).toBeNull();
+  });
+
+  it("predates linking: the one token the actor owns — a stranger's token sorting first is not it", () => {
+    const snap = snapshot({
+      tokens: tokens([
+        ["theirs", "them"],
+        ["mine", "me"],
+      ]),
       characters: characters([{ id: "hero", type: "pc", owner: "me", tokenId: null }]),
     });
     expect(ownTokenFallback({ snapshot: snap, uid: "me" })).toBe("token:mine");
+  });
+
+  it("predates linking: a token another character claims is not loose — a DM's goblin is the DM's uid, never their token", () => {
+    // NPC tokens carry the placing DM's uid and are linked to their NPC
+    // character (placeNPCToken). Round 1's critical: "owned by me" alone
+    // handed a DM whose own token was deleted the first goblin.
+    const dmWithGoblin = snapshot({
+      tokens: tokens([["goblin", "me"]]),
+      characters: characters([
+        { id: "hero", type: "pc", owner: "me", tokenId: null },
+        { id: "gob", type: "npc", owner: null, tokenId: "goblin" },
+      ]),
+    });
+    expect(ownTokenFallback({ snapshot: dmWithGoblin, uid: "me" })).toBeNull();
+    const dmWithGoblinAndLoose = snapshot({
+      tokens: tokens([
+        ["goblin", "me"],
+        ["mine", "me"],
+      ]),
+      characters: characters([
+        { id: "hero", type: "pc", owner: "me", tokenId: null },
+        { id: "gob", type: "npc", owner: null, tokenId: "goblin" },
+      ]),
+    });
+    expect(ownTokenFallback({ snapshot: dmWithGoblinAndLoose, uid: "me" })).toBe("token:mine");
+  });
+
+  it("predates linking: two loose tokens of mine is a guess — nothing answers", () => {
+    const snap = snapshot({
+      tokens: tokens([
+        ["mine", "me"],
+        ["mine2", "me"],
+      ]),
+      characters: characters([{ id: "hero", type: "pc", owner: "me", tokenId: null }]),
+    });
+    expect(ownTokenFallback({ snapshot: snap, uid: "me" })).toBeNull();
   });
 
   it("is null with two PCs (a guess is wrong for one of them), with none, and without a snapshot", () => {
@@ -163,7 +225,7 @@ describe("ownTokenFallback — nothing selected → your own token", () => {
     expect(ownTokenFallback({ snapshot: null, uid: "me" })).toBeNull();
   });
 
-  it("an NPC the actor runs never counts — one PC beside NPCs still resolves, NPCs alone do not", () => {
+  it("an NPC character recorded as owned by the actor never counts (a fixture-only shape — production NPCs are unowned; their TOKENS are the case above)", () => {
     const withNpc = snapshot({
       characters: characters([
         { id: "hero", type: "pc", owner: "me", tokenId: "mine" },

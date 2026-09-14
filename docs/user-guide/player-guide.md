@@ -53,7 +53,7 @@ Your token is your presence on the map:
 
 - **Nameplate and HP bar** — every token wears its character's name, and a thin health bar when you're allowed the numbers (your party always; monsters at the DM's discretion — a red dot means bloodied). Names hold their size at any zoom.
 
-- **Move** — drag it. With **SNAP** on (top toolbar) it clicks to grid cells; everyone sees your drag live. Or step it from the keyboard: **WASD** / **arrows** move it one cell (Q E Z C for the diagonals; hold a key to walk). With nothing selected the keys move your own token; to move something else you may move, pick it with the **🖱️ SELECT** tool first.
+- **Move** — drag it. With **SNAP** on (top toolbar) it clicks to grid cells; everyone sees your drag live. Or step it from the keyboard: **WASD** / **arrows** move it one cell (Q E Z C for the diagonals; hold a key to walk). With nothing selected the keys move your own token — as long as you run just the one character (with a second, pick the one you mean first) and the map was the last thing you clicked (a click in the log or a panel hands the arrows to that panel until you click the map again). To move something else you may move, pick it with the **🖱️ SELECT** (or **🔄 TRANSFORM**) tool first.
 - **Recolor** — double-click your token for a new random color.
 - **Select** — click it. **Shift-click** adds to a selection, **Ctrl/Cmd-click** toggles. With the **🖱️ SELECT** tool you can drag a marquee to grab several tokens and drawings at once, then drag any one of them to move the whole group.
 - **Resize / rotate** — with the **🔄 TRANSFORM** tool, click a token for Photoshop-style handles: 8 scale handles plus a rotation handle above (rotation snaps to 45°; hold **Ctrl/Cmd** to rotate freely). The center crosshair drags the object.
@@ -243,5 +243,7 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 Party and Log open as full screens: close them with the **✕**, or drag their title bar downward to flick them away.
 
 ![The mobile party screen](img/mobile-party.jpg)
+
+To move a piece by steps on a phone: **TOOLS → 🖱️ Select**, tap the piece, and a d-pad appears in its sheet (hold a direction to walk; the map scrolls to keep the piece above the sheet).
 
 One finger pans, two fingers pinch-zoom. A few desktop-only extras (CRT, game-feel settings, player-state files) don't exist on mobile. DM map authoring _does_ — see [On a phone or tablet](map-editor-guide.md#on-a-phone-or-tablet) in the map editor guide.

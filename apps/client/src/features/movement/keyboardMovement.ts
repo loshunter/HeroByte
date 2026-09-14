@@ -15,10 +15,12 @@
 // Select/Transform mode, so with the plain cursor a player had to arm Select
 // and click their token before a key did anything. With an EMPTY selection
 // the keys now stand in for "my token": the actor's ONE PC character's
-// token — never a guess between two (the by-owner precedent in
-// useCombatOrdering / MobileEntitiesList: with two characters a guess is
-// wrong for one of them). A non-empty selection the actor may not move is a
-// deliberate selection of someone else's piece, not "nothing" — it stays inert.
+// linked token — or, when that character predates linking, the ONE token of
+// theirs that no character claims. Never a guess between two (the by-owner
+// precedent in useCombatOrdering / MobileEntitiesList: with two characters a
+// guess is wrong for one of them — and the same for two loose tokens). A
+// non-empty selection the actor may not move is a deliberate selection of
+// someone else's piece, not "nothing" — it stays inert.
 
 import type { RoomSnapshot } from "@herobyte/shared";
 
@@ -77,25 +79,38 @@ export interface MovableSelectionInput {
 
 /**
  * The scene-object id of the actor's own token when nothing is selected, or
- * null when there is no single answer: the actor's ONE `pc` character's
- * linked token (`character.tokenId`), else — when that one character predates
- * linking — the one token they own. Zero PCs or two or more → null (a DM's
- * NPCs never count; a DM's own PC does, as F3 made it a combatant). The id
- * still goes through `movableSelection`, so a locked own token stays a DM's
- * to move, exactly as if it had been clicked.
+ * null when there is no single answer. The actor must run exactly ONE `pc`
+ * character (a DM's own PC counts — F3 made it a combatant; NPC characters
+ * are never owned by a player). That character's linked token answers when
+ * the snapshot has it; a link to a token the snapshot lacks (stashed by a
+ * scene capture) answers nothing rather than guessing. Only when the
+ * character predates linking (`tokenId` unset) does ownership decide, and
+ * "owned by me" alone is NOT enough: every NPC token carries the uid of the
+ * DM who placed it and is linked to its NPC character (placeNPCToken), so
+ * the by-owner road considers only tokens no character claims — and exactly
+ * one of them, because two is a guess. The id still goes through
+ * `movableSelection`, so a locked own token stays a DM's to move, exactly as
+ * if it had been clicked.
  */
 export function ownTokenFallback({
   snapshot,
   uid,
 }: Pick<MovableSelectionInput, "snapshot" | "uid">): MovableSelection | null {
   if (!snapshot) return null;
-  const own = (snapshot.characters ?? []).filter(
+  const characters = snapshot.characters ?? [];
+  const tokens = snapshot.tokens ?? [];
+  const own = characters.filter(
     (character) => character.type === "pc" && character.ownedByPlayerUID === uid,
   );
   if (own.length !== 1) return null;
-  const tokenId =
-    own[0].tokenId ?? snapshot.tokens?.find((token) => token.owner === uid)?.id ?? null;
-  return tokenId ? `token:${tokenId}` : null;
+  const link = own[0].tokenId;
+  if (link) {
+    const linked = tokens.find((token) => token.id === link);
+    return linked ? `token:${linked.id}` : null;
+  }
+  const claimed = new Set(characters.flatMap((c) => (c.tokenId ? [c.tokenId] : [])));
+  const loose = tokens.filter((token) => token.owner === uid && !claimed.has(token.id));
+  return loose.length === 1 ? `token:${loose[0].id}` : null;
 }
 
 /**
