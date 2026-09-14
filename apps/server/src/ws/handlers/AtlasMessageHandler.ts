@@ -29,6 +29,7 @@ import { handleAtlasKick } from "./atlasKick.js";
 import { pushLink } from "./atlasLink.js";
 import { handleAtlasTravel } from "./sceneTravel.js";
 import { mintOverflow, withCandidate } from "../../domains/room/sessionExport.js";
+import { liveSceneBytes } from "./liveSceneBytes.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -105,6 +106,7 @@ export class AtlasMessageHandler {
                 state,
                 withCandidate(this.mapStudioService.list(roomId), candidate),
                 senderUid,
+                liveSceneBytes(candidate, this.now()),
               ),
           },
           state,
@@ -126,6 +128,7 @@ export class AtlasMessageHandler {
                 state,
                 withCandidate(this.mapStudioService.list(roomId), candidate),
                 senderUid,
+                liveSceneBytes(candidate, this.now()),
               ),
           },
           state,

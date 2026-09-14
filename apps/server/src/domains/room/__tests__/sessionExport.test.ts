@@ -18,7 +18,13 @@ import {
   type SceneState,
 } from "@herobyte/shared";
 import { createEmptyRoomState, type RoomState } from "../model.js";
-import { buildSessionFile, mintOverflow, mintRefusal, withCandidate } from "../sessionExport.js";
+import {
+  buildSessionFile,
+  exportBytes,
+  mintOverflow,
+  mintRefusal,
+  withCandidate,
+} from "../sessionExport.js";
 
 const DM = "dm-uid";
 
@@ -117,6 +123,18 @@ describe("mintOverflow", () => {
     expect(overflow!.bytes).toBe(
       loadSessionFrameBytes(buildSessionFile(state, [...small, fat], DM, 0)),
     );
+  });
+
+  it("counts the candidate's LIVE-scene bytes — what the travel installs beside the document", () => {
+    const state = stateWith({ liveMapDocumentId: "doc-A" });
+    const documents = [document("doc-A"), document("doc-B")];
+    const base = exportBytes(state, documents, DM);
+    const room = SESSION_MINT_CEILING_BYTES - base;
+
+    expect(mintOverflow(state, documents, DM, room)).toBeNull();
+    const overflow = mintOverflow(state, documents, DM, room + 1);
+    expect(overflow).not.toBeNull();
+    expect(overflow!.bytes).toBe(SESSION_MINT_CEILING_BYTES + 1);
   });
 
   it("counts suspended scenes and the snapshot too — the export is more than its documents", () => {

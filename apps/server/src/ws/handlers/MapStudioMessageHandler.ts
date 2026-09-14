@@ -26,6 +26,7 @@ import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
 import { bindLiveDocument } from "./sceneTravel.js";
+import { liveSceneBytes } from "./liveSceneBytes.js";
 import { publishDocument } from "./mapStudioPublish.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
@@ -302,6 +303,7 @@ export class MapStudioMessageHandler {
       this.getRoomState(roomId),
       withCandidate(this.service.list(roomId), candidate),
       senderUid,
+      liveSceneBytes(candidate, this.now()),
     );
   }
 

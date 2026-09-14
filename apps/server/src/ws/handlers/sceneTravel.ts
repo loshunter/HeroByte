@@ -313,7 +313,7 @@ interface CompiledOutputs {
 }
 
 /** Fresh compile + derived outputs + grid sync (door overlay when resuming). Touches no state. */
-function compileDocument(
+export function compileDocument(
   document: MapDocument,
   now: number,
   saved: SceneState | undefined,

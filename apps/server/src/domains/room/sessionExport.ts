@@ -117,20 +117,27 @@ export interface MintOverflow {
 
 /**
  * Weigh the export this room would write if `documents` were its map list —
- * the caller has already added or replaced the candidate — and report the
- * overflow past SESSION_MINT_CEILING_BYTES, or null when the mint fits.
+ * the caller has already added or replaced the candidate — plus
+ * `candidateSceneBytes`, what the candidate adds the moment it is the LIVE
+ * scene (`liveSceneBytes`: the compiled scene, terrain and scenery the
+ * snapshot carries; a kick installs them in the same message that mints), and
+ * report the overflow past SESSION_MINT_CEILING_BYTES, or null when it fits.
  *
  * Bytes are the `load-session` FRAME's (the file minus assets), because that
  * frame is what the socket measures. The weigh is a full stringify of up to a
  * megabyte; a mint is rare and already ran a recipe, so that is the right
- * place to pay it — an incremental edit is not (plan §2.3).
+ * place to pay it — an incremental edit is not (plan §2.3). The scene part is
+ * an upper bound for a mint nothing travels to yet, and counts the outgoing
+ * scene's derived data as still present — a refusal a few dozen KB early,
+ * never a table past the ceiling.
  */
 export function mintOverflow(
   state: RoomState,
   documents: MapDocument[],
   actingUid: string,
+  candidateSceneBytes = 0,
 ): MintOverflow | null {
-  const bytes = exportBytes(state, documents, actingUid);
+  const bytes = exportBytes(state, documents, actingUid) + candidateSceneBytes;
   return bytes > SESSION_MINT_CEILING_BYTES ? { bytes, ceiling: SESSION_MINT_CEILING_BYTES } : null;
 }
 
@@ -142,7 +149,7 @@ const mb = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
  */
 export function mintRefusal(overflow: MintOverflow): string {
   return (
-    `This would make the campaign's export ${mb(overflow.bytes)} — past the ` +
+    `This would put the campaign's export at about ${mb(overflow.bytes)} — past the ` +
     `${mb(overflow.ceiling)} a table can load back in one message. Delete a map first.`
   );
 }
