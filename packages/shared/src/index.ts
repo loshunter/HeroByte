@@ -31,7 +31,11 @@ import type { GenerateRequest } from "./recipes.js";
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
 export { WS_CLOSE_AUTH_REJECTED, WS_CLOSE_REPLACED } from "./wsCloseCodes.js";
-export { WS_MAX_MESSAGE_BYTES } from "./wsLimits.js";
+export { WS_MAX_MESSAGE_BYTES, SESSION_MINT_CEILING_BYTES } from "./wsLimits.js";
+// The one `load-session` frame builder + UTF-8 counter (client loader, server
+// mint ceiling, server round-trip test) — same sub-module rule.
+export { loadSessionFrame, loadSessionFrameBytes, utf8ByteLength } from "./sessionFrame.js";
+export type { LoadSessionFrame, LoadSessionSource } from "./sessionFrame.js";
 
 // The Atlas — campaign graph types + limits. Value re-export from a sub-module
 // (same rule as wsCloseCodes: a direct `export const` here erases at runtime).

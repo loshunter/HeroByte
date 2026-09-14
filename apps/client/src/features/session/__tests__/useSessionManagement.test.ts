@@ -209,6 +209,37 @@ describe("useSessionManagement — load", () => {
     });
   });
 
+  it("carries the envelope's sceneStates in the frame — exactly the five keys, via the shared builder", async () => {
+    // Suspended scenes ride the file's ENVELOPE, never its snapshot, so a
+    // frame built from the snapshot alone restores a table with every
+    // suspended scene gone — while every server-side round-trip test stays
+    // green. The frame is the shared `loadSessionFrame`, the same shape the
+    // server's mint ceiling weighs; a key added on either side alone fails here.
+    const scenes = [{ mapDocumentId: "doc-B" }] as never;
+    const file = sessionFile({
+      snapshot: { gridSize: 50, sceneObjects: [{}], characters: [{}] } as never,
+      mapDocuments: [{ id: "doc-A" } as never, { id: "doc-B" } as never],
+      liveMapDocumentId: "doc-A",
+      sceneStates: scenes,
+    });
+    vi.mocked(loadSession).mockResolvedValue(file);
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "s.json"));
+    });
+
+    const sent = sendMessage.mock.calls.find(([message]) => message.t === "load-session")?.[0];
+    expect(sent?.sceneStates).toBe(scenes);
+    expect(Object.keys(sent ?? {}).sort()).toEqual([
+      "liveMapDocumentId",
+      "mapDocuments",
+      "sceneStates",
+      "snapshot",
+      "t",
+    ]);
+  });
+
   it("refuses a file too large for one wire frame, instead of toasting success over a dead socket", async () => {
     // A load-session frame past the wire limit is dropped by ws at the SOCKET
     // level: the close arrives with 1009 before any handler runs, so the server

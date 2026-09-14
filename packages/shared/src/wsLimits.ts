@@ -22,3 +22,19 @@
  * file, a full snapshot) while keeping that window small.
  */
 export const WS_MAX_MESSAGE_BYTES = 1024 * 1024;
+
+/**
+ * The MINT ceiling. A mint — a kicked-in door, an Atlas generate, a new map,
+ * an import, the live GENERATE tool — is refused when the session export it
+ * would produce weighs more than this on the wire (`loadSessionFrameBytes`).
+ * The promise it keeps is the one MAX_SESSION_DOCUMENTS was written for and
+ * cannot: a DM's own export always loads back. A count cap only holds while
+ * the average document is small, and one `large` generated building is
+ * 207–235 KB.
+ *
+ * Three quarters of the wire limit, so a quarter is left for play — tokens,
+ * drawings, suspended scenes — which no mint gate can see. The count cap
+ * stays beside it; a mint clears both or neither. One dial: at `large` a
+ * table holds four generated buildings, not five.
+ */
+export const SESSION_MINT_CEILING_BYTES = Math.floor((WS_MAX_MESSAGE_BYTES * 3) / 4);

@@ -16,7 +16,13 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { WS_MAX_MESSAGE_BYTES, type ClientMessage, type SessionFile } from "@herobyte/shared";
+import {
+  WS_MAX_MESSAGE_BYTES,
+  loadSessionFrame,
+  loadSessionFrameBytes,
+  type ClientMessage,
+  type SessionFile,
+} from "@herobyte/shared";
 import { saveSessionFile, loadSession } from "../../utils/sessionPersistence";
 import { awaitSessionFile, sessionCredentials } from "./sessionBridge";
 import { collectSessionAssets, restoreSessionAssets } from "./sessionAssets";
@@ -178,15 +184,12 @@ export function useSessionManagement({
           return;
         }
 
-        const frame: ClientMessage = {
-          t: "load-session",
-          snapshot: session.snapshot,
-          mapDocuments: session.mapDocuments,
-          liveMapDocumentId: session.liveMapDocumentId,
-          // Envelope-only cargo: the snapshot half never carries scenes, so
-          // omitting this line is the silent-suspended-scene-loss bug.
-          sceneStates: session.sceneStates,
-        };
+        // ONE builder for this frame (shared `loadSessionFrame`): the server's
+        // mint ceiling weighs the very same shape before a mint persists, so
+        // the two cannot drift. It carries the envelope's sceneStates — the
+        // snapshot half never does, and omitting them was the silent
+        // suspended-scene-loss bug.
+        const frame = loadSessionFrame(session);
 
         // WEIGH IT BEFORE SENDING. A load-session frame past the wire limit is
         // dropped by ws at the socket level — the close arrives with 1009
@@ -197,7 +200,7 @@ export function useSessionManagement({
         // only holds if the average document is small, and a generated building
         // is not. Say the real numbers rather than fail invisibly. Checked
         // BEFORE restoreSessionAssets so a doomed load costs no uploads.
-        const frameBytes = new TextEncoder().encode(JSON.stringify(frame)).length;
+        const frameBytes = loadSessionFrameBytes(session);
         if (frameBytes > WS_MAX_MESSAGE_BYTES) {
           const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
           toast.error(

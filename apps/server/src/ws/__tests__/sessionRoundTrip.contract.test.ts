@@ -19,6 +19,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
 import {
   WS_MAX_MESSAGE_BYTES,
+  loadSessionFrame,
+  loadSessionFrameBytes,
   type ClientMessage,
   type MapDocument,
   type SceneState,
@@ -368,13 +370,8 @@ describe("session round trip", () => {
     const before = origin.roomService.getState();
     const file = exportSession();
     const restored = bootServer();
-    restored.route({
-      t: "load-session",
-      snapshot: file.snapshot as never,
-      mapDocuments: file.mapDocuments,
-      liveMapDocumentId: file.liveMapDocumentId,
-      sceneStates: file.sceneStates,
-    });
+    // Load through the SAME shared frame that was weighed above.
+    restored.route(loadSessionFrame(file as never));
     const after = restored.roomService.getState();
 
     // THE SWEEP. Compare ORIGIN to RESTORED — not "restored is defined", which
@@ -535,28 +532,15 @@ describe("session round trip", () => {
     const file = exportSession();
     // Weigh the FRAME the client actually sends, not the file: `load-session`
     // must cross the socket in one message, and ws checks the declared frame
-    // length. `useSessionManagement.ts` builds exactly this object.
-    const frameBytes = Buffer.byteLength(
-      JSON.stringify({
-        t: "load-session",
-        snapshot: file.snapshot,
-        mapDocuments: file.mapDocuments,
-        liveMapDocumentId: file.liveMapDocumentId,
-        sceneStates: file.sceneStates,
-      }),
-      "utf8",
-    );
+    // length. The SHARED builder is what `useSessionManagement.ts` sends and
+    // what the mint ceiling weighs — one shape, three sites.
+    const frameBytes = loadSessionFrameBytes(file as never);
     expect(file.sceneStates).toHaveLength(8);
     expect(frameBytes).toBeLessThan(WS_MAX_MESSAGE_BYTES * 0.9);
 
     const restored = bootServer();
-    restored.route({
-      t: "load-session",
-      snapshot: file.snapshot as never,
-      mapDocuments: file.mapDocuments,
-      liveMapDocumentId: file.liveMapDocumentId,
-      sceneStates: file.sceneStates,
-    });
+    // Load through the SAME shared frame that was weighed above.
+    restored.route(loadSessionFrame(file as never));
     const after = restored.roomService.getState();
     expect(Object.keys(after.sceneStates)).toHaveLength(8);
     // Deep content survives, not just the keys.
@@ -614,16 +598,7 @@ describe("session round trip", () => {
     }
 
     const file = exportSession();
-    const frameBytes = Buffer.byteLength(
-      JSON.stringify({
-        t: "load-session",
-        snapshot: file.snapshot,
-        mapDocuments: file.mapDocuments,
-        liveMapDocumentId: file.liveMapDocumentId,
-        sceneStates: file.sceneStates,
-      }),
-      "utf8",
-    );
+    const frameBytes = loadSessionFrameBytes(file as never);
     expect(frameBytes).toBeGreaterThan(WS_MAX_MESSAGE_BYTES);
   });
 
