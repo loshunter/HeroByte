@@ -69,13 +69,6 @@ export class TokenService {
   }
 
   /**
-   * Find token by owner UID
-   */
-  findTokenByOwner(state: RoomState, ownerUid: string): Token | undefined {
-    return state.tokens.find((t) => t.owner === ownerUid);
-  }
-
-  /**
    * The most restrictive sight limit among the tokens this owner already has,
    * or undefined when none of them is limited.
    */

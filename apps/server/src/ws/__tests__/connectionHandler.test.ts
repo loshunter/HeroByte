@@ -252,6 +252,38 @@ describe("ConnectionHandler", () => {
     expect(checkSpy).toHaveBeenCalled();
   });
 
+  it("re-tokens a DM's character on re-authentication even when they own NPC tokens (F4's review)", async () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-dm" });
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
+
+    const state = container.roomService.getState();
+    const characters = container.characterService!;
+    const tokens = container.tokenService!;
+    const pc = characters.findCharacterByOwner(state, "user-dm");
+    if (!pc?.tokenId) throw new Error("the join road links a token");
+    // A goblin the DM placed carries the DM's uid; then the DM deletes their
+    // own token. "Any token this uid owns" used to find the goblin and stop.
+    const gob = characters.createCharacter(state, "Goblin", 7, undefined, "npc");
+    characters.placeNPCToken(state, tokens, gob.id, "user-dm");
+    const goblinToken = gob.tokenId as string;
+    tokens.forceDeleteToken(state, pc.tokenId);
+    expect(pc.tokenId).toBeFalsy();
+
+    // A reconnect is a NEW socket with the same uid (the old one is gone).
+    const reconnected = new FakeWebSocket();
+    wss.emitConnection(reconnected, { url: "/?uid=user-dm" });
+    reconnected.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
+
+    expect(pc.tokenId).toBeTruthy();
+    expect(pc.tokenId).not.toBe(goblinToken);
+    expect(gob.tokenId).toBe(goblinToken);
+    expect(state.tokens.map((t) => t.id).sort()).toEqual([goblinToken, pc.tokenId].sort());
+  });
+
   it("refreshes lastHeartbeat immediately on re-authentication", async () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-reconnect" });

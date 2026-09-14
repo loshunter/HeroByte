@@ -209,15 +209,21 @@ export class CharacterService {
    * Place an NPC token on the map at default coordinates
    */
   /**
-   * A reconnecting character's token: KEPT when linked (the link survives a
-   * scene capture that stashes the token, so a linked character is never
-   * re-tokened — no phantom), ADOPTED when exactly one token of the owner's
-   * is loose (a token that predates linking), else freshly spawned and
-   * linked. "Any token this uid owns" was the gate before: a DM owns the NPC
-   * tokens they placed, so a DM who had deleted their own token never got one
-   * back (F3's road, found by F4's review). NPC tokens are always linked to
-   * their NPC character (placeNPCToken), so the loose set excludes them; two
-   * loose tokens is a guess, and a guess is wrong for one of them.
+   * A reconnecting character's token. KEPT when linked and the token is in
+   * state, or STASHED — a scene capture holds it and the link survives, so a
+   * linked character is never re-tokened (no phantom). A link no scene holds
+   * is DEAD (a table saved before `unlinkDeletedToken` shipped, or
+   * `clearAllTokensExcept`, which still does not unlink): it is cleared and
+   * the character is re-tokened like an unlinked one — the road it replaced
+   * did that too, and losing it stranded legacy players (F4's review, round
+   * 2). Unlinked: ADOPT the one token of the owner's that no character
+   * claims — only while the owner runs exactly ONE PC, because with two the
+   * adoption is a guess (the client rule's twin) — else spawn and link. "Any
+   * token this uid owns" was the gate before: a DM owns the NPC tokens they
+   * placed, so a DM who had deleted their own token never got one back (F3's
+   * road, found by F4's review, round 1). Every road the client drives links
+   * an NPC token to its NPC (placeNPCToken), so the loose set excludes them;
+   * only a crafted `link-token` frame can orphan one.
    */
   ensureToken(
     state: RoomState,
@@ -232,10 +238,26 @@ export class CharacterService {
     }
     if (character.tokenId) {
       const linked = character.tokenId;
-      return state.tokens.find((t) => t.id === linked);
+      const live = state.tokens.find((t) => t.id === linked);
+      if (live) {
+        return live;
+      }
+      const stashed = Object.values(state.sceneStates).some((scene) =>
+        scene.tokens.some((t) => t.id === linked),
+      );
+      if (stashed) {
+        return undefined;
+      }
+      character.tokenId = null;
     }
+    const ownedPcs = state.characters.filter(
+      (c) => c.type === "pc" && c.ownedByPlayerUID === ownerUid,
+    );
     const claimed = new Set(state.characters.flatMap((c) => (c.tokenId ? [c.tokenId] : [])));
-    const loose = state.tokens.filter((t) => t.owner === ownerUid && !claimed.has(t.id));
+    const loose =
+      ownedPcs.length === 1
+        ? state.tokens.filter((t) => t.owner === ownerUid && !claimed.has(t.id))
+        : [];
     if (loose.length === 1) {
       this.linkToken(state, character.id, loose[0].id);
       return loose[0];
