@@ -28,18 +28,25 @@
 // key is left alone so arrows still scroll a focused panel.
 //
 // The fallback speaks for the BOARD, and the board is always there — so it
-// answers a bare key only while the board has the conversation (round 1 of
-// F4's review: the listener had gone from "a piece is selected" to always-on,
-// and arrows meant to page the roll log walked the token and charged its
-// budget). Three yields, for the fallback road only — a selected piece was a
-// deliberate click and keeps its reach: (1) the key's target must be bare
-// (the window, the document or its body — a focused button, tab or field
-// keeps its arrows); (2) the last pointer must have landed on the stage
-// (`.konvajs-content` / a canvas) — a click in the log, a panel or a toolbar
-// hands the keys to that surface until the map is clicked again; the witness
-// starts armed, and a click anywhere else (the login button included) takes
-// it down; (3) a tool composing on the stage (draw, align, atlas-link —
-// `toolOwnsKeys`) owns the keys outright and the fallback registers nothing.
+// yields a key only to a surface that would actually USE it (round 1 of F4's
+// review: the listener had gone from "a piece is selected" to always-on, and
+// arrows meant to page the roll log walked the token and charged its budget;
+// round 2: a "last click on the stage" witness over-corrected — the ⚔️ button
+// that finds your token, or any button, took the keys away, and a keyboard-only
+// player lost them at their first Tab). Three yields, for the fallback road
+// only — a selected piece was a deliberate click and keeps its reach:
+// (1) a typing surface (`isEditableTarget`) or a focused ARROW WIDGET (a tab,
+// listbox, tree, menu, slider, radio — `KEY_CONSUMER_ROLES`) keeps every
+// movement key; a focused button keeps none — buttons do nothing with them;
+// (2) the ARROWS page the scrolling panel the last pointer landed in (the
+// browser's own arrow-scroll target — a panel that overflows, never the
+// stage), while the letters and the numpad, which mean nothing to a panel,
+// stay the board's; a click on the stage, on a button or in a panel that
+// does not scroll clears it; (3) a tool that owns the keys or the selection
+// (`toolOwnsKeys`: draw, align, atlas-link, select, transform — in Select or
+// Transform an empty selection means NOTHING selected, not "my token") makes
+// the fallback register nothing. Nothing yields on a fresh join: the keys
+// work before the first click, and no invisible state has to be learned.
 //
 // ONE message per step for the whole selection, chunked at MAX_STEP_OBJECTS:
 // a message per object was 6.7 × N a second under a held key, past the
@@ -71,10 +78,11 @@ export interface UseKeyboardMovementOptions {
   isDM: boolean;
   mapEditMode: boolean;
   /**
-   * A tool that composes on the stage (draw, align, atlas-link) keeps a bare
-   * key: the own-token fallback yields entirely while one is armed. A
-   * selection cannot exist under those tools (it auto-clears), so only the
-   * fallback road is affected.
+   * A tool that owns the keys or the selection (draw, align, atlas-link,
+   * select, transform): the own-token fallback registers nothing while one is
+   * armed. The selected road is untouched — a piece selected in Select or
+   * Transform still steps; under the composing tools a selection auto-clears
+   * one paint after the switch.
    */
   toolOwnsKeys: boolean;
   sendMessage: (message: ClientMessage) => void;
@@ -118,14 +126,13 @@ export function useKeyboardMovement({
   }, [mapEditMode, toolOwnsKeys, selectedObjectIds, snapshot, uid, isDM]);
   const viaFallbackRef = useRef(viaFallback);
   viaFallbackRef.current = viaFallback;
-  // The board witness: did the last pointer land on the stage? Capture phase,
-  // so a surface that stops propagation still reports.
-  const boardArmedRef = useRef(true);
+  // The scroller witness: the scrolling panel the last pointer landed in, or
+  // null. Capture phase, so a surface that stops propagation still reports.
+  const scrollerRef = useRef<Element | null>(null);
   useEffect(() => {
     const onPointerDown = (event: Event) => {
       const target = event.target instanceof Element ? event.target : null;
-      boardArmedRef.current =
-        target !== null && target.closest(".konvajs-content, canvas") !== null;
+      scrollerRef.current = target ? scrollableAncestor(target) : null;
     };
     window.addEventListener("pointerdown", onPointerDown, true);
     return () => window.removeEventListener("pointerdown", onPointerDown, true);
@@ -160,7 +167,7 @@ export function useKeyboardMovement({
       // The listener can outlive an emptied set by one paint (the ref is
       // written in render, the cleanup runs in the effect): swallow nothing.
       if (movableRef.current.length === 0) return;
-      if (viaFallbackRef.current && !(isBareTarget(event.target) && boardArmedRef.current)) return;
+      if (viaFallbackRef.current && yieldsToSurface(event, scrollerRef.current)) return;
       event.preventDefault();
       if (event.repeat && Date.now() - lastStepAtRef.current < HOLD_STEP_INTERVAL_MS) return;
       move(delta);
@@ -172,14 +179,49 @@ export function useKeyboardMovement({
   return useMemo(() => ({ movableCount: movable.length, move }), [movable.length, move]);
 }
 
+/** Widgets whose keyboard contract includes the movement keys; a focused one keeps them all. */
+const KEY_CONSUMER_ROLES = [
+  "tab",
+  "tablist",
+  "listbox",
+  "option",
+  "tree",
+  "treeitem",
+  "menu",
+  "menuitem",
+  "slider",
+  "radio",
+  "radiogroup",
+  "spinbutton",
+  "grid",
+  "gridcell",
+]
+  .map((role) => `[role="${role}"]`)
+  .join(", ");
+
 /**
- * Nothing holds focus: the key reached the window, the document or its body.
- * Instance checks, not identity — a test runner's window proxy is not `===`
- * the window an event reports as its target.
+ * Does the surface that has the conversation want this key? A focused arrow
+ * widget keeps every movement key (a button keeps none); the arrows — only
+ * the arrows — page the scrolling panel the last pointer landed in.
  */
-function isBareTarget(target: EventTarget | null): boolean {
-  if (target === null) return true;
-  if (typeof Window !== "undefined" && target instanceof Window) return true;
-  if (typeof Document !== "undefined" && target instanceof Document) return true;
-  return target === document.body || target === document.documentElement;
+function yieldsToSurface(event: KeyboardEvent, scroller: Element | null): boolean {
+  const target = event.target instanceof Element ? event.target : null;
+  if (target?.closest(KEY_CONSUMER_ROLES)) return true;
+  return event.key.startsWith("Arrow") && scroller !== null;
+}
+
+/**
+ * The nearest ancestor that scrolls vertically AND has something to scroll —
+ * the element the browser would page on an arrow — or null. The stage never
+ * counts, whatever wraps it.
+ */
+function scrollableAncestor(start: Element): Element | null {
+  for (let el: Element | null = start; el && el !== document.body; el = el.parentElement) {
+    if (el.classList.contains("konvajs-content")) return null;
+    const overflowY = getComputedStyle(el).overflowY;
+    if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight) {
+      return el;
+    }
+  }
+  return null;
 }

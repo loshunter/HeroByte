@@ -677,9 +677,12 @@ function AuthenticatedApp({
     uid,
     isDM,
     mapEditMode,
-    // A tool composing on the stage keeps a bare key (draw, align, atlas-link);
-    // map-edit is inert on its own road above.
-    toolOwnsKeys: drawMode || alignmentMode || activeTool === "atlas-link",
+    // A tool that owns the keys or the selection keeps a bare key: draw, align
+    // and atlas-link compose on the stage; in Select and Transform an empty
+    // selection means nothing selected, not "my token". Map-edit is inert on
+    // its own road above.
+    toolOwnsKeys:
+      drawMode || alignmentMode || selectMode || transformMode || activeTool === "atlas-link",
     sendMessage,
   });
 

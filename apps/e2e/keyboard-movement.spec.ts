@@ -5,7 +5,8 @@
  * relative `step-object` message (the server applies it on the ordinary
  * transform road); a typing surface keeps its keystrokes (invariant 4.17); a
  * selection the player may not move sends nothing; with NOTHING selected the
- * keys move the player's own token (F4) — no tool armed, no click first.
+ * keys move the player's own token (F4) — no tool armed, no click first, and
+ * a toolbar button clicked on the way does not take the keys.
  */
 import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
@@ -119,58 +120,63 @@ test.describe("keyboard movement", () => {
     page,
   }) => {
     await joinDefaultRoom(page);
-    const token = await ownToken(page);
     // The join road links the character to its token; the fallback reads that
-    // link — so the token polled below must be the LINKED one, not merely the
-    // first the player owns.
-    await page.waitForFunction(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      return Boolean(
-        data?.snapshot?.characters?.some(
-          (c) => c.ownedByPlayerUID === data.uid && typeof c.tokenId === "string",
-        ),
-      );
-    });
-    const linked = await page.evaluate(() => {
-      const data = window.__HERO_BYTE_E2E__!;
-      return data.snapshot!.characters.find(
-        (c) => c.ownedByPlayerUID === data.uid && typeof c.tokenId === "string",
-      )!.tokenId;
-    });
-    expect(linked).toBe(token.id);
-    // The board must have the conversation: the login button was the last
-    // thing clicked, so click the stage once, as a player would — at a point
-    // where the canvas is the top-most element (the header and the panels
-    // overlay parts of it, and a covered point never becomes clickable).
-    const spot = await page.evaluate(() => {
-      const stage = document.querySelector(".konvajs-content");
-      if (!stage) return null;
-      const r = stage.getBoundingClientRect();
-      for (let y = r.top + 8; y < r.bottom; y += 24) {
-        for (let x = r.left + 8; x < r.right; x += 24) {
-          const el = document.elementFromPoint(x, y);
-          if (el && stage.contains(el)) return { x, y };
-        }
-      }
-      return null;
-    });
-    expect(spot).not.toBeNull();
-    await page.mouse.click(spot!.x, spot!.y);
-    // Nothing is selected: Select was never armed, and the plain cursor never
-    // holds a selection (it auto-clears outside Select/Transform). Asserted,
-    // so this cannot pass through the selected-token road by accident.
-    expect(
-      await page.evaluate(() => {
-        const data = window.__HERO_BYTE_E2E__!;
-        return data.snapshot!.selectionState?.[data.uid!] ?? null;
-      }),
-    ).toBeNull();
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    const origin = { x: Math.round(token.x), y: Math.round(token.y) };
+    // link, so the token measured is the LINKED one (the join links the one
+    // token it spawns — a precondition here, pinned as a rule in the unit
+    // suite, not proven by this spec).
+    const linked = await linkedToken(page);
+    // Nothing is selected and nothing was clicked: no tool armed, no click
+    // on a piece (a click on a token selects it under the plain cursor too,
+    // and that selection would carry the key down the OLD road). Settled,
+    // so the guard reads the state the press will meet.
+    await expect.poll(() => selectionEntry(page), { timeout: 2_000 }).toBeNull();
+    const origin = await readCell(page, linked);
 
     await page.keyboard.press("ArrowRight");
     await expect
-      .poll(() => readCell(page, token.id), { timeout: 5_000 })
+      .poll(() => readCell(page, linked), { timeout: 5_000 })
       .toEqual({ x: origin.x + 1, y: origin.y });
+    await expect.poll(() => selectionEntry(page), { timeout: 2_000 }).toBeNull();
+  });
+
+  test("a toolbar button clicked on the way does not take the keys: SNAP, then w steps your own token (F4)", async ({
+    page,
+  }) => {
+    await joinDefaultRoom(page);
+    const linked = await linkedToken(page);
+    // The flow the feature exists for: a button (⚔️ Focus, SNAP, NEXT) then a
+    // key. A button does nothing with the movement keys, so it keeps none.
+    await page.locator('button[title="Toggle snap-to-grid for tokens and measurements"]').click();
+    await expect.poll(() => selectionEntry(page), { timeout: 2_000 }).toBeNull();
+    const origin = await readCell(page, linked);
+
+    await page.keyboard.press("w");
+    await expect
+      .poll(() => readCell(page, linked), { timeout: 5_000 })
+      .toEqual({ x: origin.x, y: origin.y - 1 });
   });
 });
+
+/** The id of the token the player's one character is linked to, once the join road has linked it. */
+async function linkedToken(page: import("@playwright/test").Page): Promise<string> {
+  await page.waitForFunction(() => {
+    const data = window.__HERO_BYTE_E2E__;
+    return Boolean(
+      data?.snapshot?.characters?.some(
+        (c) => c.ownedByPlayerUID === data.uid && typeof c.tokenId === "string",
+      ),
+    );
+  });
+  return page.evaluate(() => {
+    const data = window.__HERO_BYTE_E2E__!;
+    return data.snapshot!.characters.find(
+      (c) => c.ownedByPlayerUID === data.uid && typeof c.tokenId === "string",
+    )!.tokenId as string;
+  });
+}
+
+const selectionEntry = (page: import("@playwright/test").Page) =>
+  page.evaluate(() => {
+    const data = window.__HERO_BYTE_E2E__!;
+    return data.snapshot!.selectionState?.[data.uid!] ?? null;
+  });

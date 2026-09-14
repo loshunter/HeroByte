@@ -921,81 +921,97 @@ plate ever lacked its nameplate (structurally impossible today). Sabotage after 
 ## Follow-up F4 (2026-09-13) — nothing selected → your own token
 
 **The owner's call** (2026-09-13, from the follow-ups prompt's item-4 list — the ONLY one of the
-four queued): the pointer-mode fallback. Selection only lives in Select/Transform mode (it
-auto-clears elsewhere — `useSelectionManager`), so with the plain cursor a player had to arm
-🖱️ Select and click their own token before a key did anything. Statement: with an EMPTY selection
-the keys stand in for "my token". The rule is `ownTokenFallback` (the pure half,
-`keyboardMovement.ts`), **as corrected by review round 1**: the actor must run exactly ONE `pc`
-character owned by their uid (zero or two-plus → nothing: the by-owner precedent in
-`useCombatOrdering` / `MobileEntitiesList` — with two characters a guess is wrong for one of them);
-that character's linked `tokenId` answers when the snapshot has the token, and a link to a token
-the snapshot lacks (stashed by a scene capture) answers nothing rather than guessing; only when the
+four queued): the pointer-mode fallback. Under the plain cursor a click on a piece selects it (the
+selection persists until the tool changes — `useSelectionManager` clears it on a mode switch), but
+nothing is selected until something is clicked, so a player had to click their own token — or arm
+🖱️ Select and pick it — before a key did anything. Statement, **as corrected by review rounds 1
+and 2**: with an EMPTY selection the keys stand in for "my token". The rule is `ownTokenFallback`
+(the pure half, `keyboardMovement.ts`): the actor must run exactly ONE `pc` character owned by
+their uid (zero or two-plus → nothing: with two characters a guess is wrong for one of them); that
+character's linked `tokenId` answers when the snapshot has the token, and a link to a token the
+snapshot lacks (stashed by a scene capture) answers nothing rather than guessing; only when the
 character predates linking does ownership decide, and "owned by me" alone is NOT enough — every
-NPC token carries the uid of the DM who placed it and is linked to its NPC character
-(`placeNPCToken`), so the by-owner road considers only tokens NO character claims, and exactly one
-of them (two loose is a guess). A DM's NPC characters never count (production NPCs are unowned);
-a DM's own PC does (F3 made it a combatant). The resolved id then goes through `movableSelection`
-exactly as a clicked one would — so a locked own token stays a DM's alone — and map-edit mode
-zeroes it with the rest. A NON-empty selection the actor may not move is a deliberate selection of
-someone else's piece, not "nothing": it stays inert and the key is left alone. **The fallback
-speaks for the board, and the board is always there** (round 1 again): before the round the
-listener had gone from "a piece is selected" to always-on for every seat, and an arrow pressed to
-page the roll log walked the token and charged its budget. So the fallback road — never the
-selected road, which was a deliberate click — answers a bare key only while the board has the
-conversation: the key's target is bare (the window, the document or its body — a focused button,
-tab or field keeps its arrows), the last pointer landed on the stage (`.konvajs-content` / a
-canvas; a click in the log, a panel or a toolbar hands the keys to that surface until the map is
-clicked again — the witness starts armed and the login button's click takes it down, so the
-first map click arms it), and no tool is composing on the stage (`toolOwnsKeys`: draw, align,
-atlas-link — the fallback registers nothing under them; map-edit was already inert). The wire is
-unchanged (`step-object` naming the own token; the server guards as always). **Keyboard-only in
-effect, by the owner's wording:** the phone's d-pad lives in the selection sheet, which mounts only
-with a selection in Select/Transform (`MobileLayout`), so a `movableCount` of 1 with nothing
-selected lights nothing there — pinned by the region's own role with an inline control, so the
-semantics cannot drift into a pad that is always up; the phone's road stays TOOLS → 🖱️ Select →
-tap → d-pad. The camera follow computes its own movable set and is gated on the same sheet, so the
-fallback branch is never live there. Docs: the help topic's Move entry (the keyboard rule now
-leads it, qualified: one character, the map last clicked; the phone's real road; SELECT or
-TRANSFORM) and the player guide — the Move bullet (which had never mentioned the keyboard) plus,
-in the phone section, the d-pad road the guides had never carried either; the DM guide gains
-nothing yet (round 1: a sentence there would overclaim until a DM's second character is handled).
+NPC token carries the uid of the DM who placed it and is linked to its NPC character by every road
+the client drives (`placeNPCToken`; only a crafted `link-token` frame can orphan one), so the
+by-owner road reads `looseOwnToken` — the ONE token the uid owns that NO character claims (two
+loose is a guess; a token another uid's character claims is not loose, and the keys go quiet
+rather than guess — fail closed, on purpose). A DM's NPC characters never count (production NPCs
+are unowned); a DM's own PC does (F3 made it a combatant). The same helper now serves the party
+panel's ordering hook and the phone's party list, whose by-owner fallbacks still handed a DM's
+card the first goblin (round 2, fixed in its own commit). The resolved id then goes through
+`movableSelection` exactly as a clicked one would — so a locked own token stays a DM's alone, and
+a PC linked to a token someone else OWNS is refused for a player and moves for a DM — and map-edit
+mode zeroes it with the rest. A NON-empty selection the actor may not move is a deliberate
+selection of someone else's piece, not "nothing": it stays inert and the key is left alone.
 
-Pinned by the rule (10 cases: the LINKED token, not merely the first owned; a link the snapshot
+**The fallback speaks for the board, and the board is always there** — so it yields a key only to
+a surface that would actually USE it (round 1: the listener had gone from "a piece is selected"
+to always-on for every seat, and an arrow pressed to page the roll log walked the token and
+charged its budget; round 2: round 1's "last click on the stage" witness over-corrected — the ⚔️
+button that finds your token, or any button, took the keys away, a keyboard-only player lost them
+at their first Tab, and the rationale that "the login click takes the witness down" described a
+mechanism that does not exist, the hook mounting only after login). Three yields, for the
+fallback road only — a selected piece was a deliberate click and keeps its reach: (1) a typing
+surface (`isEditableTarget`) or a focused ARROW WIDGET (tab, listbox, tree, menu, slider, radio —
+`KEY_CONSUMER_ROLES`) keeps every movement key; a focused BUTTON keeps none, because buttons do
+nothing with them — so ⚔️ then W, SNAP then W, NEXT then W, and Tab-to-a-button then W all walk;
+(2) the ARROWS — only the arrows — page the scrolling panel the last pointer landed in (the
+browser's own arrow-scroll target: a panel that overflows, found by walking up from the
+pointerdown target, never the stage), while the letters and the numpad, which mean nothing to a
+panel, stay the board's; a click on the stage, on a button or in a panel with nothing to scroll
+clears it; (3) a tool that owns the keys or the selection (`toolOwnsKeys`, threaded from
+`App.tsx`: draw, align, atlas-link, select, transform — in Select or Transform an empty selection
+means NOTHING selected, not "my token"; map-edit was already inert) makes the fallback register
+nothing. Nothing yields on a fresh join, and no invisible state has to be learned: the copy names
+the three yields and nothing else. The one-paint window between an emptied movable set and the
+listener's removal swallows nothing. The wire is unchanged (`step-object` naming the own token;
+the server guards as always). **Keyboard-only in effect, by the owner's wording:** the phone's
+d-pad lives in the selection sheet, which mounts only with a selection in Select/Transform
+(`MobileLayout`), so a `movableCount` of 1 with nothing selected lights nothing there — pinned by
+the region's own role with an inline control that mounts the sheet AND the pad; the phone's road
+stays TOOLS → □ Select → tap → d-pad. The camera follow computes its own movable set and is gated
+on the same sheet, so the fallback branch is never live there. Docs: the help topic's Move entry
+(the keyboard rule leads it: one character; not while typing; the arrows page a scrolling panel
+you last clicked into; SELECT, TRANSFORM and the drawing / placement tools keep the keys; the
+phone's real road with the tile's own □) and the player guide — the Move bullet (which had never
+mentioned the keyboard) plus, in the phone section, the d-pad road no guide had carried (the map
+scrolls to keep the piece in view when the strip above the sheet is tall enough to hold it); the
+DM guide gains nothing yet (a sentence there would overclaim until a DM's second character is
+handled).
+
+Pinned by the rule (9 cases: the LINKED token, not merely the first owned; a link the snapshot
 lacks → nothing; a stranger's token sorting first; the DM's goblin — claimed by its NPC — is not
-loose, beside a loose own token it is the own token that answers; two loose → nothing; two PCs /
-none / no snapshot; an NPC character recorded as owned — a fixture-only shape — never counts;
-someone else's PC; a lone unlinked PC with no owned token), the hook (18: the step and the swallow
-with nothing selected; two PCs → left alone; an unmovable selection → no fallback; the locked own
-token is the DM's alone; map-edit inert; a composing tool owns the keys; one PC linked to the
-SECOND of two owned tokens steps that one; a link to a gone token is inert; a DM running only NPCs;
-a second character arriving mid-session takes the listener down; a drawing selected is not
-"nothing"; a pointer off the stage hands the keys to that surface and one on the stage takes them
-back; a focused control keeps its arrows; a SELECTED piece keeps its reach after a click
-elsewhere; and the re-registration case re-pinned on an unmovable selection, the old "leaves the
-key alone" case renamed and put on the strong fixture), the phone (1: a movable count with no
-selection mounts no sheet and no pad — asserted on the sheet's region role, with an inline
-control that the same props mount it once something is selected), e2e (`keyboard-movement.spec.ts`:
-no tool armed, the selection entry asserted absent, the linked token asserted to be the one
-polled, the stage clicked at a point where the canvas is top-most, ArrowRight steps the own
-token) and the server (`characterService.ensureToken.test.ts`, 5 cases — below). Sabotage, all
-red and every one on its named case, sources restored byte-identical: before round 1, 10/10 (the
-fallback always null — 5 cases red; the exactly-one guard dropped — 2; the `pc` clause dropped;
-the by-owner fallback dropped; someone else's PC counted as mine; the fallback skipping
-`movableSelection`; the fallback beside an unmovable selection; map-edit no longer zeroing it;
-the fallback cut under the e2e spec — the named case red, 3 green; the phone sheet mounting on the
-movable count alone — the named case red, 50 green); after round 1, 14/14 (the link clause
-replaced by the owner scan — 4 red; the loose scan ignoring the owner; the claimed-token exclusion
-dropped — the goblin; two loose → the first; a stale link falling through — 2; the `toolOwnsKeys`
-gate dropped; the bare-target check dropped; the board witness always armed; the witness applied
-to the selected road too; the phone sheet mounting on the movable count alone again; and on the
-server: the loose scan ignoring other characters' claims — the goblin adopted; a linked character
-re-tokened anyway — a phantom; adopting the first of many; adopting without linking). The one
-mutation with no single-line pin is the hook's early return when the movable set has emptied but
-the old listener is still attached for one paint (round 1, m5): React's `act` flushes the effect
-cleanup before a test can press, so it is green by construction. Both real typechecks clean;
-the structure guard clean (the help entry's three-way split was reverted — `helpTopics.ts` sits
-at the 350-LOC cap and the split waits on a topic extraction; the keyboard rule LEADS the entry
-now, which was the finding's substance).
+loose, beside a loose own token it is the own token that answers; a token of mine another uid's
+character claims → nothing, fail closed; two loose → nothing; two PCs / none / no snapshot; an NPC
+character recorded as owned — a fixture-only shape — never counts; someone else's PC; a lone
+unlinked PC with no owned token), the hook (20 cases: the step and the swallow with nothing
+selected; two PCs → left alone; an unmovable selection → no fallback; the locked own token is the
+DM's alone; map-edit inert; a composing tool owns the keys; one PC linked to the SECOND of two
+owned tokens steps that one; a link to a gone token is inert; a DM running only NPCs — even one
+recorded as theirs; a PC linked to a token someone else owns — refused for a player, stepped by a
+DM; a tool taking the keys mid-session on the SAME snapshot object; the one-paint window; a second
+character arriving mid-session takes the listener down; a drawing selected is not "nothing"; and
+the yields — a key at the body or the root steps; a focused button keeps nothing; a focused tab
+keeps letters and arrows; the arrows page an overflowing panel the last pointer landed in while
+`s` still walks and a stage click clears it, with the panel stopping propagation; a panel with
+nothing to scroll takes no arrows; a SELECTED piece keeps its reach after a click in a scrolling
+panel — plus 2 pre-existing cases re-pinned), the App (1: the fallback is WIRED — a bare `d` steps
+the one PC — and draw, select, transform, align and atlas-link each take it down, the plain cursor
+brings it back), the two precedents (3: the party panel's DM card never resolves to the goblin and
+does resolve a loose own token; the phone list's DM row shows no sight control with only the
+goblin's token owned and binds the loose one beside it), the phone (1), e2e (2 in
+`keyboard-movement.spec.ts`: no tool armed, no click, the selection entry settled null before and
+after, the LINKED token measured; and SNAP clicked then `w` — a button keeps nothing) and the
+server (10 in `characterService.ensureToken.test.ts`: live link kept; a stashed link kept with no
+phantom; a dead link cleared and re-tokened; a gone character spawns nothing; another player's
+loose token never adopted; two PCs adopt nothing; a new token beside the goblins; one loose token
+adopted; two loose → spawned; none → spawned — plus the auth road itself in
+`connectionHandler.test.ts`: a DM who owns a goblin token and deleted their own is re-tokened on a
+reconnect that is a NEW socket). Sabotage, all red and on the named case, sources restored
+byte-identical: before round 1, 10/10; after round 1, 14/14; after round 2, 19/19 (8 at the hook, 2 at the App threading, 1 at the shared helper, 2 at the precedents, 5 on the server, 1 under the e2e spec — its two F4 cases red, the three others green). Both real
+typechecks clean; the structure guard clean (`helpTopics.ts` is at 345 of the guard's 350 — four
+lines of headroom, not enough for the three-way split round 1 asked for; the keyboard rule LEADS
+the entry instead, and the entry was cut to ~530 characters).
 
 ### Review round 1 (2026-09-13) — four fresh Opus lenses; 1 critical / 13 major / 13 minor raw → 1 / 8 / 11 deduplicated; every lens FAIL
 
@@ -1059,10 +1075,70 @@ senderUid, …)`, the `sceneSuspend` C3 record). A DM whose own PC was unlinked 
 
 Round 2 next, on the whole diff with fresh lenses.
 
+### Review round 2 (2026-09-13) — four fresh Opus lenses; 0 critical / 14 major / 28 minor raw → 0 / 7 / 17 deduplicated; every lens FAIL — and two of round 1's fixes had regressed
+
+Lenses: correctness (0 / 2 / 6, two REGRESSIONS), test validity (0 / 5 / 10, one regression),
+doc-vs-code honesty (0 / 2 / 8; 75 sentences audited, 48 holding, six regressions), client UX +
+mobile (0 / 3 / 4, three regressions). `agents_error: 0`; read-only; all `MODE: static`. The
+count did not drop from round 1 (1 / 8 / 11) — but the substance did: round 2's majors are
+round 1's own fixes, not the feature.
+
+- **REGRESSION (three lenses) — the board witness over-corrected.** "The last pointer landed on
+  the stage" killed the flows the feature exists for: ⚔️ _Focus camera on token_ then W, any
+  chrome button then a key, and a keyboard-only player's first Tab; its rationale ("the login
+  click takes the witness down") named a mechanism that cannot fire (the hook mounts after
+  login), so the pre-first-click window was still round 1's always-on. FIXED by replacing the
+  witness with yields to surfaces that USE the key (§ above): buttons keep nothing; arrow widgets
+  keep everything; the arrows alone page an overflowing panel the last pointer landed in; the
+  stage clears it. Pinned 6 ways at the hook, plus the body/root targets the suite had never
+  pressed (test validity: every case had dispatched on `window`).
+- **REGRESSION (two lenses) — `ensureToken` stranded a DEAD link.** "Kept when linked" treated
+  every unresolvable link as stashed; a table saved before `unlinkDeletedToken` shipped
+  (2026-09-11), or `clearAllTokensExcept`, leaves links to tokens that are gone, and the road it
+  replaced spawned for those. FIXED: stashed is "some scene capture holds it" (`state.sceneStates`),
+  a dead link is cleared and the character re-tokened. Also from the lens: adoption now requires
+  exactly ONE owned PC (the client rule's twin — two is a guess); another player's loose token is
+  never adoptable (the owner predicate was unpinned; now pinned); `findTokenByOwner` deleted (dead,
+  and a ready-made copy of the bug); the auth road itself pinned through the real handler on a
+  reconnect that is a NEW socket (the same socket takes the heartbeat path).
+- **MAJOR (UX) — in Select/Transform, deselecting then pressing an arrow walked your OWN token.**
+  FIXED: `toolOwnsKeys` covers select and transform; the fallback is the cursor modes' — faithful
+  to the owner's item. Pinned at the App level (the threading had no pin at all: `toolOwnsKeys:
+false` was green everywhere).
+- **MAJOR (test validity) — the e2e could pass through the SELECTED road**: its stage click could
+  land on the token (a click selects under the plain cursor too) and its "nothing selected" guard
+  read the server once, unsettled. FIXED: no click and no `blur()`; the selection entry polled
+  null before and after; the LINKED token measured (the first-owned equality asserted a fixture,
+  not the code); a second case clicks SNAP then presses `w`.
+- **MAJOR (honesty) — the record's own claims:** the login-click sentence (wrong, see above); the
+  pin counts ("10 rule / 18 hook" were 8 / 14 — recounted above); "clicks the stage rather than
+  `blur()`" (it did both); "at the 350 cap" (345 of 350); "NPC tokens are always linked" (by every
+  road the client drives; `link-token` can orphan one); "TOOLS → 🖱️ Select" on a phone whose tile
+  reads □; "the map scrolls to keep the piece above the sheet" (only when the strip is tall enough
+  — F1's own numbers); the by-owner precedents cited as authority while still carrying the goblin.
+  All corrected; the precedents FIXED (own commit: `looseOwnToken`, shared by the rule, the party
+  panel and the phone list, pinned at each).
+- **MINOR, fixed:** the tool-flip pin reusing the same snapshot object (a fresh one per render
+  masks a dropped memo dependency); the one-paint early return pinned from a render-phase press
+  (round 1 called it green by construction — wrong); the DM-only-NPCs case on an NPC recorded as
+  the DM's; a PC linked to a token someone else owns (the ownership axis of "a click's road");
+  the phone control proving the pad half; a gone character on the server spawns nothing; the stashed
+  case through a real `linkToken`.
+- **Recorded, still:** an on-screen affordance for the keys (a one-shot toast) and a desktop
+  camera follow for an off-screen token — feature widenings, the owner's call; the four silences
+  (a wall, a yield, two characters, a composing tool) look alike to the player, and the copy is
+  the only place the rule lives. The help entry's split waits on a `helpTopics` extraction.
+- **Withdrawn from round 1's record:** "the login button's click takes the witness down" and
+  "the e2e clicks the stage rather than fabricating focus".
+
+Round 3 next — the cap. If its count does not drop against round 2's 0 / 7 / 17, the owner
+decides on the record.
+
 ## Open after the arc (owner's calls)
 
 - ~~A "nothing selected → your own token" fallback for WASD in pointer mode.~~ — DONE as
-  Follow-up F4 (2026-09-13): `ownTokenFallback`, keyboard-only in effect; see its section.
+  Follow-up F4 (2026-09-13): `ownTokenFallback`, keyboard-only in effect, yielding only to a
+  surface that would use the key; two review rounds so far; see its section.
 - ~~Whether a DM-owned PC with an initiative should be a combatant (today it is not, by the
   pre-existing participation rule), which decides whether its budget ever resets on a turn.~~
   — DECIDED yes and DONE as Follow-up F3 (2026-09-11): rolled, it is a combatant; its budget

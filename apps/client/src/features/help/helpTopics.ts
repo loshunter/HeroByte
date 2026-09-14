@@ -154,7 +154,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Move",
         detail:
-          "Drag it, or step it with WASD / arrows (QEZC diagonal; hold to walk). With nothing selected the keys move your own token, as long as you run just the one character and the map was the last thing you clicked; 🖱️ SELECT (or 🔄 TRANSFORM) a piece first to move that instead. On a phone: TOOLS → 🖱️ Select, tap the piece, and a d-pad appears in its sheet (the map scrolls to keep the piece above the sheet; in combat on a landscape phone it may sit over the turn strip). In combat a party member's plate reads feet left / speed by the table's diagonal rule, refilled at the start of its turn (a monster's shows only on the DM's screen); the DM sets a player's speed in ⚙️ settings and a monster's in DM Menu → NPCs, and can reset a spend from the same place — the budget is advisory, a red readout is a note, not a wall.",
+          "Drag it, or step it with WASD / arrows (QEZC diagonal; hold to walk). With nothing selected the keys move your own token if you run just one character — unless you are typing, or you last clicked into a scrolling panel (then the arrows page it; the letters still walk). 🖱️ SELECT, 🔄 TRANSFORM and the drawing / placement tools keep the keys; select a piece to step that instead. On a phone: TOOLS → □ Select, tap the piece, and a d-pad appears. In combat your plate reads feet left / speed, refilled at the start of your turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs) and can reset a spend there — the budget is advisory.",
       },
       { term: "Recolor", detail: "Double-click your own token for a new random colour." },
       {

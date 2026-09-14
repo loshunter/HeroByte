@@ -434,6 +434,56 @@ describe("App", () => {
     alertSpy.mockRestore();
   });
 
+  it("wires the own-token fallback (F4): a bare key steps the actor's one PC with nothing selected, and a tool that owns the keys or the selection takes it down", async () => {
+    const sendMessage = vi.fn();
+    const snapshot = {
+      ...buildSnapshot(),
+      characters: [
+        { id: "c1", name: "Dee", type: "pc", ownedByPlayerUID: "test-uid", tokenId: "token-1" },
+      ],
+    };
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot,
+      send: sendMessage,
+    });
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("header")).toBeInTheDocument());
+
+    const press = () =>
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "d", bubbles: true, cancelable: true }),
+        );
+      });
+
+    press();
+    expect(sendMessage).toHaveBeenCalledWith({
+      t: "step-object",
+      ids: ["token:token-1"],
+      dx: 1,
+      dy: 0,
+    });
+
+    for (const tool of ["draw", "select", "transform", "align", "atlas-link"] as const) {
+      sendMessage.mockClear();
+      act(() => latestHeaderProps!.onToolSelect(tool));
+      press();
+      expect(sendMessage, `${tool} must own the keys`).not.toHaveBeenCalled();
+    }
+    act(() => latestHeaderProps!.onToolSelect(null));
+    sendMessage.mockClear();
+    press();
+    expect(sendMessage).toHaveBeenCalledWith({
+      t: "step-object",
+      ids: ["token:token-1"],
+      dx: 1,
+      dy: 0,
+    });
+  });
+
   it("clears selection when transform mode is toggled off", async () => {
     const deselect = vi.fn();
     selectionMock = {

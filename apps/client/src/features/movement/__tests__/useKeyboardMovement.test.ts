@@ -1,11 +1,12 @@
 // The listener: a bare movement key sends ONE relative step-object naming
 // every movable selected object; the 4.17 guard (typing surface, modifier, a
 // modal overlay) and map-edit mode make it inert; nothing selected falls back
-// to the actor's own token (F4) while the board has the conversation (a bare
-// target, the last pointer on the stage, no composing tool) — and where there
-// is no single own PC character, or the selection is someone else's piece, the
-// key is left alone (no preventDefault — arrows still scroll a focused panel);
-// a held key walks at the bounded cadence. There is no client-side chain any more: the server
+// to the actor's own token (F4), yielding only to a surface that would use the
+// key (a typing surface or an arrow widget keeps every movement key; the arrows
+// page the scrolling panel the last pointer landed in; a tool that owns the
+// keys or the selection takes the fallback down) — and where there is no
+// single own PC character, or the selection is someone else's piece, the key
+// is left alone (no preventDefault); a held key walks at the bounded cadence. There is no client-side chain any more: the server
 // resolves every step from its own cell, so N presses are N steps in order.
 
 import { act, renderHook } from "@testing-library/react";
@@ -88,6 +89,22 @@ function mountStage() {
   container.appendChild(canvas);
   document.body.appendChild(container);
   return { container, canvas, remove: () => container.remove() };
+}
+
+/**
+ * A scrolling panel with a button inside it: `overflow-y: auto` and, because
+ * jsdom lays nothing out, the overflow itself is declared (a panel with
+ * nothing to scroll is `overflowing: false`).
+ */
+function mountPanel({ overflowing }: { overflowing: boolean }) {
+  const panel = document.createElement("div");
+  panel.style.overflowY = "auto";
+  Object.defineProperty(panel, "scrollHeight", { value: overflowing ? 500 : 100 });
+  Object.defineProperty(panel, "clientHeight", { value: 100 });
+  const button = document.createElement("button");
+  panel.appendChild(button);
+  document.body.appendChild(panel);
+  return { panel, button, remove: () => panel.remove() };
 }
 
 function sent(sendMessage: ReturnType<typeof vi.fn>) {
@@ -357,10 +374,10 @@ describe("useKeyboardMovement", () => {
       expect(event.defaultPrevented).toBe(false);
     });
 
-    it("a DM running only NPCs has no own token to fall back to", () => {
+    it("a DM running only NPCs has no own token to fall back to — even an NPC recorded as theirs", () => {
       const dmOnlyNpcs = snapshotWith(
         [{ id: "goblin", owner: "me", x: 3, y: 4 }],
-        [{ type: "npc", owner: "", tokenId: "goblin" }],
+        [{ type: "npc", owner: "me", tokenId: "goblin" }],
       );
       const { sendMessage, result } = setup({
         selectedObjectIds: [],
@@ -371,6 +388,76 @@ describe("useKeyboardMovement", () => {
       const event = press("d");
       expect(sendMessage).not.toHaveBeenCalled();
       expect(event.defaultPrevented).toBe(false);
+    });
+
+    it("a PC linked to a token someone else OWNS takes a click's road: the player is refused, the DM steps it", () => {
+      const theirs = snapshotWith(
+        [{ id: "theirs", owner: "them", x: 7, y: 8 }],
+        [{ type: "pc", owner: "me", tokenId: "theirs" }],
+      );
+      const player = setup({ selectedObjectIds: [], snapshot: theirs });
+      expect(player.result.current.movableCount).toBe(0);
+      const refused = press("d");
+      expect(player.sendMessage).not.toHaveBeenCalled();
+      expect(refused.defaultPrevented).toBe(false);
+      player.unmount();
+      const dm = setup({ selectedObjectIds: [], snapshot: theirs, isDM: true });
+      expect(dm.result.current.movableCount).toBe(1);
+      press("d");
+      expect(sent(dm.sendMessage)).toEqual([
+        { t: "step-object", ids: ["token:theirs"], dx: 1, dy: 0 },
+      ]);
+    });
+
+    it("a tool taking the keys mid-session takes the fallback down with it — not only at mount", () => {
+      const { sendMessage, rerender, initial } = setup({
+        selectedObjectIds: [],
+        snapshot: oneHero(),
+      });
+      press("d");
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      rerender({ ...initial, toolOwnsKeys: true }); // the SAME snapshot object
+      const event = press("d");
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it("the one paint between an emptied set and the listener's removal swallows nothing", () => {
+      // The ref is written in render, the cleanup runs in the effect: a key
+      // dispatched from that render still meets the old listener.
+      const sendMessage = vi.fn<(message: ClientMessage) => void>();
+      let captured: KeyboardEvent | null = null;
+      let pressInRender = false;
+      const { rerender } = renderHook(
+        (props: { selectedObjectIds: string[] }) => {
+          const controls = useKeyboardMovement({
+            selectedObjectIds: props.selectedObjectIds,
+            snapshot: oneHero(),
+            uid: "me",
+            isDM: false,
+            mapEditMode: false,
+            toolOwnsKeys: false,
+            sendMessage,
+          });
+          if (pressInRender) {
+            pressInRender = false;
+            const event = new KeyboardEvent("keydown", {
+              key: "d",
+              bubbles: true,
+              cancelable: true,
+            });
+            window.dispatchEvent(event);
+            captured = event;
+          }
+          return controls;
+        },
+        { initialProps: { selectedObjectIds: ["token:mine"] } },
+      );
+      pressInRender = true;
+      rerender({ selectedObjectIds: ["token:theirs"] });
+      expect(captured).not.toBeNull();
+      expect((captured as KeyboardEvent | null)?.defaultPrevented).toBe(false);
+      expect(sendMessage).not.toHaveBeenCalled();
     });
 
     it("a second character arriving mid-session takes the fallback down — the listener is gone", () => {
@@ -407,55 +494,107 @@ describe("useKeyboardMovement", () => {
       expect(event.defaultPrevented).toBe(false);
     });
 
-    describe("the board must have the conversation", () => {
-      it("a pointer landing off the stage hands the keys to that surface; one on the stage takes them back", () => {
-        const stage = mountStage();
-        const panel = document.createElement("div");
-        document.body.appendChild(panel);
-        try {
-          const { sendMessage } = setup({ selectedObjectIds: [], snapshot: oneHero() });
-          pointerDownOn(panel);
-          const swallowedNot = press("ArrowDown");
-          expect(sendMessage).not.toHaveBeenCalled();
-          expect(swallowedNot.defaultPrevented).toBe(false);
-          pointerDownOn(stage.canvas);
-          const swallowed = press("ArrowDown");
-          expect(sent(sendMessage)).toEqual([
-            { t: "step-object", ids: ["token:mine"], dx: 0, dy: 1 },
-          ]);
-          expect(swallowed.defaultPrevented).toBe(true);
-        } finally {
-          panel.remove();
-          stage.remove();
-        }
+    describe("the fallback yields only to a surface that would use the key", () => {
+      it("nothing focused — the key at the body, the browser's real target — steps; so does one at the root", () => {
+        const { sendMessage } = setup({ selectedObjectIds: [], snapshot: oneHero() });
+        const atBody = press("ArrowRight", {}, document.body);
+        const atRoot = press("w", {}, document.documentElement);
+        expect(sent(sendMessage)).toEqual([
+          { t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 },
+          { t: "step-object", ids: ["token:mine"], dx: 0, dy: -1 },
+        ]);
+        expect(atBody.defaultPrevented).toBe(true);
+        expect(atRoot.defaultPrevented).toBe(true);
       });
 
-      it("a focused control keeps its arrows: a key whose target is a button is left alone", () => {
+      it("a focused BUTTON keeps nothing: after ⚔️ or SNAP, W and the arrows still step", () => {
         const button = document.createElement("button");
         document.body.appendChild(button);
         try {
           const { sendMessage } = setup({ selectedObjectIds: [], snapshot: oneHero() });
-          const event = press("ArrowRight", {}, button);
-          expect(sendMessage).not.toHaveBeenCalled();
-          expect(event.defaultPrevented).toBe(false);
+          pointerDownOn(button);
+          const letter = press("w", {}, button);
+          const arrow = press("ArrowRight", {}, button);
+          expect(sent(sendMessage)).toEqual([
+            { t: "step-object", ids: ["token:mine"], dx: 0, dy: -1 },
+            { t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 },
+          ]);
+          expect(letter.defaultPrevented).toBe(true);
+          expect(arrow.defaultPrevented).toBe(true);
         } finally {
           button.remove();
         }
       });
 
-      it("a SELECTED piece keeps its reach after a click elsewhere — that road was a deliberate click", () => {
-        const panel = document.createElement("div");
-        document.body.appendChild(panel);
+      it("a focused arrow widget (a tab) keeps every movement key — letters too", () => {
+        const tab = document.createElement("div");
+        tab.setAttribute("role", "tab");
+        document.body.appendChild(tab);
+        try {
+          const { sendMessage } = setup({ selectedObjectIds: [], snapshot: oneHero() });
+          const arrow = press("ArrowRight", {}, tab);
+          const letter = press("d", {}, tab);
+          expect(sendMessage).not.toHaveBeenCalled();
+          expect(arrow.defaultPrevented).toBe(false);
+          expect(letter.defaultPrevented).toBe(false);
+        } finally {
+          tab.remove();
+        }
+      });
+
+      it("the arrows page the scrolling panel the last pointer landed in; the letters stay the board's; the stage clears it", () => {
+        const stage = mountStage();
+        const scroller = mountPanel({ overflowing: true });
+        // A surface that stops propagation still reports (capture phase).
+        scroller.panel.addEventListener("pointerdown", (e) => e.stopPropagation());
+        try {
+          const { sendMessage } = setup({ selectedObjectIds: [], snapshot: oneHero() });
+          pointerDownOn(scroller.button);
+          const paged = press("ArrowDown");
+          expect(sendMessage).not.toHaveBeenCalled();
+          expect(paged.defaultPrevented).toBe(false);
+          const walked = press("s");
+          expect(sent(sendMessage)).toEqual([
+            { t: "step-object", ids: ["token:mine"], dx: 0, dy: 1 },
+          ]);
+          expect(walked.defaultPrevented).toBe(true);
+          pointerDownOn(stage.canvas);
+          const cleared = press("ArrowDown");
+          expect(sent(sendMessage)).toHaveLength(2);
+          expect(cleared.defaultPrevented).toBe(true);
+        } finally {
+          scroller.remove();
+          stage.remove();
+        }
+      });
+
+      it("a panel with nothing to scroll takes no arrows — only an overflowing one is the browser's target", () => {
+        const flat = mountPanel({ overflowing: false });
+        try {
+          const { sendMessage } = setup({ selectedObjectIds: [], snapshot: oneHero() });
+          pointerDownOn(flat.button);
+          const event = press("ArrowDown");
+          expect(sent(sendMessage)).toEqual([
+            { t: "step-object", ids: ["token:mine"], dx: 0, dy: 1 },
+          ]);
+          expect(event.defaultPrevented).toBe(true);
+        } finally {
+          flat.remove();
+        }
+      });
+
+      it("a SELECTED piece keeps its reach after a click in a scrolling panel — that road was a deliberate click", () => {
+        const scroller = mountPanel({ overflowing: true });
         try {
           const { sendMessage } = setup();
-          pointerDownOn(panel);
-          const event = press("d");
+          pointerDownOn(scroller.button);
+          const event = press("ArrowRight");
           expect(sent(sendMessage)).toEqual([
             { t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 },
           ]);
           expect(event.defaultPrevented).toBe(true);
         } finally {
-          panel.remove();
+          scroller.remove();
         }
       });
     });

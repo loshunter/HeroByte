@@ -738,9 +738,11 @@ describe("MobileLayout", () => {
       screen.queryByRole("region", { name: "Selected object actions" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: /move selection/i })).not.toBeInTheDocument();
-    // Control: the same props DO mount the sheet once something is selected.
+    // Control: the same props DO mount the sheet — and the pad in it — once
+    // something is selected.
     rerender(<MobileLayout {...props} selectedObjectIds={["token:someone-elses"]} />);
-    expect(screen.getByRole("region", { name: "Selected object actions" })).toBeInTheDocument();
+    const sheet = screen.getByRole("region", { name: "Selected object actions" });
+    expect(within(sheet).getByRole("group", { name: /move selection/i })).toBeInTheDocument();
   });
 
   it("renders DiceRoller when diceRollerOpen is true", () => {
