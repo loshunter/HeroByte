@@ -7,7 +7,23 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
-**Update (2026-09-13, later — FOLLOW-UP F4 on `dev`, NOT merged to `main`: nothing selected →
+**Update (2026-09-14, DEPLOYED — FOLLOW-UP F4 IS IN PRODUCTION; the Weighed Campaign arc is
+on `dev`).** The owner's three calls: merge F4 on the plateau record (done), leave the recorded
+affordance/camera-follow/`role="tab"` items recorded, and start the Atlas §7 pick on the
+recommendation — the byte-weighed mint path. `dev` = `main` = **`8e104dc4`** (from `c3b13676`,
+the nine F4 commits), both pushed 2026-09-14; **CI #867 (dev) and #868 (main) green**. Gated
+first by the full ladder (197 e2e, 0 failed; dev boot clean) and a live two-client check on a
+local dev server: the player's bare ArrowRight with nothing selected sent exactly ONE
+`step-object` and the token went from cell 20 to 21 in the player tab AND the DM tab; ⚔️ Focus
+(inside the scrolling party panel) then ArrowLeft stepped it back — round 3's exact case.
+Deploy probe-verified across all served chunks: entry bundle `index-DU0TBtuF` → `index-DLos7Gc5`;
+the discriminating string "the keys move your own token" (the help entry; absent at
+`c3b13676`, present at `8e104dc4`) reads 1 hit in the new bundle and 0 in the old, controls
+`Apply Portrait` / `step-object` present in both; Render 502 for ~50 s on restart, then
+`/health` 200. Players there must reload. NEXT: `export-weight-arc-plan.md` (W0–W2 on `dev`,
+see its update below when it lands).
+
+**Update (2026-09-13, later — FOLLOW-UP F4 on `dev`, ~~NOT merged to `main`~~ IN PRODUCTION 2026-09-14, see above: nothing selected →
 your own token; three review rounds, the cap — THE OWNER DECIDES ON THE RECORD).** The one
 item-4 leftover the owner queued. With an EMPTY selection the movement keys move the actor's own
 token: `ownTokenFallback` (the pure half of `features/movement`) names the ONE `pc` character
