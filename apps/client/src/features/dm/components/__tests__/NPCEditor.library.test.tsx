@@ -1,5 +1,5 @@
 /**
- * NPCEditor and the Monster Library: a pick commits the token image through
+ * NPCEditor and the Token Library: a pick commits the token image through
  * the editor's own update (name, HP and the rest ride along, as any field
  * commit does), and the portrait follows only when there is nothing to lose —
  * empty, or itself a library image. A mimic flip is the same path.
@@ -10,9 +10,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Character } from "@herobyte/shared";
 import { NPCEditor } from "../NPCEditor";
 
-const CLUB = "/tokens/monsters/Goblins/goblinClub.png";
-const DISGUISE = "/tokens/monsters/Mimics/mimicChestHidden.png";
-const REVEAL = "/tokens/monsters/Mimics/mimicChest.png";
+const CLUB = "/tokens/NPC/Enemies/Goblins/goblinClub.png";
+const DISGUISE = "/tokens/NPC/Enemies/Mimics/Disguised/closedChest.png";
+const REVEAL = "/tokens/NPC/Enemies/Mimics/mimicChest.png";
 
 function renderEditor(npc: Partial<Character>) {
   const onUpdate = vi.fn();

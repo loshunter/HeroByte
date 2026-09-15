@@ -1,6 +1,6 @@
 /**
  * The NPC editor's token image: the URL/upload field, its preview, and the
- * two library controls — pick a bundled monster, and for a mimic, flip between
+ * two library controls — pick a bundled token, and for a mimic, flip between
  * its disguise and its reveal. Lifted out of NPCEditor, which had four lines
  * of headroom under the 350-line guard.
  */
@@ -8,12 +8,12 @@
 import { useState } from "react";
 import { ImageField } from "../../../components/ui/ImageField";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
-import { MonsterLibrary } from "../monster-library/MonsterLibrary";
+import { TokenLibrary } from "../token-library/TokenLibrary";
 import {
-  monsterByImageUrl,
-  monsterCounterpart,
-  type MonsterAsset,
-} from "../monster-library/monsterCatalog";
+  libraryAssetByImageUrl,
+  libraryCounterpart,
+  type LibraryAsset,
+} from "../token-library/tokenCatalog";
 
 interface NpcTokenImageFieldProps {
   /** The field's live text (per keystroke). */
@@ -25,7 +25,7 @@ interface NpcTokenImageFieldProps {
   onChange: (url: string) => void;
   onCommit: (url: string) => void;
   /** A library pick, or a mimic flip. The editor decides what else follows it. */
-  onPickAsset: (asset: MonsterAsset) => void;
+  onPickAsset: (asset: LibraryAsset) => void;
 }
 
 export function NpcTokenImageField({
@@ -40,8 +40,8 @@ export function NpcTokenImageField({
   const [libraryOpen, setLibraryOpen] = useState(false);
   // Keyed on what is on file, not on the live text: a half-typed URL is not a
   // mimic, and the flip must not appear and vanish under the DM's cursor.
-  const current = monsterByImageUrl(committedTokenImage);
-  const counterpart = monsterCounterpart(current);
+  const current = libraryAssetByImageUrl(committedTokenImage);
+  const counterpart = libraryCounterpart(current);
 
   return (
     <>
@@ -76,7 +76,7 @@ export function NpcTokenImageField({
           onClick={() => setLibraryOpen((open) => !open)}
           disabled={disabled}
           aria-expanded={libraryOpen}
-          title="Pick this NPC's token from the bundled monster library"
+          title="Pick this NPC's token from the bundled library"
           style={buttonStyle}
         >
           📖 Library
@@ -98,7 +98,7 @@ export function NpcTokenImageField({
         )}
       </div>
       {libraryOpen && (
-        <MonsterLibrary
+        <TokenLibrary
           hint={`Pick a token image for ${name}`}
           disabled={disabled}
           onPick={(asset) => {

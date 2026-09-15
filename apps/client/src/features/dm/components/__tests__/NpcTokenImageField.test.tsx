@@ -9,8 +9,8 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { NpcTokenImageField } from "../NpcTokenImageField";
 
-const DISGUISE = "/tokens/monsters/Mimics/mimicChestHidden.png";
-const REVEAL = "/tokens/monsters/Mimics/mimicChest.png";
+const DISGUISE = "/tokens/NPC/Enemies/Mimics/Disguised/closedChest.png";
+const REVEAL = "/tokens/NPC/Enemies/Mimics/mimicChest.png";
 
 function field(overrides: Partial<Parameters<typeof NpcTokenImageField>[0]> = {}) {
   const onPickAsset = vi.fn();
@@ -34,17 +34,17 @@ describe("NpcTokenImageField", () => {
     field({ tokenImage: "https://x/orc.png", committedTokenImage: "https://x/orc.png" });
     expect(screen.queryByRole("button", { name: /mimic|disguise/i })).toBeNull();
     expect(screen.getByRole("img", { name: "Ogre token preview" })).toBeInTheDocument();
-    expect(screen.queryByTestId("monster-library")).toBeNull();
+    expect(screen.queryByTestId("token-library")).toBeNull();
   });
 
   it("the library opens, a pick hands the asset up and closes it again", () => {
     const { onPickAsset } = field();
     fireEvent.click(screen.getByRole("button", { name: "📖 Library" }));
-    expect(screen.getByTestId("monster-library")).toBeInTheDocument();
+    expect(screen.getByTestId("token-library")).toBeInTheDocument();
     expect(screen.getByText(/Pick a token image for Ogre/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Goblin club brute" }));
     expect(onPickAsset).toHaveBeenCalledWith(expect.objectContaining({ id: "goblinClub" }));
-    expect(screen.queryByTestId("monster-library")).toBeNull();
+    expect(screen.queryByTestId("token-library")).toBeNull();
   });
 
   it("a disguised mimic on file offers Reveal, which picks the revealed state", () => {

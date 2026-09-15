@@ -30,17 +30,17 @@ function renderTab(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}
 }
 
 const libraryButton = () => screen.getByRole("button", { name: "📖 Library" });
-const CLUB = "/tokens/monsters/Goblins/goblinClub.png";
+const CLUB = "/tokens/NPC/Enemies/Goblins/goblinClub.png";
 
-describe("NPCsTab — the Monster Library", () => {
+describe("NPCsTab — the Token Library", () => {
   it("is closed until asked, and the button toggles it", () => {
     renderTab();
-    expect(screen.queryByTestId("monster-library")).toBeNull();
+    expect(screen.queryByTestId("token-library")).toBeNull();
     fireEvent.click(libraryButton());
-    expect(screen.getByTestId("monster-library")).toBeInTheDocument();
-    expect(screen.getByText(/Pick a monster to add it as an NPC/)).toBeInTheDocument();
+    expect(screen.getByTestId("token-library")).toBeInTheDocument();
+    expect(screen.getByText(/Pick a token to add it as an NPC/)).toBeInTheDocument();
     fireEvent.click(libraryButton());
-    expect(screen.queryByTestId("monster-library")).toBeNull();
+    expect(screen.queryByTestId("token-library")).toBeNull();
   });
 
   it("a pick creates the NPC with the pack's name, token image and portrait", () => {
@@ -60,7 +60,7 @@ describe("NPCsTab — the Monster Library", () => {
     const props = renderTab();
     fireEvent.change(screen.getByLabelText(/how many npcs to add/i), { target: { value: "5" } });
     fireEvent.click(libraryButton());
-    expect(screen.getByText(/Pick a monster to add 5 of it/)).toBeInTheDocument();
+    expect(screen.getByText(/Pick a token to add 5 of it/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Goblin club brute" }));
     expect(props.onCreateNPC).toHaveBeenCalledWith(expect.objectContaining({ count: 5 }));
   });

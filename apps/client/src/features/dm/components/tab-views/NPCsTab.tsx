@@ -19,8 +19,8 @@ import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { NPCEditor } from "../NPCEditor";
 import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";
 import type { CreateNpcRequest } from "../../hooks/useNpcCreation";
-import { MonsterLibrary } from "../../monster-library/MonsterLibrary";
-import { monsterImageUrl, type MonsterAsset } from "../../monster-library/monsterCatalog";
+import { TokenLibrary } from "../../token-library/TokenLibrary";
+import { libraryImageUrl, type LibraryAsset } from "../../token-library/tokenCatalog";
 
 /**
  * Props for the NPCsTab component
@@ -135,8 +135,8 @@ export default function NPCsTab({
   // portrait rides along so the Entities panel shows the creature, not a
   // blank card.
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const handlePickMonster = (asset: MonsterAsset) => {
-    const url = monsterImageUrl(asset);
+  const handlePickToken = (asset: LibraryAsset) => {
+    const url = libraryImageUrl(asset);
     onCreateNPC({ name: asset.name, tokenImage: url, portrait: url, count });
   };
 
@@ -178,7 +178,7 @@ export default function NPCsTab({
             variant={libraryOpen ? "primary" : "default"}
             aria-expanded={libraryOpen}
             style={{ fontSize: "10px", padding: "6px 12px" }}
-            title="Browse the bundled monster tokens and add one as an NPC"
+            title="Browse the bundled tokens — monsters and townsfolk — and add one as an NPC"
           >
             📖 Library
           </JRPGButton>
@@ -240,14 +240,12 @@ export default function NPCsTab({
       )}
 
       {libraryOpen && (
-        <MonsterLibrary
+        <TokenLibrary
           hint={
-            count > 1
-              ? `Pick a monster to add ${count} of it`
-              : "Pick a monster to add it as an NPC"
+            count > 1 ? `Pick a token to add ${count} of it` : "Pick a token to add it as an NPC"
           }
           disabled={isCreatingNpc}
-          onPick={handlePickMonster}
+          onPick={handlePickToken}
         />
       )}
 
