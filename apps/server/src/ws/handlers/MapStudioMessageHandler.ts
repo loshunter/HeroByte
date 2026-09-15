@@ -55,12 +55,7 @@ export class MapStudioMessageHandler {
         // weigh that throws costs the readout (the field is optional and the
         // client renders nothing), never the map list — this message carries
         // no commandId, so a throw here would reach no screen at all.
-        let weight: number | undefined;
-        try {
-          weight = exportBytes(this.getRoomState(roomId), documents, senderUid);
-        } catch (error) {
-          console.error("map-studio-list: the campaign weigh failed", error);
-        }
+        const weight = this.exportBytesNow(roomId, senderUid);
         this.sendMessage(senderUid, {
           t: "map-studio-documents",
           documents: documents.map(toSummary),
@@ -138,8 +133,13 @@ export class MapStudioMessageHandler {
             service: this.service,
             getRoomState: this.getRoomState,
             now: this.now,
-            broadcastDocument: (room, document, appliedCommandId) =>
-              this.broadcastDocument(room, document, appliedCommandId),
+            broadcastDocument: (room, document, appliedCommandId, weigh) =>
+              this.broadcastDocument(
+                room,
+                document,
+                appliedCommandId,
+                weigh ? this.exportBytesNow(room, senderUid) : undefined,
+              ),
             recompileLiveScene: (room, previous, document) =>
               this.recompileLiveScene(room, previous, document),
             sendCommandError: (uid, command, error) => this.sendCommandError(uid, command, error),
@@ -293,13 +293,25 @@ export class MapStudioMessageHandler {
     roomId: string,
     document: MapDocument,
     appliedCommandId?: string,
+    exportBytes?: number,
   ): void {
     this.broadcastToDMs(roomId, {
       t: "map-studio-document",
       document,
       appliedCommandId,
       history: this.service.historyStatus(roomId, document.id),
+      ...(exportBytes === undefined ? {} : { exportBytes }),
     });
+  }
+
+  /** The campaign's weight after a change — undefined when the weigh throws (the readout, never the frame). */
+  private exportBytesNow(roomId: string, senderUid: string): number | undefined {
+    try {
+      return exportBytes(this.getRoomState(roomId), this.service.list(roomId), senderUid);
+    } catch (error) {
+      console.error("map-studio: the campaign weigh failed", error);
+      return undefined;
+    }
   }
 
   private sendCommandError(

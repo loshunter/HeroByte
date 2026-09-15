@@ -32,7 +32,13 @@ export interface MapStudioGenerateDeps {
   service: MapStudioService;
   getRoomState: (roomId: string) => RoomState;
   now: () => number;
-  broadcastDocument: (roomId: string, document: MapDocument, appliedCommandId?: string) => void;
+  /** `weigh`: attach the campaign's weight after this frame — a recipe moves it by a map's worth. */
+  broadcastDocument: (
+    roomId: string,
+    document: MapDocument,
+    appliedCommandId?: string,
+    weigh?: boolean,
+  ) => void;
   recompileLiveScene: (
     roomId: string,
     previous: MapDocument | undefined,
@@ -97,11 +103,17 @@ export function handleMapStudioGenerate(
     }
     const isLive = deps.getRoomState(roomId).liveMapDocumentId === message.documentId;
     const result = deps.service.apply(roomId, command, timestamp);
-    deps.broadcastDocument(roomId, result.document, result.commandId);
     if (isLive) {
-      // `document` is the pre-apply clone — exactly the "previous" the
-      // door-state preservation wants.
+      // `document` is the store's pre-apply object (the clone above was consumed
+      // by the weigh) — exactly the "previous" the door-state preservation wants.
+      // Recompiled BEFORE the weighed frame below, so the weight it carries is
+      // the table's after the recipe, scene included.
       deps.recompileLiveScene(roomId, document, result.document);
+    }
+    // Every DM's readout follows the recipe from this frame — no re-list, and
+    // not only the DM who fired it (round 2 of the review).
+    deps.broadcastDocument(roomId, result.document, result.commandId, true);
+    if (isLive) {
       return { broadcast: true, save: true };
     }
   } catch (error) {

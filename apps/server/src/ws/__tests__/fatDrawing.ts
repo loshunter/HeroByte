@@ -56,3 +56,49 @@ export function padExportTo(
   }
   return bytes;
 }
+
+/**
+ * Pad a room's export to within 64 bytes under `target` — coarse to 12 KB
+ * under with `padExportTo`, then a second "tuner" drawing whose point count a
+ * binary search settles. For the cases that must bracket a cost of a few KB
+ * (a kick's graph and capture envelope), 2 KB of slack is not precision.
+ * Callable again with a LOWER target: the tuner is rebuilt from scratch, so
+ * anything above the coarse floor can be reached. Returns the export's bytes.
+ */
+export function padExportToExactly(
+  room: RoomService,
+  maps: MapStudioService,
+  roomId: string,
+  uid: string,
+  target: number,
+): number {
+  const weigh = () => exportBytes(room.getState(), maps.list(roomId), uid);
+  const setTuner = (points: number) => {
+    const drawings = room.getState().drawings.filter((entry) => entry.id !== "tuner-drawing");
+    if (points > 0) {
+      drawings.push({
+        ...fatDrawing(0),
+        id: "tuner-drawing",
+        points: Array.from({ length: points }, (_, i) => ({ x: i, y: i })),
+      } as never);
+    }
+    room.setState({ drawings });
+    room.setPlayerStagingZone(room.getState().playerStagingZone);
+  };
+  setTuner(0);
+  if (weigh() < target - 12_288) padExportTo(room, maps, roomId, uid, target - 10_240);
+  let low = 0;
+  let high = 2_048;
+  while (high - low > 1) {
+    const mid = Math.floor((low + high) / 2);
+    setTuner(mid);
+    if (weigh() <= target) low = mid;
+    else high = mid;
+  }
+  setTuner(low);
+  const bytes = weigh();
+  if (bytes < target - 64 || bytes > target) {
+    throw new Error(`padExportToExactly: landed at ${bytes}, wanted (${target - 64}, ${target}]`);
+  }
+  return bytes;
+}

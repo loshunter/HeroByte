@@ -24,13 +24,13 @@ import {
 } from "@herobyte/shared";
 import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
 import { ATLAS_DM_REQUIRED } from "../handlers/AtlasMessageHandler.js";
-import { entranceAnchor } from "../handlers/atlasKick.js";
+import { entranceAnchor, kickExtraBytes } from "../handlers/atlasKick.js";
 import { cashNode } from "../handlers/atlasCash.js";
-import { liveSceneBytes } from "../handlers/liveSceneBytes.js";
+import { installedSceneBytes, liveSceneBytes } from "../handlers/liveSceneBytes.js";
 import { exportBytes } from "../../domains/room/sessionExport.js";
 import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { sentinelHits } from "./leakSentinels.js";
-import { padExportTo } from "./fatDrawing.js";
+import { padExportTo, padExportToExactly } from "./fatDrawing.js";
 import {
   createRouterHarness,
   flush,
@@ -605,8 +605,17 @@ describe("atlas kick contracts", () => {
         SESSION_MINT_CEILING_BYTES - documentBytes - sceneBytes + Math.floor(outgoing / 2);
       padExportTo(h.roomService, h.mapStudioService, "default", DM, target);
       const before = weigh();
+      const extra = kickExtraBytes(
+        state(),
+        h.mapStudioService.get("default", state().liveMapDocumentId!),
+        Date.now(),
+        { ...probe, id: message.nodeId, parentId: "nHeavy" },
+        undefined,
+        message,
+        { x: 4, y: 4 },
+      );
       expect(before + documentBytes + sceneBytes).toBeGreaterThan(SESSION_MINT_CEILING_BYTES);
-      expect(before + documentBytes + sceneBytes - outgoing).toBeLessThanOrEqual(
+      expect(before + documentBytes + sceneBytes - outgoing + extra).toBeLessThanOrEqual(
         SESSION_MINT_CEILING_BYTES,
       );
 
@@ -616,12 +625,16 @@ describe("atlas kick contracts", () => {
       await flush();
       expect(child()?.mapDocumentId).toBeDefined();
       expect(messagesOf(dmWs, "atlas-error")).toHaveLength(0);
-      // ...and the table it left is under the ceiling, as every accepted kick leaves it
-      // (to within the capture and the doors — pinned generously at 4 KB).
-      expect(weigh()).toBeLessThanOrEqual(SESSION_MINT_CEILING_BYTES + 4096);
+      // ...and the export it left behind is what the weigh predicted, both ways:
+      // the swap, plus the graph and capture envelope the kick computed.
+      // A kilobyte: the estimate rounds up by 256 for the digits it cannot know,
+      // and the capture envelope it must include weighs more than that.
+      const predicted = before + documentBytes + sceneBytes - outgoing + extra;
+      expect(weigh()).toBeGreaterThan(predicted - 1024);
+      expect(weigh()).toBeLessThan(predicted + 1024);
     });
 
-    it("a weigher that THROWS is a rejection on the atlas-error channel, and mints nothing", () => {
+    it("a weigher that THROWS is a `rejected` outcome from cashNode, and mints nothing", () => {
       const scratch = new MapStudioService();
       const node: AtlasNode = {
         id: "n",
@@ -653,6 +666,112 @@ describe("atlas kick contracts", () => {
       });
       expect(scratch.list("scratch")).toHaveLength(0);
       expect(node.mapDocumentId).toBeUndefined();
+    });
+
+    it("the graph and capture envelope a kick pushes AFTER the weigh are counted — a kick that fits by the document and scene alone, but not with them, is refused; take them off and it lands", async () => {
+      bindAdoptedOrigin();
+      seedParty();
+      const message = kickMessage({
+        recipe: { recipeId: "building", kind: "house", size: "small" },
+      });
+      const scratch = new MapStudioService();
+      const probe: AtlasNode = {
+        id: "probe",
+        kind: "building",
+        name: message.name.trim(),
+        discovered: false,
+        createdAt: 0,
+        updatedAt: 0,
+      };
+      const minted = cashNode(
+        {
+          mapStudioService: scratch,
+          broadcastToDMs: () => {},
+          now: () => 1,
+          weighMint: () => null,
+        },
+        "scratch",
+        probe,
+        message.seed,
+        message.recipe,
+        message.commandId,
+      );
+      const document = scratch.get("scratch", (minted as { documentId: string }).documentId);
+      const documentBytes = utf8ByteLength(JSON.stringify(document)) + 1;
+      const sceneBytes = liveSceneBytes(document, 1);
+      const outgoing = installedSceneBytes(state());
+      const extra = kickExtraBytes(
+        state(),
+        h.mapStudioService.get("default", "doc-a"),
+        Date.now(),
+        { ...probe, id: message.nodeId, parentId: "nA" },
+        undefined,
+        message,
+        { x: 4, y: 4 },
+      );
+      expect(extra).toBeGreaterThan(500);
+      const weigh = () => exportBytes(state(), h.mapStudioService.list("default"), DM);
+      const cost = documentBytes + sceneBytes - outgoing;
+
+      // Fits by half the extra without it; overflows by half the extra with it.
+      padExportToExactly(
+        h.roomService,
+        h.mapStudioService,
+        "default",
+        DM,
+        SESSION_MINT_CEILING_BYTES - cost - Math.floor(extra / 2),
+      );
+      await flush();
+      dmWs.send.mockClear();
+      const fingerprintBefore = fingerprint();
+      route(message);
+      await flush();
+      expect(fingerprint()).toBe(fingerprintBefore);
+      expect(messagesOf(dmWs, "atlas-error")).toHaveLength(1);
+
+      // Take the extra off the table and the same kick lands.
+      padExportToExactly(
+        h.roomService,
+        h.mapStudioService,
+        "default",
+        DM,
+        SESSION_MINT_CEILING_BYTES - cost - extra - Math.floor(extra / 2),
+      );
+      await flush();
+      dmWs.send.mockClear();
+      route(message);
+      await flush();
+      expect(messagesOf(dmWs, "atlas-error")).toHaveLength(0);
+      expect(child()?.mapDocumentId).toBeDefined();
+      expect(weigh()).toBeLessThanOrEqual(SESSION_MINT_CEILING_BYTES);
+    });
+
+    it("a weigher that THROWS through the real router is a `rejected` atlas-error to the DM, nothing minted, nothing to the player", async () => {
+      bindAdoptedOrigin();
+      seedParty();
+      // Drain the setup's own debounced broadcast BEFORE the poison goes in.
+      await flush();
+      dmWs.send.mockClear();
+      playerWs.send.mockClear();
+      // A circular drawing makes the export's JSON.stringify throw inside the weigh.
+      const loop: Record<string, unknown> = { id: "loop", type: "freehand", points: [] };
+      loop.self = loop;
+      state().drawings.push(loop as never);
+      const before = fingerprint();
+
+      route(kickMessage());
+      // The refusal was sent synchronously; take the poison off the table NOW,
+      // before the room's debounced broadcast (armed by the route, 16 ms out)
+      // meets it — an unhandled throw there fails the whole run.
+      state().drawings = state().drawings.filter((entry) => entry.id !== "loop");
+      await flush();
+
+      expect(fingerprint()).toBe(before);
+      const errors = messagesOf(dmWs, "atlas-error") as { code?: string; reason?: string }[];
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.code).toBe("rejected");
+      expect(errors[0]?.reason).toContain("could not be checked");
+      expect(playerWs.send).not.toHaveBeenCalled();
     });
 
     it("the origin's document missing from the store (a boot-time desync)", async () => {

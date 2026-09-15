@@ -203,6 +203,24 @@ describe("map-studio-generate contracts", () => {
     expect(documentRevision()).toBe(1);
   });
 
+  it("carries the campaign's weight on the document frame it broadcasts — every DM's readout follows the recipe", async () => {
+    createLiveDoc();
+    dmWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-weigh" }), DM);
+    await flush();
+
+    const frames = messagesOf(dmWs, "map-studio-document") as unknown as Array<{
+      appliedCommandId?: string;
+      exportBytes?: number;
+    }>;
+    const landed = frames.find((frame) => frame.appliedCommandId === "gen-weigh");
+    expect(landed?.exportBytes).toBe(
+      exportBytes(roomService.getState(), mapStudioService.list("default"), DM),
+    );
+    expect(landed?.exportBytes).toBeGreaterThan(5_000);
+  });
+
   it("echoes the message's commandId as appliedCommandId on the DM document frame", () => {
     createLiveDoc();
 
@@ -493,7 +511,7 @@ describe("map-studio-generate contracts", () => {
     // close under the ceiling with a small live map, then generate the default
     // 24x20 dungeon onto it: it fits, so it lands.
     createLiveDoc();
-    padExportTo(roomService, mapStudioService, "default", DM, SESSION_MINT_CEILING_BYTES - 60_000);
+    padExportTo(roomService, mapStudioService, "default", DM, SESSION_MINT_CEILING_BYTES - 20_000);
     await flush();
     dmWs.send.mockClear();
 
@@ -505,5 +523,21 @@ describe("map-studio-generate contracts", () => {
     expect(
       exportBytes(roomService.getState(), mapStudioService.list("default"), DM),
     ).toBeLessThanOrEqual(SESSION_MINT_CEILING_BYTES);
+  });
+
+  it("...and the same generate is refused 10 KB under the ceiling — the pair brackets what a default dungeon costs (~13.5 KB)", async () => {
+    // Measured: the default 24x20 dungeon grows the document ~9.2 KB and its
+    // scene ~4.5 KB. Accepted at 20 KB of headroom (above), refused at 10 KB:
+    // a weigh that dropped the scene term (9.2 KB) would let this one land.
+    createLiveDoc();
+    padExportTo(roomService, mapStudioService, "default", DM, SESSION_MINT_CEILING_BYTES - 10_000);
+    await flush();
+    dmWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-tight" }), DM);
+    await flush();
+
+    expect(documentRevision()).toBe(-1);
+    expect(messagesOf(dmWs, "map-studio-error")).toHaveLength(1);
   });
 });

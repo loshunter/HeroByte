@@ -41,7 +41,7 @@ export function mintOverflowWith(
     state,
     withCandidate(deps.service.list(roomId), candidate),
     senderUid,
-    mintSceneBytes(state, deps.service, roomId, candidate, deps.now()),
+    mintSceneBytes(state, candidate, deps.now()),
   );
 }
 

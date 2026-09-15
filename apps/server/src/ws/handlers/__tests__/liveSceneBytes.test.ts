@@ -11,9 +11,9 @@
 
 import { describe, it, expect } from "vitest";
 import { createMapDocument, type MapDocument } from "@herobyte/shared";
-import { MapStudioService } from "../../../domains/mapStudio/service.js";
 import { createEmptyRoomState } from "../../../domains/room/model.js";
-import { liveSceneBytes, mintSceneBytes } from "../liveSceneBytes.js";
+import { installedSceneBytes, liveSceneBytes, mintSceneBytes } from "../liveSceneBytes.js";
+import { compileDocument } from "../sceneTravel.js";
 
 function wallDocument(id: string, walls: number): MapDocument {
   const document = createMapDocument({ id, name: id, timestamp: 1 });
@@ -39,44 +39,75 @@ function wallDocument(id: string, walls: number): MapDocument {
   return document;
 }
 
+/** The same map with scenery on it — the part a PUBLISH leaves out of the export. */
+function withTiles(document: MapDocument, tiles: number): MapDocument {
+  const layer = document.layers.find((entry) => entry.kind === "objects")!;
+  for (let i = 0; i < tiles; i++) {
+    document.elements.push({
+      id: `${document.id}-tile-${i}`,
+      layerId: layer.id,
+      type: "tile",
+      locked: false,
+      hidden: false,
+      transform: { x: i * 50, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { assetId: "tile:crate", columns: 1, rows: 1 },
+    } as never);
+  }
+  return document;
+}
+
 describe("mintSceneBytes", () => {
-  it("swaps the LIVE document's own stored scene out when the candidate IS the live document (the live GENERATE tool)", () => {
-    const maps = new MapStudioService();
-    const stored = wallDocument("live", 40);
-    maps.restore("r", stored);
+  function withInstalled(document: MapDocument): ReturnType<typeof createEmptyRoomState> {
     const state = createEmptyRoomState();
-    state.liveMapDocumentId = "live";
+    const outputs = compileDocument(document, 1, undefined);
+    state.compiledScene = outputs.compiledScene;
+    state.mapTerrain = outputs.mapTerrain;
+    state.mapElements = outputs.mapElements;
+    state.gridSize = outputs.gridSize;
+    state.gridSquareSize = outputs.gridSquareSize;
+    state.liveMapDocumentId = document.id;
+    return state;
+  }
+
+  it("swaps the scene INSTALLED on the table out — for the live GENERATE tool that is the live document's own, as it stands", () => {
+    const stored = wallDocument("live", 40);
+    const state = withInstalled(stored);
     const candidate = wallDocument("live", 80); // the document as it would be after the recipe
 
-    const scene = mintSceneBytes(state, maps, "r", candidate, 1);
+    const scene = mintSceneBytes(state, candidate, 1);
 
     expect(scene.candidate).toBe(liveSceneBytes(candidate, 1));
-    expect(scene.outgoing).toBe(liveSceneBytes(maps.get("r", "live"), 1));
+    expect(scene.outgoing).toBe(installedSceneBytes(state));
+    expect(scene.outgoing).toBe(liveSceneBytes(stored, 1));
     expect(scene.candidate).toBeGreaterThan(scene.outgoing);
     expect(scene.outgoing).toBeGreaterThan(1000);
   });
 
-  it("swaps the live document's scene out when the candidate is ANOTHER document (a kick, a generate elsewhere)", () => {
-    const maps = new MapStudioService();
-    maps.restore("r", wallDocument("origin", 40));
-    const state = createEmptyRoomState();
-    state.liveMapDocumentId = "origin";
+  it("measures what a PUBLISH left installed — the compiled scene alone, never a recompile of the bound document", () => {
+    const stored = withTiles(wallDocument("published", 40), 30);
+    const state = withInstalled(stored);
+    // publishDocument overwrites two of the five keys (mapStudioPublish.ts).
+    state.mapTerrain = undefined;
+    state.mapElements = undefined;
 
-    const scene = mintSceneBytes(state, maps, "r", wallDocument("child", 10), 1);
+    const scene = mintSceneBytes(state, wallDocument("child", 10), 1);
 
-    expect(scene.outgoing).toBe(liveSceneBytes(maps.get("r", "origin"), 1));
-    expect(scene.candidate).toBe(liveSceneBytes(wallDocument("child", 10), 1));
+    expect(scene.outgoing).toBe(installedSceneBytes(state));
+    expect(scene.outgoing).toBeLessThan(liveSceneBytes(stored, 1));
+    expect(scene.outgoing).toBeGreaterThan(1000);
   });
 
-  it("swaps nothing out when no document is live, or when the live document is gone from the store", () => {
-    const maps = new MapStudioService();
-    const candidate = wallDocument("child", 10);
+  it("still counts a scene the binding no longer names — an unbind or a delete of the live map keeps the scene on the table", () => {
+    const state = withInstalled(wallDocument("gone", 40));
+    state.liveMapDocumentId = undefined;
 
-    const noLive = createEmptyRoomState();
-    expect(mintSceneBytes(noLive, maps, "r", candidate, 1).outgoing).toBe(0);
+    expect(mintSceneBytes(state, wallDocument("child", 10), 1).outgoing).toBeGreaterThan(1000);
+  });
 
-    const dangling = createEmptyRoomState();
-    dangling.liveMapDocumentId = "vanished";
-    expect(mintSceneBytes(dangling, maps, "r", candidate, 1).outgoing).toBe(0);
+  it("swaps nothing out when nothing is compiled", () => {
+    const state = createEmptyRoomState();
+    state.liveMapDocumentId = "dangling";
+    expect(mintSceneBytes(state, wallDocument("child", 10), 1).outgoing).toBe(0);
+    expect(installedSceneBytes(createEmptyRoomState())).toBe(0);
   });
 });

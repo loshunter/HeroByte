@@ -51,9 +51,11 @@ export interface AtlasCashDeps {
   /**
    * The BYTE ceiling (the Weighed Campaign plan): weigh the export the room
    * would write with `candidate` minted — the finished in-memory document,
-   * recipe applied — and report the overflow, or null when it fits.
+   * recipe applied — plus `extraBytes` the caller will push after the weigh
+   * and cannot hand it as a document (a kick's graph and capture envelope),
+   * and report the overflow, or null when it fits.
    */
-  weighMint: (candidate: MapDocument) => MintOverflow | null;
+  weighMint: (candidate: MapDocument, extraBytes?: number) => MintOverflow | null;
 }
 
 export type CashOutcome =
@@ -72,6 +74,7 @@ export function cashNode(
   seed: number,
   request: GenerateRequest,
   commandId: string,
+  extraBytes = 0,
 ): CashOutcome {
   // The mint ceiling protects the EXPORT promise: a room past
   // MAX_SESSION_DOCUMENTS writes a session file its own reimport rejects.
@@ -129,7 +132,7 @@ export function cashNode(
   // like every refusal above it.
   let overflow: MintOverflow | null;
   try {
-    overflow = deps.weighMint(candidate);
+    overflow = deps.weighMint(candidate, extraBytes);
   } catch {
     // Every exit stays a CashOutcome: the atlas-error channel is the acting
     // DM's only failure surface, and a bare nack would never reach the panel.

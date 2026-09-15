@@ -2,7 +2,6 @@
 // LIVE SCENE BYTES — what a document adds to the export once it is the scene
 // ============================================================================
 import { utf8ByteLength, type MapDocument } from "@herobyte/shared";
-import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MintSceneBytes } from "../../domains/room/sessionExport.js";
 import { compileDocument } from "./sceneTravel.js";
@@ -21,33 +20,35 @@ export function liveSceneBytes(document: MapDocument, now: number): number {
 }
 
 /**
+ * What the scene ON THE TABLE weighs in the export right now — the five keys
+ * a travel installs, as they stand. Measured, never recompiled from the
+ * binding: a publish leaves `mapTerrain`/`mapElements` undefined, an unbind or
+ * a delete-of-the-live-map keeps the scene with no binding at all, and every
+ * other consumer in the codebase keys on the scene, not the binding (round 2
+ * of the review). 0 when nothing is compiled.
+ */
+export function installedSceneBytes(state: RoomState): number {
+  if (!state.compiledScene) return 0;
+  return utf8ByteLength(
+    JSON.stringify({
+      compiledScene: state.compiledScene,
+      mapTerrain: state.mapTerrain,
+      mapElements: state.mapElements,
+      gridSize: state.gridSize,
+      gridSquareSize: state.gridSquareSize,
+    }),
+  );
+}
+
+/**
  * Both halves of a mint's scene weigh: the candidate's live-scene bytes and
- * the OUTGOING scene's (the document bound to the table now; 0 when there is
- * none, or when the store no longer has it — a boot-time desync the kick
- * itself refuses separately).
+ * the OUTGOING scene's — what a travel (or the live GENERATE tool's recompile)
+ * replaces, which is whatever is installed now.
  */
 export function mintSceneBytes(
   state: RoomState,
-  mapStudioService: MapStudioService,
-  roomId: string,
   candidate: MapDocument,
   now: number,
 ): MintSceneBytes {
-  let outgoing = 0;
-  if (state.liveMapDocumentId && state.liveMapDocumentId !== candidate.id) {
-    try {
-      outgoing = liveSceneBytes(mapStudioService.get(roomId, state.liveMapDocumentId), now);
-    } catch {
-      outgoing = 0;
-    }
-  } else if (state.liveMapDocumentId === candidate.id) {
-    // The live GENERATE tool: the candidate REPLACES the live document, so the
-    // outgoing scene is the live document as it stands.
-    try {
-      outgoing = liveSceneBytes(mapStudioService.get(roomId, candidate.id), now);
-    } catch {
-      outgoing = 0;
-    }
-  }
-  return { candidate: liveSceneBytes(candidate, now), outgoing };
+  return { candidate: liveSceneBytes(candidate, now), outgoing: installedSceneBytes(state) };
 }

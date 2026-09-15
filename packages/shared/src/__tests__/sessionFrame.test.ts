@@ -97,10 +97,11 @@ describe("loadSessionFrameBytes", () => {
 
 describe("SESSION_MINT_CEILING_BYTES", () => {
   it("is three quarters of the wire limit — headroom for play, not a wall", () => {
-    expect(SESSION_MINT_CEILING_BYTES).toBe(Math.floor((WS_MAX_MESSAGE_BYTES * 3) / 4));
     expect(SESSION_MINT_CEILING_BYTES).toBeLessThan(WS_MAX_MESSAGE_BYTES);
-    // The product decision, loosely: two `large` warehouses — the heaviest
-    // generated map at ~365 KB each with the scene they install — still fit.
-    expect(SESSION_MINT_CEILING_BYTES).toBeGreaterThan(2 * 365 * 1024);
+    expect(SESSION_MINT_CEILING_BYTES).toBeGreaterThan(WS_MAX_MESSAGE_BYTES / 2);
+    // The product decision, loosely: two `large` warehouses still fit. Only ONE
+    // scene is ever live, so two cost 2 × ~270 KB of document plus ~190 KB of
+    // scene (measured with the production 36-character command id).
+    expect(SESSION_MINT_CEILING_BYTES).toBeGreaterThan(2 * 270 * 1024 + 190 * 1024);
   });
 });

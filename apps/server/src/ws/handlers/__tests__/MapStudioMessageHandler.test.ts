@@ -275,6 +275,39 @@ describe("MapStudioMessageHandler", () => {
       );
     });
 
+    it("a weigh that throws costs the DM the readout, never the map list", () => {
+      service.create("room", { id: "map", name: "Keep", timestamp: 1 });
+      // A circular drawing makes the export's JSON.stringify throw inside the weigh.
+      const loop: Record<string, unknown> = { id: "loop", type: "freehand", points: [] };
+      loop.self = loop;
+      roomState.drawings.push(loop as never);
+      const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        handler.handle({ t: "map-studio-list" }, "dm", "room", true);
+      } finally {
+        errorLog.mockRestore();
+      }
+
+      const [, reply] = send.mock.calls[0]!;
+      const sent = reply as { t: string; documents: unknown[]; exportBytes?: number };
+      expect(sent.t).toBe("map-studio-documents");
+      expect(sent.documents).toHaveLength(1);
+      expect(sent.exportBytes).toBeUndefined();
+    });
+
+    it("a broadcast failure AFTER a successful create is not dressed up as a refusal either", () => {
+      broadcast.mockImplementationOnce(() => {
+        throw new Error("socket exploded");
+      });
+
+      expect(() => handler.handle(create, "dm", "room", true)).toThrow("socket exploded");
+      expect(service.get("room", "map").name).toBe("Keep");
+      expect(send).not.toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({ t: "map-studio-error", documentId: "map" }),
+      );
+    });
+
     it("a light room still mints — a ceiling, not a wall", () => {
       handler.handle(create, "dm", "room", true);
       expect(service.list("room")).toHaveLength(1);

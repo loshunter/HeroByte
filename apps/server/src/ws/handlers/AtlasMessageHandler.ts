@@ -26,7 +26,7 @@ import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { handleAtlasGenerateNode } from "./atlasGenerate.js";
-import { handleAtlasKick, KICK_GRAPH_ALLOWANCE_BYTES } from "./atlasKick.js";
+import { handleAtlasKick } from "./atlasKick.js";
 import { pushLink } from "./atlasLink.js";
 import { handleAtlasTravel } from "./sceneTravel.js";
 import {
@@ -122,7 +122,7 @@ export class AtlasMessageHandler {
             broadcastToDMs: this.broadcastToDMs,
             sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
             now: this.now,
-            weighMint: this.weighMintFor(state, roomId, senderUid, KICK_GRAPH_ALLOWANCE_BYTES),
+            weighMint: this.weighMintFor(state, roomId, senderUid),
           },
           state,
           senderUid,
@@ -219,21 +219,20 @@ export class AtlasMessageHandler {
 
   /** True when `parentId` is missing, the node itself, or one of its descendants. */
   /**
-   * The byte ceiling for the atlas mints — one closure, two callers: the kick
-   * adds its graph allowance (two nodes, two links, the capture envelope).
+   * The byte ceiling for the atlas mints — one closure, two callers; the kick
+   * hands it the bytes of the graph and capture it will push after the weigh.
    */
   private weighMintFor(
     state: RoomState,
     roomId: string,
     senderUid: string,
-    extraBytes = 0,
-  ): (candidate: MapDocument) => MintOverflow | null {
-    return (candidate) =>
+  ): (candidate: MapDocument, extraBytes?: number) => MintOverflow | null {
+    return (candidate, extraBytes = 0) =>
       mintOverflow(
         state,
         withCandidate(this.mapStudioService.list(roomId), candidate),
         senderUid,
-        mintSceneBytes(state, this.mapStudioService, roomId, candidate, this.now()),
+        mintSceneBytes(state, candidate, this.now()),
         extraBytes,
       );
   }

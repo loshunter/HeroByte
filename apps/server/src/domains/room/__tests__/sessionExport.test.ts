@@ -161,7 +161,7 @@ describe("mintOverflow", () => {
     ).not.toBeNull();
   });
 
-  it("counts suspended scenes and the snapshot too — the export is more than its documents", () => {
+  it("counts suspended scenes — a table whose only difference is ~100 KB of suspended drawings is refused where its twin fits", () => {
     const heavyScene = {
       ...scene("doc-B"),
       drawings: Array.from({ length: 200 }, (_, i) => ({
@@ -175,11 +175,15 @@ describe("mintOverflow", () => {
     } as unknown as SceneState;
     const light = stateWith({ liveMapDocumentId: "doc-A" });
     const heavy = stateWith({ liveMapDocumentId: "doc-A", sceneStates: { "doc-B": heavyScene } });
-    const documents = [document("doc-A"), document("doc-B")];
+    // Size the documents so the LIGHT table fits by ~1 KB: only the scenes differ.
+    const room =
+      SESSION_MINT_CEILING_BYTES - exportBytes(light, [document("doc-A"), document("doc-B")], DM);
+    const documents = [document("doc-A", "n".repeat(room - 1024)), document("doc-B")];
 
-    const lightBytes = loadSessionFrameBytes(buildSessionFile(light, documents, DM, 0));
-    const heavyBytes = loadSessionFrameBytes(buildSessionFile(heavy, documents, DM, 0));
-    expect(heavyBytes - lightBytes).toBeGreaterThan(100_000);
+    expect(mintOverflow(light, documents, DM)).toBeNull();
+    const overflow = mintOverflow(heavy, documents, DM);
+    expect(overflow).not.toBeNull();
+    expect(overflow!.bytes - SESSION_MINT_CEILING_BYTES).toBeGreaterThan(50_000);
   });
 });
 

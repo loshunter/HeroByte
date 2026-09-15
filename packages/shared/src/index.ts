@@ -1214,6 +1214,12 @@ export type ServerMessage =
       document: MapDocument;
       appliedCommandId?: string;
       history?: { canUndo: boolean; canRedo: boolean };
+      /**
+       * What the campaign's export weighs after this document landed — sent
+       * with the frames that move it by a map's worth at once (the live
+       * GENERATE tool), so every DM's readout follows without a re-list.
+       */
+      exportBytes?: number;
     }
   | { t: "session-file"; file: SessionFile } // DM-only: the bundled reply to session-export
   | { t: "map-studio-deleted"; documentId: string }

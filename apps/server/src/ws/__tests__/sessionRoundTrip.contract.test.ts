@@ -26,8 +26,12 @@ import {
   type MapDocument,
   type SceneState,
   type ServerMessage,
+  utf8ByteLength,
+  type AtlasNode,
 } from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
+import { cashNode } from "../handlers/atlasCash.js";
+import { liveSceneBytes } from "../handlers/liveSceneBytes.js";
 import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { RoomService } from "../../domains/room/service.js";
 import { TokenService } from "../../domains/token/service.js";
@@ -565,7 +569,8 @@ describe("session round trip", () => {
     // buildings, well under the document COUNT cap (64), wrote a frame the
     // socket dropped with a 1009 close no handler ever saw — 1 MiB / 64 only
     // holds if the average document is under 16 KB, and a large building is
-    // 207–235 KB. The mint path now weighs BYTES (the Weighed Campaign plan):
+    // 70–260 KB by kind (a warehouse is the heavy one). The mint path now weighs
+    // BYTES (the Weighed Campaign plan):
     // every mint is refused once the export it would write outweighs
     // SESSION_MINT_CEILING_BYTES. The count cap still holds beside it.
     const attempted = 6;
@@ -612,14 +617,37 @@ describe("session round trip", () => {
     // promise nodes created AFTER the last accepted mint add a few bytes).
     expect(frameBytes).toBeLessThan(WS_MAX_MESSAGE_BYTES);
     expect(frameBytes).toBeLessThan(SESSION_MINT_CEILING_BYTES + 4096);
-    // The refusal's own number carries the SCENE the travel would install, not
-    // the document alone: a large warehouse is 161–227 KB of document and
-    // 104–147 KB of scene (seeds 1000–1005), so the reported weight sits
-    // 250–400 KB above the export that was actually written — a weigh that
-    // dropped the scene would sit under 230 KB above it.
+    // The refusal's own number carries the SCENE the mint would install, not
+    // the document alone. Derived, not hard-coded: mint the refused seed on a
+    // scratch service with the same command and name, and the reported weight
+    // must sit document + scene above the export that was actually written
+    // (to within the 2-dp MB rounding, ~5 KB, and the promise node's bytes).
+    const refusedIndex = buildings.length;
+    const scratch = new MapStudioService();
+    const probe: AtlasNode = {
+      id: `n-${refusedIndex}`,
+      kind: "building",
+      name: `Warehouse ${refusedIndex}`,
+      discovered: false,
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const minted = cashNode(
+      { mapStudioService: scratch, broadcastToDMs: () => {}, now: () => 1, weighMint: () => null },
+      "scratch",
+      probe,
+      1000 + refusedIndex,
+      { recipeId: "building", kind: "warehouse", size: "large" },
+      `gen-${refusedIndex}`,
+    );
+    const refusedDocument = scratch.get("scratch", (minted as { documentId: string }).documentId);
+    const refusedDocumentBytes = utf8ByteLength(JSON.stringify(refusedDocument));
+    const expected = refusedDocumentBytes + liveSceneBytes(refusedDocument, 1);
     const reported = Number(/about (\d+\.\d\d) MB/.exec(refusals[0]!.reason)![1]) * 1024 * 1024;
-    expect(reported - frameBytes).toBeGreaterThan(250_000);
-    expect(reported - frameBytes).toBeLessThan(400_000);
+    expect(reported - frameBytes).toBeGreaterThan(expected - 8192);
+    expect(reported - frameBytes).toBeLessThan(expected + 8192);
+    // ...and the document alone could never explain it.
+    expect(reported - frameBytes).toBeGreaterThan(refusedDocumentBytes + 20_000);
 
     const restored = bootServer();
     restored.route(loadSessionFrame(file as never));
