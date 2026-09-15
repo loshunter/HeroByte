@@ -63,7 +63,7 @@ describe("MapStudioControl", () => {
       <MapStudioControl controller={controller({ exportBytes: 640_000, documents: [] })} />,
     );
     expect(screen.getByTestId("campaign-weight").textContent).toMatch(
-      /Campaign 0\.61 MB of 0\.75 MB · 0 maps$/,
+      /^Campaign 0\.61 MB of 0\.75 MB · 0 maps — a new map also costs the scene it installs/,
     );
 
     rerender(<MapStudioControl controller={controller({ exportBytes: 900_000 })} />);

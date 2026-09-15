@@ -46,6 +46,12 @@ export function useMapStudio(
   // null until a list has arrived: with no readout to keep fresh, nothing is
   // re-listed (and a bare command stream costs no extra message).
   const knownIds = useRef<Set<string> | null>(null);
+  // Mints this panel asked for (create, import) whose reply is still owed. A
+  // refusal is matched HERE, not through the single requestedDocumentId slot,
+  // which moves on with a second click or the watchdog — and dropped the refusal.
+  const pendingMintIds = useRef<Set<string>>(new Set());
+  // A readout re-list in flight: silent (never clears `loading`), one per burst.
+  const silentListPending = useRef(false);
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const requestedDocumentId = useRef<string | null>(null);
   const activeDocumentRef = useRef<MapDocument | null>(null);
@@ -80,6 +86,7 @@ export function useMapStudio(
     requestedDocumentId,
     activeDocumentRef,
     watchdogFired,
+    pendingMintIds,
   });
 
   const dispatchNextCommand = useCallback(
@@ -117,6 +124,9 @@ export function useMapStudio(
     const cameBackUp = isConnected === true && wasConnected.current === false;
     wasConnected.current = isConnected;
     if (!cameBackUp) return;
+    knownIds.current = null; // the readout is another table's until a fresh list
+    silentListPending.current = false;
+    setExportBytes(null);
     if (inFlightMessage.current) {
       sendMessage(inFlightMessage.current);
     } else if (commandQueue.current.length > 0) {
@@ -169,13 +179,23 @@ export function useMapStudio(
     redo,
   } = useMapStudioActions({ activeDocumentRef, applyCommand, applyMessage });
 
+  const requestSilentList = useCallback(() => {
+    if (silentListPending.current) return;
+    silentListPending.current = true;
+    sendMessage({ t: "map-studio-list" });
+  }, [sendMessage]);
+
   const handleServerMessage = useCallback(
     (message: MapStudioServerMessage) => {
       if (message.t === "map-studio-documents") {
         setDocuments(message.documents);
         knownIds.current = new Set(message.documents.map((document) => document.id));
         setExportBytes(message.exportBytes ?? null);
-        setLoading(false);
+        if (silentListPending.current) {
+          silentListPending.current = false; // the readout's own re-list
+        } else {
+          setLoading(false);
+        }
         return;
       }
 
@@ -183,7 +203,7 @@ export function useMapStudio(
         // A delete moves the campaign's weight: re-list for the readout.
         if (knownIds.current) {
           knownIds.current.delete(message.documentId);
-          sendMessage({ t: "map-studio-list" });
+          requestSilentList();
         }
         setDocuments((current) => current.filter((document) => document.id !== message.documentId));
         setActiveDocument((current) => (current?.id === message.documentId ? null : current));
@@ -205,12 +225,18 @@ export function useMapStudio(
         // not-found also remembers the dangling id so the open isn't
         // auto-retried forever (the stuck-STARTING loop after a server-side
         // maps-store reset).
-        const refusal = message.code === "not-found" || message.commandId === "";
-        if (refusal && requestedDocumentId.current === message.documentId) {
-          requestedDocumentId.current = null;
-          watchdogFired.current = false;
+        const mintRefused =
+          message.commandId === "" && pendingMintIds.current.delete(message.documentId);
+        const openRefused =
+          message.code === "not-found" && requestedDocumentId.current === message.documentId;
+        if (mintRefused || openRefused) {
+          if (requestedDocumentId.current === message.documentId) {
+            // The request the panel is waiting on: release it.
+            requestedDocumentId.current = null;
+            watchdogFired.current = false;
+            setLoading(false);
+          }
           if (message.code === "not-found") setMissingDocumentId(message.documentId);
-          setLoading(false);
           setError(message.reason);
           return;
         }
@@ -234,11 +260,16 @@ export function useMapStudio(
       const { document } = message;
       // A document that arrives is by definition not missing any more.
       setMissingDocumentId((current) => (current === document.id ? null : current));
+      pendingMintIds.current.delete(document.id);
       setDocuments((current) => upsertMapDocumentSummary(current, document));
-      if (knownIds.current && !knownIds.current.has(document.id)) {
-        // A mint (create, import, generate, a kick) — re-list for the readout.
+      // A mint (a NEW id) or the live GENERATE tool landing on a KNOWN id: re-list.
+      const landedGenerate =
+        message.appliedCommandId !== undefined &&
+        message.appliedCommandId === inFlightCommandId.current &&
+        inFlightMessage.current?.t === "map-studio-generate";
+      if (knownIds.current && (!knownIds.current.has(document.id) || landedGenerate)) {
         knownIds.current.add(document.id);
-        sendMessage({ t: "map-studio-list" });
+        requestSilentList();
       }
       const shouldActivate =
         requestedDocumentId.current === document.id ||
@@ -271,7 +302,7 @@ export function useMapStudio(
         setSaving(false);
       }
     },
-    [dispatchNextCommand, sendMessage],
+    [dispatchNextCommand, sendMessage, requestSilentList],
   );
 
   return {

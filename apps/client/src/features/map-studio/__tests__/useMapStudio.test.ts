@@ -350,8 +350,7 @@ describe("useMapStudio", () => {
         commandId: "",
         documentId: id,
         code: "command-rejected",
-        reason:
-          "This would make the campaign's export 0.86 MB — past the 0.75 MB a table can load back in one message. Delete a map first.",
+        reason: "<the server's refusal, with 0.86 MB in it>",
       }),
     );
     expect(result.current.loading).toBe(false);
@@ -391,6 +390,17 @@ describe("useMapStudio", () => {
     );
     expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
     sendMessage.mockClear();
+    // The re-list's reply lands (one list per burst — the next re-list waits for it).
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "a", name: "A", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+          { id: "b", name: "B", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 700_000,
+      }),
+    );
 
     // ...and so is a delete.
     act(() => result.current.handleServerMessage({ t: "map-studio-deleted", documentId: "b" }));
@@ -398,6 +408,150 @@ describe("useMapStudio", () => {
 
     // An older server's list carries no weight: null, not NaN.
     act(() => result.current.handleServerMessage({ t: "map-studio-documents", documents: [] }));
+    expect(result.current.exportBytes).toBeNull();
+  });
+
+  it("re-lists when the live GENERATE tool lands on a KNOWN document — the readout follows the biggest edit there is", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "a", name: "A", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 1_000,
+      }),
+    );
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "a", name: "A", timestamp: 1 }),
+      }),
+    );
+    sendMessage.mockClear();
+
+    act(() =>
+      result.current.generate({
+        recipe: "dungeon",
+        seed: 7,
+        bounds: { x: 0, y: 0, cols: 24, rows: 20 },
+        params: { theme: "stone", density: "medium" },
+      } as never),
+    );
+    const sent = sendMessage.mock.calls.find(([m]) => m.t === "map-studio-generate")?.[0] as {
+      commandId: string;
+    };
+    expect(sent).toBeDefined();
+    sendMessage.mockClear();
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "a", name: "A", timestamp: 2 }),
+        appliedCommandId: sent.commandId,
+      }),
+    );
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+  });
+
+  it("shows a refusal for a create the panel has already moved on from — and only the CURRENT request's spinner is released", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    let first = "";
+    let second = "";
+    act(() => {
+      first = result.current.createDocument("First");
+    });
+    act(() => {
+      second = result.current.createDocument("Second");
+    });
+    expect(result.current.loading).toBe(true);
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "",
+        documentId: first,
+        code: "command-rejected",
+        reason: "refused: 0.86 MB",
+      }),
+    );
+    expect(result.current.error).toBe("refused: 0.86 MB");
+    expect(result.current.loading).toBe(true); // the second create is still owed
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "",
+        documentId: second,
+        code: "command-rejected",
+        reason: "refused: 0.87 MB",
+      }),
+    );
+    expect(result.current.error).toBe("refused: 0.87 MB");
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("a silent readout re-list neither clears a pending request's loading nor doubles in a burst", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [],
+        exportBytes: 10,
+      }),
+    );
+    act(() => {
+      result.current.createDocument("Mine");
+    });
+    expect(result.current.loading).toBe(true);
+    sendMessage.mockClear();
+
+    // Two foreign mints land (a co-DM's kicks): one silent list, not two.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "k1", name: "K1", timestamp: 1 }),
+      }),
+    );
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "k2", name: "K2", timestamp: 1 }),
+      }),
+    );
+    expect(sendMessage.mock.calls.filter(([m]) => m.t === "map-studio-list")).toHaveLength(1);
+
+    // Its reply must not release the create's spinner.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "k1", name: "K1", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+          { id: "k2", name: "K2", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 20,
+      }),
+    );
+    expect(result.current.loading).toBe(true);
+    expect(result.current.exportBytes).toBe(20);
+  });
+
+  it("forgets the readout on reconnect — another table's number is not this one's", () => {
+    let connected = true;
+    const { result, rerender } = renderHook(() => useMapStudio(sendMessage, undefined, connected));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [],
+        exportBytes: 500,
+      }),
+    );
+    expect(result.current.exportBytes).toBe(500);
+
+    connected = false;
+    rerender();
+    connected = true;
+    rerender();
     expect(result.current.exportBytes).toBeNull();
   });
 

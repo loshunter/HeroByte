@@ -28,6 +28,8 @@ interface UseMapStudioRequestsOptions {
   /** True only while the CURRENT error is a stale loading-timeout the watchdog
    * raised — so a late reply clears that, but never a command error. */
   watchdogFired: MutableRefObject<boolean>;
+  /** Mints (create, import) whose reply is still owed — a refusal is matched by id here. */
+  pendingMintIds: MutableRefObject<Set<string>>;
 }
 
 export function useMapStudioRequests({
@@ -39,6 +41,7 @@ export function useMapStudioRequests({
   requestedDocumentId,
   activeDocumentRef,
   watchdogFired,
+  pendingMintIds,
 }: UseMapStudioRequestsOptions) {
   // Every user-initiated request clears any stale error first — so retrying
   // after a watchdog timeout ("server didn't respond") doesn't leave that
@@ -53,12 +56,13 @@ export function useMapStudioRequests({
     (name: string, width?: number, height?: number) => {
       const id = generateUUID();
       requestedDocumentId.current = id;
+      pendingMintIds.current.add(id);
       setError(null);
       setLoading(true);
       sendMessage({ t: "map-studio-create", document: { id, name, width, height } });
       return id;
     },
-    [sendMessage, setError, setLoading, requestedDocumentId],
+    [sendMessage, setError, setLoading, requestedDocumentId, pendingMintIds],
   );
 
   const openDocument = useCallback(
@@ -105,12 +109,13 @@ export function useMapStudioRequests({
       // A fresh id lets the same backup restore repeatedly without colliding.
       const id = generateUUID();
       requestedDocumentId.current = id;
+      pendingMintIds.current.add(id);
       setError(null);
       setLoading(true);
       sendMessage({ t: "map-studio-import", document: { ...document, id } });
       return id;
     },
-    [sendMessage, setError, setLoading, requestedDocumentId],
+    [sendMessage, setError, setLoading, requestedDocumentId, pendingMintIds],
   );
 
   // Loading watchdog: if a request's reply never arrives (socket drop, or an
