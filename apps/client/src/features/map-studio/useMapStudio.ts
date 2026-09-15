@@ -11,6 +11,7 @@ import type { MapStudioController, MapStudioServerMessage } from "./types";
 import type { AssetUploadCredentials } from "./uploads/assetUpload";
 import { useMapStudioActions } from "./useMapStudioActions";
 import { useMapStudioRequests } from "./useMapStudioRequests";
+import { useCampaignReadout } from "./useCampaignReadout";
 
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
 /**
@@ -40,18 +41,14 @@ export function useMapStudio(
   // the maps store reset under a room that kept its live binding. Glue code
   // uses it to stop re-fetching the dangling id and offer a fresh start.
   const [missingDocumentId, setMissingDocumentId] = useState<string | null>(null);
-  const [exportBytes, setExportBytes] = useState<number | null>(null);
-  // The ids the last list (or a frame since) told us about — a document frame
-  // for an id not here is a MINT, which moves the campaign's weight: re-list.
-  // null until a list has arrived: with no readout to keep fresh, nothing is
-  // re-listed (and a bare command stream costs no extra message).
-  const knownIds = useRef<Set<string> | null>(null);
+  // The campaign's weight beside the map list, and its silent re-lists (useCampaignReadout).
+  const readout = useCampaignReadout(sendMessage);
   // Mints this panel asked for (create, import) whose reply is still owed. A
   // refusal is matched HERE, not through the single requestedDocumentId slot,
   // which moves on with a second click or the watchdog — and dropped the refusal.
   const pendingMintIds = useRef<Set<string>>(new Set());
-  // A readout re-list in flight: silent (never clears `loading`), one per burst.
-  const silentListPending = useRef(false);
+  // The panel's OWN list is tracked apart, so a silent reply never swallows its spinner.
+  const explicitListPending = useRef(false);
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const requestedDocumentId = useRef<string | null>(null);
   const activeDocumentRef = useRef<MapDocument | null>(null);
@@ -87,6 +84,7 @@ export function useMapStudio(
     activeDocumentRef,
     watchdogFired,
     pendingMintIds,
+    explicitListPending,
   });
 
   const dispatchNextCommand = useCallback(
@@ -124,15 +122,14 @@ export function useMapStudio(
     const cameBackUp = isConnected === true && wasConnected.current === false;
     wasConnected.current = isConnected;
     if (!cameBackUp) return;
-    knownIds.current = null; // the readout is another table's until a fresh list
-    silentListPending.current = false;
-    setExportBytes(null);
+    pendingMintIds.current.clear();
+    readout.onReconnect();
     if (inFlightMessage.current) {
       sendMessage(inFlightMessage.current);
     } else if (commandQueue.current.length > 0) {
       dispatchNextCommand();
     }
-  }, [isConnected, sendMessage, dispatchNextCommand]);
+  }, [isConnected, sendMessage, dispatchNextCommand, readout]);
 
   /** Queue any map-studio message that the server acks by commandId. */
   const applyMessage = useCallback(
@@ -179,32 +176,22 @@ export function useMapStudio(
     redo,
   } = useMapStudioActions({ activeDocumentRef, applyCommand, applyMessage });
 
-  const requestSilentList = useCallback(() => {
-    if (silentListPending.current) return;
-    silentListPending.current = true;
-    sendMessage({ t: "map-studio-list" });
-  }, [sendMessage]);
-
   const handleServerMessage = useCallback(
     (message: MapStudioServerMessage) => {
       if (message.t === "map-studio-documents") {
         setDocuments(message.documents);
-        knownIds.current = new Set(message.documents.map((document) => document.id));
-        setExportBytes(message.exportBytes ?? null);
-        if (silentListPending.current) {
-          silentListPending.current = false; // the readout's own re-list
-        } else {
+        readout.onListReply(message);
+        // Only the panel's OWN list releases its spinner (a silent or
+        // unsolicited reply never does).
+        if (explicitListPending.current) {
+          explicitListPending.current = false;
           setLoading(false);
         }
         return;
       }
 
       if (message.t === "map-studio-deleted") {
-        // A delete moves the campaign's weight: re-list for the readout.
-        if (knownIds.current) {
-          knownIds.current.delete(message.documentId);
-          requestSilentList();
-        }
+        readout.onDeleted(message.documentId);
         setDocuments((current) => current.filter((document) => document.id !== message.documentId));
         setActiveDocument((current) => (current?.id === message.documentId ? null : current));
         if (activeDocumentRef.current?.id === message.documentId) activeDocumentRef.current = null;
@@ -230,10 +217,11 @@ export function useMapStudio(
         const openRefused =
           message.code === "not-found" && requestedDocumentId.current === message.documentId;
         if (mintRefused || openRefused) {
+          // A real reply supersedes a prior timeout, whichever request it was for.
+          watchdogFired.current = false;
           if (requestedDocumentId.current === message.documentId) {
             // The request the panel is waiting on: release it.
             requestedDocumentId.current = null;
-            watchdogFired.current = false;
             setLoading(false);
           }
           if (message.code === "not-found") setMissingDocumentId(message.documentId);
@@ -262,15 +250,7 @@ export function useMapStudio(
       setMissingDocumentId((current) => (current === document.id ? null : current));
       pendingMintIds.current.delete(document.id);
       setDocuments((current) => upsertMapDocumentSummary(current, document));
-      // A mint (a NEW id) or the live GENERATE tool landing on a KNOWN id: re-list.
-      const landedGenerate =
-        message.appliedCommandId !== undefined &&
-        message.appliedCommandId === inFlightCommandId.current &&
-        inFlightMessage.current?.t === "map-studio-generate";
-      if (knownIds.current && (!knownIds.current.has(document.id) || landedGenerate)) {
-        knownIds.current.add(document.id);
-        requestSilentList();
-      }
+      readout.onDocumentFrame(message);
       const shouldActivate =
         requestedDocumentId.current === document.id ||
         activeDocumentRef.current?.id === document.id ||
@@ -302,7 +282,7 @@ export function useMapStudio(
         setSaving(false);
       }
     },
-    [dispatchNextCommand, sendMessage, requestSilentList],
+    [dispatchNextCommand, sendMessage, readout],
   );
 
   return {
@@ -312,7 +292,7 @@ export function useMapStudio(
     saving,
     error,
     missingDocumentId,
-    exportBytes,
+    exportBytes: readout.exportBytes,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
     refresh,

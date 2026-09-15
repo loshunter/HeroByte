@@ -6,9 +6,10 @@ const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)
  * The campaign's weight beside the map list: what its session export weighs
  * against the mint ceiling and, past the wire limit, against what a load
  * accepts. A mint — new map, import, generate, a kicked-in door — is refused
- * when the export PLUS the scene the new map installs (its compiled walls,
- * terrain and scenery, up to ~0.15 MB at `large`) would pass the ceiling, so
- * mints stop a little before this number reaches it; the note says so.
+ * when the export, with the scene the new map installs SWAPPED for the one on
+ * the table (compiled walls, terrain, scenery — up to ~0.18 MB at `large`,
+ * less whatever the current scene already weighs), would pass the ceiling; so
+ * a mint can be refused before this number reaches it, and the note says so.
  * `bytes` is null until a list reply has said; then nothing renders, rather
  * than a number that means nothing.
  */
@@ -20,7 +21,7 @@ export function CampaignWeight({ bytes, maps }: { bytes: number | null; maps: nu
     ? " — past what a load accepts: a save will NOT load back. Delete a map."
     : pastCeiling
       ? " — past the mint ceiling: delete a map to make room."
-      : " — a new map also costs the scene it installs (up to ~0.15 MB), so mints stop before this reaches the ceiling.";
+      : " — a new map also costs the scene it installs, so a mint can be refused up to ~0.18 MB before this reaches the ceiling (less when the party is already on a large map).";
   return (
     <p
       role="status"
