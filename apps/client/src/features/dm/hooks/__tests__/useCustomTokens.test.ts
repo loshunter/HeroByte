@@ -35,20 +35,27 @@ const draft = {
 };
 
 /**
- * A hook wired to a shelf that behaves like the server: an accepted add grows
- * it, which is the signal the hook waits on. `accept: false` is every silent
- * refusal — a validator rejection, the 200-token cap, a revoked DM role, a
- * dropped socket — which the wire reports identically, i.e. not at all.
+ * A hook wired to a shelf that behaves like the server: an accepted add seats
+ * the token the message described, which is the signal the hook waits on.
+ * `accept: false` is every silent refusal — a validator rejection, the
+ * 200-token cap, a revoked DM role, a dropped socket — which the wire reports
+ * identically, i.e. not at all.
  *
- * The shelf array is MUTATED rather than replaced, because the hook holds it
- * by reference to read the latest length from inside an in-flight add.
+ * The seated token carries the message's own name and imageUrl (trimmed, the
+ * way CustomTokenService.add stores them) rather than a fixed stand-in,
+ * because the hook now waits for ITS token and not for a longer list.
  */
 function setup(options: { accept?: boolean; shelf?: unknown[]; prepareImage?: unknown } = {}) {
   const accept = options.accept !== false;
   const shelf = (options.shelf ?? []) as Record<string, unknown>[];
-  const sendMessage = vi.fn((message: { t: string }) => {
+  const sendMessage = vi.fn((message: { t: string; name?: string; imageUrl?: string }) => {
     if (message.t === "add-custom-token" && accept)
-      shelf.push({ ...token, id: `ct-${shelf.length}` });
+      shelf.push({
+        ...token,
+        id: `ct-${shelf.length}`,
+        name: message.name?.trim(),
+        imageUrl: message.imageUrl?.trim(),
+      });
   });
   const { result } = renderHook(() =>
     useCustomTokens({
@@ -135,6 +142,24 @@ describe("useCustomTokens", () => {
     });
     expect(copied.note).toMatch(/copy .* is kept on this table/i);
 
+    // BOTH facts when both happened. The confirmation used to be the `else`
+    // of the pipeline's note, so a copy that succeeded while the thumbnail
+    // failed answered the thumbnail and left the DM's own request unanswered.
+    prepareImage.mockResolvedValueOnce({
+      imageUrl: `/assets/${"d".repeat(64)}`,
+      mirrored: true,
+      note: "No thumbnail: that image could not be copied.",
+    } as never);
+    const half = await result.current.addToken({
+      name: "Bandit",
+      imageUrl: "https://i.imgur.com/y.png",
+      tags: [],
+      size: "medium",
+    });
+    expect(half.note).toBe(
+      "A copy of that picture is kept on this table. No thumbnail: that image could not be copied.",
+    );
+
     // And stays silent when there was nothing to copy.
     prepareImage.mockResolvedValueOnce({
       imageUrl: "/tokens/NPC/x.png",
@@ -217,6 +242,61 @@ describe("useCustomTokens", () => {
     await expect(pending).resolves.toEqual({ added: true });
   });
 
+  it("waits for MY token, not for a longer shelf — a co-DM's add is not my success", async () => {
+    // The shelf is shared table state and co-DM is a supported role. Counting
+    // asks "is it longer than it was", which a co-DM answers for me: my add is
+    // refused, theirs lands in the same window, and the form calls reset() —
+    // wiping the name, blurb, tags and stance over a token that does not exist.
+    let shelf: unknown[] = [];
+    const sendMessage = vi.fn();
+    const { result, rerender } = renderHook(() =>
+      useCustomTokens({
+        snapshot: { customTokens: shelf } as unknown as RoomSnapshot,
+        sendMessage,
+        prepareImage: passthrough as never,
+        confirmTimeoutMs: 200,
+      }),
+    );
+
+    const pending = result.current.addToken(draft);
+    // Someone else's token lands. Mine never does.
+    shelf = [{ ...token, id: "ct-theirs", name: "Bandit Chief" }];
+    rerender();
+
+    await expect(pending).resolves.toEqual(
+      expect.objectContaining({ added: false, note: expect.stringMatching(/did not take/i) }),
+    );
+  });
+
+  it("a co-DM's REMOVAL does not turn my successful add into a failure", async () => {
+    // The other direction of the same count: they remove one while my two
+    // uploads run, so the total is flat and a token that DID land reads as
+    // refused. The DM retries — a duplicate token and two more uploads.
+    let shelf: unknown[] = [
+      { ...token, id: "ct-theirs-1", name: "Bandit Chief" },
+      { ...token, id: "ct-theirs-2", name: "Bandit Guard" },
+    ];
+    const sendMessage = vi.fn();
+    const { result, rerender } = renderHook(() =>
+      useCustomTokens({
+        snapshot: { customTokens: shelf } as unknown as RoomSnapshot,
+        sendMessage,
+        prepareImage: passthrough as never,
+        confirmTimeoutMs: 2000,
+      }),
+    );
+
+    const pending = result.current.addToken(draft);
+    // Mine arrives; one of theirs leaves. Same length as before.
+    shelf = [
+      { ...token, id: "ct-theirs-1", name: "Bandit Chief" },
+      { ...token, id: "ct-mine", name: draft.name, imageUrl: draft.imageUrl },
+    ];
+    rerender();
+
+    await expect(pending).resolves.toEqual({ added: true });
+  });
+
   it("says so when the table does not take the token, instead of looking like a success", async () => {
     // Every refusal reaches the client the same way: not at all. The add is
     // fire-and-forget with no commandId, a validator rejection is a
@@ -226,7 +306,13 @@ describe("useCustomTokens", () => {
 
     const refused = await result.current.addToken(draft);
     expect(sendMessage).toHaveBeenCalled();
-    expect(refused.note).toMatch(/did not take that token/i);
+    // `added` is the flag, not the note: it is the one thing that decides
+    // whether the DM keeps the name, blurb, tags and stance they just typed,
+    // and asserting only the wording left it free to be true on every refusal.
+    expect(refused).toEqual({
+      added: false,
+      note: expect.stringMatching(/did not take that token/i),
+    });
   });
 
   it("refuses an address the wire would drop BEFORE it spends two uploads on it", async () => {
@@ -235,11 +321,48 @@ describe("useCustomTokens", () => {
 
     for (const imageUrl of ["goblin.png", "http://example.com/x.png", "data:image/png;base64,AA"]) {
       const result_ = await result.current.addToken({ ...draft, imageUrl });
-      expect(result_.note, imageUrl).toMatch(/cannot be used/i);
+      expect(result_, imageUrl).toEqual({
+        added: false,
+        note: expect.stringMatching(/cannot be used/i),
+      });
     }
     // Not one upload rendered, not one message sent.
     expect(prepareImage).not.toHaveBeenCalled();
     expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("refuses an over-long address before the uploads, the way the wire does", async () => {
+    // The wire tests LENGTH first and the shape second, and a presigned CDN
+    // link runs well past 2048 characters while passing the shape test
+    // perfectly — so without this the shape check waves it through and two
+    // uploads are spent on an address the validator will drop.
+    const prepareImage = vi.fn(passthrough);
+    const { result, sendMessage } = setup({ prepareImage });
+
+    const tooLong = `https://cdn.example.com/${"a".repeat(CUSTOM_TOKEN_LIMITS.URL_MAX)}.png`;
+    const refused = await result.current.addToken({ ...draft, imageUrl: tooLong });
+    expect(refused.added).toBe(false);
+    expect(refused.note).toContain(String(CUSTOM_TOKEN_LIMITS.URL_MAX));
+    expect(prepareImage).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("sends the address the guards cleared — trimmed, the way the wire reads it", async () => {
+    // The guards trim; the validator does not. So a pasted link with a stray
+    // space cleared the pre-check, was sent raw, and the wire refused it on
+    // the shape test — two uploads spent and the token never seated.
+    const prepareImage = vi.fn(passthrough);
+    const { result, sendMessage } = setup({ prepareImage });
+
+    const added = await result.current.addToken({
+      ...draft,
+      imageUrl: "  https://i.imgur.com/x.png  ",
+    });
+    expect(prepareImage).toHaveBeenCalledWith("https://i.imgur.com/x.png", { mirror: true });
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ imageUrl: "https://i.imgur.com/x.png" }),
+    );
+    expect(added).toEqual({ added: true });
   });
 
   it("refuses at the cap, before the uploads, and names the number", async () => {
@@ -251,6 +374,7 @@ describe("useCustomTokens", () => {
     const { result, sendMessage } = setup({ shelf: full, prepareImage });
 
     const refused = await result.current.addToken(draft);
+    expect(refused.added).toBe(false);
     expect(refused.note).toContain(String(CUSTOM_TOKEN_LIMITS.COUNT_MAX));
     expect(prepareImage).not.toHaveBeenCalled();
     expect(sendMessage).not.toHaveBeenCalled();

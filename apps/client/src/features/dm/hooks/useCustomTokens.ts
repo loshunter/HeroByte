@@ -28,7 +28,7 @@ export interface UseCustomTokensOptions {
   /** Test seams; production uses the real canvas/upload road and the session's credentials. */
   prepareImage?: (imageUrl: string, options: PrepareOptions) => Promise<PreparedCustomImage>;
   getCredentials?: () => AssetUploadCredentials | null;
-  /** How long to wait for the shelf to grow before saying it did not. */
+  /** How long to wait for our own token to reach the shelf before saying it did not. */
   confirmTimeoutMs?: number;
 }
 
@@ -72,7 +72,7 @@ export function useCustomTokens({
   const tokensRef = useRef(tokens);
   useEffect(() => {
     tokensRef.current = tokens;
-  });
+  }, [tokens]);
 
   const prepare = useMemo(
     () =>
@@ -82,11 +82,11 @@ export function useCustomTokens({
     [prepareImage, getCredentials],
   );
 
-  /** Resolves true when the shelf reaches `target`, false at the deadline. */
-  const grewBy = useCallback(
-    async (target: number) => {
+  /** Resolves true when `landed` sees the shelf it is waiting for, false at the deadline. */
+  const waitForShelf = useCallback(
+    async (landed: (shelf: readonly CustomToken[]) => boolean) => {
       const deadline = Date.now() + confirmTimeoutMs;
-      while (tokensRef.current.length < target) {
+      while (!landed(tokensRef.current)) {
         if (Date.now() >= deadline) return false;
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
@@ -102,8 +102,17 @@ export function useCustomTokens({
     ): Promise<CustomTokenAddResult> => {
       // BEFORE any upload. A refusal is a server-side log — nothing comes back
       // — so an address the wire will drop used to cost two uploads against
-      // the table's quota and then look exactly like a success.
-      if (!isCustomTokenImageUrl(draft.imageUrl.trim())) {
+      // the table's quota and then look exactly like a success. BOTH of the
+      // server's imageUrl tests, in its order: it checks the length first and
+      // a presigned CDN link runs well past 2048 characters.
+      const imageUrl = draft.imageUrl.trim();
+      if (imageUrl.length > CUSTOM_TOKEN_LIMITS.URL_MAX) {
+        return {
+          added: false,
+          note: `That address is too long — a link has to be under ${CUSTOM_TOKEN_LIMITS.URL_MAX} characters.`,
+        };
+      }
+      if (!isCustomTokenImageUrl(imageUrl)) {
         return {
           added: false,
           note: "That address cannot be used: it needs to be an https link, or an image uploaded to this table.",
@@ -116,10 +125,20 @@ export function useCustomTokens({
         };
       }
 
-      const before = tokensRef.current.length;
+      // IDENTITY, not a count. A length comparison answers "did the shelf
+      // grow", which is a different question from "did MY token land" the
+      // moment a co-DM is at the table: their add during our upload window
+      // reads as our success (and clears the form over a token that does not
+      // exist), and their removal reads as our failure (and invites a retry
+      // that duplicates the token and spends two more uploads).
+      const seen = new Set(tokensRef.current.map((token) => token.id));
+      const wanted = draft.name.trim();
       // Default ON: a link that quietly stops resolving is the failure a DM
       // cannot see coming, and declining the copy costs them one checkbox.
-      const prepared = await prepare(draft.imageUrl, { mirror: options?.mirror !== false });
+      // The TRIMMED address, which is the one the guards above cleared: the
+      // validator runs before the service trims, so a pasted link with a
+      // leading space passed the pre-check and was dropped by the wire.
+      const prepared = await prepare(imageUrl, { mirror: options?.mirror !== false });
       sendMessage({
         t: "add-custom-token",
         name: draft.name,
@@ -130,11 +149,16 @@ export function useCustomTokens({
         size: draft.size,
         ...(draft.disposition ? { disposition: draft.disposition } : {}),
       });
-      // Watch the shelf, the way "+ Add NPC" watches the character count. The
-      // send is fire-and-forget with no commandId, so a validator refusal, a
-      // revoked DM role or a dropped socket all end in silence — and silence
-      // looked identical to success, because the form clears either way.
-      if (!(await grewBy(before + 1))) {
+      // Watch the shelf for OUR token. The send is fire-and-forget with no
+      // commandId, so a validator refusal, a revoked DM role or a dropped
+      // socket all end in silence — and silence looked identical to success,
+      // because the form clears either way. The service trims both fields, so
+      // these are the exact strings it will have stored.
+      const landed = (shelf: readonly CustomToken[]) =>
+        shelf.some(
+          (t) => !seen.has(t.id) && t.name === wanted && t.imageUrl === prepared.imageUrl.trim(),
+        );
+      if (!(await waitForShelf(landed))) {
         return {
           added: false,
           note: "The table did not take that token. Check the image and try again.",
@@ -142,13 +166,17 @@ export function useCustomTokens({
       }
       // `mirrored` was computed on every path and read by nothing, which left
       // the one outcome a DM explicitly asked for — the copy — as the only
-      // one with no word at all. It is the confirmation.
-      if (prepared.note) return { added: true, note: prepared.note };
-      return prepared.mirrored
-        ? { added: true, note: "A copy of that picture is kept on this table." }
-        : { added: true };
+      // one with no word at all. It is the confirmation, and it is ADDED to
+      // the pipeline's line rather than replaced by it: the copy succeeding
+      // while the thumbnail failed is both facts at once, and answering only
+      // the second left the DM's own request unanswered.
+      const lines = [
+        prepared.mirrored ? "A copy of that picture is kept on this table." : undefined,
+        prepared.note,
+      ].filter(Boolean);
+      return lines.length > 0 ? { added: true, note: lines.join(" ") } : { added: true };
     },
-    [grewBy, prepare, sendMessage],
+    [waitForShelf, prepare, sendMessage],
   );
 
   const removeToken = useCallback(
