@@ -1508,10 +1508,14 @@ button.token-library-remove:hover {
 
   /*
    * The add form's tag chips. The sweep above sets min-HEIGHT only, so these
-   * were 44px tall and as narrow as their word — measured at 375px: elf 27px,
-   * orc 30px, ally 31px, npc 32px, boss 36px, prop 37px, dwarf 41px. Seven
-   * controls under the floor on its narrow axis, in a surface the floor was
-   * supposed to have swept. They wrap, so widening costs rows, not overflow.
+   * were 44px tall and as narrow as their word. Measured in the running app at
+   * 375px by cloning each chip outside [data-mobile-surface], where this rule
+   * cannot match: elf 32px, npc 36px, orc 36px, ally 39px, boss 41px, prop
+   * 42px — SIX controls under the floor on their narrow axis, in a surface the
+   * floor was supposed to have swept. (46cfe223's message says seven and lists
+   * dwarf; dwarf measures 52px and was never under it. Its per-chip figures are
+   * wrong throughout — these are the measured ones.) They wrap, so widening
+   * costs rows, not overflow.
    */
   [data-mobile-surface] .custom-token-tag {
     min-width: 44px;
