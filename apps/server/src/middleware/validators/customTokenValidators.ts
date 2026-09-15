@@ -11,13 +11,26 @@ const { NAME_MAX, DESCRIPTION_MAX, TAG_MAX, TAGS_MAX, URL_MAX } = CUSTOM_TOKEN_L
 const fail = (error: string): ValidationResult => ({ valid: false, error });
 
 /**
- * An https link, or a path on this site (an upload, or the bundled pack).
- * Anything else — data:, javascript:, plain http, a protocol-relative
- * `//host` — is refused: the browser's image policy would never draw it, and
- * a link that never renders is a bad entry, not a broken one.
+ * A table's OWN upload, at whatever origin this table is served from: the
+ * content-addressed tail is what identifies it, exactly as the client's
+ * `uploadHashFromUrl` reads a hash back out without pinning an origin. It is
+ * the one plain-http shape admitted, and only because it is not third-party
+ * art at all — POST /assets wrote those bytes, and a table on a LAN or a dev
+ * box serves them over http. Without this, ⬆ UPLOAD on the shelf's form built
+ * a URL its own validator refused, and the add vanished with no word to the
+ * DM on every table not behind TLS.
+ */
+const OWN_UPLOAD_URL = /^https?:\/\/[^/\s]+\/assets\/[a-f0-9]{64}$/;
+
+/**
+ * An https link, a path on this site (an upload, or the bundled pack), or
+ * this table's own upload URL. Anything else — data:, javascript:, other
+ * plain http, a protocol-relative `//host` — is refused: the browser's image
+ * policy would never draw it, and a link that never renders is a bad entry,
+ * not a broken one.
  */
 export function isCustomTokenImageUrl(value: string): boolean {
-  return /^https:\/\/\S+$/.test(value) || /^\/[^/\s]\S*$/.test(value);
+  return /^https:\/\/\S+$/.test(value) || /^\/[^/\s]\S*$/.test(value) || OWN_UPLOAD_URL.test(value);
 }
 
 export function validateAddCustomTokenMessage(message: MessageRecord): ValidationResult {

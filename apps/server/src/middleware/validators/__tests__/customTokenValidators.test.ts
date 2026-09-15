@@ -46,6 +46,27 @@ describe("validateAddCustomTokenMessage", () => {
     }
   });
 
+  it("accepts this table's own upload URL, on a table without TLS", () => {
+    // What ⬆ UPLOAD actually commits: uploadedAssetUrl() puts the SERVER's
+    // origin in front of the hash, and a dev box, an e2e rail and a LAN table
+    // all serve that over plain http. The add used to be refused there with
+    // nothing shown to the DM.
+    const hash = "a".repeat(64);
+    for (const imageUrl of [
+      `http://localhost:8788/assets/${hash}`,
+      `http://192.168.50.226:8787/assets/${hash}`,
+      `https://herobyte-server.onrender.com/assets/${hash}`,
+    ]) {
+      expect(validateAddCustomTokenMessage({ ...base, imageUrl }).valid, imageUrl).toBe(true);
+    }
+    // Still not a licence for plain http generally: only the exact
+    // content-addressed tail, nothing appended, nothing short of 64 hex.
+    expect(isCustomTokenImageUrl(`http://localhost:8788/assets/${hash}/../x.png`)).toBe(false);
+    expect(isCustomTokenImageUrl(`http://localhost:8788/assets/${hash}?x=1`)).toBe(false);
+    expect(isCustomTokenImageUrl("http://localhost:8788/assets/short")).toBe(false);
+    expect(isCustomTokenImageUrl("http://localhost:8788/tokens/x.png")).toBe(false);
+  });
+
   it("refuses an image that no client would draw", () => {
     for (const imageUrl of [
       "http://example.com/tok.png",
