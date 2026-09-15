@@ -73,7 +73,12 @@ describe("CustomTokenForm", () => {
     await screen.findByDisplayValue("https://i.imgur.com/x.png");
     fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("cannot be used");
+    // Red, not the gold the skipped-a-step lines wear. Four of the form's
+    // notes mean the token is NOT on the shelf, and in gold they read as the
+    // same "added, with a footnote" as "A copy is kept on this table."
+    const refusal = await screen.findByRole("status");
+    expect(refusal).toHaveTextContent("cannot be used");
+    expect(refusal).toHaveStyle({ color: "var(--jrpg-red)" });
     expect(screen.getByLabelText("Name")).toHaveValue("Old Marta");
     expect(screen.getByLabelText("Description")).toHaveValue("Innkeeper.");
     expect(screen.getByLabelText("Image")).toHaveValue("https://i.imgur.com/x.png");
@@ -89,7 +94,10 @@ describe("CustomTokenForm", () => {
     await screen.findByDisplayValue("https://i.imgur.com/x.png");
     fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("the storage is full");
+    const skipped = await screen.findByRole("status");
+    expect(skipped).toHaveTextContent("the storage is full");
+    // Gold: the token IS on the shelf and one optional step was skipped.
+    expect(skipped).toHaveStyle({ color: "var(--jrpg-gold)" });
 
     // A clean second add clears the first one's line rather than leaving a
     // stale complaint under a token that is perfectly fine.
@@ -112,6 +120,11 @@ describe("CustomTokenForm", () => {
     // touched nothing broadcast "Neutral" to the whole table.
     expect(stance.value).toBe("hostile");
 
+    // A real transition each way. "hostile → click monster → hostile" stopped
+    // asserting anything the moment the default became hostile: the chip
+    // could have been wired to nothing at all and this still passed.
+    fireEvent.click(screen.getByRole("button", { name: "villager" }));
+    expect(stance.value).toBe("neutral");
     fireEvent.click(screen.getByRole("button", { name: "monster" }));
     expect(stance.value).toBe("hostile");
     fireEvent.click(screen.getByRole("button", { name: "ally" }));
@@ -122,6 +135,15 @@ describe("CustomTokenForm", () => {
 
     // Un-clicking a kind chip takes its stance back with it.
     fireEvent.click(screen.getByRole("button", { name: "ally" }));
+    expect(stance.value).toBe("hostile");
+
+    // And so does the ✕ on the chosen-tags row — the OTHER remove control,
+    // which went straight to setTags. There are two ways to take a chip back
+    // and only one of them was fixed, so a stance a chip had chosen outlived
+    // the chip, with nothing on screen still saying why the card was green.
+    fireEvent.click(screen.getByRole("button", { name: "ally" }));
+    expect(stance.value).toBe("friendly");
+    fireEvent.click(screen.getByRole("button", { name: "ally ✕" }));
     expect(stance.value).toBe("hostile");
 
     // Once set by hand it sticks, whatever gets clicked afterwards.

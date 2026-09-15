@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   CUSTOM_MIRROR_MAX_SIDE,
   CUSTOM_THUMB_SIDE,
+  canKeepCopy,
   classifyCustomImage,
   prepareCustomImage,
   type PrepareDeps,
@@ -46,6 +47,25 @@ describe("classifyCustomImage", () => {
     expect(classifyCustomImage("https://media.discordapp.net/attachments/1/2/x.png")).toBe(
       "external",
     );
+  });
+});
+
+describe("canKeepCopy", () => {
+  it("offers the copy only for an address the wire will take AND we do not already hold", () => {
+    expect(canKeepCopy(LINK)).toBe(true);
+    expect(canKeepCopy(`  ${LINK}  `)).toBe(true);
+    // Already ours, or the pack's: there is nothing to copy.
+    expect(canKeepCopy(`/assets/${HASH}`)).toBe(false);
+    expect(canKeepCopy(`https://herobyte-server.onrender.com/assets/${HASH}`)).toBe(false);
+    expect(canKeepCopy("/tokens/NPC/Enemies/Goblins/goblinClub.png")).toBe(false);
+    // "external" to the classifier, every one of them — and refused by the
+    // add before a copy is ever attempted, so the box was a promise of work
+    // that could not happen. The empty one is the form's opening state.
+    expect(canKeepCopy("")).toBe(false);
+    expect(canKeepCopy("   ")).toBe(false);
+    expect(canKeepCopy("cat.png")).toBe(false);
+    expect(canKeepCopy("http://example.com/cat.png")).toBe(false);
+    expect(canKeepCopy("data:image/png;base64,AA")).toBe(false);
   });
 });
 
@@ -128,7 +148,22 @@ describe("prepareCustomImage", () => {
     expect(result.note).toMatch(/could not be read/i);
     // Never "the token still works" — the server may refuse this very address.
     expect(result.note).not.toMatch(/still works/i);
+    // Somebody else's host: the cross-origin clause is the true reason.
+    expect(result.note).toMatch(/do not let another site copy/i);
     expect(d.upload).not.toHaveBeenCalled();
+  });
+
+  it("blames the right thing when the unreadable picture is OUR OWN upload", async () => {
+    // The cross-origin clause is false of this table's own storage, and it
+    // sends the DM to read imgur's CORS policy over a file they uploaded
+    // here — where a failed load means the bytes are gone or the server is
+    // unreachable, which is a different thing to go and check.
+    const d = deps({ loadImage: vi.fn(async () => Promise.reject(new Error("404"))) });
+    const result = await prepareCustomImage(`/assets/${HASH}`, MIRROR, d);
+
+    expect(result.note).toMatch(/could not be read/i);
+    expect(result.note).toMatch(/still on this table/i);
+    expect(result.note).not.toMatch(/another site/i);
   });
 
   it("keeps the link when the canvas is tainted", async () => {

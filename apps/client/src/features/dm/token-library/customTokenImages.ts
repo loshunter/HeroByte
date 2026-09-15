@@ -26,6 +26,7 @@ import {
   uploadHashFromUrl,
   type AssetUploadCredentials,
 } from "../../map-studio/uploads/assetUpload";
+import { isCustomTokenImageUrl } from "@herobyte/shared";
 import { LIBRARY_TOKEN_ROOT } from "./tokenCatalog";
 
 /** One pixel per pixel-15 cell, the size the pack renders its own thumbs at. */
@@ -82,13 +83,41 @@ export function classifyCustomImage(url: string): CustomImageKind {
 }
 
 /**
+ * Whether "Keep a copy on this table" is on offer for an address — the SAME
+ * predicate the pipeline uses, so the box cannot promise work the pipeline
+ * then skips. It lives here, next to `classifyCustomImage`, because the form
+ * had a second gate of its own that agreed with this one on the e2e rail and
+ * disagreed in production: `/^https:\/\//` admitted `uploadedAssetUrl`'s
+ * `https://herobyte-server.onrender.com/assets/<hash>`, so the box appeared,
+ * ticked, after every ⬆ UPLOAD and did nothing.
+ *
+ * The URL test is the other half. An empty field, a bare `cat.png`, a
+ * plain-http host and a `data:` URI are all "external" to the classifier, so
+ * the box was offered — ticked — over four addresses the add refuses before
+ * a copy is ever attempted.
+ */
+export function canKeepCopy(value: string): boolean {
+  const trimmed = value.trim();
+  return isCustomTokenImageUrl(trimmed) && classifyCustomImage(trimmed) === "external";
+}
+
+/**
  * Deliberately says what the CLIENT can back. It used to end "The token still
  * works.", which is false whenever the address is one the server refuses — a
  * bare `cat.png`, a plain-http host — and that refusal is silent, so the DM
  * read a promise about a token that had just been thrown away.
+ *
+ * Two of them, because the reason differs and the DM's next move differs with
+ * it. The cross-origin clause is true of somebody else's host and false of
+ * this table's own upload, where a failed load means the bytes are gone or
+ * the server is unreachable — and pointing a DM at imgur's CORS policy over a
+ * file they uploaded here sends them to look in the wrong place entirely.
  */
-const UNREADABLE =
-  "That image could not be read, so the token keeps the link you gave it — some hosts do not let another site copy their pictures.";
+const UNREADABLE = {
+  external:
+    "That image could not be read, so the token keeps the link you gave it — some hosts do not let another site copy their pictures.",
+  ours: "That image could not be read, so the token keeps the address you gave it — check that the upload is still on this table.",
+} as const;
 
 /**
  * Why a step was skipped, in the DM's words rather than the uploader's code.
@@ -127,7 +156,7 @@ export async function prepareCustomImage(
   try {
     image = await deps.loadImage(url);
   } catch {
-    return { imageUrl: url, mirrored: false, note: UNREADABLE };
+    return { imageUrl: url, mirrored: false, note: UNREADABLE[kind] };
   }
 
   // The copy first: it is what the token's picture becomes, and a DM who

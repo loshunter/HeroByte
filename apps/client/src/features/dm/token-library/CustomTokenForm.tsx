@@ -17,7 +17,7 @@ import type {
 } from "./customTokensContext";
 import { impliedStance } from "./customTokenStance";
 import { ANCESTRY_TAGS, KIND_TAGS, cleanTag } from "./customTokenTags";
-import { classifyCustomImage } from "./customTokenImages";
+import { canKeepCopy } from "./customTokenImages";
 import {
   addStyle,
   chipRowStyle,
@@ -27,6 +27,7 @@ import {
   formStyle,
   headingStyle,
   keepCopyHintStyle,
+  noteFailStyle,
   noteStyle,
   rowStyle,
   suggestedTagStyle,
@@ -40,20 +41,6 @@ interface CustomTokenFormProps {
   ) => Promise<CustomTokenAddResult>;
   disabled?: boolean;
 }
-
-/**
- * The checkbox shows exactly when the copy will actually run — the SAME
- * predicate the pipeline uses, not a second one that agrees with it on the
- * e2e rail and disagrees in production.
- *
- * The old gate was `/^https:\/\//`, and on production `uploadedAssetUrl`
- * commits `https://herobyte-server.onrender.com/assets/<hash>`: the box
- * appeared, ticked, after every ⬆ UPLOAD and then silently did nothing,
- * because the pipeline classifies that as already ours. It passed its unit
- * test only because the test used the dev rail's `http://localhost:8788`
- * shape, which is hidden for being plain http rather than for being ours.
- */
-const canKeepCopy = (value: string) => classifyCustomImage(value) === "external";
 
 const SIZES: TokenSize[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 
@@ -79,7 +66,9 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
   // round trip the DM has to be told about — hence a disabled button that
   // says so, and a line underneath when a step was skipped.
   const [adding, setAdding] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
+  // `failed` COLOURS the line: four of these say the token is not on the
+  // shelf, and they rendered in the same gold as the five that say it is.
+  const [note, setNote] = useState<{ text: string; failed: boolean } | null>(null);
   const [keepCopy, setKeepCopy] = useState(true);
   const nameId = useId();
   const descriptionId = useId();
@@ -139,7 +128,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
       ),
     )
       .then((result) => {
-        setNote(result?.note ?? null);
+        setNote(result?.note ? { text: result.note, failed: !result.added } : null);
         // Only when it actually landed. Clearing optimistically meant a
         // refused add — a mistyped address, a full shelf — threw away the
         // name, blurb and tags the DM had just typed, on top of telling them
@@ -149,7 +138,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
       })
       // The add itself never rejects by design; if one ever does, the DM sees
       // a line rather than a form stuck on "Adding…" forever.
-      .catch(() => setNote("Could not add that token — try again."))
+      .catch(() => setNote({ text: "Could not add that token — try again.", failed: true }))
       .finally(() => setAdding(false));
   };
 
@@ -294,7 +283,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
               <button
                 key={tag}
                 type="button"
-                onClick={() => setTags(tags.filter((t) => t !== tag))}
+                onClick={() => toggleTag(tag)}
                 title={`Remove tag ${tag}`}
                 className="custom-token-tag"
                 style={chosenTagStyle}
@@ -331,8 +320,12 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
         {adding ? "Adding…" : "＋ Add to library"}
       </JRPGButton>
       {note && (
-        <p className="jrpg-text-small" role="status" style={noteStyle}>
-          {note}
+        <p
+          className="jrpg-text-small"
+          role="status"
+          style={note.failed ? noteFailStyle : noteStyle}
+        >
+          {note.text}
         </p>
       )}
     </form>

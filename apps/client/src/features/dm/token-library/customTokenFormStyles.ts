@@ -51,13 +51,17 @@ export const chosenTagStyle = {
 
 export const addStyle = { fontSize: "10px", padding: "6px 12px", alignSelf: "flex-start" } as const;
 
-// Gold, not red: every one of these says the token WAS added and something
-// optional was skipped. A red line would read as a failure it is not.
 export const keepCopyHintStyle = { opacity: 0.8 } as const;
 
+// Gold: the token WAS added and something optional was skipped.
 export const noteStyle = {
   margin: 0,
   fontSize: "10px",
   lineHeight: 1.35,
   color: "var(--jrpg-gold)",
 } as const;
+
+// Red: the token is NOT on the shelf. Four of the form's lines mean that —
+// a refused address, an over-long one, a full shelf, a send that vanished —
+// and in gold they read as the same "added, with a footnote" as the rest.
+export const noteFailStyle = { ...noteStyle, color: "var(--jrpg-red)" } as const;
