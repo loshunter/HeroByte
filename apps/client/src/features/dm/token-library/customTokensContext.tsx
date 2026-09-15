@@ -19,10 +19,18 @@ export interface CustomTokenDraft {
   size: TokenSize;
 }
 
+/** What an add reports back: a line to show when a step was skipped. */
+export interface CustomTokenAddResult {
+  note?: string;
+}
+
 export interface CustomTokensApi {
   tokens: readonly CustomToken[];
-  /** Absent means the shelf is read-only here (no DM plumbing behind it). */
-  addToken?: (draft: CustomTokenDraft) => void;
+  /**
+   * Absent means the shelf is read-only here (no DM plumbing behind it).
+   * Async because an add renders and uploads the 84px thumbnail first.
+   */
+  addToken?: (draft: CustomTokenDraft) => Promise<CustomTokenAddResult>;
   removeToken?: (id: string) => void;
 }
 

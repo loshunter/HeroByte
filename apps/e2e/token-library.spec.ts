@@ -47,6 +47,21 @@ async function openLibrary(page: Page): Promise<void> {
   await expect(page.getByTestId("token-library")).toBeVisible();
 }
 
+/**
+ * A REAL 8x8 PNG, not the 8-magic-bytes stand-in the upload specs use: the
+ * shelf's add decodes this image and draws it into a canvas to make the 84px
+ * thumbnail, and a header with no pixels behind it never decodes at all.
+ */
+const REAL_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAaklEQVR4nBWNQREAQQzCkFIpSKmUSEFK" +
+    "pSDlbnlmmEQSIyxWICJOVEjDDB52YMhwQwfJjLFZg4k5UyMts3jZhSXLLV2kJ8APvgUO+ucUJjhsHk64" +
+    "0PyNYw4fe++c447e3yhTXLZPkXKl5QPGe1gBrfdehAAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/** An /assets/<sha256> TAIL, at whatever origin the table's server is on. */
+const ASSET_URL = /\/assets\/[a-f0-9]{64}$/;
+
 // The pack's own paths under /tokens — the same paths its gallery serves.
 const CLUB = "/tokens/NPC/Enemies/Goblins/goblinClub.png";
 const CLUB_PORTRAIT = "/tokens/Medium/NPC/Enemies/Goblins/goblinClub.png";
@@ -156,7 +171,7 @@ test.describe("the Token Library", () => {
     }
   });
 
-  test("the table's own shelf: add by link with tags, pick it, players never see it, remove it", async ({
+  test("the table's own shelf: upload one, thumb it, pick it, players never see it, remove it", async ({
     page,
     browser,
   }) => {
@@ -164,16 +179,25 @@ test.describe("the Token Library", () => {
     const before = (await npcs(page)).map((n) => n.id);
     const shelf = () => page.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.customTokens ?? []);
     const shelfBefore = (await shelf()).map((t) => t.id);
-    // A same-origin image the validator accepts, standing in for an imgur link.
-    const IMAGE = "/tokens/Thumbs/NPC/Civilians/Tavern/npcHumanBartender.png";
     const NAME = `Old Marta ${Date.now().toString(36)}`;
 
     try {
       await openLibrary(page);
       await page.getByRole("button", { name: "Custom" }).click();
       const form = page.getByTestId("custom-token-form");
-      await form.getByRole("textbox", { name: "Image" }).fill(IMAGE);
-      await form.getByRole("textbox", { name: "Image" }).press("Enter");
+      // ⬆ UPLOAD, not a pasted path: it exercises the road a DM actually
+      // takes from a phone's camera roll, and it is the "already ours" branch
+      // of the thumbnail pipeline (no mirror, a thumb all the same). The
+      // committed URL carries the SERVER's origin, which on this rail is
+      // plain http — the shape add-custom-token used to refuse outright.
+      const imageField = form.getByRole("textbox", { name: "Image" });
+      await form.getByLabel("Image upload").setInputFiles({
+        name: "old-marta.png",
+        mimeType: "image/png",
+        buffer: REAL_PNG,
+      });
+      await expect(imageField).toHaveValue(ASSET_URL, { timeout: 15_000 });
+      const IMAGE = await imageField.inputValue();
       await form.getByLabel("Name").fill(NAME);
       await form.getByLabel("Description").fill("Runs the Gilded Tankard.");
       await form.getByRole("button", { name: "villager" }).click();
@@ -193,9 +217,21 @@ test.describe("the Token Library", () => {
         size: "small",
       });
 
-      // It is on the shelf, badged, and a pick makes an NPC of it at its size.
+      // The 84px render is a SECOND upload of this table's, distinct from the
+      // picture, and it really serves — the one thing no unit test can see,
+      // since jsdom has neither a canvas nor image decoding.
+      expect(added!.thumbUrl, "no thumbnail was made").toMatch(ASSET_URL);
+      expect(added!.thumbUrl).not.toBe(added!.imageUrl);
+      const thumbResponse = await page.request.get(added!.thumbUrl!);
+      expect(thumbResponse.status()).toBe(200);
+      expect(thumbResponse.headers()["content-type"]).toBe("image/png");
+      expect((await thumbResponse.body()).subarray(1, 4).toString()).toBe("PNG");
+
+      // It is on the shelf, badged, drawn from the thumb, and a pick makes an
+      // NPC of it at its size.
       const cell = page.getByRole("button", { name: NAME, exact: true });
       await expect(cell).toBeVisible();
+      await expect(cell.locator("img")).toHaveAttribute("src", added!.thumbUrl!);
       await expect(cell.locator("xpath=..").getByText("MINE")).toBeVisible();
       await cell.click();
       await expect

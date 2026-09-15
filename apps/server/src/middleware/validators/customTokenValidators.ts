@@ -34,7 +34,7 @@ export function isCustomTokenImageUrl(value: string): boolean {
 }
 
 export function validateAddCustomTokenMessage(message: MessageRecord): ValidationResult {
-  const { name, imageUrl, description, tags, size } = message;
+  const { name, imageUrl, thumbUrl, description, tags, size } = message;
   if (typeof name !== "string" || name.trim().length === 0 || name.length > NAME_MAX) {
     return fail(`add-custom-token: name must be 1-${NAME_MAX} characters`);
   }
@@ -43,6 +43,17 @@ export function validateAddCustomTokenMessage(message: MessageRecord): Validatio
   }
   if (!isCustomTokenImageUrl(imageUrl)) {
     return fail("add-custom-token: imageUrl must be an https link or a path on this site");
+  }
+  // The thumbnail is a second image the client drew and uploaded, so it meets
+  // exactly the bar imageUrl does — it reaches every client's image loader by
+  // the same road, and "the client made it" is not a fact the server can know.
+  if (thumbUrl !== undefined) {
+    if (typeof thumbUrl !== "string" || thumbUrl.length === 0 || thumbUrl.length > URL_MAX) {
+      return fail(`add-custom-token: thumbUrl must be 1-${URL_MAX} characters`);
+    }
+    if (!isCustomTokenImageUrl(thumbUrl)) {
+      return fail("add-custom-token: thumbUrl must be an https link or a path on this site");
+    }
   }
   if (
     description !== undefined &&

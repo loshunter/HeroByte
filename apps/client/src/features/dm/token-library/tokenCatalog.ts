@@ -132,7 +132,12 @@ export function packItem(asset: LibraryAsset): LibraryItem {
   };
 }
 
-/** A table's own token: one image serves every tier, since nothing rendered it down. */
+/**
+ * A table's own token. The map and the portrait draw the full picture; the
+ * grid draws the 84px render made when it was added, and falls back to the
+ * full picture for a token added before that existed (or one whose thumb
+ * could not be made).
+ */
 export function customItem(token: CustomToken): LibraryItem {
   return {
     id: token.id,
@@ -140,7 +145,7 @@ export function customItem(token: CustomToken): LibraryItem {
     category: "custom",
     imageUrl: token.imageUrl,
     portraitUrl: token.imageUrl,
-    thumbUrl: token.imageUrl,
+    thumbUrl: token.thumbUrl ?? token.imageUrl,
     size: token.size,
     description: token.description,
     custom: true,

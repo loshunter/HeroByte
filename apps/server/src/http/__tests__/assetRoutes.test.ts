@@ -85,6 +85,27 @@ describe("asset HTTP routes", () => {
     expect(Buffer.from(await served.arrayBuffer()).equals(bytes)).toBe(true);
   });
 
+  it("serves an asset with the CORS header a canvas read needs", async () => {
+    // The custom-token shelf renders its 84px thumbnails by drawing the
+    // uploaded image into a canvas, which means loading it with
+    // crossOrigin="anonymous" — and the client's origin is never the
+    // server's on any deployment (5174/8787 in dev, Pages/Render live). No
+    // Access-Control-Allow-Origin here and the canvas is tainted, so toBlob
+    // throws and the thumbnail silently stops being made while the <img>
+    // itself still renders perfectly. Nothing else would notice.
+    const app = makeApp();
+    const { hash } = (await (await app.request(upload(pngBytes("pixels"), "Fun1"))).json()) as {
+      hash: string;
+    };
+
+    const served = await app.request(
+      new Request(`http://test/assets/${hash}`, { headers: { Origin: "http://localhost:5174" } }),
+    );
+    expect(served.status).toBe(200);
+    expect(served.headers.get("access-control-allow-origin")).toBe("http://localhost:5174");
+    expect(served.headers.get("vary")).toBe("Origin");
+  });
+
   it("rejects non-image payloads", async () => {
     const app = makeApp();
 

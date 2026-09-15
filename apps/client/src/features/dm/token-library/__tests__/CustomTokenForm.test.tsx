@@ -8,6 +8,9 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CustomTokenForm } from "../CustomTokenForm";
 
+/** The default add: succeeds, nothing to report. */
+const ok = () => vi.fn().mockResolvedValue({});
+
 function fillImage(url: string) {
   const field = screen.getByLabelText("Image");
   fireEvent.change(field, { target: { value: url } });
@@ -16,7 +19,7 @@ function fillImage(url: string) {
 
 describe("CustomTokenForm", () => {
   it("stays disabled until it has an image and a name, then hands up the draft", async () => {
-    const onAdd = vi.fn();
+    const onAdd = ok();
     render(<CustomTokenForm onAdd={onAdd} />);
     const add = screen.getByRole("button", { name: "＋ Add to library" });
     expect(add).toBeDisabled();
@@ -44,13 +47,37 @@ describe("CustomTokenForm", () => {
       tags: ["npc", "villager", "halfling", "innkeeper"],
       size: "small",
     });
-    // Cleared for the next one.
+    // Cleared for the next one, and the button says the add is in flight —
+    // it renders and uploads a thumbnail before the message goes out.
     expect(screen.getByLabelText("Name")).toHaveValue("");
-    expect(screen.getByRole("button", { name: "＋ Add to library" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Adding…" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "＋ Add to library" })).toBeDisabled();
+  });
+
+  it("shows the add's note, and nothing when there is none", async () => {
+    const onAdd = vi.fn().mockResolvedValue({ note: "No thumbnail — the storage is full." });
+    const { rerender } = render(<CustomTokenForm onAdd={onAdd} />);
+    fillImage("https://i.imgur.com/x.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ogre" } });
+    await screen.findByDisplayValue("https://i.imgur.com/x.png");
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("the storage is full");
+
+    // A clean second add clears the first one's line rather than leaving a
+    // stale complaint under a token that is perfectly fine.
+    onAdd.mockResolvedValue({});
+    rerender(<CustomTokenForm onAdd={onAdd} />);
+    fillImage("https://i.imgur.com/y.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ogre 2" } });
+    await screen.findByDisplayValue("https://i.imgur.com/y.png");
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+    await screen.findByRole("button", { name: "＋ Add to library" });
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("a chip toggles its tag on and off, and a chosen tag has its own remover", () => {
-    render(<CustomTokenForm onAdd={vi.fn()} />);
+    render(<CustomTokenForm onAdd={ok()} />);
     const monster = screen.getByRole("button", { name: "monster" });
     fireEvent.click(monster);
     expect(monster).toHaveAttribute("aria-pressed", "true");

@@ -26,6 +26,7 @@ import {
   libraryMediumUrl,
   libraryThumbUrl,
   searchLibrary,
+  customItem,
 } from "../tokenCatalog";
 
 const PUBLIC_ROOT = resolve(__dirname, "../../../../../public/tokens");
@@ -218,5 +219,32 @@ describe("the bundled token catalog", () => {
     );
     expect(searchLibrary({ category: "monster", query: "villager" })).toEqual([]);
     expect(searchLibrary({ query: "zzzz" })).toEqual([]);
+  });
+});
+
+describe("customItem", () => {
+  const token = {
+    id: "ct-1",
+    name: "Old Marta",
+    imageUrl: "https://i.imgur.com/abc123.png",
+    tags: ["villager"],
+    size: "small" as const,
+    addedBy: "dm",
+    addedAt: 1,
+  };
+
+  it("draws the grid from the 84px render and everything else from the full picture", () => {
+    const thumbUrl = `/assets/${"a".repeat(64)}`;
+    expect(customItem({ ...token, thumbUrl })).toMatchObject({
+      imageUrl: token.imageUrl,
+      portraitUrl: token.imageUrl,
+      thumbUrl,
+      custom: true,
+      size: "small",
+    });
+  });
+
+  it("falls back to the full picture — a token added before thumbs existed", () => {
+    expect(customItem(token).thumbUrl).toBe(token.imageUrl);
   });
 });

@@ -39,7 +39,28 @@ describe("CustomTokenService", () => {
     expect(token!.size).toBe("medium");
     expect(token!.addedBy).toBe("dm-1");
     expect("description" in token!).toBe(false);
+    // Absent, not `undefined`: a saved session file is the token spread as-is.
+    expect("thumbUrl" in token!).toBe(false);
     expect(state.customTokens).toEqual([token]);
+  });
+
+  it("stores a trimmed thumbnail when the client made one", () => {
+    const state = createEmptyRoomState();
+    const thumbUrl = `/assets/${"a".repeat(64)}`;
+    const token = new CustomTokenService().add(
+      state,
+      { name: "Ogre", imageUrl: "https://x/o.png", thumbUrl: ` ${thumbUrl} ` },
+      "dm-1",
+    );
+    expect(token?.thumbUrl).toBe(thumbUrl);
+    expect(
+      "thumbUrl" in
+        new CustomTokenService().add(
+          state,
+          { name: "Ogre", imageUrl: "https://x/o.png", thumbUrl: "   " },
+          "dm-1",
+        )!,
+    ).toBe(false);
   });
 
   it("keeps a description and an explicit size", () => {

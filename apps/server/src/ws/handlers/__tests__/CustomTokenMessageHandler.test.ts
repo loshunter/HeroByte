@@ -81,6 +81,16 @@ describe("CustomTokenMessageHandler through the router", () => {
     expect(token!.description).toBe("Runs the Gilded Tankard.");
   });
 
+  it("carries the 84px thumbnail the client made, and omits it when there is none", () => {
+    const thumbUrl = `http://localhost:8788/assets/${"a".repeat(64)}`;
+    messageRouter.route({ ...add, thumbUrl }, dmUid);
+    messageRouter.route({ ...add, name: "Merchant wagon" }, dmUid);
+    const [withThumb, without] = roomService.getState().customTokens;
+    expect(withThumb!.thumbUrl).toBe(thumbUrl);
+    // Absent, not undefined: this state is what the session file is written from.
+    expect("thumbUrl" in without!).toBe(false);
+  });
+
   it("a player's add is refused, and so is a player's remove of the DM's token", () => {
     messageRouter.route(add, playerUid);
     expect(roomService.getState().customTokens).toHaveLength(0);

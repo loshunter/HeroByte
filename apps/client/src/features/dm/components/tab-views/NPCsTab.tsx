@@ -22,6 +22,7 @@ import type { CreateNpcRequest } from "../../hooks/useNpcCreation";
 import { TokenLibrary } from "../../token-library/TokenLibrary";
 import {
   CustomTokensProvider,
+  type CustomTokenAddResult,
   type CustomTokenDraft,
 } from "../../token-library/customTokensContext";
 import type { LibraryItem } from "../../token-library/tokenCatalog";
@@ -34,7 +35,7 @@ interface NPCsTabProps {
   npcs: SnapshotCharacter[];
   /** The table's own Library tokens; absent means the shelf is read-only here. */
   customTokens?: readonly CustomToken[];
-  onAddCustomToken?: (draft: CustomTokenDraft) => void;
+  onAddCustomToken?: (draft: CustomTokenDraft) => Promise<CustomTokenAddResult>;
   onRemoveCustomToken?: (id: string) => void;
   /** Callback to create a new NPC (optionally several at once) */
   onCreateNPC: (request?: CreateNpcRequest) => void;

@@ -24,7 +24,7 @@ export function coerceCustomTokens(raw: unknown): CustomToken[] {
   const out: CustomToken[] = [];
   for (const entry of raw as Partial<CustomToken>[]) {
     if (!entry || typeof entry !== "object") continue;
-    const { id, name, imageUrl, description, tags, size, addedBy, addedAt } = entry;
+    const { id, name, imageUrl, thumbUrl, description, tags, size, addedBy, addedAt } = entry;
     if (typeof id !== "string" || typeof name !== "string" || typeof imageUrl !== "string") {
       continue;
     }
@@ -33,6 +33,9 @@ export function coerceCustomTokens(raw: unknown): CustomToken[] {
       id,
       name,
       imageUrl,
+      // A missing thumb is the shipped default, so anything but a non-empty
+      // string is dropped rather than repaired — the picker draws imageUrl.
+      ...(typeof thumbUrl === "string" && thumbUrl ? { thumbUrl } : {}),
       ...(typeof description === "string" && description ? { description } : {}),
       tags: Array.isArray(tags) ? tags.filter((t): t is string => typeof t === "string") : [],
       size: coerceTokenSize(size) ?? "medium",

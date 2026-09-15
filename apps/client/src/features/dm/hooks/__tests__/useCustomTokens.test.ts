@@ -1,13 +1,19 @@
 /**
  * useCustomTokens: the shelf is read off the snapshot, and the two messages
  * that change it carry exactly the wire shape — no description key when
- * there is none, so the validator's optional stays optional.
+ * there is none, so the validator's optional stays optional. An add runs the
+ * image pipeline first, so the thumbnail it made (or did not) is what rides
+ * the message.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { RoomSnapshot } from "@herobyte/shared";
 import { useCustomTokens } from "../useCustomTokens";
+import type { PreparedCustomImage } from "../../token-library/customTokenImages";
+
+/** The pipeline is proved in its own suite; here it is a stand-in. */
+const passthrough = (imageUrl: string) => Promise.resolve<PreparedCustomImage>({ imageUrl });
 
 const token = {
   id: "ct-1",
@@ -37,10 +43,12 @@ describe("useCustomTokens", () => {
     expect(none.result.current.tokens).toEqual([]);
   });
 
-  it("addToken sends add-custom-token, with the description only when there is one", () => {
+  it("addToken sends add-custom-token, with the description only when there is one", async () => {
     const sendMessage = vi.fn();
-    const { result } = renderHook(() => useCustomTokens({ snapshot: null, sendMessage }));
-    result.current.addToken({
+    const { result } = renderHook(() =>
+      useCustomTokens({ snapshot: null, sendMessage, prepareImage: passthrough }),
+    );
+    await result.current.addToken({
       name: "Old Marta",
       imageUrl: "https://i.imgur.com/x.png",
       tags: ["npc"],
@@ -53,7 +61,7 @@ describe("useCustomTokens", () => {
       tags: ["npc"],
       size: "small",
     });
-    result.current.addToken({
+    await result.current.addToken({
       name: "Ogre",
       imageUrl: "https://x/o.png",
       description: "Big.",
@@ -65,9 +73,49 @@ describe("useCustomTokens", () => {
     );
   });
 
+  it("sends what the pipeline produced, and hands its note back to the form", async () => {
+    const sendMessage = vi.fn();
+    const prepareImage = vi.fn(async () => ({
+      imageUrl: "https://i.imgur.com/x.png",
+      thumbUrl: `http://localhost:8788/assets/${"a".repeat(64)}`,
+    }));
+    const { result } = renderHook(() =>
+      useCustomTokens({ snapshot: null, sendMessage, prepareImage }),
+    );
+
+    const withThumb = await result.current.addToken({
+      name: "Old Marta",
+      imageUrl: "https://i.imgur.com/x.png",
+      tags: [],
+      size: "medium",
+    });
+    expect(prepareImage).toHaveBeenCalledWith("https://i.imgur.com/x.png");
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ thumbUrl: `http://localhost:8788/assets/${"a".repeat(64)}` }),
+    );
+    expect(withThumb).toEqual({});
+
+    // No thumb: the key is ABSENT, not undefined — the validator's optional
+    // stays optional, and the picker falls back to the full picture.
+    prepareImage.mockResolvedValueOnce({
+      imageUrl: "https://i.imgur.com/x.png",
+      note: "No thumbnail — that image could not be read.",
+    } as never);
+    const noThumb = await result.current.addToken({
+      name: "Old Marta",
+      imageUrl: "https://i.imgur.com/x.png",
+      tags: [],
+      size: "medium",
+    });
+    expect(Object.keys(sendMessage.mock.lastCall![0])).not.toContain("thumbUrl");
+    expect(noThumb).toEqual({ note: "No thumbnail — that image could not be read." });
+  });
+
   it("removeToken sends remove-custom-token", () => {
     const sendMessage = vi.fn();
-    const { result } = renderHook(() => useCustomTokens({ snapshot: null, sendMessage }));
+    const { result } = renderHook(() =>
+      useCustomTokens({ snapshot: null, sendMessage, prepareImage: passthrough }),
+    );
     result.current.removeToken("ct-1");
     expect(sendMessage).toHaveBeenCalledWith({ t: "remove-custom-token", id: "ct-1" });
   });

@@ -13,6 +13,7 @@ import type { RoomState } from "../room/model.js";
 export interface CustomTokenInput {
   name: string;
   imageUrl: string;
+  thumbUrl?: string;
   description?: string;
   tags?: readonly string[];
   size?: TokenSize;
@@ -37,10 +38,14 @@ export class CustomTokenService {
   add(state: RoomState, input: CustomTokenInput, addedBy: string): CustomToken | null {
     if (state.customTokens.length >= CUSTOM_TOKEN_LIMITS.COUNT_MAX) return null;
     const description = input.description?.trim();
+    const thumbUrl = input.thumbUrl?.trim();
     const token: CustomToken = {
       id: randomUUID(),
       name: input.name.trim(),
       imageUrl: input.imageUrl.trim(),
+      // Only when there is one: absent is the shipped shape, and a bare
+      // `thumbUrl: undefined` is still a key in the saved session file.
+      ...(thumbUrl ? { thumbUrl } : {}),
       ...(description ? { description } : {}),
       tags: normalizeTags(input.tags),
       size: input.size ?? "medium",

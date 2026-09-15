@@ -89,6 +89,27 @@ describe("validateAddCustomTokenMessage", () => {
     expect(isCustomTokenImageUrl("//x.png")).toBe(false);
   });
 
+  it("holds the thumbnail to exactly the bar the picture meets", () => {
+    const thumbUrl = `/assets/${"a".repeat(64)}`;
+    expect(validateAddCustomTokenMessage({ ...base, thumbUrl }).valid).toBe(true);
+    // Absent is the shipped shape and stays valid.
+    expect(validateAddCustomTokenMessage(base).valid).toBe(true);
+    for (const bad of [
+      "data:image/png;base64,AAAA",
+      "javascript:alert(1)",
+      "//evil.example/t.png",
+      "http://example.com/t.png",
+      "",
+      7,
+      null,
+      "h".repeat(CUSTOM_TOKEN_LIMITS.URL_MAX + 1),
+    ]) {
+      expect(validateAddCustomTokenMessage({ ...base, thumbUrl: bad }).valid, String(bad)).toBe(
+        false,
+      );
+    }
+  });
+
   it("bounds the name, the description, the tags and the size", () => {
     expect(validateAddCustomTokenMessage({ ...base, name: "" }).valid).toBe(false);
     expect(validateAddCustomTokenMessage({ ...base, name: "   " }).valid).toBe(false);

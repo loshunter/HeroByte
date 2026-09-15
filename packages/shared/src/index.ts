@@ -598,6 +598,13 @@ export interface CustomToken {
   name: string;
   /** An https URL or a path on this site (an upload's /assets/<hash>). */
   imageUrl: string;
+  /**
+   * The 84px render the picker's grid draws, made at add time and stored as
+   * one of this table's uploads. Absent when one could not be made (a host
+   * that allows no CORS read, a full quota) — the picker falls back to
+   * `imageUrl`, which is what it always drew before this existed.
+   */
+  thumbUrl?: string;
   description?: string;
   /** Lower-cased search words: "monster", "traveler", "dwarf", "prop"… */
   tags: string[];
@@ -1008,6 +1015,8 @@ type ClientMessagePayload =
       t: "add-custom-token";
       name: string;
       imageUrl: string;
+      /** The 84px render's URL, made client-side; the same bounds as imageUrl. */
+      thumbUrl?: string;
       description?: string;
       tags?: string[];
       /** Absent = medium. */

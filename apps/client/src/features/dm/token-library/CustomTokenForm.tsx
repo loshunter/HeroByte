@@ -10,10 +10,10 @@ import type { TokenSize } from "@herobyte/shared";
 import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import { ImageField } from "../../../components/ui/ImageField";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
-import type { CustomTokenDraft } from "./customTokensContext";
+import type { CustomTokenAddResult, CustomTokenDraft } from "./customTokensContext";
 
 interface CustomTokenFormProps {
-  onAdd: (draft: CustomTokenDraft) => void;
+  onAdd: (draft: CustomTokenDraft) => Promise<CustomTokenAddResult>;
   disabled?: boolean;
 }
 
@@ -43,6 +43,11 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
   const [tags, setTags] = useState<string[]>([]);
   const [tagText, setTagText] = useState("");
   const [size, setSize] = useState<TokenSize>("medium");
+  // The add draws and uploads an 84px thumbnail before it sends, which is a
+  // round trip the DM has to be told about — hence a disabled button that
+  // says so, and a line underneath when a step was skipped.
+  const [adding, setAdding] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const nameId = useId();
   const descriptionId = useId();
   const tagsId = useId();
@@ -64,7 +69,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
 
   const ready = name.trim().length > 0 && imageUrl.trim().length > 0;
   const submit = () => {
-    if (!ready) return;
+    if (!ready || adding) return;
     // A tag still sitting in the box counts: nobody presses Enter before Add.
     const pending = tagText.split(",").map(cleanTag).filter(Boolean);
     const finalTags = [...tags, ...pending.filter((t) => !tags.includes(t))].slice(
@@ -72,13 +77,22 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
       CUSTOM_TOKEN_LIMITS.TAGS_MAX,
     );
     const blurb = description.trim();
-    onAdd({
-      name: name.trim().slice(0, CUSTOM_TOKEN_LIMITS.NAME_MAX),
-      imageUrl: imageUrl.trim(),
-      ...(blurb ? { description: blurb.slice(0, CUSTOM_TOKEN_LIMITS.DESCRIPTION_MAX) } : {}),
-      tags: finalTags,
-      size,
-    });
+    setAdding(true);
+    setNote(null);
+    void Promise.resolve(
+      onAdd({
+        name: name.trim().slice(0, CUSTOM_TOKEN_LIMITS.NAME_MAX),
+        imageUrl: imageUrl.trim(),
+        ...(blurb ? { description: blurb.slice(0, CUSTOM_TOKEN_LIMITS.DESCRIPTION_MAX) } : {}),
+        tags: finalTags,
+        size,
+      }),
+    )
+      .then((result) => setNote(result?.note ?? null))
+      // The add itself never rejects by design; if one ever does, the DM sees
+      // a line rather than a form stuck on "Adding…" forever.
+      .catch(() => setNote("Could not add that token — try again."))
+      .finally(() => setAdding(false));
     setImageUrl("");
     setName("");
     setDescription("");
@@ -206,9 +220,19 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
           </div>
         ))}
       </div>
-      <JRPGButton type="submit" variant="success" disabled={disabled || !ready} style={addStyle}>
-        ＋ Add to library
+      <JRPGButton
+        type="submit"
+        variant="success"
+        disabled={disabled || adding || !ready}
+        style={addStyle}
+      >
+        {adding ? "Adding…" : "＋ Add to library"}
       </JRPGButton>
+      {note && (
+        <p className="jrpg-text-small" role="status" style={noteStyle}>
+          {note}
+        </p>
+      )}
     </form>
   );
 }
@@ -259,3 +283,12 @@ const chosenTagStyle = {
 } as const;
 
 const addStyle = { fontSize: "10px", padding: "6px 12px", alignSelf: "flex-start" } as const;
+
+// Gold, not red: every one of these says the token WAS added and something
+// optional was skipped. A red line would read as a failure it is not.
+const noteStyle = {
+  margin: 0,
+  fontSize: "10px",
+  lineHeight: 1.35,
+  color: "var(--jrpg-gold)",
+} as const;

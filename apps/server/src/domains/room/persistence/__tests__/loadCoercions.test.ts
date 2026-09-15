@@ -53,6 +53,15 @@ describe("coerceCustomTokens", () => {
       addedAt: 0,
     });
   });
+
+  it("keeps a string thumbnail and drops every other shape of one", () => {
+    const thumbUrl = `/assets/${"a".repeat(64)}`;
+    expect(coerceCustomTokens([{ ...good, thumbUrl }])[0]).toMatchObject({ thumbUrl });
+    for (const bad of [7, "", null, {}, ["x"]]) {
+      const [token] = coerceCustomTokens([{ ...good, thumbUrl: bad }]);
+      expect(token, String(bad)).not.toHaveProperty("thumbUrl");
+    }
+  });
 });
 
 describe("coerceTokenSize", () => {
