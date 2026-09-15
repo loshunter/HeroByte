@@ -6,7 +6,7 @@
 import { randomUUID } from "crypto";
 // The participation rule has ONE home (combatUtils.ts, shared): this file
 // carried a private copy that drifted the moment the rule changed (F3).
-import { isInInitiativeOrder, type Character } from "@herobyte/shared";
+import { isInInitiativeOrder, type Character, type TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
 
@@ -44,7 +44,7 @@ export class CharacterService {
     maxHp: number,
     portrait?: string,
     type: "pc" | "npc" = "pc",
-    options?: { hp?: number; tokenImage?: string },
+    options?: { hp?: number; tokenImage?: string; tokenSize?: TokenSize },
   ): Character {
     const clamp = (value: number) => Math.max(0, value);
     const normalizedMaxHp = clamp(maxHp);
@@ -61,6 +61,9 @@ export class CharacterService {
       tokenId: undefined,
       ownedByPlayerUID: undefined,
       tokenImage: tokenImage ?? null,
+      // Only when given: a bare `tokenSize: undefined` would still be a key, and
+      // a saved file is the character spread as-is.
+      ...(options?.tokenSize ? { tokenSize: options.tokenSize } : {}),
     };
 
     state.characters.push(newCharacter);
@@ -283,12 +286,15 @@ export class CharacterService {
       tokenService.forceDeleteToken(state, character.tokenId);
     }
 
+    // Born at the size the NPC was created with (a library pick's default);
+    // the token's own size stays editable, as ever.
     const token = tokenService.createToken(
       state,
       ownerUid,
       0,
       0,
       character.tokenImage ?? undefined,
+      character.tokenSize ?? "medium",
     );
     character.tokenId = token.id;
     return character;

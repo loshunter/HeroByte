@@ -57,6 +57,11 @@ export const VALID_TOKEN_SIZES = [
   "gargantuan",
 ] as const;
 
+/** Type guard: a rung of the token size ladder. */
+export function isTokenSize(value: unknown): value is (typeof VALID_TOKEN_SIZES)[number] {
+  return VALID_TOKEN_SIZES.includes(value as (typeof VALID_TOKEN_SIZES)[number]);
+}
+
 /**
  * Point interface for coordinate validation
  */

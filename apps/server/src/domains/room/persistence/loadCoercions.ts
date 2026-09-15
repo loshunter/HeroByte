@@ -5,7 +5,19 @@
  * visionRadius precedent), so every field with a domain is whitelisted here.
  */
 
-import { coerceMovementBudgetFields, type Character } from "@herobyte/shared";
+import { coerceMovementBudgetFields, type Character, type TokenSize } from "@herobyte/shared";
+import { VALID_TOKEN_SIZES } from "../../../middleware/validators/commonValidators.js";
+
+/**
+ * A token size off the ladder (a hand-edited file, an older pack's word) is
+ * dropped rather than kept: the renderer would fall back to medium anyway, and
+ * a saved file should not carry a value no validator would accept.
+ */
+export function coerceTokenSize(value: unknown): TokenSize | undefined {
+  return typeof value === "string" && VALID_TOKEN_SIZES.includes(value as TokenSize)
+    ? (value as TokenSize)
+    : undefined;
+}
 
 /**
  * @param combatActive - a fight that survives the restart: every character
@@ -14,12 +26,15 @@ import { coerceMovementBudgetFields, type Character } from "@herobyte/shared";
  */
 export function coerceLoadedCharacters(raw: unknown, combatActive = false): Character[] {
   if (!Array.isArray(raw)) return [];
-  return (raw as Character[]).map((character) => {
+  return (raw as Character[]).map(({ tokenSize, ...character }) => {
+    const size = coerceTokenSize(tokenSize);
     const coerced = coerceMovementBudgetFields({
       ...character,
       type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
       tokenImage: character.tokenImage ?? undefined,
       tokenId: character.tokenId ?? undefined,
+      // Only when it survives: a bare `tokenSize: undefined` is still a key.
+      ...(size ? { tokenSize: size } : {}),
     });
     if (combatActive && coerced.movementUsed === undefined) {
       return { ...coerced, movementUsed: 0, movementDiagonals: 0 };

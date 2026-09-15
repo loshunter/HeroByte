@@ -25,6 +25,8 @@ const snapshot = {
       maxHp: 7,
       portrait: "goblin.png",
       tokenImage: "goblin-token.png",
+      // A library pick's footprint: the copy must be born at the same size.
+      tokenSize: "small",
     },
     { id: "npc-2", type: "npc", name: "Orc", hp: 12, maxHp: 12 },
     // Knocked to 0 mid-fight — the case that used to be rejected server-side.
@@ -66,10 +68,11 @@ describe("useDMContext.duplicateNpc", () => {
       maxHp: 7,
       portrait: "goblin.png",
       tokenImage: "goblin-token.png",
+      tokenSize: "small",
     });
   });
 
-  it("does not invent art the original did not have", () => {
+  it("does not invent art or a size the original did not have", () => {
     const { result, sendMessage } = setup();
 
     act(() => result.current.npcManagement.duplicateNpc("npc-2"));
@@ -78,6 +81,7 @@ describe("useDMContext.duplicateNpc", () => {
     expect(sent).toMatchObject({ t: "create-npc", name: "Orc", hp: 12, maxHp: 12 });
     expect(sent.portrait).toBeUndefined();
     expect(sent.tokenImage).toBeUndefined();
+    expect("tokenSize" in sent).toBe(false);
   });
 
   it("copies a downed NPC at 0 hp rather than inventing a healthy one", () => {

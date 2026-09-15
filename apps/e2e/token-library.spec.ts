@@ -49,6 +49,7 @@ async function openLibrary(page: Page): Promise<void> {
 
 // The pack's own paths under /tokens — the same paths its gallery serves.
 const CLUB = "/tokens/NPC/Enemies/Goblins/goblinClub.png";
+const CLUB_PORTRAIT = "/tokens/Medium/NPC/Enemies/Goblins/goblinClub.png";
 const CHEST_CLOSED = "/tokens/NPC/Enemies/Mimics/Disguised/closedChest.png";
 const CHEST_REVEALED = "/tokens/NPC/Enemies/Mimics/mimicChest.png";
 const BLACKSMITH = "/tokens/NPC/Civilians/Shops/npcDwarfBlacksmith.png";
@@ -70,14 +71,30 @@ test.describe("the Token Library", () => {
         .toHaveLength(1);
       const [added] = (await npcs(page)).filter((n) => !before.includes(n.id));
       expect(added!.name).toMatch(/^Goblin club brute( \d+)?$/);
-      expect(added!.portrait).toBe(CLUB);
+      expect(added!.portrait).toBe(CLUB_PORTRAIT);
 
-      // The URL the pick wrote resolves to a real PNG on the client origin —
+      // The URLs the pick wrote resolve to real PNGs on the client origin —
       // the one thing no unit test can see.
-      const response = await page.request.get(new URL(CLUB, page.url()).toString());
-      expect(response.status()).toBe(200);
-      expect(response.headers()["content-type"]).toContain("image/png");
-      expect((await response.body()).subarray(1, 4).toString()).toBe("PNG");
+      for (const url of [CLUB, CLUB_PORTRAIT]) {
+        const response = await page.request.get(new URL(url, page.url()).toString());
+        expect(response.status(), url).toBe(200);
+        expect(response.headers()["content-type"], url).toContain("image/png");
+        expect((await response.body()).subarray(1, 4).toString(), url).toBe("PNG");
+      }
+
+      // Place it: the token is born at the pack's size, and a goblin is small.
+      const card = page.locator(`input[value="${added!.name}"]`).locator("xpath=ancestor::*[3]");
+      await card.getByRole("button", { name: /place on map/i }).click();
+      await expect
+        .poll(() =>
+          page.evaluate(
+            (url) =>
+              (window.__HERO_BYTE_E2E__?.snapshot?.tokens ?? []).find((t) => t.imageUrl === url)
+                ?.size ?? null,
+            CLUB,
+          ),
+        )
+        .toBe("small");
     } finally {
       await removeNpcsAddedSince(page, before);
     }

@@ -506,6 +506,26 @@ describe("validateMessage", () => {
       ).toEqual({ valid: true });
     });
 
+    describe("create-npc tokenSize (the library's size default)", () => {
+      const base = { t: "create-npc", name: "Ogre", hp: 30, maxHp: 30 };
+
+      it("accepts every rung of the ladder, and an absent size", () => {
+        for (const tokenSize of ["tiny", "small", "medium", "large", "huge", "gargantuan"]) {
+          expect(validateMessage({ ...base, tokenSize })).toEqual({ valid: true });
+        }
+        expect(validateMessage({ ...base })).toEqual({ valid: true });
+      });
+
+      it("refuses a size off the ladder rather than defaulting it", () => {
+        // The handler hands the value straight to the token it places, so a
+        // stray word would become a token size no renderer knows.
+        for (const tokenSize of ["enormous", "", 2, null, { size: "large" }]) {
+          const result = validateMessage({ ...base, tokenSize });
+          expect(result.valid, JSON.stringify(tokenSize)).toBe(false);
+        }
+      });
+    });
+
     /**
      * The count bound lives here rather than in a router test on purpose:
      * router.route() runs AFTER validation in production, so routing a

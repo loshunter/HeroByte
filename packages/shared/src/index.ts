@@ -517,6 +517,12 @@ export interface Character {
   tokenId?: string | null; // ID of token on map (null if no token)
   ownedByPlayerUID?: string | null; // Player who controls this character (null = unclaimed)
   tokenImage?: string | null; // Optional token image URL for NPC tokens
+  /**
+   * The footprint this character's token is born with (place-npc-token); the
+   * token's own size is editable afterwards. A library pick sets it from the
+   * pack's default, so an ogre lands large. Absent = medium.
+   */
+  tokenSize?: TokenSize;
   initiative?: number; // Initiative roll value (d20 + modifier)
   initiativeModifier?: number; // Initiative modifier (bonus/penalty added to d20 roll)
   statusEffects?: string[]; // Active status effect identifiers/labels (per character)
@@ -884,6 +890,8 @@ type ClientMessagePayload =
       tempHp?: number;
       portrait?: string;
       tokenImage?: string;
+      /** The size the placed token starts with; absent = medium. */
+      tokenSize?: TokenSize;
       /**
        * How many to create, defaulting to 1. The server loops and numbers
        * them, so "five goblins" is one message, one broadcast and one state

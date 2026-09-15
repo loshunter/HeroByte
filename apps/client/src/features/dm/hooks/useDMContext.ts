@@ -209,6 +209,7 @@ export function useDMContext({
         maxHp: source.maxHp ?? 1,
         portrait: source.portrait ?? undefined,
         tokenImage: source.tokenImage ?? undefined,
+        tokenSize: source.tokenSize,
         // An ambush prepared as a hidden NPC must not leak the moment the DM
         // asks for a second one; without this the copy defaults to visible.
         visibleToPlayers: source.visibleToPlayers,

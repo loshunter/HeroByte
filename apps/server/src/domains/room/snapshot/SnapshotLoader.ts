@@ -15,6 +15,7 @@ import {
 import { normalizeAtlasState } from "../atlasState.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
+import { coerceTokenSize } from "../persistence/loadCoercions.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
 
 /**
@@ -72,8 +73,10 @@ export class SnapshotLoader {
     // real numbers — normalizeHPValues turns absence into 0/1, visibly wrong
     // rather than silently NaN.
     const loadedCharacters = (snapshot.characters ?? []).map(
-      ({ hpBadge: _wireOnly, ...character }) => {
+      ({ hpBadge: _wireOnly, tokenSize, ...character }) => {
         const { hp, maxHp } = normalizeHPValues(character.hp ?? 0, character.maxHp ?? 1);
+        // A size off the ladder is dropped, like the state file's (loadCoercions).
+        const size = coerceTokenSize(tokenSize);
         return coerceMovementBudgetFields({
           ...character,
           hp,
@@ -81,6 +84,7 @@ export class SnapshotLoader {
           type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
           tokenId: character.tokenId ?? null,
           tokenImage: character.tokenImage ?? null,
+          ...(size ? { tokenSize: size } : {}),
         });
       },
     );

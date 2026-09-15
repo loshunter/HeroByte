@@ -20,7 +20,11 @@ import { NPCEditor } from "../NPCEditor";
 import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";
 import type { CreateNpcRequest } from "../../hooks/useNpcCreation";
 import { TokenLibrary } from "../../token-library/TokenLibrary";
-import { libraryImageUrl, type LibraryAsset } from "../../token-library/tokenCatalog";
+import {
+  libraryImageUrl,
+  libraryMediumUrl,
+  type LibraryAsset,
+} from "../../token-library/tokenCatalog";
 
 /**
  * Props for the NPCsTab component
@@ -131,13 +135,18 @@ export default function NPCsTab({
   };
 
   // The bundled token pack. A pick is an Add with the art filled in — the ×N
-  // count applies, so "five goblin archers" is still one press — and the
-  // portrait rides along so the Entities panel shows the creature, not a
-  // blank card.
+  // count applies, so "five goblin archers" is still one press. The map gets
+  // the master, the portrait the 336px render (the Entities panel shows the
+  // creature, not a blank card), and the token is born at the pack's size.
   const [libraryOpen, setLibraryOpen] = useState(false);
   const handlePickToken = (asset: LibraryAsset) => {
-    const url = libraryImageUrl(asset);
-    onCreateNPC({ name: asset.name, tokenImage: url, portrait: url, count });
+    onCreateNPC({
+      name: asset.name,
+      tokenImage: libraryImageUrl(asset),
+      portrait: libraryMediumUrl(asset),
+      tokenSize: asset.size,
+      count,
+    });
   };
 
   return (

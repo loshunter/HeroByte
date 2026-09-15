@@ -12,7 +12,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, TokenSize } from "@herobyte/shared";
 
 export interface UseNpcCreationOptions {
   /**
@@ -37,6 +37,8 @@ export interface CreateNpcRequest {
   maxHp?: number;
   portrait?: string;
   tokenImage?: string;
+  /** The size the placed token starts with (a library pick sets the pack's default). */
+  tokenSize?: TokenSize;
   /** How many to create (1..NPC_CREATE_LIMITS.COUNT_MAX). Defaults to 1. */
   count?: number;
   /** Carried by Duplicate so a hidden NPC's copy stays hidden. */
@@ -144,6 +146,7 @@ export function useNpcCreation(options: UseNpcCreationOptions): UseNpcCreationRe
         maxHp: request?.maxHp ?? 10,
         ...(request?.portrait !== undefined ? { portrait: request.portrait } : {}),
         ...(request?.tokenImage !== undefined ? { tokenImage: request.tokenImage } : {}),
+        ...(request?.tokenSize !== undefined ? { tokenSize: request.tokenSize } : {}),
         ...(request?.count !== undefined ? { count: request.count } : {}),
         ...(request?.visibleToPlayers !== undefined
           ? { visibleToPlayers: request.visibleToPlayers }

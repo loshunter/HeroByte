@@ -515,6 +515,26 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       expect(token).toBeDefined();
       expect(token?.owner).toBe(dmUid);
       expect(token?.imageUrl).toBe("dragon-token.png");
+      // No size on the character: the token is born medium, as it always was.
+      expect(token?.size).toBe("medium");
+    });
+
+    it("places the token at the size the NPC was created with", () => {
+      // A library pick: create-npc carries the pack's default footprint, and
+      // the token minted later is born at it — an ogre lands large.
+      messageRouter.route(
+        { t: "create-npc", name: "Ogre", hp: 59, maxHp: 59, tokenSize: "large" } as ClientMessage,
+        dmUid,
+      );
+      const ogre = roomService.getState().characters.find((c) => c.name === "Ogre");
+      expect(ogre?.tokenSize).toBe("large");
+
+      messageRouter.route({ t: "place-npc-token", id: ogre!.id } as ClientMessage, dmUid);
+
+      const state = roomService.getState();
+      const token = state.tokens.find((t) => t.id === ogre!.id || t.id === ogre!.tokenId);
+      expect(token?.size).toBe("large");
+      expect(state.characters.find((c) => c.id === ogre!.id)?.tokenId).toBe(token?.id);
     });
 
     it("should not place token when non-DM tries", () => {

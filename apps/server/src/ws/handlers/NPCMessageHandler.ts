@@ -15,6 +15,7 @@
  * @module ws/handlers/NPCMessageHandler
  */
 
+import type { TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
@@ -39,6 +40,8 @@ export interface NPCMessageResult {
 export interface CreateNPCOptions {
   hp?: number;
   tokenImage?: string;
+  /** The size the placed token starts with; validated upstream against the ladder. */
+  tokenSize?: TokenSize;
   /** How many to create, defaulting to 1. Validated upstream against NPC_CREATE_LIMITS. */
   count?: number;
   /** Hidden-from-players flag to carry onto the copy. Only `false` is honoured. */
@@ -138,6 +141,7 @@ export class NPCMessageHandler {
         {
           hp: options?.hp,
           tokenImage: options?.tokenImage,
+          tokenSize: options?.tokenSize,
         },
       );
       // Only an explicit `false` is honoured — everywhere else in the codebase

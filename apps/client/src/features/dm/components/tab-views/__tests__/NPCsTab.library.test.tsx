@@ -1,8 +1,8 @@
 /**
- * The NPCs tab's Monster Library: a pick is an Add with the art filled in —
- * name, token image and portrait from the pack, and the ×N count applying
- * exactly as it does to the plain button. Drives the REAL NPCsTab, like the
- * bulk-add suite beside it.
+ * The NPCs tab's Token Library: a pick is an Add with the art filled in —
+ * name, token image (the master), portrait (the 336px render) and the pack's
+ * default size — with the ×N count applying exactly as it does to the plain
+ * button. Drives the REAL NPCsTab, like the bulk-add suite beside it.
  */
 
 import React from "react";
@@ -31,6 +31,7 @@ function renderTab(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}
 
 const libraryButton = () => screen.getByRole("button", { name: "📖 Library" });
 const CLUB = "/tokens/NPC/Enemies/Goblins/goblinClub.png";
+const CLUB_PORTRAIT = "/tokens/Medium/NPC/Enemies/Goblins/goblinClub.png";
 
 describe("NPCsTab — the Token Library", () => {
   it("is closed until asked, and the button toggles it", () => {
@@ -43,7 +44,7 @@ describe("NPCsTab — the Token Library", () => {
     expect(screen.queryByTestId("token-library")).toBeNull();
   });
 
-  it("a pick creates the NPC with the pack's name, token image and portrait", () => {
+  it("a pick creates the NPC with the pack's name, master, portrait and size", () => {
     const props = renderTab();
     fireEvent.click(libraryButton());
     fireEvent.click(screen.getByRole("button", { name: "Goblin club brute" }));
@@ -51,9 +52,20 @@ describe("NPCsTab — the Token Library", () => {
     expect(props.onCreateNPC).toHaveBeenCalledWith({
       name: "Goblin club brute",
       tokenImage: CLUB,
-      portrait: CLUB,
+      portrait: CLUB_PORTRAIT,
+      tokenSize: "small",
       count: 1,
     });
+  });
+
+  it("a large creature is born large", () => {
+    const props = renderTab();
+    fireEvent.click(libraryButton());
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "ogre chieftain" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ogre chieftain" }));
+    expect(props.onCreateNPC).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Ogre chieftain", tokenSize: "large" }),
+    );
   });
 
   it("the ×N count applies to a pick, and the hint says so", () => {
