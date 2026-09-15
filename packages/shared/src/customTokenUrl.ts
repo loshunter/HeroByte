@@ -21,7 +21,24 @@ const OWN_UPLOAD_URL = /^https?:\/\/[^/\s]+\/assets\/[a-f0-9]{64}$/;
  * http, a protocol-relative `//host` — is refused: the browser's image policy
  * would never draw it, and a link that never renders is a bad entry, not a
  * broken one.
+ *
+ * @param ownOrigin - when given, the plain-http exemption is narrowed to THIS
+ *   origin. Without it the rule reads only the `/assets/<sha256>` tail, so
+ *   `http://anything.example/assets/<64 hex>` passes — and on the https
+ *   production table the browser blocks that as mixed content and draws
+ *   nothing, which is the exact failure the whole rule exists to prevent. The
+ *   client knows its own asset origin (`httpBaseFromWsUrl(WS_URL)`) and passes
+ *   it; the server does not — behind Render's proxy it has no configured
+ *   public origin to compare against — so it stays host-agnostic and the
+ *   client is the stricter of the two. That direction is safe: a stricter
+ *   client can only refuse an entry the server would have taken, never invent
+ *   a success. The origin is deliberately NOT pinned for existing shelf
+ *   entries, which are never re-validated: the same table is reachable over
+ *   localhost, a LAN address and the deployed host, and a session file carries
+ *   whichever one wrote it.
  */
-export function isCustomTokenImageUrl(value: string): boolean {
-  return /^https:\/\/\S+$/.test(value) || /^\/[^/\s]\S*$/.test(value) || OWN_UPLOAD_URL.test(value);
+export function isCustomTokenImageUrl(value: string, ownOrigin?: string): boolean {
+  if (/^https:\/\/\S+$/.test(value) || /^\/[^/\s]\S*$/.test(value)) return true;
+  if (!OWN_UPLOAD_URL.test(value)) return false;
+  return ownOrigin === undefined || value.startsWith(`${ownOrigin}/assets/`);
 }

@@ -20,7 +20,7 @@ import {
   type PreparedCustomImage,
 } from "../token-library/customTokenImages";
 import { sessionCredentials } from "../../session/sessionBridge";
-import type { AssetUploadCredentials } from "../../map-studio/uploads/assetUpload";
+import { ownAssetOrigin, type AssetUploadCredentials } from "../../map-studio/uploads/assetUpload";
 
 export interface UseCustomTokensOptions {
   snapshot: RoomSnapshot | null;
@@ -112,7 +112,11 @@ export function useCustomTokens({
           note: `That address is too long — a link has to be under ${CUSTOM_TOKEN_LIMITS.URL_MAX} characters.`,
         };
       }
-      if (!isCustomTokenImageUrl(imageUrl)) {
+      // With the origin: the shared rule admits an /assets/<sha256> tail at
+      // ANY host by default, and a plain-http one at somebody else's host is
+      // mixed content on the https table — it draws nothing, which is the
+      // failure the rule exists to prevent.
+      if (!isCustomTokenImageUrl(imageUrl, ownAssetOrigin())) {
         return {
           added: false,
           note: "That address cannot be used: it needs to be an https link, or an image uploaded to this table.",

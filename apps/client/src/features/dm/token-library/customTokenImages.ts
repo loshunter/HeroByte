@@ -23,6 +23,7 @@ import {
   AssetUploadError,
   uploadAssetFile,
   uploadedAssetUrl,
+  ownAssetOrigin,
   uploadHashFromUrl,
   type AssetUploadCredentials,
 } from "../../map-studio/uploads/assetUpload";
@@ -98,7 +99,9 @@ export function classifyCustomImage(url: string): CustomImageKind {
  */
 export function canKeepCopy(value: string): boolean {
   const trimmed = value.trim();
-  return isCustomTokenImageUrl(trimmed) && classifyCustomImage(trimmed) === "external";
+  return (
+    isCustomTokenImageUrl(trimmed, ownAssetOrigin()) && classifyCustomImage(trimmed) === "external"
+  );
 }
 
 /**

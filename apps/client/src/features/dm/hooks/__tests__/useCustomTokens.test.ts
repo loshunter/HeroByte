@@ -12,6 +12,7 @@ import type { RoomSnapshot } from "@herobyte/shared";
 import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import { useCustomTokens } from "../useCustomTokens";
 import type { PreparedCustomImage } from "../../token-library/customTokenImages";
+import { ownAssetOrigin } from "../../../map-studio/uploads/assetUpload";
 
 /** The pipeline is proved in its own suite; here it is a stand-in. */
 const passthrough = (imageUrl: string) =>
@@ -319,7 +320,17 @@ describe("useCustomTokens", () => {
     const prepareImage = vi.fn(passthrough);
     const { result, sendMessage } = setup({ prepareImage });
 
-    for (const imageUrl of ["goblin.png", "http://example.com/x.png", "data:image/png;base64,AA"]) {
+    for (const imageUrl of [
+      "goblin.png",
+      "http://example.com/x.png",
+      "data:image/png;base64,AA",
+      // The /assets/<sha256> tail at somebody ELSE'S host. The shared rule
+      // admits that shape at any origin — the server has to, since it cannot
+      // know its own public one — so without the client passing its asset
+      // origin this cleared the pre-check and then drew nothing at the table,
+      // blocked as mixed content on the https host.
+      `http://attacker.example/assets/${"a".repeat(64)}`,
+    ]) {
       const result_ = await result.current.addToken({ ...draft, imageUrl });
       expect(result_, imageUrl).toEqual({
         added: false,
@@ -329,6 +340,11 @@ describe("useCustomTokens", () => {
     // Not one upload rendered, not one message sent.
     expect(prepareImage).not.toHaveBeenCalled();
     expect(sendMessage).not.toHaveBeenCalled();
+
+    // …and THIS table's own upload, over plain http, still goes through.
+    const ours = `${ownAssetOrigin()}/assets/${"b".repeat(64)}`;
+    expect(await result.current.addToken({ ...draft, imageUrl: ours })).toEqual({ added: true });
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: ours }));
   });
 
   it("refuses an over-long address before the uploads, the way the wire does", async () => {

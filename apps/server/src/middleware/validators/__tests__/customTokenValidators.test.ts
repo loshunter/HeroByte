@@ -89,6 +89,26 @@ describe("validateAddCustomTokenMessage", () => {
     expect(isCustomTokenImageUrl("//x.png")).toBe(false);
   });
 
+  it("narrows the plain-http exemption to one origin when it is given one", () => {
+    // The tail is what identifies an upload, so by default the rule reads it
+    // at ANY host — which the SERVER needs (behind Render's proxy it has no
+    // configured public origin to compare against, and a session file carries
+    // whichever of localhost / the LAN / the deployed host wrote it). The
+    // CLIENT does know its asset origin, and without passing it
+    // `http://attacker.example/assets/<64 hex>` cleared the pre-check and then
+    // drew nothing on the https table, blocked as mixed content.
+    const hash = "a".repeat(64);
+    const own = "http://localhost:8788";
+    expect(isCustomTokenImageUrl(`${own}/assets/${hash}`, own)).toBe(true);
+    expect(isCustomTokenImageUrl(`http://attacker.example/assets/${hash}`, own)).toBe(false);
+    expect(isCustomTokenImageUrl(`https://attacker.example/assets/${hash}`, own)).toBe(true);
+    // Without one, both pass — the shape is all there is to go on.
+    expect(isCustomTokenImageUrl(`http://attacker.example/assets/${hash}`)).toBe(true);
+    // And the two shapes that do not depend on an origin are untouched.
+    expect(isCustomTokenImageUrl("https://i.imgur.com/x.png", own)).toBe(true);
+    expect(isCustomTokenImageUrl("/tokens/NPC/x.png", own)).toBe(true);
+  });
+
   it("holds the thumbnail to exactly the bar the picture meets", () => {
     const thumbUrl = `/assets/${"a".repeat(64)}`;
     expect(validateAddCustomTokenMessage({ ...base, thumbUrl }).valid).toBe(true);

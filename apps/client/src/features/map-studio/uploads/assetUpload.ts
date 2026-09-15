@@ -63,6 +63,20 @@ export function httpBaseFromWsUrl(wsUrl: string): string {
   return `${protocol}//${parsed.host}`;
 }
 
+/**
+ * The origin this table's uploads live at — the SERVER's, which is not the
+ * page's on any deployment (Pages serves the client, Render the assets).
+ *
+ * A function rather than a const so a test can drive it, and because the one
+ * caller that matters wants it at call time: it narrows the custom-token URL
+ * rule's plain-http exemption to this table, so an /assets/<hash> tail at
+ * somebody else's host stops passing a check it can never satisfy in the
+ * browser (mixed content on the https table draws nothing at all).
+ */
+export function ownAssetOrigin(wsUrl: string = WS_URL): string {
+  return httpBaseFromWsUrl(wsUrl);
+}
+
 export function uploadAssetId(hash: string): string {
   return `${UPLOAD_ASSET_ID_PREFIX}${hash}`;
 }
