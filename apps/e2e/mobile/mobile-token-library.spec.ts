@@ -100,6 +100,18 @@ test.describe("mobile — the shelf and the stance", () => {
           }
         }
       }, before);
+      // Polled, for the same reason the shelf's cleanup is.
+      await expect
+        .poll(async () =>
+          page.evaluate(
+            (ids) =>
+              (window.__HERO_BYTE_E2E__?.snapshot?.characters ?? []).filter(
+                (c) => c.type === "npc" && !ids.includes(c.id),
+              ).length,
+            before,
+          ),
+        )
+        .toBe(0);
     }
   });
 
@@ -137,21 +149,29 @@ test.describe("mobile — the shelf and the stance", () => {
         const image = picture.getBoundingClientRect();
         return {
           bar: { top: bar.top, height: bar.height, width: bar.width },
-          image: { bottom: image.bottom, left: image.left, right: image.right },
-          cellWidth: button.parentElement!.getBoundingClientRect().width,
+          image: { bottom: image.bottom, width: image.width },
         };
       }, `Remove ${NAME} from the library`);
 
       expect(geometry, "the shelf cell or its picture was not found").not.toBeNull();
-      // (a) pressable, (b) below the picture rather than over it, and the full
-      // width of its cell so it reads as a bar and not a stray badge.
+      // (a) pressable, (b) below the picture rather than over it, and (c) as
+      // wide as the PICTURE it belongs to — measuring it against its own
+      // parent proves nothing, since `align-self: stretch` makes that true
+      // whatever the rule says.
       expect(geometry!.bar.height).toBeGreaterThanOrEqual(44);
       expect(geometry!.bar.top).toBeGreaterThanOrEqual(geometry!.image.bottom);
-      expect(geometry!.bar.width).toBeGreaterThan(geometry!.cellWidth * 0.9);
+      expect(geometry!.bar.width).toBeGreaterThanOrEqual(geometry!.image.width);
 
-      // (c) and nothing in the grid is under the floor — the cells, their
-      // bars, and the MINE-badged ones alike.
-      expect(await undersizedControls(page, '[data-testid="token-library-grid"]')).toEqual([]);
+      // (d) and nothing in the whole Library panel is under the floor — the
+      // cells, their bars, the form's fields AND its tag chips. Scoped to the
+      // grid alone this could not fail: the cells carry inline 84px minima and
+      // the bar's height is already asserted above, so it swept nothing that
+      // could ever go red. The form is where the undersized controls were.
+      const swept = await page.evaluate(
+        () => document.querySelectorAll('[data-testid="token-library"] button').length,
+      );
+      expect(swept, "the sweep found no controls to measure").toBeGreaterThan(10);
+      expect(await undersizedControls(page, '[data-testid="token-library"]')).toEqual([]);
     } finally {
       const leftover = (await shelf()).filter((t) => !shelfBefore.includes(t.id));
       await page.evaluate(
@@ -161,6 +181,13 @@ test.describe("mobile — the shelf and the stance", () => {
         },
         leftover.map((t) => t.id),
       );
+      // POLL, do not fire and forget. The default table is shared between
+      // specs and between runs, the optional-chained send cleans up nothing
+      // if the seam is missing, and the shelf caps at 200 — after which adds
+      // are refused in silence and a later spec fails for no visible reason.
+      await expect
+        .poll(async () => (await shelf()).filter((t) => !shelfBefore.includes(t.id)).length)
+        .toBe(0);
     }
   });
 });

@@ -27,8 +27,10 @@ export const fieldStyle = { fontSize: "11px", padding: "4px 6px", minWidth: 0 } 
 
 export const chipRowStyle = { display: "flex", gap: "4px", flexWrap: "wrap" } as const;
 
-// Tag chips are compact on a desktop; no inline min-height, so the phone's
-// coarse-pointer floor can lift them to 44px — a row of ten ancestries wraps.
+// Tag chips are compact on a desktop. No inline min-*, so the phone's
+// coarse-pointer floor can lift them — but that sweep sets min-HEIGHT only,
+// which left these 44px tall and as narrow as their word (elf measured 27px).
+// `.custom-token-tag` in herobyte.css carries the min-width; they wrap.
 export const suggestedTagStyle = {
   fontFamily: "var(--font-body)",
   fontSize: "10px",

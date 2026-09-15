@@ -1346,19 +1346,17 @@ h4 {
  * button in every panel without editing a single component.
  */
 /*
- * The Library shelf's remove control. Its LAYOUT lives here, not in an inline
- * style object, because an inline rule beats any class rule — and the
- * coarse-pointer block below has to be able to move it out of the overlay.
- * Declared BEFORE that block: the two selectors tie on specificity (a media
- * query adds none), so source order is what decides which one wins.
- */
-/*
  * "Keep a copy on this table". The panel-wide floor below deliberately
  * EXCLUDES checkboxes — a 44px checkbox is a huge tick — so the label is the
  * tap target instead, which is the right answer anyway: a label for a
  * checkbox toggles it, so the whole row is pressable and the box stays 13px.
+ *
+ * Both classes in the selector, because the element also carries
+ * `.jrpg-text-small` (0,1,0) and jrpg.css is imported AFTER this file
+ * (main.tsx). A single-class font-size here is dead on arrival: the label
+ * shipped at 8px, under this file's own stated 11px readability floor.
  */
-.custom-token-keep-copy {
+.custom-token-keep-copy.jrpg-text-small {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1367,7 +1365,21 @@ h4 {
   cursor: pointer;
 }
 
-.token-library-remove {
+/*
+ * The Library shelf's remove control. Its LAYOUT lives here, not in an inline
+ * style object, because an inline rule beats any class rule — and the
+ * coarse-pointer block below has to be able to move it out of the overlay.
+ *
+ * ELEMENT-QUALIFIED, and that is the point. `button:hover` in the BUTTONS
+ * section is (0,1,1); a bare `.token-library-remove` is (0,1,0) and loses to
+ * it — so the moment this layout came out of the inline object, the control
+ * began turning GOLD on hover, and stayed gold, because :hover latches after
+ * a tap. `button` also handed it a `box-shadow: 0 4px 0` it never had inline.
+ * `button.…` is (0,1,1) too and wins on source order from here, exactly as
+ * button.dice-token__remove does below.
+ */
+button.token-library-remove {
+  box-shadow: none;
   position: absolute;
   top: 2px;
   right: 2px;
@@ -1381,6 +1393,12 @@ h4 {
   border: 1px solid var(--jrpg-cyan, #00e0d1);
   border-radius: 3px;
   cursor: pointer;
+}
+
+/* Hover stays the shelf's cyan, not the gold every other button wears. */
+button.token-library-remove:hover {
+  background: var(--jrpg-navy, #0f0e1e);
+  box-shadow: 0 0 6px var(--jrpg-cyan, #00e0d1);
 }
 
 @media (pointer: coarse) {
@@ -1456,21 +1474,48 @@ h4 {
    * column), which is also the only shape that reads as "remove" rather than
    * as a badge on a 375px screen.
    *
-   * Scoped to the container, like the sweep above it: a coarse pointer on a
-   * touchscreen LAPTOP still gets the desktop DM window, where the overlay is
-   * right and there is no floor lifting it into the picture.
+   * Scoped to the container, like the sweep above it — and the device that
+   * scope actually decides is a TABLET, not a laptop: a touchscreen laptop
+   * reports `pointer: fine` (its primary pointer is the trackpad) and never
+   * enters this block. An iPad over 1024px IS coarse but sits outside
+   * MOBILE_LAYOUT_QUERY, so it takes the desktop DM window with no
+   * [data-mobile-surface] and keeps the 22px overlay. That is the deliberate
+   * trade: unscoped, the sweep's min-height would grow a `top`-anchored
+   * DESTRUCTIVE control downward over the picture there — the G3 bug itself.
+   * The cost is a 22px finger target on a tablet, behind window.confirm.
    */
   /* The label, not the box (see the rule above): 44px of pressable row. */
   [data-mobile-surface] .custom-token-keep-copy {
     min-height: 44px;
+    font-size: 11px;
+    touch-action: manipulation;
   }
 
-  [data-mobile-surface] .token-library-remove {
+  /*
+   * The add form's tag chips. The sweep above sets min-HEIGHT only, so these
+   * were 44px tall and as narrow as their word — measured at 375px: elf 27px,
+   * orc 30px, ally 31px, npc 32px, boss 36px, prop 37px, dwarf 41px. Seven
+   * controls under the floor on its narrow axis, in a surface the floor was
+   * supposed to have swept. They wrap, so widening costs rows, not overflow.
+   */
+  [data-mobile-surface] .custom-token-tag {
+    min-width: 44px;
+  }
+
+  /*
+   * `align-self: stretch`, not `width: 100%`: this project has no global
+   * box-sizing reset, and a content-box button would overhang its cell by its
+   * border. The cross axis of a column flex container gives full width with
+   * no box-model dependency. 12px so the glyph reads on a 110px bar.
+   */
+  [data-mobile-surface] button.token-library-remove {
     position: static;
-    width: 100%;
+    align-self: stretch;
+    width: auto;
     height: auto;
     min-height: 44px;
     margin-top: 4px;
+    font-size: 12px;
   }
 }
 

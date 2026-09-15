@@ -279,6 +279,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
                 type="button"
                 onClick={() => setTags(tags.filter((t) => t !== tag))}
                 title={`Remove tag ${tag}`}
+                className="custom-token-tag"
                 style={chosenTagStyle}
               >
                 {tag} ✕
@@ -295,6 +296,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
                 onClick={() => toggleTag(tag)}
                 aria-pressed={tags.includes(tag)}
                 disabled={disabled}
+                className="custom-token-tag"
                 style={tags.includes(tag) ? chosenTagStyle : suggestedTagStyle}
               >
                 {tag}
