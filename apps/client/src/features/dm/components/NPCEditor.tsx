@@ -42,12 +42,8 @@ interface NPCEditorProps {
   onBudgetReset?: () => void;
 }
 
-/**
- * One spelling of the editor's text-field look, which was five identical
- * inline objects. Extracted because the Stance select's optimistic state put
- * this file over the 350-line guard; the object is byte-for-byte what each
- * copy was.
- */
+/** One spelling of the editor's text-field look: five identical inline
+ * objects, byte-for-byte, lifted when the Stance select crossed the guard. */
 const editableFieldStyle = (isUpdating: boolean) =>
   ({
     width: "100%",
@@ -87,7 +83,15 @@ export function NPCEditor({
   const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
   const [stance, setStance] = useState(npc.disposition ?? "hostile");
 
+  // Resync — but NOT while this NPC's update is in flight. `npc` is a fresh
+  // object per broadcast, so this fires on a player moving a token or a die
+  // being rolled, not only on the reply we await: unrelated activity put the
+  // optimistic Stance back to the old word, greyed out — the "my click did
+  // not take" the optimism removes — and a half-typed name with it.
+  // useNpcUpdate holds isUpdating (scoped to this NPC by NPCsTab) until the
+  // snapshot MATCHES, so this re-runs on fresh data.
   useEffect(() => {
+    if (isUpdating) return;
     setName(npc.name);
     setHpInput(String(npc.hp));
     setMaxHpInput(String(npc.maxHp));
@@ -96,7 +100,7 @@ export function NPCEditor({
     setPortrait(npc.portrait ?? "");
     setTokenImage(npc.tokenImage ?? "");
     setStance(npc.disposition ?? "hostile");
-  }, [npc]);
+  }, [npc, isUpdating]);
 
   const commitUpdate = (
     overrides?: Partial<{
