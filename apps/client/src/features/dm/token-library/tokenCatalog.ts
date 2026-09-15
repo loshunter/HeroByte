@@ -7,10 +7,15 @@
 // export's asset scan only inlines /assets/<hash> uploads). The data and the
 // files are regenerated together by scripts/import-token-library.mjs.
 
-import { LIBRARY_ASSETS, LIBRARY_FAMILIES } from "./tokenCatalog.generated";
+import {
+  LIBRARY_ASSETS,
+  LIBRARY_FAMILIES,
+  LIBRARY_ID_ALIASES,
+  LIBRARY_PACK_VERSION,
+} from "./tokenCatalog.generated";
 import type { LibraryAsset, LibraryCategory } from "./tokenCatalogTypes";
 
-export { LIBRARY_ASSETS, LIBRARY_FAMILIES };
+export { LIBRARY_ASSETS, LIBRARY_FAMILIES, LIBRARY_ID_ALIASES, LIBRARY_PACK_VERSION };
 export type {
   LibraryAsset,
   LibraryCategory,
@@ -18,7 +23,7 @@ export type {
   LibraryMimicState,
 } from "./tokenCatalogTypes";
 
-/** Where the pack is served from; `${root}/${asset.src}` is a token. */
+/** Where the pack is served from; `${root}/${asset.src}` is a token's master. */
 export const LIBRARY_TOKEN_ROOT = "/tokens";
 
 export const LIBRARY_CATEGORIES: readonly { id: LibraryCategory; label: string }[] = [
@@ -26,23 +31,45 @@ export const LIBRARY_CATEGORIES: readonly { id: LibraryCategory; label: string }
   { id: "civilian", label: "Townsfolk" },
 ];
 
+/** The 1254px master — what a token on the map draws. */
 export function libraryImageUrl(asset: Pick<LibraryAsset, "src">): string {
   return `${LIBRARY_TOKEN_ROOT}/${asset.src}`;
 }
 
+/** The 336px render — the portrait. */
+export function libraryMediumUrl(asset: Pick<LibraryAsset, "medium">): string {
+  return `${LIBRARY_TOKEN_ROOT}/${asset.medium}`;
+}
+
+/** The 84px render — the picker's thumbnail, one pixel per pixel-15 cell. */
+export function libraryThumbUrl(asset: Pick<LibraryAsset, "thumb">): string {
+  return `${LIBRARY_TOKEN_ROOT}/${asset.thumb}`;
+}
+
 const byId = new Map(LIBRARY_ASSETS.map((asset) => [asset.id, asset]));
-const byUrl = new Map(LIBRARY_ASSETS.map((asset) => [libraryImageUrl(asset), asset]));
+// Every URL a token has ever been served at — all three tiers, plus the master
+// paths the pack renamed away from — so a saved session from any pack version
+// still resolves to the token it meant.
+const byUrl = new Map<string, LibraryAsset>();
+for (const asset of LIBRARY_ASSETS) {
+  byUrl.set(libraryImageUrl(asset), asset);
+  byUrl.set(libraryMediumUrl(asset), asset);
+  byUrl.set(libraryThumbUrl(asset), asset);
+  for (const legacy of asset.legacySrcs ?? []) byUrl.set(`${LIBRARY_TOKEN_ROOT}/${legacy}`, asset);
+}
 const familyLabels = new Map(LIBRARY_FAMILIES.map((family) => [family.id, family.label]));
 const categoryLabels = new Map(LIBRARY_CATEGORIES.map((c) => [c.id, c.label]));
 
+/** By current id, or by an id the pack has since renamed. */
 export function libraryAssetById(id: string): LibraryAsset | undefined {
-  return byId.get(id);
+  return byId.get(id) ?? byId.get(LIBRARY_ID_ALIASES[id] ?? "");
 }
 
 /**
- * The pack token behind an image URL, if it is one. The library writes the
- * root-relative form; an absolute same-origin form (a URL a DM copied out of
- * the address bar, say) resolves too, since the path is what identifies it.
+ * The pack token behind an image URL, if it is one — any tier, any pack
+ * version. The library writes the root-relative form; an absolute same-origin
+ * form (a URL a DM copied out of the address bar, say) resolves too, since the
+ * path is what identifies it.
  */
 export function libraryAssetByImageUrl(url: string | null | undefined): LibraryAsset | undefined {
   if (!url) return undefined;
@@ -85,6 +112,9 @@ const searchText = new Map(
       asset.id,
       libraryFamilyLabel(asset.family),
       libraryCategoryLabel(asset.category),
+      asset.size,
+      asset.creatureType ?? "",
+      asset.role ?? "",
       asset.description ?? "",
       asset.race ?? "",
       asset.gender ?? "",

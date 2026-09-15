@@ -16,6 +16,7 @@ import { NpcTokenImageField } from "./NpcTokenImageField";
 import {
   libraryAssetByImageUrl,
   libraryImageUrl,
+  libraryMediumUrl,
   type LibraryAsset,
 } from "../token-library/tokenCatalog";
 
@@ -143,11 +144,12 @@ export function NPCEditor({
   // both faces). A portrait the DM chose themselves is theirs and stays.
   const handlePickAsset = (asset: LibraryAsset) => {
     const url = libraryImageUrl(asset);
+    const face = libraryMediumUrl(asset);
     const portraitFollows =
       portrait.trim() === "" || libraryAssetByImageUrl(portrait) !== undefined;
     setTokenImage(url);
-    if (portraitFollows) setPortrait(url);
-    commitUpdate({ tokenImage: url, ...(portraitFollows ? { portrait: url } : {}) });
+    if (portraitFollows) setPortrait(face);
+    commitUpdate({ tokenImage: url, ...(portraitFollows ? { portrait: face } : {}) });
   };
 
   return (

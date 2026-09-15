@@ -13,7 +13,7 @@ import {
   LIBRARY_ASSETS,
   LIBRARY_CATEGORIES,
   LIBRARY_FAMILIES,
-  libraryImageUrl,
+  libraryThumbUrl,
   searchLibrary,
   type LibraryAsset,
   type LibraryCategory,
@@ -117,16 +117,17 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
             <button
               key={asset.id}
               type="button"
-              title={asset.description ? `${asset.name} — ${asset.description}` : asset.name}
+              title={[asset.name, asset.size, asset.description].filter(Boolean).join(" · ")}
               disabled={disabled}
               onClick={() => onPick(asset)}
               style={cellStyle}
             >
-              {/* Lazy on purpose: 244 full-size PNGs decode only as they scroll
-                  into view. The caption is the accessible name; the picture
+              {/* The 84px thumb at its natural size — one pixel per pixel-15
+                  cell, so nothing is resampled — and lazy, so only the visible
+                  rows decode. The caption is the accessible name; the picture
                   adds nothing a screen reader could use. */}
               <img
-                src={libraryImageUrl(asset)}
+                src={libraryThumbUrl(asset)}
                 alt=""
                 loading="lazy"
                 decoding="async"
@@ -171,22 +172,22 @@ const hintStyle = { margin: 0, fontSize: "10px", color: "var(--jrpg-white)", opa
 
 const gridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
   gap: "6px",
   maxHeight: "300px",
   overflowY: "auto",
   padding: "2px",
 } as const;
 
-// 56px picture plus caption: comfortably over the 44px touch floor without
+// 84px picture plus caption: comfortably over the 44px touch floor without
 // leaning on the coarse-pointer rule, which only reaches .jrpg-button.
 const cellStyle = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   gap: "3px",
-  minWidth: "56px",
-  minHeight: "56px",
+  minWidth: "84px",
+  minHeight: "84px",
   padding: "4px",
   background: "var(--jrpg-panel, #232638)",
   border: "1px solid var(--jrpg-border-gold, #8a7445)",
@@ -196,8 +197,8 @@ const cellStyle = {
 } as const;
 
 const thumbStyle = {
-  width: "56px",
-  height: "56px",
+  width: "84px",
+  height: "84px",
   objectFit: "contain",
   imageRendering: "pixelated",
 } as const;

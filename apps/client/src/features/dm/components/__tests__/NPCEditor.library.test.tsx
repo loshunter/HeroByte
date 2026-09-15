@@ -1,8 +1,9 @@
 /**
- * NPCEditor and the Token Library: a pick commits the token image through
- * the editor's own update (name, HP and the rest ride along, as any field
- * commit does), and the portrait follows only when there is nothing to lose —
- * empty, or itself a library image. A mimic flip is the same path.
+ * NPCEditor and the Token Library: a pick commits the token image (the
+ * master) through the editor's own update (name, HP and the rest ride along,
+ * as any field commit does), and the portrait — the 336px render — follows
+ * only when there is nothing to lose: empty, or itself a library image. A
+ * mimic flip is the same path.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -11,8 +12,11 @@ import type { Character } from "@herobyte/shared";
 import { NPCEditor } from "../NPCEditor";
 
 const CLUB = "/tokens/NPC/Enemies/Goblins/goblinClub.png";
+const CLUB_PORTRAIT = "/tokens/Medium/NPC/Enemies/Goblins/goblinClub.png";
 const DISGUISE = "/tokens/NPC/Enemies/Mimics/Disguised/closedChest.png";
+const DISGUISE_PORTRAIT = "/tokens/Medium/NPC/Enemies/Mimics/Disguised/closedChest.png";
 const REVEAL = "/tokens/NPC/Enemies/Mimics/mimicChest.png";
+const REVEAL_PORTRAIT = "/tokens/Medium/NPC/Enemies/Mimics/mimicChest.png";
 
 function renderEditor(npc: Partial<Character>) {
   const onUpdate = vi.fn();
@@ -34,15 +38,21 @@ function pickClubBrute() {
 }
 
 describe("NPCEditor — library picks", () => {
-  it("with no portrait on file, a pick sets both the token image and the portrait", () => {
+  it("with no portrait on file, a pick sets the master as token and the medium as portrait", () => {
     const onUpdate = renderEditor({});
     pickClubBrute();
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Thing", hp: 7, maxHp: 9, tokenImage: CLUB, portrait: CLUB }),
+      expect.objectContaining({
+        name: "Thing",
+        hp: 7,
+        maxHp: 9,
+        tokenImage: CLUB,
+        portrait: CLUB_PORTRAIT,
+      }),
     );
     expect(screen.getByLabelText("Token Image URL")).toHaveValue(CLUB);
-    expect(screen.getByLabelText("Portrait URL")).toHaveValue(CLUB);
+    expect(screen.getByLabelText("Portrait URL")).toHaveValue(CLUB_PORTRAIT);
   });
 
   it("a portrait the DM chose is left alone", () => {
@@ -55,10 +65,10 @@ describe("NPCEditor — library picks", () => {
   });
 
   it("a mimic flip swaps the token AND a library portrait to the revealed state", () => {
-    const onUpdate = renderEditor({ tokenImage: DISGUISE, portrait: DISGUISE });
+    const onUpdate = renderEditor({ tokenImage: DISGUISE, portrait: DISGUISE_PORTRAIT });
     fireEvent.click(screen.getByRole("button", { name: "🎭 Reveal mimic" }));
     expect(onUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ tokenImage: REVEAL, portrait: REVEAL }),
+      expect.objectContaining({ tokenImage: REVEAL, portrait: REVEAL_PORTRAIT }),
     );
   });
 

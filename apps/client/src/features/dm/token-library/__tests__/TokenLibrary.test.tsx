@@ -23,6 +23,14 @@ describe("TokenLibrary", () => {
     expect(cells()).toHaveLength(LIBRARY_ASSETS.length);
     expect(screen.getByRole("button", { name: "Goblin club brute" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dwarf blacksmith" })).toBeInTheDocument();
+    // The grid draws the 84px thumbs, not the 1254px masters, and the tooltip
+    // carries the size the token will be born at.
+    const club = screen.getByRole("button", { name: "Goblin club brute" });
+    expect(club.querySelector("img")).toHaveAttribute(
+      "src",
+      "/tokens/Thumbs/NPC/Enemies/Goblins/goblinClub.png",
+    );
+    expect(club.getAttribute("title")).toContain("small");
   });
 
   it("the category switch narrows the grid AND the family select", () => {
@@ -57,7 +65,7 @@ describe("TokenLibrary", () => {
     expect(names).toContain("Bandit club brute");
     expect(names).not.toContain("Goblin mage");
     fireEvent.change(screen.getByLabelText("Search"), { target: { value: "kid kite" } });
-    expect(cells().map((b) => b.textContent)).toEqual(["Half-orc kite flyer"]);
+    expect(cells().map((b) => b.textContent)).toEqual(["Half-orc child kite flyer"]);
   });
 
   it("a pick hands back the asset", () => {

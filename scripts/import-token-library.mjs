@@ -1,10 +1,13 @@
 // Imports the Pixel15 token pack (the community library Codex built under
-// temp/Library — monsters and civilians) into the client:
+// temp/Library — monsters and civilians, pack 1.0.0 and later) into the client:
 //
-//   apps/client/public/tokens/<pack path>       every filtered PNG, byte-identical, at the
+//   apps/client/public/tokens/<pack path>       every PNG of every tier, byte-identical, at the
 //                                              pack's own path minus its `Pixel15/` prefix
 //   apps/client/src/features/dm/token-library/tokenCatalog.generated.ts   the typed catalog
 //   apps/client/public/tokens/README.md         provenance for whoever finds the folder
+//
+// Three tiers per token: the 1254px master (the map), a 336px medium (the
+// portrait) and an 84px thumb (the picker — one pixel per pixel-15 cell).
 //
 // Dependency-free on purpose (node:crypto, node:fs, node:path only), like
 // gen-tile-blob47.mjs. It never touches the pack itself: the manifest is read,
@@ -36,19 +39,19 @@ const CATALOG_FILE = join(
   "tokenCatalog.generated.ts",
 );
 const PACK_PREFIX = "Pixel15/";
-const CANVAS = 1254;
+const TIERS = { master: 1254, medium: 336, thumb: 84 };
 const CATEGORIES = new Set(["monster", "civilian"]);
+/** The token size ladder (TokenSize in @herobyte/shared). */
+const TOKEN_SIZES = new Set(["tiny", "small", "medium", "large", "huge", "gargantuan"]);
 /** The create-npc name cap (STRING_LIMITS.PLAYER_NAME_MAX): a longer name is refused. */
 const NAME_MAX = 50;
 /** A byte-order mark: Python wrote the manifest as utf-8-sig, and JSON.parse refuses one. */
 const BOM = 0xfeff;
 
-// Monster titles are relative to their family ("Mage", "Club brute"), so the
-// NPC name prefixes the singular family unless the title already names the
-// creature ("Dire wolf", "Ghast champion", "Imp scout"). Families whose titles
-// stand alone get no prefix. Civilians carry an ancestry instead, so theirs is
-// "<race> <title>" ("Dwarf blacksmith"). Until the pack carries a `name` of
-// its own, this is where a table-ready name comes from.
+// Packs before 1.0.0 had no `displayName`; the fallback derives one. Monster
+// titles are relative to their family ("Mage", "Club brute"), so the name
+// prefixes the singular family unless the title already names the creature;
+// civilians carry an ancestry, so theirs is "<race> <title>".
 const FAMILY_NAMES = {
   Goblins: { singular: "Goblin" },
   Skeletons: { singular: "Skeleton" },
@@ -108,7 +111,7 @@ function pngDimensions(bytes) {
 
 const lowerFirst = (text) => `${text[0].toLowerCase()}${text.slice(1)}`;
 
-function npcName(asset) {
+function derivedName(asset) {
   if (asset.category === "civilian") {
     const race = typeof asset.race === "string" ? asset.race.trim() : "";
     return race ? `${race} ${lowerFirst(asset.title)}` : asset.title;
@@ -121,12 +124,37 @@ function npcName(asset) {
   return `${rule.singular} ${lowerFirst(asset.title)}`;
 }
 
+const text = (value) => (typeof value === "string" ? value.trim() : "");
 const stringList = (value) =>
   Array.isArray(value) ? value.filter((v) => typeof v === "string" && v.trim()) : [];
 
 function readManifest(source) {
-  const text = readFileSync(source, "utf8");
-  return JSON.parse(text.charCodeAt(0) === BOM ? text.slice(1) : text);
+  const raw = readFileSync(source, "utf8");
+  return JSON.parse(raw.charCodeAt(0) === BOM ? raw.slice(1) : raw);
+}
+
+/** The pack path of one tier, checked for shape and safety; returns the path under /tokens. */
+function packPath(id, tier, value) {
+  const src = String(value ?? "").replace(/\\/g, "/");
+  if (!/^Pixel15(\/[A-Za-z0-9][A-Za-z0-9-]*)+\.png$/.test(src)) {
+    fail(`${id}: ${tier} path ${src} is not a safe path under ${PACK_PREFIX}`);
+  }
+  return src.slice(PACK_PREFIX.length);
+}
+
+/** Read one tier's PNG from the pack and verify it against the manifest. */
+function readTier(packRoot, id, tier, record) {
+  const src = packPath(id, tier, record?.src);
+  const file = resolve(packRoot, PACK_PREFIX + src);
+  if (!file.startsWith(packRoot) || !existsSync(file)) fail(`${id}: missing ${tier} ${src}`);
+  const bytes = readFileSync(file);
+  if (sha256(bytes) !== record.sha256) fail(`${id}: ${tier} ${src} does not match its sha256`);
+  const dims = pngDimensions(bytes);
+  const edge = TIERS[tier];
+  if (!dims || dims.width !== edge || dims.height !== edge) {
+    fail(`${id}: expected a ${edge}x${edge} ${tier} PNG, got ${JSON.stringify(dims)}`);
+  }
+  return { src, bytes, sha256: record.sha256 };
 }
 
 function loadPack(source) {
@@ -147,55 +175,63 @@ function loadPack(source) {
   }
   const records = [];
   for (const asset of assets) {
-    if (asset.stage !== "filtered") fail(`${asset.id} is not a filtered record`);
-    if (!/^[A-Za-z0-9-]+$/.test(asset.id)) fail(`${asset.id}: id is not a safe identifier`);
-    if (!CATEGORIES.has(asset.category)) fail(`${asset.id}: category ${asset.category} unknown`);
+    const { id } = asset;
+    if (asset.stage !== "filtered") fail(`${id} is not a filtered record`);
+    if (!/^[A-Za-z0-9-]+$/.test(id)) fail(`${id}: id is not a safe identifier`);
+    if (!CATEGORIES.has(asset.category)) fail(`${id}: category ${asset.category} unknown`);
     const group = groups.get(asset.family);
-    if (!group) fail(`${asset.id}: family ${asset.family} is not a group`);
-    if (group.category !== asset.category) fail(`${asset.id}: category disagrees with its group`);
-    const src = String(asset.src).replace(/\\/g, "/");
-    if (!/^Pixel15(\/[A-Za-z0-9][A-Za-z0-9-]*)+\.png$/.test(src)) {
-      fail(`${asset.id}: src ${src} is not a safe path under ${PACK_PREFIX}`);
-    }
-    const file = resolve(packRoot, src);
-    if (!file.startsWith(packRoot) || !existsSync(file)) fail(`${asset.id}: missing ${src}`);
-    const bytes = readFileSync(file);
-    if (sha256(bytes) !== asset.sha256) fail(`${asset.id}: ${src} does not match its sha256`);
-    const dims = pngDimensions(bytes);
-    if (!dims || dims.width !== CANVAS || dims.height !== CANVAS) {
-      fail(`${asset.id}: expected a ${CANVAS}x${CANVAS} PNG, got ${JSON.stringify(dims)}`);
-    }
+    if (!group) fail(`${id}: family ${asset.family} is not a group`);
+    if (group.category !== asset.category) fail(`${id}: category disagrees with its group`);
+    const master = readTier(packRoot, id, "master", asset);
+    const medium = readTier(packRoot, id, "medium", asset.medium);
+    const thumb = readTier(packRoot, id, "thumb", asset.thumb);
     if (asset.counterpartId) {
       const other = byId.get(asset.counterpartId);
-      if (!other || other.counterpartId !== asset.id) {
-        fail(`${asset.id}: mimic pair not reciprocal`);
-      }
+      if (!other || other.counterpartId !== id) fail(`${id}: mimic pair not reciprocal`);
       if (!asset.mimicState || asset.mimicState === other.mimicState) {
-        fail(`${asset.id}: a mimic pair needs one disguised and one revealed state`);
+        fail(`${id}: a mimic pair needs one disguised and one revealed state`);
       }
     }
-    const name = npcName(asset);
+    const name = text(asset.displayName) || derivedName(asset);
     if (name.length === 0 || name.length > NAME_MAX) {
-      fail(`${asset.id}: name "${name}" is not 1-${NAME_MAX} chars`);
+      fail(`${id}: name "${name}" is not 1-${NAME_MAX} chars`);
+    }
+    const size = text(asset.tokenSize) || "medium";
+    if (!TOKEN_SIZES.has(size)) fail(`${id}: tokenSize ${size} is not on the ladder`);
+    const legacyIds = stringList(asset.legacyIds);
+    for (const legacy of legacyIds) {
+      if (byId.has(legacy)) fail(`${id}: legacy id ${legacy} is still a live id`);
     }
     records.push({
-      id: asset.id,
+      id,
       category: asset.category,
       family: asset.family,
-      src: src.slice(PACK_PREFIX.length),
+      src: master.src,
+      medium: medium.src,
+      thumb: thumb.src,
       title: asset.title,
       name,
-      description: typeof asset.description === "string" ? asset.description.trim() : "",
+      size,
+      creatureType: text(asset.creatureType),
+      role: text(asset.role),
+      description: text(asset.description),
       tags: stringList(asset.tags),
-      race: typeof asset.race === "string" ? asset.race : "",
-      gender: typeof asset.gender === "string" ? asset.gender : "",
-      age: typeof asset.age === "string" ? asset.age : "",
+      race: text(asset.race),
+      gender: text(asset.gender),
+      age: text(asset.age),
       setting: stringList(asset.setting),
       mimic: asset.mimicState,
       counterpartId: asset.counterpartId,
-      bytes,
-      sha256: asset.sha256,
+      legacyIds,
+      legacySrcs: stringList(asset.legacySrcs).map((s) => packPath(id, "legacy", s)),
+      files: [master, medium, thumb],
     });
+  }
+  const aliases = {};
+  for (const [legacy, current] of Object.entries(manifest.idAliases ?? {})) {
+    if (!byId.has(current)) fail(`idAliases: ${legacy} points at unknown id ${current}`);
+    if (byId.has(legacy)) fail(`idAliases: ${legacy} is still a live id`);
+    aliases[legacy] = current;
   }
   const order = [...groups.keys()];
   const familyIndex = new Map(order.map((g, i) => [g, i]));
@@ -203,7 +239,7 @@ function loadPack(source) {
   const families = order
     .filter((g) => records.some((r) => r.family === g))
     .map((id) => ({ id, label: groups.get(id).label || id, category: groups.get(id).category }));
-  return { manifest, records, families };
+  return { manifest, records, families, aliases };
 }
 
 function renderEntry(record) {
@@ -212,36 +248,54 @@ function renderEntry(record) {
     `category: ${JSON.stringify(record.category)}`,
     `family: ${JSON.stringify(record.family)}`,
     `src: ${JSON.stringify(record.src)}`,
+    `medium: ${JSON.stringify(record.medium)}`,
+    `thumb: ${JSON.stringify(record.thumb)}`,
     `title: ${JSON.stringify(record.title)}`,
     `name: ${JSON.stringify(record.name)}`,
+    `size: ${JSON.stringify(record.size)}`,
   ];
-  if (record.description) fields.push(`description: ${JSON.stringify(record.description)}`);
-  if (record.tags.length) fields.push(`tags: ${JSON.stringify(record.tags)}`);
-  if (record.race) fields.push(`race: ${JSON.stringify(record.race)}`);
-  if (record.gender) fields.push(`gender: ${JSON.stringify(record.gender)}`);
-  if (record.age) fields.push(`age: ${JSON.stringify(record.age)}`);
-  if (record.setting.length) fields.push(`setting: ${JSON.stringify(record.setting)}`);
-  if (record.mimic) fields.push(`mimic: ${JSON.stringify(record.mimic)}`);
-  if (record.counterpartId) fields.push(`counterpartId: ${JSON.stringify(record.counterpartId)}`);
+  const optional = [
+    ["creatureType", record.creatureType],
+    ["role", record.role],
+    ["description", record.description],
+    ["tags", record.tags.length ? record.tags : ""],
+    ["race", record.race],
+    ["gender", record.gender],
+    ["age", record.age],
+    ["setting", record.setting.length ? record.setting : ""],
+    ["mimic", record.mimic],
+    ["counterpartId", record.counterpartId],
+    ["legacyIds", record.legacyIds.length ? record.legacyIds : ""],
+    ["legacySrcs", record.legacySrcs.length ? record.legacySrcs : ""],
+  ];
+  for (const [key, value] of optional) if (value) fields.push(`${key}: ${JSON.stringify(value)}`);
   return `  { ${fields.join(", ")} },`;
 }
 
-function renderCatalog({ manifest, records, families }) {
+function renderCatalog({ manifest, records, families, aliases }) {
   const created = manifest.createdAt ?? "unknown date";
   const title = manifest.title ?? "token pack";
+  const version = manifest.packVersion ?? "0.0.0";
   const counts = ["monster", "civilian"]
     .map((c) => `${records.filter((r) => r.category === c).length} ${c}`)
     .join(", ");
   return [
     "// GENERATED FILE — do not edit by hand. Regenerate with:",
     "//   node scripts/import-token-library.mjs",
-    `// Source pack: ${title} (${records.length} tokens: ${counts}; manifest created ${created}).`,
+    `// Source pack: ${title} ${version} (${records.length} tokens: ${counts}; manifest created ${created}).`,
     "//",
     "// One entry per line on purpose (prettier-ignore): the 350-line structure",
     "// guard counts lines, and a pretty-printed object per token would be a dozen",
-    "// lines each. The image for an entry is libraryImageUrl(entry).",
+    "// lines each. The images for an entry are libraryImageUrl(entry) (the 1254px",
+    "// master), libraryMediumUrl(entry) (336px) and libraryThumbUrl(entry) (84px).",
     "",
     'import type { LibraryAsset, LibraryFamily } from "./tokenCatalogTypes";',
+    "",
+    `export const LIBRARY_PACK_VERSION = ${JSON.stringify(version)};`,
+    "",
+    "/** Ids the pack renamed: a saved reference to the old id resolves to the new one. */",
+    "// prettier-ignore",
+    `export const LIBRARY_ID_ALIASES: Readonly<Record<string, string>> = ${JSON.stringify(aliases)};`,
     "",
     "/** Families in the pack's own order, with the pack's labels. */",
     "// prettier-ignore",
@@ -263,15 +317,20 @@ function renderCatalog({ manifest, records, families }) {
 
 function renderReadme({ manifest, records, families }) {
   const created = (manifest.createdAt ?? "").slice(0, 10) || "an unknown date";
+  const version = manifest.packVersion ?? "unversioned";
   const monsters = records.filter((r) => r.category === "monster").length;
   const civilians = records.filter((r) => r.category === "civilian").length;
-  return `# HeroByte token pack (Pixel15)
+  const provenance = manifest.provenance ?? {};
+  const licence = manifest.license
+    ? `\`${manifest.license}\`${manifest.attribution ? ` — ${manifest.attribution}` : ""}`
+    : null;
+  return `# HeroByte token pack (Pixel15, pack ${version})
 
-${records.length} transparent PNG tokens — ${monsters} monsters and ${civilians} civilians across
-${families.length} families — ${CANVAS} × ${CANVAS} px each, drawn top-down for a virtual tabletop and
-finished with a pixel-size-15 pass (an 84 × 84 logical grid). Every file is byte-identical to the
-community pack's \`Pixel15/\` output (manifest of ${created}) and sits at the pack's own path, so
-\`/tokens/<path>\` here is \`Pixel15/<path>\` there.
+${records.length} tokens — ${monsters} monsters and ${civilians} civilians across ${families.length}
+families — as transparent PNGs in three tiers: the 1254 × 1254 master (drawn on the map), a
+336 × 336 medium (the portrait) and an 84 × 84 thumbnail (the picker; one pixel per pixel-15 cell).
+Every file is byte-identical to the community pack's \`Pixel15/\` output (manifest of ${created})
+and sits at the pack's own path, so \`/tokens/<path>\` here is \`Pixel15/<path>\` there.
 
 Generated: do not edit these files by hand. \`node scripts/import-token-library.mjs\` copies the
 pack from \`temp/Library\` and regenerates the catalog the DM menu's Library reads
@@ -279,15 +338,21 @@ pack from \`temp/Library\` and regenerates the catalog the DM menu's Library rea
 
 ## Provenance
 
-The art was generated by the HeroByte owner with ChatGPT's built-in image generation, with the art
-direction, prompts, and the pixel pass by OpenAI Codex (September 2026), then filtered locally with
-the pack's calibrated Pixel15 preset. The pack's own manifests carry every source hash and prompt
-path.
+${provenance.generator ? `Generator: ${provenance.generator}.` : "The art was generated with ChatGPT's built-in image generation."}
+${provenance.authorshipWorkflow ?? ""}
+${provenance.pixelFinish ? `Pixel finish: ${provenance.pixelFinish}` : ""}
+${provenance.derivatives ? `Derivatives: ${provenance.derivatives}` : ""}
+Art direction, prompts and the pixel pass by OpenAI Codex (September 2026). The pack's own manifest
+carries every source hash and prompt path.
 
 ## Licence
 
-Not yet published. The owner intends to release the images under an open licence as a standalone
-community pack; until that lands they are part of this repository under its root LICENSE.
+${
+  licence ??
+  `Not yet published (the pack says \`${manifest.licenseStatus ?? "pending"}\`). The owner intends to
+release the images under an open licence as a standalone community pack; until that lands they are
+part of this repository under its root LICENSE.`
+}
 `;
 }
 
@@ -308,16 +373,18 @@ function main() {
   const readme = renderReadme(pack);
   const planned = new Map();
   for (const record of pack.records) {
-    const file = join(PUBLIC_DIR, ...record.src.split("/"));
-    if (planned.has(file)) fail(`${record.id}: two tokens share the path ${record.src}`);
-    planned.set(file, record);
+    for (const tier of record.files) {
+      const file = join(PUBLIC_DIR, ...tier.src.split("/"));
+      if (planned.has(file)) fail(`${record.id}: two files share the path ${tier.src}`);
+      planned.set(file, tier);
+    }
   }
 
   if (args.check) {
     const drift = [];
-    for (const [file, record] of planned) {
+    for (const [file, tier] of planned) {
       if (!existsSync(file)) drift.push(`missing ${relative(REPO, file)}`);
-      else if (sha256(readFileSync(file)) !== record.sha256) {
+      else if (sha256(readFileSync(file)) !== tier.sha256) {
         drift.push(`changed ${relative(REPO, file)}`);
       }
     }
@@ -337,19 +404,19 @@ function main() {
   // The folder is owned by this script: a renamed or dropped token must not
   // leave its old file behind to be served forever.
   rmSync(PUBLIC_DIR, { recursive: true, force: true });
-  for (const [file, record] of planned) {
+  for (const [file, tier] of planned) {
     mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, record.bytes);
-    if (sha256(readFileSync(file)) !== record.sha256) fail(`copy of ${record.id} does not verify`);
+    writeFileSync(file, tier.bytes);
+    if (sha256(readFileSync(file)) !== tier.sha256) fail(`copy of ${tier.src} does not verify`);
   }
   writeFileSync(join(PUBLIC_DIR, "README.md"), readme);
   mkdirSync(dirname(CATALOG_FILE), { recursive: true });
   writeFileSync(CATALOG_FILE, catalog);
-  const bytes = pack.records.reduce((sum, r) => sum + r.bytes.length, 0);
+  const bytes = [...planned.values()].reduce((sum, t) => sum + t.bytes.length, 0);
   console.log(
-    `import-token-library: ${pack.records.length} tokens / ${pack.families.length} families ` +
-      `(${(bytes / 1024 / 1024).toFixed(2)} MiB) -> ${relative(REPO, PUBLIC_DIR)}; ` +
-      `catalog -> ${relative(REPO, CATALOG_FILE)}`,
+    `import-token-library: pack ${pack.manifest.packVersion ?? "?"}: ${pack.records.length} tokens / ` +
+      `${pack.families.length} families, ${planned.size} files (${(bytes / 1024 / 1024).toFixed(2)} MiB) ` +
+      `-> ${relative(REPO, PUBLIC_DIR)}; catalog -> ${relative(REPO, CATALOG_FILE)}`,
   );
 }
 

@@ -12,6 +12,7 @@ import { TokenLibrary } from "../token-library/TokenLibrary";
 import {
   libraryAssetByImageUrl,
   libraryCounterpart,
+  libraryThumbUrl,
   type LibraryAsset,
 } from "../token-library/tokenCatalog";
 
@@ -42,6 +43,9 @@ export function NpcTokenImageField({
   // mimic, and the flip must not appear and vanish under the DM's cursor.
   const current = libraryAssetByImageUrl(committedTokenImage);
   const counterpart = libraryCounterpart(current);
+  // A 48px preview needs the 84px thumb, not the 1254px master.
+  const live = libraryAssetByImageUrl(tokenImage);
+  const previewSrc = live ? libraryThumbUrl(live) : tokenImage;
 
   return (
     <>
@@ -57,7 +61,7 @@ export function NpcTokenImageField({
         {tokenImage && (
           <img
             key={committedTokenImage}
-            src={tokenImage}
+            src={previewSrc}
             alt={`${name} token preview`}
             style={{
               width: "48px",
