@@ -147,8 +147,13 @@ export function NPCEditor({
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
       tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
       initiativeModifier: clampedInitMod,
-      // Only when this edit set one: update-npc is a full-record send, so a
-      // bare `disposition: undefined` would clear a stance on every HP tweak.
+      // Only when this edit set one. Three things downstream would each
+      // survive a bare `disposition: undefined` anyway — useNpcUpdate merges
+      // with `??`, JSON.stringify drops undefined values, and the server's
+      // updateNPC guards on `!== undefined` — so this is consistency with the
+      // other conditional writers, not the load-bearing guard it once claimed
+      // to be. The real guard against an HP tweak clearing a stance is
+      // useNpcUpdate's merge.
       ...(overrides?.disposition ? { disposition: overrides.disposition } : {}),
     });
   };

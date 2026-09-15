@@ -58,6 +58,8 @@ export const HELP_LINKS: HelpLink[] = [
   },
 ];
 
+import { DM_HELP_TOPIC } from "./dmHelpTopic";
+
 export const HELP_TOPICS: HelpTopic[] = [
   {
     id: "atlas",
@@ -290,56 +292,5 @@ export const HELP_TOPICS: HelpTopic[] = [
       { term: "◄ PREV / NEXT ►", detail: "Advance the turn — any player can nudge it." },
     ],
   },
-  {
-    id: "dm",
-    icon: "🛠️",
-    title: "Running the game (DM)",
-    entries: [
-      {
-        term: "Become the DM",
-        detail:
-          "Your card's ⚙️ → Dungeon Master Mode → DM MODE: OFF, then the table's DM password.",
-      },
-      {
-        term: "+ Add NPC",
-        detail:
-          "DM Menu → NPCs. Name, HP, initiative modifier, portrait and token art — the same plumbing as a player.",
-      },
-      {
-        term: "Adding a whole pack",
-        detail:
-          "Set the ×N field before + Add NPC to make up to 20 at once. They come out numbered — Goblin 1, Goblin 2 — and a second batch carries on from where the first stopped rather than repeating it.",
-      },
-      {
-        term: "⧉ Duplicate",
-        detail:
-          "Copies an NPC's stats and art into a new one under the next free number, so a tweaked goblin becomes five tweaked goblins. A copy of a hidden NPC stays hidden.",
-      },
-      {
-        term: "PLACE ON MAP",
-        detail:
-          "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again moves that same token rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
-      },
-      {
-        term: "Fog of War",
-        detail:
-          "DM Menu → Map Setup. Needs a built map with walls; publish one in the live editor first.",
-      },
-      {
-        term: "👁 Player View",
-        detail:
-          "Renders your own table exactly as players receive it, while you keep every DM power.",
-      },
-      {
-        term: "🏗️ Map",
-        detail:
-          "The live map editor — rooms, walls, doors, terrain, lighting, generator. On a phone or tablet it lives at DM → 🏗️ Edit the live map, and the bottom dock becomes the palette: Exit, Tool, Undo, Redo, Abort. Every tool is reachable by finger — Paint, Erase, Room, Hall, Wall, Door, Place, Scatter, Light, Row, Spline and Gen — plus 👆 Select for picking a piece (then ✎ Edit to turn, resize, re-layer or hide it), 💧 Sample to arm Place with whatever you tap, and 🗂 Layers — where the Lighting layer’s opacity is the ambient light, so that is how a tablet makes it night. Place, Scatter and Light AIM while your finger is down and drop when you lift, because a phone has no hover to preview with. ⨯ ABORT discards the gesture in progress, because lifting a finger commits.",
-      },
-      {
-        term: "SAVE GAME STATE",
-        detail:
-          "DM Menu → Session. The whole table as one file, images included. Save before every risky experiment. The toast says the table's wire weight (what a load sends; images not counted) and the file's disk size: a load must fit 1 MB, so mints are refused past 0.75 MB.",
-      },
-    ],
-  },
+  DM_HELP_TOPIC,
 ];
