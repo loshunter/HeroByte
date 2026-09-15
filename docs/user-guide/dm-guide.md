@@ -52,15 +52,15 @@ A few notes worth knowing:
 
 NPCs are yours alone to edit: players can't rename, damage, or move them.
 
-### The Monster Library
+### The Library: monsters and townsfolk
 
-**📖 LIBRARY** next to **+ ADD NPC** opens the bundled token pack: 184 top-down pixel-art monsters across 30 families, from goblins and skeletons to hags, elementals and mimics. Pick a family, or type into **Search** (every word has to match, so `goblin archer` finds exactly that), then click a monster and it arrives as a new NPC with its name, token art and portrait already filled in. The **×N** field applies to a pick just as it does to the plain button: set it to 5 and click the goblin archer for five numbered archers.
+**📖 LIBRARY** next to **+ ADD NPC** opens the bundled token pack: 244 top-down pixel-art tokens — 184 monsters across 30 families, from goblins and skeletons to hags, elementals and mimics, and 60 townsfolk for taverns, shops, streets and children. **MONSTERS** / **TOWNSFOLK** narrows the pack; **Family** narrows further (Goblins, Tavern & inn, Shops & trades…); **Search** matches every word you type against names, ancestry, gender, setting and the pack's own tags, so `goblin archer`, `drunk dwarf` and `kid kite` each find what you mean. Click a token and it arrives as a new NPC with its name, token art and portrait already filled in. The **×N** field applies to a pick just as it does to the plain button: set it to 5 and click the goblin archer for five numbered archers.
 
 An NPC that already exists can take a library token too. Its card's **📖 LIBRARY** button, under the token image field, swaps the art in place; the portrait follows only when it was empty or was itself a library image, so a portrait you chose stays yours.
 
 **Mimics come in pairs.** The library holds a closed chest, barrel, dungeon door, sarcophagus and spellbook, each with its revealed monster. Add the closed object, place it, and when the party disturbs it press **🎭 REVEAL MIMIC** on its card: the token swaps to the monster in the same cell at the same size, and **🎭 DISGUISE** puts it back. The name stays whatever you called it, so a chest labelled "Old chest" is still "Old chest" with teeth.
 
-The pack lives at `/tokens/monsters/` on the site, so a library token survives a session save and load like any other URL, and players see the art the moment the NPC is visible to them.
+Townsfolk are NPCs like any other, so their cards read **Enemy** in the Entities panel and they sit on your side of the table; there is no friendly-NPC type yet. The pack lives at `/tokens/` on the site, at the same paths the pack's own gallery uses, so a library token survives a session save and load like any other URL, and players see the art the moment the NPC is visible to them.
 
 ## Props & Objects
 
