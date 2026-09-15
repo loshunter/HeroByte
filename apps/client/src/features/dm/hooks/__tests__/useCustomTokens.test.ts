@@ -192,6 +192,31 @@ describe("useCustomTokens", () => {
     expect(sendMessage).toHaveBeenCalledWith({ t: "remove-custom-token", id: "ct-1" });
   });
 
+  it("sees the shelf grow the way the WIRE grows it: a new array on a new snapshot", async () => {
+    // The helper above mutates one array in place, which no real snapshot ever
+    // does — `snapshot.customTokens` is freshly deserialized per broadcast. If
+    // the watcher could only see in-place growth it would time out on every
+    // successful add in production while every unit test stayed green. This is
+    // the test that would have caught that.
+    let shelf: unknown[] = [];
+    const sendMessage = vi.fn();
+    const { result, rerender } = renderHook(() =>
+      useCustomTokens({
+        snapshot: { customTokens: shelf } as unknown as RoomSnapshot,
+        sendMessage,
+        prepareImage: passthrough as never,
+        confirmTimeoutMs: 2000,
+      }),
+    );
+
+    const pending = result.current.addToken(draft);
+    // The server answers: a whole new snapshot, holding a DIFFERENT array.
+    shelf = [token];
+    rerender();
+
+    await expect(pending).resolves.toEqual({ added: true });
+  });
+
   it("says so when the table does not take the token, instead of looking like a success", async () => {
     // Every refusal reaches the client the same way: not at all. The add is
     // fire-and-forget with no commandId, a validator rejection is a
