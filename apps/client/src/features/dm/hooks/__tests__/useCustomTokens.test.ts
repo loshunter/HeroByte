@@ -347,6 +347,31 @@ describe("useCustomTokens", () => {
     expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: ours }));
   });
 
+  it("stops waiting when the menu closes, instead of holding the add for five seconds", async () => {
+    // The wait is a 50ms setTimeout chain against a ref. After unmount that
+    // ref can never change again, so without the guard the chain ran on to
+    // the full deadline holding the whole add's closure.
+    const shelf: unknown[] = [];
+    const sendMessage = vi.fn();
+    const { result, unmount } = renderHook(() =>
+      useCustomTokens({
+        snapshot: { customTokens: shelf } as unknown as RoomSnapshot,
+        sendMessage,
+        prepareImage: passthrough as never,
+        // Long enough that only the unmount can end this inside the timeout.
+        confirmTimeoutMs: 30_000,
+      }),
+    );
+
+    const pending = result.current.addToken(draft);
+    await Promise.resolve();
+    unmount();
+
+    await expect(pending).resolves.toEqual(
+      expect.objectContaining({ added: false, note: expect.stringMatching(/did not take/i) }),
+    );
+  });
+
   it("refuses an over-long address before the uploads, the way the wire does", async () => {
     // The wire tests LENGTH first and the shape second, and a presigned CDN
     // link runs well past 2048 characters while passing the shape test

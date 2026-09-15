@@ -134,7 +134,10 @@ test.describe("mobile — the shelf and the stance", () => {
       // It only renders for a pasted link, which is also why the pack path
       // below never showed it.
       await form.getByRole("textbox", { name: "Image" }).fill("https://i.imgur.com/x.png");
-      const keepCopy = form.getByText(/Keep a copy on this table/);
+      // The LABEL, which is what carries the rule: getByText would resolve to
+      // the inner span, whose own box can sit under 44px while the label meets
+      // it — a green assertion measuring the wrong element.
+      const keepCopy = form.locator("label.custom-token-keep-copy");
       await expect(keepCopy).toBeVisible();
       expect((await keepCopy.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 
@@ -210,9 +213,10 @@ test.describe("mobile — the shelf and the stance", () => {
     // `flex: 1` to equalise ragged captions, and inside a stretched row that
     // made every PACK button grow to the custom wrapper's height: a bordered
     // box with ~48px of dead space under its caption, next to a normal one.
-    // Measured before the fix at 375px: wrappers 171/171/171, buttons
-    // 123/171/171. No test looked at cell-to-cell geometry, and the ✕ spec's
-    // shelf holds exactly one token, so it could not see this.
+    // Measured with the coarse-pointer rule removed: a pack cell in the row
+    // renders 159px tall with 55px of dead space under its caption. No test
+    // looked at cell-to-cell geometry, and the ✕ spec's shelf holds exactly
+    // one token, so it could not see this.
     await page.setViewportSize({ width: 375, height: 812 });
     await joinMobileTable(page);
     await openShelf(page);
@@ -234,8 +238,12 @@ test.describe("mobile — the shelf and the stance", () => {
 
       // ALL, where ours lead the grid and the pack follows in the same row.
       const dialog = page.getByRole("dialog", { name: "DM Menu" });
-      await dialog.getByRole("button", { name: "All" }).click();
-      await expect(page.getByRole("button", { name: NAME })).toBeVisible();
+      // exact, because the name match is a substring by default and the form's
+      // "ally" kind chip is in the same dialog.
+      await dialog.getByRole("button", { name: "All", exact: true }).click();
+      // exact again: the cell's own ✕ is labelled "Remove <NAME> from the
+      // library", which a substring match picks up as well.
+      await expect(page.getByRole("button", { name: NAME, exact: true })).toBeVisible();
 
       const row = await page.evaluate(() => {
         const MINE = 'button[aria-label^="Remove "]';

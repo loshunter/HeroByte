@@ -1333,8 +1333,9 @@ h4 {
  * under the cell, so a custom cell's wrapper is ~48px taller than a pack
  * one beside it — and `flex: 1` made every pack button in that row stretch to
  * match, rendering as a bordered box with 48px of dead space under its
- * caption. Measured at 375px: three cells in a row, wrappers 171px each,
- * buttons 123 / 171 / 171.
+ * caption. Measured in the running app at 375px: a pack cell in a row led by
+ * one of ours renders 159px tall with 55px of dead space under its caption;
+ * with this rule off the class, 4px — the cell's own padding.
  */
 .token-library-cell {
   flex: 1;

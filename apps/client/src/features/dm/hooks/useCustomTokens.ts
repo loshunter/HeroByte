@@ -82,12 +82,23 @@ export function useCustomTokens({
     [prepareImage, getCredentials],
   );
 
+  // Unmounting ENDS the wait. Without this the 50ms chain ran on to the full
+  // deadline against a ref that can no longer change, holding the add's whole
+  // closure for five seconds after the DM closed the menu.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   /** Resolves true when `landed` sees the shelf it is waiting for, false at the deadline. */
   const waitForShelf = useCallback(
     async (landed: (shelf: readonly CustomToken[]) => boolean) => {
       const deadline = Date.now() + confirmTimeoutMs;
       while (!landed(tokensRef.current)) {
-        if (Date.now() >= deadline) return false;
+        if (!mounted.current || Date.now() >= deadline) return false;
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
       return true;

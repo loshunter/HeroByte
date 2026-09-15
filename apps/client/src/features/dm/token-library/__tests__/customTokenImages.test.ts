@@ -113,8 +113,11 @@ describe("prepareCustomImage", () => {
     expect(result.imageUrl).toBe(LINK);
     expect(result.mirrored).toBe(false);
     expect(result.thumbUrl).toBe(`/assets/token-thumb.png-${HASH}`);
+    // The size line is deliberately NOT the uploader's — see the test below.
+    // This assertion moved because the behaviour it describes changed on
+    // purpose, not to keep a suite green over a break.
     expect(result.note).toBe(
-      "No copy was made, so the link stays: That image is over the 5MB limit.",
+      "No copy was made, so the link stays: the copy HeroByte rendered came out over the 5MB upload limit.",
     );
   });
 
@@ -193,6 +196,37 @@ describe("prepareCustomImage", () => {
     expect(result.thumbUrl).toBeUndefined();
     expect(result.note).toBe("No thumbnail: The table's asset storage is full.");
     expect(result.mirrored).toBe(false);
+  });
+
+  it("does not blame the DM's file for the size of the copy WE rendered", async () => {
+    // The uploader's 413 line — "That image is over the 5MB upload limit" —
+    // was written for a file the user picked. On this road the bytes are
+    // ours: their picture re-encoded as PNG at up to 1254px, where a 900KB
+    // JPEG can land at 3-4MB. Passing that line through tells the DM their
+    // image is too big when it is a third of the limit, and points them at
+    // the one thing that would not have helped.
+    const d = deps({
+      upload: vi.fn(async () =>
+        Promise.reject(
+          new AssetUploadError("too-large", "That image is over the 5MB upload limit."),
+        ),
+      ),
+    });
+    const result = await prepareCustomImage(LINK, MIRROR, d);
+
+    expect(result.note).toContain("the copy HeroByte rendered");
+    expect(result.note).not.toContain("That image is over");
+    // Every other code still speaks for itself.
+    const quota = deps({
+      upload: vi.fn(async () =>
+        Promise.reject(
+          new AssetUploadError("quota-exceeded", "The table's asset storage is full."),
+        ),
+      ),
+    });
+    expect((await prepareCustomImage(LINK, NO_MIRROR, quota)).note).toContain(
+      "The table's asset storage is full.",
+    );
   });
 
   it("reports BOTH failures when the copy and the thumbnail are both refused", async () => {

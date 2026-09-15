@@ -128,11 +128,21 @@ const UNREADABLE = {
  * A COLON, not a dash: several AssetUploadError messages contain a dash of
  * their own ("Upload failed — is the game server reachable?"), and chaining
  * two of them read as one run-on line at the table.
+ *
+ * The size line is REWRITTEN rather than passed through. "That image is over
+ * the 5MB upload limit" was written for a file the DM chose, and here the
+ * bytes are ours: a re-encode of their picture at up to 1254px. A 900KB JPEG
+ * can land as a 3-4MB PNG, so the DM can be told their image is too large
+ * when it is a third of the limit — and the thing they would do about it
+ * (pick a smaller file) is not the thing that happened.
  */
 function why(step: string, error: unknown): string {
-  return error instanceof AssetUploadError
-    ? `${step}: ${error.message}`
-    : `${step}: that image could not be copied.`;
+  if (!(error instanceof AssetUploadError)) return `${step}: that image could not be copied.`;
+  const detail =
+    error.code === "too-large"
+      ? "the copy HeroByte rendered came out over the 5MB upload limit."
+      : error.message;
+  return `${step}: ${detail}`;
 }
 
 /**
