@@ -19,6 +19,8 @@ import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { NPCEditor } from "../NPCEditor";
 import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";
 import type { CreateNpcRequest } from "../../hooks/useNpcCreation";
+import { MonsterLibrary } from "../../monster-library/MonsterLibrary";
+import { monsterImageUrl, type MonsterAsset } from "../../monster-library/monsterCatalog";
 
 /**
  * Props for the NPCsTab component
@@ -127,6 +129,17 @@ export default function NPCsTab({
       toast.error("No NPCs without initiative to roll for");
     }
   };
+
+  // The bundled token pack. A pick is an Add with the art filled in — the ×N
+  // count applies, so "five goblin archers" is still one press — and the
+  // portrait rides along so the Entities panel shows the creature, not a
+  // blank card.
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const handlePickMonster = (asset: MonsterAsset) => {
+    const url = monsterImageUrl(asset);
+    onCreateNPC({ name: asset.name, tokenImage: url, portrait: url, count });
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       {/* Wraps because the ×N control made this row wider than the DM panel:
@@ -160,6 +173,15 @@ export default function NPCsTab({
               ⚔️ Roll Missing Initiative
             </JRPGButton>
           )}
+          <JRPGButton
+            onClick={() => setLibraryOpen((open) => !open)}
+            variant={libraryOpen ? "primary" : "default"}
+            aria-expanded={libraryOpen}
+            style={{ fontSize: "10px", padding: "6px 12px" }}
+            title="Browse the bundled monster tokens and add one as an NPC"
+          >
+            📖 Library
+          </JRPGButton>
           {/* The count sits BEFORE the button so it reads as "× 5 → + Add NPC",
               and so a DM who wants one never has to touch it. */}
           <label
@@ -215,6 +237,18 @@ export default function NPCsTab({
         >
           {npcCreationError}
         </JRPGPanel>
+      )}
+
+      {libraryOpen && (
+        <MonsterLibrary
+          hint={
+            count > 1
+              ? `Pick a monster to add ${count} of it`
+              : "Pick a monster to add it as an NPC"
+          }
+          disabled={isCreatingNpc}
+          onPick={handlePickMonster}
+        />
       )}
 
       {npcs.length === 0 ? (

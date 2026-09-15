@@ -8,11 +8,16 @@ import { useState, useEffect } from "react";
 import type { SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { JRPGPanel } from "../../../components/ui/JRPGPanel";
-import { ImageField } from "../../../components/ui/ImageField";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
 import { NPCEditorActions } from "./NPCEditorActions";
 import { MovementSpeedField } from "../../players/components/MovementSpeedField";
 import { NpcPortraitField } from "./NpcPortraitField";
+import { NpcTokenImageField } from "./NpcTokenImageField";
+import {
+  monsterByImageUrl,
+  monsterImageUrl,
+  type MonsterAsset,
+} from "../monster-library/monsterCatalog";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -132,6 +137,17 @@ export function NPCEditor({
   const handleMaxHpBlur = () => commitUpdate();
   const handleTempHpBlur = () => commitUpdate();
   const handleInitiativeModifierBlur = () => commitUpdate();
+
+  // A library pick brings the portrait along when there is nothing to lose: an
+  // empty portrait, or one the library set earlier (so a mimic's flip changes
+  // both faces). A portrait the DM chose themselves is theirs and stays.
+  const handlePickAsset = (asset: MonsterAsset) => {
+    const url = monsterImageUrl(asset);
+    const portraitFollows = portrait.trim() === "" || monsterByImageUrl(portrait) !== undefined;
+    setTokenImage(url);
+    if (portraitFollows) setPortrait(url);
+    commitUpdate({ tokenImage: url, ...(portraitFollows ? { portrait: url } : {}) });
+  };
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -295,34 +311,18 @@ export function NPCEditor({
         }}
       />
 
-      <ImageField
-        label="Token Image URL"
-        value={tokenImage}
+      <NpcTokenImageField
+        tokenImage={tokenImage}
+        committedTokenImage={npc.tokenImage ?? ""}
+        name={npc.name}
+        disabled={isUpdating}
         onChange={setTokenImage}
         onCommit={(url) => {
           setTokenImage(url);
           commitUpdate({ tokenImage: url });
         }}
-        disabled={isUpdating}
-        compact
+        onPickAsset={handlePickAsset}
       />
-      {tokenImage && (
-        <img
-          src={tokenImage}
-          alt={`${npc.name} token preview`}
-          style={{
-            width: "48px",
-            height: "48px",
-            objectFit: "cover",
-            borderRadius: "4px",
-            border: "1px solid var(--jrpg-border-gold)",
-            alignSelf: "flex-start",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
 
       <NPCEditorActions
         npcName={npc.name}
