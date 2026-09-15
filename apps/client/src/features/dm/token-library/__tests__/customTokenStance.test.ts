@@ -31,8 +31,8 @@ describe("impliedStance", () => {
   });
 });
 
-describe("the mimic reveal carries a stance", () => {
-  it("a revealed half turns hostile; a disguised half and ordinary art do not", async () => {
+describe("a mimic flip carries a stance, both ways", () => {
+  it("revealed turns hostile, disguised turns neutral, ordinary art touches neither", async () => {
     const { useNpcAssetPick } = await import("../../hooks/useNpcAssetPick");
     const { libraryAssetById, packItem } = await import("../tokenCatalog");
 
@@ -45,9 +45,14 @@ describe("the mimic reveal carries a stance", () => {
     pick(packItem(libraryAssetById("mimicChest")!));
     expect(applied.at(-1)).toMatchObject({ disposition: "hostile" });
 
+    // And 🎭 DISGUISE is the same promise run backwards. It was one-way: the
+    // art went back to a closed chest and the card stayed Enemy in red, which
+    // is the exact tell the guide's Neutral instruction exists to suppress.
     pick(packItem(libraryAssetById("mimicChestHidden")!));
-    expect(applied.at(-1)).not.toHaveProperty("disposition");
+    expect(applied.at(-1)).toMatchObject({ disposition: "neutral" });
 
+    // Everything else is the DM's: re-skinning an ogre as the baker does not
+    // make it friendly.
     pick(packItem(libraryAssetById("goblinClub")!));
     expect(applied.at(-1)).not.toHaveProperty("disposition");
   });

@@ -25,11 +25,20 @@ export interface NpcAssetPick {
 /**
  * The STANCE, on the other hand, is the DM's on an existing NPC — re-skinning
  * an ogre with the baker's art does not make it friendly — with exactly one
- * exception: revealing a mimic. The guide tells DMs to set the closed chest
- * Neutral so the party sees a harmless prop, and 🎭 REVEAL MIMIC is the moment
- * that lie ends. Without this the chest grows teeth and its card still reads
- * Neutral in gold, which is the one panel the players are actually reading.
+ * exception: a mimic, which is the one pair of library entries that IS a lie
+ * about whose side something is on.
+ *
+ * Both directions, because the guide promises both. It tells DMs to set the
+ * closed chest Neutral so the party sees a harmless prop; 🎭 REVEAL MIMIC is
+ * the moment that lie ends, and without the hostile stamp the chest grows
+ * teeth while its card still reads Neutral in gold — the one panel the
+ * players are actually reading. 🎭 DISGUISE is the same promise run
+ * backwards, and it was one-way: the art went back to a closed chest and the
+ * card stayed Enemy in red, which is the exact tell the Neutral instruction
+ * exists to suppress, on a workflow the guide walks the DM straight into.
  */
+const MIMIC_STANCE = { revealed: "hostile", disguised: "neutral" } as const;
+
 export function useNpcAssetPick(
   currentPortrait: string,
   apply: (next: NpcAssetPick) => void,
@@ -37,10 +46,11 @@ export function useNpcAssetPick(
   return (item) => {
     const follows =
       currentPortrait.trim() === "" || libraryAssetByImageUrl(currentPortrait) !== undefined;
+    const stance = item.mimic ? MIMIC_STANCE[item.mimic] : undefined;
     apply({
       tokenImage: item.imageUrl,
       ...(follows ? { portrait: item.portraitUrl } : {}),
-      ...(item.mimic === "revealed" ? { disposition: "hostile" as const } : {}),
+      ...(stance ? { disposition: stance } : {}),
     });
   };
 }

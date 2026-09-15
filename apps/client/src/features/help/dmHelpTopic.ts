@@ -31,7 +31,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "🎭 Reveal mimic",
       detail:
-        "The library ships five mimic pairs — chest, barrel, door, sarcophagus, spellbook. Place the closed object, set its Stance to Neutral so the party sees a prop, and press 🎭 REVEAL MIMIC when they disturb it: the token swaps to the monster in the same cell and the Stance goes back to Enemy.",
+        "The library ships five mimic pairs — chest, barrel, door, sarcophagus, spellbook. Place the closed object and press 🎭 REVEAL MIMIC when the party disturbs it: the token swaps to the monster in the same cell. Either button sets the Stance to match the face it put on — Enemy on a reveal, Neutral on 🎭 DISGUISE — so the card never contradicts the art. A shell you add as a NEW NPC still arrives Enemy, like every monster in the pack.",
     },
     {
       term: "Stance",
