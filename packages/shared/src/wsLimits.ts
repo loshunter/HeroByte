@@ -29,12 +29,14 @@ export const WS_MAX_MESSAGE_BYTES = 1024 * 1024;
  * would produce weighs more than this on the wire (`loadSessionFrameBytes`).
  * The promise it keeps is the one MAX_SESSION_DOCUMENTS was written for and
  * cannot: a DM's own export always loads back. A count cap only holds while
- * the average document is small, and one `large` generated building is
- * 207–235 KB.
+ * the average document is small, and a `large` generated building is
+ * 60–220 KB stored by kind (a warehouse is the heavy one) plus 30–145 KB of
+ * compiled scene once the party stands on it.
  *
  * Three quarters of the wire limit, so a quarter is left for play — tokens,
  * drawings, suspended scenes — which no mint gate can see. The count cap
- * stays beside it; a mint clears both or neither. One dial: at `large` a
- * table holds four generated buildings, not five.
+ * stays beside it; a mint clears both or neither. One dial, measured on a
+ * fresh table (2026-09-14): two large warehouses, six large taverns, eight or
+ * nine large shops or houses; medium maps about twice as many.
  */
 export const SESSION_MINT_CEILING_BYTES = Math.floor((WS_MAX_MESSAGE_BYTES * 3) / 4);

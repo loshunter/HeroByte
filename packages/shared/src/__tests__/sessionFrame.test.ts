@@ -99,8 +99,8 @@ describe("SESSION_MINT_CEILING_BYTES", () => {
   it("is three quarters of the wire limit — headroom for play, not a wall", () => {
     expect(SESSION_MINT_CEILING_BYTES).toBe(Math.floor((WS_MAX_MESSAGE_BYTES * 3) / 4));
     expect(SESSION_MINT_CEILING_BYTES).toBeLessThan(WS_MAX_MESSAGE_BYTES);
-    // The product decision, loosely: three `large` generated buildings
-    // (207–235 KB stored each) still fit under it.
-    expect(SESSION_MINT_CEILING_BYTES).toBeGreaterThan(3 * 235 * 1024);
+    // The product decision, loosely: two `large` warehouses — the heaviest
+    // generated map at ~365 KB each with the scene they install — still fit.
+    expect(SESSION_MINT_CEILING_BYTES).toBeGreaterThan(2 * 365 * 1024);
   });
 });

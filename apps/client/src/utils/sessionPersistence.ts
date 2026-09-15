@@ -27,6 +27,11 @@ import type { PlayerStagingZone, RoomSnapshot, SessionFile } from "@herobyte/sha
 /**
  * Trigger a download of a complete session file.
  */
+/** The bytes a session file is written as: pretty-printed, images inlined — what the disk holds. */
+export function serializeSessionFile(file: SessionFile): string {
+  return JSON.stringify(file, null, 2);
+}
+
 export function saveSessionFile(file: SessionFile, sessionName: string): void {
   const safeName = (sessionName || "session").trim() || "session";
   const timestamp = new Date()
@@ -34,7 +39,7 @@ export function saveSessionFile(file: SessionFile, sessionName: string): void {
     .replace(/[-:]/g, "")
     .replace(/\.\d{3}Z$/, "Z");
   const fileName = `${safeName}-${timestamp}.json`;
-  const json = JSON.stringify(file, null, 2);
+  const json = serializeSessionFile(file);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 

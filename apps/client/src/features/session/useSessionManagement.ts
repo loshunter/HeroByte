@@ -22,8 +22,9 @@ import {
   loadSessionFrameBytes,
   type ClientMessage,
   type SessionFile,
+  utf8ByteLength,
 } from "@herobyte/shared";
-import { saveSessionFile, loadSession } from "../../utils/sessionPersistence";
+import { saveSessionFile, loadSession, serializeSessionFile } from "../../utils/sessionPersistence";
 import { awaitSessionFile, sessionCredentials } from "./sessionBridge";
 import { collectSessionAssets, restoreSessionAssets } from "./sessionAssets";
 
@@ -129,18 +130,22 @@ export function useSessionManagement({
           // past what one load-session frame carries — tokens, drawings,
           // suspended scenes — even when every mint stayed under the ceiling,
           // and this is where that becomes visible before the day it matters.
+          // Two numbers, because they differ by 2× or more: the wire weight is
+          // what a load sends (the frame, no images), the disk size is what was
+          // just written (pretty-printed, images inlined).
           const frameBytes = loadSessionFrameBytes(file);
+          const diskBytes = utf8ByteLength(serializeSessionFile({ ...file, assets }));
           if (frameBytes > WS_MAX_MESSAGE_BYTES) {
             toast.warning(
-              `Session "${name}" saved (${parts.join(", ")}) — but at ${megabytes(frameBytes)} it will ` +
-                `NOT load back: the server accepts ${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. ` +
-                `Delete some maps and save again.`,
+              `Session "${name}" saved (${parts.join(", ")}; ${megabytes(diskBytes)} on disk) — but at ` +
+                `${megabytes(frameBytes)} on the wire it will NOT load back: the server accepts ` +
+                `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. Delete some maps and save again.`,
               9000,
             );
           } else {
             toast.success(
               `Session "${name}" saved — ${parts.join(", ")} included; ${megabytes(frameBytes)} of ` +
-                `the ${megabytes(WS_MAX_MESSAGE_BYTES)} a load accepts.`,
+                `the ${megabytes(WS_MAX_MESSAGE_BYTES)} a load accepts (${megabytes(diskBytes)} on disk with images).`,
               4000,
             );
           }

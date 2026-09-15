@@ -16,7 +16,12 @@
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { WS_MAX_MESSAGE_BYTES, type SessionFile } from "@herobyte/shared";
+import {
+  WS_MAX_MESSAGE_BYTES,
+  type SessionFile,
+  loadSessionFrameBytes,
+  utf8ByteLength,
+} from "@herobyte/shared";
 import { useSessionManagement } from "../useSessionManagement";
 import { deliverSessionFile } from "../sessionBridge";
 import { saveSessionFile, loadSession } from "../../../utils/sessionPersistence";
@@ -24,6 +29,8 @@ import { saveSessionFile, loadSession } from "../../../utils/sessionPersistence"
 vi.mock("../../../utils/sessionPersistence", () => ({
   saveSessionFile: vi.fn(),
   loadSession: vi.fn(),
+  // The real one: the toast's disk figure is weighed on it.
+  serializeSessionFile: (file: unknown) => JSON.stringify(file, null, 2),
 }));
 
 const toast = {
@@ -160,9 +167,17 @@ describe("useSessionManagement — save", () => {
     expect(sendMessage).toHaveBeenCalledTimes(2);
   });
 
-  it("says the file's weight on a save that will load back", async () => {
+  it("says the file's wire weight AND its disk size on a save that will load back", async () => {
     const { result } = mount();
-    const file = sessionFile({ mapDocuments: [{ id: "doc-A" } as never] });
+    // ~300 KB of name: a weight that cannot be confused with the limit or with zero.
+    const file = sessionFile({
+      mapDocuments: [{ id: "doc-A", name: "n".repeat(300_000) } as never],
+    });
+    const wire = loadSessionFrameBytes(file);
+    const disk = utf8ByteLength(JSON.stringify({ ...file, assets: [] }, null, 2));
+    const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    expect(mb(wire)).not.toBe("0.00 MB");
+    expect(mb(wire)).not.toBe("1.00 MB");
 
     act(() => result.current.handleSaveSession("light"));
     await act(async () => {
@@ -170,10 +185,9 @@ describe("useSessionManagement — save", () => {
     });
 
     expect(saveSessionFile).toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith(
-      expect.stringMatching(/\d\.\d\d MB of the 1\.00 MB/),
-      4000,
-    );
+    const said = vi.mocked(toast.success).mock.calls[0]?.[0] ?? "";
+    expect(said).toContain(`${mb(wire)} of the 1.00 MB a load accepts`);
+    expect(said).toContain(`(${mb(disk)} on disk with images)`);
     expect(toast.warning).not.toHaveBeenCalled();
   });
 
@@ -183,8 +197,11 @@ describe("useSessionManagement — save", () => {
     // the DM's — the file downloads — but "saved!" over a backup that cannot
     // be restored is the failure the whole arc exists to end.
     const { result } = mount();
+    // One and a half times the limit: the weight and the limit are different numbers.
     const file = sessionFile({
-      mapDocuments: [{ id: "doc-A", name: "x".repeat(WS_MAX_MESSAGE_BYTES) } as never],
+      mapDocuments: [
+        { id: "doc-A", name: "x".repeat(Math.floor(WS_MAX_MESSAGE_BYTES * 1.5)) } as never,
+      ],
     });
 
     act(() => result.current.handleSaveSession("heavy"));
@@ -196,8 +213,8 @@ describe("useSessionManagement — save", () => {
     expect(toast.success).not.toHaveBeenCalled();
     const said = vi.mocked(toast.warning).mock.calls[0]?.[0] ?? "";
     expect(said).toContain("NOT load back");
-    expect(said).toMatch(/1\.0\d MB/);
-    expect(said).toContain("1.00 MB");
+    expect(said).toContain("at 1.50 MB on the wire");
+    expect(said).toContain("accepts 1.00 MB");
   });
 
   it("drops a bundle nobody asked for", () => {

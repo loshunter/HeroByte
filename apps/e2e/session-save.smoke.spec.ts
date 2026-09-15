@@ -19,15 +19,14 @@ test.describe("Session Save - Smoke Tests", () => {
     await joinDefaultRoomAsDM(page);
     await selectDMTab(page, "Session");
 
+    // The toast: the WEIGHT (digits, not just the limit) beside the map count.
+    // Waited for from before the click — a 4 s toast does not wait for us.
+    const weighToast = page.getByText(/\d\.\d\d MB of the 1\.00 MB a load accepts/);
     const [download] = await Promise.all([
       page.waitForEvent("download", { timeout: 15_000 }),
+      weighToast.waitFor({ state: "visible", timeout: 15_000 }),
       page.getByRole("button", { name: /Save Game State/i }).click(),
     ]);
-
-    // The toast: the weight beside the map count, under the load limit.
-    await expect(page.getByText(/MB of the 1\.00 MB a load accepts/)).toBeVisible({
-      timeout: 10_000,
-    });
 
     // The file: the envelope the loaders read (schemaVersion, snapshot,
     // mapDocuments), not a bare snapshot and not an error page.
