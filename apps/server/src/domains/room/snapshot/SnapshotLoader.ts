@@ -15,7 +15,11 @@ import {
 import { normalizeAtlasState } from "../atlasState.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
-import { coerceCustomTokens, coerceTokenSize } from "../persistence/loadCoercions.js";
+import {
+  coerceCustomTokens,
+  coerceNpcDisposition,
+  coerceTokenSize,
+} from "../persistence/loadCoercions.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
 
 /**
@@ -73,10 +77,15 @@ export class SnapshotLoader {
     // real numbers — normalizeHPValues turns absence into 0/1, visibly wrong
     // rather than silently NaN.
     const loadedCharacters = (snapshot.characters ?? []).map(
-      ({ hpBadge: _wireOnly, tokenSize, ...character }) => {
+      ({ hpBadge: _wireOnly, tokenSize, disposition, ...character }) => {
         const { hp, maxHp } = normalizeHPValues(character.hp ?? 0, character.maxHp ?? 1);
         // A size off the ladder is dropped, like the state file's (loadCoercions).
         const size = coerceTokenSize(tokenSize);
+        // And a stance off the list, for the same reason and with sharper
+        // teeth: this spread is the SECOND load door, and a value that rides
+        // it reaches the card renderer, where an unknown stance has no look
+        // and the throw takes the whole table down for every client on it.
+        const stance = coerceNpcDisposition(disposition);
         return coerceMovementBudgetFields({
           ...character,
           hp,
@@ -85,6 +94,7 @@ export class SnapshotLoader {
           tokenId: character.tokenId ?? null,
           tokenImage: character.tokenImage ?? null,
           ...(size ? { tokenSize: size } : {}),
+          ...(stance ? { disposition: stance } : {}),
         });
       },
     );

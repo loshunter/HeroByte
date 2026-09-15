@@ -33,6 +33,7 @@ export function coerceCustomTokens(raw: unknown): CustomToken[] {
       continue;
     }
     if (!id || !name || !imageUrl) continue;
+    const stance = coerceNpcDisposition(disposition);
     out.push({
       id,
       name,
@@ -45,12 +46,24 @@ export function coerceCustomTokens(raw: unknown): CustomToken[] {
       size: coerceTokenSize(size) ?? "medium",
       // Absent IS the default (hostile), so a word off the list is dropped
       // rather than replaced with one — the same rule the wire applies.
-      ...(isNpcDisposition(disposition) ? { disposition } : {}),
+      ...(stance ? { disposition: stance } : {}),
       addedBy: typeof addedBy === "string" ? addedBy : "",
       addedAt: typeof addedAt === "number" ? addedAt : 0,
     });
   }
   return out;
+}
+
+/**
+ * A stance off the list is dropped, never repaired — absent already means
+ * hostile. Exported because there are TWO load doors: this file's (the state
+ * file) and SnapshotLoader's (the session file), and hardening only one of
+ * them is what let a hand-edited `"disposition": "banana"` reach the card
+ * renderer, where a `Record` index is `undefined` and the throw took the whole
+ * table down for every client at it.
+ */
+export function coerceNpcDisposition(value: unknown) {
+  return isNpcDisposition(value) ? value : undefined;
 }
 
 /**
@@ -73,6 +86,7 @@ export function coerceLoadedCharacters(raw: unknown, combatActive = false): Char
   if (!Array.isArray(raw)) return [];
   return (raw as Character[]).map(({ tokenSize, disposition, ...character }) => {
     const size = coerceTokenSize(tokenSize);
+    const stance = coerceNpcDisposition(disposition);
     const coerced = coerceMovementBudgetFields({
       ...character,
       type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
@@ -81,7 +95,7 @@ export function coerceLoadedCharacters(raw: unknown, combatActive = false): Char
       // Only when it survives: a bare `tokenSize: undefined` is still a key.
       ...(size ? { tokenSize: size } : {}),
       // Same rule: a stance off the list is dropped, and absent means hostile.
-      ...(isNpcDisposition(disposition) ? { disposition } : {}),
+      ...(stance ? { disposition: stance } : {}),
     });
     if (combatActive && coerced.movementUsed === undefined) {
       return { ...coerced, movementUsed: 0, movementDiagonals: 0 };

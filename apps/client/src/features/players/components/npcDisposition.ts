@@ -46,7 +46,16 @@ export const NPC_DISPOSITION_LOOKS: Record<NpcDisposition, DispositionLook> = {
   },
 };
 
-/** The look for a character's stance; absent means hostile, as it always did. */
+/**
+ * The look for a character's stance; absent means hostile, as it always did.
+ *
+ * TOTAL on purpose, including for a value the type says cannot exist. This is
+ * read during render from a snapshot field, and a snapshot can carry whatever
+ * a session file carried — `Record<Union, T>` indexing is a runtime
+ * `undefined` the moment the value comes off a wire. There is no ErrorBoundary
+ * between the Entities panel and the root, so a throw here replaces the whole
+ * table for every client at it, not just the one that loaded the file.
+ */
 export function npcDispositionLook(disposition: NpcDisposition | undefined): DispositionLook {
-  return NPC_DISPOSITION_LOOKS[disposition ?? "hostile"];
+  return NPC_DISPOSITION_LOOKS[disposition as NpcDisposition] ?? NPC_DISPOSITION_LOOKS.hostile;
 }
