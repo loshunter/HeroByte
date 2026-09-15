@@ -1,12 +1,15 @@
 // ============================================================================
 // TOKEN CATALOG
 // ============================================================================
-// Lookups over the bundled token pack. The images are static files under
-// apps/client/public/tokens — served from the client's own origin, so a
-// token's URL is root-relative and survives a session save untouched (the
-// export's asset scan only inlines /assets/<hash> uploads). The data and the
-// files are regenerated together by scripts/import-token-library.mjs.
+// Lookups over the bundled token pack, and the one shape the picker draws —
+// a LibraryItem — for pack entries and for a table's own custom tokens alike.
+// The pack's images are static files under apps/client/public/tokens, served
+// from the client's own origin, so a token's URL is root-relative and
+// survives a session save untouched (the export's asset scan only inlines
+// /assets/<hash> uploads). The data and the files are regenerated together
+// by scripts/import-token-library.mjs.
 
+import type { CustomToken, TokenSize } from "@herobyte/shared";
 import {
   LIBRARY_ASSETS,
   LIBRARY_FAMILIES,
@@ -94,6 +97,60 @@ export function libraryCategoryLabel(category: LibraryCategory): string {
   return categoryLabels.get(category) ?? category;
 }
 
+// ----------------------------------------------------------------------------
+// LibraryItem — what the picker draws and what a pick hands up
+// ----------------------------------------------------------------------------
+
+export interface LibraryItem {
+  id: string;
+  name: string;
+  category: LibraryCategory | "custom";
+  /** What a placed token draws. */
+  imageUrl: string;
+  /** What the NPC card and the Entities panel show. */
+  portraitUrl: string;
+  /** What the picker's grid draws. */
+  thumbUrl: string;
+  /** The footprint a placed token is born with. */
+  size: TokenSize;
+  description?: string;
+  /** True for the table's own tokens — the picker marks these apart from pack art. */
+  custom: boolean;
+}
+
+export function packItem(asset: LibraryAsset): LibraryItem {
+  return {
+    id: asset.id,
+    name: asset.name,
+    category: asset.category,
+    imageUrl: libraryImageUrl(asset),
+    portraitUrl: libraryMediumUrl(asset),
+    thumbUrl: libraryThumbUrl(asset),
+    size: asset.size,
+    description: asset.description,
+    custom: false,
+  };
+}
+
+/** A table's own token: one image serves every tier, since nothing rendered it down. */
+export function customItem(token: CustomToken): LibraryItem {
+  return {
+    id: token.id,
+    name: token.name,
+    category: "custom",
+    imageUrl: token.imageUrl,
+    portraitUrl: token.imageUrl,
+    thumbUrl: token.imageUrl,
+    size: token.size,
+    description: token.description,
+    custom: true,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// Search
+// ----------------------------------------------------------------------------
+
 export interface LibrarySearch {
   /** A category, or empty for both. */
   category?: LibraryCategory | "";
@@ -128,13 +185,26 @@ const searchText = new Map(
   ]),
 );
 
+const words = (query: string) => query.toLowerCase().split(/\s+/).filter(Boolean);
+
 /** Pack order is kept: families as the pack lists them, tokens likewise. */
 export function searchLibrary({ category = "", family = "", query = "" }: LibrarySearch) {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const needles = words(query);
   return LIBRARY_ASSETS.filter((asset) => {
     if (category && asset.category !== category) return false;
     if (family && asset.family !== family) return false;
     const text = searchText.get(asset.id) ?? "";
-    return words.every((word) => text.includes(word));
+    return needles.every((word) => text.includes(word));
+  });
+}
+
+/** The same word rule over a table's own tokens: name, blurb, tags and size. */
+export function searchCustomTokens(tokens: readonly CustomToken[], query = ""): CustomToken[] {
+  const needles = words(query);
+  return tokens.filter((token) => {
+    const text = [token.name, token.description ?? "", token.size, "custom", ...token.tags]
+      .join(" ")
+      .toLowerCase();
+    return needles.every((word) => text.includes(word));
   });
 }

@@ -84,6 +84,8 @@ export const SNAPSHOT_LIMITS = {
   tokens: 1000,
   drawings: 5000,
   props: 500,
+  // The table's own Library tokens; CUSTOM_TOKEN_LIMITS.COUNT_MAX mirrors it.
+  customTokens: 200,
   characters: 500,
   diceRolls: 1000,
   sceneObjects: 5000,

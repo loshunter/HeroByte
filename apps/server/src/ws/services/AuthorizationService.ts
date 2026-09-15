@@ -66,6 +66,8 @@ export class AuthorizationService {
       "create-prop",
       "update-prop",
       "delete-prop",
+      "add-custom-token",
+      "remove-custom-token",
       "clear-all-tokens",
     ]);
 

@@ -886,6 +886,7 @@ describe("scene travel contracts", () => {
     tableName: "global",
     atlasNodes: "global", // the graph travels with the CAMPAIGN, not a scene
     atlasLinks: "global",
+    customTokens: "global", // the DM's shelf travels with the CAMPAIGN, not a scene
     sceneStates: "infra", // the suspension store itself
     compiledScene: "derived",
     mapTerrain: "derived",

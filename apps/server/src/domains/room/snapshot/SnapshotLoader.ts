@@ -15,7 +15,7 @@ import {
 import { normalizeAtlasState } from "../atlasState.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
-import { coerceTokenSize } from "../persistence/loadCoercions.js";
+import { coerceCustomTokens, coerceTokenSize } from "../persistence/loadCoercions.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
 
 /**
@@ -144,6 +144,7 @@ export class SnapshotLoader {
       players: mergedPlayers,
       characters: mergedCharacters,
       props: snapshot.props ?? [],
+      customTokens: coerceCustomTokens(snapshot.customTokens),
       mapBackground,
       pointers: [], // Clear pointers on load
       drawings,

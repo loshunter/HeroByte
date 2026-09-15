@@ -20,6 +20,7 @@ import type {
   Character,
   DiagonalRule,
   MonsterHpDisplay,
+  CustomToken,
   Prop,
   SceneObject,
   SelectionStateEntry,
@@ -43,6 +44,7 @@ export interface RoomState {
   players: Player[]; // Player metadata
   characters: Character[]; // Character data (PCs and NPCs)
   props: Prop[]; // Props on the map (items, scenery, objects)
+  customTokens: CustomToken[]; // The table's own Library tokens (DM-only on the wire)
   mapBackground?: string; // Background image URL/base64
   pointers: Pointer[]; // Temporary pointer indicators
   drawings: Drawing[]; // Freehand drawings
@@ -99,6 +101,7 @@ export function createEmptyRoomState(): RoomState {
     players: [],
     characters: [],
     props: [],
+    customTokens: [],
     mapBackground: undefined,
     pointers: [],
     drawings: [],
@@ -216,6 +219,12 @@ export function toSnapshot(
   // into. Players have no use for it, so it never enters their payload.
   if (isDM && state.liveMapDocumentId) {
     snapshot.liveMapDocumentId = state.liveMapDocumentId;
+  }
+
+  // The table's own Library tokens: the DM's prep shelf, so players never
+  // receive it — not even an empty array to say it exists.
+  if (isDM) {
+    snapshot.customTokens = state.customTokens;
   }
 
   // The Atlas, already projected per recipient inside buildRecipientView.

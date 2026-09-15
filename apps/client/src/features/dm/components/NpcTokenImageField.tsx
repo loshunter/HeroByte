@@ -13,7 +13,8 @@ import {
   libraryAssetByImageUrl,
   libraryCounterpart,
   libraryThumbUrl,
-  type LibraryAsset,
+  packItem,
+  type LibraryItem,
 } from "../token-library/tokenCatalog";
 
 interface NpcTokenImageFieldProps {
@@ -26,7 +27,7 @@ interface NpcTokenImageFieldProps {
   onChange: (url: string) => void;
   onCommit: (url: string) => void;
   /** A library pick, or a mimic flip. The editor decides what else follows it. */
-  onPickAsset: (asset: LibraryAsset) => void;
+  onPickAsset: (item: LibraryItem) => void;
 }
 
 export function NpcTokenImageField({
@@ -88,7 +89,7 @@ export function NpcTokenImageField({
         {counterpart && (
           <JRPGButton
             variant="primary"
-            onClick={() => onPickAsset(counterpart)}
+            onClick={() => onPickAsset(packItem(counterpart))}
             disabled={disabled}
             title={
               current?.mimic === "disguised"
@@ -105,8 +106,8 @@ export function NpcTokenImageField({
         <TokenLibrary
           hint={`Pick a token image for ${name}`}
           disabled={disabled}
-          onPick={(asset) => {
-            onPickAsset(asset);
+          onPick={(item) => {
+            onPickAsset(item);
             setLibraryOpen(false);
           }}
         />

@@ -13,7 +13,7 @@ import { LIBRARY_ASSETS } from "../tokenCatalog";
 /** The thumbnail buttons — every button in the panel but the category chips. */
 const cells = () =>
   within(screen.getByTestId("token-library")).queryAllByRole("button", {
-    name: (name) => !["All", "Monsters", "Townsfolk"].includes(name),
+    name: (name) => !["All", "Monsters", "Townsfolk", "Custom"].includes(name),
   });
 
 describe("TokenLibrary", () => {

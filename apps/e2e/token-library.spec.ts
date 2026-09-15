@@ -155,4 +155,86 @@ test.describe("the Token Library", () => {
       await removeNpcsAddedSince(page, before);
     }
   });
+
+  test("the table's own shelf: add by link with tags, pick it, players never see it, remove it", async ({
+    page,
+    browser,
+  }) => {
+    await joinDefaultRoomAsDM(page);
+    const before = (await npcs(page)).map((n) => n.id);
+    const shelf = () => page.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.customTokens ?? []);
+    const shelfBefore = (await shelf()).map((t) => t.id);
+    // A same-origin image the validator accepts, standing in for an imgur link.
+    const IMAGE = "/tokens/Thumbs/NPC/Civilians/Tavern/npcHumanBartender.png";
+    const NAME = `Old Marta ${Date.now().toString(36)}`;
+
+    try {
+      await openLibrary(page);
+      await page.getByRole("button", { name: "Custom" }).click();
+      const form = page.getByTestId("custom-token-form");
+      await form.getByRole("textbox", { name: "Image" }).fill(IMAGE);
+      await form.getByRole("textbox", { name: "Image" }).press("Enter");
+      await form.getByLabel("Name").fill(NAME);
+      await form.getByLabel("Description").fill("Runs the Gilded Tankard.");
+      await form.getByRole("button", { name: "villager" }).click();
+      await form.getByRole("textbox", { name: "Tags" }).fill("innkeeper");
+      await form.getByLabel("Size").selectOption("small");
+      await form.getByRole("button", { name: "＋ Add to library" }).click();
+
+      await expect
+        .poll(async () => (await shelf()).filter((t) => !shelfBefore.includes(t.id)))
+        .toHaveLength(1);
+      const [added] = (await shelf()).filter((t) => !shelfBefore.includes(t.id));
+      expect(added).toMatchObject({
+        name: NAME,
+        imageUrl: IMAGE,
+        description: "Runs the Gilded Tankard.",
+        tags: ["villager", "innkeeper"],
+        size: "small",
+      });
+
+      // It is on the shelf, badged, and a pick makes an NPC of it at its size.
+      const cell = page.getByRole("button", { name: NAME, exact: true });
+      await expect(cell).toBeVisible();
+      await expect(cell.locator("xpath=..").getByText("MINE")).toBeVisible();
+      await cell.click();
+      await expect
+        .poll(async () =>
+          (await npcs(page)).filter((n) => !before.includes(n.id) && n.tokenImage === IMAGE),
+        )
+        .toHaveLength(1);
+
+      // A player's snapshot carries no shelf at all — not even an empty one.
+      const playerContext = await browser.newContext();
+      try {
+        const playerPage = await playerContext.newPage();
+        const { joinDefaultRoom } = await import("./helpers");
+        await joinDefaultRoom(playerPage);
+        await playerPage.waitForFunction(() => Boolean(window.__HERO_BYTE_E2E__?.snapshot));
+        const seen = await playerPage.evaluate(
+          () => "customTokens" in (window.__HERO_BYTE_E2E__?.snapshot ?? {}),
+        );
+        expect(seen).toBe(false);
+      } finally {
+        await playerContext.close();
+      }
+
+      // Remove asks first; accepting takes it off the shelf.
+      page.once("dialog", (dialog) => void dialog.accept());
+      await page.getByRole("button", { name: `Remove ${NAME} from the library` }).click();
+      await expect
+        .poll(async () => (await shelf()).filter((t) => t.id === added!.id))
+        .toHaveLength(0);
+    } finally {
+      await removeNpcsAddedSince(page, before);
+      const leftover = (await shelf()).filter((t) => !shelfBefore.includes(t.id));
+      await page.evaluate(
+        (ids) => {
+          for (const id of ids)
+            window.__HERO_BYTE_E2E__?.sendMessage?.({ t: "remove-custom-token", id });
+        },
+        leftover.map((t) => t.id),
+      );
+    }
+  });
 });

@@ -465,6 +465,8 @@ export type { DrawingType } from "./drawingTypes.js";
 export { NPC_CREATE_LIMITS } from "./npcLimits.js";
 // Bulk-prop bounds — same sub-module rule (see propLimits.ts).
 export { PROP_CREATE_LIMITS } from "./propLimits.js";
+// The table's own Library tokens — same sub-module rule (see customTokenLimits.ts).
+export { CUSTOM_TOKEN_LIMITS } from "./customTokenLimits.js";
 
 /**
  * The tool the drawing toolbar is holding. Wider than `DrawingType` because a
@@ -583,6 +585,28 @@ export interface Prop {
   rotation: number; // Rotation in degrees
 }
 
+/**
+ * CustomToken: one of the table's own Library tokens — an image the DM
+ * brought (an upload, or an https link such as imgur) with the name,
+ * description, tags and size the bundled pack's entries carry, so it searches
+ * and picks like pack art. Table state, DM-only on the wire, saved with the
+ * session. Bounds: CUSTOM_TOKEN_LIMITS.
+ */
+export interface CustomToken {
+  id: string;
+  /** Table-ready NPC name, under create-npc's cap. */
+  name: string;
+  /** An https URL or a path on this site (an upload's /assets/<hash>). */
+  imageUrl: string;
+  description?: string;
+  /** Lower-cased search words: "monster", "traveler", "dwarf", "prop"… */
+  tags: string[];
+  /** The footprint a token picked from it is born with. */
+  size: TokenSize;
+  addedBy: string;
+  addedAt: number;
+}
+
 // ----------------------------------------------------------------------------
 // ROOM STATE
 // ----------------------------------------------------------------------------
@@ -636,6 +660,7 @@ export interface RoomSnapshot {
   characters: SnapshotCharacter[]; // All characters (PCs and NPCs), NPC hp possibly redacted per monsterHpDisplay
   stateVersion?: number; // Monotonically increasing room state version
   props?: Prop[]; // Props placed on the map (items, scenery, objects)
+  customTokens?: CustomToken[]; // The table's own Library tokens — DM recipients only
   mapBackground?: string; // Base64 encoded background image or URL
   pointers: Pointer[]; // Active pointer indicators
   drawings?: Drawing[]; // All drawings on the canvas
@@ -977,6 +1002,18 @@ type ClientMessagePayload =
       size: TokenSize;
     }
   | { t: "delete-prop"; id: string }
+
+  // The table's own Library tokens (DM only; bounds in CUSTOM_TOKEN_LIMITS)
+  | {
+      t: "add-custom-token";
+      name: string;
+      imageUrl: string;
+      description?: string;
+      tags?: string[];
+      /** Absent = medium. */
+      size?: TokenSize;
+    }
+  | { t: "remove-custom-token"; id: string }
 
   // Map/canvas actions
   | { t: "map-background"; data: string } // Set map background image

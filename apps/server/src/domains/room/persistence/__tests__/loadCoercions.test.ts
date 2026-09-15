@@ -6,7 +6,54 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { coerceLoadedCharacters, coerceTokenSize } from "../loadCoercions.js";
+import { coerceCustomTokens, coerceLoadedCharacters, coerceTokenSize } from "../loadCoercions.js";
+
+describe("coerceCustomTokens", () => {
+  const good = {
+    id: "ct-1",
+    name: "Old Marta",
+    imageUrl: "https://i.imgur.com/x.png",
+    description: "Innkeeper.",
+    tags: ["npc", "villager"],
+    size: "small",
+    addedBy: "dm",
+    addedAt: 5,
+  };
+
+  it("keeps a well-formed entry as it is", () => {
+    expect(coerceCustomTokens([good])).toEqual([good]);
+  });
+
+  it("drops entries missing an id, a name or an image, and non-objects", () => {
+    expect(
+      coerceCustomTokens([
+        { ...good, id: "" },
+        { ...good, name: 3 },
+        { ...good, imageUrl: undefined },
+        null,
+        "x",
+        good,
+      ]),
+    ).toEqual([good]);
+    expect(coerceCustomTokens(undefined)).toEqual([]);
+    expect(coerceCustomTokens({ id: "ct-1" })).toEqual([]);
+  });
+
+  it("repairs the fields with a domain rather than trusting the file", () => {
+    const [token] = coerceCustomTokens([
+      { id: "ct-2", name: "Ogre", imageUrl: "https://x/o.png", tags: ["big", 3], size: "enormous" },
+    ]);
+    expect(token).toEqual({
+      id: "ct-2",
+      name: "Ogre",
+      imageUrl: "https://x/o.png",
+      tags: ["big"],
+      size: "medium",
+      addedBy: "",
+      addedAt: 0,
+    });
+  });
+});
 
 describe("coerceTokenSize", () => {
   it("keeps every rung of the ladder and nothing else", () => {

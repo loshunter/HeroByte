@@ -12,8 +12,8 @@
 // This is a pure composition component that arranges existing UI components
 // (JRPGPanel, JRPGButton, NPCEditor) without implementing business logic.
 
-import { useState } from "react";
-import type { Character, SnapshotCharacter } from "@herobyte/shared";
+import { useMemo, useState } from "react";
+import type { Character, CustomToken, SnapshotCharacter } from "@herobyte/shared";
 import { NPC_CREATE_LIMITS } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { NPCEditor } from "../NPCEditor";
@@ -21,10 +21,10 @@ import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";
 import type { CreateNpcRequest } from "../../hooks/useNpcCreation";
 import { TokenLibrary } from "../../token-library/TokenLibrary";
 import {
-  libraryImageUrl,
-  libraryMediumUrl,
-  type LibraryAsset,
-} from "../../token-library/tokenCatalog";
+  CustomTokensProvider,
+  type CustomTokenDraft,
+} from "../../token-library/customTokensContext";
+import type { LibraryItem } from "../../token-library/tokenCatalog";
 
 /**
  * Props for the NPCsTab component
@@ -32,6 +32,10 @@ import {
 interface NPCsTabProps {
   /** Array of NPC characters to display */
   npcs: SnapshotCharacter[];
+  /** The table's own Library tokens; absent means the shelf is read-only here. */
+  customTokens?: readonly CustomToken[];
+  onAddCustomToken?: (draft: CustomTokenDraft) => void;
+  onRemoveCustomToken?: (id: string) => void;
   /** Callback to create a new NPC (optionally several at once) */
   onCreateNPC: (request?: CreateNpcRequest) => void;
   /** Callback to copy an existing NPC's stats and art into a new one */
@@ -76,6 +80,9 @@ interface NPCsTabProps {
   onRollAllInitiative?: () => void;
 }
 
+/** One stable empty shelf, so a host that passes none does not re-provide the context per render. */
+const NO_CUSTOM_TOKENS: readonly CustomToken[] = [];
+
 /**
  * NPCsTab component - Displays and manages NPCs & Monsters
  *
@@ -97,6 +104,9 @@ export default function NPCsTab({
   combatActive = false,
   onPlaceNPCToken,
   onDeleteNPC,
+  customTokens = NO_CUSTOM_TOKENS,
+  onAddCustomToken,
+  onRemoveCustomToken,
   isCreatingNpc = false,
   npcCreationError = null,
   isUpdatingNpc = false,
@@ -139,154 +149,163 @@ export default function NPCsTab({
   // the master, the portrait the 336px render (the Entities panel shows the
   // creature, not a blank card), and the token is born at the pack's size.
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const handlePickToken = (asset: LibraryAsset) => {
+  const handlePickToken = (item: LibraryItem) => {
     onCreateNPC({
-      name: asset.name,
-      tokenImage: libraryImageUrl(asset),
-      portrait: libraryMediumUrl(asset),
-      tokenSize: asset.size,
+      name: item.name,
+      tokenImage: item.imageUrl,
+      portrait: item.portraitUrl,
+      tokenSize: item.size,
       count,
     });
   };
+  // One shelf for every picker in this tab — the tab's own and each card's.
+  const customTokensApi = useMemo(
+    () => ({ tokens: customTokens, addToken: onAddCustomToken, removeToken: onRemoveCustomToken }),
+    [customTokens, onAddCustomToken, onRemoveCustomToken],
+  );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      {/* Wraps because the ×N control made this row wider than the DM panel:
+    <CustomTokensProvider value={customTokensApi}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {/* Wraps because the ×N control made this row wider than the DM panel:
           measured at 907px of content in an 881px box, which pushed the Add
           button's right edge off the panel. Same shape of bug the drawing and
           selection sheets each hit, and the same fix — let it fall to a second
           line rather than silently clipping a control. */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "8px",
-        }}
-      >
-        <h4 className="jrpg-text-command" style={{ margin: 0 }}>
-          NPCs & Monsters
-        </h4>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-          {npcs.length > 0 && (
-            <JRPGButton
-              variant="primary"
-              onClick={handleRollAllInitiative}
-              disabled={!toast}
-              style={{ fontSize: "10px", padding: "6px 12px" }}
-            >
-              {/* "Missing", not "all": it skips any NPC that already has a value.
-                  No "Rolling..." state any more — one message goes out and the
-                  press is over; the waiting used to be the batching delay. */}
-              ⚔️ Roll Missing Initiative
-            </JRPGButton>
-          )}
-          <JRPGButton
-            onClick={() => setLibraryOpen((open) => !open)}
-            variant={libraryOpen ? "primary" : "default"}
-            aria-expanded={libraryOpen}
-            style={{ fontSize: "10px", padding: "6px 12px" }}
-            title="Browse the bundled tokens — monsters and townsfolk — and add one as an NPC"
-          >
-            📖 Library
-          </JRPGButton>
-          {/* The count sits BEFORE the button so it reads as "× 5 → + Add NPC",
-              and so a DM who wants one never has to touch it. */}
-          <label
-            style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px" }}
-            className="jrpg-text-small"
-          >
-            <span aria-hidden="true">×</span>
-            <input
-              type="number"
-              min={NPC_CREATE_LIMITS.COUNT_MIN}
-              max={NPC_CREATE_LIMITS.COUNT_MAX}
-              step={1}
-              value={countInput}
-              onChange={(e) => setCountInput(e.target.value)}
-              // Snap the display back to what will actually be sent. This
-              // reconciles ON BLUR, not while typing: type 99 and the field
-              // reads 99 while the button already reads "+ Add 20 NPCs", since
-              // `count` is clamped above. The button label is the honest one —
-              // it is what the press will do. The field is also deliberately
-              // STICKY across batches, so a DM staging wave after wave does not
-              // retype it; the label is what tells them it is still 5.
-              onBlur={() => setCountInput(String(count))}
-              aria-label="How many NPCs to add"
-              style={{ width: "44px", fontSize: "10px", padding: "4px" }}
-            />
-          </label>
-          <JRPGButton
-            variant="success"
-            onClick={() => onCreateNPC({ count })}
-            disabled={isCreatingNpc}
-            style={{ fontSize: "10px", padding: "6px 12px" }}
-            title={
-              count > 1 ? `Add ${count} NPCs, numbered from the next free one` : "Add a single NPC"
-            }
-          >
-            {isCreatingNpc ? "Creating..." : count > 1 ? `+ Add ${count} NPCs` : "+ Add NPC"}
-          </JRPGButton>
-        </div>
-      </div>
-
-      {npcCreationError && (
-        <JRPGPanel
-          variant="simple"
+        <div
           style={{
-            color: "var(--jrpg-red)",
-            fontFamily: "var(--font-body)",
-            lineHeight: 1.45,
-            fontSize: "11px",
-            padding: "6px 8px",
-            border: "1px solid var(--jrpg-red)",
-            background: "rgba(214, 60, 83, 0.1)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "8px",
           }}
         >
-          {npcCreationError}
-        </JRPGPanel>
-      )}
-
-      {libraryOpen && (
-        <TokenLibrary
-          hint={
-            count > 1 ? `Pick a token to add ${count} of it` : "Pick a token to add it as an NPC"
-          }
-          disabled={isCreatingNpc}
-          onPick={handlePickToken}
-        />
-      )}
-
-      {npcs.length === 0 ? (
-        <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
-          No NPCs yet. Use &ldquo;Add NPC&rdquo; to create one.
-        </JRPGPanel>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {npcs.map((npc) => (
-            <NPCEditor
-              key={npc.id}
-              npc={npc}
-              onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
-              onSpeedChange={(speed) => onSetNPCSpeed(npc.id, speed)}
-              onBudgetReset={
-                combatActive && (npc.initiative !== undefined || (npc.movementUsed ?? 0) > 0)
-                  ? () => onResetNPCBudget(npc.id)
-                  : undefined
+          <h4 className="jrpg-text-command" style={{ margin: 0 }}>
+            NPCs & Monsters
+          </h4>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+            {npcs.length > 0 && (
+              <JRPGButton
+                variant="primary"
+                onClick={handleRollAllInitiative}
+                disabled={!toast}
+                style={{ fontSize: "10px", padding: "6px 12px" }}
+              >
+                {/* "Missing", not "all": it skips any NPC that already has a value.
+                  No "Rolling..." state any more — one message goes out and the
+                  press is over; the waiting used to be the batching delay. */}
+                ⚔️ Roll Missing Initiative
+              </JRPGButton>
+            )}
+            <JRPGButton
+              onClick={() => setLibraryOpen((open) => !open)}
+              variant={libraryOpen ? "primary" : "default"}
+              aria-expanded={libraryOpen}
+              style={{ fontSize: "10px", padding: "6px 12px" }}
+              title="Browse the bundled tokens — monsters and townsfolk — and add one as an NPC"
+            >
+              📖 Library
+            </JRPGButton>
+            {/* The count sits BEFORE the button so it reads as "× 5 → + Add NPC",
+              and so a DM who wants one never has to touch it. */}
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px" }}
+              className="jrpg-text-small"
+            >
+              <span aria-hidden="true">×</span>
+              <input
+                type="number"
+                min={NPC_CREATE_LIMITS.COUNT_MIN}
+                max={NPC_CREATE_LIMITS.COUNT_MAX}
+                step={1}
+                value={countInput}
+                onChange={(e) => setCountInput(e.target.value)}
+                // Snap the display back to what will actually be sent. This
+                // reconciles ON BLUR, not while typing: type 99 and the field
+                // reads 99 while the button already reads "+ Add 20 NPCs", since
+                // `count` is clamped above. The button label is the honest one —
+                // it is what the press will do. The field is also deliberately
+                // STICKY across batches, so a DM staging wave after wave does not
+                // retype it; the label is what tells them it is still 5.
+                onBlur={() => setCountInput(String(count))}
+                aria-label="How many NPCs to add"
+                style={{ width: "44px", fontSize: "10px", padding: "4px" }}
+              />
+            </label>
+            <JRPGButton
+              variant="success"
+              onClick={() => onCreateNPC({ count })}
+              disabled={isCreatingNpc}
+              style={{ fontSize: "10px", padding: "6px 12px" }}
+              title={
+                count > 1
+                  ? `Add ${count} NPCs, numbered from the next free one`
+                  : "Add a single NPC"
               }
-              onPlace={() => onPlaceNPCToken(npc.id)}
-              onDuplicate={() => onDuplicateNPC(npc.id)}
-              onDelete={() => onDeleteNPC(npc.id)}
-              isDuplicating={isCreatingNpc}
-              isUpdating={isUpdatingNpc && updatingNpcId === npc.id}
-              updateError={updatingNpcId === npc.id ? npcUpdateError : null}
-              isPlacingToken={isPlacingToken && placingTokenForNpcId === npc.id}
-              tokenPlacementError={placingTokenForNpcId === npc.id ? tokenPlacementError : null}
-            />
-          ))}
+            >
+              {isCreatingNpc ? "Creating..." : count > 1 ? `+ Add ${count} NPCs` : "+ Add NPC"}
+            </JRPGButton>
+          </div>
         </div>
-      )}
-    </div>
+
+        {npcCreationError && (
+          <JRPGPanel
+            variant="simple"
+            style={{
+              color: "var(--jrpg-red)",
+              fontFamily: "var(--font-body)",
+              lineHeight: 1.45,
+              fontSize: "11px",
+              padding: "6px 8px",
+              border: "1px solid var(--jrpg-red)",
+              background: "rgba(214, 60, 83, 0.1)",
+            }}
+          >
+            {npcCreationError}
+          </JRPGPanel>
+        )}
+
+        {libraryOpen && (
+          <TokenLibrary
+            hint={
+              count > 1 ? `Pick a token to add ${count} of it` : "Pick a token to add it as an NPC"
+            }
+            disabled={isCreatingNpc}
+            onPick={handlePickToken}
+          />
+        )}
+
+        {npcs.length === 0 ? (
+          <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
+            No NPCs yet. Use &ldquo;Add NPC&rdquo; to create one.
+          </JRPGPanel>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {npcs.map((npc) => (
+              <NPCEditor
+                key={npc.id}
+                npc={npc}
+                onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
+                onSpeedChange={(speed) => onSetNPCSpeed(npc.id, speed)}
+                onBudgetReset={
+                  combatActive && (npc.initiative !== undefined || (npc.movementUsed ?? 0) > 0)
+                    ? () => onResetNPCBudget(npc.id)
+                    : undefined
+                }
+                onPlace={() => onPlaceNPCToken(npc.id)}
+                onDuplicate={() => onDuplicateNPC(npc.id)}
+                onDelete={() => onDeleteNPC(npc.id)}
+                isDuplicating={isCreatingNpc}
+                isUpdating={isUpdatingNpc && updatingNpcId === npc.id}
+                updateError={updatingNpcId === npc.id ? npcUpdateError : null}
+                isPlacingToken={isPlacingToken && placingTokenForNpcId === npc.id}
+                tokenPlacementError={placingTokenForNpcId === npc.id ? tokenPlacementError : null}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </CustomTokensProvider>
   );
 }

@@ -5,8 +5,43 @@
  * visionRadius precedent), so every field with a domain is whitelisted here.
  */
 
-import { coerceMovementBudgetFields, type Character, type TokenSize } from "@herobyte/shared";
+import {
+  coerceMovementBudgetFields,
+  type Character,
+  type CustomToken,
+  type TokenSize,
+} from "@herobyte/shared";
 import { VALID_TOKEN_SIZES } from "../../../middleware/validators/commonValidators.js";
+
+/**
+ * The table's own Library tokens, from a state file or a session file: an
+ * entry keeps only what the wire would have accepted — a string id, name and
+ * image, string tags, a size on the ladder (else medium). Anything else in
+ * the list is dropped rather than handed to the picker to render.
+ */
+export function coerceCustomTokens(raw: unknown): CustomToken[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CustomToken[] = [];
+  for (const entry of raw as Partial<CustomToken>[]) {
+    if (!entry || typeof entry !== "object") continue;
+    const { id, name, imageUrl, description, tags, size, addedBy, addedAt } = entry;
+    if (typeof id !== "string" || typeof name !== "string" || typeof imageUrl !== "string") {
+      continue;
+    }
+    if (!id || !name || !imageUrl) continue;
+    out.push({
+      id,
+      name,
+      imageUrl,
+      ...(typeof description === "string" && description ? { description } : {}),
+      tags: Array.isArray(tags) ? tags.filter((t): t is string => typeof t === "string") : [],
+      size: coerceTokenSize(size) ?? "medium",
+      addedBy: typeof addedBy === "string" ? addedBy : "",
+      addedAt: typeof addedAt === "number" ? addedAt : 0,
+    });
+  }
+  return out;
+}
 
 /**
  * A token size off the ladder (a hand-edited file, an older pack's word) is

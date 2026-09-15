@@ -13,12 +13,7 @@ import { NPCEditorActions } from "./NPCEditorActions";
 import { MovementSpeedField } from "../../players/components/MovementSpeedField";
 import { NpcPortraitField } from "./NpcPortraitField";
 import { NpcTokenImageField } from "./NpcTokenImageField";
-import {
-  libraryAssetByImageUrl,
-  libraryImageUrl,
-  libraryMediumUrl,
-  type LibraryAsset,
-} from "../token-library/tokenCatalog";
+import { libraryAssetByImageUrl, type LibraryItem } from "../token-library/tokenCatalog";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -142,9 +137,9 @@ export function NPCEditor({
   // A library pick brings the portrait along when there is nothing to lose: an
   // empty portrait, or one the library set earlier (so a mimic's flip changes
   // both faces). A portrait the DM chose themselves is theirs and stays.
-  const handlePickAsset = (asset: LibraryAsset) => {
-    const url = libraryImageUrl(asset);
-    const face = libraryMediumUrl(asset);
+  const handlePickAsset = (item: LibraryItem) => {
+    const url = item.imageUrl;
+    const face = item.portraitUrl;
     const portraitFollows =
       portrait.trim() === "" || libraryAssetByImageUrl(portrait) !== undefined;
     setTokenImage(url);

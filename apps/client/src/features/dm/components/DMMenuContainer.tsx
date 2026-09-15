@@ -16,6 +16,7 @@ import type { RoomSnapshot, ClientMessage, PlayerStagingZone } from "@herobyte/s
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import type { Camera } from "../../../hooks/useCamera";
 import { useDMContext, type UseDMContextOptions } from "../hooks/useDMContext";
+import { useCustomTokens } from "../hooks/useCustomTokens";
 import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
@@ -172,6 +173,9 @@ export function DMMenuContainer({
     cameraState: camera,
     toast,
   } as UseDMContextOptions);
+  // The table's own Library tokens — beside the context rather than in it,
+  // which sits at the 350-line guard.
+  const customTokens = useCustomTokens({ snapshot, sendMessage });
 
   // Extract data from snapshot
   const characters = snapshot?.characters || [];
@@ -222,6 +226,9 @@ export function DMMenuContainer({
       onRequestSaveSession={snapshot ? dmContext.sessionManagement.handleSaveSession : undefined}
       onRequestLoadSession={dmContext.sessionManagement.handleLoadSession}
       onCreateNPC={dmContext.npcManagement.createNpc}
+      customTokens={customTokens.tokens}
+      onAddCustomToken={customTokens.addToken}
+      onRemoveCustomToken={customTokens.removeToken}
       onDuplicateNPC={dmContext.npcManagement.duplicateNpc}
       onUpdateNPC={dmContext.npcManagement.updateNpc}
       onSetNPCSpeed={(id, speed) =>

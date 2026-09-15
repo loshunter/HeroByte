@@ -13,7 +13,7 @@
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import { renameWithRetry } from "./atomicRename.js";
-import { coerceCombatRound, coerceLoadedCharacters } from "./loadCoercions.js";
+import { coerceCombatRound, coerceCustomTokens, coerceLoadedCharacters } from "./loadCoercions.js";
 import { SAVE_DEBOUNCE_MS, TrailingDebounce, flushAllPending } from "./saveDebounce.js";
 import type { Player, SceneObject } from "@herobyte/shared";
 import {
@@ -24,8 +24,7 @@ import {
 } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
 import { normalizeAtlasState } from "../atlasState.js";
-import type { RoomState } from "../model.js";
-import { createSelectionMap } from "../model.js";
+import { createSelectionMap, type RoomState } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
 
 /**
@@ -137,6 +136,7 @@ export class StatePersistence {
           })),
           characters: coerceLoadedCharacters(data.characters, data.combatActive === true),
           props: data.props || [],
+          customTokens: coerceCustomTokens(data.customTokens),
           mapBackground: data.mapBackground,
           pointers: [], // Don't persist pointers - they expire
           drawings: data.drawings || [],
@@ -256,6 +256,7 @@ export class StatePersistence {
       players: state.players,
       characters: state.characters,
       props: state.props,
+      customTokens: state.customTokens,
       mapBackground: state.mapBackground,
       drawings: state.drawings,
       gridSize: state.gridSize,

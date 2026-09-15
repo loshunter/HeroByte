@@ -62,6 +62,10 @@ An NPC that already exists can take a library token too. Its card's **📖 LIBRA
 
 Townsfolk are NPCs like any other, so their cards read **Enemy** in the Entities panel and they sit on your side of the table; there is no friendly-NPC type yet. The pack lives at `/tokens/` on the site, at the same paths the pack's own gallery uses, so a library token survives a session save and load like any other URL, and players see the art the moment the NPC is visible to them.
 
+### Your own tokens
+
+The **CUSTOM** chip in the Library is the table's own shelf. **Add your own** takes an image — **⬆ UPLOAD** from your device, or a pasted `https://` link (an imgur direct link works; the site draws images from imgur, Discord and its own uploads, nothing else) — plus a name, a description, tags and a size, so it searches and picks exactly like the pack's entries: tap **villager** and **halfling** for the innkeeper, type `prop` for a wagon, and a search like `dwarf smith` finds your tokens alongside the pack's. Your tokens wear a cyan border and a **MINE** badge wherever they appear, lead the grid when they match, and the **✕** on a card removes one from the shelf. The shelf is table state: a co-DM sees it, it saves and loads with the session, and players never receive it. An uploaded image rides a session save; an imgur link is only as permanent as imgur.
+
 ## Props & Objects
 
 ![The Props tab: label, image, ownership, size](img/dm-menu-props.jpg)

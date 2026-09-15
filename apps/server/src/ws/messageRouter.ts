@@ -38,6 +38,8 @@ import { TokenMessageHandler } from "./handlers/TokenMessageHandler.js";
 import { CharacterMessageHandler } from "./handlers/CharacterMessageHandler.js";
 import { NPCMessageHandler } from "./handlers/NPCMessageHandler.js";
 import { PropMessageHandler } from "./handlers/PropMessageHandler.js";
+import { CustomTokenMessageHandler } from "./handlers/CustomTokenMessageHandler.js";
+import { CustomTokenService } from "../domains/customToken/service.js";
 import { PlayerMessageHandler } from "./handlers/PlayerMessageHandler.js";
 import { InitiativeMessageHandler } from "./handlers/InitiativeMessageHandler.js";
 import { InitiativeRollHandler } from "./handlers/InitiativeRollHandler.js";
@@ -62,6 +64,7 @@ import { CharacterDispatcher } from "./dispatchers/CharacterDispatcher.js";
 import { PlayerDispatcher } from "./dispatchers/PlayerDispatcher.js";
 import { MapDispatcher } from "./dispatchers/MapDispatcher.js";
 import { PropDispatcher } from "./dispatchers/PropDispatcher.js";
+import { CustomTokenDispatcher } from "./dispatchers/CustomTokenDispatcher.js";
 import { InitiativeDispatcher } from "./dispatchers/InitiativeDispatcher.js";
 import { SelectionDispatcher } from "./dispatchers/SelectionDispatcher.js";
 import { DiceDispatcher } from "./dispatchers/DiceDispatcher.js";
@@ -102,6 +105,7 @@ export class MessageRouter {
   private characterMessageHandler: CharacterMessageHandler;
   private npcMessageHandler: NPCMessageHandler;
   private propMessageHandler: PropMessageHandler;
+  private customTokenMessageHandler: CustomTokenMessageHandler;
   private playerMessageHandler: PlayerMessageHandler;
   private initiativeMessageHandler: InitiativeMessageHandler;
   private initiativeRollHandler: InitiativeRollHandler;
@@ -120,6 +124,7 @@ export class MessageRouter {
   private playerDispatcher: PlayerDispatcher;
   private mapDispatcher: MapDispatcher;
   private propDispatcher: PropDispatcher;
+  private customTokenDispatcher: CustomTokenDispatcher;
   private initiativeDispatcher: InitiativeDispatcher;
   private selectionDispatcher: SelectionDispatcher;
   private diceDispatcher: DiceDispatcher;
@@ -215,6 +220,11 @@ export class MessageRouter {
     this.propMessageHandler = new PropMessageHandler(propService, selectionService);
     this.propDispatcher = new PropDispatcher(
       this.propMessageHandler,
+      this.authorizationCheckWrapper,
+    );
+    this.customTokenMessageHandler = new CustomTokenMessageHandler(new CustomTokenService());
+    this.customTokenDispatcher = new CustomTokenDispatcher(
+      this.customTokenMessageHandler,
       this.authorizationCheckWrapper,
     );
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
@@ -368,6 +378,14 @@ export class MessageRouter {
       const propResult = this.propDispatcher.dispatch(message, context, senderUid);
       if (propResult) {
         this.handleRouteResult(propResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to CustomTokenDispatcher (the table's own Library tokens)
+      const customTokenResult = this.customTokenDispatcher.dispatch(message, context, senderUid);
+      if (customTokenResult) {
+        this.handleRouteResult(customTokenResult, message.t);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
