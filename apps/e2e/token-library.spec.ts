@@ -59,14 +59,26 @@ async function openLibrary(page: Page): Promise<void> {
 }
 
 /**
- * A REAL 8x8 PNG, not the 8-magic-bytes stand-in the upload specs use: the
- * shelf's add decodes this image and draws it into a canvas to make the 84px
- * thumbnail, and a header with no pixels behind it never decodes at all.
+ * A real 300x200 PNG. Two things matter about the size: the shelf's add
+ * decodes this and draws it into a canvas, so a header with no pixels behind
+ * it never decodes at all — and it must be BIGGER than 84px, or the thumbnail
+ * pipeline's downscale branch never runs. The first version of this fixture
+ * was 8x8, so the render scaled by min(1, 84/8) = 1 and the whole point of the
+ * feature was asserted nowhere: `thumbUrl !== imageUrl` passed merely because
+ * a canvas re-encode differs from the original bytes at any size.
  */
 const REAL_PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAaklEQVR4nBWNQREAQQzCkFIpSKmUSEFK" +
-    "pSDlbnlmmEQSIyxWICJOVEjDDB52YMhwQwfJjLFZg4k5UyMts3jZhSXLLV2kJ8APvgUO+ucUJjhsHk64" +
-    "0PyNYw4fe++c447e3yhTXLZPkXKl5QPGe1gBrfdehAAAAABJRU5ErkJggg==",
+  "iVBORw0KGgoAAAANSUhEUgAAASwAAADICAIAAADdvUsCAAACkUlEQVR42u3UAQ0AIAwEMeRMBCKQg0RkoeOSJqdg+W7N" +
+    "XKV7+yjdMmIIBaEghFAQCkJBCKEgFISCEEJBKAgFIYSCUBAKQggFoSAUhBAKQkEoCCEUhIJQEEIoCAWhIIRQEApCQQih" +
+    "IBSEghBCQSgIBSGEglAQCkIIBaEgFIQQCkJBKAghFISCUBBCKAgFIYSCUBAKQggFoSAUhBAKQkEoCCEUhIJQEEIoCAWh" +
+    "IIRQEApCQQihIBSEghBCQSgIBSGEglAQCkIIBaEgFIQQCkJBKAghFISCUBBCKAgFoSCEUBAKQkEIoSAUhIIQQkEoCCG0" +
+    "YwgFoSCEUBAKQkEIoSAUhIIQQkEoCAUhhIJQEApCCAWhIBSEEApCQSgIIRSEglAQQigIBaEghFAQCkJBCKEgFISCEEJB" +
+    "KAgFIYSCUBAKQggFoSAUhBAKQkEoCCEUhIJQRgyhIBSEECqN0AnqeUP1IIRQEApCCAWhIBSEEApCQSgIIRSEglAQQigI" +
+    "BaEghFAQCkJBCKEgFISCEEJBKAgFIYSCUBAKQggFoSAUhBAKQkEoCCEUhIJQEEIoCAWhIIRQEApCQQihIBSEghBCQSgI" +
+    "BSGEglAQQmjHEApCQQihIBSEghBCQSgIBSGEglAQCkIIBaEgFIQQCkJBKAghFISCUBBCKAgFoSCEUBAKQkEIoSAUhIIQ" +
+    "QkEoCAUhhIJQEApCCAWhIBSEEApCQSgIIRSEglAQQigIBSGERgyhIBSEEApCQSgIIRSEglAQQigIBaEghFAQCkJBCKEg" +
+    "FISCEEJBKAgFIYSCUBAKQggFoSAUhBAKQkEoCCEUhIJQEEIoCAWhIIRQEApCQQihIBSEghBCQSgIBSGEglAQCkIIBaEg" +
+    "hFDpPpZXP7oMPPg3AAAAAElFTkSuQmCC",
   "base64",
 );
 
@@ -248,7 +260,23 @@ test.describe("the Token Library", () => {
       const thumbResponse = await page.request.get(added!.thumbUrl!);
       expect(thumbResponse.status()).toBe(200);
       expect(thumbResponse.headers()["content-type"]).toBe("image/png");
-      expect((await thumbResponse.body()).subarray(1, 4).toString()).toBe("PNG");
+      const thumbBytes = await thumbResponse.body();
+      expect(thumbBytes.subarray(1, 4).toString()).toBe("PNG");
+
+      // It is actually SMALLER — the claim the whole slice rests on, and the
+      // one thing "thumbUrl !== imageUrl" cannot show. PNG IHDR puts width at
+      // byte 16 and height at 20 (8 signature + 4 length + 4 "IHDR").
+      expect(thumbBytes.readUInt32BE(16), "thumb width").toBeLessThanOrEqual(84);
+      expect(thumbBytes.readUInt32BE(20), "thumb height").toBeLessThanOrEqual(84);
+      // 300x200 in, so the long side lands exactly on 84 and the short one scales.
+      expect(thumbBytes.readUInt32BE(16)).toBe(84);
+      expect(thumbBytes.readUInt32BE(20)).toBe(56);
+
+      // …and the picture it came from really was bigger, so the assertion
+      // above cannot pass by feeding the pipeline something already tiny.
+      const masterBytes = await (await page.request.get(added!.imageUrl)).body();
+      expect(masterBytes.readUInt32BE(16), "master width").toBe(300);
+      expect(masterBytes.readUInt32BE(20), "master height").toBe(200);
 
       // It is on the shelf, badged, drawn from the thumb, and a pick makes an
       // NPC of it at its size.
