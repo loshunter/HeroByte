@@ -9,7 +9,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { CustomTokenForm } from "../CustomTokenForm";
 
 /** The default add: succeeds, nothing to report. */
-const ok = () => vi.fn().mockResolvedValue({});
+const ok = () => vi.fn().mockResolvedValue({ added: true });
 
 function fillImage(url: string) {
   const field = screen.getByLabelText("Image");
@@ -52,15 +52,37 @@ describe("CustomTokenForm", () => {
       },
       { mirror: true },
     );
-    // Cleared for the next one, and the button says the add is in flight —
-    // it renders and uploads a thumbnail before the message goes out.
-    expect(screen.getByLabelText("Name")).toHaveValue("");
+    // The button says the add is in flight — it renders and uploads a
+    // thumbnail before the message goes out — and the fields are still there
+    // while it does. They clear only once the token has actually landed, so a
+    // refused add does not throw away what the DM typed.
     expect(screen.getByRole("button", { name: "Adding…" })).toBeDisabled();
+    expect(screen.getByLabelText("Name")).toHaveValue("  Old Marta ");
     expect(await screen.findByRole("button", { name: "＋ Add to library" })).toBeDisabled();
+    expect(screen.getByLabelText("Name")).toHaveValue("");
+  });
+
+  it("keeps the DM's work when the table refuses the token", async () => {
+    // Clearing optimistically threw away a typed name, blurb and tags on top
+    // of telling the DM nothing at all about why the token never appeared.
+    const onAdd = vi.fn().mockResolvedValue({ added: false, note: "That address cannot be used." });
+    render(<CustomTokenForm onAdd={onAdd} />);
+    fillImage("https://i.imgur.com/x.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Old Marta" } });
+    fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Innkeeper." } });
+    await screen.findByDisplayValue("https://i.imgur.com/x.png");
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("cannot be used");
+    expect(screen.getByLabelText("Name")).toHaveValue("Old Marta");
+    expect(screen.getByLabelText("Description")).toHaveValue("Innkeeper.");
+    expect(screen.getByLabelText("Image")).toHaveValue("https://i.imgur.com/x.png");
   });
 
   it("shows the add's note, and nothing when there is none", async () => {
-    const onAdd = vi.fn().mockResolvedValue({ note: "No thumbnail — the storage is full." });
+    const onAdd = vi
+      .fn()
+      .mockResolvedValue({ added: true, note: "No thumbnail — the storage is full." });
     const { rerender } = render(<CustomTokenForm onAdd={onAdd} />);
     fillImage("https://i.imgur.com/x.png");
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ogre" } });
@@ -71,7 +93,7 @@ describe("CustomTokenForm", () => {
 
     // A clean second add clears the first one's line rather than leaving a
     // stale complaint under a token that is perfectly fine.
-    onAdd.mockResolvedValue({});
+    onAdd.mockResolvedValue({ added: true });
     rerender(<CustomTokenForm onAdd={onAdd} />);
     fillImage("https://i.imgur.com/y.png");
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ogre 2" } });

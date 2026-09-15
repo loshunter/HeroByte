@@ -467,6 +467,7 @@ export { NPC_CREATE_LIMITS } from "./npcLimits.js";
 export { PROP_CREATE_LIMITS } from "./propLimits.js";
 // The table's own Library tokens — same sub-module rule (see customTokenLimits.ts).
 export { CUSTOM_TOKEN_LIMITS } from "./customTokenLimits.js";
+export { isCustomTokenImageUrl } from "./customTokenUrl.js";
 
 /**
  * The tool the drawing toolbar is holding. Wider than `DrawingType` because a

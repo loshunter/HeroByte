@@ -16,6 +16,7 @@ import type {
   CustomTokenDraft,
 } from "./customTokensContext";
 import { impliedStance } from "./customTokenStance";
+import { ANCESTRY_TAGS, KIND_TAGS, cleanTag } from "./customTokenTags";
 import { classifyCustomImage } from "./customTokenImages";
 import {
   addStyle,
@@ -55,23 +56,6 @@ interface CustomTokenFormProps {
 const canKeepCopy = (value: string) => classifyCustomImage(value) === "external";
 
 const SIZES: TokenSize[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
-
-/** Tags worth a click; anything else is typed. Two rows: what it is, and its ancestry. */
-const KIND_TAGS = ["monster", "npc", "traveler", "villager", "ally", "boss", "prop"];
-const ANCESTRY_TAGS = [
-  "human",
-  "elf",
-  "dwarf",
-  "halfling",
-  "gnome",
-  "half-elf",
-  "half-orc",
-  "dragonborn",
-  "tiefling",
-  "orc",
-];
-
-const cleanTag = (raw: string) => raw.trim().toLowerCase().slice(0, CUSTOM_TOKEN_LIMITS.TAG_MAX);
 
 /** One spelling of the three labels, shared with the NPC editor's Stance. */
 const STANCES: NpcDisposition[] = ["hostile", "neutral", "friendly"];
@@ -154,11 +138,22 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
         { mirror: keepCopy && canKeepCopy(imageUrl) },
       ),
     )
-      .then((result) => setNote(result?.note ?? null))
+      .then((result) => {
+        setNote(result?.note ?? null);
+        // Only when it actually landed. Clearing optimistically meant a
+        // refused add — a mistyped address, a full shelf — threw away the
+        // name, blurb and tags the DM had just typed, on top of telling them
+        // nothing. They keep their work and can fix the one field that is
+        // wrong.
+        if (result?.added) reset();
+      })
       // The add itself never rejects by design; if one ever does, the DM sees
       // a line rather than a form stuck on "Adding…" forever.
       .catch(() => setNote("Could not add that token — try again."))
       .finally(() => setAdding(false));
+  };
+
+  const reset = () => {
     setImageUrl("");
     setName("");
     setDescription("");

@@ -9,6 +9,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { RoomSnapshot } from "@herobyte/shared";
+import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import { useCustomTokens } from "../useCustomTokens";
 import type { PreparedCustomImage } from "../../token-library/customTokenImages";
 
@@ -25,6 +26,41 @@ const token = {
   addedBy: "dm",
   addedAt: 1,
 };
+
+const draft = {
+  name: "Old Marta",
+  imageUrl: "https://i.imgur.com/x.png",
+  tags: [] as string[],
+  size: "medium" as const,
+};
+
+/**
+ * A hook wired to a shelf that behaves like the server: an accepted add grows
+ * it, which is the signal the hook waits on. `accept: false` is every silent
+ * refusal — a validator rejection, the 200-token cap, a revoked DM role, a
+ * dropped socket — which the wire reports identically, i.e. not at all.
+ *
+ * The shelf array is MUTATED rather than replaced, because the hook holds it
+ * by reference to read the latest length from inside an in-flight add.
+ */
+function setup(options: { accept?: boolean; shelf?: unknown[]; prepareImage?: unknown } = {}) {
+  const accept = options.accept !== false;
+  const shelf = (options.shelf ?? []) as Record<string, unknown>[];
+  const sendMessage = vi.fn((message: { t: string }) => {
+    if (message.t === "add-custom-token" && accept)
+      shelf.push({ ...token, id: `ct-${shelf.length}` });
+  });
+  const { result } = renderHook(() =>
+    useCustomTokens({
+      snapshot: { customTokens: shelf } as unknown as RoomSnapshot,
+      sendMessage,
+      prepareImage: (options.prepareImage ?? passthrough) as never,
+      // Short, so the refusal path costs the suite 60ms rather than 5s.
+      confirmTimeoutMs: 60,
+    }),
+  );
+  return { result, sendMessage, shelf };
+}
 
 describe("useCustomTokens", () => {
   it("reads the shelf off the snapshot, and an absent one is an empty list", () => {
@@ -45,10 +81,7 @@ describe("useCustomTokens", () => {
   });
 
   it("addToken sends add-custom-token, with the description only when there is one", async () => {
-    const sendMessage = vi.fn();
-    const { result } = renderHook(() =>
-      useCustomTokens({ snapshot: null, sendMessage, prepareImage: passthrough }),
-    );
+    const { result, sendMessage } = setup();
     await result.current.addToken({
       name: "Old Marta",
       imageUrl: "https://i.imgur.com/x.png",
@@ -75,17 +108,8 @@ describe("useCustomTokens", () => {
   });
 
   it("keeps a copy by default, and only when the caller says otherwise does not", async () => {
-    const sendMessage = vi.fn();
     const prepareImage = vi.fn(passthrough);
-    const { result } = renderHook(() =>
-      useCustomTokens({ snapshot: null, sendMessage, prepareImage }),
-    );
-    const draft = {
-      name: "Old Marta",
-      imageUrl: "https://i.imgur.com/x.png",
-      tags: [],
-      size: "medium" as const,
-    };
+    const { result } = setup({ prepareImage });
 
     await result.current.addToken(draft);
     expect(prepareImage).toHaveBeenLastCalledWith(draft.imageUrl, { mirror: true });
@@ -96,15 +120,12 @@ describe("useCustomTokens", () => {
   });
 
   it("confirms a copy that was made — the one outcome the DM asked for by hand", async () => {
-    const sendMessage = vi.fn();
     const prepareImage = vi.fn(async () => ({
       imageUrl: `/assets/${"b".repeat(64)}`,
       thumbUrl: `/assets/${"c".repeat(64)}`,
       mirrored: true,
     }));
-    const { result } = renderHook(() =>
-      useCustomTokens({ snapshot: null, sendMessage, prepareImage }),
-    );
+    const { result } = setup({ prepareImage });
 
     const copied = await result.current.addToken({
       name: "Old Marta",
@@ -125,19 +146,16 @@ describe("useCustomTokens", () => {
       tags: [],
       size: "medium",
     });
-    expect(untouched).toEqual({});
+    expect(untouched).toEqual({ added: true });
   });
 
   it("sends what the pipeline produced, and hands its note back to the form", async () => {
-    const sendMessage = vi.fn();
     const prepareImage = vi.fn(async () => ({
       imageUrl: "https://i.imgur.com/x.png",
       mirrored: false,
       thumbUrl: `http://localhost:8788/assets/${"a".repeat(64)}`,
     }));
-    const { result } = renderHook(() =>
-      useCustomTokens({ snapshot: null, sendMessage, prepareImage }),
-    );
+    const { result, sendMessage } = setup({ prepareImage });
 
     const withThumb = await result.current.addToken({
       name: "Old Marta",
@@ -149,7 +167,7 @@ describe("useCustomTokens", () => {
     expect(sendMessage).toHaveBeenLastCalledWith(
       expect.objectContaining({ thumbUrl: `http://localhost:8788/assets/${"a".repeat(64)}` }),
     );
-    expect(withThumb).toEqual({});
+    expect(withThumb).toEqual({ added: true });
 
     // No thumb: the key is ABSENT, not undefined — the validator's optional
     // stays optional, and the picker falls back to the full picture.
@@ -165,15 +183,51 @@ describe("useCustomTokens", () => {
       size: "medium",
     });
     expect(Object.keys(sendMessage.mock.lastCall![0])).not.toContain("thumbUrl");
-    expect(noThumb).toEqual({ note: "No thumbnail — that image could not be read." });
+    expect(noThumb).toEqual({ added: true, note: "No thumbnail — that image could not be read." });
   });
 
   it("removeToken sends remove-custom-token", () => {
-    const sendMessage = vi.fn();
-    const { result } = renderHook(() =>
-      useCustomTokens({ snapshot: null, sendMessage, prepareImage: passthrough }),
-    );
+    const { result, sendMessage } = setup();
     result.current.removeToken("ct-1");
     expect(sendMessage).toHaveBeenCalledWith({ t: "remove-custom-token", id: "ct-1" });
+  });
+
+  it("says so when the table does not take the token, instead of looking like a success", async () => {
+    // Every refusal reaches the client the same way: not at all. The add is
+    // fire-and-forget with no commandId, a validator rejection is a
+    // server-side log, and the cap refusal is a console.warn — so an add that
+    // vanished used to render exactly like one that worked.
+    const { result, sendMessage } = setup({ accept: false });
+
+    const refused = await result.current.addToken(draft);
+    expect(sendMessage).toHaveBeenCalled();
+    expect(refused.note).toMatch(/did not take that token/i);
+  });
+
+  it("refuses an address the wire would drop BEFORE it spends two uploads on it", async () => {
+    const prepareImage = vi.fn(passthrough);
+    const { result, sendMessage } = setup({ prepareImage });
+
+    for (const imageUrl of ["goblin.png", "http://example.com/x.png", "data:image/png;base64,AA"]) {
+      const result_ = await result.current.addToken({ ...draft, imageUrl });
+      expect(result_.note, imageUrl).toMatch(/cannot be used/i);
+    }
+    // Not one upload rendered, not one message sent.
+    expect(prepareImage).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("refuses at the cap, before the uploads, and names the number", async () => {
+    const full = Array.from({ length: CUSTOM_TOKEN_LIMITS.COUNT_MAX }, (_, i) => ({
+      ...token,
+      id: `ct-${i}`,
+    }));
+    const prepareImage = vi.fn(passthrough);
+    const { result, sendMessage } = setup({ shelf: full, prepareImage });
+
+    const refused = await result.current.addToken(draft);
+    expect(refused.note).toContain(String(CUSTOM_TOKEN_LIMITS.COUNT_MAX));
+    expect(prepareImage).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 });

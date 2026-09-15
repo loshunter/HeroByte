@@ -21,8 +21,10 @@ export interface CustomTokenDraft {
   disposition?: NpcDisposition;
 }
 
-/** What an add reports back: a line to show when a step was skipped. */
+/** What an add reports back. */
 export interface CustomTokenAddResult {
+  /** False when the token never reached the shelf — the form keeps the fields. */
+  added: boolean;
   note?: string;
 }
 
