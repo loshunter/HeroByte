@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import { coerceCustomTokens, coerceLoadedCharacters, coerceTokenSize } from "../loadCoercions.js";
 
 describe("coerceCustomTokens", () => {
@@ -73,6 +74,56 @@ describe("coerceCustomTokens", () => {
       const [token] = coerceCustomTokens([{ ...good, thumbUrl: bad }]);
       expect(token, String(bad)).not.toHaveProperty("thumbUrl");
     }
+  });
+
+  it("holds BOTH pictures to the wire's rule, because both leave this process", () => {
+    // A pick turns imageUrl into an NPC's tokenImage and broadcasts it to
+    // every player's image loader; thumbUrl rides the picker's grid the same
+    // way. Every address below is one add-custom-token refuses, and the door
+    // used to take any non-empty string at all.
+    const refused = [
+      "data:text/html,<script>alert(1)</script>",
+      "javascript:alert(1)",
+      "http://attacker.example/x.png",
+      "//attacker.example/x.png",
+      "cat.png",
+      `https://cdn.example.com/${"a".repeat(CUSTOM_TOKEN_LIMITS.URL_MAX)}.png`,
+    ];
+    for (const bad of refused) {
+      expect(coerceCustomTokens([{ ...good, imageUrl: bad }]), bad).toEqual([]);
+      const [token] = coerceCustomTokens([{ ...good, thumbUrl: bad }]);
+      expect(token, bad).not.toHaveProperty("thumbUrl");
+    }
+    // The three shapes the wire DOES take, so nothing on a real shelf is lost.
+    for (const okUrl of [
+      "https://i.imgur.com/x.png",
+      "/tokens/NPC/Enemies/Goblins/goblinClub.png",
+      `http://localhost:8788/assets/${"a".repeat(64)}`,
+    ]) {
+      expect(coerceCustomTokens([{ ...good, imageUrl: okUrl }])[0], okUrl).toMatchObject({
+        imageUrl: okUrl,
+      });
+    }
+  });
+
+  it("bounds the text fields the wire bounds, rather than the collection limit alone", () => {
+    const long = (n: number) => "a".repeat(n);
+    // A name past NAME_MAX is an entry the wire never would have seated.
+    expect(coerceCustomTokens([{ ...good, name: long(CUSTOM_TOKEN_LIMITS.NAME_MAX + 1) }])).toEqual(
+      [],
+    );
+    const [token] = coerceCustomTokens([
+      {
+        ...good,
+        description: long(CUSTOM_TOKEN_LIMITS.DESCRIPTION_MAX + 1),
+        tags: [long(CUSTOM_TOKEN_LIMITS.TAG_MAX + 1), "npc", ...Array(20).fill("filler")],
+      },
+    ]);
+    // The blurb is optional, so an over-long one loses the field, not the token.
+    expect(token).not.toHaveProperty("description");
+    expect(token.tags).toHaveLength(CUSTOM_TOKEN_LIMITS.TAGS_MAX);
+    expect(token.tags).not.toContain(long(CUSTOM_TOKEN_LIMITS.TAG_MAX + 1));
+    expect(token.tags[0]).toBe("npc");
   });
 });
 

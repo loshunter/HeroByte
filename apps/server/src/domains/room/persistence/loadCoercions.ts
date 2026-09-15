@@ -6,7 +6,9 @@
  */
 
 import {
+  CUSTOM_TOKEN_LIMITS,
   coerceMovementBudgetFields,
+  isCustomTokenImageUrl,
   type Character,
   type CustomToken,
   type TokenSize,
@@ -16,11 +18,31 @@ import {
   isNpcDisposition,
 } from "../../../middleware/validators/commonValidators.js";
 
+/** A picture this door will hand to every client's image loader, or nothing. */
+function coerceCustomTokenUrl(value: unknown): string | undefined {
+  return typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= CUSTOM_TOKEN_LIMITS.URL_MAX &&
+    isCustomTokenImageUrl(value)
+    ? value
+    : undefined;
+}
+
 /**
  * The table's own Library tokens, from a state file or a session file: an
- * entry keeps only what the wire would have accepted — a string id, name and
- * image, string tags, a size on the ladder (else medium). Anything else in
- * the list is dropped rather than handed to the picker to render.
+ * entry keeps only what the wire would have accepted. Anything else in the
+ * list is dropped rather than handed to the picker to render.
+ *
+ * The two URLs are held to the wire's rule and not merely to "a non-empty
+ * string", because they are the fields that LEAVE this process: a pick turns
+ * imageUrl into an NPC's tokenImage and broadcasts it to every player's Konva
+ * image loader, and thumbUrl rides the picker's grid the same way. A
+ * hand-edited file could seat `data:text/html,…`, `javascript:…`, a plain-http
+ * host or a four-megabyte string — every one of which add-custom-token
+ * refuses — and the door underneath the comment saying "the same rule the wire
+ * applies" was the one place none of that was checked. Nothing already on a
+ * shelf is at risk: it passed the wire at add time, and the rule has only ever
+ * widened.
  */
 export function coerceCustomTokens(raw: unknown): CustomToken[] {
   if (!Array.isArray(raw)) return [];
@@ -29,20 +51,26 @@ export function coerceCustomTokens(raw: unknown): CustomToken[] {
     if (!entry || typeof entry !== "object") continue;
     const { id, name, imageUrl, thumbUrl, description, tags, size, disposition, addedBy, addedAt } =
       entry;
-    if (typeof id !== "string" || typeof name !== "string" || typeof imageUrl !== "string") {
-      continue;
-    }
-    if (!id || !name || !imageUrl) continue;
+    if (typeof id !== "string" || typeof name !== "string") continue;
+    if (!id || !name || name.length > CUSTOM_TOKEN_LIMITS.NAME_MAX) continue;
+    const picture = coerceCustomTokenUrl(imageUrl);
+    if (!picture) continue;
+    const thumb = coerceCustomTokenUrl(thumbUrl);
     const stance = coerceNpcDisposition(disposition);
     out.push({
       id,
       name,
-      imageUrl,
-      // A missing thumb is the shipped default, so anything but a non-empty
-      // string is dropped rather than repaired — the picker draws imageUrl.
-      ...(typeof thumbUrl === "string" && thumbUrl ? { thumbUrl } : {}),
-      ...(typeof description === "string" && description ? { description } : {}),
-      tags: Array.isArray(tags) ? tags.filter((t): t is string => typeof t === "string") : [],
+      imageUrl: picture,
+      // A missing thumb is the shipped default, so anything the wire would
+      // not have taken is dropped rather than repaired — the picker draws
+      // imageUrl, which is exactly what a token added before G1 does.
+      ...(thumb ? { thumbUrl: thumb } : {}),
+      ...(typeof description === "string" &&
+      description &&
+      description.length <= CUSTOM_TOKEN_LIMITS.DESCRIPTION_MAX
+        ? { description }
+        : {}),
+      tags: coerceCustomTokenTags(tags),
       size: coerceTokenSize(size) ?? "medium",
       // Absent IS the default (hostile), so a word off the list is dropped
       // rather than replaced with one — the same rule the wire applies.
@@ -52,6 +80,17 @@ export function coerceCustomTokens(raw: unknown): CustomToken[] {
     });
   }
   return out;
+}
+
+/** Non-empty strings, each within TAG_MAX, no more than TAGS_MAX of them. */
+function coerceCustomTokenTags(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (tag): tag is string =>
+        typeof tag === "string" && tag.length > 0 && tag.length <= CUSTOM_TOKEN_LIMITS.TAG_MAX,
+    )
+    .slice(0, CUSTOM_TOKEN_LIMITS.TAGS_MAX);
 }
 
 /**
