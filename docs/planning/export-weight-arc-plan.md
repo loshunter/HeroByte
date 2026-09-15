@@ -1,15 +1,15 @@
 # The Weighed Campaign — the byte-weighed mint path — Execution Plan
 
-**Status: W0–W3 SHIPPED to `dev` 2026-09-14 + two fixes found LIVE (below), NOT merged to `main`; the closing review is recorded below when it lands.** Picked by the owner on 2026-09-13 ("start one now")
+**Status: W0–W3 SHIPPED to `dev` 2026-09-14 + two fixes found LIVE + review round 1 answered (below), NOT merged to `main`; round 2 pending.** Picked by the owner on 2026-09-13 ("start one now")
 from the Kicked-In Door plan's section 7, on this agent's recommendation: it is that plan's
 highest open item and the one defect left there that a DM can hit by playing normally.
 
-| Slice | What                                                             | Status                                       |
-| ----- | ---------------------------------------------------------------- | -------------------------------------------- |
-| W0    | One frame builder, one weigher, one ceiling — shared by 3 sites  | **SHIPPED to `dev` 2026-09-14** (`9fbd94e9`) |
-| W1    | Every mint path weighs bytes before it persists                  | **SHIPPED to `dev` 2026-09-14** (`6d756ea7`) |
-| W2    | The save path says the weight; the refusals say the numbers      | **SHIPPED to `dev` 2026-09-14** (below)      |
-| W3 🟢 | A DM-facing readout of the campaign's weight (if budget remains) | **SHIPPED to `dev` 2026-09-14** (below)      |
+| Slice | What                                                             | Status                                                     |
+| ----- | ---------------------------------------------------------------- | ---------------------------------------------------------- |
+| W0    | One frame builder, one weigher, one ceiling — shared by 3 sites  | **SHIPPED to `dev` 2026-09-14** (`9fbd94e9`)               |
+| W1    | Every mint path weighs bytes before it persists                  | **SHIPPED to `dev` 2026-09-14** (`6d756ea7`)               |
+| W2    | The save path says the weight; the refusals say the numbers      | **SHIPPED to `dev` 2026-09-14** (`3619d06f`, + `24e87641`) |
+| W3 🟢 | A DM-facing readout of the campaign's weight (if budget remains) | **SHIPPED to `dev` 2026-09-14** (`4b6fa215`)               |
 
 ## 0. How to execute this plan
 
@@ -102,12 +102,9 @@ deleted node's document; `MAX_GEOMETRY_ELEMENTS`; the live GENERATE tool's recip
 - `packages/shared/src/wsLimits.ts` gains **`SESSION_MINT_CEILING_BYTES`** =
   `WS_MAX_MESSAGE_BYTES * 3 / 4` (786,432). A MINT is refused when the export it would produce
   weighs more than this; the remaining quarter is for play — tokens, drawings, suspended
-  scenes — which no mint gate can see. **This is the product decision the Kicked-In Door plan
-  deferred, made here and dialled by one constant:** at `large` a table holds four generated
-  buildings, not five; at `medium` about nine. The wire limit itself does not move.
+  scenes — which no mint gate can see. **This is the product decision the Kicked-In Door plan deferred, made here and dialled by one constant.** Measured on a fresh table under the finished gate (2026-09-14): two `large` warehouses, six `large` taverns, eight or nine `large` shops or houses, three high-density `large` dungeons; `medium` maps about twice as many. The wire limit itself does not move.
 
-**The server weighs the export it would write — `apps/server/src/domains/room/sessionExport.ts`
-(new).**
+**The server weighs the export it would write — `apps/server/src/domains/room/sessionExport.ts` (new) — plus the scene the candidate installs when it is the live map (`liveSceneBytes`: compiled walls, terrain, scenery; ~65% of a warehouse's document again), with the outgoing scene's bytes SWAPPED out rather than double counted (round 1).**
 
 - `buildSessionFile(state, mapDocuments, senderUid, now)` — the body of `handleSessionExport`
   moved whole (with `flattenForFile` and the scene filter), so the handler shrinks and the
@@ -233,8 +230,9 @@ deleted node's document; `MAX_GEOMETRY_ELEMENTS`; the live GENERATE tool's recip
 
 ### W3 🟢 — the readout (only if budget remains; else §7 and say so)
 
-`map-studio-documents` (the list the DM already requests) carries `exportBytes`; the desktop
-DM menu's Atlas tab and the phone's DM screen show "Campaign 0.61 / 0.75 MB". No new message
+`map-studio-documents` (the list the DM already requests) carries `exportBytes`; the DM
+menu's **Map** tab, beside the map list (both layouts share it), shows "Campaign 0.61 MB of
+0.75 MB · 4 maps" (spec'd for the Atlas tab; shipped beside the list it describes). No new message
 type; the three `ServerMessage` hand-lists stay byte-identical.
 
 #### W3 — what shipped (2026-09-14)
@@ -242,9 +240,7 @@ type; the three `ServerMessage` hand-lists stay byte-identical.
 - `map-studio-documents` carries `exportBytes` — the weigh of the room's REAL export, computed by
   the same `exportBytes` the ceiling measures with (the list is on demand, so the cost lands
   where the DM asks). No new message type; the three `ServerMessage` hand-lists are untouched.
-- `useMapStudio` keeps `exportBytes` and re-lists when a document frame arrives for an id it has
-  not seen (a mint: create, import, generate, a kick) or on a delete — only once a list has
-  arrived, so a bare command stream costs no extra message (four counting tests said so).
+- `useMapStudio` keeps `exportBytes` and re-lists when a document frame arrives for an id it has not seen (a mint: create, import, a kick), when the live GENERATE tool's own command lands on a known id (round 1 — a generate edits an existing map), or on a delete — only once a list has arrived, so a bare command stream costs no extra message; silently (never clearing `loading`) and once per burst (round 1).
 - `CampaignWeight` beside the map list: "Campaign 0.61 MB of 0.75 MB · 4 maps", red past the
   ceiling with "delete a map to make room", and past the wire limit "a save will NOT load
   back"; nothing until a server has said. One component, both layouts (the DM menu is shared).
@@ -283,6 +279,68 @@ table (a loaded local table: 9 atlas nodes, 29 tokens). Driven from the DM tab, 
 
 Also seen, pre-existing, recorded in §7: deleting the LIVE map's document leaves the party on a
 compiled scene with no document behind it.
+
+### Review round 1 (2026-09-14) — four fresh Opus lenses; 0 critical / 14 major / 22 minor raw → 0 / 11 / 20 deduplicated; every lens FAIL
+
+Lenses: correctness (0/3/5), test validity (0/3/5), doc-vs-code honesty (0/5/6), privacy-wire-cost
+(0/3/6). Static reviews of `8e104dc4..e60dae7e`, read-only, `git status` clean after each. Every
+major fixed; every minor fixed but two, recorded.
+
+**A third production bug, found by the review** (`table-forked` / `table-fork-failed`): the
+fork replies were on none of the router's three control lists, so **"Save as a private table"
+had been dead since it shipped (2026-07-31)** — every save ended in "The server didn't confirm
+the save" while the copy was minted on the server, and each retry minted another orphan. The
+arc's own hand-list pin could not see it: the three lists agreed with each other and were
+equally wrong. Fixed in its own commit; the pin now cross-checks the router's guard against
+every type `useServerEventHandlers` switches on, and `table-fork.smoke.spec.ts` clicks the real
+button and waits for the new room's URL (red without the fix).
+
+**Majors, deduplicated (11):**
+
+1. The weigh double counted the outgoing scene (three lenses): `exportBytes` already carries the
+   live scene's compiled data, and `liveSceneBytes(candidate)` was added on top — ~128–144 KB
+   early at `large`, a whole scene twice for a generate onto the live map. Now the weigh is the
+   heavier of the export as it stands and the export with the candidate LIVE (outgoing swapped
+   for incoming: `mintSceneBytes`, with the live-document branch for the GENERATE tool); the
+   kick adds a 2 KB allowance for the graph and the capture envelope it pushes after the weigh.
+   Pinned: unit (the swap, the allowance, the three outgoing cases), a kick contract case from a
+   HEAVY origin that the naive sum refuses and the swap allows, the round-trip's refusal number.
+2. The live GENERATE tool never refreshed the readout (a known id). It re-lists when its own
+   in-flight generate lands.
+3. A refusal was dropped once `requestedDocumentId` moved on (a second click, the watchdog, or
+   the silent re-list clearing `loading`). Pending mints are matched by id; a silent re-list
+   never clears `loading` and never doubles in a burst; the readout resets on reconnect.
+4. The inverted characterization could not see the scene term. It now asserts the refusal's
+   own number sits 250–400 KB above the written export.
+5. Both save-toast pins were satisfied by the limit alone. A 300 KB / 1.5 MB fixture now pins the
+   weight itself, and the toast says two sizes.
+6. The kick's padding loop was unbounded — `padExportTo` is bounded at 64 passes and asserts
+   where it landed; every padded case uses it, and the byte cases sit BETWEEN the ceiling and the
+   wire limit so the dial is what refuses.
+7. The refusal called the 0.75 MB ceiling "what a table can load back in one message" (1.00 MB
+   is). It now names each number for what it is; pinned.
+8. "Four large buildings" was false. Measured under the finished gate: two large warehouses, six
+   large taverns, eight or nine large shops or houses, three high-density large dungeons; medium
+   about twice — in the guide, the constant's comment, the plan, the shared test.
+9. "The toast says the file's weight" — it said the wire frame's; the file on disk is 2× (pretty-
+   printed) plus images. The toast now says both; the guide and help say which is which.
+10. The readout and the gate measured different things. The readout's note says a new map also
+    costs the scene it installs, so mints stop a little before the number reaches the ceiling.
+11. (dedup of 1) The generate path's double count.
+
+**Minors fixed (18):** the warn gate (`buildSessionFile` warns only on a real export); the count
+cap answers before the candidate is built; the broadcast sits outside the refusal's try; the
+list weigh is guarded (a throw costs the readout, never the list); `cashNode`'s weigh is guarded
+(a throw is a rejection on the atlas-error channel); the e2e save toast pins digits and waits
+from before the click; `generateDungeon`'s scene assertion is defined-then-empty and its
+refusal sits between the ceiling and the wire; `atlasGraph`'s node assertion is defined-then-
+unmapped; the duplicate-import case asserts nothing was minted and a broadcast failure is not a
+refusal; the 207–235 KB figure corrected everywhere; the W3 record says Map tab and the shipped
+string; the plan table names every commit; the stale fixture copy; the router JSDoc enumerates
+nothing (the pin does). **Recorded, not fixed (2):** `toSnapshot` builds and hashes the asset
+channel the weigh discards (~2–3 ms per weigh, DM-paced) — a `skipAssets` option to `toSnapshot`
+is the fix if it ever matters; server-side memoization of the export weight (the client coalesces
+its re-lists to one per burst instead).
 
 ## 5. Failure drills
 
