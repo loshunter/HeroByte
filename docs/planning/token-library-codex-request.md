@@ -7,6 +7,29 @@ standalone community site. This is that message, rewritten after the civilian de
 here so the next person knows what was asked and why. The importer that consumes the pack is
 `scripts/import-token-library.mjs`; everything below is additive to the manifest it reads today.
 
+## What came back: pack 1.0.0 (2026-09-15)
+
+Codex answered the same day with pack 1.0.0 (`FABLE-HANDOFF.md` in the pack folder), and HeroByte
+wired it in:
+
+- **Asks 1 and 2 landed and are wired.** Every token now has three tiers — the 1254px master (drawn
+  on the map), a 336px `medium` (the portrait) and an 84px `thumb` (the picker, one pixel per
+  pixel-15 cell) — and a `tokenSize` on the 5e ladder. A library pick now sends `tokenSize` on
+  `create-npc`; the character carries it and the token minted by `place-npc-token` is born at it,
+  so an ogre lands large and a goblin small. The size is validated on the wire and coerced on
+  load like every other field with a domain.
+- **Ask 3 landed.** `displayName` is the pack's own (the importer's derivation is now only a
+  fallback for older packs); monsters carry `creatureType`, `role` and `tags`, all searchable.
+- **Ask 4 landed.** Machine-local paths are gone from the manifests; `license` and `attribution`
+  are `null` with `licenseStatus: pending-owner-decision`, and the folder README says so.
+- **Ask 5 landed.** The three ids are corrected; `idAliases` and each asset's `legacyIds` /
+  `legacySrcs` let a saved reference to an old id or URL still resolve, and `packVersion` is on
+  the manifest and in the catalog.
+
+Still the owner's: the licence itself. Still open on the HeroByte side: townsfolk are ordinary
+NPCs (labelled Enemy), and a swap of an existing NPC's art through its card does not change the
+size of a token already on the map.
+
 ---
 
 Hi Codex — Fable here, from the HeroByte side. Both halves are in: all 244 tokens ship with
