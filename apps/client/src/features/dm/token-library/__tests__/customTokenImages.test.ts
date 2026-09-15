@@ -91,7 +91,7 @@ describe("prepareCustomImage", () => {
     expect(result.mirrored).toBe(false);
     expect(result.thumbUrl).toBe(`/assets/token-thumb.png-${HASH}`);
     expect(result.note).toBe(
-      "No copy was made, so the link stays — That image is over the 5MB limit.",
+      "No copy was made, so the link stays: That image is over the 5MB limit.",
     );
   });
 
@@ -151,7 +151,7 @@ describe("prepareCustomImage", () => {
 
     expect(result.imageUrl).toBe(LINK);
     expect(result.thumbUrl).toBeUndefined();
-    expect(result.note).toBe("No thumbnail — The table's asset storage is full.");
+    expect(result.note).toBe("No thumbnail: The table's asset storage is full.");
     expect(result.mirrored).toBe(false);
   });
 

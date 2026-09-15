@@ -81,11 +81,17 @@ export function classifyCustomImage(url: string): CustomImageKind {
 const UNREADABLE =
   "That image could not be read, so the link is kept as it is — some hosts do not let another site copy their pictures. The token still works.";
 
-/** Why a step was skipped, in the DM's words rather than the uploader's code. */
+/**
+ * Why a step was skipped, in the DM's words rather than the uploader's code.
+ *
+ * A COLON, not a dash: several AssetUploadError messages contain a dash of
+ * their own ("Upload failed — is the game server reachable?"), and chaining
+ * two of them read as one run-on line at the table.
+ */
 function why(step: string, error: unknown): string {
   return error instanceof AssetUploadError
-    ? `${step} — ${error.message}`
-    : `${step} — that image could not be copied.`;
+    ? `${step}: ${error.message}`
+    : `${step}: that image could not be copied.`;
 }
 
 /**
