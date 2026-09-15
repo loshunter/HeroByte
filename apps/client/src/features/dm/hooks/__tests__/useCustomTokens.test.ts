@@ -13,7 +13,8 @@ import { useCustomTokens } from "../useCustomTokens";
 import type { PreparedCustomImage } from "../../token-library/customTokenImages";
 
 /** The pipeline is proved in its own suite; here it is a stand-in. */
-const passthrough = (imageUrl: string) => Promise.resolve<PreparedCustomImage>({ imageUrl });
+const passthrough = (imageUrl: string) =>
+  Promise.resolve<PreparedCustomImage>({ imageUrl, mirrored: false });
 
 const token = {
   id: "ct-1",
@@ -73,10 +74,32 @@ describe("useCustomTokens", () => {
     );
   });
 
+  it("keeps a copy by default, and only when the caller says otherwise does not", async () => {
+    const sendMessage = vi.fn();
+    const prepareImage = vi.fn(passthrough);
+    const { result } = renderHook(() =>
+      useCustomTokens({ snapshot: null, sendMessage, prepareImage }),
+    );
+    const draft = {
+      name: "Old Marta",
+      imageUrl: "https://i.imgur.com/x.png",
+      tags: [],
+      size: "medium" as const,
+    };
+
+    await result.current.addToken(draft);
+    expect(prepareImage).toHaveBeenLastCalledWith(draft.imageUrl, { mirror: true });
+    await result.current.addToken(draft, {});
+    expect(prepareImage).toHaveBeenLastCalledWith(draft.imageUrl, { mirror: true });
+    await result.current.addToken(draft, { mirror: false });
+    expect(prepareImage).toHaveBeenLastCalledWith(draft.imageUrl, { mirror: false });
+  });
+
   it("sends what the pipeline produced, and hands its note back to the form", async () => {
     const sendMessage = vi.fn();
     const prepareImage = vi.fn(async () => ({
       imageUrl: "https://i.imgur.com/x.png",
+      mirrored: false,
       thumbUrl: `http://localhost:8788/assets/${"a".repeat(64)}`,
     }));
     const { result } = renderHook(() =>
@@ -89,7 +112,7 @@ describe("useCustomTokens", () => {
       tags: [],
       size: "medium",
     });
-    expect(prepareImage).toHaveBeenCalledWith("https://i.imgur.com/x.png");
+    expect(prepareImage).toHaveBeenCalledWith("https://i.imgur.com/x.png", { mirror: true });
     expect(sendMessage).toHaveBeenLastCalledWith(
       expect.objectContaining({ thumbUrl: `http://localhost:8788/assets/${"a".repeat(64)}` }),
     );
@@ -99,6 +122,7 @@ describe("useCustomTokens", () => {
     // stays optional, and the picker falls back to the full picture.
     prepareImage.mockResolvedValueOnce({
       imageUrl: "https://i.imgur.com/x.png",
+      mirrored: false,
       note: "No thumbnail — that image could not be read.",
     } as never);
     const noThumb = await result.current.addToken({

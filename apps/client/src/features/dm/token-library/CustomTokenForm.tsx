@@ -10,14 +10,37 @@ import type { NpcDisposition, TokenSize } from "@herobyte/shared";
 import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import { ImageField } from "../../../components/ui/ImageField";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
-import type { CustomTokenAddResult, CustomTokenDraft } from "./customTokensContext";
+import type {
+  CustomTokenAddOptions,
+  CustomTokenAddResult,
+  CustomTokenDraft,
+} from "./customTokensContext";
 import { impliedStance } from "./customTokenStance";
+import {
+  addStyle,
+  chipRowStyle,
+  chosenTagStyle,
+  fieldGroupStyle,
+  fieldStyle,
+  formStyle,
+  headingStyle,
+  keepCopyHintStyle,
+  noteStyle,
+  rowStyle,
+  suggestedTagStyle,
+} from "./customTokenFormStyles";
 import { npcDispositionLook } from "../../players/components/npcDisposition";
 
 interface CustomTokenFormProps {
-  onAdd: (draft: CustomTokenDraft) => Promise<CustomTokenAddResult>;
+  onAdd: (
+    draft: CustomTokenDraft,
+    options?: CustomTokenAddOptions,
+  ) => Promise<CustomTokenAddResult>;
   disabled?: boolean;
 }
+
+/** Only a link can be copied; an upload and the pack are already on this table. */
+const isLink = (value: string) => /^https:\/\/\S+$/i.test(value.trim());
 
 const SIZES: TokenSize[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 
@@ -58,6 +81,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
   // says so, and a line underneath when a step was skipped.
   const [adding, setAdding] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [keepCopy, setKeepCopy] = useState(true);
   const nameId = useId();
   const descriptionId = useId();
   const tagsId = useId();
@@ -94,16 +118,19 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
     setAdding(true);
     setNote(null);
     void Promise.resolve(
-      onAdd({
-        name: name.trim().slice(0, CUSTOM_TOKEN_LIMITS.NAME_MAX),
-        imageUrl: imageUrl.trim(),
-        ...(blurb ? { description: blurb.slice(0, CUSTOM_TOKEN_LIMITS.DESCRIPTION_MAX) } : {}),
-        tags: finalTags,
-        size,
-        // Hostile is what absent already means; sending it would only put a
-        // word in the saved file that changes nothing.
-        ...(stance === "hostile" ? {} : { disposition: stance }),
-      }),
+      onAdd(
+        {
+          name: name.trim().slice(0, CUSTOM_TOKEN_LIMITS.NAME_MAX),
+          imageUrl: imageUrl.trim(),
+          ...(blurb ? { description: blurb.slice(0, CUSTOM_TOKEN_LIMITS.DESCRIPTION_MAX) } : {}),
+          tags: finalTags,
+          size,
+          // Hostile is what absent already means; sending it would only put a
+          // word in the saved file that changes nothing.
+          ...(stance === "hostile" ? {} : { disposition: stance }),
+        },
+        { mirror: keepCopy },
+      ),
     )
       .then((result) => setNote(result?.note ?? null))
       // The add itself never rejects by design; if one ever does, the DM sees
@@ -118,6 +145,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
     setSize("medium");
     setStance("neutral");
     setStanceTouched(false);
+    setKeepCopy(true);
   };
 
   return (
@@ -140,6 +168,21 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
         disabled={disabled}
         compact
       />
+      {/* Only for a link: an upload and the pack are already this table's. */}
+      {isLink(imageUrl) && (
+        <label className="custom-token-keep-copy jrpg-text-small">
+          <input
+            type="checkbox"
+            checked={keepCopy}
+            onChange={(event) => setKeepCopy(event.target.checked)}
+            disabled={disabled}
+          />
+          <span>
+            Keep a copy on this table{" "}
+            <span style={keepCopyHintStyle}>— the link stays if the copy cannot be made</span>
+          </span>
+        </label>
+      )}
       <div style={rowStyle}>
         <div style={fieldGroupStyle}>
           <label htmlFor={nameId} className="jrpg-text-small">
@@ -276,59 +319,3 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
     </form>
   );
 }
-
-const formStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  padding: "8px",
-  border: "1px dashed var(--jrpg-cyan, #00e0d1)",
-  borderRadius: "4px",
-} as const;
-
-const headingStyle = { margin: 0, fontSize: "10px", color: "var(--jrpg-cyan, #00e0d1)" };
-
-const rowStyle = { display: "flex", gap: "8px", flexWrap: "wrap" } as const;
-
-const fieldGroupStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "3px",
-  flex: "1 1 160px",
-  fontSize: "10px",
-} as const;
-
-const fieldStyle = { fontSize: "11px", padding: "4px 6px", minWidth: 0 } as const;
-
-const chipRowStyle = { display: "flex", gap: "4px", flexWrap: "wrap" } as const;
-
-// Tag chips are compact on a desktop; no inline min-height, so the phone's
-// coarse-pointer floor can lift them to 44px — a row of ten ancestries wraps.
-const suggestedTagStyle = {
-  fontFamily: "var(--font-body)",
-  fontSize: "10px",
-  padding: "3px 7px",
-  background: "var(--jrpg-panel, #232638)",
-  color: "var(--jrpg-white)",
-  border: "1px solid var(--jrpg-border-gold, #8a7445)",
-  borderRadius: "10px",
-  cursor: "pointer",
-} as const;
-
-const chosenTagStyle = {
-  ...suggestedTagStyle,
-  background: "var(--jrpg-cyan, #00e0d1)",
-  color: "var(--jrpg-navy, #0f0e1e)",
-  border: "1px solid var(--jrpg-cyan, #00e0d1)",
-} as const;
-
-const addStyle = { fontSize: "10px", padding: "6px 12px", alignSelf: "flex-start" } as const;
-
-// Gold, not red: every one of these says the token WAS added and something
-// optional was skipped. A red line would read as a failure it is not.
-const noteStyle = {
-  margin: 0,
-  fontSize: "10px",
-  lineHeight: 1.35,
-  color: "var(--jrpg-gold)",
-} as const;

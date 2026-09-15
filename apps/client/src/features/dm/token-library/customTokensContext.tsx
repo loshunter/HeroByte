@@ -26,13 +26,23 @@ export interface CustomTokenAddResult {
   note?: string;
 }
 
+/** Not wire fields — what the add should DO to the picture on the way. */
+export interface CustomTokenAddOptions {
+  /** Keep a copy of an https link on this table. Default on. */
+  mirror?: boolean;
+}
+
 export interface CustomTokensApi {
   tokens: readonly CustomToken[];
   /**
    * Absent means the shelf is read-only here (no DM plumbing behind it).
-   * Async because an add renders and uploads the 84px thumbnail first.
+   * Async because an add renders and uploads the thumbnail (and, for a link
+   * the DM kept, a copy of the picture) before the message goes out.
    */
-  addToken?: (draft: CustomTokenDraft) => Promise<CustomTokenAddResult>;
+  addToken?: (
+    draft: CustomTokenDraft,
+    options?: CustomTokenAddOptions,
+  ) => Promise<CustomTokenAddResult>;
   removeToken?: (id: string) => void;
 }
 

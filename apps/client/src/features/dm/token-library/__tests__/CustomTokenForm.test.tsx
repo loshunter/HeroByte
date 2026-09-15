@@ -40,15 +40,18 @@ describe("CustomTokenForm", () => {
     fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "innkeeper" } });
     fireEvent.click(add);
 
-    expect(onAdd).toHaveBeenCalledWith({
-      name: "Old Marta",
-      imageUrl: "https://i.imgur.com/x.png",
-      description: "Runs the Gilded Tankard.",
-      tags: ["npc", "villager", "halfling", "innkeeper"],
-      size: "small",
-      // The kind chips said townsfolk, so the card will read Neutral.
-      disposition: "neutral",
-    });
+    expect(onAdd).toHaveBeenCalledWith(
+      {
+        name: "Old Marta",
+        imageUrl: "https://i.imgur.com/x.png",
+        description: "Runs the Gilded Tankard.",
+        tags: ["npc", "villager", "halfling", "innkeeper"],
+        size: "small",
+        // The kind chips said townsfolk, so the card will read Neutral.
+        disposition: "neutral",
+      },
+      { mirror: true },
+    );
     // Cleared for the next one, and the button says the add is in flight —
     // it renders and uploads a thumbnail before the message goes out.
     expect(screen.getByLabelText("Name")).toHaveValue("");
@@ -102,7 +105,10 @@ describe("CustomTokenForm", () => {
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Old Marta" } });
     await screen.findByDisplayValue("https://i.imgur.com/x.png");
     fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
-    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ disposition: "neutral" }));
+    expect(onAdd).toHaveBeenLastCalledWith(
+      expect.objectContaining({ disposition: "neutral" }),
+      expect.anything(),
+    );
 
     // Hostile is what absent already means, so it is not sent at all.
     await screen.findByRole("button", { name: "＋ Add to library" });
@@ -112,6 +118,35 @@ describe("CustomTokenForm", () => {
     fireEvent.change(screen.getByLabelText("Stance"), { target: { value: "hostile" } });
     fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
     expect(Object.keys(onAdd.mock.lastCall![0])).not.toContain("disposition");
+  });
+
+  it("offers to keep a copy of a LINK only, on by default, and honours the opt-out", async () => {
+    const onAdd = ok();
+    render(<CustomTokenForm onAdd={onAdd} />);
+    const copy = () => screen.queryByLabelText(/Keep a copy on this table/);
+
+    // An upload is already this table's — nothing to copy, nothing to ask.
+    fillImage(`http://localhost:8788/assets/${"a".repeat(64)}`);
+    await screen.findByDisplayValue(`http://localhost:8788/assets/${"a".repeat(64)}`);
+    expect(copy()).toBeNull();
+
+    fillImage("https://i.imgur.com/x.png");
+    await screen.findByDisplayValue("https://i.imgur.com/x.png");
+    expect(copy()).toBeChecked();
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Old Marta" } });
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+    expect(onAdd).toHaveBeenLastCalledWith(expect.anything(), { mirror: true });
+
+    await screen.findByRole("button", { name: "＋ Add to library" });
+    fillImage("https://i.imgur.com/y.png");
+    await screen.findByDisplayValue("https://i.imgur.com/y.png");
+    // Back on for the next token, not left off from the last one.
+    expect(copy()).toBeChecked();
+    fireEvent.click(copy()!);
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Wolf" } });
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+    expect(onAdd).toHaveBeenLastCalledWith(expect.anything(), { mirror: false });
   });
 
   it("a chip toggles its tag on and off, and a chosen tag has its own remover", () => {

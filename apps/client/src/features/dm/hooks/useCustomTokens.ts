@@ -15,6 +15,7 @@ import type { CustomTokenDraft } from "../token-library/customTokensContext";
 import {
   browserPrepareDeps,
   prepareCustomImage,
+  type PrepareOptions,
   type PreparedCustomImage,
 } from "../token-library/customTokenImages";
 import { sessionCredentials } from "../../session/sessionBridge";
@@ -24,8 +25,14 @@ export interface UseCustomTokensOptions {
   snapshot: RoomSnapshot | null;
   sendMessage: (message: ClientMessage) => void;
   /** Test seams; production uses the real canvas/upload road and the session's credentials. */
-  prepareImage?: (imageUrl: string) => Promise<PreparedCustomImage>;
+  prepareImage?: (imageUrl: string, options: PrepareOptions) => Promise<PreparedCustomImage>;
   getCredentials?: () => AssetUploadCredentials | null;
+}
+
+/** What the caller wants done to the picture before the token is minted. */
+export interface AddCustomTokenOptions {
+  /** Keep a copy of an https link on this table. Default on; the form's checkbox. */
+  mirror?: boolean;
 }
 
 /** What an add reports back: nothing at all when every step succeeded. */
@@ -35,7 +42,10 @@ export interface CustomTokenAddResult {
 
 export interface UseCustomTokensResult {
   tokens: readonly CustomToken[];
-  addToken: (draft: CustomTokenDraft) => Promise<CustomTokenAddResult>;
+  addToken: (
+    draft: CustomTokenDraft,
+    options?: AddCustomTokenOptions,
+  ) => Promise<CustomTokenAddResult>;
   removeToken: (id: string) => void;
 }
 
@@ -53,13 +63,19 @@ export function useCustomTokens({
   const prepare = useMemo(
     () =>
       prepareImage ??
-      ((imageUrl: string) => prepareCustomImage(imageUrl, browserPrepareDeps(getCredentials))),
+      ((imageUrl: string, options: PrepareOptions) =>
+        prepareCustomImage(imageUrl, options, browserPrepareDeps(getCredentials))),
     [prepareImage, getCredentials],
   );
 
   const addToken = useCallback(
-    async (draft: CustomTokenDraft): Promise<CustomTokenAddResult> => {
-      const prepared = await prepare(draft.imageUrl);
+    async (
+      draft: CustomTokenDraft,
+      options?: AddCustomTokenOptions,
+    ): Promise<CustomTokenAddResult> => {
+      // Default ON: a link that quietly stops resolving is the failure a DM
+      // cannot see coming, and declining the copy costs them one checkbox.
+      const prepared = await prepare(draft.imageUrl, { mirror: options?.mirror !== false });
       sendMessage({
         t: "add-custom-token",
         name: draft.name,

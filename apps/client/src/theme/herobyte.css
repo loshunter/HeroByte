@@ -1352,6 +1352,21 @@ h4 {
  * Declared BEFORE that block: the two selectors tie on specificity (a media
  * query adds none), so source order is what decides which one wins.
  */
+/*
+ * "Keep a copy on this table". The panel-wide floor below deliberately
+ * EXCLUDES checkboxes — a 44px checkbox is a huge tick — so the label is the
+ * tap target instead, which is the right answer anyway: a label for a
+ * checkbox toggles it, so the whole row is pressable and the box stays 13px.
+ */
+.custom-token-keep-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
 .token-library-remove {
   position: absolute;
   top: 2px;
@@ -1445,6 +1460,11 @@ h4 {
    * touchscreen LAPTOP still gets the desktop DM window, where the overlay is
    * right and there is no floor lifting it into the picture.
    */
+  /* The label, not the box (see the rule above): 44px of pressable row. */
+  [data-mobile-surface] .custom-token-keep-copy {
+    min-height: 44px;
+  }
+
   [data-mobile-surface] .token-library-remove {
     position: static;
     width: 100%;

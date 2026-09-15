@@ -2,10 +2,15 @@
 // CUSTOM TOKEN IMAGES
 // ============================================================================
 // What happens to a custom token's picture between "the DM chose it" and "the
-// shelf holds it". Today: an 84px thumbnail, so the picker's grid draws one
-// per cell instead of decoding the full picture — a phone photo is 4000px on
-// its long side, and thirty of those in a scrolling grid is the whole reason
-// the pack ships three rendered tiers of its own.
+// shelf holds it". Two things:
+//
+//   1. An 84px thumbnail, so the picker's grid draws one per cell instead of
+//      decoding the full picture — a phone photo is 4000px on its long side,
+//      and thirty of those in a scrolling grid is the whole reason the pack
+//      ships three rendered tiers of its own.
+//   2. For a link, a COPY on this table, so the token outlives the host. An
+//      imgur link is only as permanent as imgur, and a campaign that runs for
+//      a year will outlast some of them.
 //
 // Pure and dependency-injected, because jsdom has neither a 2D canvas nor
 // image decoding: `browserPrepareDeps` below is the real Image/canvas/upload
@@ -26,13 +31,23 @@ import { LIBRARY_TOKEN_ROOT } from "./tokenCatalog";
 /** One pixel per pixel-15 cell, the size the pack renders its own thumbs at. */
 export const CUSTOM_THUMB_SIDE = 84;
 
+/** The pack's master size: big enough for any table's zoom, and a known bound. */
+export const CUSTOM_MIRROR_MAX_SIDE = 1254;
+
 export interface PreparedCustomImage {
-  /** What the token stores as its picture. */
+  /** What the token stores as its picture: the copy, or the original link. */
   imageUrl: string;
   /** The 84px render's asset URL; absent when one could not be made. */
   thumbUrl?: string;
+  /** True when `imageUrl` is this table's copy rather than the link given. */
+  mirrored: boolean;
   /** One line for the form: why a step was skipped. */
   note?: string;
+}
+
+export interface PrepareOptions {
+  /** Keep a copy of an https link on this table. Ignored for anything else. */
+  mirror: boolean;
 }
 
 export interface PrepareDeps {
@@ -64,44 +79,70 @@ export function classifyCustomImage(url: string): CustomImageKind {
 }
 
 const UNREADABLE =
-  "No thumbnail — that image could not be read. It still works as the token's picture.";
+  "That image could not be read, so the link is kept as it is — some hosts do not let another site copy their pictures. The token still works.";
 
 /** Why a step was skipped, in the DM's words rather than the uploader's code. */
-function whyNoThumb(error: unknown): string {
-  return error instanceof AssetUploadError ? `No thumbnail — ${error.message}` : UNREADABLE;
+function why(step: string, error: unknown): string {
+  return error instanceof AssetUploadError
+    ? `${step} — ${error.message}`
+    : `${step} — that image could not be copied.`;
 }
 
 /**
- * Give a custom token's picture an 84px thumbnail, if one can be made.
+ * Give a custom token's picture an 84px thumbnail, and — for a link the DM
+ * asked to keep — a copy of the picture on this table.
  *
- * One `loadImage` per add, whatever the picture needs afterwards. Every step
- * degrades rather than throws: a thumb that cannot be rendered (a tainted
- * canvas — media.discordapp.net sends no CORS header, so the load itself
- * fails) or cannot be stored (the table's quota is full) simply leaves
- * `thumbUrl` absent, and the picker falls back to the full picture exactly as
- * it did before this existed.
+ * One `loadImage` per add, both renders from it. Every step degrades rather
+ * than throws: a picture that cannot be rendered (a tainted canvas — or a
+ * host like media.discordapp.net that sends no CORS header, where the load
+ * itself fails) or cannot be stored (the table's quota is full) leaves the
+ * link exactly as it was given, which is what the shelf always held. The DM
+ * gets one line saying which step was skipped, and a working token either way.
  */
 export async function prepareCustomImage(
   imageUrl: string,
+  options: PrepareOptions,
   deps: PrepareDeps,
 ): Promise<PreparedCustomImage> {
   const url = imageUrl.trim();
-  if (!url || classifyCustomImage(url) === "pack") return { imageUrl: url };
+  const kind = url ? classifyCustomImage(url) : "pack";
+  if (kind === "pack") return { imageUrl: url, mirrored: false };
 
   let image: HTMLImageElement;
   try {
     image = await deps.loadImage(url);
   } catch {
-    return { imageUrl: url, note: UNREADABLE };
+    return { imageUrl: url, mirrored: false, note: UNREADABLE };
   }
 
+  // The copy first: it is what the token's picture becomes, and a DM who
+  // asked for permanence cares more about it than about the thumbnail.
+  let copied: string | undefined;
+  let note: string | undefined;
+  if (kind === "external" && options.mirror) {
+    try {
+      const blob = await deps.toPngBlob(image, CUSTOM_MIRROR_MAX_SIDE);
+      copied = (await deps.upload(blob, "token.png")).url;
+    } catch (error) {
+      note = why("No copy was made, so the link stays", error);
+    }
+  }
+
+  let thumbUrl: string | undefined;
   try {
     const blob = await deps.toPngBlob(image, CUSTOM_THUMB_SIDE);
-    const { url: thumbUrl } = await deps.upload(blob, "token-thumb.png");
-    return { imageUrl: url, thumbUrl };
+    thumbUrl = (await deps.upload(blob, "token-thumb.png")).url;
   } catch (error) {
-    return { imageUrl: url, note: whyNoThumb(error) };
+    // The copy's failure is the bigger news, so it keeps the line.
+    note ??= why("No thumbnail", error);
   }
+
+  return {
+    imageUrl: copied ?? url,
+    ...(thumbUrl ? { thumbUrl } : {}),
+    mirrored: copied !== undefined,
+    ...(note ? { note } : {}),
+  };
 }
 
 // ----------------------------------------------------------------------------
