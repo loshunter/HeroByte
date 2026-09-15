@@ -20,6 +20,7 @@ import {
   type PlayerStagingZone,
   SESSION_MINT_CEILING_BYTES,
   utf8ByteLength,
+  WS_MAX_MESSAGE_BYTES,
 } from "@herobyte/shared";
 import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
 import { ATLAS_DM_REQUIRED } from "../handlers/AtlasMessageHandler.js";
@@ -29,7 +30,7 @@ import { liveSceneBytes } from "../handlers/liveSceneBytes.js";
 import { exportBytes } from "../../domains/room/sessionExport.js";
 import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { sentinelHits } from "./leakSentinels.js";
-import { fatDrawing } from "./fatDrawing.js";
+import { padExportTo } from "./fatDrawing.js";
 import {
   createRouterHarness,
   flush,
@@ -443,7 +444,15 @@ describe("atlas kick contracts", () => {
       // drawings ride the file verbatim, and a kick would add a whole
       // building on top. The refusal must name both numbers, and no frame of
       // any kind may reach the player.
-      state().drawings.push(fatDrawing() as never);
+      // Between the ceiling and the wire limit on its own: the DIAL refuses
+      // this, the wire would not — a ceiling set to the wire limit reads green.
+      padExportTo(
+        h.roomService,
+        h.mapStudioService,
+        "default",
+        DM,
+        Math.floor((SESSION_MINT_CEILING_BYTES + WS_MAX_MESSAGE_BYTES) / 2),
+      );
       await flush();
       playerWs.send.mockClear();
 
@@ -502,24 +511,7 @@ describe("atlas kick contracts", () => {
       // would weigh half of what the table really writes.
       const weigh = () => exportBytes(state(), h.mapStudioService.list("default"), DM);
       const target = SESSION_MINT_CEILING_BYTES - documentBytes - Math.floor(sceneBytes / 2);
-      const points: { x: number; y: number }[] = [];
-      const pad = () => {
-        const drawings = state().drawings.filter((entry) => entry.id !== "fat-drawing");
-        drawings.push({ ...fatDrawing(0), points } as never);
-        h.roomService.setState({ drawings });
-        // setState does not rebuild the scene graph; the zone setter always does.
-        h.roomService.setPlayerStagingZone(state().playerStagingZone);
-      };
-      let i = 0;
-      while (weigh() < target - 2048) {
-        const missing = target - 2048 - weigh();
-        // Conservative per-point cost (~48 bytes on the wire, twice over), so every pass
-        // under-fills and the loop converges from below.
-        for (let n = 0; n < Math.max(1, Math.floor(missing / 120)); n++, i++) {
-          points.push({ x: i, y: i });
-        }
-        pad();
-      }
+      padExportTo(h.roomService, h.mapStudioService, "default", DM, target);
       const before = weigh();
       expect(before + documentBytes).toBeLessThanOrEqual(SESSION_MINT_CEILING_BYTES);
       expect(before + documentBytes + sceneBytes).toBeGreaterThan(SESSION_MINT_CEILING_BYTES);
@@ -536,6 +528,131 @@ describe("atlas kick contracts", () => {
       expect(errors[0]?.reason).toMatch(/about \d\.\d\d MB/);
       // ...and the table is still under the ceiling, as every accepted kick leaves it.
       expect(weigh()).toBeLessThanOrEqual(SESSION_MINT_CEILING_BYTES);
+    });
+
+    it("does NOT double count the outgoing scene: a kick the naive sum (export + candidate's scene) would refuse is allowed when the swap fits", async () => {
+      // Learn the kick's document + scene weights the same way as above.
+      bindAdoptedOrigin();
+      seedParty();
+      const message = kickMessage({
+        recipe: { recipeId: "building", kind: "warehouse", size: "large" },
+      });
+      const scratch = new MapStudioService();
+      const probe: AtlasNode = {
+        id: "probe",
+        kind: "building",
+        name: message.name.trim(),
+        discovered: false,
+        createdAt: 0,
+        updatedAt: 0,
+      };
+      const minted = cashNode(
+        {
+          mapStudioService: scratch,
+          broadcastToDMs: () => {},
+          now: () => 1,
+          weighMint: () => null,
+        },
+        "scratch",
+        probe,
+        message.seed,
+        message.recipe,
+        message.commandId,
+      );
+      const document = scratch.get("scratch", (minted as { documentId: string }).documentId);
+      const documentBytes = utf8ByteLength(JSON.stringify(document)) + 1;
+      const sceneBytes = liveSceneBytes(document, 1);
+
+      // Make the ORIGIN's scene heavy: mint a large warehouse on the REAL service,
+      // give it a node, and travel there — the table's live scene is now ~145 KB
+      // of compiled warehouse, about what the candidate's will be.
+      const heavyNode: AtlasNode = {
+        id: "nHeavy",
+        kind: "building",
+        name: "Heavy Origin",
+        discovered: true,
+        createdAt: 0,
+        updatedAt: 0,
+      };
+      const heavy = cashNode(
+        {
+          mapStudioService: h.mapStudioService,
+          broadcastToDMs: () => {},
+          now: () => 1,
+          weighMint: () => null,
+        },
+        "default",
+        heavyNode,
+        4242,
+        { recipeId: "building", kind: "warehouse", size: "large" },
+        "origin-heavy",
+      );
+      expect(heavy.ok).toBe(true);
+      state().atlasNodes.push(heavyNode);
+      route({ t: "atlas-travel", nodeId: "nHeavy" });
+      await flush();
+      expect(state().liveMapDocumentId).toBe(heavyNode.mapDocumentId);
+      const outgoing = liveSceneBytes(
+        h.mapStudioService.get("default", heavyNode.mapDocumentId!),
+        1,
+      );
+      expect(outgoing).toBeGreaterThan(sceneBytes / 2);
+
+      // Pad so that (export + document + candidate scene) is OVER the ceiling but
+      // (export + document + candidate scene − outgoing scene) is UNDER it.
+      const weigh = () => exportBytes(state(), h.mapStudioService.list("default"), DM);
+      const target =
+        SESSION_MINT_CEILING_BYTES - documentBytes - sceneBytes + Math.floor(outgoing / 2);
+      padExportTo(h.roomService, h.mapStudioService, "default", DM, target);
+      const before = weigh();
+      expect(before + documentBytes + sceneBytes).toBeGreaterThan(SESSION_MINT_CEILING_BYTES);
+      expect(before + documentBytes + sceneBytes - outgoing).toBeLessThanOrEqual(
+        SESSION_MINT_CEILING_BYTES,
+      );
+
+      await flush();
+      dmWs.send.mockClear();
+      route(message);
+      await flush();
+      expect(child()?.mapDocumentId).toBeDefined();
+      expect(messagesOf(dmWs, "atlas-error")).toHaveLength(0);
+      // ...and the table it left is under the ceiling, as every accepted kick leaves it
+      // (to within the capture and the doors — pinned generously at 4 KB).
+      expect(weigh()).toBeLessThanOrEqual(SESSION_MINT_CEILING_BYTES + 4096);
+    });
+
+    it("a weigher that THROWS is a rejection on the atlas-error channel, and mints nothing", () => {
+      const scratch = new MapStudioService();
+      const node: AtlasNode = {
+        id: "n",
+        kind: "building",
+        name: "N",
+        discovered: false,
+        createdAt: 0,
+        updatedAt: 0,
+      };
+      const outcome = cashNode(
+        {
+          mapStudioService: scratch,
+          broadcastToDMs: () => {},
+          now: () => 1,
+          weighMint: () => {
+            throw new Error("a malformed scene the compiler rejected");
+          },
+        },
+        "scratch",
+        node,
+        123,
+        { recipeId: "building", kind: "house", size: "small" },
+        "cmd-throws",
+      );
+      expect(outcome).toEqual({
+        ok: false,
+        code: "rejected",
+        reason: "The table's size could not be checked — try again.",
+      });
+      expect(scratch.list("scratch")).toHaveLength(0);
+      expect(node.mapDocumentId).toBeUndefined();
     });
 
     it("the origin's document missing from the store (a boot-time desync)", async () => {

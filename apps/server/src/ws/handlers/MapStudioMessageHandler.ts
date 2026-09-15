@@ -15,18 +15,11 @@ import { MapDocumentNotFoundError } from "../../domains/mapStudio/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import { deriveMapTerrain, isMapStudioMessage, toSummary } from "./mapStudioHandlerUtils.js";
 import { handleMapStudioGenerate } from "./mapStudioGenerate.js";
-import {
-  exportBytes,
-  mintOverflow,
-  mintRefusal,
-  withCandidate,
-  type MintOverflow,
-} from "../../domains/room/sessionExport.js";
+import { exportBytes } from "../../domains/room/sessionExport.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
-import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
 import { bindLiveDocument } from "./sceneTravel.js";
-import { liveSceneBytes } from "./liveSceneBytes.js";
+import { assertMintCeiling, mintOverflowWith, type MapStudioMintDeps } from "./mapStudioMint.js";
 import { publishDocument } from "./mapStudioPublish.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
@@ -58,22 +51,35 @@ export class MapStudioMessageHandler {
     switch (message.t) {
       case "map-studio-list": {
         const documents = this.service.list(roomId);
+        // The DM's readout: what the campaign's export weighs right now. A
+        // weigh that throws costs the readout (the field is optional and the
+        // client renders nothing), never the map list — this message carries
+        // no commandId, so a throw here would reach no screen at all.
+        let weight: number | undefined;
+        try {
+          weight = exportBytes(this.getRoomState(roomId), documents, senderUid);
+        } catch (error) {
+          console.error("map-studio-list: the campaign weigh failed", error);
+        }
         this.sendMessage(senderUid, {
           t: "map-studio-documents",
           documents: documents.map(toSummary),
-          // The DM's readout: what the campaign's export weighs right now.
-          exportBytes: exportBytes(this.getRoomState(roomId), documents, senderUid),
+          ...(weight === undefined ? {} : { exportBytes: weight }),
         });
         break;
       }
       case "map-studio-create": {
         const input = { ...message.document, timestamp: this.now() };
+        let document: MapDocument;
         try {
-          this.assertMintCeiling(roomId, senderUid, createMapDocument(input));
-          this.broadcastDocument(roomId, this.service.create(roomId, input));
+          assertMintCeiling(this.mintDeps, roomId, senderUid, () => createMapDocument(input));
+          document = this.service.create(roomId, input);
         } catch (error) {
           this.refuseMint(senderUid, input.id, error);
+          break;
         }
+        // Outside the refusal's reach: a broadcast failure is not a refusal.
+        this.broadcastDocument(roomId, document);
         break;
       }
       case "map-studio-get":
@@ -137,7 +143,8 @@ export class MapStudioMessageHandler {
             recompileLiveScene: (room, previous, document) =>
               this.recompileLiveScene(room, previous, document),
             sendCommandError: (uid, command, error) => this.sendCommandError(uid, command, error),
-            weighMint: (room, uid, candidate) => this.mintOverflowWith(room, uid, candidate),
+            weighMint: (room, uid, candidate) =>
+              mintOverflowWith(this.mintDeps, room, uid, candidate),
           },
           senderUid,
           roomId,
@@ -193,12 +200,17 @@ export class MapStudioMessageHandler {
         // Import MINTS (it rejects duplicate ids, so every success adds one) —
         // the third create path the arc's review found outside the ceiling.
         const timestamp = this.now();
+        let document: MapDocument;
         try {
-          this.assertMintCeiling(roomId, senderUid, importMapDocument(message.document, timestamp));
-          this.broadcastDocument(roomId, this.service.import(roomId, message.document, timestamp));
+          assertMintCeiling(this.mintDeps, roomId, senderUid, () =>
+            importMapDocument(message.document, timestamp),
+          );
+          document = this.service.import(roomId, message.document, timestamp);
         } catch (error) {
           this.refuseMint(senderUid, message.document.id, error);
+          break;
         }
+        this.broadcastDocument(roomId, document);
         break;
       }
       case "map-studio-publish": {
@@ -262,28 +274,6 @@ export class MapStudioMessageHandler {
   }
 
   /**
-   * The mint ceiling — the count half (A3) and the byte half (the Weighed
-   * Campaign plan): a room past MAX_SESSION_DOCUMENTS, or whose export would
-   * outweigh what one load-session frame can carry, writes a session file its
-   * OWN reimport rejects — the DM's backup silently stops being a backup.
-   * Thrown like the duplicate-id case: the nack carries the reason and the
-   * mint simply does not happen. Every path that creates a document calls
-   * this with the document it WOULD create (create, import; generate and the
-   * atlas mints weigh through their own twins).
-   */
-  private assertMintCeiling(roomId: string, senderUid: string, candidate: MapDocument): void {
-    if (this.service.list(roomId).length >= MAX_SESSION_DOCUMENTS) {
-      throw new Error(
-        `This table already holds the maximum of ${MAX_SESSION_DOCUMENTS} map documents — delete one first.`,
-      );
-    }
-    const overflow = this.mintOverflowWith(roomId, senderUid, candidate);
-    if (overflow) {
-      throw new Error(mintRefusal(overflow));
-    }
-  }
-
-  /**
    * A refused create or import REACHES the DM. Neither message carries a
    * commandId, so the router's nack never fires — a thrown error here was a
    * silent NEW MAP button: the panel spun until its watchdog blamed the
@@ -294,17 +284,9 @@ export class MapStudioMessageHandler {
     this.sendCommandError(senderUid, { commandId: "", documentId }, error);
   }
 
-  private mintOverflowWith(
-    roomId: string,
-    senderUid: string,
-    candidate: MapDocument,
-  ): MintOverflow | null {
-    return mintOverflow(
-      this.getRoomState(roomId),
-      withCandidate(this.service.list(roomId), candidate),
-      senderUid,
-      liveSceneBytes(candidate, this.now()),
-    );
+  /** What the studio's mints answer to (mapStudioMint.ts). */
+  private get mintDeps(): MapStudioMintDeps {
+    return { service: this.service, getRoomState: this.getRoomState, now: this.now };
   }
 
   private broadcastDocument(

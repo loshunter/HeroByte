@@ -1,3 +1,7 @@
+import { exportBytes } from "../../domains/room/sessionExport.js";
+import type { MapStudioService } from "../../domains/mapStudio/service.js";
+import type { RoomService } from "../../domains/room/service.js";
+
 /**
  * One freehand drawing heavy enough to put a room's export past the mint
  * ceiling BY ITSELF (~0.9 MB on the wire at 40,000 points): a table's
@@ -15,4 +19,40 @@ export function fatDrawing(points = 40_000) {
     width: 2,
     opacity: 1,
   };
+}
+
+/**
+ * Pad a room's export to within 2 KB under `target`, through a growing
+ * freehand drawing set with `setState` and mirrored into the scene graph by
+ * the staging-zone setter (`setState` alone does not rebuild it, and a
+ * drawing rides the export twice — itself and its scene object — so a bare
+ * push weighs half of what the table writes). Bounded: the loop under-fills
+ * every pass (a conservative per-point cost), converges in ~10–20 passes and
+ * gives up loudly at 64 rather than hanging CI. Returns the export's bytes.
+ */
+export function padExportTo(
+  room: RoomService,
+  maps: MapStudioService,
+  roomId: string,
+  uid: string,
+  target: number,
+): number {
+  const weigh = () => exportBytes(room.getState(), maps.list(roomId), uid);
+  const points: { x: number; y: number }[] = [];
+  let i = 0;
+  for (let pass = 0; pass < 64 && weigh() < target - 2048; pass++) {
+    const missing = target - 2048 - weigh();
+    for (let n = 0; n < Math.max(1, Math.floor(missing / 120)); n++, i++) {
+      points.push({ x: i, y: i });
+    }
+    const drawings = room.getState().drawings.filter((entry) => entry.id !== "fat-drawing");
+    drawings.push({ ...fatDrawing(0), points } as never);
+    room.setState({ drawings });
+    room.setPlayerStagingZone(room.getState().playerStagingZone);
+  }
+  const bytes = weigh();
+  if (bytes < target - 2048 || bytes > target) {
+    throw new Error(`padExportTo: landed at ${bytes}, wanted (${target - 2048}, ${target}]`);
+  }
+  return bytes;
 }

@@ -13,9 +13,16 @@
 import path from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage, RoomSnapshot, ServerMessage } from "@herobyte/shared";
+import {
+  SESSION_MINT_CEILING_BYTES,
+  WS_MAX_MESSAGE_BYTES,
+  type ClientMessage,
+  type RoomSnapshot,
+  type ServerMessage,
+} from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
 import { RoomService } from "../../domains/room/service.js";
+import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { TokenService } from "../../domains/token/service.js";
 import { PlayerService } from "../../domains/player/service.js";
 import { MapService } from "../../domains/map/service.js";
@@ -24,7 +31,8 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
-import { fatDrawing } from "./fatDrawing.js";
+import { padExportTo } from "./fatDrawing.js";
+import { exportBytes } from "../../domains/room/sessionExport.js";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
@@ -105,6 +113,7 @@ function generateMessage(
 describe("map-studio-generate contracts", () => {
   let router: MessageRouter;
   let roomService: RoomService;
+  let mapStudioService: MapStudioService;
   let dmWs: FakeSocket;
   let playerWs: FakeSocket;
 
@@ -127,6 +136,7 @@ describe("map-studio-generate contracts", () => {
     ]);
     const clients = new Set<WebSocket>(uidToWs.values());
 
+    mapStudioService = new MapStudioService();
     router = new MessageRouter(
       roomService,
       new PlayerService(),
@@ -140,6 +150,7 @@ describe("map-studio-generate contracts", () => {
       {} as unknown as WebSocketServer,
       uidToWs,
       () => clients,
+      mapStudioService,
     );
   });
 
@@ -444,7 +455,15 @@ describe("map-studio-generate contracts", () => {
     // drawings ride the file verbatim — so the dungeon on top must be refused
     // BEFORE the store sees it.
     createLiveDoc();
-    roomService.getState().drawings.push(fatDrawing() as never);
+    // Between the ceiling and the wire limit on its own: the DIAL refuses
+    // this, the wire would not — a ceiling set to the wire limit reads green.
+    padExportTo(
+      roomService,
+      mapStudioService,
+      "default",
+      DM,
+      Math.floor((SESSION_MINT_CEILING_BYTES + WS_MAX_MESSAGE_BYTES) / 2),
+    );
     await flush();
     dmWs.send.mockClear();
     playerWs.send.mockClear();
@@ -462,7 +481,29 @@ describe("map-studio-generate contracts", () => {
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatchObject({ commandId: "gen-heavy", code: "command-rejected" });
     expect(errors[0]?.reason).toMatch(/\d\.\d\d MB/);
-    expect(roomService.getState().compiledScene?.walls ?? []).toEqual([]);
+    // A defined scene with NO walls — an absent scene would satisfy `?? []`.
+    expect(roomService.getState().compiledScene).toBeDefined();
+    expect(roomService.getState().compiledScene!.walls).toEqual([]);
     expect(playerWs.send).not.toHaveBeenCalled();
+  });
+
+  it("still lands a generate onto the LIVE map close under the ceiling — the gate is a ceiling, not a wall", async () => {
+    // The generate REPLACES the live document's compiled scene, terrain and
+    // scenery (the swap is pinned in liveSceneBytes.test.ts). Sit the room
+    // close under the ceiling with a small live map, then generate the default
+    // 24x20 dungeon onto it: it fits, so it lands.
+    createLiveDoc();
+    padExportTo(roomService, mapStudioService, "default", DM, SESSION_MINT_CEILING_BYTES - 60_000);
+    await flush();
+    dmWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-fits" }), DM);
+    await flush();
+
+    expect(documentRevision()).toBe(1);
+    expect(messagesOf(dmWs, "map-studio-error")).toHaveLength(0);
+    expect(
+      exportBytes(roomService.getState(), mapStudioService.list("default"), DM),
+    ).toBeLessThanOrEqual(SESSION_MINT_CEILING_BYTES);
   });
 });

@@ -612,6 +612,14 @@ describe("session round trip", () => {
     // promise nodes created AFTER the last accepted mint add a few bytes).
     expect(frameBytes).toBeLessThan(WS_MAX_MESSAGE_BYTES);
     expect(frameBytes).toBeLessThan(SESSION_MINT_CEILING_BYTES + 4096);
+    // The refusal's own number carries the SCENE the travel would install, not
+    // the document alone: a large warehouse is 161–227 KB of document and
+    // 104–147 KB of scene (seeds 1000–1005), so the reported weight sits
+    // 250–400 KB above the export that was actually written — a weigh that
+    // dropped the scene would sit under 230 KB above it.
+    const reported = Number(/about (\d+\.\d\d) MB/.exec(refusals[0]!.reason)![1]) * 1024 * 1024;
+    expect(reported - frameBytes).toBeGreaterThan(250_000);
+    expect(reported - frameBytes).toBeLessThan(400_000);
 
     const restored = bootServer();
     restored.route(loadSessionFrame(file as never));

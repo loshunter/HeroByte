@@ -57,6 +57,15 @@ export interface AtlasKickMessage {
 const NO_OP: RouteHandlerResult = { broadcast: false, save: false };
 const MUTATED: RouteHandlerResult = { broadcast: true, save: true };
 
+/**
+ * What a kick pushes AFTER the weigh and cannot hand it as a document: the
+ * child node, an adopted origin node, two links with anchors, and the
+ * capture's envelope (door states, character links, initiatives, scalars) —
+ * about a kilobyte together on a real table. Counted as a flat allowance so
+ * the weigh stays an upper bound of the export the kick leaves behind.
+ */
+export const KICK_GRAPH_ALLOWANCE_BYTES = 2048;
+
 export function handleAtlasKick(
   deps: AtlasGenerateDeps,
   state: RoomState,

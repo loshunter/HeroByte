@@ -19,17 +19,22 @@ import {
   ATLAS_LIMITS,
   type AtlasNode,
   type ClientMessage,
+  type MapDocument,
   type ServerMessage,
 } from "@herobyte/shared";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { handleAtlasGenerateNode } from "./atlasGenerate.js";
-import { handleAtlasKick } from "./atlasKick.js";
+import { handleAtlasKick, KICK_GRAPH_ALLOWANCE_BYTES } from "./atlasKick.js";
 import { pushLink } from "./atlasLink.js";
 import { handleAtlasTravel } from "./sceneTravel.js";
-import { mintOverflow, withCandidate } from "../../domains/room/sessionExport.js";
-import { liveSceneBytes } from "./liveSceneBytes.js";
+import {
+  mintOverflow,
+  withCandidate,
+  type MintOverflow,
+} from "../../domains/room/sessionExport.js";
+import { mintSceneBytes } from "./liveSceneBytes.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -101,13 +106,7 @@ export class AtlasMessageHandler {
             broadcastToDMs: this.broadcastToDMs,
             sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
             now: this.now,
-            weighMint: (candidate) =>
-              mintOverflow(
-                state,
-                withCandidate(this.mapStudioService.list(roomId), candidate),
-                senderUid,
-                liveSceneBytes(candidate, this.now()),
-              ),
+            weighMint: this.weighMintFor(state, roomId, senderUid),
           },
           state,
           senderUid,
@@ -123,13 +122,7 @@ export class AtlasMessageHandler {
             broadcastToDMs: this.broadcastToDMs,
             sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
             now: this.now,
-            weighMint: (candidate) =>
-              mintOverflow(
-                state,
-                withCandidate(this.mapStudioService.list(roomId), candidate),
-                senderUid,
-                liveSceneBytes(candidate, this.now()),
-              ),
+            weighMint: this.weighMintFor(state, roomId, senderUid, KICK_GRAPH_ALLOWANCE_BYTES),
           },
           state,
           senderUid,
@@ -225,6 +218,26 @@ export class AtlasMessageHandler {
   }
 
   /** True when `parentId` is missing, the node itself, or one of its descendants. */
+  /**
+   * The byte ceiling for the atlas mints — one closure, two callers: the kick
+   * adds its graph allowance (two nodes, two links, the capture envelope).
+   */
+  private weighMintFor(
+    state: RoomState,
+    roomId: string,
+    senderUid: string,
+    extraBytes = 0,
+  ): (candidate: MapDocument) => MintOverflow | null {
+    return (candidate) =>
+      mintOverflow(
+        state,
+        withCandidate(this.mapStudioService.list(roomId), candidate),
+        senderUid,
+        mintSceneBytes(state, this.mapStudioService, roomId, candidate, this.now()),
+        extraBytes,
+      );
+  }
+
   private reparentRejected(state: RoomState, nodeId: string, parentId: string): boolean {
     if (parentId === nodeId) return true;
     const byId = new Map(state.atlasNodes.map((node) => [node.id, node]));

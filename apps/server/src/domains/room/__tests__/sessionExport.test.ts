@@ -81,7 +81,7 @@ describe("buildSessionFile", () => {
       });
       const documents = [document("doc-A"), document("doc-B")];
 
-      const file = buildSessionFile(state, documents, DM, 1234);
+      const file = buildSessionFile(state, documents, DM, 1234, { warn: true });
 
       expect(file.schemaVersion).toBe(1);
       expect(file.savedAt).toBe(1234);
@@ -93,6 +93,19 @@ describe("buildSessionFile", () => {
       expect("assets" in file.snapshot).toBe(false);
       expect("assetRefs" in file.snapshot).toBe(false);
       expect(Array.isArray(file.snapshot.drawings)).toBe(true);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("is silent about a malformed scene unless asked — the weigh runs on every mint and list", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const state = stateWith({ sceneStates: { "doc-C": { mapDocumentId: "doc-C" } as never } });
+      expect(buildSessionFile(state, [], DM, 0).sceneStates).toBeUndefined();
+      expect(warn).not.toHaveBeenCalled();
+      mintOverflow(state, [], DM);
+      expect(warn).not.toHaveBeenCalled();
     } finally {
       warn.mockRestore();
     }
@@ -125,16 +138,27 @@ describe("mintOverflow", () => {
     );
   });
 
-  it("counts the candidate's LIVE-scene bytes — what the travel installs beside the document", () => {
+  it("weighs the heavier of the export as it stands and the export with the candidate LIVE — the outgoing scene swapped, not double counted", () => {
     const state = stateWith({ liveMapDocumentId: "doc-A" });
     const documents = [document("doc-A"), document("doc-B")];
     const base = exportBytes(state, documents, DM);
     const room = SESSION_MINT_CEILING_BYTES - base;
 
-    expect(mintOverflow(state, documents, DM, room)).toBeNull();
-    const overflow = mintOverflow(state, documents, DM, room + 1);
+    // The candidate's scene replaces the outgoing one: only the DIFFERENCE lands.
+    expect(mintOverflow(state, documents, DM, { candidate: room + 500, outgoing: 500 })).toBeNull();
+    const overflow = mintOverflow(state, documents, DM, { candidate: room + 501, outgoing: 500 });
     expect(overflow).not.toBeNull();
     expect(overflow!.bytes).toBe(SESSION_MINT_CEILING_BYTES + 1);
+    // A heavy outgoing scene never makes the weigh LIGHTER than the export as it stands.
+    expect(mintOverflow(state, documents, DM, { candidate: 0, outgoing: 10_000_000 })).toBeNull();
+    expect(
+      mintOverflow(
+        stateWith({ liveMapDocumentId: "doc-A" }),
+        [document("doc-A", "n".repeat(SESSION_MINT_CEILING_BYTES))],
+        DM,
+        { candidate: 0, outgoing: 10_000_000 },
+      ),
+    ).not.toBeNull();
   });
 
   it("counts suspended scenes and the snapshot too — the export is more than its documents", () => {
@@ -159,6 +183,18 @@ describe("mintOverflow", () => {
   });
 });
 
+describe("mintOverflow — extraBytes", () => {
+  it("adds what the caller will push after the weigh (a kick's graph allowance)", () => {
+    const state = stateWith({ liveMapDocumentId: "doc-A" });
+    const documents = [document("doc-A")];
+    const room = SESSION_MINT_CEILING_BYTES - exportBytes(state, documents, DM);
+    expect(mintOverflow(state, documents, DM, { candidate: 0, outgoing: 0 }, room)).toBeNull();
+    expect(
+      mintOverflow(state, documents, DM, { candidate: 0, outgoing: 0 }, room + 1),
+    ).not.toBeNull();
+  });
+});
+
 describe("withCandidate", () => {
   it("appends a new document and REPLACES one that already exists by id — a generate weighs the after, not the before", () => {
     const a = document("doc-A", "a");
@@ -177,8 +213,11 @@ describe("withCandidate", () => {
 describe("mintRefusal", () => {
   it("says both numbers in megabytes and what to do", () => {
     const said = mintRefusal({ bytes: 900_000, ceiling: SESSION_MINT_CEILING_BYTES });
-    expect(said).toContain("0.86 MB");
-    expect(said).toContain("0.75 MB");
+    expect(said).toContain("about 0.86 MB");
+    // Each number named for what it is: the ceiling a table may hold, and the
+    // load limit — never "0.75 MB is what a table can load back".
+    expect(said).toContain("0.75 MB a table may hold");
+    expect(said).toContain("a load accepts 1.00 MB");
     expect(said).toContain("Delete a map first");
   });
 });

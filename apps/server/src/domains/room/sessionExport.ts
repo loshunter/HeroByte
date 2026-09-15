@@ -11,6 +11,7 @@
 import {
   loadSessionFrameBytes,
   SESSION_MINT_CEILING_BYTES,
+  WS_MAX_MESSAGE_BYTES,
   type MapDocument,
   type RoomSnapshot,
   type SessionFile,
@@ -75,10 +76,15 @@ export function buildSessionFile(
   mapDocuments: MapDocument[],
   exportingUid: string,
   savedAt: number,
+  options: { warn?: boolean } = {},
 ): SessionFile {
   const suspendedScenes = Object.values(state.sceneStates).filter((scene) => {
     const usable = parseSceneState(scene) !== null;
-    if (!usable) console.warn("session-export: skipped a malformed suspended scene");
+    // Loud on a real export (the DM's backup lost a scene); silent for the
+    // weigh, which runs on every mint and every list and would otherwise fill
+    // the log with the same line during ordinary play.
+    if (!usable && options.warn)
+      console.warn("session-export: skipped a malformed suspended scene");
     return usable;
   });
   return {
@@ -115,29 +121,46 @@ export interface MintOverflow {
   ceiling: number;
 }
 
+/** What a mint would change about the live scene, for the weigh. */
+export interface MintSceneBytes {
+  /** `liveSceneBytes` of the candidate — what it adds the moment it is the live scene. */
+  candidate: number;
+  /** `liveSceneBytes` of the scene on the table now — what a travel would REPLACE. */
+  outgoing: number;
+}
+
 /**
  * Weigh the export this room would write if `documents` were its map list —
- * the caller has already added or replaced the candidate — plus
- * `candidateSceneBytes`, what the candidate adds the moment it is the LIVE
- * scene (`liveSceneBytes`: the compiled scene, terrain and scenery the
- * snapshot carries; a kick installs them in the same message that mints), and
- * report the overflow past SESSION_MINT_CEILING_BYTES, or null when it fits.
+ * the caller has already added or replaced the candidate — and report the
+ * overflow past SESSION_MINT_CEILING_BYTES, or null when it fits.
+ *
+ * Two exports are weighed and the heavier counts: the export AS IT STANDS with
+ * the candidate document in it, and the export IF THE CANDIDATE WERE THE LIVE
+ * SCENE — the same bytes with the outgoing scene's derived data (compiled
+ * scene, terrain, scenery: what a travel replaces) swapped for the candidate's.
+ * A kick installs the candidate in the message that mints, so the second is
+ * its truth to within the capture and the doors (a few hundred bytes); for a
+ * mint nothing travels to yet, it is what the export will weigh the day the
+ * party does. Counting the outgoing scene AND the candidate's together, as the
+ * first cut did, refused a whole building early at `large` (~150 KB).
  *
  * Bytes are the `load-session` FRAME's (the file minus assets), because that
  * frame is what the socket measures. The weigh is a full stringify of up to a
- * megabyte; a mint is rare and already ran a recipe, so that is the right
- * place to pay it — an incremental edit is not (plan §2.3). The scene part is
- * an upper bound for a mint nothing travels to yet, and counts the outgoing
- * scene's derived data as still present — a refusal a few dozen KB early,
- * never a table past the ceiling.
+ * megabyte plus two compiles; a mint is rare and already ran a recipe, so
+ * that is the right place to pay it — an incremental edit is not (plan §2.3).
  */
 export function mintOverflow(
   state: RoomState,
   documents: MapDocument[],
   actingUid: string,
-  candidateSceneBytes = 0,
+  scene: MintSceneBytes = { candidate: 0, outgoing: 0 },
+  extraBytes = 0,
 ): MintOverflow | null {
-  const bytes = exportBytes(state, documents, actingUid) + candidateSceneBytes;
+  const asItStands = exportBytes(state, documents, actingUid);
+  const ifLive = asItStands - scene.outgoing + scene.candidate;
+  // `extraBytes`: what the caller will push AFTER the weigh and cannot hand it
+  // as a document — a kick's two nodes, two links and the capture envelope.
+  const bytes = Math.max(asItStands, ifLive) + extraBytes;
   return bytes > SESSION_MINT_CEILING_BYTES ? { bytes, ceiling: SESSION_MINT_CEILING_BYTES } : null;
 }
 
@@ -150,6 +173,7 @@ const mb = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 export function mintRefusal(overflow: MintOverflow): string {
   return (
     `This would put the campaign's export at about ${mb(overflow.bytes)} — past the ` +
-    `${mb(overflow.ceiling)} a table can load back in one message. Delete a map first.`
+    `${mb(overflow.ceiling)} a table may hold and still have room to play (a load accepts ` +
+    `${mb(WS_MAX_MESSAGE_BYTES)} in one message). Delete a map first.`
   );
 }

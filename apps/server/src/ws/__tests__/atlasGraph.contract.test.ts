@@ -21,6 +21,8 @@ import {
   type RoomSnapshot,
   type SceneState,
   type ServerMessage,
+  SESSION_MINT_CEILING_BYTES,
+  WS_MAX_MESSAGE_BYTES,
 } from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
 import { RoomService } from "../../domains/room/service.js";
@@ -36,7 +38,7 @@ import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { SNAPSHOT_LIMITS } from "../../middleware/validators/sessionValidators.js";
 import { AtlasMessageHandler, ATLAS_DM_REQUIRED } from "../handlers/AtlasMessageHandler.js";
 import { sentinelHits } from "./leakSentinels.js";
-import { fatDrawing } from "./fatDrawing.js";
+import { padExportTo } from "./fatDrawing.js";
 
 const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "atlasGraph-state.json");
 
@@ -605,14 +607,24 @@ describe("atlas graph contracts", () => {
     // document count can see — a table's drawings ride the file verbatim —
     // and a mint of ANY size would write a file the socket drops on reload.
     mapStudioService.create("default", { id: "doc-0", name: "doc 0" });
-    roomService.getState().drawings.push(fatDrawing() as never);
+    // Between the ceiling and the wire limit on its own: the DIAL refuses these,
+    // the wire would not — a ceiling set to the wire limit reads green.
+    padExportTo(
+      roomService,
+      mapStudioService,
+      "default",
+      DM,
+      Math.floor((SESSION_MINT_CEILING_BYTES + WS_MAX_MESSAGE_BYTES) / 2),
+    );
     createNode("promise-1");
     const before = mapStudioService.list("default").length;
 
     route(generateMessage("promise-1", "gen-bytes"), DM);
     await flush();
     expect(mapStudioService.list("default")).toHaveLength(before);
-    expect(nodes().find((entry) => entry.id === "promise-1")?.mapDocumentId).toBeUndefined();
+    const promise = nodes().find((entry) => entry.id === "promise-1");
+    expect(promise).toBeDefined();
+    expect(promise!.mapDocumentId).toBeUndefined();
     const errors = messagesOf(dmWs, "atlas-error") as { code?: string; reason?: string }[];
     expect(
       errors.some((entry) => entry.code === "at-cap" && /\d\.\d\d MB/.test(entry.reason ?? "")),

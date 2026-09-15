@@ -254,6 +254,27 @@ describe("MapStudioMessageHandler", () => {
       );
     });
 
+    it('the COUNT cap answers before the candidate is even built — a blank name at 64 maps hears "maximum of 64"', () => {
+      for (let index = 0; index < 64; index += 1) {
+        service.create("room", { id: `filler-${index}`, name: `F${index}`, timestamp: 1 });
+      }
+
+      handler.handle(
+        { t: "map-studio-create", document: { id: "blank", name: "   ", timestamp: 1 } },
+        "dm",
+        "room",
+        true,
+      );
+
+      expect(send).toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({
+          documentId: "blank",
+          reason: expect.stringContaining("maximum of 64"),
+        }),
+      );
+    });
+
     it("a light room still mints — a ceiling, not a wall", () => {
       handler.handle(create, "dm", "room", true);
       expect(service.list("room")).toHaveLength(1);
@@ -296,6 +317,25 @@ describe("MapStudioMessageHandler", () => {
           code: "command-rejected",
           reason: "Map document already exists: source",
         }),
+      );
+      // A refusal mints nothing — the source is still the only document.
+      expect(service.list("room")).toHaveLength(1);
+    });
+
+    it("a broadcast failure AFTER a successful import is not dressed up as a refusal", () => {
+      const document = serializedDocument();
+      broadcast.mockImplementationOnce(() => {
+        throw new Error("socket exploded");
+      });
+
+      expect(() =>
+        handler.handle({ t: "map-studio-import", document }, "dm", "room", true),
+      ).toThrow("socket exploded");
+      // The document WAS minted; the DM was not told it was refused.
+      expect(service.get("room", "restored").name).toBe("Backup Keep");
+      expect(send).not.toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({ t: "map-studio-error", documentId: "restored" }),
       );
     });
   });

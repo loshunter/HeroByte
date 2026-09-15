@@ -148,7 +148,7 @@ export class RoomMessageHandler {
     // ceiling weighs the very same builder before a mint persists.
     this.sendControlMessage(senderUid, {
       t: "session-file",
-      file: buildSessionFile(state, mapDocuments, senderUid, Date.now()),
+      file: buildSessionFile(state, mapDocuments, senderUid, Date.now(), { warn: true }),
     });
     return { broadcast: false, save: false };
   }

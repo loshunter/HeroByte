@@ -127,7 +127,18 @@ export function cashNode(
   // The BYTE ceiling: the export this mint would write must load back in one
   // frame. Weighed on the in-memory candidate — a refusal persists nothing,
   // like every refusal above it.
-  const overflow = deps.weighMint(candidate);
+  let overflow: MintOverflow | null;
+  try {
+    overflow = deps.weighMint(candidate);
+  } catch {
+    // Every exit stays a CashOutcome: the atlas-error channel is the acting
+    // DM's only failure surface, and a bare nack would never reach the panel.
+    return {
+      ok: false,
+      code: "rejected",
+      reason: "The table's size could not be checked — try again.",
+    };
+  }
   if (overflow) {
     return { ok: false, code: "at-cap", reason: mintRefusal(overflow) };
   }
