@@ -18,10 +18,15 @@ import { npcDispositionLook } from "../../players/components/npcDisposition";
 const STANCES: NpcDisposition[] = ["hostile", "neutral", "friendly"];
 
 interface NpcStanceSelectProps {
-  /** The NPC's stance as the snapshot holds it; absent = hostile. */
+  /** The stance to show; absent = hostile. */
   value?: NpcDisposition;
   disabled?: boolean;
-  onChange: (updates: { disposition: NpcDisposition }) => void;
+  /**
+   * A VALUE, not a partial-update record. Handing this component its caller's
+   * update dialect meant it could never be mounted on an NPC card or a mobile
+   * sheet without an adapter, for no gain — the call site writes one arrow.
+   */
+  onChange: (next: NpcDisposition) => void;
 }
 
 export function NpcStanceSelect({ value, disabled = false, onChange }: NpcStanceSelectProps) {
@@ -35,7 +40,7 @@ export function NpcStanceSelect({ value, disabled = false, onChange }: NpcStance
         id={id}
         value={value ?? "hostile"}
         disabled={disabled}
-        onChange={(event) => onChange({ disposition: event.target.value as NpcDisposition })}
+        onChange={(event) => onChange(event.target.value as NpcDisposition)}
         style={{
           width: "100%",
           padding: "4px",

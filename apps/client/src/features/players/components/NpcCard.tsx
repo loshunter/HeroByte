@@ -170,7 +170,7 @@ export function NpcCard({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "space-between",
-        color: "#fbe1e1",
+        color: look.text,
         fontSize: "0.8rem",
         gap: "var(--player-card-gap, 6px)",
         position: "relative",
@@ -191,7 +191,7 @@ export function NpcCard({
       <div
         className="player-card-topbar"
         data-card-resize-anchor="top"
-        style={{ borderBottomColor: "rgba(255, 190, 190, 0.25)" }}
+        style={{ borderBottomColor: look.rule }}
       >
         {isCurrentTurn && (
           <div

@@ -22,6 +22,10 @@ export interface DispositionLook {
   tint: string;
   /** Its outer glow. */
   glow: string;
+  /** Body text on that wash — the hostile card's pink read wrong on gold and green. */
+  text: string;
+  /** The topbar's underline, for the same reason. */
+  rule: string;
 }
 
 export const NPC_DISPOSITION_LOOKS: Record<NpcDisposition, DispositionLook> = {
@@ -31,18 +35,24 @@ export const NPC_DISPOSITION_LOOKS: Record<NpcDisposition, DispositionLook> = {
     ring: "#D63C53",
     tint: "rgba(40, 9, 15, 0.9)",
     glow: "rgba(214, 60, 83, 0.45)",
+    text: "#fbe1e1",
+    rule: "rgba(255, 190, 190, 0.25)",
   },
   neutral: {
     label: "Neutral",
     ring: "#C9A24E",
     tint: "rgba(38, 30, 12, 0.9)",
     glow: "rgba(201, 162, 78, 0.35)",
+    text: "#f6ecd6",
+    rule: "rgba(255, 228, 170, 0.25)",
   },
   friendly: {
     label: "Ally",
     ring: "#3FBF6F",
     tint: "rgba(9, 36, 20, 0.9)",
     glow: "rgba(63, 191, 111, 0.35)",
+    text: "#e2f7e8",
+    rule: "rgba(190, 255, 210, 0.25)",
   },
 };
 

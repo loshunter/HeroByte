@@ -193,8 +193,9 @@ export function useDMContext({
 
   /**
    * Duplicate an NPC by replaying its own fields through create-npc. There is
-   * no duplicate message: the server already numbers a colliding name, so a
-   * copy is just a create whose base name is the original's.
+   * no duplicate message: the server numbers a colliding name already. EVERY
+   * field rides: size, stance (a second baker is still a baker) and the hidden
+   * flag (an ambush must not leak when the DM asks for a second one).
    */
   const duplicateNpc = useCallback(
     (id: string) => {
@@ -210,8 +211,7 @@ export function useDMContext({
         portrait: source.portrait ?? undefined,
         tokenImage: source.tokenImage ?? undefined,
         tokenSize: source.tokenSize,
-        // An ambush prepared as a hidden NPC must not leak the moment the DM
-        // asks for a second one; without this the copy defaults to visible.
+        disposition: source.disposition,
         visibleToPlayers: source.visibleToPlayers,
       });
     },

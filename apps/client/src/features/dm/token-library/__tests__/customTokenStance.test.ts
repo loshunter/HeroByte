@@ -30,3 +30,25 @@ describe("impliedStance", () => {
     expect(impliedStance(["halfling", "human"])).toBeUndefined();
   });
 });
+
+describe("the mimic reveal carries a stance", () => {
+  it("a revealed half turns hostile; a disguised half and ordinary art do not", async () => {
+    const { useNpcAssetPick } = await import("../../hooks/useNpcAssetPick");
+    const { libraryAssetById, packItem } = await import("../tokenCatalog");
+
+    const applied: unknown[] = [];
+    const pick = useNpcAssetPick("", (next) => applied.push(next));
+
+    // The guide tells DMs to set the closed chest Neutral so the party sees a
+    // prop. 🎭 REVEAL MIMIC is the moment that lie ends — without this the
+    // thing with teeth still reads Neutral in gold on every player's card.
+    pick(packItem(libraryAssetById("mimicChest")!));
+    expect(applied.at(-1)).toMatchObject({ disposition: "hostile" });
+
+    pick(packItem(libraryAssetById("mimicChestHidden")!));
+    expect(applied.at(-1)).not.toHaveProperty("disposition");
+
+    pick(packItem(libraryAssetById("goblinClub")!));
+    expect(applied.at(-1)).not.toHaveProperty("disposition");
+  });
+});

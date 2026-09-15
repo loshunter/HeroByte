@@ -85,8 +85,10 @@ describe("CustomTokenForm", () => {
     const onAdd = ok();
     render(<CustomTokenForm onAdd={onAdd} />);
     const stance = screen.getByLabelText("Stance") as HTMLSelectElement;
-    // Neutral to start: what a DM adds by hand is usually townsfolk.
-    expect(stance.value).toBe("neutral");
+    // HOSTILE to start, matching absent-means-hostile everywhere else. The
+    // form used to default to neutral, so a DM who uploaded a dragon and
+    // touched nothing broadcast "Neutral" to the whole table.
+    expect(stance.value).toBe("hostile");
 
     fireEvent.click(screen.getByRole("button", { name: "monster" }));
     expect(stance.value).toBe("hostile");
@@ -95,6 +97,10 @@ describe("CustomTokenForm", () => {
     // An ancestry says nothing about whose side anyone is on.
     fireEvent.click(screen.getByRole("button", { name: "elf" }));
     expect(stance.value).toBe("friendly");
+
+    // Un-clicking a kind chip takes its stance back with it.
+    fireEvent.click(screen.getByRole("button", { name: "ally" }));
+    expect(stance.value).toBe("hostile");
 
     // Once set by hand it sticks, whatever gets clicked afterwards.
     fireEvent.change(stance, { target: { value: "neutral" } });

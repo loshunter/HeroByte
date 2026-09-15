@@ -16,7 +16,7 @@ import {
   LIBRARY_ID_ALIASES,
   LIBRARY_PACK_VERSION,
 } from "./tokenCatalog.generated";
-import type { LibraryAsset, LibraryCategory } from "./tokenCatalogTypes";
+import type { LibraryAsset, LibraryCategory, LibraryMimicState } from "./tokenCatalogTypes";
 
 export { LIBRARY_ASSETS, LIBRARY_FAMILIES, LIBRARY_ID_ALIASES, LIBRARY_PACK_VERSION };
 export type {
@@ -113,6 +113,8 @@ export interface LibraryItem {
   thumbUrl: string;
   /** The footprint a placed token is born with. */
   size: TokenSize;
+  /** A mimic pair's half, when this is one: "disguised" or "revealed". */
+  mimic?: LibraryMimicState;
   /**
    * Where an NPC made from this token stands with the party. Absent = hostile,
    * which is what every NPC in the pack is except the townsfolk.
@@ -132,6 +134,7 @@ export function packItem(asset: LibraryAsset): LibraryItem {
     portraitUrl: libraryMediumUrl(asset),
     thumbUrl: libraryThumbUrl(asset),
     size: asset.size,
+    ...(asset.mimic ? { mimic: asset.mimic } : {}),
     // The pack tags all 60 townsfolk `role: "civilian"`; every other role is a
     // creature the party is meant to fight, so absent (hostile) is right for it.
     ...(asset.role === "civilian" ? { disposition: "neutral" as const } : {}),

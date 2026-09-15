@@ -15,7 +15,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignme
 import type { Camera } from "../../../hooks/useCamera";
 import type { CustomToken } from "@herobyte/shared";
 import type { CreateNpcRequest } from "../hooks/useNpcCreation";
-import type { CustomTokenAddResult, CustomTokenDraft } from "../token-library/customTokensContext";
+import type { CustomTokensApi } from "../token-library/customTokensContext";
 import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
 
@@ -69,7 +69,7 @@ export interface DMMenuProps {
   onCreateNPC: (request?: CreateNpcRequest) => void;
   /** The table's own Library tokens; absent means the shelf is read-only. */
   customTokens?: readonly CustomToken[];
-  onAddCustomToken?: (draft: CustomTokenDraft) => Promise<CustomTokenAddResult>;
+  onAddCustomToken?: CustomTokensApi["addToken"];
   onRemoveCustomToken?: (id: string) => void;
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   /** Movement budget: an NPC's feet per turn (null = the shared default). */

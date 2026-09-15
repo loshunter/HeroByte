@@ -83,9 +83,12 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
   const [tags, setTags] = useState<string[]>([]);
   const [tagText, setTagText] = useState("");
   const [size, setSize] = useState<TokenSize>("medium");
-  // Neutral, not hostile: what a DM adds by hand is far more often a townsfolk
-  // or a prop than a monster — the pack already holds 184 of those.
-  const [stance, setStance] = useState<NpcDisposition>("neutral");
+  // HOSTILE, matching every other surface. Absent means hostile on the wire,
+  // in both coercions, in the card and in the NPC editor; the form defaulting
+  // to neutral made this the one place that silently disagreed, so a DM who
+  // uploaded a dragon and touched nothing broadcast "Neutral" to the table.
+  // A kind chip or the select moves it; that is what they are for.
+  const [stance, setStance] = useState<NpcDisposition>("hostile");
   // Once the DM has chosen a stance themselves, a later chip must not undo it.
   const [stanceTouched, setStanceTouched] = useState(false);
   // The add draws and uploads an 84px thumbnail before it sends, which is a
@@ -114,8 +117,15 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
     if (implied && !stanceTouched) setStance(implied);
     setTagText("");
   };
-  const toggleTag = (tag: string) =>
-    tags.includes(tag) ? setTags(tags.filter((t) => t !== tag)) : addTags(tag);
+  const toggleTag = (tag: string) => {
+    if (!tags.includes(tag)) return addTags(tag);
+    const next = tags.filter((t) => t !== tag);
+    setTags(next);
+    // Taking the kind word back takes its stance with it. Removing went
+    // straight to setTags, so un-clicking "monster" left the card Enemy with
+    // nothing on screen still saying why.
+    if (!stanceTouched) setStance(impliedStance(next) ?? "hostile");
+  };
 
   const ready = name.trim().length > 0 && imageUrl.trim().length > 0;
   const submit = () => {
@@ -155,7 +165,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
     setTags([]);
     setTagText("");
     setSize("medium");
-    setStance("neutral");
+    setStance("hostile");
     setStanceTouched(false);
     setKeepCopy(true);
   };

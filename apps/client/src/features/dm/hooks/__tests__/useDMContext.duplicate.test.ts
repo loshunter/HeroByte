@@ -27,6 +27,8 @@ const snapshot = {
       tokenImage: "goblin-token.png",
       // A library pick's footprint: the copy must be born at the same size.
       tokenSize: "small",
+      // ...and its stance: a second baker is still a baker.
+      disposition: "neutral",
     },
     { id: "npc-2", type: "npc", name: "Orc", hp: 12, maxHp: 12 },
     // Knocked to 0 mid-fight — the case that used to be rejected server-side.
@@ -69,6 +71,10 @@ describe("useDMContext.duplicateNpc", () => {
       portrait: "goblin.png",
       tokenImage: "goblin-token.png",
       tokenSize: "small",
+      // It carried tokenSize and visibleToPlayers and dropped this one, so
+      // duplicating a Neutral townsfolk produced a red Enemy card beside the
+      // gold one, with nothing on screen explaining the difference.
+      disposition: "neutral",
     });
   });
 

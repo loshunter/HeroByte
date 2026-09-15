@@ -353,14 +353,14 @@ describe("NpcCard", () => {
     it("says where the NPC stands, and stays red for one that has no stance", () => {
       // Absent IS hostile — an NPC from before the field must look exactly as
       // it did, which is what the test above pins from the other side.
-      for (const [disposition, label, ring] of [
-        [undefined, "Enemy", "#D63C53"],
-        ["hostile", "Enemy", "#D63C53"],
-        ["neutral", "Neutral", "#C9A24E"],
-        ["friendly", "Ally", "#3FBF6F"],
+      for (const [disposition, label, ring, tint, glow] of [
+        [undefined, "Enemy", "#D63C53", "rgba(40, 9, 15, 0.9)", "rgba(214, 60, 83, 0.45)"],
+        ["hostile", "Enemy", "#D63C53", "rgba(40, 9, 15, 0.9)", "rgba(214, 60, 83, 0.45)"],
+        ["neutral", "Neutral", "#C9A24E", "rgba(38, 30, 12, 0.9)", "rgba(201, 162, 78, 0.35)"],
+        ["friendly", "Ally", "#3FBF6F", "rgba(9, 36, 20, 0.9)", "rgba(63, 191, 111, 0.35)"],
       ] as const) {
         cleanup();
-        render(
+        const { container } = render(
           <NpcCard {...createDefaultProps({ character: createMockCharacter({ disposition }) })} />,
         );
         expect(screen.getByText(label), String(disposition)).toBeInTheDocument();
@@ -368,6 +368,14 @@ describe("NpcCard", () => {
           screen.getByTestId("portrait-section-token-color"),
           String(disposition),
         ).toHaveTextContent(ring);
+
+        // The CARD's own colours, not just the label. "the baker's card is
+        // red" is the whole reason this feature exists, and reverting
+        // `background: look.tint` to the hardcoded red left every other
+        // assertion green.
+        const card = container.querySelector(".player-card--npc") as HTMLElement;
+        expect(card.style.background, String(disposition)).toBe(tint);
+        expect(card.style.boxShadow, String(disposition)).toContain(glow);
       }
     });
 

@@ -177,7 +177,12 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         initiativeModifier: updates.initiativeModifier ?? existing.initiativeModifier,
         // ?? not ||: the merge has to keep a stance the DM set earlier when the
         // edit that triggered this send was about something else entirely.
-        disposition: updates.disposition ?? existing.disposition,
+        // Conditional, like every other writer in this arc: `disposition:
+        // undefined` is a KEY, and it is only inert because JSON.stringify
+        // happens to drop it. It should not depend on the transport.
+        ...((updates.disposition ?? existing.disposition)
+          ? { disposition: updates.disposition ?? existing.disposition }
+          : {}),
       };
 
       // Set loading state BEFORE sending message
