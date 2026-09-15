@@ -150,6 +150,7 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
                 title={[item.name, item.size, item.description].filter(Boolean).join(" · ")}
                 disabled={disabled}
                 onClick={() => onPick(item)}
+                className="token-library-cell"
                 style={item.custom ? customCellStyle : cellStyle}
               >
                 {/* A pack thumb is 84px at its natural size — one pixel per
@@ -238,12 +239,15 @@ const cellWrapStyle = { position: "relative", display: "flex", flexDirection: "c
 
 // 84px picture plus caption: comfortably over the 44px touch floor without
 // leaning on the coarse-pointer rule, which only reaches .jrpg-button.
+//
+// No inline `flex`, for the same reason the remove control has no inline
+// layout: an inline rule beats any class rule, and on a coarse pointer the
+// cell must STOP growing. `.token-library-cell` in herobyte.css carries it.
 const cellStyle = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   gap: "3px",
-  flex: 1,
   minWidth: "84px",
   minHeight: "84px",
   padding: "4px",

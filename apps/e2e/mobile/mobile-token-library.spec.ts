@@ -127,6 +127,17 @@ test.describe("mobile — the shelf and the stance", () => {
     try {
       const form = page.getByTestId("custom-token-form");
       await form.scrollIntoViewIfNeeded();
+
+      // "Keep a copy on this table" is a LABEL, and the panel-wide sweep only
+      // measures button/input/select/textarea — so its 44px rule was reachable
+      // by no test at any level, and could be deleted with everything green.
+      // It only renders for a pasted link, which is also why the pack path
+      // below never showed it.
+      await form.getByRole("textbox", { name: "Image" }).fill("https://i.imgur.com/x.png");
+      const keepCopy = form.getByText(/Keep a copy on this table/);
+      await expect(keepCopy).toBeVisible();
+      expect((await keepCopy.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
       await form.getByRole("textbox", { name: "Image" }).fill(IMAGE);
       await form.getByRole("textbox", { name: "Image" }).press("Enter");
       await form.getByLabel("Name").fill(NAME);
@@ -185,6 +196,82 @@ test.describe("mobile — the shelf and the stance", () => {
       // specs and between runs, the optional-chained send cleans up nothing
       // if the seam is missing, and the shelf caps at 200 — after which adds
       // are refused in silence and a later spec fails for no visible reason.
+      await expect
+        .poll(async () => (await shelf()).filter((t) => !shelfBefore.includes(t.id)).length)
+        .toBe(0);
+    }
+  });
+
+  test("a row mixing one of ours with the pack does not stretch the pack cells", async ({
+    page,
+  }) => {
+    // The bar is IN FLOW on a coarse pointer, so a custom cell's wrapper is
+    // ~48px taller than a pack one beside it. The cell button carried
+    // `flex: 1` to equalise ragged captions, and inside a stretched row that
+    // made every PACK button grow to the custom wrapper's height: a bordered
+    // box with ~48px of dead space under its caption, next to a normal one.
+    // Measured before the fix at 375px: wrappers 171/171/171, buttons
+    // 123/171/171. No test looked at cell-to-cell geometry, and the ✕ spec's
+    // shelf holds exactly one token, so it could not see this.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await joinMobileTable(page);
+    await openShelf(page);
+
+    const shelf = () => page.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.customTokens ?? []);
+    const shelfBefore = (await shelf()).map((t) => t.id);
+    const NAME = `Row Marta ${Date.now().toString(36)}`;
+
+    try {
+      const form = page.getByTestId("custom-token-form");
+      await form.scrollIntoViewIfNeeded();
+      await form.getByRole("textbox", { name: "Image" }).fill(IMAGE);
+      await form.getByRole("textbox", { name: "Image" }).press("Enter");
+      await form.getByLabel("Name").fill(NAME);
+      await form.getByRole("button", { name: "＋ Add to library" }).click();
+      await expect
+        .poll(async () => (await shelf()).filter((t) => !shelfBefore.includes(t.id)))
+        .toHaveLength(1);
+
+      // ALL, where ours lead the grid and the pack follows in the same row.
+      const dialog = page.getByRole("dialog", { name: "DM Menu" });
+      await dialog.getByRole("button", { name: "All" }).click();
+      await expect(page.getByRole("button", { name: NAME })).toBeVisible();
+
+      const row = await page.evaluate(() => {
+        const MINE = 'button[aria-label^="Remove "]';
+        const cells = [...document.querySelectorAll<HTMLElement>(".token-library-cell")];
+        const mine = cells.find((c) => c.parentElement?.querySelector(MINE));
+        if (!mine) return null;
+        const top = Math.round(mine.getBoundingClientRect().top);
+        return cells
+          .filter((c) => Math.abs(Math.round(c.getBoundingClientRect().top) - top) <= 2)
+          .map((c) => {
+            const box = c.getBoundingClientRect();
+            const caption = c.querySelector("span")!.getBoundingClientRect();
+            return {
+              mine: !!c.parentElement?.querySelector(MINE),
+              height: Math.round(box.height),
+              deadSpace: Math.round(box.bottom - caption.bottom),
+            };
+          });
+      });
+
+      expect(row, "no grid row containing one of our own tokens").not.toBeNull();
+      expect(row!.length, "the row held only our token, so it proves nothing").toBeGreaterThan(1);
+      expect(row!.some((c) => c.mine)).toBe(true);
+      // 4px of the cell's own padding, and nothing else. The bug put ~48 here.
+      for (const cell of row!) {
+        expect(cell.deadSpace, JSON.stringify(cell)).toBeLessThanOrEqual(12);
+      }
+    } finally {
+      const leftover = (await shelf()).filter((t) => !shelfBefore.includes(t.id));
+      await page.evaluate(
+        (ids) => {
+          for (const id of ids)
+            window.__HERO_BYTE_E2E__?.sendMessage?.({ t: "remove-custom-token", id });
+        },
+        leftover.map((t) => t.id),
+      );
       await expect
         .poll(async () => (await shelf()).filter((t) => !shelfBefore.includes(t.id)).length)
         .toBe(0);

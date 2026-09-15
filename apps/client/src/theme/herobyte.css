@@ -1327,24 +1327,19 @@ h4 {
 }
 
 /*
- * THE PANEL-WIDE TOUCH PASS.
- *
- * The list above is the mobile SHELL's own controls. The panels a phone shows
- * inside that shell — chat, the roll log, the dice roller, the entity cards —
- * are the DESKTOP components, and every button in them is a JRPGButton at
- * `font-size: 10px; padding: 6px 12px`, which measures about 25px. Chat's SEND
- * was the one that got reported, and fixing SEND alone would have been the
- * wrong shape: it is not special, it is simply the one a player presses most.
- *
- * Scoped to `(pointer: coarse)` so the desktop keeps its density, which is
- * deliberate and owner-tuned rather than an accident.
- *
- * min-height/min-width, NOT padding, and that is what makes this work at all:
- * several of these buttons carry an inline `style={{ padding }}` that would
- * beat any class rule, but nothing sets a min-* inline — and min-* constrains
- * the used value even against an inline `height`. So one rule reaches every
- * button in every panel without editing a single component.
+ * The Library grid cell. `flex: 1` equalises ragged captions inside a row,
+ * and it is a CLASS rule rather than the inline style it used to be so the
+ * coarse-pointer block can turn it off: there the remove control is in flow
+ * under the cell, so a custom cell's wrapper is ~48px taller than a pack
+ * one beside it — and `flex: 1` made every pack button in that row stretch to
+ * match, rendering as a bordered box with 48px of dead space under its
+ * caption. Measured at 375px: three cells in a row, wrappers 171px each,
+ * buttons 123 / 171 / 171.
  */
+.token-library-cell {
+  flex: 1;
+}
+
 /*
  * "Keep a copy on this table". The panel-wide floor below deliberately
  * EXCLUDES checkboxes — a 44px checkbox is a huge tick — so the label is the
@@ -1401,6 +1396,25 @@ button.token-library-remove:hover {
   box-shadow: 0 0 6px var(--jrpg-cyan, #00e0d1);
 }
 
+/*
+ * THE PANEL-WIDE TOUCH PASS.
+ *
+ * The list above is the mobile SHELL's own controls. The panels a phone shows
+ * inside that shell — chat, the roll log, the dice roller, the entity cards —
+ * are the DESKTOP components, and every button in them is a JRPGButton at
+ * `font-size: 10px; padding: 6px 12px`, which measures about 25px. Chat's SEND
+ * was the one that got reported, and fixing SEND alone would have been the
+ * wrong shape: it is not special, it is simply the one a player presses most.
+ *
+ * Scoped to `(pointer: coarse)` so the desktop keeps its density, which is
+ * deliberate and owner-tuned rather than an accident.
+ *
+ * min-height/min-width, NOT padding, and that is what makes this work at all:
+ * several of these buttons carry an inline `style={{ padding }}` that would
+ * beat any class rule, but nothing sets a min-* inline — and min-* constrains
+ * the used value even against an inline `height`. So one rule reaches every
+ * button in every panel without editing a single component.
+ */
 @media (pointer: coarse) {
   .jrpg-button {
     min-height: 44px;
@@ -1508,6 +1522,15 @@ button.token-library-remove:hover {
    * border. The cross axis of a column flex container gives full width with
    * no box-model dependency. 12px so the glyph reads on a 110px bar.
    */
+  /*
+   * ...and the cell stops growing, because that bar is now in flow: without
+   * this the tallest wrapper in a mixed row (a custom token, 44px of bar plus
+   * 4px of margin) stretched every PACK cell's button beside it to match.
+   */
+  [data-mobile-surface] .token-library-cell {
+    flex: 0 0 auto;
+  }
+
   [data-mobile-surface] button.token-library-remove {
     position: static;
     align-self: stretch;
