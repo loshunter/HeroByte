@@ -11,6 +11,8 @@
 // "I am at the table and I want to do X" — and links out to the full guides
 // for everything else. Keep the two in step when a slice changes behaviour.
 
+import { DM_HELP_TOPIC } from "./dmHelpTopic";
+
 /** One "how do I…" line inside a topic. */
 export interface HelpEntry {
   /** The control or concept, as it is labelled in the UI. */
@@ -57,8 +59,6 @@ export const HELP_LINKS: HelpLink[] = [
     detail: "Rooms, walls, doors, terrain, lighting, the dungeon generator",
   },
 ];
-
-import { DM_HELP_TOPIC } from "./dmHelpTopic";
 
 export const HELP_TOPICS: HelpTopic[] = [
   {

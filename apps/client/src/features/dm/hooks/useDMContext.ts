@@ -189,13 +189,13 @@ export function useDMContext({
     sendMessage,
   });
 
-  // Note: toggleNpcVisibility hook removed - feature not currently used in DMMenu
-
   /**
-   * Duplicate an NPC by replaying its own fields through create-npc. There is
-   * no duplicate message: the server numbers a colliding name already. EVERY
-   * field rides: size, stance (a second baker is still a baker) and the hidden
-   * flag (an ambush must not leak when the DM asks for a second one).
+   * Duplicate an NPC by replaying its own fields through create-npc — there is
+   * no duplicate message, and the server numbers a colliding name already.
+   * Every field create-npc ACCEPTS rides: size, stance (a second baker is
+   * still a baker) and the hidden flag (an ambush must not leak). tempHp,
+   * initiativeModifier and statusEffects have no field on CreateNpcRequest, so
+   * the copy starts its own fight — arguably right, and NOT what this said.
    */
   const duplicateNpc = useCallback(
     (id: string) => {
