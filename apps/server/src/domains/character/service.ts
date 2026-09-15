@@ -158,7 +158,17 @@ export class CharacterService {
   }
 
   /**
-   * Update NPC metadata
+   * Update NPC metadata.
+   *
+   * NPC-only, and that is a guard rather than a comment: findCharacter does
+   * not filter by type, and the line below used to set `type = "npc"`
+   * unconditionally — so an update-npc carrying a PLAYER's id renamed their
+   * character, rewrote its HP and portrait, and converted it into a DM-owned
+   * NPC, irreversibly. No client can send that (the DM menu's editor only ever
+   * addresses an NPC it found), so this is a wire-shaped hole rather than a
+   * reachable bug — but the arc added `disposition` to the set of fields such a
+   * message writes, and "no client sends it" is not a property the server gets
+   * to rely on.
    */
   updateNPC(
     state: RoomState,
@@ -175,7 +185,7 @@ export class CharacterService {
     },
   ): boolean {
     const character = this.findCharacter(state, characterId);
-    if (!character) {
+    if (!character || character.type !== "npc") {
       return false;
     }
 
@@ -183,7 +193,6 @@ export class CharacterService {
     character.maxHp = Math.max(0, updates.maxHp);
     character.hp = Math.min(character.maxHp, Math.max(0, updates.hp));
     character.portrait = updates.portrait || undefined;
-    character.type = "npc";
     character.tokenImage = updates.tokenImage?.trim() || null;
 
     // Update initiative modifier if provided

@@ -114,6 +114,35 @@ describe("CharacterService", () => {
     expect(state.characters.find((c) => c.id === npc.id)).toBeUndefined();
   });
 
+  it("refuses update-npc on a PLAYER's character rather than converting it", () => {
+    // findCharacter does not filter by type, and updateNPC used to set
+    // `type = "npc"` unconditionally. So an update-npc carrying a player's id
+    // renamed their character, rewrote its HP and portrait, and turned it into
+    // a DM-owned NPC — irreversibly, and with no message able to turn it back.
+    // No client can send it; the server does not get to rely on that.
+    const state = createEmptyRoomState();
+    const tokenService = new TokenService();
+    const pc = service.createCharacter(state, "Thalia", 30);
+    service.claimCharacter(state, pc.id, "uid-1");
+
+    const updated = service.updateNPC(state, tokenService, pc.id, {
+      name: "Goblin Chief",
+      hp: 1,
+      maxHp: 1,
+      portrait: "https://x/goblin.png",
+      disposition: "hostile",
+    });
+
+    expect(updated).toBe(false);
+    const stored = service.findCharacter(state, pc.id)!;
+    expect(stored.type).toBe("pc");
+    expect(stored.name).toBe("Thalia");
+    expect(stored.maxHp).toBe(30);
+    expect(stored.portrait).toBeUndefined();
+    expect(stored).not.toHaveProperty("disposition");
+    expect(service.findCharacterByOwner(state, "uid-1")?.id).toBe(pc.id);
+  });
+
   // Test 5: Character deletion cascade effects - ensure tokens are cleaned up
   it("properly cleans up associated tokens when character is deleted", () => {
     const state = createEmptyRoomState();
