@@ -3,8 +3,9 @@
  * passwords, clicks Save & Go There, and the browser lands in the new room.
  *
  * Why this spec exists: the server's `table-forked` reply was silently dropped
- * by the client router for as long as the forward-compat guard existed (never
- * on the control list, like `session-file`), so every save ended in "The
+ * by the client router since the feature shipped (2026-07-31, two weeks after
+ * the forward-compat guard; never on the control list, like `session-file`),
+ * so every save ended in "The
  * server didn't confirm the save" — with the copy minted on the server, and
  * another orphan minted per retry. Nothing was red: no unit test routed the
  * frame and no e2e clicked the button. Found by the Weighed Campaign's review.
@@ -28,5 +29,8 @@ test.describe("Table Fork - Smoke Tests", () => {
     ]);
 
     expect(new URL(page.url()).searchParams.get("room")).toBeTruthy();
+    // ...and the DM is IN the copy: seated at its table, not at a password prompt.
+    await expect(page.getByRole("button", { name: "Snap" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByPlaceholder("Table password")).toHaveCount(0);
   });
 });

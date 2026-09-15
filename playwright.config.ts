@@ -60,6 +60,10 @@ export default defineConfig({
       env: {
         HEROBYTE_ALLOWED_ORIGINS: new URL(baseURL).origin,
         HEROBYTE_E2E: "true",
+        // Every server store the e2e run mints lands here — the forked rooms'
+        // state files and their secret records included — and prepare-state
+        // sweeps the whole directory before each run.
+        HEROBYTE_DATA_DIR: ".e2e-data",
         E2E_STATE_FILE,
         E2E_MAP_STORE_FILE,
         PORT: String(WS_PORT),

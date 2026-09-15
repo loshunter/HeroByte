@@ -15,7 +15,7 @@
 // union in websocket.ts — name the same types. The comment beside the guard
 // says "both lists change together", and prose did not make it so.
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi } from "vitest";
@@ -24,10 +24,25 @@ import { MessageRouter } from "../MessageRouter";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROUTER_SOURCE = path.join(HERE, "..", "MessageRouter.ts");
 const CONFIG_SOURCE = path.join(HERE, "..", "..", "websocket.ts");
-// The app's control handler: every type it switches on must be a type the
-// router admits, or the handler is dead code and the feature behind it is
-// silently broken — session-file for two months, the fork replies for longer.
-const HANDLER_SOURCE = path.join(HERE, "..", "..", "..", "hooks", "useServerEventHandlers.ts");
+// Every subscriber of registerServerEventHandler (three today, in three files):
+// each type they switch on must be a type the router admits, or the handler is
+// dead code and the feature behind it is silently broken — session-file for
+// two months, the fork replies since the day they shipped.
+const CLIENT_SRC = path.join(HERE, "..", "..", "..");
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === "__tests__" ? [] : walk(full);
+    return /\.tsx?$/.test(entry.name) ? [full] : [];
+  });
+}
+
+function subscriberSources(): string[] {
+  return walk(CLIENT_SRC).filter((file) =>
+    readFileSync(file, "utf8").includes("registerServerEventHandler("),
+  );
+}
 
 /** Line comments blanked (one names a type in prose, another holds a semicolon). */
 function withoutComments(text: string): string {
@@ -85,25 +100,50 @@ describe("MessageRouter — session-file", () => {
     expect(guard).toContain("session-file");
   });
 
-  it("admits every control type the app's server-event handler switches on — a handled type the router drops is a dead feature", () => {
+  it("admits every control type ANY subscriber of registerServerEventHandler switches on — a handled type the router drops is a dead feature", () => {
     const source = readFileSync(ROUTER_SOURCE, "utf8");
-    const handler = readFileSync(HANDLER_SOURCE, "utf8");
     const guardStart = source.indexOf("private isControlMessage(");
     const guardEnd = source.indexOf("}\n", source.indexOf("return (", guardStart));
     const guard = new Set(literals(source.slice(guardStart, guardEnd)));
 
-    const handled = [...withoutComments(handler).matchAll(/message\.t === "([a-z-]+)"/g)]
-      .map((match) => match[1]!)
+    const files = subscriberSources()
+      .map((file) => path.relative(CLIENT_SRC, file).replace(/\\/g, "/"))
+      .sort();
+    expect(files).toEqual([
+      "features/rooms/useCreateRoom.ts",
+      "features/rooms/useForkTable.ts",
+      "hooks/useServerEventHandlers.ts",
+    ]);
+    const handled = subscriberSources()
+      .flatMap((file) =>
+        [
+          ...withoutComments(readFileSync(file, "utf8")).matchAll(/message\.t === "([a-z-]+)"/g),
+        ].map((match) => match[1]!),
+      )
       .filter((type, index, all) => all.indexOf(type) === index)
       .sort();
-    expect(handled.length).toBeGreaterThan(5);
+    // Exact membership: a dispatch that stops spelling `message.t === "x"` (a
+    // switch, a const) must change this list on purpose, not slip past it.
+    expect(handled).toEqual([
+      "atlas-error",
+      "dm-elevation-failed",
+      "dm-password-update-failed",
+      "dm-password-updated",
+      "dm-status",
+      "map-studio-deleted",
+      "map-studio-document",
+      "map-studio-documents",
+      "map-studio-error",
+      "room-create-failed",
+      "room-created",
+      "room-password-update-failed",
+      "room-password-updated",
+      "session-file",
+      "table-fork-failed",
+      "table-forked",
+    ]);
     const dropped = handled.filter((type) => !guard.has(type));
-    expect(
-      dropped,
-      `handled by useServerEventHandlers but dropped by the router: ${dropped}`,
-    ).toEqual([]);
-    expect(handled).toContain("table-forked");
-    expect(handled).toContain("table-fork-failed");
+    expect(dropped, `handled by a subscriber but dropped by the router: ${dropped}`).toEqual([]);
   });
 
   it("delivers the fork replies to the control handler — 'save as a private table' lives on them", () => {

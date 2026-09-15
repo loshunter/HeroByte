@@ -22,10 +22,11 @@ test.describe("Session Save - Smoke Tests", () => {
     // The toast: the WEIGHT (digits, not just the limit) beside the map count.
     // Waited for from before the click — a 4 s toast does not wait for us.
     const weighToast = page.getByText(/\d\.\d\d MB of the 1\.00 MB a load accepts/);
-    const [download] = await Promise.all([
+    const [download, , , said] = await Promise.all([
       page.waitForEvent("download", { timeout: 15_000 }),
       weighToast.waitFor({ state: "visible", timeout: 15_000 }),
       page.getByRole("button", { name: /Save Game State/i }).click(),
+      weighToast.textContent({ timeout: 15_000 }),
     ]);
 
     // The file: the envelope the loaders read (schemaVersion, snapshot,
@@ -42,5 +43,18 @@ test.describe("Session Save - Smoke Tests", () => {
     expect(Array.isArray(file.mapDocuments)).toBe(true);
     expect(Array.isArray(file.snapshot?.drawings)).toBe(true);
     expect(download.suggestedFilename()).toMatch(/\.json$/);
+
+    // The number the toast said is the frame this very file would send.
+    const wire = Buffer.byteLength(
+      JSON.stringify({
+        t: "load-session",
+        snapshot: file.snapshot,
+        mapDocuments: file.mapDocuments,
+        liveMapDocumentId: (file as { liveMapDocumentId?: string }).liveMapDocumentId,
+        sceneStates: (file as { sceneStates?: unknown }).sceneStates,
+      }),
+      "utf8",
+    );
+    expect(said).toContain(`${(wire / 1048576).toFixed(2)} MB of the 1.00 MB`);
   });
 });
