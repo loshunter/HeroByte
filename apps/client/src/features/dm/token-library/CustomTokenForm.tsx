@@ -16,6 +16,7 @@ import type {
   CustomTokenDraft,
 } from "./customTokensContext";
 import { impliedStance } from "./customTokenStance";
+import { classifyCustomImage } from "./customTokenImages";
 import {
   addStyle,
   chipRowStyle,
@@ -39,8 +40,19 @@ interface CustomTokenFormProps {
   disabled?: boolean;
 }
 
-/** Only a link can be copied; an upload and the pack are already on this table. */
-const isLink = (value: string) => /^https:\/\/\S+$/i.test(value.trim());
+/**
+ * The checkbox shows exactly when the copy will actually run — the SAME
+ * predicate the pipeline uses, not a second one that agrees with it on the
+ * e2e rail and disagrees in production.
+ *
+ * The old gate was `/^https:\/\//`, and on production `uploadedAssetUrl`
+ * commits `https://herobyte-server.onrender.com/assets/<hash>`: the box
+ * appeared, ticked, after every ⬆ UPLOAD and then silently did nothing,
+ * because the pipeline classifies that as already ours. It passed its unit
+ * test only because the test used the dev rail's `http://localhost:8788`
+ * shape, which is hidden for being plain http rather than for being ours.
+ */
+const canKeepCopy = (value: string) => classifyCustomImage(value) === "external";
 
 const SIZES: TokenSize[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 
@@ -129,7 +141,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
           // word in the saved file that changes nothing.
           ...(stance === "hostile" ? {} : { disposition: stance }),
         },
-        { mirror: keepCopy },
+        { mirror: keepCopy && canKeepCopy(imageUrl) },
       ),
     )
       .then((result) => setNote(result?.note ?? null))
@@ -168,8 +180,8 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
         disabled={disabled}
         compact
       />
-      {/* Only for a link: an upload and the pack are already this table's. */}
-      {isLink(imageUrl) && (
+      {/* Only when the copy can actually run — see canKeepCopy. */}
+      {canKeepCopy(imageUrl) && (
         <label className="custom-token-keep-copy jrpg-text-small">
           <input
             type="checkbox"

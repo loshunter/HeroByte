@@ -126,8 +126,19 @@ describe("CustomTokenForm", () => {
     const copy = () => screen.queryByLabelText(/Keep a copy on this table/);
 
     // An upload is already this table's — nothing to copy, nothing to ask.
-    fillImage(`http://localhost:8788/assets/${"a".repeat(64)}`);
-    await screen.findByDisplayValue(`http://localhost:8788/assets/${"a".repeat(64)}`);
+    // PRODUCTION's shape, not the dev rail's: uploadedAssetUrl commits the
+    // SERVER's origin, which is https live. The old gate was "starts with
+    // https", so this box appeared ticked after every ⬆ UPLOAD and then did
+    // nothing — and this test passed anyway, because it used the http:// dev
+    // shape, which is hidden for the wrong reason.
+    const uploaded = `https://herobyte-server.onrender.com/assets/${"a".repeat(64)}`;
+    fillImage(uploaded);
+    await screen.findByDisplayValue(uploaded);
+    expect(copy()).toBeNull();
+
+    // The bundled pack, likewise: it already ships three rendered tiers.
+    fillImage("/tokens/NPC/Enemies/Goblins/goblinClub.png");
+    await screen.findByDisplayValue("/tokens/NPC/Enemies/Goblins/goblinClub.png");
     expect(copy()).toBeNull();
 
     fillImage("https://i.imgur.com/x.png");

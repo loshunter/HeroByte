@@ -86,7 +86,11 @@ export function useCustomTokens({
         size: draft.size,
         ...(draft.disposition ? { disposition: draft.disposition } : {}),
       });
-      return prepared.note ? { note: prepared.note } : {};
+      // `mirrored` was computed on every path and read by nothing, which left
+      // the one outcome a DM explicitly asked for — the copy — as the only
+      // one with no word at all. It is the confirmation.
+      if (prepared.note) return { note: prepared.note };
+      return prepared.mirrored ? { note: "A copy of that picture is kept on this table." } : {};
     },
     [prepare, sendMessage],
   );

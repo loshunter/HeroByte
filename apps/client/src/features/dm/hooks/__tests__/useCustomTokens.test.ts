@@ -95,6 +95,39 @@ describe("useCustomTokens", () => {
     expect(prepareImage).toHaveBeenLastCalledWith(draft.imageUrl, { mirror: false });
   });
 
+  it("confirms a copy that was made — the one outcome the DM asked for by hand", async () => {
+    const sendMessage = vi.fn();
+    const prepareImage = vi.fn(async () => ({
+      imageUrl: `/assets/${"b".repeat(64)}`,
+      thumbUrl: `/assets/${"c".repeat(64)}`,
+      mirrored: true,
+    }));
+    const { result } = renderHook(() =>
+      useCustomTokens({ snapshot: null, sendMessage, prepareImage }),
+    );
+
+    const copied = await result.current.addToken({
+      name: "Old Marta",
+      imageUrl: "https://i.imgur.com/x.png",
+      tags: [],
+      size: "medium",
+    });
+    expect(copied.note).toMatch(/copy .* is kept on this table/i);
+
+    // And stays silent when there was nothing to copy.
+    prepareImage.mockResolvedValueOnce({
+      imageUrl: "/tokens/NPC/x.png",
+      mirrored: false,
+    } as never);
+    const untouched = await result.current.addToken({
+      name: "Goblin",
+      imageUrl: "/tokens/NPC/x.png",
+      tags: [],
+      size: "medium",
+    });
+    expect(untouched).toEqual({});
+  });
+
   it("sends what the pipeline produced, and hands its note back to the form", async () => {
     const sendMessage = vi.fn();
     const prepareImage = vi.fn(async () => ({

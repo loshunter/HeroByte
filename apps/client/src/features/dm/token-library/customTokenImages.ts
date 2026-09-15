@@ -59,27 +59,36 @@ export interface PrepareDeps {
 /** Where a picture came from, which is what decides how much work it needs. */
 export type CustomImageKind = "pack" | "ours" | "external";
 
-/** The path half of a URL, in either shape a token's image is written in. */
-function pathOf(url: string): string {
-  if (url.startsWith("/")) return url;
-  return /^https?:\/\/[^/]+(\/[^?#]*)/.exec(url)?.[1] ?? "";
-}
-
 /**
  * Pack art already HAS three rendered tiers under /tokens — rendering a fourth
  * and storing it in the table's asset quota would be pure waste. An upload is
  * already ours, at whatever origin this table is served from (uploadHashFromUrl
- * deliberately ignores the origin). Everything else is somebody else's link.
+ * deliberately ignores the origin, because the server's is not the client's on
+ * any deployment). Everything else is somebody else's link.
+ *
+ * "pack" is ROOT-RELATIVE only. It used to read the path out of any absolute
+ * URL, so `https://cdn.example.com/tokens/goblin.png` classified as bundled
+ * art and got no thumbnail, no copy and no note — silently, on a third-party
+ * host, which is the one case where durability is the whole point. The library
+ * only ever writes the root-relative form, so nothing real is lost; an
+ * absolute URL to our own /tokens/ now takes the external road and merely does
+ * a little redundant work.
  */
 export function classifyCustomImage(url: string): CustomImageKind {
   const trimmed = url.trim();
-  if (pathOf(trimmed).startsWith(`${LIBRARY_TOKEN_ROOT}/`)) return "pack";
+  if (trimmed.startsWith(`${LIBRARY_TOKEN_ROOT}/`)) return "pack";
   if (trimmed.startsWith("/") || uploadHashFromUrl(trimmed)) return "ours";
   return "external";
 }
 
+/**
+ * Deliberately says what the CLIENT can back. It used to end "The token still
+ * works.", which is false whenever the address is one the server refuses — a
+ * bare `cat.png`, a plain-http host — and that refusal is silent, so the DM
+ * read a promise about a token that had just been thrown away.
+ */
 const UNREADABLE =
-  "That image could not be read, so the link is kept as it is — some hosts do not let another site copy their pictures. The token still works.";
+  "That image could not be read, so the token keeps the link you gave it — some hosts do not let another site copy their pictures.";
 
 /**
  * Why a step was skipped, in the DM's words rather than the uploader's code.
@@ -139,8 +148,11 @@ export async function prepareCustomImage(
     const blob = await deps.toPngBlob(image, CUSTOM_THUMB_SIDE);
     thumbUrl = (await deps.upload(blob, "token-thumb.png")).url;
   } catch (error) {
-    // The copy's failure is the bigger news, so it keeps the line.
-    note ??= why("No thumbnail", error);
+    // BOTH lines when both steps fail. `??=` kept only the copy's, so a DM
+    // whose quota refused everything was told the link stays and never told
+    // the picker would decode the full master in every cell from now on.
+    const thumbNote = why("No thumbnail", error);
+    note = note ? `${note} ${thumbNote}` : thumbNote;
   }
 
   return {

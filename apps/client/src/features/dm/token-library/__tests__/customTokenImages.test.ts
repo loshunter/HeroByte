@@ -33,7 +33,10 @@ function deps(overrides: Partial<PrepareDeps> = {}) {
 describe("classifyCustomImage", () => {
   it("knows pack art, this table's own uploads, and somebody else's link apart", () => {
     expect(classifyCustomImage("/tokens/NPC/Enemies/Goblins/goblinClub.png")).toBe("pack");
-    expect(classifyCustomImage("https://herobyte.pages.dev/tokens/NPC/x.png")).toBe("pack");
+    // ROOT-RELATIVE only. Any host's /tokens/ path used to classify as bundled
+    // art and silently get no thumbnail, no copy and no note.
+    expect(classifyCustomImage("https://cdn.example.com/tokens/goblin.png")).toBe("external");
+    expect(classifyCustomImage("https://herobyte.pages.dev/tokens/NPC/x.png")).toBe("external");
     expect(classifyCustomImage(`/assets/${HASH}`)).toBe("ours");
     // An upload's real URL carries the SERVER's origin, which is not the
     // client's on any deployment — the content hash is what identifies it.
@@ -123,6 +126,8 @@ describe("prepareCustomImage", () => {
     expect(result.imageUrl).toBe("https://media.discordapp.net/a/b/c.png");
     expect(result.thumbUrl).toBeUndefined();
     expect(result.note).toMatch(/could not be read/i);
+    // Never "the token still works" — the server may refuse this very address.
+    expect(result.note).not.toMatch(/still works/i);
     expect(d.upload).not.toHaveBeenCalled();
   });
 
@@ -153,6 +158,26 @@ describe("prepareCustomImage", () => {
     expect(result.thumbUrl).toBeUndefined();
     expect(result.note).toBe("No thumbnail: The table's asset storage is full.");
     expect(result.mirrored).toBe(false);
+  });
+
+  it("reports BOTH failures when the copy and the thumbnail are both refused", async () => {
+    // `??=` kept only the copy's line, so a DM whose quota refused everything
+    // was told the link stays and never told the picker would decode the full
+    // master in every grid cell from then on.
+    const d = deps({
+      upload: vi.fn(async () =>
+        Promise.reject(
+          new AssetUploadError("quota-exceeded", "The table's asset storage is full."),
+        ),
+      ),
+    });
+    const result = await prepareCustomImage(LINK, MIRROR, d);
+
+    expect(result.imageUrl).toBe(LINK);
+    expect(result.mirrored).toBe(false);
+    expect(result.thumbUrl).toBeUndefined();
+    expect(result.note).toMatch(/No copy was made/);
+    expect(result.note).toMatch(/No thumbnail/);
   });
 
   it("never rejects: an empty image is simply handed back", async () => {
