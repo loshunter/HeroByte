@@ -54,6 +54,18 @@ describe("coerceCustomTokens", () => {
     });
   });
 
+  it("keeps a valid stance on a shelf token and drops every other shape of one", () => {
+    expect(coerceCustomTokens([{ ...good, disposition: "friendly" }])[0]).toMatchObject({
+      disposition: "friendly",
+    });
+    // "enemy" is the card's LABEL, not the stored word — a hand-edited file's
+    // likeliest mistake, and one that must not become a value the wire refuses.
+    for (const bad of ["enemy", "", 3, null, {}]) {
+      const [token] = coerceCustomTokens([{ ...good, disposition: bad }]);
+      expect(token, String(bad)).not.toHaveProperty("disposition");
+    }
+  });
+
   it("keeps a string thumbnail and drops every other shape of one", () => {
     const thumbUrl = `/assets/${"a".repeat(64)}`;
     expect(coerceCustomTokens([{ ...good, thumbUrl }])[0]).toMatchObject({ thumbUrl });
@@ -93,5 +105,16 @@ describe("coerceLoadedCharacters — tokenSize", () => {
     const [ogre] = coerceLoadedCharacters([base]);
     expect("tokenSize" in ogre!).toBe(false);
     expect(ogre?.type).toBe("npc");
+  });
+
+  it("the same rule for a stance: on the list or gone", () => {
+    expect(coerceLoadedCharacters([{ ...base, disposition: "neutral" }])[0]?.disposition).toBe(
+      "neutral",
+    );
+    for (const bad of ["enemy", "", 3, null]) {
+      const [ogre] = coerceLoadedCharacters([{ ...base, disposition: bad }]);
+      expect("disposition" in ogre!, String(bad)).toBe(false);
+    }
+    expect("disposition" in coerceLoadedCharacters([base])[0]!).toBe(false);
   });
 });

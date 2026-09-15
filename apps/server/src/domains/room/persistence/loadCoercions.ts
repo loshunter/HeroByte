@@ -11,7 +11,10 @@ import {
   type CustomToken,
   type TokenSize,
 } from "@herobyte/shared";
-import { VALID_TOKEN_SIZES } from "../../../middleware/validators/commonValidators.js";
+import {
+  VALID_TOKEN_SIZES,
+  isNpcDisposition,
+} from "../../../middleware/validators/commonValidators.js";
 
 /**
  * The table's own Library tokens, from a state file or a session file: an
@@ -24,7 +27,8 @@ export function coerceCustomTokens(raw: unknown): CustomToken[] {
   const out: CustomToken[] = [];
   for (const entry of raw as Partial<CustomToken>[]) {
     if (!entry || typeof entry !== "object") continue;
-    const { id, name, imageUrl, thumbUrl, description, tags, size, addedBy, addedAt } = entry;
+    const { id, name, imageUrl, thumbUrl, description, tags, size, disposition, addedBy, addedAt } =
+      entry;
     if (typeof id !== "string" || typeof name !== "string" || typeof imageUrl !== "string") {
       continue;
     }
@@ -39,6 +43,9 @@ export function coerceCustomTokens(raw: unknown): CustomToken[] {
       ...(typeof description === "string" && description ? { description } : {}),
       tags: Array.isArray(tags) ? tags.filter((t): t is string => typeof t === "string") : [],
       size: coerceTokenSize(size) ?? "medium",
+      // Absent IS the default (hostile), so a word off the list is dropped
+      // rather than replaced with one — the same rule the wire applies.
+      ...(isNpcDisposition(disposition) ? { disposition } : {}),
       addedBy: typeof addedBy === "string" ? addedBy : "",
       addedAt: typeof addedAt === "number" ? addedAt : 0,
     });
@@ -64,7 +71,7 @@ export function coerceTokenSize(value: unknown): TokenSize | undefined {
  */
 export function coerceLoadedCharacters(raw: unknown, combatActive = false): Character[] {
   if (!Array.isArray(raw)) return [];
-  return (raw as Character[]).map(({ tokenSize, ...character }) => {
+  return (raw as Character[]).map(({ tokenSize, disposition, ...character }) => {
     const size = coerceTokenSize(tokenSize);
     const coerced = coerceMovementBudgetFields({
       ...character,
@@ -73,6 +80,8 @@ export function coerceLoadedCharacters(raw: unknown, combatActive = false): Char
       tokenId: character.tokenId ?? undefined,
       // Only when it survives: a bare `tokenSize: undefined` is still a key.
       ...(size ? { tokenSize: size } : {}),
+      // Same rule: a stance off the list is dropped, and absent means hostile.
+      ...(isNpcDisposition(disposition) ? { disposition } : {}),
     });
     if (combatActive && coerced.movementUsed === undefined) {
       return { ...coerced, movementUsed: 0, movementDiagonals: 0 };

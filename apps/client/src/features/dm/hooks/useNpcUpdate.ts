@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import type { ClientMessage, NpcDisposition, RoomSnapshot } from "@herobyte/shared";
 
 export interface UseNpcUpdateOptions {
   /**
@@ -35,6 +35,8 @@ export interface NpcUpdateFields {
   portrait?: string | null;
   tokenImage?: string | null;
   initiativeModifier?: number | null;
+  /** Where the NPC stands with the party; absent keeps what it has. */
+  disposition?: NpcDisposition;
 }
 
 export interface UseNpcUpdateReturn {
@@ -94,6 +96,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     portrait?: string;
     tokenImage?: string | null;
     initiativeModifier?: number;
+    disposition?: NpcDisposition;
   } | null>(null);
 
   // Get current NPC from snapshot
@@ -115,6 +118,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     const portraitMatches = currentNpc.portrait === expected.portrait;
     const tokenImageMatches = currentNpc.tokenImage === expected.tokenImage;
     const initiativeModifierMatches = currentNpc.initiativeModifier === expected.initiativeModifier;
+    const dispositionMatches = currentNpc.disposition === expected.disposition;
 
     const allFieldsMatch =
       nameMatches &&
@@ -123,7 +127,8 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
       tempHpMatches &&
       portraitMatches &&
       tokenImageMatches &&
-      initiativeModifierMatches;
+      initiativeModifierMatches &&
+      dispositionMatches;
 
     if (allFieldsMatch) {
       console.log("[useNpcUpdate] NPC update confirmed:", {
@@ -170,6 +175,9 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         portrait: updates.portrait ?? existing.portrait,
         tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
         initiativeModifier: updates.initiativeModifier ?? existing.initiativeModifier,
+        // ?? not ||: the merge has to keep a stance the DM set earlier when the
+        // edit that triggered this send was about something else entirely.
+        disposition: updates.disposition ?? existing.disposition,
       };
 
       // Set loading state BEFORE sending message

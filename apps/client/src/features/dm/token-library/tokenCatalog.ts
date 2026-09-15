@@ -9,7 +9,7 @@
 // /assets/<hash> uploads). The data and the files are regenerated together
 // by scripts/import-token-library.mjs.
 
-import type { CustomToken, TokenSize } from "@herobyte/shared";
+import type { CustomToken, NpcDisposition, TokenSize } from "@herobyte/shared";
 import {
   LIBRARY_ASSETS,
   LIBRARY_FAMILIES,
@@ -113,6 +113,11 @@ export interface LibraryItem {
   thumbUrl: string;
   /** The footprint a placed token is born with. */
   size: TokenSize;
+  /**
+   * Where an NPC made from this token stands with the party. Absent = hostile,
+   * which is what every NPC in the pack is except the townsfolk.
+   */
+  disposition?: NpcDisposition;
   description?: string;
   /** True for the table's own tokens — the picker marks these apart from pack art. */
   custom: boolean;
@@ -127,6 +132,9 @@ export function packItem(asset: LibraryAsset): LibraryItem {
     portraitUrl: libraryMediumUrl(asset),
     thumbUrl: libraryThumbUrl(asset),
     size: asset.size,
+    // The pack tags all 60 townsfolk `role: "civilian"`; every other role is a
+    // creature the party is meant to fight, so absent (hostile) is right for it.
+    ...(asset.role === "civilian" ? { disposition: "neutral" as const } : {}),
     description: asset.description,
     custom: false,
   };
@@ -147,6 +155,7 @@ export function customItem(token: CustomToken): LibraryItem {
     portraitUrl: token.imageUrl,
     thumbUrl: token.thumbUrl ?? token.imageUrl,
     size: token.size,
+    ...(token.disposition ? { disposition: token.disposition } : {}),
     description: token.description,
     custom: true,
   };

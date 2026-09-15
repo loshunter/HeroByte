@@ -332,6 +332,27 @@ describe("NpcCard", () => {
       expect(screen.getByText("Enemy")).toBeInTheDocument();
     });
 
+    it("says where the NPC stands, and stays red for one that has no stance", () => {
+      // Absent IS hostile — an NPC from before the field must look exactly as
+      // it did, which is what the test above pins from the other side.
+      for (const [disposition, label, ring] of [
+        [undefined, "Enemy", "#D63C53"],
+        ["hostile", "Enemy", "#D63C53"],
+        ["neutral", "Neutral", "#C9A24E"],
+        ["friendly", "Ally", "#3FBF6F"],
+      ] as const) {
+        cleanup();
+        render(
+          <NpcCard {...createDefaultProps({ character: createMockCharacter({ disposition }) })} />,
+        );
+        expect(screen.getByText(label), String(disposition)).toBeInTheDocument();
+        expect(
+          screen.getByTestId("portrait-section-token-color"),
+          String(disposition),
+        ).toHaveTextContent(ring);
+      }
+    });
+
     it("displays PortraitSection component", () => {
       const props = createDefaultProps();
       render(<NpcCard {...props} />);

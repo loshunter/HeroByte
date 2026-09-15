@@ -7,13 +7,19 @@
 // Table state, DM-only on the wire, saved with the session.
 
 import { randomUUID } from "crypto";
-import { CUSTOM_TOKEN_LIMITS, type CustomToken, type TokenSize } from "@herobyte/shared";
+import {
+  CUSTOM_TOKEN_LIMITS,
+  type CustomToken,
+  type NpcDisposition,
+  type TokenSize,
+} from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 
 export interface CustomTokenInput {
   name: string;
   imageUrl: string;
   thumbUrl?: string;
+  disposition?: NpcDisposition;
   description?: string;
   tags?: readonly string[];
   size?: TokenSize;
@@ -46,6 +52,8 @@ export class CustomTokenService {
       // Only when there is one: absent is the shipped shape, and a bare
       // `thumbUrl: undefined` is still a key in the saved session file.
       ...(thumbUrl ? { thumbUrl } : {}),
+      // Absent means hostile, so only a real stance is stored.
+      ...(input.disposition ? { disposition: input.disposition } : {}),
       ...(description ? { description } : {}),
       tags: normalizeTags(input.tags),
       size: input.size ?? "medium",

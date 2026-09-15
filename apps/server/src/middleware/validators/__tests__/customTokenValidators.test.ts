@@ -110,6 +110,18 @@ describe("validateAddCustomTokenMessage", () => {
     }
   });
 
+  it("takes the three stances and nothing else", () => {
+    for (const disposition of ["hostile", "neutral", "friendly"]) {
+      expect(validateAddCustomTokenMessage({ ...base, disposition }).valid, disposition).toBe(true);
+    }
+    for (const disposition of ["enemy", "ally", "", 1, null]) {
+      expect(
+        validateAddCustomTokenMessage({ ...base, disposition }).valid,
+        String(disposition),
+      ).toBe(false);
+    }
+  });
+
   it("bounds the name, the description, the tags and the size", () => {
     expect(validateAddCustomTokenMessage({ ...base, name: "" }).valid).toBe(false);
     expect(validateAddCustomTokenMessage({ ...base, name: "   " }).valid).toBe(false);

@@ -5,7 +5,7 @@
 
 import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import type { MessageRecord, ValidationResult } from "./commonValidators.js";
-import { isTokenSize } from "./commonValidators.js";
+import { isNpcDisposition, isTokenSize } from "./commonValidators.js";
 
 const { NAME_MAX, DESCRIPTION_MAX, TAG_MAX, TAGS_MAX, URL_MAX } = CUSTOM_TOKEN_LIMITS;
 const fail = (error: string): ValidationResult => ({ valid: false, error });
@@ -34,7 +34,7 @@ export function isCustomTokenImageUrl(value: string): boolean {
 }
 
 export function validateAddCustomTokenMessage(message: MessageRecord): ValidationResult {
-  const { name, imageUrl, thumbUrl, description, tags, size } = message;
+  const { name, imageUrl, thumbUrl, description, tags, size, disposition } = message;
   if (typeof name !== "string" || name.trim().length === 0 || name.length > NAME_MAX) {
     return fail(`add-custom-token: name must be 1-${NAME_MAX} characters`);
   }
@@ -73,6 +73,9 @@ export function validateAddCustomTokenMessage(message: MessageRecord): Validatio
   }
   if (size !== undefined && !isTokenSize(size)) {
     return fail("add-custom-token: size must be a token size");
+  }
+  if (disposition !== undefined && !isNpcDisposition(disposition)) {
+    return fail("add-custom-token: disposition must be a stance");
   }
   return { valid: true };
 }

@@ -32,6 +32,7 @@ export class CustomTokenDispatcher {
                 name: message.name,
                 imageUrl: message.imageUrl,
                 thumbUrl: message.thumbUrl,
+                disposition: message.disposition,
                 description: message.description,
                 tags: message.tags,
                 size: message.size,

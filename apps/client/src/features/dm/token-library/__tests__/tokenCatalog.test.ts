@@ -27,6 +27,7 @@ import {
   libraryThumbUrl,
   searchLibrary,
   customItem,
+  packItem,
 } from "../tokenCatalog";
 
 const PUBLIC_ROOT = resolve(__dirname, "../../../../../public/tokens");
@@ -246,5 +247,28 @@ describe("customItem", () => {
 
   it("falls back to the full picture — a token added before thumbs existed", () => {
     expect(customItem(token).thumbUrl).toBe(token.imageUrl);
+  });
+
+  it("carries the stance the shelf holds, and nothing when it holds none", () => {
+    expect(customItem({ ...token, disposition: "friendly" }).disposition).toBe("friendly");
+    expect("disposition" in customItem(token)).toBe(false);
+  });
+});
+
+describe("packItem — the pack's own stance", () => {
+  it("every townsfolk is neutral and every monster is absent (hostile)", () => {
+    const civilians = LIBRARY_ASSETS.filter((a) => a.role === "civilian");
+    // The rule is `role === "civilian"`, and the pack tags all 60 that way —
+    // if a future pack drops the role, this count is what notices.
+    expect(civilians).toHaveLength(60);
+    expect(civilians.every((a) => packItem(a).disposition === "neutral")).toBe(true);
+
+    const rest = LIBRARY_ASSETS.filter((a) => a.role !== "civilian");
+    expect(rest.length).toBeGreaterThan(180);
+    expect(rest.every((a) => !("disposition" in packItem(a)))).toBe(true);
+
+    // Named cases, so a reader can see which is which.
+    expect(packItem(libraryAssetById("npcDwarfBlacksmith")!).disposition).toBe("neutral");
+    expect("disposition" in packItem(libraryAssetById("goblinClub")!)).toBe(false);
   });
 });

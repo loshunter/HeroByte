@@ -19,15 +19,26 @@ interface NpcView {
   name: string;
   tokenImage?: string | null;
   portrait?: string;
+  disposition?: string;
 }
 
 async function npcs(page: Page): Promise<NpcView[]> {
   return page.evaluate(() =>
     (window.__HERO_BYTE_E2E__?.snapshot?.characters ?? [])
       .filter((c) => c.type === "npc")
-      .map((c) => ({ id: c.id, name: c.name, tokenImage: c.tokenImage, portrait: c.portrait })),
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        tokenImage: c.tokenImage,
+        portrait: c.portrait,
+        disposition: c.disposition,
+      })),
   );
 }
+
+/** The Entities-panel card for an NPC — where the stance is actually READ. */
+const cardOf = (page: Page, name: string) =>
+  page.locator(".player-card-shell").filter({ hasText: name }).first();
 
 async function removeNpcsAddedSince(page: Page, before: readonly string[]): Promise<void> {
   const added = (await npcs(page)).map((n) => n.id).filter((id) => !before.includes(id));
@@ -164,8 +175,15 @@ test.describe("the Token Library", () => {
           (await npcs(page)).filter((n) => !before.includes(n.id) && n.tokenImage === BLACKSMITH),
         )
         .toHaveLength(3);
-      const names = (await npcs(page)).filter((n) => !before.includes(n.id)).map((n) => n.name);
-      expect(names.every((n) => /^Dwarf blacksmith( \d+)?$/.test(n))).toBe(true);
+      const added = (await npcs(page)).filter((n) => !before.includes(n.id));
+      expect(added.map((n) => n.name).every((n) => /^Dwarf blacksmith( \d+)?$/.test(n))).toBe(true);
+
+      // A townsfolk is born NEUTRAL — the pack calls all 60 of them civilians
+      // — so the DM's Entities card says Neutral, not Enemy.
+      expect(added.map((n) => n.disposition)).toEqual(["neutral", "neutral", "neutral"]);
+      const card = cardOf(page, added[0]!.name);
+      await card.scrollIntoViewIfNeeded();
+      await expect(card.locator(".player-card-role")).toHaveText("Neutral");
     } finally {
       await removeNpcsAddedSince(page, before);
     }
@@ -201,6 +219,10 @@ test.describe("the Token Library", () => {
       await form.getByLabel("Name").fill(NAME);
       await form.getByLabel("Description").fill("Runs the Gilded Tankard.");
       await form.getByRole("button", { name: "villager" }).click();
+      // The LAST kind chip chooses the stance, so she ends up an ally and her
+      // Entities card will read Ally rather than Enemy.
+      await form.getByRole("button", { name: "ally" }).click();
+      await expect(form.getByLabel("Stance")).toHaveValue("friendly");
       await form.getByRole("textbox", { name: "Tags" }).fill("innkeeper");
       await form.getByLabel("Size").selectOption("small");
       await form.getByRole("button", { name: "＋ Add to library" }).click();
@@ -213,8 +235,9 @@ test.describe("the Token Library", () => {
         name: NAME,
         imageUrl: IMAGE,
         description: "Runs the Gilded Tankard.",
-        tags: ["villager", "innkeeper"],
+        tags: ["villager", "ally", "innkeeper"],
         size: "small",
+        disposition: "friendly",
       });
 
       // The 84px render is a SECOND upload of this table's, distinct from the
@@ -239,6 +262,13 @@ test.describe("the Token Library", () => {
           (await npcs(page)).filter((n) => !before.includes(n.id) && n.tokenImage === IMAGE),
         )
         .toHaveLength(1);
+
+      // The stance rides the pick all the way to the card the table reads.
+      const [npc] = (await npcs(page)).filter((n) => !before.includes(n.id));
+      expect(npc!.disposition).toBe("friendly");
+      const npcCard = cardOf(page, npc!.name);
+      await npcCard.scrollIntoViewIfNeeded();
+      await expect(npcCard.locator(".player-card-role")).toHaveText("Ally");
 
       // A player's snapshot carries no shelf at all — not even an empty one.
       const playerContext = await browser.newContext();

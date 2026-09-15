@@ -5,7 +5,7 @@
 // Provides editing interface for NPC properties including name, HP, and images.
 
 import { useState, useEffect } from "react";
-import type { SnapshotCharacter } from "@herobyte/shared";
+import type { NpcDisposition, SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { JRPGPanel } from "../../../components/ui/JRPGPanel";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
@@ -13,7 +13,8 @@ import { NPCEditorActions } from "./NPCEditorActions";
 import { MovementSpeedField } from "../../players/components/MovementSpeedField";
 import { NpcPortraitField } from "./NpcPortraitField";
 import { NpcTokenImageField } from "./NpcTokenImageField";
-import { libraryAssetByImageUrl, type LibraryItem } from "../token-library/tokenCatalog";
+import { NpcStanceSelect } from "./NpcStanceSelect";
+import { useNpcAssetPick } from "../hooks/useNpcAssetPick";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -25,6 +26,7 @@ interface NPCEditorProps {
     portrait?: string;
     tokenImage?: string;
     initiativeModifier?: number;
+    disposition?: NpcDisposition;
   }) => void;
   onPlace: () => void;
   onDuplicate: () => void;
@@ -86,6 +88,7 @@ export function NPCEditor({
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
+      disposition?: NpcDisposition;
     }>,
   ) => {
     // Parse HP values
@@ -125,6 +128,9 @@ export function NPCEditor({
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
       tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
       initiativeModifier: clampedInitMod,
+      // Only when this edit set one: update-npc is a full-record send, so a
+      // bare `disposition: undefined` would clear a stance on every HP tweak.
+      ...(overrides?.disposition ? { disposition: overrides.disposition } : {}),
     });
   };
 
@@ -134,18 +140,11 @@ export function NPCEditor({
   const handleTempHpBlur = () => commitUpdate();
   const handleInitiativeModifierBlur = () => commitUpdate();
 
-  // A library pick brings the portrait along when there is nothing to lose: an
-  // empty portrait, or one the library set earlier (so a mimic's flip changes
-  // both faces). A portrait the DM chose themselves is theirs and stays.
-  const handlePickAsset = (item: LibraryItem) => {
-    const url = item.imageUrl;
-    const face = item.portraitUrl;
-    const portraitFollows =
-      portrait.trim() === "" || libraryAssetByImageUrl(portrait) !== undefined;
-    setTokenImage(url);
-    if (portraitFollows) setPortrait(face);
-    commitUpdate({ tokenImage: url, ...(portraitFollows ? { portrait: face } : {}) });
-  };
+  const handlePickAsset = useNpcAssetPick(portrait, (next) => {
+    setTokenImage(next.tokenImage);
+    if (next.portrait !== undefined) setPortrait(next.portrait);
+    commitUpdate(next);
+  });
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -321,6 +320,8 @@ export function NPCEditor({
         }}
         onPickAsset={handlePickAsset}
       />
+
+      <NpcStanceSelect value={npc.disposition} disabled={isUpdating} onChange={commitUpdate} />
 
       <NPCEditorActions
         npcName={npc.name}

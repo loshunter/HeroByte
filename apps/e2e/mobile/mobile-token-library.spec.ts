@@ -1,5 +1,7 @@
 /**
- * G3 — the shelf's ✕ on a phone.
+ * The shelf and the stance, on a phone (G3 and G4's mobile surfaces).
+ *
+ * G3 — the shelf's ✕.
  *
  * The 44px floor lifts every bare <button> inside a mobile surface, and the
  * remove control was an ABSOLUTE 22px overlay pinned to the cell's top-right:
@@ -18,7 +20,7 @@ import { joinMobileTable, undersizedControls } from "./mobile.helpers";
 /** A same-origin image the validator accepts — the pack's own thumbnail tier. */
 const IMAGE = "/tokens/Thumbs/NPC/Civilians/Tavern/npcHumanBartender.png";
 
-async function openShelf(page: Page): Promise<void> {
+async function openDMScreen(page: Page): Promise<void> {
   await elevateToDM(page);
   await page
     .getByRole("navigation", { name: /Mobile actions/i })
@@ -29,13 +31,78 @@ async function openShelf(page: Page): Promise<void> {
   // The menu is a lazy chunk on mobile exactly as on desktop — wait for it.
   await expect(page.getByRole("button", { name: "Map Setup" })).toBeVisible({ timeout: 15_000 });
   await dialog.getByRole("button", { name: "NPCs & Monsters" }).click();
+}
+
+/** …and on into the Library's Custom shelf, where the ✕ lives. */
+async function openShelf(page: Page): Promise<void> {
+  await openDMScreen(page);
+  const dialog = page.getByRole("dialog", { name: "DM Menu" });
   const library = dialog.getByRole("button", { name: "📖 Library" });
   await library.scrollIntoViewIfNeeded();
   await library.click();
   await dialog.getByRole("button", { name: "Custom" }).click();
 }
 
-test.describe("mobile — the table's own shelf", () => {
+test.describe("mobile — the shelf and the stance", () => {
+  test("the NPC editor's Stance is reachable and at the floor on a phone", async ({ page }) => {
+    // Every slice ships its mobile surface. The coarse-pointer floor lifts a
+    // <select> inside a mobile surface — this is the check that it actually
+    // reaches THIS one rather than the assumption that it must.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await joinMobileTable(page);
+    await openDMScreen(page);
+    const dialog = page.getByRole("dialog", { name: "DM Menu" });
+
+    const before = await page.evaluate(
+      () =>
+        (window.__HERO_BYTE_E2E__?.snapshot?.characters ?? [])
+          .filter((c) => c.type === "npc")
+          .map((c) => c.id) as string[],
+    );
+
+    try {
+      const add = dialog.getByRole("button", { name: "+ Add NPC" });
+      await add.scrollIntoViewIfNeeded();
+      await add.click();
+      await page.waitForFunction(
+        (count) =>
+          (window.__HERO_BYTE_E2E__?.snapshot?.characters ?? []).filter((c) => c.type === "npc")
+            .length ===
+          count + 1,
+        before.length,
+      );
+
+      const stance = dialog.getByLabel("Stance").first();
+      await stance.scrollIntoViewIfNeeded();
+      await expect(stance).toBeVisible();
+      expect((await stance.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+      // And it really commits: the snapshot's NPC carries the new stance.
+      await stance.selectOption("friendly");
+      await expect
+        .poll(async () =>
+          page.evaluate(
+            (ids) =>
+              (window.__HERO_BYTE_E2E__?.snapshot?.characters ?? []).find(
+                (c) => c.type === "npc" && !ids.includes(c.id),
+              )?.disposition,
+            before,
+          ),
+        )
+        .toBe("friendly");
+    } finally {
+      await page.evaluate((preexisting) => {
+        for (const npc of (window.__HERO_BYTE_E2E__?.snapshot?.characters ?? []).filter(
+          (c) => c.type === "npc",
+        )) {
+          if (!preexisting.includes(npc.id)) {
+            window.__HERO_BYTE_E2E__?.sendMessage?.({ t: "delete-npc", id: npc.id });
+          }
+        }
+      }, before);
+    }
+  });
+
   test("the ✕ is a 44px bar under the cell, not an overlay on its picture", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await joinMobileTable(page);

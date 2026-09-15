@@ -111,6 +111,7 @@ export class CharacterDispatcher {
               hp: message.hp,
               tokenImage: message.tokenImage,
               tokenSize: message.tokenSize,
+              disposition: message.disposition,
               count: message.count,
               visibleToPlayers: message.visibleToPlayers,
             }),
@@ -127,6 +128,7 @@ export class CharacterDispatcher {
               portrait: message.portrait,
               tokenImage: message.tokenImage,
               initiativeModifier: message.initiativeModifier,
+              disposition: message.disposition,
             }),
           ) ?? {}
         );

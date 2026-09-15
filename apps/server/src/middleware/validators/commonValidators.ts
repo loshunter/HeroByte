@@ -3,7 +3,11 @@
 // ============================================================================
 // Shared type guards, helpers, and constants used across domain validators
 
-import { coerceAreaTemplate, type DrawingSegmentPayload } from "@herobyte/shared";
+import {
+  coerceAreaTemplate,
+  type DrawingSegmentPayload,
+  type NpcDisposition,
+} from "@herobyte/shared";
 import { STRING_LIMITS } from "./constants.js";
 
 /**
@@ -60,6 +64,18 @@ export const VALID_TOKEN_SIZES = [
 /** Type guard: a rung of the token size ladder. */
 export function isTokenSize(value: unknown): value is (typeof VALID_TOKEN_SIZES)[number] {
   return VALID_TOKEN_SIZES.includes(value as (typeof VALID_TOKEN_SIZES)[number]);
+}
+
+/**
+ * Where an NPC stands with the party. Absent is the fourth option and the
+ * default — it means hostile, which is what every NPC was before the field
+ * existed — so nothing here ever substitutes a value for a bad one.
+ */
+export const VALID_NPC_DISPOSITIONS = ["hostile", "neutral", "friendly"] as const;
+
+/** Type guard: one of the three stances. */
+export function isNpcDisposition(value: unknown): value is NpcDisposition {
+  return VALID_NPC_DISPOSITIONS.includes(value as NpcDisposition);
 }
 
 /**

@@ -526,6 +526,36 @@ describe("validateMessage", () => {
       });
     });
 
+    describe("the NPC stance (create and update alike)", () => {
+      const create = { t: "create-npc", name: "Baker", hp: 6, maxHp: 6 };
+      const update = { t: "update-npc", id: "npc-1", name: "Baker", hp: 6, maxHp: 6 };
+
+      it("accepts the three stances, and absent — which already means hostile", () => {
+        for (const disposition of ["hostile", "neutral", "friendly"]) {
+          expect(validateMessage({ ...create, disposition }), disposition).toEqual({ valid: true });
+          expect(validateMessage({ ...update, disposition }), disposition).toEqual({ valid: true });
+        }
+        expect(validateMessage(create)).toEqual({ valid: true });
+        expect(validateMessage(update)).toEqual({ valid: true });
+      });
+
+      it("refuses a word off the list rather than defaulting it", () => {
+        // "enemy" is the card's LABEL, not the stored value — the likeliest
+        // wrong guess, and the one that would silently become hostile if this
+        // defaulted instead of refusing.
+        for (const disposition of ["enemy", "ally", "HOSTILE", "", 1, null, ["neutral"]]) {
+          expect(
+            validateMessage({ ...create, disposition }).valid,
+            JSON.stringify(disposition),
+          ).toBe(false);
+          expect(
+            validateMessage({ ...update, disposition }).valid,
+            JSON.stringify(disposition),
+          ).toBe(false);
+        }
+      });
+    });
+
     /**
      * The count bound lives here rather than in a router test on purpose:
      * router.route() runs AFTER validation in production, so routing a

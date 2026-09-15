@@ -68,6 +68,7 @@ export function useCustomTokens({
         ...(draft.description ? { description: draft.description } : {}),
         tags: draft.tags,
         size: draft.size,
+        ...(draft.disposition ? { disposition: draft.disposition } : {}),
       });
       return prepared.note ? { note: prepared.note } : {};
     },

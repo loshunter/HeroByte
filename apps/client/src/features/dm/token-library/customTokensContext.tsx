@@ -8,7 +8,7 @@
 // read-only shelf, so a TokenLibrary rendered anywhere else still works.
 
 import { createContext, useContext } from "react";
-import type { CustomToken, TokenSize } from "@herobyte/shared";
+import type { CustomToken, NpcDisposition, TokenSize } from "@herobyte/shared";
 
 /** What the add form hands up: the wire shape of add-custom-token. */
 export interface CustomTokenDraft {
@@ -17,6 +17,8 @@ export interface CustomTokenDraft {
   description?: string;
   tags: string[];
   size: TokenSize;
+  /** Where an NPC picked from this token stands; absent = hostile. */
+  disposition?: NpcDisposition;
 }
 
 /** What an add reports back: a line to show when a step was skipped. */

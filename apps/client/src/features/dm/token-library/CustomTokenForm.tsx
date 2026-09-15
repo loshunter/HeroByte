@@ -6,11 +6,13 @@
 // fields the pack's entries carry, so the token searches and picks like one.
 
 import { useId, useState } from "react";
-import type { TokenSize } from "@herobyte/shared";
+import type { NpcDisposition, TokenSize } from "@herobyte/shared";
 import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import { ImageField } from "../../../components/ui/ImageField";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { CustomTokenAddResult, CustomTokenDraft } from "./customTokensContext";
+import { impliedStance } from "./customTokenStance";
+import { npcDispositionLook } from "../../players/components/npcDisposition";
 
 interface CustomTokenFormProps {
   onAdd: (draft: CustomTokenDraft) => Promise<CustomTokenAddResult>;
@@ -36,6 +38,9 @@ const ANCESTRY_TAGS = [
 
 const cleanTag = (raw: string) => raw.trim().toLowerCase().slice(0, CUSTOM_TOKEN_LIMITS.TAG_MAX);
 
+/** One spelling of the three labels, shared with the NPC editor's Stance. */
+const STANCES: NpcDisposition[] = ["hostile", "neutral", "friendly"];
+
 export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProps) {
   const [imageUrl, setImageUrl] = useState("");
   const [name, setName] = useState("");
@@ -43,6 +48,11 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
   const [tags, setTags] = useState<string[]>([]);
   const [tagText, setTagText] = useState("");
   const [size, setSize] = useState<TokenSize>("medium");
+  // Neutral, not hostile: what a DM adds by hand is far more often a townsfolk
+  // or a prop than a monster — the pack already holds 184 of those.
+  const [stance, setStance] = useState<NpcDisposition>("neutral");
+  // Once the DM has chosen a stance themselves, a later chip must not undo it.
+  const [stanceTouched, setStanceTouched] = useState(false);
   // The add draws and uploads an 84px thumbnail before it sends, which is a
   // round trip the DM has to be told about — hence a disabled button that
   // says so, and a line underneath when a step was skipped.
@@ -52,6 +62,7 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
   const descriptionId = useId();
   const tagsId = useId();
   const sizeId = useId();
+  const stanceId = useId();
 
   const addTags = (raw: string) => {
     const next = raw.split(",").map(cleanTag).filter(Boolean);
@@ -62,6 +73,9 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
         CUSTOM_TOKEN_LIMITS.TAGS_MAX,
       ),
     );
+    // Until the DM sets a stance by hand, a kind chip keeps choosing it.
+    const implied = impliedStance(next);
+    if (implied && !stanceTouched) setStance(implied);
     setTagText("");
   };
   const toggleTag = (tag: string) =>
@@ -86,6 +100,9 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
         ...(blurb ? { description: blurb.slice(0, CUSTOM_TOKEN_LIMITS.DESCRIPTION_MAX) } : {}),
         tags: finalTags,
         size,
+        // Hostile is what absent already means; sending it would only put a
+        // word in the saved file that changes nothing.
+        ...(stance === "hostile" ? {} : { disposition: stance }),
       }),
     )
       .then((result) => setNote(result?.note ?? null))
@@ -99,6 +116,8 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
     setTags([]);
     setTagText("");
     setSize("medium");
+    setStance("neutral");
+    setStanceTouched(false);
   };
 
   return (
@@ -150,6 +169,27 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
             {SIZES.map((option) => (
               <option key={option} value={option}>
                 {option}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{ ...fieldGroupStyle, flex: "0 0 120px" }}>
+          <label htmlFor={stanceId} className="jrpg-text-small">
+            Stance
+          </label>
+          <select
+            id={stanceId}
+            value={stance}
+            onChange={(event) => {
+              setStance(event.target.value as NpcDisposition);
+              setStanceTouched(true);
+            }}
+            disabled={disabled}
+            style={fieldStyle}
+          >
+            {STANCES.map((option) => (
+              <option key={option} value={option}>
+                {npcDispositionLook(option).label}
               </option>
             ))}
           </select>

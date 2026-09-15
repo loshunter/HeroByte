@@ -156,6 +156,9 @@ export default function NPCsTab({
       tokenImage: item.imageUrl,
       portrait: item.portraitUrl,
       tokenSize: item.size,
+      // The pack's townsfolk are born neutral and a custom token brings its own
+      // stance; everything else is absent, which the card reads as Enemy.
+      ...(item.disposition ? { disposition: item.disposition } : {}),
       count,
     });
   };

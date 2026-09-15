@@ -6,7 +6,12 @@
 
 import { NPC_CREATE_LIMITS } from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
-import { isFiniteNumber, isIntegerInRange, isTokenSize } from "./commonValidators.js";
+import {
+  isFiniteNumber,
+  isIntegerInRange,
+  isNpcDisposition,
+  isTokenSize,
+} from "./commonValidators.js";
 import { STRING_LIMITS } from "./constants.js";
 
 /**
@@ -16,7 +21,7 @@ import { STRING_LIMITS } from "./constants.js";
  * count (integer 1..NPC_CREATE_LIMITS.COUNT_MAX)
  */
 export function validateCreateNpcMessage(message: MessageRecord): ValidationResult {
-  const { name, hp, maxHp, tempHp, portrait, tokenImage, tokenSize, count } = message;
+  const { name, hp, maxHp, tempHp, portrait, tokenImage, tokenSize, disposition, count } = message;
   if (
     typeof name !== "string" ||
     name.length === 0 ||
@@ -49,6 +54,11 @@ export function validateCreateNpcMessage(message: MessageRecord): ValidationResu
   if (tokenSize !== undefined && !isTokenSize(tokenSize)) {
     return { valid: false, error: "create-npc: tokenSize must be a token size" };
   }
+  // Refused rather than defaulted, like tokenSize: absent already MEANS
+  // hostile, so a word off the list is a broken client, not a missing value.
+  if (disposition !== undefined && !isNpcDisposition(disposition)) {
+    return { valid: false, error: "create-npc: disposition must be a stance" };
+  }
   // The handler LOOPS on count, so this bound is load-bearing, not cosmetic —
   // and the RANGE is what enforces it, since Number.isInteger(1e308) is true.
   // Rejected rather than clamped: a client asking for 10_000 goblins is
@@ -69,7 +79,8 @@ export function validateCreateNpcMessage(message: MessageRecord): ValidationResu
  * Optional: portrait (string), tokenImage (string), tempHp (non-negative), initiativeModifier (number)
  */
 export function validateUpdateNpcMessage(message: MessageRecord): ValidationResult {
-  const { id, name, hp, maxHp, tempHp, portrait, tokenImage, initiativeModifier } = message;
+  const { id, name, hp, maxHp, tempHp, portrait, tokenImage, initiativeModifier, disposition } =
+    message;
   if (typeof id !== "string" || id.length === 0) {
     return { valid: false, error: "update-npc: missing or invalid id" };
   }
@@ -97,6 +108,9 @@ export function validateUpdateNpcMessage(message: MessageRecord): ValidationResu
   }
   if (initiativeModifier !== undefined && !isFiniteNumber(initiativeModifier)) {
     return { valid: false, error: "update-npc: initiativeModifier must be a number" };
+  }
+  if (disposition !== undefined && !isNpcDisposition(disposition)) {
+    return { valid: false, error: "update-npc: disposition must be a stance" };
   }
   return { valid: true };
 }

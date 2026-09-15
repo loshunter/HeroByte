@@ -505,6 +505,18 @@ export interface Drawing {
 export type DrawingSegmentPayload = Omit<Drawing, "id">;
 
 /**
+ * Where an NPC stands with the party — the DM's call, and theirs alone. A
+ * separate field rather than a third `Character.type`, because `type` is
+ * load-bearing in twenty client sites (ordering, movement, redaction, the DM
+ * menu's filters) and a townsfolk is an NPC in every one of them. Absent
+ * means hostile: that is what every NPC was before this existed.
+ *
+ * Not a secret. A disguised enemy is one the DM has set neutral, so there is
+ * nothing here for the recipient filter to hide.
+ */
+export type NpcDisposition = "hostile" | "neutral" | "friendly";
+
+/**
  * Character: Represents a player character (PC) in the game
  * Phase 1: PC only, NPC support coming in Phase 2 with templates
  */
@@ -525,6 +537,8 @@ export interface Character {
    * pack's default, so an ogre lands large. Absent = medium.
    */
   tokenSize?: TokenSize;
+  /** NPCs only: where this one stands with the party. Absent = hostile. */
+  disposition?: NpcDisposition;
   initiative?: number; // Initiative roll value (d20 + modifier)
   initiativeModifier?: number; // Initiative modifier (bonus/penalty added to d20 roll)
   statusEffects?: string[]; // Active status effect identifiers/labels (per character)
@@ -610,6 +624,8 @@ export interface CustomToken {
   tags: string[];
   /** The footprint a token picked from it is born with. */
   size: TokenSize;
+  /** Where an NPC made from it stands with the party. Absent = hostile. */
+  disposition?: NpcDisposition;
   addedBy: string;
   addedAt: number;
 }
@@ -924,6 +940,8 @@ type ClientMessagePayload =
       tokenImage?: string;
       /** The size the placed token starts with; absent = medium. */
       tokenSize?: TokenSize;
+      /** Where the new NPC stands with the party; absent = hostile. */
+      disposition?: NpcDisposition;
       /**
        * How many to create, defaulting to 1. The server loops and numbers
        * them, so "five goblins" is one message, one broadcast and one state
@@ -949,6 +967,8 @@ type ClientMessagePayload =
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
+      /** Set when the DM changes the stance; left out leaves it as it was. */
+      disposition?: NpcDisposition;
     }
   | { t: "delete-npc"; id: string }
   | { t: "place-npc-token"; id: string }
@@ -1017,6 +1037,8 @@ type ClientMessagePayload =
       imageUrl: string;
       /** The 84px render's URL, made client-side; the same bounds as imageUrl. */
       thumbUrl?: string;
+      /** Where a token picked from this one stands; absent = hostile. */
+      disposition?: NpcDisposition;
       description?: string;
       tags?: string[];
       /** Absent = medium. */

@@ -15,7 +15,7 @@
  * @module ws/handlers/NPCMessageHandler
  */
 
-import type { TokenSize } from "@herobyte/shared";
+import type { NpcDisposition, TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
@@ -42,6 +42,8 @@ export interface CreateNPCOptions {
   tokenImage?: string;
   /** The size the placed token starts with; validated upstream against the ladder. */
   tokenSize?: TokenSize;
+  /** Where the new NPC stands with the party; absent = hostile. */
+  disposition?: NpcDisposition;
   /** How many to create, defaulting to 1. Validated upstream against NPC_CREATE_LIMITS. */
   count?: number;
   /** Hidden-from-players flag to carry onto the copy. Only `false` is honoured. */
@@ -58,6 +60,8 @@ export interface UpdateNPCOptions {
   portrait?: string;
   tokenImage?: string;
   initiativeModifier?: number;
+  /** Set when the DM changes the stance; absent leaves it as it was. */
+  disposition?: NpcDisposition;
 }
 
 /**
@@ -142,6 +146,7 @@ export class NPCMessageHandler {
           hp: options?.hp,
           tokenImage: options?.tokenImage,
           tokenSize: options?.tokenSize,
+          disposition: options?.disposition,
         },
       );
       // Only an explicit `false` is honoured — everywhere else in the codebase

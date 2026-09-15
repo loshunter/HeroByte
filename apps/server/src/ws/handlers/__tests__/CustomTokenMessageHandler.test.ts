@@ -91,6 +91,14 @@ describe("CustomTokenMessageHandler through the router", () => {
     expect("thumbUrl" in without!).toBe(false);
   });
 
+  it("carries a stance onto the shelf, and omits it when there is none", () => {
+    messageRouter.route({ ...add, disposition: "friendly" }, dmUid);
+    messageRouter.route({ ...add, name: "Wolf" }, dmUid);
+    const [ally, wolf] = roomService.getState().customTokens;
+    expect(ally!.disposition).toBe("friendly");
+    expect("disposition" in wolf!).toBe(false);
+  });
+
   it("a player's add is refused, and so is a player's remove of the DM's token", () => {
     messageRouter.route(add, playerUid);
     expect(roomService.getState().customTokens).toHaveLength(0);

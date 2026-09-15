@@ -6,7 +6,12 @@
 import { randomUUID } from "crypto";
 // The participation rule has ONE home (combatUtils.ts, shared): this file
 // carried a private copy that drifted the moment the rule changed (F3).
-import { isInInitiativeOrder, type Character, type TokenSize } from "@herobyte/shared";
+import {
+  isInInitiativeOrder,
+  type Character,
+  type NpcDisposition,
+  type TokenSize,
+} from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
 
@@ -44,7 +49,12 @@ export class CharacterService {
     maxHp: number,
     portrait?: string,
     type: "pc" | "npc" = "pc",
-    options?: { hp?: number; tokenImage?: string; tokenSize?: TokenSize },
+    options?: {
+      hp?: number;
+      tokenImage?: string;
+      tokenSize?: TokenSize;
+      disposition?: NpcDisposition;
+    },
   ): Character {
     const clamp = (value: number) => Math.max(0, value);
     const normalizedMaxHp = clamp(maxHp);
@@ -64,6 +74,8 @@ export class CharacterService {
       // Only when given: a bare `tokenSize: undefined` would still be a key, and
       // a saved file is the character spread as-is.
       ...(options?.tokenSize ? { tokenSize: options.tokenSize } : {}),
+      // Same rule. Absent means hostile for an NPC, and nothing at all for a PC.
+      ...(options?.disposition ? { disposition: options.disposition } : {}),
     };
 
     state.characters.push(newCharacter);
@@ -159,6 +171,7 @@ export class CharacterService {
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
+      disposition?: NpcDisposition;
     },
   ): boolean {
     const character = this.findCharacter(state, characterId);
@@ -176,6 +189,13 @@ export class CharacterService {
     // Update initiative modifier if provided
     if (updates.initiativeModifier !== undefined) {
       character.initiativeModifier = updates.initiativeModifier;
+    }
+
+    // Set only when the message carried one: update-npc is a full-record send,
+    // and an older client that has never heard of a stance must not silently
+    // clear one the DM set from a newer tab.
+    if (updates.disposition !== undefined) {
+      character.disposition = updates.disposition;
     }
 
     if (character.tokenId) {

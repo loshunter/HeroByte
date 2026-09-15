@@ -537,6 +537,45 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       expect(state.characters.find((c) => c.id === ogre!.id)?.tokenId).toBe(token?.id);
     });
 
+    it("carries a stance onto the NPC, and an update sets it without clearing it", () => {
+      // A townsfolk pick: create-npc says neutral, so the card reads Neutral
+      // rather than Enemy from the moment it appears.
+      messageRouter.route(
+        {
+          t: "create-npc",
+          name: "Baker",
+          hp: 6,
+          maxHp: 6,
+          disposition: "neutral",
+        } as ClientMessage,
+        dmUid,
+      );
+      const baker = roomService.getState().characters.find((c) => c.name === "Baker");
+      expect(baker?.disposition).toBe("neutral");
+
+      // No stance at all is the shipped shape, and stays absent.
+      messageRouter.route(
+        { t: "create-npc", name: "Wolf", hp: 11, maxHp: 11 } as ClientMessage,
+        dmUid,
+      );
+      const wolf = roomService.getState().characters.find((c) => c.name === "Wolf");
+      expect(wolf && "disposition" in wolf).toBe(false);
+
+      const full = { t: "update-npc", id: baker!.id, name: "Baker", hp: 6, maxHp: 6 };
+      messageRouter.route({ ...full, disposition: "friendly" } as ClientMessage, dmUid);
+      expect(roomService.getState().characters.find((c) => c.id === baker!.id)?.disposition).toBe(
+        "friendly",
+      );
+
+      // update-npc is a full-record send. An edit that says nothing about the
+      // stance — an HP tweak, or an older client that has never heard of one —
+      // must leave it alone rather than wipe it.
+      messageRouter.route({ ...full, hp: 3 } as ClientMessage, dmUid);
+      const after = roomService.getState().characters.find((c) => c.id === baker!.id);
+      expect(after?.hp).toBe(3);
+      expect(after?.disposition).toBe("friendly");
+    });
+
     it("should not place token when non-DM tries", () => {
       const placeMessage: ClientMessage = {
         t: "place-npc-token",
