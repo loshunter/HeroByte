@@ -1345,6 +1345,29 @@ h4 {
  * the used value even against an inline `height`. So one rule reaches every
  * button in every panel without editing a single component.
  */
+/*
+ * The Library shelf's remove control. Its LAYOUT lives here, not in an inline
+ * style object, because an inline rule beats any class rule — and the
+ * coarse-pointer block below has to be able to move it out of the overlay.
+ * Declared BEFORE that block: the two selectors tie on specificity (a media
+ * query adds none), so source order is what decides which one wins.
+ */
+.token-library-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 20px;
+  color: var(--jrpg-white);
+  background: var(--jrpg-navy, #0f0e1e);
+  border: 1px solid var(--jrpg-cyan, #00e0d1);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
 @media (pointer: coarse) {
   .jrpg-button {
     min-height: 44px;
@@ -1407,6 +1430,27 @@ h4 {
     position: absolute;
     /* 24px border box + 10px each side = the 44px target, exactly. */
     inset: -10px;
+  }
+
+  /*
+   * The Library shelf's ✕ — the same trap as the dice badge, answered the
+   * other way. It cannot become a ::after target: the cell it overlays is
+   * itself a button, so a 44px invisible box over the thumbnail would swallow
+   * taps meant to PICK the token and delete it instead. There is room under
+   * the cell, so it takes it: a full-width bar, in flow (cellWrapStyle is a
+   * column), which is also the only shape that reads as "remove" rather than
+   * as a badge on a 375px screen.
+   *
+   * Scoped to the container, like the sweep above it: a coarse pointer on a
+   * touchscreen LAPTOP still gets the desktop DM window, where the overlay is
+   * right and there is no floor lifting it into the picture.
+   */
+  [data-mobile-surface] .token-library-remove {
+    position: static;
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    margin-top: 4px;
   }
 }
 

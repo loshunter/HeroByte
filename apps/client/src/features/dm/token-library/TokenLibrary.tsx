@@ -142,7 +142,7 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
             : "No tokens match. Try a shorter word, another family, or the other category."}
         </p>
       ) : (
-        <div style={gridStyle}>
+        <div data-testid="token-library-grid" style={gridStyle}>
           {results.map((item) => (
             <div key={`${item.category}:${item.id}`} style={cellWrapStyle}>
               <button
@@ -169,11 +169,11 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
               {item.custom && removeToken && (
                 <button
                   type="button"
+                  className="token-library-remove"
                   aria-label={`Remove ${item.name} from the library`}
                   title="Remove from this table's library"
                   disabled={disabled}
                   onClick={() => remove(item)}
-                  style={removeStyle}
                 >
                   ✕
                 </button>
@@ -231,7 +231,10 @@ const gridStyle = {
   padding: "2px",
 } as const;
 
-const cellWrapStyle = { position: "relative", display: "flex" } as const;
+// A COLUMN, so the remove control can leave the overlay and become a bar
+// under the cell on a coarse pointer (see .token-library-remove). On a mouse
+// it is still absolutely positioned and out of flow, so the cell is unchanged.
+const cellWrapStyle = { position: "relative", display: "flex", flexDirection: "column" } as const;
 
 // 84px picture plus caption: comfortably over the 44px touch floor without
 // leaning on the coarse-pointer rule, which only reaches .jrpg-button.
@@ -270,22 +273,6 @@ const badgeStyle = {
   background: "var(--jrpg-cyan, #00e0d1)",
   borderRadius: "3px",
   pointerEvents: "none",
-} as const;
-
-const removeStyle = {
-  position: "absolute",
-  top: "2px",
-  right: "2px",
-  width: "22px",
-  height: "22px",
-  padding: 0,
-  fontSize: "11px",
-  lineHeight: "20px",
-  color: "var(--jrpg-white)",
-  background: "var(--jrpg-navy, #0f0e1e)",
-  border: "1px solid var(--jrpg-cyan, #00e0d1)",
-  borderRadius: "3px",
-  cursor: "pointer",
 } as const;
 
 const thumbStyle = {

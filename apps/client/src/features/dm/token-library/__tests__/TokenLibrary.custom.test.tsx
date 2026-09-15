@@ -100,6 +100,20 @@ describe("TokenLibrary — the table's own tokens", () => {
     expect(screen.getByTestId("custom-token-form")).toBeInTheDocument();
   });
 
+  it("the remover carries its layout in a class, never inline", () => {
+    // jsdom cannot see the coarse-pointer rule that turns this into a bar
+    // under the cell (that is the mobile e2e's job) — what it CAN see is the
+    // precondition for that rule existing at all: no inline position/width,
+    // because an inline style beats any class rule and the phone's 44px floor
+    // would then grow a 22px overlay down over the thumbnail.
+    renderWith({ removeToken: vi.fn() });
+    const remove = screen.getByRole("button", { name: "Remove Old Marta from the library" });
+    expect(remove).toHaveClass("token-library-remove");
+    for (const property of ["position", "top", "right", "width", "height", "padding"]) {
+      expect(remove.style.getPropertyValue(property), property).toBe("");
+    }
+  });
+
   it("without the DM plumbing the shelf is read-only: no remover, no form", () => {
     renderWith({ removeToken: undefined, addToken: undefined });
     expect(screen.queryByRole("button", { name: /^Remove /i })).toBeNull();
