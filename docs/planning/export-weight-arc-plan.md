@@ -1,6 +1,6 @@
 # The Weighed Campaign — the byte-weighed mint path — Execution Plan
 
-**Status: W0–W3 SHIPPED to `dev` 2026-09-14 + two fixes found LIVE + review round 1 answered (below), NOT merged to `main`; round 2 pending.** Picked by the owner on 2026-09-13 ("start one now")
+**Status: W0–W3 SHIPPED to `dev` 2026-09-14 + two fixes found LIVE + review rounds 1 and 2 answered (below), NOT merged to `main`; round 3 (the cap) pending.** Picked by the owner on 2026-09-13 ("start one now")
 from the Kicked-In Door plan's section 7, on this agent's recommendation: it is that plan's
 highest open item and the one defect left there that a DM can hit by playing normally.
 
@@ -38,7 +38,8 @@ scenes). Loading is unchanged: the client already refuses a frame the socket wou
 
 The promise being restored is the one `MAX_SESSION_DOCUMENTS` was written for and cannot keep:
 **a DM's own export always loads back.** Today the count cap (64) protects it only while the
-average document stays under 16 KB, and one `large` building is 207–235 KB stored.
+average document stays under 16 KB, and one `large` building is 70–270 KB stored by kind (a
+warehouse is the heavy one) plus 35–190 KB of compiled scene once the party stands on it.
 
 ### 1.2 Scope boundaries
 
@@ -102,16 +103,14 @@ deleted node's document; `MAX_GEOMETRY_ELEMENTS`; the live GENERATE tool's recip
 - `packages/shared/src/wsLimits.ts` gains **`SESSION_MINT_CEILING_BYTES`** =
   `WS_MAX_MESSAGE_BYTES * 3 / 4` (786,432). A MINT is refused when the export it would produce
   weighs more than this; the remaining quarter is for play — tokens, drawings, suspended
-  scenes — which no mint gate can see. **This is the product decision the Kicked-In Door plan deferred, made here and dialled by one constant.** Measured on a fresh table under the finished gate (2026-09-14): two `large` warehouses, six `large` taverns, eight or nine `large` shops or houses, three high-density `large` dungeons; `medium` maps about twice as many. The wire limit itself does not move.
+  scenes — which no mint gate can see. **This is the product decision the Kicked-In Door plan deferred, made here and dialled by one constant.** Measured on a fresh table under the finished gate with the production 36-character command id (2026-09-14, six seed streams): two `large` warehouses, four to six `large` taverns, seven or eight `large` shops or houses, three high-density `large` dungeons; `medium` maps four or five warehouses, nine or ten taverns, ten or eleven shops or houses. The wire limit itself does not move.
 
-**The server weighs the export it would write — `apps/server/src/domains/room/sessionExport.ts` (new) — plus the scene the candidate installs when it is the live map (`liveSceneBytes`: compiled walls, terrain, scenery; ~65% of a warehouse's document again), with the outgoing scene's bytes SWAPPED out rather than double counted (round 1).**
+**The server weighs the export it would write — `apps/server/src/domains/room/sessionExport.ts` (new) — plus the scene the candidate installs when it is the live map (`liveSceneBytes`: compiled walls, terrain, scenery; ~69% of a warehouse's document again), with the scene INSTALLED on the table — measured, never recompiled from the binding — SWAPPED out rather than double counted (rounds 1 and 2).**
 
 - `buildSessionFile(state, mapDocuments, senderUid, now)` — the body of `handleSessionExport`
   moved whole (with `flattenForFile` and the scene filter), so the handler shrinks and the
   export has one author. The export's CONTENT stays characterized by `sessionRoundTrip.contract.test.ts`'s eighteen pins (flattened drawings, stripped whispers and private rolls, kept `mapBackground`, envelope-only scenes, a file the loaders read), which now load through the very frame they weigh; a direct unit test pins the builder's own contract.
-- `mintOverflow(state, documents, senderUid)` → `{ bytes, ceiling } | null`: builds the file
-  for `documents` (the room's list with the candidate added or replaced) and weighs its load
-  frame against the ceiling. Returns the numbers, never a string, so the two refusal surfaces
+- `mintOverflow(state, documents, senderUid, scene, extraBytes)` → `{ bytes, ceiling } | null`: builds the file for `documents` (the room's list with the candidate added or replaced), weighs its load frame as it stands and with the candidate's scene swapped for the installed one, and reports the heavier plus `extraBytes` against the ceiling. Returns the numbers, never a string, so the two refusal surfaces
   format one message from one source (`mintRefusal(overflow)` in the same module).
 
 **Every mint path asks before it persists.**
@@ -223,7 +222,8 @@ deleted node's document; `MAX_GEOMETRY_ELEMENTS`; the live GENERATE tool's recip
   releases the load and shows the reason — for the count cap, the byte ceiling and a duplicate
   import alike. Pinned on both ends; the graph contract's create/import cases now assert the
   FRAME the DM sees, not a `console.error`.
-- The save toast says the weight ("3 maps included; 0.61 MB of the 1.00 MB a load accepts");
+- The save toast says both sizes ("3 maps included; 0.61 MB of the 1.00 MB a load accepts (1.30 MB
+  on disk with images)" — the disk figure since round 1);
   over the wire limit the file still downloads and the toast is a WARNING with both numbers.
 - Copy: `dm-guide.md` "How big can a campaign get?"; the help entry for SAVE GAME STATE.
 - Sabotage 3/3 red on the named cases.
@@ -233,13 +233,16 @@ deleted node's document; `MAX_GEOMETRY_ELEMENTS`; the live GENERATE tool's recip
 `map-studio-documents` (the list the DM already requests) carries `exportBytes`; the DM
 menu's **Map** tab, beside the map list (both layouts share it), shows "Campaign 0.61 MB of
 0.75 MB · 4 maps" (spec'd for the Atlas tab; shipped beside the list it describes). No new message
-type; the three `ServerMessage` hand-lists stay byte-identical.
+type (the arc's wire changes are listed in the W3 record).
 
 #### W3 — what shipped (2026-09-14)
 
 - `map-studio-documents` carries `exportBytes` — the weigh of the room's REAL export, computed by
   the same `exportBytes` the ceiling measures with (the list is on demand, so the cost lands
-  where the DM asks). No new message type; the three `ServerMessage` hand-lists are untouched.
+  where the DM asks). W3 itself added no message type and touched no hand-list; the arc later
+  added `session-file`, `table-forked` and `table-fork-failed` to all three (`dcad2654`,
+  `3f9b444e`) and one optional field, `exportBytes`, to `map-studio-documents` and (round 2) to
+  the generate's `map-studio-document`.
 - `useMapStudio` keeps `exportBytes` and re-lists when a document frame arrives for an id it has not seen (a mint: create, import, a kick), when the live GENERATE tool's own command lands on a known id (round 1 — a generate edits an existing map), or on a delete — only once a list has arrived, so a bare command stream costs no extra message; silently (never clearing `loading`) and once per burst (round 1).
 - `CampaignWeight` beside the map list: "Campaign 0.61 MB of 0.75 MB · 4 maps", red past the
   ceiling with "delete a map to make room", and past the wire limit "a save will NOT load
@@ -258,6 +261,10 @@ table (a loaded local table: 9 atlas nodes, 29 tokens). Driven from the DM tab, 
 | Craft                 | 0.20   | 8       | Every action answered: the refusal's two numbers, the readout's three states, the save toast's weight. The refusal's "about" over-estimates by the outgoing scene (~0.15 MB at `large`) — an upper bound, said as one.                                                                           |
 | Reach                 | 0.15   | 7       | Not driven at 375 px this pass; the readout and the refusals live in the DM menu both layouts share, and the panels are the same components.                                                                                                                                                     |
 | **Weighted**          |        | **8.5** | Pass at 7.0.                                                                                                                                                                                                                                                                                     |
+
+_Superseded by review round 1: the outgoing scene is now swapped out rather than added
+(`b03bf699`), and the save toast carries a second size (`57268b48`) — the rows above record what
+was observed on 2026-09-14 before those commits._
 
 **Two bugs found live, each fixed in its own commit — the class this evaluation exists for:**
 
@@ -341,6 +348,82 @@ nothing (the pin does). **Recorded, not fixed (2):** `toSnapshot` builds and has
 channel the weigh discards (~2–3 ms per weigh, DM-paced) — a `skipAssets` option to `toSnapshot`
 is the fix if it ever matters; server-side memoization of the export weight (the client coalesces
 its re-lists to one per burst instead).
+
+### Review round 2 (2026-09-14) — four fresh Opus lenses; 0 critical / 16 major / 25 minor raw → 0 / 12 / 15 deduplicated; every lens FAIL; the count did NOT drop (round 1: 0 / 11 / 20)
+
+Lenses: correctness (0/3/6), test validity (0/3/9), doc-vs-code honesty (0/6/6),
+privacy-wire-cost-regressions (0/4/4). Static, read-only, `git status` clean after each. Two of
+the majors are round-1 fixes that regressed (the reconnect blanked the readout and never asked
+again; the silent-list flag could wedge on a lost reply). Every major fixed; every minor fixed
+but two, recorded. Per `review-convergence`, round 3 is the cap; if its count does not drop
+below this round's, the owner decides on the record.
+
+**The finding that reset the numbers again:** production mints with `generateUUID()` as the
+command id, and every element id carries it as a prefix — a `large` warehouse is ~1,000
+elements, so real documents run 14–26% heavier than anything measured with the tests'
+`gen-i` ids. Re-measured with a 36-character command id over six seed streams: a fresh table
+holds two `large` warehouses (~400 KB all in), five `large` taverns (four to six by the roll,
+~200 KB), seven or eight `large` shops or houses (~135 KB), three high-density `large` dungeons
+(~280 KB); `medium`: four or five warehouses, nine or ten taverns, ten or eleven shops or
+houses, twelve dungeons. Stored documents 70–270 KB by kind, compiled scenes 35–190 KB.
+
+**Majors, deduplicated (12):**
+
+1. The weigh measured a RECOMPILE of the bound document, not the scene on the table: a publish
+   leaves `mapTerrain`/`mapElements` undefined, an unbind or a delete-of-the-live-map keeps the
+   scene with no binding. `installedSceneBytes(state)` now measures the five installed keys;
+   `mintSceneBytes` takes no store. Four unit cases (live generate, a publish, an unbound scene,
+   nothing compiled).
+2. The kick's flat 2 KB allowance was neither an upper bound (the capture envelope scales with
+   the outgoing scene's doors — 6 KB after a large high-density dungeon) nor pinned.
+   `kickExtraBytes` now computes it from the objects the kick will push (the cashed child, an
+   adopted origin, both doors, the arrival zone, the capture envelope with the moving collections
+   emptied) plus 256 bytes for the digits it cannot know; `cashNode` carries `extraBytes`. Pinned
+   by an EXACT-padding bracket (`padExportToExactly`: coarse, then a binary-searched tuner within
+   64 bytes): the kick is refused with the extra on the table and lands with it taken off; the
+   swap case's fidelity band is ±1 KB, two-sided.
+3. The reconnect forgot the readout and never asked again (W3 dead after any socket blip). It
+   re-lists silently when a list had ever arrived; pinned, including the reply restoring it.
+4. A lost list reply wedged the silent flag for the session and swallowed the panel's next
+   REFRESH into the watchdog. The panel's own list is tracked apart (`explicitListPending`), any
+   reply un-sticks the silent flag, and the flag times out after 10 s; pinned with fake timers.
+5. The cross-check pin read one of three `registerServerEventHandler` subscribers. It now walks
+   every client source containing the call, asserts the exact set of files and the exact set of
+   16 handled types, and that all are admitted.
+6. The save toast's disk figure was pinned against a hand copy of the serializer, and the file
+   was serialized twice (a second copy of an up-to-85 MB string). `downloadSessionJson` returns
+   `Blob.size`; the hook serializes once; the mock uses the real serializer; a `saveSessionFile`
+   test captures the Blob's parts.
+7. The guide's capacities were wrong twice over (the test-shaped ids; "six taverns" against its
+   own per-map figure). Re-measured as above — guide, constant comment, plan, shared pin.
+8. The per-map figures understated production by 14–26%. Corrected everywhere.
+9. `wsLimits.ts`'s justification ranges likewise. Corrected.
+10. The readout's note overstated its bound and described the pre-round-1 gate. It now says a
+    mint can be refused up to ~0.18 MB before the number reaches the ceiling, less when the
+    party is already on a large map; the guide says the same.
+11. The "207–235 KB" figure survived in the round-trip test and the plan's §1.1. Corrected.
+12. The fork e2e minted a permanent room per run into the package root (state file + secret
+    record; 24 orphans found). The e2e server now runs under `HEROBYTE_DATA_DIR=.e2e-data`, swept
+    and recreated by `prepare-state.mjs`.
+
+**Minors fixed (13):** the co-DM's readout after a generate (the generate's document frame now
+carries `exportBytes`, recompiled BEFORE the weigh, for every DM — the acting DM's re-list
+inference is gone); a refusal after the watchdog clears the stale-timeout flag; pending mints
+are kept until a reply or a reconnect (a late refusal is the truth); the generate acceptance
+case at 20 KB and a mirror refusal at 10 KB bracket the ~13.5 KB cost; the list-weigh guard
+pinned (a circular drawing); the throwing weigher renamed and pinned through the router
+(`rejected`, nothing to the player); the round-trip's window derived from a scratch mint of the
+refused seed (±8 KB) instead of hard-coded; the shared test's dial pin models ONE live scene;
+the e2e save toast's number cross-checked against the downloaded file; the fork e2e asserts the
+DM is seated (no password prompt); "for longer" history lines corrected; the plan's §2.2
+signature, W2 toast quote, W3 hand-list claim and the live table's superseded rows; the
+Kicked-In Door plan's §4.16 grep claim marked a closure record; `mapStudioGenerate.ts`'s
+"pre-apply clone" comment. **Recorded, not fixed (2):** the readout's note is a generated-map
+figure (an imported hand-authored map is bounded only by the wire frame); the weigh's
+`toSnapshot` asset hashing (~2–3 ms).
+
+Sabotage 14 + 5 (the client cases re-proven after the readout hook was extracted for the 350
+cap), all red on the named cases; both e2e smokes green under the disposable data directory.
 
 ## 5. Failure drills
 

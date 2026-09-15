@@ -1556,6 +1556,8 @@ cuts in; a completeness critic last.
 > and clicks wherever it now is. Not a hole — placement is
 > `atlasKick.contract.test.ts:193`'s rule and that test IS red under it. The journey owns the round
 > trip; the contract owns the geometry. **§4.16 verified by grep:** the three `ServerMessage`
+> _(A record of this arc's closure, not a standing invariant: the Weighed Campaign added
+> `session-file`, `table-forked` and `table-fork-failed` to all three lists on 2026-09-14.)_
 > hand-lists (`websocket.ts:93`, `MessageRouter.ts:61`, `:367`) are byte-identical to the arc's
 > recon base `59e55a81` — this arc added no server message. **§4.14:** `buildDMMenuProps` pins 45
 > keys, `openKick` the one addition. **Final ladder, quiescent tree:** shared 25/427, server
