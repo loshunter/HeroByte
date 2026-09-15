@@ -24,6 +24,10 @@ import { MessageRouter } from "../MessageRouter";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROUTER_SOURCE = path.join(HERE, "..", "MessageRouter.ts");
 const CONFIG_SOURCE = path.join(HERE, "..", "..", "websocket.ts");
+// The app's control handler: every type it switches on must be a type the
+// router admits, or the handler is dead code and the feature behind it is
+// silently broken — session-file for two months, the fork replies for longer.
+const HANDLER_SOURCE = path.join(HERE, "..", "..", "..", "hooks", "useServerEventHandlers.ts");
 
 /** Line comments blanked (one names a type in prose, another holds a semicolon). */
 function withoutComments(text: string): string {
@@ -79,5 +83,40 @@ describe("MessageRouter — session-file", () => {
     expect(guard).toEqual(union);
     expect(configUnion).toEqual(union);
     expect(guard).toContain("session-file");
+  });
+
+  it("admits every control type the app's server-event handler switches on — a handled type the router drops is a dead feature", () => {
+    const source = readFileSync(ROUTER_SOURCE, "utf8");
+    const handler = readFileSync(HANDLER_SOURCE, "utf8");
+    const guardStart = source.indexOf("private isControlMessage(");
+    const guardEnd = source.indexOf("}\n", source.indexOf("return (", guardStart));
+    const guard = new Set(literals(source.slice(guardStart, guardEnd)));
+
+    const handled = [...withoutComments(handler).matchAll(/message\.t === "([a-z-]+)"/g)]
+      .map((match) => match[1]!)
+      .filter((type, index, all) => all.indexOf(type) === index)
+      .sort();
+    expect(handled.length).toBeGreaterThan(5);
+    const dropped = handled.filter((type) => !guard.has(type));
+    expect(
+      dropped,
+      `handled by useServerEventHandlers but dropped by the router: ${dropped}`,
+    ).toEqual([]);
+    expect(handled).toContain("table-forked");
+    expect(handled).toContain("table-fork-failed");
+  });
+
+  it("delivers the fork replies to the control handler — 'save as a private table' lives on them", () => {
+    const onControlMessage = vi.fn();
+    const router = new MessageRouter({ onMessage: vi.fn(), onControlMessage });
+
+    router.route(JSON.stringify({ t: "table-forked", roomId: "r-1", name: "Sunday" }));
+    router.route(JSON.stringify({ t: "table-fork-failed", reason: "nope" }));
+
+    expect(onControlMessage).toHaveBeenCalledTimes(2);
+    expect(onControlMessage.mock.calls.map(([m]) => (m as { t: string }).t)).toEqual([
+      "table-forked",
+      "table-fork-failed",
+    ]);
   });
 });

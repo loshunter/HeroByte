@@ -93,7 +93,9 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "atlas-error" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
-  | Extract<ServerMessage, { t: "session-file" }>;
+  | Extract<ServerMessage, { t: "session-file" }>
+  | Extract<ServerMessage, { t: "table-forked" }>
+  | Extract<ServerMessage, { t: "table-fork-failed" }>;
 
 // Re-export for backward compatibility
 export { AuthState, type AuthEvent, ConnectionState };
