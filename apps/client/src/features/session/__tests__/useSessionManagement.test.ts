@@ -24,13 +24,19 @@ import {
 } from "@herobyte/shared";
 import { useSessionManagement } from "../useSessionManagement";
 import { deliverSessionFile } from "../sessionBridge";
-import { saveSessionFile, loadSession } from "../../../utils/sessionPersistence";
+import {
+  downloadSessionJson,
+  loadSession,
+  serializeSessionFile,
+} from "../../../utils/sessionPersistence";
 
-vi.mock("../../../utils/sessionPersistence", () => ({
-  saveSessionFile: vi.fn(),
+vi.mock("../../../utils/sessionPersistence", async (importOriginal) => ({
+  // The REAL serializer (a hand copy here is the drift this arc exists to end);
+  // only the download and the file reader are stubbed. The stub returns what
+  // the real download returns: the bytes it would have written.
+  ...(await importOriginal<typeof import("../../../utils/sessionPersistence")>()),
+  downloadSessionJson: vi.fn((json: string) => new TextEncoder().encode(json).length),
   loadSession: vi.fn(),
-  // The real one: the toast's disk figure is weighed on it.
-  serializeSessionFile: (file: unknown) => JSON.stringify(file, null, 2),
 }));
 
 const toast = {
@@ -72,7 +78,7 @@ describe("useSessionManagement — save", () => {
 
     expect(sendMessage).toHaveBeenCalledWith({ t: "session-export" });
     // Nothing downloads yet: the client does not hold the maps to write.
-    expect(saveSessionFile).not.toHaveBeenCalled();
+    expect(downloadSessionJson).not.toHaveBeenCalled();
   });
 
   it("downloads under the DM's chosen name once the bundle arrives", async () => {
@@ -88,7 +94,10 @@ describe("useSessionManagement — save", () => {
 
     // `assets: []` — this fixture references no uploads, which is the common
     // case (external imgur URLs need no inlining).
-    expect(saveSessionFile).toHaveBeenCalledWith({ ...file, assets: [] }, "my-campaign");
+    // The download takes the serialized file and the DM's name.
+    const [json, name] = vi.mocked(downloadSessionJson).mock.calls[0]!;
+    expect(name).toBe("my-campaign");
+    expect(JSON.parse(json)).toEqual({ ...file, assets: [] });
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("1 map"), 4000);
   });
 
@@ -114,7 +123,10 @@ describe("useSessionManagement — save", () => {
       deliverSessionFile(file);
     });
 
-    const written = vi.mocked(saveSessionFile).mock.calls[0]![0];
+    // The download takes the serialized string: read the file back out of it.
+    const written = JSON.parse(vi.mocked(downloadSessionJson).mock.calls[0]![0]) as {
+      assets?: unknown;
+    };
     expect(written.assets).toEqual([{ hash, mime: "image/png", bytes: btoa("") }]);
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("1 image"), 4000);
   });
@@ -174,7 +186,7 @@ describe("useSessionManagement — save", () => {
       mapDocuments: [{ id: "doc-A", name: "n".repeat(300_000) } as never],
     });
     const wire = loadSessionFrameBytes(file);
-    const disk = utf8ByteLength(JSON.stringify({ ...file, assets: [] }, null, 2));
+    const disk = utf8ByteLength(serializeSessionFile({ ...file, assets: [] }));
     const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
     expect(mb(wire)).not.toBe("0.00 MB");
     expect(mb(wire)).not.toBe("1.00 MB");
@@ -184,7 +196,7 @@ describe("useSessionManagement — save", () => {
       deliverSessionFile(file);
     });
 
-    expect(saveSessionFile).toHaveBeenCalled();
+    expect(downloadSessionJson).toHaveBeenCalled();
     const said = vi.mocked(toast.success).mock.calls[0]?.[0] ?? "";
     expect(said).toContain(`${mb(wire)} of the 1.00 MB a load accepts`);
     expect(said).toContain(`(${mb(disk)} on disk with images)`);
@@ -209,7 +221,7 @@ describe("useSessionManagement — save", () => {
       deliverSessionFile(file);
     });
 
-    expect(saveSessionFile).toHaveBeenCalled();
+    expect(downloadSessionJson).toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
     const said = vi.mocked(toast.warning).mock.calls[0]?.[0] ?? "";
     expect(said).toContain("NOT load back");
@@ -223,7 +235,7 @@ describe("useSessionManagement — save", () => {
 
     act(() => deliverSessionFile(sessionFile()));
 
-    expect(saveSessionFile).not.toHaveBeenCalled();
+    expect(downloadSessionJson).not.toHaveBeenCalled();
   });
 
   it("does not fire its timeout into an unmounted tree", () => {

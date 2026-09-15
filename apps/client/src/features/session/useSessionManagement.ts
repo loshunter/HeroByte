@@ -22,9 +22,12 @@ import {
   loadSessionFrameBytes,
   type ClientMessage,
   type SessionFile,
-  utf8ByteLength,
 } from "@herobyte/shared";
-import { saveSessionFile, loadSession, serializeSessionFile } from "../../utils/sessionPersistence";
+import {
+  downloadSessionJson,
+  loadSession,
+  serializeSessionFile,
+} from "../../utils/sessionPersistence";
 import { awaitSessionFile, sessionCredentials } from "./sessionBridge";
 import { collectSessionAssets, restoreSessionAssets } from "./sessionAssets";
 
@@ -119,7 +122,8 @@ export function useSessionManagement({
       void (async () => {
         try {
           const { assets, skipped } = await collectSessionAssets(file);
-          saveSessionFile({ ...file, assets }, name);
+          // Serialized ONCE: the download and the disk figure share the string.
+          const diskBytes = downloadSessionJson(serializeSessionFile({ ...file, assets }), name);
 
           const maps = file.mapDocuments.length;
           const parts = [`${maps} map${maps === 1 ? "" : "s"}`];
@@ -134,7 +138,6 @@ export function useSessionManagement({
           // what a load sends (the frame, no images), the disk size is what was
           // just written (pretty-printed, images inlined).
           const frameBytes = loadSessionFrameBytes(file);
-          const diskBytes = utf8ByteLength(serializeSessionFile({ ...file, assets }));
           if (frameBytes > WS_MAX_MESSAGE_BYTES) {
             toast.warning(
               `Session "${name}" saved (${parts.join(", ")}; ${megabytes(diskBytes)} on disk) — but at ` +

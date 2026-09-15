@@ -11,9 +11,9 @@
 // the live-map arc shipped it was dropping the entire map. These tests exist to
 // make that class of rot loud.
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { RoomSnapshot, SessionFile } from "@herobyte/shared";
-import { loadSession } from "../sessionPersistence";
+import { loadSession, saveSessionFile, serializeSessionFile } from "../sessionPersistence";
 
 function fileOf(contents: unknown): File {
   return new File([JSON.stringify(contents)], "session.json", { type: "application/json" });
@@ -82,6 +82,41 @@ const DOCUMENT = {
   createdAt: 1,
   updatedAt: 2,
 };
+
+describe("saveSessionFile", () => {
+  it("writes exactly serializeSessionFile(file) to the download, and reports its byte size", () => {
+    const file = {
+      schemaVersion: 1 as const,
+      savedAt: 1,
+      snapshot: { gridSize: 50, name: "→ unicode" } as never,
+      mapDocuments: [],
+    };
+    // jsdom's Blob cannot be read back, so capture what was handed to it.
+    const parts: unknown[] = [];
+    const RealBlob = Blob;
+    class CapturingBlob extends RealBlob {
+      constructor(blobParts?: BlobPart[], options?: BlobPropertyBag) {
+        super(blobParts, options);
+        parts.push(...(blobParts ?? []));
+      }
+    }
+    vi.stubGlobal("Blob", CapturingBlob);
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:captured"),
+      revokeObjectURL: vi.fn(),
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      const bytes = saveSessionFile(file, "smoke");
+      expect(parts).toEqual([serializeSessionFile(file)]);
+      expect(bytes).toBe(new TextEncoder().encode(serializeSessionFile(file)).length);
+    } finally {
+      click.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+});
 
 describe("loadSession", () => {
   it("preserves the whole map channel set, not a known-fields subset", () => {
