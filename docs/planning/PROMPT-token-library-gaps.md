@@ -374,10 +374,22 @@ on 5174/8787. Never run dev servers through Bash — use the Browser pane's `pre
    the push — the owner has decided to ship; do not stop for the owner here.
 4. `git status --porcelain` shows nothing staged and only the owner's untracked files.
    `git push origin dev` → `/watch-ci` on the dev run → green.
-5. Merge: `git checkout main && git pull --ff-only origin main && git merge --no-ff dev -m
+5. **Before the merge — the rollback caveat, found in round 3 of the review.** `main` at
+   `8e104dc4` has never had a `customTokens` field. A rollback of main past this merge
+   ERASES every custom-token shelf on the first save afterwards (the old loader never reads
+   the key, the old writer never writes it, and the 250 ms save debounce fires on any table
+   activity), and the asset reclaim sweep then un-claims both hashes per entry and deletes
+   the art after its 7-day grace. There is no code fix — it is the nature of adding a
+   persisted collection. Mitigation, and the rule from here on: **export a session file
+   from every table with a custom shelf before any rollback past this commit**, and know
+   that the shelf is still lost on re-import into the old build (`validateLoadSessionMessage`
+   ignores an unknown key rather than rejecting it). A new session file into the old server
+   also drops `thumbUrl` and `disposition` silently; `characters[].disposition` survives only
+   because the old coercion spreads `...character`.
+6. Merge: `git checkout main && git pull --ff-only origin main && git merge --no-ff dev -m
 "Merge dev: the Weighed Campaign + the Token Library (pack 1.0.0, custom shelf, gaps G1–G4)"`
    then `git push origin main` → `/watch-ci` on the main run → green. `git checkout dev`.
-6. Deploy probe (memory `deploy-probe-discriminating-string`): pick a literal present at the
+7. Deploy probe (memory `deploy-probe-discriminating-string`): pick a literal present at the
    new main and absent at `8e104dc4` — `"Add to library"` qualifies (`git grep "Add to
 library" 8e104dc4` → nothing; at HEAD → the form) — plus a control present in both
    (`"Apply Portrait"`). Fetch the live HTML, extract every `assets/*.js` chunk it references,
@@ -385,7 +397,7 @@ library" 8e104dc4` → nothing; at HEAD → the form) — plus a control present
    poll to 200. Also `GET <live client>/tokens/NPC/Enemies/Goblins/goblinClub.png` → 200
    `image/png` proves the pack deployed. Then a functional check on production with two
    clients if the owner's production table allows it (Fun1/Main Hall is public on purpose).
-7. Deploy record: a docs commit on dev (`docs: deploy record — …`, see `0bd19cc9` for the
+8. Deploy record: a docs commit on dev (`docs: deploy record — …`, see `0bd19cc9` for the
    shape) naming the main merge sha, the CI run numbers, the probe result, and the open
    items; push dev.
 
