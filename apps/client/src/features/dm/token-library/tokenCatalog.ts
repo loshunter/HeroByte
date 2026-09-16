@@ -144,19 +144,31 @@ export function packItem(asset: LibraryAsset): LibraryItem {
 }
 
 /**
- * A table's own token. The map and the portrait draw the full picture; the
- * grid draws the 84px render made when it was added, and falls back to the
- * full picture for a token added before that existed (or one whose thumb
- * could not be made).
+ * A table's own token. The map draws the full picture; the grid draws the
+ * 84px render made when it was added, and the portrait the full picture.
+ *
+ * A PASTED PACK PATH is the exception, and it was G1's own defect surviving
+ * on that road: prepareCustomImage deliberately makes no thumb for pack art
+ * ("it already ships three tiers"), so the shelf entry stored no thumbUrl,
+ * this fell back to imageUrl, and the grid decoded the 1254px master in that
+ * cell — precisely the cost G1 exists to remove. Now the path is resolved to
+ * its pack asset (the URL index is keyed on all three tiers, so a pasted
+ * master, Medium or Thumbs path all hit) and the entry draws the pack's own
+ * 84px and 336px renders, exactly as packItem does for the same asset. Done
+ * here rather than at add time so entries already on a shelf are healed on
+ * their next render, with nothing to migrate. Anything that is not pack art
+ * keeps the old fallback: the full picture, for a token added before thumbs
+ * existed or one whose thumb could not be made.
  */
 export function customItem(token: CustomToken): LibraryItem {
+  const pack = libraryAssetByImageUrl(token.imageUrl);
   return {
     id: token.id,
     name: token.name,
     category: "custom",
     imageUrl: token.imageUrl,
-    portraitUrl: token.imageUrl,
-    thumbUrl: token.thumbUrl ?? token.imageUrl,
+    portraitUrl: pack ? libraryMediumUrl(pack) : token.imageUrl,
+    thumbUrl: token.thumbUrl ?? (pack ? libraryThumbUrl(pack) : token.imageUrl),
     size: token.size,
     ...(token.disposition ? { disposition: token.disposition } : {}),
     description: token.description,

@@ -249,6 +249,29 @@ describe("customItem", () => {
     expect(customItem(token).thumbUrl).toBe(token.imageUrl);
   });
 
+  it("a pasted pack path draws the pack's own 84px and 336px tiers, not the 1254px master", () => {
+    // G1's own defect on this road: prepareCustomImage makes no thumb for
+    // pack art, so the entry stored none, the fallback handed the grid the
+    // master, and it decoded 1254px in that cell. Literal paths, not the
+    // helper compared with itself.
+    const master = "/tokens/NPC/Enemies/Goblins/goblinClub.png";
+    const item = customItem({ ...token, imageUrl: master });
+    expect(item.imageUrl).toBe(master); // the map still draws the master
+    expect(item.thumbUrl).toBe("/tokens/Thumbs/NPC/Enemies/Goblins/goblinClub.png");
+    expect(item.portraitUrl).toBe("/tokens/Medium/NPC/Enemies/Goblins/goblinClub.png");
+
+    // Any tier resolves — the URL index is keyed on all three.
+    const thumbs = "/tokens/Thumbs/NPC/Enemies/Goblins/goblinClub.png";
+    expect(customItem({ ...token, imageUrl: thumbs }).thumbUrl).toBe(thumbs);
+    expect(customItem({ ...token, imageUrl: thumbs }).portraitUrl).toBe(
+      "/tokens/Medium/NPC/Enemies/Goblins/goblinClub.png",
+    );
+
+    // A thumb the add DID make still wins over the resolution.
+    const made = `/assets/${"a".repeat(64)}`;
+    expect(customItem({ ...token, imageUrl: master, thumbUrl: made }).thumbUrl).toBe(made);
+  });
+
   it("carries the stance the shelf holds, and nothing when it holds none", () => {
     expect(customItem({ ...token, disposition: "friendly" }).disposition).toBe("friendly");
     expect("disposition" in customItem(token)).toBe(false);
