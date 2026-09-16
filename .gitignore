@@ -51,6 +51,16 @@ herobyte-state*.json.tmp
 herobyte-state*.json.*.tmp
 herobyte-state.e2e.json
 herobyte-state.e2e.json.tmp
+# The quarantine copy StatePersistence writes when a state file will not
+# parse (quarantineUnreadableStateFile). It is the same room state, whispers
+# and all, under a suffix none of the patterns above match — so it sat
+# untracked and committable until now.
+herobyte-state*.json.corrupt
+
+# The owner's scratch directory: pack sources, reference art, screenshots.
+# Untracked and un-ignored is one `git add -A` away from publishing someone
+# else's copyrighted material to a public repo's permanent history.
+/temp/
 
 # Content-addressed upload store (user data, never committed)
 herobyte-assets/
@@ -106,3 +116,6 @@ apps/client/src/features/render/__tests__/zz_perfbench.test.ts
 # CI cache" above is the same phenomenon from a different tool, patched by its literal name.
 # This rule generalises it. That one is left in place as documentation of the precedent.
 /*AppData*
+
+# The e2e server's disposable data directory (playwright.config.ts: HEROBYTE_DATA_DIR)
+apps/server/.e2e-data/

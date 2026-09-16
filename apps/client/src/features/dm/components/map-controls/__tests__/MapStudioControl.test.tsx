@@ -22,6 +22,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     saving: false,
     error: null,
     missingDocumentId: null,
+    exportBytes: null,
     canUndo: false,
     canRedo: false,
     refresh: vi.fn(),
@@ -57,6 +58,25 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
 }
 
 describe("MapStudioControl", () => {
+  it("shows the campaign's weight beside the map list, and warns past the mint ceiling", () => {
+    const { rerender } = render(
+      <MapStudioControl controller={controller({ exportBytes: 640_000, documents: [] })} />,
+    );
+    expect(screen.getByTestId("campaign-weight").textContent).toMatch(
+      /^Campaign 0\.61 MB of 0\.75 MB · 0 maps — a new map also costs the scene it installs/,
+    );
+
+    rerender(<MapStudioControl controller={controller({ exportBytes: 900_000 })} />);
+    expect(screen.getByTestId("campaign-weight").textContent).toContain("past the mint ceiling");
+
+    rerender(<MapStudioControl controller={controller({ exportBytes: 1_100_000 })} />);
+    expect(screen.getByTestId("campaign-weight").textContent).toContain("NOT load back");
+
+    // Nothing until a server has said: no number that means nothing.
+    rerender(<MapStudioControl controller={controller({ exportBytes: null })} />);
+    expect(screen.queryByTestId("campaign-weight")).toBeNull();
+  });
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.mocked(rasterizeAndUploadMapBackground).mockResolvedValue(PUBLISHED_URL);

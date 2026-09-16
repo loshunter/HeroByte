@@ -51,6 +51,7 @@ describe("AuthorizationService", () => {
       selectionState: new Map(),
       playerStagingZone: undefined,
       props: [],
+      customTokens: [],
       combatActive: false,
       currentTurnCharacterId: undefined,
       fogEnabled: false,
@@ -112,6 +113,8 @@ describe("AuthorizationService", () => {
       "create-prop",
       "update-prop",
       "delete-prop",
+      "add-custom-token",
+      "remove-custom-token",
       "clear-all-tokens",
     ];
 

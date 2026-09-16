@@ -382,6 +382,45 @@ describe("SnapshotLoader - Characterization Tests", () => {
     });
   });
 
+  describe("NPC stance coercion — the SECOND load door", () => {
+    function snapshotWithCharacters(characters: unknown[]) {
+      return {
+        players: [],
+        characters,
+        tokens: [],
+        props: [],
+        pointers: [],
+        drawings: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        diceRolls: [],
+        sceneObjects: [],
+        combatActive: false,
+      } as unknown as Parameters<typeof roomService.loadSnapshot>[0];
+    }
+    const npc = { id: "n1", type: "npc", name: "Ogre", hp: 10, maxHp: 10 };
+
+    it("keeps a stance on the list", () => {
+      roomService.loadSnapshot(snapshotWithCharacters([{ ...npc, disposition: "neutral" }]));
+
+      expect(roomService.getState().characters[0]!.disposition).toBe("neutral");
+    });
+
+    it("drops one off the list rather than letting it reach a renderer", () => {
+      // The state-file door (loadCoercions) was hardened and this one was not,
+      // so a hand-edited session file put an unknown stance into live state,
+      // broadcast it to every client, and the card's look-up — a Record index
+      // with no fallback — threw during render with no ErrorBoundary between
+      // the Entities panel and the root. The whole table went blank, for
+      // everyone, and it recurred on reload.
+      for (const disposition of ["banana", "", 42, null, {}, ["neutral"]]) {
+        roomService.loadSnapshot(snapshotWithCharacters([{ ...npc, disposition }]));
+        const loaded = roomService.getState().characters[0]!;
+        expect("disposition" in loaded, JSON.stringify(disposition)).toBe(false);
+      }
+    });
+  });
+
   describe("Character merging", () => {
     it("should preserve characters owned by connected players", () => {
       // Setup: Connected player with character

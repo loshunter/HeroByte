@@ -235,7 +235,7 @@ Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwr
 
 - **WebRTC Voice Chat** – Peer-to-peer voice with speaking-glow portraits
 - **Character System** – Portraits, token art, multi-character support, per-player state export/import
-- **NPCs & Props** – DM-managed monsters with visibility toggles; ownable map objects
+- **NPCs & Props** – DM-managed monsters with visibility toggles and an Enemy/Neutral/Ally stance; a bundled 244-token art pack (184 monsters, 60 townsfolk) plus each table's own custom-token shelf; ownable map objects
 
 ### 📱 Presentation & Feel
 

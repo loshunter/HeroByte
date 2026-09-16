@@ -1,0 +1,225 @@
+/**
+ * The "Add your own" form: an image and a name are the minimum; tags come
+ * from the box (comma or Enter), from the suggestion chips, or both, and a
+ * tag still sitting in the box when Add is pressed counts.
+ */
+
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { CustomTokenForm } from "../CustomTokenForm";
+
+/** The default add: succeeds, nothing to report. */
+const ok = () => vi.fn().mockResolvedValue({ added: true });
+
+function fillImage(url: string) {
+  const field = screen.getByLabelText("Image");
+  fireEvent.change(field, { target: { value: url } });
+  fireEvent.keyDown(field, { key: "Enter" });
+}
+
+describe("CustomTokenForm", () => {
+  it("stays disabled until it has an image and a name, then hands up the draft", async () => {
+    const onAdd = ok();
+    render(<CustomTokenForm onAdd={onAdd} />);
+    const add = screen.getByRole("button", { name: "＋ Add to library" });
+    expect(add).toBeDisabled();
+
+    fillImage("https://i.imgur.com/x.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "  Old Marta " } });
+    await screen.findByDisplayValue("https://i.imgur.com/x.png");
+    expect(add).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText("Description"), {
+      target: { value: "Runs the Gilded Tankard." },
+    });
+    fireEvent.change(screen.getByLabelText("Size"), { target: { value: "small" } });
+    // Comma-separated in the box, a chip, and one left in the box at submit.
+    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "NPC, villager" } });
+    fireEvent.keyDown(screen.getByLabelText("Tags"), { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "halfling" }));
+    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "innkeeper" } });
+    fireEvent.click(add);
+
+    expect(onAdd).toHaveBeenCalledWith(
+      {
+        name: "Old Marta",
+        imageUrl: "https://i.imgur.com/x.png",
+        description: "Runs the Gilded Tankard.",
+        tags: ["npc", "villager", "halfling", "innkeeper"],
+        size: "small",
+        // The kind chips said townsfolk, so the card will read Neutral.
+        disposition: "neutral",
+      },
+      { mirror: true },
+    );
+    // The button says the add is in flight — it renders and uploads a
+    // thumbnail before the message goes out — and the fields are still there
+    // while it does. They clear only once the token has actually landed, so a
+    // refused add does not throw away what the DM typed.
+    expect(screen.getByRole("button", { name: "Adding…" })).toBeDisabled();
+    expect(screen.getByLabelText("Name")).toHaveValue("  Old Marta ");
+    expect(await screen.findByRole("button", { name: "＋ Add to library" })).toBeDisabled();
+    expect(screen.getByLabelText("Name")).toHaveValue("");
+  });
+
+  it("keeps the DM's work when the table refuses the token", async () => {
+    // Clearing optimistically threw away a typed name, blurb and tags on top
+    // of telling the DM nothing at all about why the token never appeared.
+    const onAdd = vi.fn().mockResolvedValue({ added: false, note: "That address cannot be used." });
+    render(<CustomTokenForm onAdd={onAdd} />);
+    fillImage("https://i.imgur.com/x.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Old Marta" } });
+    fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Innkeeper." } });
+    await screen.findByDisplayValue("https://i.imgur.com/x.png");
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+
+    // Red, not the gold the skipped-a-step lines wear. Four of the form's
+    // notes mean the token is NOT on the shelf, and in gold they read as the
+    // same "added, with a footnote" as "A copy is kept on this table."
+    const refusal = await screen.findByRole("status");
+    expect(refusal).toHaveTextContent("cannot be used");
+    expect(refusal).toHaveStyle({ color: "var(--jrpg-red)" });
+    expect(screen.getByLabelText("Name")).toHaveValue("Old Marta");
+    expect(screen.getByLabelText("Description")).toHaveValue("Innkeeper.");
+    expect(screen.getByLabelText("Image")).toHaveValue("https://i.imgur.com/x.png");
+  });
+
+  it("shows the add's note, and nothing when there is none", async () => {
+    const onAdd = vi
+      .fn()
+      .mockResolvedValue({ added: true, note: "No thumbnail — the storage is full." });
+    const { rerender } = render(<CustomTokenForm onAdd={onAdd} />);
+    fillImage("https://i.imgur.com/x.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ogre" } });
+    await screen.findByDisplayValue("https://i.imgur.com/x.png");
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+
+    const skipped = await screen.findByRole("status");
+    expect(skipped).toHaveTextContent("the storage is full");
+    // Gold: the token IS on the shelf and one optional step was skipped.
+    expect(skipped).toHaveStyle({ color: "var(--jrpg-gold)" });
+
+    // A clean second add clears the first one's line rather than leaving a
+    // stale complaint under a token that is perfectly fine.
+    onAdd.mockResolvedValue({ added: true });
+    rerender(<CustomTokenForm onAdd={onAdd} />);
+    fillImage("https://i.imgur.com/y.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ogre 2" } });
+    await screen.findByDisplayValue("https://i.imgur.com/y.png");
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+    await screen.findByRole("button", { name: "＋ Add to library" });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("a kind chip chooses the stance, until the DM chooses one themselves", async () => {
+    const onAdd = ok();
+    render(<CustomTokenForm onAdd={onAdd} />);
+    const stance = screen.getByLabelText("Stance") as HTMLSelectElement;
+    // HOSTILE to start, matching absent-means-hostile everywhere else. The
+    // form used to default to neutral, so a DM who uploaded a dragon and
+    // touched nothing broadcast "Neutral" to the whole table.
+    expect(stance.value).toBe("hostile");
+
+    // A real transition each way. "hostile → click monster → hostile" stopped
+    // asserting anything the moment the default became hostile: the chip
+    // could have been wired to nothing at all and this still passed.
+    fireEvent.click(screen.getByRole("button", { name: "villager" }));
+    expect(stance.value).toBe("neutral");
+    fireEvent.click(screen.getByRole("button", { name: "monster" }));
+    expect(stance.value).toBe("hostile");
+    fireEvent.click(screen.getByRole("button", { name: "ally" }));
+    expect(stance.value).toBe("friendly");
+    // An ancestry says nothing about whose side anyone is on.
+    fireEvent.click(screen.getByRole("button", { name: "elf" }));
+    expect(stance.value).toBe("friendly");
+
+    // Un-clicking a kind chip takes its stance back with it.
+    fireEvent.click(screen.getByRole("button", { name: "ally" }));
+    expect(stance.value).toBe("hostile");
+
+    // And so does the ✕ on the chosen-tags row — the OTHER remove control,
+    // which went straight to setTags. There are two ways to take a chip back
+    // and only one of them was fixed, so a stance a chip had chosen outlived
+    // the chip, with nothing on screen still saying why the card was green.
+    fireEvent.click(screen.getByRole("button", { name: "ally" }));
+    expect(stance.value).toBe("friendly");
+    fireEvent.click(screen.getByRole("button", { name: "ally ✕" }));
+    expect(stance.value).toBe("hostile");
+
+    // Once set by hand it sticks, whatever gets clicked afterwards.
+    fireEvent.change(stance, { target: { value: "neutral" } });
+    fireEvent.click(screen.getByRole("button", { name: "boss" }));
+    expect(stance.value).toBe("neutral");
+
+    fillImage("https://i.imgur.com/x.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Old Marta" } });
+    await screen.findByDisplayValue("https://i.imgur.com/x.png");
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+    expect(onAdd).toHaveBeenLastCalledWith(
+      expect.objectContaining({ disposition: "neutral" }),
+      expect.anything(),
+    );
+
+    // Hostile is what absent already means, so it is not sent at all.
+    await screen.findByRole("button", { name: "＋ Add to library" });
+    fillImage("https://i.imgur.com/y.png");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Wolf" } });
+    await screen.findByDisplayValue("https://i.imgur.com/y.png");
+    fireEvent.change(screen.getByLabelText("Stance"), { target: { value: "hostile" } });
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+    expect(Object.keys(onAdd.mock.lastCall![0])).not.toContain("disposition");
+  });
+
+  it("offers to keep a copy of a LINK only, on by default, and honours the opt-out", async () => {
+    const onAdd = ok();
+    render(<CustomTokenForm onAdd={onAdd} />);
+    const copy = () => screen.queryByLabelText(/Keep a copy on this table/);
+
+    // An upload is already this table's — nothing to copy, nothing to ask.
+    // PRODUCTION's shape, not the dev rail's: uploadedAssetUrl commits the
+    // SERVER's origin, which is https live. The old gate was "starts with
+    // https", so this box appeared ticked after every ⬆ UPLOAD and then did
+    // nothing — and this test passed anyway, because it used the http:// dev
+    // shape, which is hidden for the wrong reason.
+    const uploaded = `https://herobyte-server.onrender.com/assets/${"a".repeat(64)}`;
+    fillImage(uploaded);
+    await screen.findByDisplayValue(uploaded);
+    expect(copy()).toBeNull();
+
+    // The bundled pack, likewise: it already ships three rendered tiers.
+    fillImage("/tokens/NPC/Enemies/Goblins/goblinClub.png");
+    await screen.findByDisplayValue("/tokens/NPC/Enemies/Goblins/goblinClub.png");
+    expect(copy()).toBeNull();
+
+    fillImage("https://i.imgur.com/x.png");
+    await screen.findByDisplayValue("https://i.imgur.com/x.png");
+    expect(copy()).toBeChecked();
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Old Marta" } });
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+    expect(onAdd).toHaveBeenLastCalledWith(expect.anything(), { mirror: true });
+
+    await screen.findByRole("button", { name: "＋ Add to library" });
+    fillImage("https://i.imgur.com/y.png");
+    await screen.findByDisplayValue("https://i.imgur.com/y.png");
+    // Back on for the next token, not left off from the last one.
+    expect(copy()).toBeChecked();
+    fireEvent.click(copy()!);
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Wolf" } });
+    fireEvent.click(screen.getByRole("button", { name: "＋ Add to library" }));
+    expect(onAdd).toHaveBeenLastCalledWith(expect.anything(), { mirror: false });
+  });
+
+  it("a chip toggles its tag on and off, and a chosen tag has its own remover", () => {
+    render(<CustomTokenForm onAdd={ok()} />);
+    const monster = screen.getByRole("button", { name: "monster" });
+    fireEvent.click(monster);
+    expect(monster).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "monster ✕" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "monster ✕" }));
+    expect(monster).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(monster);
+    fireEvent.click(monster);
+    expect(screen.queryByRole("button", { name: "monster ✕" })).toBeNull();
+  });
+});

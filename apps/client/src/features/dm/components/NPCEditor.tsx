@@ -5,14 +5,16 @@
 // Provides editing interface for NPC properties including name, HP, and images.
 
 import { useState, useEffect } from "react";
-import type { SnapshotCharacter } from "@herobyte/shared";
+import type { NpcDisposition, SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { JRPGPanel } from "../../../components/ui/JRPGPanel";
-import { ImageField } from "../../../components/ui/ImageField";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
 import { NPCEditorActions } from "./NPCEditorActions";
 import { MovementSpeedField } from "../../players/components/MovementSpeedField";
 import { NpcPortraitField } from "./NpcPortraitField";
+import { NpcTokenImageField } from "./NpcTokenImageField";
+import { NpcStanceSelect } from "./NpcStanceSelect";
+import { useNpcAssetPick } from "../hooks/useNpcAssetPick";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -24,6 +26,7 @@ interface NPCEditorProps {
     portrait?: string;
     tokenImage?: string;
     initiativeModifier?: number;
+    disposition?: NpcDisposition;
   }) => void;
   onPlace: () => void;
   onDuplicate: () => void;
@@ -38,6 +41,19 @@ interface NPCEditorProps {
   /** Movement budget: zero the spend outside a turn boundary. */
   onBudgetReset?: () => void;
 }
+
+/** One spelling of the editor's text-field look: five identical inline
+ * objects, byte-for-byte, lifted when the Stance select crossed the guard. */
+const editableFieldStyle = (isUpdating: boolean) =>
+  ({
+    width: "100%",
+    padding: "4px",
+    background: "#111",
+    color: "var(--jrpg-white)",
+    border: "1px solid var(--jrpg-border-gold)",
+    opacity: isUpdating ? 0.5 : 1,
+    cursor: isUpdating ? "not-allowed" : "text",
+  }) as const;
 
 /** Five stats share one row; on a 375px phone they WRAP rather than squeeze to 60px each. */
 const STAT_CELL = { flex: 1, minWidth: "88px" } as const;
@@ -65,8 +81,17 @@ export function NPCEditor({
   );
   const [portrait, setPortrait] = useState(npc.portrait ?? "");
   const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
+  const [stance, setStance] = useState(npc.disposition ?? "hostile");
 
+  // Resync — but NOT while this NPC's update is in flight. `npc` is a fresh
+  // object per broadcast, so this fires on a player moving a token or a die
+  // being rolled, not only on the reply we await: unrelated activity put the
+  // optimistic Stance back to the old word, greyed out — the "my click did
+  // not take" the optimism removes — and a half-typed name with it.
+  // useNpcUpdate holds isUpdating (scoped to this NPC by NPCsTab) until the
+  // snapshot MATCHES, so this re-runs on fresh data.
   useEffect(() => {
+    if (isUpdating) return;
     setName(npc.name);
     setHpInput(String(npc.hp));
     setMaxHpInput(String(npc.maxHp));
@@ -74,7 +99,8 @@ export function NPCEditor({
     setInitiativeModifierInput(String(npc.initiativeModifier ?? 0));
     setPortrait(npc.portrait ?? "");
     setTokenImage(npc.tokenImage ?? "");
-  }, [npc]);
+    setStance(npc.disposition ?? "hostile");
+  }, [npc, isUpdating]);
 
   const commitUpdate = (
     overrides?: Partial<{
@@ -85,6 +111,7 @@ export function NPCEditor({
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
+      disposition?: NpcDisposition;
     }>,
   ) => {
     // Parse HP values
@@ -120,10 +147,20 @@ export function NPCEditor({
       name: trimmedName.length > 0 ? trimmedName : "NPC",
       hp: normalized.hp,
       maxHp: normalized.maxHp,
-      tempHp: parsedTempHp > 0 ? parsedTempHp : undefined,
+      // 0 is SENT when there is a value to clear (omitted, the merge refilled it);
+      // still omitted for an NPC with none, or every edit would stamp tempHp: 0.
+      tempHp: parsedTempHp > 0 || npc.tempHp !== undefined ? parsedTempHp : undefined,
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
       tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
       initiativeModifier: clampedInitMod,
+      // Only when this edit set one. Three things downstream would each
+      // survive a bare `disposition: undefined` anyway — useNpcUpdate merges
+      // with `??`, JSON.stringify drops undefined values, and the server's
+      // updateNPC guards on `!== undefined` — so this is consistency with the
+      // other conditional writers, not the load-bearing guard it once claimed
+      // to be. The real guard against an HP tweak clearing a stance is
+      // useNpcUpdate's merge.
+      ...(overrides?.disposition ? { disposition: overrides.disposition } : {}),
     });
   };
 
@@ -132,6 +169,14 @@ export function NPCEditor({
   const handleMaxHpBlur = () => commitUpdate();
   const handleTempHpBlur = () => commitUpdate();
   const handleInitiativeModifierBlur = () => commitUpdate();
+
+  const handlePickAsset = useNpcAssetPick(portrait, (next) => {
+    setTokenImage(next.tokenImage);
+    if (next.portrait !== undefined) setPortrait(next.portrait);
+    // A revealed mimic stops being Neutral (useNpcAssetPick).
+    if (next.disposition) setStance(next.disposition);
+    commitUpdate(next);
+  });
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -155,15 +200,7 @@ export function NPCEditor({
               if (e.key === "Enter") handleNameBlur();
             }}
             disabled={isUpdating}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-              opacity: isUpdating ? 0.5 : 1,
-              cursor: isUpdating ? "not-allowed" : "text",
-            }}
+            style={editableFieldStyle(isUpdating)}
           />
         </label>
       </div>
@@ -181,15 +218,7 @@ export function NPCEditor({
               if (e.key === "Enter") handleHpBlur();
             }}
             disabled={isUpdating}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-              opacity: isUpdating ? 0.5 : 1,
-              cursor: isUpdating ? "not-allowed" : "text",
-            }}
+            style={editableFieldStyle(isUpdating)}
           />
         </label>
         <label className="jrpg-text-small" style={STAT_CELL}>
@@ -204,15 +233,7 @@ export function NPCEditor({
               if (e.key === "Enter") handleMaxHpBlur();
             }}
             disabled={isUpdating}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-              opacity: isUpdating ? 0.5 : 1,
-              cursor: isUpdating ? "not-allowed" : "text",
-            }}
+            style={editableFieldStyle(isUpdating)}
           />
         </label>
         <label className="jrpg-text-small" style={STAT_CELL}>
@@ -228,15 +249,7 @@ export function NPCEditor({
             }}
             disabled={isUpdating}
             title="Temporary hit points absorbed before regular HP"
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-              opacity: isUpdating ? 0.5 : 1,
-              cursor: isUpdating ? "not-allowed" : "text",
-            }}
+            style={editableFieldStyle(isUpdating)}
           />
         </label>
         <label className="jrpg-text-small" style={STAT_CELL}>
@@ -253,15 +266,7 @@ export function NPCEditor({
             }}
             disabled={isUpdating}
             title="Initiative modifier added to d20 rolls"
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-              opacity: isUpdating ? 0.5 : 1,
-              cursor: isUpdating ? "not-allowed" : "text",
-            }}
+            style={editableFieldStyle(isUpdating)}
           />
         </label>
         {onSpeedChange && (
@@ -295,34 +300,31 @@ export function NPCEditor({
         }}
       />
 
-      <ImageField
-        label="Token Image URL"
-        value={tokenImage}
+      <NpcTokenImageField
+        tokenImage={tokenImage}
+        committedTokenImage={npc.tokenImage ?? ""}
+        name={npc.name}
+        disabled={isUpdating}
         onChange={setTokenImage}
         onCommit={(url) => {
           setTokenImage(url);
           commitUpdate({ tokenImage: url });
         }}
-        disabled={isUpdating}
-        compact
+        onPickAsset={handlePickAsset}
       />
-      {tokenImage && (
-        <img
-          src={tokenImage}
-          alt={`${npc.name} token preview`}
-          style={{
-            width: "48px",
-            height: "48px",
-            objectFit: "cover",
-            borderRadius: "4px",
-            border: "1px solid var(--jrpg-border-gold)",
-            alignSelf: "flex-start",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
+
+      <NpcStanceSelect
+        value={stance}
+        disabled={isUpdating}
+        onChange={(disposition) => {
+          // Optimistic, like every other field in this editor: the select used
+          // to render straight off the snapshot, so it greyed out still showing
+          // the OLD stance for the whole round trip and read as "my click did
+          // not take" — then flipped a moment later.
+          setStance(disposition);
+          commitUpdate({ disposition });
+        }}
+      />
 
       <NPCEditorActions
         npcName={npc.name}

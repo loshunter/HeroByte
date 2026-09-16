@@ -13,9 +13,16 @@
 import path from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage, RoomSnapshot, ServerMessage } from "@herobyte/shared";
+import {
+  SESSION_MINT_CEILING_BYTES,
+  WS_MAX_MESSAGE_BYTES,
+  type ClientMessage,
+  type RoomSnapshot,
+  type ServerMessage,
+} from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
 import { RoomService } from "../../domains/room/service.js";
+import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { TokenService } from "../../domains/token/service.js";
 import { PlayerService } from "../../domains/player/service.js";
 import { MapService } from "../../domains/map/service.js";
@@ -24,6 +31,8 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
+import { padExportTo } from "./fatDrawing.js";
+import { exportBytes } from "../../domains/room/sessionExport.js";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
@@ -104,6 +113,7 @@ function generateMessage(
 describe("map-studio-generate contracts", () => {
   let router: MessageRouter;
   let roomService: RoomService;
+  let mapStudioService: MapStudioService;
   let dmWs: FakeSocket;
   let playerWs: FakeSocket;
 
@@ -126,6 +136,7 @@ describe("map-studio-generate contracts", () => {
     ]);
     const clients = new Set<WebSocket>(uidToWs.values());
 
+    mapStudioService = new MapStudioService();
     router = new MessageRouter(
       roomService,
       new PlayerService(),
@@ -139,6 +150,7 @@ describe("map-studio-generate contracts", () => {
       {} as unknown as WebSocketServer,
       uidToWs,
       () => clients,
+      mapStudioService,
     );
   });
 
@@ -189,6 +201,24 @@ describe("map-studio-generate contracts", () => {
     route(generateMessage(), DM);
 
     expect(documentRevision()).toBe(1);
+  });
+
+  it("carries the campaign's weight on the document frame it broadcasts — every DM's readout follows the recipe", async () => {
+    createLiveDoc();
+    dmWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-weigh" }), DM);
+    await flush();
+
+    const frames = messagesOf(dmWs, "map-studio-document") as unknown as Array<{
+      appliedCommandId?: string;
+      exportBytes?: number;
+    }>;
+    const landed = frames.find((frame) => frame.appliedCommandId === "gen-weigh");
+    expect(landed?.exportBytes).toBe(
+      exportBytes(roomService.getState(), mapStudioService.list("default"), DM),
+    );
+    expect(landed?.exportBytes).toBeGreaterThan(5_000);
   });
 
   it("echoes the message's commandId as appliedCommandId on the DM document frame", () => {
@@ -434,5 +464,80 @@ describe("map-studio-generate contracts", () => {
     // The DM sees doors, so the player must too: nothing here is being hidden,
     // and a player payload with zero doors would mean the disguise fired.
     expect(latestSnapshot(playerWs)?.compiledScene?.doors.length).toBe(dmScene?.doors.length);
+  });
+
+  it("refuses a generate whose result would outweigh the export ceiling — a nack with the numbers, nothing applied, no player frame", async () => {
+    // The live GENERATE tool is a mint in everything but name: a recipe lands
+    // hundreds of elements on an existing document in one command. The export
+    // here is heavy for a reason no document count can see — a table's
+    // drawings ride the file verbatim — so the dungeon on top must be refused
+    // BEFORE the store sees it.
+    createLiveDoc();
+    // Between the ceiling and the wire limit on its own: the DIAL refuses
+    // this, the wire would not — a ceiling set to the wire limit reads green.
+    padExportTo(
+      roomService,
+      mapStudioService,
+      "default",
+      DM,
+      Math.floor((SESSION_MINT_CEILING_BYTES + WS_MAX_MESSAGE_BYTES) / 2),
+    );
+    await flush();
+    dmWs.send.mockClear();
+    playerWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-heavy" }), DM);
+    await flush();
+
+    // No document frame at all (documentRevision scans the DM's frames).
+    expect(documentRevision()).toBe(-1);
+    const errors = messagesOf(dmWs, "map-studio-error") as unknown as Array<{
+      commandId: string;
+      code: string;
+      reason: string;
+    }>;
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ commandId: "gen-heavy", code: "command-rejected" });
+    expect(errors[0]?.reason).toMatch(/\d\.\d\d MB/);
+    // A defined scene with NO walls — an absent scene would satisfy `?? []`.
+    expect(roomService.getState().compiledScene).toBeDefined();
+    expect(roomService.getState().compiledScene!.walls).toEqual([]);
+    expect(playerWs.send).not.toHaveBeenCalled();
+  });
+
+  it("still lands a generate onto the LIVE map close under the ceiling — the gate is a ceiling, not a wall", async () => {
+    // The generate REPLACES the live document's compiled scene, terrain and
+    // scenery (the swap is pinned in liveSceneBytes.test.ts). Sit the room
+    // close under the ceiling with a small live map, then generate the default
+    // 24x20 dungeon onto it: it fits, so it lands.
+    createLiveDoc();
+    padExportTo(roomService, mapStudioService, "default", DM, SESSION_MINT_CEILING_BYTES - 20_000);
+    await flush();
+    dmWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-fits" }), DM);
+    await flush();
+
+    expect(documentRevision()).toBe(1);
+    expect(messagesOf(dmWs, "map-studio-error")).toHaveLength(0);
+    expect(
+      exportBytes(roomService.getState(), mapStudioService.list("default"), DM),
+    ).toBeLessThanOrEqual(SESSION_MINT_CEILING_BYTES);
+  });
+
+  it("...and the same generate is refused 10 KB under the ceiling — the pair brackets what a default dungeon costs (~13.5 KB)", async () => {
+    // Measured: the default 24x20 dungeon grows the document ~9.2 KB and its
+    // scene ~4.5 KB. Accepted at 20 KB of headroom (above), refused at 10 KB:
+    // a weigh that dropped the scene term (9.2 KB) would let this one land.
+    createLiveDoc();
+    padExportTo(roomService, mapStudioService, "default", DM, SESSION_MINT_CEILING_BYTES - 10_000);
+    await flush();
+    dmWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-tight" }), DM);
+    await flush();
+
+    expect(documentRevision()).toBe(-1);
+    expect(messagesOf(dmWs, "map-studio-error")).toHaveLength(1);
   });
 });

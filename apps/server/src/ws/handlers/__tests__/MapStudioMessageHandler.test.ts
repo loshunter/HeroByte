@@ -6,9 +6,12 @@ import type {
   MapDoorElement,
   ServerMessage,
 } from "@herobyte/shared";
+import { loadSessionFrameBytes } from "@herobyte/shared";
 import { MapStudioService } from "../../../domains/mapStudio/service.js";
 import { createEmptyRoomState, type RoomState } from "../../../domains/room/model.js";
 import { MapStudioMessageHandler } from "../MapStudioMessageHandler.js";
+import { fatDrawing } from "../../__tests__/fatDrawing.js";
+import { buildSessionFile } from "../../../domains/room/sessionExport.js";
 
 describe("MapStudioMessageHandler", () => {
   const send = vi.fn<(targetUid: string, message: ServerMessage) => void>();
@@ -77,7 +80,23 @@ describe("MapStudioMessageHandler", () => {
           updatedAt: 1,
         },
       ],
+      exportBytes: expect.any(Number),
     });
+  });
+
+  it("the list carries the campaign's export weight — the weigh of the room's REAL export, documents included", () => {
+    service.create("room", { id: "map", name: "Keep", timestamp: 1 });
+    roomState.drawings.push(fatDrawing(2_000) as never);
+
+    handler.handle({ t: "map-studio-list" }, "dm", "room", true);
+
+    const [, reply] = send.mock.calls[0]!;
+    const sent = reply as { t: string; exportBytes?: number };
+    expect(sent.exportBytes).toBe(
+      loadSessionFrameBytes(buildSessionFile(roomState, service.list("room"), "dm", 0)),
+    );
+    // Guard the guard: the drawing is in the weigh (a 2,000-point drawing is tens of KB).
+    expect(sent.exportBytes).toBeGreaterThan(20_000);
   });
 
   it("retrieves one document directly to the requesting DM", () => {
@@ -170,6 +189,131 @@ describe("MapStudioMessageHandler", () => {
     expect(service.list("room")).toEqual([]);
   });
 
+  describe("the mint ceiling's byte half", () => {
+    // Weighed on the document the path WOULD create, against the export the
+    // room would then write. A table's drawings ride the export verbatim, so
+    // one heavy drawing puts a near-empty room past the ceiling without going
+    // anywhere near the count cap.
+    const create = {
+      t: "map-studio-create",
+      document: { id: "map", name: "Keep", timestamp: 1 },
+    } as const;
+
+    it("create refuses with both numbers, mints nothing — and the DM hears it (no commandId, so no nack)", () => {
+      roomState.drawings.push(fatDrawing() as never);
+
+      expect(handler.handle(create, "dm", "room", true)).toEqual({ broadcast: false, save: false });
+      expect(service.list("room")).toHaveLength(0);
+      expect(broadcast).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith("dm", {
+        t: "map-studio-error",
+        commandId: "",
+        documentId: "map",
+        code: "command-rejected",
+        reason: expect.stringMatching(/\d\.\d\d MB/),
+        actualRevision: undefined,
+      });
+    });
+
+    it("create refuses at the COUNT cap the same way — a frame the DM sees, not a thrown error", () => {
+      for (let index = 0; index < 64; index += 1) {
+        service.create("room", { id: `filler-${index}`, name: `F${index}`, timestamp: 1 });
+      }
+
+      expect(handler.handle(create, "dm", "room", true)).toEqual({ broadcast: false, save: false });
+      expect(service.list("room")).toHaveLength(64);
+      expect(send).toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({
+          t: "map-studio-error",
+          commandId: "",
+          documentId: "map",
+          reason: expect.stringContaining("maximum of 64"),
+        }),
+      );
+    });
+
+    it("import refuses with both numbers and mints nothing", () => {
+      const source = service.create("room", { id: "source", name: "Backup Keep", timestamp: 1 });
+      const document = JSON.parse(JSON.stringify({ ...source, id: "restored" })) as typeof source;
+      roomState.drawings.push(fatDrawing() as never);
+      send.mockClear();
+
+      handler.handle({ t: "map-studio-import", document }, "dm", "room", true);
+
+      expect(service.list("room")).toHaveLength(1);
+      expect(broadcast).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({
+          t: "map-studio-error",
+          commandId: "",
+          documentId: "restored",
+          reason: expect.stringMatching(/\d\.\d\d MB/),
+        }),
+      );
+    });
+
+    it('the COUNT cap answers before the candidate is even built — a blank name at 64 maps hears "maximum of 64"', () => {
+      for (let index = 0; index < 64; index += 1) {
+        service.create("room", { id: `filler-${index}`, name: `F${index}`, timestamp: 1 });
+      }
+
+      handler.handle(
+        { t: "map-studio-create", document: { id: "blank", name: "   ", timestamp: 1 } },
+        "dm",
+        "room",
+        true,
+      );
+
+      expect(send).toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({
+          documentId: "blank",
+          reason: expect.stringContaining("maximum of 64"),
+        }),
+      );
+    });
+
+    it("a weigh that throws costs the DM the readout, never the map list", () => {
+      service.create("room", { id: "map", name: "Keep", timestamp: 1 });
+      // A circular drawing makes the export's JSON.stringify throw inside the weigh.
+      const loop: Record<string, unknown> = { id: "loop", type: "freehand", points: [] };
+      loop.self = loop;
+      roomState.drawings.push(loop as never);
+      const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        handler.handle({ t: "map-studio-list" }, "dm", "room", true);
+      } finally {
+        errorLog.mockRestore();
+      }
+
+      const [, reply] = send.mock.calls[0]!;
+      const sent = reply as { t: string; documents: unknown[]; exportBytes?: number };
+      expect(sent.t).toBe("map-studio-documents");
+      expect(sent.documents).toHaveLength(1);
+      expect(sent.exportBytes).toBeUndefined();
+    });
+
+    it("a broadcast failure AFTER a successful create is not dressed up as a refusal either", () => {
+      broadcast.mockImplementationOnce(() => {
+        throw new Error("socket exploded");
+      });
+
+      expect(() => handler.handle(create, "dm", "room", true)).toThrow("socket exploded");
+      expect(service.get("room", "map").name).toBe("Keep");
+      expect(send).not.toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({ t: "map-studio-error", documentId: "map" }),
+      );
+    });
+
+    it("a light room still mints — a ceiling, not a wall", () => {
+      handler.handle(create, "dm", "room", true);
+      expect(service.list("room")).toHaveLength(1);
+    });
+  });
+
   describe("map-studio-import", () => {
     function serializedDocument(id = "restored") {
       const source = service.create("room", { id: "source", name: "Backup Keep", timestamp: 1 });
@@ -192,12 +336,40 @@ describe("MapStudioMessageHandler", () => {
       );
     });
 
-    it("rejects importing over an existing document id", () => {
+    it("rejects importing over an existing document id — as a frame the DM sees", () => {
       const document = serializedDocument("source");
+
+      handler.handle({ t: "map-studio-import", document }, "dm", "room", true);
+
+      expect(send).toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({
+          t: "map-studio-error",
+          commandId: "",
+          documentId: "source",
+          code: "command-rejected",
+          reason: "Map document already exists: source",
+        }),
+      );
+      // A refusal mints nothing — the source is still the only document.
+      expect(service.list("room")).toHaveLength(1);
+    });
+
+    it("a broadcast failure AFTER a successful import is not dressed up as a refusal", () => {
+      const document = serializedDocument();
+      broadcast.mockImplementationOnce(() => {
+        throw new Error("socket exploded");
+      });
 
       expect(() =>
         handler.handle({ t: "map-studio-import", document }, "dm", "room", true),
-      ).toThrow("Map document already exists: source");
+      ).toThrow("socket exploded");
+      // The document WAS minted; the DM was not told it was refused.
+      expect(service.get("room", "restored").name).toBe("Backup Keep");
+      expect(send).not.toHaveBeenCalledWith(
+        "dm",
+        expect.objectContaining({ t: "map-studio-error", documentId: "restored" }),
+      );
     });
   });
 

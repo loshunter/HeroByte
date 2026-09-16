@@ -1,0 +1,227 @@
+/**
+ * sessionExport — the one author of a SessionFile, and the mint ceiling's
+ * weigh-in against it.
+ *
+ * The export's CONTENT is characterized end to end by
+ * ws/__tests__/sessionRoundTrip.contract.test.ts (flattened drawings, stripped
+ * whispers and private rolls, kept mapBackground, envelope-only sceneStates,
+ * a file the loaders can read). This file pins what that suite cannot see
+ * from the outside: the builder's direct contract, and that the weigher
+ * measures the same builder the export uses — with the candidate documents
+ * the caller hands it, so a mint is weighed BEFORE it exists.
+ */
+import { describe, it, expect, vi } from "vitest";
+import {
+  loadSessionFrameBytes,
+  SESSION_MINT_CEILING_BYTES,
+  type MapDocument,
+  type SceneState,
+} from "@herobyte/shared";
+import { createEmptyRoomState, type RoomState } from "../model.js";
+import {
+  buildSessionFile,
+  exportBytes,
+  mintOverflow,
+  mintRefusal,
+  withCandidate,
+} from "../sessionExport.js";
+
+const DM = "dm-uid";
+
+function scene(documentId: string): SceneState {
+  return {
+    mapDocumentId: documentId,
+    suspendedAt: 7,
+    tokens: [],
+    props: [],
+    drawings: [],
+    sceneObjects: [],
+    characterLinks: {},
+    doorStates: {},
+    combatActive: false,
+    initiatives: {},
+    fogEnabled: false,
+    defaultVisionRadius: null,
+  } as unknown as SceneState;
+}
+
+function document(id: string, name = id): MapDocument {
+  return { id, name } as unknown as MapDocument;
+}
+
+function stateWith(overrides: Partial<RoomState> = {}): RoomState {
+  return {
+    ...createEmptyRoomState(),
+    players: [
+      {
+        uid: DM,
+        name: "DM",
+        isDM: true,
+        hp: 10,
+        maxHp: 10,
+        micLevel: 0,
+        lastHeartbeat: 0,
+        statusEffects: [],
+      } as never,
+    ],
+    ...overrides,
+  };
+}
+
+describe("buildSessionFile", () => {
+  it("bundles the documents it is handed, the binding, and only schema-conforming scenes — loudly", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const state = stateWith({
+        liveMapDocumentId: "doc-A",
+        sceneStates: {
+          "doc-B": scene("doc-B"),
+          "doc-C": { mapDocumentId: "doc-C", tokens: "not-an-array" } as never,
+        },
+      });
+      const documents = [document("doc-A"), document("doc-B")];
+
+      const file = buildSessionFile(state, documents, DM, 1234, { warn: true });
+
+      expect(file.schemaVersion).toBe(1);
+      expect(file.savedAt).toBe(1234);
+      expect(file.mapDocuments).toBe(documents);
+      expect(file.liveMapDocumentId).toBe("doc-A");
+      expect(file.sceneStates?.map((entry) => entry.mapDocumentId)).toEqual(["doc-B"]);
+      expect(warn).toHaveBeenCalledWith("session-export: skipped a malformed suspended scene");
+      // A file, not a wire frame: the asset channel is flattened away.
+      expect("assets" in file.snapshot).toBe(false);
+      expect("assetRefs" in file.snapshot).toBe(false);
+      expect(Array.isArray(file.snapshot.drawings)).toBe(true);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("is silent about a malformed scene unless asked — the weigh runs on every mint and list", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const state = stateWith({ sceneStates: { "doc-C": { mapDocumentId: "doc-C" } as never } });
+      expect(buildSessionFile(state, [], DM, 0).sceneStates).toBeUndefined();
+      expect(warn).not.toHaveBeenCalled();
+      mintOverflow(state, [], DM);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("omits the sceneStates key entirely when no scene is suspended (a pre-Atlas file is byte-identical)", () => {
+    const file = buildSessionFile(stateWith(), [], DM, 0);
+    expect("sceneStates" in file).toBe(false);
+  });
+});
+
+describe("mintOverflow", () => {
+  it("weighs the export the CANDIDATE list would write, with the same builder the export uses", () => {
+    const state = stateWith({ liveMapDocumentId: "doc-A" });
+    const small = [document("doc-A")];
+
+    expect(mintOverflow(state, small, DM)).toBeNull();
+
+    // A candidate the caller has already added: one document heavy enough on
+    // its own. The weigh must see it, though nothing in the room holds it.
+    const fat = document("doc-fat", "n".repeat(SESSION_MINT_CEILING_BYTES));
+    const overflow = mintOverflow(state, [...small, fat], DM);
+
+    expect(overflow).not.toBeNull();
+    expect(overflow!.ceiling).toBe(SESSION_MINT_CEILING_BYTES);
+    expect(overflow!.bytes).toBeGreaterThan(SESSION_MINT_CEILING_BYTES);
+    // Exactly the frame's bytes — not the file's, not a guess.
+    expect(overflow!.bytes).toBe(
+      loadSessionFrameBytes(buildSessionFile(state, [...small, fat], DM, 0)),
+    );
+  });
+
+  it("weighs the heavier of the export as it stands and the export with the candidate LIVE — the outgoing scene swapped, not double counted", () => {
+    const state = stateWith({ liveMapDocumentId: "doc-A" });
+    const documents = [document("doc-A"), document("doc-B")];
+    const base = exportBytes(state, documents, DM);
+    const room = SESSION_MINT_CEILING_BYTES - base;
+
+    // The candidate's scene replaces the outgoing one: only the DIFFERENCE lands.
+    expect(mintOverflow(state, documents, DM, { candidate: room + 500, outgoing: 500 })).toBeNull();
+    const overflow = mintOverflow(state, documents, DM, { candidate: room + 501, outgoing: 500 });
+    expect(overflow).not.toBeNull();
+    expect(overflow!.bytes).toBe(SESSION_MINT_CEILING_BYTES + 1);
+    // A heavy outgoing scene never makes the weigh LIGHTER than the export as it stands.
+    expect(mintOverflow(state, documents, DM, { candidate: 0, outgoing: 10_000_000 })).toBeNull();
+    expect(
+      mintOverflow(
+        stateWith({ liveMapDocumentId: "doc-A" }),
+        [document("doc-A", "n".repeat(SESSION_MINT_CEILING_BYTES))],
+        DM,
+        { candidate: 0, outgoing: 10_000_000 },
+      ),
+    ).not.toBeNull();
+  });
+
+  it("counts suspended scenes — a table whose only difference is ~100 KB of suspended drawings is refused where its twin fits", () => {
+    const heavyScene = {
+      ...scene("doc-B"),
+      drawings: Array.from({ length: 200 }, (_, i) => ({
+        id: `d-${i}`,
+        type: "freehand",
+        points: Array.from({ length: 200 }, (_, p) => ({ x: p, y: p })),
+        color: "#ffffff",
+        width: 2,
+        opacity: 1,
+      })),
+    } as unknown as SceneState;
+    const light = stateWith({ liveMapDocumentId: "doc-A" });
+    const heavy = stateWith({ liveMapDocumentId: "doc-A", sceneStates: { "doc-B": heavyScene } });
+    // Size the documents so the LIGHT table fits by ~1 KB: only the scenes differ.
+    const room =
+      SESSION_MINT_CEILING_BYTES - exportBytes(light, [document("doc-A"), document("doc-B")], DM);
+    const documents = [document("doc-A", "n".repeat(room - 1024)), document("doc-B")];
+
+    expect(mintOverflow(light, documents, DM)).toBeNull();
+    const overflow = mintOverflow(heavy, documents, DM);
+    expect(overflow).not.toBeNull();
+    expect(overflow!.bytes - SESSION_MINT_CEILING_BYTES).toBeGreaterThan(50_000);
+  });
+});
+
+describe("mintOverflow — extraBytes", () => {
+  it("adds what the caller will push after the weigh (a kick's graph allowance)", () => {
+    const state = stateWith({ liveMapDocumentId: "doc-A" });
+    const documents = [document("doc-A")];
+    const room = SESSION_MINT_CEILING_BYTES - exportBytes(state, documents, DM);
+    expect(mintOverflow(state, documents, DM, { candidate: 0, outgoing: 0 }, room)).toBeNull();
+    expect(
+      mintOverflow(state, documents, DM, { candidate: 0, outgoing: 0 }, room + 1),
+    ).not.toBeNull();
+  });
+});
+
+describe("withCandidate", () => {
+  it("appends a new document and REPLACES one that already exists by id — a generate weighs the after, not the before", () => {
+    const a = document("doc-A", "a");
+    const b = document("doc-B", "b");
+    const grownB = document("doc-B", "b".repeat(1000));
+
+    expect(withCandidate([a], b)).toEqual([a, b]);
+    const replaced = withCandidate([a, b], grownB);
+    expect(replaced).toHaveLength(2);
+    expect(replaced[1]).toBe(grownB);
+    // Never both versions of one document.
+    expect(replaced.filter((entry) => entry.id === "doc-B")).toHaveLength(1);
+  });
+});
+
+describe("mintRefusal", () => {
+  it("says both numbers in megabytes and what to do", () => {
+    const said = mintRefusal({ bytes: 900_000, ceiling: SESSION_MINT_CEILING_BYTES });
+    expect(said).toContain("about 0.86 MB");
+    // Each number named for what it is: the ceiling a table may hold, and the
+    // load limit — never "0.75 MB is what a table can load back".
+    expect(said).toContain("0.75 MB a table may hold");
+    expect(said).toContain("a load accepts 1.00 MB");
+    expect(said).toContain("Delete a map first");
+  });
+});

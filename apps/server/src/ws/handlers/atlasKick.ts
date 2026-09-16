@@ -27,10 +27,11 @@ import {
   type MapDocument,
   type MapLink,
   type PlayerStagingZone,
+  utf8ByteLength,
 } from "@herobyte/shared";
 import { RECIPES } from "../../domains/generation/recipes.js";
 import type { RoomState } from "../../domains/room/model.js";
-import { isTravelingToken } from "../../domains/room/scene/sceneSuspend.js";
+import { captureSceneState, isTravelingToken } from "../../domains/room/scene/sceneSuspend.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import { cashNode } from "./atlasCash.js";
 import type { AtlasGenerateDeps } from "./atlasGenerate.js";
@@ -56,6 +57,57 @@ export interface AtlasKickMessage {
 
 const NO_OP: RouteHandlerResult = { broadcast: false, save: false };
 const MUTATED: RouteHandlerResult = { broadcast: true, save: true };
+
+/**
+ * What a kick pushes AFTER the weigh and cannot hand it as a document, in
+ * bytes, computed from the objects it is about to push: the child node as it
+ * will be once cashed (map, provenance, arrival), an adopted origin node when
+ * the table has none, the two doors, the arrival zone, and the capture's
+ * ENVELOPE — door states, character links, initiatives, scalars; the tokens,
+ * props, drawings and scene objects MOVE into the capture and are byte
+ * neutral. A flat 2 KB guess sat here first; the envelope scales with the
+ * doors and linked stayers of the table (a busy one measured over 6 KB), so
+ * the weigh measures it instead (round 2 of the review).
+ */
+export function kickExtraBytes(
+  state: RoomState,
+  originDocument: MapDocument,
+  now: number,
+  child: AtlasNode,
+  adoptedOrigin: AtlasNode | undefined,
+  message: AtlasKickMessage,
+  anchor: { x: number; y: number },
+): number {
+  const { saved } = captureSceneState(state, originDocument, now);
+  const envelope = {
+    ...saved,
+    tokens: [],
+    props: [],
+    drawings: [],
+    sceneObjects: [],
+    mapBackground: undefined,
+  };
+  // Placeholders as wide as the real values get (floats, four-digit cells).
+  const zone = { x: 9999.5, y: 9999.5, width: 999.5, height: 999.5, rotation: 0 };
+  const cashedChild = {
+    ...child,
+    mapDocumentId: "0".repeat(36),
+    recipe: { ...message.recipe, seed: message.seed },
+    arrival: zone,
+  };
+  const door = {
+    id: message.linkId,
+    fromNodeId: message.originNodeId,
+    toNodeId: message.nodeId,
+    anchor,
+    linkType: message.linkType ?? "door",
+    visibleToPlayers: true,
+  };
+  const pushed = [cashedChild, adoptedOrigin, door, { ...door, id: message.returnLinkId }, zone];
+  // Rounded up by a little for the digits an estimate cannot know (the return
+  // door's anchor, the arrival's floats) — an upper bound, measured.
+  return utf8ByteLength(JSON.stringify({ envelope, pushed: pushed.filter(Boolean) })) + 256;
+}
 
 export function handleAtlasKick(
   deps: AtlasGenerateDeps,
@@ -157,7 +209,26 @@ export function handleAtlasKick(
     createdAt: now,
     updatedAt: now,
   };
-  const cashed = cashNode(deps, roomId, child, message.seed, message.recipe, message.commandId);
+  const adoptedOrigin: AtlasNode | undefined = origin
+    ? undefined
+    : {
+        id: message.originNodeId,
+        kind: "region",
+        name: adoptedName(originDocument.name),
+        mapDocumentId: originDocumentId,
+        discovered: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+  const cashed = cashNode(
+    deps,
+    roomId,
+    child,
+    message.seed,
+    message.recipe,
+    message.commandId,
+    kickExtraBytes(state, originDocument, now, child, adoptedOrigin, message, anchor),
+  );
   if (!cashed.ok) {
     return deps.sendError(senderUid, cashed.code, cashed.reason, message.nodeId);
   }
@@ -166,16 +237,8 @@ export function handleAtlasKick(
   // 5. PUSH — the adopted origin (the document the party stands on becomes a
   // node, discovered, named after its map), then the child, then both doors
   // through the same core atlas-create-link uses.
-  if (!origin) {
-    state.atlasNodes.push({
-      id: message.originNodeId,
-      kind: "region",
-      name: adoptedName(originDocument.name),
-      mapDocumentId: originDocumentId,
-      discovered: true,
-      createdAt: now,
-      updatedAt: now,
-    });
+  if (adoptedOrigin) {
+    state.atlasNodes.push(adoptedOrigin);
   }
   state.atlasNodes.push(child);
   const originId = origin?.id ?? message.originNodeId;

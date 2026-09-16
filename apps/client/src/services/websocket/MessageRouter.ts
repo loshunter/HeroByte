@@ -60,7 +60,17 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "map-studio-error" }>
   | Extract<ServerMessage, { t: "atlas-error" }>
   | Extract<ServerMessage, { t: "room-created" }>
-  | Extract<ServerMessage, { t: "room-create-failed" }>;
+  | Extract<ServerMessage, { t: "room-create-failed" }>
+  // Save Game State's reply. It was never on this list: it rode the router's
+  // old fallthrough, and the forward-compat guard (a6890e19) that stopped
+  // unknown types blanking the table silently dropped it instead — every save
+  // ended in "the server did not return a session file". Found live 2026-09-14.
+  | Extract<ServerMessage, { t: "session-file" }>
+  // "Save as a private table"'s replies — the same story as session-file: never
+  // on this list, dropped since the forward-compat guard, found by the review
+  // that pinned the lists against the app's own handler.
+  | Extract<ServerMessage, { t: "table-forked" }>
+  | Extract<ServerMessage, { t: "table-fork-failed" }>;
 
 type HeartbeatAckMessage = Extract<ServerMessage, { t: "heartbeat-ack" }>;
 
@@ -334,18 +344,11 @@ export class MessageRouter {
   }
 
   /**
-   * Type guard for control messages
-   *
-   * Validates that message type is one of:
-   * - room-password-updated
-   * - room-password-update-failed
-   * - dm-status
-   * - dm-elevation-failed
-   * - dm-password-updated
-   * - dm-password-update-failed
-   *
-   * @param value - Unknown value to check
-   * @returns True if value is a control message
+   * Type guard for control messages — the `ControlMessage` union above, at
+   * runtime. This list and that union change together, and websocket.ts's copy
+   * with them; `MessageRouter.session.test.ts` pins all three from the source,
+   * so this comment enumerates nothing (a fourth copy is how `session-file`
+   * went missing for two months).
    */
   private isControlMessage(value: unknown): value is ControlMessage {
     if (!value || typeof value !== "object") return false;
@@ -366,7 +369,10 @@ export class MessageRouter {
       // warn-dropped at the router's floor. Both lists change together.
       candidate.t === "atlas-error" ||
       candidate.t === "room-created" ||
-      candidate.t === "room-create-failed"
+      candidate.t === "room-create-failed" ||
+      candidate.t === "session-file" ||
+      candidate.t === "table-forked" ||
+      candidate.t === "table-fork-failed"
     );
   }
 

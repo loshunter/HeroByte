@@ -16,6 +16,10 @@ import { isRecord } from "./validators/index.js";
 
 // Token validators
 import { validateForkTableMessage } from "./validators/forkValidators.js";
+import {
+  validateAddCustomTokenMessage,
+  validateRemoveCustomTokenMessage,
+} from "./validators/customTokenValidators.js";
 import { validateChatMessage, validateClearChatLogMessage } from "./validators/chatValidators.js";
 import { validateDiceRollMessage, validateEnterRollMessage } from "./validators/diceValidators.js";
 import { validateLoadSessionMessage } from "./validators/sessionValidators.js";
@@ -261,6 +265,12 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "update-prop": validateUpdatePropMessage,
   "delete-prop": validateDeletePropMessage,
   "set-player-props-enabled": validateSetPlayerPropsEnabledMessage,
+
+  // ==========================================================================
+  // CUSTOM TOKEN MESSAGES (the table's own Library tokens)
+  // ==========================================================================
+  "add-custom-token": validateAddCustomTokenMessage,
+  "remove-custom-token": validateRemoveCustomTokenMessage,
 
   // ==========================================================================
   // SELECTION MESSAGES

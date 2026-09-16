@@ -72,6 +72,7 @@ describe("DMMenuContainer — publish knows the live map", () => {
         saving: false,
         error: null,
         missingDocumentId: null,
+        exportBytes: null,
         canUndo: false,
         canRedo: false,
         refresh: vi.fn(),

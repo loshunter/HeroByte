@@ -66,6 +66,7 @@ describe("MessageRouter", () => {
       selectionState: new Map() as RoomState["selectionState"],
       playerStagingZone: undefined,
       props: [],
+      customTokens: [],
       combatActive: false,
       currentTurnCharacterId: undefined,
       fogEnabled: false,
@@ -86,6 +87,7 @@ describe("MessageRouter", () => {
       players: [],
       characters: [],
       props: [],
+      customTokens: [],
       pointers: [],
       drawings: [],
       gridSize: 50,
@@ -346,13 +348,24 @@ describe("MessageRouter", () => {
       expect(mockRoomService.broadcast).toHaveBeenCalled();
     });
 
-    it("routes set-hp message and saves state", () => {
-      const msg: ClientMessage = { t: "set-hp", hp: 15, maxHp: 20 };
-      routeAndFlush(msg, "player-1");
-
-      expect(mockPlayerService.setHP).toHaveBeenCalledWith(mockState, "player-1", 15, 20);
+    it("routes set-hp message and saves state, forwarding tempHp exactly as sent", () => {
+      // The fifth argument is the point: set-hp declared tempHp on the wire
+      // and the dispatcher dropped it before the handler (13cbed60). An
+      // omitted tempHp arrives as undefined, which is what lets the service
+      // leave an existing value alone.
+      routeAndFlush({ t: "set-hp", hp: 15, maxHp: 20 }, "player-1");
+      expect(mockPlayerService.setHP).toHaveBeenCalledWith(
+        mockState,
+        "player-1",
+        15,
+        20,
+        undefined,
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
+
+      routeAndFlush({ t: "set-hp", hp: 15, maxHp: 20, tempHp: 4 }, "player-1");
+      expect(mockPlayerService.setHP).toHaveBeenLastCalledWith(mockState, "player-1", 15, 20, 4);
     });
 
     it("ignores deprecated toggle-dm message", () => {
@@ -484,16 +497,30 @@ describe("MessageRouter", () => {
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
 
-    it("routes update-character-hp message", () => {
-      const msg: ClientMessage = {
-        t: "update-character-hp",
-        characterId: "char-1",
-        hp: 50,
-        maxHp: 100,
-      };
-      routeAndFlush(msg, "player-1");
-
-      expect(mockCharacterService.updateHP).toHaveBeenCalledWith(mockState, "char-1", 50, 100);
+    it("routes update-character-hp message, forwarding tempHp exactly as sent", () => {
+      // Same fifth argument as set-hp above; this is the path with a live UI.
+      routeAndFlush(
+        { t: "update-character-hp", characterId: "char-1", hp: 50, maxHp: 100 },
+        "player-1",
+      );
+      expect(mockCharacterService.updateHP).toHaveBeenCalledWith(
+        mockState,
+        "char-1",
+        50,
+        100,
+        undefined,
+      );
+      routeAndFlush(
+        { t: "update-character-hp", characterId: "char-1", hp: 50, maxHp: 100, tempHp: 6 },
+        "player-1",
+      );
+      expect(mockCharacterService.updateHP).toHaveBeenLastCalledWith(
+        mockState,
+        "char-1",
+        50,
+        100,
+        6,
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
@@ -1023,6 +1050,7 @@ describe("MessageRouter", () => {
         players: [],
         characters: [],
         props: [],
+        customTokens: [],
         pointers: [],
         drawings: [],
         gridSize: 50,

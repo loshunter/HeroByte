@@ -332,6 +332,344 @@ describe("useMapStudio", () => {
     expect(result.current.missingDocumentId).toBeNull();
   });
 
+  it("releases a CREATE the server refused (empty commandId) — the reason shows, nothing is marked missing", () => {
+    // NEW MAP past the mint ceiling (count or bytes): the server answers with
+    // a map-studio-error keyed by the id the client minted, commandId "".
+    // Before this, the panel spun until the watchdog said "server didn't
+    // respond" — a lie over a refusal.
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    let id = "";
+    act(() => {
+      id = result.current.createDocument("Keep");
+    });
+    expect(result.current.loading).toBe(true);
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "",
+        documentId: id,
+        code: "command-rejected",
+        reason: "<the server's refusal, with 0.86 MB in it>",
+      }),
+    );
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toMatch(/0\.86 MB/);
+    expect(result.current.missingDocumentId).toBeNull();
+  });
+
+  it("carries the campaign's weight from the list reply, and re-lists when a map is minted or deleted", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "a", name: "A", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 640_000,
+      }),
+    );
+    expect(result.current.exportBytes).toBe(640_000);
+    sendMessage.mockClear();
+
+    // A frame for a KNOWN document (an edit) is not a mint: no re-list.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "a", name: "A", timestamp: 2 }),
+      }),
+    );
+    expect(sendMessage).not.toHaveBeenCalledWith({ t: "map-studio-list" });
+
+    // A frame for a NEW id is a mint (create, import, generate, a kick): re-list.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "b", name: "B", timestamp: 3 }),
+      }),
+    );
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+    sendMessage.mockClear();
+    // The re-list's reply lands (one list per burst — the next re-list waits for it).
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "a", name: "A", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+          { id: "b", name: "B", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 700_000,
+      }),
+    );
+
+    // ...and so is a delete.
+    act(() => result.current.handleServerMessage({ t: "map-studio-deleted", documentId: "b" }));
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+
+    // An older server's list carries no weight: null, not NaN.
+    act(() => result.current.handleServerMessage({ t: "map-studio-documents", documents: [] }));
+    expect(result.current.exportBytes).toBeNull();
+  });
+
+  it("takes the campaign's weight from a document frame that carries it — the live GENERATE tool's, on every DM's screen, with no re-list", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "a", name: "A", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 1_000,
+      }),
+    );
+    sendMessage.mockClear();
+
+    // A co-DM's generate landed on a KNOWN id: the frame says the new weight.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "a", name: "A", timestamp: 2 }),
+        appliedCommandId: "someone-elses-generate",
+        exportBytes: 640_000,
+      }),
+    );
+    expect(result.current.exportBytes).toBe(640_000);
+    expect(sendMessage).not.toHaveBeenCalledWith({ t: "map-studio-list" });
+
+    // A plain edit's frame (no weight) leaves the readout alone.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "a", name: "A", timestamp: 3 }),
+      }),
+    );
+    expect(result.current.exportBytes).toBe(640_000);
+  });
+
+  it("shows a refusal for a create the panel has already moved on from — and only the CURRENT request's spinner is released", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    let first = "";
+    let second = "";
+    act(() => {
+      first = result.current.createDocument("First");
+    });
+    act(() => {
+      second = result.current.createDocument("Second");
+    });
+    expect(result.current.loading).toBe(true);
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "",
+        documentId: first,
+        code: "command-rejected",
+        reason: "refused: 0.86 MB",
+      }),
+    );
+    expect(result.current.error).toBe("refused: 0.86 MB");
+    expect(result.current.loading).toBe(true); // the second create is still owed
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "",
+        documentId: second,
+        code: "command-rejected",
+        reason: "refused: 0.87 MB",
+      }),
+    );
+    expect(result.current.error).toBe("refused: 0.87 MB");
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("a silent readout re-list neither clears a pending request's loading nor doubles in a burst", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [],
+        exportBytes: 10,
+      }),
+    );
+    act(() => {
+      result.current.createDocument("Mine");
+    });
+    expect(result.current.loading).toBe(true);
+    sendMessage.mockClear();
+
+    // Two foreign mints land (a co-DM's kicks): one silent list, not two.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "k1", name: "K1", timestamp: 1 }),
+      }),
+    );
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "k2", name: "K2", timestamp: 1 }),
+      }),
+    );
+    expect(sendMessage.mock.calls.filter(([m]) => m.t === "map-studio-list")).toHaveLength(1);
+
+    // Its reply must not release the create's spinner.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "k1", name: "K1", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+          { id: "k2", name: "K2", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 20,
+      }),
+    );
+    expect(result.current.loading).toBe(true);
+    expect(result.current.exportBytes).toBe(20);
+  });
+
+  it("re-fetches the readout on reconnect — forgotten, then asked for again, so it comes back", () => {
+    let connected = true;
+    const { result, rerender } = renderHook(() => useMapStudio(sendMessage, undefined, connected));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [],
+        exportBytes: 500,
+      }),
+    );
+    // A silent re-list is in flight when the socket drops (its reply is lost).
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "k", name: "K", timestamp: 1 }),
+      }),
+    );
+    sendMessage.mockClear();
+
+    connected = false;
+    rerender();
+    connected = true;
+    rerender();
+
+    expect(result.current.exportBytes).toBeNull();
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+    // ...and the reply restores it without touching `loading`.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          { id: "k", name: "K", width: 1, height: 1, revision: 0, createdAt: 1, updatedAt: 1 },
+        ],
+        exportBytes: 750,
+      }),
+    );
+    expect(result.current.exportBytes).toBe(750);
+    expect(result.current.loading).toBe(false);
+    // The old table's ids are forgotten: a frame for "k" is known again only through the new list.
+    sendMessage.mockClear();
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "k", name: "K", timestamp: 2 }),
+      }),
+    );
+    expect(sendMessage).not.toHaveBeenCalledWith({ t: "map-studio-list" });
+  });
+
+  it("a silent re-list whose reply never comes neither wedges the readout nor swallows the panel's own refresh", () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-documents",
+          documents: [],
+          exportBytes: 10,
+        }),
+      );
+      // A mint lands; the silent re-list goes out and is never answered.
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-document",
+          document: createMapDocument({ id: "k1", name: "K1", timestamp: 1 }),
+        }),
+      );
+      sendMessage.mockClear();
+
+      // The DM presses REFRESH meanwhile: its reply must release the spinner.
+      act(() => result.current.refresh());
+      expect(result.current.loading).toBe(true);
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-documents",
+          documents: [],
+          exportBytes: 20,
+        }),
+      );
+      expect(result.current.loading).toBe(false);
+      expect(result.current.exportBytes).toBe(20);
+
+      // Another lost silent list; ten seconds later a mint can re-list again.
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-document",
+          document: createMapDocument({ id: "k2", name: "K2", timestamp: 1 }),
+        }),
+      );
+      sendMessage.mockClear();
+      act(() => {
+        vi.advanceTimersByTime(10_001);
+      });
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-document",
+          document: createMapDocument({ id: "k3", name: "K3", timestamp: 1 }),
+        }),
+      );
+      expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a refusal that lands after the watchdog gave up still clears the stale-timeout flag — the next broadcast does not wipe it", () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+      let id = "";
+      act(() => {
+        id = result.current.createDocument("Slow");
+      });
+      act(() => {
+        vi.advanceTimersByTime(20_000);
+      });
+      expect(result.current.error).toMatch(/didn't respond/);
+
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-error",
+          commandId: "",
+          documentId: id,
+          code: "command-rejected",
+          reason: "refused: 0.86 MB",
+        }),
+      );
+      expect(result.current.error).toBe("refused: 0.86 MB");
+
+      // A co-DM's document broadcast must not clear the refusal.
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-document",
+          document: createMapDocument({ id: "other", name: "Other", timestamp: 1 }),
+        }),
+      );
+      expect(result.current.error).toBe("refused: 0.86 MB");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("ignores a not-found for a document that is not the one being opened", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     act(() => result.current.openDocument("wanted"));

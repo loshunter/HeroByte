@@ -920,6 +920,14 @@ plate ever lacked its nameplate (structurally impossible today). Sabotage after 
 
 ## Follow-up F4 (2026-09-13) — nothing selected → your own token
 
+**IN PRODUCTION 2026-09-14** — the owner merged on the plateau record: `main` = `8e104dc4`,
+CI #868 green, probe-verified (entry bundle `index-DU0TBtuF` → `index-DLos7Gc5`; the help
+entry's "the keys move your own token" 1 hit in the new bundle, 0 in the old). Live two-client
+check before the merge on a local dev server: ArrowRight with nothing selected sent exactly one
+`step-object` and the token moved from cell 20 to 21 in the player AND the DM tab; ⚔️ inside
+the party panel, then ArrowLeft, stepped it back. The three recorded owner calls (affordance,
+desktop camera follow, `role="tab"`) stay recorded, not built.
+
 **The owner's call** (2026-09-13, from the follow-ups prompt's item-4 list — the ONLY one of the
 four queued): the pointer-mode fallback. The plain cursor never holds a selection — a click on a
 piece selects it for one commit and `useSelectionManager` clears it again while neither Select
@@ -1230,7 +1238,8 @@ and the two owner-call items still open.
 
 - ~~A "nothing selected → your own token" fallback for WASD in pointer mode.~~ — DONE as
   Follow-up F4 (2026-09-13): `ownTokenFallback`, keyboard-only in effect, yielding only to a
-  surface that would use the key; two review rounds so far; see its section.
+  surface that would use the key; three review rounds (plateau — the owner decided);
+  **IN PRODUCTION 2026-09-14**; see its section.
 - ~~Whether a DM-owned PC with an initiative should be a combatant (today it is not, by the
   pre-existing participation rule), which decides whether its budget ever resets on a turn.~~
   — DECIDED yes and DONE as Follow-up F3 (2026-09-11): rolled, it is a combatant; its budget

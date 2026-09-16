@@ -49,33 +49,7 @@ export class StagingZoneManager {
    * ```
    */
   sanitize(zone: unknown): PlayerStagingZone | undefined {
-    if (!zone || typeof zone !== "object") {
-      return undefined;
-    }
-    const candidate = zone as Partial<PlayerStagingZone>;
-    const x = Number(candidate.x);
-    const y = Number(candidate.y);
-    const width = Number(candidate.width);
-    const height = Number(candidate.height);
-    if (
-      !Number.isFinite(x) ||
-      !Number.isFinite(y) ||
-      !Number.isFinite(width) ||
-      !Number.isFinite(height)
-    ) {
-      return undefined;
-    }
-    const normalized: PlayerStagingZone = {
-      x,
-      y,
-      width: Math.max(1, Math.abs(width)),
-      height: Math.max(1, Math.abs(height)),
-      rotation:
-        candidate.rotation !== undefined && Number.isFinite(Number(candidate.rotation))
-          ? Number(candidate.rotation)
-          : 0,
-    };
-    return normalized;
+    return sanitizeStagingZone(zone);
   }
 
   /**
@@ -146,4 +120,40 @@ export class StagingZoneManager {
       y: zone.y + rotatedY,
     };
   }
+}
+
+/**
+ * The staging-zone whitelist as a standalone function, so a load door with no
+ * StagingZoneManager (RedisRoomStore.hydrate) applies exactly the rule the disk
+ * loader applies through the manager. Touches no instance state — the method
+ * never did — which is why lifting it out is behaviour-neutral.
+ */
+export function sanitizeStagingZone(zone: unknown): PlayerStagingZone | undefined {
+  if (!zone || typeof zone !== "object") {
+    return undefined;
+  }
+  const candidate = zone as Partial<PlayerStagingZone>;
+  const x = Number(candidate.x);
+  const y = Number(candidate.y);
+  const width = Number(candidate.width);
+  const height = Number(candidate.height);
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    !Number.isFinite(width) ||
+    !Number.isFinite(height)
+  ) {
+    return undefined;
+  }
+  const normalized: PlayerStagingZone = {
+    x,
+    y,
+    width: Math.max(1, Math.abs(width)),
+    height: Math.max(1, Math.abs(height)),
+    rotation:
+      candidate.rotation !== undefined && Number.isFinite(Number(candidate.rotation))
+        ? Number(candidate.rotation)
+        : 0,
+  };
+  return normalized;
 }

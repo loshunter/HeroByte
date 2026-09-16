@@ -1556,6 +1556,8 @@ cuts in; a completeness critic last.
 > and clicks wherever it now is. Not a hole — placement is
 > `atlasKick.contract.test.ts:193`'s rule and that test IS red under it. The journey owns the round
 > trip; the contract owns the geometry. **§4.16 verified by grep:** the three `ServerMessage`
+> _(A record of this arc's closure, not a standing invariant: the Weighed Campaign added
+> `session-file`, `table-forked` and `table-fork-failed` to all three lists on 2026-09-14.)_
 > hand-lists (`websocket.ts:93`, `MessageRouter.ts:61`, `:367`) are byte-identical to the arc's
 > recon base `59e55a81` — this arc added no server message. **§4.14:** `buildDMMenuProps` pins 45
 > keys, `openKick` the one addition. **Final ladder, quiescent tree:** shared 25/427, server
@@ -1692,7 +1694,11 @@ cuts in; a completeness critic last.
   §4.15 already argues for the PENDING state ("so a layout crossing cannot drop it") and would make
   a remount restore rather than reset. Severity is a lost form behind a Reconnecting banner, not
   lost work on the table.
-- **THE HIGHEST OPEN ITEM: a table's own export can outgrow the wire** (found by the final
+- ~~**THE HIGHEST OPEN ITEM: a table's own export can outgrow the wire**~~ — **FIXED on `dev`
+  2026-09-14 by the Weighed Campaign arc** (`export-weight-arc-plan.md`): every mint path weighs
+  the export it would write (document + the scene a travel installs) against a ceiling of 3/4 of
+  the wire limit, the characterization test below is inverted, the save says its weight, and a
+  readout sits beside the map list. The record that follows is kept as it was written. (found by the final
   review's recipe lens; CONFIRMED 2/2, reproduced independently by both refuters against the real
   router and a real `ws` server). `MAX_SESSION_DOCUMENTS` (64) is documented as the mint ceiling
   that keeps a DM's export re-importable — but the gate that actually refuses a load is a BYTE

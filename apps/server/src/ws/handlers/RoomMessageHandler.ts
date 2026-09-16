@@ -19,57 +19,13 @@ import type { RoomService } from "../../domains/room/service.js";
 import type { AuthService } from "../../domains/auth/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { MapDocument, RoomSnapshot, SceneState, ServerMessage } from "@herobyte/shared";
-import { toSnapshot } from "../../domains/room/model.js";
 import { sceneStatesFromEnvelope } from "../../domains/room/atlasState.js";
 import {
   MAX_SESSION_DOCUMENTS,
   documentsPastCap,
-  parseSceneState,
 } from "../../middleware/validators/sessionValidators.js";
+import { buildSessionFile } from "../../domains/room/sessionExport.js";
 import { getDefaultRoomId, getRoomSecret } from "../../config/auth.js";
-
-/**
- * Inline the asset channel back into plain fields for a session FILE.
- *
- * toSnapshot diverts `mapBackground` and `drawings` into `assets`/`assetRefs`
- * (SnapshotAssetBuilder) — an indirection that earns its keep on a repeated
- * broadcast, where the payload is content-addressed and deduped. A file is
- * written once and read once, so the indirection buys nothing and costs
- * everything: the id-keyed asset list is a second thing to keep consistent, and
- * BOTH loaders were written for the client's hydrated (flat) snapshot.
- *
- * Shipping the raw wire shape into a file broke it three ways at once — the
- * client parser demanded a `drawings` key toSnapshot never emits, it dropped a
- * `mapBackground` that lived in assetRefs, and the server's own load validator
- * rejected any room with zero drawings (no key AND no assetRef). Flattening here
- * fixes all three at the source rather than teaching two parsers a shape they
- * should never have had to know.
- *
- * `drawings` is always an array — that is the invariant both loaders rely on.
- */
-function flattenForFile(snapshot: RoomSnapshot, state: RoomState): RoomSnapshot {
-  const { assets: _assets, assetRefs: _assetRefs, ...rest } = snapshot;
-  return {
-    ...rest,
-    drawings: state.drawings,
-    // Public chat only. The snapshot handed to this function was built with
-    // toSnapshot(state, true, senderUid) — a REAL recipient uid — so the
-    // exporting DM's own whispers passed visibleChatFor and would otherwise
-    // be written into a file whose entire purpose is to be handed to other
-    // people. A table fork avoids this by using createSnapshot() (no uid);
-    // export cannot, because it must round-trip the DM's secrets. So the one
-    // secret that is not the DM's to share gets stripped here.
-    chatLog: (rest.chatLog ?? []).filter((message) => !message.to),
-    // Public rolls only, for exactly the reason above: the real recipient uid
-    // let the exporting DM's own `self` rolls, and every `dm` roll the table
-    // sent them, through visibleRollsFor. Neither belongs in a file handed to
-    // other people.
-    diceRolls: (rest.diceRolls ?? []).filter(
-      (roll) => roll.visibility === undefined || roll.visibility === "public",
-    ),
-    ...(state.mapBackground === undefined ? {} : { mapBackground: state.mapBackground }),
-  };
-}
 
 /**
  * Result of handling a room message
@@ -176,13 +132,10 @@ export class RoomMessageHandler {
   /**
    * Handle session-export: bundle a COMPLETE, restorable session file.
    *
-   * The server does the bundling because it is the only side holding both the
-   * room state and the authored MapDocuments — the client's snapshot has the
-   * map only as derived output plus a pointer, and its single-slot server-event
-   * channel makes gathering documents over the wire fragile.
-   *
    * DM-only, and deliberately so: this is built from the DM's own view, so it
-   * contains secret doors, hidden NPCs and GM notes verbatim.
+   * contains secret doors, hidden NPCs and GM notes verbatim. (The client's
+   * single-slot server-event channel makes gathering documents over the wire
+   * fragile, which is why the server bundles.)
    */
   handleSessionExport(state: RoomState, senderUid: string, isDM: boolean): RoomMessageResult {
     if (!isDM) {
@@ -191,32 +144,11 @@ export class RoomMessageHandler {
     }
     const roomId = this.getRoomIdForUid?.(senderUid);
     const mapDocuments = roomId && this.mapStudioService ? this.mapStudioService.list(roomId) : [];
-
-    // Only schema-conforming scenes — the SAME schema the reimport envelope
-    // enforces, so a poisoned scene can never write a file the DM's OWN export
-    // fails to reimport (the "backup silently stops being a backup" failure the
-    // caps exist to prevent). Skipped loudly, never silently.
-    const suspendedScenes = Object.values(state.sceneStates).filter((scene) => {
-      const usable = parseSceneState(scene) !== null;
-      if (!usable) console.warn("session-export: skipped a malformed suspended scene");
-      return usable;
-    });
+    // ONE author for the file (domains/room/sessionExport.ts): the mint
+    // ceiling weighs the very same builder before a mint persists.
     this.sendControlMessage(senderUid, {
       t: "session-file",
-      file: {
-        schemaVersion: 1,
-        savedAt: Date.now(),
-        // The DM's view on purpose — a session file must round-trip the secrets
-        // a player snapshot strips, or reloading one would quietly disarm the map.
-        // (The graph rides INSIDE this snapshot — the DM view carries it whole,
-        // provenance included; sceneStates never can, so they ride below.)
-        snapshot: flattenForFile(toSnapshot(state, true, senderUid), state),
-        mapDocuments,
-        liveMapDocumentId: state.liveMapDocumentId,
-        // Envelope-only, and omitted when empty so a pre-Atlas room's file is
-        // byte-identical to what it was before this field existed.
-        ...(suspendedScenes.length > 0 ? { sceneStates: suspendedScenes } : {}),
-      },
+      file: buildSessionFile(state, mapDocuments, senderUid, Date.now(), { warn: true }),
     });
     return { broadcast: false, save: false };
   }

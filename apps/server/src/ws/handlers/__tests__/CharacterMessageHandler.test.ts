@@ -377,6 +377,23 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       expect(character?.maxHp).toBe(120);
     });
 
+    it("carries tempHp from the wire — the Entities panel's Temp HP field wrote nothing", () => {
+      // update-character-hp is the path with a LIVE UI (handleCharacterTempHpSubmit);
+      // its dispatcher literal dropped tempHp exactly as update-npc's did.
+      messageRouter.route(
+        { t: "update-character-hp", characterId, hp: 50, maxHp: 120, tempHp: 6 },
+        playerUid,
+      );
+      expect(roomService.getState().characters.find((c) => c.id === characterId)?.tempHp).toBe(6);
+      messageRouter.route({ t: "update-character-hp", characterId, hp: 40, maxHp: 120 }, playerUid);
+      expect(roomService.getState().characters.find((c) => c.id === characterId)?.tempHp).toBe(6);
+      messageRouter.route(
+        { t: "update-character-hp", characterId, hp: 40, maxHp: 120, tempHp: 0 },
+        playerUid,
+      );
+      expect(roomService.getState().characters.find((c) => c.id === characterId)?.tempHp).toBe(0);
+    });
+
     it("denies an HP write from a player who does not control the character", () => {
       // The hole the S4 review closed: hp had NO permission check, so any
       // player could rewrite any character's numbers — including a monster

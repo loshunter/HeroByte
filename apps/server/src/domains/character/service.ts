@@ -6,7 +6,12 @@
 import { randomUUID } from "crypto";
 // The participation rule has ONE home (combatUtils.ts, shared): this file
 // carried a private copy that drifted the moment the rule changed (F3).
-import { isInInitiativeOrder, type Character } from "@herobyte/shared";
+import {
+  isInInitiativeOrder,
+  type Character,
+  type NpcDisposition,
+  type TokenSize,
+} from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
 
@@ -44,7 +49,13 @@ export class CharacterService {
     maxHp: number,
     portrait?: string,
     type: "pc" | "npc" = "pc",
-    options?: { hp?: number; tokenImage?: string },
+    options?: {
+      hp?: number;
+      tempHp?: number;
+      tokenImage?: string;
+      tokenSize?: TokenSize;
+      disposition?: NpcDisposition;
+    },
   ): Character {
     const clamp = (value: number) => Math.max(0, value);
     const normalizedMaxHp = clamp(maxHp);
@@ -61,6 +72,13 @@ export class CharacterService {
       tokenId: undefined,
       ownedByPlayerUID: undefined,
       tokenImage: tokenImage ?? null,
+      // Only when given: a bare `tokenSize: undefined` would still be a key, and
+      // a saved file is the character spread as-is.
+      ...(options?.tokenSize ? { tokenSize: options.tokenSize } : {}),
+      // Same rule. Absent means hostile for an NPC, and nothing at all for a PC.
+      ...(options?.disposition ? { disposition: options.disposition } : {}),
+      // Same rule again; 0 is a real value here, so the test is on undefined.
+      ...(options?.tempHp !== undefined ? { tempHp: Math.max(0, options.tempHp) } : {}),
     };
 
     state.characters.push(newCharacter);
@@ -93,11 +111,20 @@ export class CharacterService {
   /**
    * Update character HP
    */
-  updateHP(state: RoomState, characterId: string, hp: number, maxHp: number): boolean {
+  updateHP(
+    state: RoomState,
+    characterId: string,
+    hp: number,
+    maxHp: number,
+    tempHp?: number,
+  ): boolean {
     const character = this.findCharacter(state, characterId);
     if (character) {
       character.hp = hp;
       character.maxHp = maxHp;
+      // Same drop as update-npc had, on the path with a LIVE UI: the Entities
+      // panel's Temp HP field sent this and nothing stored it.
+      if (tempHp !== undefined) character.tempHp = Math.max(0, tempHp);
       return true;
     }
     return false;
@@ -143,7 +170,17 @@ export class CharacterService {
   }
 
   /**
-   * Update NPC metadata
+   * Update NPC metadata.
+   *
+   * NPC-only, and that is a guard rather than a comment: findCharacter does
+   * not filter by type, and the line below used to set `type = "npc"`
+   * unconditionally — so an update-npc carrying a PLAYER's id renamed their
+   * character, rewrote its HP and portrait, and converted it into a DM-owned
+   * NPC, irreversibly. No client can send that (the DM menu's editor only ever
+   * addresses an NPC it found), so this is a wire-shaped hole rather than a
+   * reachable bug — but the arc added `disposition` to the set of fields such a
+   * message writes, and "no client sends it" is not a property the server gets
+   * to rely on.
    */
   updateNPC(
     state: RoomState,
@@ -153,13 +190,15 @@ export class CharacterService {
       name: string;
       hp: number;
       maxHp: number;
+      tempHp?: number;
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
+      disposition?: NpcDisposition;
     },
   ): boolean {
     const character = this.findCharacter(state, characterId);
-    if (!character) {
+    if (!character || character.type !== "npc") {
       return false;
     }
 
@@ -167,12 +206,26 @@ export class CharacterService {
     character.maxHp = Math.max(0, updates.maxHp);
     character.hp = Math.min(character.maxHp, Math.max(0, updates.hp));
     character.portrait = updates.portrait || undefined;
-    character.type = "npc";
     character.tokenImage = updates.tokenImage?.trim() || null;
 
     // Update initiative modifier if provided
     if (updates.initiativeModifier !== undefined) {
       character.initiativeModifier = updates.initiativeModifier;
+    }
+
+    // Temp HP, same shape. update-npc validated this and declared it on the
+    // wire, and this method never wrote it — so the DM's Temp HP blur sent a
+    // value the snapshot could never echo, and useNpcUpdate's watcher reported
+    // "timed out" five seconds later over an edit that had otherwise landed.
+    if (updates.tempHp !== undefined) {
+      character.tempHp = Math.max(0, updates.tempHp);
+    }
+
+    // Set only when the message carried one: update-npc is a full-record send,
+    // and an older client that has never heard of a stance must not silently
+    // clear one the DM set from a newer tab.
+    if (updates.disposition !== undefined) {
+      character.disposition = updates.disposition;
     }
 
     if (character.tokenId) {
@@ -283,12 +336,15 @@ export class CharacterService {
       tokenService.forceDeleteToken(state, character.tokenId);
     }
 
+    // Born at the size the NPC was created with (a library pick's default);
+    // the token's own size stays editable, as ever.
     const token = tokenService.createToken(
       state,
       ownerUid,
       0,
       0,
       character.tokenImage ?? undefined,
+      character.tokenSize ?? "medium",
     );
     character.tokenId = token.id;
     return character;

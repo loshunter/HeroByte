@@ -27,14 +27,28 @@ import type { PlayerStagingZone, RoomSnapshot, SessionFile } from "@herobyte/sha
 /**
  * Trigger a download of a complete session file.
  */
-export function saveSessionFile(file: SessionFile, sessionName: string): void {
+/** The bytes a session file is written as: pretty-printed, images inlined — what the disk holds. */
+export function serializeSessionFile(file: SessionFile): string {
+  return JSON.stringify(file, null, 2);
+}
+
+export function saveSessionFile(file: SessionFile, sessionName: string): number {
+  return downloadSessionJson(serializeSessionFile(file), sessionName);
+}
+
+/**
+ * Download already-serialized session JSON under the DM's name. Returns the
+ * bytes written — `Blob.size` is the UTF-8 length by spec, so the caller can
+ * say the disk size without serializing or copying the file a second time (a
+ * campaign at the 64 MiB asset budget inlines to ~85 MB of base64).
+ */
+export function downloadSessionJson(json: string, sessionName: string): number {
   const safeName = (sessionName || "session").trim() || "session";
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
     .replace(/\.\d{3}Z$/, "Z");
   const fileName = `${safeName}-${timestamp}.json`;
-  const json = JSON.stringify(file, null, 2);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 
@@ -46,6 +60,7 @@ export function saveSessionFile(file: SessionFile, sessionName: string): void {
   link.remove();
 
   URL.revokeObjectURL(url);
+  return blob.size;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

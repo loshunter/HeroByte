@@ -12,7 +12,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, NpcDisposition, TokenSize } from "@herobyte/shared";
 
 export interface UseNpcCreationOptions {
   /**
@@ -37,6 +37,10 @@ export interface CreateNpcRequest {
   maxHp?: number;
   portrait?: string;
   tokenImage?: string;
+  /** The size the placed token starts with (a library pick sets the pack's default). */
+  tokenSize?: TokenSize;
+  /** Where the new NPC stands with the party; absent = hostile. */
+  disposition?: NpcDisposition;
   /** How many to create (1..NPC_CREATE_LIMITS.COUNT_MAX). Defaults to 1. */
   count?: number;
   /** Carried by Duplicate so a hidden NPC's copy stays hidden. */
@@ -85,6 +89,20 @@ export function useNpcCreation(options: UseNpcCreationOptions): UseNpcCreationRe
   // Track previous NPC count to detect creation
   const prevNpcCountRef = useRef<number>(0);
 
+  // ONE timer, cleared wherever the request resolves — the same bug shape as
+  // useNpcUpdate, which is the copy where it became load-bearing: armed on
+  // every call and never cleared, a timer from a CONFIRMED create fired during
+  // a later one, saw `prev` true, and put up a false "timed out" banner over a
+  // create that then landed anyway.
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTimer = useCallback(() => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+  useEffect(() => clearTimer, [clearTimer]);
+
   // Update the previous count whenever NPCs change (but not during creation)
   useEffect(() => {
     if (!isCreating) {
@@ -109,12 +127,13 @@ export function useNpcCreation(options: UseNpcCreationOptions): UseNpcCreationRe
         currentCount,
       });
 
-      // Success! Update ref and clear loading state
+      // Success! Update ref and clear loading state — and the timer.
+      clearTimer();
       prevNpcCountRef.current = currentCount;
       setIsCreating(false);
       setError(null);
     }
-  }, [snapshot?.characters, isCreating]);
+  }, [snapshot?.characters, isCreating, clearTimer]);
 
   /**
    * Initiate NPC creation
@@ -144,6 +163,8 @@ export function useNpcCreation(options: UseNpcCreationOptions): UseNpcCreationRe
         maxHp: request?.maxHp ?? 10,
         ...(request?.portrait !== undefined ? { portrait: request.portrait } : {}),
         ...(request?.tokenImage !== undefined ? { tokenImage: request.tokenImage } : {}),
+        ...(request?.tokenSize !== undefined ? { tokenSize: request.tokenSize } : {}),
+        ...(request?.disposition !== undefined ? { disposition: request.disposition } : {}),
         ...(request?.count !== undefined ? { count: request.count } : {}),
         ...(request?.visibleToPlayers !== undefined
           ? { visibleToPlayers: request.visibleToPlayers }
@@ -151,7 +172,9 @@ export function useNpcCreation(options: UseNpcCreationOptions): UseNpcCreationRe
       });
 
       // Set a timeout in case server doesn't respond
-      setTimeout(() => {
+      clearTimer();
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
         setIsCreating((prev) => {
           if (prev) {
             // Only set error if STILL creating
@@ -162,7 +185,7 @@ export function useNpcCreation(options: UseNpcCreationOptions): UseNpcCreationRe
         });
       }, 5000);
     },
-    [isCreating, sendMessage],
+    [isCreating, sendMessage, clearTimer],
   );
 
   return {

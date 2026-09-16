@@ -21,6 +21,8 @@ import {
   type RoomSnapshot,
   type SceneState,
   type ServerMessage,
+  SESSION_MINT_CEILING_BYTES,
+  WS_MAX_MESSAGE_BYTES,
 } from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
 import { RoomService } from "../../domains/room/service.js";
@@ -36,6 +38,7 @@ import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { SNAPSHOT_LIMITS } from "../../middleware/validators/sessionValidators.js";
 import { AtlasMessageHandler, ATLAS_DM_REQUIRED } from "../handlers/AtlasMessageHandler.js";
 import { sentinelHits } from "./leakSentinels.js";
+import { padExportTo } from "./fatDrawing.js";
 
 const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "atlasGraph-state.json");
 
@@ -580,24 +583,65 @@ describe("atlas graph contracts", () => {
     const errors = messagesOf(dmWs, "atlas-error") as { code?: string }[];
     expect(errors.some((entry) => entry.code === "at-cap")).toBe(true);
 
-    // The map-studio-create path refuses too (thrown → routed error log)…
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
-    try {
-      route({ t: "map-studio-create", document: { id: "doc-65", name: "one too many" } }, DM);
-      expect(mapStudioService.list("default")).toHaveLength(64);
-      expect(errorLog).toHaveBeenCalled();
+    // The map-studio-create path refuses too — as a frame the DM SEES (these
+    // messages carry no commandId, so the router's nack never fires)…
+    const refusals = () =>
+      (messagesOf(dmWs, "map-studio-error") as { documentId?: string; reason?: string }[]).filter(
+        (entry) => entry.reason?.includes("maximum of 64"),
+      );
+    route({ t: "map-studio-create", document: { id: "doc-65", name: "one too many" } }, DM);
+    expect(mapStudioService.list("default")).toHaveLength(64);
+    expect(refusals().map((entry) => entry.documentId)).toEqual(["doc-65"]);
 
-      // …and so does map-studio-import, the third mint path the arc's final
-      // review found outside the ceiling (a fresh id per import, so every
-      // success adds a document).
-      errorLog.mockClear();
-      const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
-      route({ t: "map-studio-import", document: { ...template, id: "doc-import-65" } }, DM);
-      expect(mapStudioService.list("default")).toHaveLength(64);
-      expect(errorLog).toHaveBeenCalled();
-    } finally {
-      errorLog.mockRestore();
-    }
+    // …and so does map-studio-import, the third mint path the arc's final
+    // review found outside the ceiling (a fresh id per import, so every
+    // success adds a document).
+    const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
+    route({ t: "map-studio-import", document: { ...template, id: "doc-import-65" } }, DM);
+    expect(mapStudioService.list("default")).toHaveLength(64);
+    expect(refusals().map((entry) => entry.documentId)).toEqual(["doc-65", "doc-import-65"]);
+  });
+
+  it("refuses to mint past the BYTE ceiling on all three create paths — the export must fit one frame", async () => {
+    // Nowhere near the count cap. The export is heavy for a reason no
+    // document count can see — a table's drawings ride the file verbatim —
+    // and a mint of ANY size would write a file the socket drops on reload.
+    mapStudioService.create("default", { id: "doc-0", name: "doc 0" });
+    // Between the ceiling and the wire limit on its own: the DIAL refuses these,
+    // the wire would not — a ceiling set to the wire limit reads green.
+    padExportTo(
+      roomService,
+      mapStudioService,
+      "default",
+      DM,
+      Math.floor((SESSION_MINT_CEILING_BYTES + WS_MAX_MESSAGE_BYTES) / 2),
+    );
+    createNode("promise-1");
+    const before = mapStudioService.list("default").length;
+
+    route(generateMessage("promise-1", "gen-bytes"), DM);
+    await flush();
+    expect(mapStudioService.list("default")).toHaveLength(before);
+    const promise = nodes().find((entry) => entry.id === "promise-1");
+    expect(promise).toBeDefined();
+    expect(promise!.mapDocumentId).toBeUndefined();
+    const errors = messagesOf(dmWs, "atlas-error") as { code?: string; reason?: string }[];
+    expect(
+      errors.some((entry) => entry.code === "at-cap" && /\d\.\d\d MB/.test(entry.reason ?? "")),
+    ).toBe(true);
+
+    const refusals = () =>
+      (messagesOf(dmWs, "map-studio-error") as { documentId?: string; reason?: string }[]).filter(
+        (entry) => /\d\.\d\d MB/.test(entry.reason ?? ""),
+      );
+    route({ t: "map-studio-create", document: { id: "doc-heavy", name: "one too heavy" } }, DM);
+    expect(mapStudioService.list("default")).toHaveLength(before);
+    expect(refusals().map((entry) => entry.documentId)).toEqual(["doc-heavy"]);
+
+    const template = JSON.parse(JSON.stringify(mapStudioService.get("default", "doc-0")));
+    route({ t: "map-studio-import", document: { ...template, id: "doc-import-heavy" } }, DM);
+    expect(mapStudioService.list("default")).toHaveLength(before);
+    expect(refusals().map((entry) => entry.documentId)).toEqual(["doc-heavy", "doc-import-heavy"]);
   });
 
   it("map-studio-delete drops the links ANCHORED on the dead map, and keeps the ones pointing at its node", async () => {

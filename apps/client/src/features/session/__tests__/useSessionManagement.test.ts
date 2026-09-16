@@ -16,13 +16,26 @@
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { WS_MAX_MESSAGE_BYTES, type SessionFile } from "@herobyte/shared";
+import {
+  WS_MAX_MESSAGE_BYTES,
+  type SessionFile,
+  loadSessionFrameBytes,
+  utf8ByteLength,
+} from "@herobyte/shared";
 import { useSessionManagement } from "../useSessionManagement";
 import { deliverSessionFile } from "../sessionBridge";
-import { saveSessionFile, loadSession } from "../../../utils/sessionPersistence";
+import {
+  downloadSessionJson,
+  loadSession,
+  serializeSessionFile,
+} from "../../../utils/sessionPersistence";
 
-vi.mock("../../../utils/sessionPersistence", () => ({
-  saveSessionFile: vi.fn(),
+vi.mock("../../../utils/sessionPersistence", async (importOriginal) => ({
+  // The REAL serializer (a hand copy here is the drift this arc exists to end);
+  // only the download and the file reader are stubbed. The stub returns what
+  // the real download returns: the bytes it would have written.
+  ...(await importOriginal<typeof import("../../../utils/sessionPersistence")>()),
+  downloadSessionJson: vi.fn((json: string) => new TextEncoder().encode(json).length),
   loadSession: vi.fn(),
 }));
 
@@ -65,7 +78,7 @@ describe("useSessionManagement — save", () => {
 
     expect(sendMessage).toHaveBeenCalledWith({ t: "session-export" });
     // Nothing downloads yet: the client does not hold the maps to write.
-    expect(saveSessionFile).not.toHaveBeenCalled();
+    expect(downloadSessionJson).not.toHaveBeenCalled();
   });
 
   it("downloads under the DM's chosen name once the bundle arrives", async () => {
@@ -81,7 +94,10 @@ describe("useSessionManagement — save", () => {
 
     // `assets: []` — this fixture references no uploads, which is the common
     // case (external imgur URLs need no inlining).
-    expect(saveSessionFile).toHaveBeenCalledWith({ ...file, assets: [] }, "my-campaign");
+    // The download takes the serialized file and the DM's name.
+    const [json, name] = vi.mocked(downloadSessionJson).mock.calls[0]!;
+    expect(name).toBe("my-campaign");
+    expect(JSON.parse(json)).toEqual({ ...file, assets: [] });
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("1 map"), 4000);
   });
 
@@ -107,7 +123,10 @@ describe("useSessionManagement — save", () => {
       deliverSessionFile(file);
     });
 
-    const written = vi.mocked(saveSessionFile).mock.calls[0]![0];
+    // The download takes the serialized string: read the file back out of it.
+    const written = JSON.parse(vi.mocked(downloadSessionJson).mock.calls[0]![0]) as {
+      assets?: unknown;
+    };
     expect(written.assets).toEqual([{ hash, mime: "image/png", bytes: btoa("") }]);
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("1 image"), 4000);
   });
@@ -160,13 +179,63 @@ describe("useSessionManagement — save", () => {
     expect(sendMessage).toHaveBeenCalledTimes(2);
   });
 
+  it("says the file's wire weight AND its disk size on a save that will load back", async () => {
+    const { result } = mount();
+    // ~300 KB of name: a weight that cannot be confused with the limit or with zero.
+    const file = sessionFile({
+      mapDocuments: [{ id: "doc-A", name: "n".repeat(300_000) } as never],
+    });
+    const wire = loadSessionFrameBytes(file);
+    const disk = utf8ByteLength(serializeSessionFile({ ...file, assets: [] }));
+    const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    expect(mb(wire)).not.toBe("0.00 MB");
+    expect(mb(wire)).not.toBe("1.00 MB");
+
+    act(() => result.current.handleSaveSession("light"));
+    await act(async () => {
+      deliverSessionFile(file);
+    });
+
+    expect(downloadSessionJson).toHaveBeenCalled();
+    const said = vi.mocked(toast.success).mock.calls[0]?.[0] ?? "";
+    expect(said).toContain(`${mb(wire)} of the 1.00 MB a load accepts`);
+    expect(said).toContain(`(${mb(disk)} on disk with images)`);
+    expect(toast.warning).not.toHaveBeenCalled();
+  });
+
+  it("still saves a file that will NOT load back — and warns with both numbers instead of congratulating", async () => {
+    // Play grows a table past the wire limit even when every mint stayed
+    // under the ceiling (tokens, drawings, suspended scenes). The bytes are
+    // the DM's — the file downloads — but "saved!" over a backup that cannot
+    // be restored is the failure the whole arc exists to end.
+    const { result } = mount();
+    // One and a half times the limit: the weight and the limit are different numbers.
+    const file = sessionFile({
+      mapDocuments: [
+        { id: "doc-A", name: "x".repeat(Math.floor(WS_MAX_MESSAGE_BYTES * 1.5)) } as never,
+      ],
+    });
+
+    act(() => result.current.handleSaveSession("heavy"));
+    await act(async () => {
+      deliverSessionFile(file);
+    });
+
+    expect(downloadSessionJson).toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    const said = vi.mocked(toast.warning).mock.calls[0]?.[0] ?? "";
+    expect(said).toContain("NOT load back");
+    expect(said).toContain("at 1.50 MB on the wire");
+    expect(said).toContain("accepts 1.00 MB");
+  });
+
   it("drops a bundle nobody asked for", () => {
     // A late reply after a timeout must not spring a download on the DM.
     mount();
 
     act(() => deliverSessionFile(sessionFile()));
 
-    expect(saveSessionFile).not.toHaveBeenCalled();
+    expect(downloadSessionJson).not.toHaveBeenCalled();
   });
 
   it("does not fire its timeout into an unmounted tree", () => {
@@ -207,6 +276,37 @@ describe("useSessionManagement — load", () => {
       mapDocuments: file.mapDocuments,
       liveMapDocumentId: "doc-A",
     });
+  });
+
+  it("carries the envelope's sceneStates in the frame — exactly the five keys, via the shared builder", async () => {
+    // Suspended scenes ride the file's ENVELOPE, never its snapshot, so a
+    // frame built from the snapshot alone restores a table with every
+    // suspended scene gone — while every server-side round-trip test stays
+    // green. The frame is the shared `loadSessionFrame`, the same shape the
+    // server's mint ceiling weighs; a key added on either side alone fails here.
+    const scenes = [{ mapDocumentId: "doc-B" }] as never;
+    const file = sessionFile({
+      snapshot: { gridSize: 50, sceneObjects: [{}], characters: [{}] } as never,
+      mapDocuments: [{ id: "doc-A" } as never, { id: "doc-B" } as never],
+      liveMapDocumentId: "doc-A",
+      sceneStates: scenes,
+    });
+    vi.mocked(loadSession).mockResolvedValue(file);
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "s.json"));
+    });
+
+    const sent = sendMessage.mock.calls.find(([message]) => message.t === "load-session")?.[0];
+    expect(sent?.sceneStates).toBe(scenes);
+    expect(Object.keys(sent ?? {}).sort()).toEqual([
+      "liveMapDocumentId",
+      "mapDocuments",
+      "sceneStates",
+      "snapshot",
+      "t",
+    ]);
   });
 
   it("refuses a file too large for one wire frame, instead of toasting success over a dead socket", async () => {

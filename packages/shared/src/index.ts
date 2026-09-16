@@ -31,7 +31,11 @@ import type { GenerateRequest } from "./recipes.js";
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
 export { WS_CLOSE_AUTH_REJECTED, WS_CLOSE_REPLACED } from "./wsCloseCodes.js";
-export { WS_MAX_MESSAGE_BYTES } from "./wsLimits.js";
+export { WS_MAX_MESSAGE_BYTES, SESSION_MINT_CEILING_BYTES } from "./wsLimits.js";
+// The one `load-session` frame builder + UTF-8 counter (client loader, server
+// mint ceiling, server round-trip test) — same sub-module rule.
+export { loadSessionFrame, loadSessionFrameBytes, utf8ByteLength } from "./sessionFrame.js";
+export type { LoadSessionFrame, LoadSessionSource } from "./sessionFrame.js";
 
 // The Atlas — campaign graph types + limits. Value re-export from a sub-module
 // (same rule as wsCloseCodes: a direct `export const` here erases at runtime).
@@ -461,6 +465,9 @@ export type { DrawingType } from "./drawingTypes.js";
 export { NPC_CREATE_LIMITS } from "./npcLimits.js";
 // Bulk-prop bounds — same sub-module rule (see propLimits.ts).
 export { PROP_CREATE_LIMITS } from "./propLimits.js";
+// The table's own Library tokens — same sub-module rule (see customTokenLimits.ts).
+export { CUSTOM_TOKEN_LIMITS } from "./customTokenLimits.js";
+export { isCustomTokenImageUrl } from "./customTokenUrl.js";
 
 /**
  * The tool the drawing toolbar is holding. Wider than `DrawingType` because a
@@ -499,6 +506,18 @@ export interface Drawing {
 export type DrawingSegmentPayload = Omit<Drawing, "id">;
 
 /**
+ * Where an NPC stands with the party — the DM's call, and theirs alone. A
+ * separate field rather than a third `Character.type`, because `type` is
+ * load-bearing in twenty client sites (ordering, movement, redaction, the DM
+ * menu's filters) and a townsfolk is an NPC in every one of them. Absent
+ * means hostile: that is what every NPC was before this existed.
+ *
+ * Not a secret. A disguised enemy is one the DM has set neutral, so there is
+ * nothing here for the recipient filter to hide.
+ */
+export type NpcDisposition = "hostile" | "neutral" | "friendly";
+
+/**
  * Character: Represents a player character (PC) in the game
  * Phase 1: PC only, NPC support coming in Phase 2 with templates
  */
@@ -513,6 +532,14 @@ export interface Character {
   tokenId?: string | null; // ID of token on map (null if no token)
   ownedByPlayerUID?: string | null; // Player who controls this character (null = unclaimed)
   tokenImage?: string | null; // Optional token image URL for NPC tokens
+  /**
+   * The footprint this character's token is born with (place-npc-token); the
+   * token's own size is editable afterwards. A library pick sets it from the
+   * pack's default, so an ogre lands large. Absent = medium.
+   */
+  tokenSize?: TokenSize;
+  /** NPCs only: where this one stands with the party. Absent = hostile. */
+  disposition?: NpcDisposition;
   initiative?: number; // Initiative roll value (d20 + modifier)
   initiativeModifier?: number; // Initiative modifier (bonus/penalty added to d20 roll)
   statusEffects?: string[]; // Active status effect identifiers/labels (per character)
@@ -573,6 +600,37 @@ export interface Prop {
   rotation: number; // Rotation in degrees
 }
 
+/**
+ * CustomToken: one of the table's own Library tokens — an image the DM
+ * brought (an upload, or an https link such as imgur) with the name,
+ * description, tags and size the bundled pack's entries carry, so it searches
+ * and picks like pack art. Table state, DM-only on the wire, saved with the
+ * session. Bounds: CUSTOM_TOKEN_LIMITS.
+ */
+export interface CustomToken {
+  id: string;
+  /** Table-ready NPC name, under create-npc's cap. */
+  name: string;
+  /** An https URL or a path on this site (an upload's /assets/<hash>). */
+  imageUrl: string;
+  /**
+   * The 84px render the picker's grid draws, made at add time and stored as
+   * one of this table's uploads. Absent when one could not be made (a host
+   * that allows no CORS read, a full quota) — the picker falls back to
+   * `imageUrl`, which is what it always drew before this existed.
+   */
+  thumbUrl?: string;
+  description?: string;
+  /** Lower-cased search words: "monster", "traveler", "dwarf", "prop"… */
+  tags: string[];
+  /** The footprint a token picked from it is born with. */
+  size: TokenSize;
+  /** Where an NPC made from it stands with the party. Absent = hostile. */
+  disposition?: NpcDisposition;
+  addedBy: string;
+  addedAt: number;
+}
+
 // ----------------------------------------------------------------------------
 // ROOM STATE
 // ----------------------------------------------------------------------------
@@ -626,6 +684,7 @@ export interface RoomSnapshot {
   characters: SnapshotCharacter[]; // All characters (PCs and NPCs), NPC hp possibly redacted per monsterHpDisplay
   stateVersion?: number; // Monotonically increasing room state version
   props?: Prop[]; // Props placed on the map (items, scenery, objects)
+  customTokens?: CustomToken[]; // The table's own Library tokens — DM recipients only
   mapBackground?: string; // Base64 encoded background image or URL
   pointers: Pointer[]; // Active pointer indicators
   drawings?: Drawing[]; // All drawings on the canvas
@@ -880,6 +939,10 @@ type ClientMessagePayload =
       tempHp?: number;
       portrait?: string;
       tokenImage?: string;
+      /** The size the placed token starts with; absent = medium. */
+      tokenSize?: TokenSize;
+      /** Where the new NPC stands with the party; absent = hostile. */
+      disposition?: NpcDisposition;
       /**
        * How many to create, defaulting to 1. The server loops and numbers
        * them, so "five goblins" is one message, one broadcast and one state
@@ -905,6 +968,8 @@ type ClientMessagePayload =
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
+      /** Set when the DM changes the stance; left out leaves it as it was. */
+      disposition?: NpcDisposition;
     }
   | { t: "delete-npc"; id: string }
   | { t: "place-npc-token"; id: string }
@@ -965,6 +1030,22 @@ type ClientMessagePayload =
       size: TokenSize;
     }
   | { t: "delete-prop"; id: string }
+
+  // The table's own Library tokens (DM only; bounds in CUSTOM_TOKEN_LIMITS)
+  | {
+      t: "add-custom-token";
+      name: string;
+      imageUrl: string;
+      /** The 84px render's URL, made client-side; the same bounds as imageUrl. */
+      thumbUrl?: string;
+      /** Where a token picked from this one stands; absent = hostile. */
+      disposition?: NpcDisposition;
+      description?: string;
+      tags?: string[];
+      /** Absent = medium. */
+      size?: TokenSize;
+    }
+  | { t: "remove-custom-token"; id: string }
 
   // Map/canvas actions
   | { t: "map-background"; data: string } // Set map background image
@@ -1194,12 +1275,28 @@ export type ServerMessage =
   | { t: "pointer-preview"; pointer: Pointer } // Pointer preview event (high-frequency channel)
   | { t: "drag-preview"; preview: DragPreviewEvent } // Drag preview event (high-frequency channel)
   | { t: "measure"; measure: MeasureEvent } // Someone's measurement, live (high-frequency channel)
-  | { t: "map-studio-documents"; documents: MapDocumentSummary[] }
+  | {
+      t: "map-studio-documents";
+      documents: MapDocumentSummary[];
+      /**
+       * What the campaign's session export weighs on the wire right now — the
+       * DM's readout beside the map list. A mint is refused once this would
+       * pass SESSION_MINT_CEILING_BYTES; a load is refused past
+       * WS_MAX_MESSAGE_BYTES. Refreshed with the list. Absent from older servers.
+       */
+      exportBytes?: number;
+    }
   | {
       t: "map-studio-document";
       document: MapDocument;
       appliedCommandId?: string;
       history?: { canUndo: boolean; canRedo: boolean };
+      /**
+       * What the campaign's export weighs after this document landed — sent
+       * with the frames that move it by a map's worth at once (the live
+       * GENERATE tool), so every DM's readout follows without a re-list.
+       */
+      exportBytes?: number;
     }
   | { t: "session-file"; file: SessionFile } // DM-only: the bundled reply to session-export
   | { t: "map-studio-deleted"; documentId: string }

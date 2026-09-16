@@ -237,6 +237,19 @@ describe("PlayerMessageHandler - Characterization Tests", () => {
       expect(player?.maxHp).toBe(15);
     });
 
+    it("carries tempHp from the wire, and leaves it alone when a later set-hp omits it", () => {
+      // set-hp declared tempHp, the validator checked it, and the dispatcher
+      // dropped it before the handler — the same drop 5a152d8a closed for
+      // update-npc. Through the real router, so the dispatcher literal is on
+      // the path. 0 is a real value and must clear.
+      messageRouter.route({ t: "set-hp", hp: 5, maxHp: 15, tempHp: 4 }, playerUid);
+      expect(roomService.getState().players.find((p) => p.uid === playerUid)?.tempHp).toBe(4);
+      messageRouter.route({ t: "set-hp", hp: 6, maxHp: 15 }, playerUid);
+      expect(roomService.getState().players.find((p) => p.uid === playerUid)?.tempHp).toBe(4);
+      messageRouter.route({ t: "set-hp", hp: 6, maxHp: 15, tempHp: 0 }, playerUid);
+      expect(roomService.getState().players.find((p) => p.uid === playerUid)?.tempHp).toBe(0);
+    });
+
     it("should set HP to zero", () => {
       const setHpMessage: ClientMessage = {
         t: "set-hp",

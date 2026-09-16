@@ -19,6 +19,7 @@ import {
   ATLAS_LIMITS,
   type AtlasNode,
   type ClientMessage,
+  type MapDocument,
   type ServerMessage,
 } from "@herobyte/shared";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
@@ -28,6 +29,12 @@ import { handleAtlasGenerateNode } from "./atlasGenerate.js";
 import { handleAtlasKick } from "./atlasKick.js";
 import { pushLink } from "./atlasLink.js";
 import { handleAtlasTravel } from "./sceneTravel.js";
+import {
+  mintOverflow,
+  withCandidate,
+  type MintOverflow,
+} from "../../domains/room/sessionExport.js";
+import { mintSceneBytes } from "./liveSceneBytes.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
@@ -99,6 +106,7 @@ export class AtlasMessageHandler {
             broadcastToDMs: this.broadcastToDMs,
             sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
             now: this.now,
+            weighMint: this.weighMintFor(state, roomId, senderUid),
           },
           state,
           senderUid,
@@ -114,6 +122,7 @@ export class AtlasMessageHandler {
             broadcastToDMs: this.broadcastToDMs,
             sendError: (uid, code, reason, nodeId) => this.error(uid, code, reason, nodeId),
             now: this.now,
+            weighMint: this.weighMintFor(state, roomId, senderUid),
           },
           state,
           senderUid,
@@ -209,6 +218,25 @@ export class AtlasMessageHandler {
   }
 
   /** True when `parentId` is missing, the node itself, or one of its descendants. */
+  /**
+   * The byte ceiling for the atlas mints — one closure, two callers; the kick
+   * hands it the bytes of the graph and capture it will push after the weigh.
+   */
+  private weighMintFor(
+    state: RoomState,
+    roomId: string,
+    senderUid: string,
+  ): (candidate: MapDocument, extraBytes?: number) => MintOverflow | null {
+    return (candidate, extraBytes = 0) =>
+      mintOverflow(
+        state,
+        withCandidate(this.mapStudioService.list(roomId), candidate),
+        senderUid,
+        mintSceneBytes(state, candidate, this.now()),
+        extraBytes,
+      );
+  }
+
   private reparentRejected(state: RoomState, nodeId: string, parentId: string): boolean {
     if (parentId === nodeId) return true;
     const byId = new Map(state.atlasNodes.map((node) => [node.id, node]));

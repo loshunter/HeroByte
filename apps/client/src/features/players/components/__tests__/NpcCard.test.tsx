@@ -332,6 +332,53 @@ describe("NpcCard", () => {
       expect(screen.getByText("Enemy")).toBeInTheDocument();
     });
 
+    it("renders a stance the type says cannot exist, rather than taking the table down", () => {
+      // A session file is attacker-editable, and there is no ErrorBoundary
+      // between the Entities panel and the root: a throw here blanks the app
+      // for every client at the table, not just the one that loaded the file.
+      // The server drops an unknown stance at both load doors; this is the
+      // second wall, so the next door that forgets cannot be fatal.
+      render(
+        <NpcCard
+          {...createDefaultProps({
+            character: createMockCharacter({ disposition: "banana" as never }),
+          })}
+        />,
+      );
+
+      expect(screen.getByText("Enemy")).toBeInTheDocument();
+      expect(screen.getByTestId("portrait-section-token-color")).toHaveTextContent("#D63C53");
+    });
+
+    it("says where the NPC stands, and stays red for one that has no stance", () => {
+      // Absent IS hostile — an NPC from before the field must look exactly as
+      // it did, which is what the test above pins from the other side.
+      for (const [disposition, label, ring, tint, glow] of [
+        [undefined, "Enemy", "#D63C53", "rgba(40, 9, 15, 0.9)", "rgba(214, 60, 83, 0.45)"],
+        ["hostile", "Enemy", "#D63C53", "rgba(40, 9, 15, 0.9)", "rgba(214, 60, 83, 0.45)"],
+        ["neutral", "Neutral", "#C9A24E", "rgba(38, 30, 12, 0.9)", "rgba(201, 162, 78, 0.35)"],
+        ["friendly", "Ally", "#3FBF6F", "rgba(9, 36, 20, 0.9)", "rgba(63, 191, 111, 0.35)"],
+      ] as const) {
+        cleanup();
+        const { container } = render(
+          <NpcCard {...createDefaultProps({ character: createMockCharacter({ disposition }) })} />,
+        );
+        expect(screen.getByText(label), String(disposition)).toBeInTheDocument();
+        expect(
+          screen.getByTestId("portrait-section-token-color"),
+          String(disposition),
+        ).toHaveTextContent(ring);
+
+        // The CARD's own colours, not just the label. "the baker's card is
+        // red" is the whole reason this feature exists, and reverting
+        // `background: look.tint` to the hardcoded red left every other
+        // assertion green.
+        const card = container.querySelector(".player-card--npc") as HTMLElement;
+        expect(card.style.background, String(disposition)).toBe(tint);
+        expect(card.style.boxShadow, String(disposition)).toContain(glow);
+      }
+    });
+
     it("displays PortraitSection component", () => {
       const props = createDefaultProps();
       render(<NpcCard {...props} />);

@@ -16,14 +16,26 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { WS_MAX_MESSAGE_BYTES, type ClientMessage, type SessionFile } from "@herobyte/shared";
-import { saveSessionFile, loadSession } from "../../utils/sessionPersistence";
+import {
+  WS_MAX_MESSAGE_BYTES,
+  loadSessionFrame,
+  loadSessionFrameBytes,
+  type ClientMessage,
+  type SessionFile,
+} from "@herobyte/shared";
+import {
+  downloadSessionJson,
+  loadSession,
+  serializeSessionFile,
+} from "../../utils/sessionPersistence";
 import { awaitSessionFile, sessionCredentials } from "./sessionBridge";
 import { collectSessionAssets, restoreSessionAssets } from "./sessionAssets";
 
 /**
  * Toast notification interface for displaying status messages.
  */
+const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+
 export interface ToastManager {
   info: (message: string, duration?: number) => void;
   success: (message: string, duration?: number) => void;
@@ -110,13 +122,36 @@ export function useSessionManagement({
       void (async () => {
         try {
           const { assets, skipped } = await collectSessionAssets(file);
-          saveSessionFile({ ...file, assets }, name);
+          // Serialized ONCE: the download and the disk figure share the string.
+          const diskBytes = downloadSessionJson(serializeSessionFile({ ...file, assets }), name);
 
           const maps = file.mapDocuments.length;
           const parts = [`${maps} map${maps === 1 ? "" : "s"}`];
           if (assets.length > 0)
             parts.push(`${assets.length} image${assets.length === 1 ? "" : "s"}`);
-          toast.success(`Session "${name}" saved — ${parts.join(", ")} included.`, 4000);
+          // SAY THE WEIGHT. The file is the DM's either way, but a save that
+          // will not load back is a backup in name only. Play grows a table
+          // past what one load-session frame carries — tokens, drawings,
+          // suspended scenes — even when every mint stayed under the ceiling,
+          // and this is where that becomes visible before the day it matters.
+          // Two numbers, because they differ by 2× or more: the wire weight is
+          // what a load sends (the frame, no images), the disk size is what was
+          // just written (pretty-printed, images inlined).
+          const frameBytes = loadSessionFrameBytes(file);
+          if (frameBytes > WS_MAX_MESSAGE_BYTES) {
+            toast.warning(
+              `Session "${name}" saved (${parts.join(", ")}; ${megabytes(diskBytes)} on disk) — but at ` +
+                `${megabytes(frameBytes)} on the wire it will NOT load back: the server accepts ` +
+                `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. Delete some maps and save again.`,
+              9000,
+            );
+          } else {
+            toast.success(
+              `Session "${name}" saved — ${parts.join(", ")} included; ${megabytes(frameBytes)} of ` +
+                `the ${megabytes(WS_MAX_MESSAGE_BYTES)} a load accepts (${megabytes(diskBytes)} on disk with images).`,
+              4000,
+            );
+          }
 
           // Never silent: a skipped asset is art the DM will not get back.
           if (skipped.length > 0) {
@@ -178,15 +213,12 @@ export function useSessionManagement({
           return;
         }
 
-        const frame: ClientMessage = {
-          t: "load-session",
-          snapshot: session.snapshot,
-          mapDocuments: session.mapDocuments,
-          liveMapDocumentId: session.liveMapDocumentId,
-          // Envelope-only cargo: the snapshot half never carries scenes, so
-          // omitting this line is the silent-suspended-scene-loss bug.
-          sceneStates: session.sceneStates,
-        };
+        // ONE builder for this frame (shared `loadSessionFrame`): the server's
+        // mint ceiling weighs the very same shape before a mint persists, so
+        // the two cannot drift. It carries the envelope's sceneStates — the
+        // snapshot half never does, and omitting them was the silent
+        // suspended-scene-loss bug.
+        const frame = loadSessionFrame(session);
 
         // WEIGH IT BEFORE SENDING. A load-session frame past the wire limit is
         // dropped by ws at the socket level — the close arrives with 1009
@@ -197,12 +229,11 @@ export function useSessionManagement({
         // only holds if the average document is small, and a generated building
         // is not. Say the real numbers rather than fail invisibly. Checked
         // BEFORE restoreSessionAssets so a doomed load costs no uploads.
-        const frameBytes = new TextEncoder().encode(JSON.stringify(frame)).length;
+        const frameBytes = loadSessionFrameBytes(session);
         if (frameBytes > WS_MAX_MESSAGE_BYTES) {
-          const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
           toast.error(
-            `"${file.name}" is too large to load: ${mb(frameBytes)}, and the server accepts ` +
-              `${mb(WS_MAX_MESSAGE_BYTES)} in one message. The table has NOT been changed. ` +
+            `"${file.name}" is too large to load: ${megabytes(frameBytes)}, and the server accepts ` +
+              `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. The table has NOT been changed. ` +
               `Delete some maps from the campaign and export again.`,
             9000,
           );

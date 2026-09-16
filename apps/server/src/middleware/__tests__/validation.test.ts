@@ -506,6 +506,56 @@ describe("validateMessage", () => {
       ).toEqual({ valid: true });
     });
 
+    describe("create-npc tokenSize (the library's size default)", () => {
+      const base = { t: "create-npc", name: "Ogre", hp: 30, maxHp: 30 };
+
+      it("accepts every rung of the ladder, and an absent size", () => {
+        for (const tokenSize of ["tiny", "small", "medium", "large", "huge", "gargantuan"]) {
+          expect(validateMessage({ ...base, tokenSize })).toEqual({ valid: true });
+        }
+        expect(validateMessage({ ...base })).toEqual({ valid: true });
+      });
+
+      it("refuses a size off the ladder rather than defaulting it", () => {
+        // The handler hands the value straight to the token it places, so a
+        // stray word would become a token size no renderer knows.
+        for (const tokenSize of ["enormous", "", 2, null, { size: "large" }]) {
+          const result = validateMessage({ ...base, tokenSize });
+          expect(result.valid, JSON.stringify(tokenSize)).toBe(false);
+        }
+      });
+    });
+
+    describe("the NPC stance (create and update alike)", () => {
+      const create = { t: "create-npc", name: "Baker", hp: 6, maxHp: 6 };
+      const update = { t: "update-npc", id: "npc-1", name: "Baker", hp: 6, maxHp: 6 };
+
+      it("accepts the three stances, and absent — which already means hostile", () => {
+        for (const disposition of ["hostile", "neutral", "friendly"]) {
+          expect(validateMessage({ ...create, disposition }), disposition).toEqual({ valid: true });
+          expect(validateMessage({ ...update, disposition }), disposition).toEqual({ valid: true });
+        }
+        expect(validateMessage(create)).toEqual({ valid: true });
+        expect(validateMessage(update)).toEqual({ valid: true });
+      });
+
+      it("refuses a word off the list rather than defaulting it", () => {
+        // "enemy" is the card's LABEL, not the stored value — the likeliest
+        // wrong guess, and the one that would silently become hostile if this
+        // defaulted instead of refusing.
+        for (const disposition of ["enemy", "ally", "HOSTILE", "", 1, null, ["neutral"]]) {
+          expect(
+            validateMessage({ ...create, disposition }).valid,
+            JSON.stringify(disposition),
+          ).toBe(false);
+          expect(
+            validateMessage({ ...update, disposition }).valid,
+            JSON.stringify(disposition),
+          ).toBe(false);
+        }
+      });
+    });
+
     /**
      * The count bound lives here rather than in a router test on purpose:
      * router.route() runs AFTER validation in production, so routing a

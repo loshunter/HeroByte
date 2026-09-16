@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import type { ClientMessage, NpcDisposition, RoomSnapshot } from "@herobyte/shared";
 
 export interface UseNpcUpdateOptions {
   /**
@@ -35,6 +35,8 @@ export interface NpcUpdateFields {
   portrait?: string | null;
   tokenImage?: string | null;
   initiativeModifier?: number | null;
+  /** Where the NPC stands with the party; absent keeps what it has. */
+  disposition?: NpcDisposition;
 }
 
 export interface UseNpcUpdateReturn {
@@ -94,7 +96,25 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     portrait?: string;
     tokenImage?: string | null;
     initiativeModifier?: number;
+    disposition?: NpcDisposition;
   } | null>(null);
+
+  // ONE timer, cleared wherever the request resolves. It used to be armed on
+  // every call and never cleared — including on success — so a timer from an
+  // update that had already CONFIRMED fired during a later one. `prev` was
+  // true (the later update in flight), so it took the timeout branch: a false
+  // "timed out" banner, targetNpcId nulled so the live update could never
+  // confirm, and isUpdating flipped false mid-flight — which is the flag
+  // NPCEditor's resync guard keys on, so the optimistic edit was discarded.
+  // Blurring five fields in a row armed five overlapping timers.
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTimer = useCallback(() => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+  useEffect(() => clearTimer, [clearTimer]);
 
   // Get current NPC from snapshot
   const currentNpc = snapshot?.characters?.find((c) => c.id === targetNpcId && c.type === "npc");
@@ -115,6 +135,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     const portraitMatches = currentNpc.portrait === expected.portrait;
     const tokenImageMatches = currentNpc.tokenImage === expected.tokenImage;
     const initiativeModifierMatches = currentNpc.initiativeModifier === expected.initiativeModifier;
+    const dispositionMatches = currentNpc.disposition === expected.disposition;
 
     const allFieldsMatch =
       nameMatches &&
@@ -123,7 +144,8 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
       tempHpMatches &&
       portraitMatches &&
       tokenImageMatches &&
-      initiativeModifierMatches;
+      initiativeModifierMatches &&
+      dispositionMatches;
 
     if (allFieldsMatch) {
       console.log("[useNpcUpdate] NPC update confirmed:", {
@@ -131,13 +153,14 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         fields: expected,
       });
 
-      // Success! Clear loading state
+      // Success! Clear loading state — and the timer, or it outlives us.
+      clearTimer();
       setIsUpdating(false);
       setError(null);
       setTargetNpcId(null);
       expectedValuesRef.current = null;
     }
-  }, [currentNpc, isUpdating, targetNpcId]);
+  }, [currentNpc, isUpdating, targetNpcId, clearTimer]);
 
   /**
    * Initiate NPC update
@@ -170,6 +193,14 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         portrait: updates.portrait ?? existing.portrait,
         tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
         initiativeModifier: updates.initiativeModifier ?? existing.initiativeModifier,
+        // ?? not ||: the merge has to keep a stance the DM set earlier when the
+        // edit that triggered this send was about something else entirely.
+        // Conditional, like every other writer in this arc: `disposition:
+        // undefined` is a KEY, and it is only inert because JSON.stringify
+        // happens to drop it. It should not depend on the transport.
+        ...((updates.disposition ?? existing.disposition)
+          ? { disposition: updates.disposition ?? existing.disposition }
+          : {}),
       };
 
       // Set loading state BEFORE sending message
@@ -186,7 +217,9 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
       });
 
       // Set a timeout in case server doesn't respond
-      setTimeout(() => {
+      clearTimer();
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
         setIsUpdating((prev) => {
           if (prev) {
             // Only set error if STILL updating
@@ -200,7 +233,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         });
       }, 5000);
     },
-    [isUpdating, sendMessage, snapshot?.characters],
+    [isUpdating, sendMessage, snapshot?.characters, clearTimer],
   );
 
   return {

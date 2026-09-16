@@ -47,6 +47,9 @@ export function DMMenu({
   onRequestSaveSession,
   onRequestLoadSession,
   onCreateNPC,
+  customTokens,
+  onAddCustomToken,
+  onRemoveCustomToken,
   onDuplicateNPC,
   onUpdateNPC,
   onSetNPCSpeed,
@@ -204,6 +207,9 @@ export function DMMenu({
         <NPCsTab
           npcs={npcs}
           onCreateNPC={onCreateNPC}
+          customTokens={customTokens}
+          onAddCustomToken={onAddCustomToken}
+          onRemoveCustomToken={onRemoveCustomToken}
           onDuplicateNPC={onDuplicateNPC}
           onUpdateNPC={onUpdateNPC}
           onSetNPCSpeed={onSetNPCSpeed}

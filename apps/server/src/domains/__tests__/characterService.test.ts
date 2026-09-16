@@ -35,6 +35,18 @@ describe("CharacterService", () => {
     expect(state.characters).toHaveLength(1);
   });
 
+  it("stores tempHp on updateHP, and leaves it alone when omitted", () => {
+    const state = createEmptyRoomState();
+    const character = service.createCharacter(state, "Hero", 30);
+    expect("tempHp" in character).toBe(false);
+    service.updateHP(state, character.id, 20, 35, 4);
+    expect(service.findCharacter(state, character.id)?.tempHp).toBe(4);
+    service.updateHP(state, character.id, 18, 35);
+    expect(service.findCharacter(state, character.id)?.tempHp).toBe(4);
+    service.updateHP(state, character.id, 18, 35, 0);
+    expect(service.findCharacter(state, character.id)?.tempHp).toBe(0);
+  });
+
   it("claims, updates, and links characters", () => {
     const state = createEmptyRoomState();
     const character = service.createCharacter(state, "Hero", 30);
@@ -112,6 +124,74 @@ describe("CharacterService", () => {
       tokenService.forceDeleteToken(state, removed.tokenId);
     }
     expect(state.characters.find((c) => c.id === npc.id)).toBeUndefined();
+  });
+
+  it("stores tempHp on create and update, and leaves it alone when absent", () => {
+    // The wire declared tempHp on create-npc and update-npc, the validator
+    // checked it, and nothing on the server ever wrote it. So the DM's Temp HP
+    // blur sent a value the snapshot could never echo, and the client's
+    // watcher reported "update timed out" over an edit that had landed.
+    const state = createEmptyRoomState();
+    const tokenService = new TokenService();
+
+    const bare = service.createCharacter(state, "Goblin", 12, undefined, "npc", { hp: 8 });
+    expect("tempHp" in bare).toBe(false); // absent stays absent: no bare undefined key
+
+    const shielded = service.createCharacter(state, "Warded", 12, undefined, "npc", {
+      hp: 8,
+      tempHp: 5,
+    });
+    expect(shielded.tempHp).toBe(5);
+
+    service.updateNPC(state, tokenService, bare.id, {
+      name: "Goblin",
+      hp: 8,
+      maxHp: 12,
+      tempHp: 3,
+    });
+    expect(service.findCharacter(state, bare.id)!.tempHp).toBe(3);
+
+    // A full-record send that omits it must not clear a value already set.
+    service.updateNPC(state, tokenService, bare.id, { name: "Goblin", hp: 7, maxHp: 12 });
+    expect(service.findCharacter(state, bare.id)!.tempHp).toBe(3);
+
+    // 0 is a real value (the shield is gone), so the test is on undefined, not truthiness.
+    service.updateNPC(state, tokenService, bare.id, {
+      name: "Goblin",
+      hp: 7,
+      maxHp: 12,
+      tempHp: 0,
+    });
+    expect(service.findCharacter(state, bare.id)!.tempHp).toBe(0);
+  });
+
+  it("refuses update-npc on a PLAYER's character rather than converting it", () => {
+    // findCharacter does not filter by type, and updateNPC used to set
+    // `type = "npc"` unconditionally. So an update-npc carrying a player's id
+    // renamed their character, rewrote its HP and portrait, and turned it into
+    // a DM-owned NPC — irreversibly, and with no message able to turn it back.
+    // No client can send it; the server does not get to rely on that.
+    const state = createEmptyRoomState();
+    const tokenService = new TokenService();
+    const pc = service.createCharacter(state, "Thalia", 30);
+    service.claimCharacter(state, pc.id, "uid-1");
+
+    const updated = service.updateNPC(state, tokenService, pc.id, {
+      name: "Goblin Chief",
+      hp: 1,
+      maxHp: 1,
+      portrait: "https://x/goblin.png",
+      disposition: "hostile",
+    });
+
+    expect(updated).toBe(false);
+    const stored = service.findCharacter(state, pc.id)!;
+    expect(stored.type).toBe("pc");
+    expect(stored.name).toBe("Thalia");
+    expect(stored.maxHp).toBe(30);
+    expect(stored.portrait).toBeUndefined();
+    expect(stored).not.toHaveProperty("disposition");
+    expect(service.findCharacterByOwner(state, "uid-1")?.id).toBe(pc.id);
   });
 
   // Test 5: Character deletion cascade effects - ensure tokens are cleaned up

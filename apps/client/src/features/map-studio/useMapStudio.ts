@@ -11,6 +11,7 @@ import type { MapStudioController, MapStudioServerMessage } from "./types";
 import type { AssetUploadCredentials } from "./uploads/assetUpload";
 import { useMapStudioActions } from "./useMapStudioActions";
 import { useMapStudioRequests } from "./useMapStudioRequests";
+import { useCampaignReadout } from "./useCampaignReadout";
 
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
 /**
@@ -40,6 +41,14 @@ export function useMapStudio(
   // the maps store reset under a room that kept its live binding. Glue code
   // uses it to stop re-fetching the dangling id and offer a fresh start.
   const [missingDocumentId, setMissingDocumentId] = useState<string | null>(null);
+  // The campaign's weight beside the map list, and its silent re-lists (useCampaignReadout).
+  const readout = useCampaignReadout(sendMessage);
+  // Mints this panel asked for (create, import) whose reply is still owed. A
+  // refusal is matched HERE, not through the single requestedDocumentId slot,
+  // which moves on with a second click or the watchdog — and dropped the refusal.
+  const pendingMintIds = useRef<Set<string>>(new Set());
+  // The panel's OWN list is tracked apart, so a silent reply never swallows its spinner.
+  const explicitListPending = useRef(false);
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const requestedDocumentId = useRef<string | null>(null);
   const activeDocumentRef = useRef<MapDocument | null>(null);
@@ -74,6 +83,8 @@ export function useMapStudio(
     requestedDocumentId,
     activeDocumentRef,
     watchdogFired,
+    pendingMintIds,
+    explicitListPending,
   });
 
   const dispatchNextCommand = useCallback(
@@ -111,12 +122,14 @@ export function useMapStudio(
     const cameBackUp = isConnected === true && wasConnected.current === false;
     wasConnected.current = isConnected;
     if (!cameBackUp) return;
+    pendingMintIds.current.clear();
+    readout.onReconnect();
     if (inFlightMessage.current) {
       sendMessage(inFlightMessage.current);
     } else if (commandQueue.current.length > 0) {
       dispatchNextCommand();
     }
-  }, [isConnected, sendMessage, dispatchNextCommand]);
+  }, [isConnected, sendMessage, dispatchNextCommand, readout]);
 
   /** Queue any map-studio message that the server acks by commandId. */
   const applyMessage = useCallback(
@@ -167,11 +180,18 @@ export function useMapStudio(
     (message: MapStudioServerMessage) => {
       if (message.t === "map-studio-documents") {
         setDocuments(message.documents);
-        setLoading(false);
+        readout.onListReply(message);
+        // Only the panel's OWN list releases its spinner (a silent or
+        // unsolicited reply never does).
+        if (explicitListPending.current) {
+          explicitListPending.current = false;
+          setLoading(false);
+        }
         return;
       }
 
       if (message.t === "map-studio-deleted") {
+        readout.onDeleted(message.documentId);
         setDocuments((current) => current.filter((document) => document.id !== message.documentId));
         setActiveDocument((current) => (current?.id === message.documentId ? null : current));
         if (activeDocumentRef.current?.id === message.documentId) activeDocumentRef.current = null;
@@ -185,14 +205,26 @@ export function useMapStudio(
 
       if (message.t === "map-studio-error") {
         // A "not-found" for the document we are OPENING is a reply to the
-        // get, not to a queued command: release the load and remember the
-        // dangling id so the open isn't auto-retried forever (the
-        // stuck-STARTING loop after a server-side maps-store reset).
-        if (message.code === "not-found" && requestedDocumentId.current === message.documentId) {
-          requestedDocumentId.current = null;
+        // get, not to a queued command; a REFUSED create or import (an empty
+        // commandId — those messages carry none, so the router never nacks
+        // them) is the same shape. Either way: release the load and show the
+        // reason, instead of spinning until the watchdog blames the server.
+        // not-found also remembers the dangling id so the open isn't
+        // auto-retried forever (the stuck-STARTING loop after a server-side
+        // maps-store reset).
+        const mintRefused =
+          message.commandId === "" && pendingMintIds.current.delete(message.documentId);
+        const openRefused =
+          message.code === "not-found" && requestedDocumentId.current === message.documentId;
+        if (mintRefused || openRefused) {
+          // A real reply supersedes a prior timeout, whichever request it was for.
           watchdogFired.current = false;
-          setMissingDocumentId(message.documentId);
-          setLoading(false);
+          if (requestedDocumentId.current === message.documentId) {
+            // The request the panel is waiting on: release it.
+            requestedDocumentId.current = null;
+            setLoading(false);
+          }
+          if (message.code === "not-found") setMissingDocumentId(message.documentId);
           setError(message.reason);
           return;
         }
@@ -216,7 +248,9 @@ export function useMapStudio(
       const { document } = message;
       // A document that arrives is by definition not missing any more.
       setMissingDocumentId((current) => (current === document.id ? null : current));
+      pendingMintIds.current.delete(document.id);
       setDocuments((current) => upsertMapDocumentSummary(current, document));
+      readout.onDocumentFrame(message);
       const shouldActivate =
         requestedDocumentId.current === document.id ||
         activeDocumentRef.current?.id === document.id ||
@@ -248,7 +282,7 @@ export function useMapStudio(
         setSaving(false);
       }
     },
-    [dispatchNextCommand, sendMessage],
+    [dispatchNextCommand, sendMessage, readout],
   );
 
   return {
@@ -258,6 +292,7 @@ export function useMapStudio(
     saving,
     error,
     missingDocumentId,
+    exportBytes: readout.exportBytes,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
     refresh,

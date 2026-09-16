@@ -18,13 +18,20 @@ import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
 import {
+  SESSION_MINT_CEILING_BYTES,
   WS_MAX_MESSAGE_BYTES,
+  loadSessionFrame,
+  loadSessionFrameBytes,
   type ClientMessage,
   type MapDocument,
   type SceneState,
   type ServerMessage,
+  utf8ByteLength,
+  type AtlasNode,
 } from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
+import { cashNode } from "../handlers/atlasCash.js";
+import { liveSceneBytes } from "../handlers/liveSceneBytes.js";
 import { MapStudioService } from "../../domains/mapStudio/service.js";
 import { RoomService } from "../../domains/room/service.js";
 import { TokenService } from "../../domains/token/service.js";
@@ -368,13 +375,8 @@ describe("session round trip", () => {
     const before = origin.roomService.getState();
     const file = exportSession();
     const restored = bootServer();
-    restored.route({
-      t: "load-session",
-      snapshot: file.snapshot as never,
-      mapDocuments: file.mapDocuments,
-      liveMapDocumentId: file.liveMapDocumentId,
-      sceneStates: file.sceneStates,
-    });
+    // Load through the SAME shared frame that was weighed above.
+    restored.route(loadSessionFrame(file as never));
     const after = restored.roomService.getState();
 
     // THE SWEEP. Compare ORIGIN to RESTORED — not "restored is defined", which
@@ -535,28 +537,15 @@ describe("session round trip", () => {
     const file = exportSession();
     // Weigh the FRAME the client actually sends, not the file: `load-session`
     // must cross the socket in one message, and ws checks the declared frame
-    // length. `useSessionManagement.ts` builds exactly this object.
-    const frameBytes = Buffer.byteLength(
-      JSON.stringify({
-        t: "load-session",
-        snapshot: file.snapshot,
-        mapDocuments: file.mapDocuments,
-        liveMapDocumentId: file.liveMapDocumentId,
-        sceneStates: file.sceneStates,
-      }),
-      "utf8",
-    );
+    // length. The SHARED builder is what `useSessionManagement.ts` sends and
+    // what the mint ceiling weighs — one shape, three sites.
+    const frameBytes = loadSessionFrameBytes(file as never);
     expect(file.sceneStates).toHaveLength(8);
     expect(frameBytes).toBeLessThan(WS_MAX_MESSAGE_BYTES * 0.9);
 
     const restored = bootServer();
-    restored.route({
-      t: "load-session",
-      snapshot: file.snapshot as never,
-      mapDocuments: file.mapDocuments,
-      liveMapDocumentId: file.liveMapDocumentId,
-      sceneStates: file.sceneStates,
-    });
+    // Load through the SAME shared frame that was weighed above.
+    restored.route(loadSessionFrame(file as never));
     const after = restored.roomService.getState();
     expect(Object.keys(after.sceneStates)).toHaveLength(8);
     // Deep content survives, not just the keys.
@@ -575,23 +564,17 @@ describe("session round trip", () => {
     );
   });
 
-  it("CHARACTERIZES A KNOWN GAP: the document COUNT cap does not bound the export's BYTES", () => {
-    // This test asserts the DEFECT, on purpose, and must be inverted the day it
-    // is fixed. `MAX_SESSION_DOCUMENTS` (64) is documented as the mint ceiling
-    // that keeps a DM's own export re-importable — but the gate that actually
-    // refuses a load is a BYTE ceiling, and 1 MiB / 64 means a count cap only
-    // holds if the average document is under 16 KB. A generated building is an
-    // order of magnitude past that, so a room nowhere near any cap writes a
-    // file whose `load-session` frame ws drops at the socket level, with a 1009
-    // close no handler ever sees. Found by the final review's recipe lens and
-    // reproduced twice independently; the plan's section 7 prices the fixes.
-    //
-    // The client now weighs the frame before sending and tells the DM
-    // (`useSessionManagement.ts`), so the failure is visible rather than a
-    // success toast over a dead socket — but the room can still reach this
-    // state, which is what this pins.
-    const generated = 6;
-    for (let i = 0; i < generated; i++) {
+  it("the mint path refuses the building that would overflow — and a table at the ceiling exports a file that loads back onto a wiped server in one frame", () => {
+    // Until 2026-09-14 this test CHARACTERIZED A KNOWN GAP: six `large`
+    // buildings, well under the document COUNT cap (64), wrote a frame the
+    // socket dropped with a 1009 close no handler ever saw — 1 MiB / 64 only
+    // holds if the average document is under 16 KB, and a large building is
+    // 70–260 KB by kind (a warehouse is the heavy one). The mint path now weighs
+    // BYTES (the Weighed Campaign plan):
+    // every mint is refused once the export it would write outweighs
+    // SESSION_MINT_CEILING_BYTES. The count cap still holds beside it.
+    const attempted = 6;
+    for (let i = 0; i < attempted; i++) {
       origin.route({
         t: "atlas-create-node",
         node: { id: `n-${i}`, kind: "building", name: `Warehouse ${i}` },
@@ -606,25 +589,74 @@ describe("session round trip", () => {
     }
 
     const documents = origin.mapStudioService.list("default");
-    // Well inside every cap the mint path enforces — that is the whole point.
+    const buildings = documents.filter((entry) => entry.id !== "live");
+    // Some minted, then refused — never all six, never none.
+    expect(buildings.length).toBeGreaterThanOrEqual(2);
+    expect(buildings.length).toBeLessThan(attempted);
     expect(documents.length).toBeLessThan(MAX_SESSION_DOCUMENTS);
     // Guard the guard: real maps, not empty shells.
-    for (const document of documents.filter((entry) => entry.id !== "live")) {
+    for (const document of buildings) {
       expect(document.elements.length).toBeGreaterThan(50);
     }
+    const refusals = framesOf(origin.dmWs, "atlas-error") as unknown as {
+      code: string;
+      reason: string;
+    }[];
+    expect(refusals).toHaveLength(attempted - buildings.length);
+    for (const refusal of refusals) {
+      expect(refusal.code).toBe("at-cap");
+      expect(refusal.reason).toMatch(/\d\.\d\d MB/);
+    }
+    // A refused node stays a promise: no document, no provenance.
+    const mapped = origin.roomService.getState().atlasNodes.filter((node) => node.mapDocumentId);
+    expect(mapped).toHaveLength(buildings.length);
 
     const file = exportSession();
-    const frameBytes = Buffer.byteLength(
-      JSON.stringify({
-        t: "load-session",
-        snapshot: file.snapshot,
-        mapDocuments: file.mapDocuments,
-        liveMapDocumentId: file.liveMapDocumentId,
-        sceneStates: file.sceneStates,
-      }),
-      "utf8",
+    const frameBytes = loadSessionFrameBytes(file as never);
+    // Under the wire limit — the promise — and at or about the ceiling (the
+    // promise nodes created AFTER the last accepted mint add a few bytes).
+    expect(frameBytes).toBeLessThan(WS_MAX_MESSAGE_BYTES);
+    expect(frameBytes).toBeLessThan(SESSION_MINT_CEILING_BYTES + 4096);
+    // The refusal's own number carries the SCENE the mint would install, not
+    // the document alone. Derived, not hard-coded: mint the refused seed on a
+    // scratch service with the same command and name, and the reported weight
+    // must sit document + scene above the export that was actually written
+    // (to within the 2-dp MB rounding, ~5 KB, and the promise node's bytes).
+    const refusedIndex = buildings.length;
+    const scratch = new MapStudioService();
+    const probe: AtlasNode = {
+      id: `n-${refusedIndex}`,
+      kind: "building",
+      name: `Warehouse ${refusedIndex}`,
+      discovered: false,
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const minted = cashNode(
+      { mapStudioService: scratch, broadcastToDMs: () => {}, now: () => 1, weighMint: () => null },
+      "scratch",
+      probe,
+      1000 + refusedIndex,
+      { recipeId: "building", kind: "warehouse", size: "large" },
+      `gen-${refusedIndex}`,
     );
-    expect(frameBytes).toBeGreaterThan(WS_MAX_MESSAGE_BYTES);
+    const refusedDocument = scratch.get("scratch", (minted as { documentId: string }).documentId);
+    const refusedDocumentBytes = utf8ByteLength(JSON.stringify(refusedDocument));
+    const expected = refusedDocumentBytes + liveSceneBytes(refusedDocument, 1);
+    const reported = Number(/about (\d+\.\d\d) MB/.exec(refusals[0]!.reason)![1]) * 1024 * 1024;
+    expect(reported - frameBytes).toBeGreaterThan(expected - 8192);
+    expect(reported - frameBytes).toBeLessThan(expected + 8192);
+    // ...and the document alone could never explain it.
+    expect(reported - frameBytes).toBeGreaterThan(refusedDocumentBytes + 20_000);
+
+    const restored = bootServer();
+    restored.route(loadSessionFrame(file as never));
+    expect(restored.mapStudioService.list("default")).toHaveLength(documents.length);
+    for (const document of buildings) {
+      expect(restored.mapStudioService.get("default", document.id).elements).toHaveLength(
+        document.elements.length,
+      );
+    }
   });
 
   it("writes a file the loaders can actually read", () => {

@@ -83,6 +83,7 @@ describe("MessageRouter - Error Handling Characterization", () => {
       selectionState: new Map(),
       playerStagingZone: undefined,
       props: [],
+      customTokens: [],
       combatActive: false,
       currentTurnCharacterId: undefined,
       fogEnabled: false,

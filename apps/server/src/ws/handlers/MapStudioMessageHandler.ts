@@ -2,7 +2,9 @@ import {
   MapDocumentRevisionConflictError,
   authoredDoorStatesOf,
   compileScene,
+  createMapDocument,
   deriveMapElements,
+  importMapDocument,
   preserveDoorRuntimeStates,
   toLiveGridSize,
   type ClientMessage,
@@ -11,23 +13,13 @@ import {
 } from "@herobyte/shared";
 import { MapDocumentNotFoundError } from "../../domains/mapStudio/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
-import {
-  alreadyApplied,
-  deriveMapTerrain,
-  isMapStudioMessage,
-  REPLAY_LANDED,
-  toSummary,
-} from "./mapStudioHandlerUtils.js";
-import { dungeonRecipe } from "../../domains/generation/dungeonRecipe.js";
-import {
-  assertGenerateSeed,
-  assertRecipeBudget,
-  resolveRecipeContext,
-} from "../../domains/generation/recipeContext.js";
+import { deriveMapTerrain, isMapStudioMessage, toSummary } from "./mapStudioHandlerUtils.js";
+import { handleMapStudioGenerate } from "./mapStudioGenerate.js";
+import { exportBytes } from "../../domains/room/sessionExport.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
-import { MAX_SESSION_DOCUMENTS } from "../../middleware/validators/sessionValidators.js";
 import { bindLiveDocument } from "./sceneTravel.js";
+import { assertMintCeiling, mintOverflowWith, type MapStudioMintDeps } from "./mapStudioMint.js";
 import { publishDocument } from "./mapStudioPublish.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
@@ -57,18 +49,31 @@ export class MapStudioMessageHandler {
     }
 
     switch (message.t) {
-      case "map-studio-list":
+      case "map-studio-list": {
+        const documents = this.service.list(roomId);
+        // The DM's readout: what the campaign's export weighs right now. A
+        // weigh that throws costs the readout (the field is optional and the
+        // client renders nothing), never the map list — this message carries
+        // no commandId, so a throw here would reach no screen at all.
+        const weight = this.exportBytesNow(roomId, senderUid);
         this.sendMessage(senderUid, {
           t: "map-studio-documents",
-          documents: this.service.list(roomId).map(toSummary),
+          documents: documents.map(toSummary),
+          ...(weight === undefined ? {} : { exportBytes: weight }),
         });
         break;
+      }
       case "map-studio-create": {
-        this.assertMintCeiling(roomId);
-        const document = this.service.create(roomId, {
-          ...message.document,
-          timestamp: this.now(),
-        });
+        const input = { ...message.document, timestamp: this.now() };
+        let document: MapDocument;
+        try {
+          assertMintCeiling(this.mintDeps, roomId, senderUid, () => createMapDocument(input));
+          document = this.service.create(roomId, input);
+        } catch (error) {
+          this.refuseMint(senderUid, input.id, error);
+          break;
+        }
+        // Outside the refusal's reach: a broadcast failure is not a refusal.
         this.broadcastDocument(roomId, document);
         break;
       }
@@ -120,57 +125,31 @@ export class MapStudioMessageHandler {
       }
       case "map-studio-set-live":
         return this.setLiveDocument(senderUid, roomId, message.documentId);
-      case "map-studio-generate": {
-        // A recipe runs server-side and lands as ONE place-room command, so
-        // undo, retry-dedupe, revision conflicts, and (when the target is the
-        // live-bound document) the recompile all ride the existing rails. The
-        // message's commandId doubles as the element idPrefix — retries hit
-        // the dedupe cache, so generated ids can never collide with themselves.
-        try {
-          // A replay (the client queue re-sends the in-flight message after a
-          // reconnect) must ack from the dedupe cache BEFORE any validation:
-          // re-running the resolver would reject a generate that already landed
-          // if the document changed since (a layer locked, the grid moved).
-          const replay = this.service.cachedResult(roomId, message.documentId, message.commandId);
-          if (replay) {
-            this.broadcastDocument(roomId, replay.document, replay.commandId);
-            break;
-          }
-          const document = this.service.get(roomId, message.documentId);
-          const ctx = resolveRecipeContext(document, message.bounds, message.commandId);
-          assertGenerateSeed(message.seed);
-          const output = dungeonRecipe(message.seed, message.bounds, message.params, ctx);
-          assertRecipeBudget(output);
-          const isLive = this.getRoomState(roomId).liveMapDocumentId === message.documentId;
-          const result = this.service.apply(
-            roomId,
-            {
-              type: "place-room",
-              commandId: message.commandId,
-              documentId: message.documentId,
-              baseRevision: document.revision,
-              cells: output.cells,
-              elements: output.elements,
-            },
-            this.now(),
-          );
-          this.broadcastDocument(roomId, result.document, result.commandId);
-          if (isLive) {
-            // `document` is the pre-apply clone — exactly the "previous" the
-            // door-state preservation wants.
-            this.recompileLiveScene(roomId, document, result.document);
-            return { broadcast: true, save: true };
-          }
-        } catch (error) {
-          // A replay whose dedupe entry has been evicted (the cache is global and
-          // bounded) re-runs the recipe, deterministically re-mints the same ids,
-          // and trips the duplicate-id guard. Nothing half-applies — the batch
-          // validates before it commits — but "Map element already exists:
-          // <uuid>:e17" is a lie dressed as an error: the dungeon IS on the map.
-          this.sendCommandError(senderUid, message, alreadyApplied(error) ? REPLAY_LANDED : error);
-        }
-        break;
-      }
+      case "map-studio-generate":
+        // Extracted for the 350-LOC cap: the recipe, the byte ceiling and the
+        // recompile live in mapStudioGenerate.ts.
+        return handleMapStudioGenerate(
+          {
+            service: this.service,
+            getRoomState: this.getRoomState,
+            now: this.now,
+            broadcastDocument: (room, document, appliedCommandId, weigh) =>
+              this.broadcastDocument(
+                room,
+                document,
+                appliedCommandId,
+                weigh ? this.exportBytesNow(room, senderUid) : undefined,
+              ),
+            recompileLiveScene: (room, previous, document) =>
+              this.recompileLiveScene(room, previous, document),
+            sendCommandError: (uid, command, error) => this.sendCommandError(uid, command, error),
+            weighMint: (room, uid, candidate) =>
+              mintOverflowWith(this.mintDeps, room, uid, candidate),
+          },
+          senderUid,
+          roomId,
+          message,
+        );
       case "map-studio-delete": {
         this.service.delete(roomId, message.documentId);
         this.broadcastToDMs(roomId, {
@@ -220,8 +199,17 @@ export class MapStudioMessageHandler {
       case "map-studio-import": {
         // Import MINTS (it rejects duplicate ids, so every success adds one) —
         // the third create path the arc's review found outside the ceiling.
-        this.assertMintCeiling(roomId);
-        const document = this.service.import(roomId, message.document, this.now());
+        const timestamp = this.now();
+        let document: MapDocument;
+        try {
+          assertMintCeiling(this.mintDeps, roomId, senderUid, () =>
+            importMapDocument(message.document, timestamp),
+          );
+          document = this.service.import(roomId, message.document, timestamp);
+        } catch (error) {
+          this.refuseMint(senderUid, message.document.id, error);
+          break;
+        }
         this.broadcastDocument(roomId, document);
         break;
       }
@@ -286,31 +274,44 @@ export class MapStudioMessageHandler {
   }
 
   /**
-   * The mint ceiling (A3): a room past MAX_SESSION_DOCUMENTS writes a session
-   * file its OWN reimport rejects — the DM's backup silently stops being a
-   * backup. Thrown like the duplicate-id case: the nack carries the reason and
-   * the mint simply does not happen. Every path that creates a document calls
-   * this (create, import; atlas-generate-node has its own atlas-error twin).
+   * A refused create or import REACHES the DM. Neither message carries a
+   * commandId, so the router's nack never fires — a thrown error here was a
+   * silent NEW MAP button: the panel spun until its watchdog blamed the
+   * server. The client matches this frame by the document id it asked for
+   * (an empty commandId says "not a queued command").
    */
-  private assertMintCeiling(roomId: string): void {
-    if (this.service.list(roomId).length >= MAX_SESSION_DOCUMENTS) {
-      throw new Error(
-        `This table already holds the maximum of ${MAX_SESSION_DOCUMENTS} map documents — delete one first.`,
-      );
-    }
+  private refuseMint(senderUid: string, documentId: string, error: unknown): void {
+    this.sendCommandError(senderUid, { commandId: "", documentId }, error);
+  }
+
+  /** What the studio's mints answer to (mapStudioMint.ts). */
+  private get mintDeps(): MapStudioMintDeps {
+    return { service: this.service, getRoomState: this.getRoomState, now: this.now };
   }
 
   private broadcastDocument(
     roomId: string,
     document: MapDocument,
     appliedCommandId?: string,
+    exportBytes?: number,
   ): void {
     this.broadcastToDMs(roomId, {
       t: "map-studio-document",
       document,
       appliedCommandId,
       history: this.service.historyStatus(roomId, document.id),
+      ...(exportBytes === undefined ? {} : { exportBytes }),
     });
+  }
+
+  /** The campaign's weight after a change — undefined when the weigh throws (the readout, never the frame). */
+  private exportBytesNow(roomId: string, senderUid: string): number | undefined {
+    try {
+      return exportBytes(this.getRoomState(roomId), this.service.list(roomId), senderUid);
+    } catch (error) {
+      console.error("map-studio: the campaign weigh failed", error);
+      return undefined;
+    }
   }
 
   private sendCommandError(

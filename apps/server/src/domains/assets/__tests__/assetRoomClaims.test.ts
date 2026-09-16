@@ -186,6 +186,24 @@ describe("collectAssetHashes", () => {
     expect(collectAssetHashes(state)).toEqual(new Set([H1, H2, H3]));
   });
 
+  it("reaches a custom token's picture AND its thumbnail", () => {
+    // The shelf holds two uploads per entry once a thumb is made, and the
+    // sweep condemns any hash it cannot find. Covered because the scan reads
+    // the SERIALIZED state rather than a field whitelist — this is the
+    // assertion that keeps that true, since the sweep deletes the files.
+    const state = JSON.stringify({
+      customTokens: [
+        {
+          id: "ct-1",
+          name: "Old Marta",
+          imageUrl: `http://localhost:8788/assets/${H1}`,
+          thumbUrl: `/assets/${H2}`,
+        },
+      ],
+    });
+    expect(collectAssetHashes(state)).toEqual(new Set([H1, H2]));
+  });
+
   it("unions across blobs and ignores non-hash lookalikes", () => {
     const a = JSON.stringify({ x: `upload:${H1}` });
     const b = JSON.stringify({ y: "/assets/nothexnothexnothex", z: "upload:tooshort" });

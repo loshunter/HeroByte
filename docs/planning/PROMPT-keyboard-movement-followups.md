@@ -67,7 +67,7 @@ deploy in HANDOFF §0 exactly as the 2026-09-09 update does.
    section "Follow-up F3".
 4. Small, do only if the owner asks (2026-09-13: the owner asked for the FIRST only — the
    own-token fallback; the other three stay unqueued): a "nothing selected → your own token" fallback for WASD in
-   pointer mode; a slower phone hold cadence (one constant, `HOLD_STEP_INTERVAL_MS`); next/prev
+   pointer mode — DONE as F4 (2026-09-13), IN PRODUCTION 2026-09-14 (`8e104dc4`, CI #868); a slower phone hold cadence (one constant, `HOLD_STEP_INTERVAL_MS`); next/prev
    turn ignoring `combatActive` (NOTE from F3's review: if next/prev turn stop ignoring it — or
    start honouring it — the party panel's bench split (`useCombatOrdering`: a DM-owned character
    is on the bench unless combat is on AND it is in the order) must move with it, or a DM's rolled

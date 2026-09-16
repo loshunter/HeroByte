@@ -153,3 +153,46 @@ describe("useNpcCreation", () => {
     expect(sendMessage.mock.calls[1][0]).toMatchObject({ count: 3 });
   });
 });
+
+describe("useNpcCreation — the timer", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("a timer from a CONFIRMED create does not put a false timeout on the next one", () => {
+    // Same bug shape as useNpcUpdate: the 5s timer was armed per call and
+    // never cleared, so a timer from create #1 (confirmed at t=0.2s) fired at
+    // t=5s during create #2, saw `prev === true`, and reported a timeout over
+    // a create that then landed anyway.
+    const sendMessage = vi.fn();
+    let snapshot = snapshotWithNpcs(0);
+    const { result, rerender } = renderHook(() => useNpcCreation({ snapshot, sendMessage }));
+
+    act(() => result.current.createNpc());
+    act(() => vi.advanceTimersByTime(200));
+    snapshot = snapshotWithNpcs(1);
+    rerender();
+    expect(result.current.isCreating).toBe(false);
+
+    act(() => vi.advanceTimersByTime(2800));
+    act(() => result.current.createNpc());
+    expect(result.current.isCreating).toBe(true);
+
+    act(() => vi.advanceTimersByTime(2100)); // t=5.1s
+    expect(result.current.isCreating).toBe(true);
+    expect(result.current.error).toBeNull();
+
+    snapshot = snapshotWithNpcs(2);
+    rerender();
+    expect(result.current.isCreating).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("still reports a timeout when the server never answers", () => {
+    const sendMessage = vi.fn();
+    const { result } = renderHook(() => useNpcCreation({ snapshot: null, sendMessage }));
+    act(() => result.current.createNpc());
+    act(() => vi.advanceTimersByTime(5000));
+    expect(result.current.isCreating).toBe(false);
+    expect(result.current.error).toMatch(/timed out/i);
+  });
+});

@@ -399,6 +399,25 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       expect(npc?.tokenImage).toBe("orc-warrior-token.png");
     });
 
+    it("carries tempHp from the wire into state, on update and on create", () => {
+      // THE WIRE PATH, through the real router: validation accepted tempHp on
+      // both messages and the dispatcher's explicit option literals dropped it,
+      // so no unit test on the service could have seen this. Confirmed
+      // pre-existing at the arc base; the arc edited both literals and
+      // missed it.
+      messageRouter.route(
+        { t: "update-npc", id: npcId, name: "Orc", hp: 80, maxHp: 80, tempHp: 5 },
+        dmUid,
+      );
+      expect(roomService.getState().characters.find((c) => c.id === npcId)?.tempHp).toBe(5);
+
+      const before = roomService.getState().characters.length;
+      messageRouter.route({ t: "create-npc", name: "Warded", hp: 9, maxHp: 9, tempHp: 4 }, dmUid);
+      const created = roomService.getState().characters.slice(before);
+      expect(created).toHaveLength(1);
+      expect(created[0]?.tempHp).toBe(4);
+    });
+
     it("should not update NPC when non-DM tries", () => {
       const updateMessage: ClientMessage = {
         t: "update-npc",
@@ -515,6 +534,65 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       expect(token).toBeDefined();
       expect(token?.owner).toBe(dmUid);
       expect(token?.imageUrl).toBe("dragon-token.png");
+      // No size on the character: the token is born medium, as it always was.
+      expect(token?.size).toBe("medium");
+    });
+
+    it("places the token at the size the NPC was created with", () => {
+      // A library pick: create-npc carries the pack's default footprint, and
+      // the token minted later is born at it — an ogre lands large.
+      messageRouter.route(
+        { t: "create-npc", name: "Ogre", hp: 59, maxHp: 59, tokenSize: "large" } as ClientMessage,
+        dmUid,
+      );
+      const ogre = roomService.getState().characters.find((c) => c.name === "Ogre");
+      expect(ogre?.tokenSize).toBe("large");
+
+      messageRouter.route({ t: "place-npc-token", id: ogre!.id } as ClientMessage, dmUid);
+
+      const state = roomService.getState();
+      const token = state.tokens.find((t) => t.id === ogre!.id || t.id === ogre!.tokenId);
+      expect(token?.size).toBe("large");
+      expect(state.characters.find((c) => c.id === ogre!.id)?.tokenId).toBe(token?.id);
+    });
+
+    it("carries a stance onto the NPC, and an update sets it without clearing it", () => {
+      // A townsfolk pick: create-npc says neutral, so the card reads Neutral
+      // rather than Enemy from the moment it appears.
+      messageRouter.route(
+        {
+          t: "create-npc",
+          name: "Baker",
+          hp: 6,
+          maxHp: 6,
+          disposition: "neutral",
+        } as ClientMessage,
+        dmUid,
+      );
+      const baker = roomService.getState().characters.find((c) => c.name === "Baker");
+      expect(baker?.disposition).toBe("neutral");
+
+      // No stance at all is the shipped shape, and stays absent.
+      messageRouter.route(
+        { t: "create-npc", name: "Wolf", hp: 11, maxHp: 11 } as ClientMessage,
+        dmUid,
+      );
+      const wolf = roomService.getState().characters.find((c) => c.name === "Wolf");
+      expect(wolf && "disposition" in wolf).toBe(false);
+
+      const full = { t: "update-npc", id: baker!.id, name: "Baker", hp: 6, maxHp: 6 };
+      messageRouter.route({ ...full, disposition: "friendly" } as ClientMessage, dmUid);
+      expect(roomService.getState().characters.find((c) => c.id === baker!.id)?.disposition).toBe(
+        "friendly",
+      );
+
+      // update-npc is a full-record send. An edit that says nothing about the
+      // stance — an HP tweak, or an older client that has never heard of one —
+      // must leave it alone rather than wipe it.
+      messageRouter.route({ ...full, hp: 3 } as ClientMessage, dmUid);
+      const after = roomService.getState().characters.find((c) => c.id === baker!.id);
+      expect(after?.hp).toBe(3);
+      expect(after?.disposition).toBe("friendly");
     });
 
     it("should not place token when non-DM tries", () => {

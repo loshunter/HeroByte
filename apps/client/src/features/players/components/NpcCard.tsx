@@ -2,7 +2,9 @@
 // NPC CARD COMPONENT
 // ============================================================================
 // Displays an NPC in the entities panel with DM controls. Styled to mirror the
-// player card while using a red accent to indicate an enemy.
+// player card, with an accent that says where this one stands with the party —
+// red for an enemy, gold for a neutral, green for an ally (npcDisposition.ts).
+// The MAP token keeps its own random colour; this is the card only.
 
 import { useCallback, useEffect, useState } from "react";
 import type { TokenSize, SnapshotCharacter } from "@herobyte/shared";
@@ -13,6 +15,7 @@ import { RedactedHpBadge } from "./RedactedHpBadge";
 import { NpcNameEditor } from "./NpcNameEditor";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
+import { npcDispositionLook } from "./npcDisposition";
 
 interface NpcCardProps {
   character: SnapshotCharacter;
@@ -78,6 +81,8 @@ export function NpcCard({
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
   const [portraitInput, setPortraitInput] = useState(character.portrait ?? "");
   const { feedback, flashClass } = useHpFeedback(character.hp);
+  // Absent = hostile: an NPC made before stances existed looks exactly as it did.
+  const look = npcDispositionLook(character.disposition);
 
   useEffect(() => {
     setTokenImageInput(character.tokenImage ?? "");
@@ -165,14 +170,14 @@ export function NpcCard({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "space-between",
-        color: "#fbe1e1",
+        color: look.text,
         fontSize: "0.8rem",
         gap: "var(--player-card-gap, 6px)",
         position: "relative",
         padding: "var(--player-card-padding, 8px)",
-        background: "rgba(40, 9, 15, 0.9)",
+        background: look.tint,
         border: "1px solid var(--jrpg-border-gold)",
-        boxShadow: "0 0 12px rgba(214, 60, 83, 0.45)",
+        boxShadow: `0 0 12px ${look.glow}`,
         borderRadius: "8px",
       }}
     >
@@ -186,7 +191,7 @@ export function NpcCard({
       <div
         className="player-card-topbar"
         data-card-resize-anchor="top"
-        style={{ borderBottomColor: "rgba(255, 190, 190, 0.25)" }}
+        style={{ borderBottomColor: look.rule }}
       >
         {isCurrentTurn && (
           <div
@@ -207,7 +212,7 @@ export function NpcCard({
           onRename={(id, name) => onUpdate?.(id, { name })}
         />
         <span className="jrpg-text-small player-card-role" style={{ color: "var(--jrpg-gold)" }}>
-          Enemy
+          {look.label}
         </span>
       </div>
 
@@ -217,7 +222,7 @@ export function NpcCard({
           isEditable={canEdit}
           onRequestChange={handleSettingsToggle}
           statusEffects={character.statusEffects ?? []}
-          tokenColor="#D63C53"
+          tokenColor={look.ring}
           onFocusToken={onFocusToken}
           initiative={initiative}
           onInitiativeClick={onInitiativeClick}
