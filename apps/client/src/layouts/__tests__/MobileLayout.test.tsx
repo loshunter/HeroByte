@@ -301,6 +301,34 @@ describe("MobileLayout", () => {
     expect(await screen.findByTestId("map-board")).toBeInTheDocument();
   });
 
+  it("mounts a single mobile CRT overlay without a bezel and removes it when disabled", () => {
+    const props = { ...createDefaultProps(), crtFilter: true };
+    const { container, rerender } = render(<MobileLayout {...props} />);
+    expect(container.querySelectorAll(".crt-filter")).toHaveLength(1);
+    expect(container.querySelector(".crt-filter")).toHaveClass("crt-filter--mobile");
+    expect(container.querySelectorAll(".crt-vignette")).toHaveLength(1);
+    expect(container.querySelector(".crt-bezel")).toBeNull();
+    // The browser spec checks ::before's computed content; jsdom cannot paint it.
+    rerender(<MobileLayout {...props} crtFilter={false} />);
+    expect(container.querySelector(".crt-filter")).toBeNull();
+    expect(container.querySelector(".crt-vignette")).toBeNull();
+  });
+
+  it("wires the CRT tool tile to the App preference in both directions", () => {
+    const props = createDefaultProps();
+    const { rerender } = render(<MobileLayout {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /tools/i }));
+    const tile = screen.getByRole("button", { name: "CRT" });
+    expect(tile).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(tile);
+    expect(props.setCrtFilter).toHaveBeenLastCalledWith(true);
+
+    rerender(<MobileLayout {...props} crtFilter={true} />);
+    expect(tile).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(tile);
+    expect(props.setCrtFilter).toHaveBeenLastCalledWith(false);
+  });
+
   describe("map-edit forwarding", () => {
     // The gap M4c closed was plumbing: every one of these was already computed
     // on a mobile render and dropped on the floor. Nothing downstream can tell

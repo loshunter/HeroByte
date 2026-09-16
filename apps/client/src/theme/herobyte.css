@@ -812,55 +812,44 @@ h4 {
   height: 100%;
   pointer-events: none;
   z-index: 9999;
-  background:
-    /* Horizontal scanlines - thick and visible */ repeating-linear-gradient(
+  /* Stationary, soft-edged bands. Normal alpha compositing already darkens
+     the picture; no blend mode or full-screen filter is needed. */
+  background: repeating-linear-gradient(
     180deg,
-    rgba(0, 0, 0, 0.6) 0px,
-    rgba(0, 0, 0, 0.6) 2px,
-    transparent 2px,
+    transparent 0px,
+    rgba(0, 0, 0, 0.28) 1.5px,
+    transparent 3px,
     transparent 4px
   );
-  animation: scanline 8s linear infinite;
-  /* CSS bloom approximation - brightness + blur */
-  filter: brightness(1.15) contrast(1.1);
 }
 
 .crt-filter::before {
+  --crt-phosphor-stripe: 1px;
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  /* Chromatic aberration approximation */
-  background: radial-gradient(
-    ellipse at center,
-    transparent 60%,
-    rgba(255, 0, 0, 0.03) 80%,
-    rgba(0, 255, 255, 0.03) 100%
+  /* A faint RGB tile, not a tint across the whole screen. */
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.025) 0 var(--crt-phosphor-stripe),
+    rgba(0, 255, 0, 0.025) var(--crt-phosphor-stripe) calc(2 * var(--crt-phosphor-stripe)),
+    rgba(0, 0, 255, 0.025) calc(2 * var(--crt-phosphor-stripe)) calc(3 * var(--crt-phosphor-stripe))
   );
-  mix-blend-mode: screen;
 }
 
-.crt-filter::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  /* Strong phosphor glow bloom */
-  background: radial-gradient(
-    ellipse at center,
-    rgba(68, 125, 247, 0.25) 0%,
-    rgba(68, 125, 247, 0.15) 40%,
-    transparent 70%
-  );
-  mix-blend-mode: screen;
-  animation:
-    flicker 0.15s infinite,
-    phosphor-glow 3s ease-in-out infinite;
-  filter: blur(40px);
+@media (min-resolution: 2dppx) {
+  .crt-filter::before {
+    /* One device pixel per stripe at 2x, instead of oversized RGB columns. */
+    --crt-phosphor-stripe: 0.5px;
+  }
+}
+
+/* The mobile layout selects this explicitly, including forced/landscape mode. */
+.crt-filter--mobile::before {
+  content: none;
 }
 
 /* ---------------------------------------------------------------------------
@@ -868,32 +857,21 @@ h4 {
  * ---------------------------------------------------------------------------
  * The filter is a full-screen fixed overlay, so it lands on panel text as
  * readily as on the map. Over the map it is the whole point; over a settings
- * form it is scanlines and a 40px phosphor blur on top of small type and error
+ * form it is scanlines and a phosphor mask on top of small type and error
  * messages. `data-panels-open` is published by panelPresence.ts whenever any
  * DraggableWindow is mounted.
  *
  * Softened, never removed: the scanlines stay visible so the identity holds,
- * but the animated bloom — by far the worst offender for legibility — stops
- * and the aberration goes. Transitioned so it reads as the UI responding to
+ * but the phosphor mask disappears. Transitioned so it reads as the UI responding to
  * you rather than the effect glitching off.
  */
 .crt-filter,
 .crt-vignette {
-  transition:
-    opacity var(--anim-normal) ease,
-    filter var(--anim-normal) ease;
+  transition: opacity var(--anim-normal) ease;
 }
 
 :root[data-panels-open] .crt-filter {
   opacity: 0.35;
-  /* Drop the brightness/contrast push: it was washing out panel text. */
-  filter: none;
-}
-
-:root[data-panels-open] .crt-filter::after {
-  /* The animated 40px phosphor bloom — the single biggest legibility cost. */
-  opacity: 0;
-  animation: none;
 }
 
 :root[data-panels-open] .crt-filter::before {
@@ -913,25 +891,13 @@ h4 {
   pointer-events: none;
   z-index: 9998;
   background:
-    /* Subtle corner darkening for CRT curvature */ radial-gradient(
+    /* Corner shading; the image itself remains flat for accurate interaction. */ radial-gradient(
     ellipse at center,
     transparent 40%,
     rgba(0, 0, 0, 0.15) 70%,
     rgba(0, 0, 0, 0.4) 90%,
     rgba(0, 0, 0, 0.6) 100%
   );
-}
-
-@keyframes flicker {
-  0% {
-    opacity: 0.97;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.97;
-  }
 }
 
 /* ----------------------------------------------------------------------------
@@ -972,6 +938,17 @@ h4 {
   top: 20%;
   left: 50%;
   animation-delay: 2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crt-filter,
+  .crt-vignette {
+    transition: none;
+  }
+
+  .pixel-sparkle {
+    animation: none;
+  }
 }
 
 /* ----------------------------------------------------------------------------
@@ -1026,15 +1003,6 @@ h4 {
   }
 }
 
-@keyframes scanline {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(4px);
-  }
-}
-
 @keyframes glow-pulse {
   0%,
   100% {
@@ -1042,18 +1010,6 @@ h4 {
   }
   50% {
     box-shadow: 0 0 16px var(--hero-blue);
-  }
-}
-
-@keyframes phosphor-glow {
-  0%,
-  100% {
-    opacity: 0.97;
-    filter: brightness(1);
-  }
-  50% {
-    opacity: 1;
-    filter: brightness(1.02);
   }
 }
 

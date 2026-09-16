@@ -23,6 +23,17 @@ export interface VisualEffectsProps {
   crtFilter: boolean;
 }
 
+/** Shared full-screen treatment; mobile omits the bezel and phosphor mask. */
+export function CrtOverlay({ mobile = false }: { mobile?: boolean }): JSX.Element {
+  return (
+    <>
+      <div className="crt-vignette" aria-hidden="true" />
+      <div className={`crt-filter${mobile ? " crt-filter--mobile" : ""}`} aria-hidden="true" />
+      {!mobile && <div className="crt-bezel" aria-hidden="true" />}
+    </>
+  );
+}
+
 /**
  * Renders visual effects overlays for the application
  *
@@ -42,13 +53,7 @@ export function VisualEffects({ crtFilter }: VisualEffectsProps): JSX.Element {
   return (
     <>
       {/* CRT Scanline Filter with Arcade Bezel */}
-      {crtFilter && (
-        <>
-          <div className="crt-vignette" />
-          <div className="crt-filter" />
-          <div className="crt-bezel" />
-        </>
-      )}
+      {crtFilter && <CrtOverlay />}
 
       {/* Ambient Pixel Sparkles */}
       <div
