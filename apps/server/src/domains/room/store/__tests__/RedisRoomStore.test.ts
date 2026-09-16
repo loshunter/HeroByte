@@ -48,6 +48,60 @@ describe("RedisRoomStore", () => {
     expect(hydrated?.tokens[0]?.id).toBe("token-1");
   });
 
+  it("hydrates through the same whitelist as the disk loader — it is a load door", async () => {
+    // This store spread its payload verbatim, so every coercion the disk
+    // loader applies was bypassed by a Redis-backed table: the third load
+    // door, found in round 3 after a comment had said "TWO" for a round.
+    // Dark today (ROOM_STORE unset); VISION.md makes it the production
+    // default. Literal junk in, literal outcomes out — nothing compared with
+    // itself.
+    const hash = "a".repeat(64);
+    const payload = {
+      ...createEmptyRoomState(),
+      characters: [
+        { id: "npc-1", type: "npc", name: "Ogre", hp: 1, maxHp: 1, disposition: "banana" },
+        { id: "npc-2", type: "npc", name: "Baker", hp: 1, maxHp: 1, disposition: "neutral" },
+      ],
+      customTokens: [
+        {
+          id: "bad",
+          name: "X",
+          imageUrl: "data:text/html,<script>alert(1)</script>",
+          tags: [],
+          size: "colossal",
+          addedBy: "",
+          addedAt: 0,
+        },
+        {
+          id: "good",
+          name: "Marta",
+          imageUrl: `http://localhost:8788/assets/${hash}`,
+          tags: ["npc"],
+          size: "small",
+          addedBy: "dm",
+          addedAt: 1,
+        },
+      ],
+      selectionState: {}, // what a Map becomes on the way through Redis
+      pointers: [{ uid: "u1", x: 1, y: 1 }],
+    };
+    client.hkeys.mockResolvedValue(["room-a"]);
+    client.hget.mockResolvedValue(JSON.stringify(payload));
+
+    await store.hydrate();
+    const state = store.get("room-a")!;
+
+    // A stance off the list is dropped, not kept and not repaired.
+    expect("disposition" in state.characters[0]!).toBe(false);
+    expect(state.characters[1]?.disposition).toBe("neutral");
+    // A custom token the wire would refuse never reaches the shelf; a good one does, size repaired.
+    expect(state.customTokens.map((t) => t.id)).toEqual(["good"]);
+    expect(state.customTokens[0]?.size).toBe("small");
+    // The ephemera reset the disk loader does.
+    expect(state.selectionState).toBeInstanceOf(Map);
+    expect(state.pointers).toEqual([]);
+  });
+
   it("persists state on set", async () => {
     const state = createEmptyRoomState();
     state.stateVersion = 42;

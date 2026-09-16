@@ -1,6 +1,16 @@
 import type { Redis } from "ioredis";
+import {
+  coerceDiagonalRule,
+  coerceMonsterHpDisplay,
+  coerceTokenVisionRadii,
+} from "@herobyte/shared";
 import { normalizeAtlasState } from "../atlasState.js";
-import type { RoomState } from "../../room/model.js";
+import { createSelectionMap, type RoomState } from "../../room/model.js";
+import {
+  coerceCombatRound,
+  coerceCustomTokens,
+  coerceLoadedCharacters,
+} from "../persistence/loadCoercions.js";
 import type { RoomStore } from "./RoomStore.js";
 
 export interface RedisRoomStoreOptions {
@@ -32,14 +42,29 @@ export class RedisRoomStore implements RoomStore {
         }
         try {
           const parsed = JSON.parse(payload) as RoomState;
-          // Covers the THREE ATLAS FIELDS ONLY: a pre-Atlas payload lacks the
-          // required graph fields, and this hydrate has no other compat layer.
-          // The rest of the payload is still hydrated as-is — notably
-          // `selectionState` (a Map) round-trips Redis as `{}` and would break
-          // its serializer at broadcast time — a pre-existing gap of this
-          // opt-in store, NOT closed here. A real fix is the disk loader's
-          // full reset discipline (createSelectionMap, cleared ephemera).
-          const state: RoomState = { ...parsed, ...normalizeAtlasState(parsed) };
+          // THE THIRD LOAD DOOR. This used to spread the payload verbatim and
+          // normalise only the three atlas fields, so every whitelist the disk
+          // loader applies — a stance off the list, a custom token whose
+          // picture the wire would refuse, a token size off the ladder — was
+          // bypassed by a Redis-backed table. Dark today (ROOM_STORE is unset)
+          // and scheduled to open: VISION.md makes ROOM_STORE=redis the
+          // production default at the Rooms milestone. The same field set
+          // StatePersistence.loadFromDisk coerces, in the same shape; the
+          // ephemera reset (selectionState is a Map and round-trips Redis as
+          // `{}`, which would break its serializer at broadcast) is the reset
+          // discipline the old comment named as the real fix and did not do.
+          const state: RoomState = {
+            ...parsed,
+            tokens: coerceTokenVisionRadii(Array.isArray(parsed.tokens) ? parsed.tokens : []),
+            characters: coerceLoadedCharacters(parsed.characters, parsed.combatActive === true),
+            customTokens: coerceCustomTokens(parsed.customTokens),
+            combatRound: coerceCombatRound(parsed.combatRound),
+            monsterHpDisplay: coerceMonsterHpDisplay(parsed.monsterHpDisplay),
+            diagonalRule: coerceDiagonalRule(parsed.diagonalRule),
+            selectionState: createSelectionMap(),
+            pointers: [],
+            ...normalizeAtlasState(parsed),
+          };
           this.cache.set(roomId, state);
         } catch (error) {
           console.warn(`[RedisRoomStore] Failed to parse cached state for ${roomId}`, error);

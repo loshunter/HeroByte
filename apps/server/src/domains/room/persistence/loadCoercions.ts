@@ -95,11 +95,13 @@ function coerceCustomTokenTags(raw: unknown): string[] {
 
 /**
  * A stance off the list is dropped, never repaired — absent already means
- * hostile. Exported because there are TWO load doors: this file's (the state
- * file) and SnapshotLoader's (the session file), and hardening only one of
- * them is what let a hand-edited `"disposition": "banana"` reach the card
- * renderer, where a `Record` index is `undefined` and the throw took the whole
- * table down for every client at it.
+ * hostile. Exported because there are THREE load doors, and this comment said
+ * two for a whole review round: this file's (the state file), SnapshotLoader's
+ * (the session file), and RedisRoomStore.hydrate (a Redis-backed table, which
+ * spread its payload verbatim until it was found). Hardening only one of them
+ * is what let a hand-edited `"disposition": "banana"` reach the card renderer,
+ * where a `Record` index is `undefined` and the throw took the whole table
+ * down for every client at it. Every coercion here is applied at all three.
  */
 export function coerceNpcDisposition(value: unknown) {
   return isNpcDisposition(value) ? value : undefined;
