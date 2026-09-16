@@ -147,7 +147,9 @@ export function NPCEditor({
       name: trimmedName.length > 0 ? trimmedName : "NPC",
       hp: normalized.hp,
       maxHp: normalized.maxHp,
-      tempHp: parsedTempHp > 0 ? parsedTempHp : undefined,
+      // 0 is SENT when there is a value to clear (omitted, the merge refilled it);
+      // still omitted for an NPC with none, or every edit would stamp tempHp: 0.
+      tempHp: parsedTempHp > 0 || npc.tempHp !== undefined ? parsedTempHp : undefined,
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
       tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
       initiativeModifier: clampedInitMod,
