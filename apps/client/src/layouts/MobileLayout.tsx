@@ -8,11 +8,10 @@
  * of callbacks — and the surfaces themselves render in MobileSurfaces.
  */
 
-import React, { useMemo, Suspense, useCallback, useReducer } from "react";
+import React, { useMemo, Suspense, useReducer } from "react";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
-import { TurnNavigationControls } from "../features/initiative/components/TurnNavigationControls";
 import { ToastContainer } from "../components/ui/Toast";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
@@ -23,6 +22,7 @@ import { MobileSelectionSheet } from "./MobileSelectionSheet";
 import { useMovePadCameraFollow } from "../features/movement/useMovePadCameraFollow";
 import { MobileSurfaces } from "./mobile/MobileSurfaces";
 import { CrtOverlay } from "../components/effects/VisualEffects";
+import { MobileCombatStrip } from "./mobile/MobileCombatStrip";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -194,15 +194,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     onAppCommandHandled: handleCameraCommandHandled,
   });
 
-  // Turn navigation handlers
-  const handleNextTurn = useCallback(() => {
-    sendMessage({ t: "next-turn" });
-  }, [sendMessage]);
-
-  const handlePreviousTurn = useCallback(() => {
-    sendMessage({ t: "previous-turn" });
-  }, [sendMessage]);
-
   return (
     <div className="mobile-layout-root">
       {props.crtFilter && <CrtOverlay mobile />}
@@ -263,15 +254,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       </div>
 
       {/* Turn Controls */}
-      {snapshot?.combatActive && (
-        <div className="mobile-combat-strip">
-          <TurnNavigationControls
-            combatActive={true}
-            onNextTurn={handleNextTurn}
-            onPreviousTurn={handlePreviousTurn}
-          />
-        </div>
-      )}
+      <MobileCombatStrip combatActive={snapshot?.combatActive ?? false} sendMessage={sendMessage} />
 
       {/* Mobile Floating Controls */}
       <MobileFloatingControls
@@ -330,8 +313,15 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       {/* Viewing Roll Result */}
       <MobileResultOverlay result={viewingRoll} onClose={() => handleViewRoll(null)} />
 
-      {/* Connection status stays above mobile screens (1700) and below dice
-          (2000). This wrapper lifts its paint without intercepting taps. */}
+      {/* Mobile rendered neither of these, so a phone user got no non-blocking
+          feedback ever — no save confirmation, no dropped-command warning, no
+          sign the server had gone. Both props were already being passed in. */}
+      {/* The banner is the only place the table reports a lost server, and an
+          open Screen is an opaque full-viewport cover at z-index 1700 — so the
+          banner rides a stacking context above the screens (and below the dice
+          overlay at 2000). position:relative does not move a fixed descendant;
+          it only lifts its paint. */}
+      {/* No controls, floats over the map's top band: taps go through. */}
       <div style={{ position: "relative", zIndex: 1800, pointerEvents: "none" }}>
         <ServerStatus isConnected={props.isConnected} />
       </div>

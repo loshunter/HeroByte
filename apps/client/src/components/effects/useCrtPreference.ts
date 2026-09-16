@@ -1,24 +1,16 @@
-import { useEffect, useState } from "react";
+// ============================================================================
+// useCrtPreference
+// ============================================================================
+// React binding for the local CRT preference store. Both layouts consume the
+// same snapshot, so crossing the mobile breakpoint does not reset the effect.
 
-const STORAGE_KEY = "herobyte:crt";
+import { useSyncExternalStore } from "react";
+import { getCrtPreference, setCrtPreference, subscribeCrtPreference } from "./crtPreference";
 
-/** Local display preference; never part of shared room state. */
-export function useCrtPreference() {
-  const [enabled, setEnabled] = useState(() => {
-    try {
-      return window.localStorage.getItem(STORAGE_KEY) === "true";
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, String(enabled));
-    } catch {
-      // Storage can be unavailable or full; the toggle still works this session.
-    }
-  }, [enabled]);
-
-  return [enabled, setEnabled] as const;
+export function useCrtPreference(): readonly [
+  enabled: boolean,
+  setEnabled: (next: boolean) => void,
+] {
+  const enabled = useSyncExternalStore(subscribeCrtPreference, getCrtPreference, getCrtPreference);
+  return [enabled, setCrtPreference];
 }
