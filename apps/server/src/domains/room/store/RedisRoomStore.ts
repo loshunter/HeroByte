@@ -1,8 +1,10 @@
 import type { Redis } from "ioredis";
 import {
+  coerceDefaultVisionRadius,
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
   coerceTokenVisionRadii,
+  type Player,
 } from "@herobyte/shared";
 import { normalizeAtlasState } from "../atlasState.js";
 import { createSelectionMap, type RoomState } from "../../room/model.js";
@@ -11,6 +13,7 @@ import {
   coerceCustomTokens,
   coerceLoadedCharacters,
 } from "../persistence/loadCoercions.js";
+import { sanitizeStagingZone } from "../staging/StagingZoneManager.js";
 import type { RoomStore } from "./RoomStore.js";
 
 export interface RedisRoomStoreOptions {
@@ -44,25 +47,59 @@ export class RedisRoomStore implements RoomStore {
           const parsed = JSON.parse(payload) as RoomState;
           // THE THIRD LOAD DOOR. This used to spread the payload verbatim and
           // normalise only the three atlas fields, so every whitelist the disk
-          // loader applies — a stance off the list, a custom token whose
-          // picture the wire would refuse, a token size off the ladder — was
-          // bypassed by a Redis-backed table. Dark today (ROOM_STORE is unset)
-          // and scheduled to open: VISION.md makes ROOM_STORE=redis the
-          // production default at the Rooms milestone. The same field set
-          // StatePersistence.loadFromDisk coerces, in the same shape; the
-          // ephemera reset (selectionState is a Map and round-trips Redis as
-          // `{}`, which would break its serializer at broadcast) is the reset
-          // discipline the old comment named as the real fix and did not do.
+          // loader applies was bypassed by a Redis-backed table. Dark today
+          // (ROOM_STORE is unset) and scheduled to open: VISION.md makes
+          // ROOM_STORE=redis the production default at the Rooms milestone.
+          //
+          // FIELD FOR FIELD with StatePersistence.loadFromDisk — the first
+          // repair mirrored six fields and called that "the same field set",
+          // and a reviewer's line-by-line found defaultVisionRadius (a
+          // whitelist clamp applied at both other doors), the diceRolls/chatLog
+          // array guards (a poisoned non-array is walked in the debounced
+          // broadcast timer, outside route()'s try/catch, and kills the
+          // process on every restart), the players map, and the ephemera —
+          // which matter MORE here than at the disk door, because persist()
+          // writes the whole RoomState, users and undo stacks included, where
+          // the disk writer picks a list. Keep this literal in step with the
+          // disk loader's; a field with a domain added to one belongs in both.
+          const parsedPlayers: Player[] = Array.isArray(parsed.players) ? parsed.players : [];
           const state: RoomState = {
-            ...parsed,
+            users: [],
+            stateVersion: typeof parsed.stateVersion === "number" ? parsed.stateVersion : 0,
             tokens: coerceTokenVisionRadii(Array.isArray(parsed.tokens) ? parsed.tokens : []),
+            players: parsedPlayers.map((player) => ({
+              ...player,
+              isDM: player.isDM ?? false,
+              statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
+            })),
             characters: coerceLoadedCharacters(parsed.characters, parsed.combatActive === true),
+            props: parsed.props || [],
             customTokens: coerceCustomTokens(parsed.customTokens),
+            mapBackground: parsed.mapBackground,
+            pointers: [],
+            drawings: parsed.drawings || [],
+            gridSize: parsed.gridSize || 50,
+            gridSquareSize: parsed.gridSquareSize || 5,
+            diceRolls: Array.isArray(parsed.diceRolls) ? parsed.diceRolls : [],
+            chatLog: Array.isArray(parsed.chatLog) ? parsed.chatLog : [],
+            drawingUndoStacks: {},
+            drawingRedoStacks: {},
+            sceneObjects: parsed.sceneObjects || [],
+            selectionState: createSelectionMap(),
+            playerStagingZone: sanitizeStagingZone(parsed.playerStagingZone),
+            combatActive: parsed.combatActive ?? false,
             combatRound: coerceCombatRound(parsed.combatRound),
+            currentTurnCharacterId: parsed.currentTurnCharacterId ?? undefined,
+            compiledScene: parsed.compiledScene ?? undefined,
+            mapTerrain: parsed.mapTerrain ?? undefined,
+            mapElements: parsed.mapElements ?? undefined,
+            liveMapDocumentId: parsed.liveMapDocumentId ?? undefined,
+            fogEnabled: parsed.fogEnabled ?? false,
             monsterHpDisplay: coerceMonsterHpDisplay(parsed.monsterHpDisplay),
             diagonalRule: coerceDiagonalRule(parsed.diagonalRule),
-            selectionState: createSelectionMap(),
-            pointers: [],
+            playerPropsEnabled: parsed.playerPropsEnabled === true,
+            initiativeManualOverride: parsed.initiativeManualOverride !== false,
+            defaultVisionRadius: coerceDefaultVisionRadius(parsed.defaultVisionRadius),
             ...normalizeAtlasState(parsed),
           };
           this.cache.set(roomId, state);

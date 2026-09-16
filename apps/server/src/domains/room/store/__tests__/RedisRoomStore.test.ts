@@ -102,6 +102,47 @@ describe("RedisRoomStore", () => {
     expect(state.pointers).toEqual([]);
   });
 
+  it("hydrates FIELD FOR FIELD with the disk loader — the fields the first repair missed", async () => {
+    // The first repair mirrored six fields and called it "the same field set".
+    // A line-by-line found the rest, and two of them matter MORE here than at
+    // the disk door: persist() writes the whole RoomState, so a Redis payload
+    // carries users and undo stacks the disk writer never records. Literal
+    // junk in, literal outcomes out.
+    const payload = {
+      ...createEmptyRoomState(),
+      users: ["stale-uid-from-last-boot"],
+      players: [{ uid: "p1", name: "P", hp: 1, maxHp: 1, statusEffects: "poisoned" }],
+      diceRolls: { not: "an array" },
+      chatLog: "not an array either",
+      drawingUndoStacks: { someone: [1, 2, 3] },
+      drawingRedoStacks: { someone: [4] },
+      playerStagingZone: { x: "not-a-number", y: 1, width: 1, height: 1 },
+      defaultVisionRadius: 999999,
+    };
+    client.hkeys.mockResolvedValue(["room-a"]);
+    client.hget.mockResolvedValue(JSON.stringify(payload));
+
+    await store.hydrate();
+    const state = store.get("room-a")!;
+
+    // Ephemera the disk loader resets; a stale uid here is read by the
+    // heartbeat timeout manager on the next tick.
+    expect(state.users).toEqual([]);
+    expect(state.drawingUndoStacks).toEqual({});
+    expect(state.drawingRedoStacks).toEqual({});
+    // The array guards whose own comment says a poisoned non-array kills the
+    // process on every restart.
+    expect(state.diceRolls).toEqual([]);
+    expect(state.chatLog).toEqual([]);
+    // The players map: isDM defaulted, a non-array statusEffects emptied.
+    expect(state.players[0]).toMatchObject({ uid: "p1", isDM: false, statusEffects: [] });
+    // The staging-zone whitelist, now a shared function.
+    expect(state.playerStagingZone).toBeUndefined();
+    // The vision clamp applied at both other doors.
+    expect(typeof state.defaultVisionRadius).toBe("number");
+    expect(state.defaultVisionRadius).toBeLessThan(999999);
+  });
+
   it("persists state on set", async () => {
     const state = createEmptyRoomState();
     state.stateVersion = 42;

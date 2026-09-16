@@ -101,7 +101,11 @@ function coerceCustomTokenTags(raw: unknown): string[] {
  * spread its payload verbatim until it was found). Hardening only one of them
  * is what let a hand-edited `"disposition": "banana"` reach the card renderer,
  * where a `Record` index is `undefined` and the throw took the whole table
- * down for every client at it. Every coercion here is applied at all three.
+ * down for every client at it. The character and custom-token coercions are
+ * applied at all three; SnapshotLoader applies the size and stance rules
+ * inline rather than through coerceLoadedCharacters, so it skips that
+ * function's combatActive movement-budget back-fill, and RoomSnapshot carries
+ * no combatRound for coerceCombatRound to see.
  */
 export function coerceNpcDisposition(value: unknown) {
   return isNpcDisposition(value) ? value : undefined;
