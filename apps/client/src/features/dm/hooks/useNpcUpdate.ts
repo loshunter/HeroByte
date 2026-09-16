@@ -99,6 +99,23 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     disposition?: NpcDisposition;
   } | null>(null);
 
+  // ONE timer, cleared wherever the request resolves. It used to be armed on
+  // every call and never cleared — including on success — so a timer from an
+  // update that had already CONFIRMED fired during a later one. `prev` was
+  // true (the later update in flight), so it took the timeout branch: a false
+  // "timed out" banner, targetNpcId nulled so the live update could never
+  // confirm, and isUpdating flipped false mid-flight — which is the flag
+  // NPCEditor's resync guard keys on, so the optimistic edit was discarded.
+  // Blurring five fields in a row armed five overlapping timers.
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTimer = useCallback(() => {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+  useEffect(() => clearTimer, [clearTimer]);
+
   // Get current NPC from snapshot
   const currentNpc = snapshot?.characters?.find((c) => c.id === targetNpcId && c.type === "npc");
 
@@ -136,13 +153,14 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         fields: expected,
       });
 
-      // Success! Clear loading state
+      // Success! Clear loading state — and the timer, or it outlives us.
+      clearTimer();
       setIsUpdating(false);
       setError(null);
       setTargetNpcId(null);
       expectedValuesRef.current = null;
     }
-  }, [currentNpc, isUpdating, targetNpcId]);
+  }, [currentNpc, isUpdating, targetNpcId, clearTimer]);
 
   /**
    * Initiate NPC update
@@ -199,7 +217,9 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
       });
 
       // Set a timeout in case server doesn't respond
-      setTimeout(() => {
+      clearTimer();
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
         setIsUpdating((prev) => {
           if (prev) {
             // Only set error if STILL updating
@@ -213,7 +233,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         });
       }, 5000);
     },
-    [isUpdating, sendMessage, snapshot?.characters],
+    [isUpdating, sendMessage, snapshot?.characters, clearTimer],
   );
 
   return {
