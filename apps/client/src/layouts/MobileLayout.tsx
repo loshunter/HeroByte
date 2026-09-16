@@ -22,6 +22,7 @@ import { MobileDrawingControls } from "./MobileDrawingControls";
 import { MobileSelectionSheet } from "./MobileSelectionSheet";
 import { useMovePadCameraFollow } from "../features/movement/useMovePadCameraFollow";
 import { MobileSurfaces } from "./mobile/MobileSurfaces";
+import { CrtOverlay } from "../components/effects/VisualEffects";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -204,6 +205,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
   return (
     <div className="mobile-layout-root">
+      {props.crtFilter && <CrtOverlay mobile />}
       {/* Full screen map */}
       <div className="mobile-map-surface">
         <Suspense fallback={<MapLoading />}>
@@ -279,6 +281,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         onToolSelect={setActiveTool}
         onSnapToGridChange={setSnapToGrid}
         onResetCamera={handleResetCamera}
+        crtFilter={props.crtFilter}
+        onCrtFilterChange={props.setCrtFilter}
         activeTool={activeTool}
         snapToGrid={snapToGrid}
         isDM={isDM}
@@ -326,15 +330,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       {/* Viewing Roll Result */}
       <MobileResultOverlay result={viewingRoll} onClose={() => handleViewRoll(null)} />
 
-      {/* Mobile rendered neither of these, so a phone user got no non-blocking
-          feedback ever — no save confirmation, no dropped-command warning, no
-          sign the server had gone. Both props were already being passed in. */}
-      {/* The banner is the only place the table reports a lost server, and an
-          open Screen is an opaque full-viewport cover at z-index 1700 — so the
-          banner rides a stacking context above the screens (and below the dice
-          overlay at 2000). position:relative does not move a fixed descendant;
-          it only lifts its paint. */}
-      {/* No controls, floats over the map's top band: taps go through. */}
+      {/* Connection status stays above mobile screens (1700) and below dice
+          (2000). This wrapper lifts its paint without intercepting taps. */}
       <div style={{ position: "relative", zIndex: 1800, pointerEvents: "none" }}>
         <ServerStatus isConnected={props.isConnected} />
       </div>
