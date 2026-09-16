@@ -21,7 +21,7 @@ verify the whole ladder, then push `dev`, merge it to `main`, and confirm the li
 > 1; lazy `"Add to library"` 1 / `"Apply Portrait"` 2; `/tokens/NPC/Enemies/Goblins/goblinClub.png`
 > 200 `image/png` 49,811 B; server root 200. The probe caught the Cloudflare deploy landing live —
 > the tint marker read 0 on attempt 1 and 1 from attempt 2. Note for the next probe: `"Add to
-> library"` lives in the DM menu's LAZY chunk, which the HTML never references — a probe that walks
+library"` lives in the DM menu's LAZY chunk, which the HTML never references — a probe that walks
 > only HTML-referenced chunks reads 0 forever; walk the `assets/*.js` imports inside the eager
 > chunks too. **Production functional check PASS**, `live-two-client`, no seam: DM `prod-dm` +
 > player `prod-player` on the Main Hall; a picked Chest mimic read **Enemy** on
