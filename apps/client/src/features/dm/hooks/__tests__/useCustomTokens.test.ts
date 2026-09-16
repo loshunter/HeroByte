@@ -370,10 +370,20 @@ describe("useCustomTokens", () => {
     expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({ name: raw }));
   });
 
-  it("stops waiting when the menu closes, instead of holding the add for five seconds", async () => {
+  it("stops waiting when the hook unmounts — DM de-elevation, not the menu closing", async () => {
     // The wait is a 50ms setTimeout chain against a ref. After unmount that
     // ref can never change again, so without the guard the chain ran on to
     // the full deadline holding the whole add's closure.
+    //
+    // NOT "when the menu closes": this hook lives in DMMenuContainer, which
+    // FloatingPanelsLayout mounts under `{isDM && …}`, ABOVE DMMenu's own
+    // `{open && …}` gate. Closing the menu unmounts the tabs and the form and
+    // leaves this hook running, so an add in flight still confirms. The
+    // guard fires on DM de-elevation, a lazy-chunk failure, or app teardown.
+    // b603b533's message and this test's first name both said "closed the
+    // menu"; a later refactor that moves the hook under the open gate would
+    // make every close-mid-add report "did not take that token" over a token
+    // that landed, and this test would have called that correct.
     const shelf: unknown[] = [];
     const sendMessage = vi.fn();
     const { result, unmount } = renderHook(() =>

@@ -82,6 +82,35 @@ describe("useNpcUpdate", () => {
     expect(result.current.error).toMatch(/timed out/i);
   });
 
+  it("an edit that says nothing about stance re-sends the one the NPC already has", () => {
+    // THE REAL GUARD against an HP tweak clearing a stance is this hook's `??`
+    // merge — NPCEditor.tsx says so in place — and it had no assertion at
+    // any level. Deleting the merge spread left every test green.
+    const sendMessage = vi.fn();
+    const { result } = renderHook(() =>
+      useNpcUpdate({ snapshot: snap({ disposition: "friendly" }), sendMessage }),
+    );
+    act(() => result.current.updateNpc("npc-1", full({ hp: 3 })));
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ t: "update-npc", hp: 3, disposition: "friendly" }),
+    );
+  });
+
+  it("an NPC with no stance sends none, and still confirms", () => {
+    // Absent means hostile on the wire, in both load doors and on the card;
+    // a bare `disposition: undefined` would be a key in a saved file, and the
+    // confirm predicate has to match undefined against undefined, not miss.
+    const sendMessage = vi.fn();
+    let snapshot = snap();
+    const { result, rerender } = renderHook(() => useNpcUpdate({ snapshot, sendMessage }));
+    act(() => result.current.updateNpc("npc-1", full({ hp: 3 })));
+    expect("disposition" in sendMessage.mock.calls[0]![0]).toBe(false);
+    expect(result.current.isUpdating).toBe(true);
+    snapshot = snap({ hp: 3 });
+    rerender();
+    expect(result.current.isUpdating).toBe(false);
+  });
+
   it("unmounting mid-flight disarms the timer", () => {
     const sendMessage = vi.fn();
     const { result, unmount } = renderHook(() => useNpcUpdate({ snapshot: snap(), sendMessage }));
