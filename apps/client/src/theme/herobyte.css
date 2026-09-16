@@ -1332,8 +1332,7 @@ h4 {
  * coarse-pointer block can turn it off: there the remove control is in flow
  * under the cell, so a custom cell's wrapper is ~48px taller than a pack
  * one beside it — and `flex: 1` made every pack button in that row stretch to
- * match, rendering as a bordered box with 48px of dead space under its
- * caption. Measured in the running app at 375px: a pack cell in a row led by
+ * match. Measured in the running app at 375px: a pack cell in a row led by
  * one of ours renders 159px tall with 55px of dead space under its caption;
  * with this rule off the class, 4px — the cell's own padding.
  */
@@ -1522,13 +1521,7 @@ button.token-library-remove:hover {
   }
 
   /*
-   * `align-self: stretch`, not `width: 100%`: this project has no global
-   * box-sizing reset, and a content-box button would overhang its cell by its
-   * border. The cross axis of a column flex container gives full width with
-   * no box-model dependency. 12px so the glyph reads on a 110px bar.
-   */
-  /*
-   * ...and the cell stops growing, because that bar is now in flow: without
+   * The cell stops growing on a coarse pointer, because the remove bar below is in flow: without
    * this the tallest wrapper in a mixed row (a custom token, 44px of bar plus
    * 4px of margin) stretched every PACK cell's button beside it to match.
    */
@@ -1536,6 +1529,12 @@ button.token-library-remove:hover {
     flex: 0 0 auto;
   }
 
+  /*
+   * `align-self: stretch`, not `width: 100%`: this project has no global
+   * box-sizing reset, and a content-box button would overhang its cell by its
+   * border. The cross axis of a column flex container gives full width with
+   * no box-model dependency. 12px so the glyph reads on a 110px bar.
+   */
   [data-mobile-surface] button.token-library-remove {
     position: static;
     align-self: stretch;

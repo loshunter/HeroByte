@@ -41,12 +41,12 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "CUSTOM (your own tokens)",
       detail:
-        "The Library’s CUSTOM chip is this table’s own shelf: upload an image or paste an https link, give it a name, tags, a size and a stance, and it searches and picks like the pack’s. Keep a copy on this table copies a pasted link into the table’s storage so the token outlives the host.",
+        "The Library’s CUSTOM chip is this table’s own shelf: upload an image or paste an https link, give it a name, tags, a size and a stance, and it searches and picks like the pack’s. Keep a copy on this table is offered for any https link and tries to copy it into the table’s storage so the token outlives the host; some hosts (Discord) refuse, and then the link stays and a line says so.",
     },
     {
       term: "⧉ Duplicate",
       detail:
-        "Copies an NPC's stats and art into a new one under the next free number, so a tweaked goblin becomes five tweaked goblins. A copy of a hidden NPC stays hidden.",
+        "Copies an NPC's name, HP, art, size, stance and hidden flag into a new one under the next free number, so a tweaked goblin becomes five tweaked goblins. Temp HP, the initiative modifier and status effects do not ride — the copy starts its own fight. A copy of a hidden NPC stays hidden.",
     },
     {
       term: "PLACE ON MAP",
