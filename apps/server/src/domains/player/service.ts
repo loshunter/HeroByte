@@ -84,11 +84,15 @@ export class PlayerService {
   /**
    * Update player HP
    */
-  setHP(state: RoomState, uid: string, hp: number, maxHp: number): boolean {
+  setHP(state: RoomState, uid: string, hp: number, maxHp: number, tempHp?: number): boolean {
     const player = this.findPlayer(state, uid);
     if (player) {
       player.hp = hp;
       player.maxHp = maxHp;
+      // set-hp carried and validated tempHp and this never wrote it: the same
+      // drop 5a152d8a closed for update-npc, one path over. 0 is a real value
+      // (the shield is gone), so the test is on undefined.
+      if (tempHp !== undefined) player.tempHp = Math.max(0, tempHp);
       return true;
     }
     return false;

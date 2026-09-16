@@ -102,8 +102,14 @@ export class PlayerMessageHandler {
    * @param maxHp - Maximum HP
    * @returns Result indicating broadcast/save needs
    */
-  handleSetHP(state: RoomState, senderUid: string, hp: number, maxHp: number): PlayerMessageResult {
-    const updated = this.playerService.setHP(state, senderUid, hp, maxHp);
+  handleSetHP(
+    state: RoomState,
+    senderUid: string,
+    hp: number,
+    maxHp: number,
+    tempHp?: number,
+  ): PlayerMessageResult {
+    const updated = this.playerService.setHP(state, senderUid, hp, maxHp, tempHp);
     return { broadcast: updated, save: updated };
   }
 

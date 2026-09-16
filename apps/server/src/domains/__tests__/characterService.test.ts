@@ -35,6 +35,18 @@ describe("CharacterService", () => {
     expect(state.characters).toHaveLength(1);
   });
 
+  it("stores tempHp on updateHP, and leaves it alone when omitted", () => {
+    const state = createEmptyRoomState();
+    const character = service.createCharacter(state, "Hero", 30);
+    expect("tempHp" in character).toBe(false);
+    service.updateHP(state, character.id, 20, 35, 4);
+    expect(service.findCharacter(state, character.id)?.tempHp).toBe(4);
+    service.updateHP(state, character.id, 18, 35);
+    expect(service.findCharacter(state, character.id)?.tempHp).toBe(4);
+    service.updateHP(state, character.id, 18, 35, 0);
+    expect(service.findCharacter(state, character.id)?.tempHp).toBe(0);
+  });
+
   it("claims, updates, and links characters", () => {
     const state = createEmptyRoomState();
     const character = service.createCharacter(state, "Hero", 30);

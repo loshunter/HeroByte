@@ -243,13 +243,14 @@ export class CharacterMessageHandler {
     maxHp: number,
     senderUid: string,
     isDM: boolean,
+    tempHp?: number,
   ): CharacterMessageResult {
     const character = this.characterService.findCharacter(state, characterId);
     if (!character || (!isDM && !this.characterService.canControlCharacter(character, senderUid))) {
       console.warn(`Player ${senderUid} tried to update HP of a character they don't control`);
       return { broadcast: false, save: false };
     }
-    const updated = this.characterService.updateHP(state, characterId, hp, maxHp);
+    const updated = this.characterService.updateHP(state, characterId, hp, maxHp, tempHp);
     return { broadcast: updated, save: updated };
   }
 

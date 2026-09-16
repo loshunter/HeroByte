@@ -24,7 +24,13 @@ export class PlayerDispatcher {
         return this.handler.handleMicLevel(state, senderUid, message.level);
 
       case "set-hp":
-        return this.handler.handleSetHP(state, senderUid, message.hp, message.maxHp);
+        return this.handler.handleSetHP(
+          state,
+          senderUid,
+          message.hp,
+          message.maxHp,
+          message.tempHp,
+        );
 
       case "set-status-effects":
         return this.handler.handleSetStatusEffects(state, senderUid, message.effects);

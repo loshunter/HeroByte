@@ -111,11 +111,20 @@ export class CharacterService {
   /**
    * Update character HP
    */
-  updateHP(state: RoomState, characterId: string, hp: number, maxHp: number): boolean {
+  updateHP(
+    state: RoomState,
+    characterId: string,
+    hp: number,
+    maxHp: number,
+    tempHp?: number,
+  ): boolean {
     const character = this.findCharacter(state, characterId);
     if (character) {
       character.hp = hp;
       character.maxHp = maxHp;
+      // Same drop as update-npc had, on the path with a LIVE UI: the Entities
+      // panel's Temp HP field sent this and nothing stored it.
+      if (tempHp !== undefined) character.tempHp = Math.max(0, tempHp);
       return true;
     }
     return false;

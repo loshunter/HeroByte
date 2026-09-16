@@ -71,6 +71,7 @@ export class CharacterDispatcher {
           message.maxHp,
           senderUid,
           isDM,
+          message.tempHp,
         );
 
       case "set-character-status-effects":

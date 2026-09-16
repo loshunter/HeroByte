@@ -22,6 +22,19 @@ describe("PlayerService", () => {
     expect(state.players).toHaveLength(2);
   });
 
+  it("stores tempHp on setHP, leaves it alone when omitted, clears on 0, clamps a negative", () => {
+    const state = createState();
+    service.createPlayer(state, "uid-1");
+    expect(service.setHP(state, "uid-1", 5, 10, 3)).toBe(true);
+    expect(service.findPlayer(state, "uid-1")?.tempHp).toBe(3);
+    service.setHP(state, "uid-1", 4, 10);
+    expect(service.findPlayer(state, "uid-1")?.tempHp).toBe(3);
+    service.setHP(state, "uid-1", 4, 10, 0);
+    expect(service.findPlayer(state, "uid-1")?.tempHp).toBe(0);
+    service.setHP(state, "uid-1", 4, 10, -2);
+    expect(service.findPlayer(state, "uid-1")?.tempHp).toBe(0);
+  });
+
   it("updates player portrait, name, mic level, and HP", () => {
     const state = createState();
     service.createPlayer(state, "uid-1");
