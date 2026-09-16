@@ -174,7 +174,9 @@ export function CustomTokenForm({ onAdd, disabled = false }: CustomTokenFormProp
         disabled={disabled}
         compact
       />
-      {/* Only when the copy can actually run — see canKeepCopy. */}
+      {/* For any https link at somebody else's host — see canKeepCopy. Whether
+          the copy can actually be MADE is the host's CORS policy, which nothing
+          here can know; the pipeline finds out and says so. */}
       {canKeepCopy(imageUrl) && (
         <label className="custom-token-keep-copy jrpg-text-small">
           <input

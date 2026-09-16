@@ -123,7 +123,7 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
             id={searchId}
             type="search"
             value={query}
-            placeholder="goblin archer, dwarf bartender, kid…"
+            placeholder="goblin archer, dice dwarf, kid…"
             autoComplete="off"
             onChange={(event) => setQuery(event.target.value)}
             style={fieldStyle}

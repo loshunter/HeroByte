@@ -84,8 +84,10 @@ export function useCustomTokens({
 
   // Unmounting ENDS the wait. Without this the 50ms chain ran on to the full
   // deadline against a ref that can no longer change, holding the add's whole
-  // closure for five seconds. That is DM de-elevation or teardown, not the
-  // menu closing: this hook is mounted above DMMenu's open gate.
+  // closure for five seconds. On the desktop that is DM de-elevation or
+  // teardown, not the menu closing — this hook is mounted above DMMenu's open
+  // gate. On the phone shell it IS the DM screen closing: MobileSurfaces gates
+  // the container on the surface, so the hook unmounts with the form.
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;

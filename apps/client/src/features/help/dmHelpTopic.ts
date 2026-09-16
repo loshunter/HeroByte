@@ -46,7 +46,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "⧉ Duplicate",
       detail:
-        "Copies an NPC's name, HP, art, size, stance and hidden flag into a new one under the next free number, so a tweaked goblin becomes five tweaked goblins. Temp HP, the initiative modifier and status effects do not ride — the copy starts its own fight. A copy of a hidden NPC stays hidden.",
+        "Copies an NPC's name, HP, art, size, stance and hidden flag into a new one under the next free number, so a tweaked goblin becomes five tweaked goblins. Temp HP, the initiative modifier, status effects and a set movement speed do not ride — the copy starts its own fight at the defaults. A copy of a hidden NPC stays hidden.",
     },
     {
       term: "PLACE ON MAP",

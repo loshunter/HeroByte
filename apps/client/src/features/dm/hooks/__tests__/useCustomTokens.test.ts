@@ -370,16 +370,20 @@ describe("useCustomTokens", () => {
     expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({ name: raw }));
   });
 
-  it("stops waiting when the hook unmounts — DM de-elevation, not the menu closing", async () => {
+  it("stops waiting when the hook unmounts — de-elevation on desktop, the DM screen closing on mobile", async () => {
     // The wait is a 50ms setTimeout chain against a ref. After unmount that
     // ref can never change again, so without the guard the chain ran on to
     // the full deadline holding the whole add's closure.
     //
-    // NOT "when the menu closes": this hook lives in DMMenuContainer, which
-    // FloatingPanelsLayout mounts under `{isDM && …}`, ABOVE DMMenu's own
-    // `{open && …}` gate. Closing the menu unmounts the tabs and the form and
-    // leaves this hook running, so an add in flight still confirms. The
-    // guard fires on DM de-elevation, a lazy-chunk failure, or app teardown.
+    // On the DESKTOP this is not "when the menu closes": the hook lives in
+    // DMMenuContainer, which FloatingPanelsLayout mounts under `{isDM && …}`,
+    // ABOVE DMMenu's own `{open && …}` gate, so closing the menu unmounts the
+    // tabs and the form and leaves this hook running; an add in flight still
+    // confirms. There the guard fires on de-elevation, a lazy-chunk failure or
+    // teardown. On the PHONE SHELL it is exactly the DM screen closing:
+    // MobileSurfaces gates the container on `surface === "dm"`, so the hook
+    // unmounts with the form — and the form being gone is why the
+    // "did not take that token" result then has nowhere to render.
     // b603b533's message and this test's first name both said "closed the
     // menu"; a later refactor that moves the hook under the open gate would
     // make every close-mid-add report "did not take that token" over a token
