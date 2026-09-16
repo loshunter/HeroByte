@@ -114,6 +114,45 @@ describe("CharacterService", () => {
     expect(state.characters.find((c) => c.id === npc.id)).toBeUndefined();
   });
 
+  it("stores tempHp on create and update, and leaves it alone when absent", () => {
+    // The wire declared tempHp on create-npc and update-npc, the validator
+    // checked it, and nothing on the server ever wrote it. So the DM's Temp HP
+    // blur sent a value the snapshot could never echo, and the client's
+    // watcher reported "update timed out" over an edit that had landed.
+    const state = createEmptyRoomState();
+    const tokenService = new TokenService();
+
+    const bare = service.createCharacter(state, "Goblin", 12, undefined, "npc", { hp: 8 });
+    expect("tempHp" in bare).toBe(false); // absent stays absent: no bare undefined key
+
+    const shielded = service.createCharacter(state, "Warded", 12, undefined, "npc", {
+      hp: 8,
+      tempHp: 5,
+    });
+    expect(shielded.tempHp).toBe(5);
+
+    service.updateNPC(state, tokenService, bare.id, {
+      name: "Goblin",
+      hp: 8,
+      maxHp: 12,
+      tempHp: 3,
+    });
+    expect(service.findCharacter(state, bare.id)!.tempHp).toBe(3);
+
+    // A full-record send that omits it must not clear a value already set.
+    service.updateNPC(state, tokenService, bare.id, { name: "Goblin", hp: 7, maxHp: 12 });
+    expect(service.findCharacter(state, bare.id)!.tempHp).toBe(3);
+
+    // 0 is a real value (the shield is gone), so the test is on undefined, not truthiness.
+    service.updateNPC(state, tokenService, bare.id, {
+      name: "Goblin",
+      hp: 7,
+      maxHp: 12,
+      tempHp: 0,
+    });
+    expect(service.findCharacter(state, bare.id)!.tempHp).toBe(0);
+  });
+
   it("refuses update-npc on a PLAYER's character rather than converting it", () => {
     // findCharacter does not filter by type, and updateNPC used to set
     // `type = "npc"` unconditionally. So an update-npc carrying a player's id

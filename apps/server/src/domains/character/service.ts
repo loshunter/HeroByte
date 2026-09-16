@@ -51,6 +51,7 @@ export class CharacterService {
     type: "pc" | "npc" = "pc",
     options?: {
       hp?: number;
+      tempHp?: number;
       tokenImage?: string;
       tokenSize?: TokenSize;
       disposition?: NpcDisposition;
@@ -76,6 +77,8 @@ export class CharacterService {
       ...(options?.tokenSize ? { tokenSize: options.tokenSize } : {}),
       // Same rule. Absent means hostile for an NPC, and nothing at all for a PC.
       ...(options?.disposition ? { disposition: options.disposition } : {}),
+      // Same rule again; 0 is a real value here, so the test is on undefined.
+      ...(options?.tempHp !== undefined ? { tempHp: Math.max(0, options.tempHp) } : {}),
     };
 
     state.characters.push(newCharacter);
@@ -178,6 +181,7 @@ export class CharacterService {
       name: string;
       hp: number;
       maxHp: number;
+      tempHp?: number;
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
@@ -198,6 +202,14 @@ export class CharacterService {
     // Update initiative modifier if provided
     if (updates.initiativeModifier !== undefined) {
       character.initiativeModifier = updates.initiativeModifier;
+    }
+
+    // Temp HP, same shape. update-npc validated this and declared it on the
+    // wire, and this method never wrote it — so the DM's Temp HP blur sent a
+    // value the snapshot could never echo, and useNpcUpdate's watcher reported
+    // "timed out" five seconds later over an edit that had otherwise landed.
+    if (updates.tempHp !== undefined) {
+      character.tempHp = Math.max(0, updates.tempHp);
     }
 
     // Set only when the message carried one: update-npc is a full-record send,

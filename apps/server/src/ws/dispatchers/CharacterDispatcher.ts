@@ -109,6 +109,7 @@ export class CharacterDispatcher {
           this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "create NPC", () =>
             this.npcHandler.handleCreateNPC(state, message.name, message.maxHp, message.portrait, {
               hp: message.hp,
+              tempHp: message.tempHp,
               tokenImage: message.tokenImage,
               tokenSize: message.tokenSize,
               disposition: message.disposition,
@@ -125,6 +126,7 @@ export class CharacterDispatcher {
               name: message.name,
               hp: message.hp,
               maxHp: message.maxHp,
+              tempHp: message.tempHp,
               portrait: message.portrait,
               tokenImage: message.tokenImage,
               initiativeModifier: message.initiativeModifier,

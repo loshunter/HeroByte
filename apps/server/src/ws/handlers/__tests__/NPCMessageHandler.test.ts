@@ -399,6 +399,25 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       expect(npc?.tokenImage).toBe("orc-warrior-token.png");
     });
 
+    it("carries tempHp from the wire into state, on update and on create", () => {
+      // THE WIRE PATH, through the real router: validation accepted tempHp on
+      // both messages and the dispatcher's explicit option literals dropped it,
+      // so no unit test on the service could have seen this. Confirmed
+      // pre-existing at the arc base; the arc edited both literals and
+      // missed it.
+      messageRouter.route(
+        { t: "update-npc", id: npcId, name: "Orc", hp: 80, maxHp: 80, tempHp: 5 },
+        dmUid,
+      );
+      expect(roomService.getState().characters.find((c) => c.id === npcId)?.tempHp).toBe(5);
+
+      const before = roomService.getState().characters.length;
+      messageRouter.route({ t: "create-npc", name: "Warded", hp: 9, maxHp: 9, tempHp: 4 }, dmUid);
+      const created = roomService.getState().characters.slice(before);
+      expect(created).toHaveLength(1);
+      expect(created[0]?.tempHp).toBe(4);
+    });
+
     it("should not update NPC when non-DM tries", () => {
       const updateMessage: ClientMessage = {
         t: "update-npc",

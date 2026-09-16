@@ -39,6 +39,9 @@ export interface NPCMessageResult {
  */
 export interface CreateNPCOptions {
   hp?: number;
+  /** Temporary HP, absorbed before regular HP. The wire and its validator
+   *  have carried this since set-hp; the dispatcher dropped it here. */
+  tempHp?: number;
   tokenImage?: string;
   /** The size the placed token starts with; validated upstream against the ladder. */
   tokenSize?: TokenSize;
@@ -57,6 +60,7 @@ export interface UpdateNPCOptions {
   name: string;
   hp: number;
   maxHp: number;
+  tempHp?: number;
   portrait?: string;
   tokenImage?: string;
   initiativeModifier?: number;
@@ -144,6 +148,7 @@ export class NPCMessageHandler {
         "npc",
         {
           hp: options?.hp,
+          tempHp: options?.tempHp,
           tokenImage: options?.tokenImage,
           tokenSize: options?.tokenSize,
           disposition: options?.disposition,
