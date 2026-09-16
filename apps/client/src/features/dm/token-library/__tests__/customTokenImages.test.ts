@@ -7,8 +7,6 @@
 
 import { describe, expect, it, vi } from "vitest";
 import {
-  CUSTOM_MIRROR_MAX_SIDE,
-  CUSTOM_THUMB_SIDE,
   canKeepCopy,
   classifyCustomImage,
   prepareCustomImage,
@@ -81,7 +79,7 @@ describe("prepareCustomImage", () => {
     });
     expect(d.loadImage).toHaveBeenCalledTimes(1);
     expect(d.loadImage).toHaveBeenCalledWith(LINK);
-    expect(d.toPngBlob).toHaveBeenCalledWith(image, CUSTOM_THUMB_SIDE);
+    expect(d.toPngBlob).toHaveBeenCalledWith(image, 84); // a literal, same reason as below
   });
 
   it("with the copy on, the token's picture becomes this table's — from ONE load", async () => {
@@ -96,10 +94,10 @@ describe("prepareCustomImage", () => {
     // One decode, two renders: the copy at the pack's master size and the
     // thumbnail, in that order.
     expect(d.loadImage).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(d.toPngBlob).mock.calls.map(([, side]) => side)).toEqual([
-      CUSTOM_MIRROR_MAX_SIDE,
-      CUSTOM_THUMB_SIDE,
-    ]);
+    // LITERALS. This compared the constants with themselves, so 1254→400 and
+    // 84→200 left the suite green; the e2e pins 84 on a real canvas, and
+    // nothing anywhere pinned 1254 — the one branch that REPLACES imageUrl.
+    expect(vi.mocked(d.toPngBlob).mock.calls.map(([, side]) => side)).toEqual([1254, 84]);
   });
 
   it("when the copy fails the LINK survives, and the thumbnail is still made", async () => {

@@ -4,6 +4,7 @@ import {
   MAX_UPLOAD_BYTES,
   clampImageMime,
   httpBaseFromWsUrl,
+  ownAssetOrigin,
   uploadAssetFile,
   uploadAssetId,
   uploadHashFromAssetId,
@@ -62,6 +63,25 @@ describe("httpBaseFromWsUrl", () => {
     expect(httpBaseFromWsUrl("wss://herobyte-server.onrender.com")).toBe(
       "https://herobyte-server.onrender.com",
     );
+  });
+});
+
+describe("ownAssetOrigin", () => {
+  // Pinned to LITERALS. The one test that consumed this used to build its
+  // input from ownAssetOrigin() and compare against a check that also
+  // called ownAssetOrigin() — x.startsWith(x) for any x — so a wrong origin
+  // here (every ⬆ UPLOAD refused on a non-TLS table, the bug 0ebda82f fixed)
+  // left 228 tests green. Nothing below asks the function what it should be.
+  it("is the SERVER's origin, derived from the socket URL, never the page's", () => {
+    expect(ownAssetOrigin("ws://localhost:8787")).toBe("http://localhost:8787");
+    expect(ownAssetOrigin("ws://192.168.50.225:8787")).toBe("http://192.168.50.225:8787");
+    expect(ownAssetOrigin("wss://herobyte-server.onrender.com")).toBe(
+      "https://herobyte-server.onrender.com",
+    );
+  });
+
+  it("defaults to the configured socket, which jsdom resolves to localhost:8787", () => {
+    expect(ownAssetOrigin()).toBe("http://localhost:8787");
   });
 });
 

@@ -12,7 +12,6 @@ import type { RoomSnapshot } from "@herobyte/shared";
 import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import { useCustomTokens } from "../useCustomTokens";
 import type { PreparedCustomImage } from "../../token-library/customTokenImages";
-import { ownAssetOrigin } from "../../../map-studio/uploads/assetUpload";
 
 /** The pipeline is proved in its own suite; here it is a stand-in. */
 const passthrough = (imageUrl: string) =>
@@ -341,10 +340,34 @@ describe("useCustomTokens", () => {
     expect(prepareImage).not.toHaveBeenCalled();
     expect(sendMessage).not.toHaveBeenCalled();
 
-    // …and THIS table's own upload, over plain http, still goes through.
-    const ours = `${ownAssetOrigin()}/assets/${"b".repeat(64)}`;
+    // …and THIS table's own upload, over plain http, still goes through. A
+    // LITERAL origin: this used to be built from ownAssetOrigin(), the same
+    // oracle the hook consults, so it was `x.startsWith(x)` for any x and a
+    // wrong origin (every ⬆ UPLOAD refused on a non-TLS table) left 228 tests
+    // green. jsdom's WS_URL is ws://localhost:8787; ownAssetOrigin is pinned
+    // to that literal in assetUpload.test.ts.
+    const ours = `http://localhost:8787/assets/${"b".repeat(64)}`;
     expect(await result.current.addToken({ ...draft, imageUrl: ours })).toEqual({ added: true });
     expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: ours }));
+  });
+
+  it("waits for the name the SERVICE stored, which is trimmed, not the one it sent", async () => {
+    // The form sends name.trim().slice(0, 50): a 62-character name truncates
+    // to 50 and can END on a space. The hook sends that raw; the service
+    // stores it trimmed; the watcher has to match the stored spelling or the
+    // DM is told "the table did not take that token" over one that landed —
+    // then retries and duplicates it. Both .trim()s in the hook could be
+    // deleted with every test green until this one.
+    const { result, sendMessage } = setup();
+    // Built, not hand-counted — the first draft of this line was 49.
+    const raw = `${"Old Marta the innkeeper of the Salted Herring".padEnd(49, "!")} `;
+    expect(raw).toHaveLength(50);
+    expect(raw.endsWith(" ")).toBe(true);
+    await expect(result.current.addToken({ ...draft, name: raw })).resolves.toEqual({
+      added: true,
+    });
+    // Raw on the wire…
+    expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({ name: raw }));
   });
 
   it("stops waiting when the menu closes, instead of holding the add for five seconds", async () => {
