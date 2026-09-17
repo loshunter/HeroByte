@@ -62,6 +62,13 @@ herobyte-state*.json.corrupt
 # else's copyrighted material to a public repo's permanent history.
 /temp/
 
+# Audit and report scratch (docs/verification/ is where a keeper goes). The
+# 2026-09-16 UX audit left 15MB here: ~100 screenshots plus a disposable
+# table's server-data and downloaded session backups. The state and secret
+# files inside are already caught by the patterns above, but the captures and
+# the backups are not, and `git add -A` would commit the lot.
+/output/
+
 # Content-addressed upload store (user data, never committed)
 herobyte-assets/
 herobyte-assets-e2e/
