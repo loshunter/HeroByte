@@ -64,7 +64,11 @@ export class MapMessageHandler {
     if (!isDM) {
       return { broadcast: false, save: false };
     }
-    this.mapService.setBackground(state, background);
+    // "" is the wire's clear: the message schema requires a string, so the DM
+    // menu's Remove sends an empty one. Normalising it to null here is what
+    // makes the field ABSENT rather than an empty string — a room holding ""
+    // is not pristine, so the public table would stop auto-clearing when idle.
+    this.mapService.setBackground(state, background || null);
     return { broadcast: true, save: false };
   }
 

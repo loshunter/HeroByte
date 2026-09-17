@@ -298,4 +298,57 @@ describe("MapBackgroundControl", () => {
       "https://example.com/map2.jpg",
     );
   });
+  // A DM told to "clear it from the DM menu" by the live map tools had nothing
+  // to press: Apply is disabled while the field is empty and an empty commit
+  // returns early, so emptying the URL did nothing at all (UX-05).
+  describe("removing the background", () => {
+    it("offers Clear only when there is a background to remove", () => {
+      const { rerender } = render(
+        <MapBackgroundControl
+          mapBackground={undefined}
+          onSetMapBackground={mockOnSetMapBackground}
+        />,
+      );
+      expect(screen.queryByRole("button", { name: /^Clear$/i })).toBeNull();
+
+      rerender(
+        <MapBackgroundControl
+          mapBackground="https://example.com/map.jpg"
+          onSetMapBackground={mockOnSetMapBackground}
+        />,
+      );
+      expect(screen.getByRole("button", { name: /^Clear$/i })).toBeInTheDocument();
+    });
+
+    it("commits the clear and empties the field", () => {
+      render(
+        <MapBackgroundControl
+          mapBackground="https://example.com/map.jpg"
+          onSetMapBackground={mockOnSetMapBackground}
+          onSuccess={mockOnSuccess}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /^Clear$/i }));
+
+      expect(mockOnSetMapBackground).toHaveBeenCalledExactlyOnceWith("");
+      expect(screen.getByPlaceholderText("Paste image URL")).toHaveValue("");
+      expect(mockOnSuccess).toHaveBeenCalledWith("Map background removed");
+    });
+
+    it("does not pre-flight the empty value as an image load", () => {
+      // handleCommit refuses "" and would otherwise report a load failure.
+      render(
+        <MapBackgroundControl
+          mapBackground="https://example.com/map.jpg"
+          onSetMapBackground={mockOnSetMapBackground}
+          onError={mockOnError}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /^Clear$/i }));
+
+      expect(mockOnError).not.toHaveBeenCalled();
+    });
+  });
 });

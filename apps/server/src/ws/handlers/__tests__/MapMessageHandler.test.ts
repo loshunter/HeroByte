@@ -78,6 +78,19 @@ describe("MapMessageHandler", () => {
       expect(mockMapService.setBackground).toHaveBeenCalledWith(state, null);
     });
 
+    it("treats the wire's empty string as a clear, not an empty background", () => {
+      // null cannot arrive: the message schema requires a string, so the DM
+      // menu's Clear sends "". Storing that verbatim would leave a room that
+      // no longer reads as pristine, and the public table would stop
+      // auto-clearing when idle.
+      state.mapBackground = "https://example.com/old.jpg";
+
+      const result = handler.handleMapBackground(state, "", true);
+
+      expect(result.broadcast).toBe(true);
+      expect(mockMapService.setBackground).toHaveBeenCalledWith(state, null);
+    });
+
     it("refuses a non-DM replacing or wiping the table's background", () => {
       // The control renders only in the DM menu, but a crafted frame reaches
       // this handler with no UI in the way — the update-character-hp shape.
