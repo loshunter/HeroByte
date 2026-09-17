@@ -376,9 +376,14 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                               setEditingCharacterId(character.id);
                               setCharacterNameInput(character.name);
                             }}
-                            onNameSubmit={() => {
-                              if (characterNameInput.trim()) {
-                                onCharacterNameUpdate(character.id, characterNameInput.trim());
+                            onNameSubmit={(submitted) => {
+                              // Commit what the card submitted. The inline
+                              // editor and the settings window keep separate
+                              // buffers, so reading one here loses the other's
+                              // edit.
+                              const next = submitted.trim();
+                              if (next) {
+                                onCharacterNameUpdate(character.id, next);
                               }
                               setEditingCharacterId(null);
                               setCharacterNameInput("");
@@ -569,9 +574,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             setEditingCharacterId(character.id);
                             setCharacterNameInput(character.name);
                           }}
-                          onNameSubmit={() => {
-                            if (characterNameInput.trim()) {
-                              onCharacterNameUpdate(character.id, characterNameInput.trim());
+                          onNameSubmit={(submitted) => {
+                            // See the DM card above: commit the submitted
+                            // value, not whatever the shared buffer held.
+                            const next = submitted.trim();
+                            if (next) {
+                              onCharacterNameUpdate(character.id, next);
                             }
                             setEditingCharacterId(null);
                             setCharacterNameInput("");

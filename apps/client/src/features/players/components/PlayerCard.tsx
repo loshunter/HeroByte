@@ -28,7 +28,15 @@ export interface PlayerCardProps {
   nameInput: string;
   onNameInputChange: (name: string) => void;
   onNameEdit: () => void;
-  onNameSubmit: () => void;
+  /**
+   * Commit a rename to the submitted value. It is passed EXPLICITLY because
+   * the card's two name fields do not share a buffer: the inline editor drives
+   * the panel's `nameInput`, while the settings window keeps its own
+   * (settingsNameInput below), which the panel cannot see. Seeding the panel
+   * buffer and then calling this with no value made the receiver read the
+   * pre-update buffer — usually "" — and drop the rename (UX-01).
+   */
+  onNameSubmit: (value: string) => void;
   onToggleMic: () => void;
   onHpChange: (hp: number) => void;
   editingHpUID: string | null;
@@ -411,8 +419,11 @@ export const PlayerCard = memo<PlayerCardProps>(
           onNameSubmit={() => {
             const next = settingsNameInput.trim();
             if (next && next !== player.name) {
-              onNameInputChange(next);
-              onNameSubmit();
+              // Hand the value over directly. Seeding the panel buffer first
+              // and calling onNameSubmit() in the same tick made the receiver
+              // read the PREVIOUS buffer (React had not re-rendered yet), so
+              // the rename looked accepted and was silently discarded.
+              onNameSubmit(next);
             }
           }}
           portraitImageInput={portraitImageInput}
