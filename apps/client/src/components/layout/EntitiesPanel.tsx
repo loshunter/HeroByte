@@ -342,7 +342,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                 <>
                   <div className="entities-panel-dm-group">
                     {dmEntities.map((entity) => {
-                      const { player, character, token, isMe } = entity;
+                      const { player, character, token, isMe, ownsSoleCharacter } = entity;
                       if (!player) return null;
 
                       const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
@@ -365,7 +365,15 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             token={token ?? undefined}
                             tokenSceneObject={tokenSceneObject}
                             playerDrawings={playerDrawings}
-                            statusEffects={character.statusEffects ?? player.statusEffects}
+                            statusEffects={
+                              // A character's conditions are its own. The
+                              // player-level list is legacy and is only
+                              // attributable when this player owns one
+                              // character; otherwise it painted every card
+                              // with conditions set on a sibling (UX-02).
+                              character.statusEffects ??
+                              (ownsSoleCharacter ? player.statusEffects : undefined)
+                            }
                             micEnabled={micEnabled}
                             editingPlayerUID={
                               editingCharacterId === character.id ? player.uid : null
@@ -376,9 +384,14 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                               setEditingCharacterId(character.id);
                               setCharacterNameInput(character.name);
                             }}
-                            onNameSubmit={() => {
-                              if (characterNameInput.trim()) {
-                                onCharacterNameUpdate(character.id, characterNameInput.trim());
+                            onNameSubmit={(submitted) => {
+                              // Commit what the card submitted. The inline
+                              // editor and the settings window keep separate
+                              // buffers, so reading one here loses the other's
+                              // edit.
+                              const next = submitted.trim();
+                              if (next) {
+                                onCharacterNameUpdate(character.id, next);
                               }
                               setEditingCharacterId(null);
                               setCharacterNameInput("");
@@ -528,7 +541,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                   // (kind "dm", F3): the same card, with the DM's affordances
                   // (player.isDM below).
                   if (entity.kind === "character" || entity.kind === "dm") {
-                    const { player, character, token, isMe, isCurrentTurn } = entity;
+                    const { player, character, token, isMe, isCurrentTurn, ownsSoleCharacter } =
+                      entity;
 
                     // Type guard: player is always defined for character entities
                     if (!player) return null;
@@ -560,7 +574,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           token={token ?? undefined}
                           tokenSceneObject={tokenSceneObject}
                           playerDrawings={playerDrawings}
-                          statusEffects={character.statusEffects ?? player.statusEffects}
+                          statusEffects={
+                            // See the DM card above: the legacy player-level
+                            // list is only this character's when it is the
+                            // player's only one.
+                            character.statusEffects ??
+                            (ownsSoleCharacter ? player.statusEffects : undefined)
+                          }
                           micEnabled={micEnabled}
                           editingPlayerUID={editingCharacterId === character.id ? player.uid : null}
                           nameInput={characterNameInput}
@@ -569,9 +589,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             setEditingCharacterId(character.id);
                             setCharacterNameInput(character.name);
                           }}
-                          onNameSubmit={() => {
-                            if (characterNameInput.trim()) {
-                              onCharacterNameUpdate(character.id, characterNameInput.trim());
+                          onNameSubmit={(submitted) => {
+                            // See the DM card above: commit the submitted
+                            // value, not whatever the shared buffer held.
+                            const next = submitted.trim();
+                            if (next) {
+                              onCharacterNameUpdate(character.id, next);
                             }
                             setEditingCharacterId(null);
                             setCharacterNameInput("");

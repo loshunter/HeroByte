@@ -226,6 +226,7 @@ export const Header: React.FC<HeaderProps> = ({
                 variant={crtFilter ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
                 title="Toggle retro CRT visual effect"
+                aria-pressed={crtFilter}
               >
                 📺 CRT
               </JRPGButton>

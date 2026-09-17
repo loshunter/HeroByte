@@ -12,6 +12,32 @@ verify the whole ladder, then push `dev`, merge it to `main`, and confirm the li
 
 ## 0. Where things stand, exactly
 
+> **DEPLOY RECORD — 2026-09-15/16. IN PRODUCTION.** `main` = `85c9d1f9` (a `--no-ff` merge of
+> `dev` at `6ccadea1`, 69 commits: the Weighed Campaign W0–W3 + the Token Library + gaps
+> G1–G4 + the review fix pass). CI: dev **#871**, main **#872**, both green. Ladder on the merged
+> tree: shared 449 / server 2510 / client 5901 (38 batches, summed) / e2e 206 passed, 3 skipped,
+> 0 failed. **Deploy probe PASS** across all 10 served chunks (4 eager + 6 lazy, 1357 KB): eager
+> tint marker `rgba(38, 30, 12, 0.9)` 1 (absent at `8e104dc4`) / control `rgba(40, 9, 15, 0.9)`
+> 1; lazy `"Add to library"` 1 / `"Apply Portrait"` 2; `/tokens/NPC/Enemies/Goblins/goblinClub.png`
+> 200 `image/png` 49,811 B; server root 200. The probe caught the Cloudflare deploy landing live —
+> the tint marker read 0 on attempt 1 and 1 from attempt 2. Note for the next probe: `"Add to
+library"` lives in the DM menu's LAZY chunk, which the HTML never references — a probe that walks
+> only HTML-referenced chunks reads 0 forever; walk the `assets/*.js` imports inside the eager
+> chunks too. **Production functional check PASS**, `live-two-client`, no seam: DM `prod-dm` +
+> player `prod-player` on the Main Hall; a picked Chest mimic read **Enemy** on
+> `rgba(40, 9, 15, 0.9)` on the player's card, 🎭 DISGUISE flipped it to **Neutral** on
+> `rgba(38, 30, 12, 0.9)` with the closed-chest portrait; the NPC was deleted afterwards and the
+> player's view confirmed clean. Review: three rounds plateaued (9 → ~28 → ~30; 9/9, 3/3, 4/4
+> FAIL); the owner chose fix-the-confirmed-set-then-merge; 13 commits closed it; a narrow
+> two-reviewer verification found two defects in those fixes plus two sibling tempHp drops, all
+> fixed; the NPCEditor characterization suite caught an over-reach and stands untouched.
+> **Open, recorded, not fixed:** the single-flight guard silently drops updates 2–5 on a fast blur
+> cascade (pre-existing); SnapshotLoader's `diceRolls ?? []` keeps a truthy non-array (door 2);
+> the `byUrl` Map has no uniqueness assertion (735/735 unique today); the server-side plain-http
+> `/assets/` exemption stays host-agnostic by decision; the Duplicate tooltip "these stats and
+> art"; the "0 of 244" hint; the hover-only cell tooltip; the pack's licence (the owner's);
+> `apps/server/herobyte-state.json.corrupt` on disk. **Rollback caveat is step 5 of §6.**
+
 - `dev` = `985b4747` — 29 commits ahead of `main` = `origin/main` = `origin/dev` = `8e104dc4`.
   Nothing on dev has been pushed. Merging dev→main ships TWO arcs at once:
   1. **The Weighed Campaign** (W0–W3, `006fc724..16cd30e7`): every mint weighs the export it

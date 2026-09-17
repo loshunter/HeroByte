@@ -24,6 +24,7 @@ import { useSelectionManager } from "../features/selection";
 import { getSessionUID } from "../utils/session";
 import { AuthState } from "../services/websocket";
 import { useToast } from "../hooks/useToast";
+import { useCrtPreference } from "../components/effects/useCrtPreference";
 import { useStatusEffects } from "../hooks/useStatusEffects";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { MOBILE_LAYOUT_QUERY, isLayoutForced, isMobileLayout } from "../utils/mobileLayout";
@@ -310,7 +311,7 @@ function AuthenticatedApp({
   );
 
   // CRT filter toggle
-  const [crtFilter, setCrtFilter] = useState(false);
+  const [crtFilter, setCrtFilter] = useCrtPreference();
 
   // Player lens (P4): render the DM's own table exactly as players receive
   // it. Pure view state — DM permissions stay live while it is on.

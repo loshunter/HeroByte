@@ -18,6 +18,14 @@ export interface EntityInfo {
   isMe: boolean;
   isFirstDM: boolean;
   isCurrentTurn: boolean;
+  /**
+   * This player owns exactly one character, so a value still living at player
+   * level can only belong to this one. The legacy per-player fields (conditions
+   * today) predate characters; with two characters they cannot be attributed,
+   * and showing them on both is wrong for at least one. Same reasoning as the
+   * by-owner token fallback below. Always false for NPCs, which have no player.
+   */
+  ownsSoleCharacter: boolean;
 }
 
 interface UseCombatOrderingProps {
@@ -76,6 +84,8 @@ export function useCombatOrdering({
       // (MobileEntitiesList learned this live); the desktop now agrees. And
       // "owned" alone is not enough either — a DM owns the NPC tokens they
       // placed — so the fallback is the one LOOSE own token (looseOwnToken).
+      // The same one-character test also licenses the legacy player-level
+      // condition fallback (see ownsSoleCharacter on EntityInfo).
       const ownerTokenFallbackOk = playerCharacters.length === 1;
       return playerCharacters.map((character) => {
         const token = character.tokenId
@@ -96,6 +106,7 @@ export function useCombatOrdering({
           isMe: player.uid === currentUid,
           isFirstDM: false, // Will be set below for DM entities
           isCurrentTurn: combatActive && currentTurnCharacterId === character.id,
+          ownsSoleCharacter: ownerTokenFallbackOk,
         };
       });
     });
@@ -110,6 +121,7 @@ export function useCombatOrdering({
         isMe: false,
         isFirstDM: false,
         isCurrentTurn: combatActive && currentTurnCharacterId === character.id,
+        ownsSoleCharacter: false,
       }));
 
     // Separate DM from regular entities

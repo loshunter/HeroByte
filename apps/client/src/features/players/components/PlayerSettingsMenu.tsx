@@ -544,15 +544,18 @@ export function PlayerSettingsMenu({
                             e.currentTarget.style.background = "transparent";
                           }
                         }}
-                        onClick={() => handleToggleEffect(option.value)}
                       >
+                        {/* The label carries NO click handler. It wraps the
+                            input, so a click on the text is already forwarded
+                            to the checkbox by the browser; handling it here as
+                            well toggled twice and netted zero, leaving the
+                            whole row dead to everything but a direct hit on
+                            the 16px box (UX-03). One handler, on the input,
+                            also makes Space work. */}
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleToggleEffect(option.value);
-                          }}
+                          onChange={() => handleToggleEffect(option.value)}
                           style={{
                             width: "16px",
                             height: "16px",

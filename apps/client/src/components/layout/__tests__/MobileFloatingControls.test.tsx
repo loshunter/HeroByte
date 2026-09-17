@@ -59,6 +59,19 @@ const createProps = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe("MobileFloatingControls", () => {
+  it.each([false, true])("the CRT tile reports the inverse preference (enabled: %s)", (enabled) => {
+    const onCrtFilterChange = vi.fn();
+    const props = createProps({ surface: "tools", crtFilter: enabled, onCrtFilterChange });
+    render(<MobileFloatingControls {...props} />);
+
+    const tile = screen.getByRole("button", { name: "CRT" });
+    expect(tile).toHaveAttribute("aria-pressed", String(enabled));
+    fireEvent.click(tile);
+    expect(onCrtFilterChange).toHaveBeenCalledExactlyOnceWith(!enabled);
+    expect(props.onToggleSurface).not.toHaveBeenCalled();
+    expect(props.onToolSelect).not.toHaveBeenCalled();
+  });
+
   it.each([[false], [true]])("keeps the action dock at exactly five buttons (isDM: %s)", (isDM) => {
     render(<MobileFloatingControls {...createProps({ isDM })} />);
 

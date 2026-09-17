@@ -599,3 +599,75 @@ describe("each row resolves the loose token of ITS player, not the viewer's", ()
     expect(controls.map((c) => (c as HTMLInputElement).value)).toEqual(["45", "15"]);
   });
 });
+
+// The phone's party drawer carried the same legacy condition fallback the
+// desktop panel did: a character with no conditions showed the OWNING PLAYER's
+// list, so a sibling's condition appeared on both rows. Fixing only the
+// desktop would have left a phone reading the wrong combatant as poisoned
+// (UX-02). The chips render as "<emoji> <Label>" text, so counting them across
+// the whole list pins which rows show one.
+describe("a condition belongs to its character, not to the player's other rows", () => {
+  const poisonedOwner = [
+    {
+      uid: ME,
+      name: "Me",
+      hp: 10,
+      maxHp: 10,
+      micLevel: 0,
+      isDM: false,
+      statusEffects: ["poisoned"],
+    },
+  ] as unknown as Player[];
+
+  const aria = {
+    id: "char-aria",
+    name: "Aria",
+    type: "pc",
+    ownedByPlayerUID: ME,
+    hp: 10,
+    maxHp: 10,
+  };
+  const boo = { id: "char-boo", name: "Boo", type: "pc", ownedByPlayerUID: ME, hp: 7, maxHp: 12 };
+
+  it("shows the chip on the afflicted character's row only", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          players: poisonedOwner,
+          characters: [
+            { ...aria, statusEffects: ["poisoned"] },
+            boo,
+          ] as unknown as SnapshotCharacter[],
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText("🤢 Poisoned")).toHaveLength(1);
+  });
+
+  it("still shows a lone character the legacy player-level list", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          players: poisonedOwner,
+          characters: [aria] as unknown as SnapshotCharacter[],
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText("🤢 Poisoned")).toHaveLength(1);
+  });
+
+  it("keeps an explicitly empty list empty", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          players: poisonedOwner,
+          characters: [{ ...aria, statusEffects: [] }] as unknown as SnapshotCharacter[],
+        })}
+      />,
+    );
+
+    expect(screen.queryByText("🤢 Poisoned")).toBeNull();
+  });
+});

@@ -32,6 +32,19 @@ export function MapBackgroundControl({
     setMapUrl(mapBackground ?? "");
   }, [mapBackground]);
 
+  /**
+   * Remove the table's background. Apply cannot do this: an empty commit is
+   * refused below and the button is disabled while the field is empty, so
+   * emptying the URL was a dead end — and the live map tools tell a DM to
+   * "clear it from the DM menu" for a clean live map (UX-05). Sending "" is
+   * the clear; the server maps it back to no background.
+   */
+  const handleClear = () => {
+    setMapUrl("");
+    onSetMapBackground("");
+    onSuccess?.("Map background removed");
+  };
+
   const handleCommit = async (url: string) => {
     if (!url.trim()) return;
 
@@ -69,6 +82,8 @@ export function MapBackgroundControl({
           applyRequiresValue
           commitOnBlur={false}
           disabled={isApplying}
+          // Only offered when there is something to remove.
+          onClear={mapBackground ? handleClear : undefined}
         />
         {isApplying && (
           <div

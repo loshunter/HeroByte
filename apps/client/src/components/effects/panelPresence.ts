@@ -4,8 +4,8 @@
 // A count of how many floating panels are currently open, published onto
 // <html> as `data-panels-open` so CSS alone can react to it.
 //
-// WHY: the CRT filter is a fixed, full-screen overlay — scanlines, a phosphor
-// bloom and chromatic aberration painted above everything at z-index 9998+.
+// WHY: the CRT filter is a fixed, full-screen overlay — scanlines and a phosphor
+// mask painted above everything at z-index 9998+.
 // Over the map that IS the product. Over a settings panel it lands on small
 // form text and error messages and makes them genuinely hard to read. The
 // owner's call was that the filter may soften while a panel is open and
