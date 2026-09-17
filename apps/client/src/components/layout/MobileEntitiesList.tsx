@@ -126,7 +126,12 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       maxHp: character.maxHp ?? player.maxHp ?? 100,
       tempHp: character.tempHp ?? player.tempHp,
       portrait: character.portrait ?? player.portrait,
-      statusEffects: character.statusEffects ?? player.statusEffects,
+      // Conditions belong to the character. The player-level list is legacy
+      // and is only attributable when this player owns one character — the
+      // same line the token fallback above draws, for the same reason: with
+      // two characters it paints a sibling's condition onto both rows (UX-02).
+      statusEffects:
+        character.statusEffects ?? (owned.length === 1 ? player.statusEffects : undefined),
       characterId: character.id,
       hasCharacter: true,
       speed: character.speed,
