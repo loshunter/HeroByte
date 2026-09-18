@@ -299,7 +299,7 @@ describe("MapStudioControl", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveTextContent(
-        "Import failed: couldn't read that file.",
+        "Import failed: that file could not be read or applied.",
       ),
     );
   });

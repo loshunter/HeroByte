@@ -139,10 +139,11 @@ describe("MapEditInspectorPopover", () => {
       expect(grid.style.gridTemplateColumns).toBe("minmax(0, 1fr) minmax(0, 1fr)");
     }
 
-    // EVERY control, not one: border-box is the declaration that measurably
-    // does the work (54px of overhang -> none, at a 242px palette), and a test
-    // that reads a single spinner stayed green when the Layer select, the door
-    // width input or controlStyle's own width were reverted.
+    // EVERY control, not one. `controlStyle`'s `width: 100%` is what makes the
+    // form fit — see the note above panelStyle; box-sizing is secondary and
+    // matters only for the number inputs. A test that read a single spinner
+    // stayed green when the Layer select, the door width input or
+    // controlStyle's own width were reverted.
     const controls = [...container.querySelectorAll<HTMLElement>("input, select")].filter(
       (c) => (c as HTMLInputElement).type !== "checkbox",
     );

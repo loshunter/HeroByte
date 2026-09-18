@@ -24,11 +24,11 @@ export function parseBackupImport(fileText: string): BackupImport {
 
   // `null` IS valid JSON, and it is the one parse result that cannot be read
   // from. Dropping this guard when the format check went in turned a file whose
-  // whole body is `null` into a TypeError on the version read below — and the
-  // call site passes its handler as .then(onFulfilled, onRejected), where the
+  // whole body is `null` into a TypeError on the version read below. The call
+  // site USED to pass its handler as .then(onFulfilled, onRejected), whose
   // second argument catches a failed READ and not a throw from the first, so
-  // the DM got no message at all. Silence is the exact failure this file exists
-  // to abolish, so the guard is back and pinned by a test.
+  // the DM got no message at all. That call site is fixed now, but this guard
+  // stays: a message beats a caught crash. Both halves are pinned by tests.
   if (typeof parsed !== "object" || parsed === null) {
     return { error: "Import failed: that file is not a HeroByte map JSON backup." };
   }
