@@ -7,6 +7,36 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-18, DEPLOYED — the SECOND UX-audit repair slice is IN PRODUCTION).** `main` =
+`50472bca`, a `--no-ff` merge of `dev` at `73697c22` (14 commits). CI: dev **#881** green; the main
+run was watched. Five audit findings shipped: UX-04 (both modals portal out of EntitiesPanel's
+`position: fixed; zIndex: 100` stacking context), UX-06 (the inspector fits its 200-260px palette),
+UX-07 (a structural sniffer names a wrong-kind backup locally instead of letting it become a server
+timeout), UX-08 (entry camera: own token, else the party staging zone, else nothing — never the
+scene middle), UX-11 (the chat composer sits inside the roll-log window).
+
+**Deploy verified, discriminating probe.** Across all 11 served chunks, three strings new to this
+slice went 0 hits → 1 hit each (`top-left of your view`, `not a table backup`, `could not be read or
+applied`) while two controls present in both commits held at 1 (`No rolls yet`, `No messages yet`).
+Server 200 on `/` and `/healthz` after a ~30 s Render swap window. Functional check on production:
+the chat panel computes `border-box` and SEND sits **17 px inside** the window — it was 5 px past
+the edge before. **Players with a tab already open must reload.**
+
+**Verification ladder:** gates green four times (client 5976 tests, e2e 210 passed / 0 failed);
+evaluate-live **8.8/10, live-two-client**; **three adversarial review rounds**, both final-round
+lenses PASS. The review found what the gates could not: a user-reachable crash introduced while
+fixing a gate failure (a file containing `null` threw, and `.then(fn, onRejected)` swallowed it into
+silence), six tests that could not fail, a latch break expressible only as a HUNG CI worker, a
+confounded CSS measurement behind a "corrected" comment, and ~15 false claims in comments and the
+user guide.
+
+**Recorded, not fixed (owner's call):** a player running TWO characters gets no entry recentring —
+`ownTokenFallback` answers only for exactly one pc, an earlier settled rule that was not overturned;
+`handleFocusSelf` is still unwired and still uses the naive `owner === uid` test; a map document the
+server refuses still leaves no visible outcome (pre-existing). **17 of the original 26 audit
+findings remain open** — the report is at `output/ux-audit-2026-09-16/UX-AUDIT.md`, which is
+gitignored, so copy it into `docs/verification/` to keep it.
+
 **Update (2026-09-14, DEPLOYED — FOLLOW-UP F4 IS IN PRODUCTION; the Weighed Campaign arc is
 on `dev`).** The owner's three calls: merge F4 on the plateau record (done), leave the recorded
 affordance/camera-follow/`role="tab"` items recorded, and start the Atlas §7 pick on the
