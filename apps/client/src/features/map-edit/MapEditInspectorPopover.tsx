@@ -61,7 +61,13 @@ export function MapEditInspectorPopover({
   return (
     <fieldset disabled={disabled} style={panelStyle}>
       <legend className="jrpg-text-small">Edit {element.type}</legend>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+          gap: "6px",
+        }}
+      >
         <NumInput label="X" value={transform.x} onChange={(v) => num("x", v)} />
         <NumInput label="Y" value={transform.y} onChange={(v) => num("y", v)} />
         <NumInput
@@ -82,12 +88,13 @@ export function MapEditInspectorPopover({
           step={1}
           onChange={(v) => num("rotation", v)}
         />
-        <label className="jrpg-text-small">
+        <label className="jrpg-text-small" style={cellStyle}>
           Layer
           <select
             aria-label="Element layer"
             value={layerId}
             onChange={(e) => setLayerId(e.target.value)}
+            style={controlStyle}
           >
             {layers
               .filter((layer) => !layer.locked || layer.id === element.layerId)
@@ -98,7 +105,7 @@ export function MapEditInspectorPopover({
               ))}
           </select>
         </label>
-        <label className="jrpg-text-small">
+        <label className="jrpg-text-small" style={cellStyle}>
           <input
             aria-label="Hide element"
             type="checkbox"
@@ -109,7 +116,12 @@ export function MapEditInspectorPopover({
         </label>
       </div>
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", marginTop: "8px" }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+          gap: "4px",
+          marginTop: "8px",
+        }}
       >
         <JRPGButton
           style={{ fontSize: "9px" }}
@@ -128,13 +140,20 @@ export function MapEditInspectorPopover({
       </div>
       {element.type === "door" && (
         <div style={{ marginTop: "8px", borderTop: "1px solid #8a7445", paddingTop: "8px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-            <label className="jrpg-text-small">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+              gap: "6px",
+            }}
+          >
+            <label className="jrpg-text-small" style={cellStyle}>
               State
               <select
                 aria-label="Door state"
                 value={doorState}
                 onChange={(e) => setDoorState(e.target.value as MapDoorState)}
+                style={controlStyle}
               >
                 <option value="closed">Closed</option>
                 <option value="open">Open</option>
@@ -142,7 +161,7 @@ export function MapEditInspectorPopover({
                 <option value="secret">Secret</option>
               </select>
             </label>
-            <label className="jrpg-text-small">
+            <label className="jrpg-text-small" style={cellStyle}>
               Width
               <input
                 aria-label="Door width"
@@ -155,7 +174,7 @@ export function MapEditInspectorPopover({
                   const value = Number(e.target.value);
                   if (Number.isFinite(value)) setDoorWidth(value);
                 }}
-                style={{ width: "100%" }}
+                style={controlStyle}
               />
             </label>
           </div>
@@ -184,7 +203,7 @@ function NumInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="jrpg-text-small">
+    <label className="jrpg-text-small" style={cellStyle}>
       {label}
       <input
         aria-label={label}
@@ -192,10 +211,36 @@ function NumInput({
         step={step}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        style={{ width: "100%" }}
+        style={controlStyle}
       />
     </label>
   );
 }
 
-const panelStyle = { border: "1px solid #8a7445", padding: "6px" } as const;
+// The palette hosting this is a 200-260px window, and everything below exists
+// to make the form FIT it instead of overhanging its right edge.
+//
+// `minInlineSize: 0` is the load-bearing one: a <fieldset> carries
+// `min-inline-size: min-content` in the UA stylesheet, so it refuses to be
+// narrower than its widest row no matter what the grid inside it does. Nothing
+// else here works until that is off.
+const panelStyle = {
+  border: "1px solid #8a7445",
+  padding: "6px",
+  boxSizing: "border-box",
+  minInlineSize: "0px",
+  minWidth: 0,
+  maxWidth: "100%",
+} as const;
+
+// Grid items default to `min-width: auto`, which is min-content — and the
+// min-content width of an <input type="number"> is its 20-character default
+// size plus spinners, roughly 160px. Two of those in a 200px window is what
+// pushed the right column, DELETE and the door actions past the clipped edge.
+// The track (minmax(0, 1fr)) and the item (this) both have to allow it.
+const cellStyle = { minWidth: 0 } as const;
+
+// width: 100% is a CONTENT width without border-box (this project has no
+// global reset, on purpose), so a bordered control set to it overhangs its
+// cell by its own border — the same trap herobyte.css records for buttons.
+const controlStyle = { width: "100%", boxSizing: "border-box", minWidth: 0 } as const;

@@ -101,4 +101,37 @@ describe("MapEditInspectorPopover", () => {
     fireEvent.click(screen.getByRole("button", { name: "APPLY DOOR" }));
     expect(onUpdateDoor).toHaveBeenCalledWith("door1", { state: "secret", width: 50 });
   });
+
+  // The palette is a 200-260px window and this form used to overhang it, taking
+  // the right column, DELETE and the door actions past the clipped edge. jsdom
+  // runs no layout, so it cannot see the clipping — it can only hold the three
+  // declarations that let the form shrink. A browser pass is the real proof.
+  it("declares a form that can shrink to a narrow palette", () => {
+    const { container } = render(
+      <MapEditInspectorPopover
+        element={door}
+        layers={layers}
+        disabled={false}
+        onUpdate={vi.fn()}
+        onUpdateDoor={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    // A fieldset will not go below its min-content width until this is off.
+    const fieldset = container.querySelector("fieldset") as HTMLElement;
+    expect(fieldset.style.minInlineSize).toMatch(/^0(px)?$/);
+
+    // `1fr` is minmax(auto, 1fr): the track cannot shrink under the spinners.
+    const grids = Array.from(container.querySelectorAll<HTMLElement>('div[style*="grid"]'));
+    expect(grids.length).toBeGreaterThan(0);
+    for (const grid of grids) {
+      expect(grid.style.gridTemplateColumns).toBe("minmax(0, 1fr) minmax(0, 1fr)");
+    }
+
+    // And a grid item defaults to min-width:auto, which is min-content too.
+    const spinner = screen.getByLabelText("Scale X");
+    expect(spinner.style.boxSizing).toBe("border-box");
+    expect((spinner.closest("label") as HTMLElement).style.minWidth).toMatch(/^0(px)?$/);
+  });
 });
