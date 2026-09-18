@@ -21,15 +21,22 @@ export function parseBackupImport(fileText: string): BackupImport {
   if (format === "session") {
     return { error: `Import failed: ${WRONG_FILE_FOR_MAP_IMPORT}` };
   }
-  if (format !== "map") {
-    return { error: "Import failed: that file is not a HeroByte map JSON backup." };
-  }
-  // A map, but from a HeroByte that numbered documents differently. Worth its
-  // own sentence: nothing about the file is broken and there is nothing to fix
-  // by picking it again.
+
+  // AND THAT IS THE ONLY THING DETECTION IS ALLOWED TO REJECT. Everything else
+  // keeps the version check this has always had, because a client-side parser
+  // must never be stricter than the server that follows it — the same rule
+  // sessionPersistence writes down. Demanding a positive "map" match here
+  // instead turned every partial-but-importable document into a refusal, which
+  // is a worse failure than the one being fixed: it is a file that WOULD have
+  // worked, refused locally, with no server to appeal to.
   if ((parsed as { schemaVersion?: unknown }).schemaVersion !== 1) {
+    // A recognisable map at a version we do not read gets its own sentence:
+    // nothing about it is broken, and picking it again cannot help.
     return {
-      error: "Import failed: that map backup was written by a different version of HeroByte.",
+      error:
+        format === "map"
+          ? "Import failed: that map backup was written by a different version of HeroByte."
+          : "Import failed: that file is not a HeroByte map JSON backup.",
     };
   }
   // Guard the 1MB inbound WebSocket cap: the whole document ships over that

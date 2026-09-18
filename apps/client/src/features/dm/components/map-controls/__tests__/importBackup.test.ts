@@ -55,6 +55,19 @@ describe("parseBackupImport", () => {
     expect(parseBackupImport(JSON.stringify(MAP))).toEqual({ document: MAP });
   });
 
+  // THE LINE THIS MUST NOT CROSS. MapStudioControl's own tests import backups
+  // as thin as `{ schemaVersion: 1, id, name }`, and the server is the real
+  // validator — a stricter check here refuses a file that would have worked,
+  // with nowhere to appeal. Detection may reject the session file and nothing
+  // else.
+  it("still accepts a partial map backup, the way it always has", () => {
+    const thin = { schemaVersion: 1, id: "orig", name: "Restored" };
+    expect(parseBackupImport(JSON.stringify(thin))).toEqual({ document: thin });
+
+    const noLayers = { schemaVersion: 1, id: "orig", name: "Restored", elements: [] };
+    expect(parseBackupImport(JSON.stringify(noLayers))).toEqual({ document: noLayers });
+  });
+
   it("names a table backup as a table backup, and sends nothing", () => {
     const result = parseBackupImport(JSON.stringify(SESSION));
     expect(result).toHaveProperty("error");
