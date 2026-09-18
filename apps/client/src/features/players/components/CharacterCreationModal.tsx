@@ -103,8 +103,10 @@ export function CharacterCreationModal({
   // passes no `onAddCharacter`, and PlayerSettingsMenu gates this modal on it,
   // so nothing mounts there today. The wrapper below is what makes that safe to
   // stop being true: document.body is OUTSIDE every [data-mobile-surface], and
-  // the 44px touch floor is scoped to that attribute, so a bare portal would
-  // silently drop the name input to ~37px the day mobile wires the button.
+  // the ELEMENT-level 44px floor is scoped to that attribute (the .jrpg-button
+  // floor is not, so Cancel and Create would survive a bare portal), so the
+  // name input alone would silently drop to 34px the day mobile wires the
+  // button.
   // PlayerSettingsMenu wraps its own portal the same way, for the same reason.
   //
   // The overlay keeps `data-modal-overlay` wherever it lands: useKeyboardMovement

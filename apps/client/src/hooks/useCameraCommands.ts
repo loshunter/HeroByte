@@ -20,10 +20,10 @@
  * const { cameraCommand, handleFocusSelf, handleResetCamera, handleCameraCommandHandled } =
  *   useCameraCommands({ snapshot, uid });
  *
- * // Pass to Header for toolbar buttons. NOTE: nothing wires onFocusSelf today
- * // — no such control exists. It is kept for the next caller, not described
- * // here as something that ships.
- * <Header onFocusSelf={handleFocusSelf} onResetCamera={handleResetCamera} />
+ * // Pass to Header for toolbar buttons. NOTE: `handleFocusSelf` is deliberately
+ * // absent here — Header declares no such prop, so the old example would not
+ * // compile. Nothing wires it today; see its own comment before you do.
+ * <Header onResetCamera={handleResetCamera} />
  *
  * // Pass to MapBoard for command execution
  * <MapBoard cameraCommand={cameraCommand} onCameraCommandHandled={handleCameraCommandHandled} />

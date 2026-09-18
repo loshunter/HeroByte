@@ -282,6 +282,28 @@ describe("MapStudioControl", () => {
     fireEvent.change(fileInput(container), { target: { files: [file] } });
   };
 
+  it("says something when the import handler itself throws", async () => {
+    // THE SILENCE GUARD. The picker used to be `.then(fn, onRejected)`, whose
+    // second function catches a failed READ and not a throw from the first — so
+    // a crash inside the handler became an unhandled rejection and the panel
+    // said nothing at all. `.then(fn).catch(...)` is what makes it speak, and
+    // without this test reverting that leaves the whole suite green.
+    const mapStudio = controller({
+      importDocument: vi.fn(() => {
+        throw new Error("boom");
+      }),
+    });
+    const { container } = render(<MapStudioControl controller={mapStudio} />);
+
+    importFile(container, JSON.stringify({ schemaVersion: 1, id: "orig", name: "Restored" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Import failed: couldn't read that file.",
+      ),
+    );
+  });
+
   it("imports a valid JSON backup and shows an in-progress status", async () => {
     const mapStudio = controller();
     const { container } = render(<MapStudioControl controller={mapStudio} />);

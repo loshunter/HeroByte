@@ -47,23 +47,22 @@ function withOwnToken(uid: string, tokenId = "tok-mine") {
   });
 }
 
+// FIXTURES ARE HOISTED OUT OF EVERY RENDER CLOSURE ON PURPOSE. Building a
+// snapshot inside the callback gives the effect a new deps identity on every
+// render, so a broken once-only latch loops effect -> setState -> render ->
+// effect and starves the event loop. That is a HUNG worker, not a red test, and
+// a per-test timeout cannot fire through it. With the fixture hoisted, the same
+// break fails "fires once" with a real assertion.
 describe("useCameraCommands entry recenter", () => {
   it("focuses the viewer's own token on the first snapshot", () => {
-    const { result } = renderHook(() =>
-      useCameraCommands({ snapshot: withOwnToken("u"), uid: "u" }),
-    );
+    const s = withOwnToken("u");
+    const { result } = renderHook(() => useCameraCommands({ snapshot: s, uid: "u" }));
     expect(result.current.cameraCommand).toEqual({ type: "focus-token", tokenId: "tok-mine" });
   });
 
   it("falls back to the staging zone when the viewer has no token of their own", () => {
-    const { result } = renderHook(() =>
-      useCameraCommands({
-        snapshot: snapshot({
-          playerStagingZone: { x: 12, y: 14, width: 4, height: 4, rotation: 0 },
-        }),
-        uid: "dm",
-      }),
-    );
+    const s = snapshot({ playerStagingZone: { x: 12, y: 14, width: 4, height: 4, rotation: 0 } });
+    const { result } = renderHook(() => useCameraCommands({ snapshot: s, uid: "dm" }));
     expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 625, y: 725 });
   });
 
@@ -73,8 +72,17 @@ describe("useCameraCommands entry recenter", () => {
     // on a big authoring map the middle is empty. Measured on a live 8192x8192
     // table, this fallback parked a DM at (4096, 4096) while the doors they had
     // just drawn sat at (400, 200) — off screen, and worse than not moving.
-    const { result } = renderHook(() => useCameraCommands({ snapshot: snapshot(), uid: "dm" }));
+    const s = snapshot();
+    const { result } = renderHook(() => useCameraCommands({ snapshot: s, uid: "dm" }));
     expect(result.current.cameraCommand).toBeNull();
+
+    // POSITIVE CONTROL: the same fixture plus a staging zone must produce a
+    // command, or this test cannot tell "correctly quiet" from "feature gone".
+    const withZone = snapshot({
+      playerStagingZone: { x: 12, y: 14, width: 4, height: 4, rotation: 0 },
+    });
+    const live = renderHook(() => useCameraCommands({ snapshot: withZone, uid: "dm" }));
+    expect(live.result.current.cameraCommand).toEqual({ type: "focus-point", x: 625, y: 725 });
   });
 
   it("does NOT send a DM to a token they placed for an NPC", () => {
@@ -82,25 +90,19 @@ describe("useCameraCommands entry recenter", () => {
     // about WHICH target wins, not about whether anything happens.
     // Every NPC token carries the uid of the DM who placed it, so a plain
     // `owner === uid` test picks the goblin. F4 settled this once already.
-    const { result } = renderHook(() =>
-      useCameraCommands({
-        snapshot: snapshot({
-          characters: [{ id: "npc-1", type: "npc", ownedByPlayerUID: "dm" }] as never,
-          tokens: [{ id: "tok-goblin", owner: "dm", x: 3, y: 4 }] as never,
-          playerStagingZone: { x: 12, y: 14, width: 4, height: 4, rotation: 0 },
-        }),
-        uid: "dm",
-      }),
-    );
+    const s = snapshot({
+      characters: [{ id: "npc-1", type: "npc", ownedByPlayerUID: "dm" }] as never,
+      tokens: [{ id: "tok-goblin", owner: "dm", x: 3, y: 4 }] as never,
+      playerStagingZone: { x: 12, y: 14, width: 4, height: 4, rotation: 0 },
+    });
+    const { result } = renderHook(() => useCameraCommands({ snapshot: s, uid: "dm" }));
     expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 625, y: 725 });
   });
 
   it("fires once: a later snapshot does not yank the camera back", () => {
     const { result, rerender } = renderHook(
       ({ s }) => useCameraCommands({ snapshot: s, uid: "u" }),
-      {
-        initialProps: { s: withOwnToken("u") },
-      },
+      { initialProps: { s: withOwnToken("u") } },
     );
     expect(result.current.cameraCommand).toEqual({ type: "focus-token", tokenId: "tok-mine" });
     act(() => result.current.handleCameraCommandHandled());
@@ -117,6 +119,15 @@ describe("useCameraCommands entry recenter", () => {
     const noMap = { ...withOwnToken("u"), compiledScene: undefined } as RoomSnapshot;
     const { result } = renderHook(() => useCameraCommands({ snapshot: noMap, uid: "u" }));
     expect(result.current.cameraCommand).toBeNull();
+
+    // POSITIVE CONTROL: identical but WITH a scene. Without this the test is
+    // green whether the effect is bounded or absent.
+    const withMap = withOwnToken("u");
+    const live = renderHook(() => useCameraCommands({ snapshot: withMap, uid: "u" }));
+    expect(live.result.current.cameraCommand).toEqual({
+      type: "focus-token",
+      tokenId: "tok-mine",
+    });
   });
 
   it("stands down for good when the first snapshot has nothing to aim at", () => {

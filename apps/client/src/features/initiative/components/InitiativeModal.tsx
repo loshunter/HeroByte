@@ -158,8 +158,13 @@ export function InitiativeModal({
   //
   // The [data-mobile-surface] wrapper carries the 44px touch floor across the
   // portal, which lands outside every mobile surface. This modal is desktop-only
-  // today — EntitiesPanel is not on the phone — so it is insurance, and it costs
-  // nothing: the floor rules live inside `(pointer: coarse)`.
+  // today — EntitiesPanel is not on the phone — so it is insurance.
+  //
+  // It is not quite free, and the effect is the one we want: the floor rules are
+  // `(pointer: coarse)`-scoped, so a mouse desktop is untouched, but a coarse
+  // pointer wider than 1024px takes the DESKTOP layout (see MOBILE_LAYOUT_QUERY)
+  // and does pick them up — growing this modal's number input from 37px to 44px
+  // on a touch monitor or a tablet in landscape.
   return createPortal(
     <div style={{ display: "contents" }} data-mobile-surface="modal">
       <div

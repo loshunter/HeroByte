@@ -65,7 +65,17 @@ export function detectBackupFormat(parsed: unknown): BackupFormat {
   // reports "tokens must be an array" — the very message this file was written
   // to replace. Reached only after both session tests have failed, so a table
   // backup can never land here.
-  if (parsed.schemaVersion === 1 && typeof parsed.name === "string") return "map";
+  // `id` as well as `name`: without it `{schemaVersion: 1, name: "anything"}`
+  // classifies as a map, so the session loader sends the DM to Map Studio — and
+  // the map importer then accepts the same file and ships it to a server that
+  // refuses it. A real document always carries both.
+  if (
+    parsed.schemaVersion === 1 &&
+    typeof parsed.name === "string" &&
+    typeof parsed.id === "string"
+  ) {
+    return "map";
+  }
 
   return "unknown";
 }

@@ -102,10 +102,11 @@ describe("MapEditInspectorPopover", () => {
     expect(onUpdateDoor).toHaveBeenCalledWith("door1", { state: "secret", width: 50 });
   });
 
-  // The palette is a 200-260px window and this form used to overhang it, taking
-  // the right column, DELETE and the door actions past the clipped edge. jsdom
-  // runs no layout, so it cannot see the clipping — it can only hold the three
-  // declarations that let the form shrink. A browser pass is the real proof.
+  // The palette is a 200-260px window and this form used to overhang it,
+  // putting the right column, DELETE and the door actions past the visible edge
+  // of a content div that scrolls horizontally — past a fold, not cut away.
+  // jsdom runs no layout, so it can only hold the declarations that let the
+  // form shrink. A browser pass is the real proof.
   it("declares a form that can shrink to a narrow palette", () => {
     const { container } = render(
       <MapEditInspectorPopover
@@ -118,9 +119,18 @@ describe("MapEditInspectorPopover", () => {
       />,
     );
 
-    // A fieldset will not go below its min-content width until this is off.
+    // A fieldset will not go below its min-content width until this is off —
+    // and all four of panelStyle's shrink declarations, not just the one.
     const fieldset = container.querySelector("fieldset") as HTMLElement;
     expect(fieldset.style.minInlineSize).toMatch(/^0(px)?$/);
+    expect(fieldset.style.boxSizing).toBe("border-box");
+    expect(fieldset.style.minWidth).toMatch(/^0(px)?$/);
+    expect(fieldset.style.maxWidth).toBe("100%");
+
+    // APPLY DOOR is a <button>, so the input/select loop below never sees it.
+    // Its width is the half that matters; its box-sizing is belt and braces.
+    const applyDoor = screen.getByRole("button", { name: "APPLY DOOR" });
+    expect(applyDoor.style.width).toBe("100%");
 
     // `1fr` is minmax(auto, 1fr): the track cannot shrink under the spinners.
     const grids = Array.from(container.querySelectorAll<HTMLElement>('div[style*="grid"]'));
@@ -136,7 +146,9 @@ describe("MapEditInspectorPopover", () => {
     const controls = [...container.querySelectorAll<HTMLElement>("input, select")].filter(
       (c) => (c as HTMLInputElement).type !== "checkbox",
     );
-    expect(controls.length).toBeGreaterThanOrEqual(7);
+    // Exact, not a floor: with slack, deleting a whole control passes.
+    expect(controls.length).toBe(8);
+    expect(screen.getByLabelText("Element layer")).toBeInTheDocument();
     for (const control of controls) {
       expect(control.style.boxSizing).toBe("border-box");
       expect(control.style.width).toBe("100%");
