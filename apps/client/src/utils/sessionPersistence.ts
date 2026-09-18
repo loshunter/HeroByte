@@ -23,6 +23,7 @@
 // must be safe, and pass the rest through untouched.
 
 import type { PlayerStagingZone, RoomSnapshot, SessionFile } from "@herobyte/shared";
+import { WRONG_FILE_FOR_SESSION_LOAD, detectBackupFormat } from "./backupFormat";
 
 /**
  * Trigger a download of a complete session file.
@@ -157,9 +158,25 @@ export function loadSession(file: File): Promise<SessionFile> {
     reader.onerror = () => reject(new Error("Failed to read session file"));
     reader.onload = () => {
       try {
-        const parsed: unknown = JSON.parse(reader.result as string);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(reader.result as string);
+        } catch {
+          // Deliberately swallowing the SyntaxError. Its message is a character
+          // offset into a file nobody is going to open in an editor, and this
+          // string is shown to a DM mid-session as "Load failed: <message>".
+          throw new Error("that file is not valid JSON.");
+        }
         if (!isRecord(parsed)) {
           throw new Error("Invalid session data");
+        }
+
+        // A MAP backup has no `snapshot`, so without this it fell into the
+        // legacy bare-snapshot branch below, was read AS a room, and failed on
+        // the first collection it did not have — reporting "tokens must be an
+        // array" for a file that was simply the other kind.
+        if (detectBackupFormat(parsed) === "map") {
+          throw new Error(WRONG_FILE_FOR_SESSION_LOAD);
         }
 
         if (isLegacyBareSnapshot(parsed)) {
