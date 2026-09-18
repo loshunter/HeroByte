@@ -95,6 +95,17 @@ describe("parseBackupImport", () => {
     );
   });
 
+  it("rejects a file whose whole body is null, with words rather than a crash", () => {
+    // `null` parses fine and is the one result that cannot be read from. The
+    // call site cannot surface a throw at all, so a crash here is silence.
+    expect(() => parseBackupImport("null")).not.toThrow();
+    expect((parseBackupImport("null") as { error: string }).error).toMatch(/not a HeroByte map/i);
+    for (const primitive of ["5", '"hi"', "true", "[]"]) {
+      expect(() => parseBackupImport(primitive)).not.toThrow();
+      expect(parseBackupImport(primitive)).toHaveProperty("error");
+    }
+  });
+
   it("rejects invalid JSON", () => {
     expect((parseBackupImport("{ nope") as { error: string }).error).toMatch(/not valid JSON/i);
   });

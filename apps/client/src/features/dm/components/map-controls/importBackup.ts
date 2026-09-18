@@ -22,6 +22,17 @@ export function parseBackupImport(fileText: string): BackupImport {
     return { error: `Import failed: ${WRONG_FILE_FOR_MAP_IMPORT}` };
   }
 
+  // `null` IS valid JSON, and it is the one parse result that cannot be read
+  // from. Dropping this guard when the format check went in turned a file whose
+  // whole body is `null` into a TypeError on the version read below — and the
+  // call site passes its handler as .then(onFulfilled, onRejected), where the
+  // second argument catches a failed READ and not a throw from the first, so
+  // the DM got no message at all. Silence is the exact failure this file exists
+  // to abolish, so the guard is back and pinned by a test.
+  if (typeof parsed !== "object" || parsed === null) {
+    return { error: "Import failed: that file is not a HeroByte map JSON backup." };
+  }
+
   // AND THAT IS THE ONLY THING DETECTION IS ALLOWED TO REJECT. Everything else
   // keeps the version check this has always had, because a client-side parser
   // must never be stricter than the server that follows it — the same rule

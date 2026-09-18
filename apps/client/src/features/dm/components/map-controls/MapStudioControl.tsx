@@ -250,9 +250,16 @@ export function MapStudioControl({
               const file = event.target.files?.[0];
               event.target.value = "";
               if (!file) return;
-              file.text().then(handleImportFile, () => {
-                setPublishStatus("Import failed: couldn't read that file.");
-              });
+              // .then(fn).catch(...), NOT .then(fn, onRejected): the two-argument
+              // form catches a failed READ only, so anything thrown by the
+              // handler itself becomes an unhandled rejection and the panel
+              // says nothing. A parse bug must still reach the DM as words.
+              file
+                .text()
+                .then(handleImportFile)
+                .catch(() => {
+                  setPublishStatus("Import failed: couldn't read that file.");
+                });
             }}
           />
         </div>

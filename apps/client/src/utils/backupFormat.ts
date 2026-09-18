@@ -58,6 +58,15 @@ export function detectBackupFormat(parsed: unknown): BackupFormat {
     return "map";
   }
 
+  // A map document THINNER than the rule above — `{schemaVersion: 1, id, name}`
+  // with no collections yet. `parseBackupImport` deliberately accepts those (a
+  // client parser must not be stricter than the server), so the session loader
+  // has to RECOGNISE them or it hands them to the bare-snapshot branch and
+  // reports "tokens must be an array" — the very message this file was written
+  // to replace. Reached only after both session tests have failed, so a table
+  // backup can never land here.
+  if (parsed.schemaVersion === 1 && typeof parsed.name === "string") return "map";
+
   return "unknown";
 }
 

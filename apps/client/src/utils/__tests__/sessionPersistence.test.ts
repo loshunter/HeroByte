@@ -129,6 +129,15 @@ describe("loadSession — the file is the wrong kind", () => {
     await expect(loadSession(fileOf(DOCUMENT))).rejects.not.toThrow(/tokens/i);
   });
 
+  it("names a THIN map backup too — the shape the map importer deliberately accepts", async () => {
+    // `{schemaVersion: 1, id, name}` imports as a map on the other side, so if
+    // detection does not see it here it falls to the bare-snapshot branch and
+    // reports "tokens must be an array" — the message this arc exists to kill.
+    const thin = { schemaVersion: 1, id: "orig", name: "Restored" };
+    await expect(loadSession(fileOf(thin))).rejects.toThrow(/map backup/i);
+    await expect(loadSession(fileOf(thin))).rejects.not.toThrow(/tokens/i);
+  });
+
   it("still loads a real session file", async () => {
     const file: SessionFile = {
       schemaVersion: 1,
