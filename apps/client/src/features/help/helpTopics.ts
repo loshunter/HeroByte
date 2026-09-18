@@ -113,7 +113,12 @@ export const HELP_TOPICS: HelpTopic[] = [
         detail: "Drag empty map space, or middle-mouse drag even with a tool active.",
       },
       { term: "Zoom", detail: "Mouse wheel, toward the cursor (0.1× to 8×)." },
-      { term: "🧭 Recenter", detail: "Puts the camera back at the middle of the map." },
+      {
+        term: "🧭 Recenter",
+        detail:
+          "Puts the map's top-left corner back at the top-left of your view, at 1× zoom — " +
+          "not the middle of the map, and not where you arrived.",
+      },
       { term: "Find your token", detail: "The ⚔️ button on your own card jumps the camera to it." },
       { term: "Touch", detail: "One finger pans, two fingers pinch-zoom." },
     ],

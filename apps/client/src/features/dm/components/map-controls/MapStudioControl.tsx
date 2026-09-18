@@ -250,9 +250,12 @@ export function MapStudioControl({
               const file = event.target.files?.[0];
               event.target.value = "";
               if (!file) return;
-              file.text().then(handleImportFile, () => {
-                setPublishStatus("Import failed: couldn't read that file.");
-              });
+              // `.catch`, not `.then`'s second argument: that catches a failed
+              // READ only, so a handler throw vanished and the panel said
+              // nothing. One sentence, true of both failures — see importBackup.
+              const failed = () =>
+                setPublishStatus("Import failed: that file could not be read or applied.");
+              file.text().then(handleImportFile).catch(failed);
             }}
           />
         </div>

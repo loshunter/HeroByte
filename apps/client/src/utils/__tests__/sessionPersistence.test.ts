@@ -118,6 +118,54 @@ describe("saveSessionFile", () => {
   });
 });
 
+describe("loadSession — the file is the wrong kind", () => {
+  // Both backups say `schemaVersion: 1`, so neither picker could tell them
+  // apart. A map handed to Load Game State has no `snapshot`, took the legacy
+  // bare-snapshot path, was read AS a room, and failed on the first collection
+  // a map does not have — telling the DM "tokens must be an array" about a file
+  // that was perfectly valid, just for the other importer.
+  it("names a map backup as a map backup, not the first field it lacks", async () => {
+    await expect(loadSession(fileOf(DOCUMENT))).rejects.toThrow(/map backup/i);
+    // It must point at the control that WOULD work, or the only move left is to
+    // pick the same file again. The opposite direction pins its twin.
+    await expect(loadSession(fileOf(DOCUMENT))).rejects.toThrow(/IMPORT JSON BACKUP/);
+    await expect(loadSession(fileOf(DOCUMENT))).rejects.not.toThrow(/tokens/i);
+  });
+
+  it("names a THIN map backup too — the shape the map importer deliberately accepts", async () => {
+    // `{schemaVersion: 1, id, name}` imports as a map on the other side, so if
+    // detection does not see it here it falls to the bare-snapshot branch and
+    // reports "tokens must be an array" — the message this arc exists to kill.
+    const thin = { schemaVersion: 1, id: "orig", name: "Restored" };
+    await expect(loadSession(fileOf(thin))).rejects.toThrow(/map backup/i);
+    await expect(loadSession(fileOf(thin))).rejects.not.toThrow(/tokens/i);
+  });
+
+  it("still loads a real session file", async () => {
+    const file: SessionFile = {
+      schemaVersion: 1,
+      savedAt: 7,
+      snapshot: snapshot(),
+      mapDocuments: [],
+    };
+    await expect(loadSession(fileOf(file))).resolves.toMatchObject({ savedAt: 7 });
+  });
+
+  it("still loads a bare snapshot from before the envelope existed", async () => {
+    await expect(loadSession(fileOf(snapshot()))).resolves.toMatchObject({ savedAt: 0 });
+  });
+
+  it("reports malformed JSON without the parser's character offsets", async () => {
+    const broken = new File(["{ this is not json"], "session.json", {
+      type: "application/json",
+    });
+    await expect(loadSession(broken)).rejects.toThrow(/not valid JSON/i);
+    // The SyntaxError's own text points at a position in a file nobody will
+    // open; it read as corruption when the file was simply the wrong one.
+    await expect(loadSession(broken)).rejects.not.toThrow(/position|token .* JSON/i);
+  });
+});
+
 describe("loadSession", () => {
   it("preserves the whole map channel set, not a known-fields subset", () => {
     // THE REGRESSION GUARD. Each of these was dropped by the old whitelist, and

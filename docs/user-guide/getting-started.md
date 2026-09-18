@@ -12,7 +12,7 @@ Open the app in a modern browser (Chrome, Edge, or Firefox recommended). You'll 
 2. Type the **table password** your host gave you.
 3. Press **ENTER TABLE**.
 
-That's it — your token appears on the map, and your player card shows up in the **Entities** panel at the bottom.
+That's it — your token appears on the map, and your player card shows up in the **Entities** panel at the bottom. If the table has a published map — one built or imported in Map Studio, not a plain uploaded background image — the view starts centred on your token, so you are not staring at unexplored fog wondering whether anything loaded, and the same happens when you reload. Three things narrow that: it needs that published map; it aims at your token only while you run a single character (with two it goes to the party's start zone instead, or stays put); and it happens once on arrival, so a map published after you join does not move your view.
 
 ![First moments at a table: your token on the grid and your player card below](img/table-first-join.jpg)
 

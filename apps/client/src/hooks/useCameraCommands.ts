@@ -20,8 +20,10 @@
  * const { cameraCommand, handleFocusSelf, handleResetCamera, handleCameraCommandHandled } =
  *   useCameraCommands({ snapshot, uid });
  *
- * // Pass to Header for toolbar buttons
- * <Header onFocusSelf={handleFocusSelf} onResetCamera={handleResetCamera} />
+ * // Pass to Header for toolbar buttons. NOTE: `handleFocusSelf` is deliberately
+ * // absent here — Header declares no such prop, so the old example would not
+ * // compile. Nothing wires it today; see its own comment before you do.
+ * <Header onResetCamera={handleResetCamera} />
  *
  * // Pass to MapBoard for command execution
  * <MapBoard cameraCommand={cameraCommand} onCameraCommandHandled={handleCameraCommandHandled} />
@@ -36,9 +38,49 @@ import {
   type RoomSnapshot,
   type SceneObjectTransform,
 } from "@herobyte/shared";
+import { ownTokenFallback } from "../features/movement/keyboardMovement";
 import type { CameraCommand } from "../ui/MapBoard";
 
 const IDENTITY_TRANSFORM: SceneObjectTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
+
+/**
+ * The centre of the party's staging zone in world px, or null when the table
+ * names no zone.
+ *
+ * The zone is a cell rect on the WORLD lattice, so it needs the grid size and
+ * no scene transform. `(x + 0.5) * gridSize` mirrors useSceneObjectsData: the
+ * zone's x/y is its CENTRE cell, which is where StagingZoneLayer draws it.
+ */
+function stagingZonePoint(snapshot: RoomSnapshot | null): { x: number; y: number } | null {
+  const zone = snapshot?.playerStagingZone;
+  if (!zone) return null;
+  const gridSize = snapshot?.gridSize ?? 50;
+  return { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize };
+}
+
+/**
+ * Where a camera with nothing better to look at should point: the party's
+ * staging zone if the table names one, else the middle of the scene.
+ *
+ * The scene's midpoint is in DOCUMENT px and must go through the map object's
+ * transform (the scene renders under it) or a moved or scaled raster sends the
+ * camera into the void.
+ *
+ * Returns null when there is no scene yet. TRAVEL uses this; ENTRY does not —
+ * see the entry effect for why the scene's middle is wrong on arrival.
+ */
+function sceneArrivalPoint(snapshot: RoomSnapshot | null): { x: number; y: number } | null {
+  const scene = snapshot?.compiledScene;
+  if (!scene) return null;
+  const mapTransform = snapshot?.sceneObjects?.find((object) => object.type === "map")?.transform;
+  return (
+    stagingZonePoint(snapshot) ??
+    transformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, {
+      x: scene.width / 2,
+      y: scene.height / 2,
+    })
+  );
+}
 
 interface UseCameraCommandsParams {
   /** Current room snapshot, contains tokens array */
@@ -90,20 +132,8 @@ export function useCameraCommands({
     const before = previousSceneId.current;
     previousSceneId.current = sceneId;
     if (!before || !sceneId || before === sceneId) return;
-    const scene = snapshot?.compiledScene;
-    if (!scene) return;
-    const zone = snapshot?.playerStagingZone;
-    const gridSize = snapshot?.gridSize ?? 50;
-    // The zone is a cell rect on the WORLD lattice; the scene's midpoint is in
-    // DOCUMENT px and must go through the map object's transform (the scene
-    // renders under it) or a moved/scaled raster sends the party to the void.
-    const mapTransform = snapshot?.sceneObjects?.find((object) => object.type === "map")?.transform;
-    const target = zone
-      ? { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize }
-      : transformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, {
-          x: scene.width / 2,
-          y: scene.height / 2,
-        });
+    const target = sceneArrivalPoint(snapshot);
+    if (!target) return;
     setCameraCommand({ type: "focus-point", x: target.x, y: target.y });
   }, [
     snapshot?.compiledScene,
@@ -112,11 +142,83 @@ export function useCameraCommands({
     snapshot?.sceneObjects,
   ]);
 
+  // ARRIVAL ON ENTRY. The travel effect above deliberately skips undefined→A —
+  // first bind and reload — and nothing else aimed the camera, so JOINING or
+  // RELOADING left it wherever it defaults. On a fogged map that is a black
+  // rectangle with your own token somewhere off-screen, which is
+  // indistinguishable from a table that failed to load: the audit's player
+  // assumed an empty game. The only way back was the ⚔️ portrait icon, whose
+  // camera behaviour is not discoverable from looking at it.
+  //
+  // Fires on the FIRST snapshot this client receives and never again — that
+  // snapshot IS entry, for a join and for a reload alike, and it arrives whole.
+  // Whatever it offers is the answer: if it offers nothing the camera stays put
+  // for good, because a map appearing later is a first bind, and the effect
+  // above deliberately does not move the camera for one. So this can neither
+  // fight a pan nor overturn that decision.
+  //
+  // Your own token first — "where am I" is the question being answered. The
+  // staging zone next, for a DM or a player not yet placed. With neither, the
+  // camera is left where it is; the reason is at the fallback below.
+  //
+  // `ownTokenFallback` rather than `tokens.find(owner === uid)`: every NPC
+  // token carries the uid of the DM who placed it, so the plain ownership test
+  // sends a DM to a goblin (F4 settled this; this is the helper's second
+  // caller, after useKeyboardMovement).
+  //
+  // KNOWN LIMIT: that helper answers only for a viewer running exactly ONE pc,
+  // because two is a guess. A player with two characters therefore gets the
+  // staging zone, or nothing. Widening it would overturn a settled rule, so it
+  // stays until someone decides otherwise.
+  const hasArrived = useRef(false);
+  useEffect(() => {
+    if (hasArrived.current || !snapshot) return;
+    hasArrived.current = true;
+
+    // ONLY WHERE THERE IS A MAP TO BE LOST ON. The confusion this answers is a
+    // viewport full of fog with your token outside it, and that needs a scene
+    // to exist — a table with no map shows no map to anyone, and moving the
+    // camera over empty space answers nothing.
+    //
+    // This bound is load-bearing, not cosmetic. Without it, entry aimed at the
+    // token a table hands every new arrival at (0,0), which on a table whose
+    // map is created AFTERWARDS parks the view off the document that is about
+    // to exist — the mobile map-edit specs caught exactly that, taps landing
+    // outside the new map and painting nothing.
+    if (!snapshot.compiledScene) return;
+
+    const own = ownTokenFallback({ snapshot, uid });
+    if (own?.startsWith("token:")) {
+      setCameraCommand({ type: "focus-token", tokenId: own.slice("token:".length) });
+      return;
+    }
+
+    // The staging zone, and DELIBERATELY NOT the scene's middle. Travel falls
+    // back to the middle because the old map's pan is certainly wrong on the
+    // new one; entry has no such certainty, and on a large authoring map the
+    // middle is empty. Measured on a live 8192x8192 table: entry parked a DM
+    // at world (4096, 4096) while the doors they had just drawn sat at (400,
+    // 200), off screen — strictly worse than the camera they arrived with.
+    //
+    // So entry answers only the two questions the audit actually asked: where
+    // is my character, and where does the party start. With neither, it leaves
+    // the camera alone.
+    const target = stagingZonePoint(snapshot);
+    if (target) setCameraCommand({ type: "focus-point", x: target.x, y: target.y });
+  }, [snapshot, uid]);
+
   /**
    * Focus camera on the user's token.
    * Shows an alert if the user doesn't have a token on the map yet.
    */
   const handleFocusSelf = useCallback(() => {
+    // UNWIRED, AND STILL NAIVE. This is the plain `owner === uid` test that the
+    // entry effect above says was retired — every NPC token carries the uid of
+    // the DM who placed it, so wiring this as-is would send a DM to a goblin.
+    // It is left exactly as it was on purpose: nothing consumes it, and its
+    // behaviour is pinned by a characterization suite that exists to keep it
+    // still. Whoever wires it must route it through `ownTokenFallback` first,
+    // and update that suite deliberately rather than by accident.
     const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
     if (!myToken) {
       if (typeof window !== "undefined" && typeof window.alert === "function") {

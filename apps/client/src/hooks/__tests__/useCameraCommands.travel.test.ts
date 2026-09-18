@@ -2,8 +2,16 @@
 // between two defined values, the camera gets a focus-point command at the
 // destination's staging-zone center (cells → world px), else the scene's
 // middle. First bind and reload (undefined→A) deliberately do not fire.
+//
+// Each test clears the command after mounting, the way MapBoard does once it
+// has executed one. It is belt-and-braces now: these fixtures give entry no own
+// token and no staging zone, so entry emits nothing for them. It mattered when
+// entry still fell back to the scene's middle — that is the same point a
+// doc-a→doc-b travel reports, so one of these read as green whether travel
+// fired or not. Keep the clears: the next fixture that hands entry something to
+// aim at would bring the hazard straight back.
 
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { transformScenePoint, type RoomSnapshot } from "@herobyte/shared";
 import { useCameraCommands } from "../useCameraCommands";
@@ -47,6 +55,7 @@ describe("useCameraCommands travel recenter", () => {
         initialProps: { s: snapshotWith(undefined) },
       },
     );
+    act(() => result.current.handleCameraCommandHandled());
     rerender({ s: snapshotWith("doc-a") });
     expect(result.current.cameraCommand).toBeNull();
   });
@@ -58,6 +67,7 @@ describe("useCameraCommands travel recenter", () => {
         initialProps: { s: snapshotWith("doc-a") },
       },
     );
+    act(() => result.current.handleCameraCommandHandled());
     rerender({ s: snapshotWith("doc-b") });
     expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 1000, y: 500 });
   });
@@ -68,6 +78,7 @@ describe("useCameraCommands travel recenter", () => {
       ({ s }) => useCameraCommands({ snapshot: s, uid: "u" }),
       { initialProps: { s: snapshotWith("doc-a") } },
     );
+    act(() => result.current.handleCameraCommandHandled());
     rerender({
       s: snapshotWith("doc-b", {
         sceneObjects: [{ id: "map", type: "map", transform } as never],
@@ -90,6 +101,7 @@ describe("useCameraCommands travel recenter", () => {
         initialProps: { s: snapshotWith("doc-a") },
       },
     );
+    act(() => result.current.handleCameraCommandHandled());
     rerender({
       s: snapshotWith("doc-b", {
         playerStagingZone: { x: 12, y: 14, width: 4, height: 4, rotation: 0 },

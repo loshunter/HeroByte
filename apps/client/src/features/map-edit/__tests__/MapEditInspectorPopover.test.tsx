@@ -101,4 +101,64 @@ describe("MapEditInspectorPopover", () => {
     fireEvent.click(screen.getByRole("button", { name: "APPLY DOOR" }));
     expect(onUpdateDoor).toHaveBeenCalledWith("door1", { state: "secret", width: 50 });
   });
+
+  // The palette is a 200-260px window and this form used to overhang it,
+  // putting the right column, DELETE and the door actions past the visible edge
+  // of a content div that scrolls horizontally — past a fold, not cut away.
+  // jsdom runs no layout, so it can only hold the declarations that let the
+  // form shrink. A browser pass is the real proof.
+  it("declares a form that can shrink to a narrow palette", () => {
+    const { container } = render(
+      <MapEditInspectorPopover
+        element={door}
+        layers={layers}
+        disabled={false}
+        onUpdate={vi.fn()}
+        onUpdateDoor={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    // A fieldset will not go below its min-content width until this is off —
+    // and all four of panelStyle's shrink declarations, not just the one.
+    const fieldset = container.querySelector("fieldset") as HTMLElement;
+    expect(fieldset.style.minInlineSize).toMatch(/^0(px)?$/);
+    expect(fieldset.style.boxSizing).toBe("border-box");
+    expect(fieldset.style.minWidth).toMatch(/^0(px)?$/);
+    expect(fieldset.style.maxWidth).toBe("100%");
+
+    // APPLY DOOR is a <button>, so the input/select loop below never sees it.
+    // Its width is the half that matters; its box-sizing is belt and braces.
+    const applyDoor = screen.getByRole("button", { name: "APPLY DOOR" });
+    expect(applyDoor.style.width).toBe("100%");
+
+    // `1fr` is minmax(auto, 1fr): the track cannot shrink under the spinners.
+    const grids = Array.from(container.querySelectorAll<HTMLElement>('div[style*="grid"]'));
+    expect(grids.length).toBeGreaterThan(0);
+    for (const grid of grids) {
+      expect(grid.style.gridTemplateColumns).toBe("minmax(0, 1fr) minmax(0, 1fr)");
+    }
+
+    // EVERY control, not one. `controlStyle`'s `width: 100%` is what makes the
+    // form fit — see the note above panelStyle; box-sizing is secondary and
+    // matters only for the number inputs. A test that read a single spinner
+    // stayed green when the Layer select, the door width input or
+    // controlStyle's own width were reverted.
+    const controls = [...container.querySelectorAll<HTMLElement>("input, select")].filter(
+      (c) => (c as HTMLInputElement).type !== "checkbox",
+    );
+    // Exact, not a floor: with slack, deleting a whole control passes.
+    expect(controls.length).toBe(8);
+    expect(screen.getByLabelText("Element layer")).toBeInTheDocument();
+    for (const control of controls) {
+      expect(control.style.boxSizing).toBe("border-box");
+      expect(control.style.width).toBe("100%");
+      expect(control.style.minWidth).toMatch(/^0(px)?$/);
+    }
+
+    // And a grid item defaults to min-width:auto, which is min-content too.
+    for (const label of container.querySelectorAll<HTMLElement>("label")) {
+      expect(label.style.minWidth).toMatch(/^0(px)?$/);
+    }
+  });
 });

@@ -282,6 +282,46 @@ describe("MapStudioControl", () => {
     fireEvent.change(fileInput(container), { target: { files: [file] } });
   };
 
+  it("says something when the FILE ITSELF cannot be read", async () => {
+    // The other half of the message. `importFile` shadows File.text with a
+    // resolved promise, so no other test ever exercises a rejected read — the
+    // failure the string is literally named after.
+    const mapStudio = controller();
+    const { container } = render(<MapStudioControl controller={mapStudio} />);
+    const file = new File(["{}"], "backup.json", { type: "application/json" });
+    Object.defineProperty(file, "text", { value: () => Promise.reject(new Error("EIO")) });
+    fireEvent.change(fileInput(container), { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Import failed: that file could not be read or applied.",
+      ),
+    );
+    expect(mapStudio.importDocument).not.toHaveBeenCalled();
+  });
+
+  it("says something when the import handler itself throws", async () => {
+    // THE SILENCE GUARD. The picker used to be `.then(fn, onRejected)`, whose
+    // second function catches a failed READ and not a throw from the first — so
+    // a crash inside the handler became an unhandled rejection and the panel
+    // said nothing at all. `.then(fn).catch(...)` is what makes it speak, and
+    // without this test reverting that leaves the whole suite green.
+    const mapStudio = controller({
+      importDocument: vi.fn(() => {
+        throw new Error("boom");
+      }),
+    });
+    const { container } = render(<MapStudioControl controller={mapStudio} />);
+
+    importFile(container, JSON.stringify({ schemaVersion: 1, id: "orig", name: "Restored" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Import failed: that file could not be read or applied.",
+      ),
+    );
+  });
+
   it("imports a valid JSON backup and shows an in-progress status", async () => {
     const mapStudio = controller();
     const { container } = render(<MapStudioControl controller={mapStudio} />);
