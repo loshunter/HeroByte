@@ -153,6 +153,18 @@ export function useCameraCommands({
     if (hasArrived.current || !snapshot) return;
     hasArrived.current = true;
 
+    // ONLY WHERE THERE IS A MAP TO BE LOST ON. The confusion this answers is a
+    // viewport full of fog with your token outside it, and that needs a scene
+    // to exist — a table with no map shows no map to anyone, and moving the
+    // camera over empty space answers nothing.
+    //
+    // This bound is load-bearing, not cosmetic. Without it, entry aimed at the
+    // token a table hands every new arrival at (0,0), which on a table whose
+    // map is created AFTERWARDS parks the view off the document that is about
+    // to exist — the mobile map-edit specs caught exactly that, taps landing
+    // outside the new map and painting nothing.
+    if (!snapshot.compiledScene) return;
+
     const own = ownTokenFallback({ snapshot, uid });
     if (own?.startsWith("token:")) {
       setCameraCommand({ type: "focus-token", tokenId: own.slice("token:".length) });

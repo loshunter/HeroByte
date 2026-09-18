@@ -101,6 +101,16 @@ describe("useCameraCommands entry recenter", () => {
     expect(result.current.cameraCommand).toBeNull();
   });
 
+  it("does nothing on a table with no map, even when the viewer has a token", () => {
+    // A table hands every new arrival a token at (0,0) before any map exists.
+    // Aiming at it would park the view off the document created a moment
+    // later — which is what the mobile map-edit specs caught: taps landing
+    // outside the new map, painting nothing. No scene, no aim.
+    const noMap = { ...withOwnToken("u"), compiledScene: undefined } as RoomSnapshot;
+    const { result } = renderHook(() => useCameraCommands({ snapshot: noMap, uid: "u" }));
+    expect(result.current.cameraCommand).toBeNull();
+  });
+
   it("stands down for good when the first snapshot has nothing to aim at", () => {
     // A table with no map yet. Publishing one later is a first bind, and the
     // travel recenter deliberately leaves the camera alone for those.
