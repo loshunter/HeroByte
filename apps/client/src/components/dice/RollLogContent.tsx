@@ -58,7 +58,22 @@ export const RollLogContent: React.FC<RollLogContentProps> = ({
   return (
     <JRPGPanel
       variant="bevel"
-      style={{ padding: "8px", height: "100%", display: "flex", flexDirection: "column" }}
+      // border-box, or the chat composer is clipped by the window around it.
+      // There is no global box-sizing reset in this app and that is deliberate
+      // (herobyte.css explains why: a global one would drop .mobile-chip under
+      // the 44px touch floor). So under the default content-box `height: 100%`
+      // sized only the CONTENT, and this panel's 16px of padding plus 6px of
+      // border made it 22px TALLER than the box it was filling. The overflow
+      // lands at the bottom, which is exactly where the chat input and SEND
+      // sit, so they were cut by the window's `overflow: hidden` edge. Scoped
+      // to this element for the same reason the dock's is.
+      style={{
+        padding: "8px",
+        height: "100%",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       {/* Tab strip — matches the DMMenuTabs idiom (JRPGButton variant swap).
           Hidden entirely when chat is not wired, so nothing changes for a
