@@ -17,7 +17,7 @@ You've [joined a table](getting-started.md) — here's everything you can do at 
 | ------------------ | ---------------------------------------------------------------------------------------------------- |
 | Pan                | Drag empty map space (with no tool active), or **middle-mouse drag** (works even with a tool active) |
 | Zoom               | Mouse wheel — zooms toward your cursor (0.1× to 8×)                                                  |
-| Reset the camera   | **🧭 RECENTER**                                                                                      |
+| Reset the camera   | **🧭 RECENTER** — returns to the map's origin at 1× zoom, which is not always where you started      |
 | Jump to your token | The ⚔️ button on your player card (**Focus camera on token**)                                        |
 | Touch              | One finger pans, two fingers pinch-zoom                                                              |
 
