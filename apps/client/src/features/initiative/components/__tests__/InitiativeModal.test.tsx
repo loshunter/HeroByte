@@ -165,6 +165,11 @@ describe("InitiativeModal - Initial Rendering", () => {
     // The wrapper carries the 44px touch floor across the portal, which lands
     // outside every [data-mobile-surface].
     expect(overlay?.closest('[data-mobile-surface="modal"]')?.parentElement).toBe(document.body);
+    // display: contents is what keeps the wrapper out of body's flow — without
+    // it the modal gains a real block box between itself and the body.
+    expect(
+      (document.querySelector('[data-mobile-surface="modal"]') as HTMLElement).style.display,
+    ).toBe("contents");
   });
 
   it("renders modal overlay", () => {

@@ -153,6 +153,7 @@ describe("MapEditInspectorPopover", () => {
     for (const control of controls) {
       expect(control.style.boxSizing).toBe("border-box");
       expect(control.style.width).toBe("100%");
+      expect(control.style.minWidth).toMatch(/^0(px)?$/);
     }
 
     // And a grid item defaults to min-width:auto, which is min-content too.

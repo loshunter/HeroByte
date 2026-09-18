@@ -126,6 +126,9 @@ describe("loadSession — the file is the wrong kind", () => {
   // that was perfectly valid, just for the other importer.
   it("names a map backup as a map backup, not the first field it lacks", async () => {
     await expect(loadSession(fileOf(DOCUMENT))).rejects.toThrow(/map backup/i);
+    // It must point at the control that WOULD work, or the only move left is to
+    // pick the same file again. The opposite direction pins its twin.
+    await expect(loadSession(fileOf(DOCUMENT))).rejects.toThrow(/IMPORT JSON BACKUP/);
     await expect(loadSession(fileOf(DOCUMENT))).rejects.not.toThrow(/tokens/i);
   });
 

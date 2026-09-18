@@ -100,8 +100,16 @@ describe("useCameraCommands entry recenter", () => {
   });
 
   it("fires once: a later snapshot does not yank the camera back", () => {
+    // The render count is the real guard. A latch that re-fires is a render
+    // storm, not a wrong value, and a storm is what hangs the worker instead of
+    // failing it — so count renders rather than trusting the hoisted fixture to
+    // stay hoisted.
+    let renders = 0;
     const { result, rerender } = renderHook(
-      ({ s }) => useCameraCommands({ snapshot: s, uid: "u" }),
+      ({ s }) => {
+        renders += 1;
+        return useCameraCommands({ snapshot: s, uid: "u" });
+      },
       { initialProps: { s: withOwnToken("u") } },
     );
     expect(result.current.cameraCommand).toEqual({ type: "focus-token", tokenId: "tok-mine" });
@@ -109,6 +117,7 @@ describe("useCameraCommands entry recenter", () => {
 
     rerender({ s: withOwnToken("u") });
     expect(result.current.cameraCommand).toBeNull();
+    expect(renders).toBeLessThan(10);
   });
 
   it("does nothing on a table with no map, even when the viewer has a token", () => {

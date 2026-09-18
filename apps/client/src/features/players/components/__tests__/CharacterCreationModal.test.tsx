@@ -128,6 +128,11 @@ describe("CharacterCreationModal", () => {
       const surface = overlay?.closest('[data-mobile-surface="modal"]');
       expect(surface).toBeInTheDocument();
       expect(surface?.parentElement).toBe(document.body);
+      // display: contents is what keeps the wrapper out of body's flow — without
+      // it the modal gains a real block box between itself and the body.
+      expect(
+        (document.querySelector('[data-mobile-surface="modal"]') as HTMLElement).style.display,
+      ).toBe("contents");
     });
 
     it("renders modal when isOpen is true", () => {
