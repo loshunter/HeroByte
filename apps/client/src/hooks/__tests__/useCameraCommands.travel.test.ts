@@ -2,8 +2,14 @@
 // between two defined values, the camera gets a focus-point command at the
 // destination's staging-zone center (cells → world px), else the scene's
 // middle. First bind and reload (undefined→A) deliberately do not fire.
+//
+// Each test clears the command after mounting, the way MapBoard does once it
+// has executed one. The entry recenter (UX-08) aims at the first snapshot, and
+// for a doc-a mount that is the same scene middle a doc-a→doc-b travel reports
+// — so without the clear, one of these would read as green whether travel
+// fired or not.
 
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { transformScenePoint, type RoomSnapshot } from "@herobyte/shared";
 import { useCameraCommands } from "../useCameraCommands";
@@ -47,6 +53,7 @@ describe("useCameraCommands travel recenter", () => {
         initialProps: { s: snapshotWith(undefined) },
       },
     );
+    act(() => result.current.handleCameraCommandHandled());
     rerender({ s: snapshotWith("doc-a") });
     expect(result.current.cameraCommand).toBeNull();
   });
@@ -58,6 +65,7 @@ describe("useCameraCommands travel recenter", () => {
         initialProps: { s: snapshotWith("doc-a") },
       },
     );
+    act(() => result.current.handleCameraCommandHandled());
     rerender({ s: snapshotWith("doc-b") });
     expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 1000, y: 500 });
   });
@@ -68,6 +76,7 @@ describe("useCameraCommands travel recenter", () => {
       ({ s }) => useCameraCommands({ snapshot: s, uid: "u" }),
       { initialProps: { s: snapshotWith("doc-a") } },
     );
+    act(() => result.current.handleCameraCommandHandled());
     rerender({
       s: snapshotWith("doc-b", {
         sceneObjects: [{ id: "map", type: "map", transform } as never],
@@ -90,6 +99,7 @@ describe("useCameraCommands travel recenter", () => {
         initialProps: { s: snapshotWith("doc-a") },
       },
     );
+    act(() => result.current.handleCameraCommandHandled());
     rerender({
       s: snapshotWith("doc-b", {
         playerStagingZone: { x: 12, y: 14, width: 4, height: 4, rotation: 0 },

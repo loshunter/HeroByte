@@ -36,9 +36,36 @@ import {
   type RoomSnapshot,
   type SceneObjectTransform,
 } from "@herobyte/shared";
+import { ownTokenFallback } from "../features/movement/keyboardMovement";
 import type { CameraCommand } from "../ui/MapBoard";
 
 const IDENTITY_TRANSFORM: SceneObjectTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
+
+/**
+ * Where a camera with nothing better to look at should point: the party's
+ * staging zone if the table names one, else the middle of the scene.
+ *
+ * The zone is a cell rect on the WORLD lattice; the scene's midpoint is in
+ * DOCUMENT px and must go through the map object's transform (the scene renders
+ * under it) or a moved or scaled raster sends the camera into the void.
+ *
+ * Returns null when there is no scene yet — there is nothing to aim at, and
+ * guessing a point on a table that has no map is worse than leaving the camera
+ * where it is.
+ */
+function sceneArrivalPoint(snapshot: RoomSnapshot | null): { x: number; y: number } | null {
+  const scene = snapshot?.compiledScene;
+  if (!scene) return null;
+  const zone = snapshot?.playerStagingZone;
+  const gridSize = snapshot?.gridSize ?? 50;
+  const mapTransform = snapshot?.sceneObjects?.find((object) => object.type === "map")?.transform;
+  return zone
+    ? { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize }
+    : transformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, {
+        x: scene.width / 2,
+        y: scene.height / 2,
+      });
+}
 
 interface UseCameraCommandsParams {
   /** Current room snapshot, contains tokens array */
@@ -90,20 +117,8 @@ export function useCameraCommands({
     const before = previousSceneId.current;
     previousSceneId.current = sceneId;
     if (!before || !sceneId || before === sceneId) return;
-    const scene = snapshot?.compiledScene;
-    if (!scene) return;
-    const zone = snapshot?.playerStagingZone;
-    const gridSize = snapshot?.gridSize ?? 50;
-    // The zone is a cell rect on the WORLD lattice; the scene's midpoint is in
-    // DOCUMENT px and must go through the map object's transform (the scene
-    // renders under it) or a moved/scaled raster sends the party to the void.
-    const mapTransform = snapshot?.sceneObjects?.find((object) => object.type === "map")?.transform;
-    const target = zone
-      ? { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize }
-      : transformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, {
-          x: scene.width / 2,
-          y: scene.height / 2,
-        });
+    const target = sceneArrivalPoint(snapshot);
+    if (!target) return;
     setCameraCommand({ type: "focus-point", x: target.x, y: target.y });
   }, [
     snapshot?.compiledScene,
@@ -111,6 +126,42 @@ export function useCameraCommands({
     snapshot?.gridSize,
     snapshot?.sceneObjects,
   ]);
+
+  // ARRIVAL ON ENTRY. The travel effect above deliberately skips undefined→A —
+  // first bind and reload — and nothing else aimed the camera, so JOINING or
+  // RELOADING left it wherever it defaults. On a fogged map that is a black
+  // rectangle with your own token somewhere off-screen, which is
+  // indistinguishable from a table that failed to load: the audit's player
+  // assumed an empty game. The only way back was the ⚔️ portrait icon, whose
+  // camera behaviour is not discoverable from looking at it.
+  //
+  // Fires on the FIRST snapshot this client receives and never again — that
+  // snapshot IS entry, for a join and for a reload alike, and it arrives whole.
+  // Whatever it offers is the answer: if it offers nothing the camera stays put
+  // for good, because a map appearing later is a first bind, and the effect
+  // above deliberately does not move the camera for one. So this can neither
+  // fight a pan nor overturn that decision.
+  //
+  // Your own token first — "where am I" is the question being answered. The
+  // staging zone, else the scene's middle, for a DM or a player not yet placed.
+  //
+  // `ownTokenFallback` rather than `tokens.find(owner === uid)`: every NPC
+  // token carries the uid of the DM who placed it, so the plain ownership test
+  // sends a DM to a goblin (F4 settled this; one helper, three sites).
+  const hasArrived = useRef(false);
+  useEffect(() => {
+    if (hasArrived.current || !snapshot) return;
+    hasArrived.current = true;
+
+    const own = ownTokenFallback({ snapshot, uid });
+    if (own?.startsWith("token:")) {
+      setCameraCommand({ type: "focus-token", tokenId: own.slice("token:".length) });
+      return;
+    }
+
+    const target = sceneArrivalPoint(snapshot);
+    if (target) setCameraCommand({ type: "focus-point", x: target.x, y: target.y });
+  }, [snapshot, uid]);
 
   /**
    * Focus camera on the user's token.
