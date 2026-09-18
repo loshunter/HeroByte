@@ -58,15 +58,20 @@ export const RollLogContent: React.FC<RollLogContentProps> = ({
   return (
     <JRPGPanel
       variant="bevel"
-      // border-box, or the chat composer is clipped by the window around it.
+      // border-box, or the chat composer falls below the fold of the window
+      // around it.
       // There is no global box-sizing reset in this app and that is deliberate
       // (herobyte.css explains why: a global one would drop .mobile-chip under
       // the 44px touch floor). So under the default content-box `height: 100%`
       // sized only the CONTENT, and this panel's 16px of padding plus 6px of
       // border made it 22px TALLER than the box it was filling. The overflow
       // lands at the bottom, which is exactly where the chat input and SEND
-      // sit, so they were cut by the window's `overflow: hidden` edge. Scoped
-      // to this element for the same reason the dock's is.
+      // sit. Precisely: the window ROOT is `overflow: hidden`, but the box that
+      // actually contains this panel is DraggableWindow's content div, which is
+      // `overflow: auto` — so the 22px became a scroll at scrollTop 0, not a
+      // clip. Measured at 1440x900: SEND ended 5px below the visible edge,
+      // reachable only by scrolling a window that looked fully open. Scoped to
+      // this element for the same reason the dock's is.
       style={{
         padding: "8px",
         height: "100%",

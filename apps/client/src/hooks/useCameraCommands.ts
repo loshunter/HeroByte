@@ -20,7 +20,9 @@
  * const { cameraCommand, handleFocusSelf, handleResetCamera, handleCameraCommandHandled } =
  *   useCameraCommands({ snapshot, uid });
  *
- * // Pass to Header for toolbar buttons
+ * // Pass to Header for toolbar buttons. NOTE: nothing wires onFocusSelf today
+ * // — no such control exists. It is kept for the next caller, not described
+ * // here as something that ships.
  * <Header onFocusSelf={handleFocusSelf} onResetCamera={handleResetCamera} />
  *
  * // Pass to MapBoard for command execution
@@ -42,16 +44,12 @@ import type { CameraCommand } from "../ui/MapBoard";
 const IDENTITY_TRANSFORM: SceneObjectTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
 
 /**
- * Where a camera with nothing better to look at should point: the party's
- * staging zone if the table names one, else the middle of the scene.
+ * The centre of the party's staging zone in world px, or null when the table
+ * names no zone.
  *
- * The zone is a cell rect on the WORLD lattice; the scene's midpoint is in
- * DOCUMENT px and must go through the map object's transform (the scene renders
- * under it) or a moved or scaled raster sends the camera into the void.
- *
- * Returns null when there is no scene yet — there is nothing to aim at, and
- * guessing a point on a table that has no map is worse than leaving the camera
- * where it is.
+ * The zone is a cell rect on the WORLD lattice, so it needs the grid size and
+ * no scene transform. `(x + 0.5) * gridSize` mirrors useSceneObjectsData: the
+ * zone's x/y is its CENTRE cell, which is where StagingZoneLayer draws it.
  */
 function stagingZonePoint(snapshot: RoomSnapshot | null): { x: number; y: number } | null {
   const zone = snapshot?.playerStagingZone;
@@ -60,6 +58,17 @@ function stagingZonePoint(snapshot: RoomSnapshot | null): { x: number; y: number
   return { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize };
 }
 
+/**
+ * Where a camera with nothing better to look at should point: the party's
+ * staging zone if the table names one, else the middle of the scene.
+ *
+ * The scene's midpoint is in DOCUMENT px and must go through the map object's
+ * transform (the scene renders under it) or a moved or scaled raster sends the
+ * camera into the void.
+ *
+ * Returns null when there is no scene yet. TRAVEL uses this; ENTRY does not —
+ * see the entry effect for why the scene's middle is wrong on arrival.
+ */
 function sceneArrivalPoint(snapshot: RoomSnapshot | null): { x: number; y: number } | null {
   const scene = snapshot?.compiledScene;
   if (!scene) return null;
@@ -149,11 +158,18 @@ export function useCameraCommands({
   // fight a pan nor overturn that decision.
   //
   // Your own token first — "where am I" is the question being answered. The
-  // staging zone, else the scene's middle, for a DM or a player not yet placed.
+  // staging zone next, for a DM or a player not yet placed. With neither, the
+  // camera is left where it is; the reason is at the fallback below.
   //
   // `ownTokenFallback` rather than `tokens.find(owner === uid)`: every NPC
   // token carries the uid of the DM who placed it, so the plain ownership test
-  // sends a DM to a goblin (F4 settled this; one helper, three sites).
+  // sends a DM to a goblin (F4 settled this; this is the helper's second
+  // caller, after useKeyboardMovement).
+  //
+  // KNOWN LIMIT: that helper answers only for a viewer running exactly ONE pc,
+  // because two is a guess. A player with two characters therefore gets the
+  // staging zone, or nothing. Widening it would overturn a settled rule, so it
+  // stays until someone decides otherwise.
   const hasArrived = useRef(false);
   useEffect(() => {
     if (hasArrived.current || !snapshot) return;
@@ -196,6 +212,13 @@ export function useCameraCommands({
    * Shows an alert if the user doesn't have a token on the map yet.
    */
   const handleFocusSelf = useCallback(() => {
+    // UNWIRED, AND STILL NAIVE. This is the plain `owner === uid` test that the
+    // entry effect above says was retired — every NPC token carries the uid of
+    // the DM who placed it, so wiring this as-is would send a DM to a goblin.
+    // It is left exactly as it was on purpose: nothing consumes it, and its
+    // behaviour is pinned by a characterization suite that exists to keep it
+    // still. Whoever wires it must route it through `ownTokenFallback` first,
+    // and update that suite deliberately rather than by accident.
     const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
     if (!myToken) {
       if (typeof window !== "undefined" && typeof window.alert === "function") {

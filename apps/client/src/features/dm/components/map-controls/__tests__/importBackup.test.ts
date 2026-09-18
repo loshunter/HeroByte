@@ -78,6 +78,14 @@ describe("parseBackupImport", () => {
     expect(result).not.toHaveProperty("document");
   });
 
+  it("needs BOTH collections to call something a bare snapshot", () => {
+    // A map document carrying an empty `tokens` array is still a map. Weakening
+    // the session rule to `tokens` alone would swallow it as a table backup and
+    // refuse an import that should work.
+    const mapWithTokens = { ...MAP, tokens: [] };
+    expect(parseBackupImport(JSON.stringify(mapWithTokens))).toEqual({ document: mapWithTokens });
+  });
+
   it("rejects a bare snapshot from an older save the same way", () => {
     const bare = { users: [], tokens: [], players: [], characters: [], gridSize: 50 };
     expect((parseBackupImport(JSON.stringify(bare)) as { error: string }).error).toMatch(

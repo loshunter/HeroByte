@@ -155,156 +155,166 @@ export function InitiativeModal({
   // CONTEXT, so an overlay at 10000 inside it still painted under every
   // DraggableWindow (the roll log at 999, a settings window at 2500). The audit
   // caught the sibling modal; this one is the same defect one file over.
+  //
+  // The [data-mobile-surface] wrapper carries the 44px touch floor across the
+  // portal, which lands outside every mobile surface. This modal is desktop-only
+  // today — EntitiesPanel is not on the phone — so it is insurance, and it costs
+  // nothing: the floor rules live inside `(pointer: coarse)`.
   return createPortal(
-    <div
-      data-modal-overlay=""
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0, 0, 0, 0.8)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 10000,
-      }}
-      onClick={onClose}
-    >
-      <div onClick={(e) => e.stopPropagation()}>
-        <JRPGPanel
-          title={`Initiative: ${character.name}`}
-          style={{ width: "400px", maxWidth: "90vw" }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {/* Initiative Modifier */}
-            <div>
-              <label className="jrpg-text-small" style={{ display: "block", marginBottom: "8px" }}>
-                Initiative Modifier
-              </label>
-              <div
-                data-testid="initiative-modifier-dial"
-                onPointerDown={handleModifierDrag}
-                style={{
-                  padding: "12px",
-                  background: "#111",
-                  border: "2px solid var(--jrpg-border-gold)",
-                  textAlign: "center",
-                  fontSize: "24px",
-                  fontWeight: "bold",
-                  cursor: "ew-resize",
-                  userSelect: "none",
-                  color: modifier >= 0 ? "var(--jrpg-green)" : "var(--jrpg-red)",
-                }}
-              >
-                {modifier >= 0 ? "+" : ""}
-                {modifier}
-              </div>
-              <div
-                className="jrpg-text-small"
-                style={{ marginTop: "4px", textAlign: "center", opacity: 0.7 }}
-              >
-                Click and drag left/right to adjust
-              </div>
-            </div>
-
-            {/* Roll Options */}
-            <div style={{ display: "flex", gap: "8px" }}>
-              <JRPGButton variant="primary" onClick={handleRoll} style={{ flex: 1 }}>
-                Roll Initiative
-              </JRPGButton>
-              {manualEntryAllowed && (
-                <JRPGButton onClick={enterManualMode} style={{ flex: 1 }}>
-                  Use Physical Dice
-                </JRPGButton>
-              )}
-            </div>
-
-            {/* Manual Entry */}
-            {manualMode && (
+    <div style={{ display: "contents" }} data-mobile-surface="modal">
+      <div
+        data-modal-overlay=""
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.8)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+        }}
+        onClick={onClose}
+      >
+        <div onClick={(e) => e.stopPropagation()}>
+          <JRPGPanel
+            title={`Initiative: ${character.name}`}
+            style={{ width: "400px", maxWidth: "90vw" }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Initiative Modifier */}
               <div>
                 <label
                   className="jrpg-text-small"
                   style={{ display: "block", marginBottom: "8px" }}
                 >
-                  Enter d20 Roll (1-20)
+                  Initiative Modifier
                 </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={manualValue}
-                  onChange={handleManualValueChange}
-                  placeholder="Enter roll..."
-                  autoFocus
+                <div
+                  data-testid="initiative-modifier-dial"
+                  onPointerDown={handleModifierDrag}
                   style={{
-                    width: "100%",
-                    padding: "8px",
+                    padding: "12px",
                     background: "#111",
-                    color: "var(--jrpg-white)",
                     border: "2px solid var(--jrpg-border-gold)",
-                    fontSize: "18px",
+                    textAlign: "center",
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    cursor: "ew-resize",
+                    userSelect: "none",
+                    color: modifier >= 0 ? "var(--jrpg-green)" : "var(--jrpg-red)",
+                  }}
+                >
+                  {modifier >= 0 ? "+" : ""}
+                  {modifier}
+                </div>
+                <div
+                  className="jrpg-text-small"
+                  style={{ marginTop: "4px", textAlign: "center", opacity: 0.7 }}
+                >
+                  Click and drag left/right to adjust
+                </div>
+              </div>
+
+              {/* Roll Options */}
+              <div style={{ display: "flex", gap: "8px" }}>
+                <JRPGButton variant="primary" onClick={handleRoll} style={{ flex: 1 }}>
+                  Roll Initiative
+                </JRPGButton>
+                {manualEntryAllowed && (
+                  <JRPGButton onClick={enterManualMode} style={{ flex: 1 }}>
+                    Use Physical Dice
+                  </JRPGButton>
+                )}
+              </div>
+
+              {/* Manual Entry */}
+              {manualMode && (
+                <div>
+                  <label
+                    className="jrpg-text-small"
+                    style={{ display: "block", marginBottom: "8px" }}
+                  >
+                    Enter d20 Roll (1-20)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={manualValue}
+                    onChange={handleManualValueChange}
+                    placeholder="Enter roll..."
+                    autoFocus
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      background: "#111",
+                      color: "var(--jrpg-white)",
+                      border: "2px solid var(--jrpg-border-gold)",
+                      fontSize: "18px",
+                      textAlign: "center",
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Result Display */}
+              {rolledValue !== null && (
+                <div
+                  style={{
+                    padding: "16px",
+                    background: "rgba(255, 215, 0, 0.1)",
+                    border: "2px solid var(--jrpg-gold)",
+                    borderRadius: "4px",
                     textAlign: "center",
                   }}
-                />
-              </div>
-            )}
-
-            {/* Result Display */}
-            {rolledValue !== null && (
-              <div
-                style={{
-                  padding: "16px",
-                  background: "rgba(255, 215, 0, 0.1)",
-                  border: "2px solid var(--jrpg-gold)",
-                  borderRadius: "4px",
-                  textAlign: "center",
-                }}
-              >
-                <div className="jrpg-text-small" style={{ marginBottom: "8px", opacity: 0.8 }}>
-                  d20 Roll: {rolledValue} {modifier >= 0 ? "+" : ""} {modifier}
+                >
+                  <div className="jrpg-text-small" style={{ marginBottom: "8px", opacity: 0.8 }}>
+                    d20 Roll: {rolledValue} {modifier >= 0 ? "+" : ""} {modifier}
+                  </div>
+                  <div style={{ fontSize: "32px", fontWeight: "bold", color: "var(--jrpg-gold)" }}>
+                    Initiative: {finalInitiative}
+                  </div>
                 </div>
-                <div style={{ fontSize: "32px", fontWeight: "bold", color: "var(--jrpg-gold)" }}>
-                  Initiative: {finalInitiative}
+              )}
+
+              {/* Error Display */}
+              {error && (
+                <div
+                  style={{
+                    padding: "12px",
+                    background: "rgba(232, 154, 156, 0.12)",
+                    border: "2px solid var(--jrpg-red)",
+                    borderRadius: "4px",
+                    color: "var(--jrpg-red)",
+                    fontFamily: "var(--font-body)",
+                    lineHeight: 1.45,
+                    textAlign: "center",
+                  }}
+                >
+                  {error}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Error Display */}
-            {error && (
-              <div
-                style={{
-                  padding: "12px",
-                  background: "rgba(232, 154, 156, 0.12)",
-                  border: "2px solid var(--jrpg-red)",
-                  borderRadius: "4px",
-                  color: "var(--jrpg-red)",
-                  fontFamily: "var(--font-body)",
-                  lineHeight: 1.45,
-                  textAlign: "center",
-                }}
-              >
-                {error}
+              {/* Action Buttons */}
+              <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                <JRPGButton onClick={onClose} disabled={isLoading} style={{ flex: 1 }}>
+                  Cancel
+                </JRPGButton>
+                <JRPGButton
+                  variant="success"
+                  onClick={handleSave}
+                  disabled={finalInitiative === null || isLoading}
+                  style={{ flex: 1 }}
+                >
+                  {isLoading ? "Setting..." : "Save"}
+                </JRPGButton>
               </div>
-            )}
-
-            {/* Action Buttons */}
-            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <JRPGButton onClick={onClose} disabled={isLoading} style={{ flex: 1 }}>
-                Cancel
-              </JRPGButton>
-              <JRPGButton
-                variant="success"
-                onClick={handleSave}
-                disabled={finalInitiative === null || isLoading}
-                style={{ flex: 1 }}
-              >
-                {isLoading ? "Setting..." : "Save"}
-              </JRPGButton>
             </div>
-          </div>
-        </JRPGPanel>
+          </JRPGPanel>
+        </div>
       </div>
     </div>,
     document.body,

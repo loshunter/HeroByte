@@ -131,7 +131,11 @@ describe("useCameraCommands entry recenter", () => {
     );
     expect(result.current.cameraCommand).toBeNull();
 
-    rerender({ s: snapshot() });
+    // The second snapshot must offer something entry WOULD aim at, or this
+    // asserts null for the wrong reason: with a bare snapshot() there is no own
+    // token and no staging zone, so the latch could be broken and the test
+    // would still pass.
+    rerender({ s: withOwnToken("u") });
     expect(result.current.cameraCommand).toBeNull();
   });
 

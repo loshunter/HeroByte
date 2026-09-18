@@ -4,10 +4,12 @@
 // middle. First bind and reload (undefined→A) deliberately do not fire.
 //
 // Each test clears the command after mounting, the way MapBoard does once it
-// has executed one. The entry recenter (UX-08) aims at the first snapshot, and
-// for a doc-a mount that is the same scene middle a doc-a→doc-b travel reports
-// — so without the clear, one of these would read as green whether travel
-// fired or not.
+// has executed one. It is belt-and-braces now: these fixtures give entry no own
+// token and no staging zone, so entry emits nothing for them. It mattered when
+// entry still fell back to the scene's middle — that is the same point a
+// doc-a→doc-b travel reports, so one of these read as green whether travel
+// fired or not. Keep the clears: the next fixture that hands entry something to
+// aim at would bring the hazard straight back.
 
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";

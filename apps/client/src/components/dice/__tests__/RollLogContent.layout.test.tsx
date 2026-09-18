@@ -25,7 +25,8 @@ describe("RollLogContent layout", () => {
     expect(panel).toBeTruthy();
     expect(panel.style.height).toBe("100%");
     // Without this the panel is 22px taller than the box it fills (8px padding
-    // and 3px border on each edge), and the overflow is exactly the composer.
+    // and 3px border on each edge), and the composer is what that overflow
+    // pushes below the fold of the window's scrolling content area.
     expect(panel.style.boxSizing).toBe("border-box");
   });
 });

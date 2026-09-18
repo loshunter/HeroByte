@@ -129,9 +129,22 @@ describe("MapEditInspectorPopover", () => {
       expect(grid.style.gridTemplateColumns).toBe("minmax(0, 1fr) minmax(0, 1fr)");
     }
 
+    // EVERY control, not one: border-box is the declaration that measurably
+    // does the work (54px of overhang -> none, at a 242px palette), and a test
+    // that reads a single spinner stayed green when the Layer select, the door
+    // width input or controlStyle's own width were reverted.
+    const controls = [...container.querySelectorAll<HTMLElement>("input, select")].filter(
+      (c) => (c as HTMLInputElement).type !== "checkbox",
+    );
+    expect(controls.length).toBeGreaterThanOrEqual(7);
+    for (const control of controls) {
+      expect(control.style.boxSizing).toBe("border-box");
+      expect(control.style.width).toBe("100%");
+    }
+
     // And a grid item defaults to min-width:auto, which is min-content too.
-    const spinner = screen.getByLabelText("Scale X");
-    expect(spinner.style.boxSizing).toBe("border-box");
-    expect((spinner.closest("label") as HTMLElement).style.minWidth).toMatch(/^0(px)?$/);
+    for (const label of container.querySelectorAll<HTMLElement>("label")) {
+      expect(label.style.minWidth).toMatch(/^0(px)?$/);
+    }
   });
 });

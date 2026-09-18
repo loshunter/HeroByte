@@ -148,6 +148,25 @@ function createDefaultProps(
 // ============================================================================
 
 describe("InitiativeModal - Initial Rendering", () => {
+  // This modal renders from EntitiesPanel, a `position: fixed; zIndex: 100`
+  // stacking context that traps any overlay left inside it under every
+  // DraggableWindow. jsdom computes no stacking, so this pins the one thing it
+  // CAN see. Its twin in CharacterCreationModal had this from the start and
+  // this one shipped with nothing: removing the portal left all 152 tests green.
+  it("mounts the overlay on document.body, not inside its parent tree", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    render(<InitiativeModal {...createDefaultProps()} />, { container: host });
+
+    const overlay = document.querySelector("[data-modal-overlay]");
+    expect(overlay).toBeInTheDocument();
+    expect(host.contains(overlay)).toBe(false);
+    expect(document.body.contains(overlay)).toBe(true);
+    // The wrapper carries the 44px touch floor across the portal, which lands
+    // outside every [data-mobile-surface].
+    expect(overlay?.closest('[data-mobile-surface="modal"]')?.parentElement).toBe(document.body);
+  });
+
   it("renders modal overlay", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);

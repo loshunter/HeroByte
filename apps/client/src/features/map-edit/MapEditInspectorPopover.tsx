@@ -179,7 +179,11 @@ export function MapEditInspectorPopover({
             </label>
           </div>
           <JRPGButton
-            style={{ width: "100%", marginTop: "8px", fontSize: "9px" }}
+            // border-box for the reason controlStyle gives: .jrpg-button has a
+            // 2px border, so `width: 100%` alone makes this 4px wider than the
+            // cell holding it. It does not clip today (the fieldset sits well
+            // inside the palette) but it breaks this file's own stated rule.
+            style={{ width: "100%", boxSizing: "border-box", marginTop: "8px", fontSize: "9px" }}
             disabled={doorWidth <= 0 || doorWidth > 1000}
             onClick={() => onUpdateDoor(element.id, { state: doorState, width: doorWidth })}
           >
@@ -220,10 +224,25 @@ function NumInput({
 // The palette hosting this is a 200-260px window, and everything below exists
 // to make the form FIT it instead of overhanging its right edge.
 //
-// `minInlineSize: 0` is the load-bearing one: a <fieldset> carries
-// `min-inline-size: min-content` in the UA stylesheet, so it refuses to be
-// narrower than its widest row no matter what the grid inside it does. Nothing
-// else here works until that is off.
+// THE LOAD-BEARING ONE IS `controlStyle`'s border-box, and it is the only one.
+// Measured in the mounted component at a 242px palette, worst overhang of any
+// control past the clipping edge, each declaration applied ALONE:
+//
+//   before this commit .......... +54px
+//   border-box on controls ...... -35px  (fits, and equals the full set)
+//   minmax(0, 1fr) tracks ....... +51px
+//   min-width: 0 on the cells ... +51px
+//   min-inline-size: 0 .......... +54px  (no effect at all)
+//   all four together ........... -35px
+//
+// An earlier version of this comment called `minInlineSize` the load-bearing
+// one and said nothing else worked until it was off. That was a plausible
+// story, not a measurement, and the measurement says it does nothing here:
+// Chrome resolves these controls' `width: 100%` to zero for intrinsic sizing,
+// so the grid's min-content never reaches the fieldset's floor in the first
+// place. The other three stay as defence in depth — they are what stops the
+// form re-overflowing if a control is ever given an intrinsic width instead —
+// but do not credit them with the fix.
 const panelStyle = {
   border: "1px solid #8a7445",
   padding: "6px",
@@ -235,12 +254,13 @@ const panelStyle = {
 
 // Grid items default to `min-width: auto`, which is min-content — and the
 // min-content width of an <input type="number"> is its 20-character default
-// size plus spinners, roughly 160px. Two of those in a 200px window is what
-// pushed the right column, DELETE and the door actions past the clipped edge.
-// The track (minmax(0, 1fr)) and the item (this) both have to allow it.
+// size plus spinners, roughly 160px. Defence in depth, per the measurement
+// above: on its own this moves the overhang 54px -> 51px.
 const cellStyle = { minWidth: 0 } as const;
 
-// width: 100% is a CONTENT width without border-box (this project has no
-// global reset, on purpose), so a bordered control set to it overhangs its
-// cell by its own border — the same trap herobyte.css records for buttons.
+// THIS is the one that does the work. `width: 100%` is a CONTENT width without
+// border-box (this project has no global reset, on purpose), so each bordered
+// control rendered wider than the track it was given and the right column,
+// DELETE and the door actions hung past the clipped edge — the same trap
+// herobyte.css records for buttons.
 const controlStyle = { width: "100%", boxSizing: "border-box", minWidth: 0 } as const;

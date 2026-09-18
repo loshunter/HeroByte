@@ -94,8 +94,14 @@ describe("CharacterCreationModal", () => {
   describe("Rendering - Open/Closed States", () => {
     it("returns null when isOpen is false", () => {
       const props = createDefaultProps({ isOpen: false });
-      render(<CharacterCreationModal {...props} />);
+      const { container } = render(<CharacterCreationModal {...props} />);
 
+      // BOTH assertions. `container.firstChild` still works under a portal
+      // (the component returns null BEFORE createPortal), and it is the one
+      // that catches a closed modal rendering something stray into its parent —
+      // the document-level query goes green for that. Dropping it in the portal
+      // rewrite was a real weakening.
+      expect(container.firstChild).toBeNull();
       expect(document.querySelector("[data-modal-overlay]")).toBeNull();
     });
 
@@ -113,8 +119,15 @@ describe("CharacterCreationModal", () => {
 
       const overlay = document.querySelector("[data-modal-overlay]");
       expect(overlay).toBeInTheDocument();
-      expect(overlay?.parentElement).toBe(document.body);
       expect(host.contains(overlay)).toBe(false);
+
+      // It lands under body through the mobile-surface wrapper, not loose: the
+      // 44px touch floor is scoped to [data-mobile-surface], and document.body
+      // is outside every one of them. Without this the name input would drop to
+      // ~37px the day the phone wires Add Character.
+      const surface = overlay?.closest('[data-mobile-surface="modal"]');
+      expect(surface).toBeInTheDocument();
+      expect(surface?.parentElement).toBe(document.body);
     });
 
     it("renders modal when isOpen is true", () => {
