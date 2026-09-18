@@ -150,9 +150,9 @@ function createDefaultProps(
 describe("InitiativeModal - Initial Rendering", () => {
   it("renders modal overlay", () => {
     const props = createDefaultProps();
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const overlay = container.firstChild as HTMLElement;
+    const overlay = document.querySelector("[data-modal-overlay]") as HTMLElement;
     expect(overlay).toBeInTheDocument();
     expect(overlay.tagName).toBe("DIV");
     expect(overlay.style.position).toBe("fixed");
@@ -244,9 +244,9 @@ describe("InitiativeModal - Initial Rendering", () => {
 
   it("does not show error display initially", () => {
     const props = createDefaultProps();
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
+    const errorBoxes = document.body.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 });
@@ -1195,14 +1195,14 @@ describe("InitiativeModal - Result Display", () => {
 
   it("result box has correct styling", () => {
     const props = createDefaultProps();
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    const resultBox = container.querySelector('[style*="rgba(255, 215, 0, 0.1)"]');
+    const resultBox = document.body.querySelector('[style*="rgba(255, 215, 0, 0.1)"]');
     expect(resultBox).toBeInTheDocument();
   });
 
@@ -1545,9 +1545,9 @@ describe("InitiativeModal - Auto-Close on Success", () => {
 describe("InitiativeModal - Error Display", () => {
   it("shows error box when error prop is set", () => {
     const props = createDefaultProps({ error: "Failed to set initiative" });
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
+    const errorBox = document.body.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toBeInTheDocument();
   });
 
@@ -1562,25 +1562,25 @@ describe("InitiativeModal - Error Display", () => {
 
   it("hidden when error is null", () => {
     const props = createDefaultProps({ error: null });
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
+    const errorBoxes = document.body.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 
   it("hidden when error is undefined", () => {
     const props = createDefaultProps({ error: undefined });
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
+    const errorBoxes = document.body.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 
   it("error box has correct styling", () => {
     const props = createDefaultProps({ error: "Test error" });
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
+    const errorBox = document.body.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toHaveAttribute(
       "style",
       expect.stringContaining("border: 2px solid var(--jrpg-red)"),
@@ -1601,9 +1601,9 @@ describe("InitiativeModal - Error Display", () => {
 
   it("error text is centered", () => {
     const props = createDefaultProps({ error: "Centered error" });
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
+    const errorBox = document.body.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toHaveAttribute("style", expect.stringContaining("text-align: center"));
   });
 
@@ -1762,9 +1762,9 @@ describe("InitiativeModal - Modal Backdrop", () => {
   it("clicking backdrop calls onClose", () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ onClose });
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const backdrop = container.firstChild as HTMLElement;
+    const backdrop = document.querySelector("[data-modal-overlay]") as HTMLElement;
     fireEvent.click(backdrop);
 
     expect(onClose).toHaveBeenCalled();
@@ -1806,9 +1806,9 @@ describe("InitiativeModal - Modal Backdrop", () => {
 
   it("backdrop has correct styling", () => {
     const props = createDefaultProps();
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const backdrop = container.firstChild as HTMLElement;
+    const backdrop = document.querySelector("[data-modal-overlay]") as HTMLElement;
     expect(backdrop.style.background).toBe("rgba(0, 0, 0, 0.8)");
     expect(backdrop.style.display).toBe("flex");
     expect(backdrop.style.alignItems).toBe("center");
@@ -1818,9 +1818,9 @@ describe("InitiativeModal - Modal Backdrop", () => {
   it("clicking different areas of backdrop all call onClose", () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ onClose });
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const backdrop = container.firstChild as HTMLElement;
+    const backdrop = document.querySelector("[data-modal-overlay]") as HTMLElement;
 
     // Click multiple times to simulate different areas
     fireEvent.click(backdrop);
@@ -2011,9 +2011,9 @@ describe("InitiativeModal - Props Validation", () => {
   it("optional prop: error (default: null)", () => {
     const props = createDefaultProps();
     // Not passing error explicitly
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
+    const errorBoxes = document.body.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 
@@ -2263,9 +2263,9 @@ describe("InitiativeModal - Integration Tests", () => {
   it("backdrop click during various states", () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ onClose });
-    const { container } = render(<InitiativeModal {...props} />);
+    render(<InitiativeModal {...props} />);
 
-    const backdrop = container.firstChild as HTMLElement;
+    const backdrop = document.querySelector("[data-modal-overlay]") as HTMLElement;
 
     // Initial state
     fireEvent.click(backdrop);

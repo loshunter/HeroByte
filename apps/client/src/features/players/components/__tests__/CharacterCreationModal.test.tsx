@@ -94,9 +94,27 @@ describe("CharacterCreationModal", () => {
   describe("Rendering - Open/Closed States", () => {
     it("returns null when isOpen is false", () => {
       const props = createDefaultProps({ isOpen: false });
-      const { container } = render(<CharacterCreationModal {...props} />);
+      render(<CharacterCreationModal {...props} />);
 
-      expect(container.firstChild).toBeNull();
+      expect(document.querySelector("[data-modal-overlay]")).toBeNull();
+    });
+
+    // The modal renders from inside EntitiesPanel, whose root is a
+    // `position: fixed; zIndex: 100` stacking context — an overlay left in
+    // that subtree paints UNDER every DraggableWindow no matter how large its
+    // own z-index is. jsdom computes no stacking, so this pins the one thing
+    // it CAN see: the overlay is a child of document.body, not of the tree
+    // that rendered it.
+    it("mounts the overlay on document.body, not inside its parent tree", () => {
+      const props = createDefaultProps({ isOpen: true });
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+      render(<CharacterCreationModal {...props} />, { container: host });
+
+      const overlay = document.querySelector("[data-modal-overlay]");
+      expect(overlay).toBeInTheDocument();
+      expect(overlay?.parentElement).toBe(document.body);
+      expect(host.contains(overlay)).toBe(false);
     });
 
     it("renders modal when isOpen is true", () => {
@@ -109,9 +127,9 @@ describe("CharacterCreationModal", () => {
 
     it("renders modal backdrop with correct styles", () => {
       const props = createDefaultProps({ isOpen: true });
-      const { container } = render(<CharacterCreationModal {...props} />);
+      render(<CharacterCreationModal {...props} />);
 
-      const backdrop = container.querySelector('div[style*="position: fixed"]');
+      const backdrop = document.querySelector("[data-modal-overlay]");
       expect(backdrop).toBeInTheDocument();
       expect(backdrop).toHaveStyle({
         position: "fixed",
@@ -651,9 +669,9 @@ describe("CharacterCreationModal", () => {
     it("clicking backdrop calls onClose", () => {
       const onClose = vi.fn();
       const props = createDefaultProps({ isOpen: true, onClose });
-      const { container } = render(<CharacterCreationModal {...props} />);
+      render(<CharacterCreationModal {...props} />);
 
-      const backdrop = container.querySelector('div[style*="position: fixed"]') as HTMLElement;
+      const backdrop = document.querySelector("[data-modal-overlay]") as HTMLElement;
       fireEvent.click(backdrop);
 
       expect(onClose).toHaveBeenCalledTimes(1);
@@ -662,9 +680,9 @@ describe("CharacterCreationModal", () => {
     it("clicking backdrop when isCreating does not call onClose", () => {
       const onClose = vi.fn();
       const props = createDefaultProps({ isOpen: true, isCreating: true, onClose });
-      const { container } = render(<CharacterCreationModal {...props} />);
+      render(<CharacterCreationModal {...props} />);
 
-      const backdrop = container.querySelector('div[style*="position: fixed"]') as HTMLElement;
+      const backdrop = document.querySelector("[data-modal-overlay]") as HTMLElement;
       fireEvent.click(backdrop);
 
       expect(onClose).not.toHaveBeenCalled();
@@ -684,11 +702,9 @@ describe("CharacterCreationModal", () => {
     it("stopPropagation prevents backdrop click when clicking modal content", () => {
       const onClose = vi.fn();
       const props = createDefaultProps({ isOpen: true, onClose });
-      const { container } = render(<CharacterCreationModal {...props} />);
+      render(<CharacterCreationModal {...props} />);
 
-      const modalContent = container.querySelector(
-        'div[style*="position: fixed"] > div',
-      ) as HTMLElement;
+      const modalContent = document.querySelector("[data-modal-overlay] > div") as HTMLElement;
       fireEvent.click(modalContent);
 
       expect(onClose).not.toHaveBeenCalled();
@@ -1048,14 +1064,14 @@ describe("CharacterCreationModal", () => {
       const onCreateCharacter = vi.fn(() => true);
       const onClose = vi.fn();
       const props = createDefaultProps({ isOpen: true, onCreateCharacter, onClose });
-      const { container } = render(<CharacterCreationModal {...props} />);
+      render(<CharacterCreationModal {...props} />);
 
       // Enter character name
       const input = screen.getByPlaceholderText("Enter character name...");
       fireEvent.change(input, { target: { value: "Test Hero" } });
 
       // Click backdrop
-      const backdrop = container.querySelector('div[style*="position: fixed"]') as HTMLElement;
+      const backdrop = document.querySelector("[data-modal-overlay]") as HTMLElement;
       fireEvent.click(backdrop);
 
       expect(onClose).toHaveBeenCalledTimes(1);

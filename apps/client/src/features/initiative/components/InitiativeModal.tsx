@@ -4,6 +4,7 @@
 // Modal for setting character initiative with roll or manual entry options
 
 import React, { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { SnapshotCharacter } from "@herobyte/shared";
 
@@ -149,7 +150,12 @@ export function InitiativeModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose, finalInitiative, handleSave, isLoading]);
 
-  return (
+  // PORTALLED for the same reason CharacterCreationModal is: this renders from
+  // EntitiesPanel, whose root is a `position: fixed; zIndex: 100` STACKING
+  // CONTEXT, so an overlay at 10000 inside it still painted under every
+  // DraggableWindow (the roll log at 999, a settings window at 2500). The audit
+  // caught the sibling modal; this one is the same defect one file over.
+  return createPortal(
     <div
       data-modal-overlay=""
       style={{
@@ -300,6 +306,7 @@ export function InitiativeModal({
           </div>
         </JRPGPanel>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

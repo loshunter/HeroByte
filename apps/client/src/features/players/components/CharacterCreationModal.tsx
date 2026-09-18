@@ -4,6 +4,7 @@
 // Modal for creating a new player character with loading state feedback
 
 import React, { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
 interface CharacterCreationModalProps {
@@ -87,7 +88,19 @@ export function CharacterCreationModal({
     return null;
   }
 
-  return (
+  // PORTALLED TO document.body, and that is the whole fix for a modal that
+  // opened UNDERNEATH the window that launched it. Every render site of this
+  // component is inside EntitiesPanel, whose root is `position: fixed` with
+  // `zIndex: 100` — a STACKING CONTEXT. A z-index only ranks siblings within
+  // the context that contains them, so this overlay's 10000 ranked it against
+  // the panel's own children and the whole panel still painted at 100, under
+  // the portalled PlayerSettingsMenu window at 2500. Comparing 10000 to 2500
+  // and concluding the modal was on top is the trap here.
+  //
+  // The overlay keeps `data-modal-overlay` wherever it lands: useKeyboardMovement
+  // reads it with document.querySelector to stop WASD while a modal is up, and
+  // that query is document-wide, so the portal does not disturb it.
+  return createPortal(
     <div
       data-modal-overlay=""
       style={{
@@ -167,6 +180,7 @@ export function CharacterCreationModal({
           </div>
         </JRPGPanel>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
