@@ -53,18 +53,24 @@ const IDENTITY_TRANSFORM: SceneObjectTransform = { x: 0, y: 0, scaleX: 1, scaleY
  * guessing a point on a table that has no map is worse than leaving the camera
  * where it is.
  */
+function stagingZonePoint(snapshot: RoomSnapshot | null): { x: number; y: number } | null {
+  const zone = snapshot?.playerStagingZone;
+  if (!zone) return null;
+  const gridSize = snapshot?.gridSize ?? 50;
+  return { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize };
+}
+
 function sceneArrivalPoint(snapshot: RoomSnapshot | null): { x: number; y: number } | null {
   const scene = snapshot?.compiledScene;
   if (!scene) return null;
-  const zone = snapshot?.playerStagingZone;
-  const gridSize = snapshot?.gridSize ?? 50;
   const mapTransform = snapshot?.sceneObjects?.find((object) => object.type === "map")?.transform;
-  return zone
-    ? { x: (zone.x + 0.5) * gridSize, y: (zone.y + 0.5) * gridSize }
-    : transformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, {
-        x: scene.width / 2,
-        y: scene.height / 2,
-      });
+  return (
+    stagingZonePoint(snapshot) ??
+    transformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, {
+      x: scene.width / 2,
+      y: scene.height / 2,
+    })
+  );
 }
 
 interface UseCameraCommandsParams {
@@ -171,7 +177,17 @@ export function useCameraCommands({
       return;
     }
 
-    const target = sceneArrivalPoint(snapshot);
+    // The staging zone, and DELIBERATELY NOT the scene's middle. Travel falls
+    // back to the middle because the old map's pan is certainly wrong on the
+    // new one; entry has no such certainty, and on a large authoring map the
+    // middle is empty. Measured on a live 8192x8192 table: entry parked a DM
+    // at world (4096, 4096) while the doors they had just drawn sat at (400,
+    // 200), off screen — strictly worse than the camera they arrived with.
+    //
+    // So entry answers only the two questions the audit actually asked: where
+    // is my character, and where does the party start. With neither, it leaves
+    // the camera alone.
+    const target = stagingZonePoint(snapshot);
     if (target) setCameraCommand({ type: "focus-point", x: target.x, y: target.y });
   }, [snapshot, uid]);
 

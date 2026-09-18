@@ -67,12 +67,19 @@ describe("useCameraCommands entry recenter", () => {
     expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 625, y: 725 });
   });
 
-  it("falls back to the scene's middle when there is no staging zone either", () => {
+  it("leaves the camera alone with no own token and no staging zone", () => {
+    // NOT the scene's middle. Travel uses that fallback because the old map's
+    // pan is certainly wrong on the new one; entry has no such certainty, and
+    // on a big authoring map the middle is empty. Measured on a live 8192x8192
+    // table, this fallback parked a DM at (4096, 4096) while the doors they had
+    // just drawn sat at (400, 200) — off screen, and worse than not moving.
     const { result } = renderHook(() => useCameraCommands({ snapshot: snapshot(), uid: "dm" }));
-    expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 1000, y: 500 });
+    expect(result.current.cameraCommand).toBeNull();
   });
 
   it("does NOT send a DM to a token they placed for an NPC", () => {
+    // The staging zone is what they get instead, so the assertion below is
+    // about WHICH target wins, not about whether anything happens.
     // Every NPC token carries the uid of the DM who placed it, so a plain
     // `owner === uid` test picks the goblin. F4 settled this once already.
     const { result } = renderHook(() =>
@@ -80,11 +87,12 @@ describe("useCameraCommands entry recenter", () => {
         snapshot: snapshot({
           characters: [{ id: "npc-1", type: "npc", ownedByPlayerUID: "dm" }] as never,
           tokens: [{ id: "tok-goblin", owner: "dm", x: 3, y: 4 }] as never,
+          playerStagingZone: { x: 12, y: 14, width: 4, height: 4, rotation: 0 },
         }),
         uid: "dm",
       }),
     );
-    expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 1000, y: 500 });
+    expect(result.current.cameraCommand).toEqual({ type: "focus-point", x: 625, y: 725 });
   });
 
   it("fires once: a later snapshot does not yank the camera back", () => {
