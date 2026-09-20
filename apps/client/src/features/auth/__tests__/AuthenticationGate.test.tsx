@@ -199,7 +199,7 @@ describe("AuthenticationGate - Characterization", () => {
       expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
       expect(screen.getByText("Held in another window")).toBeInTheDocument();
       expect(
-        screen.getByText(/Another window or device is already at this table/),
+        screen.getByText(/This table is still connected as you elsewhere/),
       ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
     });

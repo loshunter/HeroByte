@@ -60,11 +60,13 @@ export enum ConnectionState {
    */
   REPLACED = "replaced",
   /**
-   * The server turned this connection away: another socket holds this uid's
-   * live session and this one could not prove it is the same session (it has
-   * no session token — a different browser or device). Not terminal the way
-   * REPLACED is (close the other window and try again), but never auto-retried:
-   * retrying as the same uid in a loop is the connection war REPLACED ended.
+   * The server turned this connection away: another socket already holds this
+   * uid and this one could not prove it is the same session (no matching
+   * token). Usually a different browser or device; it can also be this same
+   * client racing its own not-yet-closed socket, briefly, after a fast reload
+   * or a deploy — that case self-heals on retry. Not terminal the way REPLACED
+   * is (close the other and try again), but never auto-retried: retrying as the
+   * same uid in a loop is the connection war REPLACED ended.
    */
   CONFLICT = "conflict",
 }

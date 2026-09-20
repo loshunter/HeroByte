@@ -29,11 +29,13 @@ export const WS_CLOSE_AUTH_REJECTED = 4001;
 export const WS_CLOSE_REPLACED = 4002;
 
 /**
- * A second connection claimed a uid whose session is live and authenticated on
- * another socket, and could not prove that session's token — so it did NOT
- * take over, and the incumbent was left untouched. Sent to the NEWCOMER. Not
- * terminal the way WS_CLOSE_REPLACED is (the user may close the other window
- * and try again), but the client must not auto-retry it either: retrying as
- * the same uid in a loop is the connection war this code exists to avoid.
+ * A second connection claimed a uid that is already held — a socket live on
+ * another connection (authenticated or not), or a session still provable by a
+ * token inside its grace window — and could not prove that session's own
+ * token, so it did NOT take over and the holder was left untouched. Sent to
+ * the NEWCOMER. Not terminal the way WS_CLOSE_REPLACED is (the user may close
+ * the other window and try again), but the client must not auto-retry it
+ * either: retrying as the same uid in a loop is the connection war this code
+ * exists to avoid.
  */
 export const WS_CLOSE_SESSION_CONFLICT = 4003;

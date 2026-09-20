@@ -67,12 +67,14 @@ const WS_CLOSE_POLICY_VIOLATION = 1008;
  * Who holds a uid's slot — the security rule this class enforces:
  * - A uid is CLIENT-SUPPLIED (the connect URL) and every uid is published in
  *   the roster, so a newcomer claiming one has proven nothing yet.
- * - If the uid's session is live and authenticated on another socket, the
- *   newcomer is HELD: not registered, and the incumbent is not closed. Before
- *   this rule, connecting as `?uid=dave` closed dave's socket and inherited
- *   dave's auth flag — DM included — with no password at all.
- * - A dead or unauthenticated occupant is replaced (closed with
- *   WS_CLOSE_REPLACED); that is the reconnect-after-blip path and stays fast.
+ * - If a socket is live on another connection for this uid — authenticated OR
+ *   still at the password prompt — the newcomer is HELD: not registered, and
+ *   the incumbent is not closed. (Holding a live-but-unauthenticated incumbent
+ *   too is what stops a bare connect from kicking a victim mid-handshake.)
+ *   Before this rule, connecting as `?uid=dave` closed dave's socket and
+ *   inherited dave's auth flag — DM included — with no password at all.
+ * - Only a DEAD occupant is replaced (closed with WS_CLOSE_REPLACED); that is
+ *   the reconnect-after-blip path and stays fast.
  * - Adoption NEVER confers auth. The uid's auth flag and session are cleared
  *   on every adoption; the newcomer authenticates with its password and, if
  *   it holds one, the session token that lets it keep its DM elevation.

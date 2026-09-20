@@ -240,9 +240,14 @@ attacker who also holds it. Only a per-session secret can. This is the whole poi
 - **The cutover is naturally clean.** Deploy = server restart = in-memory
   `authenticatedUids`/`uidToWs`/`sessionTokens` all empty. Every client's reconnect replays
   its password (client already retains `lastAuthSecret`), hits the password path, and is
-  minted a token. Players with a tab open must reload — the standing post-deploy note. There
-  is no window where a live incumbent exists without a token, because a live incumbent only
-  exists after someone authenticated *on this process*, which now always mints a token.
+  minted a token. Players with a tab open must reload — the standing post-deploy note.
+  **Correction (shipped, S3+round-2):** a live incumbent CAN exist without a token — every
+  socket between connect and a completed `authenticate`, most visibly the post-deploy reload
+  window when every token is gone. The original claim here was wrong. What holds instead is
+  that §3.3's guard refuses to evict or impersonate ANY live incumbent — authenticated or not
+  — without its token (`AuthenticationHandler` `liveIncumbent`), so the tokenless window is a
+  UX bump (a reconnect whose own zombie is still live is turned away and self-heals on retry),
+  not an exploitable hole.
 - **`?sessionUid=` stays.** It is a dev/e2e seam and is no longer a privilege path once the
   token gates adoption.
 

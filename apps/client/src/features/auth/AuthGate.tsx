@@ -193,9 +193,9 @@ export function AuthGate({
         ) : null}
         {isConflict ? (
           <p style={authGateHintStyle}>
-            Another window or device is already at this table as you, and this one could not prove
-            it is the same session. Close the other one, or keep playing there — then try again
-            here.
+            This table is still connected as you elsewhere — another window or device, or a previous
+            session that has not fully closed — and this one could not be proven the same session.
+            Close the other, or wait a moment, then try again here.
           </p>
         ) : null}
         {!isConnected ? (
