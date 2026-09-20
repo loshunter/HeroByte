@@ -148,10 +148,10 @@ describe("session identity: who may hold a uid's session", () => {
     vi.restoreAllMocks();
   });
 
-  describe("reclaiming a uid after its socket is gone (offline DM re-inherit, C)", () => {
+  describe("reclaiming a uid whose session is still within the grace window (C + no lockout)", () => {
     it("a reconnect that presents the session token resumes as DM", async () => {
       const { ws, token } = await joinAsDM();
-      ws.close(1001, "browser going away"); // clean close → cleanup ran, token detached
+      ws.close(1001, "browser going away"); // clean close -> cleanup ran, token detached
 
       const back = server.connect("dave");
       await authenticate(back, token);
@@ -163,38 +163,61 @@ describe("session identity: who may hold a uid's session", () => {
       expect(back.authOk()[0].sessionToken).not.toBe(token);
     });
 
-    it("a reclaim with the room password but NO token gets dave's record as a non-DM", async () => {
-      const { ws } = await joinAsDM();
+    it("a tokenless reclaim INSIDE the grace window is refused, and the owner is NOT locked out", async () => {
+      // The lockout the security review found: a room-password holder who was
+      // first back after dave's blip used to re-mint over dave's record, so
+      // dave's own valid token then failed and 4003'd him forever. The claim
+      // is turned away while the session is still provable, and dave's token
+      // still works.
+      const { ws, token } = await joinAsDM();
       ws.close(1001, "browser going away");
 
       const impostor = server.connect("dave", "203.0.113.7");
-      await authenticate(impostor);
-      vi.advanceTimersByTime(50); // the auth-success broadcast is debounced
+      await authenticate(impostor); // room password, no token
 
-      // In, as dave — the password was right — but with the DM flag reset...
-      expect(impostor.authOk()).toHaveLength(1);
-      expect(dave()?.isDM).toBe(false);
-      // ...and that is what the wire says too, not just the in-memory record.
-      const roster = impostor.latestSnapshot()?.players ?? [];
-      expect(roster.find((p) => p.uid === "dave")?.isDM).toBe(false);
+      expect(impostor.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+      expect(impostor.authOk()).toHaveLength(0);
+      expect(container.authenticatedUids.has("dave")).toBe(false);
+
+      // dave comes back with his token — not locked out, still DM.
+      const back = server.connect("dave");
+      await authenticate(back, token);
+      expect(back.authOk()).toHaveLength(1);
+      expect(dave()?.isDM).toBe(true);
     });
 
-    it("a WRONG token is a tokenless reclaim", async () => {
+    it("a wrong-token reclaim inside the grace window is refused too", async () => {
       const { ws, token } = await joinAsDM();
       ws.close(1001, "browser going away");
 
       const impostor = server.connect("dave", "203.0.113.7");
       await authenticate(impostor, token.slice(0, -1) + (token.endsWith("A") ? "B" : "A"));
 
-      expect(impostor.authOk()).toHaveLength(1);
-      expect(dave()?.isDM).toBe(false);
+      expect(impostor.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+      expect(impostor.authOk()).toHaveLength(0);
     });
 
-    it("a token that has sat detached past the grace window no longer restores DM", async () => {
+    it("AFTER the grace window, a tokenless reclaim gets dave's record as a non-DM", async () => {
+      const { ws } = await joinAsDM();
+      ws.close(1001, "browser going away");
+      // Past the window: the session is no longer provable, so the room
+      // password alone lets someone take the (non-DM) seat. Advance the clock,
+      // not the timers (six hours of timers would fire the idle sweeps).
+      vi.setSystemTime(Date.now() + SESSION_TOKEN_GRACE_MS + 1);
+
+      const reclaimer = server.connect("dave", "203.0.113.7");
+      await authenticate(reclaimer);
+      vi.advanceTimersByTime(50); // the auth-success broadcast is synchronous; belt-and-braces
+
+      expect(reclaimer.authOk()).toHaveLength(1);
+      expect(dave()?.isDM).toBe(false);
+      const roster = reclaimer.latestSnapshot()?.players ?? [];
+      expect(roster.find((p) => p.uid === "dave")?.isDM).toBe(false);
+    });
+
+    it("after the grace window, the old token no longer restores DM", async () => {
       const { ws, token } = await joinAsDM();
       ws.close(1001, "browser going away");
-      // Move the clock, not the timers: advancing six hours of fake timers
-      // would also run the idle-room sweeps, which is not what is under test.
       vi.setSystemTime(Date.now() + SESSION_TOKEN_GRACE_MS + 1);
 
       const back = server.connect("dave");
@@ -206,7 +229,8 @@ describe("session identity: who may hold a uid's session", () => {
 
     it("a token minted for another table does not carry DM into this one", async () => {
       // dave is DM in a private table; the same uid then joins the default
-      // table waving the private table's token.
+      // table waving the private table's token. It proves the SESSION (so the
+      // claim is not refused) but not DM in THIS table.
       const ws = server.connect("dave");
       send(ws, { t: "authenticate", secret: ROOM_PASSWORD, roomId: "castle-3f9" });
       await settle();
@@ -228,6 +252,32 @@ describe("session identity: who may hold a uid's session", () => {
 
       expect(back.authOk()).toHaveLength(1);
       expect(dave()?.isDM).toBe(false);
+    });
+
+    it("a DM who visits another table and returns keeps DM (one proof per table)", async () => {
+      // The single-record-per-uid bug: visiting a second table used to clobber
+      // the first table's token, so returning demoted the DM. Each table keeps
+      // its own proof now, and the client presents the per-table token.
+      const first = await joinAsDM(); // dave is DM on the default table, token T_default
+      const tKeep = first.token;
+      first.ws.close(1001, "off to the other campaign");
+
+      // Same browser opens the private table, presenting the newest token it
+      // holds (the :* fallback) because it has none for castle yet.
+      const away = server.connect("dave");
+      send(away, { t: "authenticate", secret: ROOM_PASSWORD, roomId: "castle-3f9", token: tKeep });
+      await settle();
+      expect(away.authOk()).toHaveLength(1);
+      const tCastle = away.authOk()[0].sessionToken as string;
+      away.close(1001, "back to the main table");
+
+      // Return to the default table with ITS own still-valid token.
+      const back = server.connect("dave");
+      await authenticate(back, tKeep);
+
+      expect(back.authOk()).toHaveLength(1);
+      expect(dave()?.isDM).toBe(true); // DM restored, no DM password re-entry
+      expect(tCastle).not.toBe(tKeep);
     });
   });
 
@@ -376,12 +426,11 @@ describe("session identity: who may hold a uid's session", () => {
       send(fresh, { t: "start-combat" });
       await settle();
       expect(container.roomService.getState().combatActive).not.toBe(true);
-      // ...and a tokenless password auth comes back as a non-DM.
-      await authenticate(fresh);
+      // ...and the real dave, reconnecting with his token, resumes as DM (the
+      // dead socket was just a blip). The session token is what restores it.
+      await authenticate(fresh, token);
       expect(fresh.authOk()).toHaveLength(1);
-      expect(dave()?.isDM).toBe(false);
-      // The token would have kept it — proving the reset is the token's absence.
-      void token;
+      expect(dave()?.isDM).toBe(true);
     });
 
     it("a rejected takeover stays charged against the intruder's budget, a successful one is refunded", async () => {

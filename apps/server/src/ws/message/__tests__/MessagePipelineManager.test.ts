@@ -7,7 +7,10 @@ vi.mock("../../../middleware/validation.js", () => ({
 }));
 
 import type { ClientMessage } from "@herobyte/shared";
+import type { WebSocket } from "ws";
 import { validateMessage } from "../../../middleware/validation.js";
+import { MessagePipelineManager } from "../MessagePipelineManager.js";
+import type { RateLimiter } from "../../../middleware/rateLimit.js";
 
 const validateMessageSpy = vi.mocked(validateMessage);
 
@@ -645,4 +648,92 @@ describe("MessagePipelineManager - Characterization Tests", () => {
       }
     };
   }
+});
+
+// ============================================================================
+// THE REAL CLASS - per-socket rate limiting and credential redaction
+// ============================================================================
+// The block above drives an inline copy. These drive the real
+// MessagePipelineManager, because the rules they pin were added by the session
+// identity binding arc and cannot be seen from a copy: the rate-limit bucket is
+// keyed on the SENDING SOCKET (two sockets can claim one uid - a held newcomer
+// beside the live one - and a uid-keyed bucket let the newcomer drain the
+// incumbent's allowance and mute them), and the error sink must never print a
+// frame's credentials.
+describe("MessagePipelineManager (real class) - per-socket limiting + redaction", () => {
+  const frame = (m: unknown) => Buffer.from(JSON.stringify(m));
+  const socketA = { readyState: 1 } as unknown as WebSocket;
+  const socketB = { readyState: 1 } as unknown as WebSocket;
+
+  beforeEach(() => {
+    validateMessageSpy.mockReturnValue({ valid: true });
+  });
+
+  it("keys the rate limiter on the socket, so one uid's two sockets do not share a bucket", () => {
+    const counts = new Map<string, number>();
+    const limiter = {
+      check: (key: string) => {
+        const n = (counts.get(key) ?? 0) + 1;
+        counts.set(key, n);
+        return n <= 2; // budget: 2 per bucket
+      },
+    } as unknown as RateLimiter;
+    const pipeline = new MessagePipelineManager(
+      { maxMessageSize: 1024, onValidMessage: () => {} },
+      limiter,
+    );
+
+    // Socket A (the incumbent) spends its 2, then a 3rd is refused - for A.
+    expect(pipeline.processMessage(frame({ t: "heartbeat" }), "dave", socketA)).toBe(true);
+    expect(pipeline.processMessage(frame({ t: "heartbeat" }), "dave", socketA)).toBe(true);
+    expect(pipeline.processMessage(frame({ t: "heartbeat" }), "dave", socketA)).toBe(false);
+    // Socket B claims the SAME uid but has its own bucket - the flood on A did
+    // not mute B. (Before this, both keyed on "dave" and B was already choked.)
+    expect(pipeline.processMessage(frame({ t: "heartbeat" }), "dave", socketB)).toBe(true);
+    expect(pipeline.processMessage(frame({ t: "heartbeat" }), "dave", socketB)).toBe(true);
+    expect(counts.size).toBe(2); // two distinct bucket keys
+  });
+
+  it("falls back to the uid as the bucket when no socket is given", () => {
+    const keys: string[] = [];
+    const limiter = {
+      check: (k: string) => {
+        keys.push(k);
+        return true;
+      },
+    } as unknown as RateLimiter;
+    const pipeline = new MessagePipelineManager(
+      { maxMessageSize: 1024, onValidMessage: () => {} },
+      limiter,
+    );
+    pipeline.processMessage(frame({ t: "heartbeat" }), "dave");
+    expect(keys).toEqual(["dave"]);
+  });
+
+  it("never prints an authenticate frame's secret or token in the error sink", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const limiter = { check: () => true } as unknown as RateLimiter;
+    const pipeline = new MessagePipelineManager(
+      {
+        maxMessageSize: 1024,
+        onValidMessage: () => {
+          throw new Error("boom after validation");
+        },
+      },
+      limiter,
+    );
+
+    pipeline.processMessage(
+      frame({ t: "authenticate", secret: "Fun1-super-secret", token: "tok-abc-123", roomId: "r" }),
+      "dave",
+      socketA,
+    );
+
+    const logged = errorSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(logged).toContain("[redacted]");
+    expect(logged).not.toContain("Fun1-super-secret");
+    expect(logged).not.toContain("tok-abc-123");
+    expect(logged).toContain("authenticate"); // non-secret fields still help debugging
+    errorSpy.mockRestore();
+  });
 });

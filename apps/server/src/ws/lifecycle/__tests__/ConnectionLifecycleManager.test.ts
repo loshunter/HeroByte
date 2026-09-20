@@ -759,6 +759,38 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       expect(roomState.users).toContain("player1");
     });
 
+    it("HOLDS a newcomer even when the live incumbent has NOT authenticated yet (sub-issue D)", () => {
+      // A bare connect must not displace a socket that is mid-handshake, or
+      // anyone who can read a uid off the roster can kick a victim on every
+      // reconnect — before this, a live-but-unauthenticated occupant was
+      // replaced at connect. It is held now; the newcomer earns the slot only
+      // by proving a password (or the token) in authenticate.
+      const incumbent = new FakeWebSocket();
+      uidToWs.set("player1", incumbent as unknown as WebSocket); // live, not in authenticatedUids
+      const newcomer = new FakeWebSocket();
+
+      const result = connect(newcomer);
+
+      expect(result).toEqual({ uid: "player1", held: true });
+      expect(incumbent.close).not.toHaveBeenCalled();
+      expect(uidToWs.get("player1")).toBe(incumbent as unknown as WebSocket);
+    });
+
+    it("rejects a connection with no usable uid (1008) and registers nothing", () => {
+      const ws = new FakeWebSocket();
+      const result = manager.handleConnection(
+        ws as unknown as WebSocket,
+        new FakeIncomingMessage("http://localhost") as unknown as IncomingMessage,
+      );
+
+      expect(result).toEqual({ uid: "", held: true, rejected: true });
+      expect(ws.close).toHaveBeenCalledWith(1008, "Missing or invalid session id");
+      expect(uidToWs.size).toBe(0);
+      // No keepalive for a socket we never accepted.
+      vi.advanceTimersByTime(25000);
+      expect(ws.ping).not.toHaveBeenCalled();
+    });
+
     it("a held newcomer still gets its own keepalive", () => {
       const incumbent = new FakeWebSocket();
       liveAuthenticated("player1", incumbent);
@@ -816,15 +848,16 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       expect(tokens.verify("player1", "room1", token, farFuture)).toBe(true);
     });
 
-    it("replaces a live UNAUTHENTICATED occupant (no session to protect)", () => {
-      const idle = new FakeWebSocket();
-      uidToWs.set("player1", idle as unknown as WebSocket);
+    it("replaces a DEAD unauthenticated occupant (readyState CLOSED)", () => {
+      const dead = new FakeWebSocket();
+      dead.readyState = 3;
+      uidToWs.set("player1", dead as unknown as WebSocket);
       const newcomer = new FakeWebSocket();
 
       const result = connect(newcomer);
 
       expect(result.held).toBe(false);
-      expect(idle.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(dead.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
       expect(uidToWs.get("player1")).toBe(newcomer as unknown as WebSocket);
     });
 

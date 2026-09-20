@@ -38,14 +38,23 @@ export interface ConnectionLifecycleResult {
    */
   uid: string;
   /**
-   * True when the uid's session is LIVE and AUTHENTICATED on another socket.
-   * This newcomer was neither registered nor did it evict anyone: it is a
-   * bystander until its `authenticate` proves the session token, at which
-   * point AuthenticationHandler swaps it in. Until then every other message
-   * it sends is dropped (MessageAuthenticator checks the registered socket).
+   * True when the uid's socket is LIVE elsewhere. This newcomer was neither
+   * registered nor did it evict anyone: it is a bystander until its
+   * `authenticate` earns the slot (a verified password against an
+   * unauthenticated occupant, the session token against an authenticated
+   * one), at which point AuthenticationHandler swaps it in. Until then every
+   * other message it sends is dropped (MessageAuthenticator checks the
+   * registered socket).
    */
   held: boolean;
+  /** The connection carried no usable uid and was closed on the spot. */
+  rejected?: boolean;
 }
+
+/** What a client may call itself: a UUID, or the dev/e2e `?sessionUid=` override. */
+const UID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+/** RFC 6455 "policy violation" — a connection the server declines to register. */
+const WS_CLOSE_POLICY_VIOLATION = 1008;
 
 /**
  * ConnectionLifecycleManager handles WebSocket connection lifecycle
@@ -113,23 +122,27 @@ export class ConnectionLifecycleManager {
    * @returns The extracted UID and whether the newcomer was held
    */
   handleConnection(ws: WebSocket, req: IncomingMessage): ConnectionLifecycleResult {
-    // Extract player UID from connection URL
+    // Extract player UID from connection URL. Every real client sends one (a
+    // UUID, or the dev/e2e `?sessionUid=` override); a connection without a
+    // usable uid used to be funnelled into the shared identity "anon", where
+    // any two such clients were each other's incumbent.
     const params = new URL(req.url || "", "http://localhost").searchParams;
-    const uid = params.get("uid") || "anon";
+    const uid = params.get("uid") ?? "";
+    if (!UID_PATTERN.test(uid)) {
+      ws.close(WS_CLOSE_POLICY_VIOLATION, "Missing or invalid session id");
+      return { uid, held: true, rejected: true };
+    }
 
     const existingWs = this.uidToWs.get(uid);
     const wasAuthenticated = this.authenticatedUids.has(uid);
 
-    // Every socket pings, held or registered, so a cloud proxy never idles
-    // one out while it waits to authenticate.
-    this.startKeepalive(ws);
-
-    const incumbentIsLive =
-      existingWs !== undefined && existingWs !== ws && existingWs.readyState === 1;
-    if (incumbentIsLive && wasAuthenticated) {
-      console.log(
-        `[WebSocket] Holding a second connection for ${uid}: session live on another socket`,
-      );
+    // A LIVE occupant — authenticated or still at the password prompt — is
+    // never displaced by a bare connect. The newcomer is held; its
+    // `authenticate` decides (a verified password replaces an unauthenticated
+    // occupant, the session token takes over an authenticated one).
+    if (existingWs !== undefined && existingWs !== ws && existingWs.readyState === 1) {
+      console.log(`[WebSocket] Holding a second connection for ${uid}: socket live elsewhere`);
+      this.startKeepalive(ws);
       return { uid, held: true };
     }
 
@@ -138,7 +151,7 @@ export class ConnectionLifecycleManager {
 
     if (existingWs && existingWs !== ws) {
       console.log(
-        `[WebSocket] Replacing connection for ${uid} (was authenticated: ${wasAuthenticated})`,
+        `[WebSocket] Replacing dead connection for ${uid} (was authenticated: ${wasAuthenticated})`,
       );
       // Register first, close second — see "Race Condition Prevention" above.
       this.uidToWs.set(uid, ws);
@@ -158,6 +171,10 @@ export class ConnectionLifecycleManager {
     const state = this.config.getRoomServiceForRoom(roomId).getState();
     state.users = state.users.filter((u: string) => u !== uid);
 
+    // Last, after everything that can throw: an interval started before the
+    // caller has attached its close listener would leak if any of the above
+    // threw, keeping the closed socket alive forever.
+    this.startKeepalive(ws);
     return { uid, held: false };
   }
 

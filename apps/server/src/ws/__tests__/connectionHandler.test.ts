@@ -209,6 +209,21 @@ describe("ConnectionHandler", () => {
     vi.clearAllMocks();
   });
 
+  it("rejects a connection with no uid and never registers or wires it", async () => {
+    const socket = new FakeWebSocket();
+    // No ?uid= in the URL. It used to be funnelled into the shared "anon"
+    // identity where any two such clients were each other's incumbent.
+    wss.emitConnection(socket, { url: "/" });
+
+    expect(socket.close).toHaveBeenCalledWith(1008, "Missing or invalid session id");
+    // Nothing was registered, and no message handler was attached: a frame
+    // sent afterwards must not spawn a player or reach the router.
+    expect(container.uidToWs.size).toBe(0);
+    socket.emit("message", Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" })));
+    await flushAuth();
+    expect(container.roomService.getState().players).toHaveLength(0);
+  });
+
   it("registers new connections and spawns player/token state", async () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-1" });
@@ -283,11 +298,14 @@ describe("ConnectionHandler", () => {
     // A reconnect is a NEW socket with the same uid, the old one dead on the
     // wire (readyState CLOSED) but not yet cleaned up — the blip case. A LIVE
     // old socket would instead hold the newcomer until it proved the session
-    // token (see sessionHijack.contract.test.ts); that is not this test.
+    // token (see sessionHijack.contract.test.ts); that is not this test. The
+    // reconnect presents its session token, as a real client does — a tokenless
+    // reclaim inside the grace window is refused now.
+    const token = authOkFrames(socket)[0].sessionToken;
     socket.readyState = 3;
     const reconnected = new FakeWebSocket();
     wss.emitConnection(reconnected, { url: "/?uid=user-dm" });
-    reconnected.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    reconnected.emit("message", Buffer.from(JSON.stringify({ ...authMessage, token })));
     await flushAuth();
 
     expect(pc.tokenId).toBeTruthy();
@@ -315,10 +333,11 @@ describe("ConnectionHandler", () => {
     characters.claimCharacter(state, second.id, "user-two");
     second.tokenId = "deleted-before-unlink-shipped";
 
+    const token = authOkFrames(socket)[0].sessionToken;
     socket.readyState = 3; // the old socket is dead on the wire (see the test above)
     const reconnected = new FakeWebSocket();
     wss.emitConnection(reconnected, { url: "/?uid=user-two" });
-    reconnected.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    reconnected.emit("message", Buffer.from(JSON.stringify({ ...authMessage, token })));
     await flushAuth();
 
     expect(first.tokenId).toBeTruthy();

@@ -466,7 +466,9 @@ export class ConnectionLifecycleManager {
   private handleVisibilityChange(): void {
     // Never revive a superseded or turned-away session on focus: another
     // connection owns this uid, and reconnecting would restart the replace-war
-    // (REPLACED) or re-file the same unproven claim (CONFLICT).
+    // (REPLACED) or re-file the same unproven claim (CONFLICT). Unreachable
+    // today — cleanup() removes this listener before either state is set —
+    // and kept as the second line behind that removal.
     if (this.state === ConnectionState.REPLACED || this.state === ConnectionState.CONFLICT) {
       return;
     }

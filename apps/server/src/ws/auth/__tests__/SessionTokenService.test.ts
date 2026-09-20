@@ -93,6 +93,66 @@ describe("SessionTokenService", () => {
     });
   });
 
+  describe("one proof per table (a DM who visits another table keeps the first)", () => {
+    it("minting for one table does not invalidate another table's token", () => {
+      const keep = tokens.mint("dave", "the-keep");
+      const dragons = tokens.mint("dave", "dragons-den");
+
+      // Both live — the second mint did not clobber the first.
+      expect(tokens.verify("dave", "the-keep", keep)).toBe(true);
+      expect(tokens.verify("dave", "dragons-den", dragons)).toBe(true);
+      // Each stays bound to its own table.
+      expect(tokens.verify("dave", "dragons-den", keep)).toBe(false);
+      expect(tokens.verify("dave", "the-keep", dragons)).toBe(false);
+    });
+
+    it("matches() accepts ANY of the uid's live tokens (the table-agnostic takeover proof)", () => {
+      const keep = tokens.mint("dave", "the-keep");
+      const dragons = tokens.mint("dave", "dragons-den");
+
+      expect(tokens.matches("dave", keep)).toBe(true);
+      expect(tokens.matches("dave", dragons)).toBe(true);
+    });
+
+    it("detach stamps every table's record; all expire together after the grace window", () => {
+      const keep = tokens.mint("dave", "the-keep", T0);
+      const dragons = tokens.mint("dave", "dragons-den", T0);
+      tokens.detach("dave", T0 + 1_000);
+
+      const inside = T0 + 1_000 + SESSION_TOKEN_GRACE_MS - 1;
+      expect(tokens.verify("dave", "the-keep", keep, inside)).toBe(true);
+      expect(tokens.verify("dave", "dragons-den", dragons, inside)).toBe(true);
+      const after = T0 + 1_000 + SESSION_TOKEN_GRACE_MS + 1;
+      expect(tokens.verify("dave", "the-keep", keep, after)).toBe(false);
+      expect(tokens.verify("dave", "dragons-den", dragons, after)).toBe(false);
+      expect(tokens.has("dave", after)).toBe(false);
+    });
+
+    it("a mint after detach re-attaches EVERY table (the session is live again)", () => {
+      const keep = tokens.mint("dave", "the-keep", T0);
+      tokens.mint("dave", "dragons-den", T0);
+      tokens.detach("dave", T0 + 1_000);
+      // Reconnecting to dragons-den re-attaches the whole session...
+      tokens.mint("dave", "dragons-den", T0 + 2_000);
+
+      // ...so the-keep's token is good again far past the original grace window.
+      const farFuture = T0 + 2_000 + 5 * SESSION_TOKEN_GRACE_MS;
+      expect(tokens.verify("dave", "the-keep", keep, farFuture)).toBe(true);
+    });
+
+    it("revokeRoom drops one table's proof for every uid, keeping the others", () => {
+      const daveKeep = tokens.mint("dave", "the-keep");
+      const daveHall = tokens.mint("dave", "default");
+      const erinHall = tokens.mint("erin", "default");
+
+      tokens.revokeRoom("default");
+
+      expect(tokens.verify("dave", "default", daveHall)).toBe(false);
+      expect(tokens.verify("erin", "default", erinHall)).toBe(false);
+      expect(tokens.verify("dave", "the-keep", daveKeep)).toBe(true);
+    });
+  });
+
   it("rotation: a re-mint invalidates the previous token", () => {
     const first = tokens.mint("dave", "room-a");
     const second = tokens.mint("dave", "room-a");

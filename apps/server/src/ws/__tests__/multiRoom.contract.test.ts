@@ -421,6 +421,22 @@ describe("idle default-table clear", () => {
     expect(releaseRoom).toHaveBeenCalledWith("default");
   });
 
+  it("revokes session tokens for the table it wipes, so no token proves a seat that is gone", async () => {
+    // The wipe empties players/characters; a token whose 6 h grace outlives the
+    // 1 h idle-clear would otherwise keep proving (and re-inheriting) a seat
+    // that no longer exists — a DM who left could come back to a blank table
+    // still flagged DM, or worse a stranger's stale token could.
+    dirtyDefaultTable();
+    const token = container.sessionTokens.mint("dave", "default");
+    expect(container.sessionTokens.verify("dave", "default", token)).toBe(true);
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+
+    const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(cleared).toBe(true);
+    expect(container.sessionTokens.verify("dave", "default", token)).toBe(false);
+  });
+
   it("never clears while an authenticated client is at the table", async () => {
     const roomService = dirtyDefaultTable();
     container.uidToWs.set("player", fakeSocket() as unknown as WebSocket);

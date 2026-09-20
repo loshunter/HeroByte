@@ -183,29 +183,31 @@ export class AuthenticationHandler {
       return;
     }
 
-    // Who holds the uid's slot. A LIVE, AUTHENTICATED occupant on another
-    // socket keeps it unless this newcomer proves the session token — then it
-    // is a reconnect (or a second tab of the same browser) and takes over.
-    // Without the token it is turned away, and the occupant is left exactly
-    // as it was: not evicted, not impersonated. A dead or unauthenticated
-    // occupant is simply replaced. The takeover proof is "same session", so
-    // it accepts the token whatever table the session is in; the DM check
-    // below is per table.
+    // Who may hold the uid. While the uid has a session anyone could still
+    // prove — live on another socket, or detached inside the grace window —
+    // only that session's token claims it: a reconnect, a second tab of the
+    // same browser, a return after a break. Everyone else is turned away, and
+    // whatever holds the uid is left exactly as it was: not evicted, not
+    // impersonated, and NOT re-minted over (a password-only claim that was
+    // first back after a blip used to replace the owner's record and lock the
+    // owner out for as long as it stayed). The takeover proof is "same
+    // session", so it accepts the token whatever table the session is in; the
+    // DM check below is per table. A uid with no live session — fresh, expired,
+    // or after a server restart — is claimed by the password alone.
     const sameSession = this.sessionTokens.matches(uid, request.token, now);
+    if (!sameSession && this.sessionTokens.has(uid, now)) {
+      console.warn(`[Auth] ${uid}: session belongs to another browser, claim turned away`);
+      // Not refunded: a failed takeover stays charged, like a failed guess.
+      ws.close(WS_CLOSE_SESSION_CONFLICT, "Session held by another connection");
+      return;
+    }
     const previousRoomId = this.container.roomIdForUid(uid);
+    // Register the newcomer BEFORE closing any old socket, so a close handler
+    // that runs synchronously sees it is stale and skips cleanup. The occupant
+    // here is dead, never authenticated, or ours (sameSession).
+    this.uidToWs.set(uid, ws);
     if (occupant && occupant !== ws) {
-      if (occupant.readyState === 1 && this.authenticatedUids.has(uid) && !sameSession) {
-        console.warn(`[Auth] ${uid}: session held by another connection, newcomer turned away`);
-        // Not refunded: a failed takeover stays charged, like a failed guess.
-        ws.close(WS_CLOSE_SESSION_CONFLICT, "Session held by another connection");
-        return;
-      }
-      // Register the newcomer BEFORE closing the old socket, so a close
-      // handler that runs synchronously sees it is stale and skips cleanup.
-      this.uidToWs.set(uid, ws);
       occupant.close(WS_CLOSE_REPLACED, "Replaced by new connection");
-    } else {
-      this.uidToWs.set(uid, ws);
     }
 
     // A correct password refunds its token: a full party joining together

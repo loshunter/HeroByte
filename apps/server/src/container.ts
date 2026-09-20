@@ -54,7 +54,6 @@ export class Container {
   public readonly uidToWs: Map<string, WebSocket>;
   public readonly authenticatedUids: Set<string>;
   public readonly authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
-  /** Per-uid session tokens — the secret that binds a uid to its authenticated socket. */
   public readonly sessionTokens = new SessionTokenService();
 
   private readonly wss: WebSocketServer;
@@ -111,7 +110,6 @@ export class Container {
     this.rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
     this.authWorkLimiter = authWorkLimiter ?? createAuthWorkLimiter();
 
-    // Initialize WebSocket connection tracking
     this.uidToWs = new Map<string, WebSocket>();
     this.authenticatedUids = new Set<string>();
     this.authenticatedSessions = new Map<string, { roomId: string; authedAt: number }>();
@@ -270,6 +268,8 @@ export class Container {
     // No await between the guards above and this reset, so a client cannot
     // slip in and have the table wiped out from under them mid-session.
     roomService.resetState();
+    // The seats are gone; no token may keep proving one (see SessionTokenService).
+    this.sessionTokens.revokeRoom(roomId);
     this.mapStudioService.resetRoom(roomId);
     this.roomActivity.set(roomId, Date.now());
 

@@ -66,9 +66,18 @@ export interface MessagePipelineConfig {
  * const wasProcessed = pipeline.processMessage(buffer, uid);
  * ```
  */
+/** Keys whose values must never reach a log line. */
+const REDACTED_KEYS = new Set(["secret", "token", "dmPassword", "roomPassword", "sessionToken"]);
+
+function redact(key: string, value: unknown): unknown {
+  return REDACTED_KEYS.has(key) ? "[redacted]" : value;
+}
+
 export class MessagePipelineManager {
   private config: MessagePipelineConfig;
   private rateLimiter: RateLimiter;
+  private readonly socketKeys = new WeakMap<WebSocket, string>();
+  private nextSocketKey = 1;
 
   /**
    * Create a new message pipeline manager
@@ -108,8 +117,11 @@ export class MessagePipelineManager {
         return false;
       }
 
-      // Stage 3: Rate limiting
-      if (!this.checkRateLimit(uid)) {
+      // Stage 3: Rate limiting — per SOCKET when the caller gave us one. Two
+      // sockets can claim one uid (a held newcomer beside the live one), and a
+      // bucket keyed on the client-supplied uid let the newcomer spend the
+      // incumbent's allowance and mute them without ever authenticating.
+      if (!this.checkRateLimit(ws ? this.socketKey(ws) : uid, uid)) {
         return false;
       }
 
@@ -126,7 +138,9 @@ export class MessagePipelineManager {
       // Handle unexpected errors during processing
       console.error(`[MessagePipelineManager] Failed to process message from ${uid}:`, err);
       if (rawMessage !== undefined) {
-        console.error(`[MessagePipelineManager] Message was:`, JSON.stringify(rawMessage));
+        // Never the credentials: an `authenticate` frame carries the room
+        // password and the session token, and this log line outlives them.
+        console.error(`[MessagePipelineManager] Message was:`, JSON.stringify(rawMessage, redact));
       } else {
         console.error(`[MessagePipelineManager] Failed to parse message buffer`);
       }
@@ -175,17 +189,32 @@ export class MessagePipelineManager {
   /**
    * Stage 3: Check rate limit to prevent spam
    *
-   * @param uid - User ID to check rate limit for
+   * @param key - The bucket: the sending socket's key, or the uid when no socket was given
+   * @param uid - User ID, for the log and the callback
    * @returns true if within rate limit, false if exceeded
    */
-  private checkRateLimit(uid: string): boolean {
-    if (!this.rateLimiter.check(uid)) {
+  private checkRateLimit(key: string, uid: string): boolean {
+    if (!this.rateLimiter.check(key)) {
       const reason = "Rate limit exceeded";
       console.warn(`Rate limit exceeded for client ${uid}`);
       this.config.onInvalidMessage?.(uid, reason);
       return false;
     }
     return true;
+  }
+
+  /**
+   * A stable key per socket for the rate limiter. A WeakMap, so a closed
+   * socket's entry needs no lifecycle bookkeeping; the limiter itself sweeps
+   * buckets a minute after their window closes.
+   */
+  private socketKey(ws: WebSocket): string {
+    let key = this.socketKeys.get(ws);
+    if (!key) {
+      key = `socket#${this.nextSocketKey++}`;
+      this.socketKeys.set(ws, key);
+    }
+    return key;
   }
 
   /**
