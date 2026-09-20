@@ -288,10 +288,11 @@ export function AuthenticationGate({
     connectionState !== ConnectionState.CONNECTING &&
     connectionState !== ConnectionState.RECONNECTING;
 
-  const conflict = connectionState === ConnectionState.CONFLICT;
-  // A CONFLICT close never auto-reconnects, so the "Reconnecting…" banner would
-  // never resolve: show the gate, which explains it and offers a manual retry.
-  const showAuthGate = !hasAuthenticated || authState === AuthState.FAILED || conflict;
+  // REPLACED and CONFLICT never auto-reconnect, so the "Reconnecting…" banner
+  // would never resolve: show the gate, with its RECLAIM / TRY AGAIN instead.
+  const terminal =
+    connectionState === ConnectionState.REPLACED || connectionState === ConnectionState.CONFLICT;
+  const showAuthGate = !hasAuthenticated || authState === AuthState.FAILED || terminal;
 
   // -------------------------------------------------------------------------
   // RENDER
