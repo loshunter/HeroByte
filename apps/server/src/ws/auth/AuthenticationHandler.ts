@@ -186,6 +186,16 @@ export class AuthenticationHandler {
     const player = provisionJoin(this.container, roomService, state, uid);
     this.touchPlayerHeartbeat(player, now);
 
+    // A persisted DM flag is honoured only when the reconnect proves it is the
+    // SAME session, by the token minted to it. The room password is shared by
+    // the whole table and cannot tell dave from someone who was handed it, so
+    // a tokenless reclaim of a DM's uid gets the record — name, character,
+    // tokens — but must re-elevate with the DM password.
+    if (player.isDM && !this.sessionTokens.verify(uid, requestedRoomId, request.token, now)) {
+      console.log(`[Auth] tokenless reclaim of ${uid}: DM reset, re-elevation required`);
+      player.isDM = false;
+    }
+
     // Track authentication state
     this.authenticatedUids.add(uid);
     this.refreshAuthenticatedSession(uid, now, requestedRoomId);
