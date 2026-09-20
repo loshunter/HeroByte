@@ -25,6 +25,7 @@ import { TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 import type { ClientMessage } from "@herobyte/shared";
 import type { WebSocket, WebSocketServer } from "ws";
 import { AuthService } from "../../domains/auth/service.js";
+import { SessionTokenService, SESSION_TOKEN_GRACE_MS } from "../auth/SessionTokenService.js";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
@@ -149,6 +150,7 @@ const setupContainer = () => {
     uidToWs,
     authenticatedUids,
     authenticatedSessions,
+    sessionTokens: new SessionTokenService(),
     getAuthenticatedClients,
     // Room-aware surface: this harness is single-room, so every resolver
     // points at the one RoomService/router above.
@@ -185,6 +187,12 @@ describe("ConnectionHandler", () => {
     }
   };
 
+  /** Every auth-ok frame a socket was sent. Each carries a freshly minted session token. */
+  const authOkFrames = (socket: FakeWebSocket) =>
+    socket.send.mock.calls
+      .map(([p]) => JSON.parse(p as string) as { t?: string; sessionToken?: string })
+      .filter((frame) => frame.t === "auth-ok");
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-01-01T00:00:00.000Z"));
@@ -199,6 +207,21 @@ describe("ConnectionHandler", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  it("rejects a connection with no uid and never registers or wires it", async () => {
+    const socket = new FakeWebSocket();
+    // No ?uid= in the URL. It used to be funnelled into the shared "anon"
+    // identity where any two such clients were each other's incumbent.
+    wss.emitConnection(socket, { url: "/" });
+
+    expect(socket.close).toHaveBeenCalledWith(1008, "Missing or invalid session id");
+    // Nothing was registered, and no message handler was attached: a frame
+    // sent afterwards must not spawn a player or reach the router.
+    expect(container.uidToWs.size).toBe(0);
+    socket.emit("message", Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" })));
+    await flushAuth();
+    expect(container.roomService.getState().players).toHaveLength(0);
   });
 
   it("registers new connections and spawns player/token state", async () => {
@@ -272,10 +295,17 @@ describe("ConnectionHandler", () => {
     tokens.forceDeleteToken(state, pc.tokenId);
     expect(pc.tokenId).toBeFalsy();
 
-    // A reconnect is a NEW socket with the same uid (the old one is gone).
+    // A reconnect is a NEW socket with the same uid, the old one dead on the
+    // wire (readyState CLOSED) but not yet cleaned up — the blip case. A LIVE
+    // old socket would instead hold the newcomer until it proved the session
+    // token (see sessionHijack.contract.test.ts); that is not this test. The
+    // reconnect presents its session token, as a real client does — a tokenless
+    // reclaim inside the grace window is refused now.
+    const token = authOkFrames(socket)[0].sessionToken;
+    socket.readyState = 3;
     const reconnected = new FakeWebSocket();
     wss.emitConnection(reconnected, { url: "/?uid=user-dm" });
-    reconnected.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    reconnected.emit("message", Buffer.from(JSON.stringify({ ...authMessage, token })));
     await flushAuth();
 
     expect(pc.tokenId).toBeTruthy();
@@ -303,9 +333,11 @@ describe("ConnectionHandler", () => {
     characters.claimCharacter(state, second.id, "user-two");
     second.tokenId = "deleted-before-unlink-shipped";
 
+    const token = authOkFrames(socket)[0].sessionToken;
+    socket.readyState = 3; // the old socket is dead on the wire (see the test above)
     const reconnected = new FakeWebSocket();
     wss.emitConnection(reconnected, { url: "/?uid=user-two" });
-    reconnected.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    reconnected.emit("message", Buffer.from(JSON.stringify({ ...authMessage, token })));
     await flushAuth();
 
     expect(first.tokenId).toBeTruthy();
@@ -337,7 +369,7 @@ describe("ConnectionHandler", () => {
     socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
 
     expect(player.lastHeartbeat).toBe(expectedHeartbeat);
-    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ t: "auth-ok" }));
+    expect(authOkFrames(socket)).toHaveLength(2);
   });
 
   it("retains existing session room and updates authedAt on re-authentication", async () => {
@@ -366,7 +398,48 @@ describe("ConnectionHandler", () => {
 
     const refreshedSession = container.authenticatedSessions.get("session-user");
     expect(refreshedSession).toEqual({ roomId: "custom-room-id", authedAt: expectedAuthedAt });
-    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ t: "auth-ok" }));
+    expect(authOkFrames(socket)).toHaveLength(2);
+  });
+
+  it("a password auth hands the client a session token, and each auth mints a fresh one", async () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-token" });
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
+
+    const [first] = authOkFrames(socket);
+    expect(first.sessionToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    // The server holds only the hash, but the raw token verifies against it.
+    expect(container.sessionTokens.verify("user-token", "default", first.sessionToken)).toBe(true);
+
+    // A re-auth on the same socket rotates: the old token stops verifying.
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
+    const [, second] = authOkFrames(socket);
+    expect(second.sessionToken).not.toBe(first.sessionToken);
+    expect(container.sessionTokens.verify("user-token", "default", first.sessionToken)).toBe(false);
+    expect(container.sessionTokens.verify("user-token", "default", second.sessionToken)).toBe(true);
+  });
+
+  it("a disconnect detaches the token but keeps it reclaimable inside the grace window", async () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-away" });
+    socket.emit("message", Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" })));
+    await flushAuth();
+    const [{ sessionToken }] = authOkFrames(socket);
+
+    socket.emit("close");
+
+    // Still good for a reload or a blip...
+    expect(container.sessionTokens.verify("user-away", "default", sessionToken)).toBe(true);
+    // ...and gone once the grace window closes. (An explicit clock rather than
+    // advancing the fake timers six hours — that would fire the idle-room
+    // sweep against this single-room harness.)
+    const afterGrace = Date.now() + SESSION_TOKEN_GRACE_MS + 1;
+    expect(container.sessionTokens.verify("user-away", "default", sessionToken, afterGrace)).toBe(
+      false,
+    );
   });
 
   it("cleans up on disconnect", async () => {
@@ -413,6 +486,25 @@ describe("ConnectionHandler", () => {
     expect(container.uidToWs.has("user-4")).toBe(false);
     expect(deselectSpy).toHaveBeenCalledWith(state, "user-4");
     expect(broadcastSpy).toHaveBeenCalled();
+  });
+
+  it("a heartbeat timeout detaches the session token exactly as a disconnect does", async () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-idle" });
+    socket.emit("message", Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" })));
+    await flushAuth();
+    const [{ sessionToken }] = authOkFrames(socket);
+    const state = container.roomService.getState();
+    state.players.find((p) => p.uid === "user-idle")!.lastHeartbeat = Date.now() - 6 * 60 * 1000;
+
+    vi.advanceTimersByTime(30_000); // the sweep
+
+    expect(socket.close).toHaveBeenCalled();
+    expect(container.sessionTokens.verify("user-idle", "default", sessionToken)).toBe(true);
+    const afterGrace = Date.now() + SESSION_TOKEN_GRACE_MS + 1;
+    expect(container.sessionTokens.verify("user-idle", "default", sessionToken, afterGrace)).toBe(
+      false,
+    );
   });
 
   it("keeps the player entity and tokens when a connected player times out", async () => {
@@ -503,7 +595,7 @@ describe("ConnectionHandler", () => {
     expect(verifySpy).toHaveBeenCalledTimes(1);
     expect(
       bystander.send.mock.calls.map(([p]) => JSON.parse(p as string) as { t?: string }),
-    ).toContainEqual({ t: "auth-ok" });
+    ).toContainEqual(expect.objectContaining({ t: "auth-ok" }));
 
     // ...and the flooder is still cut off.
     const stillFlooding = await attemptFrom("flooder-again", "203.0.113.9", "wrong-password");
@@ -535,6 +627,50 @@ describe("ConnectionHandler", () => {
       await attemptFrom(`after-${attempt}`, "192.0.2.50", "wrong-password");
     }
     expect(verifySpy).toHaveBeenCalledTimes(5);
+  });
+
+  it("a SECOND socket for one uid gets a REPLY, not silence, while the first's hash is in flight", async () => {
+    // The in-flight guard keys on the SOCKET, not the uid. Before, a reload
+    // mid-scrypt connected as the same uid (held), auto-authenticated, found
+    // pendingAuthWork.has(uid) true, and was dropped with NO reply — the tab
+    // hung on "Authenticating…" until a manual retry. Now the second socket
+    // reaches the auth logic and is answered: it is turned away 4003 (a live
+    // socket already holds the uid and it has no token to prove the session),
+    // which the client surfaces as "Held in another window" with a retry — a
+    // reply the user can act on, never a hang.
+    const verifySpy = vi.mocked(container.authService.verify);
+    let releaseFirst!: () => void;
+    // The FIRST hash parks; every later call resolves immediately.
+    verifySpy.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          releaseFirst = () => resolve(true);
+        }),
+    );
+
+    const authFrame = Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" }));
+    const first = new FakeWebSocket();
+    wss.emitConnection(first, { url: "/?uid=dup", socket: { remoteAddress: "192.0.2.9" } });
+    first.emit("message", authFrame); // first enters scrypt and parks there
+    await flushAuth();
+    expect(authOkFrames(first)).toHaveLength(0); // still hashing
+
+    // A reload: a new socket, same uid, held behind the live first socket.
+    const second = new FakeWebSocket();
+    wss.emitConnection(second, { url: "/?uid=dup", socket: { remoteAddress: "192.0.2.9" } });
+    second.emit("message", authFrame);
+    await flushAuth();
+
+    // The second login is answered (4003), not silently swallowed by the
+    // in-flight guard, and it did not evict the live first socket.
+    expect(second.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+    expect(container.uidToWs.get("dup")).not.toBe(second);
+
+    // The first's parked hash now completes and authenticates its own socket.
+    releaseFirst();
+    await flushAuth();
+    expect(authOkFrames(first)).toHaveLength(1);
+    expect(container.uidToWs.get("dup")).toBe(first);
   });
 
   it("never sweeps players restored from disk who have not connected", () => {

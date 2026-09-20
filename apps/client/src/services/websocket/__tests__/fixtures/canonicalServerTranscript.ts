@@ -35,7 +35,8 @@ export const canonicalServerTranscript: TranscriptEntry[] = [
   },
   {
     label: "auth-ok",
-    payload: JSON.stringify({ t: "auth-ok" as const }),
+    // Carries the session token the server mints on every successful auth.
+    payload: JSON.stringify({ t: "auth-ok" as const, sessionToken: "tok-canonical" }),
   },
   {
     label: "heartbeat-ack",

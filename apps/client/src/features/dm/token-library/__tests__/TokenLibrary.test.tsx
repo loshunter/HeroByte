@@ -17,6 +17,14 @@ const cells = () =>
   });
 
 describe("TokenLibrary", () => {
+  // Every case here renders all 244 catalog tokens synchronously: ~0.6-1.3s
+  // each on an idle machine, which is under a second of margin against
+  // vitest's 5000ms default. The batched CI gate hides that behind
+  // --no-file-parallelism, but `test:simple` runs all 332 client files at once
+  // and the longest case timed out. The count assertion below is the point of
+  // the test, so the pack stays whole and the clock gets the slack instead.
+  vi.setConfig({ testTimeout: 30_000 });
+
   it("lists the whole pack with the caller's hint and a running count", () => {
     render(<TokenLibrary onPick={vi.fn()} hint="Pick a token" />);
     expect(screen.getByText(/Pick a token · 244 of 244 tokens/)).toBeInTheDocument();

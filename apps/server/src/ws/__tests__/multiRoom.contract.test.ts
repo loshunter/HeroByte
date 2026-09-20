@@ -176,6 +176,7 @@ describe("authentication creates and scopes rooms", () => {
       container.uidToWs,
       container.authenticatedUids,
       container.authenticatedSessions,
+      container.sessionTokens,
     );
   });
 
@@ -183,7 +184,7 @@ describe("authentication creates and scopes rooms", () => {
     const ws = fakeSocket();
     container.uidToWs.set("wanderer", ws as unknown as WebSocket);
 
-    await handler.authenticate("wanderer", "password", "castle-3f9");
+    await handler.authenticate("wanderer", { secret: "password", roomId: "castle-3f9" });
 
     expect(frameTypes(ws)).toContain("auth-ok");
     expect(container.roomIdForUid("wanderer")).toBe("castle-3f9");
@@ -197,7 +198,7 @@ describe("authentication creates and scopes rooms", () => {
     const ws = fakeSocket();
     container.uidToWs.set("intruder", ws as unknown as WebSocket);
 
-    await handler.authenticate("intruder", "password", "../etc/passwd");
+    await handler.authenticate("intruder", { secret: "password", roomId: "../etc/passwd" });
 
     const frames = ws.send.mock.calls.map(([p]) => JSON.parse(p as string) as { t?: string });
     expect(frames[0]).toMatchObject({ t: "auth-failed", reason: "Invalid room id" });
@@ -208,7 +209,7 @@ describe("authentication creates and scopes rooms", () => {
     const ws = fakeSocket();
     container.uidToWs.set("homer", ws as unknown as WebSocket);
 
-    await handler.authenticate("homer", "password");
+    await handler.authenticate("homer", { secret: "password" });
 
     expect(container.roomIdForUid("homer")).toBe("default");
     expect(container.roomService.getState().players.map((p) => p.uid)).toEqual(["homer"]);
@@ -418,6 +419,22 @@ describe("idle default-table clear", () => {
     await container.clearIdleDefaultRoom(CLEAR_MS);
 
     expect(releaseRoom).toHaveBeenCalledWith("default");
+  });
+
+  it("revokes session tokens for the table it wipes, so no token proves a seat that is gone", async () => {
+    // The wipe empties players/characters; a token whose 6 h grace outlives the
+    // 1 h idle-clear would otherwise keep proving (and re-inheriting) a seat
+    // that no longer exists — a DM who left could come back to a blank table
+    // still flagged DM, or worse a stranger's stale token could.
+    dirtyDefaultTable();
+    const token = container.sessionTokens.mint("dave", "default");
+    expect(container.sessionTokens.verify("dave", "default", token)).toBe(true);
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+
+    const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(cleared).toBe(true);
+    expect(container.sessionTokens.verify("dave", "default", token)).toBe(false);
   });
 
   it("never clears while an authenticated client is at the table", async () => {

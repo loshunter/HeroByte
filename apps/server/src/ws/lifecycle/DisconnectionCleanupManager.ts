@@ -8,6 +8,7 @@
 import type { WebSocket } from "ws";
 import type { RoomService } from "../../domains/room/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
+import type { SessionTokenService } from "../auth/SessionTokenService.js";
 
 /**
  * Configuration for DisconnectionCleanupManager
@@ -98,17 +99,20 @@ export class DisconnectionCleanupManager {
   private uidToWs: Map<string, WebSocket>;
   private authenticatedUids: Set<string>;
   private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
+  private sessionTokens: SessionTokenService;
 
   constructor(
     config: DisconnectionCleanupConfig,
     uidToWs: Map<string, WebSocket>,
     authenticatedUids: Set<string>,
     authenticatedSessions: Map<string, { roomId: string; authedAt: number }>,
+    sessionTokens: SessionTokenService,
   ) {
     this.config = config;
     this.uidToWs = uidToWs;
     this.authenticatedUids = authenticatedUids;
     this.authenticatedSessions = authenticatedSessions;
+    this.sessionTokens = sessionTokens;
   }
 
   /**
@@ -172,6 +176,10 @@ export class DisconnectionCleanupManager {
     // Clear authentication state
     this.authenticatedUids.delete(uid);
     this.authenticatedSessions.delete(uid);
+    // The session token is DETACHED, not revoked: it lives on for a grace
+    // window so this same client's reconnect (a reload, a network blip) can
+    // prove it is the same session and resume — DM elevation included.
+    this.sessionTokens.detach(uid);
 
     // Deselect any objects the player had selected
     this.config.selectionService.deselect(state, uid);

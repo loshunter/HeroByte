@@ -34,6 +34,9 @@ const CLUB = "/tokens/NPC/Enemies/Goblins/goblinClub.png";
 const CLUB_PORTRAIT = "/tokens/Medium/NPC/Enemies/Goblins/goblinClub.png";
 
 describe("NPCsTab — the Token Library", () => {
+  // Opening the library renders the whole 244-token pack, so these cases carry
+  // the same contention risk as TokenLibrary.test.tsx against the 5000ms default.
+  vi.setConfig({ testTimeout: 30_000 });
   it("is closed until asked, and the button toggles it", () => {
     renderTab();
     expect(screen.queryByTestId("token-library")).toBeNull();

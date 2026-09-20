@@ -71,6 +71,7 @@ export function AuthGate({
     connectionState === ConnectionState.CONNECTING ||
     connectionState === ConnectionState.RECONNECTING;
   const isReplaced = connectionState === ConnectionState.REPLACED;
+  const isConflict = connectionState === ConnectionState.CONFLICT;
   const isHandshakeActive = isConnecting || authState === AuthState.PENDING;
   const submitLabel =
     authState === AuthState.PENDING
@@ -190,6 +191,13 @@ export function AuthGate({
             reclaim it here, and the other one will pause.
           </p>
         ) : null}
+        {isConflict ? (
+          <p style={authGateHintStyle}>
+            This table is still connected as you elsewhere — another window or device, or a previous
+            session that has not fully closed — and this one could not be proven the same session.
+            Close the other, or wait a moment, then try again here.
+          </p>
+        ) : null}
         {!isConnected ? (
           <button
             type="button"
@@ -201,7 +209,7 @@ export function AuthGate({
             // button and no way out but a page reload. Retrying during a
             // backoff wait is exactly what someone wants to do.
           >
-            {isReplaced ? "Reclaim This Tab" : "Retry Connection"}
+            {isReplaced ? "Reclaim This Tab" : isConflict ? "Try Again" : "Retry Connection"}
           </button>
         ) : null}
         {actionsSlot}

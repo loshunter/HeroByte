@@ -30,6 +30,7 @@ import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
 import { DisconnectionCleanupManager } from "../lifecycle/DisconnectionCleanupManager.js";
+import { SessionTokenService } from "../auth/SessionTokenService.js";
 import { sentinelHits, sentinelHitsIn } from "./leakSentinels.js";
 
 const ALICE = "player-alice";
@@ -338,6 +339,7 @@ describe("dice secrecy and forgery contracts", () => {
       uidToWs,
       new Set<string>([ALICE, BOB, DM, "bystander"]),
       new Map<string, { roomId: string; authedAt: number }>(),
+      new SessionTokenService(),
     );
 
     aliceWs.send.mockClear();

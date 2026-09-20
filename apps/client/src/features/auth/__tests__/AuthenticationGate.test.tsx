@@ -117,6 +117,93 @@ describe("AuthenticationGate - Characterization", () => {
       expect(screen.getByText("Connecting")).toBeInTheDocument();
     });
 
+    it("should show the gate with RECLAIM THIS TAB when a logged-in tab is REPLACED", () => {
+      // Found live: a replaced tab that had already logged in kept rendering
+      // the app with an OFFLINE chip and a "Reconnecting…" banner that could
+      // never resolve (REPLACED is terminal). The reclaim affordance lives in
+      // the gate, so the gate must show.
+      const onConnect = vi.fn();
+      const { rerender } = render(
+        <AuthenticationGate
+          url="ws://test"
+          uid="test-uid"
+          onAuthenticate={vi.fn()}
+          onConnect={onConnect}
+          isConnected={true}
+          connectionState={ConnectionState.CONNECTED}
+          authState={AuthState.AUTHENTICATED}
+          authError={null}
+        >
+          <div>Protected Content</div>
+        </AuthenticationGate>,
+      );
+      expect(screen.getByText("Protected Content")).toBeInTheDocument();
+
+      rerender(
+        <AuthenticationGate
+          url="ws://test"
+          uid="test-uid"
+          onAuthenticate={vi.fn()}
+          onConnect={onConnect}
+          isConnected={false}
+          connectionState={ConnectionState.REPLACED}
+          authState={AuthState.UNAUTHENTICATED}
+          authError={null}
+        >
+          <div>Protected Content</div>
+        </AuthenticationGate>,
+      );
+
+      expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+      expect(screen.queryByText("Reconnecting…")).not.toBeInTheDocument();
+      expect(screen.getByText("Opened in another tab")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Reclaim This Tab" }));
+      expect(onConnect).toHaveBeenCalledTimes(1);
+    });
+
+    it("should explain a session CONFLICT and offer a manual retry, even after a prior login", () => {
+      // The server turned this socket away (another window holds the session
+      // and this one could not prove it is the same one). Nothing reconnects
+      // by itself, so the gate — not the "Reconnecting…" banner — must show.
+      const { rerender } = render(
+        <AuthenticationGate
+          url="ws://test"
+          uid="test-uid"
+          onAuthenticate={vi.fn()}
+          onConnect={vi.fn()}
+          isConnected={true}
+          connectionState={ConnectionState.CONNECTED}
+          authState={AuthState.AUTHENTICATED}
+          authError={null}
+        >
+          <div>Protected Content</div>
+        </AuthenticationGate>,
+      );
+      expect(screen.getByText("Protected Content")).toBeInTheDocument();
+
+      rerender(
+        <AuthenticationGate
+          url="ws://test"
+          uid="test-uid"
+          onAuthenticate={vi.fn()}
+          onConnect={vi.fn()}
+          isConnected={false}
+          connectionState={ConnectionState.CONFLICT}
+          authState={AuthState.UNAUTHENTICATED}
+          authError={null}
+        >
+          <div>Protected Content</div>
+        </AuthenticationGate>,
+      );
+
+      expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+      expect(screen.getByText("Held in another window")).toBeInTheDocument();
+      expect(
+        screen.getByText(/This table is still connected as you elsewhere/),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
+    });
+
     it("should display auth error when present", () => {
       const mockAuthenticate = vi.fn();
       const mockConnect = vi.fn();

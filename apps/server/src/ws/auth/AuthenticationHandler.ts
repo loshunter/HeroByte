@@ -5,15 +5,30 @@
 // Single responsibility: Authentication flow management
 
 import type { WebSocket } from "ws";
-import { WS_CLOSE_AUTH_REJECTED, type Player } from "@herobyte/shared";
-import { handleCreateRoom, type CreateRoomRequest } from "./roomCreation.js";
-import { forkTableForUid, type ForkTableRequest } from "./tableFork.js";
+import {
+  WS_CLOSE_AUTH_REJECTED,
+  WS_CLOSE_REPLACED,
+  WS_CLOSE_SESSION_CONFLICT,
+} from "@herobyte/shared";
+import type { CreateRoomRequest } from "./roomCreation.js";
+import type { ForkTableRequest } from "./tableFork.js";
+import { createRoomForUid, forkTableForSender } from "./roomMinting.js";
 import { setDMPasswordForUid } from "./dmPasswordUpdate.js";
 import { DMElevationThrottle } from "./dmElevationThrottle.js";
 import { elevateUidToDM, revokeUidDM } from "./dmElevation.js";
+import { leaveRoomRoster, provisionJoin } from "./joinProvisioning.js";
+import type { SessionTokenService } from "./SessionTokenService.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 import { createAuthWorkLimiter, type TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
+
+/** The fields of an `authenticate` frame the handler acts on. */
+export interface AuthenticateRequest {
+  secret: string;
+  roomId?: string;
+  /** The session token a previous auth-ok minted, if the client holds one. */
+  token?: string;
+}
 
 /**
  * Authentication handler for WebSocket connections
@@ -25,13 +40,18 @@ export class AuthenticationHandler {
   private uidToWs: Map<string, WebSocket>;
   private authenticatedUids: Set<string>;
   private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
+  private readonly sessionTokens: SessionTokenService;
   private readonly defaultRoomId: string;
   private readonly dmThrottle = new DMElevationThrottle();
-  // Uids with a password check in flight. verify() now yields to the
-  // threadpool, so a client could stack concurrent attempts on one
-  // connection and interleave the post-await state mutations; one at a
-  // time per uid keeps the flow as serial as it was when it was sync.
-  private readonly pendingAuthWork = new Set<string>();
+  // Sockets with a password check in flight. verify() yields to the
+  // threadpool, so a client could stack concurrent attempts on one connection
+  // and interleave the post-await state mutations; one at a time per SOCKET
+  // keeps the flow as serial as it was when it was sync. Keyed on the socket,
+  // not the uid: since the identity binding arc two live sockets can share a
+  // uid (a held newcomer beside the incumbent), and a uid key would drop the
+  // second socket's own login silently — a reload mid-hash then hangs on
+  // "Authenticating…". A double-submit on ONE socket is still caught.
+  private readonly pendingAuthWork = new Set<WebSocket>();
 
   // Per-IP budget for scrypt-priced work, shared with the HTTP routes (D7).
   private readonly authWorkLimiter: TokenBucketLimiter;
@@ -44,6 +64,7 @@ export class AuthenticationHandler {
     uidToWs: Map<string, WebSocket>,
     authenticatedUids: Set<string>,
     authenticatedSessions: Map<string, { roomId: string; authedAt: number }>,
+    sessionTokens: SessionTokenService,
     authWorkLimiter?: TokenBucketLimiter,
     ipOfWs?: WeakMap<WebSocket, string>,
   ) {
@@ -51,6 +72,7 @@ export class AuthenticationHandler {
     this.uidToWs = uidToWs;
     this.authenticatedUids = authenticatedUids;
     this.authenticatedSessions = authenticatedSessions;
+    this.sessionTokens = sessionTokens;
     this.defaultRoomId = getDefaultRoomId();
     this.authWorkLimiter = authWorkLimiter ?? createAuthWorkLimiter();
     this.ipOfWs = ipOfWs ?? new WeakMap();
@@ -80,34 +102,40 @@ export class AuthenticationHandler {
    * the connection can be replaced while the hash is computing.
    *
    * @param uid - Unique identifier for the client
-   * @param secret - Room password provided by the client
-   * @param roomId - Optional room identifier (defaults to default room)
+   * @param request - The authenticate frame: room password, optional room id,
+   *   and the session token from a previous auth-ok when the client holds one
+   * @param replyWs - The socket the frame arrived on. Defaults to the uid's
+   *   registered socket for callers that have no other handle on it.
    */
-  async authenticate(uid: string, secret: string, roomId?: string): Promise<void> {
-    const ws = this.uidToWs.get(uid);
+  async authenticate(
+    uid: string,
+    request: AuthenticateRequest,
+    replyWs?: WebSocket,
+  ): Promise<void> {
+    const ws = replyWs ?? this.uidToWs.get(uid);
     if (!ws) {
       return;
     }
 
     const now = Date.now();
 
-    // Handle re-authentication (client already authenticated). The session
-    // keeps its original room — switching rooms requires a fresh connection.
-    if (this.authenticatedUids.has(uid)) {
+    // Re-authentication by the socket that already HOLDS the session grants
+    // nothing new, so it stays passwordless. Any other socket claiming an
+    // authenticated uid — a held newcomer — must take the full path below and
+    // prove the session token before it can take the slot over.
+    if (this.authenticatedUids.has(uid) && this.uidToWs.get(uid) === ws) {
       const sessionRoomId = this.container.roomIdForUid(uid);
       const state = this.container.getRoomServiceForRoom(sessionRoomId).getState();
       const player = this.container.playerService.findPlayer(state, uid);
-      if (player) {
-        this.touchPlayerHeartbeat(player, now);
-      }
+      if (player) player.lastHeartbeat = now;
 
       this.refreshAuthenticatedSession(uid, now);
-      this.sendAuthOk(ws);
+      this.sendAuthOk(ws, this.sessionTokens.mint(uid, sessionRoomId, now));
       return;
     }
 
     // Validate room ID: URL-safe names only; rooms are created on first join.
-    const requestedRoomId = roomId?.trim() || this.defaultRoomId;
+    const requestedRoomId = request.roomId?.trim() || this.defaultRoomId;
     if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(requestedRoomId)) {
       this.rejectAuthentication(ws, "Invalid room id");
       return;
@@ -124,30 +152,33 @@ export class AuthenticationHandler {
       return;
     }
 
-    // One in-flight check per uid: a second attempt while the first hashes
-    // is a client bug or a flood, not a flow to support. Refund first — this
-    // path spends no scrypt, and leaking the token here is what lets an
-    // ordinary double-submit drain a whole network's budget.
-    if (this.pendingAuthWork.has(uid)) {
+    // One in-flight check per socket: a second attempt on THIS socket while
+    // its first hashes is a client bug or a flood, not a flow to support.
+    // Refund first — this path spends no scrypt, and leaking the token here is
+    // what lets an ordinary double-submit drain a whole network's budget. A
+    // different socket for the same uid (a reload, a second tab) is a separate
+    // login and gets its own slot, so it is never dropped without a reply.
+    if (this.pendingAuthWork.has(ws)) {
       this.refundAuthWork(ws);
       return;
     }
-    this.pendingAuthWork.add(uid);
+    this.pendingAuthWork.add(ws);
 
     // Verify room password (per-room secret, falling back to the default)
     let verified: boolean;
     try {
-      const normalizedSecret = secret.trim();
+      const normalizedSecret = request.secret.trim();
       verified = await this.container.authService.verify(normalizedSecret, requestedRoomId);
     } finally {
-      this.pendingAuthWork.delete(uid);
+      this.pendingAuthWork.delete(ws);
     }
 
     // The world may have moved while the hash computed: bail if this socket
-    // was replaced or closed, or if a competing attempt already finished.
-    // A correct password that lands here still earns its refund — the work
-    // was legitimate, we just have nobody to tell.
-    if (this.uidToWs.get(uid) !== ws || this.authenticatedUids.has(uid)) {
+    // closed, or if a competing attempt on it already finished. A correct
+    // password that lands here still earns its refund — the work was
+    // legitimate, we just have nobody to tell.
+    const occupant = this.uidToWs.get(uid);
+    if (ws.readyState !== 1 || (occupant === ws && this.authenticatedUids.has(uid))) {
       if (verified) this.refundAuthWork(ws);
       return;
     }
@@ -158,63 +189,58 @@ export class AuthenticationHandler {
       return;
     }
 
+    // Who may hold the uid. Claimable by password alone ONLY when nothing
+    // holds it: no live socket on another connection, and no session still
+    // provable by a token (live or detached inside the grace window).
+    // Otherwise only that session's token takes the seat (a reconnect, a
+    // second tab, a return after a break) and the holder is left untouched —
+    // not evicted, not impersonated, not re-minted over. The live-socket half
+    // holds even for an unauthenticated socket: else an invited player who
+    // knows a uid could authenticate as it and KICK the mid-handshake holder
+    // (widest right after a deploy, when every token is gone). Cost: a
+    // reconnect whose OWN old socket is a live-unauth zombie is turned away
+    // until it is reaped, and self-heals on retry. The takeover proof is "same
+    // session" (any table); the DM check below is per table.
+    const sameSession = this.sessionTokens.matches(uid, request.token, now);
+    const liveIncumbent = occupant !== undefined && occupant !== ws && occupant.readyState === 1;
+    if (!sameSession && (liveIncumbent || this.sessionTokens.has(uid, now))) {
+      console.warn(`[Auth] ${uid}: session held by another connection, claim turned away`);
+      // Not refunded: a failed takeover stays charged, like a failed guess.
+      ws.close(WS_CLOSE_SESSION_CONFLICT, "Session held by another connection");
+      return;
+    }
+    const previousRoomId = this.container.roomIdForUid(uid);
+    // Register the newcomer BEFORE closing any old socket, so a close handler
+    // that runs synchronously sees it is stale and skips cleanup. The occupant
+    // here is dead, never authenticated, or ours (sameSession).
+    this.uidToWs.set(uid, ws);
+    if (occupant && occupant !== ws) {
+      occupant.close(WS_CLOSE_REPLACED, "Replaced by new connection");
+    }
+
     // A correct password refunds its token: a full party joining together
     // must never exhaust their own network's budget.
     this.refundAuthWork(ws);
 
     const roomService = this.container.getRoomServiceForRoom(requestedRoomId);
     const state = roomService.getState();
-    let player = this.container.playerService.findPlayer(state, uid);
+    const player = provisionJoin(this.container, roomService, state, uid);
+    player.lastHeartbeat = now;
 
-    // Create or reconnect player entities
-    if (!player) {
-      player = this.container.playerService.createPlayer(state, uid);
+    // A persisted DM flag is honoured only when the reconnect proves it is the
+    // SAME session, by the token minted to it — for THIS table. The room
+    // password is shared by the whole table and cannot tell dave from someone
+    // who was handed it, so a tokenless reclaim of a DM's uid gets the record
+    // — name, character, tokens — but must re-elevate with the DM password.
+    if (player.isDM && !this.sessionTokens.verify(uid, requestedRoomId, request.token, now)) {
+      console.log(`[Auth] tokenless reclaim of ${uid}: DM reset, re-elevation required`);
+      player.isDM = false;
     }
 
-    this.touchPlayerHeartbeat(player, now);
-
-    // Create character if player doesn't have one
-    const existingCharacter = this.container.characterService.findCharacterByOwner(state, uid);
-    if (!existingCharacter) {
-      const character = this.container.characterService.createCharacter(
-        state,
-        player.name,
-        100, // default maxHp
-        player.portrait,
-        "pc",
-      );
-      this.container.characterService.claimCharacter(state, character.id, uid);
-
-      // Create token for the character — a DM's too. "DM players should never
-      // have tokens" was the rule here until F3 made a DM's rolled character a
-      // combatant (and every DM elevates from a tokened join anyway).
-      {
-        const spawn = roomService.getPlayerSpawnPosition();
-        const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
-        this.container.characterService.linkToken(state, character.id, token.id);
-      }
-    } else {
-      // Player reconnecting - ensure EVERY PC this uid owns has a token, DM or
-      // not: a DM who deleted their own token must get one back the way a
-      // player does, or their character stands in the order with nothing to
-      // step. Keyed on each character's link, never on "any token this uid
-      // owns" — a DM owns the NPC tokens they placed, and that gate left them
-      // tokenless for good (F4's review, round 1); and every owned PC, not
-      // the first character of any type — a second PC's dead link was never
-      // repaired, and a claimed NPC sorting first would have been tokened as
-      // the player (round 3).
-      const ownedPcs = state.characters.filter(
-        (c) => c.type === "pc" && c.ownedByPlayerUID === uid,
-      );
-      for (const pc of ownedPcs) {
-        this.container.characterService.ensureToken(
-          state,
-          this.container.tokenService,
-          pc.id,
-          uid,
-          () => roomService.getPlayerSpawnPosition(),
-        );
-      }
+    // A session that moved tables in one step leaves the old roster, or the
+    // heartbeat sweep would later find the stale entry and clean up the NEW room.
+    if (previousRoomId !== requestedRoomId) {
+      leaveRoomRoster(this.container, this.uidToWs, uid, previousRoomId);
     }
 
     // Track authentication state
@@ -226,7 +252,9 @@ export class AuthenticationHandler {
     state.users = state.users.filter((u) => u !== uid);
     state.users.push(uid);
 
-    this.sendAuthOk(ws);
+    // A verified password mints the session's secret; the client sends it back
+    // on every reconnect as the proof that it is the same session.
+    this.sendAuthOk(ws, this.sessionTokens.mint(uid, requestedRoomId, now));
     console.log(`Client authenticated: ${uid} (room ${requestedRoomId})`);
 
     // Broadcast updated room state to the room's authenticated clients
@@ -271,48 +299,25 @@ export class AuthenticationHandler {
     setDMPasswordForUid(this.container, this.uidToWs.get(uid), uid, dmPassword, this.defaultRoomId);
   }
 
-  async createRoom(uid: string, request: CreateRoomRequest): Promise<void> {
-    const ws = this.uidToWs.get(uid);
-    // create-room is reachable PRE-auth and hashes up to two passwords, so it
-    // spends the same per-IP budget as a password guess.
-    if (ws && !this.takeAuthWork(ws)) {
-      ws.send(
-        JSON.stringify({
-          t: "room-create-failed",
-          reason: "Too many attempts from your network. Wait a minute and try again.",
-        }),
-      );
-      return;
-    }
-    await handleCreateRoom(
-      this.container.authService,
-      ws,
-      this.defaultRoomId,
-      request,
-      (roomId, name) => {
-        this.container.getRoomServiceForRoom(roomId).setState({ tableName: name });
-      },
-    );
+  /**
+   * Mint a private table (pre-auth; see roomMinting.ts). Replies on the socket
+   * the request arrived on — a held newcomer is not the uid's registered one.
+   */
+  async createRoom(uid: string, request: CreateRoomRequest, replyWs?: WebSocket): Promise<void> {
+    await createRoomForUid(this.roomMintingDeps(), replyWs ?? this.uidToWs.get(uid), request);
   }
 
-  /**
-   * Copy the sender's table into a new private one (DM-only, post-auth). This
-   * is how work done on the test table is kept: that table's password is fixed
-   * and it is wiped hourly, so a durable copy is the only way to hold on to it.
-   */
+  /** Copy the sender's table into a new private one (DM-only; see roomMinting.ts). */
   async forkTable(uid: string, request: ForkTableRequest): Promise<void> {
-    const ws = this.uidToWs.get(uid);
-    // Forking mints a room (hashing) — same budget as create-room.
-    if (ws && !this.takeAuthWork(ws)) {
-      ws.send(
-        JSON.stringify({
-          t: "table-fork-failed",
-          reason: "Too many attempts from your network. Wait a minute and try again.",
-        }),
-      );
-      return;
-    }
-    await forkTableForUid(this.container, ws, uid, request);
+    await forkTableForSender(this.roomMintingDeps(), this.uidToWs.get(uid), uid, request);
+  }
+
+  private roomMintingDeps() {
+    return {
+      container: this.container,
+      defaultRoomId: this.defaultRoomId,
+      takeAuthWork: (ws: WebSocket) => this.takeAuthWork(ws),
+    };
   }
 
   /** Reject an authentication attempt and close the connection. */
@@ -323,11 +328,6 @@ export class AuthenticationHandler {
         ws.close(WS_CLOSE_AUTH_REJECTED, reason);
       }
     }, 100);
-  }
-
-  /** Update a player's last-heartbeat timestamp. */
-  private touchPlayerHeartbeat(player: Player, timestamp: number): void {
-    player.lastHeartbeat = timestamp;
   }
 
   /** Refresh or create the authenticated-session record (preserving room if unset). */
@@ -341,8 +341,8 @@ export class AuthenticationHandler {
     });
   }
 
-  /** Send the authentication-success message to a client. */
-  private sendAuthOk(ws: WebSocket): void {
-    ws.send(JSON.stringify({ t: "auth-ok" }));
+  /** Send the authentication-success message, carrying the session token, to a client. */
+  private sendAuthOk(ws: WebSocket, sessionToken: string): void {
+    ws.send(JSON.stringify({ t: "auth-ok", sessionToken }));
   }
 }

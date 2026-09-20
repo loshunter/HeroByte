@@ -38,6 +38,9 @@ function pickClubBrute() {
 }
 
 describe("NPCEditor — library picks", () => {
+  // Opening the picker renders the whole 244-token pack, so these cases carry
+  // the same contention risk as TokenLibrary.test.tsx against the 5000ms default.
+  vi.setConfig({ testTimeout: 30_000 });
   it("with no portrait on file, a pick sets the master as token and the medium as portrait", () => {
     const onUpdate = renderEditor({});
     pickClubBrute();

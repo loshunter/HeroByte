@@ -44,12 +44,12 @@ This document sketches the minimal changes needed to introduce a shared room pas
 Update `packages/shared/src/index.ts` to include:
 
 ```ts
-| { t: "authenticate"; secret: string; roomId?: string }
-| { t: "auth-ok" }
+| { t: "authenticate"; secret: string; roomId?: string; token?: string }
+| { t: "auth-ok"; sessionToken?: string }
 | { t: "auth-failed"; reason?: string }
 ```
 
-Server will reply with `auth-ok` or `auth-failed` before broadcasting the first snapshot. Snapshots are only pushed to authenticated sockets.
+Server will reply with `auth-ok` or `auth-failed` before broadcasting the first snapshot. Snapshots are only pushed to authenticated sockets. `sessionToken` / `token` are the session identity binding described below (added 2026-09).
 
 ## Server Flow Adjustments
 
@@ -208,11 +208,29 @@ For casual game sessions on the demo server, see **[docs/DEMO_SERVER_WORKFLOW.md
 - Resetting to demo defaults (coming soon)
 - Security best practices for demo vs. production
 
+## ✅ Implemented: Session Identity Binding (2026-09)
+
+A `uid` is client-supplied (the connect URL's `?uid=`) and every uid is published in the roster, so on its own it identifies nobody. Before this change, auth state and DM authority were keyed on the uid alone: connecting as a connected member's uid closed their socket, inherited their auth flag — DM included — and the next DM action ran as them, with no password of any kind. The same connect worked as a kick.
+
+**The binding.** A successful password `authenticate` mints a 256-bit bearer token (`crypto.randomBytes(32)`, base64url) and returns it as `auth-ok.sessionToken`. The server keeps only its SHA-256 (`apps/server/src/ws/auth/SessionTokenService.ts`), never the raw value, never on disk, never in a URL — a WebSocket query string leaks to proxy logs. The client stores the raw token in `localStorage`, keyed per table and per uid, and sends it back as `authenticate.token` on every later authenticate.
+
+**Three enforcement points** (`ConnectionLifecycleManager`, `MessageAuthenticator`, `AuthenticationHandler`):
+
+1. **Connect.** A newcomer claiming a uid that is live on another socket — authenticated or still at the password prompt — is _held_: not registered, and the incumbent is not closed (holding a live-but-unauthenticated incumbent too is what stops a bare connect from kicking a victim mid-handshake). Only a dead occupant is replaced (the reconnect-after-blip path), and adoption never confers auth — the uid's flag and session are cleared, the token record detached.
+2. **Every message.** The socket travels with the uid through the pipeline; a message from a socket that is not the uid's registered connection is dropped even though the uid is authenticated.
+3. **Authenticate.** After the room password verifies, the slot is kept unless the newcomer's `token` matches the session's record — whenever any live socket already holds the uid (authenticated or not) or a detached session is still inside its 6-hour grace window. A matching token means the same session (a reconnect, or a second tab of the same browser): the old socket is closed with `WS_CLOSE_REPLACED` (4002) and the newcomer takes over. Otherwise the newcomer is closed with `WS_CLOSE_SESSION_CONFLICT` (4003) and the holder is untouched. A uid nothing holds — fresh, expired past grace, or after a server restart — is claimed by the password alone, as a non-DM. Separately, the persisted `isDM` flag is restored only when the token matches _for that table_; a tokenless reclaim gets the uid's record as a non-DM.
+
+**Lifecycle.** Every `auth-ok` rotates the token. A disconnect, heartbeat timeout, or connect-time adoption _detaches_ the record rather than deleting it; it stays valid for a 6-hour grace window so a reload or a blip resumes as the same session (DM elevation included), then is purged. Server restarts drop every record: after a deploy, every DM re-enters the DM password once.
+
+**Client.** 4003 is `ConnectionState.CONFLICT`: never auto-retried (a retry loop is the connection war 4002 ended), not terminal either — the gate explains it and offers a manual retry.
+
+**Residual, deliberately deferred.** A room-password holder can still claim a fully offline uid once its grace window has closed and, as a non-privileged impersonator, receive that uid's future whispers. Closing that needs opaque server-assigned identities on the wire.
+
 ## Future Enhancements
 
 - **"Reset to Demo Mode" button** - One-click cleanup after game sessions
 - Replace shared secret with per-room secrets stored with room metadata
-- Issue short-lived signed tokens after password entry to avoid resending secrets
+- ✅ ~~Issue short-lived signed tokens after password entry~~ (session identity binding, 2026-09 — the password is still sent on reconnect; the token binds the session rather than replacing the secret)
 - Integrate invite links (`wss://.../connect?roomId=abc&token=...`)
 - Layer in OAuth or other identity systems once room boundaries are solid
 - Add structured audit logging for auth and DM actions (winston/pino)

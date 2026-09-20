@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Mock, MockInstance } from "vitest";
 import type { ClientMessage } from "@herobyte/shared";
+import type { AuthenticateRequest } from "../AuthenticationHandler.js";
 
 // Mock AuthenticationHandler
 class MockAuthenticationHandler {
-  public authenticate = vi.fn<(uid: string, secret: string, roomId?: string) => void>();
+  public authenticate = vi.fn<(uid: string, request: AuthenticateRequest, ws?: unknown) => void>();
   public elevateToDM = vi.fn<(uid: string, dmPassword: string) => void>();
   public revokeDM = vi.fn<(uid: string) => void>();
   public setDMPassword = vi.fn<(uid: string, dmPassword: string) => void>();
+  public createRoom = vi.fn<(uid: string, request: unknown, ws?: unknown) => void>();
+  public forkTable = vi.fn<(uid: string, request: unknown) => void>();
 }
 
 describe("MessageAuthenticator - Characterization Tests", () => {
@@ -52,7 +55,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Assert: routed to AuthenticationHandler.authenticate
       expect(mockAuthHandler.authenticate).toHaveBeenCalledOnce();
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "room-password", "room1");
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "room-password", roomId: "room1" }),
+      );
 
       // Assert: callback invoked
       expect(onAuthMessageCallback).toHaveBeenCalledWith(uid, message);
@@ -174,7 +180,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       checkAuth(message, uid);
 
       // Assert: authenticate called with uid, secret, roomId
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "test-secret", "test-room");
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "test-secret", roomId: "test-room" }),
+      );
     });
 
     it("routes 'authenticate' without roomId", () => {
@@ -190,7 +199,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       checkAuth(message, uid);
 
       // Assert: authenticate called with uid, secret, undefined
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "test-secret", undefined);
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "test-secret" }),
+      );
     });
 
     it("routes 'elevate-to-dm' to AuthenticationHandler.elevateToDM", () => {
@@ -260,7 +272,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       expect(result).toBe(true);
 
       // Assert: routed to authenticate
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "password", undefined);
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "password" }),
+      );
 
       // Assert: NO warning logged
       expect(consoleWarnSpy).not.toHaveBeenCalled();
@@ -498,7 +513,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       const result = checkAuth(message, uid);
 
       // Assert: authenticate called (not dropped)
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "password", undefined);
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "password" }),
+      );
 
       // Assert: message handled
       expect(result).toBe(true);
@@ -666,8 +684,16 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Assert: authenticate called twice
       expect(mockAuthHandler.authenticate).toHaveBeenCalledTimes(2);
-      expect(mockAuthHandler.authenticate).toHaveBeenNthCalledWith(1, "user1", "pass1", undefined);
-      expect(mockAuthHandler.authenticate).toHaveBeenNthCalledWith(2, "user1", "pass2", "room1");
+      expect(mockAuthHandler.authenticate).toHaveBeenNthCalledWith(
+        1,
+        "user1",
+        expect.objectContaining({ secret: "pass1" }),
+      );
+      expect(mockAuthHandler.authenticate).toHaveBeenNthCalledWith(
+        2,
+        "user1",
+        expect.objectContaining({ secret: "pass2", roomId: "room1" }),
+      );
     });
 
     it("handles authentication state transitions", () => {
@@ -858,7 +884,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
     return (message: ClientMessage, uid: string): boolean => {
       // Authentication handling - always processed first
       if (message.t === "authenticate") {
-        mockAuthHandler.authenticate(uid, message.secret, message.roomId);
+        mockAuthHandler.authenticate(uid, message);
         onAuthMessageCallback(uid, message);
         return true;
       }
@@ -896,4 +922,86 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       return false;
     };
   }
+});
+
+// ============================================================================
+// THE REAL CLASS — the session belongs to ONE socket (session identity binding)
+// ============================================================================
+// The characterization block above drives an inline copy of the routing logic.
+// This block drives the real MessageAuthenticator, because the rule it pins
+// cannot be seen from a copy: a uid's auth flag counts only for the socket
+// registered as its connection. A second socket claiming a live uid (held at
+// connect) sends messages that must be dropped even though the uid is
+// authenticated — that is what stopped "connect as the DM's uid, send
+// start-combat" from working.
+import { MessageAuthenticator } from "../MessageAuthenticator.js";
+import type { AuthenticationHandler } from "../AuthenticationHandler.js";
+import type { WebSocket } from "ws";
+
+describe("MessageAuthenticator (real class) — the session belongs to one socket", () => {
+  const holder = { readyState: 1 } as unknown as WebSocket;
+  const pretender = { readyState: 1 } as unknown as WebSocket;
+  let realAuthHandler: MockAuthenticationHandler;
+  let realAuthenticatedUids: Set<string>;
+  let uidToWs: Map<string, WebSocket>;
+  let dropped: ReturnType<typeof vi.fn>;
+  let authenticator: MessageAuthenticator;
+
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    realAuthHandler = new MockAuthenticationHandler();
+    realAuthenticatedUids = new Set(["dave"]);
+    uidToWs = new Map([["dave", holder]]);
+    dropped = vi.fn();
+    authenticator = new MessageAuthenticator(
+      {
+        authHandler: realAuthHandler as unknown as AuthenticationHandler,
+        onUnauthenticatedMessage: dropped,
+      },
+      realAuthenticatedUids,
+      uidToWs,
+    );
+  });
+
+  it("routes a message from the uid's registered socket", () => {
+    const handled = authenticator.checkAuthentication({ t: "start-combat" }, "dave", holder);
+
+    expect(handled).toBe(false); // false = "route it"
+    expect(dropped).not.toHaveBeenCalled();
+  });
+
+  it("DROPS a message from another socket claiming the same authenticated uid", () => {
+    const handled = authenticator.checkAuthentication({ t: "start-combat" }, "dave", pretender);
+
+    expect(handled).toBe(true); // handled = dropped
+    expect(dropped).toHaveBeenCalledWith("dave");
+  });
+
+  it("drops DM-related messages from the pretender too, never reaching the auth handler", () => {
+    authenticator.checkAuthentication({ t: "elevate-to-dm", dmPassword: "x" }, "dave", pretender);
+    authenticator.checkAuthentication({ t: "revoke-dm" }, "dave", pretender);
+    authenticator.checkAuthentication({ t: "set-dm-password", dmPassword: "x" }, "dave", pretender);
+
+    expect(realAuthHandler.elevateToDM).not.toHaveBeenCalled();
+    expect(realAuthHandler.revokeDM).not.toHaveBeenCalled();
+    expect(realAuthHandler.setDMPassword).not.toHaveBeenCalled();
+    expect(dropped).toHaveBeenCalledTimes(3);
+  });
+
+  it("still lets the pretender authenticate — on its OWN socket, so the reply reaches it", () => {
+    const frame = { t: "authenticate" as const, secret: "Fun1", token: "tok" };
+
+    const handled = authenticator.checkAuthentication(frame, "dave", pretender);
+
+    expect(handled).toBe(true);
+    expect(realAuthHandler.authenticate).toHaveBeenCalledWith("dave", frame, pretender);
+  });
+
+  it("threads the requesting socket into create-room for the same reason", () => {
+    const frame = { t: "create-room" as const, roomId: "castle-3f9", roomPassword: "pw" };
+
+    authenticator.checkAuthentication(frame, "dave", pretender);
+
+    expect(realAuthHandler.createRoom).toHaveBeenCalledWith("dave", frame, pretender);
+  });
 });

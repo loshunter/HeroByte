@@ -92,6 +92,26 @@ describe("AuthenticationManager - Characterization Tests", () => {
       );
     });
 
+    it("should include the session token in the frame when one is held", () => {
+      authManager.authenticate(mockWebSocket, "test-secret", "room-456", "tok-abc");
+
+      expect(mockWebSocket.send).toHaveBeenCalledWith(
+        JSON.stringify({
+          t: "authenticate",
+          secret: "test-secret",
+          roomId: "room-456",
+          token: "tok-abc",
+        }),
+      );
+    });
+
+    it("should omit the token key entirely when no token is held", () => {
+      authManager.authenticate(mockWebSocket, "test-secret", "room-456");
+
+      const [raw] = vi.mocked(mockWebSocket.send).mock.calls[0];
+      expect("token" in (JSON.parse(raw as string) as object)).toBe(false);
+    });
+
     it("should send authenticate message without roomId when not provided", () => {
       authManager.authenticate(mockWebSocket, "secret-only");
 

@@ -231,6 +231,9 @@ describe("shadow tint plumb (surface → field config)", () => {
 });
 
 describe("shadow tint never brightens (the dark-pixel clamp)", () => {
+  // Bakes and compares two full terrain surfaces pixel by pixel; it clears the
+  // 5000ms default on an idle machine but not on a contended one.
+  vi.setConfig({ testTimeout: 30_000 });
   it("shadowedRgb leaves channels at/below the tint untouched and still darkens the rest", () => {
     const plum = [58, 47, 69] as const;
     // Deep-water navy #1b3f58: red (27) sits below the tint — a pure lerp

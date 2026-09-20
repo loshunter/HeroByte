@@ -62,19 +62,25 @@ export interface RecipientView extends AtlasView {
  * auditor of everyone's private conversations; granting blanket read would
  * be a surveillance decision, and it is not this slice's to make.
  *
- * WHAT THIS DOES NOT PROTECT AGAINST. The filter is only as strong as the
- * recipient identity it keys on, and `uid` is CLIENT-SUPPLIED — read straight
- * off the connection query string, bound to no secret (see
- * ConnectionLifecycleManager, and the note in AuthenticationHandler). Anyone
- * already holding the table password can therefore reconnect as another
- * player's uid and receive their whispers; the uid list is published to every
- * player in the snapshot, so guessing is not required either.
+ * WHAT THIS DOES AND DOES NOT PROTECT AGAINST. The filter is only as strong
+ * as the recipient identity it keys on. `uid` is still CLIENT-SUPPLIED (the
+ * connect URL) and published to every player in the roster — but since the
+ * session identity binding arc a uid's LIVE session belongs to one socket:
+ * a second connection claiming it is held at connect, its messages are
+ * dropped, and it can neither evict the real socket nor receive that uid's
+ * traffic unless it proves the session token minted to that session
+ * (ws/auth/SessionTokenService.ts, ConnectionLifecycleManager,
+ * MessageAuthenticator). So a whisper to a CONNECTED player reaches only that
+ * player's socket, whoever else holds the table password.
  *
- * That is the known, accepted limitation of the current identity model —
- * signed session tokens are explicitly deferred to a later arc
- * (docs/planning/session-one-arc.md §7). So: whispers are private FROM the
- * other people at your table, not from an attacker willing to impersonate
- * one. Do not describe them to users as secure against a table member.
+ * The residual: a room-password holder can still claim a FULLY OFFLINE uid —
+ * one whose socket is gone and whose token grace window has closed — and from
+ * then on receive whispers addressed to it, as a non-privileged impersonator
+ * (the DM flag is reset on a tokenless reclaim). Closing that needs opaque,
+ * server-assigned identities on the wire, which is a later arc. So: whispers
+ * are private from the other people at your table while you are at it; do not
+ * describe them to users as secure against a table member who waits for you
+ * to leave.
  */
 export function visibleChatFor(chatLog: ChatMessage[], recipientUid?: string): ChatMessage[] {
   // Defence in depth, not paranoia: this runs inside the DEBOUNCED broadcast
@@ -111,10 +117,12 @@ export function visibleChatFor(chatLog: ChatMessage[], recipientUid?: string): C
  * corrupt or forward-dated state file cannot turn a secret roll into a
  * broadcast one.
  *
- * Same identity bound as whispers: `uid` is CLIENT-SUPPLIED, so a private roll
- * is private FROM the other people at your table, not from someone willing to
- * reconnect under another player's uid. Do not describe it to users as secure
- * against a table member.
+ * Same identity bound as whispers (see visibleChatFor): a private roll reaches
+ * only the recipient's own socket while they are connected — a second socket
+ * claiming their uid without the session token gets nothing — but a table
+ * member can still claim a fully offline uid, token grace expired, and see its
+ * future private rolls. Do not describe it to users as secure against a table
+ * member who waits for you to leave.
  */
 export function visibleRollsFor(
   diceRolls: DiceRoll[],

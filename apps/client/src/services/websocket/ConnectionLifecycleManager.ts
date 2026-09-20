@@ -41,7 +41,7 @@
  * - cleanup() method (lines 300-323)
  */
 
-import { WS_CLOSE_REPLACED } from "@herobyte/shared";
+import { WS_CLOSE_REPLACED, WS_CLOSE_SESSION_CONFLICT } from "@herobyte/shared";
 
 /**
  * Connection states for WebSocket lifecycle
@@ -59,6 +59,16 @@ export enum ConnectionState {
    * contexts would thrash forever. The user must reload to reclaim the table.
    */
   REPLACED = "replaced",
+  /**
+   * The server turned this connection away: another socket already holds this
+   * uid and this one could not prove it is the same session (no matching
+   * token). Usually a different browser or device; it can also be this same
+   * client racing its own not-yet-closed socket, briefly, after a fast reload
+   * or a deploy — that case self-heals on retry. Not terminal the way REPLACED
+   * is (close the other and try again), but never auto-retried: retrying as the
+   * same uid in a loop is the connection war REPLACED ended.
+   */
+  CONFLICT = "conflict",
 }
 
 /**
@@ -313,6 +323,15 @@ export class ConnectionLifecycleManager {
         return;
       }
 
+      // Turned away: the uid's session is live on another socket and this one
+      // could not prove it is the same session. Auto-retrying would hammer the
+      // server with the same unproven claim; the user decides when to retry.
+      if (event.code === WS_CLOSE_SESSION_CONFLICT) {
+        this.cleanup();
+        this.setState(ConnectionState.CONFLICT);
+        return;
+      }
+
       this.handleDisconnect();
     };
 
@@ -447,9 +466,12 @@ export class ConnectionLifecycleManager {
    * - User switches back to tab, automatically reconnect
    */
   private handleVisibilityChange(): void {
-    // Never revive a superseded session: another connection owns this uid, and
-    // reconnecting on focus would restart the replace-war.
-    if (this.state === ConnectionState.REPLACED) {
+    // Never revive a superseded or turned-away session on focus: another
+    // connection owns this uid, and reconnecting would restart the replace-war
+    // (REPLACED) or re-file the same unproven claim (CONFLICT). Unreachable
+    // today — cleanup() removes this listener before either state is set —
+    // and kept as the second line behind that removal.
+    if (this.state === ConnectionState.REPLACED || this.state === ConnectionState.CONFLICT) {
       return;
     }
     if (document.visibilityState === "visible" && !this.isConnected()) {

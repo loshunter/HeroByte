@@ -48,6 +48,9 @@ const cells = () =>
 afterEach(() => vi.restoreAllMocks());
 
 describe("TokenLibrary — the table's own tokens", () => {
+  // Renders the whole 244-token pack per case, like TokenLibrary.test.tsx —
+  // same slim margin against vitest's 5000ms default, same slack.
+  vi.setConfig({ testTimeout: 30_000 });
   it("leads the grid with them, counts them, badges them, and draws their own image", () => {
     renderWith({});
     expect(screen.getByText(/Pick · 246 of 246 tokens/)).toBeInTheDocument();

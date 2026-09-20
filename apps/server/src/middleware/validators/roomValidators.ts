@@ -74,7 +74,8 @@ export function validateRoomControlMessage(): ValidationResult {
 /**
  * Validate authenticate message
  * Required: secret (non-empty string, max 256 chars)
- * Optional: roomId (string)
+ * Optional: roomId (string), token (string, max 512 chars — a minted token is
+ * 43 chars of base64url; the cap only bounds what a stranger can make us hash)
  */
 export function validateAuthenticateMessage(message: MessageRecord): ValidationResult {
   if (typeof message.secret !== "string" || message.secret.length === 0) {
@@ -85,6 +86,14 @@ export function validateAuthenticateMessage(message: MessageRecord): ValidationR
   }
   if ("roomId" in message && message.roomId !== undefined && typeof message.roomId !== "string") {
     return { valid: false, error: "authenticate: roomId must be a string" };
+  }
+  if ("token" in message && message.token !== undefined) {
+    if (typeof message.token !== "string") {
+      return { valid: false, error: "authenticate: token must be a string" };
+    }
+    if (message.token.length > STRING_LIMITS.SESSION_TOKEN_MAX) {
+      return { valid: false, error: "authenticate: token too long" };
+    }
   }
   return { valid: true };
 }
