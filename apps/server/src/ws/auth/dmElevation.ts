@@ -89,7 +89,11 @@ export async function elevateUidToDM(
   // One in-flight elevation per socket (see authenticate for why the key is
   // the socket, not the uid). This is the uid's registered socket, so a
   // password auth and a DM elevation on the same connection still serialize.
+  // Refund the budget token spent just above — this second submit does no
+  // scrypt, so a double-click on "Make me DM" must not drain the network's
+  // budget (the authenticate path refunds here for the same reason).
   if (deps.pendingAuthWork.has(ws)) {
+    deps.refundAuthWork(ws);
     return;
   }
   deps.pendingAuthWork.add(ws);
