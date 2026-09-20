@@ -629,6 +629,47 @@ describe("ConnectionHandler", () => {
     expect(verifySpy).toHaveBeenCalledTimes(5);
   });
 
+  it("a SECOND socket for one uid is not dropped while the first's hash is in flight", async () => {
+    // The in-flight guard keys on the SOCKET, not the uid. Before, a reload
+    // mid-scrypt connected as the same uid (held), auto-authenticated, found
+    // pendingAuthWork.has(uid) true, and was dropped with NO reply — the tab
+    // hung on "Authenticating…" until a manual retry. Two distinct sockets are
+    // two logins, and the second must resolve.
+    const verifySpy = vi.mocked(container.authService.verify);
+    let releaseFirst!: () => void;
+    // The FIRST hash parks; every later call resolves immediately.
+    verifySpy.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          releaseFirst = () => resolve(true);
+        }),
+    );
+
+    const authFrame = Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" }));
+    const first = new FakeWebSocket();
+    wss.emitConnection(first, { url: "/?uid=dup", socket: { remoteAddress: "192.0.2.9" } });
+    first.emit("message", authFrame); // first enters scrypt and parks there
+    await flushAuth();
+    expect(authOkFrames(first)).toHaveLength(0); // still hashing
+
+    // A reload: a new socket, same uid, held behind the live first socket.
+    const second = new FakeWebSocket();
+    wss.emitConnection(second, { url: "/?uid=dup", socket: { remoteAddress: "192.0.2.9" } });
+    second.emit("message", authFrame);
+    await flushAuth();
+
+    // The second login resolves (it replaced the still-unauthenticated first),
+    // rather than being silently swallowed by the in-flight guard.
+    expect(authOkFrames(second)).toHaveLength(1);
+    expect(container.uidToWs.get("dup")).toBe(second);
+
+    // The first's parked hash now completes on a socket that was replaced; it
+    // bails on the readyState/occupant re-check and does not double-register.
+    releaseFirst();
+    await flushAuth();
+    expect(container.uidToWs.get("dup")).toBe(second);
+  });
+
   it("never sweeps players restored from disk who have not connected", () => {
     // On boot every player loaded from disk carries a stale lastHeartbeat, so
     // the old sweep wiped every restored token 30 seconds after a restart.

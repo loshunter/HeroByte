@@ -43,11 +43,15 @@ export class AuthenticationHandler {
   private readonly sessionTokens: SessionTokenService;
   private readonly defaultRoomId: string;
   private readonly dmThrottle = new DMElevationThrottle();
-  // Uids with a password check in flight. verify() now yields to the
-  // threadpool, so a client could stack concurrent attempts on one
-  // connection and interleave the post-await state mutations; one at a
-  // time per uid keeps the flow as serial as it was when it was sync.
-  private readonly pendingAuthWork = new Set<string>();
+  // Sockets with a password check in flight. verify() yields to the
+  // threadpool, so a client could stack concurrent attempts on one connection
+  // and interleave the post-await state mutations; one at a time per SOCKET
+  // keeps the flow as serial as it was when it was sync. Keyed on the socket,
+  // not the uid: since the identity binding arc two live sockets can share a
+  // uid (a held newcomer beside the incumbent), and a uid key would drop the
+  // second socket's own login silently — a reload mid-hash then hangs on
+  // "Authenticating…". A double-submit on ONE socket is still caught.
+  private readonly pendingAuthWork = new Set<WebSocket>();
 
   // Per-IP budget for scrypt-priced work, shared with the HTTP routes (D7).
   private readonly authWorkLimiter: TokenBucketLimiter;
@@ -148,15 +152,17 @@ export class AuthenticationHandler {
       return;
     }
 
-    // One in-flight check per uid: a second attempt while the first hashes
-    // is a client bug or a flood, not a flow to support. Refund first — this
-    // path spends no scrypt, and leaking the token here is what lets an
-    // ordinary double-submit drain a whole network's budget.
-    if (this.pendingAuthWork.has(uid)) {
+    // One in-flight check per socket: a second attempt on THIS socket while
+    // its first hashes is a client bug or a flood, not a flow to support.
+    // Refund first — this path spends no scrypt, and leaking the token here is
+    // what lets an ordinary double-submit drain a whole network's budget. A
+    // different socket for the same uid (a reload, a second tab) is a separate
+    // login and gets its own slot, so it is never dropped without a reply.
+    if (this.pendingAuthWork.has(ws)) {
       this.refundAuthWork(ws);
       return;
     }
-    this.pendingAuthWork.add(uid);
+    this.pendingAuthWork.add(ws);
 
     // Verify room password (per-room secret, falling back to the default)
     let verified: boolean;
@@ -164,7 +170,7 @@ export class AuthenticationHandler {
       const normalizedSecret = request.secret.trim();
       verified = await this.container.authService.verify(normalizedSecret, requestedRoomId);
     } finally {
-      this.pendingAuthWork.delete(uid);
+      this.pendingAuthWork.delete(ws);
     }
 
     // The world may have moved while the hash computed: bail if this socket

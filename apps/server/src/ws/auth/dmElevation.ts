@@ -15,8 +15,8 @@ export interface DMElevationDeps {
   container: Container;
   uidToWs: Map<string, WebSocket>;
   dmThrottle: DMElevationThrottle;
-  /** Uids with a password check already in flight (shared with authenticate). */
-  pendingAuthWork: Set<string>;
+  /** Sockets with a password check already in flight (shared with authenticate). */
+  pendingAuthWork: Set<WebSocket>;
   /** Per-IP budget spent BEFORE the scrypt compare (D7). */
   takeAuthWork: (ws: WebSocket) => boolean;
   /** Success refund — only failed guesses stay charged. */
@@ -86,11 +86,13 @@ export async function elevateUidToDM(
     return;
   }
 
-  // One in-flight elevation per uid (see authenticate for why).
-  if (deps.pendingAuthWork.has(uid)) {
+  // One in-flight elevation per socket (see authenticate for why the key is
+  // the socket, not the uid). This is the uid's registered socket, so a
+  // password auth and a DM elevation on the same connection still serialize.
+  if (deps.pendingAuthWork.has(ws)) {
     return;
   }
-  deps.pendingAuthWork.add(uid);
+  deps.pendingAuthWork.add(ws);
 
   // Verify DM password
   let verified: boolean;
@@ -98,7 +100,7 @@ export async function elevateUidToDM(
     const normalizedPassword = dmPassword.trim();
     verified = await container.authService.verifyDMPassword(normalizedPassword, roomId);
   } finally {
-    deps.pendingAuthWork.delete(uid);
+    deps.pendingAuthWork.delete(ws);
   }
 
   // Bail if the connection was replaced while the hash computed — the
