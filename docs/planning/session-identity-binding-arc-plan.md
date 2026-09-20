@@ -1,6 +1,10 @@
 # Session identity binding — slice plan (SECURITY)
 
-> **STATUS: PLANNED, not started.** Written 2026-09-18 against `dev` = `main` = `40c1031b`.
+> **STATUS: BUILT on `dev` 2026-09-19 (S1–S4, five commits from `cc5cf6a0`), NOT merged to
+> `main`.** See §12 for what actually shipped, where it deviates from this plan and why, and
+> the owner confirm items. Original header follows.
+>
+> Written 2026-09-18 against `dev` = `main` = `40c1031b`.
 > Every path/line below was read on that commit; treat line numbers as `≈` and re-verify
 > the symbol before editing (files at the 350-LOC ceiling get re-wrapped by prettier and
 > drift). This closes a **proven, live** privilege-escalation hole. Read
@@ -590,3 +594,84 @@ whole task (a decided step is something to run, not announce); surgical edits ov
 rewrites; let subagents run without polling. **HeroByte override:** fix bugs found mid-arc in
 their own commits and prove every new test can fail — the repo rule beats the generic
 "don't fix nearby bugs."
+
+---
+
+## 12. Execution notes (2026-09-19) — what shipped, and where it left the plan
+
+Built on `dev` in five commits: `cc5cf6a0` (this plan), `1632b2e3` (S1), `694a8bb8` (S2),
+`fc6849eb` (S3), `56c018fd` (S4). Every slice passed typecheck, lint, `format:check`, the
+structure guard and its suites before its commit; the S1 shared-export change was boot-checked
+(exit 124, both ready lines, no `does not provide an export named`). The plan's PoC is
+`apps/server/src/ws/__tests__/sessionHijack.contract.test.ts` (15 cases over the REAL
+`ConnectionHandler` + `Container`). Sabotage tally: **S1 8/8 red, S2 4 negative red / 2
+positive green as intended, S3 12/12 red** (one client guard proved unreachable — see below).
+
+### 12.1 Deviations from the plan as written — read before relitigating
+
+1. **The token is DETACHED on disconnect, not deleted (I6 amended).** I6 said "deleted whenever
+   the uid leaves `authenticatedUids`", but §8.2's own acceptance test ("reload the real DM tab
+   and confirm it silently resumes as DM") is impossible under that rule: a reload closes the
+   socket, cleanup runs at once, and the reconnect would arrive tokenless — S2 would then demote
+   every DM on every blip. Records now carry `detachedAt`, stay valid for
+   `SESSION_TOKEN_GRACE_MS` (**6 h**, one constant in `SessionTokenService.ts`), rotate on every
+   auth (which re-attaches), and are swept lazily on the mint path. Detach happens on disconnect,
+   heartbeat timeout, AND connect-time adoption of a dead incumbent (S4 found that one).
+2. **localStorage, not sessionStorage, keyed per table AND per uid, with a per-uid "newest"
+   fallback.** §3.4's "a legit second tab has the same sessionStorage" is false — sessionStorage
+   is per TAB. With it, a second tab (and a browser reopened after a crash) could never reclaim
+   its own session. The uid in the key keeps two same-browser tabs with different
+   `?sessionUid=` from overwriting each other's proof; the `:*` fallback lets a second tab opened
+   on a DIFFERENT table still present the token that proves its live session (the server's
+   takeover check is `matches` — same session — while DM continuity is `verify` — same table).
+3. **The password is verified on every path except the holder's own re-auth.** The plan's
+   "token-gated passwordless short-circuit" became: the socket that already HOLDS the session
+   re-authenticates passwordless (nothing new is granted — sub-issue B was only ever exploitable
+   through A); any OTHER socket takes the full password path and then needs the token to swap.
+   Defence in depth, and the validator requires `secret` anyway.
+4. **Adoption at connect never confers auth (I2, strengthened).** A dead-or-unauthenticated
+   incumbent is still replaced at connect (reconnect-after-blip stays fast), but the newcomer
+   always starts unauthenticated and its room's roster entry is dropped. Before, a dead
+   authenticated incumbent's flag was inherited — the A hole for the CLOSING window.
+5. **The token is NOT cleared on `auth-failed`.** A mistyped password is not a bad token;
+   clearing it turned one typo into a DM demotion on the corrected retry.
+6. **Keepalives are per SOCKET** (`stopKeepalive(ws)`), so a held newcomer has its own and a
+   swap hands nothing over. A room switch in one live session leaves the old roster
+   (`leaveRoomRoster`), or the heartbeat sweep later cleans up the NEW room by mistake.
+7. **Two extractions for the 350-line guard**, both behaviour-neutral: `joinProvisioning.ts`
+   (player/character/token provisioning + `leaveRoomRoster`) and `roomMinting.ts` (the
+   create-room / fork-table budget wrappers). `container.ts` collapsed its two client collectors
+   into one loop to fit `sessionTokens`. `AuthenticationGate.tsx` lost an empty banner block.
+8. **Both "characterization" suites for the lifecycle manager and the message authenticator
+   drive inline COPIES of the old logic, not the classes.** They could not see any of this. Each
+   gained a block that drives the real class; three copies asserting the old "adoption keeps
+   auth" rule were removed. Two ConnectionHandler tests that modelled a reconnect with a still-
+   OPEN old socket now mark it dead first — a live one is, correctly, a held newcomer.
+9. **One client guard is unreachable and documented as such:** `handleVisibilityChange`'s
+   CONFLICT (and the pre-existing REPLACED) check never runs because `cleanup()` removes the
+   listener before the state is set. The "no revive on focus" guarantee holds via the removal;
+   the test pins the guarantee and says so.
+
+### 12.2 Consequences the owner should confirm (from §9, now concrete)
+
+- A DM re-enters the DM password after: a **server restart (every deploy)** — records are in
+  memory; a **new device or browser**; **more than 6 h away**. Reloads, blips, second tabs of the
+  same browser, and breaks under 6 h keep DM silently. `SESSION_TOKEN_GRACE_MS` is the one dial.
+- A second **device** (not tab) opened while the first is still connected sees
+  **"Held in another window"** with a **TRY AGAIN** button, and cannot take the seat until the
+  first device's socket is gone — up to the 5-minute heartbeat window if that device died
+  silently. Before this arc it took over at once (and so could anyone with the room password).
+  Shrinking that window means detecting dead sockets by missing pongs — a follow-up, not built.
+- Copy to confirm against the JRPG voice: status label "Held in another window"; hint "Another
+  window or device is already at this table as you, and this one could not prove it is the same
+  session. Close the other one, or keep playing there — then try again here."; button
+  "Try Again". The `helpTopics.ts` help copy has no entry for this yet.
+
+### 12.3 Still to run before `main` (the §8 ladder)
+
+`/verify-gates boot e2e` → `evaluate-live` (two clients, plus a THIRD tab as the DM's uid with no
+token: cannot take DM, cannot read the player's whisper, does not kick the DM; then reload the DM
+tab → still DM) → `review-convergence` (security/auth, connection-lifecycle, test-validity,
+doc-vs-code lenses) → one `--no-ff` merge → deploy probe on a string new to this arc (e.g.
+`Session held by another connection` in the server, `Held in another window` in a client chunk)
+→ `watch-ci` → announce "players with a tab open must reload; DMs re-enter the DM password once".
