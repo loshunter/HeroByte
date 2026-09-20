@@ -299,6 +299,27 @@ describe("session identity: who may hold a uid's session", () => {
   describe("claiming a uid whose session is LIVE on another socket (online takeover, A + D)", () => {
     const ATTACKER_IP = "203.0.113.7";
 
+    it("cannot kick a live but NOT-yet-authenticated holder with the room password alone", async () => {
+      // The window widest right after a deploy: session tokens are gone, so a
+      // reconnecting client is briefly live-unauthenticated. An invited player
+      // who knows the uid must not be able to authenticate as it and evict the
+      // mid-handshake holder (and, for the DM's uid, inherit their whispers).
+      const victim = server.connect("erin"); // live, has NOT authenticated
+      expect(container.uidToWs.get("erin")).toBe(victim as unknown as WebSocket);
+
+      const intruder = server.connect("erin", ATTACKER_IP); // held behind the live victim
+      await authenticate(intruder); // room password, no token
+
+      expect(intruder.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+      expect(intruder.authOk()).toHaveLength(0);
+      // The victim's socket is untouched and can still finish its own login.
+      expect(victim.close).not.toHaveBeenCalled();
+      expect(container.uidToWs.get("erin")).toBe(victim as unknown as WebSocket);
+      await authenticate(victim);
+      expect(victim.authOk()).toHaveLength(1);
+      expect(container.authenticatedUids.has("erin")).toBe(true);
+    });
+
     it("connecting as the DM's uid neither evicts the DM nor adopts the session", async () => {
       const { ws: daveWs } = await joinAsDM();
 

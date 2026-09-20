@@ -629,12 +629,15 @@ describe("ConnectionHandler", () => {
     expect(verifySpy).toHaveBeenCalledTimes(5);
   });
 
-  it("a SECOND socket for one uid is not dropped while the first's hash is in flight", async () => {
+  it("a SECOND socket for one uid gets a REPLY, not silence, while the first's hash is in flight", async () => {
     // The in-flight guard keys on the SOCKET, not the uid. Before, a reload
     // mid-scrypt connected as the same uid (held), auto-authenticated, found
     // pendingAuthWork.has(uid) true, and was dropped with NO reply — the tab
-    // hung on "Authenticating…" until a manual retry. Two distinct sockets are
-    // two logins, and the second must resolve.
+    // hung on "Authenticating…" until a manual retry. Now the second socket
+    // reaches the auth logic and is answered: it is turned away 4003 (a live
+    // socket already holds the uid and it has no token to prove the session),
+    // which the client surfaces as "Held in another window" with a retry — a
+    // reply the user can act on, never a hang.
     const verifySpy = vi.mocked(container.authService.verify);
     let releaseFirst!: () => void;
     // The FIRST hash parks; every later call resolves immediately.
@@ -658,16 +661,16 @@ describe("ConnectionHandler", () => {
     second.emit("message", authFrame);
     await flushAuth();
 
-    // The second login resolves (it replaced the still-unauthenticated first),
-    // rather than being silently swallowed by the in-flight guard.
-    expect(authOkFrames(second)).toHaveLength(1);
-    expect(container.uidToWs.get("dup")).toBe(second);
+    // The second login is answered (4003), not silently swallowed by the
+    // in-flight guard, and it did not evict the live first socket.
+    expect(second.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+    expect(container.uidToWs.get("dup")).not.toBe(second);
 
-    // The first's parked hash now completes on a socket that was replaced; it
-    // bails on the readyState/occupant re-check and does not double-register.
+    // The first's parked hash now completes and authenticates its own socket.
     releaseFirst();
     await flushAuth();
-    expect(container.uidToWs.get("dup")).toBe(second);
+    expect(authOkFrames(first)).toHaveLength(1);
+    expect(container.uidToWs.get("dup")).toBe(first);
   });
 
   it("never sweeps players restored from disk who have not connected", () => {

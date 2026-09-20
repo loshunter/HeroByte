@@ -189,20 +189,22 @@ export class AuthenticationHandler {
       return;
     }
 
-    // Who may hold the uid. While the uid has a session anyone could still
-    // prove — live on another socket, or detached inside the grace window —
-    // only that session's token claims it: a reconnect, a second tab of the
-    // same browser, a return after a break. Everyone else is turned away, and
-    // whatever holds the uid is left exactly as it was: not evicted, not
-    // impersonated, and NOT re-minted over (a password-only claim that was
-    // first back after a blip used to replace the owner's record and lock the
-    // owner out for as long as it stayed). The takeover proof is "same
-    // session", so it accepts the token whatever table the session is in; the
-    // DM check below is per table. A uid with no live session — fresh, expired,
-    // or after a server restart — is claimed by the password alone.
+    // Who may hold the uid. Claimable by password alone ONLY when nothing
+    // holds it: no live socket on another connection, and no session still
+    // provable by a token (live or detached inside the grace window).
+    // Otherwise only that session's token takes the seat (a reconnect, a
+    // second tab, a return after a break) and the holder is left untouched —
+    // not evicted, not impersonated, not re-minted over. The live-socket half
+    // holds even for an unauthenticated socket: else an invited player who
+    // knows a uid could authenticate as it and KICK the mid-handshake holder
+    // (widest right after a deploy, when every token is gone). Cost: a
+    // reconnect whose OWN old socket is a live-unauth zombie is turned away
+    // until it is reaped, and self-heals on retry. The takeover proof is "same
+    // session" (any table); the DM check below is per table.
     const sameSession = this.sessionTokens.matches(uid, request.token, now);
-    if (!sameSession && this.sessionTokens.has(uid, now)) {
-      console.warn(`[Auth] ${uid}: session belongs to another browser, claim turned away`);
+    const liveIncumbent = occupant !== undefined && occupant !== ws && occupant.readyState === 1;
+    if (!sameSession && (liveIncumbent || this.sessionTokens.has(uid, now))) {
+      console.warn(`[Auth] ${uid}: session held by another connection, claim turned away`);
       // Not refunded: a failed takeover stays charged, like a failed guess.
       ws.close(WS_CLOSE_SESSION_CONFLICT, "Session held by another connection");
       return;
