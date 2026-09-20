@@ -675,3 +675,34 @@ tab → still DM) → `review-convergence` (security/auth, connection-lifecycle,
 doc-vs-code lenses) → one `--no-ff` merge → deploy probe on a string new to this arc (e.g.
 `Session held by another connection` in the server, `Held in another window` in a client chunk)
 → `watch-ci` → announce "players with a tab open must reload; DMs re-enter the DM password once".
+
+### 12.4 evaluate-live record (2026-09-19, mode `live-two-client` + raw-socket attacker)
+
+Dev server on 5174/8787; DM tab `?sessionUid=eval-dm` (Fun1, elevated with FunDM), player tab
+`?sessionUid=eval-player`, both on the Main Hall. Attacker = `apps/server/.tmp/attacker.mjs`, a
+raw `ws` client with no token (the transcript's PoC). Screenshots could not be captured (the pane
+was not drawing); every claim below is a DOM/seam/console/server-log measurement.
+
+| step | result |
+|---|---|
+| attacker connects as `eval-dm`, sends `start-combat`, no authenticate | DM tab untouched (connected, `isDM` true, no notice); `combatActive` stays false; server: `Unauthenticated message from eval-dm, dropping` |
+| attacker `authenticate` Fun1, no token | closed **4003 Session held by another connection**, 0 frames; DM untouched |
+| attacker `authenticate` Fun1, wrong token | same 4003, 0 frames |
+| eavesdropper on `eval-player` (20 s) while the DM whispers | player tab shows the whisper; eavesdropper received **0 frames** |
+| offline persisted DM record `dmeval` reclaimed with Fun1, no token | `auth-ok` received (in as "Player 3"), roster `isDM: false`; server: `tokenless reclaim of dmeval: DM reset` |
+| reload the DM tab | back as `eval-dm`, no gate, no DM-password prompt, `isDM` true (token-proved) |
+| second tab of the SAME browser as `eval-dm`, Fun1 | held at connect (both tabs "Connected"), then takes over: tab 2 is DM without the DM password; tab 1 gets 4002 |
+| RECLAIM THIS TAB from tab 1 | tab 1 back as DM; tab 2 REPLACED, shows the gate, **no reconnect attempt** (no ping-pong) |
+| tab 2 with its stored token removed, reloaded (a stranger) | auto-login with the password alone → 4003 → gate: "Held in another window", the hint, **Try Again**; DM untouched |
+| Try Again | one more connect → 4003 → conflict; no loop |
+| 375×812 | no horizontal overflow; Try Again is 44 px tall; it sits 48 px below the fold (the gate scrolls — pre-existing gate length) |
+
+**Found and fixed during the evaluation** (`dcea35b4`): a logged-in tab that gets REPLACED
+rendered the app with an OFFLINE chip and a "Reconnecting…" banner forever — the reclaim
+affordance lived in the gate, which only showed before a first login. Pre-existing at `40c1031b`;
+the getting-started guide had promised the reclaim notice for exactly this case.
+
+**Score:** functionality 9 (0.35), multiplayer integrity 9 (0.30), craft 8 (0.20), reach 7 (0.15)
+→ **8.5 / 10, PASS.** Minor: the conflict button below the fold at phone height; no help-topic
+entry for "Held in another window"; a crashed device's replacement without its token waits up to
+the 5-minute heartbeat window (design consequence, §12.2).
