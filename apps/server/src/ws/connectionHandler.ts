@@ -68,6 +68,7 @@ export class ConnectionHandler {
       container.uidToWs,
       container.authenticatedUids,
       container.authenticatedSessions,
+      container.sessionTokens,
     );
     this.heartbeatManager = new HeartbeatTimeoutManager(container, this.cleanupManager);
     this.idleRoomManager = new IdleRoomUnloadManager(container);

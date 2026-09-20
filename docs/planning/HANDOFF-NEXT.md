@@ -1350,10 +1350,14 @@ turns a cone into something else.
 
 - The Main Hall is a **public test table on purpose**, including public DM elevation, and the
   published `Fun1` / `FunDM` fallbacks stay in production. Do not re-flag it as a finding.
-- Launch is a **friends-scale soft launch**. Signed session tokens are deferred to a later identity
-  arc, so `uid` is client-asserted: secrecy is from the other people at the table, not from someone
-  willing to impersonate one. Documented at
-  `domains/room/snapshot/recipientFilter.ts:63-75`. Not a vulnerability.
+- Launch is a **friends-scale soft launch**. `uid` is still client-asserted on the wire, but since
+  the session identity binding arc (2026-09-19, `dev`) a LIVE session belongs to the socket that
+  proved its session token: a second socket claiming the uid is held, its messages dropped, and it
+  cannot evict or impersonate the real one without the token; a tokenless reclaim of an OFFLINE uid
+  comes back as a non-DM. The remaining residual — a room-password holder claiming a fully offline
+  uid after the 6-hour grace, as a non-privileged impersonator — is documented at
+  `domains/room/snapshot/recipientFilter.ts` and is the deferred opaque-identity arc, not a
+  vulnerability to re-flag.
 - Drawings and area templates are **not position-filtered**, by design.
 - **Explored fog is client-local and explicitly NOT a privacy boundary** — it can only re-show map
   ART the client already holds. "localStorage can be edited" is not a finding.

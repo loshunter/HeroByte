@@ -19,8 +19,9 @@ That's it — your token appears on the map, and your player card shows up in th
 A few useful details:
 
 - **Wrong password?** The error appears in red and your typed password stays in the field so you can spot the typo. Passwords are case-sensitive.
-- **It remembers you.** The password is stored for that table (per browser tab session), so a reload drops you straight back in. If your connection blips mid-game, HeroByte reconnects and re-authenticates automatically — you'll just see a brief `Reconnecting…` banner in the corner.
-- **One tab per table.** If you open the same table in a second tab, the older tab pauses with an "open in another tab" notice (only one live connection per device). Use **RECLAIM THIS TAB** to switch back.
+- **It remembers you.** The password is stored for that table (per browser tab session), so a reload drops you straight back in. If your connection blips mid-game, HeroByte reconnects and re-authenticates automatically — you'll just see a brief `Reconnecting…` banner in the corner. Your browser also keeps a session key for the table, so a reload or a blip brings you back as the same person — DM powers included — for up to six hours.
+- **One tab per table.** If you open the same table in a second tab of the same browser, the older tab pauses with an "open in another tab" notice (only one live connection per device). Use **RECLAIM THIS TAB** to switch back.
+- **One device at a time.** Opening your table from a _different_ browser or device while the first is still connected shows "Held in another window" — that device has no session key, so it cannot take your seat (and neither can anyone else who knows the table password). Close the first one, or keep playing there, then **TRY AGAIN**. Coming back on a new device after your old one has been gone a while works, but you enter the DM password again.
 - On a locally hosted server, the development table password is `Fun1` unless the host changed it.
 
 ## The Main Hall is the public test table

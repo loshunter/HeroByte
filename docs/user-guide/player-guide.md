@@ -107,9 +107,10 @@ got away with. The log tags the entry **ADV** or **DIS**.
 - **ME** — you only, the DM included.
 
 A hidden roll is not merely hidden in other people's app: it is never sent to them. Their
-browser has no copy to find. (Within reason: this protects you from the other people at
-your table, not from someone determined to impersonate one of them — HeroByte identifies
-players by a browser-supplied id today.)
+browser has no copy to find. While you are at the table, your seat is yours: another browser
+claiming your id gets nothing and cannot knock you off. (Within reason: someone with the table
+password could still claim your seat hours after you leave, as a plain player — so hidden
+rolls protect you from the other people at your table, not from one who waits for you to go.)
 
 ### Macros
 

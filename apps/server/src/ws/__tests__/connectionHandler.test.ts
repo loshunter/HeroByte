@@ -469,6 +469,25 @@ describe("ConnectionHandler", () => {
     expect(broadcastSpy).toHaveBeenCalled();
   });
 
+  it("a heartbeat timeout detaches the session token exactly as a disconnect does", async () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-idle" });
+    socket.emit("message", Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" })));
+    await flushAuth();
+    const [{ sessionToken }] = authOkFrames(socket);
+    const state = container.roomService.getState();
+    state.players.find((p) => p.uid === "user-idle")!.lastHeartbeat = Date.now() - 6 * 60 * 1000;
+
+    vi.advanceTimersByTime(30_000); // the sweep
+
+    expect(socket.close).toHaveBeenCalled();
+    expect(container.sessionTokens.verify("user-idle", "default", sessionToken)).toBe(true);
+    const afterGrace = Date.now() + SESSION_TOKEN_GRACE_MS + 1;
+    expect(container.sessionTokens.verify("user-idle", "default", sessionToken, afterGrace)).toBe(
+      false,
+    );
+  });
+
   it("keeps the player entity and tokens when a connected player times out", async () => {
     // D6: a 5-minute lid close used to delete the player's tokens (and, for a
     // DM, every NPC token their uid owned). A timeout is now exactly a

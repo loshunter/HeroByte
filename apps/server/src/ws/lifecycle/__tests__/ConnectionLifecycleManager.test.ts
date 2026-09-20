@@ -3,6 +3,7 @@ import type { WebSocket } from "ws";
 import type { IncomingMessage } from "http";
 import { ConnectionLifecycleManager } from "../ConnectionLifecycleManager.js";
 import type { RoomService } from "../../../domains/room/service.js";
+import { SessionTokenService, SESSION_TOKEN_GRACE_MS } from "../../auth/SessionTokenService.js";
 
 /**
  * CHARACTERIZATION TESTS FOR ConnectionLifecycleManager
@@ -708,12 +709,14 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   // ==========================================================================
   describe("real class: who holds a uid's slot", () => {
     let manager: ConnectionLifecycleManager;
+    let tokens: SessionTokenService;
     let roomState: { users: string[] };
     const roomIds = new Map<string, string>();
 
     beforeEach(() => {
       roomState = { users: [] };
       roomIds.clear();
+      tokens = new SessionTokenService();
       manager = new ConnectionLifecycleManager(
         {
           getRoomIdForUid: (uid) => roomIds.get(uid) ?? "default",
@@ -722,6 +725,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
         uidToWs,
         authenticatedUids,
         authenticatedSessions,
+        tokens,
       );
     });
 
@@ -783,6 +787,33 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       expect(authenticatedSessions.has("player1")).toBe(false);
       // And it left the roster of ITS room, resolved before the session went.
       expect(roomState.users).not.toContain("player1");
+    });
+
+    it("adoption DETACHES the dead session's token: still a proof within grace, gone after", () => {
+      // Without this, a newcomer that never authenticates would leave the dead
+      // session's record attached — a token valid forever for that uid.
+      const dead = new FakeWebSocket();
+      dead.readyState = 3;
+      liveAuthenticated("player1", dead);
+      const token = tokens.mint("player1", "room1", 1_000);
+
+      connect(new FakeWebSocket());
+
+      // detach() stamps the (fake, frozen) wall clock, so measure from it.
+      expect(tokens.verify("player1", "room1", token, Date.now())).toBe(true);
+      const afterGrace = Date.now() + SESSION_TOKEN_GRACE_MS + 1;
+      expect(tokens.verify("player1", "room1", token, afterGrace)).toBe(false);
+    });
+
+    it("a HELD newcomer leaves the incumbent's token attached", () => {
+      const incumbent = new FakeWebSocket();
+      liveAuthenticated("player1", incumbent);
+      const token = tokens.mint("player1", "room1", 1_000);
+
+      connect(new FakeWebSocket());
+
+      const farFuture = Date.now() + 10 * SESSION_TOKEN_GRACE_MS;
+      expect(tokens.verify("player1", "room1", token, farFuture)).toBe(true);
     });
 
     it("replaces a live UNAUTHENTICATED occupant (no session to protect)", () => {

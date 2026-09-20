@@ -10,6 +10,7 @@ import type { WebSocket } from "ws";
 import type { IncomingMessage } from "http";
 import { WS_CLOSE_REPLACED } from "@herobyte/shared";
 import type { RoomService } from "../../domains/room/service.js";
+import type { SessionTokenService } from "../auth/SessionTokenService.js";
 
 /**
  * Configuration for ConnectionLifecycleManager
@@ -77,6 +78,7 @@ export class ConnectionLifecycleManager {
   private uidToWs: Map<string, WebSocket>;
   private authenticatedUids: Set<string>;
   private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
+  private sessionTokens: SessionTokenService;
   // Keyed by SOCKET, not uid: a held newcomer needs its own ping, and a swap
   // must not have to hand a timer over from one socket to another.
   private keepalives: Map<WebSocket, NodeJS.Timeout>;
@@ -86,17 +88,20 @@ export class ConnectionLifecycleManager {
    * @param uidToWs - Map of client UIDs to WebSocket connections (shared reference)
    * @param authenticatedUids - Set of authenticated client UIDs (shared reference)
    * @param authenticatedSessions - Map of client UIDs to session data (shared reference)
+   * @param sessionTokens - The per-uid session tokens (shared reference)
    */
   constructor(
     config: ConnectionLifecycleConfig,
     uidToWs: Map<string, WebSocket>,
     authenticatedUids: Set<string>,
     authenticatedSessions: Map<string, { roomId: string; authedAt: number }>,
+    sessionTokens: SessionTokenService,
   ) {
     this.config = config;
     this.uidToWs = uidToWs;
     this.authenticatedUids = authenticatedUids;
     this.authenticatedSessions = authenticatedSessions;
+    this.sessionTokens = sessionTokens;
     this.keepalives = new Map();
   }
 
@@ -146,6 +151,10 @@ export class ConnectionLifecycleManager {
     // Adoption never confers auth: the newcomer proves itself in `authenticate`.
     this.authenticatedUids.delete(uid);
     this.authenticatedSessions.delete(uid);
+    // The token record is detached with the session, not left attached: a
+    // newcomer that never authenticates would otherwise keep a dead session's
+    // token valid forever. Within the grace window it still proves a reconnect.
+    this.sessionTokens.detach(uid);
     const state = this.config.getRoomServiceForRoom(roomId).getState();
     state.users = state.users.filter((u: string) => u !== uid);
 
