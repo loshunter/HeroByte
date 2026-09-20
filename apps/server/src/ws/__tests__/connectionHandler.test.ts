@@ -25,6 +25,7 @@ import { TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 import type { ClientMessage } from "@herobyte/shared";
 import type { WebSocket, WebSocketServer } from "ws";
 import { AuthService } from "../../domains/auth/service.js";
+import { SessionTokenService, SESSION_TOKEN_GRACE_MS } from "../auth/SessionTokenService.js";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
@@ -149,6 +150,7 @@ const setupContainer = () => {
     uidToWs,
     authenticatedUids,
     authenticatedSessions,
+    sessionTokens: new SessionTokenService(),
     getAuthenticatedClients,
     // Room-aware surface: this harness is single-room, so every resolver
     // points at the one RoomService/router above.
@@ -184,6 +186,12 @@ describe("ConnectionHandler", () => {
       await Promise.resolve();
     }
   };
+
+  /** Every auth-ok frame a socket was sent. Each carries a freshly minted session token. */
+  const authOkFrames = (socket: FakeWebSocket) =>
+    socket.send.mock.calls
+      .map(([p]) => JSON.parse(p as string) as { t?: string; sessionToken?: string })
+      .filter((frame) => frame.t === "auth-ok");
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -337,7 +345,7 @@ describe("ConnectionHandler", () => {
     socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
 
     expect(player.lastHeartbeat).toBe(expectedHeartbeat);
-    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ t: "auth-ok" }));
+    expect(authOkFrames(socket)).toHaveLength(2);
   });
 
   it("retains existing session room and updates authedAt on re-authentication", async () => {
@@ -366,7 +374,48 @@ describe("ConnectionHandler", () => {
 
     const refreshedSession = container.authenticatedSessions.get("session-user");
     expect(refreshedSession).toEqual({ roomId: "custom-room-id", authedAt: expectedAuthedAt });
-    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ t: "auth-ok" }));
+    expect(authOkFrames(socket)).toHaveLength(2);
+  });
+
+  it("a password auth hands the client a session token, and each auth mints a fresh one", async () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-token" });
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
+
+    const [first] = authOkFrames(socket);
+    expect(first.sessionToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    // The server holds only the hash, but the raw token verifies against it.
+    expect(container.sessionTokens.verify("user-token", "default", first.sessionToken)).toBe(true);
+
+    // A re-auth on the same socket rotates: the old token stops verifying.
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
+    const [, second] = authOkFrames(socket);
+    expect(second.sessionToken).not.toBe(first.sessionToken);
+    expect(container.sessionTokens.verify("user-token", "default", first.sessionToken)).toBe(false);
+    expect(container.sessionTokens.verify("user-token", "default", second.sessionToken)).toBe(true);
+  });
+
+  it("a disconnect detaches the token but keeps it reclaimable inside the grace window", async () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-away" });
+    socket.emit("message", Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" })));
+    await flushAuth();
+    const [{ sessionToken }] = authOkFrames(socket);
+
+    socket.emit("close");
+
+    // Still good for a reload or a blip...
+    expect(container.sessionTokens.verify("user-away", "default", sessionToken)).toBe(true);
+    // ...and gone once the grace window closes. (An explicit clock rather than
+    // advancing the fake timers six hours — that would fire the idle-room
+    // sweep against this single-room harness.)
+    const afterGrace = Date.now() + SESSION_TOKEN_GRACE_MS + 1;
+    expect(container.sessionTokens.verify("user-away", "default", sessionToken, afterGrace)).toBe(
+      false,
+    );
   });
 
   it("cleans up on disconnect", async () => {
@@ -503,7 +552,7 @@ describe("ConnectionHandler", () => {
     expect(verifySpy).toHaveBeenCalledTimes(1);
     expect(
       bystander.send.mock.calls.map(([p]) => JSON.parse(p as string) as { t?: string }),
-    ).toContainEqual({ t: "auth-ok" });
+    ).toContainEqual(expect.objectContaining({ t: "auth-ok" }));
 
     // ...and the flooder is still cut off.
     const stillFlooding = await attemptFrom("flooder-again", "203.0.113.9", "wrong-password");

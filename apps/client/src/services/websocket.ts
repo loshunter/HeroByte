@@ -115,9 +115,22 @@ interface WebSocketServiceConfig {
    * NOT reach the server; surface it (toast) instead of losing it to the
    * console. Fire-and-forget traffic (previews, heartbeats) never fires this. */
   onCommandDropped?: (messageType: string, reason: string) => void;
+  /**
+   * Where the session token from `auth-ok` is kept between page loads and
+   * shared between this browser's tabs. Injected rather than imported so the
+   * service stays storage-agnostic; the hook binds it to per-table, per-uid
+   * localStorage keys. Without one, the token lives only for this page load.
+   */
+  sessionTokenStore?: SessionTokenStore;
   reconnectInterval?: number; // ms between reconnect attempts
   maxReconnectAttempts?: number; // 0 = infinite
   heartbeatInterval?: number; // ms between heartbeats
+}
+
+/** Read/write the session token for a table (`undefined` roomId = the default table). */
+export interface SessionTokenStore {
+  read: (roomId: string | undefined) => string | undefined;
+  write: (roomId: string | undefined, token: string) => void;
 }
 
 /**
@@ -176,6 +189,15 @@ export class WebSocketService {
   private commandAckManager: CommandAckManager;
   private lastAuthSecret: string | null = null;
   private lastAuthRoomId: string | undefined;
+  /**
+   * The session token the server minted on the last auth-ok. Sent back on
+   * every reconnect: it is what proves this is the SAME session (so a DM stays
+   * DM through a blip, and a reconnect can take over from its own stale
+   * socket). The store is consulted first so a token another tab of this
+   * browser rotated is the one presented; this copy covers a store that is
+   * unavailable (private mode) for the life of the page.
+   */
+  private lastSessionToken: string | undefined;
 
   /**
    * Create a new WebSocketService orchestrator
@@ -211,6 +233,8 @@ export class WebSocketService {
       onCommandDropped: () => {},
       onMeasure: () => {},
       ...config,
+      // No store: the token lives for this page load only (see lastSessionToken).
+      sessionTokenStore: config.sessionTokenStore ?? { read: () => undefined, write: () => {} },
     };
 
     // Initialize AuthenticationManager (independent)
@@ -406,7 +430,12 @@ export class WebSocketService {
   authenticate(secret: string, roomId?: string): void {
     this.lastAuthSecret = secret;
     this.lastAuthRoomId = roomId;
-    this.authManager.authenticate(this.connectionManager.getWebSocket(), secret, roomId);
+    this.authManager.authenticate(
+      this.connectionManager.getWebSocket(),
+      secret,
+      roomId,
+      this.sessionTokenFor(roomId),
+    );
   }
 
   /**
@@ -526,6 +555,12 @@ export class WebSocketService {
 
     // Flush message queue on successful authentication
     if (message.t === "auth-ok") {
+      // Every auth-ok rotates the token; keep the newest where the next
+      // reconnect (and this browser's other tabs) will find it.
+      if (message.sessionToken) {
+        this.lastSessionToken = message.sessionToken;
+        this.config.sessionTokenStore.write(this.lastAuthRoomId, message.sessionToken);
+      }
       this.flushMessageQueue();
     } else {
       // Rejected credentials must not be replayed on the reconnect that follows.
@@ -573,7 +608,17 @@ export class WebSocketService {
     }
 
     console.log("[WebSocket] Reauthenticating after reconnect");
-    this.authManager.authenticate(ws, this.lastAuthSecret, this.lastAuthRoomId);
+    this.authManager.authenticate(
+      ws,
+      this.lastAuthSecret,
+      this.lastAuthRoomId,
+      this.sessionTokenFor(this.lastAuthRoomId),
+    );
+  }
+
+  /** The token to present for a table: the store's (newest across tabs), else this page's. */
+  private sessionTokenFor(roomId: string | undefined): string | undefined {
+    return this.config.sessionTokenStore.read(roomId) ?? this.lastSessionToken;
   }
 
   /**

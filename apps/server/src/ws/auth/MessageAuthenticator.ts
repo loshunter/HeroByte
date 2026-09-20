@@ -179,9 +179,9 @@ export class MessageAuthenticator {
     if (message.t === "authenticate") {
       // Async (scrypt off the event loop). The handler replies auth-ok /
       // auth-failed over the socket itself, so nothing here needs the result.
-      void Promise.resolve(
-        this.config.authHandler.authenticate(uid, message.secret, message.roomId),
-      ).catch((error) => console.error(`[Auth] authenticate failed for ${uid}:`, error));
+      void Promise.resolve(this.config.authHandler.authenticate(uid, message)).catch((error) =>
+        console.error(`[Auth] authenticate failed for ${uid}:`, error),
+      );
       this.config.onAuthMessage?.(uid, message);
     }
   }

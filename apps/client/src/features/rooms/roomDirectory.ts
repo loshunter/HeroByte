@@ -61,6 +61,60 @@ export function clearRoomSecret(roomId: string | undefined = currentRoomId()): v
   }
 }
 
+/**
+ * localStorage key PREFIX for the session token the server hands back on
+ * `auth-ok`. Presenting it on a reconnect is what proves this browser is the
+ * SAME session that logged in — so a reload or a network blip resumes as-is
+ * (DM elevation included) and can take over from its own stale socket, while
+ * someone else holding only the room password can do neither.
+ *
+ * SCOPED PER TABLE AND PER UID. Per table for the reason the room secret is
+ * (a same-tab table switch must not present table A's token to table B); per
+ * uid because two tabs in one browser can carry different `?sessionUid=`
+ * identities — the e2e and two-client-review setups do exactly that — and a
+ * flat per-table key would let one tab's login overwrite the other's proof.
+ *
+ * localStorage, NOT sessionStorage, on purpose: sessionStorage is per tab, so a
+ * second tab (or a browser reopened after a crash) would never hold the token
+ * and could never reclaim its own session. The token is only as durable as the
+ * server's record of it — it dies with the server's grace window or its next
+ * restart — so a browser left logged in on a shared machine is not a standing
+ * key past that.
+ */
+export const SESSION_TOKEN_STORAGE_KEY = "herobyte-session-token";
+
+/** Per-table, per-uid key. `undefined` roomId means the default table. */
+function sessionTokenKey(roomId: string | undefined, uid: string): string {
+  return roomId
+    ? `${SESSION_TOKEN_STORAGE_KEY}:${roomId}:${uid}`
+    : `${SESSION_TOKEN_STORAGE_KEY}:${uid}`;
+}
+
+/** Remember the session token the server minted for this uid at this table. */
+export function stashSessionToken(
+  token: string,
+  uid: string,
+  roomId: string | undefined = currentRoomId(),
+): void {
+  try {
+    localStorage.setItem(sessionTokenKey(roomId, uid), token);
+  } catch {
+    // Storage failures just mean the next reconnect logs in as a fresh session.
+  }
+}
+
+/** The stashed session token for this uid at a table, or undefined if none. */
+export function readSessionToken(
+  uid: string,
+  roomId: string | undefined = currentRoomId(),
+): string | undefined {
+  try {
+    return localStorage.getItem(sessionTokenKey(roomId, uid)) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Mirrors the server's room-id rule so bad ids fail before a connection. */
 export const ROOM_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
 

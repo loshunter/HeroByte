@@ -881,6 +881,30 @@ describe("validateMessage", () => {
         error: "authenticate: roomId must be a string",
       });
     });
+
+    it("accepts authenticate with a session token up to 512 chars", () => {
+      expect(
+        validateMessage({ t: "authenticate", secret: "valid-secret", token: "a".repeat(512) }),
+      ).toEqual({ valid: true });
+      expect(
+        validateMessage({ t: "authenticate", secret: "valid-secret", token: undefined }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects authenticate with an over-long session token", () => {
+      expect(
+        validateMessage({ t: "authenticate", secret: "valid-secret", token: "a".repeat(513) }),
+      ).toMatchObject({ valid: false, error: "authenticate: token too long" });
+    });
+
+    it("rejects authenticate with a non-string session token", () => {
+      expect(
+        validateMessage({ t: "authenticate", secret: "valid-secret", token: 12345 }),
+      ).toMatchObject({ valid: false, error: "authenticate: token must be a string" });
+      expect(
+        validateMessage({ t: "authenticate", secret: "valid-secret", token: { v: "x" } }),
+      ).toMatchObject({ valid: false, error: "authenticate: token must be a string" });
+    });
   });
 
   describe("Edge Cases: Scene Objects", () => {

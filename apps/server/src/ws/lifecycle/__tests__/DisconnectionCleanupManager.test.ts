@@ -13,6 +13,7 @@ import type { RoomService } from "../../../domains/room/service.js";
 import type { SelectionService } from "../../../domains/selection/service.js";
 import { createEmptyRoomState, type RoomState } from "../../../domains/room/model.js";
 import type { WebSocket } from "ws";
+import { SessionTokenService, SESSION_TOKEN_GRACE_MS } from "../../auth/SessionTokenService.js";
 
 class FakeWebSocket {
   public readyState = 1;
@@ -102,6 +103,7 @@ describe("DisconnectionCleanupManager - Characterization Tests", () => {
       uidToWs,
       authenticatedUids,
       authenticatedSessions,
+      new SessionTokenService(),
     );
   });
 
@@ -161,6 +163,35 @@ describe("DisconnectionCleanupManager - Characterization Tests", () => {
 
       // Assert: broadcast called with getAuthenticatedClients()
       expect(getAuthenticatedClients).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("Session token on cleanup", () => {
+    it("detaches the uid's token so a reconnect inside the grace window can still prove itself", () => {
+      const tokens = new SessionTokenService();
+      const manager = new DisconnectionCleanupManager(
+        {
+          getRoomIdForUid: () => "room1",
+          getRoomServiceForRoom: () => mockRoomService,
+          getAuthenticatedClientsForRoom: () => getAuthenticatedClients(),
+          selectionService: mockSelectionService,
+        },
+        uidToWs,
+        authenticatedUids,
+        authenticatedSessions,
+        tokens,
+      );
+      const token = tokens.mint("user1", "room1", 1_000);
+      uidToWs.set("user1", new FakeWebSocket() as unknown as WebSocket);
+      authenticatedUids.add("user1");
+
+      manager.cleanupPlayer("user1");
+
+      // Detached, not revoked: the same client can come back with it...
+      expect(tokens.verify("user1", "room1", token, Date.now())).toBe(true);
+      // ...until the grace window has closed.
+      const afterGrace = Date.now() + SESSION_TOKEN_GRACE_MS + 1;
+      expect(tokens.verify("user1", "room1", token, afterGrace)).toBe(false);
     });
   });
 

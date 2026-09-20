@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Mock, MockInstance } from "vitest";
 import type { ClientMessage } from "@herobyte/shared";
+import type { AuthenticateRequest } from "../AuthenticationHandler.js";
 
 // Mock AuthenticationHandler
 class MockAuthenticationHandler {
-  public authenticate = vi.fn<(uid: string, secret: string, roomId?: string) => void>();
+  public authenticate = vi.fn<(uid: string, request: AuthenticateRequest) => void>();
   public elevateToDM = vi.fn<(uid: string, dmPassword: string) => void>();
   public revokeDM = vi.fn<(uid: string) => void>();
   public setDMPassword = vi.fn<(uid: string, dmPassword: string) => void>();
@@ -52,7 +53,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Assert: routed to AuthenticationHandler.authenticate
       expect(mockAuthHandler.authenticate).toHaveBeenCalledOnce();
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "room-password", "room1");
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "room-password", roomId: "room1" }),
+      );
 
       // Assert: callback invoked
       expect(onAuthMessageCallback).toHaveBeenCalledWith(uid, message);
@@ -174,7 +178,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       checkAuth(message, uid);
 
       // Assert: authenticate called with uid, secret, roomId
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "test-secret", "test-room");
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "test-secret", roomId: "test-room" }),
+      );
     });
 
     it("routes 'authenticate' without roomId", () => {
@@ -190,7 +197,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       checkAuth(message, uid);
 
       // Assert: authenticate called with uid, secret, undefined
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "test-secret", undefined);
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "test-secret" }),
+      );
     });
 
     it("routes 'elevate-to-dm' to AuthenticationHandler.elevateToDM", () => {
@@ -260,7 +270,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       expect(result).toBe(true);
 
       // Assert: routed to authenticate
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "password", undefined);
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "password" }),
+      );
 
       // Assert: NO warning logged
       expect(consoleWarnSpy).not.toHaveBeenCalled();
@@ -498,7 +511,10 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       const result = checkAuth(message, uid);
 
       // Assert: authenticate called (not dropped)
-      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(uid, "password", undefined);
+      expect(mockAuthHandler.authenticate).toHaveBeenCalledWith(
+        uid,
+        expect.objectContaining({ secret: "password" }),
+      );
 
       // Assert: message handled
       expect(result).toBe(true);
@@ -666,8 +682,16 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Assert: authenticate called twice
       expect(mockAuthHandler.authenticate).toHaveBeenCalledTimes(2);
-      expect(mockAuthHandler.authenticate).toHaveBeenNthCalledWith(1, "user1", "pass1", undefined);
-      expect(mockAuthHandler.authenticate).toHaveBeenNthCalledWith(2, "user1", "pass2", "room1");
+      expect(mockAuthHandler.authenticate).toHaveBeenNthCalledWith(
+        1,
+        "user1",
+        expect.objectContaining({ secret: "pass1" }),
+      );
+      expect(mockAuthHandler.authenticate).toHaveBeenNthCalledWith(
+        2,
+        "user1",
+        expect.objectContaining({ secret: "pass2", roomId: "room1" }),
+      );
     });
 
     it("handles authentication state transitions", () => {
@@ -858,7 +882,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
     return (message: ClientMessage, uid: string): boolean => {
       // Authentication handling - always processed first
       if (message.t === "authenticate") {
-        mockAuthHandler.authenticate(uid, message.secret, message.roomId);
+        mockAuthHandler.authenticate(uid, message);
         onAuthMessageCallback(uid, message);
         return true;
       }

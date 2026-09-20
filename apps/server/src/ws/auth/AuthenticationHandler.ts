@@ -11,9 +11,19 @@ import { forkTableForUid, type ForkTableRequest } from "./tableFork.js";
 import { setDMPasswordForUid } from "./dmPasswordUpdate.js";
 import { DMElevationThrottle } from "./dmElevationThrottle.js";
 import { elevateUidToDM, revokeUidDM } from "./dmElevation.js";
+import { provisionJoin } from "./joinProvisioning.js";
+import type { SessionTokenService } from "./SessionTokenService.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 import { createAuthWorkLimiter, type TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
+
+/** The fields of an `authenticate` frame the handler acts on. */
+export interface AuthenticateRequest {
+  secret: string;
+  roomId?: string;
+  /** The session token a previous auth-ok minted, if the client holds one. */
+  token?: string;
+}
 
 /**
  * Authentication handler for WebSocket connections
@@ -25,6 +35,7 @@ export class AuthenticationHandler {
   private uidToWs: Map<string, WebSocket>;
   private authenticatedUids: Set<string>;
   private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
+  private readonly sessionTokens: SessionTokenService;
   private readonly defaultRoomId: string;
   private readonly dmThrottle = new DMElevationThrottle();
   // Uids with a password check in flight. verify() now yields to the
@@ -44,6 +55,7 @@ export class AuthenticationHandler {
     uidToWs: Map<string, WebSocket>,
     authenticatedUids: Set<string>,
     authenticatedSessions: Map<string, { roomId: string; authedAt: number }>,
+    sessionTokens: SessionTokenService,
     authWorkLimiter?: TokenBucketLimiter,
     ipOfWs?: WeakMap<WebSocket, string>,
   ) {
@@ -51,6 +63,7 @@ export class AuthenticationHandler {
     this.uidToWs = uidToWs;
     this.authenticatedUids = authenticatedUids;
     this.authenticatedSessions = authenticatedSessions;
+    this.sessionTokens = sessionTokens;
     this.defaultRoomId = getDefaultRoomId();
     this.authWorkLimiter = authWorkLimiter ?? createAuthWorkLimiter();
     this.ipOfWs = ipOfWs ?? new WeakMap();
@@ -80,11 +93,17 @@ export class AuthenticationHandler {
    * the connection can be replaced while the hash is computing.
    *
    * @param uid - Unique identifier for the client
-   * @param secret - Room password provided by the client
-   * @param roomId - Optional room identifier (defaults to default room)
+   * @param request - The authenticate frame: room password, optional room id,
+   *   and the session token from a previous auth-ok when the client holds one
+   * @param replyWs - The socket the frame arrived on. Defaults to the uid's
+   *   registered socket for callers that have no other handle on it.
    */
-  async authenticate(uid: string, secret: string, roomId?: string): Promise<void> {
-    const ws = this.uidToWs.get(uid);
+  async authenticate(
+    uid: string,
+    request: AuthenticateRequest,
+    replyWs?: WebSocket,
+  ): Promise<void> {
+    const ws = replyWs ?? this.uidToWs.get(uid);
     if (!ws) {
       return;
     }
@@ -102,12 +121,12 @@ export class AuthenticationHandler {
       }
 
       this.refreshAuthenticatedSession(uid, now);
-      this.sendAuthOk(ws);
+      this.sendAuthOk(ws, this.sessionTokens.mint(uid, sessionRoomId, now));
       return;
     }
 
     // Validate room ID: URL-safe names only; rooms are created on first join.
-    const requestedRoomId = roomId?.trim() || this.defaultRoomId;
+    const requestedRoomId = request.roomId?.trim() || this.defaultRoomId;
     if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(requestedRoomId)) {
       this.rejectAuthentication(ws, "Invalid room id");
       return;
@@ -137,7 +156,7 @@ export class AuthenticationHandler {
     // Verify room password (per-room secret, falling back to the default)
     let verified: boolean;
     try {
-      const normalizedSecret = secret.trim();
+      const normalizedSecret = request.secret.trim();
       verified = await this.container.authService.verify(normalizedSecret, requestedRoomId);
     } finally {
       this.pendingAuthWork.delete(uid);
@@ -164,58 +183,8 @@ export class AuthenticationHandler {
 
     const roomService = this.container.getRoomServiceForRoom(requestedRoomId);
     const state = roomService.getState();
-    let player = this.container.playerService.findPlayer(state, uid);
-
-    // Create or reconnect player entities
-    if (!player) {
-      player = this.container.playerService.createPlayer(state, uid);
-    }
-
+    const player = provisionJoin(this.container, roomService, state, uid);
     this.touchPlayerHeartbeat(player, now);
-
-    // Create character if player doesn't have one
-    const existingCharacter = this.container.characterService.findCharacterByOwner(state, uid);
-    if (!existingCharacter) {
-      const character = this.container.characterService.createCharacter(
-        state,
-        player.name,
-        100, // default maxHp
-        player.portrait,
-        "pc",
-      );
-      this.container.characterService.claimCharacter(state, character.id, uid);
-
-      // Create token for the character — a DM's too. "DM players should never
-      // have tokens" was the rule here until F3 made a DM's rolled character a
-      // combatant (and every DM elevates from a tokened join anyway).
-      {
-        const spawn = roomService.getPlayerSpawnPosition();
-        const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
-        this.container.characterService.linkToken(state, character.id, token.id);
-      }
-    } else {
-      // Player reconnecting - ensure EVERY PC this uid owns has a token, DM or
-      // not: a DM who deleted their own token must get one back the way a
-      // player does, or their character stands in the order with nothing to
-      // step. Keyed on each character's link, never on "any token this uid
-      // owns" — a DM owns the NPC tokens they placed, and that gate left them
-      // tokenless for good (F4's review, round 1); and every owned PC, not
-      // the first character of any type — a second PC's dead link was never
-      // repaired, and a claimed NPC sorting first would have been tokened as
-      // the player (round 3).
-      const ownedPcs = state.characters.filter(
-        (c) => c.type === "pc" && c.ownedByPlayerUID === uid,
-      );
-      for (const pc of ownedPcs) {
-        this.container.characterService.ensureToken(
-          state,
-          this.container.tokenService,
-          pc.id,
-          uid,
-          () => roomService.getPlayerSpawnPosition(),
-        );
-      }
-    }
 
     // Track authentication state
     this.authenticatedUids.add(uid);
@@ -226,7 +195,9 @@ export class AuthenticationHandler {
     state.users = state.users.filter((u) => u !== uid);
     state.users.push(uid);
 
-    this.sendAuthOk(ws);
+    // A verified password mints the session's secret; the client sends it back
+    // on every reconnect as the proof that it is the same session.
+    this.sendAuthOk(ws, this.sessionTokens.mint(uid, requestedRoomId, now));
     console.log(`Client authenticated: ${uid} (room ${requestedRoomId})`);
 
     // Broadcast updated room state to the room's authenticated clients
@@ -341,8 +312,8 @@ export class AuthenticationHandler {
     });
   }
 
-  /** Send the authentication-success message to a client. */
-  private sendAuthOk(ws: WebSocket): void {
-    ws.send(JSON.stringify({ t: "auth-ok" }));
+  /** Send the authentication-success message, carrying the session token, to a client. */
+  private sendAuthOk(ws: WebSocket, sessionToken: string): void {
+    ws.send(JSON.stringify({ t: "auth-ok", sessionToken }));
   }
 }

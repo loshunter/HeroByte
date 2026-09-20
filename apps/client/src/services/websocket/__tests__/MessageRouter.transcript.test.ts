@@ -23,7 +23,7 @@ describe("MessageRouter canonical transcript contract", () => {
     canonicalServerTranscript.forEach((entry) => router.route(entry.payload));
 
     expect(rtcSpy).toHaveBeenCalledTimes(1);
-    expect(authSpy).toHaveBeenCalledWith({ t: "auth-ok" });
+    expect(authSpy).toHaveBeenCalledWith({ t: "auth-ok", sessionToken: "tok-canonical" });
     expect(controlSpy).toHaveBeenCalledWith({ t: "dm-status", isDM: true });
     expect(hbAckSpy).toHaveBeenCalledWith(1_730_000_000_000);
     expect(ackSpy).toHaveBeenCalledWith("cmd-1");

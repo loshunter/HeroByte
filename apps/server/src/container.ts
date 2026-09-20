@@ -23,6 +23,7 @@ import { MapStudioService } from "./domains/mapStudio/service.js";
 import { FileMapDocumentStore } from "./domains/mapStudio/fileStore.js";
 import type { AssetService } from "./domains/assets/service.js";
 import { AssetReclaimSweeper } from "./domains/assets/reclaimSweep.js";
+import { SessionTokenService } from "./ws/auth/SessionTokenService.js";
 import { getDefaultRoomId } from "./config/auth.js";
 
 /**
@@ -53,6 +54,8 @@ export class Container {
   public readonly uidToWs: Map<string, WebSocket>;
   public readonly authenticatedUids: Set<string>;
   public readonly authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
+  /** Per-uid session tokens — the secret that binds a uid to its authenticated socket. */
+  public readonly sessionTokens = new SessionTokenService();
 
   private readonly wss: WebSocketServer;
   private readonly defaultRoomId: string;
@@ -292,10 +295,7 @@ export class Container {
    * Clean up resources on shutdown
    */
   destroy(): void {
-    // Clear connection tracking
-    this.uidToWs.clear();
-    this.authenticatedUids.clear();
-    this.authenticatedSessions.clear();
+    this.clearConnectionTracking();
     this.routers.clear();
 
     // Future: Add any cleanup logic for services
@@ -307,27 +307,25 @@ export class Container {
     if (this.getAuthenticatedClients().size > 0) {
       throw new Error("Cannot reset E2E state while clients are connected");
     }
-    this.uidToWs.clear();
-    this.authenticatedUids.clear();
-    this.authenticatedSessions.clear();
+    this.clearConnectionTracking();
     for (const roomId of this.roomRegistry.listRooms()) {
       this.roomRegistry.get(roomId).resetState();
       this.mapStudioService.resetRoom(roomId);
     }
   }
 
+  private clearConnectionTracking(): void {
+    this.uidToWs.clear();
+    this.authenticatedUids.clear();
+    this.authenticatedSessions.clear();
+    this.sessionTokens.clear();
+  }
+
   /**
    * Collect WebSocket clients that have completed authentication
    */
   getAuthenticatedClients(): Set<WebSocket> {
-    const clients = new Set<WebSocket>();
-    for (const uid of this.authenticatedUids) {
-      const ws = this.uidToWs.get(uid);
-      if (ws && ws.readyState === 1) {
-        clients.add(ws);
-      }
-    }
-    return clients;
+    return this.collectAuthenticatedClients(() => true);
   }
 
   /**
@@ -335,13 +333,15 @@ export class Container {
    * broadcasts may ever reach.
    */
   getAuthenticatedClientsForRoom(roomId: string): Set<WebSocket> {
+    return this.collectAuthenticatedClients((uid) => this.roomIdForUid(uid) === roomId);
+  }
+
+  private collectAuthenticatedClients(include: (uid: string) => boolean): Set<WebSocket> {
     const clients = new Set<WebSocket>();
     for (const uid of this.authenticatedUids) {
-      if (this.roomIdForUid(uid) !== roomId) continue;
+      if (!include(uid)) continue;
       const ws = this.uidToWs.get(uid);
-      if (ws && ws.readyState === 1) {
-        clients.add(ws);
-      }
+      if (ws && ws.readyState === 1) clients.add(ws);
     }
     return clients;
   }

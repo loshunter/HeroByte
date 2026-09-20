@@ -43,6 +43,7 @@ export class ConnectionHandler {
       container.uidToWs,
       container.authenticatedUids,
       container.authenticatedSessions,
+      container.sessionTokens,
       container.authWorkLimiter,
       this.ipOfWs,
     );
@@ -57,6 +58,7 @@ export class ConnectionHandler {
       container.uidToWs,
       container.authenticatedUids,
       container.authenticatedSessions,
+      container.sessionTokens,
     );
     this.lifecycleManager = new ConnectionLifecycleManager(
       {

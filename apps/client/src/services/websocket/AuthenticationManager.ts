@@ -117,8 +117,11 @@ export class AuthenticationManager {
    * @param ws - The WebSocket connection (or null if not connected)
    * @param secret - Authentication secret/password
    * @param roomId - Optional room ID to join
+   * @param token - The session token a previous auth-ok minted, when we hold one.
+   *   It is what proves a reconnect is the same session (see the shared
+   *   `authenticate` type); omitted from the frame entirely when absent.
    */
-  authenticate(ws: WebSocket | null, secret: string, roomId?: string): void {
+  authenticate(ws: WebSocket | null, secret: string, roomId?: string, token?: string): void {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.warn("[WebSocket] Cannot authenticate before socket is open");
       return;
@@ -127,7 +130,7 @@ export class AuthenticationManager {
     this.authState = AuthState.PENDING;
     this.config.onAuthEvent({ type: "pending" });
 
-    ws.send(JSON.stringify({ t: "authenticate", secret, roomId }));
+    ws.send(JSON.stringify({ t: "authenticate", secret, roomId, token }));
   }
 
   /**

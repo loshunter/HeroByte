@@ -176,6 +176,7 @@ describe("authentication creates and scopes rooms", () => {
       container.uidToWs,
       container.authenticatedUids,
       container.authenticatedSessions,
+      container.sessionTokens,
     );
   });
 
@@ -183,7 +184,7 @@ describe("authentication creates and scopes rooms", () => {
     const ws = fakeSocket();
     container.uidToWs.set("wanderer", ws as unknown as WebSocket);
 
-    await handler.authenticate("wanderer", "password", "castle-3f9");
+    await handler.authenticate("wanderer", { secret: "password", roomId: "castle-3f9" });
 
     expect(frameTypes(ws)).toContain("auth-ok");
     expect(container.roomIdForUid("wanderer")).toBe("castle-3f9");
@@ -197,7 +198,7 @@ describe("authentication creates and scopes rooms", () => {
     const ws = fakeSocket();
     container.uidToWs.set("intruder", ws as unknown as WebSocket);
 
-    await handler.authenticate("intruder", "password", "../etc/passwd");
+    await handler.authenticate("intruder", { secret: "password", roomId: "../etc/passwd" });
 
     const frames = ws.send.mock.calls.map(([p]) => JSON.parse(p as string) as { t?: string });
     expect(frames[0]).toMatchObject({ t: "auth-failed", reason: "Invalid room id" });
@@ -208,7 +209,7 @@ describe("authentication creates and scopes rooms", () => {
     const ws = fakeSocket();
     container.uidToWs.set("homer", ws as unknown as WebSocket);
 
-    await handler.authenticate("homer", "password");
+    await handler.authenticate("homer", { secret: "password" });
 
     expect(container.roomIdForUid("homer")).toBe("default");
     expect(container.roomService.getState().players.map((p) => p.uid)).toEqual(["homer"]);

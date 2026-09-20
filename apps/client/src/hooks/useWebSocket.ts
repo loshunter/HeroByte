@@ -6,6 +6,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { WebSocketService, ConnectionState, AuthState, AuthEvent } from "../services/websocket";
 import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
+import { readSessionToken, stashSessionToken } from "../features/rooms/roomDirectory";
 
 interface UseWebSocketOptions {
   url: string;
@@ -109,6 +110,13 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     const service = new WebSocketService({
       url,
       uid,
+      // The session token outlives the page (a reload must resume as the
+      // same session) and is shared by this browser's tabs; keyed per table
+      // and per uid in roomDirectory.
+      sessionTokenStore: {
+        read: (roomId) => readSessionToken(uid, roomId),
+        write: (roomId, token) => stashSessionToken(token, uid, roomId),
+      },
       onMessage: (newSnapshot) => {
         // Debug-only: snapshots arrive at high frequency during combat
         // (token-update deltas), so never log them in production builds.

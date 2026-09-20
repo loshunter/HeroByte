@@ -30,7 +30,11 @@ import type { GenerateRequest } from "./recipes.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
-export { WS_CLOSE_AUTH_REJECTED, WS_CLOSE_REPLACED } from "./wsCloseCodes.js";
+export {
+  WS_CLOSE_AUTH_REJECTED,
+  WS_CLOSE_REPLACED,
+  WS_CLOSE_SESSION_CONFLICT,
+} from "./wsCloseCodes.js";
 export { WS_MAX_MESSAGE_BYTES, SESSION_MINT_CEILING_BYTES } from "./wsLimits.js";
 // The one `load-session` frame builder + UTF-8 counter (client loader, server
 // mint ceiling, server round-trip test) — same sub-module rule.
@@ -1229,7 +1233,14 @@ type ClientMessagePayload =
   | { t: "set-room-password"; secret?: string } // omitted secret = reset to the server's configured default
 
   // Authentication
-  | { t: "authenticate"; secret: string; roomId?: string } // Authenticate with room secret
+  /**
+   * Authenticate with the room secret. `token` is the session token a previous
+   * `auth-ok` handed this client: absent on a first login, present on every
+   * reconnect/re-auth. It is what lets a reconnect prove it is the SAME session
+   * (and so keep its DM elevation, or take over from a stale socket) — the room
+   * password alone is shared by the whole table and cannot tell members apart.
+   */
+  | { t: "authenticate"; secret: string; roomId?: string; token?: string }
   | {
       t: "create-room";
       roomId: string;
@@ -1265,7 +1276,12 @@ export type ClientMessage = ClientMessagePayload & { commandId?: string };
 export type ServerMessage =
   | RoomSnapshot // Full room state update
   | { t: "rtc-signal"; from: string; signal: unknown } // WebRTC signal from another peer
-  | { t: "auth-ok" } // Authentication succeeded
+  /**
+   * Authentication succeeded. `sessionToken` is the bearer secret for this
+   * session — store it, never log it, and send it back as `authenticate.token`
+   * on every reconnect. Rotated on every auth-ok, so always keep the latest.
+   */
+  | { t: "auth-ok"; sessionToken?: string }
   | { t: "auth-failed"; reason?: string } // Authentication failed
   | { t: "heartbeat-ack"; timestamp: number } // Acknowledgement for keepalive checks
   | { t: "ack"; commandId: string }

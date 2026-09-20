@@ -35,6 +35,8 @@ export const STRING_LIMITS = {
   /** Secret/password length: 1-256 characters */
   SECRET_MIN: 1,
   SECRET_MAX: 256,
+  /** Session token (authenticate.token): a minted one is 43 chars; 512 bounds what we hash */
+  SESSION_TOKEN_MAX: 512,
   /** Status effect label length: 1-64 characters */
   STATUS_EFFECT_MIN: 1,
   STATUS_EFFECT_MAX: 64,
