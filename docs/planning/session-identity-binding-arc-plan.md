@@ -608,9 +608,10 @@ Built on `dev` in five commits: `cc5cf6a0` (this plan), `1632b2e3` (S1), `694a8b
 `fc6849eb` (S3), `56c018fd` (S4). Every slice passed typecheck, lint, `format:check`, the
 structure guard and its suites before its commit; the S1 shared-export change was boot-checked
 (exit 124, both ready lines, no `does not provide an export named`). The plan's PoC is
-`apps/server/src/ws/__tests__/sessionHijack.contract.test.ts` (15 cases over the REAL
-`ConnectionHandler` + `Container`). Sabotage tally: **S1 8/8 red, S2 4 negative red / 2
-positive green as intended, S3 12/12 red** (one client guard proved unreachable — see below).
+`apps/server/src/ws/__tests__/sessionHijack.contract.test.ts` (18 cases at HEAD over the REAL
+`ConnectionHandler` + `Container`; the two review rounds each added one). Sabotage tally: **S1
+8/8 red, S2 4 negative red / 2 positive green as intended, S3 12/12 red** (one client guard
+proved unreachable — see below); the review-round fixes are each sabotage-proven too (see §13).
 
 ### 12.1 Deviations from the plan as written — read before relitigating
 
@@ -634,8 +635,10 @@ positive green as intended, S3 12/12 red** (one client guard proved unreachable 
    re-authenticates passwordless (nothing new is granted — sub-issue B was only ever exploitable
    through A); any OTHER socket takes the full password path and then needs the token to swap.
    Defence in depth, and the validator requires `secret` anyway.
-4. **Adoption at connect never confers auth (I2, strengthened).** A dead-or-unauthenticated
-   incumbent is still replaced at connect (reconnect-after-blip stays fast), but the newcomer
+4. **Adoption at connect never confers auth (I2, strengthened).** Only a DEAD incumbent is
+   replaced at connect (reconnect-after-blip stays fast); a LIVE incumbent — authenticated or
+   not — is held instead (round 1, `93e05beb`: holding a live-unauthenticated incumbent is what
+   stops a bare connect from kicking a victim mid-handshake). On the replace path the newcomer
    always starts unauthenticated and its room's roster entry is dropped. Before, a dead
    authenticated incumbent's flag was inherited — the A hole for the CLOSING window.
 5. **The token is NOT cleared on `auth-failed`.** A mistyped password is not a bad token;
@@ -667,10 +670,11 @@ positive green as intended, S3 12/12 red** (one client guard proved unreachable 
   first device's socket is gone — up to the 5-minute heartbeat window if that device died
   silently. Before this arc it took over at once (and so could anyone with the room password).
   Shrinking that window means detecting dead sockets by missing pongs — a follow-up, not built.
-- Copy to confirm against the JRPG voice: status label "Held in another window"; hint "Another
-  window or device is already at this table as you, and this one could not prove it is the same
-  session. Close the other one, or keep playing there — then try again here."; button
-  "Try Again". The `helpTopics.ts` help copy has no entry for this yet.
+- Copy to confirm against the JRPG voice: status label "Held in another window"; hint (softened
+  in round 2 to cover a same-client self-heal) "This table is still connected as you elsewhere —
+  another window or device, or a previous session that has not fully closed — and this one could
+  not be proven the same session. Close the other, or wait a moment, then try again here.";
+  button "Try Again". The `helpTopics.ts` help copy has no entry for this yet.
 
 ### 12.3 Still to run before `main` (the §8 ladder)
 
@@ -711,3 +715,45 @@ the getting-started guide had promised the reclaim notice for exactly this case.
 → **8.5 / 10, PASS.** Minor: the conflict button below the fold at phone height; no help-topic
 entry for "Held in another window"; a crashed device's replacement without its token waits up to
 the 5-minute heartbeat window (design consequence, §12.2).
+
+---
+
+## 13. Review-convergence log (2026-09-19/20)
+
+The bounded adversarial review (four lenses: security/auth, connection-lifecycle/regression,
+test-validity, doc-vs-code honesty), gated per `review-convergence`. Every fix below is in its
+own commit with a test that reproduces the issue and a sabotage that goes red without the fix.
+
+**Round 1 — three CONFIRMED defects, all in this arc's own code, all fixed (`93e05beb`):**
+- **HIGH, session lockout (a regression S3 introduced).** A room-password holder who claimed a
+  uid seconds after its socket dropped fell into the "no live occupant" branch and re-minted
+  over the owner's token record, 4003-locking the owner out for as long as the impostor held the
+  seat. Fixed: while a uid's session is still provable (live, or detached in grace), only its
+  token claims it.
+- **MEDIUM, sub-issue D reshaped.** The connect hold keyed on `wasAuthenticated`, so a bare
+  connect still kicked a mid-handshake victim and the held socket's dropped frames spent the
+  victim's per-uid rate bucket. Fixed: hold on liveness alone; rate-limit per socket.
+- **MEDIUM, cross-table DM demotion.** One token record per uid meant visiting a second table
+  demoted the DM on return. Fixed: records per uid AND table; a mint rotates only its table and
+  re-attaches the whole session. Plus: no-uid connections refused 1008; tokens revoked on the
+  Main Hall wipe; credentials redacted from the error sink; keepalive started last.
+
+**Round 2 — connection-lifecycle, security, test-validity all PASS; doc FAIL. Findings fixed:**
+- **LOW, silent hang (`a768ae88`).** The in-flight auth guard keyed on uid, so a reload mid-hash
+  (two live sockets, one uid) was dropped with no reply. Keyed on the socket now.
+- **LOW, live-unauthenticated kick (`3a351c7d`).** The claim guard protected a live *authenticated*
+  incumbent but not a live *unauthenticated* one — an invited player could kick a mid-handshake
+  holder (widest post-deploy, when tokens are gone). The guard now refuses a password-only claim
+  against ANY live incumbent; a reconnect proves itself with its token, else self-heals on retry.
+- **LOW, DM-elevation budget leak (`001f4627`).** The elevate path spent a budget token on an
+  in-flight double-submit without refunding, unlike authenticate. Refunds now.
+- **MEDIUM ×4, doc staleness (`ff1efb3d` + this §13/§12 sweep).** The code had outrun its own
+  documentation: the server `ConnectionLifecycleManager` class comment, the `wsCloseCodes` 4003
+  comment, `ROOM_AUTH_FLOW.md` points 1/3, plan §3.4 and §12.1, and the CONFLICT copy still
+  described the pre-fix "live AND authenticated" rule. All corrected to what shipped.
+
+**Round 3 — doc re-review** confirmed the round-2 fixes and swept the last three §12 stragglers
+(this section, the test count, the copy quote). No code defect surfaced in rounds 2 or 3; the
+verdict count fell 3 → 2 → 0-code across the rounds. Every code lens PASSED; the doc corrections
+are complete. Verified beyond the gate: `/verify-gates boot e2e` green on the final tree, and the
+live two-client evaluation (§12.4) re-confirmed against the fixed code.
