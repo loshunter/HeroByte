@@ -90,6 +90,17 @@ function sessionTokenKey(roomId: string | undefined, uid: string): string {
     : `${SESSION_TOKEN_STORAGE_KEY}:${uid}`;
 }
 
+/**
+ * The NEWEST token this uid was minted, whatever the table. Presented when the
+ * table itself has none, so a second tab opened on a DIFFERENT table can still
+ * prove it is the same browser as the live session and take the uid over (the
+ * server's takeover check is "same session", not "same table"). Room ids can
+ * never contain `*`, so this cannot collide with a per-table key.
+ */
+function latestSessionTokenKey(uid: string): string {
+  return `${SESSION_TOKEN_STORAGE_KEY}:${uid}:*`;
+}
+
 /** Remember the session token the server minted for this uid at this table. */
 export function stashSessionToken(
   token: string,
@@ -98,18 +109,26 @@ export function stashSessionToken(
 ): void {
   try {
     localStorage.setItem(sessionTokenKey(roomId, uid), token);
+    localStorage.setItem(latestSessionTokenKey(uid), token);
   } catch {
     // Storage failures just mean the next reconnect logs in as a fresh session.
   }
 }
 
-/** The stashed session token for this uid at a table, or undefined if none. */
+/**
+ * The stashed session token for this uid at a table — falling back to the
+ * newest one this uid holds anywhere — or undefined if there is none at all.
+ */
 export function readSessionToken(
   uid: string,
   roomId: string | undefined = currentRoomId(),
 ): string | undefined {
   try {
-    return localStorage.getItem(sessionTokenKey(roomId, uid)) ?? undefined;
+    return (
+      localStorage.getItem(sessionTokenKey(roomId, uid)) ??
+      localStorage.getItem(latestSessionTokenKey(uid)) ??
+      undefined
+    );
   } catch {
     return undefined;
   }

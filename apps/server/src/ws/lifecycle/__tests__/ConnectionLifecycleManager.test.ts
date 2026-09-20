@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import type { WebSocket } from "ws";
 import type { IncomingMessage } from "http";
+import { ConnectionLifecycleManager } from "../ConnectionLifecycleManager.js";
+import type { RoomService } from "../../../domains/room/service.js";
 
 /**
  * CHARACTERIZATION TESTS FOR ConnectionLifecycleManager
@@ -12,6 +14,14 @@ import type { IncomingMessage } from "http";
  *
  * DO NOT modify these tests to match desired behavior.
  * These tests document what the code DOES, not what it SHOULD do.
+ *
+ * SESSION IDENTITY BINDING (2026-09): the inline copies below of "seamless
+ * reconnection preserves auth" described the pre-token behaviour — a newcomer
+ * claiming an authenticated uid inherited its auth flag at connect, which is
+ * how any socket could adopt a live DM's session. The REAL class no longer does
+ * that; the "who holds a uid's slot" block at the end drives the real
+ * ConnectionLifecycleManager and pins the current rules. The remaining inline
+ * copies (uid extraction, keepalive timing, race checks) are unchanged.
  */
 
 class FakeWebSocket {
@@ -222,29 +232,6 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   });
 
   describe("Seamless reconnection logic", () => {
-    it("preserves auth state when reconnecting authenticated user", () => {
-      // Setup: authenticated user reconnecting
-      const uid = "player1";
-      const existingWs = new FakeWebSocket() as unknown as WebSocket;
-      const _newWs = new FakeWebSocket() as unknown as WebSocket;
-
-      uidToWs.set(uid, existingWs);
-      authenticatedUids.add(uid);
-      authenticatedSessions.set(uid, { roomId: "room1", authedAt: Date.now() });
-
-      const wasAuthenticated = authenticatedUids.has(uid);
-
-      // Execute: seamless reconnection logic (lines 102-106)
-      if (!wasAuthenticated) {
-        authenticatedUids.delete(uid);
-        authenticatedSessions.delete(uid);
-      }
-
-      // Assert: auth state preserved
-      expect(authenticatedUids.has(uid)).toBe(true);
-      expect(authenticatedSessions.has(uid)).toBe(true);
-    });
-
     it("clears auth state for new unauthenticated connection", () => {
       // Setup: new connection (not authenticated)
       const uid = "player1";
@@ -263,26 +250,6 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Assert: auth state cleared
       expect(authenticatedUids.has(uid)).toBe(false);
       expect(authenticatedSessions.has(uid)).toBe(false);
-    });
-
-    it("does not affect users array when reconnecting authenticated user", () => {
-      // Setup: authenticated user in users array
-      const uid = "player1";
-      const users = ["player1", "player2"];
-
-      const wasAuthenticated = true;
-
-      // Execute: check if users array should be modified
-      if (!wasAuthenticated) {
-        const index = users.indexOf(uid);
-        if (index > -1) {
-          users.splice(index, 1);
-        }
-      }
-
-      // Assert: users array unchanged (seamless reconnection)
-      expect(users).toContain(uid);
-      expect(users).toEqual(["player1", "player2"]);
     });
 
     it("removes user from users array for new unauthenticated connection", () => {
@@ -589,53 +556,6 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       clearInterval(keepalive);
     });
 
-    it("performs seamless reconnection for authenticated user", () => {
-      // Setup: existing authenticated connection
-      const existingWs = new FakeWebSocket() as unknown as WebSocket;
-      const uid = "player1";
-
-      uidToWs.set(uid, existingWs);
-      authenticatedUids.add(uid);
-      authenticatedSessions.set(uid, { roomId: "room1", authedAt: Date.now() });
-
-      // New connection attempt
-      const req = new FakeIncomingMessage(
-        `http://localhost?uid=${uid}`,
-      ) as unknown as IncomingMessage;
-      const newWs = new FakeWebSocket() as unknown as WebSocket;
-
-      // Execute: reconnection flow
-      const params = new URL(req.url || "", "http://localhost").searchParams;
-      const extractedUid = params.get("uid") || "anon";
-
-      const existingConnection = uidToWs.get(extractedUid);
-      const wasAuthenticated = authenticatedUids.has(extractedUid);
-
-      if (existingConnection && existingConnection !== newWs) {
-        console.log(
-          `[WebSocket] Replacing connection for ${extractedUid} (was authenticated: ${wasAuthenticated})`,
-        );
-        existingConnection.close(4002, "Replaced by new connection");
-      }
-
-      if (!wasAuthenticated) {
-        authenticatedUids.delete(extractedUid);
-        authenticatedSessions.delete(extractedUid);
-      }
-
-      uidToWs.set(extractedUid, newWs);
-
-      // Assert: seamless reconnection completed
-      expect(extractedUid).toBe(uid);
-      expect(existingWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
-      expect(authenticatedUids.has(uid)).toBe(true); // Auth preserved
-      expect(authenticatedSessions.has(uid)).toBe(true); // Session preserved
-      expect(uidToWs.get(uid)).toBe(newWs); // New connection registered
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        `[WebSocket] Replacing connection for ${uid} (was authenticated: true)`,
-      );
-    });
-
     it("handles complete disconnection cleanup", () => {
       // Setup: active connection with keepalive
       const ws = new FakeWebSocket();
@@ -780,6 +700,144 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       expect(uidToWs.get("player1")).toBe(ws1);
       expect(uidToWs.get("player2")).toBe(ws2);
       expect(uidToWs.get("anon")).toBe(ws3);
+    });
+  });
+
+  // ==========================================================================
+  // THE REAL CLASS — who holds a uid's slot (session identity binding)
+  // ==========================================================================
+  describe("real class: who holds a uid's slot", () => {
+    let manager: ConnectionLifecycleManager;
+    let roomState: { users: string[] };
+    const roomIds = new Map<string, string>();
+
+    beforeEach(() => {
+      roomState = { users: [] };
+      roomIds.clear();
+      manager = new ConnectionLifecycleManager(
+        {
+          getRoomIdForUid: (uid) => roomIds.get(uid) ?? "default",
+          getRoomServiceForRoom: () => ({ getState: () => roomState }) as unknown as RoomService,
+        },
+        uidToWs,
+        authenticatedUids,
+        authenticatedSessions,
+      );
+    });
+
+    const connect = (ws: FakeWebSocket, uid = "player1") =>
+      manager.handleConnection(
+        ws as unknown as WebSocket,
+        new FakeIncomingMessage(`http://localhost?uid=${uid}`) as unknown as IncomingMessage,
+      );
+
+    const liveAuthenticated = (uid: string, ws: FakeWebSocket, roomId = "room1") => {
+      uidToWs.set(uid, ws as unknown as WebSocket);
+      authenticatedUids.add(uid);
+      authenticatedSessions.set(uid, { roomId, authedAt: Date.now() });
+      roomIds.set(uid, roomId);
+      roomState.users.push(uid);
+    };
+
+    it("HOLDS a newcomer when the uid's session is live and authenticated on another socket", () => {
+      const incumbent = new FakeWebSocket();
+      liveAuthenticated("player1", incumbent);
+      const newcomer = new FakeWebSocket();
+
+      const result = connect(newcomer);
+
+      expect(result).toEqual({ uid: "player1", held: true });
+      // Nothing about the incumbent changed: not closed, still registered, still authenticated.
+      expect(incumbent.close).not.toHaveBeenCalled();
+      expect(uidToWs.get("player1")).toBe(incumbent as unknown as WebSocket);
+      expect(authenticatedUids.has("player1")).toBe(true);
+      expect(authenticatedSessions.has("player1")).toBe(true);
+      expect(roomState.users).toContain("player1");
+    });
+
+    it("a held newcomer still gets its own keepalive", () => {
+      const incumbent = new FakeWebSocket();
+      liveAuthenticated("player1", incumbent);
+      const newcomer = new FakeWebSocket();
+      connect(newcomer);
+
+      vi.advanceTimersByTime(25000);
+
+      expect(newcomer.ping).toHaveBeenCalledOnce();
+      expect(incumbent.ping).not.toHaveBeenCalled(); // its keepalive is not this manager's
+    });
+
+    it("replaces a DEAD authenticated incumbent at connect — and does NOT hand its auth over", () => {
+      const dead = new FakeWebSocket();
+      dead.readyState = 3; // closed on the wire, close event not yet delivered
+      liveAuthenticated("player1", dead);
+      const newcomer = new FakeWebSocket();
+
+      const result = connect(newcomer);
+
+      expect(result).toEqual({ uid: "player1", held: false });
+      expect(dead.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(uidToWs.get("player1")).toBe(newcomer as unknown as WebSocket);
+      // Adoption confers nothing: the newcomer must authenticate.
+      expect(authenticatedUids.has("player1")).toBe(false);
+      expect(authenticatedSessions.has("player1")).toBe(false);
+      // And it left the roster of ITS room, resolved before the session went.
+      expect(roomState.users).not.toContain("player1");
+    });
+
+    it("replaces a live UNAUTHENTICATED occupant (no session to protect)", () => {
+      const idle = new FakeWebSocket();
+      uidToWs.set("player1", idle as unknown as WebSocket);
+      const newcomer = new FakeWebSocket();
+
+      const result = connect(newcomer);
+
+      expect(result.held).toBe(false);
+      expect(idle.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(uidToWs.get("player1")).toBe(newcomer as unknown as WebSocket);
+    });
+
+    it("registers the newcomer BEFORE closing the old socket", () => {
+      // A close handler that runs synchronously (the fakes in the contract
+      // suites do) must already see the newcomer as current, or it cleans the
+      // uid up from under it.
+      const old = new FakeWebSocket();
+      old.readyState = 3;
+      liveAuthenticated("player1", old);
+      const newcomer = new FakeWebSocket();
+      let registeredAtClose: WebSocket | undefined;
+      old.close.mockImplementation(() => {
+        registeredAtClose = uidToWs.get("player1");
+      });
+
+      connect(newcomer);
+
+      expect(registeredAtClose).toBe(newcomer as unknown as WebSocket);
+    });
+
+    it("a fresh uid is registered, unauthenticated, with a keepalive", () => {
+      const ws = new FakeWebSocket();
+
+      const result = connect(ws, "newbie");
+
+      expect(result).toEqual({ uid: "newbie", held: false });
+      expect(uidToWs.get("newbie")).toBe(ws as unknown as WebSocket);
+      expect(authenticatedUids.has("newbie")).toBe(false);
+      vi.advanceTimersByTime(25000);
+      expect(ws.ping).toHaveBeenCalledOnce();
+    });
+
+    it("stopKeepalive(ws) stops only that socket's pings", () => {
+      const a = new FakeWebSocket();
+      const b = new FakeWebSocket();
+      connect(a, "a");
+      connect(b, "b");
+
+      manager.stopKeepalive(a as unknown as WebSocket);
+      vi.advanceTimersByTime(25000);
+
+      expect(a.ping).not.toHaveBeenCalled();
+      expect(b.ping).toHaveBeenCalledOnce();
     });
   });
 });

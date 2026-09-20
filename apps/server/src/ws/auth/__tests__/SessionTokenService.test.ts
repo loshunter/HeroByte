@@ -71,6 +71,28 @@ describe("SessionTokenService", () => {
     expect(tokens.verify("dave", "room-a", token)).toBe(true);
   });
 
+  describe("matches() — the takeover question, table-agnostic", () => {
+    it("accepts the uid's token whatever table the session is in", () => {
+      const token = tokens.mint("dave", "room-a");
+
+      expect(tokens.matches("dave", token)).toBe(true);
+      // verify() is the table-bound question; matches() deliberately is not.
+      expect(tokens.verify("dave", "room-b", token)).toBe(false);
+    });
+
+    it("refuses a wrong, absent, foreign, or expired token exactly as verify does", () => {
+      const token = tokens.mint("dave", "room-a");
+      tokens.mint("erin", "room-a");
+      const tampered = token.slice(0, -1) + (token.endsWith("A") ? "B" : "A");
+
+      expect(tokens.matches("dave", tampered)).toBe(false);
+      expect(tokens.matches("dave", undefined)).toBe(false);
+      expect(tokens.matches("erin", token)).toBe(false);
+      tokens.detach("dave", T0);
+      expect(tokens.matches("dave", token, T0 + SESSION_TOKEN_GRACE_MS + 1)).toBe(false);
+    });
+  });
+
   it("rotation: a re-mint invalidates the previous token", () => {
     const first = tokens.mint("dave", "room-a");
     const second = tokens.mint("dave", "room-a");

@@ -398,6 +398,52 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       visibilitySpy.mockRestore();
     });
 
+    // Session identity binding: the server turns a connection away with 4003
+    // when another socket holds this uid's live session and this one could
+    // not prove it is the same session. Retrying in a loop would re-file the
+    // same unproven claim forever (the war 4002 ended, in a new form), so it
+    // is never auto-retried — but unlike 4002 it is not terminal: the user
+    // can close the other window and try again by hand.
+    it("should NOT auto-reconnect on WS_CLOSE_SESSION_CONFLICT (4003) — goes CONFLICT", () => {
+      manager.connect();
+
+      mockWebSocketInstance.onclose({ code: 4003, reason: "Session held by another connection" });
+
+      expect(manager.getState()).toBe(ConnectionState.CONFLICT);
+      vi.advanceTimersByTime(60000);
+      expect(manager.getState()).toBe(ConnectionState.CONFLICT);
+      expect(MockWebSocketClass).toHaveBeenCalledTimes(1);
+    });
+
+    // Delivered by cleanup() removing the visibilitychange listener before the
+    // state is set (the state guard in handleVisibilityChange is a second line
+    // that the listener removal makes unreachable) — the guarantee is what is
+    // pinned here, not the mechanism.
+    it("should not revive a CONFLICT session when the tab becomes visible", () => {
+      const visibilitySpy = vi.spyOn(document, "visibilityState", "get");
+      manager.connect();
+      mockWebSocketInstance.onclose({ code: 4003, reason: "Session held by another connection" });
+
+      const socketsBefore = MockWebSocketClass.mock.calls.length;
+      visibilitySpy.mockReturnValue("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+
+      expect(MockWebSocketClass).toHaveBeenCalledTimes(socketsBefore);
+      expect(manager.getState()).toBe(ConnectionState.CONFLICT);
+      visibilitySpy.mockRestore();
+    });
+
+    it("a manual connect() after CONFLICT opens a fresh socket (the user's retry)", () => {
+      manager.connect();
+      mockWebSocketInstance.onclose({ code: 4003, reason: "Session held by another connection" });
+      expect(manager.getState()).toBe(ConnectionState.CONFLICT);
+
+      manager.connect();
+
+      expect(MockWebSocketClass).toHaveBeenCalledTimes(2);
+      expect(manager.getState()).toBe(ConnectionState.CONNECTING);
+    });
+
     it("should use exponential backoff with 1.5x multiplier", () => {
       const reconnectInterval = 2000;
       manager = new ConnectionLifecycleManager({

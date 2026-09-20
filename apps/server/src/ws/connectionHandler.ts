@@ -62,7 +62,8 @@ export class ConnectionHandler {
     );
     this.lifecycleManager = new ConnectionLifecycleManager(
       {
-        roomService: container.roomService,
+        getRoomIdForUid: (uid) => container.roomIdForUid(uid),
+        getRoomServiceForRoom: (roomId) => container.getRoomServiceForRoom(roomId),
       },
       container.uidToWs,
       container.authenticatedUids,
@@ -73,7 +74,7 @@ export class ConnectionHandler {
     this.pipelineManager = new MessagePipelineManager(
       {
         maxMessageSize: WS_MAX_MESSAGE_BYTES,
-        onValidMessage: (message, uid) => this.handleValidatedMessage(message, uid),
+        onValidMessage: (message, uid, ws) => this.handleValidatedMessage(message, uid, ws),
       },
       container.rateLimiter,
     );
@@ -82,6 +83,7 @@ export class ConnectionHandler {
         authHandler: this.authHandler,
       },
       container.authenticatedUids,
+      container.uidToWs,
     );
   }
 
@@ -106,11 +108,14 @@ export class ConnectionHandler {
     // behind a trusted proxy, else the socket peer) for the auth budget.
     this.ipOfWs.set(ws, clientIpFor(req.socket?.remoteAddress, req.headers?.["x-forwarded-for"]));
 
-    // Delegate connection lifecycle to ConnectionLifecycleManager
+    // Delegate connection lifecycle to ConnectionLifecycleManager. The socket
+    // rides along with every message from here on: two sockets can claim one
+    // uid (a held newcomer beside a live incumbent), so "which socket sent
+    // this" cannot be recovered from the uid alone.
     const { uid } = this.lifecycleManager.handleConnection(ws, req);
 
     // Message handling
-    ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid));
+    ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid, ws));
 
     // A ws socket with NO "error" listener is a remote kill switch: `ws`
     // emits "error" on a protocol violation, and EventEmitter THROWS when
@@ -132,18 +137,20 @@ export class ConnectionHandler {
   /**
    * Handle incoming WebSocket message
    */
-  private handleMessage(buf: Buffer, uid: string): void {
+  private handleMessage(buf: Buffer, uid: string, ws: WebSocket): void {
     // Delegate to message pipeline for validation
-    this.pipelineManager.processMessage(buf, uid);
+    this.pipelineManager.processMessage(buf, uid, ws);
   }
 
   /**
    * Handle validated message from pipeline
    * Performs authentication routing and message dispatch
    */
-  private handleValidatedMessage(message: ClientMessage, uid: string): void {
-    // Check authentication and route auth messages
-    const wasHandled = this.authenticator.checkAuthentication(message, uid);
+  private handleValidatedMessage(message: ClientMessage, uid: string, ws?: WebSocket): void {
+    // Check authentication and route auth messages. `ws` is always present on
+    // this path (the pipeline passes it through); the guard is for the type.
+    if (!ws) return;
+    const wasHandled = this.authenticator.checkAuthentication(message, uid, ws);
 
     // If message was handled (auth message or dropped), return
     if (wasHandled) {
@@ -159,7 +166,7 @@ export class ConnectionHandler {
    */
   private handleDisconnection(uid: string, ws: WebSocket): void {
     // Delegate keepalive cleanup to ConnectionLifecycleManager
-    this.lifecycleManager.stopKeepalive(uid);
+    this.lifecycleManager.stopKeepalive(ws);
 
     // Delegate player cleanup to DisconnectionCleanupManager
     // Pass WebSocket for race condition check

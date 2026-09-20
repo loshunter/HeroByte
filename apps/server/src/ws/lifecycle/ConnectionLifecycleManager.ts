@@ -15,10 +15,10 @@ import type { RoomService } from "../../domains/room/service.js";
  * Configuration for ConnectionLifecycleManager
  */
 export interface ConnectionLifecycleConfig {
-  /**
-   * Room service for managing room state
-   */
-  roomService: RoomService;
+  /** The room a uid's session is in (the default room until it authenticates). */
+  getRoomIdForUid: (uid: string) => string;
+  /** RoomService for a room, so a replaced uid leaves the roster of ITS room. */
+  getRoomServiceForRoom: (roomId: string) => RoomService;
 
   /**
    * Optional callback invoked when a connection is replaced
@@ -36,59 +36,53 @@ export interface ConnectionLifecycleResult {
    * Extracted client UID from connection URL
    */
   uid: string;
+  /**
+   * True when the uid's session is LIVE and AUTHENTICATED on another socket.
+   * This newcomer was neither registered nor did it evict anyone: it is a
+   * bystander until its `authenticate` proves the session token, at which
+   * point AuthenticationHandler swaps it in. Until then every other message
+   * it sends is dropped (MessageAuthenticator checks the registered socket).
+   */
+  held: boolean;
 }
 
 /**
  * ConnectionLifecycleManager handles WebSocket connection lifecycle
  *
- * This class manages the complete lifecycle of establishing a new WebSocket connection:
  * 1. Extract client UID from connection URL
- * 2. Handle connection replacement (close existing connection)
- * 3. Manage seamless reconnection (preserve auth state)
- * 4. Register connection in uidToWs map
- * 5. Setup keepalive ping interval
+ * 2. Decide who holds the uid's slot (see the rules below)
+ * 3. Register the connection in uidToWs — or hold it
+ * 4. Setup keepalive ping interval, per socket
  *
- * Connection Replacement Logic:
- * - If a UID already has a connection, close the old connection
- * - If the old connection was authenticated, preserve auth state
- * - If the old connection was not authenticated, clear auth state
+ * Who holds a uid's slot — the security rule this class enforces:
+ * - A uid is CLIENT-SUPPLIED (the connect URL) and every uid is published in
+ *   the roster, so a newcomer claiming one has proven nothing yet.
+ * - If the uid's session is live and authenticated on another socket, the
+ *   newcomer is HELD: not registered, and the incumbent is not closed. Before
+ *   this rule, connecting as `?uid=dave` closed dave's socket and inherited
+ *   dave's auth flag — DM included — with no password at all.
+ * - A dead or unauthenticated occupant is replaced (closed with
+ *   WS_CLOSE_REPLACED); that is the reconnect-after-blip path and stays fast.
+ * - Adoption NEVER confers auth. The uid's auth flag and session are cleared
+ *   on every adoption; the newcomer authenticates with its password and, if
+ *   it holds one, the session token that lets it keep its DM elevation.
  *
  * Race Condition Prevention:
- * - Checks that WebSocket reference matches before cleanup
- * - Prevents rapid reconnections from clearing wrong connection
- *
- * @example
- * ```typescript
- * const lifecycleManager = new ConnectionLifecycleManager(
- *   {
- *     roomService: roomService,
- *     onConnectionReplaced: (uid, wasAuth) => {
- *       console.log(`Replaced connection for ${uid} (was authenticated: ${wasAuth})`);
- *     }
- *   },
- *   uidToWs,
- *   authenticatedUids,
- *   authenticatedSessions
- * );
- *
- * // Handle new connection
- * const { uid } = lifecycleManager.handleConnection(ws, req);
- *
- * // Later, on disconnection
- * lifecycleManager.stopKeepalive(uid);
- * ```
+ * - The newcomer is registered BEFORE the old socket is closed, so a close
+ *   handler that runs synchronously sees it is no longer current and skips
+ *   cleanup (DisconnectionCleanupManager checks the registered socket).
  */
 export class ConnectionLifecycleManager {
   private config: ConnectionLifecycleConfig;
   private uidToWs: Map<string, WebSocket>;
   private authenticatedUids: Set<string>;
   private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
-  private keepalives: Map<string, NodeJS.Timeout>;
+  // Keyed by SOCKET, not uid: a held newcomer needs its own ping, and a swap
+  // must not have to hand a timer over from one socket to another.
+  private keepalives: Map<WebSocket, NodeJS.Timeout>;
 
   /**
-   * Create a new ConnectionLifecycleManager
-   *
-   * @param config - Configuration including RoomService and optional callbacks
+   * @param config - Room resolvers and optional callbacks
    * @param uidToWs - Map of client UIDs to WebSocket connections (shared reference)
    * @param authenticatedUids - Set of authenticated client UIDs (shared reference)
    * @param authenticatedSessions - Map of client UIDs to session data (shared reference)
@@ -107,82 +101,80 @@ export class ConnectionLifecycleManager {
   }
 
   /**
-   * Handle new WebSocket connection
-   *
-   * This method implements the connection establishment logic extracted from
-   * ConnectionHandler.handleConnection().
-   *
-   * Connection Flow:
-   * 1. Extract UID from connection URL (defaults to "anon")
-   * 2. Get current room state
-   * 3. Close existing connection if present (race condition prevention)
-   * 4. Clear auth state only if old connection was not authenticated
-   * 5. Register new connection in uidToWs map
-   * 6. Setup keepalive ping interval (25 seconds)
+   * Handle new WebSocket connection — see the class comment for the rules.
    *
    * @param ws - The WebSocket connection
    * @param req - The incoming HTTP request
-   * @returns Object containing extracted UID and keepalive interval handle
+   * @returns The extracted UID and whether the newcomer was held
    */
   handleConnection(ws: WebSocket, req: IncomingMessage): ConnectionLifecycleResult {
     // Extract player UID from connection URL
     const params = new URL(req.url || "", "http://localhost").searchParams;
     const uid = params.get("uid") || "anon";
 
-    const state = this.config.roomService.getState();
-
-    // Close existing connection for this UID to prevent race conditions
     const existingWs = this.uidToWs.get(uid);
     const wasAuthenticated = this.authenticatedUids.has(uid);
+
+    // Every socket pings, held or registered, so a cloud proxy never idles
+    // one out while it waits to authenticate.
+    this.startKeepalive(ws);
+
+    const incumbentIsLive =
+      existingWs !== undefined && existingWs !== ws && existingWs.readyState === 1;
+    if (incumbentIsLive && wasAuthenticated) {
+      console.log(
+        `[WebSocket] Holding a second connection for ${uid}: session live on another socket`,
+      );
+      return { uid, held: true };
+    }
+
+    // The uid's room BEFORE the session record goes, so it leaves the right roster.
+    const roomId = this.config.getRoomIdForUid(uid);
 
     if (existingWs && existingWs !== ws) {
       console.log(
         `[WebSocket] Replacing connection for ${uid} (was authenticated: ${wasAuthenticated})`,
       );
+      // Register first, close second — see "Race Condition Prevention" above.
+      this.uidToWs.set(uid, ws);
       existingWs.close(WS_CLOSE_REPLACED, "Replaced by new connection");
       this.config.onConnectionReplaced?.(uid, wasAuthenticated);
-
-      // Stop keepalive for replaced connection
-      this.stopKeepalive(uid);
+    } else {
+      this.uidToWs.set(uid, ws);
     }
 
-    // Only clear authentication if this is a truly new connection (not a replacement)
-    // If the old connection was authenticated, keep the auth state for seamless reconnection
-    if (!wasAuthenticated) {
-      this.authenticatedUids.delete(uid);
-      this.authenticatedSessions.delete(uid);
-      state.users = state.users.filter((u: string) => u !== uid);
-    }
+    // Adoption never confers auth: the newcomer proves itself in `authenticate`.
+    this.authenticatedUids.delete(uid);
+    this.authenticatedSessions.delete(uid);
+    const state = this.config.getRoomServiceForRoom(roomId).getState();
+    state.users = state.users.filter((u: string) => u !== uid);
 
-    // Register connection
-    this.uidToWs.set(uid, ws);
+    return { uid, held: false };
+  }
 
-    // Setup keepalive ping to prevent cloud provider timeout
+  /** Ping every 25 s to keep cloud-provider proxies from idling the socket out. */
+  private startKeepalive(ws: WebSocket): void {
     const keepalive = setInterval(() => {
       if (ws.readyState === 1) {
         ws.ping();
       }
     }, 25000);
-
-    // Track keepalive internally for cleanup
-    this.keepalives.set(uid, keepalive);
-
-    return { uid };
+    this.keepalives.set(ws, keepalive);
   }
 
   /**
-   * Stop keepalive ping for a connection
+   * Stop keepalive ping for a socket
    *
    * Clears the interval and removes it from internal tracking.
-   * Safe to call even if no keepalive exists for the UID.
+   * Safe to call even if no keepalive exists for the socket.
    *
-   * @param uid - Client unique identifier
+   * @param ws - The socket whose keepalive should stop
    */
-  stopKeepalive(uid: string): void {
-    const keepalive = this.keepalives.get(uid);
+  stopKeepalive(ws: WebSocket): void {
+    const keepalive = this.keepalives.get(ws);
     if (keepalive) {
       clearInterval(keepalive);
-      this.keepalives.delete(uid);
+      this.keepalives.delete(ws);
     }
   }
 

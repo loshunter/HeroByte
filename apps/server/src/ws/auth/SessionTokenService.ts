@@ -69,18 +69,37 @@ export class SessionTokenService {
    * rotated-away token, and a record detached longer than the grace window.
    */
   verify(uid: string, roomId: string, token: unknown, now: number = Date.now()): boolean {
-    if (typeof token !== "string" || token.length === 0) return false;
+    const record = this.liveRecord(uid, now);
+    return record !== undefined && this.hashMatches(record, token) && record.roomId === roomId;
+  }
+
+  /**
+   * Does `token` prove `uid`'s session, whatever table it is in? This is the
+   * takeover question — "are you the same session as the socket holding this
+   * uid" — and a session may legitimately move tables (a second tab opened on
+   * another table). Table-bound authority (DM) is verify()'s question, not this one.
+   */
+  matches(uid: string, token: unknown, now: number = Date.now()): boolean {
+    const record = this.liveRecord(uid, now);
+    return record !== undefined && this.hashMatches(record, token);
+  }
+
+  private liveRecord(uid: string, now: number): SessionTokenRecord | undefined {
     const record = this.records.get(uid);
-    if (!record) return false;
+    if (!record) return undefined;
     if (this.isExpired(record, now)) {
       this.records.delete(uid);
-      return false;
+      return undefined;
     }
+    return record;
+  }
+
+  private hashMatches(record: SessionTokenRecord, token: unknown): boolean {
+    if (typeof token !== "string" || token.length === 0) return false;
     // Both sides are SHA-256 digests, so lengths always match and
     // timingSafeEqual never throws; the compare itself leaks nothing about
     // how many leading bytes were right.
-    const matches = timingSafeEqual(hashToken(token), record.tokenHash);
-    return matches && record.roomId === roomId;
+    return timingSafeEqual(hashToken(token), record.tokenHash);
   }
 
   /**

@@ -26,10 +26,6 @@ import {
 import type { CreateRoomInput } from "../rooms/useCreateRoom";
 
 // ============================================================================
-// CONSTANTS
-// ============================================================================
-
-// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -278,6 +274,8 @@ export function AuthenticationGate({
         return "Failed";
       case ConnectionState.REPLACED:
         return "Opened in another tab";
+      case ConnectionState.CONFLICT:
+        return "Held in another window";
       case ConnectionState.DISCONNECTED:
       default:
         return "Disconnected";
@@ -290,7 +288,10 @@ export function AuthenticationGate({
     connectionState !== ConnectionState.CONNECTING &&
     connectionState !== ConnectionState.RECONNECTING;
 
-  const showAuthGate = !hasAuthenticated || authState === AuthState.FAILED;
+  const conflict = connectionState === ConnectionState.CONFLICT;
+  // A CONFLICT close never auto-reconnects, so the "Reconnecting…" banner would
+  // never resolve: show the gate, which explains it and offers a manual retry.
+  const showAuthGate = !hasAuthenticated || authState === AuthState.FAILED || conflict;
 
   // -------------------------------------------------------------------------
   // RENDER

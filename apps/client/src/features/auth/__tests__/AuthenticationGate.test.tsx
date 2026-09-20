@@ -117,6 +117,49 @@ describe("AuthenticationGate - Characterization", () => {
       expect(screen.getByText("Connecting")).toBeInTheDocument();
     });
 
+    it("should explain a session CONFLICT and offer a manual retry, even after a prior login", () => {
+      // The server turned this socket away (another window holds the session
+      // and this one could not prove it is the same one). Nothing reconnects
+      // by itself, so the gate — not the "Reconnecting…" banner — must show.
+      const { rerender } = render(
+        <AuthenticationGate
+          url="ws://test"
+          uid="test-uid"
+          onAuthenticate={vi.fn()}
+          onConnect={vi.fn()}
+          isConnected={true}
+          connectionState={ConnectionState.CONNECTED}
+          authState={AuthState.AUTHENTICATED}
+          authError={null}
+        >
+          <div>Protected Content</div>
+        </AuthenticationGate>,
+      );
+      expect(screen.getByText("Protected Content")).toBeInTheDocument();
+
+      rerender(
+        <AuthenticationGate
+          url="ws://test"
+          uid="test-uid"
+          onAuthenticate={vi.fn()}
+          onConnect={vi.fn()}
+          isConnected={false}
+          connectionState={ConnectionState.CONFLICT}
+          authState={AuthState.UNAUTHENTICATED}
+          authError={null}
+        >
+          <div>Protected Content</div>
+        </AuthenticationGate>,
+      );
+
+      expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
+      expect(screen.getByText("Held in another window")).toBeInTheDocument();
+      expect(
+        screen.getByText(/Another window or device is already at this table/),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
+    });
+
     it("should display auth error when present", () => {
       const mockAuthenticate = vi.fn();
       const mockConnect = vi.fn();

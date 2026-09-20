@@ -280,7 +280,11 @@ describe("ConnectionHandler", () => {
     tokens.forceDeleteToken(state, pc.tokenId);
     expect(pc.tokenId).toBeFalsy();
 
-    // A reconnect is a NEW socket with the same uid (the old one is gone).
+    // A reconnect is a NEW socket with the same uid, the old one dead on the
+    // wire (readyState CLOSED) but not yet cleaned up — the blip case. A LIVE
+    // old socket would instead hold the newcomer until it proved the session
+    // token (see sessionHijack.contract.test.ts); that is not this test.
+    socket.readyState = 3;
     const reconnected = new FakeWebSocket();
     wss.emitConnection(reconnected, { url: "/?uid=user-dm" });
     reconnected.emit("message", Buffer.from(JSON.stringify(authMessage)));
@@ -311,6 +315,7 @@ describe("ConnectionHandler", () => {
     characters.claimCharacter(state, second.id, "user-two");
     second.tokenId = "deleted-before-unlink-shipped";
 
+    socket.readyState = 3; // the old socket is dead on the wire (see the test above)
     const reconnected = new FakeWebSocket();
     wss.emitConnection(reconnected, { url: "/?uid=user-two" });
     reconnected.emit("message", Buffer.from(JSON.stringify(authMessage)));

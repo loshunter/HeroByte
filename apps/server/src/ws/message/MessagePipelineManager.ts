@@ -4,6 +4,7 @@
 // Validates incoming WebSocket messages through a multi-stage pipeline
 // Single responsibility: Message validation and pre-processing
 
+import type { WebSocket } from "ws";
 import type { ClientMessage } from "@herobyte/shared";
 import type { RateLimiter } from "../../middleware/rateLimit.js";
 import { validateMessage } from "../../middleware/validation.js";
@@ -23,8 +24,11 @@ export interface MessagePipelineConfig {
    * Callback invoked when a message passes all validation stages
    * @param message - The validated client message
    * @param uid - The user ID associated with the message
+   * @param ws - The socket the message arrived on, when the caller passed one.
+   *   Two sockets can claim one uid, so the sender cannot be recovered from
+   *   the uid alone.
    */
-  onValidMessage: (message: ClientMessage, uid: string) => void;
+  onValidMessage: (message: ClientMessage, uid: string, ws?: WebSocket) => void;
 
   /**
    * Optional callback invoked when a message fails validation
@@ -87,9 +91,10 @@ export class MessagePipelineManager {
    *
    * @param buffer - Raw message buffer from WebSocket
    * @param uid - User ID of the message sender
+   * @param ws - The socket the message arrived on (passed through to onValidMessage)
    * @returns true if message was processed successfully, false if rejected
    */
-  processMessage(buffer: Buffer, uid: string): boolean {
+  processMessage(buffer: Buffer, uid: string, ws?: WebSocket): boolean {
     let rawMessage: unknown;
     try {
       // Stage 1: Message size check
@@ -115,7 +120,7 @@ export class MessagePipelineManager {
       }
 
       // All validation stages passed - invoke success callback
-      this.config.onValidMessage(message, uid);
+      this.config.onValidMessage(message, uid, ws);
       return true;
     } catch (err) {
       // Handle unexpected errors during processing

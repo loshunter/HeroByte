@@ -59,11 +59,11 @@ describe("session token scoping", () => {
     expect(readSessionToken("player-uid", "the-keep")).toBe("tok-player");
   });
 
-  it("returns undefined for a table or uid that has no stashed token", () => {
+  it("returns undefined for a uid that has no stashed token anywhere", () => {
     stashSessionToken("tok-dragons", "uid-1", "dragons-den");
 
-    expect(readSessionToken("uid-1", "never-visited")).toBeUndefined();
     expect(readSessionToken("uid-2", "dragons-den")).toBeUndefined();
+    expect(readSessionToken("uid-2", undefined)).toBeUndefined();
   });
 
   it("keeps the default table on a key without a room segment", () => {
@@ -78,6 +78,20 @@ describe("session token scoping", () => {
 
     expect(sessionStorage.length).toBe(0);
     expect(localStorage.getItem(`${SESSION_TOKEN_STORAGE_KEY}:the-keep:uid-1`)).toBe("tok-shared");
+  });
+
+  it("falls back to the NEWEST token this uid holds when the table has none", () => {
+    // A second tab opened on a different table has no token for it yet, but
+    // the server's takeover check is "same session", not "same table" — so it
+    // presents the latest one it was minted and can still take the uid over.
+    stashSessionToken("tok-hall", "uid-1", undefined);
+    stashSessionToken("tok-keep", "uid-1", "the-keep");
+
+    expect(readSessionToken("uid-1", "never-visited")).toBe("tok-keep");
+    // The per-table token still wins where one exists.
+    expect(readSessionToken("uid-1", undefined)).toBe("tok-hall");
+    // And another uid's newest token is never borrowed.
+    expect(readSessionToken("uid-2", "never-visited")).toBeUndefined();
   });
 
   it("a later stash for the same table+uid replaces the earlier token (rotation)", () => {

@@ -2,14 +2,36 @@
 // JOIN PROVISIONING
 // ============================================================================
 // What a password-verified `authenticate` does to room state: find or create
-// the player, and make sure every PC the uid owns has a token to stand on.
+// the player, make sure every PC the uid owns has a token to stand on, and —
+// when one session moves tables in a single step — leave the old roster.
 // Split out of AuthenticationHandler for the structural size guard, the same
-// move that produced dmElevation.ts and tableFork.ts. Behaviour is unchanged.
+// move that produced dmElevation.ts and tableFork.ts.
 
+import type { WebSocket } from "ws";
 import type { Player } from "@herobyte/shared";
 import type { Container } from "../../container.js";
 import type { RoomService } from "../../domains/room/service.js";
 import type { RoomState } from "../../domains/room/model.js";
+
+/**
+ * Drop a uid from the roster of a room it is no longer connected to, and tell
+ * that room. Without this the heartbeat sweep later finds the stale entry,
+ * resolves the uid's room to the NEW one, and cleans that up instead.
+ */
+export function leaveRoomRoster(
+  container: Container,
+  uidToWs: Map<string, WebSocket>,
+  uid: string,
+  roomId: string,
+): void {
+  const roomService = container.getRoomServiceForRoom(roomId);
+  const state = roomService.getState();
+  if (!state.users.includes(uid)) return;
+  state.users = state.users.filter((u) => u !== uid);
+  roomService.broadcast(container.getAuthenticatedClientsForRoom(roomId), uidToWs, {
+    reason: "room-switch",
+  });
+}
 
 /**
  * Create-or-reconnect the player record for `uid` and provision its tokens.

@@ -24,7 +24,7 @@ vi.mock("fs/promises", () => ({
   mkdir: vi.fn().mockResolvedValue(undefined),
 }));
 
-import type { WebSocketServer } from "ws";
+import type { WebSocket, WebSocketServer } from "ws";
 import type { RoomSnapshot } from "@herobyte/shared";
 import { Container } from "../../container.js";
 import { RoomRegistry } from "../../domains/room/RoomRegistry.js";
@@ -240,6 +240,164 @@ describe("session identity: who may hold a uid's session", () => {
 
       expect(ws.authOk()).toHaveLength(2);
       expect(dave()?.isDM).toBe(true);
+    });
+  });
+
+  // The proven exploit, step by step. Before this arc: step 2 closed dave's
+  // socket, kept dave's auth flag for the newcomer, and step 3 ran a DM action
+  // as dave — with nothing but the uid off the roster.
+  describe("claiming a uid whose session is LIVE on another socket (online takeover, A + D)", () => {
+    const ATTACKER_IP = "203.0.113.7";
+
+    it("connecting as the DM's uid neither evicts the DM nor adopts the session", async () => {
+      const { ws: daveWs } = await joinAsDM();
+
+      const intruder = server.connect("dave", ATTACKER_IP);
+
+      // D: the real DM is untouched — no close, still registered, still authenticated.
+      expect(daveWs.close).not.toHaveBeenCalled();
+      expect(daveWs.readyState).toBe(1);
+      expect(container.uidToWs.get("dave")).toBe(daveWs as unknown as WebSocket);
+      expect(container.authenticatedUids.has("dave")).toBe(true);
+      // A: the intruder inherited nothing — not even a frame.
+      expect(intruder.send).not.toHaveBeenCalled();
+    });
+
+    it("a DM action from the unproven socket is dropped, even though the uid IS authenticated", async () => {
+      const { ws: daveWs } = await joinAsDM();
+      const intruder = server.connect("dave", ATTACKER_IP);
+
+      send(intruder, { t: "start-combat" });
+      await settle();
+
+      expect(container.roomService.getState().combatActive).not.toBe(true);
+      // ...while the same action from dave's own socket goes through.
+      send(daveWs, { t: "start-combat" });
+      await settle();
+      expect(container.roomService.getState().combatActive).toBe(true);
+    });
+
+    it("authenticate with the room password but no token is turned away with 4003; the DM is untouched", async () => {
+      const { ws: daveWs } = await joinAsDM();
+      const intruder = server.connect("dave", ATTACKER_IP);
+
+      await authenticate(intruder);
+
+      expect(intruder.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+      expect(intruder.authOk()).toHaveLength(0);
+      expect(daveWs.close).not.toHaveBeenCalled();
+      expect(container.uidToWs.get("dave")).toBe(daveWs as unknown as WebSocket);
+      expect(container.authenticatedUids.has("dave")).toBe(true);
+      expect(dave()?.isDM).toBe(true);
+    });
+
+    it("a WRONG token is turned away the same way", async () => {
+      const { ws: daveWs, token } = await joinAsDM();
+      const intruder = server.connect("dave", ATTACKER_IP);
+
+      await authenticate(intruder, token.slice(0, -1) + (token.endsWith("A") ? "B" : "A"));
+
+      expect(intruder.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+      expect(daveWs.close).not.toHaveBeenCalled();
+      expect(container.uidToWs.get("dave")).toBe(daveWs as unknown as WebSocket);
+    });
+
+    it("a whisper to dave reaches only dave's real socket while an unproven one is pending", async () => {
+      const { ws: daveWs } = await joinAsDM();
+      const erin = server.connect("erin");
+      await authenticate(erin);
+      const intruder = server.connect("dave", ATTACKER_IP);
+
+      send(erin, { t: "chat", text: "the vault code is on the altar", to: "dave" });
+      vi.advanceTimersByTime(50); // debounced broadcast
+
+      expect(daveWs.rawBytes()).toContain("the vault code is on the altar");
+      expect(intruder.rawBytes()).not.toContain("vault code");
+    });
+
+    it("the session token takes over: the stale socket gets 4002, the newcomer is DM and can act", async () => {
+      // A zombie incumbent: dave's laptop lid closed, the socket reads OPEN
+      // for up to the 5-minute heartbeat window. The same browser reconnects.
+      const { ws: staleWs, token } = await joinAsDM();
+      const fresh = server.connect("dave");
+      // The swap must register the newcomer BEFORE closing the stale socket:
+      // a close handler that runs synchronously would otherwise run the
+      // disconnect cleanup against the live session — dropping the DM's
+      // selection is its one visible side effect here.
+      const deselect = vi.spyOn(container.selectionService, "deselect");
+
+      await authenticate(fresh, token);
+
+      expect(deselect).not.toHaveBeenCalled();
+      expect(staleWs.close).toHaveBeenCalledTimes(1);
+      expect(staleWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(container.uidToWs.get("dave")).toBe(fresh as unknown as WebSocket);
+      expect(container.authenticatedUids.has("dave")).toBe(true);
+      expect(fresh.authOk()).toHaveLength(1);
+      expect(fresh.authOk()[0].sessionToken).not.toBe(token); // rotated
+      expect(dave()?.isDM).toBe(true);
+      // Registered once, not twice, in the roster.
+      expect(container.roomService.getState().users.filter((u) => u === "dave")).toHaveLength(1);
+
+      send(fresh, { t: "start-combat" });
+      await settle();
+      expect(container.roomService.getState().combatActive).toBe(true);
+    });
+
+    it("a token is enough to take over even into a different table (a second tab on another table)", async () => {
+      const { ws: staleWs, token } = await joinAsDM(); // dave's session is in the default table
+      const fresh = server.connect("dave");
+
+      send(fresh, { t: "authenticate", secret: ROOM_PASSWORD, roomId: "castle-3f9", token });
+      await settle();
+
+      expect(staleWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(fresh.authOk()).toHaveLength(1);
+      expect(container.roomIdForUid("dave")).toBe("castle-3f9");
+      // Left the old roster — a stale entry there would later make the
+      // heartbeat sweep clean up the NEW room instead.
+      expect(container.roomService.getState().users).not.toContain("dave");
+      // DM is per table: the default-table elevation does not follow.
+      const castle = container.getRoomServiceForRoom("castle-3f9").getState();
+      expect(castle.players.find((p) => p.uid === "dave")?.isDM).toBe(false);
+    });
+
+    it("a DEAD incumbent is replaced at connect, but its auth is not inherited", async () => {
+      const { ws: deadWs, token } = await joinAsDM();
+      deadWs.readyState = 3; // closed on the wire, close event not yet delivered
+
+      const fresh = server.connect("dave", ATTACKER_IP);
+
+      // Replaced (this is the fast reconnect path)...
+      expect(deadWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(container.uidToWs.get("dave")).toBe(fresh as unknown as WebSocket);
+      // ...but connect alone confers nothing: a DM action is dropped...
+      expect(container.authenticatedUids.has("dave")).toBe(false);
+      send(fresh, { t: "start-combat" });
+      await settle();
+      expect(container.roomService.getState().combatActive).not.toBe(true);
+      // ...and a tokenless password auth comes back as a non-DM.
+      await authenticate(fresh);
+      expect(fresh.authOk()).toHaveLength(1);
+      expect(dave()?.isDM).toBe(false);
+      // The token would have kept it — proving the reset is the token's absence.
+      void token;
+    });
+
+    it("a rejected takeover stays charged against the intruder's budget, a successful one is refunded", async () => {
+      const { token } = await joinAsDM();
+      const budget = container.authWorkLimiter;
+      const takeSpy = vi.spyOn(budget, "take");
+      const refundSpy = vi.spyOn(budget, "refund");
+
+      const intruder = server.connect("dave", ATTACKER_IP);
+      await authenticate(intruder);
+      expect(takeSpy).toHaveBeenCalledWith(ATTACKER_IP);
+      expect(refundSpy).not.toHaveBeenCalledWith(ATTACKER_IP);
+
+      const fresh = server.connect("dave");
+      await authenticate(fresh, token);
+      expect(refundSpy).toHaveBeenCalledWith("198.51.100.10");
     });
   });
 });
