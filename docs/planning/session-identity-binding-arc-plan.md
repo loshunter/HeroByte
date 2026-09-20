@@ -757,3 +757,59 @@ own commit with a test that reproduces the issue and a sabotage that goes red wi
 verdict count fell 3 → 2 → 0-code across the rounds. Every code lens PASSED; the doc corrections
 are complete. Verified beyond the gate: `/verify-gates boot e2e` green on the final tree, and the
 live two-client evaluation (§12.4) re-confirmed against the fixed code.
+
+---
+
+## 14. Deploy record — IN PRODUCTION 2026-09-20
+
+`main` = **`2b7fe39e`** (a `--no-ff` merge of `dev` at `3852f819`, 17 commits). **CI run #886 green**
+on main; remember CI does NOT gate the push — Render and Cloudflare deploy regardless.
+
+**Probe (discriminating string, every served chunk).** Markers absent at the outgoing `50472bca`
+and present at the incoming commit: `Held in another window` and `This table is still connected
+as you elsewhere` each went **0 → 1** in `assets/index-28Dsfjsc.js`, across **11 chunks fetched
+(1.42 MB)** walked from the served HTML. Controls present either way held: `Enter Table` 1,
+`Table password` 6 — so the method was sound rather than silently matching nothing. Server
+`/healthz` returned **200 after ~30 s of 502s** (the expected Render restart window).
+
+**Functional check on the LIVE server** (throwaway uid on the public Main Hall, nobody else
+touched): socket A authenticated and elevated to DM (43-char token minted, so the new code is
+the code running). Socket B, same uid, room password, **no token → 0 `auth-ok`**. Same with a
+**wrong token → 0 `auth-ok`**. Socket C with the **real token → `auth-ok`**, takeover worked.
+**The impersonation hole is closed in production.**
+
+### 14.1 Production-only defect found while verifying — READ THIS BEFORE TRUSTING A CLOSE CODE
+
+**Render's proxy strips server-originated WebSocket close codes to 1005** ("no status received").
+Confirmed twice: a Node `ws` client and a REAL BROWSER on `herobyte.pages.dev`, whose own console
+reads `[WebSocket] Disconnected 1005` where the server sent **4002**. Client-originated closes
+(the browser's own `close(1000)`) are unaffected — it is only the server→client direction.
+
+Consequences, in order of importance:
+
+1. **`WS_CLOSE_REPLACED` (4002) has been inert in production since it shipped (`db329419`, July).**
+   The terminal REPLACED state never triggers; the client falls to `handleDisconnect()` and
+   auto-reconnects. **This is PRE-EXISTING, not this arc** — the same `existingWs.close(
+   WS_CLOSE_REPLACED, …)` is at the outgoing commit `50472bca`.
+2. **The new `WS_CLOSE_SESSION_CONFLICT` (4003) gate inherits it**, so a second device sees a
+   reconnect cycle instead of "Held in another window".
+3. **Two tabs of one browser therefore war endlessly** — each takeover's victim reconnects and
+   takes over in turn, because nothing goes terminal. Reproduced: **157 console entries cycling
+   every 2 s**, tab stuck OFFLINE. Exactly the war 4002 was written to end.
+
+**What it does NOT affect:** the guard itself is server-side and verified working above. Single-tab
+play never triggers a takeover, so normal use is unaffected.
+
+**The fix (not built — its own slice):** stop depending on the close code. Send an application-level
+control frame (`{ t: "session-conflict" }`) immediately BEFORE `ws.close(...)`, and branch the
+client on that frame rather than `event.code`. That survives any proxy and repairs the pre-existing
+REPLACED case in the same stroke. The close codes stay as defence in depth for direct connections
+(local dev, e2e), where they do arrive.
+
+**LESSON for the next deploy:** e2e and local dev both connect DIRECTLY to the server, so no test
+in this repo can see a proxy rewriting a close frame. A post-deploy functional check against the
+real host is the only thing that catches it — the bundle probe alone would have reported a clean
+deploy.
+
+**Post-deploy note for players:** reload any open tab. DMs re-enter the DM password once (session
+tokens live in memory and do not survive the restart).
