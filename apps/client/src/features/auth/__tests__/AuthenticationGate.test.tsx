@@ -19,6 +19,12 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AuthenticationGate } from "../AuthenticationGate";
 import { AuthState, ConnectionState } from "../../../services/websocket";
+import { startFreshSession } from "../freshSession";
+
+vi.mock("../freshSession", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../freshSession")>()),
+  startFreshSession: vi.fn(),
+}));
 
 // Mock sessionStorage
 const mockSessionStorage = (() => {
@@ -49,6 +55,7 @@ describe("AuthenticationGate - Characterization", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe("unauthenticated state", () => {
@@ -224,6 +231,117 @@ describe("AuthenticationGate - Characterization", () => {
       expect(screen.getByText(/up to six hours/)).toBeInTheDocument();
       expect(screen.getByText(/more retries will not shorten/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
+    });
+
+    it("offers a fresh session on CONFLICT only after a retry, and acts only on a confirmed click", () => {
+      // A browser that lost its session key has no other way in for the whole
+      // grace window. The action is irreversible for the old seat, so it sits
+      // behind a confirm that names the cost; a cancel does nothing. And a
+      // CONFLICT right after a deploy self-heals on the first retry, so the
+      // button is offered only once a retry in this conflict has failed.
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      vi.mocked(startFreshSession).mockClear();
+      const onConnect = vi.fn();
+      const gate = (state: ConnectionState, auth: AuthState = AuthState.UNAUTHENTICATED) => (
+        <AuthenticationGate
+          url="ws://test"
+          uid="test-uid"
+          onAuthenticate={vi.fn()}
+          onConnect={onConnect}
+          isConnected={state === ConnectionState.CONNECTED}
+          connectionState={state}
+          authState={auth}
+          authError={null}
+        >
+          <div>Protected Content</div>
+        </AuthenticationGate>
+      );
+      const { rerender } = render(gate(ConnectionState.CONFLICT));
+
+      expect(
+        screen.queryByRole("button", { name: "Start a Fresh Session" }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+      expect(onConnect).toHaveBeenCalledTimes(1);
+      // A real retry opens a socket and authenticates before the server
+      // refuses again: the count must survive that hop (the browser found it
+      // did not, when the effect reset on every non-CONFLICT state).
+      rerender(gate(ConnectionState.CONNECTING));
+      rerender(gate(ConnectionState.CONNECTED, AuthState.PENDING));
+      rerender(gate(ConnectionState.CONFLICT));
+      expect(screen.getByRole("button", { name: "Start a Fresh Session" })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Start a Fresh Session" }));
+      expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/cannot be undone/));
+      expect(startFreshSession).not.toHaveBeenCalled();
+
+      confirm.mockReturnValue(true);
+      fireEvent.click(screen.getByRole("button", { name: "Start a Fresh Session" }));
+      expect(startFreshSession).toHaveBeenCalledTimes(1);
+
+      // REPLACED has its own way back (Reclaim), and a plain disconnect
+      // reconnects by itself: neither offers a new identity — and leaving
+      // CONFLICT forgets the retry, so the next conflict starts over.
+      rerender(gate(ConnectionState.REPLACED));
+      expect(
+        screen.queryByRole("button", { name: "Start a Fresh Session" }),
+      ).not.toBeInTheDocument();
+      rerender(gate(ConnectionState.DISCONNECTED));
+      expect(
+        screen.queryByRole("button", { name: "Start a Fresh Session" }),
+      ).not.toBeInTheDocument();
+      rerender(gate(ConnectionState.CONFLICT));
+      expect(
+        screen.queryByRole("button", { name: "Start a Fresh Session" }),
+      ).not.toBeInTheDocument();
+      // Getting in ends the episode too: the next conflict starts from zero.
+      fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+      rerender(gate(ConnectionState.CONNECTED, AuthState.AUTHENTICATED));
+      rerender(gate(ConnectionState.CONFLICT));
+      expect(
+        screen.queryByRole("button", { name: "Start a Fresh Session" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("counts a retry made with Enter Table (or Enter) exactly like Try Again", () => {
+      // The first version counted only the Try Again click; a user retrying
+      // with the gold button above it could never reach the fresh-session
+      // button, and spent a non-refunded auth token on every attempt.
+      vi.spyOn(window, "confirm").mockReturnValue(false);
+      const onConnect = vi.fn();
+      const gate = (state: ConnectionState, auth: AuthState = AuthState.UNAUTHENTICATED) => (
+        <AuthenticationGate
+          url="ws://test"
+          uid="test-uid"
+          onAuthenticate={vi.fn()}
+          onConnect={onConnect}
+          isConnected={state === ConnectionState.CONNECTED}
+          connectionState={state}
+          authState={auth}
+          authError={null}
+        >
+          <div>Protected Content</div>
+        </AuthenticationGate>
+      );
+      const { rerender } = render(gate(ConnectionState.CONFLICT));
+
+      fireEvent.change(screen.getByPlaceholderText("Table password"), {
+        target: { value: "Fun1" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Enter Table" }));
+      expect(onConnect).toHaveBeenCalledTimes(1);
+      rerender(gate(ConnectionState.CONNECTING));
+      rerender(gate(ConnectionState.CONNECTED, AuthState.PENDING));
+      rerender(gate(ConnectionState.CONFLICT));
+
+      expect(screen.getByRole("button", { name: "Start a Fresh Session" })).toBeInTheDocument();
+
+      // A rejected password does NOT end the episode: the per-IP budget refusal
+      // arrives as the same auth-failed, and hiding the way out from the user
+      // who just drained the budget would be the wrong lesson.
+      rerender(gate(ConnectionState.CONNECTED, AuthState.FAILED));
+      rerender(gate(ConnectionState.CONFLICT));
+      expect(screen.getByRole("button", { name: "Start a Fresh Session" })).toBeInTheDocument();
     });
 
     it("should display auth error when present", () => {

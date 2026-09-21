@@ -6,16 +6,18 @@
 import { generateUUID } from "./uuid";
 
 const SESSION_UID_KEY = "herobyte-session-uid";
-const SESSION_UID_OVERRIDE_PARAM = "sessionUid";
+/** The dev/e2e/eval query param that pins a tab's uid; a fresh session drops it. */
+export const SESSION_UID_OVERRIDE_PARAM = "sessionUid";
 
-function getSessionUIDOverride(): string | null {
-  if (typeof window === "undefined") {
+/** The `?sessionUid=` override in a query string (the page's by default), if valid. */
+export function getSessionUIDOverride(
+  search: string | undefined = typeof window === "undefined" ? undefined : window.location.search,
+): string | null {
+  if (search === undefined) {
     return null;
   }
 
-  const override = new URLSearchParams(window.location.search)
-    .get(SESSION_UID_OVERRIDE_PARAM)
-    ?.trim();
+  const override = new URLSearchParams(search).get(SESSION_UID_OVERRIDE_PARAM)?.trim();
 
   if (!override || !/^[a-zA-Z0-9_-]{1,128}$/.test(override)) {
     return null;
@@ -38,6 +40,15 @@ export function getSessionUID(): string {
   const uid = generateUUID();
   localStorage.setItem(SESSION_UID_KEY, uid);
   return uid;
+}
+
+/** The uid this browser has stored, without minting one when there is none. */
+export function readStoredSessionUID(): string | null {
+  try {
+    return localStorage.getItem(SESSION_UID_KEY);
+  } catch {
+    return null;
+  }
 }
 
 /**

@@ -270,6 +270,35 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       expect(state.tokens.find((t) => t.id === tokenId)).toBeUndefined();
     });
 
+    it("a DM deleting a SEATED player's last character mints them a replacement with a token", () => {
+      // The owner's own delete mints a replacement client-side; a DM's delete
+      // of another player's last character reaches here with no such client
+      // path, and "Add Character" lives on the card they no longer have.
+      const state = roomService.getState();
+      state.users = [playerUid, dmUid];
+
+      messageRouter.route({ t: "delete-player-character", characterId }, dmUid);
+
+      const after = roomService.getState();
+      expect(after.characters.find((c) => c.id === characterId)).toBeUndefined();
+      const replacement = after.characters.find((c) => c.ownedByPlayerUID === playerUid);
+      expect(replacement).toBeDefined();
+      expect(replacement?.name).toBe("New Character");
+      expect(replacement?.tokenId).toBeDefined();
+      expect(after.tokens.find((t) => t.id === replacement?.tokenId)?.owner).toBe(playerUid);
+    });
+
+    it("a DM deleting an ABSENT player's last character leaves the seat empty — that is the point", () => {
+      const state = roomService.getState();
+      state.users = [dmUid];
+
+      messageRouter.route({ t: "delete-player-character", characterId }, dmUid);
+
+      const after = roomService.getState();
+      expect(after.characters.filter((c) => c.ownedByPlayerUID === playerUid)).toEqual([]);
+      expect(after.tokens.filter((t) => t.owner === playerUid)).toEqual([]);
+    });
+
     it("should not delete character when non-owner tries", () => {
       const otherPlayerUid = "other-player";
 

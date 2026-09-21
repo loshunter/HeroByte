@@ -71,7 +71,9 @@ export enum ConnectionState {
    * client racing its own not-yet-closed socket, briefly, after a fast reload
    * or a deploy — that case self-heals on retry. Not terminal the way REPLACED
    * is (close the other and try again), but never auto-retried: retrying as the
-   * same uid in a loop is the connection war REPLACED ended.
+   * same uid in a loop is the connection war REPLACED ended. A browser that
+   * has lost its key gets a "start a fresh session" way out on the gate
+   * (features/auth/freshSession.ts) once a retry in that conflict has failed.
    */
   CONFLICT = "conflict",
 }

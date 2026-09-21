@@ -15,7 +15,7 @@ export interface IdleRoomUnloadOptions {
   checkIntervalMs?: number;
   /**
    * How long the default table may sit empty before its contents are wiped
-   * (default 6 hours, via HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS). Much longer than
+   * (default 1 hour, via HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS). Much longer than
    * the unload window on purpose: unloading a private table is lossless, but
    * this one destroys content, so it should only fire when a session is
    * unambiguously over. 0 disables clearing entirely.

@@ -81,6 +81,22 @@ export const authPrimaryButtonStyle: React.CSSProperties = {
   transition: "filter 0.2s ease",
 };
 
+/** The one irreversible action on the gate, told apart from Try Again beside it. */
+export const authDangerButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "1px solid rgba(248, 113, 113, 0.6)",
+  borderRadius: "8px",
+  boxSizing: "border-box",
+  color: "#fca5a5",
+  cursor: "pointer",
+  fontFamily: "inherit",
+  fontSize: "0.95rem",
+  marginTop: "12px",
+  minHeight: "44px",
+  padding: "12px",
+  width: "100%",
+};
+
 export const authSecondaryButtonStyle: React.CSSProperties = {
   background: "transparent",
   border: "1px solid rgba(148, 163, 184, 0.4)",

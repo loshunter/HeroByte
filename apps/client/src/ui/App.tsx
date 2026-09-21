@@ -75,7 +75,11 @@ export const App: React.FC = () => {
   useJuiceRuntime();
 
   // Network and session
-  const uid = getSessionUID(); // This player's unique ID
+  // This player's unique ID — read ONCE. getSessionUID mints and stores a uid
+  // when the key is absent, and another tab's "start a fresh session" removes
+  // that key: re-reading on every render would silently re-identify this tab
+  // mid-session. Its own next reconnect will land on the gate honestly instead.
+  const uid = useMemo(() => getSessionUID(), []);
   const {
     snapshot,
     remoteMeasurements,

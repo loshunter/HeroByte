@@ -23,9 +23,14 @@ const characters = [
   { id: "char-1", name: "Me", type: "pc", ownedByPlayerUID: ME, hp: 10, maxHp: 10 },
 ] as unknown as SnapshotCharacter[];
 
-function renderList(isDM: boolean, onTokenVisionRadiusChange = vi.fn()) {
+function renderList(
+  isDM: boolean,
+  onTokenVisionRadiusChange = vi.fn(),
+  extra: Partial<React.ComponentProps<typeof MobileEntitiesList>> = {},
+) {
   render(
     <MobileEntitiesList
+      {...extra}
       players={players}
       characters={characters}
       uid={ME}
@@ -51,6 +56,95 @@ function renderList(isDM: boolean, onTokenVisionRadiusChange = vi.fn()) {
   );
   return onTokenVisionRadiusChange;
 }
+
+describe("delete character — the desktop gate, on a phone", () => {
+  const deleteButton = () => screen.queryByRole("button", { name: /Delete this character/ });
+
+  it("a DM gets Delete on another player's row, bound to that character", () => {
+    const onDeleteCharacter = vi.fn();
+    const other = { ...players[0], uid: "other-uid", name: "Other" };
+    const otherCharacter = {
+      ...characters[0],
+      id: "char-other",
+      name: "Other",
+      ownedByPlayerUID: "other-uid",
+    };
+    render(
+      <MobileEntitiesList
+        players={[players[0], other] as Player[]}
+        characters={[characters[0], otherCharacter] as SnapshotCharacter[]}
+        uid={ME}
+        isDM={true}
+        onToggleDMMode={vi.fn()}
+        editingHpUID={null}
+        hpInput=""
+        onHpInputChange={vi.fn()}
+        onHpEdit={vi.fn()}
+        onHpSubmit={vi.fn()}
+        editingMaxHpUID={null}
+        maxHpInput=""
+        onMaxHpInputChange={vi.fn()}
+        onMaxHpEdit={vi.fn()}
+        onMaxHpSubmit={vi.fn()}
+        onCharacterHpChange={vi.fn()}
+        onCharacterStatusEffectsChange={vi.fn()}
+        onCharacterNameUpdate={vi.fn()}
+        onCharacterPortraitUpdate={vi.fn()}
+        onDeleteCharacter={onDeleteCharacter}
+      />,
+    );
+    const otherRow = screen
+      .getAllByTestId("mobile-player-row")
+      .find((row) => within(row).queryByText("Other") !== null)!;
+    fireEvent.click(within(otherRow).getByRole("button", { name: /EDIT/ }));
+
+    fireEvent.click(deleteButton()!);
+    expect(onDeleteCharacter).toHaveBeenCalledWith("char-other");
+  });
+
+  it("a player gets Delete on their own row and no EDIT at all on another's", () => {
+    const onDeleteCharacter = vi.fn();
+    const other = { ...players[0], uid: "other-uid", name: "Other" };
+    const otherCharacter = {
+      ...characters[0],
+      id: "char-other",
+      name: "Other",
+      ownedByPlayerUID: "other-uid",
+    };
+    render(
+      <MobileEntitiesList
+        players={[players[0], other] as Player[]}
+        characters={[characters[0], otherCharacter] as SnapshotCharacter[]}
+        uid={ME}
+        isDM={false}
+        onToggleDMMode={vi.fn()}
+        editingHpUID={null}
+        hpInput=""
+        onHpInputChange={vi.fn()}
+        onHpEdit={vi.fn()}
+        onHpSubmit={vi.fn()}
+        editingMaxHpUID={null}
+        maxHpInput=""
+        onMaxHpInputChange={vi.fn()}
+        onMaxHpEdit={vi.fn()}
+        onMaxHpSubmit={vi.fn()}
+        onCharacterHpChange={vi.fn()}
+        onCharacterStatusEffectsChange={vi.fn()}
+        onCharacterNameUpdate={vi.fn()}
+        onCharacterPortraitUpdate={vi.fn()}
+        onDeleteCharacter={onDeleteCharacter}
+      />,
+    );
+    const rows = screen.getAllByTestId("mobile-player-row");
+    const mine = rows.find((row) => within(row).queryByText("Me") !== null)!;
+    const theirs = rows.find((row) => within(row).queryByText("Other") !== null)!;
+
+    expect(within(theirs).queryByRole("button", { name: /EDIT/ })).not.toBeInTheDocument();
+    fireEvent.click(within(mine).getByRole("button", { name: /EDIT/ }));
+    fireEvent.click(deleteButton()!);
+    expect(onDeleteCharacter).toHaveBeenCalledWith("char-1");
+  });
+});
 
 describe("movement speed — the DM gate and the character binding", () => {
   it("a DM's row binds the speed handler to the CHARACTER's id; a player's row gets none", () => {

@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import React from "react";
 import { AuthState, ConnectionState } from "../services/websocket";
 import { App } from "./App";
+import { getSessionUID } from "../utils/session";
 import { useDMRole } from "../hooks/useDMRole";
 
 const mockUseWebSocket = vi.fn();
@@ -122,7 +123,7 @@ vi.mock("../components/dice/RollLog", () => ({
 }));
 
 vi.mock("../utils/session", () => ({
-  getSessionUID: () => "test-uid",
+  getSessionUID: vi.fn(() => "test-uid"),
 }));
 
 vi.mock("../utils/sessionPersistence", () => ({
@@ -224,6 +225,19 @@ describe("App", () => {
     latestHeaderProps = null;
     latestMapBoardProps = null;
     latestDMMenuProps = null;
+  });
+
+  it("reads its identity once — a re-render must not re-mint it under a live session", () => {
+    // getSessionUID mints and stores a uid when the key is absent, and another
+    // tab's "start a fresh session" removes that key: read on every render, the
+    // next snapshot would silently turn this tab into a stranger.
+    vi.mocked(getSessionUID).mockClear();
+    mockUseWebSocket.mockReturnValue({ ...baseWebSocketState });
+    const { rerender } = render(<App />);
+    rerender(<App />);
+    rerender(<App />);
+
+    expect(getSessionUID).toHaveBeenCalledTimes(1);
   });
 
   it("renders the auth gate when the user is not authenticated", () => {

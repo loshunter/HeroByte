@@ -99,6 +99,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             onCharacterHpChange={props.playerActions.updateCharacterHP}
             onCharacterStatusEffectsChange={props.playerActions.setCharacterStatusEffects}
             onCharacterNameUpdate={props.playerActions.updateCharacterName}
+            onDeleteCharacter={props.playerActions.deleteCharacter}
             onCharacterPortraitUpdate={props.playerActions.setCharacterPortrait}
             tokens={props.snapshot?.tokens || []}
             onTokenVisionRadiusChange={props.updateTokenVisionRadius}

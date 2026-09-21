@@ -573,34 +573,36 @@ export function PlayerSettingsMenu({
             </div>
           </JRPGPanel>
 
-          {/* Add Character - only show for non-DM players */}
-          {onAddCharacter && (
+          {/* Add Character: the card's own player only. Delete: the owner OR the
+              DM — an abandoned seat (a player who started a fresh session) is
+              cleared from here, which the server always allowed and the card
+              never offered. The panel shows whichever of the two applies. */}
+          {(onAddCharacter || (characterId && onDeleteCharacter)) && (
             <JRPGPanel
               variant="simple"
               style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
             >
-              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Multiple Characters
-              </span>
-              <JRPGButton
-                onClick={() => setShowCharacterModal(true)}
-                variant="primary"
-                style={{ fontSize: "10px" }}
-                disabled={isCreatingCharacter}
-              >
-                {isCreatingCharacter ? "Creating..." : "➕ Add Character"}
-              </JRPGButton>
+              {onAddCharacter && (
+                <>
+                  <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                    Multiple Characters
+                  </span>
+                  <JRPGButton
+                    onClick={() => setShowCharacterModal(true)}
+                    variant="primary"
+                    style={{ fontSize: "10px" }}
+                    disabled={isCreatingCharacter}
+                  >
+                    {isCreatingCharacter ? "Creating..." : "➕ Add Character"}
+                  </JRPGButton>
+                </>
+              )}
               {characterId && onDeleteCharacter && (
                 <JRPGButton
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Delete this character? This will remove the character and their token.",
-                      )
-                    ) {
-                      onDeleteCharacter(characterId);
-                    }
-                  }}
+                  // The confirm lives in usePlayerActions.deleteCharacter, the one
+                  // funnel every caller goes through; asking here too showed two
+                  // identical dialogs back to back.
+                  onClick={() => onDeleteCharacter(characterId)}
                   variant="danger"
                   style={{ fontSize: "10px" }}
                 >

@@ -34,6 +34,8 @@ interface MobilePlayerRowProps {
   onStatusEffectsChange?: (effects: string[]) => void;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
+  /** Present when this viewer may delete this row's character (owner or DM). */
+  onDeleteCharacter?: (characterId: string) => void;
   /** The table's default sight radius in feet, shown on a token that inherits
    *  it. Undefined means no default is set, which is unlimited. */
   tableVisionDefault?: number;
@@ -67,6 +69,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onStatusEffectsChange,
     onCharacterHpChange,
     onCharacterNameUpdate,
+    onDeleteCharacter,
     tableVisionDefault,
     onCharacterPortraitUpdate,
     token,
@@ -320,6 +323,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           viewerIsDM={isDM}
           canToggleDM={isMe}
           onToggleDMMode={onToggleDMMode}
+          characterId={player.characterId}
+          onDeleteCharacter={onDeleteCharacter}
         />
       </div>
     );

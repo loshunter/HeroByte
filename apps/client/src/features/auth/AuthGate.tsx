@@ -20,6 +20,7 @@ import {
   authInputStyle,
   authPrimaryButtonStyle,
   authSecondaryButtonStyle,
+  authDangerButtonStyle,
 } from "./AuthenticationGate.styles";
 
 /**
@@ -36,6 +37,12 @@ export interface AuthGateProps {
   onPasswordChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onRetry: () => void;
+  /**
+   * Give this browser a new identity (CONFLICT only): the way out when the
+   * seat is held for a session this browser can no longer prove. The caller
+   * confirms the cost first; the gate just offers it.
+   */
+  onStartFresh?: () => void;
   /**
    * Which table you're joining — rendered ABOVE the password field, because it
    * is part of the same question. The screen used to have two separate logins:
@@ -64,6 +71,7 @@ export function AuthGate({
   onPasswordChange,
   onSubmit,
   onRetry,
+  onStartFresh,
   tableSlot,
   actionsSlot,
 }: AuthGateProps): JSX.Element {
@@ -198,7 +206,9 @@ export function AuthGate({
             is worth one click: from the same browser as that session it usually takes the seat
             back. Otherwise the seat stays reserved while that session is connected, and for up to
             six hours after it disconnects — more retries will not shorten that. If the other window
-            is yours, play from there.
+            is yours, play from there. If that retry does not get you in, a Start a Fresh Session
+            option appears below. It makes this browser a new player; the old character stays at the
+            table until the DM deletes it (on the Main Hall, until it clears itself).
           </p>
         ) : null}
         {!isConnected ? (
@@ -213,6 +223,11 @@ export function AuthGate({
             // backoff wait is exactly what someone wants to do.
           >
             {isReplaced ? "Reclaim This Tab" : isConflict ? "Try Again" : "Retry Connection"}
+          </button>
+        ) : null}
+        {isConflict && onStartFresh ? (
+          <button type="button" style={authDangerButtonStyle} onClick={onStartFresh}>
+            Start a Fresh Session
           </button>
         ) : null}
         {actionsSlot}

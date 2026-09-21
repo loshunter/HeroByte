@@ -277,12 +277,25 @@ export function usePlayerActions({
       const character = snapshot?.characters?.find((c) => c.id === characterId);
       if (!character) return;
 
-      // Count player's characters
+      // Count player's characters. A DM deleting SOMEONE ELSE's character (an
+      // abandoned seat, say) is not deleting their own last one, and must not
+      // be handed a replacement.
       const myCharacters = snapshot?.characters?.filter((c) => c.ownedByPlayerUID === uid) || [];
-      const isLastCharacter = myCharacters.length === 1;
+      const isLastCharacter = character.ownedByPlayerUID === uid && myCharacters.length === 1;
 
-      // Confirm deletion
-      if (!confirm("Delete this character? This will remove the character and their token.")) {
+      // Confirm deletion. Deleting ANOTHER player's character says whose it is
+      // and that it cannot be undone — and, when that player is still seated
+      // (in the connected roster, which a dead socket can keep for up to the
+      // heartbeat window), that the server will hand them a fresh character
+      // rather than empty the seat.
+      const mine = character.ownedByPlayerUID === uid;
+      const seated = (snapshot?.users ?? []).includes(character.ownedByPlayerUID ?? "");
+      const question = mine
+        ? "Delete this character? This will remove the character and their token."
+        : seated
+          ? `Delete ${character.name}? That player is still at the table, so the server will give them a fresh "New Character" and token — this does not empty their seat. ${character.name} and its token are gone for good.`
+          : `Delete ${character.name}? That is another player's character; it and their token go, and this cannot be undone.`;
+      if (!confirm(question)) {
         return;
       }
 
@@ -301,7 +314,7 @@ export function usePlayerActions({
         sendMessage({ t: "add-player-character", name: "New Character", maxHp: 100 });
       }
     },
-    [sendMessage, snapshot?.characters, uid],
+    [sendMessage, snapshot?.characters, snapshot?.users, uid],
   );
 
   /**

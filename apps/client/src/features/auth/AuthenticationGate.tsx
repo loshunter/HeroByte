@@ -24,22 +24,7 @@ import {
   clearRoomSecret,
 } from "../rooms/roomDirectory";
 import type { CreateRoomInput } from "../rooms/useCreateRoom";
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Retrieve the stored room secret from sessionStorage if available
- * @returns The stored secret or empty string if not found/accessible
- */
-function getInitialRoomSecret(): string {
-  if (typeof window === "undefined") return "";
-  // Scoped to THIS table: a password stashed for another one must never be
-  // auto-submitted here (that produced an "Invalid table password" the user
-  // never caused, just by switching tables).
-  return readRoomSecret();
-}
+import { useConflictEscape } from "./useConflictEscape";
 
 // ============================================================================
 // TYPES
@@ -143,7 +128,10 @@ export function AuthenticationGate({
   // STATE
   // -------------------------------------------------------------------------
 
-  const initialSecret = useMemo(() => getInitialRoomSecret(), []);
+  // Scoped to THIS table: a password stashed for another one must never be
+  // auto-submitted here (that produced an "Invalid table password" the user
+  // never caused, just by switching tables). readRoomSecret guards storage.
+  const initialSecret = useMemo(() => readRoomSecret(), []);
   const [authSecret, setAuthSecret] = useState("");
   const [passwordInput, setPasswordInput] = useState(initialSecret || "");
   const [hasAuthenticated, setHasAuthenticated] = useState(false);
@@ -288,6 +276,8 @@ export function AuthenticationGate({
     connectionState !== ConnectionState.CONNECTING &&
     connectionState !== ConnectionState.RECONNECTING;
 
+  const conflictEscape = useConflictEscape(connectionState, authState, onConnect);
+
   // REPLACED and CONFLICT never auto-reconnect, so the "Reconnecting…" banner
   // would never resolve: show the gate, with its RECLAIM / TRY AGAIN instead.
   const terminal =
@@ -310,7 +300,8 @@ export function AuthenticationGate({
         connectionState={connectionState}
         onPasswordChange={handlePasswordChange}
         onSubmit={handlePasswordSubmit}
-        onRetry={onConnect}
+        onRetry={conflictEscape.onRetry}
+        onStartFresh={conflictEscape.onStartFresh}
         tableSlot={<TablePicker />}
         actionsSlot={<RoomLobby onCreateRoom={onCreateRoom} />}
       />
