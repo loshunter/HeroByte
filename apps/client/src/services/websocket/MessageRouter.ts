@@ -44,6 +44,16 @@ type AuthResponseMessage =
   | Extract<ServerMessage, { t: "auth-failed" }>;
 
 /**
+ * The server is closing this socket on purpose — replaced by a newer
+ * connection for this uid, or turned away as a session conflict. Routed to
+ * its own callback, like an auth response: the service acts on it itself.
+ * It is a lifecycle signal, not a control message for the app's handlers,
+ * and it is THE end-of-session signal in production, where the close code
+ * that follows is stripped by the proxy (see ConnectionLifecycleManager).
+ */
+type ConnectionClosingMessage = Extract<ServerMessage, { t: "connection-closing" }>;
+
+/**
  * Control message types
  * Server-initiated control/status messages
  */
@@ -107,6 +117,12 @@ export interface MessageRouterConfig {
    * @param message - Auth-ok or auth-failed message
    */
   onAuthResponse?: (message: AuthResponseMessage) => void;
+
+  /**
+   * Optional callback for the server's `connection-closing` announcement
+   * @param message - Why the socket is about to close ("replaced" | "conflict")
+   */
+  onConnectionClosing?: (message: ConnectionClosingMessage) => void;
 
   /**
    * Optional callback for control/status messages
@@ -217,6 +233,14 @@ export class MessageRouter {
       // Route authentication responses
       if (this.isAuthResponseMessage(parsed)) {
         this.handleAuthResponse(parsed);
+        return;
+      }
+
+      // Route the server's "closing you, and this is why" announcement.
+      // Ahead of control messages on purpose: the session's fate must not
+      // depend on the list the app's handlers subscribe to.
+      if (this.isConnectionClosingMessage(parsed)) {
+        this.handleConnectionClosing(parsed);
         return;
       }
 
@@ -344,6 +368,20 @@ export class MessageRouter {
   }
 
   /**
+   * Type guard for the `connection-closing` announcement. Any string reason
+   * is delivered, including one this build does not know: the server is
+   * closing the socket either way, and the service holds an unknown reason as
+   * a conflict rather than reconnecting — "ignore it and keep the connection"
+   * would restart the reconnect war the frame exists to end. A frame without
+   * a string reason is malformed and falls to the unknown-type floor.
+   */
+  private isConnectionClosingMessage(value: unknown): value is ConnectionClosingMessage {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as { t?: unknown; reason?: unknown };
+    return candidate.t === "connection-closing" && typeof candidate.reason === "string";
+  }
+
+  /**
    * Type guard for control messages — the `ControlMessage` union above, at
    * runtime. This list and that union change together, and websocket.ts's copy
    * with them; `MessageRouter.session.test.ts` pins all three from the source,
@@ -455,6 +493,21 @@ export class MessageRouter {
    */
   private handleAuthResponse(message: AuthResponseMessage): void {
     this.config.onAuthResponse?.(message);
+  }
+
+  /**
+   * Hand the `connection-closing` announcement to the service. Unlike the
+   * other optional callbacks this one is lifecycle-critical: a router built
+   * without it would drop the end-of-session signal silently, so say so.
+   */
+  private handleConnectionClosing(message: ConnectionClosingMessage): void {
+    if (!this.config.onConnectionClosing) {
+      console.error(
+        "[WebSocket] connection-closing frame with no handler wired — the session cannot end",
+      );
+      return;
+    }
+    this.config.onConnectionClosing(message);
   }
 
   /**

@@ -12,6 +12,9 @@
  */
 
 import React from "react";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AuthenticationGate } from "../AuthenticationGate";
@@ -201,6 +204,25 @@ describe("AuthenticationGate - Characterization", () => {
       expect(
         screen.getByText(/This table is still connected as you elsewhere/),
       ).toBeInTheDocument();
+      // The copy's one number is the server's SESSION_TOKEN_GRACE_MS, read from
+      // its source so the two cannot drift apart silently; its one promise is
+      // that retrying does not shorten the hold. Both pinned, so the sentence
+      // can drift back neither to "wait a moment" nor to "retrying is futile"
+      // (a retry from the same browser DOES take the seat back — the store
+      // hands it the newest token).
+      const graceSource = readFileSync(
+        path.join(
+          path.dirname(fileURLToPath(import.meta.url)),
+          "../../../../../server/src/ws/auth/SessionTokenService.ts",
+        ),
+        "utf8",
+      );
+      const graceHours = Number(
+        graceSource.match(/SESSION_TOKEN_GRACE_MS = (\d+) \* 60 \* 60 \* 1000/)?.[1],
+      );
+      expect(graceHours, "the grace window moved — update the auth gate's copy").toBe(6);
+      expect(screen.getByText(/up to six hours/)).toBeInTheDocument();
+      expect(screen.getByText(/more retries will not shorten/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
     });
 

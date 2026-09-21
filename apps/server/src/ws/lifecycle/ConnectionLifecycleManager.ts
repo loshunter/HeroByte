@@ -156,6 +156,9 @@ export class ConnectionLifecycleManager {
         `[WebSocket] Replacing dead connection for ${uid} (was authenticated: ${wasAuthenticated})`,
       );
       // Register first, close second — see "Race Condition Prevention" above.
+      // No `connection-closing` announcement here, unlike the takeover in
+      // AuthenticationHandler: this occupant is dead by construction (a live
+      // one is HELD above, never replaced), and a dead socket cannot hear it.
       this.uidToWs.set(uid, ws);
       existingWs.close(WS_CLOSE_REPLACED, "Replaced by new connection");
       this.config.onConnectionReplaced?.(uid, wasAuthenticated);

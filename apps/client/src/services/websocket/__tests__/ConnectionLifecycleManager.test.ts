@@ -100,6 +100,10 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
     };
 
     MockWebSocketClass = vi.fn(() => mockWebSocketInstance);
+    // The real constants, so `readyState === WebSocket.OPEN` in the manager is
+    // a comparison and not `undefined === undefined` (which made every close
+    // assertion in this file vacuous).
+    Object.assign(MockWebSocketClass, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
     global.WebSocket = MockWebSocketClass as unknown as typeof WebSocket;
 
     // Mock console methods
@@ -442,6 +446,147 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
       expect(MockWebSocketClass).toHaveBeenCalledTimes(2);
       expect(manager.getState()).toBe(ConnectionState.CONNECTING);
+    });
+
+    // Production never delivers the codes above: Render's proxy rewrites every
+    // server-sent close code to 1005, so 4002 was inert from the day it
+    // shipped (July) and two tabs of one browser warred every 2 s. Found live
+    // 2026-09-20. The server now announces an intentional close in a data
+    // frame FIRST, and the service hands the reason here. The transition must
+    // happen on the announcement alone — the close that follows carries no
+    // code and must find nothing left to reconnect.
+    describe("the server's connection-closing announcement (the signal that survives the proxy)", () => {
+      function openConnection(): void {
+        manager.connect();
+        mockWebSocketInstance.readyState = WebSocket.OPEN;
+        mockWebSocketInstance.onopen();
+        expect(manager.getState()).toBe(ConnectionState.CONNECTED);
+      }
+
+      it("'replaced' goes terminal REPLACED at once, closes the socket, and leaves the late 1005 close nothing to reach", () => {
+        openConnection();
+
+        manager.handleServerClosing("replaced");
+
+        expect(manager.getState()).toBe(ConnectionState.REPLACED);
+        expect(mockWebSocketInstance.close).toHaveBeenCalledTimes(1);
+        // The service's teardown runs through the same onClose the close
+        // event drives — one teardown path — carrying the code the proxy
+        // would have stripped.
+        expect(mockOnClose).toHaveBeenCalledTimes(1);
+        expect(mockOnClose.mock.calls[0][0]).toMatchObject({ code: 4002 });
+        // The stripped close frame arrives after this. Its handler is gone,
+        // so it cannot start a reconnect — which is the whole fix.
+        expect(mockWebSocketInstance.onclose).toBeNull();
+        vi.advanceTimersByTime(60000);
+        expect(MockWebSocketClass).toHaveBeenCalledTimes(1);
+        expect(manager.getState()).toBe(ConnectionState.REPLACED);
+      });
+
+      it("'conflict' goes CONFLICT the same way, and a manual connect() is still the user's retry", () => {
+        openConnection();
+
+        manager.handleServerClosing("conflict");
+
+        expect(manager.getState()).toBe(ConnectionState.CONFLICT);
+        expect(mockWebSocketInstance.close).toHaveBeenCalledTimes(1);
+        expect(mockOnClose).toHaveBeenCalledTimes(1);
+        expect(mockOnClose.mock.calls[0][0]).toMatchObject({ code: 4003 });
+        expect(mockWebSocketInstance.onclose).toBeNull();
+        vi.advanceTimersByTime(60000);
+        expect(MockWebSocketClass).toHaveBeenCalledTimes(1);
+
+        manager.connect();
+        expect(MockWebSocketClass).toHaveBeenCalledTimes(2);
+        expect(manager.getState()).toBe(ConnectionState.CONNECTING);
+      });
+
+      it("the tab becoming visible does not revive an announced REPLACED session", () => {
+        const visibilitySpy = vi.spyOn(document, "visibilityState", "get");
+        openConnection();
+        manager.handleServerClosing("replaced");
+
+        visibilitySpy.mockReturnValue("visible");
+        document.dispatchEvent(new Event("visibilitychange"));
+
+        expect(MockWebSocketClass).toHaveBeenCalledTimes(1);
+        expect(manager.getState()).toBe(ConnectionState.REPLACED);
+        visibilitySpy.mockRestore();
+      });
+
+      it("a reason this build does not know is held as CONFLICT — never a reconnect", () => {
+        openConnection();
+
+        manager.handleServerClosing("maintenance");
+
+        expect(manager.getState()).toBe(ConnectionState.CONFLICT);
+        expect(mockOnClose.mock.calls[0][0]).toMatchObject({ code: 4003 });
+        vi.advanceTimersByTime(60000);
+        expect(MockWebSocketClass).toHaveBeenCalledTimes(1);
+      });
+
+      it("with no socket open the announcement is ignored — there is nothing to end", () => {
+        manager.connect();
+        manager.disconnect();
+
+        manager.handleServerClosing("replaced");
+
+        expect(manager.getState()).toBe(ConnectionState.DISCONNECTED);
+        expect(mockOnClose).not.toHaveBeenCalled();
+      });
+
+      it("does not close a socket that is already closed — only the handlers go", () => {
+        openConnection();
+        mockWebSocketInstance.readyState = WebSocket.CLOSED;
+
+        manager.handleServerClosing("replaced");
+
+        expect(mockWebSocketInstance.close).not.toHaveBeenCalled();
+        expect(mockWebSocketInstance.onclose).toBeNull();
+        expect(manager.getState()).toBe(ConnectionState.REPLACED);
+      });
+
+      it("ends the session even when the teardown callback throws", () => {
+        openConnection();
+        mockOnClose.mockImplementationOnce(() => {
+          throw new Error("teardown exploded");
+        });
+
+        expect(() => manager.handleServerClosing("replaced")).toThrow("teardown exploded");
+
+        expect(manager.getState()).toBe(ConnectionState.REPLACED);
+        expect(mockWebSocketInstance.onclose).toBeNull();
+        vi.advanceTimersByTime(60000);
+        expect(MockWebSocketClass).toHaveBeenCalledTimes(1);
+      });
+
+      it("settles a real close even when the teardown callback throws", () => {
+        openConnection();
+        mockOnClose.mockImplementationOnce(() => {
+          throw new Error("teardown exploded");
+        });
+
+        expect(() => mockWebSocketInstance.onclose({ code: 1006, reason: "" })).toThrow(
+          "teardown exploded",
+        );
+
+        expect(manager.getState()).toBe(ConnectionState.RECONNECTING);
+        vi.advanceTimersByTime(2000);
+        expect(MockWebSocketClass).toHaveBeenCalledTimes(2);
+      });
+
+      it("a 1005 close with NO announcement is a transient drop and still reconnects", () => {
+        // 1005 is what EVERY server-originated close looks like through the
+        // proxy — a deploy restart included. Only the announcement may end a
+        // session; the bare code must keep the tab coming back.
+        manager.connect();
+
+        mockWebSocketInstance.onclose({ code: 1005, reason: "" });
+
+        expect(manager.getState()).toBe(ConnectionState.RECONNECTING);
+        vi.advanceTimersByTime(2000);
+        expect(MockWebSocketClass).toHaveBeenCalledTimes(2);
+      });
     });
 
     it("should use exponential backoff with 1.5x multiplier", () => {

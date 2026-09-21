@@ -5,11 +5,7 @@
 // Single responsibility: Authentication flow management
 
 import type { WebSocket } from "ws";
-import {
-  WS_CLOSE_AUTH_REJECTED,
-  WS_CLOSE_REPLACED,
-  WS_CLOSE_SESSION_CONFLICT,
-} from "@herobyte/shared";
+import { WS_CLOSE_AUTH_REJECTED } from "@herobyte/shared";
 import type { CreateRoomRequest } from "./roomCreation.js";
 import type { ForkTableRequest } from "./tableFork.js";
 import { createRoomForUid, forkTableForSender } from "./roomMinting.js";
@@ -21,6 +17,7 @@ import type { SessionTokenService } from "./SessionTokenService.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 import { createAuthWorkLimiter, type TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
+import { closeAnnounced } from "../announceClosing.js";
 
 /** The fields of an `authenticate` frame the handler acts on. */
 export interface AuthenticateRequest {
@@ -206,7 +203,7 @@ export class AuthenticationHandler {
     if (!sameSession && (liveIncumbent || this.sessionTokens.has(uid, now))) {
       console.warn(`[Auth] ${uid}: session held by another connection, claim turned away`);
       // Not refunded: a failed takeover stays charged, like a failed guess.
-      ws.close(WS_CLOSE_SESSION_CONFLICT, "Session held by another connection");
+      closeAnnounced(ws, "conflict"); // frame first — the proxy strips the code
       return;
     }
     const previousRoomId = this.container.roomIdForUid(uid);
@@ -215,7 +212,7 @@ export class AuthenticationHandler {
     // here is dead, never authenticated, or ours (sameSession).
     this.uidToWs.set(uid, ws);
     if (occupant && occupant !== ws) {
-      occupant.close(WS_CLOSE_REPLACED, "Replaced by new connection");
+      closeAnnounced(occupant, "replaced"); // frame first — see announceClosing.ts
     }
 
     // A correct password refunds its token: a full party joining together

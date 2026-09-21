@@ -7,6 +7,19 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-20, ON `dev` — the connection-closing slice, awaiting the deploy decision).**
+The session-identity-binding deploy (main `2b7fe39e`) found that Render's proxy rewrites every
+server-sent WebSocket close code to 1005, so the client's 4002/4003 branches never fired live: two
+tabs of one browser took the seat from each other every 2 s (since July), and the new "Held in
+another window" gate never showed. The slice makes the server announce an intentional close with a
+`{ t: "connection-closing", reason }` data frame before the close, and the client go terminal on
+the frame (arc plan §14.1 has the full record). Gated: the full ladder green on the final tree
+(counts in the commit message), three review rounds (round 3: the conflict copy failed once more
+and was rewritten and pinned after the round; the server/tests/docs and script lenses passed), a
+live two-client browser pass, and a new post-deploy check — `pnpm check:live-session -- --url
+wss://<host>` with `HEROBYTE_ROOM_SECRET` set — which is the only thing that can see the proxy
+hop. Run it against production right after the merge deploys.
+
 **Update (2026-09-18, DEPLOYED — the SECOND UX-audit repair slice is IN PRODUCTION).** `main` =
 `50472bca`, a `--no-ff` merge of `dev` at `73697c22` (14 commits). CI: dev **#881** green; the main
 run was watched. Five audit findings shipped: UX-04 (both modals portal out of EntitiesPanel's

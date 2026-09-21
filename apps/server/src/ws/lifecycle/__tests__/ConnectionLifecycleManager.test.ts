@@ -813,6 +813,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
       expect(result).toEqual({ uid: "player1", held: false });
       expect(dead.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      // No connection-closing announcement: a dead socket cannot hear one, and
+      // this path only ever meets a dead occupant (a live one is held above).
+      expect(dead.send).not.toHaveBeenCalled();
       expect(uidToWs.get("player1")).toBe(newcomer as unknown as WebSocket);
       // Adoption confers nothing: the newcomer must authenticate.
       expect(authenticatedUids.has("player1")).toBe(false);
@@ -858,6 +861,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
       expect(result.held).toBe(false);
       expect(dead.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(dead.send).not.toHaveBeenCalled();
       expect(uidToWs.get("player1")).toBe(newcomer as unknown as WebSocket);
     });
 

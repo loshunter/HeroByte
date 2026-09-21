@@ -74,6 +74,8 @@ type AuthResponseMessage =
   | Extract<ServerMessage, { t: "auth-ok" }>
   | Extract<ServerMessage, { t: "auth-failed" }>;
 
+type ConnectionClosingMessage = Extract<ServerMessage, { t: "connection-closing" }>;
+
 type ControlMessage =
   | Extract<ServerMessage, { t: "room-password-updated" }>
   | Extract<ServerMessage, { t: "room-password-update-failed" }>
@@ -254,6 +256,7 @@ export class WebSocketService {
       onMessage: (snapshot) => this.snapshotReconciler.applySnapshot(snapshot),
       onRtcSignal: this.config.onRtcSignal,
       onAuthResponse: this.handleAuthResponse.bind(this),
+      onConnectionClosing: this.handleConnectionClosing.bind(this),
       onControlMessage: this.config.onControlMessage,
       onDelta: (delta) => this.snapshotReconciler.applyDelta(delta),
       onPointerPreview: (pointer) => this.snapshotReconciler.applyPointerPreview(pointer),
@@ -567,6 +570,25 @@ export class WebSocketService {
       this.lastAuthSecret = null;
       this.lastAuthRoomId = undefined;
     }
+  }
+
+  /**
+   * The server announced it is closing this socket on purpose: replaced by a
+   * newer connection for this uid, or turned away as a session conflict.
+   *
+   * This frame, not the close code, is what ends the session in production.
+   * Render's proxy rewrites server-sent close codes to 1005, so the code the
+   * server puts on the close never reaches the browser (found live
+   * 2026-09-20; the REPLACED state had been unreachable there since July).
+   * The lifecycle manager runs the same teardown the close event drives —
+   * through onClose, so handleClose() stays the one teardown path — then
+   * goes terminal; the close frame that follows lands on a socket whose
+   * handlers are already gone, and nothing reconnects.
+   *
+   * @private Callback from MessageRouter
+   */
+  private handleConnectionClosing(message: ConnectionClosingMessage): void {
+    this.connectionManager.handleServerClosing(message.reason);
   }
 
   private requestStateResync(details: {

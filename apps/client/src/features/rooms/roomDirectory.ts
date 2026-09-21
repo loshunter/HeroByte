@@ -111,7 +111,11 @@ export function stashSessionToken(
     localStorage.setItem(sessionTokenKey(roomId, uid), token);
     localStorage.setItem(latestSessionTokenKey(uid), token);
   } catch {
-    // Storage failures just mean the next reconnect logs in as a fresh session.
+    // A quota failure loses the STORED token, not the live one: this page still
+    // proves the session from memory (WebSocketService.lastSessionToken) until
+    // it reloads. After a reload there is nothing to present, and while the old
+    // session's record is inside its grace window (six hours) the server holds
+    // the seat — the tab lands on "Held in another window".
   }
 }
 

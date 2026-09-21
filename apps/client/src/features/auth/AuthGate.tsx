@@ -193,9 +193,12 @@ export function AuthGate({
         ) : null}
         {isConflict ? (
           <p style={authGateHintStyle}>
-            This table is still connected as you elsewhere — another window or device, or a previous
-            session that has not fully closed — and this one could not be proven the same session.
-            Close the other, or wait a moment, then try again here.
+            This table is still connected as you elsewhere — another window or device, or a session
+            that has not fully closed — and this one could not be proven the same session. Try Again
+            is worth one click: from the same browser as that session it usually takes the seat
+            back. Otherwise the seat stays reserved while that session is connected, and for up to
+            six hours after it disconnects — more retries will not shorten that. If the other window
+            is yours, play from there.
           </p>
         ) : null}
         {!isConnected ? (
