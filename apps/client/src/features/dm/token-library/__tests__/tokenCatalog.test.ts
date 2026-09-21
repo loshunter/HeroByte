@@ -9,7 +9,7 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   LIBRARY_ASSETS,
   LIBRARY_CATEGORIES,
@@ -54,6 +54,13 @@ function pngEdge(file: string): number {
 const fileOf = (path: string) => join(PUBLIC_ROOT, ...path.split("/"));
 
 describe("the bundled token catalog", () => {
+  // The tier check below opens 244 x 3 PNGs from disk and the stray sweep walks
+  // public/tokens/ — a few seconds of file I/O that timed out once at vitest's
+  // 5000ms default under load (2026-09-20: the batched gate ran with six other
+  // vitest processes on the machine). Same fragility as the catalog-rendering
+  // suites (40c1031b), same slack: the pack stays whole and the clock gives.
+  vi.setConfig({ testTimeout: 30_000 });
+
   it("is a versioned pack", () => {
     expect(LIBRARY_PACK_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
   });
