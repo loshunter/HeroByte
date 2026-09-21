@@ -685,8 +685,20 @@ proved unreachable — see below); the review-round fixes are each sabotage-prov
   yours, play from there."; button "Try Again" (the REPLACED state has its own, "Reclaim This
   Tab", which reconnects in place). `AuthenticationGate.test.tsx` pins "up to six hours" against
   `SESSION_TOKEN_GRACE_MS` read from its source, and "more retries will not shorten". The
-  `helpTopics.ts` help copy has no entry for this yet. **Open for the owner:** a tab in this state
-  has no way out but waiting — a "start a fresh session" action (a new uid) is a product decision.
+  `helpTopics.ts` help copy has no entry for this yet. **Decided 2026-09-21 (owner: proceed):** a
+  tab in this state gets a **START A FRESH SESSION** button (CONFLICT only), behind a native confirm
+  that names the cost — the browser forgets its uid and its own session tokens and reloads as a new
+  player. The old seat is not touched: its character and token stay until the DM deletes them
+  (the entities panel now offers delete on any character to a DM, which the server always allowed)
+  or the table clears itself (Main Hall only: an hour empty) — the old player's roster row
+  survives a character delete and shows in the DM menu's Players tab with no tokens (a Main Hall
+  clear wipes players too; on a private table nothing removes it, and `SNAPSHOT_LIMITS.players` is
+  100, the session-file load ceiling — a DM-side "remove player row" is the real fix, not built);
+  its DM flag stays dormant server-side until a tokenless reclaim resets it, so from that browser
+  DM powers are unreachable without the DM password. The per-tab table password is untouched. The
+  button appears only after a Try Again in the same conflict has failed (a post-deploy conflict
+  self-heals on the first retry). No server-side revoke: the six-hour hold exists to stop
+  impersonation and stays. `features/auth/freshSession.ts`.
 
 ### 12.3 Still to run before `main` (the §8 ladder)
 
@@ -842,3 +854,40 @@ deploy.
 
 **Post-deploy note for players:** reload any open tab. DMs re-enter the DM password once (session
 tokens live in memory and do not survive the restart).
+
+### 14.2 Fresh-session slice — on `dev` 2026-09-21, NOT deployed (§12.2's open item, decided)
+
+**What it does.** The CONFLICT gate ("Held in another window") gains **START A FRESH SESSION**,
+shown only after a Try Again in the same conflict episode has failed, behind a native confirm that
+names the cost (`FRESH_SESSION_CONFIRM`). `features/auth/freshSession.ts` forgets the browser's uid
+(and any `?sessionUid=` override) plus the abandoned uids' session tokens in all three key shapes,
+leaves the per-tab table password alone, and full-loads (a reload when the URL is unchanged). No
+server change to the hold: the six-hour reservation stays. Companion, so the abandoned seat can be
+cleaned up: a DM can delete ANY character from the entities panel on desktop and on the phone's
+party drawer (the server always allowed it); `ws/handlers/seatReplacement.ts` gives a still-seated
+owner (in the connected roster) a fresh "New Character" + token so provisionJoin's rule holds, and
+leaves an absent owner's seat empty. The DM's confirm says which of the two will happen.
+
+**Gated by:** the full ladder (shared build, lint, format:check, structure guard, both typechecks;
+client 6036 pass / 0 fail (4 skipped, 341 files), server 2592/0 (143 files), shared 449/0 (27 files), e2e 210 pass / 0 fail / 3 pre-existing skips; dev boot), three bounded adversarial
+review rounds (the cap — round 3 plateaued, so the post-round fixes below carry sabotage evidence
+only), a live two-client pass on `dev` (a stranger tab reached the gate, its Try Again failed, the
+button appeared, the confirm named the cost, the reload came back as a new player with a new uid and
+the old seat untouched; the DM deleted the abandoned character from both layouts), and a 7/7 sabotage
+pass over the post-round pins.
+
+**Post-round fixes (no fourth round, per the cap):** only AUTHENTICATED ends the conflict episode
+(the per-IP budget refusal arrives as auth FAILED and would otherwise hide the way out from the very
+user who drained the budget); `App.tsx` reads its uid once (`useMemo`) so a sibling tab's fresh
+session cannot re-identify a live tab mid-session; `startFreshSession` navigates in a `finally`;
+seated-vs-absent confirm copy; the mobile owner half of the delete gate pinned with a two-row test;
+the button styled as the one irreversible action (`authDangerButtonStyle`); the gate copy scoped
+("on the Main Hall, until it clears itself").
+
+**Open, flagged to the owner, not built:** (1) pre-existing — deleting the CURRENT combatant's
+character skips a round; `handleNextTurn` should re-seat the pointer at the successor and wrap (the
+`leaveOrderBudget` attempt was reverted: it did not fix it and added an untested branch); (2) no
+DM-side "remove player row" — an abandoned player's roster row survives a character delete, a Main
+Hall clear wipes it, a private table keeps it forever (`SNAPSHOT_LIMITS.players` = 100 is the load
+ceiling); (3) `helpTopics.ts` still has no CONFLICT entry. **Deploy:** not pushed — main is
+production. On a deploy players reload; nothing else changes for them.

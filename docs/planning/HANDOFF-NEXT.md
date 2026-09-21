@@ -7,6 +7,17 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-21, ON `dev` — NOT deployed; the owner decides).** The fresh-session slice
+(§12.2 of `session-identity-binding-arc-plan.md`, record in its §14.2): a conflicted tab that has
+retried once gets **START A FRESH SESSION** behind a confirm that names the cost — the browser
+forgets its uid and its own session tokens and reloads as a new player; the old seat is untouched
+(no server-side revoke, the six-hour hold stays). Companion: a DM can delete any character on desktop
+and mobile, and the server refills a still-seated owner's seat with a fresh "New Character" + token
+(an absent owner's seat stays empty). Gated by the full ladder (client 6036 pass / 0 fail (4 skipped, 341 files), server 2592/0 (143 files),
+shared 449/0 (27 files), e2e 210 pass / 0 fail / 3 pre-existing skips), three review rounds (the cap), a live two-client pass on dev, and a 7/7
+sabotage pass. Flagged, not built: the pre-existing initiative round-skip when the current
+combatant's character is deleted; no "remove player row" for a DM; no help topic for the gate.
+
 **Update (2026-09-20, DEPLOYED — the connection-closing frame is IN PRODUCTION).** `main` =
 `9745a26f`, a `--no-ff` merge of `dev` at `31e1509f`; CI **#890** green. The session-identity-binding
 deploy had found that Render's proxy rewrites every server-sent WebSocket close code to 1005, so the
