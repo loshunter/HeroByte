@@ -812,8 +812,8 @@ Consequences, in order of importance:
 **What it does NOT affect:** the guard itself is server-side and verified working above. Single-tab
 play never triggers a takeover, so normal use is unaffected.
 
-**The fix — BUILT on `dev` 2026-09-20 (the connection-closing slice; the deploy record carries the
-hash once merged):** stop depending on the close code. The server sends
+**The fix — IN PRODUCTION 2026-09-20 (dev `62154152`, main `9745a26f`, CI #890; `check:live-session`
+9/9 through the real proxy, codes 1005, frame first; browser-confirmed on herobyte.pages.dev):** stop depending on the close code. The server sends
 `{ t: "connection-closing", reason: "replaced" | "conflict" }` immediately BEFORE `ws.close(...)`
 on both live-socket close sites (`closeAnnounced` in `apps/server/src/ws/announceClosing.ts`,
 called from `AuthenticationHandler.ts`); the client goes terminal on that frame
@@ -830,8 +830,8 @@ production sends — the frame, then a close whose code is 1005. Expected to sur
 **confirmed only by `pnpm check:live-session` against the deployed host**
 (`scripts/live-session-check.mjs`: three sockets as one uid, asserts the frame precedes each close,
 reports the codes seen — 1005 means the proxy is still stripping them; each run leaves a
-`live-check-*` seat in the table it joins, see its header). Not yet run against production as of
-this note. Verified on `dev` by a live two-client browser pass: the replaced tab went terminal on
+`live-check-*` seat in the table it joins, see its header). Run against production 2026-09-20 after the
+merge: 9/9 PASS, B=1005 A=1005, frame before close both times. Verified on `dev` by a live two-client browser pass: the replaced tab went terminal on
 the frame with zero reconnects over 10 s, a tokenless reclaim landed on "Held in another window",
 one frame per manual retry, the live tab and a player tab untouched.
 
