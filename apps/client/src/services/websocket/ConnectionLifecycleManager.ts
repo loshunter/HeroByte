@@ -41,7 +41,11 @@
  * - cleanup() method (lines 300-323)
  */
 
-import { WS_CLOSE_REPLACED, WS_CLOSE_SESSION_CONFLICT } from "@herobyte/shared";
+import {
+  WS_CLOSE_REPLACED,
+  WS_CLOSE_SESSION_CONFLICT,
+  type ConnectionClosingReason,
+} from "@herobyte/shared";
 
 /**
  * Connection states for WebSocket lifecycle
@@ -54,9 +58,10 @@ export enum ConnectionState {
   FAILED = "failed",
   /**
    * This session was superseded by a newer connection for the same uid
-   * (another tab/window/device took over). Terminal: we do NOT reconnect,
+   * (another tab/window/device took over). Terminal: we do NOT auto-reconnect,
    * because reconnecting would supersede the newer connection and the two
-   * contexts would thrash forever. The user must reload to reclaim the table.
+   * contexts would thrash forever. The user reclaims the table with the auth
+   * gate's "Reclaim This Tab" button, which calls connect() in place.
    */
   REPLACED = "replaced",
   /**
@@ -138,6 +143,9 @@ export interface ConnectionLifecycleManagerConfig {
  * - CONNECTED → RECONNECTING (via WebSocket onclose)
  * - RECONNECTING → CONNECTING (via reconnect timer)
  * - RECONNECTING → FAILED (via max attempts exceeded)
+ * - CONNECTED → REPLACED / CONFLICT (via the server's `connection-closing`
+ *   frame — handleServerClosing() — or, on a direct connection where the
+ *   close code survives, via the code in onclose; one transition for both)
  * - Any → DISCONNECTED (via disconnect())
  */
 export class ConnectionLifecycleManager {
@@ -230,6 +238,55 @@ export class ConnectionLifecycleManager {
   }
 
   /**
+   * The server announced, in a data frame, that it is closing this socket on
+   * purpose — and why. This is THE signal in production: Render's proxy
+   * rewrites server-sent close codes to 1005, so the code-driven branches in
+   * onclose never fire there (found live 2026-09-20; WS_CLOSE_REPLACED had
+   * been inert since July, and two tabs of one browser took the seat from
+   * each other every 2 s). Go terminal now, without waiting for the close
+   * frame: cleanup() nulls this socket's handlers, so the stripped close that
+   * follows is ignored as stale and nothing reconnects.
+   *
+   * One teardown path for both signals: the same onClose the close event
+   * drives is fired here with a synthetic CloseEvent carrying the code the
+   * proxy would have stripped, so every consumer of onClose sees the
+   * production ending too. A reason this build does not know still ends the
+   * session — held as a conflict, never reconnected: "ignore it and keep the
+   * connection" is the reconnect war this frame exists to end.
+   *
+   * Called by WebSocketService when MessageRouter routes the frame. A frame
+   * can only arrive on the current socket (a stale socket's handlers are
+   * nulled); with no socket open there is nothing to end.
+   */
+  handleServerClosing(reason: string): void {
+    if (this.ws === null) {
+      console.warn("[WebSocket] connection-closing with no socket open — ignored:", reason);
+      return;
+    }
+    const known: ConnectionClosingReason = reason === "replaced" ? "replaced" : "conflict";
+    if (reason !== known) {
+      console.warn(
+        `[WebSocket] Unrecognised connection-closing reason "${reason}" — held as a conflict`,
+      );
+    }
+    console.log("[WebSocket] Server is closing this connection:", reason);
+    this.clearConnectTimer();
+    // The teardown may throw; the session must end regardless, or the stripped
+    // close that follows would find live handlers and reconnect into the war.
+    try {
+      this.config.onClose(
+        new CloseEvent("close", {
+          code: known === "replaced" ? WS_CLOSE_REPLACED : WS_CLOSE_SESSION_CONFLICT,
+          reason: `announced by server: ${reason}`,
+          wasClean: true,
+        }),
+      );
+    } finally {
+      this.endSession(known);
+    }
+  }
+
+  /**
    * Get current connection state
    *
    * @returns Current ConnectionState
@@ -312,27 +369,13 @@ export class ConnectionLifecycleManager {
       }
       console.log("[WebSocket] Disconnected", event.code, event.reason);
       this.clearConnectTimer();
-      this.config.onClose(event);
-
-      // A "replaced by new connection" close means another tab/window/device
-      // took over this uid. Reconnecting would supersede that newer connection
-      // and the two contexts would 4002 each other forever. Stop here.
-      if (event.code === WS_CLOSE_REPLACED) {
-        this.cleanup();
-        this.setState(ConnectionState.REPLACED);
-        return;
+      // As in handleServerClosing: whatever the teardown does, the close is
+      // settled, so a throw can never leave the socket half torn down.
+      try {
+        this.config.onClose(event);
+      } finally {
+        this.settleAfterClose(event.code);
       }
-
-      // Turned away: the uid's session is live on another socket and this one
-      // could not prove it is the same session. Auto-retrying would hammer the
-      // server with the same unproven claim; the user decides when to retry.
-      if (event.code === WS_CLOSE_SESSION_CONFLICT) {
-        this.cleanup();
-        this.setState(ConnectionState.CONFLICT);
-        return;
-      }
-
-      this.handleDisconnect();
     };
 
     socket.onerror = (error) => {
@@ -346,6 +389,43 @@ export class ConnectionLifecycleManager {
 
     // Handle browser page visibility - reconnect when tab becomes visible
     document.addEventListener("visibilitychange", this.handleVisibilityChangeBound);
+  }
+
+  /**
+   * What a close event means, by its code. The code is the fallback signal,
+   * for direct connections only: in production the proxy rewrites it to 1005
+   * and neither terminal branch fires — the `connection-closing` frame the
+   * server sends first is what ends the session there (handleServerClosing).
+   * Same transitions either way.
+   */
+  private settleAfterClose(code: number): void {
+    // A "replaced by new connection" close means another tab/window/device
+    // took over this uid. Reconnecting would supersede that newer connection
+    // and the two contexts would 4002 each other forever. Stop here.
+    if (code === WS_CLOSE_REPLACED) {
+      this.endSession("replaced");
+      return;
+    }
+    // Turned away: the uid's session is live on another socket and this one
+    // could not prove it is the same session. Auto-retrying would hammer the
+    // server with the same unproven claim; the user decides when to retry.
+    if (code === WS_CLOSE_SESSION_CONFLICT) {
+      this.endSession("conflict");
+      return;
+    }
+    this.handleDisconnect();
+  }
+
+  /**
+   * End this session for good (REPLACED) or until the user retries (CONFLICT).
+   * One transition for both signals — the `connection-closing` frame and, on
+   * a direct connection, the close code — so they can never drift apart.
+   * cleanup() removes the visibility listener and closes the socket, so no
+   * timer, focus change or late close event can revive the connection.
+   */
+  private endSession(reason: ConnectionClosingReason): void {
+    this.cleanup();
+    this.setState(reason === "replaced" ? ConnectionState.REPLACED : ConnectionState.CONFLICT);
   }
 
   /**

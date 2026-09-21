@@ -75,6 +75,28 @@ class FakeSocket {
   rawBytes(): string {
     return this.send.mock.calls.map(([p]) => String(p)).join("\n");
   }
+
+  /** The `connection-closing` announcements this socket was sent, in order. */
+  closingReasons(): string[] {
+    return this.frames()
+      .filter((f) => f.t === "connection-closing")
+      .map((f) => String(f.reason));
+  }
+
+  /**
+   * Whether the announcement went out BEFORE close() — the order the whole
+   * fix rests on. The production proxy strips the close code, so the frame
+   * is the only signal the client gets; a frame queued after the close frame
+   * would never be delivered.
+   */
+  announcedBeforeClose(): boolean {
+    const announceIndex = this.send.mock.calls.findIndex(
+      ([p]) => (JSON.parse(p) as { t?: string }).t === "connection-closing",
+    );
+    const announceOrder = this.send.mock.invocationCallOrder[announceIndex];
+    const closeOrder = this.close.mock.invocationCallOrder[0];
+    return announceOrder !== undefined && closeOrder !== undefined && announceOrder < closeOrder;
+  }
 }
 
 class FakeServer {
@@ -355,6 +377,11 @@ describe("session identity: who may hold a uid's session", () => {
       await authenticate(intruder);
 
       expect(intruder.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+      // The frame is what reaches a production client (the proxy rewrites the
+      // code to 1005); it must precede the close, and the holder never sees it.
+      expect(intruder.closingReasons()).toEqual(["conflict"]);
+      expect(intruder.announcedBeforeClose()).toBe(true);
+      expect(daveWs.closingReasons()).toEqual([]);
       expect(intruder.authOk()).toHaveLength(0);
       expect(daveWs.close).not.toHaveBeenCalled();
       expect(container.uidToWs.get("dave")).toBe(daveWs as unknown as WebSocket);
@@ -369,6 +396,7 @@ describe("session identity: who may hold a uid's session", () => {
       await authenticate(intruder, token.slice(0, -1) + (token.endsWith("A") ? "B" : "A"));
 
       expect(intruder.close).toHaveBeenCalledWith(4003, "Session held by another connection");
+      expect(intruder.closingReasons()).toEqual(["conflict"]);
       expect(daveWs.close).not.toHaveBeenCalled();
       expect(container.uidToWs.get("dave")).toBe(daveWs as unknown as WebSocket);
     });
@@ -402,6 +430,12 @@ describe("session identity: who may hold a uid's session", () => {
       expect(deselect).not.toHaveBeenCalled();
       expect(staleWs.close).toHaveBeenCalledTimes(1);
       expect(staleWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      // The stale tab goes terminal on THIS frame in production, where the
+      // 4002 above arrives as 1005. Announced first, and only to the stale
+      // socket — the newcomer must never be told it is being replaced.
+      expect(staleWs.closingReasons()).toEqual(["replaced"]);
+      expect(staleWs.announcedBeforeClose()).toBe(true);
+      expect(fresh.closingReasons()).toEqual([]);
       expect(container.uidToWs.get("dave")).toBe(fresh as unknown as WebSocket);
       expect(container.authenticatedUids.has("dave")).toBe(true);
       expect(fresh.authOk()).toHaveLength(1);
@@ -423,6 +457,7 @@ describe("session identity: who may hold a uid's session", () => {
       await settle();
 
       expect(staleWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(staleWs.closingReasons()).toEqual(["replaced"]);
       expect(fresh.authOk()).toHaveLength(1);
       expect(container.roomIdForUid("dave")).toBe("castle-3f9");
       // Left the old roster — a stale entry there would later make the
@@ -436,11 +471,16 @@ describe("session identity: who may hold a uid's session", () => {
     it("a DEAD incumbent is replaced at connect, but its auth is not inherited", async () => {
       const { ws: deadWs, token } = await joinAsDM();
       deadWs.readyState = 3; // closed on the wire, close event not yet delivered
+      const sendsBefore = deadWs.send.mock.calls.length;
 
       const fresh = server.connect("dave", ATTACKER_IP);
 
       // Replaced (this is the fast reconnect path)...
       expect(deadWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      // ...and nothing at all is written to it: the connect-time replace never
+      // announces (this fake records sends regardless of readyState, so this
+      // pins the call site, not announceClosing's own guard).
+      expect(deadWs.send.mock.calls.length).toBe(sendsBefore);
       expect(container.uidToWs.get("dave")).toBe(fresh as unknown as WebSocket);
       // ...but connect alone confers nothing: a DM action is dropped...
       expect(container.authenticatedUids.has("dave")).toBe(false);

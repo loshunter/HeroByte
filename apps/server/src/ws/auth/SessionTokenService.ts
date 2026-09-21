@@ -48,6 +48,9 @@ export interface SessionTokenRecord {
  * later, so this bounds convenience more than exposure. While the session is
  * live or inside this window, NOTHING but its token can claim the uid; after
  * it, a reclaim still works with the room password — as a non-DM.
+ *
+ * The auth gate's "Held in another window" copy quotes this as "up to six
+ * hours" (apps/client/src/features/auth/AuthGate.tsx) — change both together.
  */
 export const SESSION_TOKEN_GRACE_MS = 6 * 60 * 60 * 1000;
 

@@ -6,6 +6,18 @@
 // intentional close (auth rejected, superseded by another tab) must NOT trigger
 // the auto-reconnect loop, while a transient network drop must.
 //
+// DEFENCE IN DEPTH ONLY — never the sole signal. Render's proxy rewrites every
+// server-sent close code to 1005 ("no status received"; found live 2026-09-20,
+// in a real browser), so in production the client sees NONE of these. What it
+// does see is a data frame: for the two reasons below, the server announces
+// the close with a `connection-closing` message before the close frame, much
+// as `auth-failed` precedes WS_CLOSE_AUTH_REJECTED — which is why that code
+// was never a casualty. The codes still arrive on a direct connection (local
+// dev, e2e) and are kept for that. Other intentional closes of a live socket
+// (the heartbeat-timeout 4000, the policy-violation 1008 at connect) send no
+// frame: through the proxy they read as a transient drop and the client
+// reconnects, which is the right outcome for both.
+//
 // These live in their own module (not inline in index.ts) on purpose: the
 // server's tsconfig maps `@herobyte/shared` to dist/index.d.ts, and tsx honors
 // that at runtime. A direct `export declare const` in the barrel's .d.ts is
@@ -39,3 +51,24 @@ export const WS_CLOSE_REPLACED = 4002;
  * exists to avoid.
  */
 export const WS_CLOSE_SESSION_CONFLICT = 4003;
+
+/**
+ * Why the server is about to close this socket on purpose, carried in the
+ * `{ t: "connection-closing", reason }` data frame that precedes the close.
+ * The client goes terminal on the FRAME; the close code that follows is the
+ * fallback for connections no proxy rewrites.
+ *
+ * - "replaced": WS_CLOSE_REPLACED — a newer connection took over this uid.
+ *   Terminal: reconnecting would take the seat back and the two contexts
+ *   would war forever (the production bug this frame exists to end: two tabs
+ *   of one browser thrashing every 2 s, because the code never arrived).
+ * - "conflict": WS_CLOSE_SESSION_CONFLICT — sent to a NEWCOMER that could
+ *   not prove the session. Not auto-retried; the user retries by hand.
+ *
+ * Mixed versions: a tab still running a build older than this frame ignores
+ * it (the router's unknown-type floor) and keeps the old code-driven
+ * behaviour until it reloads. A client that knows the frame ends the session
+ * on ANY reason — one it does not recognise is held as a conflict, never
+ * reconnected — so adding a reason here can never restart the war.
+ */
+export type ConnectionClosingReason = "replaced" | "conflict";

@@ -35,6 +35,7 @@ export {
   WS_CLOSE_REPLACED,
   WS_CLOSE_SESSION_CONFLICT,
 } from "./wsCloseCodes.js";
+export type { ConnectionClosingReason } from "./wsCloseCodes.js";
 export { WS_MAX_MESSAGE_BYTES, SESSION_MINT_CEILING_BYTES } from "./wsLimits.js";
 // The one `load-session` frame builder + UTF-8 counter (client loader, server
 // mint ceiling, server round-trip test) — same sub-module rule.
@@ -1283,6 +1284,18 @@ export type ServerMessage =
    */
   | { t: "auth-ok"; sessionToken?: string }
   | { t: "auth-failed"; reason?: string } // Authentication failed
+  /**
+   * The server is closing this socket on purpose, and this is why. Sent
+   * immediately BEFORE the close frame, because the close CODE does not
+   * survive the production proxy (Render rewrites it to 1005 — found live
+   * 2026-09-20, after WS_CLOSE_REPLACED had been inert for two months). The
+   * client goes terminal on this frame; the code is defence in depth.
+   * `reason` is typed open on the wire: THIS server only ever sends a
+   * ConnectionClosingReason (announceClosing.ts), but a client must also
+   * handle one it does not know — it holds the session as a conflict rather
+   * than reconnecting — so the type it reads must not promise otherwise.
+   */
+  | { t: "connection-closing"; reason: string }
   | { t: "heartbeat-ack"; timestamp: number } // Acknowledgement for keepalive checks
   | { t: "ack"; commandId: string }
   | { t: "nack"; commandId: string; reason?: string }
