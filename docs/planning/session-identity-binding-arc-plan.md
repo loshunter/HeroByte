@@ -668,13 +668,25 @@ proved unreachable — see below); the review-round fixes are each sabotage-prov
 - A second **device** (not tab) opened while the first is still connected sees
   **"Held in another window"** with a **TRY AGAIN** button, and cannot take the seat until the
   first device's socket is gone — up to the 5-minute heartbeat window if that device died
-  silently. Before this arc it took over at once (and so could anyone with the room password).
-  Shrinking that window means detecting dead sockets by missing pongs — a follow-up, not built.
-- Copy to confirm against the JRPG voice: status label "Held in another window"; hint (softened
-  in round 2 to cover a same-client self-heal) "This table is still connected as you elsewhere —
-  another window or device, or a previous session that has not fully closed — and this one could
-  not be proven the same session. Close the other, or wait a moment, then try again here.";
-  button "Try Again". The `helpTopics.ts` help copy has no entry for this yet.
+  silently — **and then, if that device had ever authenticated, for the rest of its token's
+  grace window**: the heartbeat reap frees the socket, not the record (`detach`, never `revoke`),
+  and `sessionTokens.has()` holds the seat against a tokenless claim for `SESSION_TOKEN_GRACE_MS`
+  (6 h). A sub-6 h free-up happens only for a live incumbent that never authenticated. Before this
+  arc it took over at once (and so could anyone with the room password). Shrinking the reap
+  window means detecting dead sockets by missing pongs — a follow-up, not built.
+- Copy to confirm against the JRPG voice: status label "Held in another window"; hint (rewritten
+  2026-09-20 by the connection-closing slice, after two reviews caught "wait a moment" promising a
+  wait the server does not honour, then a third review caught "will not release it" denying the
+  same-browser self-heal) "This table is still connected as you elsewhere — another window or
+  device, or a session that has not fully closed — and this one could not be proven the same
+  session. Try Again is worth one click: from the same browser as that session it usually takes
+  the seat back. Otherwise the seat stays reserved while that session is connected, and for up to
+  six hours after it disconnects — more retries will not shorten that. If the other window is
+  yours, play from there."; button "Try Again" (the REPLACED state has its own, "Reclaim This
+  Tab", which reconnects in place). `AuthenticationGate.test.tsx` pins "up to six hours" against
+  `SESSION_TOKEN_GRACE_MS` read from its source, and "more retries will not shorten". The
+  `helpTopics.ts` help copy has no entry for this yet. **Open for the owner:** a tab in this state
+  has no way out but waiting — a "start a fresh session" action (a new uid) is a product decision.
 
 ### 12.3 Still to run before `main` (the §8 ladder)
 
@@ -800,11 +812,28 @@ Consequences, in order of importance:
 **What it does NOT affect:** the guard itself is server-side and verified working above. Single-tab
 play never triggers a takeover, so normal use is unaffected.
 
-**The fix (not built — its own slice):** stop depending on the close code. Send an application-level
-control frame (`{ t: "session-conflict" }`) immediately BEFORE `ws.close(...)`, and branch the
-client on that frame rather than `event.code`. That survives any proxy and repairs the pre-existing
-REPLACED case in the same stroke. The close codes stay as defence in depth for direct connections
-(local dev, e2e), where they do arrive.
+**The fix — BUILT on `dev` 2026-09-20 (the connection-closing slice; the deploy record carries the
+hash once merged):** stop depending on the close code. The server sends
+`{ t: "connection-closing", reason: "replaced" | "conflict" }` immediately BEFORE `ws.close(...)`
+on both live-socket close sites (`closeAnnounced` in `apps/server/src/ws/announceClosing.ts`,
+called from `AuthenticationHandler.ts`); the client goes terminal on that frame
+(`ConnectionLifecycleManager.handleServerClosing`, fed by `MessageRouter` → `WebSocketService`),
+firing the same `onClose` teardown the close event drives, and treats a reason it does not know as
+a conflict rather than reconnecting. The close codes stay as defence in depth for direct
+connections (local dev, e2e), where they do arrive. Pinned by: the sessionHijack contract suite
+(frame before close, at both sites, never to the other party) and the server lifecycle unit tests
+(nothing written to a dead occupant); `announceClosing.wire.test.ts` (real loopback sockets, with
+and without permessage-deflate, with 4 MiB queued ahead); a source scan that forbids a bare
+`close(WS_CLOSE_REPLACED | WS_CLOSE_SESSION_CONFLICT | 4002 | 4003)` outside the dead-occupant
+replace; and `websocketConnectionClosing.test.ts`, which feeds the real service exactly what
+production sends — the frame, then a close whose code is 1005. Expected to survive the proxy;
+**confirmed only by `pnpm check:live-session` against the deployed host**
+(`scripts/live-session-check.mjs`: three sockets as one uid, asserts the frame precedes each close,
+reports the codes seen — 1005 means the proxy is still stripping them; each run leaves a
+`live-check-*` seat in the table it joins, see its header). Not yet run against production as of
+this note. Verified on `dev` by a live two-client browser pass: the replaced tab went terminal on
+the frame with zero reconnects over 10 s, a tokenless reclaim landed on "Held in another window",
+one frame per manual retry, the live tab and a player tab untouched.
 
 **LESSON for the next deploy:** e2e and local dev both connect DIRECTLY to the server, so no test
 in this repo can see a proxy rewriting a close frame. A post-deploy functional check against the
