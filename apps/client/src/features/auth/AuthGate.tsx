@@ -208,7 +208,8 @@ export function AuthGate({
             six hours after it disconnects — more retries will not shorten that. If the other window
             is yours, play from there. If that retry does not get you in, a Start a Fresh Session
             option appears below. It makes this browser a new player; the old character stays at the
-            table until the DM deletes it (on the Main Hall, until it clears itself).
+            table until the DM deletes it or removes the seat (on the Main Hall, until it clears
+            itself).
           </p>
         ) : null}
         {!isConnected ? (

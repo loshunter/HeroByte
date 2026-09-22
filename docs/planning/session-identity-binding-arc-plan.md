@@ -884,10 +884,82 @@ seated-vs-absent confirm copy; the mobile owner half of the delete gate pinned w
 the button styled as the one irreversible action (`authDangerButtonStyle`); the gate copy scoped
 ("on the Main Hall, until it clears itself").
 
-**Open, flagged to the owner, not built:** (1) pre-existing — deleting the CURRENT combatant's
-character skips a round; `handleNextTurn` should re-seat the pointer at the successor and wrap (the
-`leaveOrderBudget` attempt was reverted: it did not fix it and added an untested branch); (2) no
-DM-side "remove player row" — an abandoned player's roster row survives a character delete, a Main
-Hall clear wipes it, a private table keeps it forever (`SNAPSHOT_LIMITS.players` = 100 is the load
-ceiling); (3) `helpTopics.ts` still has no CONFLICT entry. **Deploy:** not pushed — main is
+**Open at the time, flagged to the owner — ALL THREE BUILT in §14.3 (2026-09-21):** (1) the
+round-skip on deleting the acting combatant; (2) a DM-side "remove player row"; (3) a help topic
+for the CONFLICT gate. The `handleNextTurn` prescription recorded here was wrong: once the holder
+is out of the order, NEXT cannot know where it stood — the fix lives on the LEAVE side
+(`leaveOrderBudget` takes the order read before the mutation). **Deploy:** not pushed — main is
 production. On a deploy players reload; nothing else changes for them.
+
+### 14.3 Flagged-items slice — on `dev` 2026-09-21, NOT deployed (the three items §14.2 left open)
+
+**(1) The turn is passed, not skipped.** `leaveOrderBudget(state, character, orderBefore)`
+(`domains/room/transform/movementBudgetReset.ts`) hands the turn to the departing combatant's
+successor exactly as NEXT would — successor's budget starts, a wrapping leave steps the round once —
+on every road out of the order: initiative cleared, `delete-player-character` (owner or DM),
+`delete-npc`, and the new `remove-player`; all deletes go through one helper,
+`ws/handlers/deleteCharacter.ts`. A holder that was never in the order blanks instead (a loaded
+file can say so). Five pre-existing neighbours in the same budget machinery fixed on the way, each
+a review find: the combatant who holds the turn when combat STARTS (Start Combat, the first roll,
+a resumed travel, a session load) is now stamped — unstamped, PREV then NEXT refilled its spent
+budget in two clicks by any player; the stamp is compared with `>=` and a leaver KEEPS it
+(deleting it handed a clear-and-re-roll-lower a second budget in the same round); PREV's backward
+wrap has a floor one lap below the NEWEST stamp still IN the order (below it, `>=` froze every
+budget for as many rounds as a player cared to click; the first floor read every character's
+OLDEST stamp, and a leaver's kept stamp pinned it at 0 — round 3's catch), and a blank pointer
+un-counts the lap NEXT counts from it; a session-file load drops a pointer the merge left outside
+the order (`dropTurnPointerOutsideOrder`, now also the travel-resume rule) and stamps the one it
+keeps; an empty order blanks Start Combat's pointer; and `delete-npc` refuses a PC's id (it skipped
+the seat replacement). `claim-character` refuses an NPC: an unclaimed monster is the DM's, and a
+claim handed a player delete over it.
+
+**(2) DM Menu → Players → REMOVE.** `{ t: "remove-player", uid }` (DM-only; `PlayerDispatcher`
+gate on `context.isDM()`, listed in `AuthorizationService`). `ws/handlers/removePlayer.ts` clears
+an absent seat: the roster row, every PC the uid owns (turn-safe), every token it owns that no
+surviving character stands on, its selections; a claimed NPC stays, unclaimed. Refused — and the
+DM is TOLD, by a `remove-player-refused { uid, reason }` frame to the sender alone, toasted by
+`useServerEventHandlers` — when the uid is the sender's own, is in `state.users` OR has ANY open
+socket (`state.users` is the AUTHENTICATED roster: a player parked on the password form, and
+every player in a post-restart reconnect window, is absent from it with a live socket — round 2's
+CRITICAL; and a held second tab is never in `uidToWs`, so `Container.liveSockets` tracks every
+open socket per uid with its connect time — round 2's follow-up — and only a socket younger than
+`HELD_SOCKET_TTL_MS` (5 min, the heartbeat window) counts, or a zombie that opens `?uid=` and never
+logs in would pin the seat forever; the registry is process-wide, so a tab at ANOTHER table counts
+too, and the toast says so), or heartbeated under `REMOVE_PLAYER_GRACE_MS` (60 s) ago — a blip must
+not cost a player their characters. A claimed NPC stays, unclaimed; every token the seat OWNED that
+a surviving character stands on passes to the DM who cleared the seat (`token.owner` is a move
+authority, and every monster a DM places is owned by that DM's uid — round 3's catch). The row says
+"· not at the table" — not "not connected", which the server contradicted for a browser parked on
+the login screen — mirrors the grace ("· dropped just now", no button, a 15 s tick), and names the
+cost with the SERVER's count (locked tokens included; a PC's token whoever made it; a token under
+any surviving character — an NPC, claimed or not, another player's PC — excluded): "There is no
+undo, though loading an older session file brings the character and its token back (not the
+seat)." Both layouts through `buildDMMenuProps`; 44 px on the phone. The client `MessageRouter`'s control whitelist learned the new frame — the FIRST live
+pass watched the server refuse and the router warn-drop the reply, the same road `session-file`
+shipped inert on.
+
+**(3) Help topic "Your seat: devices, reconnects, a fresh start"** (`features/help/helpTopics.ts`,
+id `seat`; the hold figure pinned to `SESSION_TOKEN_GRACE_MS` from its source) and a "REMOVE (a
+player)" entry in the DM topic; `getting-started.md` and `dm-guide.md` follow; the gate paragraph
+and `FRESH_SESSION_CONFIRM` now say "or removes the seat".
+
+**Gated by:** the full ladder (client 6054 pass / 0 fail (4 pre-existing skips, 342 files), server 2637/0 (144 files), shared 449/0 (27 files), e2e 210 pass / 0 fail / 3 pre-existing skips (the three help-panel count pins learned the new topic and re-ran green), dev
+boot), three bounded adversarial review rounds — the cap: round 3 left one lens PASS and two FAIL, whose findings were fixed with sabotage evidence only and are listed here rather than reviewed a fourth time, a live two-client pass on `dev` twice (round 1: ghost rows removed on both
+clients, an absent DM's row with its character and token, the acting combatant deleted mid-fight
+with the turn landing on the goblin on both clients, the help topic, the phone's Players tab;
+round 2: the parked-on-the-password-form seat refused with the toast, "dropped just now" flipping
+to removable after the minute by the tick alone, the confirm's count), and sabotage passes of
+13/13, 13/13, 1/1, 12/12 and 12/12 over the pins (round 3's live check: the relabelled row, the
+grace flipping by the tick, the parked login screen refused with the new toast). Residue, flagged
+not built: `seatReplacement.ts` still keys "seated" on `state.users` alone (a player at the
+password form gets no replacement character on a DM delete); `combatRound` is server-only and
+invisible, so the round arithmetic is unit-pinned only; the row cannot see sockets, so a parked
+login screen reads "not at the table" until REMOVE's toast says otherwise (shipping the server's
+view to the DM is the full fix); a human who leaves a login screen open longer than five minutes
+can be removed and is re-provisioned a fresh seat when they log in; a zombie socket can still pin
+a seat for those five minutes; the refusal reason tells a DM whether a uid has a socket open
+anywhere on the process; a removed seat's stray tokens stashed in a suspended scene come back on
+travel; a former DM's placed props and drawings keep that uid as owner after a remove (they regain
+them on return — harmless, unswept); `roll-initiative-all` still auto-starts the fight on the first
+NPC in array order rather than the top of the order; `delete-npc`'s NPC-only refusal is silent
+(unreachable from the UI). **Deploy:** not pushed — main is production.

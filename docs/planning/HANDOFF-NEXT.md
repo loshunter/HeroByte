@@ -7,6 +7,25 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-21, ON `dev` — NOT deployed; the owner decides).** The flagged-items slice
+(`session-identity-binding-arc-plan.md` §14.3) closes the three items the fresh-session slice left
+open: (1) the acting combatant leaving the initiative order — cleared, deleted by anyone, swept —
+now hands the turn to its successor instead of the next NEXT skipping everyone behind it; two
+neighbours fixed on the way (the round stamp is monotonic, closing a five-click budget refill any
+player had; a session load drops a pointer left outside the order); (2) **DM Menu → Players →
+REMOVE** clears an absent player's seat (row, PCs turn-safe, stray tokens, selections; a claimed
+NPC is unclaimed), refused — with a toast — for a connected uid (roster OR open socket, so a
+player parked on the password form is safe), a heartbeat under a minute old, or the DM's own; (3)
+a "Your seat" help topic. Five pre-existing budget-machinery bugs fixed on the way (the
+combat-start holder — Start Combat, the first roll, a travel resume, a session load — was never
+stamped: a two-click refill; a leaver's stamp was deleted: a same-round second budget; PREV had no
+floor, then a floor on the oldest stamp: a table-wide freeze either way; a load could leave the
+pointer dangling; `claim-character` took NPCs). Gated by the full ladder (client 6054 pass / 0 fail (4 pre-existing skips, 342 files), server
+2637/0 (144 files), shared 449/0 (27 files), e2e 210 pass / 0 fail / 3 pre-existing skips (the three help-panel count pins learned the new topic and re-ran green)), three bounded adversarial review rounds — the cap: round 3 left one lens PASS and two FAIL, whose findings were fixed with sabotage evidence only and are listed here rather than reviewed a fourth time, three live passes on dev, and 51 sabotages caught.
+Residue: `seatReplacement.ts` still keys "seated" on `state.users` alone; `combatRound` is
+invisible client-side; the row cannot see a parked login screen (the toast can); a login screen
+older than five minutes no longer holds its seat.
+
 **Update (2026-09-21, ON `dev` — NOT deployed; the owner decides).** The fresh-session slice
 (§12.2 of `session-identity-binding-arc-plan.md`, record in its §14.2): a conflicted tab that has
 retried once gets **START A FRESH SESSION** behind a confirm that names the cost — the browser

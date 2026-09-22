@@ -73,7 +73,8 @@ test.describe("desktop — the help panel", () => {
     expect(report!.fitsInViewport).toBe(true);
     // …and nothing may be drawn on top of it.
     expect(report!.probeIsInsidePanel).toBe(true);
-    expect(report!.topicCount).toBe(9);
+    // Ten topics since the seat topic (devices, reconnects, a fresh start) joined.
+    expect(report!.topicCount).toBe(10);
     expect(report!.linkCount).toBe(4);
   });
 
