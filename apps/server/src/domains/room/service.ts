@@ -3,7 +3,11 @@
 // ============================================================================
 // Handles room state management, persistence, and broadcasting
 
-import { resetAllMovementBudgets } from "./transform/movementBudgetReset.js";
+import {
+  dropTurnPointerOutsideOrder,
+  resetAllMovementBudgets,
+  startTurnBudget,
+} from "./transform/movementBudgetReset.js";
 import type { WebSocket } from "ws";
 import type { RoomSnapshot, PlayerStagingZone } from "@herobyte/shared";
 import type { RoomState } from "./model.js";
@@ -153,6 +157,21 @@ export class RoomService {
     // the round returns to 1 — `combatRound` is server-only and never rides a
     // snapshot, so the merge literal cannot carry it.
     resetAllMovementBudgets(this.state);
+    // The pointer rode the file; the ORDER came from the merge, which prefers
+    // a live character over the file's and so can drop the saved combatant's
+    // roll. `currentTurnCharacterId` rides the snapshot, so a pointer outside
+    // the order would mark a non-combatant as acting in every banner and card;
+    // the lap the next NEXT counts is the same either way (a blank pointer and
+    // a dangling one both land on the top).
+    dropTurnPointerOutsideOrder(this.state);
+    // The pointer that SURVIVED names a combatant whose turn is running: stamp
+    // it, exactly as Start Combat, the first roll and a travel resume do. The
+    // reset above wiped every stamp, and an unstamped holder is two clicks
+    // (PREV, NEXT) from a refund of whatever it spends after the load.
+    startTurnBudget(
+      this.state,
+      this.state.characters.find((c) => c.id === this.state.currentTurnCharacterId),
+    );
     this.store.set(this.roomId, this.state);
     this.rebuildSceneGraph();
 

@@ -209,6 +209,26 @@ describe("DMMenu", () => {
     expect(screen.queryByRole("button", { name: /^Reset$/ })).toBeNull();
   });
 
+  it("forwards the connected roster and the remove handler onto the Players tab — REMOVE renders and fires through the menu", () => {
+    // Both props are optional all the way down, so tsc cannot see a dropped
+    // forwarding line; only rendering the tab through the menu can.
+    const onRemovePlayer = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const props = {
+      ...createProps(),
+      players: [{ uid: "ghost", name: "Ghost", isDM: false }],
+      connectedUids: [] as string[],
+      onRemovePlayer,
+    };
+    render(<DMMenu {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Players" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(onRemovePlayer).toHaveBeenCalledWith("ghost");
+    vi.restoreAllMocks();
+  });
+
   it("switches to the Atlas tab and actually MOUNTS the tree (a dropped mount compiles clean)", () => {
     // The M4b lesson, applied forward: the chip existing and the props being
     // wired both survive deleting the `activeTab === "atlas"` mount block —

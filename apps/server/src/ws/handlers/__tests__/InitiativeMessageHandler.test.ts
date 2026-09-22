@@ -20,7 +20,7 @@ import { InitiativeMessageHandler } from "../InitiativeMessageHandler.js";
 import type { Character } from "@herobyte/shared";
 import { createEmptyRoomState } from "../../../domains/room/model.js";
 import type { RoomState } from "../../../domains/room/model.js";
-import type { CharacterService } from "../../../domains/character/service.js";
+import { CharacterService } from "../../../domains/character/service.js";
 import type { RoomService } from "../../../domains/room/service.js";
 import { DiceService } from "../../../domains/dice/service.js";
 import type { PlayerService } from "../../../domains/player/service.js";
@@ -99,15 +99,13 @@ describe("InitiativeMessageHandler", () => {
         }
         return false;
       }),
-      getCharactersInInitiativeOrder: vi.fn((state: RoomState) => {
-        return state.characters
-          .filter((c) => c.initiative !== undefined)
-          .sort((a, b) => {
-            const aTotal = (a.initiative ?? 0) + (a.initiativeModifier ?? 0);
-            const bTotal = (b.initiative ?? 0) + (b.initiativeModifier ?? 0);
-            return bTotal - aTotal; // Higher initiative first
-          });
-      }),
+      // The REAL comparator (initiative desc, pc before npc, then array index):
+      // a hand-rolled one here double-counted the modifier and had no
+      // tie-break, so the turn-passing assertions were validated against an
+      // order that was not production's.
+      getCharactersInInitiativeOrder: vi.fn((state: RoomState) =>
+        new CharacterService().getCharactersInInitiativeOrder(state),
+      ),
       clearAllInitiative: vi.fn((state: RoomState) => {
         state.characters.forEach((c) => {
           c.initiative = undefined;
@@ -551,24 +549,27 @@ describe("InitiativeMessageHandler", () => {
       expect(state.characters.every((c) => c.movementUsed === 20)).toBe(true);
     });
 
-    it("in round 1 the FIRST turn start resets a spend made before it (nobody is pre-stamped)", () => {
+    it("in round 1 the FIRST turn start resets a spend made before it (only the acting combatant is pre-stamped)", () => {
       // Review round 3: combat start stamped everyone with round 1, so every
       // round-1 turn start was a no-op and a pre-turn spend stood through it.
+      // Only the combatant whose turn BEGINS at the start is stamped now.
       handler.handleStartCombat(state, "dmPlayer", true);
-      expect(state.characters.every((c) => !("movementRound" in c))).toBe(true);
+      expect(state.characters.filter((c) => "movementRound" in c).map((c) => c.id)).toEqual([
+        "char2",
+      ]);
       state.characters[0].movementUsed = 25; // moved out of turn during round 1
       state.currentTurnCharacterId = "char2";
       handler.handleNextTurn(state, "dmPlayer", true); // -> char1's first turn
       expect(state.characters[0]).toMatchObject({ movementUsed: 0, movementRound: 1 });
     });
 
-    it("PREV then NEXT from the TOP of the order in round 1 refills nothing (no floor on the round)", () => {
+    it("PREV then NEXT from the TOP of the order in round 1 refills nothing — from the state Start Combat actually produces", () => {
       // The clamp `Math.max(1, round - 1)` ate the backward wrap while the
       // forward wrap still counted: two presses minted round 2 and a reset.
-      state.combatRound = 1;
-      state.currentTurnCharacterId = "char2"; // first in the order
-      state.characters[1].movementUsed = 30;
-      state.characters[1].movementRound = 1;
+      // And the holder Start Combat seats used to carry NO stamp, so the same
+      // two presses refilled it by a different road (flagged-items review).
+      handler.handleStartCombat(state, "dmPlayer", true); // char2 holds the turn, stamped by the start
+      state.characters[1].movementUsed = 30; // and spends it
       handler.handlePreviousTurn(state, "player1", false); // wraps back -> char3, round 0
       expect(state.combatRound).toBe(0);
       handler.handleNextTurn(state, "player1", false); // wraps forward -> char2, round 1 again
@@ -577,12 +578,24 @@ describe("InitiativeMessageHandler", () => {
       expect(state.characters[1].movementUsed).toBe(30);
     });
 
-    it("a turn pointer OUTSIDE the order (its holder cleared) still counts the lap it opens", () => {
+    it("a combatant leaving from the END of the order while acting hands the turn to the top and counts the lap — once", () => {
       state.combatRound = 1;
       for (const c of state.characters) c.movementRound = 1;
       state.currentTurnCharacterId = "char3"; // last in the order, its turn running
       handler.handleSetInitiative(state, "char3", "dmPlayer", undefined, 0, true); // it leaves
-      expect(state.currentTurnCharacterId).toBeUndefined();
+      // The turn passed exactly as a NEXT would have: a new lap, the top resets.
+      expect(state.currentTurnCharacterId).toBe("char2");
+      expect(state.combatRound).toBe(2);
+      expect(state.characters[1]).toMatchObject({ movementUsed: 0, movementRound: 2 });
+      handler.handleNextTurn(state, "dmPlayer", true); // -> char1, the same lap
+      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(state.combatRound).toBe(2);
+    });
+
+    it("a turn pointer DANGLING outside the order (a loaded file's stale id) still counts the lap the next NEXT opens", () => {
+      state.combatRound = 1;
+      for (const c of state.characters) c.movementRound = 1;
+      state.currentTurnCharacterId = "nobody";
       handler.handleNextTurn(state, "dmPlayer", true); // -> top of the order: a new lap
       expect(state.combatRound).toBe(2);
       expect(state.currentTurnCharacterId).toBe("char2");
@@ -618,19 +631,135 @@ describe("InitiativeMessageHandler", () => {
       expect(state.characters[1].movementUsed).toBe(15);
     });
 
-    it("clearing ONE combatant's initiative drops the turn pointer if it was theirs and its round stamp — never its spend", () => {
+    it("clearing ONE combatant's initiative passes the turn to the next in order if it was theirs, and keeps its round stamp and its spend", () => {
       // Any player may clear their OWN initiative; zeroing here was a
-      // two-click refill (clear, re-roll, walk on) — review round 3.
-      state.currentTurnCharacterId = "char1";
+      // two-click refill (clear, re-roll, walk on) — review round 3. And a
+      // pointer BLANKED here sent the next NEXT to the top of the order with a
+      // round counted, so everyone behind the leaver lost that round's turn.
+      state.combatRound = 1;
+      state.currentTurnCharacterId = "char1"; // the middle of char2, char1, char3
       state.characters[0].movementRound = 1;
       handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false);
-      expect(state.currentTurnCharacterId).toBeUndefined();
+      expect(state.currentTurnCharacterId).toBe("char3");
+      expect(state.combatRound).toBe(1); // no wrap, no lap
+      expect(state.characters[2]).toMatchObject({ movementUsed: 0, movementRound: 1 }); // char3's turn began
       expect(state.characters[0]).toMatchObject({ movementUsed: 20, movementDiagonals: 3 });
-      expect("movementRound" in state.characters[0]).toBe(false);
+      expect(state.characters[0].movementRound).toBe(1); // the stamp stays: no second budget this round
       // Someone else's clear leaves the pointer alone.
       state.currentTurnCharacterId = "char2";
       handler.handleSetInitiative(state, "char3", "dmPlayer", undefined, 0, true);
       expect(state.currentTurnCharacterId).toBe("char2");
+    });
+
+    it("a tie in the order does not move the survivors: pc-before-npc and array-index tie-breaks hold across a leave", () => {
+      // char1 (pc) and char3 (npc) both stand at 15; char2 at 18. The npc is put
+      // FIRST in the array, so only the pc-before-npc rule can order the tie —
+      // a stable sort with no tie-break would put char3 ahead and make char1
+      // the last in the order (a wrap, and round 2).
+      state.characters.reverse();
+      const byId = (id: string) => state.characters.find((c) => c.id === id)!;
+      byId("char1").initiative = 15;
+      byId("char2").initiative = 18;
+      byId("char3").initiative = 15;
+      state.combatRound = 1;
+      state.currentTurnCharacterId = "char1";
+      handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false);
+      expect(state.currentTurnCharacterId).toBe("char3"); // the npc behind it, not char2
+      expect(state.combatRound).toBe(1);
+    });
+
+    it("the round's floor is one lap below the oldest stamp, and a stamp AHEAD of the round is honoured: PREV laps refill nothing and freeze nothing", () => {
+      // Order char2(18), char1(15), char3(10); everyone acted in round 1 and
+      // spent 20 (char2: 25). Any player can nudge the order, so this is the
+      // road a player would take to refill their own budget: PREV past the top.
+      state.combatRound = 1;
+      for (const c of state.characters) c.movementRound = 1;
+      state.currentTurnCharacterId = "char2";
+      state.characters[1].movementUsed = 25;
+      handler.handlePreviousTurn(state, "player1", false); // wraps back -> char3, round 0
+      handler.handlePreviousTurn(state, "player1", false); // -> char1
+      handler.handlePreviousTurn(state, "player1", false); // -> char2
+      expect(state.combatRound).toBe(0);
+      handler.handleNextTurn(state, "player1", false); // -> char1, round 0: its stamp (1) is AHEAD of the round
+      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(state.characters[0].movementUsed).toBe(20); // `>=`: no refill
+      handler.handlePreviousTurn(state, "player1", false); // -> char2
+      handler.handlePreviousTurn(state, "player1", false); // wraps back again: would be -1; the floor (oldest stamp 1, one lap below) holds 0
+      expect(state.currentTurnCharacterId).toBe("char3");
+      expect(state.combatRound).toBe(0);
+      handler.handleNextTurn(state, "player1", false); // wraps -> char2, round 1 (not 0)
+      expect(state.currentTurnCharacterId).toBe("char2");
+      expect(state.combatRound).toBe(1);
+      expect(state.characters[1].movementUsed).toBe(25); // stamped 1 >= 1: no refill
+      // Real play resumes: the next forward wrap is a genuine new round and refills.
+      handler.handleNextTurn(state, "player1", false); // -> char1
+      handler.handleNextTurn(state, "player1", false); // -> char3
+      handler.handleNextTurn(state, "player1", false); // wraps -> char2, round 2
+      expect(state.combatRound).toBe(2);
+      expect(state.characters[1]).toMatchObject({ movementUsed: 0, movementRound: 2 });
+    });
+
+    it("the floor is one lap below the NEWEST in-order stamp: with stamps 9 and 8, two laps back park at 8, not 7", () => {
+      // Order char2(18), char1(15): char2 acted in round 9, char1 last in 8.
+      // The OLDEST stamp would let the round fall to 7 and freeze char2's
+      // budget on the way back up.
+      state.characters[2].initiative = undefined; // only two in the order
+      state.combatRound = 9;
+      state.characters[1].movementRound = 9;
+      state.characters[0].movementRound = 8;
+      state.currentTurnCharacterId = "char2";
+      for (let i = 0; i < 4; i += 1) handler.handlePreviousTurn(state, "player1", false); // two laps back
+      expect(state.combatRound).toBe(8);
+    });
+
+    it("a combatant who LEFT the order keeps its stamp, and that stamp is not the floor's business: in-order only", () => {
+      // Order char2(18), char1(15) at round 12, both stamped 9; char3 acted
+      // in round 12 and withdrew with its stamp 12 intact. Counting it would
+      // hold the round at 11 forever (a PREV that cannot rewind); ignoring it
+      // lets the correction walk to 10.
+      state.combatRound = 12;
+      state.characters[1].movementRound = 9;
+      state.characters[0].movementRound = 9;
+      state.characters[2].initiative = undefined;
+      state.characters[2].movementRound = 12;
+      state.currentTurnCharacterId = "char2";
+      for (let i = 0; i < 4; i += 1) handler.handlePreviousTurn(state, "player1", false); // two laps back
+      expect(state.combatRound).toBe(10);
+      expect(state.characters[0].movementUsed).toBe(20); // PREV starts no turn
+    });
+
+    it("PREV from a BLANK pointer un-counts the lap NEXT counts from it: the pair nets zero", () => {
+      state.combatRound = 3;
+      state.currentTurnCharacterId = undefined;
+      handler.handlePreviousTurn(state, "player1", false); // -> last in the order
+      expect(state.currentTurnCharacterId).toBe("char3");
+      handler.handleNextTurn(state, "player1", false); // wraps -> top, the lap counted
+      expect(state.combatRound).toBe(3);
+    });
+
+    it("clear, re-roll lower, walk on: a leaver re-entering in the SAME round gets no second budget", () => {
+      // Order char2(18), char1(15), char3(10), round 1: char1 acted and spent,
+      // and the turn moved on to char3.
+      state.combatRound = 1;
+      state.characters[0].movementRound = 1;
+      state.characters[0].movementUsed = 20;
+      state.currentTurnCharacterId = "char3";
+      handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false); // leaves
+      handler.handleSetInitiative(state, "char1", "dmPlayer", 1, 0, true); // re-enters at the bottom
+      handler.handleNextTurn(state, "player1", false); // -> char1 (now last; no wrap)
+      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(state.combatRound).toBe(1);
+      expect(state.characters[0].movementUsed).toBe(20); // the stamp stayed: 1 >= 1, no refill
+    });
+
+    it("the LAST combatant clearing its own initiative leaves no turn to pass", () => {
+      state.combatRound = 1;
+      for (const c of state.characters) c.initiative = undefined;
+      state.characters[0].initiative = 15;
+      state.currentTurnCharacterId = "char1";
+      handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false);
+      expect(state.currentTurnCharacterId).toBeUndefined();
+      expect(state.combatRound).toBe(1);
     });
 
     it("the ORDINARY road into a fight — the first initiative value — resets everyone", () => {
@@ -643,6 +772,7 @@ describe("InitiativeMessageHandler", () => {
       handler.handleSetInitiative(state, "char1", "dmPlayer", 11, 0, true);
       expect(state.combatActive).toBe(true);
       expect(state.currentTurnCharacterId).toBe("char1");
+      expect(state.characters[0].movementRound).toBe(1); // the first roller's turn IS starting
       expect(state.characters.every((c) => c.movementUsed === 0 && c.movementDiagonals === 0)).toBe(
         true,
       );

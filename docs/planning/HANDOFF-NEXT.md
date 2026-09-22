@@ -7,18 +7,53 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
-**Update (2026-09-20, ON `dev` — the connection-closing slice, awaiting the deploy decision).**
-The session-identity-binding deploy (main `2b7fe39e`) found that Render's proxy rewrites every
-server-sent WebSocket close code to 1005, so the client's 4002/4003 branches never fired live: two
-tabs of one browser took the seat from each other every 2 s (since July), and the new "Held in
-another window" gate never showed. The slice makes the server announce an intentional close with a
-`{ t: "connection-closing", reason }` data frame before the close, and the client go terminal on
-the frame (arc plan §14.1 has the full record). Gated: the full ladder green on the final tree
-(counts in the commit message), three review rounds (round 3: the conflict copy failed once more
-and was rewritten and pinned after the round; the server/tests/docs and script lenses passed), a
-live two-client browser pass, and a new post-deploy check — `pnpm check:live-session -- --url
-wss://<host>` with `HEROBYTE_ROOM_SECRET` set — which is the only thing that can see the proxy
-hop. Run it against production right after the merge deploys.
+**Update (2026-09-21, ON `dev` — NOT deployed; the owner decides).** The flagged-items slice
+(`session-identity-binding-arc-plan.md` §14.3) closes the three items the fresh-session slice left
+open: (1) the acting combatant leaving the initiative order — cleared, deleted by anyone, swept —
+now hands the turn to its successor instead of the next NEXT skipping everyone behind it; two
+neighbours fixed on the way (the round stamp is monotonic, closing a five-click budget refill any
+player had; a session load drops a pointer left outside the order); (2) **DM Menu → Players →
+REMOVE** clears an absent player's seat (row, PCs turn-safe, stray tokens, selections; a claimed
+NPC is unclaimed), refused — with a toast — for a connected uid (roster OR open socket, so a
+player parked on the password form is safe), a heartbeat under a minute old, or the DM's own; (3)
+a "Your seat" help topic. Five pre-existing budget-machinery bugs fixed on the way (the
+combat-start holder — Start Combat, the first roll, a travel resume, a session load — was never
+stamped: a two-click refill; a leaver's stamp was deleted: a same-round second budget; PREV had no
+floor, then a floor on the oldest stamp: a table-wide freeze either way; a load could leave the
+pointer dangling; `claim-character` took NPCs). Gated by the full ladder (client 6054 pass / 0 fail (4 pre-existing skips, 342 files), server
+2637/0 (144 files), shared 449/0 (27 files), e2e 210 pass / 0 fail / 3 pre-existing skips (the three help-panel count pins learned the new topic and re-ran green)), three bounded adversarial review rounds — the cap: round 3 left one lens PASS and two FAIL, whose findings were fixed with sabotage evidence only and are listed here rather than reviewed a fourth time, three live passes on dev, and 51 sabotages caught.
+Residue: `seatReplacement.ts` still keys "seated" on `state.users` alone; `combatRound` is
+invisible client-side; the row cannot see a parked login screen (the toast can); a login screen
+older than five minutes no longer holds its seat.
+
+**Update (2026-09-21, ON `dev` — NOT deployed; the owner decides).** The fresh-session slice
+(§12.2 of `session-identity-binding-arc-plan.md`, record in its §14.2): a conflicted tab that has
+retried once gets **START A FRESH SESSION** behind a confirm that names the cost — the browser
+forgets its uid and its own session tokens and reloads as a new player; the old seat is untouched
+(no server-side revoke, the six-hour hold stays). Companion: a DM can delete any character on desktop
+and mobile, and the server refills a still-seated owner's seat with a fresh "New Character" + token
+(an absent owner's seat stays empty). Gated by the full ladder (client 6036 pass / 0 fail (4 skipped, 341 files), server 2592/0 (143 files),
+shared 449/0 (27 files), e2e 210 pass / 0 fail / 3 pre-existing skips), three review rounds (the cap), a live two-client pass on dev, and a 7/7
+sabotage pass. Flagged, not built: the pre-existing initiative round-skip when the current
+combatant's character is deleted; no "remove player row" for a DM; no help topic for the gate.
+
+**Update (2026-09-20, DEPLOYED — the connection-closing frame is IN PRODUCTION).** `main` =
+`9745a26f`, a `--no-ff` merge of `dev` at `31e1509f`; CI **#890** green. The session-identity-binding
+deploy had found that Render's proxy rewrites every server-sent WebSocket close code to 1005, so the
+client's 4002/4003 branches never fired live: two tabs of one browser took the seat from each other
+every 2 s (since July), and the "Held in another window" gate never showed. The server now announces
+an intentional close with a `{ t: "connection-closing", reason }` data frame and the client goes
+terminal on the frame (arc plan §14.1 has the record). **Verified in production three ways:** the
+discriminating-string probe (entry `index-28Dsfjsc` → `index-Q3De0a3b`, "more retries will not
+shorten" 0→1 and "connection-closing" 0→4 across 11 chunks, control steady, server 200 after the
+restart 502s); `pnpm check:live-session` against the live host — **9/9 PASS through the real proxy,
+both close codes arrived as 1005 and the frame preceded each close**; and a real browser on
+`herobyte.pages.dev` — two tabs on one uid, the first went terminal on "Opened in another tab" with no
+reconnect, the second held the seat. Gated before the merge by the full ladder (e2e 210/0, client
+6016), three review rounds, and a live two-client pass on dev. Players reload; DMs re-enter the DM
+password once. Residue of the checks: two `live-check-*` / `prod-check-a1` seats in the Main Hall
+until its idle clear. Open for the owner: a "start a fresh session" affordance for a conflicted tab
+with no other window (§12.2).
 
 **Update (2026-09-18, DEPLOYED — the SECOND UX-audit repair slice is IN PRODUCTION).** `main` =
 `50472bca`, a `--no-ff` merge of `dev` at `73697c22` (14 commits). CI: dev **#881** green; the main

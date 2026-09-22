@@ -1085,7 +1085,38 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(roomService.getState().selectionState.size).toBe(0);
     });
 
-    it("should load combat state", () => {
+    it("should load combat state — the turn pointer survives when its holder stands in the order", () => {
+      const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
+        players: [],
+        characters: [
+          { id: "char-123", name: "Fighter", type: "npc", ownedByPlayerUID: null, initiative: 12 },
+        ],
+        tokens: [],
+        props: [],
+        drawings: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        diceRolls: [],
+        sceneObjects: [],
+        combatActive: true,
+        currentTurnCharacterId: "char-123",
+      };
+
+      roomService.loadSnapshot(snapshot);
+
+      expect(roomService.getState().combatActive).toBe(true);
+      expect(roomService.getState().currentTurnCharacterId).toBe("char-123");
+      expect(
+        roomService.getState().characters.find((c) => c.id === "char-123")?.movementRound,
+      ).toBe(1);
+    });
+
+    it("drops a turn pointer whose holder is not in the loaded order (dropTurnPointerOutsideOrder)", () => {
+      // A file can name a combatant the merge did not keep, or one with no
+      // roll: the pointer rides the snapshot and would mark a non-combatant as
+      // acting in every banner.
       const snapshot: RoomSnapshot = {
         users: [],
         pointers: [],
@@ -1105,7 +1136,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
       roomService.loadSnapshot(snapshot);
 
       expect(roomService.getState().combatActive).toBe(true);
-      expect(roomService.getState().currentTurnCharacterId).toBe("char-123");
+      expect(roomService.getState().currentTurnCharacterId).toBeUndefined();
     });
   });
 

@@ -297,5 +297,32 @@ export const HELP_TOPICS: HelpTopic[] = [
       { term: "◄ PREV / NEXT ►", detail: "Advance the turn — any player can nudge it." },
     ],
   },
+  {
+    id: "seat",
+    icon: "🔑",
+    title: "Your seat: devices, reconnects, a fresh start",
+    entries: [
+      {
+        term: "One device at a time",
+        detail:
+          "Your seat is held by the browser that logged in. A second device sees Held in another window: it has no session key, so it cannot take the seat — and neither can anyone else who knows the table password.",
+      },
+      {
+        term: "Try Again",
+        detail:
+          "Worth one click from the same browser: it usually takes the seat back. Otherwise the seat stays reserved while the first device is connected and for up to six hours after it disconnects — more retries will not shorten that.",
+      },
+      {
+        term: "Start a Fresh Session",
+        detail:
+          "Appears on that gate once a retry has failed. This browser becomes a new player: you will not get back into the old character, which stays at the table until the DM deletes it or removes the seat, and DM powers need the DM password again.",
+      },
+      {
+        term: "After a deploy",
+        detail:
+          "Reload the tab. Players come straight back; the DM enters the DM password once more.",
+      },
+    ],
+  },
   DM_HELP_TOPIC,
 ];

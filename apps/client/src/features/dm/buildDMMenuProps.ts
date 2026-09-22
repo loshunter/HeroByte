@@ -117,6 +117,11 @@ export function buildDMMenuProps(
 
     // Other actions
     onSelectPlayerTokens: props.selectPlayerTokens,
+    // The Players tab's REMOVE: the connected roster tells an absent row from a
+    // live one, and the remove itself is the other place (with fog) this menu
+    // speaks the wire protocol outside a hook.
+    connectedUids: snapshot?.users ?? [],
+    onRemovePlayer: (uid) => props.sendMessage({ t: "remove-player", uid }),
     onRollAllInitiative: extras.rollAllInitiative,
     mapStudio: props.mapStudio,
   };

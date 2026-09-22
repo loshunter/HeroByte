@@ -23,6 +23,7 @@ import type { SelectionService } from "../../domains/selection/service.js";
 import { allocateNpcNames } from "../../domains/character/npcNaming.js";
 import { SNAPSHOT_LIMITS } from "../../middleware/validators/sessionValidators.js";
 import { resetMovementBudget } from "../../domains/room/transform/movementBudgetReset.js";
+import { deleteCharacterKeepingTurn } from "./deleteCharacter.js";
 
 /**
  * Result of handling an NPC message
@@ -194,16 +195,23 @@ export class NPCMessageHandler {
    * @returns Result indicating broadcast/save needs
    */
   handleDeleteNPC(state: RoomState, npcId: string): NPCMessageResult {
-    const removed = this.characterService.deleteCharacter(state, npcId);
-    if (removed) {
-      // Delete linked token if exists
-      if (removed.tokenId) {
-        this.tokenService.forceDeleteToken(state, removed.tokenId);
-        this.selectionService.removeObject(state, removed.tokenId);
-      }
-      return { broadcast: true, save: true };
+    // NPCs only: a PC sent down this road would skip the seat replacement that
+    // delete-player-character gives a connected owner (seatReplacement.ts).
+    if (this.characterService.findCharacter(state, npcId)?.type !== "npc") {
+      console.warn(`delete-npc refused: ${npcId} is not an NPC`);
+      return { broadcast: false, save: false };
     }
-    return { broadcast: false, save: false };
+    // The NPC, its token, any selection of it — and the turn, if it held one
+    const removed = deleteCharacterKeepingTurn(
+      {
+        characterService: this.characterService,
+        tokenService: this.tokenService,
+        selectionService: this.selectionService,
+      },
+      state,
+      npcId,
+    );
+    return removed ? { broadcast: true, save: true } : { broadcast: false, save: false };
   }
 
   /**

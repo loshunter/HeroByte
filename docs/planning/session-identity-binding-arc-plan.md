@@ -685,8 +685,20 @@ proved unreachable — see below); the review-round fixes are each sabotage-prov
   yours, play from there."; button "Try Again" (the REPLACED state has its own, "Reclaim This
   Tab", which reconnects in place). `AuthenticationGate.test.tsx` pins "up to six hours" against
   `SESSION_TOKEN_GRACE_MS` read from its source, and "more retries will not shorten". The
-  `helpTopics.ts` help copy has no entry for this yet. **Open for the owner:** a tab in this state
-  has no way out but waiting — a "start a fresh session" action (a new uid) is a product decision.
+  `helpTopics.ts` help copy has no entry for this yet. **Decided 2026-09-21 (owner: proceed):** a
+  tab in this state gets a **START A FRESH SESSION** button (CONFLICT only), behind a native confirm
+  that names the cost — the browser forgets its uid and its own session tokens and reloads as a new
+  player. The old seat is not touched: its character and token stay until the DM deletes them
+  (the entities panel now offers delete on any character to a DM, which the server always allowed)
+  or the table clears itself (Main Hall only: an hour empty) — the old player's roster row
+  survives a character delete and shows in the DM menu's Players tab with no tokens (a Main Hall
+  clear wipes players too; on a private table nothing removes it, and `SNAPSHOT_LIMITS.players` is
+  100, the session-file load ceiling — a DM-side "remove player row" is the real fix, not built);
+  its DM flag stays dormant server-side until a tokenless reclaim resets it, so from that browser
+  DM powers are unreachable without the DM password. The per-tab table password is untouched. The
+  button appears only after a Try Again in the same conflict has failed (a post-deploy conflict
+  self-heals on the first retry). No server-side revoke: the six-hour hold exists to stop
+  impersonation and stays. `features/auth/freshSession.ts`.
 
 ### 12.3 Still to run before `main` (the §8 ladder)
 
@@ -812,8 +824,8 @@ Consequences, in order of importance:
 **What it does NOT affect:** the guard itself is server-side and verified working above. Single-tab
 play never triggers a takeover, so normal use is unaffected.
 
-**The fix — BUILT on `dev` 2026-09-20 (the connection-closing slice; the deploy record carries the
-hash once merged):** stop depending on the close code. The server sends
+**The fix — IN PRODUCTION 2026-09-20 (dev `62154152`, main `9745a26f`, CI #890; `check:live-session`
+9/9 through the real proxy, codes 1005, frame first; browser-confirmed on herobyte.pages.dev):** stop depending on the close code. The server sends
 `{ t: "connection-closing", reason: "replaced" | "conflict" }` immediately BEFORE `ws.close(...)`
 on both live-socket close sites (`closeAnnounced` in `apps/server/src/ws/announceClosing.ts`,
 called from `AuthenticationHandler.ts`); the client goes terminal on that frame
@@ -830,8 +842,8 @@ production sends — the frame, then a close whose code is 1005. Expected to sur
 **confirmed only by `pnpm check:live-session` against the deployed host**
 (`scripts/live-session-check.mjs`: three sockets as one uid, asserts the frame precedes each close,
 reports the codes seen — 1005 means the proxy is still stripping them; each run leaves a
-`live-check-*` seat in the table it joins, see its header). Not yet run against production as of
-this note. Verified on `dev` by a live two-client browser pass: the replaced tab went terminal on
+`live-check-*` seat in the table it joins, see its header). Run against production 2026-09-20 after the
+merge: 9/9 PASS, B=1005 A=1005, frame before close both times. Verified on `dev` by a live two-client browser pass: the replaced tab went terminal on
 the frame with zero reconnects over 10 s, a tokenless reclaim landed on "Held in another window",
 one frame per manual retry, the live tab and a player tab untouched.
 
@@ -842,3 +854,112 @@ deploy.
 
 **Post-deploy note for players:** reload any open tab. DMs re-enter the DM password once (session
 tokens live in memory and do not survive the restart).
+
+### 14.2 Fresh-session slice — on `dev` 2026-09-21, NOT deployed (§12.2's open item, decided)
+
+**What it does.** The CONFLICT gate ("Held in another window") gains **START A FRESH SESSION**,
+shown only after a Try Again in the same conflict episode has failed, behind a native confirm that
+names the cost (`FRESH_SESSION_CONFIRM`). `features/auth/freshSession.ts` forgets the browser's uid
+(and any `?sessionUid=` override) plus the abandoned uids' session tokens in all three key shapes,
+leaves the per-tab table password alone, and full-loads (a reload when the URL is unchanged). No
+server change to the hold: the six-hour reservation stays. Companion, so the abandoned seat can be
+cleaned up: a DM can delete ANY character from the entities panel on desktop and on the phone's
+party drawer (the server always allowed it); `ws/handlers/seatReplacement.ts` gives a still-seated
+owner (in the connected roster) a fresh "New Character" + token so provisionJoin's rule holds, and
+leaves an absent owner's seat empty. The DM's confirm says which of the two will happen.
+
+**Gated by:** the full ladder (shared build, lint, format:check, structure guard, both typechecks;
+client 6036 pass / 0 fail (4 skipped, 341 files), server 2592/0 (143 files), shared 449/0 (27 files), e2e 210 pass / 0 fail / 3 pre-existing skips; dev boot), three bounded adversarial
+review rounds (the cap — round 3 plateaued, so the post-round fixes below carry sabotage evidence
+only), a live two-client pass on `dev` (a stranger tab reached the gate, its Try Again failed, the
+button appeared, the confirm named the cost, the reload came back as a new player with a new uid and
+the old seat untouched; the DM deleted the abandoned character from both layouts), and a 7/7 sabotage
+pass over the post-round pins.
+
+**Post-round fixes (no fourth round, per the cap):** only AUTHENTICATED ends the conflict episode
+(the per-IP budget refusal arrives as auth FAILED and would otherwise hide the way out from the very
+user who drained the budget); `App.tsx` reads its uid once (`useMemo`) so a sibling tab's fresh
+session cannot re-identify a live tab mid-session; `startFreshSession` navigates in a `finally`;
+seated-vs-absent confirm copy; the mobile owner half of the delete gate pinned with a two-row test;
+the button styled as the one irreversible action (`authDangerButtonStyle`); the gate copy scoped
+("on the Main Hall, until it clears itself").
+
+**Open at the time, flagged to the owner — ALL THREE BUILT in §14.3 (2026-09-21):** (1) the
+round-skip on deleting the acting combatant; (2) a DM-side "remove player row"; (3) a help topic
+for the CONFLICT gate. The `handleNextTurn` prescription recorded here was wrong: once the holder
+is out of the order, NEXT cannot know where it stood — the fix lives on the LEAVE side
+(`leaveOrderBudget` takes the order read before the mutation). **Deploy:** not pushed — main is
+production. On a deploy players reload; nothing else changes for them.
+
+### 14.3 Flagged-items slice — on `dev` 2026-09-21, NOT deployed (the three items §14.2 left open)
+
+**(1) The turn is passed, not skipped.** `leaveOrderBudget(state, character, orderBefore)`
+(`domains/room/transform/movementBudgetReset.ts`) hands the turn to the departing combatant's
+successor exactly as NEXT would — successor's budget starts, a wrapping leave steps the round once —
+on every road out of the order: initiative cleared, `delete-player-character` (owner or DM),
+`delete-npc`, and the new `remove-player`; all deletes go through one helper,
+`ws/handlers/deleteCharacter.ts`. A holder that was never in the order blanks instead (a loaded
+file can say so). Five pre-existing neighbours in the same budget machinery fixed on the way, each
+a review find: the combatant who holds the turn when combat STARTS (Start Combat, the first roll,
+a resumed travel, a session load) is now stamped — unstamped, PREV then NEXT refilled its spent
+budget in two clicks by any player; the stamp is compared with `>=` and a leaver KEEPS it
+(deleting it handed a clear-and-re-roll-lower a second budget in the same round); PREV's backward
+wrap has a floor one lap below the NEWEST stamp still IN the order (below it, `>=` froze every
+budget for as many rounds as a player cared to click; the first floor read every character's
+OLDEST stamp, and a leaver's kept stamp pinned it at 0 — round 3's catch), and a blank pointer
+un-counts the lap NEXT counts from it; a session-file load drops a pointer the merge left outside
+the order (`dropTurnPointerOutsideOrder`, now also the travel-resume rule) and stamps the one it
+keeps; an empty order blanks Start Combat's pointer; and `delete-npc` refuses a PC's id (it skipped
+the seat replacement). `claim-character` refuses an NPC: an unclaimed monster is the DM's, and a
+claim handed a player delete over it.
+
+**(2) DM Menu → Players → REMOVE.** `{ t: "remove-player", uid }` (DM-only; `PlayerDispatcher`
+gate on `context.isDM()`, listed in `AuthorizationService`). `ws/handlers/removePlayer.ts` clears
+an absent seat: the roster row, every PC the uid owns (turn-safe), every token it owns that no
+surviving character stands on, its selections; a claimed NPC stays, unclaimed. Refused — and the
+DM is TOLD, by a `remove-player-refused { uid, reason }` frame to the sender alone, toasted by
+`useServerEventHandlers` — when the uid is the sender's own, is in `state.users` OR has ANY open
+socket (`state.users` is the AUTHENTICATED roster: a player parked on the password form, and
+every player in a post-restart reconnect window, is absent from it with a live socket — round 2's
+CRITICAL; and a held second tab is never in `uidToWs`, so `Container.liveSockets` tracks every
+open socket per uid with its connect time — round 2's follow-up — and only a socket younger than
+`HELD_SOCKET_TTL_MS` (5 min, the heartbeat window) counts, or a zombie that opens `?uid=` and never
+logs in would pin the seat forever; the registry is process-wide, so a tab at ANOTHER table counts
+too, and the toast says so), or heartbeated under `REMOVE_PLAYER_GRACE_MS` (60 s) ago — a blip must
+not cost a player their characters. A claimed NPC stays, unclaimed; every token the seat OWNED that
+a surviving character stands on passes to the DM who cleared the seat (`token.owner` is a move
+authority, and every monster a DM places is owned by that DM's uid — round 3's catch). The row says
+"· not at the table" — not "not connected", which the server contradicted for a browser parked on
+the login screen — mirrors the grace ("· dropped just now", no button, a 15 s tick), and names the
+cost with the SERVER's count (locked tokens included; a PC's token whoever made it; a token under
+any surviving character — an NPC, claimed or not, another player's PC — excluded): "There is no
+undo, though loading an older session file brings the character and its token back (not the
+seat)." Both layouts through `buildDMMenuProps`; 44 px on the phone. The client `MessageRouter`'s control whitelist learned the new frame — the FIRST live
+pass watched the server refuse and the router warn-drop the reply, the same road `session-file`
+shipped inert on.
+
+**(3) Help topic "Your seat: devices, reconnects, a fresh start"** (`features/help/helpTopics.ts`,
+id `seat`; the hold figure pinned to `SESSION_TOKEN_GRACE_MS` from its source) and a "REMOVE (a
+player)" entry in the DM topic; `getting-started.md` and `dm-guide.md` follow; the gate paragraph
+and `FRESH_SESSION_CONFIRM` now say "or removes the seat".
+
+**Gated by:** the full ladder (client 6054 pass / 0 fail (4 pre-existing skips, 342 files), server 2637/0 (144 files), shared 449/0 (27 files), e2e 210 pass / 0 fail / 3 pre-existing skips (the three help-panel count pins learned the new topic and re-ran green), dev
+boot), three bounded adversarial review rounds — the cap: round 3 left one lens PASS and two FAIL, whose findings were fixed with sabotage evidence only and are listed here rather than reviewed a fourth time, a live two-client pass on `dev` twice (round 1: ghost rows removed on both
+clients, an absent DM's row with its character and token, the acting combatant deleted mid-fight
+with the turn landing on the goblin on both clients, the help topic, the phone's Players tab;
+round 2: the parked-on-the-password-form seat refused with the toast, "dropped just now" flipping
+to removable after the minute by the tick alone, the confirm's count), and sabotage passes of
+13/13, 13/13, 1/1, 12/12 and 12/12 over the pins (round 3's live check: the relabelled row, the
+grace flipping by the tick, the parked login screen refused with the new toast). Residue, flagged
+not built: `seatReplacement.ts` still keys "seated" on `state.users` alone (a player at the
+password form gets no replacement character on a DM delete); `combatRound` is server-only and
+invisible, so the round arithmetic is unit-pinned only; the row cannot see sockets, so a parked
+login screen reads "not at the table" until REMOVE's toast says otherwise (shipping the server's
+view to the DM is the full fix); a human who leaves a login screen open longer than five minutes
+can be removed and is re-provisioned a fresh seat when they log in; a zombie socket can still pin
+a seat for those five minutes; the refusal reason tells a DM whether a uid has a socket open
+anywhere on the process; a removed seat's stray tokens stashed in a suspended scene come back on
+travel; a former DM's placed props and drawings keep that uid as owner after a remove (they regain
+them on return — harmless, unswept); `roll-initiative-all` still auto-starts the fight on the first
+NPC in array order rather than the top of the order; `delete-npc`'s NPC-only refusal is silent
+(unreachable from the UI). **Deploy:** not pushed — main is production.

@@ -931,6 +931,7 @@ type ClientMessagePayload =
   | { t: "claim-character"; characterId: string } // Player claims unclaimed PC
   | { t: "add-player-character"; name: string; maxHp?: number } // Player creates additional character for themselves
   | { t: "delete-player-character"; characterId: string } // Player deletes one of their characters
+  | { t: "remove-player"; uid: string } // DM clears an ABSENT player's seat: roster row, PCs, tokens
   | { t: "update-character-name"; characterId: string; name: string } // Player updates their character's name
   | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number; tempHp?: number } // Update character HP
   | { t: "set-character-portrait"; characterId: string; portrait?: string } // Update character portrait
@@ -1328,6 +1329,13 @@ export type ServerMessage =
       exportBytes?: number;
     }
   | { t: "session-file"; file: SessionFile } // DM-only: the bundled reply to session-export
+  | {
+      t: "remove-player-refused";
+      // Sent to the ACTING DM only (sendControlMessage). A refused REMOVE
+      // changes nothing on the table, so this is the DM's only failure surface.
+      uid: string;
+      reason: "self" | "connected" | "recent" | "nothing";
+    }
   | { t: "map-studio-deleted"; documentId: string }
   | {
       t: "map-studio-error";

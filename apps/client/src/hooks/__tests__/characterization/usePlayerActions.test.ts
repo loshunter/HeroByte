@@ -259,6 +259,79 @@ describe("usePlayerActions - Characterization Tests", () => {
       confirmSpy.mockRestore();
     });
 
+    it("a DM deleting someone else's character is not handed a replacement, even with one character of their own", () => {
+      // The replacement rule is "a seat needs a character": it keys on the
+      // DELETED character being the caller's own last one, not on the caller
+      // owning exactly one character.
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+      const snapshot = {
+        ...mockSnapshot,
+        characters: [
+          {
+            id: "char-dm",
+            name: "The DM",
+            ownedByPlayerUID: "dm-1",
+            type: "pc",
+            hp: 100,
+            maxHp: 100,
+          },
+          {
+            id: "char-alice",
+            name: "Alice",
+            ownedByPlayerUID: "player-1",
+            type: "pc",
+            hp: 100,
+            maxHp: 100,
+          },
+        ] as Character[],
+      };
+
+      const { result } = renderHook(() =>
+        usePlayerActions({
+          sendMessage: mockSendMessage,
+          snapshot,
+          uid: "dm-1",
+        }),
+      );
+
+      act(() => {
+        result.current.deleteCharacter("char-alice");
+      });
+
+      // The question names whose character it is and that it cannot be undone.
+      expect(confirmSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /Delete Alice\? That is another player's character.*cannot be undone/,
+        ),
+      );
+      confirmSpy.mockClear();
+      mockSendMessage.mockClear();
+
+      // A SEATED owner (in the connected roster) gets a fresh character from
+      // the server, and the question says so instead of promising an empty seat.
+      const seatedSnapshot = { ...snapshot, users: ["dm-1", "player-1"] };
+      const { result: seated } = renderHook(() =>
+        usePlayerActions({ sendMessage: mockSendMessage, snapshot: seatedSnapshot, uid: "dm-1" }),
+      );
+      act(() => {
+        seated.current.deleteCharacter("char-alice");
+      });
+      expect(confirmSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /still at the table.*fresh "New Character".*does not empty their seat/,
+        ),
+      );
+      expect(mockSendMessage).toHaveBeenCalledWith({
+        t: "delete-player-character",
+        characterId: "char-alice",
+      });
+      expect(mockSendMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({ t: "add-player-character" }),
+      );
+
+      confirmSpy.mockRestore();
+    });
+
     it("should not delete character if confirmation is cancelled", () => {
       const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
 

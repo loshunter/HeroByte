@@ -127,6 +127,9 @@ export interface DMMenuProps {
   }) => Promise<void>;
   sceneObjects: SceneObject[];
   onSelectPlayerTokens: (playerUid: string) => void;
+  /** The connected roster; a player outside it is shown as not connected and can be removed. */
+  connectedUids?: readonly string[];
+  onRemovePlayer?: (playerUid: string) => void;
   combatActive?: boolean;
   monsterHpDisplay?: MonsterHpDisplay;
   onMonsterHpDisplayChange?: (mode: MonsterHpDisplay) => void;

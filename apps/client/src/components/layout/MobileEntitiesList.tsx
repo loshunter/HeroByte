@@ -34,6 +34,8 @@ interface MobileEntitiesListProps {
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
+  /** Delete a character — the owner's own, or any character for a DM. */
+  onDeleteCharacter?: (characterId: string) => void;
   /** The table's default sight radius in feet, shown on a token that inherits
    *  it. Undefined means no default is set, which is unlimited. */
   tableVisionDefault?: number;
@@ -71,6 +73,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onCharacterHpChange,
   onCharacterStatusEffectsChange,
   onCharacterNameUpdate,
+  onDeleteCharacter,
   tableVisionDefault,
   onCharacterPortraitUpdate,
   tokens,
@@ -235,6 +238,11 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
               onCharacterStatusEffectsChange(entity.characterId, effects)
             }
             onCharacterNameUpdate={onCharacterNameUpdate}
+            // The desktop card's gate: the owner, or the DM. A legacy row has
+            // no character to delete.
+            onDeleteCharacter={
+              (entity.uid === uid || isDM) && entity.hasCharacter ? onDeleteCharacter : undefined
+            }
             tableVisionDefault={tableVisionDefault}
             onCharacterPortraitUpdate={onCharacterPortraitUpdate}
           />

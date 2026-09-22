@@ -36,6 +36,13 @@ export class CharacterDispatcher {
         );
 
       case "claim-character":
+        // PCs only. create-npc leaves a monster unowned and remove-player
+        // un-claims one, so an unclaimed NPC is the DM's creature — and a
+        // claim would hand a player delete-player-character over it.
+        if (state.characters.find((c) => c.id === message.characterId)?.type !== "pc") {
+          console.warn(`claim-character refused: ${message.characterId} is not a PC`);
+          return { broadcast: false, save: false };
+        }
         return this.characterHandler.handleClaimCharacter(state, message.characterId, senderUid);
 
       case "add-player-character":

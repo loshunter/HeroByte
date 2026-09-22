@@ -501,7 +501,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
                             isCreatingCharacter={isMe ? characterCreation.isCreating : false}
                             characterId={character.id}
-                            onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
+                            onDeleteCharacter={isMe || currentIsDM ? onDeleteCharacter : undefined}
                             onFocusToken={token ? () => onFocusToken(token.id) : undefined}
                             initiative={character.initiative}
                             onInitiativeClick={
@@ -697,7 +697,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
                           isCreatingCharacter={isMe ? characterCreation.isCreating : false}
                           characterId={character.id}
-                          onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
+                          onDeleteCharacter={isMe || currentIsDM ? onDeleteCharacter : undefined}
                           onFocusToken={token ? () => onFocusToken(token.id) : undefined}
                           initiative={character.initiative}
                           onInitiativeClick={

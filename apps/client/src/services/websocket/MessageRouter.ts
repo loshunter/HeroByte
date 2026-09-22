@@ -69,6 +69,10 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "map-studio-deleted" }>
   | Extract<ServerMessage, { t: "map-studio-error" }>
   | Extract<ServerMessage, { t: "atlas-error" }>
+  // The Players tab's REMOVE, refused: the DM's only failure surface for it.
+  // Found live 2026-09-21 the same way session-file was — the frame arrived
+  // and the guard below warn-dropped it.
+  | Extract<ServerMessage, { t: "remove-player-refused" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
   // Save Game State's reply. It was never on this list: it rode the router's
@@ -406,6 +410,7 @@ export class MessageRouter {
       // above compiles nothing away, and an unlisted type is silently
       // warn-dropped at the router's floor. Both lists change together.
       candidate.t === "atlas-error" ||
+      candidate.t === "remove-player-refused" ||
       candidate.t === "room-created" ||
       candidate.t === "room-create-failed" ||
       candidate.t === "session-file" ||

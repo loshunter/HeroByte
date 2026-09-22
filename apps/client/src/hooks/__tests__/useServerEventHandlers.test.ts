@@ -17,7 +17,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ServerMessage } from "@herobyte/shared";
-import { useServerEventHandlers } from "../useServerEventHandlers.js";
+import { REMOVE_PLAYER_REFUSAL_COPY, useServerEventHandlers } from "../useServerEventHandlers.js";
 
 describe("useServerEventHandlers - Characterization Tests", () => {
   describe("initialization", () => {
@@ -865,6 +865,32 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       act(() => handler(message));
       expect(onAtlasError).toHaveBeenCalledWith(message);
       expect(toast.error).toHaveBeenCalledWith("Atlas: Full.", 5000);
+    });
+  });
+
+  describe("remove-player-refused events", () => {
+    it("surfaces each refusal as an error toast — a REMOVE that did nothing must not do so silently", () => {
+      const registerServerEventHandler = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
+      const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
+
+      for (const reason of ["self", "connected", "recent", "nothing"] as const) {
+        act(() => handler({ t: "remove-player-refused", uid: "ghost", reason }));
+        expect(toast.error).toHaveBeenLastCalledWith(REMOVE_PLAYER_REFUSAL_COPY[reason], 5000);
+      }
+      expect(toast.error).toHaveBeenCalledTimes(4);
+      expect(REMOVE_PLAYER_REFUSAL_COPY.recent).toMatch(/less than a minute/);
+      expect(REMOVE_PLAYER_REFUSAL_COPY.connected).toMatch(/another table/);
     });
   });
 });

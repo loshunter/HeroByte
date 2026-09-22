@@ -181,6 +181,20 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       const character = state.characters.find((c) => c.id === characterId);
       expect(character?.ownedByPlayerUID).toBe(playerUid);
     });
+
+    it("refuses an NPC: an unclaimed monster is the DM's, and a claim would hand a player delete over it", () => {
+      const state = roomService.getState();
+      const goblin = characterService.createCharacter(state, "Goblin", 7, "", "npc");
+      const save = vi.spyOn(roomService, "saveState");
+
+      messageRouter.route({ t: "claim-character", characterId: goblin.id }, playerUid);
+
+      expect(state.characters.find((c) => c.id === goblin.id)?.ownedByPlayerUID ?? null).toBeNull();
+      expect(save).not.toHaveBeenCalled();
+      // And the road a claim would have opened stays shut.
+      messageRouter.route({ t: "delete-player-character", characterId: goblin.id }, playerUid);
+      expect(state.characters.find((c) => c.id === goblin.id)).toBeDefined();
+    });
   });
 
   describe("add-player-character message", () => {
@@ -268,6 +282,35 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       const state = roomService.getState();
       expect(state.characters.find((c) => c.id === characterId)).toBeUndefined();
       expect(state.tokens.find((t) => t.id === tokenId)).toBeUndefined();
+    });
+
+    it("a DM deleting a SEATED player's last character mints them a replacement with a token", () => {
+      // The owner's own delete mints a replacement client-side; a DM's delete
+      // of another player's last character reaches here with no such client
+      // path, and "Add Character" lives on the card they no longer have.
+      const state = roomService.getState();
+      state.users = [playerUid, dmUid];
+
+      messageRouter.route({ t: "delete-player-character", characterId }, dmUid);
+
+      const after = roomService.getState();
+      expect(after.characters.find((c) => c.id === characterId)).toBeUndefined();
+      const replacement = after.characters.find((c) => c.ownedByPlayerUID === playerUid);
+      expect(replacement).toBeDefined();
+      expect(replacement?.name).toBe("New Character");
+      expect(replacement?.tokenId).toBeDefined();
+      expect(after.tokens.find((t) => t.id === replacement?.tokenId)?.owner).toBe(playerUid);
+    });
+
+    it("a DM deleting an ABSENT player's last character leaves the seat empty — that is the point", () => {
+      const state = roomService.getState();
+      state.users = [dmUid];
+
+      messageRouter.route({ t: "delete-player-character", characterId }, dmUid);
+
+      const after = roomService.getState();
+      expect(after.characters.filter((c) => c.ownedByPlayerUID === playerUid)).toEqual([]);
+      expect(after.tokens.filter((t) => t.owner === playerUid)).toEqual([]);
     });
 
     it("should not delete character when non-owner tries", () => {
@@ -411,6 +454,118 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       const character = state.characters.find((c) => c.id === characterId);
       expect(character?.hp).toBe(100); // unchanged
       expect(character?.maxHp).toBe(100);
+    });
+  });
+
+  describe("deleting a combatant mid-fight — the turn is passed, not skipped", () => {
+    // Order: Leader 20, Runner 15, Rear 10 — the player's three PCs, round 2.
+    let leaderId: string;
+    let runnerId: string;
+    let rearId: string;
+
+    beforeEach(() => {
+      const state = roomService.getState();
+      const make = (name: string, initiative: number) => {
+        const c = characterService.createCharacter(state, name, 100, "", "pc");
+        c.ownedByPlayerUID = playerUid;
+        c.initiative = initiative;
+        c.movementUsed = 10;
+        const token = tokenService.createToken(state, playerUid, 1, 1);
+        characterService.linkToken(state, c.id, token.id);
+        return c.id;
+      };
+      leaderId = make("Leader", 20);
+      runnerId = make("Runner", 15);
+      rearId = make("Rear", 10);
+      state.combatActive = true;
+      state.combatRound = 2;
+      roomService.createSnapshot();
+    });
+
+    it("the DM deletes the ACTING combatant at the TOP of the order: the turn passes to the next, the round holds, and the next NEXT walks on down the order instead of restarting it", () => {
+      roomService.getState().currentTurnCharacterId = leaderId;
+      messageRouter.route({ t: "delete-player-character", characterId: leaderId }, dmUid);
+      let after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(runnerId);
+      expect(after.combatRound).toBe(2);
+      expect(after.characters.find((c) => c.id === runnerId)).toMatchObject({
+        movementUsed: 0,
+        movementRound: 2,
+      });
+      // Before the fix the pointer dangled and this NEXT went to the top —
+      // Runner again, with round 3 counted; Rear never got its round-2 turn.
+      messageRouter.route({ t: "next-turn" }, dmUid);
+      after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(rearId);
+      expect(after.combatRound).toBe(2);
+    });
+
+    it("the DM deletes the ACTING combatant in the MIDDLE: the one behind it acts, its budget starts", () => {
+      roomService.getState().currentTurnCharacterId = runnerId;
+      messageRouter.route({ t: "delete-player-character", characterId: runnerId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(rearId);
+      expect(after.combatRound).toBe(2);
+      expect(after.characters.find((c) => c.id === rearId)).toMatchObject({
+        movementUsed: 0,
+        movementRound: 2,
+      });
+    });
+
+    it("deleting the LAST in the order while it acts wraps to the top and counts the lap exactly once", () => {
+      roomService.getState().currentTurnCharacterId = rearId;
+      messageRouter.route({ t: "delete-player-character", characterId: rearId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(leaderId);
+      expect(after.combatRound).toBe(3);
+      messageRouter.route({ t: "next-turn" }, dmUid);
+      expect(roomService.getState().currentTurnCharacterId).toBe(runnerId);
+      expect(roomService.getState().combatRound).toBe(3);
+    });
+
+    it("deleting someone who is NOT acting leaves the turn and the round where they were", () => {
+      roomService.getState().currentTurnCharacterId = runnerId;
+      messageRouter.route({ t: "delete-player-character", characterId: leaderId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(runnerId);
+      expect(after.combatRound).toBe(2);
+    });
+
+    it("the owner deleting their own acting character passes the turn the same way", () => {
+      roomService.getState().currentTurnCharacterId = leaderId;
+      messageRouter.route({ t: "delete-player-character", characterId: leaderId }, playerUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(runnerId);
+      expect(after.combatRound).toBe(2);
+    });
+
+    it("deleting an acting combatant that was never IN the order blanks the pointer rather than guessing a successor (the loaded-file case)", () => {
+      const state = roomService.getState();
+      state.characters.find((c) => c.id === runnerId)!.initiative = undefined; // holds the turn, not in the order
+      state.currentTurnCharacterId = runnerId;
+      messageRouter.route({ t: "delete-player-character", characterId: runnerId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBeUndefined();
+      expect(after.combatRound).toBe(2); // no lap invented for a turn nobody was in
+    });
+
+    it("the seat replacement and the turn hand-off compose: the DM deletes a seated owner's ONLY acting PC, the NPC behind it acts, the minted replacement stays out of the order", () => {
+      const state = roomService.getState();
+      state.users = [playerUid, dmUid];
+      // Only Leader is the player's; the other two become the DM's monsters.
+      for (const id of [runnerId, rearId]) {
+        const c = state.characters.find((x) => x.id === id)!;
+        c.type = "npc";
+        c.ownedByPlayerUID = null;
+      }
+      state.currentTurnCharacterId = leaderId;
+      messageRouter.route({ t: "delete-player-character", characterId: leaderId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(runnerId);
+      expect(after.combatRound).toBe(2);
+      const replacement = after.characters.find((c) => c.name === "New Character");
+      expect(replacement?.ownedByPlayerUID).toBe(playerUid);
+      expect(replacement?.initiative).toBeUndefined();
     });
   });
 

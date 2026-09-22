@@ -120,6 +120,35 @@ export function stashSessionToken(
 }
 
 /**
+ * Forget the session tokens of the given uids, at every table — the "start a
+ * fresh session" path (features/auth/freshSession.ts). A fresh identity must
+ * not carry the abandoned one's keys: presenting them would prove the old
+ * session and take its seat back. Other uids' keys are left alone: a second
+ * tab pinned to another `?sessionUid=` in this browser (the two-client review
+ * workflow) keeps its own proof. Neither a uid nor a room id can contain `:`,
+ * so the three key shapes are matched exactly.
+ */
+export function clearSessionTokens(uids: readonly string[]): void {
+  try {
+    const owned = (key: string) =>
+      uids.some(
+        (uid) =>
+          key === `${SESSION_TOKEN_STORAGE_KEY}:${uid}` ||
+          key === `${SESSION_TOKEN_STORAGE_KEY}:${uid}:*` ||
+          key.endsWith(`:${uid}`),
+      );
+    const stale: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(`${SESSION_TOKEN_STORAGE_KEY}:`) && owned(key)) stale.push(key);
+    }
+    for (const key of stale) localStorage.removeItem(key);
+  } catch {
+    // Nothing stored, nothing to forget.
+  }
+}
+
+/**
  * The stashed session token for this uid at a table — falling back to the
  * newest one this uid holds anywhere — or undefined if there is none at all.
  */

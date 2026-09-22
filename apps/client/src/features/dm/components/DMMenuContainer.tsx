@@ -100,6 +100,10 @@ export interface DMMenuContainerProps {
 
   // Other actions
   onSelectPlayerTokens: (playerUid: string) => void;
+  /** The connected roster (snapshot.users): a Players-tab row outside it is not connected, and removable. */
+  connectedUids?: readonly string[];
+  /** The DM clears a player who is not connected: their row, characters and tokens. */
+  onRemovePlayer?: (playerUid: string) => void;
   onRollAllInitiative?: () => void;
   mapStudio?: MapStudioController;
   /** "window" (desktop launcher + DraggableWindow) or "content" (bare, for
@@ -159,6 +163,8 @@ export function DMMenuContainer({
   camera,
   toast,
   onSelectPlayerTokens,
+  connectedUids,
+  onRemovePlayer,
   onRollAllInitiative,
   mapStudio,
   presentation,
@@ -277,6 +283,8 @@ export function DMMenuContainer({
       onSaveAsPrivateTable={onSaveAsPrivateTable}
       sceneObjects={sceneObjects}
       onSelectPlayerTokens={onSelectPlayerTokens}
+      connectedUids={connectedUids}
+      onRemovePlayer={onRemovePlayer}
       combatActive={combatActive}
       diagonalRule={snapshot?.diagonalRule ?? "5e"}
       onDiagonalRuleChange={dmContext.combatControls.handleSetDiagonalRule}

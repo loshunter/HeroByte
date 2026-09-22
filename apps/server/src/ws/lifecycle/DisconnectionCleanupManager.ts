@@ -41,13 +41,14 @@ export interface CleanupOptions {
   closeWebSocket?: boolean;
 
   /**
-   * Remove player entity from state.players (used for timeout)
+   * Remove player entity from state.players. No production caller passes it
+   * since the heartbeat timeout became a plain disconnect; tests only.
    * Default: false
    */
   removePlayer?: boolean;
 
   /**
-   * Remove player tokens from state.tokens (used for timeout)
+   * Remove player tokens from state.tokens. Same as removePlayer: tests only.
    * Default: false
    */
   removeTokens?: boolean;
@@ -85,13 +86,14 @@ export interface CleanupOptions {
  * cleanupManager.cleanupPlayer(uid, { ws });
  * ```
  *
- * Timeout disconnection (HeartbeatTimeoutManager):
+ * Timeout disconnection (HeartbeatTimeoutManager) — a timeout is now exactly a
+ * disconnect that also closes the socket; the player and tokens are kept on
+ * purpose (see that file's own comment), so removePlayer/removeTokens are NOT
+ * passed, and no per-connection disconnect or timeout path removes a seat by
+ * itself (the default table's idle-clear sweep, container.ts's
+ * clearIdleDefaultRoom, still empties every seat on that one table):
  * ```typescript
- * cleanupManager.cleanupPlayer(uid, {
- *   closeWebSocket: true,
- *   removePlayer: true,
- *   removeTokens: true,
- * });
+ * cleanupManager.cleanupPlayer(uid, { closeWebSocket: true });
  * ```
  */
 export class DisconnectionCleanupManager {

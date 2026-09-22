@@ -90,6 +90,18 @@ export interface UseServerEventHandlersOptions {
   onAtlasError?: (message: Extract<ServerMessage, { t: "atlas-error" }>) => void;
 }
 
+/** What the DM reads when the server refused a REMOVE (Players tab). */
+export const REMOVE_PLAYER_REFUSAL_COPY: Record<
+  Extract<ServerMessage, { t: "remove-player-refused" }>["reason"],
+  string
+> = {
+  self: "You cannot remove your own seat.",
+  connected:
+    "That player still has a browser open — a login screen, or another table, counts. Ask them to close it, then try again.",
+  recent: "That player was here less than a minute ago — wait a moment, then try again.",
+  nothing: "There was nothing left at the table for that player.",
+};
+
 /**
  * Return value from useServerEventHandlers hook
  */
@@ -265,6 +277,10 @@ export function useServerEventHandlers({
         // acting DM alone), so a swallowed one is a silently dead button.
         toastError(`Atlas: ${message.reason}`, 5000);
         onAtlasError?.(message);
+      } else if ("t" in message && message.t === "remove-player-refused") {
+        // The Players tab's REMOVE is fire-and-forget too, and a refused one
+        // changes nothing on the table: this is the DM's only failure surface.
+        toastError(REMOVE_PLAYER_REFUSAL_COPY[message.reason], 5000);
       }
     });
   }, [

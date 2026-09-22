@@ -148,6 +148,7 @@ const setupContainer = () => {
     rateLimiter,
     authWorkLimiter,
     uidToWs,
+    liveSockets: new Map<string, Map<WebSocket, number>>(),
     authenticatedUids,
     authenticatedSessions,
     sessionTokens: new SessionTokenService(),
@@ -222,6 +223,31 @@ describe("ConnectionHandler", () => {
     socket.emit("message", Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" })));
     await flushAuth();
     expect(container.roomService.getState().players).toHaveLength(0);
+  });
+
+  it("registers every open socket per uid — a held second one too — and forgets each on close", () => {
+    // remove-player's connected gate reads Container.liveSockets: a second tab
+    // on the password form is HELD (never in uidToWs) and outlives the first
+    // tab's close, so it must be registered on connect and forgotten on close.
+    const first = new FakeWebSocket();
+    wss.emitConnection(first, { url: "/?uid=user-live" });
+    const second = new FakeWebSocket(); // a live incumbent: this one is held
+    wss.emitConnection(second, { url: "/?uid=user-live" });
+    expect(container.uidToWs.get("user-live")).toBe(first);
+    expect([...(container.liveSockets.get("user-live")?.keys() ?? [])]).toEqual([first, second]);
+    for (const since of container.liveSockets.get("user-live")?.values() ?? []) {
+      expect(typeof since).toBe("number");
+    }
+
+    first.emit("close");
+    expect([...(container.liveSockets.get("user-live")?.keys() ?? [])]).toEqual([second]);
+    second.emit("close");
+    expect(container.liveSockets.has("user-live")).toBe(false);
+  });
+
+  it("a rejected connection (no usable uid) is never registered as a live socket", () => {
+    wss.emitConnection(new FakeWebSocket(), { url: "/" });
+    expect(container.liveSockets.size).toBe(0);
   });
 
   it("registers new connections and spawns player/token state", async () => {

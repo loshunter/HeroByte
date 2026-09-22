@@ -4,22 +4,16 @@
  * Handles all character-related messages from clients.
  * Manages character creation, ownership, updates, and deletion.
  *
- * Extracted from: apps/server/src/ws/messageRouter.ts
- * - create-character (lines 213-226)
- * - claim-character (lines 461-466)
- * - add-player-character (lines 468-501)
- * - delete-player-character (lines 503-526)
- * - update-character-name (lines 528-547)
- * - update-character-hp (lines 549-556)
- * - set-character-status-effects (lines 558-579)
- *
- * Extraction date: 2025-11-14
+ * Extracted from apps/server/src/ws/messageRouter.ts on 2025-11-14. The
+ * seat-replacement rule a DM delete triggers lives in ./seatReplacement.ts.
  *
  * @module ws/handlers/CharacterMessageHandler
  */
 
 import type {} from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
+import { replaceIfSeatedPlayerLostLastCharacter } from "./seatReplacement.js";
+import { deleteCharacterKeepingTurn } from "./deleteCharacter.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
@@ -169,14 +163,27 @@ export class CharacterMessageHandler {
       return { broadcast: false, save: false };
     }
 
-    // Delete the character
-    const deleted = this.characterService.deleteCharacter(state, characterId);
+    // The character, its token, any selection of it — and the turn, if it held one
+    const deleted = deleteCharacterKeepingTurn(
+      {
+        characterService: this.characterService,
+        tokenService: this.tokenService,
+        selectionService: this.selectionService,
+      },
+      state,
+      characterId,
+    );
     if (deleted) {
-      // Delete linked token if exists
-      if (deleted.tokenId) {
-        this.tokenService.forceDeleteToken(state, deleted.tokenId);
-        this.selectionService.removeObject(state, deleted.tokenId);
-      }
+      replaceIfSeatedPlayerLostLastCharacter(
+        {
+          characterService: this.characterService,
+          tokenService: this.tokenService,
+          roomService: this.roomService,
+        },
+        state,
+        deleted,
+        senderUid,
+      );
       console.log(`Player ${senderUid} deleted character: ${deleted.name}`);
       return { broadcast: true, save: true };
     }

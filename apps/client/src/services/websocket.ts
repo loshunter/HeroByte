@@ -93,6 +93,7 @@ type ControlMessage =
   // drifting (the two unions meet at the config boundary); nothing but a test
   // catches the guard.
   | Extract<ServerMessage, { t: "atlas-error" }>
+  | Extract<ServerMessage, { t: "remove-player-refused" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
   | Extract<ServerMessage, { t: "session-file" }>

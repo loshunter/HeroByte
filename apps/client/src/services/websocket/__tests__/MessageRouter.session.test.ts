@@ -134,6 +134,7 @@ describe("MessageRouter — session-file", () => {
       "map-studio-document",
       "map-studio-documents",
       "map-studio-error",
+      "remove-player-refused",
       "room-create-failed",
       "room-created",
       "room-password-update-failed",
