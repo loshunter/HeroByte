@@ -963,3 +963,66 @@ travel; a former DM's placed props and drawings keep that uid as owner after a r
 them on return — harmless, unswept); `roll-initiative-all` still auto-starts the fight on the first
 NPC in array order rather than the top of the order; `delete-npc`'s NPC-only refusal is silent
 (unreachable from the UI). **Deploy:** not pushed — main is production.
+
+## 15. Deploy record — BOTH SLICES IN PRODUCTION 2026-09-22
+
+`main` = **`7f63156b`**, a `--no-ff` merge of `dev` at `68aca78e` (7 commits: the connection-closing
+deploy record, the fresh-session slice `8fa19327`/`b4e0717d`, and the flagged-items slice
+`d7dda570` / `1de0e4c2` / `1121b23e` / `68aca78e`). Dev CI **#894** green before the merge.
+
+**Gated before the merge** by the full ladder on the exact merged tree — shared 449/0, server
+2637/0, client 6054 pass with 4 pre-existing benchmark skips, **e2e 210 pass / 0 fail / 3
+pre-existing skips**, dev boot clean — plus three bounded review rounds per slice and live
+two-client passes on `dev`. The e2e rung had to be un-blocked twice: a stopped ladder left two
+orphan e2e servers on 5175/8788 (killed by PID), and three help-panel specs pin EXACT control
+counts that the new `seat` help topic moved (9 topics → 10, 14 sheet targets → 15) — the pins were
+updated deliberately, which is what those counts are for.
+
+### Verified in production, three ways
+
+**1. Discriminating-string probe** (`scripts/` has no copy; the probe is throwaway by design —
+local and live bundle hashes can never match, Cloudflare bakes `VITE_WS_URL`). Entry chunk
+`index-Q3De0a3b.js` → **`index-ByIlWt_e.js`**, 10 chunks fetched both times:
+
+| string | before | after |
+|---|---|---|
+| `Start a Fresh Session` | 0 | 3 |
+| `devices, reconnects` (the seat help topic) | 0 | 1 |
+| `dropped just now` (the Players tab's grace) | 0 | 2 (index + the lazy DM chunk) |
+| `remove-player-refused` (the new frame) | 0 | 2 |
+| `No rolls yet` (CONTROL) | 1 | 1 |
+
+**2. `node scripts/live-session-check.mjs --url wss://herobyte-server.onrender.com` — 9/9 PASS**
+through the real proxy. Both close codes arrived as **1005** and the `connection-closing` frame
+preceded each close, so the frame (not the code) is still the signal Render leaves intact.
+
+**3. A real browser on `herobyte.pages.dev`, two clients.**
+- The DM tab's **Players** tab showed the live-check's own leftover seat as `1 token · not at the
+  table` with **REMOVE**, and the DM's own row with none. REMOVE asked *"Remove Player 1 from the
+  table? They are not at the table. Their character sheets and 1 token on the map go with the
+  seat. There is no undo, though loading an older session file brings the character and its token
+  back (not the seat)…"* and the row went. No refusal toast — the count and the gate agreed.
+- A second tab on the SAME uid with its session tokens deleted reached **"Held in another window"**
+  with the new paragraph, offered **Try Again** and no fresh-session button; after ONE failed retry
+  **Start a Fresh Session** appeared, red-bordered, 44 px. Cancel changed nothing. Accepting it
+  dropped the `?sessionUid=` override, minted a new uid, removed the old uid's tokens and landed
+  back at the login gate — while the DM tab stayed online and still DM.
+
+### Traps this deploy re-confirmed
+
+- **The browser pane needs the SERVER host allowed too.** The client page loaded from
+  `herobyte.pages.dev` but every `wss://herobyte-server.onrender.com` connect failed with 1006
+  while Node connected to the same URL with the same uid. Navigating the pane to the server's
+  `/healthz` once was enough; after that the socket connected. Not a product defect — check Node
+  before believing the browser.
+- **A pane tab opened while the pane is hidden boots at a tiny viewport and the app picks the
+  MOBILE layout.** `resize_window` to 1280×800 and reload before reading a desktop surface.
+
+### Residue
+
+One `prod-check-dm` DM seat in the Main Hall until its idle clear (an hour empty). The
+live-session check's own seat was removed by the REMOVE it was used to verify. Its turned-away
+claim cost one auth-work token from this network's budget.
+
+**Post-deploy note for players:** reload any open tab. DMs enter the DM password once more (session
+tokens live in memory and do not survive the restart).

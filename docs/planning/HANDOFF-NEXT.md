@@ -7,6 +7,25 @@ production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
+**Update (2026-09-22, DEPLOYED — the fresh-session slice AND the flagged-items slice are IN
+PRODUCTION).** `main` = `7f63156b`, a `--no-ff` merge of `dev` at `68aca78e`; dev CI **#894** green.
+Live now: **START A FRESH SESSION** on the conflict gate (after one failed retry, behind a confirm
+that names the cost), **DM Menu → Players → REMOVE** for a seat that is not at the table, the turn
+passing to its successor when the acting combatant leaves the initiative order, a `claim-character`
+PC-only gate, and a **"Your seat"** help topic. Five pre-existing movement-budget bugs went with
+them (an unstamped combat-start holder, an equality stamp, a stamp deleted on leave, an unfloored
+PREV, a dangling pointer after a session load). **Verified in production three ways:** the
+discriminating-string probe (entry `index-Q3De0a3b` → `index-ByIlWt_e`, four new strings 0 → 3/1/2/2
+across 10 chunks, control steady); `node scripts/live-session-check.mjs` against the live host —
+**9/9 PASS** through the real proxy, both codes 1005, frame first; and a real browser two-client
+pass — REMOVE cleared the live-check's own leftover seat with the right confirm and count, and a
+tokenless second tab reached the gate, failed one retry, got the fresh-session button, and came back
+as a new player while the DM tab stayed DM. Gated by the full ladder on the merged tree (e2e 210/0,
+client 6054). Players reload; DMs re-enter the DM password once. Residue: one `prod-check-dm` seat
+in the Main Hall until its idle clear. Open items are listed in the arc plan §14.3's residue
+paragraph — the largest is that the Players row cannot see sockets, so a parked login screen reads
+"not at the table" until REMOVE's toast corrects it.
+
 **Update (2026-09-21, ON `dev` — NOT deployed; the owner decides).** The flagged-items slice
 (`session-identity-binding-arc-plan.md` §14.3) closes the three items the fresh-session slice left
 open: (1) the acting combatant leaving the initiative order — cleared, deleted by anyone, swept —
