@@ -968,7 +968,8 @@ NPC in array order rather than the top of the order; `delete-npc`'s NPC-only ref
 
 `main` = **`7f63156b`**, a `--no-ff` merge of `dev` at `68aca78e` (7 commits: the connection-closing
 deploy record, the fresh-session slice `8fa19327`/`b4e0717d`, and the flagged-items slice
-`d7dda570` / `1de0e4c2` / `1121b23e` / `68aca78e`). Dev CI **#894** green before the merge.
+`d7dda570` / `1de0e4c2` / `1121b23e` / `68aca78e`). Dev CI **#894** green before the merge; the
+main run **#895** green after it.
 
 **Gated before the merge** by the full ladder on the exact merged tree — shared 449/0, server
 2637/0, client 6054 pass with 4 pre-existing benchmark skips, **e2e 210 pass / 0 fail / 3

@@ -8,7 +8,7 @@ production. Where something is a judgement call rather than a fact, it says so.
 ## 0. Where things stand
 
 **Update (2026-09-22, DEPLOYED — the fresh-session slice AND the flagged-items slice are IN
-PRODUCTION).** `main` = `7f63156b`, a `--no-ff` merge of `dev` at `68aca78e`; dev CI **#894** green.
+PRODUCTION).** `main` = `7f63156b`, a `--no-ff` merge of `dev` at `68aca78e`; dev CI **#894** green, main **#895** green.
 Live now: **START A FRESH SESSION** on the conflict gate (after one failed retry, behind a confirm
 that names the cost), **DM Menu → Players → REMOVE** for a seat that is not at the table, the turn
 passing to its successor when the acting combatant leaves the initiative order, a `claim-character`
