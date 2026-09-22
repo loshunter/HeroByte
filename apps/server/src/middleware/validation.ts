@@ -47,6 +47,7 @@ import {
   validateSetHpMessage,
   validateSetStatusEffectsMessage,
   validateToggleDmMessage,
+  validateRemovePlayerMessage,
 } from "./validators/index.js";
 
 // Character validators
@@ -176,6 +177,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "set-hp": validateSetHpMessage,
   "set-status-effects": validateSetStatusEffectsMessage,
   "toggle-dm": validateToggleDmMessage,
+  "remove-player": validateRemovePlayerMessage,
 
   // ==========================================================================
   // CHARACTER MESSAGES

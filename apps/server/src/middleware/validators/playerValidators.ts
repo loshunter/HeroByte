@@ -1,7 +1,8 @@
 // ============================================================================
 // PLAYER VALIDATION
 // ============================================================================
-// Validates player-related messages: portrait, rename, mic-level, set-hp, set-status-effects, toggle-dm
+// Validates player-related messages: portrait, rename, mic-level, set-hp,
+// set-status-effects, toggle-dm, remove-player
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isFiniteNumber } from "./commonValidators.js";
@@ -105,6 +106,20 @@ export function validateSetStatusEffectsMessage(message: MessageRecord): Validat
 export function validateToggleDmMessage(message: MessageRecord): ValidationResult {
   if (typeof message.isDM !== "boolean") {
     return { valid: false, error: "toggle-dm: isDM must be boolean" };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate remove-player message (the DM clears an absent player's seat)
+ * Required: uid (string, 1-128 chars)
+ */
+export function validateRemovePlayerMessage(message: MessageRecord): ValidationResult {
+  const { uid } = message;
+  // The alphabet and length a uid can have at all — the connect handshake's
+  // rule (ws/lifecycle/ConnectionLifecycleManager.ts), not a coincidence of 128.
+  if (typeof uid !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(uid)) {
+    return { valid: false, error: "remove-player: missing or invalid uid" };
   }
   return { valid: true };
 }

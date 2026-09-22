@@ -6,17 +6,27 @@
 //
 // This component is responsible for:
 // - Displaying a list of all players in the session
-// - Showing each player's token count
+// - Showing each player's token count, and whether they are connected
 // - Providing "Select All Tokens" button for each player
+// - Providing REMOVE for a player who is not connected (their seat goes)
 // - Handling the case where players have no tokens
 //
-// This is a pure composition component that arranges existing UI components
-// (JRPGPanel, JRPGButton) without implementing business logic.
+// Mostly a composition component over JRPGPanel/JRPGButton; the one piece of
+// logic it owns is REMOVE's preview — the seat's token count and the heartbeat
+// grace — which mirrors the server's rule (removePlayer.ts) rather than
+// deciding anything: the server decides, the tab only says so first.
 
+import { useEffect, useState } from "react";
 import { MONSTER_HP_DISPLAY_MODES } from "@herobyte/shared";
 import type { Player, SceneObject, MonsterHpDisplay } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { TurnNavigationControls } from "../../../initiative/components/TurnNavigationControls";
+import { REMOVE_PLAYER_GRACE_MS, getSeatTokenCount, removePlayerConfirm } from "./seatRemoval";
+import type { SeatCharacter } from "./seatRemoval";
+
+// REMOVE's preview rules live in ./seatRemoval; re-exported so the tab stays the one import.
+export { REMOVE_PLAYER_GRACE_MS, getSeatTokenCount, removePlayerConfirm } from "./seatRemoval";
+export type { SeatCharacter } from "./seatRemoval";
 
 /**
  * Props for the PlayersTab component
@@ -26,8 +36,24 @@ interface PlayersTabProps {
   players: Player[];
   /** Scene objects to count tokens per player */
   sceneObjects: SceneObject[];
+  /** The table's characters — a token still standing under any character that survives stays. */
+  characters: readonly SeatCharacter[];
   /** Callback to select all tokens owned by a player */
   onSelectPlayerTokens: (playerUid: string) => void;
+  /**
+   * The AUTHENTICATED roster (snapshot.users). A player outside it is shown as
+   * "not at the table" — not "not connected": a browser parked on the password
+   * form has a live socket the server counts as here, and answers REMOVE with
+   * a refusal — and, with onRemovePlayer, gets REMOVE, unless their last
+   * heartbeat is under REMOVE_PLAYER_GRACE_MS old, when the row reads "dropped
+   * just now" and waits. Without the roster nothing can be told apart, so
+   * nobody gets it.
+   */
+  connectedUids?: readonly string[];
+  /** The DM clears a player who is not connected: their row, characters and tokens. */
+  onRemovePlayer?: (playerUid: string) => void;
+  /** The clock for the grace window; tests pin it. */
+  nowMs?: () => number;
   /** Whether combat is currently active */
   combatActive?: boolean;
   /** Callback to start combat */
@@ -69,7 +95,11 @@ function getPlayerTokenCount(playerUid: string, sceneObjects: SceneObject[]): nu
 export default function PlayersTab({
   players,
   sceneObjects,
+  characters,
   onSelectPlayerTokens,
+  connectedUids,
+  onRemovePlayer,
+  nowMs = Date.now,
   combatActive = false,
   onStartCombat,
   onEndCombat,
@@ -79,6 +109,26 @@ export default function PlayersTab({
   monsterHpDisplay = "exact",
   onMonsterHpDisplayChange,
 }: PlayersTabProps) {
+  const now = nowMs();
+  const isAway = (player: Player) =>
+    connectedUids !== undefined && !connectedUids.includes(player.uid);
+  // A clock that runs behind the server's makes `now - lastHeartbeat` negative:
+  // that is not "recent", so the button shows and the server (which decides)
+  // answers with its own refusal if it disagrees.
+  const droppedJustNow = (player: Player) =>
+    player.lastHeartbeat !== undefined &&
+    now - player.lastHeartbeat >= 0 &&
+    now - player.lastHeartbeat < REMOVE_PLAYER_GRACE_MS;
+  const anyDroppedJustNow = players.some((p) => isAway(p) && droppedJustNow(p));
+  // A "dropped just now" row turns removable by the clock alone, with no
+  // snapshot to re-render on; tick while any row is in the window.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!anyDroppedJustNow) return;
+    const id = setInterval(() => setTick((t) => t + 1), 15_000);
+    return () => clearInterval(id);
+  }, [anyDroppedJustNow]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       {/* Combat Controls Section */}
@@ -179,7 +229,10 @@ export default function PlayersTab({
           Player Token Shortcuts
         </h4>
         <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
-          Select all tokens owned by a player. Previous selection is saved for undo.
+          Select all tokens owned by a player. Previous selection is saved for undo. A player who is
+          not at the table can be removed: their seat, character sheets and tokens go (a browser
+          still open on a login screen, or at another table, counts as here). A seat dropped in the
+          last minute waits.
         </p>
       </div>
 
@@ -192,6 +245,9 @@ export default function PlayersTab({
           {players.map((player) => {
             const tokenCount = getPlayerTokenCount(player.uid, sceneObjects);
             const hasTokens = tokenCount > 0;
+            const away = isAway(player);
+            const recent = away && droppedJustNow(player);
+            const seatTokens = getSeatTokenCount(player.uid, sceneObjects, characters);
 
             return (
               <JRPGPanel key={player.uid} variant="simple">
@@ -222,8 +278,22 @@ export default function PlayersTab({
                       style={{ color: "var(--jrpg-white)", opacity: 0.7 }}
                     >
                       {tokenCount} token{tokenCount === 1 ? "" : "s"}
+                      {away ? (recent ? " · dropped just now" : " · not at the table") : ""}
                     </div>
                   </div>
+                  {away && !recent && onRemovePlayer ? (
+                    <JRPGButton
+                      onClick={() => {
+                        if (window.confirm(removePlayerConfirm(player.name, seatTokens))) {
+                          onRemovePlayer(player.uid);
+                        }
+                      }}
+                      variant="danger"
+                      style={{ fontSize: "10px", padding: "4px 8px", whiteSpace: "nowrap" }}
+                    >
+                      Remove
+                    </JRPGButton>
+                  ) : null}
                   <JRPGButton
                     onClick={() => onSelectPlayerTokens(player.uid)}
                     variant={hasTokens ? "primary" : "default"}

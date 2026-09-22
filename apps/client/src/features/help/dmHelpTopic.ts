@@ -73,5 +73,10 @@ export const DM_HELP_TOPIC: HelpTopic = {
       detail:
         "DM Menu → Session. The whole table as one file, images included. Save before every risky experiment. The toast says the table's wire weight (what a load sends; images not counted) and the file's disk size: a load must fit 1 MB, so mints are refused past 0.75 MB.",
     },
+    {
+      term: "REMOVE (a player)",
+      detail:
+        "DM Menu → Players. A player who is not at the table shows REMOVE (a browser still open on a login screen or at another table counts as here for five minutes; a seat dropped in the last minute reads 'dropped just now' and waits): their seat, character sheets and tokens go, and a fight in progress passes the turn on rather than skipping a round. Not a ban — the table password still lets them back in, as a new player.",
+    },
   ],
 };

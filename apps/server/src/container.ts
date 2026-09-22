@@ -1,8 +1,7 @@
 // ============================================================================
 // DEPENDENCY INJECTION CONTAINER
 // ============================================================================
-// Central container for service instantiation and dependency management
-// Follows Inversion of Control (IoC) principle
+// Central container for service instantiation and dependency management (IoC).
 
 import type { WebSocket, WebSocketServer } from "ws";
 import { RoomService } from "./domains/room/service.js";
@@ -26,10 +25,7 @@ import { AssetReclaimSweeper } from "./domains/assets/reclaimSweep.js";
 import { SessionTokenService } from "./ws/auth/SessionTokenService.js";
 import { getDefaultRoomId } from "./config/auth.js";
 
-/**
- * Application container holding all services
- * Single source of truth for dependency management
- */
+/** Application container holding all services — the single source of truth for dependencies. */
 export class Container {
   // Domain services
   public readonly roomRegistry: RoomRegistry;
@@ -52,6 +48,8 @@ export class Container {
   // Infrastructure
   public readonly messageRouter: MessageRouter;
   public readonly uidToWs: Map<string, WebSocket>;
+  /** Every OPEN socket per uid with its connect time, held newcomers too (RemovePlayerDeps.hasLiveSocket). */
+  public readonly liveSockets = new Map<string, Map<WebSocket, number>>();
   public readonly authenticatedUids: Set<string>;
   public readonly authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
   public readonly sessionTokens = new SessionTokenService();
@@ -166,6 +164,7 @@ export class Container {
         () => this.getAuthenticatedClientsForRoom(roomId),
         this.mapStudioService,
         (uid) => this.roomIdForUid(uid),
+        this.liveSockets,
       );
       this.routers.set(roomId, router);
     }
@@ -316,6 +315,7 @@ export class Container {
 
   private clearConnectionTracking(): void {
     this.uidToWs.clear();
+    this.liveSockets.clear();
     this.authenticatedUids.clear();
     this.authenticatedSessions.clear();
     this.sessionTokens.clear();

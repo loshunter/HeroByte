@@ -39,19 +39,24 @@ export class AuthorizationService {
    * @returns true if message type requires DM privileges at router level
    *
    * @remarks
-   * These message types use "early return" pattern in messageRouter - they block
-   * non-DM users BEFORE calling handlers.
+   * A RECORD, not the gate: nothing in messageRouter or any dispatcher calls
+   * this. Enforcement is per dispatcher — AuthorizationCheckWrapper +
+   * DMAuthorizationEnforcer for the first eleven (see each dispatcher), and an
+   * inline `context.isDM()` check in PlayerDispatcher for remove-player.
    *
-   * Message types with early return (9 total):
-   * - create-character (line 274)
-   * - create-npc (line 290)
-   * - update-npc (line 307)
-   * - delete-npc (line 324)
-   * - place-npc-token (line 335)
-   * - create-prop (line 417)
-   * - update-prop (line 436)
-   * - delete-prop (line 452)
-   * - clear-all-tokens (line 760)
+   * Message types blocked for non-DMs before their handler runs (12 total):
+   * - create-character
+   * - create-npc
+   * - update-npc
+   * - delete-npc
+   * - place-npc-token
+   * - create-prop
+   * - update-prop
+   * - delete-prop
+   * - add-custom-token
+   * - remove-custom-token
+   * - clear-all-tokens
+   * - remove-player (gated in PlayerDispatcher on context.isDM())
    *
    * NOTE: Other message types may require DM privileges but enforce this INSIDE
    * the handler (not at router level). See characterization tests for details.
@@ -69,6 +74,7 @@ export class AuthorizationService {
       "add-custom-token",
       "remove-custom-token",
       "clear-all-tokens",
+      "remove-player", // gate lives in PlayerDispatcher (context.isDM()), listed here as the record
     ]);
 
     return dmOnlyMessageTypes.has(messageType);

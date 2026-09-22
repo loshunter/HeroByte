@@ -62,6 +62,7 @@ import { RouteResultHandler, type RouteHandlerResult } from "./services/RouteRes
 import { TokenDispatcher } from "./dispatchers/TokenDispatcher.js";
 import { CharacterDispatcher } from "./dispatchers/CharacterDispatcher.js";
 import { PlayerDispatcher } from "./dispatchers/PlayerDispatcher.js";
+import { HELD_SOCKET_TTL_MS } from "./handlers/removePlayer.js";
 import { MapDispatcher } from "./dispatchers/MapDispatcher.js";
 import { PropDispatcher } from "./dispatchers/PropDispatcher.js";
 import { CustomTokenDispatcher } from "./dispatchers/CustomTokenDispatcher.js";
@@ -132,6 +133,8 @@ export class MessageRouter {
   private roomDispatcher: RoomDispatcher;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
+  /** Container.liveSockets — every open socket per uid, held newcomers too. */
+  private liveSockets: Map<string, Map<WebSocket, number>>;
   private getAuthorizedClients: () => Set<WebSocket>;
   private getRoomIdForUid: (uid: string) => string;
   private skipNextBroadcastVersionBump: boolean = false;
@@ -156,6 +159,7 @@ export class MessageRouter {
     getAuthorizedClients: () => Set<WebSocket>,
     mapStudioService: MapStudioService = new MapStudioService(),
     getRoomIdForUid: (uid: string) => string = () => "default",
+    liveSockets: Map<string, Map<WebSocket, number>> = new Map(),
   ) {
     this.roomService = roomService;
     this.playerService = playerService;
@@ -170,6 +174,7 @@ export class MessageRouter {
     this.uidToWs = uidToWs;
     this.getAuthorizedClients = getAuthorizedClients;
     this.getRoomIdForUid = getRoomIdForUid;
+    this.liveSockets = liveSockets;
     this.authorizationService = new AuthorizationService();
     this.messageLogger = new MessageLogger();
     this.messageErrorHandler = new MessageErrorHandler(this.messageLogger);
@@ -228,7 +233,24 @@ export class MessageRouter {
       this.authorizationCheckWrapper,
     );
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
-    this.playerDispatcher = new PlayerDispatcher(this.playerMessageHandler);
+    this.playerDispatcher = new PlayerDispatcher(
+      this.playerMessageHandler,
+      {
+        playerService,
+        characterService,
+        tokenService,
+        selectionService,
+        hasLiveSocket: (uid) => {
+          // Every socket the uid has open on this process (the registered one
+          // included), but only while younger than the heartbeat window.
+          const now = Date.now();
+          return [...(this.liveSockets.get(uid) ?? [])].some(
+            ([socket, since]) => socket.readyState === 1 && now - since < HELD_SOCKET_TTL_MS,
+          );
+        },
+      },
+      (uid, message) => this.directMessageService.sendControlMessage(uid, message),
+    );
     this.initiativeMessageHandler = new InitiativeMessageHandler(
       characterService,
       roomService,

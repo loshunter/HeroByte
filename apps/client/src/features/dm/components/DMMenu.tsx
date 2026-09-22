@@ -96,6 +96,8 @@ export function DMMenu({
   onSaveAsPrivateTable,
   sceneObjects,
   onSelectPlayerTokens,
+  connectedUids,
+  onRemovePlayer,
   combatActive,
   diagonalRule,
   onDiagonalRuleChange,
@@ -251,6 +253,9 @@ export function DMMenu({
           players={players}
           sceneObjects={sceneObjects}
           onSelectPlayerTokens={onSelectPlayerTokens}
+          characters={characters}
+          connectedUids={connectedUids}
+          onRemovePlayer={onRemovePlayer}
           combatActive={combatActive}
           monsterHpDisplay={monsterHpDisplay}
           onMonsterHpDisplayChange={onMonsterHpDisplayChange}

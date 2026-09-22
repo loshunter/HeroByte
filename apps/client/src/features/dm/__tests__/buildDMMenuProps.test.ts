@@ -137,6 +137,9 @@ describe("buildDMMenuProps", () => {
         // The kicked-in door (K2) — the Atlas tab's button, through the bag.
         "openKick",
         "onSelectPlayerTokens",
+        // The Players tab's REMOVE — the roster it compares against, and the send.
+        "connectedUids",
+        "onRemovePlayer",
         "onRollAllInitiative",
         "mapStudio",
       ].sort(),
@@ -261,5 +264,19 @@ describe("buildDMMenuProps", () => {
       rollAllInitiative,
     );
     expect(buildDMMenuProps(createBag(), {}).onRollAllInitiative).toBeUndefined();
+  });
+});
+
+describe("buildDMMenuProps — the Players tab's REMOVE", () => {
+  it("onRemovePlayer speaks the wire: remove-player with the uid", () => {
+    const bag = createBag();
+    buildDMMenuProps(bag, {}).onRemovePlayer!("ghost");
+    expect(bag.sendMessage).toHaveBeenCalledWith({ t: "remove-player", uid: "ghost" });
+  });
+
+  it("connectedUids mirrors the snapshot's roster, and is empty (not undefined) without a snapshot", () => {
+    expect(buildDMMenuProps(createBag(), {}).connectedUids).toEqual([]);
+    const snapshot = { users: ["a", "b"] } as unknown as MainLayoutProps["snapshot"];
+    expect(buildDMMenuProps(createBag({ snapshot }), {}).connectedUids).toEqual(["a", "b"]);
   });
 });

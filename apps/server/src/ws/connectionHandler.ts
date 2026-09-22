@@ -130,6 +130,13 @@ export class ConnectionHandler {
     const { uid, rejected } = this.lifecycleManager.handleConnection(ws, req);
     if (rejected) return; // closed on the spot; nothing was registered
 
+    // Every open socket for the uid, held or adopted (Container.liveSockets):
+    // remove-player's "connected" gate must see a second tab parked on the
+    // password form after the first tab closes, which `uidToWs` cannot.
+    let live = this.container.liveSockets.get(uid);
+    if (!live) this.container.liveSockets.set(uid, (live = new Map()));
+    live.set(ws, Date.now());
+
     // Message handling
     ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid, ws));
 
@@ -168,6 +175,12 @@ export class ConnectionHandler {
    * Handle client disconnection
    */
   private handleDisconnection(uid: string, ws: WebSocket): void {
+    const live = this.container.liveSockets.get(uid);
+    if (live) {
+      live.delete(ws);
+      if (live.size === 0) this.container.liveSockets.delete(uid);
+    }
+
     // Delegate keepalive cleanup to ConnectionLifecycleManager
     this.lifecycleManager.stopKeepalive(ws);
 
