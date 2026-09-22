@@ -181,6 +181,20 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       const character = state.characters.find((c) => c.id === characterId);
       expect(character?.ownedByPlayerUID).toBe(playerUid);
     });
+
+    it("refuses an NPC: an unclaimed monster is the DM's, and a claim would hand a player delete over it", () => {
+      const state = roomService.getState();
+      const goblin = characterService.createCharacter(state, "Goblin", 7, "", "npc");
+      const save = vi.spyOn(roomService, "saveState");
+
+      messageRouter.route({ t: "claim-character", characterId: goblin.id }, playerUid);
+
+      expect(state.characters.find((c) => c.id === goblin.id)?.ownedByPlayerUID ?? null).toBeNull();
+      expect(save).not.toHaveBeenCalled();
+      // And the road a claim would have opened stays shut.
+      messageRouter.route({ t: "delete-player-character", characterId: goblin.id }, playerUid);
+      expect(state.characters.find((c) => c.id === goblin.id)).toBeDefined();
+    });
   });
 
   describe("add-player-character message", () => {
