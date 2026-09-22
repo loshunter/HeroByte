@@ -443,6 +443,118 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
     });
   });
 
+  describe("deleting a combatant mid-fight — the turn is passed, not skipped", () => {
+    // Order: Leader 20, Runner 15, Rear 10 — the player's three PCs, round 2.
+    let leaderId: string;
+    let runnerId: string;
+    let rearId: string;
+
+    beforeEach(() => {
+      const state = roomService.getState();
+      const make = (name: string, initiative: number) => {
+        const c = characterService.createCharacter(state, name, 100, "", "pc");
+        c.ownedByPlayerUID = playerUid;
+        c.initiative = initiative;
+        c.movementUsed = 10;
+        const token = tokenService.createToken(state, playerUid, 1, 1);
+        characterService.linkToken(state, c.id, token.id);
+        return c.id;
+      };
+      leaderId = make("Leader", 20);
+      runnerId = make("Runner", 15);
+      rearId = make("Rear", 10);
+      state.combatActive = true;
+      state.combatRound = 2;
+      roomService.createSnapshot();
+    });
+
+    it("the DM deletes the ACTING combatant at the TOP of the order: the turn passes to the next, the round holds, and the next NEXT walks on down the order instead of restarting it", () => {
+      roomService.getState().currentTurnCharacterId = leaderId;
+      messageRouter.route({ t: "delete-player-character", characterId: leaderId }, dmUid);
+      let after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(runnerId);
+      expect(after.combatRound).toBe(2);
+      expect(after.characters.find((c) => c.id === runnerId)).toMatchObject({
+        movementUsed: 0,
+        movementRound: 2,
+      });
+      // Before the fix the pointer dangled and this NEXT went to the top —
+      // Runner again, with round 3 counted; Rear never got its round-2 turn.
+      messageRouter.route({ t: "next-turn" }, dmUid);
+      after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(rearId);
+      expect(after.combatRound).toBe(2);
+    });
+
+    it("the DM deletes the ACTING combatant in the MIDDLE: the one behind it acts, its budget starts", () => {
+      roomService.getState().currentTurnCharacterId = runnerId;
+      messageRouter.route({ t: "delete-player-character", characterId: runnerId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(rearId);
+      expect(after.combatRound).toBe(2);
+      expect(after.characters.find((c) => c.id === rearId)).toMatchObject({
+        movementUsed: 0,
+        movementRound: 2,
+      });
+    });
+
+    it("deleting the LAST in the order while it acts wraps to the top and counts the lap exactly once", () => {
+      roomService.getState().currentTurnCharacterId = rearId;
+      messageRouter.route({ t: "delete-player-character", characterId: rearId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(leaderId);
+      expect(after.combatRound).toBe(3);
+      messageRouter.route({ t: "next-turn" }, dmUid);
+      expect(roomService.getState().currentTurnCharacterId).toBe(runnerId);
+      expect(roomService.getState().combatRound).toBe(3);
+    });
+
+    it("deleting someone who is NOT acting leaves the turn and the round where they were", () => {
+      roomService.getState().currentTurnCharacterId = runnerId;
+      messageRouter.route({ t: "delete-player-character", characterId: leaderId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(runnerId);
+      expect(after.combatRound).toBe(2);
+    });
+
+    it("the owner deleting their own acting character passes the turn the same way", () => {
+      roomService.getState().currentTurnCharacterId = leaderId;
+      messageRouter.route({ t: "delete-player-character", characterId: leaderId }, playerUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(runnerId);
+      expect(after.combatRound).toBe(2);
+    });
+
+    it("deleting an acting combatant that was never IN the order blanks the pointer rather than guessing a successor (the loaded-file case)", () => {
+      const state = roomService.getState();
+      state.characters.find((c) => c.id === runnerId)!.initiative = undefined; // holds the turn, not in the order
+      state.currentTurnCharacterId = runnerId;
+      messageRouter.route({ t: "delete-player-character", characterId: runnerId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBeUndefined();
+      expect(after.combatRound).toBe(2); // no lap invented for a turn nobody was in
+    });
+
+    it("the seat replacement and the turn hand-off compose: the DM deletes a seated owner's ONLY acting PC, the NPC behind it acts, the minted replacement stays out of the order", () => {
+      const state = roomService.getState();
+      state.users = [playerUid, dmUid];
+      // Only Leader is the player's; the other two become the DM's monsters.
+      for (const id of [runnerId, rearId]) {
+        const c = state.characters.find((x) => x.id === id)!;
+        c.type = "npc";
+        c.ownedByPlayerUID = null;
+      }
+      state.currentTurnCharacterId = leaderId;
+      messageRouter.route({ t: "delete-player-character", characterId: leaderId }, dmUid);
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(runnerId);
+      expect(after.combatRound).toBe(2);
+      const replacement = after.characters.find((c) => c.name === "New Character");
+      expect(replacement?.ownedByPlayerUID).toBe(playerUid);
+      expect(replacement?.initiative).toBeUndefined();
+    });
+  });
+
   describe("a monster created mid-fight", () => {
     it("is born with a zeroed budget and NO round stamp — its first turn start resets it", () => {
       const state = roomService.getState();

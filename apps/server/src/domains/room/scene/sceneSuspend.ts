@@ -1,5 +1,4 @@
 // ============================================================================
-import { isInInitiativeOrder } from "@herobyte/shared";
 // SCENE SUSPEND/RESUME — the pure half of travel
 // ============================================================================
 // Capture everything one map's table looked like; restore it exactly when the
@@ -22,7 +21,11 @@ import {
   type Token,
 } from "@herobyte/shared";
 import { createSelectionMap, type RoomState } from "../model.js";
-import { resetAllMovementBudgets } from "../transform/movementBudgetReset.js";
+import {
+  dropTurnPointerOutsideOrder,
+  resetAllMovementBudgets,
+  startTurnBudget,
+} from "../transform/movementBudgetReset.js";
 
 /**
  * A token TRAVELS (follows the party to the destination) iff:
@@ -191,15 +194,16 @@ export function restoreCollections(
       const capturedInitiative = saved.initiatives[character.id];
       character.initiative = capturedInitiative ? capturedInitiative.initiative : undefined;
     }
-    // The active combatant must still resolve to a character IN the order,
-    // or next-turn's findIndex(-1)+1 lands on whoever sorts first.
-    const turnCharacter = state.characters.find(
-      (entry) => entry.id === saved.currentTurnCharacterId,
+    // The active combatant must still resolve to a character IN the order
+    // (dropTurnPointerOutsideOrder is the one rule — a dangling id would mark
+    // a non-combatant as acting in every banner), and its turn is starting
+    // again on this scene: stamp it, or a PREV then a NEXT would refill it.
+    state.currentTurnCharacterId = saved.currentTurnCharacterId;
+    dropTurnPointerOutsideOrder(state);
+    startTurnBudget(
+      state,
+      state.characters.find((entry) => entry.id === state.currentTurnCharacterId),
     );
-    state.currentTurnCharacterId =
-      turnCharacter && isInInitiativeOrder(turnCharacter, state.players)
-        ? saved.currentTurnCharacterId
-        : undefined;
   } else {
     // FIRST VISIT: an empty room, the party walking in. The previous scene's
     // fight was captured under ITS map, so the roster's initiative values

@@ -177,6 +177,7 @@ describe("MessageRouter", () => {
       createCharacter: vi.fn(),
       updateNPC: vi.fn(() => true),
       deleteCharacter: vi.fn(() => ({ id: "char-1", name: "NPC", tokenId: "token-1" })),
+      getCharactersInInitiativeOrder: vi.fn(() => []),
       placeNPCToken: vi.fn(() => true),
       setNPCVisibility: vi.fn(() => true),
       claimCharacter: vi.fn(() => true),
@@ -474,6 +475,13 @@ describe("MessageRouter", () => {
 
     it("routes delete-npc and removes associated token", () => {
       mockState.players[0].isDM = true; // DM-only action
+      // The road is NPC-only now; the shared mock answers "pc" for every id.
+      vi.mocked(mockCharacterService.findCharacter).mockReturnValueOnce({
+        id: "npc-1",
+        name: "NPC",
+        type: "npc",
+        tokenId: "token-1",
+      } as Character);
       const msg: ClientMessage = { t: "delete-npc", id: "npc-1" };
       routeAndFlush(msg, "player-1");
 
@@ -485,6 +493,8 @@ describe("MessageRouter", () => {
     });
 
     it("routes claim-character message", () => {
+      // The dispatcher's gate reads the STATE: only an unclaimed PC may be claimed.
+      mockState.characters.push({ id: "char-1", name: "Test", type: "pc", hp: 10, maxHp: 10 });
       const msg: ClientMessage = { t: "claim-character", characterId: "char-1" };
       routeAndFlush(msg, "player-1");
 

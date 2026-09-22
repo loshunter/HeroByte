@@ -43,6 +43,9 @@ export function applyInitiative(
     // over exactly as the Start Combat button does.
     resetAllMovementBudgets(state);
     state.currentTurnCharacterId = characterId;
+    // Its turn IS starting: stamp it (InitiativeMessageHandler.handleStartCombat
+    // has the reason — unstamped, PREV then NEXT refilled it).
+    startTurnBudget(state, characterService.findCharacter(state, characterId));
   }
   // If combat is active but no turn is set, set the first character with
   // initiative as current turn

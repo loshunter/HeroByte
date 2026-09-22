@@ -5,15 +5,9 @@
  * Manages combat tracker state including initiative rolls, turn order,
  * and combat lifecycle.
  *
- * Extracted from: apps/server/src/ws/messageRouter.ts
- * - set-initiative (lines 318-349)
- * - start-combat (lines 351-366)
- * - end-combat (lines 368-379)
- * - next-turn (lines 382-399)
- * - previous-turn (lines 401-418)
- * - clear-all-initiative (lines 420-426)
- *
- * Extraction date: 2025-11-14
+ * Extracted from apps/server/src/ws/messageRouter.ts on 2025-11-14. The
+ * budget and round rules the turn buttons drive live in
+ * domains/room/transform/movementBudgetReset.ts.
  *
  * @module ws/handlers/InitiativeMessageHandler
  */
@@ -115,9 +109,11 @@ export class InitiativeMessageHandler {
     }
 
     if (initiative === undefined) {
+      // Read before the clear: the leave rule finds the successor in this.
+      const orderBefore = this.characterService.getCharactersInInitiativeOrder(state);
       if (this.characterService.clearInitiative(state, characterId)) {
         console.log(`[Server] Cleared initiative for ${character.name}`);
-        leaveOrderBudget(state, character);
+        leaveOrderBudget(state, character, orderBefore);
         return { broadcast: true, save: true };
       }
       return { broadcast: false, save: false };
@@ -219,9 +215,11 @@ export class InitiativeMessageHandler {
     resetAllMovementBudgets(state);
     // Set first character with initiative as current turn
     const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
-    if (charactersInOrder.length > 0) {
-      state.currentTurnCharacterId = charactersInOrder[0].id;
-    }
+    // An empty order blanks the pointer rather than leaving a stale one.
+    state.currentTurnCharacterId = charactersInOrder[0]?.id;
+    // Its turn IS starting: stamp it. Unstamped, a PREV then a NEXT wrapped
+    // back onto the acting combatant and refilled a budget it had spent.
+    startTurnBudget(state, charactersInOrder[0]);
     console.log(`Combat started by ${senderUid}`);
 
     return { broadcast: true, save: true };
@@ -296,9 +294,18 @@ export class InitiativeMessageHandler {
 
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const prevIndex = currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
-    // A rewind resets nothing (movementBudgetReset.ts); a backward wrap un-counts the round —
-    // no floor, so PREV then NEXT from the top in round 1 lands back on round 1 and refills nothing.
-    if (currentIndex === 0) state.combatRound = currentRound(state) - 1;
+    // A rewind resets nothing (movementBudgetReset.ts); a backward wrap un-counts the round, to
+    // one lap below the NEWEST stamp still IN the order and no further: below that, `>=` would
+    // freeze every budget for as many PREVs as a player cared to click, and a leaver's old stamp
+    // (kept by leaveOrderBudget) must not pin the floor. A blank pointer counts as the top: NEXT
+    // counts the lap from it, so PREV un-counts it — the pair nets zero.
+    if (currentIndex <= 0) {
+      const stamps = charactersInOrder
+        .map((c) => c.movementRound)
+        .filter((r): r is number => r !== undefined);
+      const floor = (stamps.length ? Math.max(...stamps) : currentRound(state)) - 1;
+      state.combatRound = Math.max(currentRound(state) - 1, floor);
+    }
     state.currentTurnCharacterId = charactersInOrder[prevIndex].id;
     console.log(`Turn moved back to ${charactersInOrder[prevIndex].name} by ${senderUid}`);
 

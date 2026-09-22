@@ -320,6 +320,8 @@ describe("scene travel contracts", () => {
     expect(resumed.defaultVisionRadius).toBe(30);
     expect(resumed.combatActive).toBe(true);
     expect(resumed.currentTurnCharacterId).toBe("gob");
+    // The resumed holder's turn is running again on this scene: stamped (round 1).
+    expect(resumed.characters.find((entry) => entry.id === "gob")?.movementRound).toBe(1);
     expect(resumed.characters.find((entry) => entry.id === "gob")?.initiative).toBe(17);
     expect(resumed.characters.find((entry) => entry.id === "pc1")?.initiative).toBe(11);
     // The bandit fought on B while A slept: A's resumed order excludes them.

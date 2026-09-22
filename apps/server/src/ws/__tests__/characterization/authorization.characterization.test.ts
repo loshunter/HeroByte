@@ -170,7 +170,8 @@ describe("MessageRouter - Authorization Characterization", () => {
       claimCharacter: vi.fn(() => true),
       updateHP: vi.fn(() => true),
       linkToken: vi.fn(() => true),
-      findCharacter: vi.fn(() => ({ id: "char-1", name: "Test", maxHp: 20, hp: 20 })),
+      // delete-npc is NPC-only now; this shared mock answers every id, so it is an npc.
+      findCharacter: vi.fn(() => ({ id: "char-1", name: "Test", maxHp: 20, hp: 20, type: "npc" })),
       getCharactersInInitiativeOrder: vi.fn(() => []),
       setInitiative: vi.fn(() => true),
       startCombat: vi.fn(() => true),
@@ -541,21 +542,25 @@ describe("MessageRouter - Authorization Characterization", () => {
   });
 
   describe("Authorization Summary", () => {
-    it("should document all 9 DM-only message types with early return pattern", () => {
-      // This test documents the complete list of message types that use early return pattern
+    it("should document all 12 DM-only message types with early return pattern", () => {
+      // This test documents the complete list of message types that use early
+      // return pattern — the same list AuthorizationService.requiresDMPrivileges keeps.
       const dmOnlyMessageTypes = [
-        "create-character", // line 274
-        "create-npc", // line 290
-        "update-npc", // line 307
-        "delete-npc", // line 324
-        "place-npc-token", // line 335
-        "create-prop", // line 417
-        "update-prop", // line 436
-        "delete-prop", // line 452
-        "clear-all-tokens", // line 760
+        "create-character",
+        "create-npc",
+        "update-npc",
+        "delete-npc",
+        "place-npc-token",
+        "create-prop",
+        "update-prop",
+        "delete-prop",
+        "add-custom-token",
+        "remove-custom-token",
+        "clear-all-tokens",
+        "remove-player", // gated in PlayerDispatcher on context.isDM()
       ];
 
-      expect(dmOnlyMessageTypes).toHaveLength(9);
+      expect(dmOnlyMessageTypes).toHaveLength(12);
     });
 
     it("should document all 12 message types that pass isDM to handlers", () => {

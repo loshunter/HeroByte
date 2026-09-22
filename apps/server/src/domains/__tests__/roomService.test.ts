@@ -143,6 +143,91 @@ describe("RoomService", () => {
     expect(merged.selectionState.size).toBe(0);
   });
 
+  it("a loaded file's turn pointer that names a combatant the merge left OUT of the order is dropped, not left dangling", () => {
+    // The merge prefers the LIVE character for a rostered uid (no initiative)
+    // over the file's (rolled 18), but keeps the file's pointer: a NEXT from a
+    // dangling pointer would start at the top with a lap counted for nobody.
+    const service = new RoomService();
+    const state = service.getState();
+    state.players.push({ uid: "uid-1", name: "Live", lastHeartbeat: 1 });
+    state.characters.push({
+      id: "c1",
+      name: "Live PC",
+      type: "pc",
+      ownedByPlayerUID: "uid-1",
+      hp: 10,
+      maxHp: 10,
+    });
+
+    service.loadSnapshot({
+      users: [],
+      tokens: [],
+      players: [{ uid: "uid-1", name: "Saved" }],
+      characters: [
+        {
+          id: "c1",
+          name: "Saved PC",
+          type: "pc",
+          ownedByPlayerUID: "uid-1",
+          hp: 10,
+          maxHp: 10,
+          initiative: 18,
+        },
+        {
+          id: "orc",
+          name: "Orc",
+          type: "npc",
+          ownedByPlayerUID: null,
+          hp: 5,
+          maxHp: 5,
+          initiative: 20,
+        },
+      ],
+      mapBackground: undefined,
+      pointers: [],
+      drawings: [],
+      gridSize: 32,
+      diceRolls: [],
+      combatActive: true,
+      currentTurnCharacterId: "c1",
+    });
+
+    const merged = service.getState();
+    expect(merged.characters.find((c) => c.id === "c1")?.initiative).toBeUndefined(); // the live one won
+    expect(merged.combatActive).toBe(true);
+    expect(merged.currentTurnCharacterId).toBeUndefined();
+  });
+
+  it("a loaded file's turn pointer that names a combatant still IN the order is kept", () => {
+    const service = new RoomService();
+    service.loadSnapshot({
+      users: [],
+      tokens: [],
+      players: [],
+      characters: [
+        {
+          id: "orc",
+          name: "Orc",
+          type: "npc",
+          ownedByPlayerUID: null,
+          hp: 5,
+          maxHp: 5,
+          initiative: 20,
+        },
+      ],
+      mapBackground: undefined,
+      pointers: [],
+      drawings: [],
+      gridSize: 32,
+      diceRolls: [],
+      combatActive: true,
+      currentTurnCharacterId: "orc",
+    });
+    expect(service.getState().currentTurnCharacterId).toBe("orc");
+    // And its turn is running: stamped, or PREV then NEXT would refund its spend.
+    expect(service.getState().characters.find((c) => c.id === "orc")?.movementRound).toBe(1);
+  });
+
   it("bundles heavy assets into snapshot metadata", () => {
     const service = new RoomService();
     const state = service.getState();

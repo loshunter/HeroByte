@@ -484,6 +484,39 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       expect(selectedEntry).toBeUndefined();
     });
 
+    it("deleting the NPC whose turn it is passes the turn to the next in order instead of leaving it dangling", () => {
+      const state = roomService.getState();
+      const hero = characterService.createCharacter(state, "Hero", 50, "", "pc");
+      hero.ownedByPlayerUID = playerUid;
+      hero.initiative = 5;
+      state.characters.find((c) => c.id === npcId)!.initiative = 12; // the troll acts first
+      state.combatActive = true;
+      state.combatRound = 1;
+      state.currentTurnCharacterId = npcId;
+
+      messageRouter.route({ t: "delete-npc", id: npcId }, dmUid);
+
+      const after = roomService.getState();
+      expect(after.currentTurnCharacterId).toBe(hero.id);
+      expect(after.combatRound).toBe(1);
+    });
+
+    it("refuses a PC's id: delete-npc is not a road around the seat replacement", () => {
+      const state = roomService.getState();
+      const pc = characterService.createCharacter(state, "Hero", 50, "", "pc");
+      pc.ownedByPlayerUID = playerUid;
+      const pcToken = tokenService.createToken(state, playerUid, 3, 3);
+      characterService.linkToken(state, pc.id, pcToken.id);
+      const save = vi.spyOn(roomService, "saveState");
+
+      messageRouter.route({ t: "delete-npc", id: pc.id }, dmUid);
+
+      const after = roomService.getState();
+      expect(after.characters.find((c) => c.id === pc.id)).toBeDefined();
+      expect(after.tokens.find((t) => t.id === pcToken.id)).toBeDefined();
+      expect(save).not.toHaveBeenCalled();
+    });
+
     it("should not delete NPC when non-DM tries", () => {
       const deleteMessage: ClientMessage = {
         t: "delete-npc",

@@ -13,6 +13,7 @@
 import type {} from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import { replaceIfSeatedPlayerLostLastCharacter } from "./seatReplacement.js";
+import { deleteCharacterKeepingTurn } from "./deleteCharacter.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
@@ -162,14 +163,17 @@ export class CharacterMessageHandler {
       return { broadcast: false, save: false };
     }
 
-    // Delete the character
-    const deleted = this.characterService.deleteCharacter(state, characterId);
+    // The character, its token, any selection of it — and the turn, if it held one
+    const deleted = deleteCharacterKeepingTurn(
+      {
+        characterService: this.characterService,
+        tokenService: this.tokenService,
+        selectionService: this.selectionService,
+      },
+      state,
+      characterId,
+    );
     if (deleted) {
-      // Delete linked token if exists
-      if (deleted.tokenId) {
-        this.tokenService.forceDeleteToken(state, deleted.tokenId);
-        this.selectionService.removeObject(state, deleted.tokenId);
-      }
       replaceIfSeatedPlayerLostLastCharacter(
         {
           characterService: this.characterService,
