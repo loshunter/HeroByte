@@ -9,8 +9,9 @@
 
 - U1's verified post-cap record was **accepted by the owner on 2026-09-23** with
   “Approve.” Local acceptance commits are now authorized; no fourth formal review or
-  unanimous final-review PASS is claimed. IA-03 is committed on dev as `1bcb7ec3`.
-  Nothing has been pushed. Next: the generated-name collision, then U2.
+  unanimous final-review PASS is claimed. U1 is committed through `290f9a3d`, following
+  startup `7dfbdbbe`, whisper `71c06a5c` and IA-03 `1bcb7ec3`. Nothing has been pushed.
+  The generated-name collision is under verification; U2's fresh inventory is in progress.
 - U2–U10 are not implemented. The checkpoint after U3a remains in force.
 - The September 22 audit is historical evidence; new acceptance results are recorded here.
 - U2 history follow-up, reproduced through the live UI: after the player draws and the DM
@@ -568,3 +569,65 @@ The focused local fixes are `7dfbdbbe` (startup lifetime/recovery) and `71c06a5c
 (whisper audience and history). This record accompanies the completing U1 navigation
 commit, which also contains the integrated browser journeys, guide captures and arc
 plan. The U2 Escape inventory remains outside U1 and unaccepted until refreshed.
+
+## Separate follow-up — generated player-name collision
+
+**Base:** accepted U1 at `290f9a3d`. A new or intentionally removed/rejoining seat
+could receive Player 4 while another Player 4 remained, because automatic naming
+used only roster length. The allocator now begins at the same count-plus-one value
+and advances synchronously until its exact generated name is unused. It does not
+rename existing seats, enforce uniqueness on custom names, revive removed state,
+change identity policy, or rewrite historical whispers. New PC naming continues
+through the existing provisioning path.
+
+**Focused evidence:** the unchanged allocator failed three new cases while seventeen
+controls passed: a non-tail removal, consecutive collisions including custom names,
+and real removal/re-provisioning with both seat and PC name assertions. After the
+allocator change, all **72 tests** in the two new suites and existing player,
+removal and multi-room contracts passed. Replacing the collision loop with one `if`
+failed the consecutive-collision case while five controls passed. Exact source bytes
+were restored and both new suites passed **8/8** again. The join tests use actual
+domain services and provisioning; they do not claim to exercise password UI or
+dispatcher authorization. Evidence is in ignored `output/interface-name-fix/`.
+
+**Full gate:** PASS, 2026-09-23 06:04:50–06:29:11 PDT. Build, typecheck,
+lint/frozen tests, structure and formatting passed. Units passed **9,202** tests:
+client 6,095 (four existing skips), server 2,657, shared 450. The entry bundle is
+**124.98 KB gzip / 175 KB**. Browser tests passed **228**, with three existing skips,
+zero failures and no retries, in 17.5 minutes. All four source/test/ledger files in
+`gate-before.json` matched `gate-after.json` by SHA-256. This result paragraph and
+the two selected captures were added afterward; production and tests remain unchanged.
+
+**Separate dev acceptance:** achieved `live-two-client` using four isolated Chromium
+contexts, with desktop 1440×900 and touch-emulated 375×812 senders. The focused score
+is **8.65/10** (Functionality 9, Multiplayer 9, Craft 8, Reach 8; threshold 7.0).
+Normal UI table creation, password elevation and real removal grace produced the
+original Player 1/2/3/4 roster. Removing Player 2 and returning in the same browser
+context produced a fresh non-DM **Player 5** seat and PC with new character/token IDs;
+all four snapshots agreed. Both senders explicitly selected **Whisper to Player 5**
+by visible name. Original whispers retained **Player 2**. Drafts stayed blocked through
+absence and return, and attempted Enter/touch submission emitted no chat frames.
+Deliberate retargeting delivered exactly once with correct public/private recipients;
+independent public messages preceded negative delivery assertions.
+
+A normal reconnect preserved the custom **PC** name Cedar Returner and the generated
+seat name Player 5, along with UID, character and token identity. This does not claim a
+custom player-seat rename was exercised live. Nine native captures were inspected;
+the phone select was 329×44 px and SEND 60×60 px, with no chat-control clipping.
+Selected captures: [desktop](interface-generated-names/desktop-player-5.png) and
+[375px phone](interface-generated-names/phone-player-5.png). No page, console or captured
+network errors occurred in the successful run. The initial attempt was boot-blocked
+before table creation; it remains recorded as static, with no score. A retry after
+healthy dev endpoints passed without a source change or server restart. This is
+Chromium touch emulation, not physical-device, WebKit or assistive-technology coverage.
+The live script used real UI causes and passive wire/read-only snapshot observations.
+All owned browser contexts closed. This new repair does not reopen U1's capped review.
+
+**Focused review R1:** two fresh, independent, pinned reviewers returned **PASS** in
+static read-only mode: correctness/domain identity and test validity/documentation/privacy.
+Both inspected all eight new cases and the behavioral red/green/mutation evidence.
+The union contains **zero findings**, `agents_error: 0`; all six reviewed files matched
+their before/after SHA-256 manifests. This is a small allocator change, not an all-PASS
+claim about the wider interface arc. Only this review-result paragraph was added after
+the stability check. The separate repair is accepted for a local focused commit;
+remote shipping remains unauthorised. Next: U2 inventory and executed characterizations.
