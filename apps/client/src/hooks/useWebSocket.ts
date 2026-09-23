@@ -7,6 +7,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { WebSocketService, ConnectionState, AuthState, AuthEvent } from "../services/websocket";
 import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
 import { readSessionToken, stashSessionToken } from "../features/rooms/roomDirectory";
+import { isBootTerminated } from "../utils/terminalBoot";
 
 interface UseWebSocketOptions {
   url: string;
@@ -195,6 +196,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const remoteMeasurements = useMemo(() => Object.values(measurements), [measurements]);
 
   const send = useCallback((message: ClientMessage) => {
+    if (isBootTerminated()) return;
     serviceRef.current?.send(message);
   }, []);
 

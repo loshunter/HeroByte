@@ -54,41 +54,58 @@
       // succeeded), mounted:false. It was also the e2e suite's only recurring
       // flake, ~1 in 1900 page loads across 41 preserved runs.
       //
-      // If the mount point is still empty well after load, reload ONCE
-      // (sessionStorage-guarded, so a genuinely broken deploy cannot loop);
-      // if the retry fails too, say so visibly instead of staying blank.
+      // A failed core stylesheet can leave React mounted but the map at zero
+      // height. Require both the mount and the initial same-origin styles.
+      // Reload ONCE only when the retry marker can be retained; if storage is
+      // denied or the retry fails too, show an inline-styled failure message.
       // The module graph executes before `load` fires (modules are deferred),
       // so on a healthy boot the root is already filled when this timer is
       // armed and the check is a no-op.
       (function () {
         var KEY = "herobyte-boot-retried";
+        var styles = Array.prototype.filter.call(
+          document.querySelectorAll('link[rel="stylesheet"]'),
+          function (link) { return new URL(link.href).origin === location.origin; }
+        );
         window.addEventListener("load", function () {
           setTimeout(function () {
             var root = document.getElementById("root");
-            if (root && root.childElementCount > 0) {
+            var stylesReady = styles.every(function (link) {
+              // Chromium can retain a sheet after a failed crossorigin fetch;
+              // its rules throw. A non-null sheet alone is not a loaded style.
+              try { return Boolean(link.sheet && link.sheet.cssRules); }
+              catch (ignored) { return false; }
+            });
+            if (root && root.childElementCount > 0 && stylesReady) {
               try {
                 sessionStorage.removeItem(KEY);
               } catch (ignored) {}
               return;
             }
-            var retried = false;
             try {
-              retried = sessionStorage.getItem(KEY) === "1";
-            } catch (ignored) {}
-            if (!retried) {
-              try {
+              if (sessionStorage.getItem(KEY) !== "1") {
                 sessionStorage.setItem(KEY, "1");
-              } catch (ignored) {}
-              location.reload();
-              return;
-            }
+                if (sessionStorage.getItem(KEY) === "1") {
+                  location.reload();
+                  return;
+                }
+              }
+            } catch (ignored) {}
+            // main.tsx owns the React root and its cleanup, including portals.
+            // If a failed module prevented main from running, no listener is
+            // needed: the root is already empty. Never replace React's nodes.
+            window.dispatchEvent(new Event("herobyte-boot-failed"));
             if (root) {
-              root.innerHTML =
-                '<div style="font-family:system-ui,sans-serif;max-width:28rem;margin:20vh auto;padding:0 1rem;text-align:center;">' +
-                "<h1 style=\"font-size:1.2rem;\">HeroByte didn't load</h1>" +
-                '<p>Part of the app failed to download. Check your connection, then refresh to try again.</p>' +
-                "</div>";
+              root.style.display = "none";
+              root.inert = true;
             }
+            var failure = document.createElement("div");
+            failure.setAttribute("role", "alert");
+            failure.style.cssText = "font-family:system-ui,sans-serif;max-width:28rem;margin:20vh auto;padding:0 1rem;text-align:center;";
+            failure.innerHTML =
+              "<h1 style=\"font-size:1.2rem;\">HeroByte didn't load</h1>" +
+              '<p>Part of the app failed to download. Check your connection, then refresh to try again.</p>';
+            document.body.appendChild(failure);
           }, 4000);
         });
       })();
