@@ -3,7 +3,7 @@
 // ============================================================================
 // Collapsible panel containing token image controls and state save/load actions
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { TokenSize } from "@herobyte/shared";
@@ -12,7 +12,8 @@ import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
 import { VisionRadiusField } from "./VisionRadiusField";
 import { MovementSpeedField, type MovementBudgetControl } from "./MovementSpeedField";
-import { STATUS_OPTIONS } from "../constants/statusOptions";
+import { StatusEffectsPicker } from "./StatusEffectsPicker";
+import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import { CharacterCreationModal } from "./CharacterCreationModal";
 
 interface PlayerSettingsMenuProps {
@@ -139,37 +140,7 @@ export function PlayerSettingsMenu({
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const [localEffects, setLocalEffects] = useState<string[]>(selectedEffects);
-
-  const handleToggleEffect = (value: string) => {
-    const newEffects = localEffects.includes(value)
-      ? localEffects.filter((e) => e !== value)
-      : [...localEffects, value];
-    setLocalEffects(newEffects);
-    onStatusEffectsChange(newEffects);
-  };
-
-  useEffect(() => {
-    if (!dropdownOpen) {
-      setLocalEffects(selectedEffects);
-    }
-  }, [selectedEffects, dropdownOpen]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-
-    if (dropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [dropdownOpen]);
+  const statusEffectsPicker = useStatusEffectsPicker(selectedEffects, onStatusEffectsChange);
 
   if (!isOpen) {
     return null;
@@ -479,99 +450,7 @@ export function PlayerSettingsMenu({
             </JRPGPanel>
           )}
 
-          <JRPGPanel
-            variant="simple"
-            style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-          >
-            <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-              Status Effects
-            </span>
-            <div style={{ position: "relative" }} ref={dropdownRef}>
-              <JRPGButton
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                variant="default"
-                style={{ width: "100%", fontSize: "10px", padding: "6px 8px" }}
-              >
-                {localEffects.length === 0
-                  ? "No Effects"
-                  : `${localEffects.length} Active Effect${localEffects.length === 1 ? "" : "s"}`}
-              </JRPGButton>
-              {dropdownOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    marginTop: "4px",
-                    maxHeight: "300px",
-                    overflowY: "auto",
-                    background: "rgba(12, 18, 40, 0.98)",
-                    border: "2px solid var(--jrpg-border-gold)",
-                    borderRadius: "6px",
-                    padding: "8px",
-                    zIndex: 1000,
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
-                  }}
-                >
-                  {STATUS_OPTIONS.map((option) => {
-                    const isSelected = localEffects.includes(option.value);
-                    return (
-                      <label
-                        key={option.value}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "6px 8px",
-                          cursor: "pointer",
-                          borderRadius: "4px",
-                          transition: "background 0.2s, border 0.2s",
-                          fontSize: "12px",
-                          color: isSelected ? "var(--jrpg-gold)" : "var(--jrpg-white)",
-                          background: isSelected ? "rgba(255, 215, 0, 0.15)" : "transparent",
-                          border: isSelected
-                            ? "1px solid rgba(255, 215, 0, 0.4)"
-                            : "1px solid transparent",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.background = "rgba(255, 215, 0, 0.1)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.background = "transparent";
-                          }
-                        }}
-                      >
-                        {/* The label carries NO click handler. It wraps the
-                            input, so a click on the text is already forwarded
-                            to the checkbox by the browser; handling it here as
-                            well toggled twice and netted zero, leaving the
-                            whole row dead to everything but a direct hit on
-                            the 16px box (UX-03). One handler, on the input,
-                            also makes Space work. */}
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToggleEffect(option.value)}
-                          style={{
-                            width: "16px",
-                            height: "16px",
-                            cursor: "pointer",
-                          }}
-                        />
-                        <span>
-                          {option.emoji} {option.label}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </JRPGPanel>
+          <StatusEffectsPicker {...statusEffectsPicker} />
 
           {/* Add Character: the card's own player only. Delete: the owner OR the
               DM — an abandoned seat (a player who started a fresh session) is

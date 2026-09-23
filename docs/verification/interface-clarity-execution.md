@@ -667,3 +667,31 @@ All eighteen inventory/test/ledger hashes matched before and after the gate;
 This first U2 commit pins the unchanged application; it does not claim that any
 Escape, focus, cancellation or history defect has been repaired. Next: characterized
 extractions, then desired-behavior regressions and implementation.
+
+**Characterized extraction phase, based on `fa747232`:** the existing map mode-exit
+cleanup moved into its cancellation hook; map-tool types moved to a bounded sibling.
+Annotation mode exit reuses its existing cancel primitive. Character's Status Effects
+state remains in the mounted parent through an unconditional hook; its markup moved
+without a new host wrapper. Server history helpers moved out of MapService without
+changing their operation rules. Drawing types moved to a type-only shared module,
+retaining the public barrel names. No Escape owner or desired behavior changed yet.
+
+All **77 unchanged baseline cases passed after extraction**. Two shared public-type
+characterizations passed before and after the move, with the shared compiler passing
+both times; the existing MapService suite also passed **19/19**. The map hook is now
+**263 lines** (from 349), annotation **325** (335), Character settings **544** (665),
+and MapService **248** (413); new modules stay below 348. The grandfathered Character
+parent shrank but is not represented as below the cap. Eight nearby client suites
+passed **103/103**. Existing dev services remained healthy (5174 and 8787 returned
+HTTP 200) after rebuilding the type-only shared extraction. Full extraction gate pending.
+
+**Extraction house gate passed, 2026-09-23 07:49–08:14 PDT:** all eight steps passed.
+Units: **6,148 client** (four existing skips), **2,681 server**, **452 shared**;
+**9,281 passed**. Bundle **125.04 KB / 175 KB**. E2E **228 passed, three existing
+skips, zero failures or retries (18.0 minutes)**. All thirteen frozen hashes matched
+after the gate and `git diff --check` passed. The original dev server also logged
+successful tsx restarts after the new history module and shared rebuild, with no
+boot error. Logs/manifests use `extraction-gate-*` under the same output directory.
+Only this result paragraph was added after comparison. This accepts the extraction
+for a local commit; desired behavior, live U2 acceptance and formal U2 review remain
+pending. Next: focused server-history repair, then interaction-owner integration.

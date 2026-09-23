@@ -15,9 +15,9 @@ import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
 import type { TerrainMap } from "./terrain.js";
 import type { DiceRollMode, DiceVisibility } from "./dice.js";
 import type { DiagonalRule, MeasurePoint } from "./measurement.js";
-import type { AreaTemplate, AreaTemplateTool } from "./areaTemplates.js";
-// Imported as well as re-exported below: the barrel's own declarations use it.
-import type { DrawingType } from "./drawingTypes.js";
+import type { AreaTemplateTool } from "./areaTemplates.js";
+// Imported as well as re-exported below: the barrel's own declarations use them.
+import type { Drawing, DrawingSegmentPayload } from "./drawing.js";
 // Imported as well as re-exported below: RoomSnapshot/SessionFile/ClientMessage use them.
 import type {
   AtlasNodeKind,
@@ -453,33 +453,7 @@ export { isCustomTokenImageUrl } from "./customTokenUrl.js";
  */
 export type DrawTool = "freehand" | "line" | "rect" | "circle" | "eraser" | AreaTemplateTool;
 
-/**
- * Drawing: Represents any drawing on the map canvas
- * Supports multiple tool types: freehand, line, rectangle, circle, etc.
- */
-export interface Drawing {
-  id: string; // Unique identifier
-  owner?: string; // UID of player who created this drawing
-  type: DrawingType; // Drawing tool type
-  points: { x: number; y: number }[]; // Path points or shape bounds
-  color: string; // Line/fill color
-  width: number; // Line thickness
-  opacity: number; // Opacity (0-1)
-  filled?: boolean; // For shapes: filled vs outline only
-  selectedBy?: string; // UID of player who has this drawing selected (for editing)
-  /**
-   * Present only on `type: "template"`. Describes the area — "20 ft cone" —
-   * for the readout; `points` remains the authority on where it sits, so
-   * dragging a placed template never makes this stale.
-   */
-  template?: AreaTemplate;
-}
-
-/**
- * DrawingSegmentPayload: Data required to create a new drawing segment generated
- * after a partial erase operation. Server will assign a fresh id and owner.
- */
-export type DrawingSegmentPayload = Omit<Drawing, "id">;
+export type { Drawing, DrawingSegmentPayload } from "./drawing.js";
 
 /**
  * Where an NPC stands with the party — the DM's call, and theirs alone. A

@@ -4,81 +4,14 @@
 // Handles map-related features: background, grid, drawings, pointers
 
 import { randomUUID } from "crypto";
-import { coerceAreaTemplate } from "@herobyte/shared";
 import type { Drawing, DrawingSegmentPayload, Pointer } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
-import type { DrawingOperation, DrawingOperationStack } from "./types.js";
+import { cloneDrawing, recordUserOperation, redoDrawing, undoDrawing } from "./drawingHistory.js";
 
 /**
  * Map service - manages map background, grid, drawings, and pointers
  */
 export class MapService {
-  private getUndoStack(state: RoomState, ownerUid: string): DrawingOperationStack {
-    if (!state.drawingUndoStacks[ownerUid]) {
-      state.drawingUndoStacks[ownerUid] = [];
-    }
-    return state.drawingUndoStacks[ownerUid]!;
-  }
-
-  private getRedoStack(state: RoomState, ownerUid: string): DrawingOperationStack {
-    if (!state.drawingRedoStacks[ownerUid]) {
-      state.drawingRedoStacks[ownerUid] = [];
-    }
-    return state.drawingRedoStacks[ownerUid]!;
-  }
-
-  private clearRedoStack(state: RoomState, ownerUid: string): void {
-    const stack = this.getRedoStack(state, ownerUid);
-    stack.length = 0;
-  }
-
-  private cloneDrawing(drawing: Drawing): Drawing {
-    const { selectedBy: _omitSelection, ...rest } = drawing;
-    const clonedPoints = Array.isArray(drawing.points)
-      ? drawing.points.map((point) => ({ x: point.x, y: point.y }))
-      : [];
-    // The template is re-derived through the whitelist rather than aliased:
-    // the message validator only REJECTS a bad one, so without this the raw
-    // object a client sent — extra keys and all — would be what gets stored,
-    // broadcast and written to disk. A state file poisoned before S6's
-    // validator existed is disarmed here too.
-    const template = coerceAreaTemplate(drawing.template);
-    return {
-      ...rest,
-      points: clonedPoints,
-      ...(template ? { template } : { template: undefined }),
-    };
-  }
-
-  private cloneOperation(operation: DrawingOperation): DrawingOperation {
-    switch (operation.type) {
-      case "add":
-        return { type: "add", drawing: this.cloneDrawing(operation.drawing) };
-      case "erase":
-        return { type: "erase", drawing: this.cloneDrawing(operation.drawing) };
-      case "partial-erase":
-        return {
-          type: "partial-erase",
-          original: this.cloneDrawing(operation.original),
-          segments: operation.segments.map((segment) => this.cloneDrawing(segment)),
-        };
-      default: {
-        const exhaustive: never = operation;
-        return exhaustive;
-      }
-    }
-  }
-
-  private recordUserOperation(
-    state: RoomState,
-    ownerUid: string,
-    operation: DrawingOperation,
-  ): void {
-    const undoStack = this.getUndoStack(state, ownerUid);
-    undoStack.push(this.cloneOperation(operation));
-    this.clearRedoStack(state, ownerUid);
-  }
-
   /**
    * Set map background image
    */
@@ -119,9 +52,9 @@ export class MapService {
    */
   addDrawing(state: RoomState, drawing: Drawing, ownerUid: string): void {
     const drawingWithOwner: Drawing = { ...drawing, owner: ownerUid };
-    const stored = this.cloneDrawing(drawingWithOwner);
+    const stored = cloneDrawing(drawingWithOwner);
     state.drawings.push(stored);
-    this.recordUserOperation(state, ownerUid, { type: "add", drawing: stored });
+    recordUserOperation(state, ownerUid, { type: "add", drawing: stored });
   }
 
   /**
@@ -129,41 +62,14 @@ export class MapService {
    * Removes the most recent drawing created by that player
    */
   undoDrawing(state: RoomState, ownerUid: string): boolean {
-    const undoStack = this.getUndoStack(state, ownerUid);
-    const operation = undoStack.pop();
-    if (!operation) {
-      return false;
-    }
-
-    const applied = this.applyUndoOperation(state, ownerUid, operation);
-    if (!applied) {
-      undoStack.push(operation);
-      return false;
-    }
-
-    this.getRedoStack(state, ownerUid).push(this.cloneOperation(operation));
-    return true;
+    return undoDrawing(state, ownerUid);
   }
 
   /**
    * Redo the most recently undone drawing for a player
    */
   redoDrawing(state: RoomState, ownerUid: string): boolean {
-    const redoStack = this.getRedoStack(state, ownerUid);
-    const operation = redoStack.pop();
-    if (!operation) {
-      return false;
-    }
-
-    const applied = this.applyRedoOperation(state, ownerUid, operation);
-    if (!applied) {
-      redoStack.push(operation);
-      return false;
-    }
-
-    const undoStack = this.getUndoStack(state, ownerUid);
-    undoStack.push(this.cloneOperation(operation));
-    return true;
+    return redoDrawing(state, ownerUid);
   }
 
   /**
@@ -191,7 +97,7 @@ export class MapService {
         owner: ownerUid,
         selectedBy: undefined,
       };
-      return this.cloneDrawing(sanitizedDrawing);
+      return cloneDrawing(sanitizedDrawing);
     });
 
     state.drawings.push(...sanitized);
@@ -301,7 +207,7 @@ export class MapService {
       return false;
     }
 
-    const originalClone = this.cloneDrawing(original);
+    const originalClone = cloneDrawing(original);
     state.drawings.splice(index, 1);
 
     const createdSegments: Drawing[] = [];
@@ -327,86 +233,15 @@ export class MapService {
         owner: ownerUid,
       };
       state.drawings.push(newDrawing);
-      createdSegments.push(this.cloneDrawing(newDrawing));
+      createdSegments.push(cloneDrawing(newDrawing));
     }
 
-    this.recordUserOperation(state, ownerUid, {
+    recordUserOperation(state, ownerUid, {
       type: "partial-erase",
       original: originalClone,
       segments: createdSegments,
     });
 
     return true;
-  }
-
-  private applyUndoOperation(
-    state: RoomState,
-    ownerUid: string,
-    operation: DrawingOperation,
-  ): boolean {
-    switch (operation.type) {
-      case "add":
-        return this.removeDrawingById(state, operation.drawing.id);
-
-      case "erase":
-        this.restoreDrawing(state, operation.drawing);
-        return true;
-
-      case "partial-erase":
-        this.removeSegmentDrawings(state, operation.segments);
-        this.restoreDrawing(state, operation.original);
-        return true;
-    }
-    return false;
-  }
-
-  private applyRedoOperation(
-    state: RoomState,
-    ownerUid: string,
-    operation: DrawingOperation,
-  ): boolean {
-    switch (operation.type) {
-      case "add":
-        this.restoreDrawing(state, operation.drawing);
-        return true;
-
-      case "erase":
-        return this.removeDrawingById(state, operation.drawing.id);
-
-      case "partial-erase": {
-        const removed = this.removeDrawingById(state, operation.original.id);
-        // Even if original is already absent, continue applying segments
-        for (const segment of operation.segments) {
-          this.restoreDrawing(state, segment);
-        }
-        return removed || operation.segments.length > 0;
-      }
-    }
-    return false;
-  }
-
-  private removeDrawingById(state: RoomState, drawingId: string): boolean {
-    const index = state.drawings.findIndex((candidate) => candidate.id === drawingId);
-    if (index === -1) {
-      return false;
-    }
-    state.drawings.splice(index, 1);
-    return true;
-  }
-
-  private restoreDrawing(state: RoomState, drawing: Drawing): void {
-    const exists = state.drawings.some((candidate) => candidate.id === drawing.id);
-    if (exists) {
-      return;
-    }
-    state.drawings.push(this.cloneDrawing(drawing));
-  }
-
-  private removeSegmentDrawings(state: RoomState, segments: Drawing[]): void {
-    const ids = new Set(segments.map((segment) => segment.id));
-    if (ids.size === 0) {
-      return;
-    }
-    state.drawings = state.drawings.filter((drawing) => !ids.has(drawing.id));
   }
 }

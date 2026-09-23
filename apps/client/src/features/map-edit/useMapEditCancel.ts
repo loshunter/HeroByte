@@ -37,6 +37,8 @@ interface UseMapEditCancelOptions {
   brushingRef: MutableRefObject<boolean>;
   /** Throw an accumulating stroke away without painting it. */
   discardStroke: () => void;
+  /** Preserve the existing exit flush during extraction. */
+  flushStroke: () => void;
   /** Forget a click tool's touch aim (and its ghost) so the lift drops nothing.
    * REQUIRED, not optional: an optional callback here is deletable with every
    * suite green, which is exactly how this wiring went missing the first time. */
@@ -51,6 +53,7 @@ export function useMapEditCancel({
   clearDrag,
   brushingRef,
   discardStroke,
+  flushStroke,
   cancelAim,
 }: UseMapEditCancelOptions): () => void {
   // Not a useCallback: the ref and the two callbacks it closes over are all
@@ -93,6 +96,17 @@ export function useMapEditCancel({
     seen.current = cancelSignal;
     cancelRef.current();
   }, [cancelSignal]);
+
+  // Existing behavior; the repair replaces this flush only after parity passes.
+  useEffect(() => {
+    if (!active) {
+      clearDrag();
+      if (brushingRef.current) {
+        brushingRef.current = false;
+        flushStroke();
+      }
+    }
+  }, [active, clearDrag, brushingRef, flushStroke]);
 
   return cancelGesture;
 }

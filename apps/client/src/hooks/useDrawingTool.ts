@@ -79,6 +79,25 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
   const drawingPointsRef = useRef<{ x: number; y: number }[]>([]);
   const animationFrameRef = useRef<number | null>(null);
 
+  /**
+   * Drop the in-progress stroke on the floor.
+   *
+   * onMouseUp is a commit — it always tries to send. Touch needs the other
+   * half: a second finger landing mid-stroke means the user wants to pinch,
+   * and turning that into a drawing would leave a mark every time they zoom.
+   */
+  const cancel = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    drawingPointsRef.current = [];
+    setCurrentDrawing([]);
+    setCurrentTemplate(undefined);
+    setIsDrawing(false);
+  }, []);
+
   // Which template shape this tool draws, or null for a plain drawing tool.
   const templateKind = templateKindForTool(drawTool);
 
@@ -100,18 +119,8 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
   }, [projectTemplate]);
 
   useEffect(() => {
-    if (!drawMode) {
-      setCurrentDrawing([]);
-      setCurrentTemplate(undefined);
-      setIsDrawing(false);
-      drawingPointsRef.current = [];
-      // Cancel any pending animation frame when exiting draw mode
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-    }
-  }, [drawMode]);
+    if (!drawMode) cancel();
+  }, [drawMode, cancel]);
 
   // Cleanup animation frame on unmount
   useEffect(() => {
@@ -302,25 +311,6 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     onDrawingComplete,
     drawingObjects,
   ]);
-
-  /**
-   * Drop the in-progress stroke on the floor.
-   *
-   * onMouseUp is a commit — it always tries to send. Touch needs the other
-   * half: a second finger landing mid-stroke means the user wants to pinch,
-   * and turning that into a drawing would leave a mark every time they zoom.
-   */
-  const cancel = useCallback(() => {
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    drawingPointsRef.current = [];
-    setCurrentDrawing([]);
-    setCurrentTemplate(undefined);
-    setIsDrawing(false);
-  }, []);
 
   return {
     currentDrawing,
