@@ -631,3 +631,39 @@ their before/after SHA-256 manifests. This is a small allocator change, not an a
 claim about the wider interface arc. Only this review-result paragraph was added after
 the stability check. The separate repair is accepted for a local focused commit;
 remote shipping remains unauthorised. Next: U2 inventory and executed characterizations.
+
+## U2 — inventory and characterization frontier
+
+**Base:** generated-name repair committed locally as `44c6ab82`. No U2 production
+handler has changed. The [complete Escape inventory](interface-escape-inventory.md)
+was rescanned at that commit: 694 source files, fifteen owners (eight global, seven
+local), sixteen Escape sites, and all 35 owner/context fingerprints unchanged from
+the accepted U1 scan. This establishes the required inventory before handler edits.
+
+Sixteen test/fixture files were adopted into their actual characterization directories,
+formatted, and executed against unchanged production. All **77 cases** passed:
+17 overlapping owners/keyboard history, 21 map/annotation gesture lifecycles,
+15 selection/Character picker lifetimes, and 24 server history/projection/storage/export
+contracts. These are current-behavior characterizations, not repaired U2 acceptance.
+Explicit `BASELINE BUG`/`BASELINE GAP` expectations must be replaced during the repair,
+never skipped or retained as claims of correct final behavior.
+
+A controlled mutation changed only normal terrain release from flush to discard.
+Four real callback assertions failed while nine controls passed; these were behavioral
+failures after successful test loading. Source bytes were restored in `finally` and
+all thirteen map lifecycle cases passed again. The source SHA-256 restoration record
+and raw logs are under `output/interface-u2-execution/`. The inventory, bounded
+characterizations and this record form the first U2 commit once the house gate passes.
+Production, independent acceptance and U2 formal review remain pending.
+
+**Baseline house gate passed, 2026-09-23 07:21–07:45 PDT:** build, typecheck,
+lint/frozen tests, structure guard, formatting, all unit suites, bundle and full E2E.
+Units: client **6,148** (four existing skips), server **2,681**, shared **450**;
+**9,279 passed** in total. Bundle **124.98 KB / 175 KB**. Browser suite:
+**228 passed, three existing skips, zero failures or retries (17.4 minutes)**.
+All eighteen inventory/test/ledger hashes matched before and after the gate;
+`git diff --check` passed. Raw `baseline-gate-*` logs and manifests remain under
+`output/interface-u2-execution/`. Only this outcome paragraph was added afterward.
+This first U2 commit pins the unchanged application; it does not claim that any
+Escape, focus, cancellation or history defect has been repaired. Next: characterized
+extractions, then desired-behavior regressions and implementation.
