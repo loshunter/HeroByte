@@ -27,6 +27,7 @@ import type {
   SceneState,
 } from "./atlas.js";
 import type { GenerateRequest } from "./recipes.js";
+import type { ChatMessage } from "./chat.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
@@ -323,37 +324,7 @@ export interface DiceRoll {
   timestamp: number; // When the roll occurred
 }
 
-/**
- * ChatMessage: one line of table talk.
- *
- * `authorUid` and `authorName` are stamped by the SERVER from the sending
- * connection. Nothing a client sends can set them — the same rule DiceRoll
- * above now follows. (Dice did not, until S5: a client-supplied playerUid was
- * stored verbatim, which was arc defect D2.)
- *
- * `authorName` is a snapshot of the name at send time rather than a join
- * against `players`, so renaming yourself does not rewrite your history.
- */
-export interface ChatMessage {
-  id: string; // Unique message identifier
-  authorUid: string; // Who sent it — bound from the connection, never the client
-  authorName: string; // Author's display name at send time
-  text: string; // Message body (plain text; never rendered as HTML)
-  /**
-   * Whisper target's uid. Absent means the whole table.
-   *
-   * SECRECY: the server filters this per recipient in the snapshot, so a
-   * whisper is never serialized to anyone but its author and its target.
-   * Do not rely on the client to hide it.
-   *
-   * Bounded by the identity model, though: `uid` is client-asserted (signed
-   * session tokens are deferred — see session-one-arc.md §7), so a whisper is
-   * private from the other people at the table, NOT from someone willing to
-   * reconnect under their uid. See visibleChatFor for the full note.
-   */
-  to?: string;
-  timestamp: number; // When the message was sent
-}
+export type { ChatMessage } from "./chat.js";
 
 /**
  * Player: Represents a connected player in the session

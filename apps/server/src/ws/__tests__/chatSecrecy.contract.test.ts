@@ -205,6 +205,26 @@ describe("chat secrecy contracts", () => {
     expect(rawBytesSentTo(dmWs)).not.toContain("into the void");
   });
 
+  it("ignores a forged recipient name and stamps the server roster name", () => {
+    route(
+      {
+        t: "chat",
+        text: "named whisper",
+        to: BOB,
+        toName: "forged-name",
+      } as unknown as ClientMessage,
+      ALICE,
+    );
+
+    for (const socket of [aliceWs, bobWs]) {
+      expect(chatSeenBy(socket)).toContainEqual(
+        expect.objectContaining({ text: "named whisper", to: BOB, toName: BOB }),
+      );
+    }
+    expect(chatSeenBy(dmWs)).toEqual([]);
+    expect(rawBytesSentTo(aliceWs)).not.toContain("forged-name");
+  });
+
   it("does not let one player disconnecting erase everyone else's whispers", () => {
     // Drives the REAL DisconnectionCleanupManager, not a hand-rolled
     // broadcast call. An earlier version of this test called
