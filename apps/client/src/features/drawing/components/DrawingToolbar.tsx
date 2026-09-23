@@ -17,6 +17,7 @@ export interface DrawingToolbarProps {
   onClose?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  canClearAll?: boolean;
   onToolChange: (tool: DrawTool) => void;
   onColorChange: (color: string) => void;
   onWidthChange: (width: number) => void;
@@ -63,6 +64,7 @@ export function DrawingToolbar({
   onClose,
   canUndo = false,
   canRedo = false,
+  canClearAll = false,
   onToolChange,
   onColorChange,
   onWidthChange,
@@ -306,13 +308,15 @@ export function DrawingToolbar({
             )}
 
             {/* Clear All Button */}
-            <JRPGButton
-              onClick={onClearAll}
-              variant="danger"
-              style={{ fontSize: "8px", padding: "6px" }}
-            >
-              🗑️ Clear All
-            </JRPGButton>
+            {canClearAll && (
+              <JRPGButton
+                onClick={onClearAll}
+                variant="danger"
+                style={{ fontSize: "8px", padding: "6px" }}
+              >
+                🗑️ Clear All
+              </JRPGButton>
+            )}
           </div>
         </div>
       </JRPGPanel>

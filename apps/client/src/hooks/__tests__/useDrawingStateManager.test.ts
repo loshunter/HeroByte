@@ -311,6 +311,7 @@ describe("useDrawingStateManager - Characterization", () => {
         drawFilled: false,
         canUndo: false,
         canRedo: false,
+        canClearAll: false,
         onToolChange: expect.any(Function),
         onColorChange: expect.any(Function),
         onWidthChange: expect.any(Function),

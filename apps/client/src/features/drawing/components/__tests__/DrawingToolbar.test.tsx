@@ -105,6 +105,7 @@ describe("DrawingToolbar", () => {
     drawWidth: 5,
     drawOpacity: 1,
     drawFilled: false,
+    canClearAll: true,
     onToolChange: vi.fn(),
     onColorChange: vi.fn(),
     onWidthChange: vi.fn(),
@@ -926,7 +927,7 @@ describe("DrawingToolbar", () => {
   // =========================================================================
 
   describe("Action Buttons - Clear All", () => {
-    it("should always render clear all button", () => {
+    it("should render clear all button when permitted", () => {
       render(<DrawingToolbar {...defaultProps} />);
 
       expect(screen.getByText(/🗑️ Clear All/i)).toBeInTheDocument();

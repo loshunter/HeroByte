@@ -71,6 +71,7 @@ export interface UseDrawingStateManagerReturn {
     drawFilled: boolean;
     canUndo: boolean;
     canRedo: boolean;
+    canClearAll?: boolean;
     onToolChange: (tool: DrawTool) => void;
     onColorChange: (color: string) => void;
     onWidthChange: (width: number) => void;
@@ -246,6 +247,7 @@ export function useDrawingStateManager({
       drawFilled,
       canUndo,
       canRedo,
+      canClearAll: canClearDrawings,
       onToolChange: setDrawTool,
       onColorChange: setDrawColor,
       onWidthChange: setDrawWidth,
@@ -264,6 +266,7 @@ export function useDrawingStateManager({
       drawFilled,
       canUndo,
       canRedo,
+      canClearDrawings,
       setDrawTool,
       setDrawColor,
       setDrawWidth,
