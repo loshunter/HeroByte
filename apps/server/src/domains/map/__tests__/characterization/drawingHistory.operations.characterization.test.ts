@@ -1,20 +1,33 @@
-// DRAFT ONLY. Relative imports target domains/map/__tests__/characterization/.
+// Own-recipient drawing history and applicable-operation regression contract.
 import { describe, expect, it } from "vitest";
+import { toSnapshot } from "../../../room/model.js";
 import { ALICE, BOB, DM, drawing, historyFixture, segment } from "./history.fixtures.js";
 
-describe("drawing history before extraction", () => {
+describe("drawing history after applicability repair", () => {
   it("undoes to an empty canvas and redoes the same owned drawing", () => {
     const { service, state } = historyFixture();
     service.addDrawing(state, drawing("a"), ALICE);
     const original = structuredClone(state.drawings[0]);
+    expect(toSnapshot(state, false, ALICE).drawingHistory).toEqual({
+      canUndo: true,
+      canRedo: false,
+    });
 
     expect(service.undoDrawing(state, ALICE)).toBe(true);
     expect(state.drawings).toEqual([]);
+    expect(toSnapshot(state, false, ALICE).drawingHistory).toEqual({
+      canUndo: false,
+      canRedo: true,
+    });
     expect(service.undoDrawing(state, ALICE)).toBe(false);
     expect(state.drawingUndoStacks[ALICE]).toEqual([]);
     expect(state.drawingRedoStacks[ALICE]).toHaveLength(1);
     expect(service.redoDrawing(state, ALICE)).toBe(true);
     expect(state.drawings).toEqual([original]);
+    expect(toSnapshot(state, false, ALICE).drawingHistory).toEqual({
+      canUndo: true,
+      canRedo: false,
+    });
     expect(service.redoDrawing(state, ALICE)).toBe(false);
     expect(state.drawingRedoStacks[ALICE]).toEqual([]);
   });
@@ -124,36 +137,31 @@ describe("drawing history before extraction", () => {
     expect(state.drawings).toEqual([{ ...drawing("a"), owner: ALICE }]);
   });
 
-  it("BASELINE BUG: deleting the newest drawing leaves a stale add blocking valid lower Undo", () => {
+  it("skips a deleted newest add to undo the surviving lower drawing", () => {
     const { service, state } = historyFixture();
     service.addDrawing(state, drawing("a"), ALICE);
     service.addDrawing(state, drawing("b"), ALICE);
     expect(service.deleteDrawing(state, "b", ALICE)).toBe(true);
-    const history = structuredClone(state.drawingUndoStacks[ALICE]);
 
-    expect(service.undoDrawing(state, ALICE)).toBe(false);
-    expect(service.undoDrawing(state, ALICE)).toBe(false);
-    expect(state.drawings.map(({ id }) => id)).toEqual(["a"]);
-    expect(state.drawingUndoStacks[ALICE]).toEqual(history);
-    expect(state.drawingRedoStacks[ALICE]).toEqual([]);
-    // REPLACE in the repair: one Undo removes a, discards only stale b above
-    // it, and makes a redoable. This baseline must not freeze the defect.
+    expect(service.undoDrawing(state, ALICE)).toBe(true);
+    expect(state.drawings).toEqual([]);
+    expect(state.drawingUndoStacks[ALICE]).toEqual([]);
+    expect(state.drawingRedoStacks[ALICE]).toHaveLength(1);
+    expect(service.redoDrawing(state, ALICE)).toBe(true);
+    expect(state.drawings).toEqual([{ ...drawing("a"), owner: ALICE }]);
   });
 
-  it("BASELINE BUG: an already-restored add reports Redo success without changing geometry", () => {
+  it("an already-restored add cannot report Redo success or transfer history", () => {
     const { service, state } = historyFixture();
     service.addDrawing(state, drawing("a"), ALICE);
     expect(service.undoDrawing(state, ALICE)).toBe(true);
-    // A domain-boundary state fixture: redo's recorded ID already exists.
-    // Using addDrawing would intentionally clear redo before this condition.
     state.drawings.push({ ...drawing("a"), owner: ALICE });
     const before = structuredClone(state.drawings);
+    const redo = structuredClone(state.drawingRedoStacks[ALICE]);
 
-    expect(service.redoDrawing(state, ALICE)).toBe(true);
+    expect(service.redoDrawing(state, ALICE)).toBe(false);
     expect(state.drawings).toEqual(before);
-    expect(state.drawingUndoStacks[ALICE]).toHaveLength(1);
-    expect(state.drawingRedoStacks[ALICE]).toEqual([]);
-    // REPLACE in the repair: false with no applicable redo; do not advertise
-    // a change merely because a stack entry exists.
+    expect(state.drawingUndoStacks[ALICE]).toEqual([]);
+    expect(state.drawingRedoStacks[ALICE]).toEqual(redo);
   });
 });

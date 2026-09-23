@@ -1,8 +1,9 @@
-// DRAFT ONLY. Relative imports target domains/map/__tests__/characterization/.
+// Own-recipient drawing history and applicable-operation regression contract.
 import { createMapDocument } from "@herobyte/shared";
 import { describe, expect, it } from "vitest";
 import { captureSceneState, restoreCollections } from "../../../room/scene/sceneSuspend.js";
 import { buildSessionFile } from "../../../room/sessionExport.js";
+import { toSnapshot } from "../../../room/model.js";
 import { SnapshotLoader } from "../../../room/snapshot/SnapshotLoader.js";
 import { StagingZoneManager } from "../../../room/staging/StagingZoneManager.js";
 import { ALICE, DM, drawing, mixedHistoryFixture } from "./history.fixtures.js";
@@ -11,9 +12,11 @@ function expectMixedHistory(state: ReturnType<typeof mixedHistoryFixture>["state
   expect(state.drawingUndoStacks[DM]).toHaveLength(1);
   expect(state.drawingRedoStacks[ALICE]).toHaveLength(1);
   expect(state.drawings.map(({ id }) => id)).toEqual(["dm-kept"]);
+  expect(toSnapshot(state, true, DM).drawingHistory).toEqual({ canUndo: true, canRedo: false });
+  expect(toSnapshot(state, false, ALICE).drawingHistory).toEqual({ canUndo: false, canRedo: true });
 }
 
-describe("drawing history reset boundaries before extraction", () => {
+describe("drawing history reset boundary capabilities", () => {
   it("Clear All discards every owner's undo and redo, even on the now-empty canvas", () => {
     const { service, state } = mixedHistoryFixture();
     expectMixedHistory(state);
@@ -23,6 +26,12 @@ describe("drawing history reset boundaries before extraction", () => {
     expect(state.drawings).toEqual([]);
     expect(state.drawingUndoStacks).toEqual({});
     expect(state.drawingRedoStacks).toEqual({});
+    for (const uid of [DM, ALICE]) {
+      expect(toSnapshot(state, uid === DM, uid).drawingHistory).toEqual({
+        canUndo: false,
+        canRedo: false,
+      });
+    }
     expect(service.undoDrawing(state, DM)).toBe(false);
     expect(service.redoDrawing(state, ALICE)).toBe(false);
   });
@@ -44,6 +53,14 @@ describe("drawing history reset boundaries before extraction", () => {
     expect(state.drawingRedoStacks[owner]).toEqual([]);
     expect(state.drawingUndoStacks[other]).toEqual(otherUndo);
     expect(state.drawingRedoStacks[other]).toEqual(otherRedo);
+    expect(toSnapshot(state, owner === DM, owner).drawingHistory).toEqual({
+      canUndo: false,
+      canRedo: false,
+    });
+    expect(toSnapshot(state, other === DM, other).drawingHistory).toEqual({
+      canUndo: other === DM,
+      canRedo: other === ALICE,
+    });
     expect(service.undoDrawing(state, owner)).toBe(false);
     expect(service.redoDrawing(state, owner)).toBe(false);
     expect(
@@ -68,6 +85,12 @@ describe("drawing history reset boundaries before extraction", () => {
     expect(state.drawings.map(({ id }) => id)).toEqual(savedScene ? ["dm-kept"] : []);
     expect(state.drawingUndoStacks).toEqual({});
     expect(state.drawingRedoStacks).toEqual({});
+    for (const uid of [DM, ALICE]) {
+      expect(toSnapshot(state, uid === DM, uid).drawingHistory).toEqual({
+        canUndo: false,
+        canRedo: false,
+      });
+    }
     expect(service.undoDrawing(state, DM)).toBe(false);
     expect(service.redoDrawing(state, ALICE)).toBe(false);
   });
@@ -94,6 +117,12 @@ describe("drawing history reset boundaries before extraction", () => {
     expect(loaded.drawingUndoStacks).toEqual({});
     expect(loaded.drawingRedoStacks).toEqual({});
     expect(loaded).not.toHaveProperty("drawingHistory");
+    for (const uid of [DM, ALICE]) {
+      expect(toSnapshot(loaded, uid === DM, uid).drawingHistory).toEqual({
+        canUndo: false,
+        canRedo: false,
+      });
+    }
     expect(service.undoDrawing(loaded, DM)).toBe(false);
     expect(service.redoDrawing(loaded, ALICE)).toBe(false);
   });

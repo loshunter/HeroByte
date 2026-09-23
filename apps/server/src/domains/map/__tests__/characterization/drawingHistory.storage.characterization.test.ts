@@ -1,4 +1,4 @@
-// DRAFT ONLY. Relative imports target domains/map/__tests__/characterization/.
+// Own-recipient drawing history and applicable-operation regression contract.
 import {
   existsSync,
   mkdtempSync,
@@ -10,17 +10,22 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { createEmptyRoomState } from "../../../room/model.js";
+import { createEmptyRoomState, toSnapshot } from "../../../room/model.js";
 import { StatePersistence } from "../../../room/persistence/StatePersistence.js";
 import { StagingZoneManager } from "../../../room/staging/StagingZoneManager.js";
 import { RedisRoomStore, type RedisRoomStoreOptions } from "../../../room/store/RedisRoomStore.js";
 import { ALICE, DM, mixedHistoryFixture } from "./history.fixtures.js";
 
-describe("drawing history persistence before extraction", () => {
+describe("drawing history persistence reset capabilities", () => {
   it("disk saves drawings without history; a restart rejects injected stacks and metadata", async () => {
     const { service, state } = mixedHistoryFixture();
     expect(state.drawingUndoStacks[DM]).toHaveLength(1);
     expect(state.drawingRedoStacks[ALICE]).toHaveLength(1);
+    expect(toSnapshot(state, true, DM).drawingHistory).toEqual({ canUndo: true, canRedo: false });
+    expect(toSnapshot(state, false, ALICE).drawingHistory).toEqual({
+      canUndo: false,
+      canRedo: true,
+    });
     const directory = mkdtempSync(join(tmpdir(), "herobyte-u2-history-"));
     const stateFile = join(directory, "state.json");
     const writer = new StatePersistence(
@@ -66,6 +71,14 @@ describe("drawing history persistence before extraction", () => {
       expect(restarted.drawingUndoStacks).toEqual({});
       expect(restarted.drawingRedoStacks).toEqual({});
       expect(restarted).not.toHaveProperty("drawingHistory");
+      expect(toSnapshot(restarted, true, DM).drawingHistory).toEqual({
+        canUndo: false,
+        canRedo: false,
+      });
+      expect(toSnapshot(restarted, false, ALICE).drawingHistory).toEqual({
+        canUndo: false,
+        canRedo: false,
+      });
       expect(service.undoDrawing(restarted, DM)).toBe(false);
       expect(service.redoDrawing(restarted, ALICE)).toBe(false);
     } finally {
@@ -80,6 +93,11 @@ describe("drawing history persistence before extraction", () => {
     const { service, state } = mixedHistoryFixture();
     expect(state.drawingUndoStacks[DM]).toHaveLength(1);
     expect(state.drawingRedoStacks[ALICE]).toHaveLength(1);
+    expect(toSnapshot(state, true, DM).drawingHistory).toEqual({ canUndo: true, canRedo: false });
+    expect(toSnapshot(state, false, ALICE).drawingHistory).toEqual({
+      canUndo: false,
+      canRedo: true,
+    });
     const client = {
       hkeys: vi.fn<(key: string) => Promise<string[]>>().mockResolvedValue(["table"]),
       hget: vi.fn<(key: string, field: string) => Promise<string | null>>(),
@@ -121,6 +139,14 @@ describe("drawing history persistence before extraction", () => {
     expect(hydrated!.drawingUndoStacks).toEqual({});
     expect(hydrated!.drawingRedoStacks).toEqual({});
     expect(hydrated).not.toHaveProperty("drawingHistory");
+    expect(toSnapshot(hydrated!, true, DM).drawingHistory).toEqual({
+      canUndo: false,
+      canRedo: false,
+    });
+    expect(toSnapshot(hydrated!, false, ALICE).drawingHistory).toEqual({
+      canUndo: false,
+      canRedo: false,
+    });
     expect(service.undoDrawing(hydrated!, DM)).toBe(false);
     expect(service.redoDrawing(hydrated!, ALICE)).toBe(false);
   });

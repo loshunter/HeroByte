@@ -695,3 +695,78 @@ boot error. Logs/manifests use `extraction-gate-*` under the same output directo
 Only this result paragraph was added after comparison. This accepts the extraction
 for a local commit; desired behavior, live U2 acceptance and formal U2 review remain
 pending. Next: focused server-history repair, then interaction-owner integration.
+
+**Focused drawing-history repair, based on `7eb5dacf`:** Undo and Redo now choose
+the newest operation that can change the current drawing geometry. Executing it
+discards stale entries above it and preserves lower dependencies, including nested
+partial erases. An already-restored drawing no longer reports false Redo success.
+Snapshots optionally report only their recipient's confirmed `canUndo`/`canRedo`;
+recipientless snapshots omit this field. Reading capabilities does not mutate stacks.
+Session exports strip this transient metadata, retaining the existing fixed-time
+export bytes. Existing disk, Redis and session loaders still reset history; this
+does not claim that Redis never writes the runtime history fields.
+
+The desired server regressions first ran against the extracted old implementation:
+**37 assertion failures and eight passing controls**, including direct behavioral
+failures for stale Undo and false-success Redo. After repair all **45 passed**.
+Two controlled mutations were caught: restricting selection to the top entry caused
+two failures with two controls; removing the export strip caused one failure with
+six controls. Exact source hashes were restored in `finally`, then all 45 passed
+again. Nearby MapService/message-handler suites passed **37/37**, and the two shared
+public-type checks passed. Raw `history-*` logs and the restoration manifest are
+under `output/interface-u2-execution/`. Full gate and independent focused review
+remain pending. Client history controls and live U2 acceptance are not yet implemented.
+
+**History house gate passed, 2026-09-23:** build, typecheck, lint/frozen tests,
+structure and formatting passed at 08:26–08:28 PDT. The initial unit run then lost
+its esbuild service before one client suite could load; this was a setup failure,
+not an assertion result or a passing gate. After the session interruption, all
+thirteen frozen file hashes still matched. The resumed complete unit run passed
+at 13:10: **6,148 client** (four existing skips), **2,702 server**, **452 shared**,
+or **9,302 passed**. Bundle **125.04 KB / 175 KB** passed at 13:11. Full browser
+suite finished at 13:29: **228 passed, three existing skips, zero failures or
+retries (18.5 minutes)**. All thirteen hashes still matched afterward and
+`git diff --check` passed. Original and resumed logs are retained separately.
+Only this result paragraph changed after the frozen comparison. Independent
+focused review remains pending; this does not claim live U2 interaction acceptance.
+
+**Focused history review R1, 2026-09-23:** two fresh, pinned reviewers completed
+read-only static review: correctness PASS, evidence/ownership FAIL; union **one
+finding**, `agents_error: 0`. All thirteen hashes were unchanged across review.
+The failing case is cross-owner ID reuse: after a DM deletes Alice's two drawings,
+Bob can reuse the lower drawing's ID; scanning Alice's stale history can then remove
+Bob's drawing. The required repair matches recorded owners during applicability and
+removal, rejects duplicate live draw IDs, and remaps conflicting imported IDs without
+discarding imported geometry. Focused regressions, the repeated house gate and a fresh
+second review round must pass before this repair is committed. R1 is a valid failed
+round, not an acceptance or live evaluation.
+
+The ownership regressions reproduced **ten assertion failures with three passing
+controls** before the repair. After exact-owner history matching and collision-safe
+draw/import ingestion, all **95 focused cases passed in nine files**: thirteen new
+ownership cases, forty-five history contracts, nineteen MapService cases and eighteen
+message-handler cases. The controls retain occupied-ID restore protection and real
+Undo/Redo of an unowned legacy drawing. The red result is preserved as a labeled
+tool-output transcription; `history-r2-focused.log` is the raw green output. No wire
+message shape changed. The complete repeated gate and fresh R2 review remain pending.
+
+**Repeated history gate passed, 2026-09-23 13:45–14:08 PDT:** all eight steps passed
+on the repaired tree. Units: **6,148 client** (four existing skips), **2,715 server**,
+**452 shared**, or **9,315 passed**. Bundle **125.04 KB / 175 KB**. Full E2E:
+**228 passed, three existing skips, zero failures or retries (17.0 minutes)**.
+All fifteen frozen file hashes matched after the gate, and `git diff --check` passed.
+The `history-r2-gate-*` logs and before/after manifests are retained. Only this outcome
+paragraph was added after comparison. Fresh R2 review remains pending; the client
+interaction candidates still require actual adoption and live U2 acceptance.
+
+**Focused history review R2 passed, 2026-09-23:** two fresh pinned reviewers both
+returned PASS, union **zero findings**, `agents_error: 0`, achieved mode **static,
+read-only**. Both checked the complete fifteen-path diff, including the three new
+test files; neither ran a browser or changed implementation. Root independently
+confirmed all fifteen review hashes unchanged. R1 → R2 finding counts are **1 → 0**.
+The owner/ID reuse defect is closed, with no regression identified in lower history
+dependencies, partial erases, recipient metadata, lifecycle reset or export bytes.
+The labeled red transcription remains an evidence limitation, not a raw captured log.
+This accepts the focused server-history repair for a local commit. U2 itself remains
+open: the interaction-owner client integration, live acceptance and full U2 review
+are still required. No push, merge to main or deployment is authorized by this record.

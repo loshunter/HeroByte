@@ -1,17 +1,17 @@
-// DRAFT ONLY. Relative imports target domains/map/__tests__/characterization/.
+// Own-recipient drawing history and applicable-operation regression contract.
 import { describe, expect, it } from "vitest";
 import { toSnapshot } from "../../../room/model.js";
 import { buildSessionFile, exportBytes } from "../../../room/sessionExport.js";
 import { ALICE, BOB, DM, mixedHistoryFixture } from "./history.fixtures.js";
 
-describe("drawing history snapshot and export baseline", () => {
+describe("drawing history recipient projection and export", () => {
   it.each([
-    ["DM", true, DM],
-    ["player with redo", false, ALICE],
-    ["player without history", false, BOB],
-    ["unknown recipient", false, "new-uid"],
-    ["recipientless DM/fork", true, undefined],
-  ] as const)("snapshot for %s exposes no raw stacks or capabilities before U2", (_, isDM, uid) => {
+    ["DM", true, DM, { canUndo: true, canRedo: false }],
+    ["player with redo", false, ALICE, { canUndo: false, canRedo: true }],
+    ["player without history", false, BOB, { canUndo: false, canRedo: false }],
+    ["unknown recipient", false, "new-uid", { canUndo: false, canRedo: false }],
+    ["recipientless DM/fork", true, undefined, undefined],
+  ] as const)("snapshot for %s exposes only its own capability pair", (_, isDM, uid, expected) => {
     const { state } = mixedHistoryFixture();
     const beforeUndo = structuredClone(state.drawingUndoStacks);
     const beforeRedo = structuredClone(state.drawingRedoStacks);
@@ -20,14 +20,16 @@ describe("drawing history snapshot and export baseline", () => {
 
     expect(snapshot).not.toHaveProperty("drawingUndoStacks");
     expect(snapshot).not.toHaveProperty("drawingRedoStacks");
-    expect(snapshot).not.toHaveProperty("drawingHistory");
+    if (uid === undefined) expect(snapshot).not.toHaveProperty("drawingHistory");
+    else {
+      expect(snapshot.drawingHistory).toEqual(expected);
+      expect(Object.keys(snapshot.drawingHistory!)).toEqual(["canUndo", "canRedo"]);
+    }
     expect(snapshot.assets?.find((asset) => asset.type === "drawings")?.payload).toEqual(
       state.drawings,
     );
     expect(state.drawingUndoStacks).toEqual(beforeUndo);
     expect(state.drawingRedoStacks).toEqual(beforeRedo);
-    // CHANGE only the capabilities expectation when U2 adds them. Retain
-    // raw-stack absence and read-purity checks; recipientless stays omitted.
   });
 
   it("export bytes ignore runtime histories even for a DM who can actually Undo", () => {
@@ -41,6 +43,11 @@ describe("drawing history snapshot and export baseline", () => {
     expect(proof.drawings).toEqual([]);
     expect(service.undoDrawing(structuredClone(withoutHistory), DM)).toBe(false);
 
+    expect(toSnapshot(state, true, DM).drawingHistory).toEqual({ canUndo: true, canRedo: false });
+    expect(toSnapshot(withoutHistory, true, DM).drawingHistory).toEqual({
+      canUndo: false,
+      canRedo: false,
+    });
     const withHistoryFile = buildSessionFile(state, [], DM, 1234);
     const withoutHistoryFile = buildSessionFile(withoutHistory, [], DM, 1234);
 
@@ -50,10 +57,6 @@ describe("drawing history snapshot and export baseline", () => {
     expect(withHistoryFile.snapshot).not.toHaveProperty("drawingRedoStacks");
     expect(JSON.stringify(withHistoryFile)).toBe(JSON.stringify(withoutHistoryFile));
     expect(exportBytes(state, [], DM)).toBe(exportBytes(withoutHistory, [], DM));
-    // REQUIRED after metadata exists: assert BEFORE export that
-    // toSnapshot(state, true, DM).drawingHistory equals true/false and the
-    // no-history state equals false/false. This catches the real-recipient
-    // flattenForFile leak; a recipientless snapshot cannot prove stripping.
   });
 
   it("repeated recipient snapshot reads preserve history for a same-UID resync", () => {

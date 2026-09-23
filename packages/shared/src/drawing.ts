@@ -28,3 +28,8 @@ export interface Drawing {
  * after a partial erase operation. Server will assign a fresh id and owner.
  */
 export type DrawingSegmentPayload = Omit<Drawing, "id">;
+
+export interface DrawingHistoryCapabilities {
+  canUndo: boolean;
+  canRedo: boolean;
+}

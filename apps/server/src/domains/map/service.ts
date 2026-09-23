@@ -51,6 +51,7 @@ export class MapService {
    * Add a drawing to the canvas
    */
   addDrawing(state: RoomState, drawing: Drawing, ownerUid: string): void {
+    if (state.drawings.some((existing) => existing.id === drawing.id)) return;
     const drawingWithOwner: Drawing = { ...drawing, owner: ownerUid };
     const stored = cloneDrawing(drawingWithOwner);
     state.drawings.push(stored);
@@ -86,14 +87,17 @@ export class MapService {
    */
   replacePlayerDrawings(state: RoomState, ownerUid: string, drawings: Drawing[]): void {
     state.drawings = state.drawings.filter((drawing) => drawing.owner !== ownerUid);
+    const ids = new Set(state.drawings.map((drawing) => drawing.id));
 
     const sanitized: Drawing[] = drawings.map((drawing) => {
+      let id = typeof drawing.id === "string" ? drawing.id.trim() : "";
+      // Preserve imported geometry while keeping IDs unique across owners and
+      // within this batch. Existing IDs owned by this importer remain reusable.
+      while (!id || ids.has(id)) id = randomUUID();
+      ids.add(id);
       const sanitizedDrawing: Drawing = {
         ...drawing,
-        id:
-          typeof drawing.id === "string" && drawing.id.trim().length > 0
-            ? drawing.id.trim()
-            : randomUUID(),
+        id,
         owner: ownerUid,
         selectedBy: undefined,
       };

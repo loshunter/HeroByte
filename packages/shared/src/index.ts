@@ -17,7 +17,7 @@ import type { DiceRollMode, DiceVisibility } from "./dice.js";
 import type { DiagonalRule, MeasurePoint } from "./measurement.js";
 import type { AreaTemplateTool } from "./areaTemplates.js";
 // Imported as well as re-exported below: the barrel's own declarations use them.
-import type { Drawing, DrawingSegmentPayload } from "./drawing.js";
+import type { Drawing, DrawingSegmentPayload, DrawingHistoryCapabilities } from "./drawing.js";
 // Imported as well as re-exported below: RoomSnapshot/SessionFile/ClientMessage use them.
 import type {
   AtlasNodeKind,
@@ -453,7 +453,7 @@ export { isCustomTokenImageUrl } from "./customTokenUrl.js";
  */
 export type DrawTool = "freehand" | "line" | "rect" | "circle" | "eraser" | AreaTemplateTool;
 
-export type { Drawing, DrawingSegmentPayload } from "./drawing.js";
+export type { Drawing, DrawingSegmentPayload, DrawingHistoryCapabilities } from "./drawing.js";
 
 /**
  * Where an NPC stands with the party — the DM's call, and theirs alone. A
@@ -628,6 +628,8 @@ export interface MapTerrainSnapshot {
 }
 
 export interface RoomSnapshot {
+  /** This recipient's last confirmed drawing history; absent on older servers and in session files. */
+  drawingHistory?: DrawingHistoryCapabilities;
   users: string[]; // Legacy array of UIDs (deprecated, use players)
   tokens: Token[]; // All tokens on the map
   players: Player[]; // All connected players

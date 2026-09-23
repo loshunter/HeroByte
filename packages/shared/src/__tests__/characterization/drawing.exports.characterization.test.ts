@@ -1,6 +1,7 @@
-// Public drawing type contract, captured before extraction.
+// Public drawing and history-capability type contract.
 import { describe, expect, expectTypeOf, it } from "vitest";
 import * as shared from "../../index.js";
+import type { DrawingHistoryCapabilities, RoomSnapshot } from "../../index.js";
 import type { AreaTemplate, Drawing, DrawingSegmentPayload, DrawingType } from "../../index.js";
 
 type DrawingContract = {
@@ -16,9 +17,16 @@ type DrawingContract = {
   template?: AreaTemplate;
 };
 
-describe("drawing type exports before extraction", () => {
+describe("drawing type exports and optional history capabilities", () => {
   it("retains the full barrel types and a segment differs only by its absent id", () => {
     expectTypeOf<Drawing>().toEqualTypeOf<DrawingContract>();
+    expectTypeOf<DrawingHistoryCapabilities>().toEqualTypeOf<{
+      canUndo: boolean;
+      canRedo: boolean;
+    }>();
+    expectTypeOf<RoomSnapshot["drawingHistory"]>().toEqualTypeOf<
+      DrawingHistoryCapabilities | undefined
+    >();
     expectTypeOf<DrawingSegmentPayload>().toEqualTypeOf<Omit<DrawingContract, "id">>();
     const segment: DrawingSegmentPayload = {
       type: "freehand",
@@ -36,6 +44,7 @@ describe("drawing type exports before extraction", () => {
 
   it("does not turn Drawing or DrawingSegmentPayload into runtime exports", () => {
     expect(shared).not.toHaveProperty("Drawing");
+    expect(shared).not.toHaveProperty("DrawingHistoryCapabilities");
     expect(shared).not.toHaveProperty("DrawingSegmentPayload");
   });
 });
