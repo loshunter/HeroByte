@@ -78,8 +78,8 @@ test.describe("keyboard movement", () => {
     await selectObject(page, `token:${token.id}`);
     const before = await readCell(page, token.id);
 
-    await page.locator('button[title="View dice roll history"]').click();
-    await page.getByRole("button", { name: "CHAT" }).click();
+    await page.getByRole("button", { name: "📜 Chat & Rolls", exact: true }).click();
+    await page.getByRole("tab", { name: "CHAT", exact: true }).click();
     const chat = page.getByPlaceholder("Say something...");
     await chat.focus();
     await page.keyboard.press("d");

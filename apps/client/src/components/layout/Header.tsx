@@ -5,6 +5,7 @@
 // Extracted from App.tsx to follow single responsibility principle
 
 import React from "react";
+import "./Header.css";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { JuiceMenuButton } from "../../features/juice/JuiceMenuButton";
 import { HelpMenuButton } from "../../features/help/HelpMenuButton";
@@ -125,138 +126,161 @@ export const Header: React.FC<HeaderProps> = ({
             style={{ padding: "6px 10px", flex: 1, display: "flex", alignItems: "center" }}
           >
             <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-              {/* Snap to Grid */}
-              <JRPGButton
-                onClick={() => onSnapToGridChange(!snapToGrid)}
-                variant={snapToGrid ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Toggle snap-to-grid for tokens and measurements"
-              >
-                Snap
-              </JRPGButton>
-
-              {/* Viewport Controls */}
-              <JRPGButton
-                onClick={onResetCamera}
-                variant="default"
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Reset camera to center of map"
-              >
-                🧭 Recenter
-              </JRPGButton>
-
-              {/* Pointer Mode */}
-              <JRPGButton
-                onClick={() => onToolSelect(pointerMode ? null : "pointer")}
-                variant={pointerMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Point at locations on the map (visible to others)"
-              >
-                👆 Pointer
-              </JRPGButton>
-
-              {/* Measure Mode */}
-              <JRPGButton
-                onClick={() => onToolSelect(measureMode ? null : "measure")}
-                variant={measureMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Measure distances on the grid"
-              >
-                📏 Measure
-              </JRPGButton>
-
-              {/* Drawing Toolbar Toggle */}
-              <JRPGButton
-                onClick={() => onToolSelect(drawMode ? null : "draw")}
-                variant={drawMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Open drawing tools menu"
-              >
-                ✏️ Draw Tools
-              </JRPGButton>
-
-              {/* Transform Mode */}
-              <JRPGButton
-                onClick={() => onToolSelect(transformMode ? null : "transform")}
-                variant={transformMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Scale and rotate objects"
-              >
-                🔄 Transform
-              </JRPGButton>
-
-              {/* Select Mode */}
-              <JRPGButton
-                onClick={() => onToolSelect(selectMode ? null : "select")}
-                variant={selectMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Select multiple objects"
-              >
-                🖱️ Select
-              </JRPGButton>
-
-              {isDM && (
+              <div role="group" aria-label="Play tools" className="header-control-group">
+                <span className="header-control-group__label">Play tools</span>
                 <JRPGButton
-                  onClick={() => onToolSelect(mapEditMode ? null : "map-edit")}
-                  variant={mapEditMode ? "primary" : "default"}
+                  onClick={() => onToolSelect(null)}
+                  variant={activeTool === null ? "primary" : "default"}
+                  aria-pressed={activeTool === null}
                   style={{ fontSize: "8px", padding: "4px 10px" }}
-                  title="Author the live map on the table"
+                  title="Move tokens and pan the map"
                 >
-                  🏗️ Map
+                  ✥ Move
                 </JRPGButton>
-              )}
+                {/* Pointer Mode */}
+                <JRPGButton
+                  onClick={() => onToolSelect(pointerMode ? null : "pointer")}
+                  variant={pointerMode ? "primary" : "default"}
+                  aria-pressed={pointerMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Point at locations on the map (visible to others)"
+                >
+                  👆 Ping
+                </JRPGButton>
 
-              {/* Player lens (P4): render the DM's own table exactly as
+                {/* Measure Mode */}
+                <JRPGButton
+                  onClick={() => onToolSelect(measureMode ? null : "measure")}
+                  variant={measureMode ? "primary" : "default"}
+                  aria-pressed={measureMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Measure distances on the grid"
+                >
+                  📏 Measure
+                </JRPGButton>
+
+                {/* Drawing Toolbar Toggle */}
+                <JRPGButton
+                  onClick={() => onToolSelect(drawMode ? null : "draw")}
+                  variant={drawMode ? "primary" : "default"}
+                  aria-pressed={drawMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Open drawing tools menu"
+                >
+                  ✏️ Draw
+                </JRPGButton>
+
+                {/* Transform Mode */}
+                <JRPGButton
+                  onClick={() => onToolSelect(transformMode ? null : "transform")}
+                  variant={transformMode ? "primary" : "default"}
+                  aria-pressed={transformMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Scale and rotate objects"
+                >
+                  🔄 Transform
+                </JRPGButton>
+
+                {/* Select Mode */}
+                <JRPGButton
+                  onClick={() => onToolSelect(selectMode ? null : "select")}
+                  variant={selectMode ? "primary" : "default"}
+                  aria-pressed={selectMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Select multiple objects"
+                >
+                  🖱️ Select
+                </JRPGButton>
+
+                {/* Snap to Grid */}
+                <JRPGButton
+                  onClick={() => onSnapToGridChange(!snapToGrid)}
+                  variant={snapToGrid ? "primary" : "default"}
+                  aria-pressed={snapToGrid}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Toggle snap-to-grid for tokens and measurements"
+                >
+                  Snap
+                </JRPGButton>
+
+                {/* Viewport Controls */}
+                <JRPGButton
+                  onClick={onResetCamera}
+                  variant="default"
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Reset camera to center of map"
+                >
+                  🧭 Recenter
+                </JRPGButton>
+
+                {isDM && (
+                  <JRPGButton
+                    onClick={() => onToolSelect(mapEditMode ? null : "map-edit")}
+                    variant={mapEditMode ? "primary" : "default"}
+                    aria-pressed={mapEditMode}
+                    style={{ fontSize: "8px", padding: "4px 10px" }}
+                    title="Author the live map on the table"
+                  >
+                    🏗️ Map
+                  </JRPGButton>
+                )}
+              </div>
+              <div role="group" aria-label="Panels & settings" className="header-control-group">
+                <span className="header-control-group__label">Panels &amp; settings</span>
+                {/* Player lens (P4): render the DM's own table exactly as
                   players receive it — fog on, secret doors hidden, DM
                   overlays off. A VIEW toggle only; DM powers stay live. */}
-              {isDM && onPlayerLensChange && (
+                {isDM && onPlayerLensChange && (
+                  <JRPGButton
+                    onClick={() => onPlayerLensChange(!playerLens)}
+                    variant={playerLens ? "primary" : "default"}
+                    aria-pressed={playerLens}
+                    style={{ fontSize: "8px", padding: "4px 10px" }}
+                    title="See the table exactly as players do (fog, secret doors, no DM overlays)"
+                  >
+                    👁 Player View
+                  </JRPGButton>
+                )}
+                {/* CRT Filter */}
                 <JRPGButton
-                  onClick={() => onPlayerLensChange(!playerLens)}
-                  variant={playerLens ? "primary" : "default"}
+                  onClick={() => onCrtFilterChange(!crtFilter)}
+                  variant={crtFilter ? "primary" : "default"}
                   style={{ fontSize: "8px", padding: "4px 10px" }}
-                  title="See the table exactly as players do (fog, secret doors, no DM overlays)"
+                  title="Toggle retro CRT visual effect"
+                  aria-pressed={crtFilter}
                 >
-                  👁 Player View
+                  📺 CRT
                 </JRPGButton>
-              )}
 
-              {/* CRT Filter */}
-              <JRPGButton
-                onClick={() => onCrtFilterChange(!crtFilter)}
-                variant={crtFilter ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Toggle retro CRT visual effect"
-                aria-pressed={crtFilter}
-              >
-                📺 CRT
-              </JRPGButton>
+                {/* Game-feel (motion + sound) settings */}
+                <JuiceMenuButton />
 
-              {/* Game-feel (motion + sound) settings */}
-              <JuiceMenuButton />
+                {/* Dice Roller */}
+                <JRPGButton
+                  onClick={() => onDiceRollerToggle(!diceRollerOpen)}
+                  variant={diceRollerOpen ? "primary" : "default"}
+                  aria-pressed={diceRollerOpen}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Open 3D dice roller"
+                >
+                  ⚂ Dice
+                </JRPGButton>
 
-              {/* Dice Roller */}
-              <JRPGButton
-                onClick={() => onDiceRollerToggle(!diceRollerOpen)}
-                variant={diceRollerOpen ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Open 3D dice roller"
-              >
-                ⚂ Dice
-              </JRPGButton>
+                {/* Roll Log */}
+                <JRPGButton
+                  onClick={() => onRollLogToggle(!rollLogOpen)}
+                  variant={rollLogOpen ? "primary" : "default"}
+                  aria-pressed={rollLogOpen}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Open table chat and dice roll history"
+                >
+                  📜 Chat &amp; Rolls
+                </JRPGButton>
 
-              {/* Roll Log */}
-              <JRPGButton
-                onClick={() => onRollLogToggle(!rollLogOpen)}
-                variant={rollLogOpen ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="View dice roll history"
-              >
-                📜 Log
-              </JRPGButton>
-
-              {/* The manual. Last in the row so it reads as "and if you're
+                {/* The manual. Last in the row so it reads as "and if you're
                   stuck, here" rather than competing with the tools. */}
-              <HelpMenuButton />
+                <HelpMenuButton />
+              </div>
             </div>
           </JRPGPanel>
         </div>

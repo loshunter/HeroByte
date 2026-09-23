@@ -31,7 +31,7 @@ test.describe("HeroByte partial erase - Smoke Test", () => {
     });
 
     // The automatic fixture reset provides a clean table; players cannot clear it.
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
   });
 

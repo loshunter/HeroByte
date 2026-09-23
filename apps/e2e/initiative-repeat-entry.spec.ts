@@ -67,7 +67,8 @@ test.describe("initiative — a hand entry that matches the number on file", () 
     expect((await myCharacter(page))!.initiative).toBe(onFile);
 
     // The toolbar is reachable again — the bug's user-visible symptom.
-    await page.getByRole("button", { name: "📜 Log" }).click();
+    await page.getByRole("button", { name: "📜 Chat & Rolls" }).click();
+    await page.getByRole("tab", { name: "ROLLS", exact: true }).click();
     await expect(page.getByTestId("roll-entered-badge").first()).toHaveText("BY HAND");
   });
 });

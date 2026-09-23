@@ -96,7 +96,7 @@ Notes:
 
 - On a locally hosted server the development DM password is `FunDM` unless changed.
 - After five wrong attempts the server locks elevation for 15 seconds.
-- To step down, open the DM Menu and press **🔓 EXIT DM MODE** (or toggle DM Mode off in your settings). You'll need the password again to re-elevate. (on a phone: **≡ LOG → ♛ DM**)
+- To step down, open the DM Menu and press **🔓 EXIT DM MODE** (or toggle DM Mode off in your settings). You'll need the password again to re-elevate. (on a phone: **♛ DM** in the dock)
 - More than one player can hold DM powers at the same time if you share the password — handy for co-DMs.
 
 ## Which browser? Which device?

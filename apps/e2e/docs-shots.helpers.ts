@@ -14,6 +14,7 @@ export function ensureImgDir() {
 // Full-viewport JPEG. Screenshots are committed to the repo, so JPEG keeps the
 // canvas-heavy captures an order of magnitude smaller than PNG.
 export async function shotPage(page: Page, name: string) {
+  await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(300);
   await page.screenshot({
     path: path.join(IMG_DIR, `${name}.jpg`),
@@ -92,6 +93,14 @@ export async function hideEntitiesPanel(page: Page) {
     await hide.click();
     await page.waitForTimeout(300);
   }
+}
+
+export async function focusOwnToken(page: Page) {
+  await page
+    .locator(".player-card")
+    .filter({ has: page.getByText("You", { exact: true }) })
+    .getByRole("button", { name: "Focus camera on token" })
+    .click();
 }
 
 export async function waitSnap(page: Page, predicate: () => boolean, timeout = 20_000) {

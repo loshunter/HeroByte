@@ -1,0 +1,15 @@
+.header-control-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--jrpg-border-gold, #8a7445);
+  border-radius: 3px;
+}
+
+.header-control-group__label {
+  color: var(--jrpg-gold);
+  font-size: 11px;
+  white-space: nowrap;
+}

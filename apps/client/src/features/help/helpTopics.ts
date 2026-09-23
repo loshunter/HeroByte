@@ -206,8 +206,9 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       { term: "Macros", detail: "+ SAVE names a built roll. Macros live in this browser only." },
       {
-        term: "📜 Log",
-        detail: "The shared history, newest first; click an entry for its full breakdown.",
+        term: "📜 Chat & Rolls",
+        detail:
+          "Chat opens first; choose Rolls for dice history, newest first. Your last tab is remembered. On a phone, open Chat in the dock.",
       },
       {
         term: "The server rolls",
@@ -222,7 +223,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     title: "Drawing, templates, measuring",
     entries: [
       {
-        term: "✏️ Draw Tools",
+        term: "✏️ Draw",
         detail:
           "Freehand, Line, Rect, Circle, Eraser, plus colour, brush size, opacity and Filled.",
       },
@@ -245,7 +246,8 @@ export const HELP_TOPICS: HelpTopic[] = [
         detail:
           "Counted by the table's rule, which the DM sets — 5e by default, so a two-square diagonal is 10 ft.",
       },
-      { term: "👆 Pointer", detail: "Click to plant a ping everyone sees for three seconds." },
+      { term: "👆 Ping", detail: "Click to plant a ping everyone sees for three seconds." },
+      { term: "✥ Move", detail: "Return to moving tokens and panning the map after using a tool." },
     ],
   },
   {

@@ -10,9 +10,9 @@ const DRAWING_TOOLS: readonly DrawTool[] = [
   ...AREA_TEMPLATE_TOOLS,
 ];
 
-/** Short enough to fit a 96px chip at 375px wide. */
+/** Match desktop tool names; templates keep their distinct AoE names. */
 const MOBILE_TOOL_LABELS: Record<DrawTool, string> = {
-  freehand: "Free",
+  freehand: "Freehand",
   line: "line",
   rect: "rect",
   circle: "circle",

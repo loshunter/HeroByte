@@ -449,7 +449,7 @@ describe("MobileLayout", () => {
     const props = createDefaultProps();
     render(<MobileLayout {...props} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /log/i }));
+    fireEvent.click(screen.getByRole("button", { name: /chat/i }));
 
     expect(props.toggleRollLog).toHaveBeenCalledWith(true);
   });
@@ -1106,7 +1106,7 @@ describe("MobileLayout", () => {
       ["Party", /party/i],
       ["Tools", /tools/i],
       ["Dice", /dice/i],
-      ["Log", /log/i],
+      ["Chat", /chat/i],
     ])("closes the manual when %s is tapped on the dock", (_label, pattern) => {
       render(<MobileLayout {...createDefaultProps()} />);
       openHelp();
@@ -1216,7 +1216,7 @@ describe("MobileLayout", () => {
       // hands the close back to the App rather than unmounting anything.
       props.rollLogOpen = true;
       const { unmount } = render(<MobileLayout {...props} />);
-      fireEvent.click(screen.getByRole("button", { name: "Close Roll Log" }));
+      fireEvent.click(screen.getByRole("button", { name: "Close Chat & Rolls" }));
       expect(props.toggleRollLog).toHaveBeenCalledWith(false);
       unmount();
     });

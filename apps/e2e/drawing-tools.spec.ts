@@ -20,7 +20,7 @@ test.describe("HeroByte drawing tools", () => {
 
     expect(uid).not.toBeNull();
 
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
 
     const canvas = page.getByTestId("map-board").locator("canvas").first();

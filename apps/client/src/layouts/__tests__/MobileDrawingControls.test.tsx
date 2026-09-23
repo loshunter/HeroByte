@@ -41,7 +41,7 @@ describe("MobileDrawingControls — templates", () => {
 
   it("keeps the original five drawing tools alongside them", () => {
     renderSheet();
-    for (const label of ["Free", "line", "rect", "circle", "eraser"]) {
+    for (const label of ["Freehand", "line", "rect", "circle", "eraser"]) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
   });
@@ -77,7 +77,7 @@ describe("MobileDrawingControls — templates", () => {
     expect(screen.getByRole("button", { name: "AoE Cone" }).className).toContain(
       "mobile-chip--active",
     );
-    expect(screen.getByRole("button", { name: "Free" }).className).not.toContain(
+    expect(screen.getByRole("button", { name: "Freehand" }).className).not.toContain(
       "mobile-chip--active",
     );
   });

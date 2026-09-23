@@ -272,9 +272,9 @@ describe("Header", () => {
   });
 
   describe.each<{ tool: ToolMode; label: string; title?: string }>([
-    { tool: "pointer", label: "👆 Pointer" },
+    { tool: "pointer", label: "👆 Ping" },
     { tool: "measure", label: "📏 Measure" },
-    { tool: "draw", label: "✏️ Draw Tools" },
+    { tool: "draw", label: "✏️ Draw" },
     { tool: "transform", label: "🔄 Transform", title: "Scale and rotate objects" },
     { tool: "select", label: "🖱️ Select" },
   ])("Tool Mode Button - $tool", ({ tool, label, title }) => {
@@ -321,9 +321,9 @@ describe("Header", () => {
     it("should only activate one tool mode at a time", () => {
       const { rerender } = render(<Header {...props} activeTool={null} />);
       const allButtons = [
-        screen.getByRole("button", { name: "👆 Pointer" }),
+        screen.getByRole("button", { name: "👆 Ping" }),
         screen.getByRole("button", { name: "📏 Measure" }),
-        screen.getByRole("button", { name: "✏️ Draw Tools" }),
+        screen.getByRole("button", { name: "✏️ Draw" }),
         screen.getByRole("button", { name: "🔄 Transform" }),
         screen.getByRole("button", { name: "🖱️ Select" }),
       ];
@@ -331,7 +331,7 @@ describe("Header", () => {
       allButtons.forEach((btn) => expect(btn).toHaveAttribute("data-variant", "default"));
 
       rerender(<Header {...props} activeTool="pointer" />);
-      expect(screen.getByRole("button", { name: "👆 Pointer" })).toHaveAttribute(
+      expect(screen.getByRole("button", { name: "👆 Ping" })).toHaveAttribute(
         "data-variant",
         "primary",
       );
@@ -341,9 +341,9 @@ describe("Header", () => {
     it("should handle non-displayed tool modes (align)", () => {
       render(<Header {...props} activeTool={"align" as ToolMode} />);
       const allButtons = [
-        screen.getByRole("button", { name: "👆 Pointer" }),
+        screen.getByRole("button", { name: "👆 Ping" }),
         screen.getByRole("button", { name: "📏 Measure" }),
-        screen.getByRole("button", { name: "✏️ Draw Tools" }),
+        screen.getByRole("button", { name: "✏️ Draw" }),
         screen.getByRole("button", { name: "🔄 Transform" }),
         screen.getByRole("button", { name: "🖱️ Select" }),
       ];
@@ -353,7 +353,7 @@ describe("Header", () => {
 
     it("should switch between different tool modes correctly", () => {
       const { rerender } = render(<Header {...props} activeTool="pointer" />);
-      expect(screen.getByRole("button", { name: "👆 Pointer" })).toHaveAttribute(
+      expect(screen.getByRole("button", { name: "👆 Ping" })).toHaveAttribute(
         "data-variant",
         "primary",
       );
@@ -365,7 +365,7 @@ describe("Header", () => {
       );
 
       rerender(<Header {...props} activeTool="draw" />);
-      expect(screen.getByRole("button", { name: "✏️ Draw Tools" })).toHaveAttribute(
+      expect(screen.getByRole("button", { name: "✏️ Draw" })).toHaveAttribute(
         "data-variant",
         "primary",
       );
@@ -391,7 +391,7 @@ describe("Header", () => {
   }>([
     { prop: "crtFilter", label: "📺 CRT", handler: "onCrtFilterChange" },
     { prop: "diceRollerOpen", label: "⚂ Dice", handler: "onDiceRollerToggle" },
-    { prop: "rollLogOpen", label: "📜 Log", handler: "onRollLogToggle" },
+    { prop: "rollLogOpen", label: "📜 Chat & Rolls", handler: "onRollLogToggle" },
   ])("Toggle Button - $label", ({ prop, label, handler }) => {
     it("should render with correct variant based on state", () => {
       const { rerender } = render(<Header {...props} {...{ [prop]: false }} />);
@@ -435,7 +435,7 @@ describe("Header", () => {
           ],
         },
         {
-          name: "👆 Pointer",
+          name: "👆 Ping",
           handler: "onToolSelect",
           excluded: [
             "onSnapToGridChange",
@@ -468,7 +468,7 @@ describe("Header", () => {
           ],
         },
         {
-          name: "📜 Log",
+          name: "📜 Chat & Rolls",
           handler: "onRollLogToggle",
           excluded: [
             "onSnapToGridChange",

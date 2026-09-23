@@ -2139,6 +2139,8 @@ button.token-library-remove:hover {
 
 .mobile-drawing-sheet .mobile-chip {
   width: 100%;
+  /* Keep named tools inside narrow cells without shrinking the pixel font. */
+  padding-inline: 4px;
 }
 
 .mobile-drawing-sheet__control {
@@ -2228,13 +2230,10 @@ button.token-library-remove:hover {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  /* The safe-area vars, not literals: on a notched landscape phone the left
-     and right insets are ~44px, and 12px of padding puts the title and rows
-     under the housing. The vars already floor at 12px, so flat screens are
-     unchanged — this is the same contract the dock and the sheets honour,
-     which is exactly why the screen must too. (No browser here emulates a
-     notch, so no test can see this; the dock learned the same lesson in M3.) */
-  padding: var(--mobile-safe-top) var(--mobile-safe-right) 10px var(--mobile-safe-left);
+  /* Reserve the connection badge's 30px band above the title and close row.
+     It must stay visible over this opaque screen without covering its title.
+     Safe-area insets still keep the row clear of a notched phone's housing. */
+  padding: calc(var(--mobile-safe-top) + 30px) var(--mobile-safe-right) 10px var(--mobile-safe-left);
   border-bottom: 3px solid var(--hero-gold-light);
   background: linear-gradient(180deg, rgba(42, 40, 69, 0.98) 0%, rgba(15, 14, 42, 0.99) 100%);
   color: var(--hero-gold);

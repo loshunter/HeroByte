@@ -269,7 +269,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ≡
           </span>
-          Log
+          Chat
         </button>
         {isDM ? (
           // Slot five, not slot six: the dock is a hardcoded 5-column grid and

@@ -146,10 +146,10 @@ test.describe("mobile shell — the log screen", () => {
 
       await page
         .getByRole("navigation", { name: /Mobile actions/i })
-        .getByRole("button", { name: /Log/i })
+        .getByRole("button", { name: /Chat/i })
         .click();
 
-      const close = page.getByRole("button", { name: "Close Roll Log" });
+      const close = page.getByRole("button", { name: "Close Chat & Rolls" });
       await expect(close).toBeVisible();
 
       const box = (await close.boundingBox())!;
@@ -254,7 +254,7 @@ test.describe("mobile shell — the log screen", () => {
 
     await page
       .getByRole("navigation", { name: /Mobile actions/i })
-      .getByRole("button", { name: /Log/i })
+      .getByRole("button", { name: /Chat/i })
       .click();
     await expect(page.locator(".mobile-screen")).toBeVisible();
 

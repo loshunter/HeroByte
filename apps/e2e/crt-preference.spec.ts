@@ -78,12 +78,12 @@ test.describe("CRT preference and rendered treatment", () => {
           .poll(() => page.evaluate(() => window.__HERO_BYTE_E2E__!.cam))
           .not.toEqual(before);
 
-        await page.getByRole("button", { name: "📜 Log", exact: true }).click();
+        await page.getByRole("button", { name: "📜 Chat & Rolls", exact: true }).click();
         await expect(page.locator(".crt-filter")).toHaveCSS("opacity", "0.35");
         await expect(page.locator(".crt-vignette")).toHaveCSS("opacity", "0.5");
         expect((await overlayStyles(page)).maskOpacity).toBe("0");
         await capture(page, info, "panel-softening");
-        await page.getByRole("button", { name: "📜 Log", exact: true }).click();
+        await page.getByRole("button", { name: "📜 Chat & Rolls", exact: true }).click();
         await page.emulateMedia({ reducedMotion: "reduce" });
         expect((await overlayStyles(page)).transition).toBe("0s");
         await expect(page.locator(".pixel-sparkle").first()).toHaveCSS("animation-name", "none");
@@ -157,7 +157,7 @@ test.describe("CRT preference and rendered treatment", () => {
       const count = await player.evaluate(
         () => window.__HERO_BYTE_E2E__!.snapshot!.drawings.length,
       );
-      await dm.getByRole("button", { name: /Draw Tools/i }).click();
+      await dm.getByRole("button", { name: /✏️ Draw/i }).click();
       const canvas = await dm.getByTestId("map-board").locator("canvas").first().boundingBox();
       await dm.mouse.move(canvas!.x + canvas!.width * 0.4, canvas!.y + canvas!.height * 0.4);
       await dm.mouse.down();
@@ -175,7 +175,7 @@ test.describe("CRT preference and rendered treatment", () => {
       );
       expect(received?.owner).toBe(identities[0]);
       await capture(player, info, "player-received-drawing");
-      await dm.getByRole("button", { name: /Draw Tools/i }).click();
+      await dm.getByRole("button", { name: /✏️ Draw/i }).click();
       await capture(dm, info, "dm-shared-drawing");
 
       await toggle(dm).click();

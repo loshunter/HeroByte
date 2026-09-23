@@ -193,7 +193,7 @@ describe("DrawingToolbar", () => {
     it("should render all five tool buttons", () => {
       render(<DrawingToolbar {...defaultProps} />);
 
-      expect(screen.getByText(/✏️ Draw/i)).toBeInTheDocument();
+      expect(screen.getByText(/✏️ Freehand/i)).toBeInTheDocument();
       expect(screen.getByText(/📏 Line/i)).toBeInTheDocument();
       expect(screen.getByText(/▭ Rect/i)).toBeInTheDocument();
       expect(screen.getByText(/⬤ Circle/i)).toBeInTheDocument();
@@ -204,7 +204,7 @@ describe("DrawingToolbar", () => {
       render(<DrawingToolbar {...defaultProps} drawTool="freehand" />);
 
       const buttons = screen.getAllByTestId("jrpg-button");
-      const freehandButton = buttons.find((btn) => btn.textContent?.includes("✏️ Draw"));
+      const freehandButton = buttons.find((btn) => btn.textContent?.includes("✏️ Freehand"));
 
       expect(freehandButton).toHaveAttribute("data-variant", "primary");
     });
@@ -261,7 +261,7 @@ describe("DrawingToolbar", () => {
       render(<DrawingToolbar {...defaultProps} onToolChange={onToolChange} />);
 
       const buttons = screen.getAllByTestId("jrpg-button");
-      const freehandButton = buttons.find((btn) => btn.textContent?.includes("✏️ Draw"));
+      const freehandButton = buttons.find((btn) => btn.textContent?.includes("✏️ Freehand"));
 
       fireEvent.click(freehandButton!);
 
@@ -1151,7 +1151,7 @@ describe("DrawingToolbar", () => {
       render(<DrawingToolbar {...defaultProps} onToolChange={onToolChange} />);
 
       const buttons = screen.getAllByTestId("jrpg-button");
-      const freehandButton = buttons.find((btn) => btn.textContent?.includes("✏️ Draw"));
+      const freehandButton = buttons.find((btn) => btn.textContent?.includes("✏️ Freehand"));
       const lineButton = buttons.find((btn) => btn.textContent?.includes("📏 Line"));
       const rectButton = buttons.find((btn) => btn.textContent?.includes("▭ Rect"));
 
@@ -1290,7 +1290,7 @@ describe("DrawingToolbar - area templates (S6)", () => {
       "data-variant",
       "primary",
     );
-    expect(screen.getByRole("button", { name: "✏️ Draw" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "✏️ Freehand" })).toHaveAttribute(
       "data-variant",
       "default",
     );

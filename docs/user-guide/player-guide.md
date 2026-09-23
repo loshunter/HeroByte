@@ -35,7 +35,7 @@ Your card in the Entities panel is your character sheet in miniature:
 
 ### The settings window (⚙️)
 
-![Player settings: name, portrait, token image, player state, DM mode, token size, status effects](img/player-settings.jpg)
+![Player settings showing the character name, portrait, token image, and player-state controls](img/player-settings.jpg)
 
 Everything about your character in one draggable window:
 
@@ -53,7 +53,7 @@ Your token is your presence on the map:
 
 - **Nameplate and HP bar** — every token wears its character's name, and a thin health bar when you're allowed the numbers (your party always; monsters at the DM's discretion — a red dot means bloodied). Names hold their size at any zoom.
 
-- **Move** — drag it. With **SNAP** on (top toolbar) it clicks to grid cells; everyone sees your drag live. Or step it from the keyboard: **WASD** / **arrows** move it one cell (Q E Z C for the diagonals; hold a key to walk). With nothing selected the keys move your own token, as long as you run just the one character (with a second, pick the one you mean first) — except while you are typing, and **↑/↓** page a panel you last clicked into or scrolled, such as the log (WASD and ←/→ still walk). With **🖱️ SELECT** or **🔄 TRANSFORM** armed the keys move only the piece you have picked (nothing picked, nothing moves); **✏️ Draw**, the grid-alignment wizard and atlas-link take the keys entirely. To move something else you may move, pick it with SELECT or TRANSFORM first.
+- **Move** — drag it. With **SNAP** on (top toolbar) it clicks to grid cells; others receive its new position when you release it. Or step it from the keyboard: **WASD** / **arrows** move it one cell (Q E Z C for the diagonals; hold a key to walk). With nothing selected the keys move your own token, as long as you run just the one character (with a second, pick the one you mean first) — except while you are typing, and **↑/↓** page a panel you last clicked into or scrolled, such as Chat & Rolls (WASD and ←/→ still walk). With **🖱️ SELECT** or **🔄 TRANSFORM** armed the keys move only the piece you have picked (nothing picked, nothing moves); **✏️ Draw**, the grid-alignment wizard and atlas-link take the keys entirely. To move something else you may move, pick it with SELECT or TRANSFORM first.
 - **Recolor** — double-click your token for a new random color.
 - **Select** — click it. **Shift-click** adds to a selection, **Ctrl/Cmd-click** toggles. With the **🖱️ SELECT** tool you can drag a marquee to grab several tokens and drawings at once, then drag any one of them to move the whole group.
 - **Resize / rotate** — with the **🔄 TRANSFORM** tool, click a token for Photoshop-style handles: 8 scale handles plus a rotation handle above (rotation snaps to 45°; hold **Ctrl/Cmd** to rotate freely). The center crosshair drags the object.
@@ -63,9 +63,28 @@ Your token is your presence on the map:
 
 You can only move **your own** tokens. The DM can move everyone's.
 
+## Table chat and whispers
+
+Open **📜 Chat & Rolls → Chat**, or **Chat** in the phone dock. Choose **Everyone**
+for table talk or **Whisper to [name]** for a private message, then press **SEND**
+or Enter. Whispers go to the sender's and recipient's table seats; being the DM does
+not grant access to other players' whispers. A connected seat is protected against
+another person claiming it. After a seat is fully offline and its session-token
+grace expires, someone with the table password can claim it and read whispers
+retained for that seat. This is the same offline-identity limit as private rolls.
+
+If the selected recipient is removed from the table, your draft stays in the box
+and sending is blocked. Choose a recipient again or explicitly choose **Everyone**
+before sending, even if the removed seat returns. New whispers keep the recipient's
+name as it was when sent; older messages fall back to the current roster name, or
+“unknown” when that name is unavailable. Closing the panel or switching to Rolls
+clears an unsent draft.
+
 ## Dice
 
-Press **⚂ DICE** for the roller and **📜 LOG** for the shared history.
+Press **⚂ Dice** for the roller and **📜 Chat & Rolls → Rolls** for dice history.
+On a phone, open **Chat** in the dock. Chat opens first; your last tab is remembered
+for your player in this browser session when you close it or switch layouts.
 
 ![Building a roll: two d20s and a +1 modifier queued up](img/dice-roller-built.jpg)
 
@@ -79,7 +98,7 @@ The dice tumble, land with a satisfying rattle, and the result panel breaks down
 ![A roll result: each die face, the modifier, and the total — plus the shared roll log](img/dice-result.jpg)
 
 - Natural 20 on a d20 → a gold **★ CRITICAL! ★** banner (and a sting). Natural 1 → **✖ FUMBLE! ✖**.
-- Every roll lands in the **📜 ROLL LOG** with your name, timestamp, formula, and total — shared with the whole table, newest first. Long formulas collapse; click an entry for its full breakdown.
+- Every roll lands in **Chat & Rolls → Rolls** with your name, timestamp, formula, and total, newest first. Its TABLE / DM / ME audience still applies. Long formulas collapse; click an entry for its full breakdown.
 
 ### Rolling real dice instead
 
@@ -104,7 +123,7 @@ got away with. The log tags the entry **ADV** or **DIS**.
 
 - **TABLE** — everyone. The default.
 - **DM** — you and the DM only.
-- **ME** — you only, the DM included.
+- **ME** — only you. Other players and DMs do not receive the roll.
 
 A hidden roll is not merely hidden in other people's app: it is never sent to them. Their
 browser has no copy to find. While you are at the table, your seat is yours: another browser
@@ -127,13 +146,14 @@ put someone else's in.
 
 ## Drawing, measuring, pointing
 
-### ✏️ Draw Tools
+### ✏️ Draw
 
 ![The drawing toolbar with freehand strokes and a circle on the map](img/drawing-tools.jpg)
 
-A draggable toolbox with five tools — **Draw** (freehand), **Line**, **Rect**, **Circle**, **Eraser** — plus four **area templates** (below), 12 preset colors, a full color picker, **brush size** (1–50 px), **opacity**, and a **Filled** checkbox for shapes.
+A draggable toolbox with five tools — **Freehand**, **Line**, **Rect**, **Circle**, **Eraser** — plus four **area templates** (below), 12 preset colors, a full color picker, **brush size** (1–50 px), **opacity**, and a **Filled** checkbox for shapes.
 
-- Drawings sync to everyone, live as you draw.
+- A completed drawing syncs to everyone when you finish the stroke or shape.
+- Choose **✥ Move** in the header (phone: **Tools → Move**) to put the toolbox away and return to moving tokens and panning the map.
 - **Undo/redo** (buttons, or **Ctrl+Z / Ctrl+Y** while draw mode is active) affect **your own** drawings only.
 - The **Eraser** is surgical on freehand strokes: dragging across one removes just the crossed section and leaves the rest. Lines, rects, and circles are all-or-nothing.
 - You can erase, move and delete only your own drawings; the DM can remove anyone's. **🗑️ CLEAR ALL** wipes the whole map — that one is DM-only.
@@ -154,7 +174,7 @@ Distance is counted by the table's **diagonal rule**, which the DM sets (5e by d
 
 ![Measuring a diagonal: squares and feet update as the line moves](img/measure-tool.jpg)
 
-### 👆 Pointer
+### 👆 Ping
 
 Your cursor becomes a pulsing ring; click to plant a ping — a colored burst with your name under it, visible to the whole table for 3 seconds, with a chime.
 
@@ -190,7 +210,7 @@ Press **INIT** on your card to set initiative:
 - Or press **USE PHYSICAL DICE**, type the d20 you rolled at your real table, and press **SAVE**. That reaches the log too, badged **BY HAND** — see [Rolling real dice instead](#rolling-real-dice-instead), which works the same way everywhere else you roll.
 - **The first initiative set starts combat** for the whole table: cards reorder by initiative, a **⚔️ Combat Active** banner appears with `Turn N of M`, and the current combatant's card wears a white ring in a gold glow (a DM's own card has a gold border of its own, so the ring is the cue, not the colour).
 
-![Combat active: turn banner, ordered cards, and the current turn highlighted](img/combat-active.jpg)
+![Combat active: turn banner, turn controls, and the current character highlighted](img/combat-active.jpg)
 
 - **◄ PREV / NEXT ►** advance the turn (any player can nudge it; a chime marks each turn change).
 - On **your** turn, your card says **🎯 YOUR TURN**.
@@ -235,16 +255,16 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
 - **◉ PARTY** — the party screen: portraits, HP (tap or drag to edit), status effects, and — on your own row — **⚙️ EDIT** for name, portrait, and DM mode.
-- **⚒ TOOLS** — Move, Ping, Measure, Draw (a compact strip: tool, size, color, undo/redo), Transform, Select, Snap, Recenter (re-centers the camera), and Help.
+- **⚒ TOOLS** — Move, Ping, Measure, Draw (a compact strip: tool, size, color, undo/redo), Transform, Select, Snap, Recenter (re-centers the camera), CRT, and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
-- **≡ LOG** — the shared roll history and the chat, full screen. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same five tabs as the desktop window (Map Setup, NPCs, Props, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
+- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Map Setup, Atlas, NPCs & Monsters, Props & Objects, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
 
 ![The DM menu on a phone](img/mobile-dm.jpg)
 
-Party and Log open as full screens: close them with the **✕**, or drag their title bar downward to flick them away.
+Party and Chat & Rolls open as full screens: close them with the **✕**, or drag their title bar downward to flick them away.
 
 ![The mobile party screen](img/mobile-party.jpg)
 
 To move a piece by steps on a phone: **TOOLS → □ Select**, tap the piece, and a d-pad appears in its sheet (hold a direction to walk; the map scrolls to keep the piece in view — the whole piece and its nameplate when the strip above the sheet has room, otherwise its top edge).
 
-One finger pans, two fingers pinch-zoom. A few desktop-only extras (CRT, game-feel settings, player-state files) don't exist on mobile. DM map authoring _does_ — see [On a phone or tablet](map-editor-guide.md#on-a-phone-or-tablet) in the map editor guide.
+One finger pans, two fingers pinch-zoom. The game-feel settings and player-state files remain desktop-only; CRT is in TOOLS. DM map authoring also works on mobile — see [On a phone or tablet](map-editor-guide.md#on-a-phone-or-tablet) in the map editor guide.

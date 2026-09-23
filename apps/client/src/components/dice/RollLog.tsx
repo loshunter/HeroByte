@@ -18,7 +18,7 @@ interface RollLogProps extends RollLogContentProps {
 export const RollLog: React.FC<RollLogProps> = ({ onClose, ...content }) => {
   return (
     <DraggableWindow
-      title="⚂ ROLL LOG"
+      title="Chat & Rolls"
       onClose={onClose}
       initialX={window.innerWidth - 420}
       initialY={100}

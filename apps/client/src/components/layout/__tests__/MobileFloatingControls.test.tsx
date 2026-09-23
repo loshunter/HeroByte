@@ -96,7 +96,7 @@ describe("MobileFloatingControls", () => {
       ["Party", /party/i, "party"],
       ["Tools", /tools/i, "tools"],
       ["Dice", /dice/i, "dice"],
-      ["Log", /log/i, "log"],
+      ["Chat", /chat/i, "log"],
     ])("%s toggles its surface", (_label, pattern, surface) => {
       const props = createProps();
       render(<MobileFloatingControls {...props} />);

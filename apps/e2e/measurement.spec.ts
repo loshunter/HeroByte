@@ -233,7 +233,7 @@ test.describe("S6 area templates", () => {
       () => window.__HERO_BYTE_E2E__?.snapshot?.drawings?.length ?? 0,
     );
 
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
     const coneButton = page.getByRole("button", { name: /◺ Cone/ });
     await coneButton.click();
@@ -284,7 +284,7 @@ test.describe("S6 area templates", () => {
       () => window.__HERO_BYTE_E2E__?.snapshot?.drawings?.length ?? 0,
     );
 
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await page.getByRole("button", { name: /◯ Burst/ }).click();
 
     const spot = await mapPoint(page, 1, 1);

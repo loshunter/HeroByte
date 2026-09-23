@@ -39,7 +39,7 @@ test("only the DM can clear drawings, and cancelling preserves drawings and undo
     expect(playerUid).toBeTruthy();
     expect(playerUid).not.toBe(dmUid);
 
-    await player.getByRole("button", { name: /Draw Tools/i }).click();
+    await player.getByRole("button", { name: "✏️ Draw", exact: true }).click();
     await expect(player.getByRole("button", { name: /Close.*DRAWING TOOLS/i })).toBeVisible();
     await expect(player.getByRole("button", { name: /Clear All/i })).toHaveCount(0);
     await drawStroke(player);
@@ -51,7 +51,7 @@ test("only the DM can clear drawings, and cancelling preserves drawings and undo
     await expect(player.getByRole("button", { name: /Undo/i })).toBeEnabled();
     await expect(player.getByRole("button", { name: /Clear All/i })).toHaveCount(0);
 
-    await dm.getByRole("button", { name: /Draw Tools/i }).click();
+    await dm.getByRole("button", { name: "✏️ Draw", exact: true }).click();
     const clearAll = dm.getByRole("button", { name: /Clear All/i });
     await expect(clearAll).toBeVisible();
     // The DM also needs an owned stroke so cancellation tests real local and

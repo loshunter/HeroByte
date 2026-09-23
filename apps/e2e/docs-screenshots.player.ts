@@ -1,12 +1,16 @@
 import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
+import { openTouch, touchDrag } from "./mobile/touch.helpers";
 import {
   boardCenter,
   closeTopWindow,
   dragPath,
   ensureImgDir,
+  focusOwnToken,
+  hideEntitiesPanel,
   makeSteps,
   shotPage,
+  waitSnap,
 } from "./docs-shots.helpers";
 
 // Documentation screenshots — login + player-facing surface.
@@ -33,6 +37,9 @@ test.describe("docs screenshots: player", () => {
     await step("new table form", async () => {
       await page.getByRole("button", { name: /New Table/i }).click();
       await expect(page.getByLabel("New table password")).toBeVisible();
+      await page.getByRole("button", { name: "Create private table" }).scrollIntoViewIfNeeded();
+      await expect(page.getByLabel("New table password")).toBeInViewport({ ratio: 1 });
+      await expect(page.getByLabel("New DM password")).toBeInViewport({ ratio: 1 });
       await shotPage(page, "login-new-table");
     });
 
@@ -71,7 +78,8 @@ test.describe("docs screenshots: player", () => {
       "join table",
       async () => {
         await joinDefaultRoom(page);
-        await page.getByTitle("Reset camera to center of map").click();
+        await expect(page.getByTitle("Open table chat and dice roll history")).toBeVisible();
+        await focusOwnToken(page);
         await page.waitForTimeout(500);
         await shotPage(page, "table-first-join");
       },
@@ -91,25 +99,32 @@ test.describe("docs screenshots: player", () => {
 
     await step("dice roller build + result", async () => {
       await page.getByTitle("Open 3D dice roller").click();
-      await page.getByTitle("View dice roll history").click();
+      await page.getByTitle("Open table chat and dice roll history").click();
+      await expect(page.getByRole("button", { name: "Close Chat & Rolls" })).toBeVisible();
+      await page.getByRole("tab", { name: "ROLLS", exact: true }).click();
       await page.getByRole("button", { name: "Add d20", exact: true }).click();
       await page.getByRole("button", { name: "Add d20", exact: true }).click();
       await page.getByRole("button", { name: "Add +1 modifier" }).click();
       await shotPage(page, "dice-roller-built");
       await page.getByRole("button", { name: "Roll dice" }).click();
       await expect(page.getByText("TOTAL")).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText("No rolls yet...")).toBeHidden();
       await page.waitForTimeout(700);
       await shotPage(page, "dice-result");
       // Toolbar toggles close the roller + log reliably; the floating result
       // panel keeps its own ×.
-      await page.getByTitle("View dice roll history").click();
+      await page.getByTitle("Open table chat and dice roll history").click();
       await page.getByTitle("Open 3D dice roller").click();
       await closeTopWindow(page);
       await page.waitForTimeout(300);
     });
 
     await step("drawing tools", async () => {
+      // Give both strokes a visible canvas release point, clear of the header
+      // and the expanded character cards used by the preceding captures.
+      await hideEntitiesPanel(page);
       await page.getByTitle("Open drawing tools menu").click();
+      await page.getByRole("button", { name: "✏️ Freehand", exact: true }).click();
       await page.getByTitle("#ff0000").click();
       const center = await boardCenter(page);
       await dragPath(page, [
@@ -118,11 +133,17 @@ test.describe("docs screenshots: player", () => {
         { x: center.x + 290, y: center.y - 70 },
         { x: center.x + 360, y: center.y - 150 },
       ]);
+      await waitSnap(page, () =>
+        Boolean(window.__HERO_BYTE_E2E__?.snapshot?.drawings?.some((d) => d.type === "freehand")),
+      );
       await page.getByRole("button", { name: /⬤ Circle/ }).click();
       await dragPath(page, [
         { x: center.x + 140, y: center.y + 60 },
         { x: center.x + 240, y: center.y + 150 },
       ]);
+      await waitSnap(page, () =>
+        Boolean(window.__HERO_BYTE_E2E__?.snapshot?.drawings?.some((d) => d.type === "circle")),
+      );
       await page.waitForTimeout(400);
       await shotPage(page, "drawing-tools");
       await closeTopWindow(page, "Drawing Tools");
@@ -172,9 +193,17 @@ test.describe("docs screenshots: player", () => {
           await expect(passwordInput).toBeEnabled({ timeout: 15_000 });
           await passwordInput.fill(ROOM_PASSWORD);
           await page.getByRole("button", { name: /Enter Table/i }).click();
-          await expect(page.getByRole("button", { name: /Party/ })).toBeVisible({
+          await expect(page.getByRole("button", { name: "Party", exact: true })).toBeVisible({
             timeout: 15_000,
           });
+          await expect(page.getByRole("button", { name: "Chat", exact: true })).toBeVisible();
+          await expect(page.getByTestId("map-board").locator("canvas").first()).toBeVisible();
+          const touch = await openTouch(page);
+          try {
+            await touchDrag(touch, { x: 100, y: 150 }, [{ x: 265, y: 400 }]);
+          } finally {
+            await touch.detach();
+          }
           await page.waitForTimeout(600);
           await shotPage(page, "mobile-table");
         },
@@ -182,15 +211,17 @@ test.describe("docs screenshots: player", () => {
       );
 
       await step("mobile tools sheet", async () => {
-        await page.getByRole("button", { name: /Tools/ }).click();
-        await page.waitForTimeout(300);
+        await page.getByRole("button", { name: "Tools", exact: true }).click();
+        await expect(page.getByRole("dialog", { name: "Map tools", exact: true })).toBeVisible();
         await shotPage(page, "mobile-tools");
         await page.getByRole("button", { name: "Close tools" }).click();
       });
 
       await step("mobile party drawer", async () => {
-        await page.getByRole("button", { name: /Party/ }).click();
-        await expect(page.getByText("Party Members")).toBeVisible();
+        await page.getByRole("button", { name: "Party", exact: true }).click();
+        await expect(
+          page.getByRole("dialog", { name: "Party Members", exact: true }),
+        ).toBeVisible();
         await shotPage(page, "mobile-party");
         await page.getByRole("button", { name: "Close Party Members" }).click();
       });

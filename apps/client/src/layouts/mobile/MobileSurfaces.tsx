@@ -112,7 +112,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
       )}
 
       {surface === "log" && (
-        <MobileScreen title="Roll Log" surface="log" onClose={closeSurface}>
+        <MobileScreen title="Chat & Rolls" surface="log" onClose={closeSurface}>
           <RollLogContent
             canClearLog={props.isDM}
             rolls={props.rollHistory}

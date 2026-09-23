@@ -53,7 +53,8 @@ test.describe("dice — entered by hand", () => {
     expect(entry.formula).toBe(String(ENTERED_TOTAL));
 
     // And it renders as such, in the log both surfaces share.
-    await page.getByRole("button", { name: "📜 Log" }).click();
+    await page.getByRole("button", { name: "📜 Chat & Rolls" }).click();
+    await page.getByRole("tab", { name: "ROLLS", exact: true }).click();
     await expect(page.getByTestId("roll-entered-badge").first()).toHaveText("BY HAND");
   });
 

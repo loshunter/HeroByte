@@ -114,7 +114,8 @@ test.describe("initiative — the modal a player presses", () => {
     expect(entry!.total).toBe(rolled);
     expect(entry!.handEntered).toBeUndefined();
 
-    await page.getByRole("button", { name: "📜 Log" }).click();
+    await page.getByRole("button", { name: "📜 Chat & Rolls" }).click();
+    await page.getByRole("tab", { name: "ROLLS", exact: true }).click();
     await expect(page.getByTestId("roll-label").first()).toHaveText(
       `${character!.name} — initiative`,
     );
@@ -196,7 +197,8 @@ test.describe("initiative — the modal a player presses", () => {
     expect(entry.handEntered).toBe(true);
     expect(entry.supersededTotal).toBe(superseded);
 
-    await page.getByRole("button", { name: "📜 Log" }).click();
+    await page.getByRole("button", { name: "📜 Chat & Rolls" }).click();
+    await page.getByRole("tab", { name: "ROLLS", exact: true }).click();
     await expect(page.getByTestId("roll-entered-badge").first()).toHaveText("BY HAND");
     await expect(page.getByTestId("roll-superseded").first()).toContainText(String(superseded));
   });

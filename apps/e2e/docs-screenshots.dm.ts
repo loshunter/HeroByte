@@ -8,6 +8,7 @@ import {
   dragPath,
   elevateViaUI,
   ensureImgDir,
+  focusOwnToken,
   hideEntitiesPanel,
   makeSteps,
   selectDMTab,
@@ -24,6 +25,7 @@ import {
 test.describe("docs screenshots: DM", () => {
   test("DM elevation and menu tour", async ({ page }) => {
     test.setTimeout(150_000);
+    await page.setViewportSize({ width: 1280, height: 1000 });
     ensureImgDir();
     const { step, failures } = makeSteps();
 
@@ -291,7 +293,8 @@ test.describe("docs screenshots: DM", () => {
       try {
         await joinDefaultRoom(player);
         await waitSnap(player, () => window.__HERO_BYTE_E2E__?.snapshot?.fogEnabled === true);
-        await player.getByTitle("Reset camera to center of map").click();
+        await focusOwnToken(player);
+        await hideEntitiesPanel(player);
         await expect(player.getByText(/Painting terrain/)).toBeHidden({ timeout: 30_000 });
         await player.waitForTimeout(1_500);
         await shotPage(player, "player-fog-view");

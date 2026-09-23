@@ -108,7 +108,7 @@ export function DrawingToolbar({
                 variant={drawTool === "freehand" ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "6px 4px" }}
               >
-                ✏️ Draw
+                ✏️ Freehand
               </JRPGButton>
               <JRPGButton
                 onClick={() => onToolChange("line")}

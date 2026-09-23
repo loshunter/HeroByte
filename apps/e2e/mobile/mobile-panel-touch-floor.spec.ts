@@ -28,9 +28,14 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     await page.setViewportSize(PHONE);
     await joinMobileTable(page);
 
-    // Chat is a TAB inside the roll-log screen on a phone, not a dock slot.
-    await page.getByRole("button", { name: /^Log$/ }).click();
-    await page.getByRole("button", { name: "CHAT" }).click();
+    await page
+      .getByRole("navigation", { name: /Mobile actions/i })
+      .getByRole("button", { name: "Chat", exact: true })
+      .click();
+    await expect(page.getByRole("tab", { name: "CHAT", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     const send = page.getByRole("button", { name: "SEND" });
     await expect(send).toBeVisible();
 
@@ -59,12 +64,17 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     await page.setViewportSize(PHONE);
     await joinMobileTable(page);
 
-    await page.getByRole("button", { name: /^Log$/ }).click();
-    // The ROLLS tab first: the tab strip, CLEAR, and every roll row's controls.
+    await page
+      .getByRole("navigation", { name: /Mobile actions/i })
+      .getByRole("button", { name: "Chat", exact: true })
+      .click();
+    // Sweep the available controls on each tab, starting with Rolls.
+    await page.getByRole("tab", { name: "ROLLS", exact: true }).click();
+    await expect(page.getByText("No rolls yet...", { exact: true })).toBeVisible();
     const rolls = await undersizedControls(page, "[data-mobile-surface]");
     expect(rolls, `roll-log controls under 44px: ${rolls.join(", ")}`).toEqual([]);
 
-    await page.getByRole("button", { name: "CHAT" }).click();
+    await page.getByRole("tab", { name: "CHAT", exact: true }).click();
     const chat = await undersizedControls(page, "[data-mobile-surface]");
     expect(chat, `chat controls under 44px: ${chat.join(", ")}`).toEqual([]);
   });
