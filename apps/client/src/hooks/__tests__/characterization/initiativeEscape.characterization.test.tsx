@@ -94,9 +94,9 @@ function escapeFrom(target: HTMLElement) {
   return event;
 }
 
-describe("Initiative and underlying production Escape owners before U2", () => {
+describe("Initiative and underlying production Escape ownership", () => {
   it.each([false, true])(
-    "BASELINE BUG: loading=%s, button Escape also changes underlying tool/selection",
+    "loading=%s, button Escape leaves underlying tool and selection alone",
     (loading) => {
       const { props } = renderOwners(loading);
       // Roll is enabled in both states. Do not try to focus the disabled
@@ -115,16 +115,16 @@ describe("Initiative and underlying production Escape owners before U2", () => {
         expect(screen.queryByText("Initiative: Escape fixture")).not.toBeInTheDocument();
         expect(props.onClose).toHaveBeenCalledTimes(1);
       }
-      expect(screen.getByTestId("mode")).toHaveTextContent("move");
-      expect(screen.getByTestId("selection")).toHaveTextContent("none");
-      expect(event.defaultPrevented).toBe(false);
+      expect(screen.getByTestId("mode")).toHaveTextContent("draw");
+      expect(screen.getByTestId("selection")).toHaveTextContent("token:owned");
+      expect(event.defaultPrevented).toBe(true);
       expect(props.onSetInitiative).not.toHaveBeenCalled();
       expect(props.onRollInitiative).not.toHaveBeenCalled();
     },
   );
 
   it.each([false, true])(
-    "BASELINE BUG: loading=%s, manual-input Escape still clears underlying selection",
+    "loading=%s, manual-input Escape leaves underlying selection alone",
     (loading) => {
       const { props } = renderOwners(loading);
       fireEvent.click(screen.getByRole("button", { name: "Use Physical Dice" }));
@@ -143,10 +143,10 @@ describe("Initiative and underlying production Escape owners before U2", () => {
         expect(screen.queryByText("Initiative: Escape fixture")).not.toBeInTheDocument();
         expect(props.onClose).toHaveBeenCalledTimes(1);
       }
-      // useToolMode's real editable guard acts, but object selection lacks it.
+      // The foreground modal owns this Escape even when its input is focused.
       expect(screen.getByTestId("mode")).toHaveTextContent("draw");
-      expect(screen.getByTestId("selection")).toHaveTextContent("none");
-      expect(event.defaultPrevented).toBe(false);
+      expect(screen.getByTestId("selection")).toHaveTextContent("token:owned");
+      expect(event.defaultPrevented).toBe(true);
       expect(props.onSetInitiative).not.toHaveBeenCalled();
       expect(props.onRollInitiative).not.toHaveBeenCalled();
     },

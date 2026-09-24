@@ -108,36 +108,6 @@ describe("annotation lifecycle before U2 extraction", () => {
     expect(mounted.result.current.isDrawing).toBe(false);
   });
 
-  it("BASELINE BUG: same-turn movement after cancel can rebuild and commit freehand points", () => {
-    const mounted = mountDrawing();
-    pressAt(mounted, { x: 0, y: 0 });
-    moveTo(mounted, { x: 10, y: 10 });
-
-    // One act deliberately keeps the pre-cancel render's callbacks. Two movement
-    // samples reach freehand's minimum size; a single sample would hide the send.
-    act(() => {
-      mounted.result.current.cancel();
-      mounted.setPointer({ x: 20, y: 20 });
-      mounted.result.current.onMouseMove(mounted.stageRef);
-      mounted.setPointer({ x: 30, y: 30 });
-      mounted.result.current.onMouseMove(mounted.stageRef);
-      mounted.result.current.onMouseUp();
-    });
-
-    expect(mounted.sendMessage).toHaveBeenCalledTimes(1);
-    expect(mounted.sendMessage).toHaveBeenCalledWith({
-      t: "draw",
-      drawing: expect.objectContaining({
-        type: "freehand",
-        points: [
-          { x: 20, y: 20 },
-          { x: 30, y: 30 },
-        ],
-      }),
-    });
-    expect(mounted.onDrawingComplete).toHaveBeenCalledTimes(1);
-  });
-
   it("leaving and re-entering Draw while held discards the previous stroke", async () => {
     const mounted = mountDrawing();
     pressAt(mounted, { x: 0, y: 0 });
@@ -155,29 +125,6 @@ describe("annotation lifecycle before U2 extraction", () => {
     expect(mounted.onDrawingComplete).not.toHaveBeenCalled();
     expect(mounted.result.current.currentDrawing).toEqual([]);
     expect(mounted.result.current.currentTemplate).toBeUndefined();
-  });
-
-  it("BASELINE BUG: changing freehand to rectangle while held commits the old points as a rectangle", () => {
-    const mounted = mountDrawing();
-    pressAt(mounted, { x: 10, y: 20 });
-    moveTo(mounted, { x: 40, y: 60 });
-
-    mounted.update({ drawTool: "rect" });
-    expect(mounted.result.current.isDrawing).toBe(true);
-    act(() => mounted.result.current.onMouseUp());
-
-    expect(mounted.sendMessage).toHaveBeenCalledTimes(1);
-    expect(mounted.sendMessage).toHaveBeenCalledWith({
-      t: "draw",
-      drawing: expect.objectContaining({
-        type: "rect",
-        points: [
-          { x: 10, y: 20 },
-          { x: 40, y: 60 },
-        ],
-      }),
-    });
-    expect(mounted.onDrawingComplete).toHaveBeenCalledTimes(1);
   });
 
   it("normal eraser release sends real partial segments and never creates an eraser drawing", () => {

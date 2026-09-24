@@ -1,3 +1,4 @@
+import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { AtlasTab } from "../../atlas/AtlasTab";
@@ -304,7 +305,7 @@ export function DMMenu({
         }}
       >
         <JRPGButton
-          onClick={toggleOpen}
+          onClick={(event) => activatePanelLauncher(event, toggleOpen)}
           variant={open ? "primary" : "default"}
           style={{ fontSize: "10px", padding: "10px 16px" }}
         >
@@ -316,6 +317,7 @@ export function DMMenu({
         <DraggableWindow
           title="Dungeon Master Tools"
           onClose={() => setOpen(false)}
+          interaction={{ behavior: "close", panel: "dm" }}
           initialX={typeof window !== "undefined" ? window.innerWidth - 420 : 100}
           initialY={100}
           width={400}

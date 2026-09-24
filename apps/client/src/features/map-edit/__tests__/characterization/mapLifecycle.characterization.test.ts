@@ -1,13 +1,11 @@
-// U2 baseline at 44c6ab82, executed before the cancellation extraction.
-// Assertions named BASELINE BUG are temporary pre-extraction pins. Replace
-// them with the specified U2 contract in the repair commit, never skip them.
+// Preserve the original baseline through the separate extraction/parity commit.
 import { afterEach, describe, expect, it } from "vitest";
 import { act, cleanup } from "@testing-library/react";
 import { at, escapeFromBody, renderMapOwners } from "./mapLifecycle.fixtures";
 
 afterEach(cleanup);
 
-describe("real map tool/cancel lifecycle before U2 extraction", () => {
+describe("real map tool/cancel lifecycle after U2 repair", () => {
   it.each(["terrain", "erase"] as const)("%s release commits one deduped stroke", (subTool) => {
     const { result, controller } = renderMapOwners(subTool);
     act(() => result.current.map.onMouseDown(at(100, 100)));
@@ -29,40 +27,37 @@ describe("real map tool/cancel lifecycle before U2 extraction", () => {
     expect(controller.paintTerrain).toHaveBeenCalledTimes(1);
   });
 
-  it("BASELINE BUG IA-04: grass Escape exits the real mode and flushes before release", () => {
+  it("IA-04: grass Escape cancels without paint and retains real mode/selection", () => {
     const { result, controller } = renderMapOwners("terrain");
     act(() => result.current.map.onMouseDown(at(100, 100)));
     act(() => result.current.map.onMouseMove(at(160, 160)));
     expect(controller.paintTerrain).not.toHaveBeenCalled();
     expect(result.current.map.strokeCells).toHaveLength(2);
-
     const event = escapeFromBody();
-
-    expect(result.current.tool.activeTool).toBeNull();
-    expect(controller.paintTerrain).toHaveBeenCalledTimes(1);
-    expect(controller.paintTerrain).toHaveBeenCalledWith([
-      { x: 2, y: 2, assetId: "terrain:grass" },
-      { x: 3, y: 3, assetId: "terrain:grass" },
-    ]);
+    expect(result.current.tool.activeTool).toBe("map-edit");
+    expect(result.current.selectedObjectId).toBe("token:owned");
     expect(result.current.map.strokeCells).toEqual([]);
-    expect(event.defaultPrevented).toBe(false);
-    act(() => result.current.map.onMouseUp());
-    expect(controller.paintTerrain).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+    act(() => {
+      result.current.map.onMouseMove(at(210, 210));
+      result.current.map.onMouseUp();
+    });
+    expect(controller.paintTerrain).not.toHaveBeenCalled();
   });
 
-  it("BASELINE BUG: direct mode exit flushes a brush without waiting for release", () => {
+  it("direct Move discards a brush without painting on exit or later release", () => {
     const { result, controller } = renderMapOwners("terrain");
     act(() => result.current.map.onMouseDown(at(100, 100)));
     expect(controller.paintTerrain).not.toHaveBeenCalled();
     act(() => result.current.tool.setActiveTool(null));
-    expect(controller.paintTerrain).toHaveBeenCalledTimes(1);
-    expect(controller.paintTerrain).toHaveBeenCalledWith([
-      { x: 2, y: 2, assetId: "terrain:grass" },
-    ]);
+    expect(controller.paintTerrain).not.toHaveBeenCalled();
     expect(result.current.map.strokeCells).toEqual([]);
     expect(result.current.tool.activeTool).toBeNull();
-    act(() => result.current.map.onMouseUp());
-    expect(controller.paintTerrain).toHaveBeenCalledTimes(1);
+    act(() => {
+      result.current.map.onMouseMove(at(210, 210));
+      result.current.map.onMouseUp();
+    });
+    expect(controller.paintTerrain).not.toHaveBeenCalled();
   });
 
   it("drag Escape consumes the event, retains tool/selection and discards release", () => {
@@ -145,7 +140,7 @@ describe("real map tool/cancel lifecycle before U2 extraction", () => {
   );
 
   it.each(["signal", "onCancel"] as const)(
-    "BASELINE BUG: %s aim cancellation can be rearmed by move",
+    "%s touch cancellation cannot be rearmed by residual move",
     (path) => {
       const { result, rerender, controller } = renderMapOwners("place");
       act(() => result.current.map.onMouseDown(at(100, 100), "touch"));
@@ -155,9 +150,13 @@ describe("real map tool/cancel lifecycle before U2 extraction", () => {
       expect(result.current.map.placementGhost).toBeNull();
       expect(controller.addTile).not.toHaveBeenCalled();
       act(() => result.current.map.onMouseMove(at(300, 300), "touch"));
-      expect(result.current.map.placementGhost).not.toBeNull();
+      expect(result.current.map.placementGhost).toBeNull();
       act(() => result.current.map.onMouseUp("touch"));
-      expect(controller.addTile).toHaveBeenCalledTimes(1);
+      act(() => result.current.map.onMouseUp("touch"));
+      expect(controller.addTile).not.toHaveBeenCalled();
+      expect(controller.addStamp).not.toHaveBeenCalled();
+      // A new physical touch still arms and commits normally.
+      act(() => result.current.map.onMouseDown(at(400, 400), "touch"));
       act(() => result.current.map.onMouseUp("touch"));
       expect(controller.addTile).toHaveBeenCalledTimes(1);
     },

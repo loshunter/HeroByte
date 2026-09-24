@@ -58,9 +58,8 @@ export interface UseMapEditToolOptions {
   /** Re-arm the place tool with an eyedropper-sampled asset id. */
   onSampleAsset?: (assetId: string, source: "tool" | "shortcut") => void;
   /**
-   * Bumped by a control OUTSIDE the canvas to abandon the gesture in flight.
-   * A finger has no Escape key and releasing it commits, so this is the only
-   * abort a touch user has — see useMapEditCancel for why it is a counter.
+   * Legacy external-dock cancellation signal. It shares the same cancellation
+   * primitive as Escape, the explicit Cancel control and second-finger escape.
    */
   cancelSignal?: number;
   toWorld: (sx: number, sy: number) => { x: number; y: number };

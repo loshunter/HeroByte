@@ -11,13 +11,21 @@
   “Approve.” Local acceptance commits are now authorized; no fourth formal review or
   unanimous final-review PASS is claimed. U1 is committed through `290f9a3d`, following
   startup `7dfbdbbe`, whisper `71c06a5c` and IA-03 `1bcb7ec3`. Nothing has been pushed.
-  The generated-name collision is under verification; U2's fresh inventory is in progress.
-- U2–U10 are not implemented. The checkpoint after U3a remains in force.
+  The generated-name collision is repaired and committed as `44c6ab82`.
+- U2's inventory (`fa747232`), characterized extraction (`7eb5dacf`) and drawing-history
+  prerequisite (`f6a4c684`) are committed. Interaction changes are implemented locally;
+  round 2 found three further paths, now repaired with focused and two-client evidence.
+  The repeated full gate passed; final formal review round 3 left one Atlas touch-aim
+  finding. Following the cap checkpoint, the owner's “resume u3a” authorizes the
+  bounded remaining repair, verification and local U2 closeout before U3a. No fourth
+  formal review or unanimous round-3 PASS is claimed. The bounded repair and full
+  post-cap gate now pass; U2 is ready for its authorized local acceptance commit.
+  U3a is next. U3a–U10 remain unimplemented; ignored preparation
+  is not acceptance. The checkpoint after U3a remains in force.
 - The September 22 audit is historical evidence; new acceptance results are recorded here.
-- U2 history follow-up, reproduced through the live UI: after the player draws and the DM
-  confirms Clear All, both snapshots contain no drawings but the player's Undo stays
-  enabled. This predates IA-03. Fix history feedback without confusing an ordinary Undo
-  to an empty map (where Redo must remain possible) with a table-wide clear.
+- The U2 history follow-up is repaired: recipient-scoped history feedback distinguishes
+  ordinary Undo to an empty map from a table-wide Clear All. Its independent verification
+  and local commit `f6a4c684` are recorded below; do not reopen it as a new defect.
 
 ## U1 / IA-03 — player Clear All
 
@@ -770,3 +778,432 @@ The labeled red transcription remains an evidence limitation, not a raw captured
 This accepts the focused server-history repair for a local commit. U2 itself remains
 open: the interaction-owner client integration, live acceptance and full U2 review
 are still required. No push, merge to main or deployment is authorized by this record.
+
+### U2 interaction integration — actual source, 2026-09-23
+
+The focused history prerequisite is committed locally as `f6a4c684`. Client adoption
+then ran in characterized phases: **63 baseline cases**, **162 foundation cases**,
+then **90 intended assertion failures with 38 passing controls** before the behavior
+repair. The integrated selection passed **548/548 in 63 suites**. The actual compiler
+passed; lint found a test-fixture overload rejected by the base `no-redeclare` rule.
+Replacing that fixture with an input-only factory and an explicit native select kept
+the same behavior. All 46 affected core/Juice cases passed. Juice adds eight cases:
+its original component failed four with four controls; the repair passed eight, and
+a wrong containing paint band failed the targeted higher-root probe before exact restore.
+
+The shared owner contract now covers Escape priority, unsent gesture cancellation,
+scoped history and the four named windows' close/focus return. Existing local field
+editors retain first refusal; passive frames prevent hidden shortcuts without receiving
+new close behavior. Cancel acts on pointerdown, including an off-canvas second thumb,
+and later movement/release cannot revive a discarded gesture. The original two capture
+owners were replaced together. Character Escape discards its unsaved name buffer while
+ordinary blur/X saving remains. The map/drawing palettes remain tool context.
+
+The first focused browser batch passed **nine cases, no retries**: two-client desktop
+and 375px touch grass, desktop and phone four-window focus/tool retention, personal
+annotation history, two drawing-toolbar viewport measurements, and the two existing
+touch wall/place cancellation cases. Seven cases were replayed successfully to retain
+passed-test screenshots because the first list-only reporter discarded their attachment
+bodies. Root inspected the held/cancelled terrain pair, annotation result, restored phone
+World launcher, and both drawing layouts. This exposed two reach defects despite green
+behavior tests: desktop Cancel was below the palette scroll area; landscape drawing
+buttons were partly clipped by the sheet even though their centers hit and their boxes
+were inside the viewport. These are acceptance failures until corrected and remeasured.
+Desktop's new held-gesture reach assertion reproduced the first defect, then passed
+after the history/Cancel group moved to a sticky top position. Phone initially also
+overflowed Done entirely; removing Cancel's forced full-width row fixed that larger
+overflow, but the screenshot identified the remaining partial clipping. The strengthened
+phone check intersects targets with clipping ancestors' client boxes. Final live score,
+complete house gate and U2 review remain pending; these focused passes do not close U2.
+
+**Reach and point-action follow-up:** the stronger landscape check failed with only
+**36.203px of each 44px bottom-row target exposed**; portrait remained a passing control.
+Putting the size label beside its slider preserved its 44px input and font size while
+making the full control row fit. Both viewports then passed all fifteen controls'
+viewport bounds, full ancestor-clipped exposure, minimum width/height and center hit.
+Root inspected the final screenshots and confirmed complete button borders/text.
+Desktop's sticky history/Cancel group also passed the strengthened held-stroke check;
+the inspected screenshot shows Cancel above the long brush list.
+
+The additional two-client point-action test first failed during setup because it
+incorrectly expected the DM-only live document ID in the player's snapshot. Source
+projection confirmed that omission is intentional. The test now asserts the omission
+and compares shared, filtered terrain/scenery. It passed: one press sent one placement,
+the matching command acknowledgement arrived, both clients saw the same crate, Escape
+and residual release preserved it, and an acknowledged **map Undo** removed it from the
+player's view without drawing-history traffic. Its screenshots were inspected. The
+point test and final two reach cases passed together **3/3, no retries**.
+
+**Focused `evaluate-live` result:** achieved mode **live-two-client**, using isolated
+browser contexts, real UI login/elevation, trusted Playwright mouse/keyboard and Chromium
+CDP touch, passive wire observation and read-only state inspection. The two existing
+wall/place Stop cases are single-client supplements; they are not multiplayer evidence.
+
+| Criterion | Score | Observed evidence |
+| --- | ---: | --- |
+| Functionality | 8 | Held grass and annotation cancel without a command; a fresh gesture still commits; completed point actions remain until map Undo. |
+| Multiplayer integrity | 8 | Peer terrain/annotations and map Undo match; each role's drawing history affects its own mark; player document metadata stays redacted. |
+| Craft | 7 | Gesture/committed-history labels and enabled states are truthful; named windows return focus and preserve the covered tool. |
+| Reach | 7 | 375px touch Cancel works before first-finger release; all fifteen drawing controls expose at least 44px in both tested orientations. |
+
+Weighted score **7.65 / 10** against the 7.0 threshold. Regressions found during this
+evaluation—desktop hidden Cancel and phone complete/partial clipping—were repaired and
+rerun. Limits: this is Chromium touch emulation, not physical-device or WebKit testing;
+room/erase, modal/identity/layout transition edges and native IME/select arbitration
+have focused unit/contract coverage rather than a newly claimed two-client live drill.
+Chat barriers bound observation; they do not establish total ordering across sockets.
+The full house gate and independent U2 review remain required before the local commit.
+
+**First integrated house gate:** build, typecheck, lint/frozen, structure and formatting
+passed. The unit runner stopped at one legacy quick-wheel assertion that required Escape
+never to reach any bubble listener, encoding the removed capture-phase implementation.
+All 162 frozen hashes matched after this failure. The repaired test uses the real tool
+hook and asserts the behavior: one consumed Escape closes the wheel once, preserves
+Map Edit and makes no sub-tool change. It and the four existing mounting-order/gesture
+ownership cases passed **10/10**. Original `ui-gate-*` logs remain intact; the complete
+gate is repeated under `ui-gate-repaired-*`. No full-unit or E2E pass is inferred from
+this interrupted run, and no independent U2 review round has begun.
+
+**Second integrated house gate:** the first five steps passed again. Units reached
+batch 72/73 and found one additional legacy App expectation: toggling Transform to
+Move was required to clear selection immediately. U2 deliberately separates tool exit
+from the later Move-selection Escape step. All 163 frozen hashes matched on failure.
+Independent read-only diagnosis confirmed the test used the real tool/selection manager
+and an obsolete expectation, not a missing production call. The revised App case proves
+Transform becomes Move without deselection, then Draw still clears once, using the
+existing snapshot fixture with the current user's roster row. The App suite, real
+selection-owner/role/clear-intent suites, and the final four utility suites passed
+**110/110 in eight files**. This is a test-contract repair only. The prior logs remain
+under `ui-gate-repaired-*`; the complete gate will repeat as `ui-gate-final-*`.
+
+**Third integrated house gate:** the first five steps passed; the unit run stopped
+on MobileLayout's complete forwarding inventory still expecting its removed local
+`mapEditCancelSignal` counter. The shared Cancel owner now connects the dock to the
+canvas directly; the lower-level optional signal API and its tests remain supported.
+All 164 frozen hashes matched on failure. Removing only that obsolete inventory key
+preserves exact comparison for the other nineteen forwarded map properties. A focused
+run of **all forty final-batch suites passed 869/869**, including the App and mobile
+layout suites and all previously interrupted tail tests. Independent read-only search
+found no additional stale cancellation contract to change. Logs `ui-gate-final-*`
+preserve this failed run; `ui-tail-regression.log` records the passing forty-suite run.
+The full gate repeats under `ui-gate-integrated-*`; independent U2 review is still unrun.
+
+**Completed U2 mechanical gate (2026-09-23):** build, typecheck, lint/frozen,
+structure, formatting, all unit suites and the bundle check passed on the frozen
+165-file tree. Units: **9,713 passed** — 6,546 client (four existing skips), 2,715
+server and 452 shared. Main bundle: **130.47KB / 175KB**. The additional strict
+actual-source/test compiler check reported zero diagnostics, setup errors or changed
+inputs across 153 client roots, 80 test fixtures, 66 test files and ten E2E files.
+
+The first full browser invocation ended with Playwright's saved status `passed` and
+no failed test IDs, but the Windows PowerShell wrapper treated a local server stderr
+warning as `NativeCommandError` and lost the detailed console summary. Its wrapper
+exit was 1; counts and retries cannot be recovered from that invocation. This is
+documented in `ui-wrapper-failure-note.md`; it is not presented as a clean wrapper run.
+Only E2E was repeated with raw output capture and durable JSON, preserving the seven
+other completed gates. The confirmed run exited **0: 234 passed, three existing
+skips, zero retries, zero failed attempts, zero report errors**, in 19.3 minutes.
+Evidence: `ui-browser-confirmed.log`, `ui-browser-confirmed-report.json` and
+`ui-browser-confirmed-exit.json`. The three skips remain the two map-navigation cases
+and the legacy DM-toggle case. All **165 hashes matched** the original integrated
+gate snapshot afterward, and `git diff --check` passed. No production code changed
+between focused live acceptance and these completed gates.
+
+The four-lens U2 `review-convergence` round starts only after this record. Its review
+snapshot includes this evidence append; preparation of later Generate work remains
+ignored, unadopted and unverified. U2 is not committed or accepted by review yet.
+
+**Formal U2 review, round 1:** four fresh pinned reviewers completed static,
+read-only reviews: gesture/cancellation FAIL (two findings), keyboard/focus FAIL
+(one), test validity FAIL (one), and documentation/privacy/structure PASS. The
+union has four findings; `agents_error: 0`. All reviewers and the executor's final
+comparison found all 165 frozen hashes unchanged. This is a valid FAIL, not an
+interrupted or accepted review. Reports and union: `ui-r1-gestures.md`,
+`ui-r1-keyboard.md`, `ui-r1-tests.md`, `ui-r1-honesty.md`, `ui-review-r1-union.md`.
+
+The repairs are confined to those findings: primary-button admission to canvas
+authoring while retaining middle-button camera pan; a shared pending-gesture owner
+for marquee selection; Kick's desktop paint/root band raised from 260 to 1100,
+above DM's 1002; and acknowledged desktop point journeys for Scatter and Light
+alongside Place. The marquee's live ref clears synchronously before residual
+release or a selection callback. The first Escape retains Select; a later Escape
+can leave it. Secondary release cannot complete a held primary stroke. No touch
+router rewrite or protocol change is part of these repairs.
+
+Regression-first evidence: Kick's three new cases failed while 19 controls passed;
+the mouse/marquee group failed 16 new assertions while 44 controls passed. After
+the production repairs, all **82 cases in seven files passed**, including the 21
+new regressions. Logs: `ui-r1-kick-red`, `ui-r1-gestures-red`,
+`ui-r1-repairs-green`. A strict actual-test compiler pass found one invalid
+Testing Library `exact` option in the new Kick fixture; removing that unsupported
+option preserves the string-name match. Its follow-up check is still required.
+
+The first repaired two-client browser run passed all three desktop point journeys
+but failed two new test setups. The Quick wheel has a deliberate zero-size radial
+anchor and eight visible positioned buttons; asserting the anchor's box visible
+was wrong. The revised test checks every button's visibility and center hit, plus
+owner mount/unmount. The Kick journey passed its DM/Kick dismissal steps, then
+tried to click Help through the overlapping Kick form. Its correction uses real
+keyboard traversal to Help. Original failed logs/screenshots remain under
+`ui-r1-live-first*`; this **3-pass/2-fail** invocation is not live acceptance.
+Production behavior was not changed in response to those two setup mistakes.
+
+**Repaired focused acceptance:** `ui-r1-live-corrected` passed **6/6**, with zero
+retries, failed attempts or report errors: Place, Scatter, Light, secondary-mouse
+navigation, DM/Kick/Help ordering, and held-marquee cancellation. The desktop point
+tests observe exactly one add command while the mouse is held, its matching server
+document acknowledgement, preservation through Escape/release, and a separate
+acknowledged Undo. Scatter adds seven stamps in one command/Undo step. Light checks
+the deliberately published pool fields on both clients, while authored documents
+and player compiled-light metadata remain absent from the player connection.
+
+The mouse test checks all eight rendered wheel buttons and their center hits;
+right-click and middle-button pan produce zero extra map commands and unchanged
+DM/player map content. The marquee test first creates a player-owned drawing, then
+checks no selection command or peer-state change after cancellation and residual
+release. A fresh drag without rearming Select must select that drawing through the
+server on both clients. A later Escape changes only the tool to Move.
+
+Screenshot inspection caught one additional weakness in the passing Kick setup:
+the elevation toast had intercepted its title-bar drag, so the Name-field center
+was not actually over DM. The test now waits for the toast to disappear, proves the
+DM window moved, and asserts the hit-test point lies within both windows. This
+strengthened case passed separately **1/1**, zero retries, under
+`ui-r1-kick-overlap`; its screenshot was inspected. Kick closes before DM, retains
+the unsent Atlas draft, and stays below Help. All screenshots are retained in the
+corresponding `*-shots` directories extracted from the durable browser JSON.
+
+**Negative control:** temporarily skipping only desktop Light dispatch still
+compiled. The strengthened point suite then passed Place/Scatter and failed Light
+at its held-press command-count assertion (**2 pass / 1 expected fail**). The
+wrapper restored the original source bytes in `finally`, with matching before/after
+SHA-256; restored Light subsequently passed in the six-case acceptance run. Evidence:
+`ui-light-probe-types`, `ui-light-probe-red`, `ui-light-probe-restoration.json`.
+The failure log also contains fixture-cleanup noise after the real assertion; that
+noise is not the negative evidence. The final strict actual-files check passed with
+zero diagnostics/setup errors/changed inputs across 162 client roots, 86 test and
+fixture roots, 71 test files and thirteen E2E files (`ui-r2-final-types-report.json`).
+
+Achieved evaluation mode remains **live-two-client**. Functionality 8, multiplayer
+integrity 8, craft 7, reach 7: weighted **7.65 / 10**. The repaired desktop routes
+add coverage; phone reach remains supported by the earlier two-client touch and
+44px checks, not a newly claimed phone run. The second-finger marquee path has
+real-hook/router tests. Chromium/physical-device and bounded-barrier limits above
+remain. No product regression was observed in these focused checks. The full gate
+and fresh formal review round 2 remain required before committing U2.
+
+**Repaired full U2 gate (2026-09-23 local):** all eight steps passed: build,
+typecheck, lint/frozen contracts, structure, formatting, units, bundle and E2E.
+Units: **9,734 passed** — client 6,567 plus four existing skips across 73 batches,
+server 2,715 and shared 452. One client summary had concurrent progress dots before
+its text; the corrected log parser and manual count agree on all 73 summaries.
+Main bundle: **130.48KB / 175KB**. Structure inspected 842 source files, retained
+22 grandfathered oversized files and found no new violations.
+
+The browser list summary and durable JSON agree: **239 passed, three existing
+skips, zero retries, zero failed attempts, zero report errors**, in 19.9 minutes.
+The skips remain the two map-navigation cases and legacy DM-toggle case. Every
+gate command exited 0. Evidence is retained under `ui-r2-gate-*`, including the
+browser `-report.json` and `-exit.json`; the strict actual-files compiler evidence
+above remains applicable. All **177 frozen hashes matched** after the full run,
+and `git diff --check` passed. No source changed during verification.
+
+Only this ledger's current frontier and completed-gate evidence are updated before
+freezing the round-2 review packet. The four fresh reviewers inspect the complete
+U2 diff against `f6a4c684`, including regressions beyond the four repaired findings.
+Their mode is static/read-only; executor live evidence is not a claim that reviewers
+independently drove the browser. The maximum remains three formal rounds. U2 is
+still pending review acceptance and a local commit; no remote shipping is authorized.
+
+**Formal U2 review, round 2:** completed valid FAIL. Gestures reported one finding;
+keyboard/focus reported two; test validity and documentation/privacy/structure passed.
+The union contains **three findings**, down from four in round 1; all four prior
+findings are closed in the reviewed paths. `agents_error: 0`. Each reviewer and the
+executor compared the frozen 177 paths before/after with zero hash differences.
+Reports and union are retained as `ui-r2-{gestures,keyboard,tests,honesty}.md` and
+`ui-review-r2-union.md`. All achieved modes were static/read-only.
+
+The missed paths are a still second finger landing on an inert off-canvas target
+before the first finger lifts; Kick's split mobile/desktop open state and lost draft
+at the breakpoint; and G opening Kick beneath Character/Help while stealing focus.
+The passing earlier touch checks used a stage move or Stop control and do not cover
+the new inert-target sequence. The passing DM/Kick composition does not cover G
+beneath another window or a layout crossing. Repairs will add those regressions,
+characterize any moved state first, and preserve the existing passing paths. Fresh
+round 3 follows repaired live evidence and the full gate; no fourth round is allowed.
+
+### U2 round-2 repairs and focused verification
+
+The off-stage second-touch repair adds a passive document capture listener to the
+existing router. It clears its active-gesture flag before cancelling, including when
+the external target stops propagation. It does not change camera routing or prevent
+that external touch's default behavior. Eight DOM-event tests cover both lift orders,
+immediate cancellation, a fresh subsequent gesture, stage pinch exactly once, current
+callbacks, idle/single-finger controls, cleanup and StrictMode.
+
+Kick now owns one nullable unsent draft in the existing App-level hook. Open derives
+from that draft; mobile consumes the same controls. Layout replacement preserves all
+fields, while deliberate dismissal, another surface or confirmed role loss discards
+it. A null reconnect snapshot preserves it. The G shortcut uses the existing native,
+composition and foreground-admission gate. The moved behavior was characterized
+first: baseline **48/48 passed**, including three new naming/seed/cancel/submit cases.
+The five production files remain under the 348-line working budget (largest 309).
+The controlled test fixtures replace obsolete split-state assumptions; existing
+pending, command, cancel, focus and baseline assertions were preserved.
+
+**Negative evidence:** the combined compile-valid regression run recorded **21 expected
+failures / 43 passing controls**: five touch failures and sixteen Kick failures.
+`ui-r2-kick-touch-red` and `ui-r2-kick-touch-types-report.json` retain the evidence.
+The first touch fixture used incomplete Touch records; its initial compile failure
+is retained and not evidence of a compile-valid negative. Complete Touch records
+were used for the combined run and strict pass. Browser Grass reproduced the stray
+commit before repair. The initial Place case instead used an incorrect asset ID;
+correcting it to the actual `objects:crate` made Place independently reproduce the
+same stray add-element command (`ui-r2-offstage-place-red`, zero retries).
+
+**Focused GREEN:** **165 tests passed across eleven files** in `ui-r2-repairs-green`,
+including the new regressions and existing Kick/mobile/router controls. The strict
+actual-files compiler passed with zero diagnostics, setup errors or changed inputs:
+171 client roots, 94 test/fixture roots, 75 test files and fifteen E2E files. A final
+repeat after the browser-locator correction is recorded separately under
+`ui-r2-repairs-final-types-report.json`.
+
+**Live browser evidence:** `ui-r2-repairs-live` passed five cases: desktop and phone
+Grass cancellation, DM/Kick/Help layering, and inert off-canvas second-touch cancellation
+for Grass and Place. Both new touch cases prove Cancel is disabled before either finger
+lifts, no extra map command or changed DM/player map, and an acknowledged fresh next
+gesture. Their external target is actual inert dock padding, with no inserted overlay,
+Stop press or intervening canvas move. The sixth case passed its layout steps but
+failed an ambiguous Character launcher locator (two cards visible to the DM). Only the
+locator was scoped to the card marked You. The complete corrected Kick journey then
+passed **1/1 with zero retries, failed attempts or report errors** in
+`ui-r2-kick-live-corrected`. The initial mixed run remains **5 pass / 1 setup failure**,
+not a full passing invocation.
+
+The corrected journey retains Name, Theme, Density, Size, Seed and Door across both
+layout directions and back, checks visible focus and one phone surface, exercises
+phone G, and confirms Cancel does not reappear after resizing. Real keyboard traversal
+to Character's non-editable Close button and a real Help topic click prove G neither
+mounts a hidden Kick form nor steals focus. G opens Kick after the foreground owner
+is dismissed. Both clients retain map/Atlas content; no map/Atlas/drawing command is
+sent by this journey. It does not claim a live ROLL test: submit/pending behavior is
+covered by the characterization, lifetime and existing unit controls.
+
+Screenshots from the passing touch and corrected Kick cases were extracted and
+inspected under their `*-shots` directories. Achieved mode is **live-two-client**,
+Chromium with 375px touch emulation and 1440px desktop; no physical-device or WebKit
+claim. The earlier bounded-barrier limits remain. The U2 evaluation remains **7.65/10**
+(functionality 8, multiplayer 8, craft 7, reach 7). Full gates and fresh formal R3
+are still required; no U2 commit or broader-menu implementation is claimed.
+
+**Final repaired U2 mechanical gate (2026-09-23 local):** all eight steps passed.
+Units: **9,764 passed** (client 6,597 plus four existing skips across 74 batches,
+server 2,715, shared 452). Structure inspected 848 files with 22 grandfathered
+oversized files and no new violations. The main bundle is **130.73KB / 175KB**.
+The full browser list and durable JSON agree: **242 passed, three existing skips,
+zero retries, zero failed attempts, zero report errors**, in 19.4 minutes. Skips
+remain the two map-navigation cases and legacy DM-toggle case. All commands exited 0.
+
+The mechanical runner hit the usage limit after dispatching the unit suite. That
+suite still completed successfully, with its raw log and durable exit record intact.
+On resumption the completed six gates were preserved and only bundle/E2E ran. No
+formal round-3 reviewer had been dispatched, so this is an interrupted gate runner,
+not a void formal review. Evidence: `ui-r3-gate-*` and `ui-r3-gates-report.md`.
+
+The original pre-gate snapshot contained 188 paths. A status-to-manifest audit during
+the gate found two already-changed existing test files omitted from the owned list:
+`KickPanel.test.tsx` and `useMobileSurface.test.ts`. Both were already in the passing
+165-case focused run; no source or test changed when the inventory was corrected.
+A supplemental 190-path snapshot was captured then. The executor compared the original
+188 and supplemental 190 hashes after completion; both had zero differences, as did
+the runner's supplemental comparison. All 190 changed paths now appear in the review
+manifest. This does not claim that the supplemental snapshot predated the build.
+
+The expanded strict actual-files compiler also passed: **173 client roots, 96 test/
+fixture roots, 77 test files, fifteen E2E files**, zero diagnostics, setup errors or
+changed inputs (`ui-r3-complete-inventory-types-report.json`). `git diff --check` passed.
+Only this ledger is updated after gate completion and before freezing the full final
+review packet. U2 remains uncommitted pending the four fresh independent reviewers;
+round 3 is the final allowed round. U3a preparation, including newly identified
+transport retry constraints, remains ignored and unadopted.
+
+**Formal U2 review, round 3 — owner checkpoint:** completed **valid FAIL**. Keyboard/
+foreground/focus/layout, test validity, and documentation/honesty/privacy/structure
+passed; the gesture lens reported one P2. All four fresh independent static/read-only
+reviewers completed. `agents_error: 0`; no lens was unavailable. Every reviewer and
+the executor compared the frozen 190 paths with zero differences before this record
+was appended. Recovered read-command errors are disclosed in the individual reports;
+no source was changed during review. Reports: `ui-r3-{gestures,keyboard,tests,honesty}.md`;
+union: `ui-review-r3-union.md`.
+
+The remaining source-reviewed path is **Atlas link aim with a stationary first finger
+on the map and a second finger on inert off-stage dock padding**. With no stage move,
+the stage-only aim guard misses the second finger; the router's new document listener
+covers ArmedTouchTool gestures, which excludes Atlas aim. A subsequent Stage tap can
+submit an unintended `atlas-create-link`. No new live reproduction is claimed. Existing
+Atlas pan/pinch tests and the new Grass/Place off-stage tests do not cover this sequence.
+The bounded repair is to mark the aim's active touch sequence non-tap on an off-stage
+second touch, preserve the armed aim/camera, and prove a later clean tap places one link.
+
+Finding counts converged **4 → 3 → 1** over three formal rounds with four reviewers
+each (twelve completed reviews). Exact reviewer token cost is unavailable. The final
+mechanical gate above remains green, but does not override this finding. The project
+`review-convergence` skill requires stopping and reporting to the owner at round 3;
+no fourth formal review, post-cap code repair, U2 acceptance commit or U3a implementation
+has begun. The owner can authorize a bounded post-cap repair/verification/acceptance
+path. All local changes and verification evidence are preserved; nothing was pushed.
+
+## U2 post-cap Atlas repair — owner continuation
+
+The owner said “resume u3a” after the round-3 checkpoint. This authorizes the bounded
+remaining Atlas repair and local U2 closeout before U3a; it does not turn round 3 into
+PASS or authorize a fourth formal review, remote push, merge or deployment.
+
+A passive document-capture touchstart listener now marks an existing stage-origin aim
+gesture as non-tap when a second finger lands outside Konva. It leaves camera routing
+and armed aim intact and removes its listener on disposal. No protocol change.
+
+Evidence in `output/interface-u2-execution/`:
+
+- `ui-postcap-aim-red`: three desired unit failures, six controls pass; strict-valid
+  actual source/tests (`ui-postcap-red-types.json`, zero diagnostics).
+- `ui-postcap-aim-live-red-corrected`: both lift orders send one unwanted link on the
+  original code. The first run had an extra touchEnd in cleanup masking the assertion;
+  that test-only cleanup was repaired before the discriminating rerun.
+- `ui-postcap-aim-green`: 25 tests pass across five gesture/aim files.
+- `ui-postcap-aim-live-verified`: three browser tests pass, no retries or failed attempts.
+  Two new private-table journeys each drive a phone DM and a separate desktop player:
+  stage finger, inert real dock padding second finger, no subsequent movement, either
+  lift order, no link, retained aim, then exactly one link from a fresh tap. The player
+  receives its exit anchor without the undiscovered destination or DM visibility field.
+  The existing mobile pan/pinch/door-targeting control also passes. Its camera injection
+  is historical fixture behavior; the two new journeys use no injected camera or state.
+- The initial green-code browser run reached the fresh-tap/player comparison but failed
+  because the fixture expected unredacted DM fields. The corrected assertion requires
+  the exact safe player projection; production projection code was unchanged.
+- `ui-postcap-final-types.json`: 175 client roots, 97 test/fixture roots and 16 browser
+  roots strict-checked with zero diagnostics and no changed inputs.
+
+Live mode: **live-two-client**, Chromium touch emulation at 375×812 plus desktop 1440×900.
+Functionality 8, multiplayer 8, craft 7, reach 7 = **7.65/10**. No new gesture regression
+observed. Screenshots of retained aim and player after the fresh tap were inspected.
+Existing online badge overlaps part of the phone aim heading; its instruction remains
+readable. The player screenshot catches progressive terrain painting and is not proof
+of a fully rendered link sprite; link synchronization/redaction uses actual snapshot
+and passive wire assertions. Physical touch devices and WebKit were not tested.
+
+**Full post-cap gate: PASS.** All eight house steps completed in order: build,
+typecheck, lint/frozen tests, structure, format, units, bundle and E2E. Units:
+client 6,601 plus four existing skips; server 2,715; shared 452 — **9,768 passed**.
+Bundle: 130.73 KB gzip against 175 KB. E2E: **244 passed, three existing skips**,
+zero retries, failed attempts, unexpected/flaky results or report errors (19.6 minutes).
+The three skips remain camera reset/grid visibility in map-navigation and DM toggle
+in ui-state. Structure scanned 849 files with no new violations. Both runner and
+executor compared all 193 frozen paths after the gate with zero differences;
+`git diff --check` passed and HEAD remained `f6a4c684` during verification.
+Raw evidence: `ui-postcap-gate-*`, report `ui-postcap-gates-report.md`. No gate was
+retried. This completion record was appended after the frozen code/test verification.
+U2 now proceeds to the authorized local acceptance commit; nothing is pushed.
+An additional direct Prettier probe of this ledger reported only three pre-existing
+table alignments. The house format command does not scan `docs/`; those tables were
+left unchanged, and this extra probe is not reported as passing.

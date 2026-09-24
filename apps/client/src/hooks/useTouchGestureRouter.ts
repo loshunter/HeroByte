@@ -122,6 +122,18 @@ export function useTouchGestureRouter({
   const toolRef = useRef<ArmedTouchTool | null>(tool);
   toolRef.current = tool;
 
+  useEffect(() => {
+    // The second finger can land outside the stage without the first moving.
+    // Capture also sees it when that external target stops event propagation.
+    const handleSecondFinger = (event: TouchEvent) => {
+      if (event.touches.length < 2 || !toolGestureActive.current) return;
+      toolGestureActive.current = false;
+      toolRef.current?.cancel();
+    };
+    document.addEventListener("touchstart", handleSecondFinger, { capture: true, passive: true });
+    return () => document.removeEventListener("touchstart", handleSecondFinger, true);
+  }, []);
+
   const onTouchStart = useCallback(
     (event: KonvaEventObject<TouchEvent>) => {
       const fingers = event.evt.touches.length;

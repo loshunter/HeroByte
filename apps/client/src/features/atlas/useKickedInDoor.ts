@@ -23,8 +23,14 @@ import type {
 } from "@herobyte/shared";
 import type { ToolMode } from "../../components/layout/Header";
 import { generateUUID } from "../../utils/uuid";
-import { isEditableTarget } from "../../utils/isEditableTarget";
-import { loadKickSettings, saveKickSettings, type KickSettings } from "./kickDefaults";
+import { escapeRegistry } from "../interaction/useEscapeOwner";
+import {
+  defaultName,
+  freshSeed,
+  loadKickSettings,
+  saveKickSettings,
+  type KickSettings,
+} from "./kickDefaults";
 
 export const KICK_PENDING_TIMEOUT_MS = 20_000;
 
@@ -37,6 +43,10 @@ export interface KickRequest {
   linkType: MapLink["linkType"];
 }
 
+export interface KickDraft extends KickRequest {
+  renamed: boolean;
+}
+
 export interface KickPending {
   nodeId: string;
   name: string;
@@ -47,6 +57,8 @@ export interface KickPending {
 
 export interface KickControls {
   open: boolean;
+  draft: KickDraft | null;
+  updateDraft: (patch: Partial<KickDraft>) => void;
   openKick: () => void;
   closeKick: () => void;
   kick: (request: KickRequest) => void;
@@ -112,7 +124,9 @@ export function useKickedInDoor({
   now = Date.now,
   pendingTimeoutMs = KICK_PENDING_TIMEOUT_MS,
 }: UseKickedInDoorOptions): KickControls {
-  const [open, setOpen] = useState(false);
+  // The unsent form belongs to this App-level session, including across layouts.
+  const [draft, setDraft] = useState<KickDraft | null>(null);
+  const open = draft !== null;
   const [pending, setPending] = useState<KickPending | null>(null);
   const [settings, setSettings] = useState<KickSettings>(() => loadKickSettings());
   const idsRef = useRef<MintedIds | null>(null);
@@ -139,10 +153,22 @@ export function useKickedInDoor({
 
   const openKick = useCallback(() => {
     if (!isDM) return;
-    setOpen(true);
-  }, [isDM]);
+    setDraft(
+      (current) =>
+        current ?? {
+          name: defaultName(snapshot?.atlasNodes ?? [], settings.recipe),
+          recipe: settings.recipe,
+          seed: freshSeed(),
+          linkType: settings.linkType,
+          renamed: false,
+        },
+    );
+  }, [isDM, settings, snapshot?.atlasNodes]);
 
-  const closeKick = useCallback(() => setOpen(false), []);
+  const closeKick = useCallback(() => setDraft(null), []);
+  const updateDraft = useCallback((patch: Partial<KickDraft>) => {
+    setDraft((current) => (current ? { ...current, ...patch } : current));
+  }, []);
 
   const kick = useCallback(
     (request: KickRequest) => {
@@ -161,7 +187,7 @@ export function useKickedInDoor({
       const next: KickSettings = { recipe: request.recipe, linkType: request.linkType };
       setSettings(next);
       saveKickSettings(next);
-      setOpen(false);
+      closeKick();
       dismissStickyToast();
       if (pendingToast) {
         toastIdRef.current = toast.info("🚪 Kicking in the door…", 0);
@@ -179,7 +205,17 @@ export function useKickedInDoor({
         toast.error("The door didn't budge — ROLL again (same ids)");
       }, pendingTimeoutMs);
     },
-    [isDM, sendMessage, dismissStickyToast, pendingToast, toast, now, clearTimer, pendingTimeoutMs],
+    [
+      isDM,
+      sendMessage,
+      dismissStickyToast,
+      pendingToast,
+      toast,
+      now,
+      clearTimer,
+      pendingTimeoutMs,
+      closeKick,
+    ],
   );
 
   // A LAYOUT CROSSING mid-kick must not leave the DM with no indicator at all.
@@ -231,25 +267,17 @@ export function useKickedInDoor({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== "g") return;
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
-      if (isEditableTarget(event.target) || activeToolRef.current !== null) return;
+      if (activeToolRef.current !== null) return;
+      if (!escapeRegistry.canHandleShortcut(event, { root: null, anchor: document.body })) return;
       event.preventDefault();
-      setOpen(true);
+      openKick();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isDM]);
+  }, [isDM, openKick]);
 
-  // Escape closes the panel from anywhere — the panel handles its own Escape
-  // (and stops it) when focus is inside; this catches a DM who clicked away.
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || isEditableTarget(event.target)) return;
-      setOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  // The mounted KickPanel owns Escape at its desktop or inherited phone root.
+  // Closing it leaves any already-sent kick and its arrival/timeout state intact.
 
   // A player never holds a panel or a pending kick — but a DROPPED SNAPSHOT is
   // not a de-elevation. Every socket close nulls the snapshot while the app
@@ -260,13 +288,13 @@ export function useKickedInDoor({
   // actually says they are not the DM.
   useEffect(() => {
     if (isDM || !snapshot) return;
-    setOpen(false);
-  }, [isDM, snapshot]);
+    closeKick();
+  }, [isDM, snapshot, closeKick]);
 
   useEffect(() => () => clearTimer(), [clearTimer]);
 
   return useMemo(
-    () => ({ open, openKick, closeKick, kick, pending, settings, canKick }),
-    [open, openKick, closeKick, kick, pending, settings, canKick],
+    () => ({ open, draft, updateDraft, openKick, closeKick, kick, pending, settings, canKick }),
+    [open, draft, updateDraft, openKick, closeKick, kick, pending, settings, canKick],
   );
 }

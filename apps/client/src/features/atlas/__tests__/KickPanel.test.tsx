@@ -5,12 +5,15 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { KICK_NEEDS_LIVE_MAP, KickPanel } from "../KickPanel";
+import { KICK_NEEDS_LIVE_MAP } from "../KickPanel";
+import { ControlledKickPanel as KickPanel } from "./controlledKickPanel.fixtures";
 import type { KickControls } from "../useKickedInDoor";
 
 function controls(overrides: Partial<KickControls> = {}): KickControls {
   return {
     open: true,
+    draft: null,
+    updateDraft: vi.fn(),
     openKick: vi.fn(),
     closeKick: vi.fn(),
     kick: vi.fn(),

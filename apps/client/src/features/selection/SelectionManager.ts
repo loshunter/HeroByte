@@ -16,14 +16,15 @@
  *
  * Architecture:
  * - Integrates two lower-level hooks (useObjectSelection, useSceneObjectSelectors)
- * - Implements tool mode awareness (auto-clears when not in transform/select mode)
+ * - Preserves selection in Move, Select, and Transform; clears on confirmed DM loss
  * - Provides a unified API for all selection-related operations
  *
  * @module features/selection/SelectionManager
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
+import type { ToolMode } from "../../components/layout/Header";
 import { useObjectSelection } from "../../hooks/useObjectSelection";
 import { useSceneObjectSelectors } from "../../hooks/useSceneObjectSelectors";
 
@@ -49,17 +50,11 @@ export interface SelectionManagerOptions {
    */
   sendMessage: (msg: ClientMessage) => void;
 
-  /**
-   * Whether transform mode is currently active.
-   * When false (along with selectMode), selection is auto-cleared.
-   */
-  transformMode: boolean;
+  /** Active tool; null is Move, which preserves selection. */
+  activeTool: ToolMode;
 
-  /**
-   * Whether select mode is currently active.
-   * When false (along with transformMode), selection is auto-cleared.
-   */
-  selectMode: boolean;
+  /** Effective DM role. A missing own player row never confirms role loss. */
+  isDM: boolean;
 }
 
 /**
@@ -138,14 +133,8 @@ export interface SelectionManagerReturn {
    *
    * @example
    * ```tsx
-   * // Clear on Escape key
-   * useEffect(() => {
-   *   const handler = (e: KeyboardEvent) => {
-   *     if (e.key === 'Escape') clearSelection();
-   *   };
-   *   window.addEventListener('keydown', handler);
-   *   return () => window.removeEventListener('keydown', handler);
-   * }, [clearSelection]);
+   * // Escape ownership belongs to the shared keyboard arbiter.
+   * <button onClick={clearSelection}>Clear selection</button>
    * ```
    */
   clearSelection: () => void;
@@ -192,9 +181,8 @@ export interface SelectionManagerReturn {
  * 4. **Lock Management** - Batch lock/unlock operations on selections
  *
  * Tool Mode Integration:
- * When both transformMode and selectMode are false, selection is automatically
- * cleared. This ensures the UI state matches the active tool - if the user
- * switches to pointer, measure, or draw mode, the selection is cleared.
+ * Move, Select, and Transform preserve selection. Other tools clear it.
+ * Confirmed DM loss also clears selection; disconnects do not confirm loss.
  *
  * @param options - Hook configuration
  * @returns Selection state and handler functions
@@ -202,7 +190,7 @@ export interface SelectionManagerReturn {
  * @example
  * ```tsx
  * function App() {
- *   const { activeTool, transformMode, selectMode } = useToolMode();
+ *   const { activeTool } = useToolMode();
  *
  *   const {
  *     selectedObjectId,
@@ -216,8 +204,8 @@ export interface SelectionManagerReturn {
  *     uid,
  *     snapshot,
  *     sendMessage,
- *     transformMode,
- *     selectMode
+ *     activeTool,
+ *     isDM
  *   });
  *
  *   return (
@@ -242,8 +230,8 @@ export function useSelectionManager({
   uid,
   snapshot,
   sendMessage,
-  transformMode,
-  selectMode,
+  activeTool,
+  isDM,
 }: SelectionManagerOptions): SelectionManagerReturn {
   // -------------------------------------------------------------------------
   // SELECTION STATE
@@ -284,21 +272,17 @@ export function useSelectionManager({
   // TOOL MODE INTEGRATION
   // -------------------------------------------------------------------------
 
-  /**
-   * Auto-clear selection when switching away from transform/select tools.
-   *
-   * This effect ensures that when the user switches to a different tool mode
-   * (pointer, measure, draw, align), the selection is cleared. This prevents
-   * confusion where objects remain selected but can't be transformed.
-   *
-   * The selection is preserved when switching between transform and select modes,
-   * as both modes work with selections.
-   */
+  // Tool exit and explicit selection clearing are separate Escape ladder steps.
+  const previousRole = useRef<{ uid: string; isDM: boolean } | null>(null);
+  const ownPlayerPresent = snapshot?.players?.some((player) => player.uid === uid) ?? false;
   useEffect(() => {
-    if (!transformMode && !selectMode) {
-      clearSelection();
-    }
-  }, [transformMode, selectMode, clearSelection]);
+    const lostDM =
+      ownPlayerPresent && previousRole.current?.uid === uid && previousRole.current.isDM && !isDM;
+    if (ownPlayerPresent) previousRole.current = { uid, isDM };
+    const clearsForTool =
+      activeTool !== null && activeTool !== "select" && activeTool !== "transform";
+    if (lostDM || clearsForTool) clearSelection();
+  }, [activeTool, ownPlayerPresent, uid, isDM, clearSelection]);
 
   // -------------------------------------------------------------------------
   // RETURN API

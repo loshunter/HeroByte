@@ -52,7 +52,7 @@ function props(overrides: Partial<UseStageEventRouterProps> = {}): UseStageEvent
 }
 
 function mouseEvent(): KonvaEventObject<PointerEvent> {
-  return { evt: { buttons: 1 } } as unknown as KonvaEventObject<PointerEvent>;
+  return { evt: { button: 0, buttons: 1 } } as unknown as KonvaEventObject<PointerEvent>;
 }
 
 function oneFinger(): KonvaEventObject<TouchEvent> {

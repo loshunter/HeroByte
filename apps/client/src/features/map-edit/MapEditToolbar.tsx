@@ -5,6 +5,7 @@
 // Before a live map exists it shows START LIVE MAP; once bound it shows the
 // authoring sub-tools + undo/redo. Same DraggableWindow shell as DrawingToolbar.
 
+import { MapEditHistoryActions } from "./MapEditHistoryActions";
 import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
 import { getMapStudioTileAsset } from "../map-studio/starterTiles";
@@ -61,10 +62,6 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
     onSelectFloorFamily,
     roomWallFamily,
     onSelectRoomWallFamily,
-    canUndo,
-    canRedo,
-    onUndo,
-    onRedo,
     onStartLiveMap,
     onClose,
     hasRasterBackground,
@@ -146,6 +143,8 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
                   </span>
                 )}
               </div>
+
+              <MapEditHistoryActions {...props} />
 
               <div>
                 <label className="jrpg-text-small" style={labelStyle}>
@@ -284,25 +283,6 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
               )}
 
               <MapEditToolPanels {...props} />
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
-                <JRPGButton
-                  onClick={onUndo}
-                  variant="default"
-                  disabled={!canUndo}
-                  style={{ fontSize: "8px", padding: "6px" }}
-                >
-                  ↶ Undo
-                </JRPGButton>
-                <JRPGButton
-                  onClick={onRedo}
-                  variant="default"
-                  disabled={!canRedo}
-                  style={{ fontSize: "8px", padding: "6px" }}
-                >
-                  ↷ Redo
-                </JRPGButton>
-              </div>
 
               <JRPGButton
                 onClick={onToggleWallsOverlay}

@@ -24,6 +24,7 @@ import { PlayerPropsPanel } from "../../features/props/PlayerPropsPanel";
 import { WorldMapPanel } from "../../features/atlas/WorldMapPanel";
 import { KickPanel } from "../../features/atlas/KickPanel";
 import { MobileScreen } from "./MobileScreen";
+import { MobileSheet } from "./MobileSheet";
 
 // The same lazy split the desktop uses: DM-only code stays out of the entry
 // bundle until someone actually elevates (FloatingPanelsLayout does this too).
@@ -112,7 +113,12 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
       )}
 
       {surface === "log" && (
-        <MobileScreen title="Chat & Rolls" surface="log" onClose={closeSurface}>
+        <MobileScreen
+          title="Chat & Rolls"
+          surface="log"
+          onClose={machine.closeExplicitSurface}
+          interaction={{ behavior: "close", panel: "chat" }}
+        >
           <RollLogContent
             canClearLog={props.isDM}
             rolls={props.rollHistory}
@@ -130,7 +136,12 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           open must not leave an empty shell up (DMMenu would render null),
           and the same guard is what the desktop's auto-close effect does. */}
       {surface === "dm" && props.isDM && (
-        <MobileScreen title="DM Menu" surface="dm" onClose={closeSurface}>
+        <MobileScreen
+          title="DM Menu"
+          surface="dm"
+          onClose={machine.closeExplicitSurface}
+          interaction={{ behavior: "close", panel: "dm" }}
+        >
           {/* The one way into map-edit on a phone. It lives HERE rather than
               in the tool sheet because the mode is DM-only and this screen is
               already the DM gate — and because arming it closes this screen
@@ -194,20 +205,23 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           DMs have the Atlas tab, and elevation with this open must not leave
           a player surface up. */}
       {surface === "atlas" && !props.isDM && (
-        <MobileScreen title="World Map" surface="atlas" onClose={closeSurface}>
+        <MobileScreen
+          title="World Map"
+          surface="atlas"
+          onClose={machine.worldReturn.closeExplicitly}
+          interaction={{
+            behavior: "close",
+            panel: "world",
+            resolveReturnFocus: machine.worldReturn.resolveTarget,
+          }}
+        >
           <WorldMapPanel snapshot={props.snapshot} presentation="content" />
         </MobileScreen>
       )}
 
-      {/* The kicked-in door (K3): the same panel the desktop floats, as a full
-          screen. Gated isDM like the dm screen — de-elevation must not leave
-          it up. ROLL closes the surface (MobileLayout wrapped kick.kick).
-          ✕ and the drag-down dismissal close through `kick.closeKick`, NOT the
-          bare `closeSurface`: MobileLayout's wrapper clears the surface AND the
-          App-level `open` flag together, and a screen that closed only the
-          surface would leave that flag set — so a later crossing to the desktop
-          layout would find the panel already open. */}
-      {surface === "kick" && props.isDM && props.kick && (
+      {/* Both layouts read the same open session and draft. ROLL, Cancel,
+          Escape, ✕ and drag-down dismissal close that App-level session. */}
+      {surface === "kick" && props.isDM && props.kick?.open && (
         <MobileScreen title="Kick in a door" surface="kick" onClose={props.kick.closeKick}>
           <KickPanel
             kick={props.kick}
@@ -219,25 +233,9 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
       )}
 
       {surface === "help" && (
-        <div
-          className="mobile-help-sheet"
-          role="dialog"
-          aria-label="HeroByte help"
-          data-mobile-surface="help"
-        >
-          <div className="mobile-tool-sheet__header">
-            <strong>Help</strong>
-            <button
-              type="button"
-              className="mobile-tool-sheet__close"
-              onClick={closeSurface}
-              aria-label="Close help"
-            >
-              ✕
-            </button>
-          </div>
+        <MobileSheet title="Help" label="HeroByte help" surface="help" onClose={closeSurface}>
           <HelpPanel />
-        </div>
+        </MobileSheet>
       )}
     </>
   );

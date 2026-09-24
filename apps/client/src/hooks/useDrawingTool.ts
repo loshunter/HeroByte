@@ -4,7 +4,7 @@
 // Manages drawing tool state and interactions
 // Extracted from MapBoard.tsx to follow single responsibility principle
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type Konva from "konva";
 import {
   templateKindForTool,
@@ -15,6 +15,7 @@ import {
 } from "@herobyte/shared";
 import { projectTemplateDrag, templateDrawingFor } from "../features/drawing/utils/templateDraft";
 import { generateUUID } from "../utils/uuid";
+import { escapeRegistry, useEscapeOwner } from "../features/interaction/useEscapeOwner";
 import { commitEraseStroke } from "../features/drawing/utils/eraseStroke";
 
 interface UseDrawingToolOptions {
@@ -96,7 +97,17 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     setCurrentDrawing([]);
     setCurrentTemplate(undefined);
     setIsDrawing(false);
+    escapeRegistry.refresh();
   }, []);
+
+  useEscapeOwner(() => ({
+    kind: "gesture",
+    name: "annotation",
+    order: 0,
+    active: drawingPointsRef.current.length > 0,
+    label: "Cancel stroke",
+    handle: cancel,
+  }));
 
   // Which template shape this tool draws, or null for a plain drawing tool.
   const templateKind = templateKindForTool(drawTool);
@@ -118,16 +129,20 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     setCurrentTemplate(undefined);
   }, [projectTemplate]);
 
-  useEffect(() => {
-    if (!drawMode) cancel();
-  }, [drawMode, cancel]);
+  // Identity changes discard held work; snapshots/styles do not reset a gesture.
+  useLayoutEffect(() => {
+    cancel();
+  }, [drawMode, drawTool, cancel]);
 
   // Cleanup animation frame on unmount
   useEffect(() => {
     return () => {
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
+      drawingPointsRef.current = [];
+      escapeRegistry.refresh();
     };
   }, []);
 
@@ -165,6 +180,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
         drawingPointsRef.current = [world, world];
         publishPreview();
       }
+      escapeRegistry.refresh();
     },
     [drawMode, drawTool, toWorld, publishPreview],
   );
@@ -174,7 +190,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
    */
   const onMouseMove = useCallback(
     (stageRef: RefObject<Konva.Stage | null>) => {
-      if (!drawMode || !isDrawing) return;
+      if (!drawMode || drawingPointsRef.current.length === 0) return;
 
       const pointer = stageRef.current?.getPointerPosition();
       if (!pointer) return;
@@ -192,36 +208,25 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
       // Schedule state update with requestAnimationFrame to avoid excessive renders
       scheduleDrawingUpdate();
     },
-    [drawMode, isDrawing, drawTool, toWorld, scheduleDrawingUpdate],
+    [drawMode, drawTool, toWorld, scheduleDrawingUpdate],
   );
 
   /**
    * Complete drawing on mouse up and send to server
    */
   const onMouseUp = useCallback(() => {
-    if (!drawMode || !isDrawing || drawingPointsRef.current.length === 0) {
-      setIsDrawing(false);
-      drawingPointsRef.current = [];
+    if (!drawMode || drawingPointsRef.current.length === 0) {
+      cancel();
       return;
     }
-
-    // Cancel any pending animation frame
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
     const finalDrawing = drawingPointsRef.current;
+    // Disarm before callbacks can re-enter move/release; the detached array is the commit.
+    cancel();
 
     // Handle eraser tool differently - delete intersecting drawings
     if (drawTool === "eraser" && finalDrawing.length > 1) {
       commitEraseStroke(drawingObjects, finalDrawing, drawWidth, sendMessage);
 
-      // Clear the eraser path (don't save it)
-      setCurrentDrawing([]);
-      setCurrentTemplate(undefined);
-      setIsDrawing(false);
-      drawingPointsRef.current = [];
       return;
     }
 
@@ -246,10 +251,6 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
         sendMessage({ t: "draw", drawing });
         onDrawingComplete?.(drawing.id);
       }
-      setCurrentDrawing([]);
-      setCurrentTemplate(undefined);
-      setIsDrawing(false);
-      drawingPointsRef.current = [];
       return;
     }
 
@@ -291,14 +292,9 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
       // Notify parent that a drawing was completed (for undo history)
       onDrawingComplete?.(drawingId);
     }
-
-    setCurrentDrawing([]);
-    setCurrentTemplate(undefined);
-    setIsDrawing(false);
-    drawingPointsRef.current = [];
   }, [
+    cancel,
     drawMode,
-    isDrawing,
     drawTool,
     templateKind,
     gridSize,

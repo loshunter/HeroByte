@@ -8,6 +8,8 @@
 // parties knew about.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useMobileWorldReturn, type MobileWorldReturnControls } from "./useMobileWorldReturn";
+import type { KickControls } from "../features/atlas/useKickedInDoor";
 
 /** Every surface the mobile shell can present. At most one is open at a time. */
 export type MobileSurface =
@@ -23,7 +25,7 @@ export type MobileSurface =
   | "kick";
 
 /** The surfaces whose open state has no App-level home and so lives here. */
-type LocalSurface = Exclude<MobileSurface, "dice" | "log">;
+type LocalSurface = Exclude<MobileSurface, "dice" | "log" | "kick">;
 
 export interface UseMobileSurfaceOptions {
   // Dice and Log are prop-controlled at the App level (desktop shares that
@@ -33,6 +35,8 @@ export interface UseMobileSurfaceOptions {
   rollLogOpen: boolean;
   toggleDiceRoller: (open: boolean) => void;
   toggleRollLog: (open: boolean) => void;
+  /** Kick's open signal and draft survive replacement of the mobile shell. */
+  kick?: Pick<KickControls, "open" | "openKick" | "closeKick">;
   // Map-edit is the ORTHOGONAL axis (redesign §1): a Mode re-purposes the dock
   // and never occupies the surface slot. It is already App-level state, so it
   // is passed through, not duplicated.
@@ -67,10 +71,14 @@ export interface MobileSurfaceMachine {
   openSurface: (next: MobileSurface) => void;
   toggleSurface: (next: Exclude<MobileSurface, "none">) => void;
   closeSurface: () => void;
+  worldReturn: MobileWorldReturnControls;
+  /** Only a frame's explicit dismissal may bypass raw transition invalidation. */
+  closeExplicitSurface: () => void;
 }
 
 export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfaceMachine {
   const { diceRollerOpen, rollLogOpen, toggleDiceRoller, toggleRollLog, mapEditMode } = options;
+  const { open: kickOpen = false, openKick, closeKick } = options.kick ?? {};
   const linkAimMode = options.linkAimMode ?? false;
   // The modes that need the canvas, as one fact. They are separate props
   // because only map-edit re-purposes the dock.
@@ -84,22 +92,30 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
   const { isDM, playerPropsEnabled } = options;
   const roleRefuses =
     isDM !== undefined &&
-    (((local === "dm" || local === "kick") && !isDM) ||
+    ((local === "dm" && !isDM) ||
       ((local === "props" || local === "atlas") && isDM) ||
       (local === "props" && playerPropsEnabled === false));
-  const surface: MobileSurface = rollLogOpen
-    ? "log"
-    : diceRollerOpen
-      ? "dice"
-      : roleRefuses
-        ? "none"
-        : local;
+  const surface: MobileSurface = kickOpen
+    ? isDM === false
+      ? "none"
+      : "kick"
+    : rollLogOpen
+      ? "log"
+      : diceRollerOpen
+        ? "dice"
+        : roleRefuses
+          ? "none"
+          : local;
 
-  const openSurface = useCallback(
+  const changeSurface = useCallback(
     (next: MobileSurface) => {
       if (rollLogOpen && next !== "log") toggleRollLog(false);
       if (diceRollerOpen && next !== "dice") toggleDiceRoller(false);
-      if (next === "log") {
+      if (kickOpen && next !== "kick") closeKick?.();
+      if (next === "kick") {
+        if (!kickOpen) openKick?.();
+        setLocal("none");
+      } else if (next === "log") {
         if (!rollLogOpen) toggleRollLog(true);
         setLocal("none");
       } else if (next === "dice") {
@@ -109,8 +125,15 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
         setLocal(next);
       }
     },
-    [diceRollerOpen, rollLogOpen, toggleDiceRoller, toggleRollLog],
+    [diceRollerOpen, rollLogOpen, toggleDiceRoller, toggleRollLog, kickOpen, openKick, closeKick],
   );
+
+  const { openSurface, worldReturn, closeExplicitSurface } = useMobileWorldReturn({
+    surface,
+    isDM,
+    needsTheMap,
+    changeSurface,
+  });
 
   const toggleSurface = useCallback(
     (next: Exclude<MobileSurface, "none">) => openSurface(surface === next ? "none" : next),
@@ -118,6 +141,21 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
   );
 
   const closeSurface = useCallback(() => openSurface("none"), [openSurface]);
+
+  // G and a desktop crossing can open Kick without a mobile launcher. Reconcile
+  // only open edges, never draft keystrokes, and discard the covered local screen.
+  // A later externally opened Dice/Log surface deliberately dismisses Kick too.
+  const previousExternal = useRef({ kickOpen: false, diceRollerOpen, rollLogOpen });
+  useEffect(() => {
+    const previous = previousExternal.current;
+    previousExternal.current = { kickOpen, diceRollerOpen, rollLogOpen };
+    if (kickOpen && !previous.kickOpen) openSurface("kick");
+    else if (
+      kickOpen &&
+      ((!previous.diceRollerOpen && diceRollerOpen) || (!previous.rollLogOpen && rollLogOpen))
+    )
+      closeKick?.();
+  }, [kickOpen, diceRollerOpen, rollLogOpen, openSurface, closeKick]);
 
   // WHEN THE SURFACE IS CLEARED, and it is not one edge and its inverse.
   //
@@ -162,5 +200,13 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
     if (armedSomething || modeChanged || aimArmed) closeRef.current();
   }, [needsTheMap, mapEditMode, linkAimMode]);
 
-  return { surface, mode: mapEditMode, openSurface, toggleSurface, closeSurface };
+  return {
+    surface,
+    mode: mapEditMode,
+    openSurface,
+    toggleSurface,
+    closeSurface,
+    worldReturn,
+    closeExplicitSurface,
+  };
 }

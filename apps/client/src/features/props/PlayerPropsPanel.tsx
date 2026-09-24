@@ -103,6 +103,7 @@ export function PlayerPropsPanel({
 
       {open && (
         <DraggableWindow
+          interaction={{ behavior: "block" }}
           title="Props"
           onClose={() => setOpen(false)}
           initialX={typeof window !== "undefined" ? window.innerWidth - 420 : 100}

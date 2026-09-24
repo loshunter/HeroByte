@@ -24,8 +24,6 @@ interface MobileMapEditPaletteProps {
   toolbar: MapEditToolbarProps;
   toolsOpen: boolean;
   onToggleTools: () => void;
-  /** Abandon the gesture in flight (bumps MobileLayout's cancel signal). */
-  onCancelDrag: () => void;
   onResetCamera: () => void;
 }
 
@@ -33,7 +31,6 @@ export const MobileMapEditPalette: React.FC<MobileMapEditPaletteProps> = ({
   toolbar,
   toolsOpen,
   onToggleTools,
-  onCancelDrag,
   onResetCamera,
 }) => (
   <>
@@ -45,11 +42,6 @@ export const MobileMapEditPalette: React.FC<MobileMapEditPaletteProps> = ({
       />
     )}
 
-    <MobileMapEditDock
-      toolbar={toolbar}
-      toolsOpen={toolsOpen}
-      onToggleTools={onToggleTools}
-      onCancelDrag={onCancelDrag}
-    />
+    <MobileMapEditDock toolbar={toolbar} toolsOpen={toolsOpen} onToggleTools={onToggleTools} />
   </>
 );

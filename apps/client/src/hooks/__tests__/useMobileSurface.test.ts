@@ -9,6 +9,7 @@
  * mode edge clears the surface without a caller having to remember to.
  */
 import { describe, expect, it, vi } from "vitest";
+import { useState } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { useMobileSurface, type UseMobileSurfaceOptions } from "../useMobileSurface";
 
@@ -24,9 +25,19 @@ function options(overrides: Partial<UseMobileSurfaceOptions> = {}): UseMobileSur
   };
 }
 
+function useControlledKickSurface(overrides: Partial<UseMobileSurfaceOptions> = {}) {
+  const [open, setOpen] = useState(false);
+  return useMobileSurface(
+    options({
+      ...overrides,
+      kick: { open, openKick: () => setOpen(true), closeKick: () => setOpen(false) },
+    }),
+  );
+}
+
 describe("useMobileSurface — the kick surface (K3)", () => {
-  it("kick is a local surface: it opens, replaces whatever was up, and closes", () => {
-    const { result } = renderHook(() => useMobileSurface(options()));
+  it("kick is a controlled surface: it opens, replaces whatever was up, and closes", () => {
+    const { result } = renderHook(() => useControlledKickSurface());
     act(() => result.current.openSurface("dm"));
     expect(result.current.surface).toBe("dm");
     act(() => result.current.openSurface("kick"));
@@ -63,7 +74,7 @@ describe("useMobileSurface — a screen whose gate refuses reads as none, DERIVE
   });
 
   it("the kick screen too; and a player's props/atlas screens close on elevation, props on the table switch", () => {
-    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+    const { result, rerender } = renderHook((props) => useControlledKickSurface(props), {
       initialProps: options({ isDM: true }),
     });
     act(() => result.current.openSurface("kick"));

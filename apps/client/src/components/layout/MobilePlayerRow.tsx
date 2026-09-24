@@ -4,6 +4,7 @@
 // Compact player/character row for mobile list view.
 
 import React, { memo, useState } from "react";
+import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
 import type { MovementBudgetControl } from "../../features/players/components/MovementSpeedField";
 import type { Player, Token } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
@@ -174,7 +175,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
               controls inside (S7's sight radius), so they shipped unreachable. */}
           {(isMe || isDM) && (
             <JRPGButton
-              onClick={() => setSettingsOpen(true)}
+              onClick={(event) => activatePanelLauncher(event, () => setSettingsOpen(true))}
               variant="primary"
               style={{ padding: "4px 8px", fontSize: "11px" }}
             >

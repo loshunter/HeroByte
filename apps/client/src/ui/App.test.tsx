@@ -514,7 +514,7 @@ describe("App", () => {
     }
   });
 
-  it("clears selection when transform mode is toggled off", async () => {
+  it("preserves selection from Transform to Move and clears it for Draw", async () => {
     const deselect = vi.fn();
     selectionMock = {
       selectedObjectId: "token:token-1",
@@ -526,32 +526,10 @@ describe("App", () => {
     };
     mockUseObjectSelection.mockImplementation(() => selectionMock);
 
-    const snapshot = {
-      users: [],
-      tokens: [],
-      drawings: [],
-      pointers: [],
-      players: [
-        {
-          uid: "player-1",
-          name: "Player One",
-          hp: 10,
-          maxHp: 12,
-        },
-      ],
-      characters: [],
-      sceneObjects: [],
-      gridSize: 50,
-      gridSquareSize: 5,
-      mapBackground: null,
-      selectionState: {},
-      diceRolls: [],
-    };
-
     mockUseWebSocket.mockReturnValue({
       ...baseWebSocketState,
       authState: AuthState.AUTHENTICATED,
-      snapshot,
+      snapshot: buildSnapshot(),
     });
 
     render(<App />);
@@ -559,19 +537,28 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByTestId("dm-menu")).toBeInTheDocument());
     await waitFor(() => expect(latestHeaderProps).not.toBeNull());
 
-    deselect.mockClear(); // Ignore initial clear on mount
+    expect(deselect).not.toHaveBeenCalled();
 
     await act(async () => {
       latestHeaderProps!.onToolSelect("transform");
     });
 
     expect(deselect).not.toHaveBeenCalled();
+    expect(latestMapBoardProps?.transformMode).toBe(true);
 
     await act(async () => {
       latestHeaderProps!.onToolSelect(null);
     });
 
-    await waitFor(() => expect(deselect).toHaveBeenCalledTimes(1));
+    expect(latestMapBoardProps?.transformMode).toBe(false);
+    expect(deselect).not.toHaveBeenCalled();
+
+    await act(async () => {
+      latestHeaderProps!.onToolSelect("draw");
+    });
+
+    expect(latestMapBoardProps?.drawMode).toBe(true);
+    expect(deselect).toHaveBeenCalledTimes(1);
   });
 
   it("allows DM to update the room password", async () => {

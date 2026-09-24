@@ -14,6 +14,7 @@ import { VisionRadiusField } from "./VisionRadiusField";
 import { MovementSpeedField, type MovementBudgetControl } from "./MovementSpeedField";
 import { StatusEffectsPicker } from "./StatusEffectsPicker";
 import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
+import { CharacterNameField, useCharacterEscapeGuard } from "./CharacterNameField";
 import { CharacterCreationModal } from "./CharacterCreationModal";
 
 interface PlayerSettingsMenuProps {
@@ -138,6 +139,7 @@ export function PlayerSettingsMenu({
   onPortraitInputChange,
   onPortraitApply,
 }: PlayerSettingsMenuProps): JSX.Element | null {
+  const { suppressBlur, beforeEscape } = useCharacterEscapeGuard(isOpen);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const statusEffectsPicker = useStatusEffectsPicker(selectedEffects, onStatusEffectsChange);
@@ -160,6 +162,7 @@ export function PlayerSettingsMenu({
         // pixel-for-pixel with nothing on screen naming who each belonged to.
         title={nameInput ? `🎮 ${nameInput}` : "🎮 Player Settings"}
         onClose={onClose}
+        interaction={{ behavior: "close", panel: "character", beforeEscape }}
         initialX={300}
         initialY={100}
         width={280}
@@ -180,32 +183,12 @@ export function PlayerSettingsMenu({
         >
           {/* Name Editing */}
           {onNameInputChange && onNameSubmit && nameInput !== undefined && (
-            <JRPGPanel
-              variant="simple"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                padding: "12px",
-              }}
-            >
-              <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Character Name
-              </label>
-              <input
-                className="jrpg-input"
-                type="text"
-                value={nameInput}
-                placeholder="Enter Name"
-                onChange={(event) => onNameInputChange(event.target.value)}
-                onBlur={onNameSubmit}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    onNameSubmit();
-                  }
-                }}
-              />
-            </JRPGPanel>
+            <CharacterNameField
+              value={nameInput}
+              onChange={onNameInputChange}
+              onSubmit={onNameSubmit}
+              suppressBlur={suppressBlur}
+            />
           )}
 
           {/* Portrait: upload from disk/camera roll, or paste a URL (S3) */}

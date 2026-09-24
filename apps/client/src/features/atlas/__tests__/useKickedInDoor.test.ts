@@ -175,7 +175,8 @@ describe("useKickedInDoor", () => {
 
     act(() => pressG());
     expect(result.current.open).toBe(true);
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    // Escape belongs to the rendered panel, covered with the real hook + UI below.
+    act(() => result.current.closeKick());
     expect(result.current.open).toBe(false);
   });
 

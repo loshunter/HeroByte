@@ -54,12 +54,12 @@ describe("useAtlasLinkAim", () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
   });
 
-  it("ESC cancels — and never fires from an editable field", () => {
+  it("ESC cancels after native controls have first refusal", () => {
     const { result, rerender, sendMessage, setActiveTool } = setup();
     act(() => result.current.armLinkAim(PENDING));
     rerender({ tool: "atlas-link", scene: "doc-a" });
 
-    const input = document.createElement("input");
+    const input = document.createElement("select");
     document.body.appendChild(input);
     act(() => {
       input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));

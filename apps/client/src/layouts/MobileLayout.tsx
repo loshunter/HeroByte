@@ -8,7 +8,7 @@
  * of callbacks — and the surfaces themselves render in MobileSurfaces.
  */
 
-import React, { useMemo, Suspense, useReducer } from "react";
+import React, { useMemo, Suspense } from "react";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
@@ -119,6 +119,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     rollLogOpen,
     toggleDiceRoller,
     toggleRollLog,
+    kick: props.kick,
     mapEditMode,
     alignmentMode,
     // The atlas-link aim is alignment's species exactly (A6): not a Mode,
@@ -130,10 +131,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     playerPropsEnabled: snapshot?.playerPropsEnabled ?? false,
   });
   const { surface, toggleSurface } = machine;
-  // The kicked-in door on a phone (K3): the Atlas tab's button and the DM
-  // screen's verb both land on the surface MACHINE — one open signal, so the
-  // one-open-surface invariant holds — and ROLL leaves the surface the way
-  // arming a tool does. The App-level pending state rides through untouched.
+  // Phone launchers use the machine's transition, which opens the shared App
+  // session. Draft, Cancel and ROLL use that same session across both layouts.
   const kick = props.kick;
   const openKick = machine.openSurface;
   const surfaceProps = useMemo<MainLayoutProps>(
@@ -144,21 +143,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             kick: {
               ...kick,
               openKick: () => openKick("kick"),
-              kick: (request) => {
-                kick.kick(request);
-                openKick("none");
-              },
-              // CANCEL and the panel's Escape both land here, and on a phone
-              // the App-level `open` flag they used to flip is read by nobody:
-              // the screen is mounted by the surface machine. Without this
-              // override they were dead controls — the panel stayed up and
-              // nothing happened. The flag is cleared too, so the two signals
-              // cannot disagree if a layout crossing hands this back to the
-              // desktop mount.
-              closeKick: () => {
-                kick.closeKick();
-                openKick("none");
-              },
             },
           }
         : props,
@@ -168,12 +152,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
   // surfaces, so they yield while either occupies it: same anchor, same
   // z-index, and stacking them is the bug S8 shipped.
   const sheetSlotOccupied = surface === "tools" || surface === "help";
-
-  // The dock's Cancel and the canvas are SIBLINGS, so the abort travels as a
-  // counter rather than a callback (useMapEditCancel explains the mechanism).
-  // Mobile-local on purpose: desktop has Escape, and threading this through
-  // MainLayoutProps would put a mobile affordance in four layout fixtures.
-  const [mapEditCancelSignal, cancelMapEditDrag] = useReducer((n: number) => n + 1, 0);
 
   const selectedObjectCount = selectedObjectIds.length || (selectedObjectId ? 1 : 0);
   const selectionSheetMounted =
@@ -231,7 +209,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onMapEditRegionDragged={onMapEditRegionDragged}
             onMapEditSelectElement={onMapEditSelectElement}
             onMapEditSampleAsset={onMapEditSampleAsset}
-            mapEditCancelSignal={mapEditCancelSignal}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}
@@ -258,6 +235,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Mobile Floating Controls */}
       <MobileFloatingControls
+        worldReturn={machine.worldReturn}
         kickPending={Boolean(kick?.pending && !kick.pending.expired)}
         surface={surface}
         onToggleSurface={toggleSurface}
@@ -272,7 +250,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         playerPropsEnabled={snapshot?.playerPropsEnabled ?? false}
         mode={machine.mode}
         mapEditToolbarProps={mapEditToolbarProps}
-        onCancelMapEditDrag={cancelMapEditDrag}
       />
 
       {selectionSheetMounted && (

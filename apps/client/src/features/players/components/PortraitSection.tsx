@@ -1,3 +1,4 @@
+import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 // ============================================================================
 // PORTRAIT SECTION COMPONENT
 // ============================================================================
@@ -31,10 +32,10 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   onInitiativeClick,
   isCurrentTurn = false,
 }) => {
-  const handlePortraitClick = () => {
+  const handlePortraitClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     // Click portrait to change image (when editable)
     if (isEditable && onRequestChange) {
-      onRequestChange();
+      activatePanelLauncher(event, onRequestChange);
     }
   };
 

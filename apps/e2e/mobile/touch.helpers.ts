@@ -30,7 +30,11 @@ export async function openTouch(page: Page): Promise<CDPSession> {
   return page.context().newCDPSession(page);
 }
 
-async function send(cdp: CDPSession, type: string, points: Pt[]): Promise<void> {
+async function send(
+  cdp: CDPSession,
+  type: "touchStart" | "touchEnd" | "touchMove" | "touchCancel",
+  points: Pt[],
+): Promise<void> {
   await cdp.send("Input.dispatchTouchEvent", {
     type,
     touchPoints: points.map((point, id) => ({

@@ -1,3 +1,4 @@
+import { activatePanelLauncher } from "../interaction/useExplicitDismissal";
 // ============================================================================
 // WORLD MAP PANEL — the discovered campaign in every player's pocket
 // ============================================================================
@@ -89,7 +90,7 @@ export function WorldMapPanel({ snapshot, presentation = "window" }: WorldMapPan
       {/* Left of the props launcher, so a table with both shows both. */}
       <div style={{ position: "fixed", bottom: "32px", right: "150px", zIndex: 150 }}>
         <JRPGButton
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={(event) => activatePanelLauncher(event, () => setOpen((prev) => !prev))}
           variant={open ? "primary" : "default"}
           style={{ fontSize: "10px", padding: "10px 16px" }}
         >
@@ -101,6 +102,7 @@ export function WorldMapPanel({ snapshot, presentation = "window" }: WorldMapPan
         <DraggableWindow
           title="World Map"
           onClose={() => setOpen(false)}
+          interaction={{ behavior: "close", panel: "world" }}
           initialX={typeof window !== "undefined" ? window.innerWidth - 420 : 100}
           initialY={140}
           width={360}

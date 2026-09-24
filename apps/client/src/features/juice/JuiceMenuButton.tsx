@@ -9,11 +9,24 @@ import React, { useEffect, useRef, useState } from "react";
 import { JRPGButton, JRPGPanel } from "../../components/ui/JRPGPanel";
 import { JuiceSettingsControl } from "./JuiceSettingsControl";
 import { useJuiceSettings } from "./useJuiceSettings";
+import { useEscapeOwner, useEscapeRoot } from "../interaction/useEscapeOwner";
 
 export const JuiceMenuButton: React.FC = () => {
   const [open, setOpen] = useState(false);
   const { muted } = useJuiceSettings();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // Header's fixed stacking context is 100; the child's 200 is local to it.
+  const root = useEscapeRoot(wrapRef, 100);
+  useEscapeOwner(() => ({
+    kind: "popover",
+    name: "Juice settings",
+    active: open,
+    root,
+    anchor: popoverRef.current,
+    localBand: 200,
+    handle: () => setOpen(false),
+  }));
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +53,10 @@ export const JuiceMenuButton: React.FC = () => {
       </JRPGButton>
 
       {open && (
-        <div style={{ position: "absolute", top: "100%", right: 0, marginTop: "6px", zIndex: 200 }}>
+        <div
+          ref={popoverRef}
+          style={{ position: "absolute", top: "100%", right: 0, marginTop: "6px", zIndex: 200 }}
+        >
           <JRPGPanel variant="bevel" style={{ padding: "10px", minWidth: "200px" }}>
             <JuiceSettingsControl />
           </JRPGPanel>

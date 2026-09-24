@@ -1,3 +1,4 @@
+import { StatusEffectsPopover } from "./StatusEffectsPopover";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
 import type { StatusEffectsPickerState } from "./useStatusEffectsPicker";
@@ -28,23 +29,7 @@ export function StatusEffectsPicker({
             : `${localEffects.length} Active Effect${localEffects.length === 1 ? "" : "s"}`}
         </JRPGButton>
         {dropdownOpen && (
-          <div
-            style={{
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              right: 0,
-              marginTop: "4px",
-              maxHeight: "300px",
-              overflowY: "auto",
-              background: "rgba(12, 18, 40, 0.98)",
-              border: "2px solid var(--jrpg-border-gold)",
-              borderRadius: "6px",
-              padding: "8px",
-              zIndex: 1000,
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
-            }}
-          >
+          <StatusEffectsPopover onClose={() => setDropdownOpen(false)}>
             {STATUS_OPTIONS.map((option) => {
               const isSelected = localEffects.includes(option.value);
               return (
@@ -99,7 +84,7 @@ export function StatusEffectsPicker({
                 </label>
               );
             })}
-          </div>
+          </StatusEffectsPopover>
         )}
       </div>
     </JRPGPanel>

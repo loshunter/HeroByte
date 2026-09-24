@@ -5,6 +5,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { registerOpenPanel } from "../effects/panelPresence";
 import { isMobileLayout } from "../../utils/mobileLayout";
+import {
+  WindowInteraction,
+  type WindowInteractionOptions,
+} from "../../features/interaction/WindowInteraction";
 
 interface DraggableWindowProps {
   title: string;
@@ -18,6 +22,7 @@ interface DraggableWindowProps {
   height?: number;
   zIndex?: number;
   storageKey?: string; // Optional key for localStorage persistence
+  interaction?: WindowInteractionOptions;
 }
 
 const POSITION_KEY_PREFIX = "herobyte-window-position-";
@@ -34,6 +39,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   height,
   zIndex = 1000,
   storageKey,
+  interaction,
 }) => {
   // Load position from localStorage if storageKey is provided
   const getInitialPosition = () => {
@@ -223,72 +229,81 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   };
 
   return (
-    <div ref={windowRef} style={isMobile ? mobileStyles : desktopStyles}>
-      {/* Title bar - draggable on desktop */}
-      <div
-        onMouseDown={handleMouseDown}
-        className="jrpg-text-command"
-        style={{
-          background: "var(--jrpg-gold)",
-          padding: isMobile ? "16px 20px" : "12px 20px",
-          color: "var(--jrpg-navy)",
-          fontSize: isMobile ? "16px" : "12px",
-          fontWeight: "bold",
-          textAlign: "center",
-          position: "relative",
-          boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)",
-          cursor: isMobile ? "default" : isDragging ? "grabbing" : "grab",
-          userSelect: "none",
-          border: isMobile ? "none" : "2px solid var(--jrpg-border-outer)",
-          borderBottom: isMobile
-            ? "2px solid var(--jrpg-border-gold)"
-            : "2px solid var(--jrpg-border-outer)",
-          textShadow: "none",
-        }}
-      >
-        {title}
-        {onClose && (
-          <button
-            onClick={onClose}
-            // "×" is not an accessible name, so this control had none at all —
-            // invisible to a screen reader and unfindable by getByRole.
-            aria-label={`Close ${title}`}
-            className="jrpg-button jrpg-button-danger"
+    <WindowInteraction
+      frameRef={windowRef}
+      band={zIndex + (isMobile ? 100 : 0)}
+      options={interaction}
+      onClose={onClose}
+    >
+      {(close) => (
+        <div ref={windowRef} style={isMobile ? mobileStyles : desktopStyles}>
+          {/* Title bar - draggable on desktop */}
+          <div
+            onMouseDown={handleMouseDown}
+            className="jrpg-text-command"
             style={{
-              position: "absolute",
-              right: isMobile ? "12px" : "8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              // On mobile this is a full-screen takeover and the ✕ is the only
-              // way out of it, so it holds the 44px floor the rest of the
-              // mobile UI honours. It was 32px, and 24px on any device wide
-              // enough to fool the old breakpoint.
-              width: isMobile ? "44px" : "24px",
-              height: isMobile ? "44px" : "24px",
-              padding: 0,
-              fontSize: isMobile ? "20px" : "14px",
-              lineHeight: "1",
+              background: "var(--jrpg-gold)",
+              padding: isMobile ? "16px 20px" : "12px 20px",
+              color: "var(--jrpg-navy)",
+              fontSize: isMobile ? "16px" : "12px",
+              fontWeight: "bold",
+              textAlign: "center",
+              position: "relative",
+              boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)",
+              cursor: isMobile ? "default" : isDragging ? "grabbing" : "grab",
+              userSelect: "none",
+              border: isMobile ? "none" : "2px solid var(--jrpg-border-outer)",
+              borderBottom: isMobile
+                ? "2px solid var(--jrpg-border-gold)"
+                : "2px solid var(--jrpg-border-outer)",
+              textShadow: "none",
             }}
           >
-            ×
-          </button>
-        )}
-      </div>
+            {title}
+            {close && (
+              <button
+                onClick={close}
+                // "×" is not an accessible name, so this control had none at all —
+                // invisible to a screen reader and unfindable by getByRole.
+                aria-label={`Close ${title}`}
+                className="jrpg-button jrpg-button-danger"
+                style={{
+                  position: "absolute",
+                  right: isMobile ? "12px" : "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  // On mobile this is a full-screen takeover and the ✕ is the only
+                  // way out of it, so it holds the 44px floor the rest of the
+                  // mobile UI honours. It was 32px, and 24px on any device wide
+                  // enough to fool the old breakpoint.
+                  width: isMobile ? "44px" : "24px",
+                  height: isMobile ? "44px" : "24px",
+                  padding: 0,
+                  fontSize: isMobile ? "20px" : "14px",
+                  lineHeight: "1",
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
 
-      {/* Content */}
-      <div
-        style={{
-          flex: 1,
-          overflow: "auto",
-          pointerEvents: "auto",
-          // The last band clears the home indicator, like every other phone surface.
-          padding: isMobile ? "16px" : "0",
-          paddingBottom: isMobile ? "calc(16px + env(safe-area-inset-bottom, 0px))" : "0", // Add padding on mobile content
-        }}
-      >
-        {children}
-      </div>
-    </div>
+          {/* Content */}
+          <div
+            style={{
+              flex: 1,
+              overflow: "auto",
+              pointerEvents: "auto",
+              // The last band clears the home indicator, like every other phone surface.
+              padding: isMobile ? "16px" : "0",
+              paddingBottom: isMobile ? "calc(16px + env(safe-area-inset-bottom, 0px))" : "0", // Add padding on mobile content
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      )}
+    </WindowInteraction>
   );
 };
 

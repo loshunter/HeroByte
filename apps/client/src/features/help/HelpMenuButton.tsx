@@ -18,6 +18,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { JRPGButton, JRPGPanel } from "../../components/ui/JRPGPanel";
 import { HelpPanel } from "./HelpPanel";
+import { EscapeRootProvider, useEscapeOwner, useEscapeRoot } from "../interaction/useEscapeOwner";
 
 interface Anchor {
   top: number;
@@ -42,6 +43,15 @@ export const HelpMenuButton: React.FC = () => {
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
+  const escapeRoot = useEscapeRoot(popRef, 2000);
+  useEscapeOwner(() => ({
+    kind: "popover",
+    name: "Help",
+    active: open && anchor !== null,
+    root: escapeRoot,
+    anchor: popRef.current,
+    handle: () => setOpen(false),
+  }));
 
   const toggle = useCallback(() => {
     setOpen((wasOpen) => {
@@ -62,11 +72,6 @@ export const HelpMenuButton: React.FC = () => {
         wrapRef.current?.contains(target) === true || popRef.current?.contains(target) === true;
       if (!inside) setOpen(false);
     };
-    // Escape closes the popover. Scoped to "while open" rather than a global
-    // shortcut, so it never competes with a field the user is typing in.
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
 
     // A window resize is NOT the only way this button moves. The header is a
     // wrapping toolbar whose contents change — elevating to DM adds "🏗️ Map"
@@ -85,12 +90,10 @@ export const HelpMenuButton: React.FC = () => {
 
     window.addEventListener("resize", reanchor);
     document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKeyDown);
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", reanchor);
       document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
 
@@ -113,39 +116,41 @@ export const HelpMenuButton: React.FC = () => {
       {open &&
         anchor &&
         createPortal(
-          <div
-            ref={popRef}
-            role="dialog"
-            aria-label="HeroByte help"
-            style={{
-              position: "fixed",
-              top: anchor.top,
-              right: anchor.right,
-              zIndex: 2000,
-              // Cap the OUTER box, not the panel: the frame's padding and
-              // border are part of what has to fit on screen.
-              maxHeight: anchor.maxHeight,
-              display: "flex",
-            }}
-          >
-            <JRPGPanel
-              variant="bevel"
+          <EscapeRootProvider value={escapeRoot}>
+            <div
+              ref={popRef}
+              role="dialog"
+              aria-label="HeroByte help"
               style={{
-                padding: "10px",
-                width: "340px",
-                maxWidth: "calc(100vw - 16px)",
+                position: "fixed",
+                top: anchor.top,
+                right: anchor.right,
+                zIndex: 2000,
+                // Cap the OUTER box, not the panel: the frame's padding and
+                // border are part of what has to fit on screen.
+                maxHeight: anchor.maxHeight,
                 display: "flex",
-                flexDirection: "column",
-                minHeight: 0,
-                overflow: "hidden",
-                // The frame is now the height authority; the panel fills it
-                // and scrolls, so it must not also cap itself.
-                ["--help-panel-max-height" as string]: "none",
               }}
             >
-              <HelpPanel />
-            </JRPGPanel>
-          </div>,
+              <JRPGPanel
+                variant="bevel"
+                style={{
+                  padding: "10px",
+                  width: "340px",
+                  maxWidth: "calc(100vw - 16px)",
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  overflow: "hidden",
+                  // The frame is now the height authority; the panel fills it
+                  // and scrolls, so it must not also cap itself.
+                  ["--help-panel-max-height" as string]: "none",
+                }}
+              >
+                <HelpPanel />
+              </JRPGPanel>
+            </div>
+          </EscapeRootProvider>,
           document.body,
         )}
     </div>

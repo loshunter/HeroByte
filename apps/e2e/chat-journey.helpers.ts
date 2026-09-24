@@ -13,7 +13,10 @@ export const readState = (page: Page) =>
     if (!state?.uid || !state.snapshot || !Array.isArray(state.snapshot.chatLog)) {
       throw new Error("Joined chat state is unavailable");
     }
-    return { uid: state.uid, snapshot: state.snapshot };
+    return {
+      uid: state.uid,
+      snapshot: { ...state.snapshot, chatLog: state.snapshot.chatLog },
+    };
   });
 
 export async function identity(page: Page) {

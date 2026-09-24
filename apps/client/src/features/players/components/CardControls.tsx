@@ -1,3 +1,4 @@
+import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 // ============================================================================
 // CARD CONTROLS COMPONENT
 // ============================================================================
@@ -46,8 +47,9 @@ export const CardControls: React.FC<CardControlsProps> = ({
             fontSize: "var(--player-card-control-font-size, 0.7rem)",
             padding: "var(--player-card-control-padding, 4px 8px)",
           }}
-          onClick={onOpenSettings}
+          onClick={(event) => activatePanelLauncher(event, onOpenSettings)}
           title="Open player settings"
+          aria-label="Open player settings"
         >
           ⚙️
         </button>

@@ -12,6 +12,7 @@
 // about it exists to say "a person typed this", and a generic numeric prompt
 // would lose exactly that.
 
+import { useLocalEscape } from "../../features/interaction/useEscapeOwner";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { JRPGButton } from "../ui/JRPGPanel";
 
@@ -36,6 +37,7 @@ export const HandEntry: React.FC<HandEntryProps> = ({
   testId,
   compact = false,
 }) => {
+  const localEscape = useLocalEscape();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -103,10 +105,7 @@ export const HandEntry: React.FC<HandEntryProps> = ({
               event.preventDefault();
               submit();
             }
-            if (event.key === "Escape") {
-              event.preventDefault();
-              close();
-            }
+            if (event.key === "Escape") localEscape(event, close);
           }}
           style={{
             // 44px is the mobile touch floor, and this control ships to a phone

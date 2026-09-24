@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useDrawingStateManager } from "../../../../hooks/useDrawingStateManager";
 import { DrawingToolbar } from "../DrawingToolbar";
@@ -39,9 +39,9 @@ describe("drawing toolbar clear permission", () => {
         drawMode: true,
         setActiveTool: vi.fn(),
         canClearDrawings: true,
+        drawingHistory: { canUndo: true, canRedo: false },
       }),
     );
-    act(() => result.current.drawingProps.onDrawingComplete("existing-drawing"));
     render(<DrawingToolbar {...result.current.toolbarProps} />);
 
     fireEvent.click(screen.getByRole("button", { name: /clear all/i }));

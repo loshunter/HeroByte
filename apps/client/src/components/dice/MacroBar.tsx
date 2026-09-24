@@ -4,6 +4,7 @@
 // Shared by both roller surfaces. Built-ins are always present; saved macros
 // are client-local (see diceMacros.ts for why) and can be removed.
 
+import { useLocalEscape } from "../../features/interaction/useEscapeOwner";
 import React, { useCallback, useState } from "react";
 import type { DiceRollMode } from "@herobyte/shared";
 import { JRPGButton } from "../ui/JRPGPanel";
@@ -26,6 +27,7 @@ export const MacroBar: React.FC<MacroBarProps> = ({
   disabled = false,
   compact = false,
 }) => {
+  const localEscape = useLocalEscape();
   const [saved, setSaved] = useState<DiceMacro[]>(() => loadMacros());
   const [naming, setNaming] = useState(false);
   const [label, setLabel] = useState("");
@@ -103,8 +105,10 @@ export const MacroBar: React.FC<MacroBarProps> = ({
             onKeyDown={(event) => {
               if (event.key === "Enter") commitSave();
               if (event.key === "Escape") {
-                setNaming(false);
-                setLabel("");
+                localEscape(event, () => {
+                  setNaming(false);
+                  setLabel("");
+                });
               }
             }}
             maxLength={24}

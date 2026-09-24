@@ -1,3 +1,4 @@
+import { CancelGestureButton } from "../features/interaction/CancelGestureButton";
 import { AREA_TEMPLATE_TOOLS, type DrawTool } from "@herobyte/shared";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 
@@ -92,15 +93,32 @@ export function MobileDrawingControls({
         />
       </label>
       {onUndo && (
-        <button type="button" className="mobile-chip" onClick={onUndo} disabled={!canUndo}>
+        <button
+          type="button"
+          className="mobile-chip"
+          aria-label="Undo drawing"
+          onClick={onUndo}
+          disabled={!canUndo}
+        >
           Undo
         </button>
       )}
       {onRedo && (
-        <button type="button" className="mobile-chip" onClick={onRedo} disabled={!canRedo}>
+        <button
+          type="button"
+          className="mobile-chip"
+          aria-label="Redo drawing"
+          onClick={onRedo}
+          disabled={!canRedo}
+        >
           Redo
         </button>
       )}
+      <CancelGestureButton
+        idleLabel="Cancel stroke"
+        className="mobile-chip"
+        style={{ whiteSpace: "normal" }}
+      />
       <button type="button" className="mobile-chip" onClick={onClose}>
         Done
       </button>

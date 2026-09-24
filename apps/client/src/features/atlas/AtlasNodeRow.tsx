@@ -6,6 +6,7 @@
 // implement yet, and a tree role without it is WORSE for screen readers than
 // an honest list of real buttons with accessible names.
 
+import { useLocalEscape } from "../interaction/useEscapeOwner";
 import { useState } from "react";
 import type { AtlasNodeSnapshot, MapDocumentSummary } from "@herobyte/shared";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
@@ -30,6 +31,7 @@ interface AtlasNodeRowProps {
 }
 
 export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: AtlasNodeRowProps) {
+  const localEscape = useLocalEscape();
   const [editingName, setEditingName] = useState<string | null>(null);
   const [linkDocId, setLinkDocId] = useState("");
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -62,7 +64,7 @@ export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: Atl
                 actions.renameNode(node.id, editingName.trim());
                 setEditingName(null);
               }
-              if (event.key === "Escape") setEditingName(null);
+              if (event.key === "Escape") localEscape(event, () => setEditingName(null));
             }}
             style={{ fontSize: "11px", width: "140px" }}
           />

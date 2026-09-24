@@ -1,112 +1,73 @@
-// ============================================================================
-// ABANDONING A MAP-EDIT GESTURE
-// ============================================================================
-// Every way an in-flight gesture ends WITHOUT being committed, in one place,
-// because M4c added a second way and the two must agree about what "abandon"
-// means: a drag loses its preview, an accumulating terrain stroke is thrown
-// away rather than painted, AND a click tool's touch aim forgets its point —
-// without that last one, ⨯ Abort cleared the drag that wasn't there and the
-// finger's lift still dropped at the aimed point.
-//
-// Why a SIGNAL and not a callback prop. The control that cancels lives in the
-// mobile dock, which is MapBoard's SIBLING, not its ancestor — there is no
-// callback to pass downward. A monotonically increasing counter crossing that
-// boundary is the same shape `cameraCommand` already uses, and it survives the
-// one case that matters: cancelling while the finger is still down. Clearing
-// the drag ref mid-gesture makes the eventual release commit nothing, because
-// every commit path re-reads the ref rather than the painted value.
-//
-// Escape stays DRAG-ONLY, deliberately. Widening it to brush strokes would
-// change desktop behaviour that nothing here is trying to change: today
-// Escape mid-stroke falls through to the global Escape-clears-tool listener,
-// which leaves map-edit and flushes the stroke on the way out.
-
-import { useEffect, useRef, type MutableRefObject } from "react";
+import { useCallback, useLayoutEffect, useRef, type MutableRefObject } from "react";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
+import { escapeRegistry, useEscapeOwner } from "../interaction/useEscapeOwner";
+import type { MapEditSubTool } from "./mapEditTypes";
 
 interface UseMapEditCancelOptions {
-  /** The tool is armed (map-edit mode with a sub-tool that takes the pointer). */
   active: boolean;
-  /** Bumped by a control outside the canvas to abandon the gesture in flight. */
+  subTool: MapEditSubTool;
+  documentId: string | undefined;
+  liveDocumentId: string | undefined;
   cancelSignal: number | undefined;
-  /** The live drag, or null between gestures. */
   currentDrag: () => RoomDrag | null;
-  /** Abandon the drag and its pending frame. */
+  currentAim: () => boolean;
   clearDrag: () => void;
-  /** True while a terrain/erase stroke is accumulating. */
   brushingRef: MutableRefObject<boolean>;
-  /** Throw an accumulating stroke away without painting it. */
   discardStroke: () => void;
-  /** Preserve the existing exit flush during extraction. */
-  flushStroke: () => void;
-  /** Forget a click tool's touch aim (and its ghost) so the lift drops nothing.
-   * REQUIRED, not optional: an optional callback here is deletable with every
-   * suite green, which is exactly how this wiring went missing the first time. */
   cancelAim: () => void;
 }
 
-/** @returns cancelGesture — abandon whatever gesture is in flight, if any. */
+/** Every cancellation disarms live refs before a later move/release can publish. */
 export function useMapEditCancel({
   active,
+  subTool,
+  documentId,
+  liveDocumentId,
   cancelSignal,
   currentDrag,
+  currentAim,
   clearDrag,
   brushingRef,
   discardStroke,
-  flushStroke,
   cancelAim,
 }: UseMapEditCancelOptions): () => void {
-  // Not a useCallback: the ref and the two callbacks it closes over are all
-  // identity-stable, and the latest-ref effect below reads it through a ref
-  // anyway, so memoizing would buy nothing and hide the dependency.
-  const cancelGesture = () => {
+  const cancelGesture = useCallback(() => {
+    brushingRef.current = false;
     clearDrag();
     cancelAim();
-    if (brushingRef.current) {
-      brushingRef.current = false;
-      discardStroke();
-    }
-  };
-  const cancelRef = useRef(cancelGesture);
-  cancelRef.current = cancelGesture;
+    discardStroke();
+    escapeRegistry.refresh();
+  }, [brushingRef, clearDrag, cancelAim, discardStroke]);
 
-  // Escape cancels an in-progress drag WITHOUT clearing the tool: capture-phase
-  // + stopImmediatePropagation preempts the global Escape-clears-tool listener.
-  useEffect(() => {
-    if (!active) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && currentDrag()) {
-        event.stopImmediatePropagation();
-        event.preventDefault();
-        clearDrag();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, { capture: true });
-    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
-  }, [active, currentDrag, clearDrag]);
+  useEscapeOwner(() => ({
+    kind: "gesture",
+    name: "live-map-gesture",
+    active: active && Boolean(brushingRef.current || currentDrag() || currentAim()),
+    order: 20,
+    label: brushingRef.current ? "Cancel stroke" : "Cancel placement",
+    handle: cancelGesture,
+  }));
 
-  // The dep array is what makes this fire only on a change; `seen` seeds from
-  // the first render so MOUNTING with an already-bumped signal is not itself a
-  // cancel. That one line is hygiene rather than a fix — nothing can be in
-  // flight at mount, so removing it is measurably invisible — but an effect
-  // that "cancels" on every mount is a lie the next reader would trip over.
+  // Revision/object/callback changes are not document or tool transitions.
+  const previous = useRef([active, subTool, documentId, liveDocumentId] as const);
+  useLayoutEffect(() => {
+    const next = [active, subTool, documentId, liveDocumentId] as const;
+    const changed = next.some((value, index) => value !== previous.current[index]);
+    previous.current = next;
+    if (changed) cancelGesture();
+  }, [active, subTool, documentId, liveDocumentId, cancelGesture]);
+
   const seen = useRef(cancelSignal);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (seen.current === cancelSignal) return;
     seen.current = cancelSignal;
-    cancelRef.current();
-  }, [cancelSignal]);
+    cancelGesture();
+  }, [cancelSignal, cancelGesture]);
 
-  // Existing behavior; the repair replaces this flush only after parity passes.
-  useEffect(() => {
-    if (!active) {
-      clearDrag();
-      if (brushingRef.current) {
-        brushingRef.current = false;
-        flushStroke();
-      }
-    }
-  }, [active, clearDrag, brushingRef, flushStroke]);
-
+  const cancelRef = useRef(cancelGesture);
+  useLayoutEffect(() => {
+    cancelRef.current = cancelGesture;
+  });
+  useLayoutEffect(() => () => cancelRef.current(), []);
   return cancelGesture;
 }

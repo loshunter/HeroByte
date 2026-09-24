@@ -1,5 +1,3 @@
-// U2 baseline at 44c6ab82, before changing history shortcut ownership.
-// Real hook baseline before repairing empty Draw history's selection fallthrough.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, renderHook } from "@testing-library/react";
 import { useKeyboardShortcuts, type UseKeyboardShortcutsOptions } from "../../useKeyboardShortcuts";
@@ -35,7 +33,7 @@ function press(init: KeyboardEventInit) {
   return event;
 }
 
-describe("production drawing history shortcut baseline", () => {
+describe("production drawing history shortcut ownership", () => {
   it.each(["ctrlKey", "metaKey"] as const)("%s+Z uses drawing history before selection", (key) => {
     const { options, drawingManager } = fixture(true);
     expect(press({ key: "z", [key]: true }).defaultPrevented).toBe(true);
@@ -45,11 +43,13 @@ describe("production drawing history shortcut baseline", () => {
     expect(options.sendMessage).not.toHaveBeenCalled();
   });
 
-  it("BASELINE BUG: empty Draw history falls through to DM selection undo", () => {
+  it("empty Draw history leaves DM selection history untouched", () => {
     const { options, drawingManager } = fixture(false);
-    expect(press({ key: "z", ctrlKey: true }).defaultPrevented).toBe(true);
+    expect(press({ key: "z", ctrlKey: true }).defaultPrevented).toBe(false);
     expect(drawingManager.handleUndo).not.toHaveBeenCalled();
-    expect(options.undoSelection).toHaveBeenCalledTimes(1);
+    expect(drawingManager.handleRedo).not.toHaveBeenCalled();
+    expect(options.undoSelection).not.toHaveBeenCalled();
+    expect(options.sendMessage).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -1,5 +1,3 @@
-// U2 baseline at 44c6ab82. Replace temporary bug pins during ownership repair.
-// Baseline bug assertions must be replaced, not kept as final U2 requirements.
 import React, { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
@@ -7,7 +5,10 @@ import { useToolMode } from "../../useToolMode";
 import { useKeyboardNavigation } from "../../useKeyboardNavigation";
 import { HelpMenuButton } from "../../../features/help/HelpMenuButton";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 const noMessage = vi.fn();
 const noDrawingSelection = vi.fn();
@@ -51,50 +52,78 @@ function HelpOwners() {
   );
 }
 
-describe("production Escape owners before U2 extraction", () => {
-  it("BASELINE BUG: one Escape exits a tool and clears selection", () => {
+describe("production Escape owners use one ladder step per event", () => {
+  it("exits the active tool before a later Escape clears selection", () => {
     const { result } = renderHook(useOwners);
     act(() => result.current.tool.setActiveTool("draw"));
     expect(result.current.tool.activeTool).toBe("draw");
     expect(result.current.selectedObjectId).toBe("token:owned");
 
-    const event = escapeFrom(document.body);
+    const toolEvent = escapeFrom(document.body);
+    expect(toolEvent.defaultPrevented).toBe(true);
+    expect(result.current.tool.activeTool).toBeNull();
+    expect(result.current.selectedObjectId).toBe("token:owned");
 
+    const selectionEvent = escapeFrom(document.body);
+    expect(selectionEvent.defaultPrevented).toBe(true);
     expect(result.current.tool.activeTool).toBeNull();
     expect(result.current.selectedObjectId).toBeNull();
-    expect(event.defaultPrevented).toBe(false);
+    expect(escapeFrom(document.body).defaultPrevented).toBe(false);
+    expect(noMessage).not.toHaveBeenCalled();
+    expect(noDrawingSelection).not.toHaveBeenCalled();
   });
 
-  it("BASELINE BUG: an input preserves the tool but still loses selection", () => {
+  it("leaves native input focus, text, tool and selection intact", () => {
     const { result } = renderHook(useOwners);
     act(() => result.current.tool.setActiveTool("draw"));
     const field = document.createElement("input");
+    field.value = "unfinished draft";
     document.body.appendChild(field);
     try {
       field.focus();
-      escapeFrom(field);
+      const event = escapeFrom(field);
+      expect(event.defaultPrevented).toBe(false);
       expect(result.current.tool.activeTool).toBe("draw");
-      expect(result.current.selectedObjectId).toBeNull();
+      expect(result.current.selectedObjectId).toBe("token:owned");
       expect(document.activeElement).toBe(field);
+      expect(field.value).toBe("unfinished draft");
+
+      // The actual fallback owners remain usable after the typing surface yields.
+      field.blur();
+      expect(escapeFrom(document.body).defaultPrevented).toBe(true);
+      expect(result.current.tool.activeTool).toBeNull();
+      expect(result.current.selectedObjectId).toBe("token:owned");
+      expect(escapeFrom(document.body).defaultPrevented).toBe(true);
+      expect(result.current.selectedObjectId).toBeNull();
+      expect(noMessage).not.toHaveBeenCalled();
+      expect(noDrawingSelection).not.toHaveBeenCalled();
     } finally {
       field.remove();
     }
   });
 
-  it("BASELINE BUG: real Help closes and the same event also exits tool and selection", () => {
+  it("closes real portalled Help before later tool and selection steps", () => {
     render(<HelpOwners />);
     fireEvent.click(screen.getByRole("button", { name: "Arm drawing" }));
     fireEvent.click(screen.getByRole("button", { name: "Help" }));
     const help = screen.getByRole("dialog", { name: "HeroByte help" });
     expect(screen.getByTestId("mode")).toHaveTextContent("draw");
     expect(screen.getByTestId("selection")).toHaveTextContent("token:owned");
-
-    // A portalled descendant bubbles through document and then window.
+    // Keep the original native event path through a real portalled descendant.
     const event = escapeFrom(help.querySelector("button") ?? help);
-
+    expect(event.defaultPrevented).toBe(true);
     expect(screen.queryByRole("dialog", { name: "HeroByte help" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Help" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTestId("mode")).toHaveTextContent("draw");
+    expect(screen.getByTestId("selection")).toHaveTextContent("token:owned");
+
+    expect(escapeFrom(document.body).defaultPrevented).toBe(true);
     expect(screen.getByTestId("mode")).toHaveTextContent("move");
+    expect(screen.getByTestId("selection")).toHaveTextContent("token:owned");
+    expect(escapeFrom(document.body).defaultPrevented).toBe(true);
     expect(screen.getByTestId("selection")).toHaveTextContent("none");
-    expect(event.defaultPrevented).toBe(false);
+    expect(escapeFrom(document.body).defaultPrevented).toBe(false);
+    expect(noMessage).not.toHaveBeenCalled();
+    expect(noDrawingSelection).not.toHaveBeenCalled();
   });
 });

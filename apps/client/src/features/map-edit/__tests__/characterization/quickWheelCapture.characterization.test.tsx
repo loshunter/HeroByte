@@ -1,5 +1,3 @@
-// U2 baseline at 44c6ab82. Replace temporary bug pins during ownership repair.
-// Not run. Both order-dependent outcomes are temporary pre-extraction pins.
 import React, { useCallback, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
@@ -7,7 +5,7 @@ import { MapEditQuickWheel } from "../../MapEditQuickWheel";
 import { at, renderMapOwners } from "./mapLifecycle.fixtures";
 
 // Only isolate the asynchronous canvas-thumbnail baker. The wheel, its real
-// Escape listener, map tool/cancel/drag hooks, and tool/selection owners stay real.
+// Escape owner, map tool/cancel/drag hooks, and tool/selection owners stay real.
 vi.mock("../../brushThumbnails", () => ({
   peekBrushThumbnail: () => null,
   requestBrushThumbnails: vi.fn(),
@@ -15,7 +13,10 @@ vi.mock("../../brushThumbnails", () => ({
   subscribeBrushThumbnails: () => () => {},
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 const noSubTool = vi.fn();
 const noFloorFamily = vi.fn();
@@ -46,11 +47,11 @@ function mountWheel() {
   return onClose;
 }
 
-function beginWall(map: ReturnType<typeof renderMapOwners>) {
+function beginWall(map: ReturnType<typeof renderMapOwners>, previousCount = 0) {
   act(() => map.result.current.map.onMouseDown(at(100, 100)));
   act(() => map.result.current.map.onMouseMove(at(200, 100)));
   expect(map.result.current.map.previewDrag).not.toBeNull();
-  expect(map.controller.addWall).not.toHaveBeenCalled();
+  expect(map.controller.addWall).toHaveBeenCalledTimes(previousCount);
 }
 
 function escapeFrom(target: EventTarget) {
@@ -80,65 +81,93 @@ function commitNextWall(map: ReturnType<typeof renderMapOwners>, previousCount: 
   );
 }
 
-describe("real Quick wheel/map capture ordering before U2", () => {
+function wheelTarget(targetKind: "descendant" | "window") {
+  return targetKind === "window" ? window : screen.getAllByRole("menuitem")[0]!;
+}
+
+function assertClosed(onClose: ReturnType<typeof vi.fn>) {
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("menu", { name: "Quick wheel" })).not.toBeInTheDocument();
+  expect(noSubTool).not.toHaveBeenCalled();
+  expect(noFloorFamily).not.toHaveBeenCalled();
+}
+
+function exerciseLadder(
+  map: ReturnType<typeof renderMapOwners>,
+  onClose: ReturnType<typeof vi.fn>,
+  targetKind: "descendant" | "window",
+) {
+  // A popover owns the first step, independent of which real owner mounted first.
+  expect(escapeFrom(wheelTarget(targetKind)).defaultPrevented).toBe(true);
+  assertClosed(onClose);
+  expect(map.result.current.map.previewDrag).not.toBeNull();
+  expect(map.controller.addWall).not.toHaveBeenCalled();
+  assertArmed(map);
+
+  // No wheel remains; the next step cancels unsent work, retaining tool/selection.
+  const held = map.result.current.map;
+  expect(escapeFrom(window).defaultPrevented).toBe(true);
+  expect(map.result.current.map.previewDrag).toBeNull();
+  assertArmed(map);
+  act(() => {
+    held.onMouseMove(at(250, 150));
+    held.onMouseUp();
+    held.onMouseUp();
+  });
+  expect(map.controller.addWall).not.toHaveBeenCalled();
+  expect(onClose).toHaveBeenCalledTimes(1);
+  assertArmed(map);
+  commitNextWall(map, 0);
+  assertArmed(map);
+
+  // Preserve the old wheel-first release control: closing ONLY a popover does
+  // not discard the wall. Release commits it once, without requiring another press.
+  beginWall(map, 1);
+  const closeOnly = mountWheel();
+  expect(escapeFrom(wheelTarget(targetKind)).defaultPrevented).toBe(true);
+  assertClosed(closeOnly);
+  expect(map.result.current.map.previewDrag).not.toBeNull();
+  expect(map.controller.addWall).toHaveBeenCalledTimes(1);
+  act(() => map.result.current.map.onMouseUp());
+  expect(map.controller.addWall).toHaveBeenCalledTimes(2);
+  expect(map.controller.addWall).toHaveBeenLastCalledWith(
+    expect.objectContaining({ x1: 100, y1: 100, x2: 200, y2: 100 }),
+  );
+  expect(map.result.current.map.previewDrag).toBeNull();
+  assertArmed(map);
+
+  // After work is complete, the remaining ladder steps are still independent.
+  expect(escapeFrom(window).defaultPrevented).toBe(true);
+  expect(map.result.current.tool.activeTool).toBeNull();
+  expect(map.result.current.selectedObjectId).toBe("token:owned");
+  expect(escapeFrom(window).defaultPrevented).toBe(true);
+  expect(map.result.current.selectedObjectId).toBeNull();
+  expect(map.controller.addWall).toHaveBeenCalledTimes(2);
+  expect(escapeFrom(window).defaultPrevented).toBe(false);
+}
+
+describe("real Quick wheel and map owners follow the same Escape ladder", () => {
   it.each(["descendant", "window"] as const)(
-    "BASELINE BUG: map-first Escape from %s cancels drag and leaves wheel open",
+    "map-first Escape from %s closes wheel before canceling the pending wall",
     (targetKind) => {
-      // Separate completed render calls explicitly establish listener order.
-      // The real map cancellation listener is armed before the wheel mounts.
+      // Separate completed mounts retain the original registration-order control.
       const map = renderMapOwners("wall");
       beginWall(map);
       const onClose = mountWheel();
       expect(map.result.current.map.previewDrag).not.toBeNull();
-      const target = targetKind === "window" ? window : screen.getAllByRole("menuitem")[0]!;
-
-      const event = escapeFrom(target);
-
-      expect(event.defaultPrevented).toBe(true);
-      expect(map.result.current.map.previewDrag).toBeNull();
-      expect(onClose).not.toHaveBeenCalled();
-      expect(screen.getByRole("menu", { name: "Quick wheel" })).toBeInTheDocument();
-      assertArmed(map);
-      act(() => map.result.current.map.onMouseUp());
-      expect(map.controller.addWall).not.toHaveBeenCalled();
-
-      // With no remaining drag the next Escape finally reaches the wheel.
-      escapeFrom(screen.getAllByRole("menuitem")[0]!);
-      expect(onClose).toHaveBeenCalledTimes(1);
-      expect(screen.queryByRole("menu", { name: "Quick wheel" })).not.toBeInTheDocument();
-      assertArmed(map);
-      commitNextWall(map, 0);
+      exerciseLadder(map, onClose, targetKind);
     },
   );
 
   it.each(["descendant", "window"] as const)(
-    "BASELINE BUG: wheel-first Escape from %s closes wheel but leaves drag commit-ready",
+    "wheel-first Escape from %s closes wheel before canceling the pending wall",
     (targetKind) => {
-      // The wheel captures first; arming the real map hook registers second.
-      // Direct hook input deliberately creates an overlap beneath the wheel.
-      // This proves arbitration, not that a physical pointer can cross it.
       const onClose = mountWheel();
       const map = renderMapOwners("wall");
+      // Direct hook input deliberately creates an overlap beneath the wheel.
+      // This proves ownership arbitration, not physical pointer reachability.
       beginWall(map);
-      const target = targetKind === "window" ? window : screen.getAllByRole("menuitem")[0]!;
-
-      const event = escapeFrom(target);
-
-      expect(event.defaultPrevented).toBe(true);
-      expect(onClose).toHaveBeenCalledTimes(1);
-      expect(screen.queryByRole("menu", { name: "Quick wheel" })).not.toBeInTheDocument();
-      expect(map.result.current.map.previewDrag).not.toBeNull();
-      expect(map.controller.addWall).not.toHaveBeenCalled();
-      assertArmed(map);
-
-      act(() => map.result.current.map.onMouseUp());
-      expect(map.controller.addWall).toHaveBeenCalledTimes(1);
-      expect(map.controller.addWall).toHaveBeenCalledWith(
-        expect.objectContaining({ x1: 100, y1: 100, x2: 200, y2: 100 }),
-      );
-      expect(map.result.current.map.previewDrag).toBeNull();
-      assertArmed(map);
-      commitNextWall(map, 1);
+      exerciseLadder(map, onClose, targetKind);
     },
   );
 });

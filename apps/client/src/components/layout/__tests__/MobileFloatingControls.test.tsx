@@ -54,7 +54,6 @@ const createProps = (overrides: Record<string, unknown> = {}) => ({
   isDM: false,
   mode: false,
   mapEditToolbarProps: createToolbarProps(),
-  onCancelMapEditDrag: vi.fn(),
   ...overrides,
 });
 

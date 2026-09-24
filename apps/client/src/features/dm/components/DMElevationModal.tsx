@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from "react";
+import {
+  EscapeRootProvider,
+  useEscapeRoot,
+  useEscapeOwner,
+} from "../../interaction/useEscapeOwner";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 
 interface DMElevationModalProps {
@@ -51,6 +56,26 @@ export function DMElevationModal({
     }
   }, [isLoading, error, currentIsDM, mode, onClose]);
 
+  const handleCancel = () => {
+    if (!isLoading) {
+      setPassword("");
+      setConfirmPassword("");
+      setLocalError(null);
+      onClose();
+    }
+  };
+
+  const modalRef = React.useRef<HTMLDivElement>(null);
+  const escapeRoot = useEscapeRoot(modalRef, 3000);
+  useEscapeOwner(() => ({
+    kind: "modal",
+    name: "DMElevationModal",
+    active: isOpen,
+    root: escapeRoot,
+    anchor: modalRef.current,
+    handle: isLoading ? undefined : handleCancel,
+  }));
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,15 +99,6 @@ export function DMElevationModal({
     }
   };
 
-  const handleCancel = () => {
-    if (!isLoading) {
-      setPassword("");
-      setConfirmPassword("");
-      setLocalError(null);
-      onClose();
-    }
-  };
-
   const passwordInputStyle: React.CSSProperties = {
     width: "100%",
     padding: "8px",
@@ -94,156 +110,164 @@ export function DMElevationModal({
   };
 
   return (
-    <div
-      data-modal-overlay=""
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        // Above the DM menu (1002) and the player settings window (2500).
-        // At 1000 this modal painted BELOW the DM menu it is launched from:
-        // on a wide desktop the menu floated undimmed over the scrim, and in
-        // the 701–767px band the menu goes fullscreen-opaque at 1102, hiding
-        // the dialog entirely — with no Escape handler and no reachable scrim,
-        // an unclosable dialog.
-        zIndex: 3000,
-      }}
-      onClick={handleCancel}
-    >
+    <EscapeRootProvider value={escapeRoot}>
       <div
+        ref={modalRef}
+        data-modal-overlay=""
         style={{
-          backgroundColor: "#2a2a2a",
-          border: "2px solid #4a4a4a",
-          borderRadius: "8px",
-          padding: "24px",
-          minWidth: "400px",
-          maxWidth: "500px",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          // Above the DM menu (1002) and the player settings window (2500).
+          // At 1000 this modal painted BELOW the DM menu it is launched from:
+          // on a wide desktop the menu floated undimmed over the scrim, and in
+          // the 701–767px band the menu goes fullscreen-opaque at 1102, hiding
+          // the dialog entirely — with no Escape handler and no reachable scrim,
+          // an unclosable dialog.
+          zIndex: 3000,
         }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={handleCancel}
       >
-        <h2 style={{ marginTop: 0, marginBottom: "16px", color: "#fff" }}>
-          {mode === "elevate"
-            ? "Elevate to DM"
-            : mode === "bootstrap"
-              ? "Set the DM Password"
-              : "Revoke DM Status"}
-        </h2>
+        <div
+          style={{
+            backgroundColor: "#2a2a2a",
+            border: "2px solid #4a4a4a",
+            borderRadius: "8px",
+            padding: "24px",
+            minWidth: "400px",
+            maxWidth: "500px",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 style={{ marginTop: 0, marginBottom: "16px", color: "#fff" }}>
+            {mode === "elevate"
+              ? "Elevate to DM"
+              : mode === "bootstrap"
+                ? "Set the DM Password"
+                : "Revoke DM Status"}
+          </h2>
 
-        <form onSubmit={handleSubmit}>
-          {mode === "elevate" ? (
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                htmlFor="dm-password"
+          <form onSubmit={handleSubmit}>
+            {mode === "elevate" ? (
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  htmlFor="dm-password"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    color: "#ccc",
+                  }}
+                >
+                  Enter DM Password:
+                </label>
+                <input
+                  id="dm-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  autoFocus
+                  style={passwordInputStyle}
+                />
+              </div>
+            ) : mode === "bootstrap" ? (
+              <div style={{ marginBottom: "16px" }}>
+                <p style={{ marginTop: 0, color: "#ccc" }}>
+                  This table doesn&apos;t have a DM password yet. Set one now — you&apos;ll become
+                  the DM immediately, and anyone with this password can claim the DM seat later.
+                </p>
+                <label
+                  htmlFor="dm-new-password"
+                  style={{ display: "block", marginBottom: "8px", color: "#ccc" }}
+                >
+                  New DM Password (8+ characters):
+                </label>
+                <input
+                  id="dm-new-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  autoFocus
+                  style={{ ...passwordInputStyle, marginBottom: "12px" }}
+                />
+                <label
+                  htmlFor="dm-confirm-password"
+                  style={{ display: "block", marginBottom: "8px", color: "#ccc" }}
+                >
+                  Confirm DM Password:
+                </label>
+                <input
+                  id="dm-confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading}
+                  style={passwordInputStyle}
+                />
+              </div>
+            ) : (
+              <div style={{ marginBottom: "16px", color: "#ccc" }}>
+                <p>Are you sure you want to revoke your DM status?</p>
+                <p style={{ fontSize: "12px", color: "#999" }}>
+                  You will lose access to DM tools and will need to re-enter the password to become
+                  DM again.
+                </p>
+              </div>
+            )}
+
+            {(localError ?? error) && (
+              <div
                 style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  color: "#ccc",
+                  marginBottom: "16px",
+                  padding: "8px",
+                  backgroundColor: "#ff000020",
+                  border: "1px solid #ff0000",
+                  borderRadius: "4px",
+                  color: "#ff6b6b",
+                  fontSize: "14px",
                 }}
               >
-                Enter DM Password:
-              </label>
-              <input
-                id="dm-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                autoFocus
-                style={passwordInputStyle}
-              />
-            </div>
-          ) : mode === "bootstrap" ? (
-            <div style={{ marginBottom: "16px" }}>
-              <p style={{ marginTop: 0, color: "#ccc" }}>
-                This table doesn&apos;t have a DM password yet. Set one now — you&apos;ll become the
-                DM immediately, and anyone with this password can claim the DM seat later.
-              </p>
-              <label
-                htmlFor="dm-new-password"
-                style={{ display: "block", marginBottom: "8px", color: "#ccc" }}
-              >
-                New DM Password (8+ characters):
-              </label>
-              <input
-                id="dm-new-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                autoFocus
-                style={{ ...passwordInputStyle, marginBottom: "12px" }}
-              />
-              <label
-                htmlFor="dm-confirm-password"
-                style={{ display: "block", marginBottom: "8px", color: "#ccc" }}
-              >
-                Confirm DM Password:
-              </label>
-              <input
-                id="dm-confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={isLoading}
-                style={passwordInputStyle}
-              />
-            </div>
-          ) : (
-            <div style={{ marginBottom: "16px", color: "#ccc" }}>
-              <p>Are you sure you want to revoke your DM status?</p>
-              <p style={{ fontSize: "12px", color: "#999" }}>
-                You will lose access to DM tools and will need to re-enter the password to become DM
-                again.
-              </p>
-            </div>
-          )}
+                {localError ?? error}
+              </div>
+            )}
 
-          {(localError ?? error) && (
-            <div
-              style={{
-                marginBottom: "16px",
-                padding: "8px",
-                backgroundColor: "#ff000020",
-                border: "1px solid #ff0000",
-                borderRadius: "4px",
-                color: "#ff6b6b",
-                fontSize: "14px",
-              }}
-            >
-              {localError ?? error}
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <JRPGButton
+                type="button"
+                onClick={handleCancel}
+                disabled={isLoading}
+                variant="default"
+              >
+                Cancel
+              </JRPGButton>
+              <JRPGButton
+                type="submit"
+                disabled={isLoading || (mode !== "revoke" && !password.trim())}
+                variant={mode === "revoke" ? "danger" : "success"}
+              >
+                {isLoading
+                  ? mode === "elevate"
+                    ? "Elevating..."
+                    : mode === "bootstrap"
+                      ? "Setting..."
+                      : "Revoking..."
+                  : mode === "elevate"
+                    ? "Elevate to DM"
+                    : mode === "bootstrap"
+                      ? "Set Password & Become DM"
+                      : "Revoke DM Status"}
+              </JRPGButton>
             </div>
-          )}
-
-          <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-            <JRPGButton type="button" onClick={handleCancel} disabled={isLoading} variant="default">
-              Cancel
-            </JRPGButton>
-            <JRPGButton
-              type="submit"
-              disabled={isLoading || (mode !== "revoke" && !password.trim())}
-              variant={mode === "revoke" ? "danger" : "success"}
-            >
-              {isLoading
-                ? mode === "elevate"
-                  ? "Elevating..."
-                  : mode === "bootstrap"
-                    ? "Setting..."
-                    : "Revoking..."
-                : mode === "elevate"
-                  ? "Elevate to DM"
-                  : mode === "bootstrap"
-                    ? "Set Password & Become DM"
-                    : "Revoke DM Status"}
-            </JRPGButton>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </EscapeRootProvider>
   );
 }

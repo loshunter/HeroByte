@@ -5,11 +5,11 @@
 // the four everyday tools plus four brushes (pins → recents → shelf order),
 // dispatching through the SAME setters the palette uses. Brush picks feed
 // the deck's Recent shelf. Escape and outside-click close it — the Escape
-// listener runs in the CAPTURE phase so the tool-closing window listener
-// never sees the keystroke. Desktop right-click only; the long-press touch
+// owner consumes only the wheel step of the shared Escape ladder. Desktop right-click only; the long-press touch
 // variant is a recorded deferral.
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEscapeOwner, useEscapeRoot } from "../interaction/useEscapeOwner";
 import { pushBrushRecent } from "./brushDeck";
 import {
   getBrushThumbnailVersion,
@@ -55,22 +55,19 @@ export function MapEditQuickWheel({
     );
   }, [slots]);
 
-  // Escape closes the WHEEL only: capture phase beats the window-level
-  // tool-closing listener (useToolMode), which listens in the bubble phase.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        // Belt and braces: a synthetic Escape dispatched ON window collapses
-        // the phases into at-target order — stop same-node listeners too.
-        event.stopImmediatePropagation();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, { capture: true });
-    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
-  }, [onClose]);
+  const wheelRef = useRef<HTMLDivElement>(null);
+  // The wheel paints within the fixed canvas context (z:auto/0), not at
+  // global1200. Its local z-index cannot put it above Chat or a body portal.
+  const root = useEscapeRoot(wheelRef, 0);
+  useEscapeOwner(() => ({
+    kind: "popover",
+    name: "map quick wheel",
+    active: true,
+    root,
+    anchor: wheelRef.current,
+    localBand: 1200,
+    handle: onClose,
+  }));
 
   const cx = Math.max(HALF, Math.min(x, window.innerWidth - HALF));
   const cy = Math.max(HALF, Math.min(y, window.innerHeight - HALF));
@@ -96,7 +93,12 @@ export function MapEditQuickWheel({
           onClose();
         }}
       />
-      <div role="menu" aria-label="Quick wheel" style={{ ...wheelStyle, left: cx, top: cy }}>
+      <div
+        ref={wheelRef}
+        role="menu"
+        aria-label="Quick wheel"
+        style={{ ...wheelStyle, left: cx, top: cy }}
+      >
         {slots.map((slot, index) => {
           const angle = ((-90 + index * 45) * Math.PI) / 180;
           const left = Math.cos(angle) * RADIUS - SLOT / 2;

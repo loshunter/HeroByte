@@ -14,6 +14,7 @@ import { useTerrainBrush } from "../map-studio/components/useTerrainBrush";
 import { commitClickTool } from "./commitClickTool";
 import { isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
 import { useMapEditCancel } from "./useMapEditCancel";
+import { escapeRegistry } from "../interaction/useEscapeOwner";
 import { useMapEditDragGesture } from "./useMapEditDragGesture";
 import { useMapEditPlacement } from "./useMapEditPlacement";
 import { useMapEditSelection } from "./useMapEditSelection";
@@ -142,12 +143,15 @@ export function useMapEditTool({
 
   const cancelGesture = useMapEditCancel({
     active,
+    subTool: activeSubTool,
+    documentId: activeDoc?.id,
+    liveDocumentId,
+    currentAim: touchAim.current,
     cancelSignal,
     currentDrag: drag.current,
     clearDrag: drag.clear,
     brushingRef,
     discardStroke,
-    flushStroke,
     cancelAim: touchAim.cancel,
   });
 
@@ -254,9 +258,21 @@ export function useMapEditTool({
     placementGhost: placement.ghost,
     draftGhosts: placement.draftGhosts,
     selectionShape: selection.selectionShape,
-    onMouseDown,
+    onMouseDown: (...args) => {
+      try {
+        onMouseDown(...args);
+      } finally {
+        escapeRegistry.refresh();
+      }
+    },
     onMouseMove,
-    onMouseUp,
+    onMouseUp: (...args) => {
+      try {
+        onMouseUp(...args);
+      } finally {
+        escapeRegistry.refresh();
+      }
+    },
     onCancel: cancelGesture,
   };
 }

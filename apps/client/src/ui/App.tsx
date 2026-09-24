@@ -173,6 +173,12 @@ function AuthenticatedApp({
   // Creak and clunk when compiled doors change state, on every screen.
   useDoorSfx(snapshot?.compiledScene?.doors);
 
+  // Effective role gates table-wide clearing and confirmed tool transitions.
+  // The local override closes DM access immediately while revocation is pending.
+  const { isDM: serverIsDM } = useDMRole({ snapshot, uid, send: sendMessage });
+  const [dmRevocationPending, setDmRevocationPending] = useState(false);
+  const isDM = serverIsDM && !dmRevocationPending;
+
   // Tool modes
   const {
     activeTool,
@@ -184,7 +190,7 @@ function AuthenticatedApp({
     selectMode,
     alignmentMode,
     mapEditMode,
-  } = useToolMode();
+  } = useToolMode({ snapshot, uid, isDM });
 
   // Custom hooks for state management
   const { micEnabled, toggleMic } = useVoiceChatManager({
@@ -194,19 +200,10 @@ function AuthenticatedApp({
     registerRtcHandler,
   });
 
-  // DM role detection (client override allows immediate DM menu closing during
-  // revocation). Declared here rather than further down because the drawing
-  // manager needs it: clearing all drawings is a DM-only server operation, and
-  // a non-DM must not lose their local undo history to a call the server will
-  // reject.
-  const { isDM: serverIsDM } = useDMRole({ snapshot, uid, send: sendMessage });
-  const [dmRevocationPending, setDmRevocationPending] = useState(false);
-  const isDM = serverIsDM && !dmRevocationPending;
-
   // Drawing state manager
   const drawingManager = useDrawingStateManager({
     sendMessage,
-    drawMode,
+    drawingHistory: snapshot?.drawingHistory,
     setActiveTool,
     canClearDrawings: isDM,
   });
@@ -284,8 +281,8 @@ function AuthenticatedApp({
     uid,
     snapshot,
     sendMessage,
-    transformMode,
-    selectMode,
+    activeTool,
+    isDM,
   });
 
   // Player token selection shortcuts for DM
@@ -353,7 +350,7 @@ function AuthenticatedApp({
     mapEditMode,
     setActiveTool,
     isDM,
-    snapshotLoaded: Boolean(snapshot),
+    snapshotLoaded: Boolean(snapshot?.players.some((player) => player.uid === uid)),
     liveMapDocumentId: snapshot?.liveMapDocumentId,
     roomGridSize: snapshot?.gridSize ?? 50,
     hasRasterBackground: Boolean(snapshot?.mapBackground),

@@ -1,3 +1,4 @@
+import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
 // ============================================================================
 // HEADER COMPONENT
 // ============================================================================
@@ -268,7 +269,9 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Roll Log */}
                 <JRPGButton
-                  onClick={() => onRollLogToggle(!rollLogOpen)}
+                  onClick={(event) =>
+                    activatePanelLauncher(event, () => onRollLogToggle(!rollLogOpen))
+                  }
                   variant={rollLogOpen ? "primary" : "default"}
                   aria-pressed={rollLogOpen}
                   style={{ fontSize: "8px", padding: "4px 10px" }}

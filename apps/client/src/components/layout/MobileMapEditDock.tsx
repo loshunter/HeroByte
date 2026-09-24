@@ -1,27 +1,4 @@
-// ============================================================================
-// MOBILE MAP-EDIT DOCK — the five slots that replace the player dock
-// ============================================================================
-// Split out of MobileMapEditPalette ahead of M5, which adds five tools and
-// their sub-panels to the sheet; the two halves cannot share one file under the
-// 348-line cap. Behaviour is unchanged — this is the same markup, moved.
-//
-//   [ ✕ Exit ][ ⚒ Tool ▾ ][ ↶ Undo ][ ↷ Redo ][ ⨯ Abort ]
-//
-// Slot five is ABORT and not the design sketch's "More", deliberately. The
-// sketch never said what More held, and M4c has one requirement a keyboard
-// makes invisible: a finger cannot press Escape, and RELEASING is what commits.
-// Abort is the only control in this mode that a DM can need mid-gesture, so it
-// takes the thumb slot; recentring and the walls overlay live in the sheet,
-// where a tap costs an extra step nobody makes under pressure.
-//
-// Abort is always enabled. Whether a drag is in flight is known inside
-// MapBoard's tool hook and nowhere else, and lifting that back out to grey a
-// button would cost a second cross-tree channel to save an inert tap.
-//
-// It takes the WHOLE toolbar bag rather than the four fields it reads. A subset
-// is how a forwarding prop goes missing with a green typecheck — the shape that
-// removed Map Studio from both layouts in M4b.
-
+import { CancelGestureButton } from "../../features/interaction/CancelGestureButton";
 import React from "react";
 import type { MapEditToolbarProps } from "../../features/map-edit/mapEditTypes";
 
@@ -29,15 +6,12 @@ interface MobileMapEditDockProps {
   toolbar: MapEditToolbarProps;
   toolsOpen: boolean;
   onToggleTools: () => void;
-  /** Abandon the gesture in flight (bumps MobileLayout's cancel signal). */
-  onCancelDrag: () => void;
 }
 
 export const MobileMapEditDock: React.FC<MobileMapEditDockProps> = ({
   toolbar,
   toolsOpen,
   onToggleTools,
-  onCancelDrag,
 }) => {
   const { isLive } = toolbar;
 
@@ -82,6 +56,7 @@ export const MobileMapEditDock: React.FC<MobileMapEditDockProps> = ({
       <button
         type="button"
         className="mobile-dock-button"
+        aria-label="Undo map edit"
         onClick={toolbar.onUndo}
         disabled={!isLive || !toolbar.canUndo}
       >
@@ -93,6 +68,7 @@ export const MobileMapEditDock: React.FC<MobileMapEditDockProps> = ({
       <button
         type="button"
         className="mobile-dock-button"
+        aria-label="Redo map edit"
         onClick={toolbar.onRedo}
         disabled={!isLive || !toolbar.canRedo}
       >
@@ -101,35 +77,15 @@ export const MobileMapEditDock: React.FC<MobileMapEditDockProps> = ({
         </span>
         Redo
       </button>
-      {/* "Abort", not "Cancel", and the reason is measured rather than
-          stylistic: at the 11px readability floor "Cancel" renders 67px in a
-          59px content box on a 375px phone and is CLIPPED — no padding can
-          fix it, and a single word has no break opportunity to wrap on.
-          Five characters is the real constraint every other dock label in
-          the app already happens to respect. */}
-      {/* onPointerDown, not just onClick, and this is the whole reason the
-          control works at all. The gesture it exists for is "my finger is
-          down on the canvas and I want out", which needs a SECOND touch —
-          and Chromium generates no compat click for a second finger during
-          an active multi-touch sequence. Measured on the real gesture: the
-          button received pointerdown, touchstart and touchend, and no click
-          at all, so an onClick-only abort silently did nothing and the
-          release committed the room anyway.
-
-          onClick stays for the keyboard, which fires click and no pointer
-          event. Both firing on a mouse press is harmless: cancelling twice
-          clears an already-cleared drag. */}
-      <button
-        type="button"
+      <CancelGestureButton
+        idleLabel={
+          toolbar.activeSubTool === "terrain" || toolbar.activeSubTool === "erase"
+            ? "Cancel stroke"
+            : "Cancel placement"
+        }
+        dock
         className="mobile-dock-button"
-        onPointerDown={onCancelDrag}
-        onClick={onCancelDrag}
-      >
-        <span className="mobile-dock-button__icon" aria-hidden="true">
-          ⨯
-        </span>
-        Abort
-      </button>
+      />
     </nav>
   );
 };

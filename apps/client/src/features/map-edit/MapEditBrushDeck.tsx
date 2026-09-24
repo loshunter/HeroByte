@@ -9,6 +9,7 @@
 // Right-click a tile to pin it. Deck state (pins/recents) is deck-internal,
 // so MapEditToolbarProps is untouched.
 
+import { useLocalEscape } from "../interaction/useEscapeOwner";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { PAINT_FAMILIES, type PaintFamilyEntry } from "./mapEditFamilies";
@@ -40,6 +41,7 @@ interface HoverState {
 }
 
 export function MapEditBrushDeck({ selected, onSelect }: MapEditBrushDeckProps) {
+  const localEscape = useLocalEscape();
   const [query, setQuery] = useState("");
   const [pins, setPins] = useState<string[]>(loadBrushPins);
   const [recents, setRecents] = useState<string[]>(loadBrushRecents);
@@ -101,14 +103,12 @@ export function MapEditBrushDeck({ selected, onSelect }: MapEditBrushDeckProps) 
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         onKeyDown={(event) => {
-          // Typing context: no global shortcut may see these keys (Escape
-          // closes the whole tool, Ctrl+Z undoes the LIVE map, Backspace
-          // fires delete-selected). Escape clears the query instead.
-          event.stopPropagation();
           if (event.key === "Escape") {
-            event.preventDefault();
-            setQuery("");
+            if (query) localEscape(event, () => setQuery(""));
+            return; // Denied or empty-query Escape must reach its actual owner untouched.
           }
+          // Keep text/history/delete keystrokes away from canvas shortcuts.
+          event.stopPropagation();
         }}
         placeholder="Search…"
         aria-label="Search brushes"

@@ -7,7 +7,6 @@
  * - Delete/Backspace: Delete selected scene objects with permission checks
  * - Ctrl+Z/Cmd+Z: Undo drawing action (in draw mode) or undo player token selection (DM only)
  * - Ctrl+Y/Cmd+Y or Ctrl+Shift+Z: Redo drawing action
- * - Escape: Clear selection (when objects are selected)
  *
  * Extracted from: apps/client/src/ui/App.tsx (lines 389-516)
  * Extraction date: 2025-10-20
@@ -17,7 +16,7 @@
 
 import { useEffect } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
-import { isEditableTarget } from "../utils/isEditableTarget";
+import { escapeRegistry } from "../features/interaction/useEscapeOwner";
 
 /**
  * Drawing manager interface for undo/redo operations
@@ -164,7 +163,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
       // Typing surfaces own their keystrokes (chat box, brush/asset search,
       // inspector fields): Backspace there edits text — it must not delete
       // the selected tokens — and Ctrl+Z is native text undo.
-      if (isEditableTarget(e.target)) return;
+      if (!escapeRegistry.canHandleShortcut(e, { root: null, anchor: document.body })) return;
       // Delete or Backspace to delete selected object(s)
       if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectIds.length > 0) {
         console.log("[KeyDown] Delete/Backspace pressed:", {
@@ -271,7 +270,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
       }
 
       // Ctrl+Z or Cmd+Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
         // Priority 1: Undo drawing if draw mode is active and there's something to undo
         if (drawMode && drawingManager.canUndo) {
           e.preventDefault();
@@ -282,7 +281,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
         // Priority 2: Undo player token selection (DM only) if available.
         // Skipped in live map-edit mode — there Ctrl+Z undoes the map document
         // (useMapEditHotkeys), and this branch would otherwise double-fire.
-        if (isDM && canUndoSelection && undoSelection && !mapEditMode) {
+        if (isDM && canUndoSelection && undoSelection && !mapEditMode && !drawMode) {
           e.preventDefault();
           console.log("[KeyDown] Ctrl+Z: Undoing player token selection");
           undoSelection();
@@ -291,7 +290,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
       }
 
       // Ctrl+Y or Cmd+Y for redo
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))
+      ) {
         if (drawMode && drawingManager.canRedo) {
           e.preventDefault();
           drawingManager.handleRedo();

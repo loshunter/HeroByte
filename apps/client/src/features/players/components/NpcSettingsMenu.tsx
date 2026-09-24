@@ -88,6 +88,7 @@ export function NpcSettingsMenu({
 
   return createPortal(
     <DraggableWindow
+      interaction={{ behavior: "block" }}
       title="NPC Settings"
       onClose={onClose}
       initialX={350}

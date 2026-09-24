@@ -2144,12 +2144,18 @@ button.token-library-remove:hover {
 }
 
 .mobile-drawing-sheet__control {
-  display: grid;
+  display: flex;
+  align-items: center;
   grid-column: 1 / -1;
-  gap: 4px;
+  gap: 8px;
   color: var(--hero-text-light);
   /* Was 0.58rem = 9.28px, under the 11px readability floor. */
   font-size: 0.7rem;
+}
+
+.mobile-drawing-sheet__control > span {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 /* Attribute selector included deliberately: the bare class loses to
@@ -2169,6 +2175,9 @@ button.token-library-remove:hover {
  * in the app keeps its existing look.
  */
 .mobile-drawing-sheet__control input[type="range"] {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
   height: 44px;
   padding-block: 0;
   border: 0;

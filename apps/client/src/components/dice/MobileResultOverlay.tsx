@@ -7,6 +7,8 @@
 // on narrow viewports.
 
 import React, { useRef } from "react";
+import type { EscapeRoot } from "../../features/interaction/escapeTypes";
+import { WindowInteraction } from "../../features/interaction/WindowInteraction";
 import type { RollResult } from "./types";
 import { RollResultContent } from "./RollResultContent";
 
@@ -17,6 +19,8 @@ interface MobileResultOverlayProps {
   onEnterRoll?: (total: number) => void;
 
   zIndex?: number;
+  /** Only the known non-portalled child of MobileDiceRoller shares its paint root. */
+  containingRoot?: EscapeRoot;
 }
 
 export const MobileResultOverlay: React.FC<MobileResultOverlayProps> = ({
@@ -24,11 +28,13 @@ export const MobileResultOverlay: React.FC<MobileResultOverlayProps> = ({
   onClose,
   onEnterRoll,
   zIndex = 2100,
+  containingRoot,
 }) => {
   // A click retargets to the backdrop when a press starts on the card and is
   // released outside it (e.g. drag-selecting the breakdown text), so only
   // dismiss when the press also started on the backdrop.
   const pressStartedOnBackdrop = useRef(false);
+  const frameRef = useRef<HTMLDivElement>(null);
 
   if (!result) return null;
 
@@ -44,83 +50,96 @@ export const MobileResultOverlay: React.FC<MobileResultOverlayProps> = ({
   };
 
   return (
-    <div
-      data-testid="mobile-roll-result"
-      onPointerDown={handleBackdropPointerDown}
-      onClick={handleBackdropClick}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "20px",
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
-      }}
+    <WindowInteraction
+      frameRef={frameRef}
+      band={zIndex}
+      options={{ behavior: "block", containingRoot, localBand: containingRoot ? zIndex : 0 }}
     >
-      <div
-        // The height cap lives in herobyte.css (.mobile-roll-result__card):
-        // an inline style cannot carry the vh fallback line under the dvh one.
-        className="mobile-roll-result__card"
-        style={{
-          width: "100%",
-          maxWidth: "400px",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          background:
-            "repeating-conic-gradient(rgba(255,255,255,0.02) 0% 25%, transparent 0% 50%) 50% / 2px 2px, linear-gradient(180deg, #2a2845 0%, #1a1835 50%, #0f0e2a 100%)",
-          border: "4px solid var(--hero-gold)",
-          borderRadius: "12px",
-          boxShadow: "0 0 0 2px var(--hero-navy-dark), 0 8px 24px rgba(0,0,0,0.8)",
-        }}
-      >
-        {/* Title bar (mirrors DraggableWindow's mobile styling) */}
+      {() => (
         <div
-          className="jrpg-text-command"
+          ref={frameRef}
+          data-testid="mobile-roll-result"
+          onPointerDown={handleBackdropPointerDown}
+          onClick={handleBackdropClick}
           style={{
-            background: "var(--jrpg-gold)",
-            padding: "12px 16px",
-            color: "var(--jrpg-navy)",
-            fontSize: "14px",
-            fontWeight: "bold",
-            textAlign: "center",
-            position: "relative",
-            boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)",
-            userSelect: "none",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
           }}
         >
-          ⚂ ROLL RESULT ⚂
-          <button
-            onClick={onClose}
-            aria-label="Close roll result"
-            className="jrpg-button jrpg-button-danger"
+          <div
+            // The height cap lives in herobyte.css (.mobile-roll-result__card):
+            // an inline style cannot carry the vh fallback line under the dvh one.
+            className="mobile-roll-result__card"
             style={{
-              position: "absolute",
-              right: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: "32px",
-              height: "32px",
-              padding: 0,
-              fontSize: "18px",
-              lineHeight: "1",
+              width: "100%",
+              maxWidth: "400px",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              background:
+                "repeating-conic-gradient(rgba(255,255,255,0.02) 0% 25%, transparent 0% 50%) 50% / 2px 2px, linear-gradient(180deg, #2a2845 0%, #1a1835 50%, #0f0e2a 100%)",
+              border: "4px solid var(--hero-gold)",
+              borderRadius: "12px",
+              boxShadow: "0 0 0 2px var(--hero-navy-dark), 0 8px 24px rgba(0,0,0,0.8)",
             }}
           >
-            ×
-          </button>
-        </div>
+            {/* Title bar (mirrors DraggableWindow's mobile styling) */}
+            <div
+              className="jrpg-text-command"
+              style={{
+                background: "var(--jrpg-gold)",
+                padding: "12px 16px",
+                color: "var(--jrpg-navy)",
+                fontSize: "14px",
+                fontWeight: "bold",
+                textAlign: "center",
+                position: "relative",
+                boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)",
+                userSelect: "none",
+              }}
+            >
+              ⚂ ROLL RESULT ⚂
+              <button
+                onClick={onClose}
+                aria-label="Close roll result"
+                className="jrpg-button jrpg-button-danger"
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: "32px",
+                  height: "32px",
+                  padding: 0,
+                  fontSize: "18px",
+                  lineHeight: "1",
+                }}
+              >
+                ×
+              </button>
+            </div>
 
-        {/* Scrollable result body - sole scroller; contain so swipe-down at the
+            {/* Scrollable result body - sole scroller; contain so swipe-down at the
             top can't chain into browser pull-to-refresh and drop the session */}
-        <div style={{ overflowY: "auto", overscrollBehavior: "contain" }}>
-          <RollResultContent result={result} constrainHeight={false} onEnterRoll={onEnterRoll} />
+            <div style={{ overflowY: "auto", overscrollBehavior: "contain" }}>
+              <RollResultContent
+                result={result}
+                constrainHeight={false}
+                onEnterRoll={onEnterRoll}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </WindowInteraction>
   );
 };

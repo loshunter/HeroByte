@@ -5,6 +5,7 @@
 // Provides controls for drawing tool selection, colors, brush size, opacity, etc.
 
 import { AREA_TEMPLATE_TOOLS, type AreaTemplateTool, type DrawTool } from "@herobyte/shared";
+import { CancelGestureButton } from "../../interaction/CancelGestureButton";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
@@ -283,6 +284,7 @@ export function DrawingToolbar({
 
           {/* Action Buttons */}
           <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
+            <CancelGestureButton idleLabel="Cancel stroke" style={{ fontSize: "9px" }} />
             {/* Undo Button */}
             {onUndo && (
               <JRPGButton
@@ -291,7 +293,7 @@ export function DrawingToolbar({
                 disabled={!canUndo}
                 style={{ fontSize: "8px", padding: "6px" }}
               >
-                ↶ Undo
+                ↶ Undo drawing
               </JRPGButton>
             )}
 
@@ -303,7 +305,7 @@ export function DrawingToolbar({
                 disabled={!canRedo}
                 style={{ fontSize: "8px", padding: "6px" }}
               >
-                ↷ Redo
+                ↷ Redo drawing
               </JRPGButton>
             )}
 

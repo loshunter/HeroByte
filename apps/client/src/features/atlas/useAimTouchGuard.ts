@@ -16,7 +16,7 @@
 // construction: the mouse path never calls onTouchStart/Move, so a desktop
 // click consumes `false` and captures as before.
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { KonvaEventObject } from "konva/lib/Node";
 
 /** Movement past this many CSS px is a pan, not a tap. */
@@ -33,12 +33,21 @@ export function useAimTouchGuard(): AimTouchGuard {
   const start = useRef<{ x: number; y: number } | null>(null);
   const moved = useRef(false);
 
+  useEffect(() => {
+    // A second finger can land outside Konva without any subsequent stage move.
+    // Observe only a sequence that started on stage; leave camera routing alone.
+    const observeStart = (event: TouchEvent) => {
+      if (start.current && event.touches.length > 1) moved.current = true;
+    };
+    document.addEventListener("touchstart", observeStart, { capture: true, passive: true });
+    return () => document.removeEventListener("touchstart", observeStart, true);
+  }, []);
+
   const onTouchStart = useCallback((event: KonvaEventObject<TouchEvent>) => {
     const touches = event.evt.touches;
     const first = touches[0];
     // A second finger down before the first lifted is a pinch, never a tap.
-    // `touches` is document-wide, so a finger landing on the dock counts too —
-    // which is right: that press was not aimed either.
+    // The capture listener also covers starts that never reach this stage handler.
     moved.current = touches.length > 1;
     start.current = first ? { x: first.clientX, y: first.clientY } : null;
   }, []);

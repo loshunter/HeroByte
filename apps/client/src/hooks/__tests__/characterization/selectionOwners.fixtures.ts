@@ -1,8 +1,8 @@
-// DRAFT ONLY; imports target hooks/__tests__/characterization/ on integration.
 import { act, renderHook } from "@testing-library/react";
 import { vi } from "vitest";
 import type { ClientMessage, RoomSnapshot, SelectionStateEntry } from "@herobyte/shared";
 import { useToolMode } from "../../useToolMode";
+import { useDMRole } from "../../useDMRole";
 import { useKeyboardNavigation } from "../../useKeyboardNavigation";
 import { useSelectionManager } from "../../../features/selection/SelectionManager";
 
@@ -55,19 +55,20 @@ export function selectionSnapshot(ids: string[] = [], isDM = false): RoomSnapsho
 }
 
 // The only doubles are transport and the unused drawing-selection callback.
-// Both production selection hooks and both production Escape owners are real.
+// Production selection, DM-role derivation, and Escape-owner hooks are real.
 export function mountSelectedOwners(ids: string[] = [OWNED_ID], isDM = false) {
   const sendMessage = vi.fn<(message: ClientMessage) => void>();
   const handleSelectDrawing = vi.fn<(id: string | null) => void>();
   const harness = renderHook(
     ({ snapshot }: { snapshot: RoomSnapshot | null }) => {
-      const tool = useToolMode();
+      const { isDM: effectiveIsDM } = useDMRole({ uid: UID, snapshot, send: sendMessage });
+      const tool = useToolMode({ snapshot, uid: UID, isDM: effectiveIsDM });
       const selection = useSelectionManager({
         uid: UID,
         snapshot,
         sendMessage,
-        transformMode: tool.transformMode,
-        selectMode: tool.selectMode,
+        activeTool: tool.activeTool,
+        isDM: effectiveIsDM,
       });
       useKeyboardNavigation({
         selectedDrawingId: null,

@@ -94,24 +94,38 @@ export function useObjectSelection({
   sendMessage,
 }: UseObjectSelectionOptions): UseObjectSelectionResult {
   const serverEntry = snapshot?.selectionState?.[uid] ?? null;
+  // Order is semantic: the final ID is the primary selected object.
+  const serverEntryKey = JSON.stringify([serverEntry?.mode ?? null, entryToIds(serverEntry)]);
   const [optimisticEntry, setOptimisticEntry] = useState<SelectionStateEntry | null>(null);
   // A deselect is optimistic too: `optimisticEntry = null` alone falls back
   // to the server's entry, which stays until the `deselect-object` round trip
   // lands — and a movement key in that window stepped the piece the player
   // had just stopped selecting (F4's review, round 3).
-  const [cleared, setCleared] = useState(false);
+  const [pendingClear, setPendingClear] = useState<{ uid: string; entryKey: string } | null>(null);
 
-  // Clear optimistic state once the authoritative snapshot catches up
+  // A fresh copy of the same selection is not confirmation of a deselect.
+  // A missing snapshot is also not authoritative empty selection state.
+  useEffect(() => {
+    if (
+      pendingClear &&
+      (pendingClear.uid !== uid || (snapshot && pendingClear.entryKey !== serverEntryKey))
+    ) {
+      setPendingClear(null);
+    }
+  }, [pendingClear, serverEntryKey, snapshot, uid]);
+
+  // Preserve the existing synchronization policy for positive selections.
   useEffect(() => {
     logSelectionDebug(
       "[useObjectSelection] serverEntry changed, clearing optimistic state. serverEntry:",
       serverEntry,
     );
     setOptimisticEntry(null);
-    setCleared(false);
   }, [serverEntry]);
 
-  const activeEntry = cleared ? null : (optimisticEntry ?? serverEntry);
+  const clearStillApplies =
+    pendingClear?.uid === uid && (!snapshot || pendingClear.entryKey === serverEntryKey);
+  const activeEntry = clearStillApplies ? null : (optimisticEntry ?? serverEntry);
   const selectedObjectIds = useMemo(() => entryToIds(activeEntry), [activeEntry]);
   const selectedObjectId = useMemo(() => {
     if (!activeEntry) {
@@ -131,7 +145,7 @@ export function useObjectSelection({
         }
         logSelectionDebugWithStack("[useObjectSelection] selectObject(null) called - deselecting");
         setOptimisticEntry(null);
-        setCleared(true);
+        setPendingClear({ uid, entryKey: serverEntryKey });
         sendMessage({ t: "deselect-object", uid });
         return;
       }
@@ -140,11 +154,11 @@ export function useObjectSelection({
         return;
       }
 
-      setCleared(false);
+      setPendingClear(null);
       setOptimisticEntry({ mode: "single", objectId });
       sendMessage({ t: "select-object", uid, objectId });
     },
-    [activeEntry, sendMessage, uid],
+    [activeEntry, sendMessage, serverEntryKey, uid],
   );
 
   const deselect = useCallback(() => {
@@ -153,13 +167,12 @@ export function useObjectSelection({
     }
     logSelectionDebugWithStack("[useObjectSelection] deselect() called");
     setOptimisticEntry(null);
-    setCleared(true);
+    setPendingClear({ uid, entryKey: serverEntryKey });
     sendMessage({ t: "deselect-object", uid });
-  }, [activeEntry, sendMessage, uid]);
+  }, [activeEntry, sendMessage, serverEntryKey, uid]);
 
   const selectMultiple = useCallback(
     (objectIds: string[], mode: SelectionMode = "replace") => {
-      setCleared(false);
       logSelectionDebug("[useObjectSelection] selectMultiple called:", objectIds, "mode:", mode);
       const currentIds = entryToIds(activeEntry);
       const normalizedIncoming = normalizeIds(objectIds);
@@ -197,6 +210,7 @@ export function useObjectSelection({
         return;
       }
 
+      setPendingClear(null);
       if (nextIds.length === 0) {
         logSelectionDebugWithStack("[useObjectSelection] nextIds is empty - deselecting");
         setOptimisticEntry(null);

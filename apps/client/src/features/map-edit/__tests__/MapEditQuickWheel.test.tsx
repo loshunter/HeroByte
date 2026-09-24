@@ -1,10 +1,11 @@
 // Quick-wheel behaviour (P5): 8 menu items, tool picks dispatch and close,
 // brush picks arm the family (re-arming Paint when the active tool doesn't
 // consume it) and feed the deck's recents, and Escape closes the WHEEL
-// without reaching the window-level tool-closing listener.
+// without leaving the underlying map tool.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { useToolMode } from "../../../hooks/useToolMode";
 
 vi.mock("../brushThumbnails", () => ({
   peekBrushThumbnail: () => null,
@@ -81,19 +82,16 @@ describe("MapEditQuickWheel", () => {
     expect(props.onSelectSubTool).toHaveBeenCalledWith("room");
   });
 
-  it("Escape closes the wheel and never reaches bubble-phase listeners", () => {
-    const bubbleSpy = vi.fn();
-    window.addEventListener("keydown", bubbleSpy);
-    try {
-      const props = renderWheel();
-      fireEvent.keyDown(window, { key: "Escape" });
-      expect(props.onClose).toHaveBeenCalled();
-      // The capture-phase handler swallowed it before useToolMode-style
-      // bubble listeners could close the whole tool.
-      expect(bubbleSpy).not.toHaveBeenCalled();
-    } finally {
-      window.removeEventListener("keydown", bubbleSpy);
-    }
+  it("Escape closes the wheel without exiting the real underlying map tool", () => {
+    const tool = renderHook(() => useToolMode());
+    act(() => tool.result.current.setActiveTool("map-edit"));
+    const props = renderWheel();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    fireEvent(window, escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+    expect(tool.result.current.activeTool).toBe("map-edit");
+    expect(props.onSelectSubTool).not.toHaveBeenCalled();
   });
 
   it("clicking the backdrop closes without dispatching", () => {
