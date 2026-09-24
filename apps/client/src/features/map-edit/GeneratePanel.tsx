@@ -18,6 +18,7 @@ interface GeneratePanelProps {
   onGenerate: () => void;
   canGenerate: boolean;
   busy: boolean;
+  feedback?: import("./useGenerateOutcome").GenerateFeedback;
   /** The dragged region in cells, or null before the first drag. */
   region: { cols: number; rows: number } | null;
   /** Why GENERATE is refused, or null. Absent region is covered by the label. */
@@ -40,6 +41,7 @@ export function GeneratePanel({
   onGenerate,
   canGenerate,
   busy,
+  feedback,
   region,
   hint,
 }: GeneratePanelProps) {
@@ -125,6 +127,25 @@ export function GeneratePanel({
         >
           {hint}
         </p>
+      )}
+
+      {feedback?.recovery && (
+        <div style={{ display: "grid", gap: "6px", marginTop: "6px" }}>
+          <JRPGButton
+            onClick={feedback.recovery.refresh}
+            disabled={feedback.recovery.refreshing}
+            style={cell}
+          >
+            {feedback.recovery.refreshing ? "Refreshing…" : "Refresh map"}
+          </JRPGButton>
+          <JRPGButton
+            onClick={feedback.recovery.acknowledge}
+            disabled={!feedback.recovery.canAcknowledge}
+            style={cell}
+          >
+            I&apos;ve checked the map
+          </JRPGButton>
+        </div>
       )}
 
       {/* Say it out loud rather than let a DM wonder where the option went — or

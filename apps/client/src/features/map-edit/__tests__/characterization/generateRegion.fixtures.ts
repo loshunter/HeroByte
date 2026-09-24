@@ -1,3 +1,4 @@
+import { createMapOperation } from "../../../map-studio/mapOperation";
 // Run the baseline describe independently before extracting its private helpers.
 import { vi } from "vitest";
 import { renderHook } from "@testing-library/react";
@@ -31,7 +32,7 @@ export function document(grid: Partial<MapDocument["grid"]> = {}): MapDocument {
 }
 
 export function setup(doc = document()) {
-  const generate = vi.fn();
+  const generate = vi.fn(() => createMapOperation(doc.id).handle);
   const controller = {
     activeDocument: doc,
     saving: false,

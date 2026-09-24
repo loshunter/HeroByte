@@ -341,11 +341,11 @@ describe("map-studio-generate contracts", () => {
     expect(errors[0]).toMatchObject({
       commandId: "gen-ghost",
       documentId: "ghost",
-      code: "command-rejected",
+      code: "command-not-applied",
     });
   });
 
-  it("surfaces a resolver failure (locked walls layer) as a command-rejected error", () => {
+  it("certifies a fresh resolver failure (locked walls layer) as not applied", () => {
     createLiveDoc();
     route(
       {
@@ -366,8 +366,12 @@ describe("map-studio-generate contracts", () => {
 
     const errors = messagesOf(dmWs, "map-studio-error") as unknown as Array<{
       commandId: string;
+      code: string;
       reason: string;
     }>;
+    expect(errors).toEqual([
+      expect.objectContaining({ commandId: "gen-locked", code: "command-not-applied" }),
+    ]);
     expect(errors.some((e) => e.commandId === "gen-locked" && /locked/.test(e.reason))).toBe(true);
   });
 
@@ -497,7 +501,7 @@ describe("map-studio-generate contracts", () => {
       reason: string;
     }>;
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatchObject({ commandId: "gen-heavy", code: "command-rejected" });
+    expect(errors[0]).toMatchObject({ commandId: "gen-heavy", code: "command-not-applied" });
     expect(errors[0]?.reason).toMatch(/\d\.\d\d MB/);
     // A defined scene with NO walls — an absent scene would satisfy `?? []`.
     expect(roomService.getState().compiledScene).toBeDefined();

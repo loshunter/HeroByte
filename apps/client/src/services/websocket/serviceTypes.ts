@@ -1,4 +1,4 @@
-import type { RoomSnapshot, MeasureEvent, ServerMessage } from "@herobyte/shared";
+import type { RoomSnapshot, MeasureEvent, ServerMessage, ClientMessage } from "@herobyte/shared";
 import type { SignalData } from "simple-peer";
 import type { AuthEvent } from "./AuthenticationManager";
 import type { ConnectionState } from "./ConnectionLifecycleManager";
@@ -49,9 +49,10 @@ export interface WebSocketServiceConfig {
   /** Someone's live measurement (S6). Ephemeral — never part of a snapshot. */
   onMeasure?: (measure: MeasureEvent) => void;
   /** A RELIABLE command (one carrying a commandId) was dropped for good —
-   * retries exhausted or the offline queue overflowed. The user's change did
-   * NOT reach the server; surface it (toast) instead of losing it to the
+   * retries exhausted or the offline queue overflowed. The user's change
+   * may have reached the server; surface uncertain completion instead of losing it to the
    * console. Fire-and-forget traffic (previews, heartbeats) never fires this. */
+  onCommandDelivery?: (event: CommandDeliveryEvent) => void;
   onCommandDropped?: (messageType: string, reason: string) => void;
   /**
    * Where the session token from `auth-ok` is kept between page loads and
@@ -70,3 +71,12 @@ export interface SessionTokenStore {
   read: (roomId: string | undefined) => string | undefined;
   write: (roomId: string | undefined, token: string) => void;
 }
+
+/** Delivery observations are not application success. */
+export type CommandDeliveryEvent =
+  | { type: "tracking-lost" }
+  | { type: "send-attempt"; message: ClientMessage }
+  | { type: "dropped"; message: ClientMessage; reason: string };
+export type RegisterCommandDelivery = (
+  handler: (event: CommandDeliveryEvent) => void,
+) => () => void;

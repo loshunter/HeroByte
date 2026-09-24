@@ -1,3 +1,5 @@
+import type { MapOperationHandle } from "./mapOperation";
+import type { MapRecoveryCallback } from "./mapRecovery";
 import type {
   ClientMessage,
   MapDocument,
@@ -118,7 +120,8 @@ export interface MapStudioController {
   canRedo: boolean;
   refresh: () => void;
   createDocument: (name: string, width?: number, height?: number) => string;
-  openDocument: (documentId: string) => void;
+  /** Optional recovery callback settles only for this GET, or its loss of tracking. */
+  openDocument: (documentId: string, onRecovery?: MapRecoveryCallback) => void;
   deleteDocument: (documentId: string) => void;
   updateLayer: (layerId: string, update: MapLayerUpdate) => void;
   moveLayer: (layerId: string, targetIndex: number) => void;
@@ -142,10 +145,10 @@ export interface MapStudioController {
   updateDoor: (elementId: string, update: { state: MapDoorState; width: number }) => void;
   /**
    * Run a server-side recipe over a region of the active document. The whole
-   * result lands as ONE undo step; `saving` is the pending state and `error`
-   * carries a rejection, exactly like every other action.
+   * result lands as ONE undo step. The returned handle belongs to this request
+   * and settles only on a matching application reply or an explicit loss of tracking.
    */
-  generate: (input: GenerateInput) => void;
+  generate: (input: GenerateInput) => MapOperationHandle;
   undo: () => void;
   redo: () => void;
   /**

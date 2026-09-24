@@ -1,3 +1,5 @@
+import type { CommandDeliveryEvent } from "../../../services/websocket/serviceTypes";
+import type { MapOperationHandle } from "../../../features/map-studio/mapOperation";
 import React from "react";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -38,7 +40,10 @@ afterEach(() => {
 });
 
 function setup() {
-  const send = vi.fn<(message: ClientMessage) => void>();
+  let delivery: ((event: CommandDeliveryEvent) => void) | undefined;
+  const send = vi.fn<(message: ClientMessage) => void>((message) =>
+    delivery?.({ type: "send-attempt", message }),
+  );
   let receive: (message: ServerMessage) => void = () => {
     throw new Error("No subscriber");
   };
@@ -67,6 +72,12 @@ function setup() {
     getAuthCredentials: () => ({ secret: "local-test" }),
     registerRtcHandler: vi.fn(),
     registerCommandDropHandler: vi.fn(),
+    registerCommandDelivery: (handler: (event: CommandDeliveryEvent) => void) => {
+      delivery = handler;
+      return () => {
+        if (delivery === handler) delivery = undefined;
+      };
+    },
     registerServerEventHandler: (handler: (message: ServerMessage) => void) => {
       receive = handler;
     },
@@ -139,5 +150,60 @@ describe("App map transport handoff before props extraction", () => {
       .filter((value) => value.t === "map-studio-generate");
     expect(requests).toHaveLength(2);
     expect(requests[1]).toBe(first);
+  });
+});
+
+describe("U3a App outcome and preview handoff", () => {
+  it("connects transport observation to the same controller handed to the layout", async () => {
+    const h = setup();
+    let handle!: MapOperationHandle;
+    act(() => {
+      if (!layout.mapStudio) throw new Error("Missing App controller");
+      handle = layout.mapStudio.generate({
+        recipe: "dungeon",
+        seed: 42,
+        bounds: { x: 0, y: 0, cols: 24, rows: 20 },
+        params: { theme: "stone", density: "medium" },
+      });
+    });
+    const request = h.send.mock.calls
+      .map(([message]) => message)
+      .find((message) => message.t === "map-studio-generate");
+    if (request?.t !== "map-studio-generate") throw new Error("No generation dispatched");
+    h.receive({
+      t: "map-studio-error",
+      commandId: request.commandId,
+      documentId: request.documentId,
+      code: "command-not-applied",
+      reason: "Walls locked",
+    });
+    await expect(handle.completion).resolves.toEqual({
+      status: "failed",
+      kind: "rejected",
+      reason: "Walls locked",
+    });
+  });
+
+  it("forwards the normalized aim but withholds it in Player View and after demotion", () => {
+    const h = setup();
+    h.state.snapshot = { ...h.state.snapshot, liveMapDocumentId: h.document.id };
+    h.rerender(<App />);
+    act(() => layout.setActiveTool("map-edit"));
+    act(() => layout.mapEditToolbarProps.onSelectSubTool("generate"));
+    act(() => layout.onMapEditRegionDragged({ x: 0, y: 0, width: 1200, height: 1000 }));
+    expect(layout.mapEditPersistentPreview?.generateRegion).toMatchObject({
+      documentId: h.document.id,
+      cells: { x: 0, y: 0, cols: 24, rows: 20 },
+    });
+    act(() => layout.onTogglePlayerLens?.(true));
+    expect(layout.mapEditPersistentPreview).toBeNull();
+    act(() => layout.onTogglePlayerLens?.(false));
+    expect(layout.mapEditPersistentPreview?.generateRegion).not.toBeNull();
+    h.state.snapshot = {
+      ...h.state.snapshot,
+      players: h.state.snapshot.players.map((player) => ({ ...player, isDM: false })),
+    };
+    h.rerender(<App />);
+    expect(layout.mapEditPersistentPreview?.generateRegion).toBeNull();
   });
 });

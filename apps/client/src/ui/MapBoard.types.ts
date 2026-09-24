@@ -64,9 +64,9 @@ export interface MapBoardProps {
   mapEditPlacementDials?: import("../features/map-edit/usePlacementDials").PlacementModifiers;
   mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind; // Spline tool curve kind
-  mapEditPopulateGhosts?:
-    | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
-    | null; // POPULATE's true draft footprints (P2 ghosts)
+  mapEditPersistentPreview?:
+    | import("../features/map-edit/MapEditPersistentPreview").MapEditPersistentPreview
+    | null; // POPULATE footprints and Generate's normalized target
   playerLens?: boolean; // P4: render the DM's view exactly as players receive it
   mapEditWheelActions?: import("../features/map-edit/mapEditTypes").MapEditWheelActions; // P5 quick wheel
   mapEditSelectedElementId?: string | null; // Selected element (select tool) → highlight

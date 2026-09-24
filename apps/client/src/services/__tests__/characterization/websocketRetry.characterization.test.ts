@@ -66,7 +66,7 @@ describe("WebSocketService retry and result-channel baseline", () => {
   });
 
   it.each(["ack", "nack"] as const)(
-    "transport %s stops retries without emitting an application control result",
+    "U3a: transport %s preserves the application-result boundary",
     (type) => {
       authenticate();
       service.send(generation);
@@ -75,21 +75,23 @@ describe("WebSocketService retry and result-channel baseline", () => {
       expect(socket.generationFrames()).toHaveLength(2);
       socket.receive({ t: type, commandId: generation.commandId });
       vi.advanceTimersByTime(10_000);
-      expect(socket.generationFrames()).toHaveLength(2);
-      expect(drop).not.toHaveBeenCalled();
+      expect(socket.generationFrames()).toHaveLength(type === "ack" ? 4 : 2);
+      if (type === "ack")
+        expect(drop).toHaveBeenCalledExactlyOnceWith("map-studio-generate", "retry-exhausted");
+      else expect(drop).not.toHaveBeenCalled();
       expect(control).not.toHaveBeenCalled();
       expect(snapshot).not.toHaveBeenCalled();
     },
   );
 
-  it("a correlated application refusal reaches control but does not itself retire transport retry", () => {
+  it("U3a: a correlated application refusal reaches control and retires its transport retry", () => {
     authenticate();
     service.send(generation);
     socket.receive(refusal);
     expect(control).toHaveBeenCalledOnce();
     expect(control).toHaveBeenCalledWith(refusal);
     vi.advanceTimersByTime(500);
-    expect(socket.generationFrames()).toEqual(Array(2).fill(JSON.stringify(generation)));
+    expect(socket.generationFrames()).toEqual([JSON.stringify(generation)]);
     expect(drop).not.toHaveBeenCalled();
     expect(snapshot).not.toHaveBeenCalled();
   });

@@ -107,8 +107,8 @@ export interface CenterCanvasLayoutProps {
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind;
-  mapEditPopulateGhosts?:
-    | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
+  mapEditPersistentPreview?:
+    | import("../features/map-edit/MapEditPersistentPreview").MapEditPersistentPreview
     | null;
   mapEditWheelActions?: import("../features/map-edit/mapEditTypes").MapEditWheelActions;
   /** Player lens (P4): render the DM's view as players receive it. */
@@ -212,7 +212,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditPlacementDials,
     mapEditHallwayWidth,
     mapEditSplineKind,
-    mapEditPopulateGhosts,
+    mapEditPersistentPreview,
     mapEditWheelActions,
     playerLens,
     mapEditSelectedElementId,
@@ -271,7 +271,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditPlacementDials={mapEditPlacementDials}
             mapEditHallwayWidth={mapEditHallwayWidth}
             mapEditSplineKind={mapEditSplineKind}
-            mapEditPopulateGhosts={mapEditPopulateGhosts}
+            mapEditPersistentPreview={mapEditPersistentPreview}
             mapEditWheelActions={mapEditWheelActions}
             mapEditSelectedElementId={mapEditSelectedElementId}
             mapEditController={mapStudio}

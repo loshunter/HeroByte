@@ -46,7 +46,7 @@ export function deriveMapTerrain(
 
 /** The duplicate-id abort a re-run generate produces once its dedupe entry ages out. */
 export const REPLAY_LANDED = new Error(
-  "That dungeon already generated — it is already on the map. Undo it if you want a different one.",
+  "This generation has already affected the map, but its complete result cannot be confirmed. Refresh and inspect the map before generating again.",
 );
 
 export function alreadyApplied(error: unknown): boolean {

@@ -27,6 +27,8 @@ export interface MessageQueueManagerConfig {
   /**
    * Callback invoked when a retry should be dispatched
    */
+  /** Called before each physical socket write, including buffered flushes. */
+  onBeforeSend?: (message: ClientMessage) => void;
   onRetryDispatch?: (message: ClientMessage) => void;
 
   /**

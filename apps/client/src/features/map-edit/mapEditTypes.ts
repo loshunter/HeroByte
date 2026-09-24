@@ -149,7 +149,8 @@ export interface MapEditToolbarProps {
   // REQUIRED, not optional: an optional forwarding prop can be deleted with a
   // green typecheck and every suite passing (M4b's mapStudio line, twice more
   // in the vision slice). Required makes a dropped mapping a compile error.
-  generateHint: string | null; // why GENERATE is refused, shown under the button
+  generateHint: string | null;
+  generateFeedback?: import("./useGenerateOutcome").GenerateFeedback; // why GENERATE is refused, shown under the button
   // --- Layers + inspector (select sub-tool) ---
   layers: MapLayer[];
   selectedElement: MapElement | null;

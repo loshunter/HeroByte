@@ -94,7 +94,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
     mapEditSplineKind,
-    mapEditPopulateGhosts,
+    mapEditPersistentPreview,
     mapEditWheelActions,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
@@ -198,7 +198,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             mapEditPlacementDials={mapEditToolbarProps}
             mapEditHallwayWidth={mapEditHallwayWidth}
             mapEditSplineKind={mapEditSplineKind}
-            mapEditPopulateGhosts={mapEditPopulateGhosts}
+            mapEditPersistentPreview={mapEditPersistentPreview}
             mapEditWheelActions={mapEditWheelActions}
             mapEditSelectedElementId={mapEditSelectedElementId}
             mapEditController={mapStudio}

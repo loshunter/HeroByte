@@ -244,6 +244,16 @@ succeeded and failed states using matching command outcomes; preserve the region
 after rejection, allow retry, and never mark another document's request as built.
 The report does **not** claim successful live-area generation from these rejected attempts.
 
+**2026-09-24 disposition:** the adopted U3a outcome/containment repair and final
+post-cap recovery-correlation repair are implemented locally. Strict regressions,
+six actual desktop/phone Generate journeys, all eight house gates and fresh boot
+pass. The original stale-broadcast finding was reproduced before repair with two
+DMs, FIFO-buffered outbound traffic and an observing player. The semantic changes
+were [accepted by the owner](interface-clarity-u3a-checkpoint.md) on 2026-09-24 for
+the local semantic commit and continuation to U3b;
+the capped review history remains 5 → 1 → 1, not a unanimous final PASS. This update
+does not change the original audit's evidence limits or mark U3b complete.
+
 Evidence: [contradictory result](interface-audit-2026-09-22/87-region-generated.png).
 Owners: `features/map-edit/useGenerate.ts`, `features/map-studio/useMapStudio.ts`,
 `apps/server/src/domains/generation/recipeContext.ts`.

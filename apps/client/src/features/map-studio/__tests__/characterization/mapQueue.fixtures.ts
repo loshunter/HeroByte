@@ -5,6 +5,7 @@ import { createMapDocument, type ClientMessage, type MapDocument } from "@heroby
 import * as uuid from "../../../../utils/uuid";
 import { useMapStudio } from "../../useMapStudio";
 import type { GenerateInput, MapStudioServerMessage } from "../../types";
+import type { RegisterCommandDelivery } from "../../mapOperation";
 
 afterEach(() => {
   cleanup();
@@ -47,7 +48,7 @@ function EffectReplayProbe({
 
 export function queueHarness(
   initialDocument: MapDocument | null = mapDocument(),
-  options: { strictMode?: boolean } = {},
+  options: { strictMode?: boolean; registerCommandDelivery?: RegisterCommandDelivery } = {},
 ) {
   let sequence = 0;
   const mint = vi.spyOn(uuid, "generateUUID").mockImplementation(() => `wire-${++sequence}`);
@@ -62,10 +63,13 @@ export function queueHarness(
         );
       }
     : undefined;
-  const hook = renderHook(({ connected }) => useMapStudio(send, undefined, connected), {
-    initialProps: { connected: true },
-    wrapper,
-  });
+  const hook = renderHook(
+    ({ connected }) => useMapStudio(send, undefined, connected, options.registerCommandDelivery),
+    {
+      initialProps: { connected: true },
+      wrapper,
+    },
+  );
   const receive = (message: MapStudioServerMessage) => {
     act(() => hook.result.current.handleServerMessage(message));
   };

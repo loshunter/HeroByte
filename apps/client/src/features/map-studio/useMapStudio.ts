@@ -1,3 +1,4 @@
+import type { RegisterCommandDelivery } from "./mapOperation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, MapDocument, MapDocumentSummary } from "@herobyte/shared";
 import { upsertMapDocumentSummary } from "./documentSummaries";
@@ -12,6 +13,7 @@ export function useMapStudio(
   sendMessage: (message: ClientMessage) => void,
   getAuthCredentials?: () => AssetUploadCredentials | null,
   isConnected?: boolean,
+  registerCommandDelivery?: RegisterCommandDelivery,
 ): MapStudioController {
   const [documents, setDocuments] = useState<MapDocumentSummary[]>([]);
   const [activeDocument, setActiveDocument] = useState<MapDocument | null>(null);
@@ -28,6 +30,7 @@ export function useMapStudio(
   // refusal is matched HERE, not through the single requestedDocumentId slot,
   // which moves on with a second click or the watchdog — and dropped the refusal.
   const pendingMintIds = useRef<Set<string>>(new Set());
+  const deletedDocumentIds = useRef(new Set<string>());
   // The panel's OWN list is tracked apart, so a silent reply never swallows its spinner.
   const explicitListPending = useRef(false);
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
@@ -42,6 +45,9 @@ export function useMapStudio(
   // The list/get/create/delete/publish/import requests and their loading
   // watchdog (split module, 350-LOC cap). Replies land in handleServerMessage.
   const {
+    handleRecoveryReply,
+    activateRecoveryDocument,
+    discardRecoveryDocument,
     refresh,
     createDocument,
     openDocument,
@@ -65,12 +71,20 @@ export function useMapStudio(
   const {
     applyMessage,
     applyCommand,
-    dispatchNextCommand,
-    removeMatchedCommand,
+    activateDocument,
+    handleRefusal,
     handleDocumentReply,
-    resetCommands,
+    deleteDocument: discardDocument,
+    isActive,
+    failRefresh,
     replayCommands,
-  } = useMapStudioQueue({ sendMessage, activeDocumentRef, setSaving, setError });
+  } = useMapStudioQueue({
+    sendMessage,
+    activeDocumentRef,
+    setSaving,
+    setError,
+    registerCommandDelivery,
+  });
 
   // Reconnect recovery: a socket drop can eat the reply to the in-flight
   // command, which would otherwise wedge the queue forever (nothing else
@@ -112,6 +126,7 @@ export function useMapStudio(
 
   const handleServerMessage = useCallback(
     (message: MapStudioServerMessage) => {
+      if (!isActive()) return;
       if (message.t === "map-studio-documents") {
         setDocuments(message.documents);
         readout.onListReply(message);
@@ -125,16 +140,24 @@ export function useMapStudio(
       }
 
       if (message.t === "map-studio-deleted") {
+        discardRecoveryDocument(message.documentId);
+        deletedDocumentIds.current.add(message.documentId);
         readout.onDeleted(message.documentId);
         setDocuments((current) => current.filter((document) => document.id !== message.documentId));
         setActiveDocument((current) => (current?.id === message.documentId ? null : current));
-        if (activeDocumentRef.current?.id === message.documentId) activeDocumentRef.current = null;
-        resetCommands();
-        setHistory({ canUndo: false, canRedo: false });
+        if (activeDocumentRef.current?.id === message.documentId) {
+          activeDocumentRef.current = null;
+          setHistory({ canUndo: false, canRedo: false });
+        }
+        discardDocument(message.documentId);
         return;
       }
 
       if (message.t === "map-studio-error") {
+        handleRecoveryReply(message);
+        if (message.code === "not-found" && message.commandId === `get:${message.documentId}`) {
+          failRefresh(message.documentId, message.reason);
+        }
         // A "not-found" for the document we are OPENING is a reply to the
         // get, not to a queued command; a REFUSED create or import (an empty
         // commandId — those messages carry none, so the router never nacks
@@ -159,21 +182,21 @@ export function useMapStudio(
           setError(message.reason);
           return;
         }
-        if (!removeMatchedCommand(message.commandId)) return;
+        const refusal = handleRefusal(message);
+        if (!refusal.matched || !refusal.current) return;
         // A real server response arrived, so any prior timeout is moot — don't
         // let a stale watchdog flag later clear THIS command/conflict error.
         watchdogFired.current = false;
         setError(message.reason);
-        if (message.code === "revision-conflict") {
+        if (refusal.refresh) {
           requestedDocumentId.current = message.documentId;
           sendMessage({ t: "map-studio-get", documentId: message.documentId });
-        } else {
-          dispatchNextCommand();
         }
         return;
       }
 
       const { document } = message;
+      if (deletedDocumentIds.current.has(document.id)) return;
       // A document that arrives is by definition not missing any more.
       setMissingDocumentId((current) => (current === document.id ? null : current));
       pendingMintIds.current.delete(document.id);
@@ -184,7 +207,9 @@ export function useMapStudio(
         activeDocumentRef.current?.id === document.id ||
         activeDocumentRef.current === null;
       if (shouldActivate) {
+        activateRecoveryDocument(document.id);
         activeDocumentRef.current = document;
+        activateDocument(document.id);
         setActiveDocument(document);
         // Clear ONLY a stale watchdog timeout error (a slow reply that timed out
         // then landed) — never a command/revision-conflict error the user must
@@ -200,13 +225,19 @@ export function useMapStudio(
         setLoading(false);
       }
       handleDocumentReply(document, message.appliedCommandId);
+      handleRecoveryReply(message);
     },
     [
-      dispatchNextCommand,
+      handleRecoveryReply,
+      activateRecoveryDocument,
+      discardRecoveryDocument,
+      activateDocument,
       handleDocumentReply,
       readout,
-      removeMatchedCommand,
-      resetCommands,
+      handleRefusal,
+      failRefresh,
+      discardDocument,
+      isActive,
       sendMessage,
     ],
   );

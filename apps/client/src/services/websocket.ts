@@ -169,6 +169,7 @@ export class WebSocketService {
       onAuthEvent: () => {},
       onControlMessage: () => {},
       onCommandDropped: () => {},
+      onCommandDelivery: () => {},
       onMeasure: () => {},
       ...config,
       // No store: the token lives for this page load only (see lastSessionToken).
@@ -193,7 +194,22 @@ export class WebSocketService {
       onRtcSignal: this.config.onRtcSignal,
       onAuthResponse: this.handleAuthResponse.bind(this),
       onConnectionClosing: this.handleConnectionClosing.bind(this),
-      onControlMessage: this.config.onControlMessage,
+      onControlMessage: (message) => {
+        const identity =
+          message.t === "map-studio-error"
+            ? message
+            : message.t === "map-studio-document" && message.appliedCommandId
+              ? { documentId: message.document.id, commandId: message.appliedCommandId }
+              : null;
+        if (identity) {
+          const retired = this.messageQueueManager.retireGeneration(
+            identity.documentId,
+            identity.commandId,
+          );
+          if (retired) this.commandAckManager.handleDrop(retired, "application-result");
+        }
+        this.config.onControlMessage(message);
+      },
       onDelta: (delta) => this.snapshotReconciler.applyDelta(delta),
       onPointerPreview: (pointer) => this.snapshotReconciler.applyPointerPreview(pointer),
       onDragPreview: (preview) => this.snapshotReconciler.applyDragPreview(preview),
@@ -203,22 +219,34 @@ export class WebSocketService {
       onHeartbeatAck: (timestamp) => this.heartbeatManager.recordHeartbeatAck(timestamp),
       onAck: (commandId) => {
         this.commandAckManager.handleAck(commandId);
-        this.messageQueueManager.handleCommandResult(commandId);
+        this.messageQueueManager.handleCommandResult(commandId, true);
       },
       onNack: (commandId, reason) => {
         this.commandAckManager.handleNack(commandId, reason);
-        this.messageQueueManager.handleCommandResult(commandId);
+        const message = this.messageQueueManager.handleCommandResult(commandId);
+        if (message) {
+          if (message.t === "map-studio-generate") {
+            this.messageQueueManager.retireGeneration(message.documentId, message.commandId);
+          }
+          this.config.onCommandDelivery({
+            type: "dropped",
+            message,
+            reason: reason ?? "transport-refusal",
+          });
+        }
       },
     });
 
     // Initialize MessageQueueManager (independent)
     this.messageQueueManager = new MessageQueueManager({
       maxQueueSize: 200,
+      onBeforeSend: (message) => this.config.onCommandDelivery({ type: "send-attempt", message }),
       onQueueOverflow: (message, queueSize) => {
         console.warn(
           `[WebSocket] Queue overflow detected (length=${queueSize}) dropping message type=${message.t}`,
         );
         this.commandAckManager.handleDrop(message, "queue-overflow");
+        this.config.onCommandDelivery({ type: "dropped", message, reason: "queue-overflow" });
         if (message.commandId) this.config.onCommandDropped(message.t, "queue-overflow");
       },
       onRetryDispatch: (message) => {
@@ -226,6 +254,7 @@ export class WebSocketService {
       },
       onRetryExhausted: (message) => {
         this.commandAckManager.handleDrop(message, "retry-exhausted");
+        this.config.onCommandDelivery({ type: "dropped", message, reason: "retry-exhausted" });
         if (message.commandId) this.config.onCommandDropped(message.t, "retry-exhausted");
       },
     });

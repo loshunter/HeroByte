@@ -1021,7 +1021,7 @@ type ClientMessagePayload =
   // Map Studio authoring (DM-only; kept separate from live RoomSnapshot)
   | { t: "map-studio-list" }
   | { t: "map-studio-create"; document: CreateMapDocumentInput }
-  | { t: "map-studio-get"; documentId: string }
+  | { t: "map-studio-get"; documentId: string; requestId?: string }
   | { t: "map-studio-command"; command: MapStudioCommand }
   | { t: "map-studio-delete"; documentId: string }
   | { t: "map-studio-import"; document: MapDocument } // Restore a serialized JSON backup as a new document
@@ -1266,6 +1266,8 @@ export type ServerMessage =
   | {
       t: "map-studio-document";
       document: MapDocument;
+      /** Echoed only on the requesting DM's correlated GET reply, never a broadcast. */
+      requestId?: string;
       appliedCommandId?: string;
       history?: { canUndo: boolean; canRedo: boolean };
       /**
@@ -1288,11 +1290,12 @@ export type ServerMessage =
       t: "map-studio-error";
       commandId: string;
       documentId: string;
+      requestId?: string;
       // "not-found": a get/open targeted a document the server no longer has
       // (e.g. an ephemeral maps store reset under a room that kept its live
       // binding) — the client clears the load and offers a fresh start
       // instead of re-fetching the dangling id forever.
-      code: "revision-conflict" | "command-rejected" | "not-found";
+      code: "revision-conflict" | "command-rejected" | "command-not-applied" | "not-found";
       reason: string;
       actualRevision?: number;
     }

@@ -35,6 +35,7 @@ export function useMapEditState({
   roomGridSize,
   hasRasterBackground,
   notifyError,
+  dismissError,
 }: UseMapEditStateOptions): UseMapEditStateReturn {
   const [activeSubTool, setActiveSubTool] = useState<MapEditSubTool>("wall");
   const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
@@ -104,11 +105,19 @@ export function useMapEditState({
   // focus is usually on the canvas. Fires once per error: the controller resets
   // error to null before each command, so a recurring failure re-toasts.
   const lastError = useRef<string | null>(null);
+  const errorNotification = useRef<string | null>(null);
   useEffect(() => {
     const err = controller.error;
-    if (err && err !== lastError.current && mapEditMode) notifyError?.(err);
+    if (err !== lastError.current && errorNotification.current) {
+      dismissError?.(errorNotification.current);
+      errorNotification.current = null;
+    }
+    if (err && err !== lastError.current && mapEditMode) {
+      const id = notifyError?.(err);
+      if (typeof id === "string") errorNotification.current = id;
+    }
     lastError.current = err;
-  }, [controller.error, mapEditMode, notifyError]);
+  }, [controller.error, mapEditMode, notifyError, dismissError]);
 
   const startLiveMap = useCallback(() => {
     if (awaitingLiveBind) return; // a create/bind is already in flight
@@ -255,6 +264,7 @@ export function useMapEditState({
     canGenerate: generate.canGenerate,
     generateRegion: generate.region,
     generateHint: generate.hint,
+    generateFeedback: generate.feedback,
     saving: controller.saving,
     layers: activeDocument?.layers ?? [],
     selectedElement,
@@ -277,7 +287,10 @@ export function useMapEditState({
     hallwayWidth,
     splineKind,
     onRegionPlaced: populate.onRegionPlaced,
-    populateGhosts: populate.previewGhosts,
+    persistentPreview: {
+      populateGhosts: populate.previewGhosts,
+      generateRegion: isDM ? generate.preview : null,
+    },
     wheelActions,
     onRegionDragged: generate.onRegionDragged,
     selectedElementId,

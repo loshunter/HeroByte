@@ -133,10 +133,10 @@ export interface MainLayoutProps {
   mapEditHallwayWidth: number;
   /** Curve kind the spline tool authors (optional: defaults to rope). */
   mapEditSplineKind?: import("../../features/map-edit/mapEditTypes").MapEditSplineKind;
-  /** POPULATE's true draft footprints while a region is armed (P2 ghosts;
+  /** POPULATE footprints and Generate's normalized target while a region is armed;
    * optional so the layout fixtures stay untouched). */
-  mapEditPopulateGhosts?:
-    | import("../../features/map-edit/useMapEditPlacement").PlacementGhost[]
+  mapEditPersistentPreview?:
+    | import("../../features/map-edit/MapEditPersistentPreview").MapEditPersistentPreview
     | null;
   /** Quick-wheel dispatch pair (P5; optional — fixtures untouched). */
   mapEditWheelActions?: import("../../features/map-edit/mapEditTypes").MapEditWheelActions;

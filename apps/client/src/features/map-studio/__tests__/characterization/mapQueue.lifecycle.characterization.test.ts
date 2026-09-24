@@ -2,8 +2,8 @@ import { act } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { generation, mapDocument, queueHarness, wireId } from "./mapQueue.fixtures";
 
-describe("map queue lifecycle before U3a outcomes", () => {
-  it("BASELINE BUG: deleting an unrelated document clears sent and unsent tracking", () => {
+describe("map queue lifecycle (baseline pinned before U3a; intentional repairs below)", () => {
+  it("U3a: deleting an unrelated document preserves sent and unsent tracking and history", () => {
     const h = queueHarness();
     h.receive({
       t: "map-studio-document",
@@ -14,18 +14,24 @@ describe("map queue lifecycle before U3a outcomes", () => {
       h.result.current.generate(generation);
       h.result.current.updateGrid({ size: 60 });
     });
-    const first = wireId(h.command());
+    const first = h.command();
     h.receive({ t: "map-studio-deleted", documentId: "unrelated-map" });
     expect(h.result.current.activeDocument?.id).toBe("doc-a");
-    expect(h.result.current.saving).toBe(false);
-    expect(h.result.current.canUndo).toBe(false);
-    expect(h.result.current.canRedo).toBe(false);
+    expect(h.result.current.saving).toBe(true);
+    expect(h.result.current.canUndo).toBe(true);
+    expect(h.result.current.canRedo).toBe(true);
     h.connection(false);
     h.connection(true);
-    h.refuse(first);
-    expect(h.result.current.error).toBeNull();
-    expect(h.commands()).toHaveLength(1);
-    expect(h.mint).toHaveBeenCalledTimes(1);
+    expect(h.command(1)).toBe(first);
+    h.refuse(wireId(first));
+    expect(h.command(2)).toMatchObject({
+      t: "map-studio-command",
+      command: { type: "update-grid", documentId: "doc-a" },
+    });
+    expect(h.commands()).toHaveLength(3);
+    expect(h.mint).toHaveBeenCalledTimes(2);
+    h.documentFrame(mapDocument("doc-a", 4), wireId(h.command(2)));
+    expect(h.result.current.saving).toBe(false);
   });
 
   it("the unsent entry has no wire ID until dispatch, including across reconnect replay", () => {
@@ -62,7 +68,7 @@ describe("map queue lifecycle before U3a outcomes", () => {
     expect(h.result.current.error).toBeNull();
   });
 
-  it("BASELINE RULE: reconnect dispatches the conflict successor without awaiting the requested document", () => {
+  it("U3a: reconnect refreshes before dispatching the conflict successor", () => {
     const h = queueHarness();
     act(() => {
       h.result.current.updateGrid({ size: 60 });
@@ -72,6 +78,9 @@ describe("map queue lifecycle before U3a outcomes", () => {
     expect(h.commands()).toHaveLength(1);
     h.connection(false);
     h.connection(true);
+    expect(h.commands()).toHaveLength(1);
+    expect(h.mint).toHaveBeenCalledTimes(1);
+    h.documentFrame(mapDocument("doc-a", 5));
     expect(h.commands()).toHaveLength(2);
     expect(h.command(1)).toMatchObject({ t: "map-studio-generate", commandId: "wire-2" });
     expect(h.mint).toHaveBeenCalledTimes(2);
@@ -121,7 +130,7 @@ describe("map queue lifecycle before U3a outcomes", () => {
     expect(h.effectLifecycle.cleanup).toHaveBeenCalledTimes(1);
   });
 
-  it("BASELINE BUG: unmount does not dispose the queue; a retained reply callback can still dispatch", () => {
+  it("U3a: unmount makes retained reply callbacks inert immediately", () => {
     const h = queueHarness();
     act(() => {
       h.result.current.generate(generation);
@@ -138,10 +147,7 @@ describe("map queue lifecycle before U3a outcomes", () => {
         appliedCommandId: first,
       }),
     );
-    expect(h.commands()).toHaveLength(2);
-    expect(h.command(1)).toMatchObject({
-      t: "map-studio-command",
-      command: { commandId: "wire-2", baseRevision: 4 },
-    });
+    expect(h.commands()).toHaveLength(1);
+    expect(h.mint).toHaveBeenCalledTimes(1);
   });
 });

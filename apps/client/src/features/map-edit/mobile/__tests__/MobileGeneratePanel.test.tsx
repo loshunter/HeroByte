@@ -119,3 +119,67 @@ describe("GENERATE on a phone", () => {
     expect(screen.getByText(/No secret doors/i)).toBeInTheDocument();
   });
 });
+
+describe("Generate operation feedback on a phone", () => {
+  it("separates its own pending operation from an unrelated map edit", () => {
+    const view = render(
+      <MobileGeneratePanel
+        {...bag({
+          saving: true,
+          canGenerate: false,
+          generateFeedback: { status: "idle", recovery: null },
+        })}
+      />,
+    );
+    expect(generateButton()).toHaveTextContent("Working");
+    expect(generateButton()).not.toHaveTextContent("Generating");
+    view.rerender(
+      <MobileGeneratePanel
+        {...bag({
+          saving: true,
+          canGenerate: false,
+          generateFeedback: { status: "pending", recovery: null },
+        })}
+      />,
+    );
+    expect(generateButton()).toHaveTextContent("Generating");
+  });
+
+  it("keeps recovery explicit, reports uncertainty, and never uses inspection as Generate", () => {
+    const refresh = vi.fn();
+    const acknowledge = vi.fn();
+    const onGenerate = vi.fn();
+    const recovery = { refreshing: false, canAcknowledge: false, refresh, acknowledge };
+    const props = bag({
+      canGenerate: false,
+      onGenerate,
+      generateHint: "Completion unconfirmed. Refresh this map and inspect the result.",
+      generateFeedback: { status: "failed", recovery },
+    });
+    const view = render(<MobileGeneratePanel {...props} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Completion unconfirmed");
+    const inspect = () => screen.getByRole("button", { name: "I've checked the map" });
+    expect(inspect()).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh map" }));
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(onGenerate).not.toHaveBeenCalled();
+    view.rerender(
+      <MobileGeneratePanel
+        {...props}
+        generateFeedback={{ status: "failed", recovery: { ...recovery, refreshing: true } }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Refreshing…" })).toBeDisabled();
+    expect(inspect()).toBeDisabled();
+    view.rerender(
+      <MobileGeneratePanel
+        {...props}
+        generateFeedback={{ status: "failed", recovery: { ...recovery, canAcknowledge: true } }}
+      />,
+    );
+    fireEvent.click(inspect());
+    expect(acknowledge).toHaveBeenCalledOnce();
+    expect(onGenerate).not.toHaveBeenCalled();
+    expect(generateButton()).toBeDisabled();
+  });
+});

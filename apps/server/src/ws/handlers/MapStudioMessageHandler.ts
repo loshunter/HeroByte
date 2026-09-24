@@ -89,6 +89,7 @@ export class MapStudioMessageHandler {
             t: "map-studio-document",
             document: this.service.get(roomId, message.documentId),
             history: this.service.historyStatus(roomId, message.documentId),
+            ...(message.requestId === undefined ? {} : { requestId: message.requestId }),
           });
         } catch (error) {
           if (!(error instanceof MapDocumentNotFoundError)) throw error;
@@ -98,6 +99,7 @@ export class MapStudioMessageHandler {
             documentId: message.documentId,
             code: "not-found",
             reason: error.message,
+            ...(message.requestId === undefined ? {} : { requestId: message.requestId }),
           });
         }
         break;
@@ -142,7 +144,8 @@ export class MapStudioMessageHandler {
               ),
             recompileLiveScene: (room, previous, document) =>
               this.recompileLiveScene(room, previous, document),
-            sendCommandError: (uid, command, error) => this.sendCommandError(uid, command, error),
+            sendCommandError: (uid, command, error, code) =>
+              this.sendCommandError(uid, command, error, code),
             weighMint: (room, uid, candidate) =>
               mintOverflowWith(this.mintDeps, room, uid, candidate),
           },
@@ -318,13 +321,14 @@ export class MapStudioMessageHandler {
     senderUid: string,
     command: { commandId: string; documentId: string },
     error: unknown,
+    code?: "command-not-applied",
   ): void {
     const conflict = error instanceof MapDocumentRevisionConflictError;
     this.sendMessage(senderUid, {
       t: "map-studio-error",
       commandId: command.commandId,
       documentId: command.documentId,
-      code: conflict ? "revision-conflict" : "command-rejected",
+      code: conflict ? "revision-conflict" : (code ?? "command-rejected"),
       reason: error instanceof Error ? error.message : "Map command was rejected",
       actualRevision: conflict ? error.actualRevision : undefined,
     });

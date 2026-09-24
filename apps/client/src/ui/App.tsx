@@ -95,6 +95,7 @@ export const App: React.FC = () => {
     registerRtcHandler,
     registerServerEventHandler,
     registerCommandDropHandler,
+    registerCommandDelivery,
   } = useWebSocket({
     url: WS_URL,
     uid,
@@ -128,6 +129,7 @@ export const App: React.FC = () => {
         registerRtcHandler={registerRtcHandler}
         registerServerEventHandler={registerServerEventHandler}
         registerCommandDropHandler={registerCommandDropHandler}
+        registerCommandDelivery={registerCommandDelivery}
         isConnected={isConnected}
         authState={authState}
       />
@@ -144,6 +146,7 @@ function AuthenticatedApp({
   registerRtcHandler,
   registerServerEventHandler,
   registerCommandDropHandler,
+  registerCommandDelivery,
   isConnected,
   authState,
 }: AuthenticatedAppProps): JSX.Element {
@@ -227,14 +230,13 @@ function AuthenticatedApp({
   const toast = useToast();
 
   // A reliable command was dropped for good (retries exhausted or the offline
-  // queue overflowed): the change never reached the server. Without this it
+  // queue overflowed): completion is unconfirmed. Without this it
   // only ever showed in the console, so the user kept playing on a silently
   // stale table.
   useEffect(() => {
-    registerCommandDropHandler((messageType, reason) => {
+    registerCommandDropHandler(() => {
       toast.error(
-        `A change (${messageType}) could not reach the server (${reason}). ` +
-          `The table may be out of date — reload if things look stale.`,
+        "A change could not be confirmed. Refresh and inspect the table before repeating it.",
       );
     });
   }, [registerCommandDropHandler, toast]);
@@ -328,7 +330,12 @@ function AuthenticatedApp({
   } = useDiceRolling({ snapshot, sendMessage, uid, isDM });
 
   // Server event handlers (room password, DM elevation)
-  const mapStudio = useMapStudio(sendMessage, getAuthCredentials, isConnected);
+  const mapStudio = useMapStudio(
+    sendMessage,
+    getAuthCredentials,
+    isConnected,
+    registerCommandDelivery,
+  );
   // Live on-table map authoring: drives the ONE controller above (never a second
   // useMapStudio — two queues would revision-conflict).
   const mapEdit = useMapEditState({
@@ -342,6 +349,7 @@ function AuthenticatedApp({
     roomGridSize: snapshot?.gridSize ?? 50,
     hasRasterBackground: Boolean(snapshot?.mapBackground),
     notifyError: toast.error,
+    dismissError: toast.dismiss,
   });
   // A gesture whose commit was skipped mid-command. Same toast channel as a
   // rejected room, throttled — see useDroppedGestureNotice for why.
@@ -782,7 +790,7 @@ function AuthenticatedApp({
     mapEditSelectedAssetId: mapEdit.selectedAssetId,
     mapEditHallwayWidth: mapEdit.hallwayWidth,
     mapEditSplineKind: mapEdit.splineKind,
-    mapEditPopulateGhosts: mapEdit.populateGhosts,
+    mapEditPersistentPreview: playerLens ? null : mapEdit.persistentPreview,
     mapEditWheelActions: mapEdit.wheelActions,
     mapEditSelectedElementId: mapEdit.selectedElementId,
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,

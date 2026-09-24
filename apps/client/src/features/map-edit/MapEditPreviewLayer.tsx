@@ -1,3 +1,5 @@
+import { GenerateRegionPreview } from "./GenerateRegionPreview";
+import type { MapEditPersistentPreview } from "./MapEditPersistentPreview";
 // ============================================================================
 // MAP-EDIT PREVIEW LAYER
 // ============================================================================
@@ -55,6 +57,7 @@ interface MapEditPreviewLayerProps {
   placementGhost?: PlacementGhost | null;
   /** True-result draft footprints (scatter cluster, populate preview). */
   draftGhosts?: PlacementGhost[];
+  persistentPreview?: MapEditPersistentPreview | null;
   /** Highlight footprint around the selected element (select sub-tool). */
   selectionShape?: SelectionShape | null;
   /** Armed spline curve kind — the drag paints the REAL splineDetail art. */
@@ -75,6 +78,7 @@ export function MapEditPreviewLayer({
   strokeCells = [],
   placementGhost = null,
   draftGhosts = [],
+  persistentPreview,
   selectionShape = null,
   splineKind = "rope",
   floorFamily,
@@ -100,6 +104,8 @@ export function MapEditPreviewLayer({
     strokeCells.length === 0 &&
     !placementGhost &&
     draftGhosts.length === 0 &&
+    !persistentPreview?.generateRegion &&
+    !persistentPreview?.populateGhosts?.length &&
     !selectionShape
   ) {
     return null;
@@ -113,7 +119,10 @@ export function MapEditPreviewLayer({
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
         {placementGhost && renderGhost(placementGhost, cam.scale)}
-        {draftGhosts.map((ghost, index) => (
+        {!previewDrag && activeSubTool === "generate" && persistentPreview?.generateRegion && (
+          <GenerateRegionPreview region={persistentPreview.generateRegion} scale={cam.scale} />
+        )}
+        {[...draftGhosts, ...(persistentPreview?.populateGhosts ?? [])].map((ghost, index) => (
           <Group key={index} listening={false}>
             {renderGhost(ghost, cam.scale)}
           </Group>

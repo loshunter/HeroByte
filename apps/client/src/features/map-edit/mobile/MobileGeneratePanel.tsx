@@ -1,35 +1,5 @@
-// GENERATE on a phone: aim a region on the canvas, set the dials here, fire.
-//
-// Split from MobileMapEditToolPanels from the start rather than after it
-// crosses the cap. This is the tallest panel and the only one with real
-// conditional logic, and the repo's rule is to extract before adding.
-//
-// The worry that Generate's "dials" would be miserable on a phone turned out
-// to be unfounded, and it is worth recording why rather than re-litigating it:
-// the desktop panel has NO numeric input. Theme is two chips, density is three,
-// and the seed is a read-only value with a reroll button — all of which are
-// already touch-shaped. What actually needed work was the REFUSAL.
-//
-// canGenerate is false for four distinct reasons (no region yet, under 20 cells
-// a side, over 16384 cells, or a command in flight) and until this slice the
-// button just sat dead for all of them. The one place the reason was ever
-// spoken was a toast inside onGenerate — unreachable, because the same
-// condition that produces the reason is what disables the button. So the hint
-// is rendered here, next to the control it explains.
-//
-// THREE of those four are answered here: the region label, and generateHint for
-// the two size problems. The fourth is answered by `saving`, and the label
-// deliberately reads "Working" rather than "Generating" — `saving` is true for
-// ANY queued command, so a wall drawn a moment earlier would otherwise make
-// this button announce a dungeon that is not being built. No field in the bag
-// means "this generate is in flight".
-//
-// `busy` is NOT that flag and never was: it is awaitingLiveBind || pendingLiveId
-// || loading, every disjunct of which is false by the time this panel can
-// render (it only renders once isLive). An earlier version of this file spelled
-// the in-flight state off `busy`, which was dead code.
-
-import React from "react";
+// Phone Generate uses its own request outcome; other map edits remain Working.
+import React, { useEffect, useRef } from "react";
 import type { MapEditToolbarProps, PopulateDensity } from "../mapEditTypes";
 import { MobileSwatchRow } from "./MobileSwatchRow";
 
@@ -52,8 +22,17 @@ export function MobileGeneratePanel({
   canGenerate,
   generateRegion,
   generateHint,
+  generateFeedback,
   saving,
 }: MapEditToolbarProps): JSX.Element {
+  const outcome = useRef<HTMLDivElement>(null);
+  const status = generateFeedback?.status;
+  useEffect(() => {
+    if (status && status !== "idle") {
+      // Keep the current result and recovery controls visible below a long palette.
+      outcome.current?.scrollIntoView?.({ block: "nearest", behavior: "instant" });
+    }
+  }, [status, generateHint]);
   return (
     <div className="mobile-tool-sheet__section" data-testid="mobile-generate-panel">
       <span className="mobile-tool-sheet__label">
@@ -92,21 +71,48 @@ export function MobileGeneratePanel({
         </div>
       </div>
 
-      <button
-        type="button"
-        className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
-        data-testid="mobile-generate-fire"
-        onClick={onGenerate}
-        disabled={!canGenerate}
-      >
-        {saving ? "⏳ Working…" : "🎲 Generate"}
-      </button>
+      <div ref={outcome}>
+        <button
+          type="button"
+          className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
+          data-testid="mobile-generate-fire"
+          onClick={onGenerate}
+          disabled={!canGenerate}
+        >
+          {generateFeedback?.status === "pending"
+            ? "⏳ Generating…"
+            : saving
+              ? "⏳ Working…"
+              : "🎲 Generate"}
+        </button>
 
-      {generateHint && (
-        <p className="mobile-tool-sheet__note" role="status" data-testid="mobile-generate-hint">
-          {generateHint}
-        </p>
-      )}
+        {generateHint && (
+          <p className="mobile-tool-sheet__note" role="status" data-testid="mobile-generate-hint">
+            {generateHint}
+          </p>
+        )}
+
+        {generateFeedback?.recovery && (
+          <div className="mobile-tool-sheet__section">
+            <button
+              type="button"
+              className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
+              onClick={generateFeedback.recovery.refresh}
+              disabled={generateFeedback.recovery.refreshing}
+            >
+              {generateFeedback.recovery.refreshing ? "Refreshing…" : "Refresh map"}
+            </button>
+            <button
+              type="button"
+              className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
+              onClick={generateFeedback.recovery.acknowledge}
+              disabled={!generateFeedback.recovery.canAcknowledge}
+            >
+              I&apos;ve checked the map
+            </button>
+          </div>
+        )}
+      </div>
 
       <p className="mobile-tool-sheet__note">
         No secret doors yet — generated ones are readable by players. Place those by hand with the

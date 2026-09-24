@@ -1,12 +1,16 @@
 # Interface clarity — the first session should teach the table — arc plan
 
-> **STATUS: U1 CHECKPOINT ACCEPTED — LOCAL EXECUTION CONTINUES — 2026-09-23.**
-> The owner approved the verified U1 post-cap record and continuation toward U2.
-> All five final review findings were repaired; the complete gate and four-client
-> live validation passed. This is owner acceptance of the capped record, not a fourth
-> formal review or unanimous final-review PASS. Commit U1 locally, repair the separate
-> generated-name collision, then execute U2. Remote pushes and production deployment
-> remain outside the execution authorization; the U3a checkpoint remains in force.
+> **STATUS: U3a VERIFIED AND OWNER-ACCEPTED; LOCAL COMMIT THEN U3b — 2026-09-24.**
+> U1 and U2 are locally committed following their recorded owner acceptance. U3a's
+> auth prerequisite and characterized extraction are committed; its semantic repair
+> remains uncommitted. Final review round 3 left one P2 recovery-correlation finding
+> (round counts 5 → 1 → 1). The authorized bounded repair now has strict behavioral
+> RED/GREEN evidence, six desktop/phone Generate journeys, all eight gates and fresh
+> boot PASS. [The verified owner checkpoint](../verification/interface-clarity-u3a-checkpoint.md)
+> records scope, evidence and choices. The owner's “acccepted” fulfills the
+> checkpoint; commit the verified semantic repair locally and proceed to U3b.
+> Do not start a fourth formal U3a review. Remote pushes,
+> main merge and production deployment remain outside the execution authorization.
 > Execution evidence: [interface-clarity-execution.md](../verification/interface-clarity-execution.md).
 > Audited checkout: `0007e517`. The current live record is `HANDOFF-NEXT.md` §0
 > (`main` deployed as `7f63156b`). Recheck symbols against the executor's checkout;

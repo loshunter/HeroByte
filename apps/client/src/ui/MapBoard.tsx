@@ -110,7 +110,7 @@ export default function MapBoard({
   mapEditPlacementDials,
   mapEditHallwayWidth = 2,
   mapEditSplineKind = "rope",
-  mapEditPopulateGhosts = null,
+  mapEditPersistentPreview = null,
   mapEditWheelActions,
   playerLens = false,
   mapEditSelectedElementId = null,
@@ -982,8 +982,8 @@ export default function MapBoard({
             gridOffsetY={mapEditController?.activeDocument?.grid.offsetY ?? 0}
             strokeCells={mapEditStrokeCells}
             placementGhost={mapEditPlacementGhost}
-            // Scatter cluster + armed POPULATE preview — both true-result drafts.
-            draftGhosts={[...mapEditDraftGhosts, ...(mapEditPopulateGhosts ?? [])]}
+            draftGhosts={mapEditDraftGhosts}
+            persistentPreview={mapEditPersistentPreview}
             selectionShape={mapEditSelectionRect}
             splineKind={mapEditSplineKind}
             floorFamily={mapEditFloorFamily}

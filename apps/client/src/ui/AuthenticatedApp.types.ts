@@ -1,3 +1,4 @@
+import type { RegisterCommandDelivery } from "../services/websocket/serviceTypes";
 import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
 import type { AuthState } from "../services/websocket";
 
@@ -11,6 +12,7 @@ export interface AuthenticatedAppProps {
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
   registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
   registerCommandDropHandler: (handler: (messageType: string, reason: string) => void) => void;
+  registerCommandDelivery?: RegisterCommandDelivery;
   isConnected: boolean;
   authState: AuthState;
 }

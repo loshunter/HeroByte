@@ -27,4 +27,16 @@ Live mode: **live-two-client**, Chromium desktop at 1440×900. Root inspected bo
 
 Raw evidence is in `output/interface-u3a-execution/hallway-hotkey-*`, including the reproduction, strict checks, focused run, two-client report, full gate report and boot record. Source remained unchanged during the full ladder. Scoped review outcomes are recorded in the execution ledger.
 
-This repair is separate from U3a's unresolved Generate recovery correlation finding. U3a remains uncommitted at its existing review-cap checkpoint; this fix neither accepts U3a nor starts U3b.
+This repair is separate from U3a's Generate recovery correlation finding. U3a's
+subsequent bounded repair is now verified and remains uncommitted pending its
+[owner checkpoint](interface-clarity-u3a-checkpoint.md); the hotkey fix neither
+accepts U3a nor starts U3b.
+
+**2026-09-24 count correction:** the earlier reported 9,957 above is retained as
+history. A read-only reconciliation found the omitted five-test summary at line 568
+of `hallway-hotkey-r1-gate-test.log`: `apps/client test: ·      Tests  5 passed (5)`.
+The old anchored parser missed the progress-dot prefix. All 84 actual client
+summaries total 6,782 passes, giving **9,962 passes / 4 existing skips** with server
+2,728 and shared 452. The eight-case increase over 9,954 is resolved. The raw old
+report is unchanged; this is a corrected batch aggregate, not a deduplicated
+per-file claim. Evidence: `output/interface-u3a-execution/postcap-unit-count-reconciliation.json`.

@@ -1,3 +1,4 @@
+import type { MapOperationHandle } from "./mapOperation";
 import { useCallback, useMemo, type MutableRefObject } from "react";
 import type {
   ClientMessage,
@@ -42,7 +43,7 @@ type CommandBody = DistributiveOmit<MapStudioCommand, "commandId" | "documentId"
 interface UseMapStudioActionsOptions {
   activeDocumentRef: MutableRefObject<MapDocument | null>;
   applyCommand: (build: CommandBuilder) => void;
-  applyMessage: (toMessage: MessageBuilder) => void;
+  applyMessage: (toMessage: MessageBuilder) => MapOperationHandle;
 }
 
 /**
@@ -172,14 +173,15 @@ export function useMapStudioActions({
    */
   const generate = useCallback(
     (input: GenerateInput) => {
-      applyMessage((document, commandId) => ({
+      const captured = structuredClone(input);
+      return applyMessage((document, commandId) => ({
         t: "map-studio-generate",
         documentId: document.id,
         commandId,
-        recipe: input.recipe,
-        seed: input.seed,
-        bounds: input.bounds,
-        params: input.params,
+        recipe: captured.recipe,
+        seed: captured.seed,
+        bounds: captured.bounds,
+        params: captured.params,
       }));
     },
     [applyMessage],

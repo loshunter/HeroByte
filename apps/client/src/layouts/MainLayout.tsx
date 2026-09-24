@@ -79,7 +79,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
     mapEditSplineKind,
-    mapEditPopulateGhosts,
+    mapEditPersistentPreview,
     mapEditWheelActions,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
@@ -306,7 +306,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapEditPlacementDials={mapEditToolbarProps}
         mapEditHallwayWidth={mapEditHallwayWidth}
         mapEditSplineKind={mapEditSplineKind}
-        mapEditPopulateGhosts={mapEditPopulateGhosts}
+        mapEditPersistentPreview={mapEditPersistentPreview}
         mapEditWheelActions={mapEditWheelActions}
         mapEditSelectedElementId={mapEditSelectedElementId}
         mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}

@@ -31,7 +31,9 @@ export interface UseMapEditStateOptions {
   /** True when the room still carries a raster background (double-draw hint). */
   hasRasterBackground: boolean;
   /** Surface a server-side map-studio error to the DM (e.g. a toast). */
-  notifyError?: (message: string) => void;
+  notifyError?: (message: string) => string | void;
+  /** Retire only the notification created for a superseded map error. */
+  dismissError?: (id: string) => void;
 }
 
 export interface UseMapEditStateReturn {
@@ -49,7 +51,7 @@ export interface UseMapEditStateReturn {
   /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
   onRegionPlaced: (bounds: RoomBounds) => void;
   /** POPULATE's true draft footprints while a region is armed (P2 ghosts). */
-  populateGhosts: import("./useMapEditPlacement").PlacementGhost[] | null;
+  persistentPreview: import("./MapEditPersistentPreview").MapEditPersistentPreview;
   /** Quick-wheel dispatch pair (P5) — stable identity. */
   wheelActions: import("./mapEditTypes").MapEditWheelActions;
   /** Record a generate drag's bounds as the recipe's target (fed to the tool). */

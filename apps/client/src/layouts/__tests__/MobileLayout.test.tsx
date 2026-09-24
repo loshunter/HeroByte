@@ -343,7 +343,7 @@ describe("MobileLayout", () => {
       "mapEditPlacementDials",
       "mapEditHallwayWidth",
       "mapEditSplineKind",
-      "mapEditPopulateGhosts",
+      "mapEditPersistentPreview",
       "mapEditWheelActions",
       "mapEditSelectedElementId",
       "mapEditController",

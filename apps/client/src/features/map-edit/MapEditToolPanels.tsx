@@ -45,7 +45,7 @@ export function MapEditToolPanels({
   canGenerate,
   generateRegion,
   generateHint,
-  busy,
+  generateFeedback,
   populateCategory,
   onSelectPopulateCategory,
   populateDensity,
@@ -99,7 +99,8 @@ export function MapEditToolPanels({
         onRerollSeed={onRerollSeed}
         onGenerate={onGenerate}
         canGenerate={canGenerate}
-        busy={busy}
+        busy={generateFeedback?.status === "pending"}
+        feedback={generateFeedback}
         region={generateRegion}
         hint={generateHint}
       />

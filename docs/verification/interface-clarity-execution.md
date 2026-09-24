@@ -20,9 +20,19 @@
   bounded remaining repair, verification and local U2 closeout before U3a. No fourth
   formal review or unanimous round-3 PASS is claimed. The bounded repair and full
   post-cap gate passed and U2 is locally committed as `7923c3de`.
-  U3a is active: queue and supporting extractions are implemented with focused parity
-  evidence below. Generate outcome behavior is not yet changed. U3b–U10 remain
-  unimplemented. Ignored preparation is not acceptance; the U3a checkpoint remains.
+  U3a is active: local auth repair `845d078c` and characterized extractions `42152fd3`
+  precede the implemented, uncommitted Generate outcome repair. Review round 1 found
+  five distinct issues, now repaired. A player-baseline synchronization error in the
+  phone E2E is also corrected. The fresh full ladder, boot and two-client Generate
+  journeys pass. Independent round 2's one queue interleaving finding is repaired;
+  the repeated full ladder and boot pass. Final round 3 left one P2 recovery finding.
+  The owner's 2026-09-24 continuation request authorizes the bounded post-cap repair
+  and verification. That repair now passes actual behavioral RED/GREEN checks, six
+  desktop/phone Generate journeys, the full eight gates and isolated fresh boot.
+  The owner accepted the [verified checkpoint](interface-clarity-u3a-checkpoint.md)
+  on 2026-09-24 with “acccepted.” The local semantic commit and U3b continuation
+  are authorized; no fourth formal U3a review will run.
+  U3b is next; U3b–U10 remain unimplemented. The U3a owner checkpoint is satisfied.
 - The September 22 audit is historical evidence; new acceptance results are recorded here.
 - The U2 history follow-up is repaired: recipient-scoped history feedback distinguishes
   ordinary Undo to an empty map from a table-wide Clear All. Its independent verification
@@ -1278,3 +1288,485 @@ remained `7923c3de`. `git diff --check` passed. Evidence:
 the frozen verification. Proceeding with the focused local auth repair and the
 characterized extraction commits; no remote delivery. U3a's actual outcome repair,
 new behavioral regressions, live evaluation and review are still outstanding.
+
+## U3a outcome repair — implementation and focused verification (active)
+
+Prerequisite commits are local: auth `845d078c`, extraction `42152fd3`. The actual
+repair was adopted only after behavioral RED tests against those extracted seams.
+Old-API client regressions: **12 RED, one ordinary-ACK control PASS** (13 cases),
+strict roots clean. These pin eager Built, repeated activation, document identity,
+containment, terminal-reply retirement and receipt-without-result recovery. Server:
+three baseline characterizations plus three ambiguity controls PASS; one fresh
+locked-layer positive-classification assertion RED. The first strict server probe
+found extensionless local fixture imports; corrected to `.js`, then all four strict
+roots passed and the same six PASS / one RED repeated. Minimal enqueue-time handle
+API compiled cleanly before nine queue outcomes failed behaviorally (four assertions,
+five unresolved-completion timeouts); missing imports were not counted as RED.
+
+The implementation keeps one controller queue and existing IDs. Entry-owned handles
+settle on matching document/command replies or explicit unsent/uncertain drops.
+Generate marks Built only on its own success; containment and persistent preview use
+the actual document. Fresh pre-apply refusals carry an added value in the existing
+error-code union, qualified by continuous send-attempt observation before permitting
+direct retry. Receipt ACK alone cannot stop Generate's existing bounded same-ID
+retries: a lost application result eventually becomes unconfirmed, requiring refresh
+and explicit inspection. No new queue or wire fields were added.
+
+First focused outcome run: **40 PASS** in eight files. Broader map-edit, preview,
+phone feedback, App handoff and prior characterizations: **572 PASS** in 66 files.
+Layout/transport/controller follow-up: **143 PASS** in three files (the requested
+App.test.tsx filter matched no file; no App-test pass is claimed from that run).
+The first server green attempt caught a real callback forwarding omission: the
+handler adapter dropped the new optional classification argument. Corrected that
+forwarding, then **26 PASS** across the seven new server cases and 19 existing
+Generate contracts. Shared build passed. All actual changed client/E2E roots and
+all eight changed server roots compiled strictly with zero diagnostics. Structure
+passed with no new violations. Full semantic gates and review remain outstanding.
+
+Initial semantic lint found two unescaped JSX apostrophes in the recovery buttons;
+repair is pending while the first browser attempt finishes. Browser setup exposed a
+new helper waiting to close a player-settings window that DM elevation had already
+unmounted; saved screenshots corroborate that state. No live U3a PASS is claimed.
+Evidence prefixes: `u3a-outcome-old-api-red`, `u3a-server-outcome-strict-red`,
+`u3a-enqueue-handle-red`, `u3a-core-outcomes-green`, `u3a-region-ui-parity`,
+`u3a-layout-transport-parity`, `u3a-server-outcomes-forwarded`,
+`u3a-semantic-{client,server}-types`, `u3a-semantic-structure`,
+`u3a-semantic-lint`, `u3a-browser-initial`.
+
+### U3a live evidence and semantic gate frontier
+
+The two JSX apostrophes are escaped; `u3a-semantic-lint-fixed` passes. The initial
+browser run ended with zero PASS / four FAIL: two setup timeouts after DM elevation
+unmounted player settings, and two assertions incorrectly looking for generated
+walls in the decorative-element channel. The helper now closes settings only when
+present and checks compiled walls/doors, revision and terrain in the player client.
+The next run (`u3a-browser-calibrated`) had three PASS / one FAIL: a phone gesture
+at a half-cell snap boundary selected x=13 instead of x=12. Trusted input now uses
+cell + 0.2, away from the rounding boundary; the expected 12,12,24,24 region stayed
+unchanged. `u3a-browser-snap-margin` then passed all four cases without retries.
+
+Final run `u3a-browser-player-view`: **four PASS, zero failures, skips, retries,
+flaky cases or reporter errors**, 98.9 seconds. This also checks the final plain
+language transport toast and positions the player's camera using ordinary controls.
+Earlier screenshots whose player camera pointed away from the dungeon are not
+rendering evidence. Final screenshots in `browser-final-evidence/` were inspected:
+the player sees the generated dungeon, without private Generate controls; the phone
+retains seed/theme/density after refusal and exposes the explicit recovery path.
+Latest actual strict roots pass (`u3a-final-live-path-types.json`), and final App,
+transport and queue parity tests pass 20 cases (`u3a-copy-and-app-parity`).
+
+Achieved evaluation mode: **live-two-client**, through the repository's real
+Chromium Playwright clients and server on test ports 5175/8788. Each case drives a
+DM and separate desktop player; refusal adds a second DM to lock/unlock a layer.
+DM sizes: desktop 1440x900 and phone 375x812 with trusted touch gestures. Application
+state seams are read-only. A network fault suppresses only Generate application
+results while delivering receipt ACKs: four identical sends use one command ID,
+the server applies one revision, and refresh/inspection sends no new generation.
+Actual phone recovery button boxes meet 44px. No physical device, WebKit, landscape,
+or phone-player evaluation is claimed; document switches and late replies are
+covered by focused unit tests rather than this browser run.
+
+| Criterion | Weight | Score | Evidence / limits |
+| --- | --- | --- | --- |
+| Functionality | 0.35 | 8 | Refusal, explicit retry, confirmed success and uncertain completion work |
+| Multiplayer integrity | 0.30 | 8 | Player receives one compiled dungeon; private document frames withheld |
+| Craft | 0.20 | 7 | Clear pending/recovery language and retained recipe; palette still long |
+| Reach | 0.15 | 7.5 | Desktop mouse and 375px touch pass; physical devices untested |
+
+Weighted score: **7.725 / 10**, above 7.0. This is live evidence, not the independent
+review verdict. Minor existing shell issue: on the phone, open Build > Generate,
+choose a region and trigger a refusal; the 14-tool palette pushes the local result
+below the fold. `2-refused-inputs-retained.png` shows this. U3b's grouped palette
+should keep Generate status beside its action within the 375x812 sheet. The global
+failure toast can also still be visible immediately after a successful retry
+(`2-successful-retry.png`); no claim of polished unified notification ownership is
+made. New feedback uses the established JRPG palette and headings. Compared with
+the initial run, setup, snap targeting and visible player evidence improved; no
+new runtime regression was observed in the four final cases.
+
+Next: freeze this actual tree, run all eight house gates plus the required 30-second
+dev boot, then bounded independent review-convergence. No semantic commit, remote
+push, production delivery, or U3b work is authorized by this evidence alone.
+
+### U3a full semantic ladder — PASS; independent review pending
+
+All eight house gates passed on the frozen semantic tree at `42152fd3`, without
+repairs or retries during the run. Unit results: client **6,753 PASS / four existing
+skips**, server **2,722 PASS**, shared **452 PASS** — **9,927 passed** total, all 84
+client batches complete. Bundle check: **133.86 KB gzip / 175 KB limit**. Full E2E:
+**248 PASS / zero failures / three existing skips**, 251 attempts, zero retries,
+failed attempts, flaky cases or reporter errors. All four new Generate cases passed
+again. Structure scanned 866 files with no new violations. SHA-256 checks matched
+all 73 frozen paths before and after; HEAD stayed `42152fd3`.
+
+Fresh dev boot passed for more than 30 seconds on **5176/8789**, with disposable
+state. Existing, unowned services occupied the normal 5174/8787 ports and were
+preserved. Both new processes became ready; server health and the transformed client
+entry returned 200, with no missing-export or SyntaxError logs. Only the new owned
+processes were stopped afterward. This is not a claim of a fresh boot on the normal
+ports. Full commands, counts, skips and logs:
+`output/interface-u3a-execution/u3a-semantic-gates-report.md`.
+
+The completion record and this opening frontier were synchronized after frozen
+verification. No product or test file changed. Next is a four-lens, read-only,
+independent review-convergence round, with at most three rounds and fresh reviewers
+per round. No independent U3a verdict is claimed yet.
+
+### U3a independent review — round 1
+
+Four fresh, read-only reviewers (`gpt-6-sol`, high reasoning) completed; three ran
+in parallel and the fourth used the next free slot. Achieved mode was **static**
+source review, with saved browser evidence where relevant. **agents_error: 0**;
+all 73 review-frozen hashes matched afterward. Verdict: **FAIL**, six raw findings
+deduplicated to **five** (the phone toast finding appeared in two lenses):
+
+1. Queue/lifecycle, P1: a refused, dropped or unanswered conflict refresh can strand
+   its unsent successor and leave its operation pending.
+2. Transport/server, P1: cached Generate replay can claim success after a live-scene
+   recompile failed following document persistence.
+3. Transport/server, P2: a cached Generate reply omits the campaign weight update.
+4. Generate UI/geometry, P2: imported grid offsets can make a pixel-contained region
+   exceed the server's 65,536-cell coordinate limit while the client presents it valid.
+5. UI plus evidence/honesty, P2: the phone's successful retry can show its previous
+   error toast while the current Built message is below the visible sheet. The earlier
+   live record disclosed this, but treating it as polish to defer did not satisfy
+   U3a's visible outcome contract. It must be repaired in this slice.
+
+Reports: `output/interface-u3a-execution/u3a-r1-{queue,transport,ui,evidence}-review.md`.
+The evidence reviewer corroborated gate counts and behavioral RED records; the privacy
+lens found no introduced player data leak in reviewed paths. These are scoped static
+observations, not independent live passes. Next: behavioral regressions for all five,
+bounded repairs, full verification, and a fresh second round. No semantic commit yet.
+
+### U3a round-1 repairs — focused PASS; full recheck pending
+
+Before product repairs, new client regressions gave **six RED / 44 PASS** and
+server replay regressions **four RED / two PASS**, with actual strict roots clean.
+The strengthened browser journey failed both desktop and phone immediately after
+success because the old refusal toast was still present; it did not wait out the
+toast timer. A notification ownership test also failed. Its first strict probe found
+an overly narrow `null` fixture prop; after widening that prop to `string | null`,
+strict compilation passed and the same behavior remained RED.
+
+Repairs are bounded to the five findings:
+
+- Conflict refresh has a document-scoped 12-second prerequisite-GET deadline, separate
+  from sent-command outcomes and independent of the panel's loading watchdog. A matching
+  not-found, dropped GET or deadline cancels only unsent successors. Late frames cannot
+  revive them; switching documents, successful refresh and disposal clear the deadline.
+- The existing bounded server command-cache entry records completion only after the
+  required Generate work, including live compilation. An incomplete cached result
+  remains uncertain. Confirmed replays include the campaign weight and request a public
+  live snapshot/save, without applying the command twice. Completion metadata stays out
+  of documents and expires with that cache; no second completion store was added.
+- The client uses the existing shared terrain-cell magnitude constant for both endpoints,
+  retaining drawable invalid geometry while blocking dispatch with a useful reason.
+- A map error retains its toast ID and retires only that toast when superseded. The phone
+  scrolls its result/action/recovery group into view when the operation status changes.
+  Unrelated notifications survive. The successful-retry E2E now checks the old toast's
+  immediate absence and that the entire matching Built hint is in the viewport.
+
+Focused repair results: **283 client PASS** and **40 server PASS**, followed by **15
+client lifetime/transport PASS** and **four cache-lifetime PASS**. These runs overlap;
+they are not added into a distinct-test total. Actual repaired client and server strict
+roots pass. Focused client lint and structure pass (867 files, no new violations).
+
+Real browser recheck `u3a-r1-visible-outcomes-green`: **four PASS**, no failure, skip,
+retry, flaky case or reporter error, 97.9 seconds. Achieved mode remains
+**live-two-client** with the same desktop/phone-DM and desktop-player limits described
+above. Inspected `r1-repaired-browser-evidence/2-successful-retry.png`: no stale error,
+and Built is visible adjacent to its disabled action. Refusal and uncertainty screenshots
+now show their inline results; Refresh and inspection controls are reachable together.
+The palette remains long, but it no longer hides these U3a results. Functionality 8,
+multiplayer 8, craft 8, reach 7.5 gives **7.925 / 10**. No runtime regression was observed
+in these four scenarios; independent re-review and the full new ladder are still required.
+
+Evidence prefixes: `u3a-r1-client-red`, `u3a-r1-server-red`,
+`u3a-r1-notification-strict-red`, `u3a-r1-visible-outcome-red`,
+`u3a-r1-{client,server}-repairs`, `u3a-r1-repair-lifetimes`,
+`u3a-r1-completion-cache`, `u3a-r1-repaired-{client,server}-types`,
+`u3a-r1-focused-lint`, `u3a-r1-structure`, `u3a-r1-visible-outcomes-green`.
+
+### U3a repaired ladder — E2E baseline race, correction pending verification
+
+The repaired tree passed build, typecheck, lint, structure, formatting, all **9,943
+unit tests** (four existing skips), and the **134.39 KB / 175 KB** bundle check.
+The full browser run returned **247 PASS / one FAIL / three existing skips**, zero
+retries, flaky results or JSON reporter errors. This ladder is **FAIL**. A fresh
+30-second isolated dev boot passed; all 79 frozen file hashes and HEAD `42152fd3`
+matched after the run. Existing development processes were preserved.
+
+The phone refusal test failed its unchanged-player-map assertion. The only differences
+were the compiled scene's timestamp and source revision, **1 → 2**; the DM document
+equality assertion passed. The fixture had captured the player's baseline after seeing
+the DM's layer-lock document frame, without waiting for that lock's public scene to
+reach the player. The lock arrived during the refused-Generate observation. The
+correction waits for the player's scene to match the locked document revision before
+capturing its baseline. It retains the complete unchanged-map assertion and does not
+retry the failed run, extend timeouts, or alter product behavior.
+
+Evidence: `u3a-r1-repaired-gates-report.md`, `u3a-r1-repaired-gate-e2e-report.json`,
+and `u3a-r1-repaired-e2e-failure-52/`. Focused browser verification and a fresh full
+ladder are required before round 2. No semantic commit or U3b work has started.
+
+### U3a synchronized baseline — full ladder PASS; ready for round 2
+
+The corrected four Generate journeys passed in **97.3 seconds**, with zero failures,
+skips, retries, flaky cases or reporter errors. Latest focused screenshots and JSON
+are preserved under `baseline-synced-browser-evidence/`. The phone success screenshot
+was inspected again: Built is fully visible next to the disabled action, with no stale
+refusal toast. This changes the fixture's prerequisite synchronization, not the product
+behavior or the previously stated live coverage limits and score.
+
+The fresh eight-gate ladder then passed on the same frozen candidate: build, typecheck,
+lint, structure, formatting, **9,943 unit PASS / four existing skips** (all 84 client
+batches), **134.39 KB / 175 KB** bundle check, and **248 E2E PASS / three existing
+skips**. The E2E report contains 251 tests and 251 attempts: zero failures, retries,
+flaky cases or reporter errors. All four U3a cases passed in that complete run.
+
+A fresh development boot on isolated **5176/8789** passed its 30-second window;
+existing 5174/8787 processes were preserved and owned test processes cleaned up.
+All **79 frozen SHA-256 hashes** matched before and after, with HEAD `42152fd3`
+unchanged. Report: `u3a-r1-baseline-synced-gates-report.md`; logs use
+`u3a-r1-baseline-synced-gate-*`. This result supersedes the preceding failed gate for
+the current candidate; it does not erase that failure. Next: four fresh independent
+round-2 reviewers. No semantic commit, remote delivery or U3b work yet.
+
+### U3a independent review round 2 — one confirmed finding
+
+Four fresh pinned-model reviewers completed in static, read-only mode: queue **FAIL**;
+transport with named privacy **PASS**; Generate UI/geometry **PASS**; tests with named
+documentation honesty **PASS**. `agents_error: 0`; all 79 review-frozen hashes and HEAD
+matched afterward. The valid round is **FAIL**, with **one distinct P2 finding**, down
+from five in round 1. Reports: `u3a-r2-{queue,transport,ui,evidence}-review.md`.
+
+The queue treated every dropped GET for the refresh document as loss of its own
+conflict-refresh request. A second same-document GET can be dropped while the first
+remains viable, incorrectly cancelling an unsent successor. This is established at
+the exposed controller/transport boundary; the ordinary map panel disables Open while
+saving, and no click-only overflow reproduction is claimed. The bounded repair removes
+that uncorrelated fast path and relies on the existing independent 12-second deadline
+when no document arrives. Authoritative not-found still terminates immediately.
+
+The UI reviewer initially proposed a stale-frame duplicate-generation P1, then retracted
+it after tracing ordered WebSocket delivery, synchronous server handlers and the client
+stale-socket guard. An artificially reordered pre-generation frame did not establish a
+production path. The reviewer recorded that causal correction in its report; no new
+protocol fields are justified by that retracted hypothesis.
+
+A new two-GET regression failed before repair: the waiting handle incorrectly settled
+as cancelled-before-send; six existing controls passed (`u3a-r2-refresh-red`). Strict
+compilation, bounded repair, re-verification and fresh final round 3 remain required.
+
+### U3a round-2 queue repair — focused PASS; final gates pending
+
+The new failing regression passed strict compilation before repair (zero diagnostics
+in `u3a-r2-refresh-red-types.json`). The repair removes only the uncorrelated GET-drop
+fast path. A not-found response still fails immediately; a truly lost refresh waits
+for the independent **12-second deadline**. This supersedes the earlier round-1 claim
+of immediate settlement on a GET transport drop. No wire fields or new timer were added.
+
+The two-GET test now proves the successor remains pending after the unrelated drop,
+sends when the valid refreshed document arrives, and succeeds exactly once even after
+the old deadline would have elapsed. The lost-GET control stays pending at 11,999 ms,
+settles at 12,000 ms and cannot revive on late frames. All **199 focused tests across
+18 files** passed, including queue lifetime/ownership and Generate transport outcomes.
+The actual repaired source/test roots pass strict compilation; formatting and
+`git diff --check` pass. Evidence: `u3a-r2-refresh-green`,
+`u3a-r2-refresh-green-types.json`. Full eight gates, fresh boot and fresh final review
+round 3 are next. The review cap remains three rounds; no semantic commit yet.
+
+### U3a round-2 repair — complete verification PASS
+
+The final candidate passed all eight gates: build, typecheck, lint, structure,
+formatting, **9,944 unit tests** (four existing skips; 84 client batches), the
+**134.36 KB / 175 KB** bundle check, and **248 browser tests** with three existing
+skips. The browser JSON records 251 tests/attempts, zero failures, retries, flaky
+results or reporter errors. Fresh isolated development boot on 5176/8789 passed
+30 seconds; existing development processes were preserved. All 79 frozen hashes
+and HEAD `42152fd3` matched before/after. Report: `u3a-r2-repaired-gates-report.md`.
+
+The full run repeated all four U3a desktop/phone-DM plus desktop-player journeys.
+Final artifacts are under `r2-repaired-browser-evidence/`. Inspected the phone
+successful-retry and completion-unconfirmed screenshots and its desktop player's
+rendered dungeon: success is visible without the previous error; uncertainty shows
+Refresh and disabled inspection together; the player sees the delivered scene.
+Achieved evaluation remains **live-two-client**, score **7.925 / 10**, with the same
+physical-device/WebKit/phone-player/U3a-specific landscape and tablet limitations.
+No new runtime regression was observed. Fresh final independent round 3 is next.
+
+### U3a final review round 3 — owner checkpoint required
+
+All four fresh reviewers completed in static, read-only mode. Queue/lifecycle,
+transport with named privacy, and tests with named documentation honesty returned
+**PASS**. Generate UI/state returned **FAIL**, with one P2 recovery finding.
+`agents_error: 0`; all **79 review-frozen hashes** and HEAD `42152fd3` remained
+unchanged. Reports: `u3a-r3-{queue,transport,ui,evidence}-review.md`.
+
+The finding is narrower than the retracted round-2 hypothesis. An ordinary broadcast
+that already includes the generation is a usable document to inspect. The harmful
+path is **outbound delay while inbound messages still arrive**: Generate's writes
+remain in transit beyond retry exhaustion; the user requests Refresh; another DM's
+edit broadcasts a document that still predates that generation. The controller
+treats this broadcast as completion of the pending GET and enables inspection.
+The user can then send a fresh Generate ID. When outbound traffic resumes in order,
+both distinct generations can apply. No WebSocket frame reordering or later received
+ACK is needed. This is a source-supported interleaving, **not yet a reproduced live
+network fault**. The green browser suite does not cover it.
+
+Round findings were **5 → 1 → 1**. This is both the three-round cap and a plateau.
+The review-convergence instruction requires stopping and reporting to the owner;
+there is no round 4 or unanimous final PASS. Cost recorded here: **12 completed
+reviewer assignments across three rounds**, plus four complete semantic verification
+ladders and the focused regression runs documented above. No token-cost estimate is
+available. Every required lens ran; none is missing.
+
+**Bounded repair proposal for owner approval:**
+
+1. Add a failing two-DM transport regression with FIFO-buffered outgoing Generate and
+   GET traffic but live incoming document broadcasts. Prove the stale broadcast
+   cannot unlock inspection or cause a fresh Generate, including after the loading
+   watchdog releases the generic busy state.
+2. Give the recovery GET explicit request correlation, echoed on its document/error
+   reply. Gate inspection on that matching receipt, not document object identity,
+   generic loading or an edit's applied-command ID. Preserve legacy callers and
+   keep ordinary broadcasts updating the document without satisfying recovery.
+   Existing GETs identify only the document; this is the concrete protocol gap
+   anticipated by the U3a escalation clause. A no-applied-command-ID filter alone
+   would not distinguish an earlier same-document GET from this recovery request.
+3. Cover matching success/error, deadline, superseding refresh, document switch and
+   late replies, then repeat focused/strict checks, the complete house ladder and
+   desktop/phone two-client recovery evidence. Record this as an owner-authorized
+   post-cap repair, not a fourth formal convergence round.
+4. Only after verified repair and owner acceptance, locally commit IA-18 and complete
+   the planned U3a checkpoint. U3b and destination relocation remain unstarted;
+   remote push, main merge and deployment remain unauthorized.
+
+Current trusted commits remain U2 `7923c3de`, auth prerequisite `845d078c`, and U3a
+extraction `42152fd3`. The implemented semantic U3a changes are deliberately left
+uncommitted pending this checkpoint. The full latest gates remain green, but U3a
+does **not** have final review acceptance.
+
+### Owner-reported hallway keyboard history — local fix, 2026-09-24
+
+Trusted local commit **`4e63230d`** fixes a separately reported Ctrl+Z failure.
+A real two-client reproduction showed that leaving Chat open blocked map Undo
+even after drawing a hallway on the uncovered canvas. The owner's exact original
+window setup was not confirmed. Canvas interaction now focuses the map; only
+explicitly opted-in desktop floating panels allow that focused map's Undo/Redo.
+Native editing, dialogs, popovers, mobile panels and composition remain protected.
+
+Scoped hotkey review counts were **1 → 0**, across two rounds and four independent
+static reviewers, `agents_error: 0`. Round one caught retained map focus allowing
+history beneath covering mobile panels. Eight real-component regressions failed
+before repair; explicit desktop-only opt-in fixed them. Both fresh round-two
+reviewers returned PASS, with 82 frozen hashes unchanged before and after review.
+This was a separate hotkey review, not a fourth U3a round or acceptance of U3a.
+
+Final evidence: **395 focused tests passed**, strict actual-source/test checks
+passed, both real desktop DM/player hallway journeys passed with Chat open and
+closed, and both fresh screenshots were inspected. The full eight gates and an
+isolated 30-second dev boot passed after the repair. Browser result: **250 passed,
+3 existing skips**, 253 attempts, zero failures/retries/flaky/reporter errors.
+All 84 client unit batches passed; captured aggregate unit summaries report
+9,957 passes and 4 existing skips. The +3 total increase despite eight new cases
+is unresolved in the aggregate logs and is not presented as a unique-test count.
+The individual new cases passed in focused testing. Bundle: 134.57 KB / 175 KB.
+
+Details and manual steps: [map-history-hotkeys.md](map-history-hotkeys.md).
+Raw records: `output/interface-u3a-execution/hallway-hotkey-r1-gates-report.md`,
+`hallway-hotkey-r2-{focus,evidence}-review.md`, and the associated captured logs.
+Live mode remains desktop `live-two-client`, score 7.4; no physical mobile keyboard,
+native macOS or WebKit claim. The commit contains only this fix and its tests/note,
+including only seven focus lines from the otherwise dirty MapBoard file. All 82
+working-file hashes still matched after commit. U3a's semantic changes remain
+uncommitted, its recovery finding remains paused at the existing owner checkpoint,
+and U3b remains unstarted. No remote push, merge or deployment occurred.
+
+### U3a bounded post-cap repair — resumed 2026-09-24
+
+The owner requested continuation from the remaining U3a repair/checkpoint into U3b.
+This authorizes the recorded bounded repair; it does not assert acceptance of an
+unverified result. HEAD remains `4e63230d`. Preserved the adopted working tree and
+captured its original files/hashes under `output/interface-u3a-execution/postcap-original*`.
+The three-round review count remains 5 → 1 → 1, with no fourth formal review.
+
+New actual tests passed strict compilation before implementation. The FIFO outbound
+fault is now reproduced live in desktop and phone Chromium with two authenticated
+DMs and an observing player: both browser cases failed because an incoming DM2 layer
+edit enabled inspection while all DM1 Generate/GET frames remained buffered. There
+were two failed attempts, no retries, flaky results or reporter errors. This strengthens
+the previously static finding; it does not claim physical-device or WebKit coverage.
+Three client regressions failed for command broadcast, earlier GET, and post-watchdog
+uncorrelated frames. Six request-lifetime tests failed because no receipt identity was
+sent. Server tests produced seven failures (missing success/error echo and malformed
+identity acceptance), with three legacy/privacy controls passing. Reports use
+`postcap-*-red*`; browser screenshots were copied to `postcap-browser-red-evidence/`.
+
+The bounded fix adds an optional GET request ID and a private matching reply echo,
+independent client receipt settlement/deadline, and receipt-driven Generate recovery.
+Initial focused results: 215 client passes/one failure in the old unqualified-GET
+fixture, and 50 server passes. The old fixture is strengthened to reject an unrelated
+frame before accepting the matching receipt. Full verification remains pending.
+
+After that fixture update, **686 client tests / 76 files** pass, including all map
+controller, Generate, and mobile-panel tests. The final actual source/test roots
+pass strict compilation in client and server; structure and diff whitespace checks
+pass. All **six desktop/phone browser journeys pass in 2.8 minutes**, with no failed
+attempts, skips, retries, flaky results or reporter errors. The new FIFO cases verify
+that stale broadcasts and a missing receipt cannot unlock inspection, a fresh GET
+can recover after the deadline, only one generation applies, and the player receives
+the public dungeon without a private document. Existing refusal/retry and lost-reply
+journeys remain passing. The full eight gates and fresh boot are next.
+
+### Post-cap verification complete — owner acceptance pending
+
+The report-only gates runner completed the prescribed eight gates and isolated
+fresh boot. Root independently checked the E2E JSON, boot report and snapshot hashes.
+All **91 frozen paths** and HEAD `4e63230d` matched through verification. Source and
+tests did not change afterward; the following checkpoint documents were updated
+after the freeze ended.
+
+- Build, typecheck, lint, structure, format, full units, bundle and full E2E: **PASS**.
+- Units: shared **452**, server **2,738**, client **6,791**, total **9,981 passes**;
+  **4 existing client skips**, all 84 client batches completed. These are actual
+  batch aggregates, not deduplicated per-file totals.
+- Bundle: **135.13 KB / 175 KB**, leaving **39.87 KB**.
+- Full Playwright: **252 passed / 3 existing skips**, **255 attempts** in 22.3
+  minutes; **zero failed attempts, retries, flaky cases, attempt errors or reporter
+  errors**. Existing skips remain camera reset, grid visibility and DM-mode toggle.
+- Fresh development boot: isolated **5176/8789**, server/page/module ready, 30-second
+  survival, no error markers, owned processes cleaned up. Existing **5174/8787**
+  services were preserved.
+
+The six focused Generate journeys achieved automated **live-two-client Chromium**
+(two DMs plus a player in the FIFO/rejection cases), DM desktop 1440×900 and phone
+375×812 with touch emulation, observing player desktop 1440×900. The original final
+finding is now live reproduced and repaired. Root inspected saved desktop/phone
+uncertainty, refusal/retry, matching-receipt and player-result screenshots. Score
+**7.925/10**: functionality 8, multiplayer integrity 8, craft 8, reach 7.5. No new
+runtime regression was observed in those journeys. Physical devices, WebKit, native
+Mac, phone-player and U3a-specific landscape/tablet coverage remain unverified.
+
+Evidence under `output/interface-u3a-execution/`: `postcap-gates-report.md`, its
+linked raw logs/exit records, `postcap-gate-e2e-report.json`, `postcap-devboot-report.json`,
+`postcap-gate-freeze.json`, `postcap-live-evaluation.md`, and `postcap-browser-evidence/`.
+The [durable checkpoint](interface-clarity-u3a-checkpoint.md) collects the U1/U2/IA-03/04
+history, IA-18 repair, current extraction headroom and proposed destination names.
+
+**Historical count correction:** the previously reported hotkey R1 aggregate of
+9,957 omitted a real five-test summary at line 568 of
+`hallway-hotkey-r1-gate-test.log`: `apps/client test: ·      Tests  5 passed (5)`.
+The earlier anchored parser missed the progress dot. Reading all 84 summaries gives
+client 6,782, server 2,728, shared 452: **9,962 passes / 4 skips**. The eight-case
+increase from 9,954 is resolved, and today's 19 new unit cases yield 9,981. Original
+reports and their reported counts are retained; the explicit reconciliation is in
+`postcap-unit-count-reconciliation.json` and the hotkey verification note.
+
+Formal U3a review remains **5 → 1 → 1**, three capped rounds, 12 completed assignments,
+zero agent errors. No fourth review or unanimous final PASS is claimed. The owner
+requested the bounded repair; acceptance of this verified result is pending under
+handoff step 5. No semantic commit, staging, U3b implementation, remote push, main
+merge or deployment has occurred. After acceptance, commit only the inspected U3a
+scope, record the owner's destination choices and local delivery cadence, then
+execute U3b. Proposed names remain Table, DM tools, Encounter, Objects, Preferences.
