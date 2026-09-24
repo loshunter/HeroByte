@@ -9,8 +9,9 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { AuthenticatedAppProps } from "./AuthenticatedApp.types";
 import type { Camera } from "../hooks/useCamera";
-import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ServerMessage } from "@herobyte/shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
@@ -133,20 +134,6 @@ export const App: React.FC = () => {
     </AuthenticationGate>
   );
 };
-
-interface AuthenticatedAppProps {
-  uid: string;
-  snapshot: RoomSnapshot | null;
-  /** Everyone else's live measurement (S6); relayed, never in the snapshot. */
-  remoteMeasurements: MeasureEvent[];
-  sendMessage: (message: ClientMessage) => void;
-  getAuthCredentials: () => { secret: string; roomId?: string } | null;
-  registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
-  registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
-  registerCommandDropHandler: (handler: (messageType: string, reason: string) => void) => void;
-  isConnected: boolean;
-  authState: AuthState;
-}
 
 function AuthenticatedApp({
   uid,

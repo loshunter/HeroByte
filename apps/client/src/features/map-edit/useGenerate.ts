@@ -13,27 +13,10 @@
 // pending state; `controller.error` is the toast, exactly like every other tool.
 
 import { useCallback, useEffect, useState } from "react";
-import type { MapGridSettings } from "@herobyte/shared";
+import { toCellBounds, regionProblem, type CellBounds } from "./generateRegion";
 import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
 import type { GenerateParams, MapEditSubTool } from "./mapEditTypes";
-
-/** The recipe's region, in document-grid CELLS (what the wire expects). */
-interface CellBounds {
-  x: number;
-  y: number;
-  cols: number;
-  rows: number;
-}
-
-/**
- * Mirrors the server resolver's MIN_RECIPE_COLS/ROWS. Below this you get one
- * sealed room rather than a dungeon — see the measurement in the server's
- * generation/types.ts. Keep the two in step.
- */
-const MIN_REGION_SIDE = 20;
-/** Mirrors MAX_TERRAIN_PAINT_CELLS — the server refuses more in one command. */
-const MAX_REGION_CELLS = 16384;
 
 const ALREADY_BUILT = "Built here already — reroll the seed or change a dial to build again.";
 
@@ -167,27 +150,6 @@ export function useGenerate(
     hint: problem ?? (alreadyBuilt ? ALREADY_BUILT : null),
     region: bounds ? { cols: bounds.cols, rows: bounds.rows } : null,
   };
-}
-
-/** Document pixels → grid cells, the same lattice the recipe lays out on. */
-function toCellBounds(bounds: RoomBounds, grid: MapGridSettings): CellBounds {
-  return {
-    x: Math.round((bounds.x - grid.offsetX) / grid.size),
-    y: Math.round((bounds.y - grid.offsetY) / grid.size),
-    cols: Math.max(1, Math.round(bounds.width / grid.size)),
-    rows: Math.max(1, Math.round(bounds.height / grid.size)),
-  };
-}
-
-function regionProblem(bounds: CellBounds | null): string | null {
-  if (!bounds) return null;
-  if (bounds.cols < MIN_REGION_SIDE || bounds.rows < MIN_REGION_SIDE) {
-    return `Drag at least ${MIN_REGION_SIDE}×${MIN_REGION_SIDE} cells — a dungeon needs room for rooms AND the halls between them.`;
-  }
-  if (bounds.cols * bounds.rows > MAX_REGION_CELLS) {
-    return `That area is too big (max ${MAX_REGION_CELLS} cells) — drag a smaller region.`;
-  }
-  return null;
 }
 
 function freshSeed(): number {

@@ -1,31 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  ClientMessage,
-  MapDocument,
-  MapDocumentSummary,
-  MapStudioCommand,
-} from "@herobyte/shared";
-import { generateUUID } from "../../utils/uuid";
+import type { ClientMessage, MapDocument, MapDocumentSummary } from "@herobyte/shared";
 import { upsertMapDocumentSummary } from "./documentSummaries";
 import type { MapStudioController, MapStudioServerMessage } from "./types";
 import type { AssetUploadCredentials } from "./uploads/assetUpload";
 import { useMapStudioActions } from "./useMapStudioActions";
 import { useMapStudioRequests } from "./useMapStudioRequests";
 import { useCampaignReadout } from "./useCampaignReadout";
-
-type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
-/**
- * Builds the whole wire message. Most actions send a `map-studio-command` and go
- * through `applyCommand`, which wraps their command for them; a few (generate)
- * are their own message type but MUST still ride this queue — it is the only
- * thing that owns commandId minting, error surfacing, revision-conflict
- * refetch, and dedupe-safe reconnect re-sends.
- */
-type MessageBuilder = (document: MapDocument, commandId: string) => ClientMessage;
-interface QueuedCommand {
-  documentId: string;
-  toMessage: MessageBuilder;
-}
+import { useMapStudioQueue } from "./useMapStudioQueue";
 
 export function useMapStudio(
   sendMessage: (message: ClientMessage) => void,
@@ -52,12 +33,6 @@ export function useMapStudio(
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const requestedDocumentId = useRef<string | null>(null);
   const activeDocumentRef = useRef<MapDocument | null>(null);
-  const commandQueue = useRef<QueuedCommand[]>([]);
-  const inFlightCommandId = useRef<string | null>(null);
-  // The exact message last dispatched, kept for reconnect re-sends. The server
-  // dedupes by commandId, so re-sending the identical message is safe whether
-  // the original was applied (ack lost) or never arrived.
-  const inFlightMessage = useRef<ClientMessage | null>(null);
   // True only while the CURRENT error is a stale loading-timeout the watchdog
   // raised — so a late reply clears that, but never a command/revision-conflict
   // error the user still needs to see.
@@ -87,30 +62,15 @@ export function useMapStudio(
     explicitListPending,
   });
 
-  const dispatchNextCommand = useCallback(
-    (document: MapDocument | null = activeDocumentRef.current) => {
-      if (inFlightCommandId.current) return;
-      const queued = commandQueue.current[0];
-      if (!queued) {
-        setSaving(false);
-        return;
-      }
-      if (!document || queued.documentId !== document.id) {
-        commandQueue.current = [];
-        setSaving(false);
-        return;
-      }
-
-      const commandId = generateUUID();
-      inFlightCommandId.current = commandId;
-      setSaving(true);
-      setError(null);
-      const message = queued.toMessage(document, commandId);
-      inFlightMessage.current = message;
-      sendMessage(message);
-    },
-    [sendMessage],
-  );
+  const {
+    applyMessage,
+    applyCommand,
+    dispatchNextCommand,
+    removeMatchedCommand,
+    handleDocumentReply,
+    resetCommands,
+    replayCommands,
+  } = useMapStudioQueue({ sendMessage, activeDocumentRef, setSaving, setError });
 
   // Reconnect recovery: a socket drop can eat the reply to the in-flight
   // command, which would otherwise wedge the queue forever (nothing else
@@ -124,34 +84,8 @@ export function useMapStudio(
     if (!cameBackUp) return;
     pendingMintIds.current.clear();
     readout.onReconnect();
-    if (inFlightMessage.current) {
-      sendMessage(inFlightMessage.current);
-    } else if (commandQueue.current.length > 0) {
-      dispatchNextCommand();
-    }
-  }, [isConnected, sendMessage, dispatchNextCommand, readout]);
-
-  /** Queue any map-studio message that the server acks by commandId. */
-  const applyMessage = useCallback(
-    (toMessage: MessageBuilder) => {
-      const document = activeDocumentRef.current;
-      if (!document) return;
-      commandQueue.current.push({ documentId: document.id, toMessage });
-      setSaving(true);
-      dispatchNextCommand(document);
-    },
-    [dispatchNextCommand],
-  );
-
-  const applyCommand = useCallback(
-    (build: CommandBuilder) => {
-      applyMessage((document, commandId) => ({
-        t: "map-studio-command",
-        command: build(document, commandId),
-      }));
-    },
-    [applyMessage],
-  );
+    replayCommands();
+  }, [isConnected, replayCommands, readout]);
 
   const {
     updateLayer,
@@ -195,10 +129,7 @@ export function useMapStudio(
         setDocuments((current) => current.filter((document) => document.id !== message.documentId));
         setActiveDocument((current) => (current?.id === message.documentId ? null : current));
         if (activeDocumentRef.current?.id === message.documentId) activeDocumentRef.current = null;
-        commandQueue.current = [];
-        inFlightCommandId.current = null;
-        inFlightMessage.current = null;
-        setSaving(false);
+        resetCommands();
         setHistory({ canUndo: false, canRedo: false });
         return;
       }
@@ -228,10 +159,7 @@ export function useMapStudio(
           setError(message.reason);
           return;
         }
-        if (message.commandId !== inFlightCommandId.current) return;
-        commandQueue.current.shift();
-        inFlightCommandId.current = null;
-        inFlightMessage.current = null;
+        if (!removeMatchedCommand(message.commandId)) return;
         // A real server response arrived, so any prior timeout is moot — don't
         // let a stale watchdog flag later clear THIS command/conflict error.
         watchdogFired.current = false;
@@ -271,18 +199,16 @@ export function useMapStudio(
         requestedDocumentId.current = null;
         setLoading(false);
       }
-      if (message.appliedCommandId === inFlightCommandId.current) {
-        commandQueue.current.shift();
-        inFlightCommandId.current = null;
-        inFlightMessage.current = null;
-      }
-      if (!inFlightCommandId.current && commandQueue.current.length) {
-        dispatchNextCommand(document);
-      } else if (!inFlightCommandId.current) {
-        setSaving(false);
-      }
+      handleDocumentReply(document, message.appliedCommandId);
     },
-    [dispatchNextCommand, sendMessage, readout],
+    [
+      dispatchNextCommand,
+      handleDocumentReply,
+      readout,
+      removeMatchedCommand,
+      resetCommands,
+      sendMessage,
+    ],
   );
 
   return {

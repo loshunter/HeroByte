@@ -19,9 +19,10 @@
   finding. Following the cap checkpoint, the owner's “resume u3a” authorizes the
   bounded remaining repair, verification and local U2 closeout before U3a. No fourth
   formal review or unanimous round-3 PASS is claimed. The bounded repair and full
-  post-cap gate now pass; U2 is ready for its authorized local acceptance commit.
-  U3a is next. U3a–U10 remain unimplemented; ignored preparation
-  is not acceptance. The checkpoint after U3a remains in force.
+  post-cap gate passed and U2 is locally committed as `7923c3de`.
+  U3a is active: queue and supporting extractions are implemented with focused parity
+  evidence below. Generate outcome behavior is not yet changed. U3b–U10 remain
+  unimplemented. Ignored preparation is not acceptance; the U3a checkpoint remains.
 - The September 22 audit is historical evidence; new acceptance results are recorded here.
 - The U2 history follow-up is repaired: recipient-scoped history feedback distinguishes
   ordinary Undo to an empty map from a table-wide Clear All. Its independent verification
@@ -1207,3 +1208,73 @@ U2 now proceeds to the authorized local acceptance commit; nothing is pushed.
 An additional direct Prettier probe of this ledger reported only three pre-existing
 table alignments. The house format command does not scan `docs/`; those tables were
 left unchanged, and this extra probe is not reported as passing.
+
+## U3a prerequisite — characterized queue and headroom extraction (active)
+
+U2 is accepted locally at `7923c3de`; no remote delivery occurred. This prerequisite
+keeps existing behavior, including characterized defects, before the outcome repair.
+The controller queue moved to `useMapStudioQueue`; transport config/callback types,
+App/map-edit interfaces and the existing Generate cell/size helpers moved to siblings.
+One controller, one queue, existing command IDs and protocol are retained.
+
+Actual baseline evidence in `output/interface-u3a-execution/`: queue 57 PASS
+(existing 46 plus new 11); transport/region 44 PASS (new 18 transport, new 7 region,
+existing Generate 19); composition 33 PASS (new 3, existing state 19 and App 11).
+App transport handoff adds 2 cases. Strict compilation found fixture mistakes
+(`paint` instead of `terrain`, nullable background, missing recipe params/users).
+Corrected App/composition fixtures were rerun on original HEAD production code:
+5 PASS (`u3a-complete-fixture-baseline`). Extracted production was restored afterward.
+The combined extraction parity run passed 136 tests in 12 files before the final
+users-array fixture addition; full gates below verify the final tree.
+`u3a-headroom-final-types.json` explicitly compiled all 23 adopted source/test roots
+with the real strict configuration: zero diagnostics, no changed inputs.
+
+Full prerequisite verification is pending. No semantic outcome, containment,
+recovery UI or live U3a acceptance is claimed yet. Next: commit this prerequisite
+only after the complete ladder, then implement IA-18 and checkpoint before U3b.
+
+First full prerequisite ladder: **FAIL** in one client source-consistency test,
+`MessageRouter.session.test.ts:92`, whose config-union path still named websocket.ts.
+All seven other gates passed, including E2E 244 PASS / 3 pre-existing skips with
+zero retries, failed attempts, flaky cases or reporter errors. Unit execution stopped
+before all client batches: observed 5606 client PASS / 1 FAIL / 4 existing skips,
+server 2715 PASS, shared 452 PASS; do not read this as a complete unit pass.
+All 24 frozen hashes matched before/after; HEAD stayed `7923c3de`.
+
+After that run completed, corrected only the test's CONFIG_SOURCE path and its prose
+to `serviceTypes.ts`, preserving every union/guard/subscriber assertion. The four
+source-consistency controls plus two final App-handoff cases pass (6 total), under
+`u3a-prereq-source-test-repair`. A fresh complete ladder is required before commit.
+
+Second full prerequisite ladder: **FAIL** in E2E only. All 9,809 unit tests passed
+(client 6,642, server 2,715, shared 452; four existing client skips), and the other
+six non-E2E gates passed. Browser result: 242 PASS / 2 FAIL / 3 existing skips,
+247 results, zero retries/flaky/reporter errors. All 25 frozen hashes matched.
+The auth case timed out after correcting a rejected password; the hidden-creature
+case failed before navigation with `net::ERR_CONNECTION_FAILED` to localhost5175.
+Its privacy assertion never ran in that failed case. The runner also printed two
+artifact step-ID warnings. Failure artifacts were preserved under
+`output/interface-u3a-execution/prereq-final-failure-artifacts/`.
+
+A bounded read-only auth recon and saved video identified a rejected-socket retry
+window: FAILED re-enabled Enter Table before the server's scheduled 100ms close.
+The exact lost-click timing is inferred, not traced. A deterministic regression
+proved the unsafe enabled button and bypassable form handler (2 RED, 1 control PASS).
+AuthenticationGate now guards both during FAILED, retaining the editable password
+and reason until reset/reconnect. New and existing auth tests: 25 PASS. Actual strict
+source/test roots: zero diagnostics. The unchanged auth E2E and unchanged hidden
+creature E2E both passed afterward (2 PASS, zero retries). No blind timing delay or
+navigation retry was added. A fresh full ladder still precedes the local commits.
+
+Third prerequisite/auth-fixed ladder: **PASS**. All eight house steps completed
+in order. Units: client 6,645 PASS / four existing skips, server 2,715 PASS,
+shared 452 PASS — **9,812 passed**, all 82 client batches completed. Bundle:
+130.92 KB gzip. E2E: **244 PASS / zero failures / three existing skips** in
+20.1 minutes; 247 results, zero retries, failed attempts, flaky cases or reporter
+errors. Both runner and executor verified all 27 frozen paths unchanged; HEAD
+remained `7923c3de`. `git diff --check` passed. Evidence:
+`output/interface-u3a-execution/u3a-prereq-auth-fixed-gate-*` and
+`u3a-prereq-auth-fixed-gates-report.md`. This completion record was appended after
+the frozen verification. Proceeding with the focused local auth repair and the
+characterized extraction commits; no remote delivery. U3a's actual outcome repair,
+new behavioral regressions, live evaluation and review are still outstanding.
