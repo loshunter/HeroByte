@@ -232,6 +232,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
     <WindowInteraction
       frameRef={windowRef}
       band={zIndex + (isMobile ? 100 : 0)}
+      floating={!isMobile}
       options={interaction}
       onClose={onClose}
     >

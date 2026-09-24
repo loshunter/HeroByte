@@ -24,6 +24,8 @@ export type WindowInteractionOptions = Placement &
 interface FrameProps {
   frameRef: RefObject<HTMLElement>;
   band: number;
+  /** Desktop floating frame, never a covering mobile screen or sheet. */
+  floating?: boolean;
   options?: WindowInteractionOptions;
   onClose?: () => void;
   children: (close: (() => void) | undefined) => ReactNode;
@@ -32,11 +34,12 @@ interface LayerProps {
   root: EscapeRoot;
   frameRef: RefObject<HTMLElement>;
   localBand: number;
+  floating: boolean;
   onClose?: () => void;
   children: FrameProps["children"];
 }
 
-function BlockingFrame({ root, frameRef, localBand, children, onClose }: LayerProps) {
+function BlockingFrame({ root, frameRef, localBand, floating, children, onClose }: LayerProps) {
   // A non-modal, non-closing content panel. Pending gestures keep first refusal;
   // localSiteEligible guards lower editors inside this SAME root (Dice → Result).
   useEscapeOwner(() => ({
@@ -46,6 +49,7 @@ function BlockingFrame({ root, frameRef, localBand, children, onClose }: LayerPr
     root,
     anchor: frameRef.current,
     localBand,
+    allowFocusedCanvasHistory: floating,
   }));
   return <EscapeRootProvider value={root}>{children(onClose)}</EscapeRootProvider>;
 }
@@ -54,6 +58,7 @@ function ClosingFrame({
   root,
   frameRef,
   localBand,
+  floating,
   panel,
   onClose,
   resolveReturnFocus,
@@ -74,6 +79,7 @@ function ClosingFrame({
     root,
     anchor: frameRef.current,
     localBand,
+    allowFocusedCanvasHistory: floating,
     handle: () => {
       beforeEscape?.();
       dismiss();
@@ -82,7 +88,14 @@ function ClosingFrame({
   return <EscapeRootProvider value={root}>{children(dismiss)}</EscapeRootProvider>;
 }
 
-export function WindowInteraction({ frameRef, band, options, onClose, children }: FrameProps) {
+export function WindowInteraction({
+  frameRef,
+  band,
+  floating = false,
+  options,
+  onClose,
+  children,
+}: FrameProps) {
   const ownRoot = useEscapeRoot(frameRef, band);
   // A portal's logical parent does not define its paint root. Only explicit sharing does.
   const root = options?.containingRoot ?? ownRoot;
@@ -93,6 +106,7 @@ export function WindowInteraction({ frameRef, band, options, onClose, children }
         root={root}
         frameRef={frameRef}
         localBand={localBand}
+        floating={floating}
         panel={options.panel}
         onClose={onClose}
         resolveReturnFocus={options.resolveReturnFocus}
@@ -104,7 +118,13 @@ export function WindowInteraction({ frameRef, band, options, onClose, children }
   }
   if (options && options.behavior !== "context") {
     return (
-      <BlockingFrame root={root} frameRef={frameRef} localBand={localBand} onClose={onClose}>
+      <BlockingFrame
+        root={root}
+        frameRef={frameRef}
+        localBand={localBand}
+        floating={floating}
+        onClose={onClose}
+      >
         {children}
       </BlockingFrame>
     );

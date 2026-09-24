@@ -17,6 +17,8 @@ interface BaseOwner {
 
 export interface LayerOwner extends BaseOwner {
   kind: "modal" | "popover" | "panel";
+  /** Only desktop floating panels may coexist with a genuinely focused map. */
+  allowFocusedCanvasHistory?: boolean;
   root: EscapeRoot;
   /** Actual layer node, including a portalled nested popover. */
   anchor: HTMLElement | null;

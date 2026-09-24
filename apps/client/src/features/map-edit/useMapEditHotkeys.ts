@@ -32,7 +32,16 @@ export function useMapEditHotkeys({
     const onKeyDown = (event: KeyboardEvent) => {
       // Typing surfaces own their keystrokes: Ctrl+Z in a search box or an
       // inspector field is native text undo, never a live-map undo.
-      if (!escapeRegistry.canHandleShortcut(event, { root: null, anchor: document.body })) return;
+      const active = document.activeElement;
+      const canvas = active instanceof HTMLElement && active.matches("[data-map-history-surface]");
+      if (
+        !escapeRegistry.canHandleShortcut(
+          event,
+          { root: null, anchor: canvas ? active : document.body },
+          { allowFocusedCanvas: canvas },
+        )
+      )
+        return;
       if (!(event.ctrlKey || event.metaKey)) return;
       const key = event.key.toLowerCase();
       // Redo: Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z (checked first — Shift+Z is redo,

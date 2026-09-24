@@ -134,6 +134,23 @@ export function localSiteEligible(
   return panel.state === "none" || Boolean(panel.value.owner.anchor?.contains(site.anchor));
 }
 
+/** A focused canvas may work beside floating panels, but never through a blocker. */
+export function focusedCanvasEligible(entries: Entry[], observed: EscapeRoot[]): boolean {
+  if (foregroundRoot(entries, observed).state === "ambiguous") return false;
+  if (
+    entries.some(
+      (entry) =>
+        isLayer(entry) && (entry.owner.kind !== "panel" || !entry.owner.allowFocusedCanvasHistory),
+    )
+  )
+    return false;
+  // Observation-only frames have no owner to opt in; retained canvas focus
+  // must not make their covered map interactive.
+  return observed.every((root) =>
+    entries.some(({ owner }) => owner.kind === "panel" && owner.root === root),
+  );
+}
+
 export function hasForegroundModal(entries: Entry[], observed: EscapeRoot[] = []): boolean {
   const front = foregroundRoot(entries, observed);
   // Broken registrations fail conservatively: never publish a held stroke under a modal.

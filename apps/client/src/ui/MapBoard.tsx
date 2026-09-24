@@ -665,6 +665,13 @@ export default function MapBoard({
       ref={ref}
       className="map-canvas-wrapper"
       data-testid="map-board"
+      data-map-history-surface={mapEditMode ? "true" : undefined}
+      tabIndex={mapEditMode ? -1 : undefined}
+      onPointerDownCapture={(event) => {
+        if (mapEditMode && event.target instanceof HTMLCanvasElement) {
+          event.currentTarget.focus({ preventScroll: true });
+        }
+      }}
       style={{
         width: "100%",
         height: "100%",

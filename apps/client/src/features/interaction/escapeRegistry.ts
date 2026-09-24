@@ -1,6 +1,7 @@
 import { isEditableTarget } from "../../utils/isEditableTarget";
 import {
   currentEntries,
+  focusedCanvasEligible,
   hasForegroundModal,
   localSiteEligible,
   orderedOwner,
@@ -170,14 +171,27 @@ export function createEscapeRegistry(
       return localSiteEligible(live(), site, roots());
     },
     /** History/delete belong to the intended canvas site, never a focused panel button. */
-    canHandleShortcut(event: KeyboardEvent, site: LocalSite): boolean {
+    canHandleShortcut(
+      event: KeyboardEvent,
+      site: LocalSite,
+      options: { allowFocusedCanvas?: boolean } = {},
+    ): boolean {
+      const target = eventElement(event, listeningWindow ?? getWindow());
+      const focusedCanvas =
+        options.allowFocusedCanvas &&
+        !site.root &&
+        site.anchor?.isConnected &&
+        target === site.anchor &&
+        site.anchor.ownerDocument.activeElement === site.anchor;
       return (
         !event.defaultPrevented &&
         !event.isComposing &&
         !composing &&
         event.keyCode !== 229 &&
-        !isEditableTarget(eventElement(event, listeningWindow ?? getWindow())) &&
-        localSiteEligible(live(), site, roots())
+        !isEditableTarget(target) &&
+        (focusedCanvas
+          ? focusedCanvasEligible(live(), roots())
+          : localSiteEligible(live(), site, roots()))
       );
     },
     cancelForTransition(): number {
