@@ -222,7 +222,7 @@ export function AuthenticationGate({
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const trimmed = passwordInput.trim();
-      if (!trimmed) {
+      if (!trimmed || authState === AuthState.FAILED) {
         return;
       }
 
@@ -236,7 +236,7 @@ export function AuthenticationGate({
       activeAuthAttemptRef.current = trimmed;
       onAuthenticate(trimmed);
     },
-    [onAuthenticate, onConnect, isConnected, passwordInput],
+    [onAuthenticate, onConnect, isConnected, passwordInput, authState],
   );
 
   /**
@@ -273,6 +273,8 @@ export function AuthenticationGate({
   const canSubmit =
     passwordInput.trim().length > 0 &&
     authState !== AuthState.PENDING &&
+    // A rejected socket is closing; retry only after its replacement connects.
+    authState !== AuthState.FAILED &&
     connectionState !== ConnectionState.CONNECTING &&
     connectionState !== ConnectionState.RECONNECTING;
 
