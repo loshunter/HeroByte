@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * A TABLET ROTATING ACROSS THE LAYOUT RULE.
  *
@@ -62,7 +63,7 @@ async function joinUnpinned(page: Page): Promise<void> {
 /** The mobile sheet's tool tiles and dials, which is where we read state. */
 async function openMobileToolSheet(page: Page) {
   await mobilePalette(page).getByRole("button", { name: /Tool/ }).click();
-  const grid = page.locator(".mobile-tool-sheet__grid").first();
+  const grid = page.getByRole("dialog", { name: "Map tools", exact: true }).first();
   await expect(grid).toBeVisible({ timeout: 15_000 });
 }
 
@@ -70,7 +71,7 @@ async function expectHallAtWidthThree(page: Page) {
   await openMobileToolSheet(page);
 
   // The armed tool.
-  await expect(page.getByRole("button", { name: /^Hall$/ })).toHaveAttribute(
+  await expect(page.getByRole("button", { name: "Hallway", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
@@ -101,7 +102,7 @@ test.describe("a tablet rotating across the layout rule", () => {
 
     // Arm Hall and set a width the DM would notice losing. The desktop grid is
     // a label followed by its buttons, so scope through the label's parent.
-    await page.getByRole("button", { name: /🚇 Hall/ }).click();
+    await chooseBuildTool(page, "hallway");
     const widthGrid = page.getByText("Width (cells):", { exact: true }).locator("xpath=..");
     await widthGrid.getByRole("button", { name: "3", exact: true }).click();
 

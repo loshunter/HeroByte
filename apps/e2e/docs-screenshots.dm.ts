@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "./build-palette.helpers";
 import { expect, test } from "./fixtures";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 import {
@@ -149,7 +150,7 @@ test.describe("docs screenshots: DM", () => {
     await step(
       "room tool: options + drag",
       async () => {
-        await page.getByRole("button", { name: /🏠 Room/ }).click();
+        await chooseBuildTool(page, "room");
         await shotPage(page, "mapedit-room-options");
         await dragBoard(page, { x: room.x1, y: room.y1 }, { x: room.x2, y: room.y2 });
         await waitSnap(page, () => {
@@ -166,7 +167,7 @@ test.describe("docs screenshots: DM", () => {
 
     await step("door on the east wall", async () => {
       await page.waitForTimeout(500);
-      await page.getByRole("button", { name: /🚪 Door/ }).click();
+      await chooseBuildTool(page, "door");
       await dragBoard(page, { x: room.x2, y: doorY - 50 }, { x: room.x2, y: doorY + 50 });
       await waitSnap(
         page,
@@ -177,7 +178,7 @@ test.describe("docs screenshots: DM", () => {
     });
 
     await step("hallway east from the door", async () => {
-      await page.getByRole("button", { name: /🚇 Hall/ }).click();
+      await chooseBuildTool(page, "hallway");
       await dragBoard(
         page,
         { x: room.x2 + 30, y: doorY },
@@ -188,7 +189,7 @@ test.describe("docs screenshots: DM", () => {
     });
 
     await step("torch pools + night ambient", async () => {
-      await page.getByRole("button", { name: /💡 Light/ }).click();
+      await chooseBuildTool(page, "light");
       await page.mouse.click(room.x1 + 90, room.y1 + 80);
       await page.waitForTimeout(400);
       await page.mouse.click(room.x2 - 90, room.y2 - 80);
@@ -197,14 +198,14 @@ test.describe("docs screenshots: DM", () => {
         () => (window.__HERO_BYTE_E2E__?.snapshot?.compiledScene?.lights?.length ?? 0) >= 2,
       );
       await page.getByRole("button", { name: /🗂 Layers/ }).click();
-      await page.getByLabel("Lighting opacity").fill("0.55");
+      await page.getByLabel("Ambient light").fill("0.55");
       await waitBake(page, 1_800);
       await shotPage(page, "mapedit-night-lights");
       await page.getByRole("button", { name: /🗂 Layers/ }).click();
     });
 
     await step("paint water with the brush deck", async () => {
-      await page.getByRole("button", { name: /🖌️ Paint/ }).click();
+      await chooseBuildTool(page, "terrain");
       await shotPage(page, "mapedit-brush-deck");
       await page.getByLabel("Search brushes").fill("water");
       await page.getByTitle("Water", { exact: true }).first().click();
@@ -220,7 +221,7 @@ test.describe("docs screenshots: DM", () => {
     });
 
     await step("place props from the asset picker", async () => {
-      await page.getByRole("button", { name: /📦 Place/ }).click();
+      await chooseBuildTool(page, "place");
       await page.getByRole("button", { name: /▸ / }).click();
       await shotPage(page, "mapedit-asset-picker");
       await page.getByRole("option", { name: "Table", exact: true }).click();
@@ -241,7 +242,7 @@ test.describe("docs screenshots: DM", () => {
       // Zoom out until a ≥20×20-cell region of positive world cells (clear of
       // the authored room/hall) fits on screen, verified via the live camera.
       const region = await computeGenRegion(page, box);
-      await page.getByRole("button", { name: /🏰 Gen/ }).click();
+      await chooseBuildTool(page, "generate");
       // Arming and aiming are separate failures and used to report as one: the
       // region badge never appearing reads as "the drag did not take" whether
       // the tool armed or not. The idle prompt is the Generate panel saying it
@@ -315,7 +316,7 @@ test.describe("docs screenshots: DM", () => {
       // arm a neutral tool first.
       await page.getByRole("button", { name: /👆 Select/ }).click();
       await page.getByRole("button", { name: /🗂 Layers/ }).click();
-      await page.getByLabel("Lighting opacity").fill("0.75");
+      await page.getByLabel("Ambient light").fill("0.75");
       await waitBake(page, 1_500);
       await closeTopWindow(page, "MAP TOOLS");
       await page

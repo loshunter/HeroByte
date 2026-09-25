@@ -1,14 +1,27 @@
 # Interface clarity — the first session should teach the table — arc plan
 
-> **STATUS: U3a VERIFIED AND OWNER-ACCEPTED; LOCAL COMMIT THEN U3b — 2026-09-24.**
+> **STATUS: U3b ACCEPTED AND LOCALLY COMPLETE; U4 NEXT — 2026-09-25.**
 > U1 and U2 are locally committed following their recorded owner acceptance. U3a's
 > auth prerequisite and characterized extraction are committed; its semantic repair
-> remains uncommitted. Final review round 3 left one P2 recovery-correlation finding
+> is locally committed as `b473a3dd`. Final review round 3 left one P2 recovery-correlation finding
 > (round counts 5 → 1 → 1). The authorized bounded repair now has strict behavioral
 > RED/GREEN evidence, six desktop/phone Generate journeys, all eight gates and fresh
 > boot PASS. [The verified owner checkpoint](../verification/interface-clarity-u3a-checkpoint.md)
 > records scope, evidence and choices. The owner's “acccepted” fulfills the
-> checkpoint; commit the verified semantic repair locally and proceed to U3b.
+> checkpoint. U3b's grouped palette and layout repairs pass the full eight gates,
+> fresh boot and automated two-client journeys. Round 1 found two distinct issues;
+> those repairs passed full verification: 10,016 unit and 256 browser passes.
+> Round 2 found five issues (one behavior gap, four copy/label mismatches); bounded
+> repairs now pass all eight gates and isolated boot: 10,018 unit passes and
+> 258 browser passes, with four and three existing skips respectively. The frozen
+> ladder resumed after a recorded usage interruption with all 87 hashes unchanged.
+> Final R3 found one stale audit-status sentence, corrected after review; no
+> additional product defect was found. Formal counts 2 → 5 → 1, 12 completed
+> assignments, zero semantic agent errors. Two PASS/two FAIL verdicts reflect
+> the duplicated P3, not unanimous review acceptance. The owner accepted the
+> [U3b checkpoint](../verification/interface-clarity-u3b.md) with “Accept and commit
+> locally.” The scoped local commit contains this record; no fourth U3b review ran.
+> U4–U10 remain unimplemented, and this continuation stops after U3b.
 > Do not start a fourth formal U3a review. Remote pushes,
 > main merge and production deployment remain outside the execution authorization.
 > Execution evidence: [interface-clarity-execution.md](../verification/interface-clarity-execution.md).

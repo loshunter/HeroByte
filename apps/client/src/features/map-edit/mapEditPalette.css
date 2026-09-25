@@ -1,0 +1,116 @@
+.map-edit-palette {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  color: var(--jrpg-white);
+  background: var(--jrpg-navy);
+}
+.map-edit-palette__persistent,
+.map-edit-palette__footer {
+  flex: none;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  background: var(--jrpg-navy);
+}
+.map-edit-palette__persistent {
+  border-bottom: 1px solid var(--jrpg-gold);
+}
+.map-edit-palette__footer {
+  border-top: 1px solid var(--jrpg-gold);
+}
+.map-edit-palette__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-edit-palette__scroll > * {
+  flex-shrink: 0;
+}
+.map-edit-map-name {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.map-edit-tool-grid,
+.map-edit-density {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.map-edit-density {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 4px;
+}
+.map-edit-tool-grid > button,
+.map-edit-palette__footer > button,
+.map-edit-decoration__fire {
+  min-height: 44px;
+  font-size: 9px;
+  padding: 6px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.map-edit-decoration__fire {
+  width: 100%;
+  margin-top: 6px;
+}
+.map-edit-group-label {
+  display: grid;
+  gap: 4px;
+  color: var(--jrpg-gold);
+  font-size: 10px;
+}
+.map-edit-tool-groups {
+  display: grid;
+  gap: 6px;
+}
+.mobile-tool-sheet.mobile-tool-sheet--build {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+.mobile-tool-sheet--build .mobile-tool-sheet__header {
+  position: static;
+  flex: none;
+  margin: 0;
+}
+.mobile-tool-sheet--build .map-edit-palette__persistent {
+  padding: 4px 10px 8px;
+}
+.mobile-tool-sheet--build .map-edit-palette__scroll {
+  padding: 10px;
+}
+.mobile-tool-sheet--build .map-edit-tool-grid > button {
+  font-size: 12px;
+}
+.mobile-build-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+/* Keep an aimable map above the open inspector on portrait tablets. */
+@media (min-width: 700px) and (min-height: 800px) {
+  .mobile-tool-sheet.mobile-tool-sheet--build {
+    max-height: 42dvh;
+  }
+}
+
+@media (max-height: 500px) {
+  .mobile-tool-sheet--build .mobile-tool-sheet__header,
+  .mobile-tool-sheet--build .map-edit-palette__persistent,
+  .mobile-tool-sheet--build .map-edit-palette__footer {
+    padding: 4px;
+  }
+  .mobile-tool-sheet--build .map-edit-palette__persistent > .mobile-tool-sheet__note {
+    display: none;
+  }
+}

@@ -28,6 +28,7 @@
  */
 
 import { expect, test, type Page } from "../fixtures";
+import { chooseBuildTool, type BuildTool } from "../build-palette.helpers";
 import { elevateToDM } from "../helpers";
 import { joinMobileTable } from "./mobile.helpers";
 import { openTouch, touchDrag, touchTap } from "./touch.helpers";
@@ -139,17 +140,19 @@ async function enterLiveMapEdit(page: Page): Promise<void> {
     undefined,
     { timeout: 30_000 },
   );
-  await expect(page.locator(".mobile-tool-sheet__grid")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("dialog", { name: "Map tools", exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 /** Arms a tool from the sheet and uncovers the canvas. Room keeps the sheet
  * open (it has dials), so closing is explicit rather than assumed. */
-async function armAndClose(page: Page, name: RegExp): Promise<void> {
+async function armAndClose(page: Page, tool: BuildTool): Promise<void> {
   const dock = page.getByRole("navigation", { name: /Map edit actions/i });
   if (!(await page.locator(".mobile-tool-sheet").isVisible())) {
     await dock.getByRole("button", { name: /Tool/ }).click();
   }
-  await page.locator(".mobile-tool-sheet__grid").getByRole("button", { name }).click();
+  await chooseBuildTool(page.getByRole("dialog", { name: "Map tools", exact: true }), tool, true);
   if (await page.locator(".mobile-tool-sheet").isVisible()) {
     await page.getByRole("button", { name: /Close tools/i }).click();
   }
@@ -179,7 +182,7 @@ test.describe("mobile map edit — select and delete", () => {
     // A Room is no good here — its floor is terrain and its walls never reach
     // the mapElements projection, so there is nothing to read a position from,
     // even though a wall is perfectly selectable by hand now. ----
-    await armAndClose(page, /^Row$/);
+    await armAndClose(page, "row");
     await touchDrag(cdp, at(0.28, 0.22), [at(0.66, 0.22)]);
     await expect.poll(() => elements(page), { timeout: 30_000 }).toBeGreaterThan(0);
     await settle(page);
@@ -191,10 +194,7 @@ test.describe("mobile map edit — select and delete", () => {
     // readout and the delete button both ----
     const dock = page.getByRole("navigation", { name: /Map edit actions/i });
     await dock.getByRole("button", { name: /Tool/ }).click();
-    await page
-      .locator(".mobile-tool-sheet__grid")
-      .getByRole("button", { name: /^Select$/ })
-      .click();
+    await chooseBuildTool(page, "select");
     await expect(page.locator(".mobile-tool-sheet")).toBeVisible();
 
     const status = page.getByTestId("mobile-select-status");
@@ -219,7 +219,7 @@ test.describe("mobile map edit — select and delete", () => {
     // and would strand a DM who deleted one thing mid-session.
     await settle(page);
     const afterDelete = await elements(page);
-    await armAndClose(page, /^Row$/);
+    await armAndClose(page, "row");
     await touchDrag(cdp, at(0.28, 0.62), [at(0.66, 0.62)]);
     await expect.poll(() => elements(page), { timeout: 30_000 }).toBeGreaterThan(afterDelete);
   });
@@ -237,7 +237,7 @@ test.describe("mobile map edit — select and delete", () => {
       y: box.y + box.height * fy,
     });
 
-    await armAndClose(page, /^Row$/);
+    await armAndClose(page, "row");
     await touchDrag(cdp, at(0.28, 0.22), [at(0.62, 0.22)]);
     await expect.poll(() => elements(page), { timeout: 30_000 }).toBeGreaterThan(0);
     await settle(page);
@@ -246,10 +246,7 @@ test.describe("mobile map edit — select and delete", () => {
 
     const dock = page.getByRole("navigation", { name: /Map edit actions/i });
     await dock.getByRole("button", { name: /Tool/ }).click();
-    await page
-      .locator(".mobile-tool-sheet__grid")
-      .getByRole("button", { name: /^Select$/ })
-      .click();
+    await chooseBuildTool(page, "select");
 
     const status = page.getByTestId("mobile-select-status");
     await touchTap(cdp, target);
@@ -292,7 +289,7 @@ test.describe("mobile map edit — select and delete", () => {
     });
 
     // ---- author a door; it compiles closed ----
-    await armAndClose(page, /^Door$/);
+    await armAndClose(page, "door");
     await touchDrag(cdp, at(0.3, 0.2), [at(0.5, 0.2)]);
     await expect.poll(() => doorState(page), { timeout: 30_000 }).toBe("closed");
     await settle(page);
@@ -302,10 +299,7 @@ test.describe("mobile map edit — select and delete", () => {
     // ---- arm Select; its panel is the readout ----
     const dock = page.getByRole("navigation", { name: /Map edit actions/i });
     await dock.getByRole("button", { name: /Tool/ }).click();
-    await page
-      .locator(".mobile-tool-sheet__grid")
-      .getByRole("button", { name: /^Select$/ })
-      .click();
+    await chooseBuildTool(page, "select");
     const status = page.getByTestId("mobile-select-status");
     await expect(status).toHaveText(/tap an element/i);
 

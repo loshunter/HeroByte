@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * M7 — Place, Scatter and Light driven by a finger.
  *
@@ -53,7 +54,7 @@ test.describe("M7 — a finger places", () => {
 
     // ---- PLACE ----
     expect(await elements(page)).toBe(0); // positive control
-    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+    await chooseBuildTool(toolGrid, "place");
     // Place takes an argument, so the sheet stays open over the asset picker.
     const placePanel = page.locator(".mobile-tool-sheet__section", { hasText: "Place" }).first();
     await expect(placePanel).toBeVisible();
@@ -68,7 +69,7 @@ test.describe("M7 — a finger places", () => {
     // than Place having stayed armed.
     await settle(page);
     await dock.getByRole("button", { name: /Tool/ }).click();
-    await toolGrid.getByRole("button", { name: /^Scatter$/ }).click();
+    await chooseBuildTool(toolGrid, "scatter");
     await page.getByRole("button", { name: /To the map/i }).click();
 
     await touchTap(cdp, at(0.6, 0.6));
@@ -88,7 +89,7 @@ test.describe("M7 — a finger places", () => {
       y: box.y + box.height * fy,
     });
 
-    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+    await chooseBuildTool(toolGrid, "place");
     await page.getByRole("button", { name: /To the map/i }).click();
     expect(await elements(page)).toBe(0);
 
@@ -127,7 +128,7 @@ test.describe("M7 — a finger places", () => {
       y: box.y + box.height * fy,
     });
 
-    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+    await chooseBuildTool(toolGrid, "place");
     await page.getByRole("button", { name: /To the map/i }).click();
 
     const first = at(0.35, 0.35);
@@ -167,7 +168,7 @@ test.describe("M7 — a finger places", () => {
     const cdp = await openTouch(page);
 
     expect(await lights(page)).toBe(0); // positive control
-    await toolGrid.getByRole("button", { name: /^Light$/ }).click();
+    await chooseBuildTool(toolGrid, "light");
     // Light takes no argument, so it closes the sheet and puts the DM on the
     // map — the same rule Erase follows.
     await expect(page.locator(".mobile-tool-sheet")).toBeHidden();

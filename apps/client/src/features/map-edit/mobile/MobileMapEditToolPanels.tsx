@@ -43,20 +43,7 @@ export type SheetPanelTool = TouchTool | "select" | "eyedropper";
  * open so the DM can set it, and a tool that takes none closes it and puts them
  * on the map. Paint needs a family, Place and Scatter need an asset; Erase and
  * Light need nothing, which is the whole difference. */
-export const PANEL_TOOLS: ReadonlySet<SheetPanelTool> = new Set<SheetPanelTool>([
-  "terrain",
-  "room",
-  "hallway",
-  "place",
-  "scatter",
-  "row",
-  "spline",
-  "generate",
-  "select",
-  // "eyedropper" is deliberately absent: it takes no argument, so the sheet
-  // closes and puts the DM on the map — and it hands over to Place after one
-  // sample, so a panel would be showing for a tool already gone.
-]);
+export { MOBILE_PANEL_TOOLS as PANEL_TOOLS } from "../mapEditToolDescriptors";
 
 const HALLWAY_WIDTHS = [1, 2, 3, 4] as const;
 

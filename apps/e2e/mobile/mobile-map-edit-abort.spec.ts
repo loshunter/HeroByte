@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * The stable Stop slot cancels a real pending gesture.
  * A successful canvas commit is required first. Disabled before a gesture is
@@ -36,7 +37,7 @@ async function enterLiveMapEdit(page: Page): Promise<void> {
     undefined,
     { timeout: 30_000 },
   );
-  await expect(page.getByRole("button", { name: /Wall/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Wall" })).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: /Close tools/i }).click();
   await expect(page.locator(".mobile-tool-sheet")).toBeHidden();
 }
@@ -143,7 +144,7 @@ test.describe("the stable Stop slot", () => {
   }) => {
     test.setTimeout(120_000);
     const { dock, toolGrid } = await armLiveMapEdit(page, { width: 820, height: 1180 });
-    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+    await chooseBuildTool(toolGrid, "place");
     await page.getByRole("button", { name: /To the map/i }).click();
     const cancel = dock.getByRole("button", { name: "Cancel placement", exact: true });
     await expect(cancel).toBeDisabled();

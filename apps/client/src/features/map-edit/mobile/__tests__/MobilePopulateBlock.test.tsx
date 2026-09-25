@@ -1,86 +1,84 @@
-/**
- * POPULATE on a phone.
- *
- * The message is three-state and that is the load-bearing part. canPopulate is
- * `regionIsLive && !saving`, so a two-state message spends the ~300ms after
- * every placement telling the DM to draw a room they just drew. The three
- * states must be three DIFFERENT strings, which is why this asserts inequality
- * rather than three literals — a literal set passes just as well when two of
- * them are accidentally the same sentence.
- */
-
-import React from "react";
-import { describe, expect, it, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { MobilePopulateBlock } from "../MobilePopulateBlock";
-import type { MapEditToolbarProps } from "../../mapEditTypes";
+import { boundPalette } from "../../__tests__/characterization/palette.fixtures";
 
-afterEach(() => cleanup());
+afterEach(cleanup);
+const target = { kind: "room" as const, bounds: { x: 0, y: 0, width: 500, height: 500 } };
 
-const bag = (overrides: Record<string, unknown> = {}) =>
-  ({
-    saving: false,
-    canPopulate: true,
-    populateCategory: "objects",
-    onSelectPopulateCategory: vi.fn(),
-    populateDensity: "medium",
-    onSelectPopulateDensity: vi.fn(),
-    onPopulate: vi.fn(),
-    ...overrides,
-  }) as unknown as MapEditToolbarProps;
-
-const statusOf = (props: Record<string, unknown>): string => {
-  const { unmount } = render(<MobilePopulateBlock {...bag(props)} />);
-  const text = screen.getByTestId("mobile-populate-status").textContent ?? "";
-  unmount();
-  return text;
-};
-
-describe("POPULATE on a phone", () => {
-  it("distinguishes saving from armed from nothing-to-fill", () => {
-    const saving = statusOf({ saving: true, canPopulate: false });
-    const armed = statusOf({ saving: false, canPopulate: true });
-    const idle = statusOf({ saving: false, canPopulate: false });
-
-    expect(new Set([saving, armed, idle]).size).toBe(3);
-    // The armed one is the sentence that names the adjacency rule — the whole
-    // reason this block exists, since the rule is otherwise only implied by
-    // ghosts on the canvas.
-    expect(armed).toMatch(/just drew/i);
-    expect(idle).toMatch(/draw a room or hallway first/i);
+describe("decoration controls on a phone", () => {
+  it("shows the named target and forwards the controller's reason", () => {
+    const h = boundPalette();
+    render(
+      <MobilePopulateBlock
+        {...h.props({
+          populateTarget: { ...target, kind: "hallway" },
+          canPopulate: false,
+          populateHint: "The target layer is locked.",
+        })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Decorate last hallway/ })).toBeDisabled();
+    expect(screen.getByTestId("mobile-populate-status")).toHaveTextContent(
+      "The target layer is locked.",
+    );
   });
 
-  it("offers the dials only once there is a region to fill", () => {
-    const { unmount } = render(<MobilePopulateBlock {...bag({ canPopulate: false })} />);
-    expect(screen.queryByText("From")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Populate/i })).toBeDisabled();
-    unmount();
-
-    render(<MobilePopulateBlock {...bag({ canPopulate: true })} />);
-    expect(screen.getByText("From")).toBeInTheDocument();
-    expect(screen.getByText("How much")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Populate/i })).toBeEnabled();
+  it("shows the dials only when a target exists, including a temporarily unavailable target", () => {
+    const h = boundPalette();
+    const view = render(<MobilePopulateBlock {...h.props()} />);
+    expect(screen.queryByText("From")).toBeNull();
+    expect(screen.getByRole("button", { name: /Decorate last/ })).toBeDisabled();
+    view.rerender(
+      <MobilePopulateBlock {...h.props({ populateTarget: target, canPopulate: true })} />,
+    );
+    expect(screen.getByText("From")).toBeVisible();
+    expect(screen.getByText("How much")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Decorate last room/ })).toBeEnabled();
   });
 
-  it("wires the category, the density and the fill to the bag", () => {
-    const props = bag();
-    render(<MobilePopulateBlock {...props} />);
-
+  it("forwards category, density and decoration to the original callbacks", () => {
+    const h = boundPalette();
+    const onSelectPopulateCategory = vi.fn(),
+      onSelectPopulateDensity = vi.fn(),
+      onPopulate = vi.fn();
+    render(
+      <MobilePopulateBlock
+        {...h.props({
+          populateTarget: target,
+          canPopulate: true,
+          onSelectPopulateCategory,
+          onSelectPopulateDensity,
+          onPopulate,
+        })}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: /Terrain/i }));
-    expect(props.onSelectPopulateCategory).toHaveBeenCalledWith("terrain");
-
+    expect(onSelectPopulateCategory).toHaveBeenCalledExactlyOnceWith("terrain");
     fireEvent.click(screen.getByRole("button", { name: /Low/i }));
-    expect(props.onSelectPopulateDensity).toHaveBeenCalledWith("low");
-
-    fireEvent.click(screen.getByRole("button", { name: /✨ Populate/i }));
-    expect(props.onPopulate).toHaveBeenCalledTimes(1);
+    expect(onSelectPopulateDensity).toHaveBeenCalledExactlyOnceWith("low");
+    fireEvent.click(screen.getByRole("button", { name: /Decorate last room/ }));
+    expect(onPopulate).toHaveBeenCalledTimes(1);
   });
 
-  it("cannot be fired while a placement is still in flight", () => {
-    const props = bag({ saving: true, canPopulate: false });
-    render(<MobilePopulateBlock {...props} />);
-
-    expect(screen.getByRole("button", { name: /Populate/i })).toBeDisabled();
-    expect(screen.getByTestId("mobile-populate-status")).toHaveTextContent(/saving/i);
+  it("cannot fire during a placement and retains its target readout", () => {
+    const h = boundPalette();
+    const onPopulate = vi.fn();
+    render(
+      <MobilePopulateBlock
+        {...h.props({
+          populateTarget: target,
+          saving: true,
+          canPopulate: false,
+          populateHint: "Working… wait for the map to finish.",
+          onPopulate,
+        })}
+      />,
+    );
+    const button = screen.getByRole("button", { name: /Decorate last room/ });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(onPopulate).not.toHaveBeenCalled();
+    expect(screen.getByTestId("mobile-populate-status")).toHaveTextContent(/Working/);
   });
 });

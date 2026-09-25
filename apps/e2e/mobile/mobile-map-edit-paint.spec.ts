@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * M6 — Paint and Erase driven by a finger.
  *
@@ -57,7 +58,7 @@ async function armLiveMapEdit(page: Page) {
   await page.waitForFunction(() => Boolean(window.__HERO_BYTE_E2E__?.snapshot?.liveMapDocumentId), {
     timeout: 30_000,
   });
-  const toolGrid = page.locator(".mobile-tool-sheet__grid");
+  const toolGrid = page.getByRole("dialog", { name: "Map tools", exact: true });
   await expect(toolGrid).toBeVisible({ timeout: 30_000 });
   return { dock, toolGrid };
 }
@@ -83,7 +84,7 @@ test.describe("M6 — a finger paints", () => {
 
     // ---- PAINT ----
     expect(await paintedCells(page)).toBe(0); // positive control
-    await toolGrid.getByRole("button", { name: /^Paint$/ }).click();
+    await chooseBuildTool(toolGrid, "terrain");
     // Paint carries the family picker, so the sheet STAYS open. Choosing a
     // shelf and a family is the touch answer to the desktop deck's hover card.
     const paintSection = page.locator(".mobile-tool-sheet__section", { hasText: "Paint" });
@@ -97,7 +98,7 @@ test.describe("M6 — a finger paints", () => {
     // ---- ERASE ----
     await settle(page);
     await dock.getByRole("button", { name: /Tool/ }).click();
-    await toolGrid.getByRole("button", { name: /^Erase$/ }).click();
+    await chooseBuildTool(toolGrid, "erase");
     // Erase takes no argument, so it closes the sheet and puts the DM on the
     // map — the difference from Paint, and the reason PANEL_TOOLS holds one
     // and not the other.
@@ -131,7 +132,7 @@ test.describe("M6 — a finger paints", () => {
     const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
     const cdp = await openTouch(page);
 
-    await toolGrid.getByRole("button", { name: /^Paint$/ }).click();
+    await chooseBuildTool(toolGrid, "terrain");
     await page.getByRole("button", { name: /To the map/i }).click();
 
     await touchTap(cdp, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.4 });

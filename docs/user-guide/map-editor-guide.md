@@ -4,6 +4,12 @@ HeroByte's map editor runs **on the live table**: every room, wall, door, and br
 
 It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **🏗️ MAP** in the top toolbar. On a phone or tablet the door is a different one — see [On a phone or tablet](#on-a-phone-or-tablet) at the end.
 
+The **Tool group** menu organizes the palette into **Terrain**, **Structures**,
+**Objects**, **Lighting**, and **Generate**. Returning to a group remembers its last
+tool. Select, Sample, Layers, map history and Done remain outside the scrolling
+tool settings. The header names the map you are editing live. The screenshots below
+show an earlier palette arrangement; their map examples still illustrate the tools.
+
 > Building by hand is one of three ways to put a map on the table — the other two are bringing your own
 > art and generating a place mid-session with the Kicked-In Door.
 > [Running a Game](running-a-game.md) compares them and shows how to mix them (including how to get
@@ -11,7 +17,7 @@ It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **
 
 ## Starting a live map
 
-The palette opens with one button:
+Use Start live map to begin:
 
 **▶ START LIVE MAP** creates a fresh editable map (date-stamped, huge — 8192×8192), binds it to the table, and lights up the **● LIVE** badge — `loading…` sits beside the badge while that round trip runs. From now on every edit auto-compiles and broadcasts; you'll see a brief `saving…` flicker in the same spot as each commit lands.
 
@@ -20,14 +26,14 @@ The palette opens with one button:
 Things to know before your first wall:
 
 - **Escape** cancels an in-progress drag; pressing it again (with nothing in progress) leaves map-edit mode. The map _stays_ live — closing the palette never unbinds it, and reopening resumes where you left off.
-- **↶ UNDO / ↷ REDO** at the palette's foot work on map edits (Ctrl+Z / Ctrl+Y while in the mode). Each drag, stroke, or generate is exactly one undo step.
+- **↶ UNDO MAP / ↷ REDO MAP** stay above desktop tool settings; the phone keeps them in its dock. They affect map edits (Ctrl+Z / Ctrl+Y while the map owns keyboard input). Each drag, stroke, or generate is exactly one undo step. **Done building** returns to play.
 - Only one edit is sent at a time. If you finish a drag or a click while the previous one is still in flight, that gesture is dropped rather than queued, and you'll get **"Still saving the last change — draw that again."** Draw it again — nothing was half-applied. You'll notice this most on a phone, where the round trip is longest.
 - Tokens don't respond to clicks while you're editing — leave the mode to move them.
 - If the table still has a raster background image, the palette warns you: live terrain and a background photo fight visually. Clear the background (DM Menu → Map Setup) for a clean canvas.
 
 ## 🏠 Room and 🚇 Hall — the structural tools
 
-**Room** drags a rectangle; on release you get floor terrain, a painted wall band, and a real blocking wall around the perimeter — one committed room, one undo step. The preview shows the true baked art plus a live `cols × rows` readout while you drag.
+**Room** drags a rectangle; on release you get floor terrain and a real blocking wall around the perimeter — one committed room, one undo step. The selected wall-ring material also paints a wall band; **None** omits that paint while keeping the blocking perimeter. The preview shows the true baked art plus a live `cols × rows` readout while you drag.
 
 ![Room tool armed: the brush deck picks the floor, the wall ring picks the walls](img/mapedit-room-options.jpg)
 
@@ -56,7 +62,7 @@ At the table, anyone can click a door to swing it — creak and slam included.
 
 ## 💡 Light — torches and night
 
-Click to drop a warm torch pool (fixed radius). The trick is in the **Layers panel**: the **Lighting layer's opacity is the ambient light level** — `1` is full day; drag it down and the map cools into night, and your torch pools start to glow.
+Click to drop a warm torch pool (fixed radius). In **Layers**, the **Ambient light** slider controls the Lighting layer's opacity — **100%** is full day; drag it down and the map cools into night, and your torch pools start to glow.
 
 ![Night ambient with two torch pools burning](img/mapedit-night-lights.jpg)
 
@@ -88,9 +94,20 @@ Three tools share one **asset picker**:
 - **Row**: drag a line and the asset repeats along it with lived-in jitter and the occasional gap — fences, torch-lined corridors, market stalls.
 - **Eyedropper**: **Ctrl/Cmd-click** anything on the map (with Place, Scatter, or Paint armed) to sample it as your active asset or brush.
 
-## ✨ Populate — instant set dressing
+## Decorate last room / hallway — instant set dressing
 
-After you commit a room or hall, the **Populate** block targets it: pick a category — **Objects, Structs, Terrain, Wear** — and a density (low / medium / high), and translucent ghosts preview the exact stamps. **✨ POPULATE** commits the fill: furniture hugs walls, clutter respects doorways, and the whole fill is one undo.
+In **Structures**, choose **Room** or **Hallway**. After drawing, the named outline
+marks the last region you placed. Its decoration settings offer a category —
+**Objects, Structures, Terrain, Decals** (the phone uses **Structs** and **Wear**)
+— and a density (low / medium / high).
+Translucent ghosts preview the stamps. **Decorate last room** or **Decorate last
+hallway** commits the fill as one undo step. It consumes that target once; draw a
+new room or hallway for another fill. This does not decorate an arbitrary selected
+room. Undoing the placement, moving or hiding its perimeter, changing the grid size or offset, or
+erasing any part of its floor removes the target outline and disables decoration.
+Repainting the floor, adding doors and changing layer presentation keep the target.
+Unavailable placement layers and work still in progress also disable the action
+and explain why.
 
 ![A populated hallway: set dressing where it belongs](img/mapedit-populated.jpg)
 
@@ -143,14 +160,15 @@ Flip on **👁 PLAYER VIEW** any time to see the table through their eyes — an
 | **Esc**                     | Cancel drag → close wheel → leave map-edit    |
 | **Ctrl/Cmd+Z / Ctrl/Cmd+Y** | Undo / redo map edits                         |
 | **Right-click**             | Quick wheel                                   |
-| **R / Shift+R**             | Rotate pending stamp ±15° (Place/Scatter/Row) |
+| **R / Shift+R**             | Rotate a Place free stamp ±15° |
 | **Alt + click** (Place)     | Free stamp, unsnapped, rotated                |
 | **Ctrl/Cmd + click**        | Eyedropper — sample asset or terrain          |
 | **Alt + click a door**      | Cycle lock / reveal secret (at the table)     |
 
 ## On a phone or tablet
 
-The editor is not desktop-only. On a touch layout it is a **mode**: the dock at the bottom of the screen is replaced by the palette, and nothing covers the map.
+On a touch layout, map editing replaces the bottom dock. **Tool** opens the settings
+sheet; **To the map** closes it so you can aim on the canvas.
 
 **Getting in:** **DM** (dock slot five) → **🏗️ Edit the live map**. The DM screen closes itself on the way — the mode needs the whole canvas, so it will not sit behind the menu you just used.
 
@@ -158,12 +176,18 @@ The dock becomes five slots:
 
 | Slot                | What it does                                                                                                                                                                                                                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **✕ Exit**          | Leaves the mode. The map stays live.                                                                                                                                                                                                                                                                    |
-| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then the twelve tools below, **👆 Select**, that tool's own dials, and **◇ Recenter**. Picking a tool with no dials closes the sheet, because you picked it in order to use it; a tool that _has_ dials leaves it open so you can set them. |
+| **✕ Done**          | Leaves the mode. The map stays live.                                                                                                                                                                                                                                                                    |
+| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then Tool group, **👆 Select**, that tool's own dials, and **◇ Recenter**. Picking a tool with no dials closes the sheet, because you picked it in order to use it; a tool that _has_ dials leaves it open so you can set them. |
 | **↶ Undo / ↷ Redo** | The same map-edit history the desktop palette drives. Both stay greyed until the map is live.                                                                                                                                                                                                           |
-| **⨯ Abort**         | Abandons the drag in progress.                                                                                                                                                                                                                                                                          |
+| **Stop**         | Abandons the drag in progress.                                                                                                                                                                                                                                                                          |
 
-**Every tool is here.** **🖌️ Paint** and **🧹 Erase** lead, then the four structural drags — **🏠 Room**, **🚇 Hall**, **▬ Wall**, **🚪 Door** — then **📦 Place**, **🎲 Scatter** and **💡 Light**, then **📏 Row**, **〰️ Spline** and **🏰 Gen**. All of them work the same way with a finger: press, move, lift. **👆 Select** and **💧 Sample** sit beside them and are the exceptions — both are a single tap and neither puts anything on the map.
+**Every tool is here.** Terrain contains **Paint terrain** and **Erase terrain**;
+Structures has **Room**, **Hallway**, **Wall**, and **Door**; Objects has **Place
+object**, **Scatter objects**, **Repeat along line**, and **Rope / curve**;
+Lighting has **Place light**; Generate has **Generate area**. The shorter names
+used below refer to these same tools. **Select**, **Sample**, and **Layers** stay
+above the scrolling settings. Select and Sample use a single tap; the authoring
+tools use press, move, lift. Generate's drag aims a region, then its button builds it.
 
 **Painting.** Arm **🖌️ Paint** and the sheet stays open over the family picker, because Paint needs to know what to paint with. Pick a material shelf, then a floor, then **▶ To the map** and drag. A tap paints a single cell. **🧹 Erase** takes no such argument, so it closes the sheet and puts you straight on the map — drag over anything you want to take back up, including a room's floor.
 
@@ -175,7 +199,7 @@ Here they behave differently from a mouse, and it is worth knowing before your f
 
 That also means you can change your mind. Slide to a better spot before lifting, or reach for a second finger and the drop is abandoned along with everything else in flight.
 
-**Free stamp, and turning it.** By default Place drops a **grid tile**, snapped to the lattice. **Drop as → Free stamp** puts it wherever your finger is instead, and a **Rotation** row appears with **↺ −15°** and **↻ +15°**. (On a desktop these are Alt and R / Shift+R, and still are — the buttons and the keys write the same setting, so what is armed is visible on both.) Scatter always flings free stamps, so it gets the rotation row and not the choice.
+**Free stamp, and turning it.** By default Place drops a **grid tile**, snapped to the lattice. **Drop as → Free stamp** puts it wherever your finger is instead, and a **Rotation** row appears with **↺ −15°** and **↻ +15°**. (On a desktop these are Alt and R / Shift+R, and still are — the buttons and the keys write the same setting, so what is armed is visible on both.) Scatter uses seeded angles and has neither Drop as nor a rotation row.
 
 **💧 Sample** is the eyedropper. Tap it, then tap anything on the map, and Place arms itself with what you pointed at — a floor, an object, a wall band. It hands over after one tap, so it is a moment rather than a mode. On a desktop this is Ctrl-click while holding Place, Scatter or Paint, which a phone cannot do; that is why it has a tile of its own here.
 
@@ -195,7 +219,7 @@ That also means you can change your mind. Slide to a better spot before lifting,
 
 Two things behave differently from a mouse, and both are worth knowing before your first drag:
 
-- **Lifting your finger commits.** There is no Escape key, which is what **⨯ ABORT** is for — press it with a second finger while the first is still down, and the release lands nothing.
+- **Lifting your finger commits.** There is no Escape key, which is what **Stop** is for — press it with a second finger while the first is still down, and the release lands nothing.
 - **A second finger always means the camera.** Reach for a pinch mid-drag and the drag is _discarded_, not committed — you wanted to zoom, not to stamp a half-built room on the table.
 
 A **SAVING…** chip appears just above the dock while an edit is on its way to the server. It matters more here than on a desktop, because a phone's round trip is longer: finish a gesture while the chip is up and that gesture is dropped rather than queued, and you get the "Still saving the last change" notice instead of a wall. The chip is how you learn the table's rhythm and time the next drag.

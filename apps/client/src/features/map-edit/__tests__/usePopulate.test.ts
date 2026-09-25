@@ -1,9 +1,29 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { MapDocument } from "@herobyte/shared";
+import type { MapDocument, MapWallElement } from "@herobyte/shared";
 import { paintTerrain } from "@herobyte/shared";
 import { usePopulate } from "../usePopulate";
 import type { MapStudioController } from "../../map-studio/types";
+
+const perimeter: MapWallElement = {
+  id: "placed-room",
+  layerId: "walls",
+  type: "wall",
+  locked: false,
+  hidden: false,
+  transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+  data: {
+    points: [
+      { x: 0, y: 0 },
+      { x: 500, y: 0 },
+      { x: 500, y: 500 },
+      { x: 0, y: 500 },
+      { x: 0, y: 0 },
+    ],
+    blocksMovement: true,
+    blocksVision: true,
+  },
+};
 
 // A live doc with an objects layer. `withFloor` paints terrain over the test
 // regions so the POPULATE floor guard passes; omit it to simulate an undone room.
@@ -25,6 +45,15 @@ function makeDocument(withFloor = true): MapDocument {
     },
     layers: [
       {
+        id: "walls",
+        name: "Walls",
+        kind: "walls",
+        visible: true,
+        locked: false,
+        opacity: 1,
+        zIndex: 10,
+      },
+      {
         id: "objects",
         name: "Objects",
         kind: "objects",
@@ -34,7 +63,7 @@ function makeDocument(withFloor = true): MapDocument {
         zIndex: 20,
       },
     ],
-    elements: [],
+    elements: [perimeter],
     revision: 1,
     createdAt: 1,
     updatedAt: 1,
@@ -67,7 +96,9 @@ describe("usePopulate", () => {
     const controller = makeController();
     const { result } = renderHook(() => usePopulate(controller));
 
-    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() =>
+      result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }, "room", [perimeter]),
+    );
     expect(result.current.canPopulate).toBe(true);
 
     act(() => result.current.onPopulate());
@@ -82,7 +113,9 @@ describe("usePopulate", () => {
     const controller = makeController();
     const { result } = renderHook(() => usePopulate(controller));
 
-    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() =>
+      result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }, "room", [perimeter]),
+    );
     act(() => result.current.onPopulate());
     expect(controller.addStamps).toHaveBeenCalledTimes(1);
 
@@ -100,7 +133,9 @@ describe("usePopulate", () => {
     const { result, rerender } = renderHook(({ c }) => usePopulate(c), {
       initialProps: { c: controllerA },
     });
-    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() =>
+      result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }, "room", [perimeter]),
+    );
     expect(result.current.canPopulate).toBe(true);
 
     const controllerB = makeController({
@@ -119,7 +154,9 @@ describe("usePopulate", () => {
     const controller = makeController({ activeDocument: makeDocument(false) });
     const { result } = renderHook(() => usePopulate(controller));
 
-    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() =>
+      result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }, "room", [perimeter]),
+    );
     act(() => result.current.onPopulate());
 
     expect(controller.addStamps).not.toHaveBeenCalled();
@@ -129,7 +166,9 @@ describe("usePopulate", () => {
   it("does not populate while the controller is saving", () => {
     const controller = makeController({ saving: true });
     const { result } = renderHook(() => usePopulate(controller));
-    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() =>
+      result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }, "room", [perimeter]),
+    );
     act(() => result.current.onPopulate());
     expect(controller.addStamps).not.toHaveBeenCalled();
   });
@@ -138,13 +177,21 @@ describe("usePopulate", () => {
     const first = vi.fn((_drafts: unknown) => ["s1"]);
     const controllerA = makeController({ addStamps: first });
     const hookA = renderHook(() => usePopulate(controllerA));
-    act(() => hookA.result.current.onRegionPlaced({ x: 100, y: 100, width: 400, height: 400 }));
+    act(() =>
+      hookA.result.current.onRegionPlaced({ x: 100, y: 100, width: 400, height: 400 }, "room", [
+        perimeter,
+      ]),
+    );
     act(() => hookA.result.current.onPopulate());
 
     const second = vi.fn((_drafts: unknown) => ["s1"]);
     const controllerB = makeController({ addStamps: second });
     const hookB = renderHook(() => usePopulate(controllerB));
-    act(() => hookB.result.current.onRegionPlaced({ x: 100, y: 100, width: 400, height: 400 }));
+    act(() =>
+      hookB.result.current.onRegionPlaced({ x: 100, y: 100, width: 400, height: 400 }, "room", [
+        perimeter,
+      ]),
+    );
     act(() => hookB.result.current.onPopulate());
 
     expect(first.mock.calls[0]![0]).toEqual(second.mock.calls[0]![0]);
@@ -155,7 +202,9 @@ describe("usePopulate", () => {
     const { result } = renderHook(() => usePopulate(controller));
     expect(result.current.previewGhosts).toBeNull();
 
-    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() =>
+      result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }, "room", [perimeter]),
+    );
     const ghosts = result.current.previewGhosts;
     expect(ghosts).not.toBeNull();
     expect(ghosts!.length).toBeGreaterThan(0);
@@ -177,7 +226,9 @@ describe("usePopulate", () => {
   it("shows no ghosts over a stale (undone) region", () => {
     const controller = makeController({ activeDocument: makeDocument(false) });
     const { result } = renderHook(() => usePopulate(controller));
-    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() =>
+      result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }, "room", [perimeter]),
+    );
     expect(result.current.previewGhosts).toBeNull();
   });
 
@@ -188,13 +239,13 @@ describe("usePopulate", () => {
     const region = { x: 0, y: 0, width: 500, height: 500 };
 
     const live = renderHook(() => usePopulate(makeController()));
-    act(() => live.result.current.onRegionPlaced(region));
+    act(() => live.result.current.onRegionPlaced(region, "room", [perimeter]));
     expect(live.result.current.canPopulate).toBe(true);
 
     const stale = renderHook(() =>
       usePopulate(makeController({ activeDocument: makeDocument(false) })),
     );
-    act(() => stale.result.current.onRegionPlaced(region));
+    act(() => stale.result.current.onRegionPlaced(region, "room", [perimeter]));
 
     // Both halves are needed: a canPopulate hard-coded false passes the second
     // assertion alone, and the first is what catches it.

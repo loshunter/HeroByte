@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "./build-palette.helpers";
 import type { Locator } from "@playwright/test";
 import { expect, type Page } from "./fixtures";
 import { composer, identity, openChat, readState, sendDraft } from "./chat-journey.helpers";
@@ -108,10 +109,10 @@ export async function armGrass(page: Page, touch: boolean, create: boolean) {
   }
   if (touch) {
     const tools = page.getByRole("dialog", { name: "Map tools", exact: true });
-    await tools.getByRole("button", { name: "Paint", exact: true }).tap();
+    await chooseBuildTool(tools, "terrain", true);
     await tools.getByRole("button", { name: "Ground", exact: true }).tap();
     await tools.getByRole("button", { name: "Grass", exact: true }).tap();
-    await expect(tools.getByRole("button", { name: "Paint", exact: true })).toHaveAttribute(
+    await expect(tools.getByRole("button", { name: "Paint terrain", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -122,7 +123,7 @@ export async function armGrass(page: Page, touch: boolean, create: boolean) {
     await tools.getByRole("button", { name: /To the map/i }).tap();
     await expect(tools).toBeHidden();
   } else {
-    await page.getByRole("button", { name: "🖌️ Paint", exact: true }).click();
+    await chooseBuildTool(page, "terrain");
     // The deck has no recents on first entry; later it can show Grass twice.
     await page.getByTitle("Grass", { exact: true }).first().click();
     await expect(mapLauncher(page)).toHaveAttribute("aria-pressed", "true");
@@ -238,7 +239,7 @@ export async function retainedGrass(page: Page, touch: boolean) {
     await expect(dock(page)).toBeVisible();
     await dock(page).getByRole("button", { name: "Tool", exact: true }).tap();
     const tools = page.getByRole("dialog", { name: "Map tools", exact: true });
-    await expect(tools.getByRole("button", { name: "Paint", exact: true })).toHaveAttribute(
+    await expect(tools.getByRole("button", { name: "Paint terrain", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

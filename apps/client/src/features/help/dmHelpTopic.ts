@@ -66,7 +66,12 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "🏗️ Map",
       detail:
-        "The live map editor — rooms, walls, doors, terrain, lighting, generator. On a phone or tablet it lives at DM → 🏗️ Edit the live map, and the bottom dock becomes the palette: Exit, Tool, Undo, Redo, Abort. Every tool is reachable by finger — Paint, Erase, Room, Hall, Wall, Door, Place, Scatter, Light, Row, Spline and Gen — plus 👆 Select for picking a piece (then ✎ Edit to turn, resize, re-layer or hide it), 💧 Sample to arm Place with whatever you tap, and 🗂 Layers — where the Lighting layer’s opacity is the ambient light, so that is how a tablet makes it night. Place, Scatter and Light AIM while your finger is down and drop when you lift, because a phone has no hover to preview with. ⨯ ABORT discards the gesture in progress, because lifting a finger commits.",
+        "The live map editor. Tool group offers Terrain, Structures, Objects, Lighting and Generate, remembering the last tool in each group. Select, Sample, Layers, history and Done stay separate from scrolling settings. The map name identifies what you are editing live. On a phone or tablet: DM → Edit the live map, then Tool opens the palette; Done returns to play. Select picks a piece, then Edit turns, resizes, re-layers or hides it. Layers controls ambient light through Lighting opacity. Place object, Scatter objects and Place light aim while your finger is down and commit when you lift. Stop cancels the active gesture.",
+    },
+    {
+      term: "Decorate last room / hallway",
+      detail:
+        "In Structures, choose Room or Hallway. After drawing, the named outline marks the last region you placed; choose decoration category and density, then Decorate last room or Decorate last hallway. Each region can be decorated once, as one Undo step. Working means wait for the map to finish. An empty region or a locked placement layer cannot be decorated.",
     },
     {
       term: "SAVE GAME STATE",

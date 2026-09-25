@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * M8's remainder — editing what is already on the map, and the layer stack.
  *
@@ -48,7 +49,7 @@ async function placeAndPick(
   const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
   const cdp = await openTouch(page);
 
-  await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+  await chooseBuildTool(toolGrid, "place");
   await page.getByRole("button", { name: /To the map/i }).click();
   await touchTap(cdp, { x: box.x + box.width * 0.45, y: box.y + box.height * 0.12 });
   await expect.poll(async () => (await placedElements(page)).length, { timeout: 30_000 }).toBe(1);
@@ -104,7 +105,7 @@ test.describe("M8 — the inspector and the layer stack", () => {
 
     const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
     const cdp = await openTouch(page);
-    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+    await chooseBuildTool(toolGrid, "place");
     await page.getByRole("button", { name: /To the map/i }).click();
     await touchTap(cdp, { x: box.x + box.width * 0.45, y: box.y + box.height * 0.3 });
     await expect.poll(async () => (await placedElements(page)).length, { timeout: 30_000 }).toBe(1);
@@ -141,7 +142,7 @@ test.describe("M8 — the inspector and the layer stack", () => {
 
     expect(await ambient(page)).toBe(1); // positive control: a live map starts as day
 
-    await page.getByRole("slider", { name: /Lighting opacity/i }).fill("0.2");
+    await page.getByRole("slider", { name: "Ambient light", exact: true }).fill("0.2");
 
     await expect.poll(() => ambient(page), { timeout: 30_000 }).toBeCloseTo(0.2, 2);
   });

@@ -1,4 +1,5 @@
 import { GenerateRegionPreview } from "./GenerateRegionPreview";
+import { PopulateTargetPreview } from "./PopulateTargetPreview";
 import type { MapEditPersistentPreview } from "./MapEditPersistentPreview";
 // ============================================================================
 // MAP-EDIT PREVIEW LAYER
@@ -106,6 +107,7 @@ export function MapEditPreviewLayer({
     draftGhosts.length === 0 &&
     !persistentPreview?.generateRegion &&
     !persistentPreview?.populateGhosts?.length &&
+    !persistentPreview?.populateTarget &&
     !selectionShape
   ) {
     return null;
@@ -119,6 +121,9 @@ export function MapEditPreviewLayer({
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
         {placementGhost && renderGhost(placementGhost, cam.scale)}
+        {!previewDrag && persistentPreview?.populateTarget && (
+          <PopulateTargetPreview target={persistentPreview.populateTarget} scale={cam.scale} />
+        )}
         {!previewDrag && activeSubTool === "generate" && persistentPreview?.generateRegion && (
           <GenerateRegionPreview region={persistentPreview.generateRegion} scale={cam.scale} />
         )}

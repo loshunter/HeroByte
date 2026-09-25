@@ -29,6 +29,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { MapDoorState, MapElement, MapLayer } from "@herobyte/shared";
 import { STAMP_ROTATION_STEP } from "../usePlacementDials";
 import { MobileSwatchRow } from "./MobileSwatchRow";
+import { useRevealMapPanel } from "../useRevealMapPanel";
 
 /** One notch of resize. Coarser than the desktop's 0.05 on purpose: a finger
  * taps a step at a time, and 5% is invisible until you have done it four
@@ -66,6 +67,7 @@ export function MobileElementInspector({
   onUpdate,
   onUpdateDoor,
 }: MobileElementInspectorProps): JSX.Element {
+  const panelRef = useRevealMapPanel(open);
   const [transform, setTransform] = useState(element.transform);
   const [layerId, setLayerId] = useState(element.layerId);
   const [hidden, setHidden] = useState(element.hidden);
@@ -129,7 +131,7 @@ export function MobileElementInspector({
       </button>
 
       {open && (
-        <div className="mobile-tool-sheet__section" data-testid="mobile-inspector">
+        <div ref={panelRef} className="mobile-tool-sheet__section" data-testid="mobile-inspector">
           <span className="mobile-tool-sheet__label">
             Rotation — {Math.round(transform.rotation)}° · Size — {percent}%
           </span>

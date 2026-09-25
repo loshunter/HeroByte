@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "./build-palette.helpers";
 // A second finger on inert chrome must cancel without needing a stage move.
 import type { CDPSession } from "@playwright/test";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
@@ -123,7 +124,7 @@ for (const tool of ["Grass", "Place"] as const) {
       if (tool === "Place") {
         await dock(dm).getByRole("button", { name: "Tool", exact: true }).tap();
         const tools = dm.getByRole("dialog", { name: "Map tools", exact: true });
-        await tools.getByRole("button", { name: "Place", exact: true }).tap();
+        await chooseBuildTool(tools, "place", true);
         await tools.getByRole("button", { name: "Objects", exact: true }).tap();
         await tools.getByRole("button", { name: "Crate", exact: true }).tap();
         await expect(tools.getByRole("button", { name: "Crate", exact: true })).toHaveAttribute(

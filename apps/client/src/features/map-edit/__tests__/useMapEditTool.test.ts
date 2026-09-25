@@ -478,7 +478,11 @@ describe("useMapEditTool", () => {
     const [cells, elements] = (controller.placeRoom as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(cells).toHaveLength(10);
     expect(elements).toHaveLength(2); // two long-side walls, open ends
-    expect(onRegionPlaced).toHaveBeenCalledWith({ x: 100, y: 100, width: 250, height: 100 });
+    expect(onRegionPlaced).toHaveBeenCalledWith(
+      { x: 100, y: 100, width: 250, height: 100 },
+      "hallway",
+      elements,
+    );
   });
 
   it("paints a terrain stroke as ONE deduped paint-terrain command", () => {

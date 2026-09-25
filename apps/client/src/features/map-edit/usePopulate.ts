@@ -10,7 +10,7 @@
 // button would commit (same builder, same bounds-derived seed) as translucent
 // footprints for MapEditPreviewLayer.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MapDocument } from "@herobyte/shared";
 import { getMapStudioTileAsset, MAP_STUDIO_TILE_ASSETS } from "../map-studio/starterTiles";
 import { pickPlacementLayer } from "../map-studio/components/mapStudioWorkspaceUtils";
@@ -18,13 +18,14 @@ import type { MapStudioController } from "../map-studio/types";
 import type { MapStampDraft } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
 import type { PlacementGhost } from "./useMapEditPlacement";
-import {
-  buildPopulateDrafts,
-  doorSegmentsWithin,
-  populateSeedFromBounds,
-  regionHasFloor,
-} from "./populateRoom";
+import { buildPopulateDrafts, doorSegmentsWithin, populateSeedFromBounds } from "./populateRoom";
 import type { PopulateCategory, PopulateDensity } from "./mapEditTypes";
+import { populateTargetIsLive } from "./populateTarget";
+import type {
+  OnPopulateRegionPlaced,
+  PlacedPopulateTarget,
+  PopulateTarget,
+} from "./populateTarget";
 
 export interface UsePopulateReturn {
   density: PopulateDensity;
@@ -32,9 +33,11 @@ export interface UsePopulateReturn {
   category: PopulateCategory;
   setCategory: (category: PopulateCategory) => void;
   /** Record the region a room/hallway just placed as the POPULATE target. */
-  onRegionPlaced: (bounds: RoomBounds) => void;
+  onRegionPlaced: OnPopulateRegionPlaced;
   onPopulate: () => void;
   canPopulate: boolean;
+  target: PopulateTarget | null;
+  hint: string;
   /** The armed region's TRUE draft footprints (null when nothing is armed). */
   previewGhosts: PlacementGhost[] | null;
 }
@@ -69,55 +72,69 @@ export function usePopulate(
 ): UsePopulateReturn {
   const [density, setDensity] = useState<PopulateDensity>("medium");
   const [category, setCategory] = useState<PopulateCategory>("objects");
-  const [lastPlacedBounds, setLastPlacedBounds] = useState<RoomBounds | null>(null);
-
-  const onRegionPlaced = useCallback((bounds: RoomBounds) => setLastPlacedBounds(bounds), []);
+  const [placed, setPlaced] = useState<PlacedPopulateTarget | null>(null);
+  const activeDocument = controller.activeDocument;
+  const activeDocumentId = controller.activeDocument?.id;
+  const target = placed?.documentId === activeDocumentId ? placed : null;
+  const lastPlacedBounds = target?.bounds ?? null;
+  const onRegionPlaced: OnPopulateRegionPlaced = useCallback(
+    (bounds, kind, perimeters) => {
+      if (activeDocument)
+        setPlaced({
+          bounds,
+          kind,
+          perimeters,
+          documentId: activeDocument.id,
+          grid: activeDocument.grid,
+        });
+    },
+    [activeDocument],
+  );
 
   // A DOCUMENT SWAP drops the target (A5): the pixel rectangle was placed on
-  // the OLD document, and regionHasFloor only saves us when the new map
-  // happens to be empty there — floor at the same coordinates would scatter
-  // props into the wrong map.
-  const activeDocumentId = controller.activeDocument?.id;
+  // the OLD document; floor at the same coordinates is not a new target.
   useEffect(() => {
-    setLastPlacedBounds(null);
+    setPlaced(null);
   }, [activeDocumentId]);
 
+  const latest = useRef({ controller, target, category, density, notifyError });
+  latest.current = { controller, target, category, density, notifyError };
   const onPopulate = useCallback(() => {
-    const document = controller.activeDocument;
-    if (!document || !lastPlacedBounds || controller.saving) return;
-    // The recorded region can go stale (e.g. the DM undoes the room after
-    // placing it). If its floor is gone, don't scatter props into empty space —
-    // drop the target and tell the DM to place a fresh room/hallway.
-    if (!regionHasFloor(document, lastPlacedBounds)) {
-      setLastPlacedBounds(null);
-      notifyError?.("That area is empty now — draw a room or hallway, then Populate it.");
+    const current = latest.current;
+    const { controller: liveController, target: liveTarget } = current;
+    const document = liveController.activeDocument;
+    const bounds = liveTarget?.bounds;
+    if (!document || !liveTarget || !bounds || liveController.saving || liveController.loading)
+      return;
+    // Underlying terrain can survive Undo. Validate this placement's identity
+    // and whole floor footprint again even for a retained callback.
+    if (!populateTargetIsLive(document, liveTarget)) {
+      latest.current.target = null;
+      setPlaced(null);
+      current.notifyError?.("That area changed — draw a new room or hallway to decorate.");
       return;
     }
-    const drafts = draftsForRegion(document, lastPlacedBounds, category, density);
+    const drafts = draftsForRegion(document, bounds, current.category, current.density);
     if (drafts && drafts.length > 0) {
-      controller.addStamps(drafts);
+      // Retained callbacks and rapid repeated presses consume the current target once.
+      latest.current.target = null;
+      liveController.addStamps(drafts);
       // One fill per placed region: drop the target so a second click can't
       // silently stack a byte-identical scatter on top of the first (the seed is
       // fixed by the region origin). The DM draws a fresh room/hallway to
       // populate again.
-      setLastPlacedBounds(null);
-    } else notifyError?.("Nothing to populate — try a denser setting or a larger area.");
-  }, [controller, lastPlacedBounds, category, density, notifyError]);
+      setPlaced(null);
+    } else
+      current.notifyError?.(
+        "No decoration fits — unlock a placement layer or choose a denser setting.",
+      );
+  }, []);
 
-  const activeDocument = controller.activeDocument;
-
-  // ONE floor evaluation behind both the ghosts and the button's enabled state.
-  // They disagreed: the ghosts checked the floor and vanished after an undo,
-  // canPopulate did not, so the button stayed lit over a region that was gone.
-  // Pressing it recovered (onPopulate clears and explains), so on desktop this
-  // was a wart rather than a trap — but the phone panel says "Fills the room
-  // you just drew" beside that button, and enabled-plus-that-sentence is a lie.
+  // One validity predicate for the outline, ghosts, readiness and action. Keep
+  // pending placement identity while the controller waits for its first reply.
   const regionIsLive = useMemo(
-    () =>
-      Boolean(
-        activeDocument && lastPlacedBounds && regionHasFloor(activeDocument, lastPlacedBounds),
-      ),
-    [activeDocument, lastPlacedBounds],
+    () => Boolean(activeDocument && target && populateTargetIsLive(activeDocument, target)),
+    [activeDocument, target],
   );
 
   const previewGhosts = useMemo<PlacementGhost[] | null>(() => {
@@ -138,7 +155,18 @@ export function usePopulate(
     });
   }, [activeDocument, lastPlacedBounds, category, density, regionIsLive]);
 
-  const canPopulate = regionIsLive && !controller.saving;
+  const hasDrafts = Boolean(previewGhosts?.length);
+  const canPopulate = regionIsLive && hasDrafts && !controller.saving && !controller.loading;
+  const hint =
+    controller.saving || controller.loading
+      ? "Working… wait for the map to finish."
+      : !target
+        ? "Draw a room or hallway first — decoration fills the last one you placed."
+        : !regionIsLive
+          ? "That area changed — draw a new room or hallway."
+          : !hasDrafts
+            ? "No decoration fits — unlock a placement layer or choose a denser setting."
+            : `Fills the ${target.kind} you just drew. The outlined area is the target.`;
 
   return {
     density,
@@ -148,6 +176,8 @@ export function usePopulate(
     onRegionPlaced,
     onPopulate,
     canPopulate,
+    target: regionIsLive ? target : null,
+    hint,
     previewGhosts,
   };
 }

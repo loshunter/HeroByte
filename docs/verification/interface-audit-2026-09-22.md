@@ -135,6 +135,17 @@ Group the tools by Terrain, Structures, Objects, Lighting and Generate; keep sel
 history, Layers and Done stable. Show Populate only with a named valid target. Do not
 pretend arbitrary selected-room population exists; the current last-room rule must be honest.
 
+**2026-09-25 IA-06–07 disposition:** U3b implements these groups, persistent controls
+and contextual decoration of the last valid room/hallway, and restores Layers and
+Inspect for Generate and Spline. The first-round repairs passed all eight gates,
+fresh boot and automated desktop/phone DM-player journeys. Second-round repairs
+passed all eight gates and isolated boot. Final review found one stale status
+sentence, corrected here. The owner accepted the review-cap checkpoint with
+“Accept and commit locally”; U3b is locally complete in the commit containing this record.
+See [the U3b verification record](interface-clarity-u3b.md) for actual
+counts, earlier failures and device limits. IA-08–10 and later menu work remain
+separate slices; this update does not expand the original audit's coverage.
+
 Drawing has color, 1–50px Brush Size, opacity and shape fill. Paint says “Brush: Grass”
 but changes material and paints grid cells with no adjustable footprint. The erasers affect
 different data. The plan keeps the semantic separation and labels it: Stroke width (px)

@@ -7,6 +7,11 @@ import { MobileScreen } from "../MobileScreen";
 
 export function toolbarProps(): MapEditToolbarProps {
   return {
+    mapName: "Fixture map",
+    activeGroup: "structures",
+    onSelectGroup: vi.fn(),
+    populateTarget: null,
+    populateHint: "Draw a room or hallway first.",
     isLive: false,
     busy: false,
     saving: false,

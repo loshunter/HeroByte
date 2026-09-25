@@ -122,7 +122,7 @@ export interface CenterCanvasLayoutProps {
   /** Called when a finished gesture's commit was skipped (command in flight) */
   onMapEditGestureDropped: () => void;
   /** Called when a room/hallway lands — records the POPULATE target */
-  onMapEditRegionPlaced: (bounds: RoomBounds) => void;
+  onMapEditRegionPlaced: import("../features/map-edit/populateTarget").OnPopulateRegionPlaced;
   onMapEditRegionDragged: (bounds: RoomBounds) => void;
   /** Called when the select tool picks an element (or clears) */
   onMapEditSelectElement: (elementId: string | null) => void;

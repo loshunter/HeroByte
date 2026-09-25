@@ -82,6 +82,9 @@ export interface GenerateParams {
  * pulling it into the entry bundle.
  */
 export interface MapEditToolbarProps {
+  mapName: string;
+  activeGroup: import("./mapEditToolDescriptors").MapEditGroup;
+  onSelectGroup: (group: import("./mapEditToolDescriptors").MapEditGroup) => MapEditSubTool;
   isLive: boolean; // a live document is bound AND active in the controller
   // The two round-trip flags, side by side BECAUSE they were confusable: the
   // palette rendered "saving…" off `busy` from M1 to M5, so the label was
@@ -139,6 +142,8 @@ export interface MapEditToolbarProps {
   onSelectPopulateCategory: (category: PopulateCategory) => void;
   onPopulate: () => void; // fills the last-placed room/hallway with set dressing
   canPopulate: boolean; // a region has been placed and the controller is idle
+  populateTarget: import("./populateTarget").PopulateTarget | null;
+  populateHint: string;
   // --- Generate (dungeon recipe) ---
   generateParams: GenerateParams;
   onGenerateParamsChange: (params: GenerateParams) => void;

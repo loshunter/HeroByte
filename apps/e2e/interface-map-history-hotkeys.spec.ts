@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "./build-palette.helpers";
 import { expect, test } from "./fixtures";
 import { openChat } from "./chat-journey.helpers";
 import {
@@ -30,7 +31,7 @@ for (const chatOpen of [false, true]) {
       const row = await uncoveredRow(dm, 0.55);
       row[1].x = (row[0].x + row[1].x) / 2;
       if (chatOpen) await openChat(dm);
-      await dm.getByRole("button", { name: "🚇 Hall", exact: true }).click();
+      await chooseBuildTool(dm, "hallway");
       const before = (await mapContent(dm)).terrain;
       await expect.poll(async () => (await mapContent(player)).terrain).toEqual(before);
       const sent = mapCommands(wire).length;

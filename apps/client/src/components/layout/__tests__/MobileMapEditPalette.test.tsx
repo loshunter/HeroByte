@@ -15,7 +15,7 @@ describe("the map-edit palette", () => {
     for (const gone of [/^Party$/, /^Dice$/, /^Log$/, /^DM$/, /^View$/]) {
       expect(screen.queryByRole("button", { name: gone })).toBeNull();
     }
-    for (const present of [/Exit/, /Tool/, /Undo/, /Redo/, /Cancel placement/]) {
+    for (const present of [/Done building/, /Tool/, /Undo/, /Redo/, /Cancel placement/]) {
       expect(within(dock()).getByRole("button", { name: present })).toBeVisible();
     }
   });
@@ -31,7 +31,7 @@ describe("the map-edit palette", () => {
     const bar = toolbar();
     render(<MobileFloatingControls {...props({ mapEditToolbarProps: bar })} />);
 
-    fireEvent.click(within(dock()).getByRole("button", { name: /Exit/ }));
+    fireEvent.click(within(dock()).getByRole("button", { name: /Done building/ }));
     expect(bar.onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -52,7 +52,7 @@ describe("the map-edit palette", () => {
     const onToggleSurface = vi.fn();
     render(<MobileFloatingControls {...props({ mapEditToolbarProps: bar, onToggleSurface })} />);
 
-    for (const name of [/Exit/, /Tool/, /Undo/, /Redo/]) {
+    for (const name of [/Done building/, /Tool/, /Undo/, /Redo/]) {
       fireEvent.pointerDown(within(dock()).getByRole("button", { name }));
     }
 

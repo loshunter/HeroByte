@@ -1,31 +1,12 @@
-// ============================================================================
-// MOBILE MAP-EDIT SHEET — the tool sheet the dock's ⚒ Tool slot opens
-// ============================================================================
-// Split out of MobileMapEditPalette ahead of M5, which adds five more tools and
-// their sub-panels here; the sheet and the dock cannot share one file under the
-// 348-line cap. Behaviour is unchanged — this is the same markup, moved.
-//
-// It lives under features/map-edit/mobile/ rather than beside the dock because
-// that is where M5's touch-sized sub-panels go, and the sheet is what hosts
-// them. Nothing here may import the DESKTOP palette's components: this file is
-// reachable from the entry chunk through MobileFloatingControls, and a static
-// import would drag the 7.2 KB map-edit chunk (a hover card, search, right-
-// click pinning, 8px type) into every player's first load.
-//
-// It takes the WHOLE toolbar bag rather than the fields it reads, for the same
-// reason the dock does — a subset is how a forwarding prop goes missing with a
-// green typecheck.
-
 import React from "react";
-import type { MapEditToolbarProps } from "../mapEditTypes";
-import {
-  MobileMapEditToolPanels,
-  PANEL_TOOLS,
-  type SheetPanelTool,
-} from "./MobileMapEditToolPanels";
+import type { MapEditSubTool, MapEditToolbarProps } from "../mapEditTypes";
+import { MobileMapEditToolPanels, PANEL_TOOLS } from "./MobileMapEditToolPanels";
 import { MobileLayersPanel } from "./MobileLayersPanel";
 import { MobilePopulateBlock } from "./MobilePopulateBlock";
-import { MOBILE_TOOL_TILES } from "./mobileToolTiles";
+import { MapEditToolGroups } from "../MapEditToolGroups";
+import { PERSISTENT_TOOLS, TOOL_DESCRIPTORS } from "../mapEditToolDescriptors";
+import "../mapEditPalette.css";
+import { useRevealMapPanel } from "../useRevealMapPanel";
 
 interface MobileMapEditSheetProps {
   toolbar: MapEditToolbarProps;
@@ -38,40 +19,33 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
   onToggleTools,
   onResetCamera,
 }) => {
-  const { isLive, busy, activeSubTool, onSelectSubTool } = toolbar;
-
-  // THE trap this mode carries: the controller no-ops SILENTLY without an
-  // active live document, so a tool that looks armed does nothing and says
-  // nothing. Every tool stays disabled until the palette can say ● LIVE.
-  //
-  // The sheet closes on a tool with NO dials and stays open on one that has
-  // them. Tap counts are the same either way (Tool, tile, dial, To the map),
-  // but the open version never requires the DM to KNOW that a tool they just
-  // armed has options and that reopening the sheet is how to reach them.
-  const selectSubTool = (tool: SheetPanelTool) => {
-    onSelectSubTool(tool);
+  const { isLive, busy, activeSubTool } = toolbar;
+  const layersRef = useRevealMapPanel(toolbar.layersOpen);
+  const closeToAim = (tool: MapEditSubTool) => {
     if (!PANEL_TOOLS.has(tool)) onToggleTools();
   };
-
-  const panelsOpen = isLive && PANEL_TOOLS.has(activeSubTool as SheetPanelTool);
-
+  const selectSubTool = (tool: MapEditSubTool) => {
+    toolbar.onSelectSubTool(tool);
+    closeToAim(tool);
+  };
+  const selectGroup: MapEditToolbarProps["onSelectGroup"] = (group) => {
+    const tool = toolbar.onSelectGroup(group);
+    closeToAim(tool);
+    return tool;
+  };
   const recenter = () => {
     onResetCamera();
     onToggleTools();
   };
-
-  const subToolClass = (tool: string) =>
-    `mobile-tool-sheet__button${activeSubTool === tool ? " mobile-tool-sheet__button--active" : ""}`;
-
   return (
     <div
-      className="mobile-tool-sheet"
+      className="mobile-tool-sheet mobile-tool-sheet--build"
       role="dialog"
       aria-label="Map tools"
       data-mobile-surface="tools"
     >
       <div className="mobile-tool-sheet__header">
-        <strong>{isLive ? "● Live map" : "Map"}</strong>
+        <strong className="map-edit-map-name">{isLive ? toolbar.mapName : "Map"}</strong>
         <button
           type="button"
           className="mobile-tool-sheet__close"
@@ -81,95 +55,90 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
           ✕
         </button>
       </div>
-
-      {!isLive ? (
-        <>
-          <p className="mobile-tool-sheet__note">
-            Author the map on the live table. Rooms and walls appear for every player instantly.
-          </p>
-          <button
-            type="button"
-            className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
-            onClick={toolbar.onStartLiveMap}
-            disabled={busy}
-          >
-            {busy ? "Starting…" : "▶ Start live map"}
-          </button>
-        </>
-      ) : (
-        <div className="mobile-tool-sheet__grid">
-          {MOBILE_TOOL_TILES.map((tile) => (
+      {isLive && (
+        <div className="map-edit-palette__persistent" data-testid="build-persistent-controls">
+          <span className="mobile-tool-sheet__note">● Live map · Edits appear on the table.</span>
+          <div className="mobile-build-controls">
+            {PERSISTENT_TOOLS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                data-testid={`build-tool-${id}`}
+                aria-pressed={activeSubTool === id}
+                title={TOOL_DESCRIPTORS[id].help}
+                className={`mobile-tool-sheet__button${activeSubTool === id ? " mobile-tool-sheet__button--active" : ""}`}
+                onClick={() => selectSubTool(id)}
+              >
+                <span aria-hidden="true">{TOOL_DESCRIPTORS[id].icon}</span>
+                {TOOL_DESCRIPTORS[id].label}
+              </button>
+            ))}
             <button
-              key={tile.id}
               type="button"
-              aria-pressed={activeSubTool === tile.id}
-              className={subToolClass(tile.id)}
-              onClick={() => selectSubTool(tile.id)}
+              className="mobile-tool-sheet__button"
+              aria-expanded={toolbar.layersOpen}
+              onClick={toolbar.onToggleLayers}
+              data-testid="mobile-layers-toggle"
             >
-              <span aria-hidden="true">{tile.icon}</span>
-              {tile.label}
+              <span aria-hidden="true">🗂</span>Layers
             </button>
-          ))}
-          {/* Select sits with the tiles rather than below them because it is a
-              MODE like they are — Recenter, the one action in this grid, stays
-              last. It is deliberately not a MOBILE_TOOL_TILES entry: that list
-              is a Record over DragTool, and keeping select out of it preserves
-              the compile-time guarantee that every armed drag tool has exactly
-              one tile and nothing else does. */}
-          <button
-            type="button"
-            aria-pressed={activeSubTool === "select"}
-            className={subToolClass("select")}
-            onClick={() => selectSubTool("select")}
-          >
-            <span aria-hidden="true">👆</span>
-            Select
-          </button>
-          {/* Sample joins Select outside MOBILE_TOOL_TILES for the same reason:
-              neither is a TouchTool. A tap resolves both through the compat
-              mouse path, once, and neither places anything — so arming them
-              would run them twice for nothing. On a desktop this is Ctrl-click
-              and still is; a phone has no Ctrl, which is why it needs a tile of
-              its own here. It hands over to Place after one sample, so it is a
-              MOMENT rather than a mode. */}
-          <button
-            type="button"
-            aria-pressed={activeSubTool === "eyedropper"}
-            className={subToolClass("eyedropper")}
-            onClick={() => selectSubTool("eyedropper")}
-          >
-            <span aria-hidden="true">💧</span>
-            Sample
-          </button>
-          {/* Layers is a document control, not a tool, so it sits with Select
-              and Sample rather than among the tiles — and as a GRID cell rather
-              than a full-width row, because 14 buttons over five columns leave
-              a slot empty and a row of its own cost 16px of map on a tablet
-              (mobile-map-edit-panels.spec.ts caught exactly that). Its body
-              renders below Populate. */}
-          <button
-            type="button"
-            aria-expanded={Boolean(toolbar.layersOpen)}
-            className={`mobile-tool-sheet__button${toolbar.layersOpen ? " mobile-tool-sheet__button--active" : ""}`}
-            onClick={toolbar.onToggleLayers}
-            data-testid="mobile-layers-toggle"
-          >
-            <span aria-hidden="true">🗂</span>
-            Layers
-          </button>
-          <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
-            <span aria-hidden="true">◇</span>
-            Recenter
-          </button>
+          </div>
         </div>
       )}
-
-      {panelsOpen && (
-        <>
-          <MobileMapEditToolPanels {...toolbar} />
-          {/* "To the map", NOT "Use Room". The e2e locators for the tool tiles
-              match on accessible name, and a second button carrying a tool's
-              name is an immediate Playwright strict-mode violation. */}
+      <div className="map-edit-palette__scroll" data-testid="build-settings">
+        {!isLive ? (
+          <>
+            <p className="mobile-tool-sheet__note">
+              Author the map on the live table. Rooms and walls appear for every player instantly.
+            </p>
+            <button
+              type="button"
+              className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
+              onClick={toolbar.onStartLiveMap}
+              disabled={busy}
+            >
+              {busy ? "Starting…" : "▶ Start live map"}
+            </button>
+          </>
+        ) : (
+          <>
+            {(toolbar.saving || busy) && (
+              <p className="mobile-tool-sheet__note">Working… wait before placing.</p>
+            )}
+            {toolbar.layersOpen && (
+              <div ref={layersRef}>
+                <MobileLayersPanel
+                  layers={toolbar.layers}
+                  open={toolbar.layersOpen}
+                  saving={toolbar.saving}
+                  onUpdateLayer={toolbar.onUpdateLayer}
+                />
+              </div>
+            )}
+            <MapEditToolGroups
+              toolbar={toolbar}
+              mobile
+              onSelectTool={selectSubTool}
+              onSelectGroup={selectGroup}
+            />
+            <p className="mobile-tool-sheet__note">{TOOL_DESCRIPTORS[activeSubTool].help}</p>
+            {(activeSubTool === "room" || activeSubTool === "hallway") && (
+              <MobilePopulateBlock {...toolbar} />
+            )}
+            {PANEL_TOOLS.has(activeSubTool) && <MobileMapEditToolPanels {...toolbar} />}
+            <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
+              ◇ Recenter
+            </button>
+          </>
+        )}
+        {toolbar.error && (
+          <p className="mobile-tool-sheet__note" role="alert">
+            {toolbar.error}
+          </p>
+        )}
+      </div>
+      {isLive && (
+        <div className="map-edit-palette__footer">
           <button
             type="button"
             className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
@@ -177,35 +146,7 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
           >
             ▶ To the map
           </button>
-        </>
-      )}
-
-      {/* Populate is a footer on every live tool, not a panel for one of them.
-          It has no tile because it is not a sub-tool, and with the dock full
-          there is nowhere else it could live — so gating it behind a
-          particular armed tool would make it unreachable by accident. */}
-      {isLive && <MobilePopulateBlock {...toolbar} />}
-
-      {/* The layer stack's BODY. Its toggle is a cell in the grid above; this
-          renders nothing until that is pressed. It edits the document rather
-          than drawing on it — and the Lighting layer's opacity is the ambient
-          light — so it stays reachable whatever tool is armed. */}
-      {isLive && (
-        <MobileLayersPanel
-          layers={toolbar.layers ?? []}
-          open={Boolean(toolbar.layersOpen)}
-          // `saving`, NOT `busy`: busy is the create/open/bind round trip, over
-          // before this panel can render, so a guard fed busy is inert exactly
-          // when a command is in flight — the confusion mapEditTypes warns about.
-          saving={Boolean(toolbar.saving)}
-          onUpdateLayer={toolbar.onUpdateLayer}
-        />
-      )}
-
-      {toolbar.error && (
-        <p className="mobile-tool-sheet__note" role="alert">
-          {toolbar.error}
-        </p>
+        </div>
       )}
     </div>
   );

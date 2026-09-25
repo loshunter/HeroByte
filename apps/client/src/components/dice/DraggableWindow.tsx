@@ -23,6 +23,7 @@ interface DraggableWindowProps {
   zIndex?: number;
   storageKey?: string; // Optional key for localStorage persistence
   interaction?: WindowInteractionOptions;
+  scrollContent?: boolean;
 }
 
 const POSITION_KEY_PREFIX = "herobyte-window-position-";
@@ -40,6 +41,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   zIndex = 1000,
   storageKey,
   interaction,
+  scrollContent = true,
 }) => {
   // Load position from localStorage if storageKey is provided
   const getInitialPosition = () => {
@@ -293,7 +295,9 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
           <div
             style={{
               flex: 1,
-              overflow: "auto",
+              overflow: scrollContent ? "auto" : "hidden",
+              minHeight: 0,
+              display: scrollContent ? "block" : "flex",
               pointerEvents: "auto",
               // The last band clears the home indicator, like every other phone surface.
               padding: isMobile ? "16px" : "0",

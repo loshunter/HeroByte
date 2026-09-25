@@ -3,6 +3,8 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { MobileFloatingControls } from "../MobileFloatingControls";
 import { toolbar, props, dock } from "./mobileMapEditPalette.fixtures";
+import { boundPalette } from "../../../features/map-edit/__tests__/characterization/palette.fixtures";
+import { TOOL_DESCRIPTORS } from "../../../features/map-edit/mapEditToolDescriptors";
 afterEach(cleanup);
 import { isTouchTool } from "../../../features/map-edit/mapEditToolKinds";
 import {
@@ -149,13 +151,19 @@ describe("once live", () => {
   // are what make that derivation honest instead of decorative: one proves
   // every armed tool is reachable, the other proves nothing else got in.
   it("reaches every tool the touch path arms — one tile each, wired to its own id", () => {
-    const bar = toolbar({ isLive: true });
-    render(<MobileFloatingControls {...props({ surface: "tools", mapEditToolbarProps: bar })} />);
-
-    const grid = screen.getByRole("dialog", { name: /map tools/i });
+    const h = boundPalette();
+    const palette = () => (
+      <MobileFloatingControls {...props({ surface: "tools", mapEditToolbarProps: h.props() })} />
+    );
+    const view = render(palette());
     for (const tile of MOBILE_TOOL_TILES) {
-      fireEvent.click(within(grid).getByRole("button", { name: new RegExp(`^${tile.label}$`) }));
-      expect(bar.onSelectSubTool).toHaveBeenCalledWith(tile.id);
+      fireEvent.change(screen.getByRole("combobox", { name: "Tool group" }), {
+        target: { value: TOOL_DESCRIPTORS[tile.id].group },
+      });
+      view.rerender(palette());
+      fireEvent.click(screen.getByRole("button", { name: tile.label }));
+      expect(h.result.current.state.activeSubTool).toBe(tile.id);
+      view.rerender(palette());
     }
     // A tile list that silently lost one would still pass the loop above.
     expect(MOBILE_TOOL_TILES).toHaveLength(TOUCH_TOOL_COUNT);
@@ -182,7 +190,7 @@ describe("once live", () => {
     // The TOOL grid specifically, not the dialog: the dialog also holds the
     // ✕ close button and the populate footer, and a panel's swatch row wears
     // the same grid class further down.
-    const tiles = grid.querySelector(".mobile-tool-sheet__grid") as HTMLElement;
+    const tiles = grid.querySelector(".map-edit-tool-groups .map-edit-tool-grid") as HTMLElement;
     const labels = within(tiles)
       .getAllByRole("button")
       .map((button) => button.textContent?.replace(/^\P{L}+/u, "") ?? "");

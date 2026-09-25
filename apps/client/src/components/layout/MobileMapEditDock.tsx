@@ -36,11 +36,16 @@ export const MobileMapEditDock: React.FC<MobileMapEditDockProps> = ({
           only when something was LOST. This is ambient, and reads as ordinary
           text to anyone browsing the dock. */}
       {toolbar.saving && <span className="mobile-dock-saving">Saving…</span>}
-      <button type="button" className="mobile-dock-button" onClick={toolbar.onClose}>
+      <button
+        type="button"
+        className="mobile-dock-button"
+        onClick={toolbar.onClose}
+        aria-label="Done building"
+      >
         <span className="mobile-dock-button__icon" aria-hidden="true">
           ✕
         </span>
-        Exit
+        Done
       </button>
       <button
         type="button"

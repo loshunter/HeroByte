@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { chooseBuildTool } from "./build-palette.helpers";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 
 // End-to-end lock for the live map toolbar (Phase 1, S1–S7): a DM authors a
@@ -39,9 +40,8 @@ async function authorLiveScene(page: Page, player: Page) {
   const center = await boardCenter(page);
 
   // ---- DM: Room tool → drag a rect → walls + terrain compile onto the table ----
-  const roomTool = page.getByRole("button", { name: /🏠 Room/ });
-  await expect(roomTool).toBeVisible();
-  await roomTool.click();
+  await chooseBuildTool(page, "room");
+  await expect(page.getByRole("button", { name: "Room", exact: true })).toBeVisible();
   await dragBoard(
     page,
     { x: center.x - 120, y: center.y - 120 },
@@ -58,7 +58,7 @@ async function authorLiveScene(page: Page, player: Page) {
   // span the room proved clears ≥1 grid cell after snapping (a shorter drag can
   // collapse to zero length on a zoomed-out camera → null draft).
   await page.waitForTimeout(500);
-  await page.getByRole("button", { name: /🚪 Door/ }).click();
+  await chooseBuildTool(page, "door");
   await dragBoard(
     page,
     { x: center.x - 120, y: center.y + 40 },

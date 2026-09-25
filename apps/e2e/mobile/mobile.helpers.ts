@@ -152,7 +152,7 @@ export async function armLiveMapEdit(
   await page.waitForFunction(() => Boolean(window.__HERO_BYTE_E2E__?.snapshot?.liveMapDocumentId), {
     timeout: 30_000,
   });
-  const toolGrid = page.locator(".mobile-tool-sheet__grid").first();
+  const toolGrid = page.getByRole("dialog", { name: "Map tools", exact: true });
   await expect(toolGrid).toBeVisible({ timeout: 30_000 });
   return { dock, toolGrid };
 }

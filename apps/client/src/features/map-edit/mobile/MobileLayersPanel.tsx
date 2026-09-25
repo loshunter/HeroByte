@@ -73,10 +73,11 @@ export function MobileLayersPanel({
           </button>
           <label className="mobile-layer-row__slider">
             <span className="mobile-tool-sheet__label">
-              {layer.name} — {Math.round(layer.opacity * 100)}%
+              {layer.kind === "lighting" ? "Ambient light" : layer.name} —{" "}
+              {Math.round(layer.opacity * 100)}%
             </span>
             <input
-              aria-label={`${layer.name} opacity`}
+              aria-label={layer.kind === "lighting" ? "Ambient light" : `${layer.name} opacity`}
               type="range"
               min={0}
               max={1}

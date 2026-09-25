@@ -68,8 +68,13 @@ export function MapEditLayersPopover({
                 ▼
               </button>
             </div>
+            {layer.kind === "lighting" && (
+              <span className="jrpg-text-small">
+                Ambient light — {Math.round(layer.opacity * 100)}%
+              </span>
+            )}
             <input
-              aria-label={`${layer.name} opacity`}
+              aria-label={layer.kind === "lighting" ? "Ambient light" : `${layer.name} opacity`}
               type="range"
               min={0}
               max={1}

@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * The tallest sheet this shell has ever had, measured at both orientations.
  *
@@ -38,7 +39,8 @@ interface Fit {
 function measure(page: Page): Promise<Fit> {
   return page.evaluate(() => {
     const sheet = document.querySelector<HTMLElement>(".mobile-tool-sheet")!;
-    sheet.scrollTop = sheet.scrollHeight;
+    const scroller = sheet.querySelector<HTMLElement>(".map-edit-palette__scroll")!;
+    scroller.scrollTop = scroller.scrollHeight;
     const s = sheet.getBoundingClientRect();
     const close = sheet
       .querySelector<HTMLElement>(".mobile-tool-sheet__close")!
@@ -49,7 +51,7 @@ function measure(page: Page): Promise<Fit> {
       viewport: { w: window.innerWidth, h: window.innerHeight },
       sheet: { top: Math.round(s.top), bottom: Math.round(s.bottom) },
       closeAfterScroll: { top: Math.round(close.top), bottom: Math.round(close.bottom) },
-      scrolls: sheet.scrollHeight > sheet.clientHeight + 1,
+      scrolls: scroller.scrollHeight > scroller.clientHeight + 1,
       // The 44px touch floor is INHERITED from .mobile-tool-sheet__button and
       // .mobile-chip; nothing in the panels restates it, so this is what
       // catches a stylesheet edit that drops it.
@@ -85,7 +87,7 @@ function measure(page: Page): Promise<Fit> {
 const MIN_TABLET_MAP_HEIGHT = 560;
 
 test.describe("the map-edit sheet's footprint on the map", () => {
-  test("leaves a tablet DM enough map to aim at with the sheet open", async ({ page }) => {
+  test("leaves a tablet DM enough map to aim at with the sheet open", async ({ page }, info) => {
     test.setTimeout(150_000);
     await page.setViewportSize({ width: 820, height: 1180 });
     await joinMobileTable(page);
@@ -105,16 +107,20 @@ test.describe("the map-edit sheet's footprint on the map", () => {
     // Select is the mode this is about, and it also carries a panel — so this
     // measures the grid AND a panel under it, the shape a DM actually aims
     // through.
-    await page
-      .locator(".mobile-tool-sheet__grid")
-      .first()
-      .getByRole("button", { name: /^Select$/ })
-      .click();
+    await chooseBuildTool(page, "select");
     await expect(page.getByTestId("mobile-select-status")).toBeVisible();
 
     const sheet = (await page.locator(".mobile-tool-sheet").boundingBox())!;
     const canvas = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
     const mapAbove = sheet.y - canvas.y;
+    await info.attach("tablet-map-reach.json", {
+      body: JSON.stringify({ mapAbove, sheet, canvas }),
+      contentType: "application/json",
+    });
+    await info.attach("tablet-select.png", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
 
     expect(
       mapAbove,
@@ -144,8 +150,8 @@ test.describe("the map-edit sheet at its tallest", () => {
     // Draw a room, so Populate's dials are part of the tallest content rather
     // than a footer sentence. A tap would do — a region tool commits a minimum
     // unit — but a real drag is what a DM does.
-    const toolGrid = page.locator(".mobile-tool-sheet__grid");
-    await toolGrid.getByRole("button", { name: /^Room$/ }).click();
+    const toolGrid = page.getByRole("dialog", { name: "Map tools", exact: true });
+    await chooseBuildTool(toolGrid, "room");
     await page.getByRole("button", { name: /To the map/i }).click();
     const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
     const cdp = await openTouch(page);
@@ -178,8 +184,8 @@ test.describe("the map-edit sheet at its tallest", () => {
     // panel's seed row out of the measured DOM entirely, and that row holds the
     // one control in the sheet that is NOT sized by the grid — a content-sized
     // ⟳ that measured 31px wide while this spec reported the floor clean.
-    for (const tool of [/^Room$/, /^Gen$/]) {
-      await toolGrid.getByRole("button", { name: tool }).click();
+    for (const tool of ["room", "generate"] as const) {
+      await chooseBuildTool(toolGrid, tool);
 
       for (const size of [
         { width: 375, height: 812 },
@@ -190,7 +196,7 @@ test.describe("the map-edit sheet at its tallest", () => {
         await page.waitForTimeout(300);
 
         const fit = await measure(page);
-        const where = `${tool.source} @ ${size.width}x${size.height}`;
+        const where = `${tool} @ ${size.width}x${size.height}`;
 
         expect(fit.sheet.top, `${where}: sheet starts above the viewport`).toBeGreaterThanOrEqual(
           0,

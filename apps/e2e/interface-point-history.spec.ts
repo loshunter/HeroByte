@@ -1,6 +1,7 @@
 // Committed point actions use map history; cancellation only discards unsent work.
 import type { ClientMessage, MapElement, ServerMessage } from "@herobyte/shared";
 import { expect, test, type Page } from "./fixtures";
+import { chooseBuildTool } from "./build-palette.helpers";
 import {
   armGrass,
   createAndJoin,
@@ -96,8 +97,8 @@ for (const tool of ["Place", "Scatter", "Light"] as const) {
       expect(await visibleElements(peer)).toEqual([]);
 
       // Explicitly choose the point tool and its asset through the desktop palette.
-      const labels = { Place: "📦 Place", Scatter: "🎲 Scatter", Light: "💡 Light" };
-      await dm.getByRole("button", { name: labels[tool], exact: true }).click();
+      const tools = { Place: "place", Scatter: "scatter", Light: "light" } as const;
+      await chooseBuildTool(dm, tools[tool]);
       if (tool !== "Light") {
         await dm.getByRole("button", { name: "▸ Crate", exact: true }).click();
         const crate = dm.getByRole("listbox", { name: "Assets", exact: true }).getByTitle("Crate", {

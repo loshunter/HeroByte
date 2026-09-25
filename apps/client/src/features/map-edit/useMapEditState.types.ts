@@ -49,7 +49,7 @@ export interface UseMapEditStateReturn {
   /** Curve kind the spline sub-tool authors (fed to the tool). */
   splineKind: MapEditSplineKind;
   /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
-  onRegionPlaced: (bounds: RoomBounds) => void;
+  onRegionPlaced: import("./populateTarget").OnPopulateRegionPlaced;
   /** POPULATE's true draft footprints while a region is armed (P2 ghosts). */
   persistentPreview: import("./MapEditPersistentPreview").MapEditPersistentPreview;
   /** Quick-wheel dispatch pair (P5) — stable identity. */

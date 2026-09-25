@@ -20,8 +20,8 @@
   bounded remaining repair, verification and local U2 closeout before U3a. No fourth
   formal review or unanimous round-3 PASS is claimed. The bounded repair and full
   post-cap gate passed and U2 is locally committed as `7923c3de`.
-  U3a is active: local auth repair `845d078c` and characterized extractions `42152fd3`
-  precede the implemented, uncommitted Generate outcome repair. Review round 1 found
+  U3a history: local auth repair `845d078c` and characterized extractions `42152fd3`
+  preceded the Generate outcome repair. Review round 1 found
   five distinct issues, now repaired. A player-baseline synchronization error in the
   phone E2E is also corrected. The fresh full ladder, boot and two-client Generate
   journeys pass. Independent round 2's one queue interleaving finding is repaired;
@@ -32,7 +32,14 @@
   The owner accepted the [verified checkpoint](interface-clarity-u3a-checkpoint.md)
   on 2026-09-24 with “acccepted.” The local semantic commit and U3b continuation
   are authorized; no fourth formal U3a review will run.
-  U3b is next; U3b–U10 remain unimplemented. The U3a owner checkpoint is satisfied.
+  The accepted semantic repair is locally committed as `b473a3dd`.
+  U3b's R1/R2 findings are repaired. The final full ladder and boot pass:
+  10,018 unit passes/four skips and 258 browser passes/three skips. Final
+  R3 finished with one stale audit-status P3, now corrected. Counts are 2 → 5 → 1,
+  12 completed assignments, zero semantic agent errors. The owner accepted the
+  capped U3b checkpoint with “Accept and commit locally.” U3b is locally complete
+  in the commit containing this record; no fourth review. U4–U10 remain unimplemented.
+  The U3a owner checkpoint is satisfied.
 - The September 22 audit is historical evidence; new acceptance results are recorded here.
 - The U2 history follow-up is repaired: recipient-scoped history feedback distinguishes
   ordinary Undo to an empty map from a table-wide Clear All. Its independent verification
@@ -1770,3 +1777,298 @@ handoff step 5. No semantic commit, staging, U3b implementation, remote push, ma
 merge or deployment has occurred. After acceptance, commit only the inspected U3a
 scope, record the owner's destination choices and local delivery cadence, then
 execute U3b. Proposed names remain Table, DM tools, Encounter, Objects, Preferences.
+
+## U3b implementation and focused verification — 2026-09-24
+
+The owner's “acccepted” satisfied the verified U3a checkpoint. Its scoped local
+semantic commit is `b473a3dd`; all adopted U3a work was preserved. No fourth U3a
+review, remote push, merge or deployment occurred.
+
+U3b characterizes and extracts palette state and active settings before changing
+behavior. A shared exhaustive descriptor table now groups Terrain, Structures,
+Objects, Lighting and Generate. History, Select/Sample, Layers/Inspect and Done
+are separate from scrolling settings. The map name and live relationship are
+visible. Decoration is contextual to Room/Hallway and names/outlines the last
+placed region. Readiness also checks actual drafts, loading and locked layers;
+retained actions read the current target and document. Quick-wheel/favorites/
+recents and the phone close-to-aim policy retain their original paths.
+
+Evidence under `output/interface-u3a-execution/`: baseline characterization 22/4
+PASS before extraction; extraction 41/5 PASS with strict actual roots. Eight
+new grouped-palette cases and two target-validity cases failed behaviorally with
+strict-clean roots before repair. A retained-action regression failed after its
+initial document-swap setup was corrected to actually open the second document.
+Unsupported RTL matcher options, missing new typed fixture fields, the initial
+unsolicited document message and an incorrect pnpm project filter were setup
+failures, not behavioral RED. Final focused client run so far: 531/64 PASS;
+43 actual changed client roots strict PASS. Six existing desktop/phone Generate
+journeys PASS (no retries). U3b's first four browser cases: phone journey and
+portrait/landscape fit PASS; short-desktop aiming setup hit the expanded Entities
+panel, and the tablet inspector genuinely left only 447px of aimable map against
+the established 560px minimum. The latter has a bounded tablet height repair;
+the desktop fixture now closes Entities through its real control. A repeat is
+running. The new browser roots compile strictly after a discriminated-union guard
+fix. Full house gates, boot, live evaluation and independent U3b review are still
+pending. U4–U10 and proposed destination names remain outside this slice.
+
+U3b pre-gate update: final disclosure/viewport suite 4/4 PASS, strict actual changed
+client/E2E roots PASS, final focused mobile/help/disclosure 60/10 PASS. The tablet
+now preserves 582.4px of map (560px floor). Two real Layers viewport regressions
+failed before the local reveal hook, then passed; desktop Inspect and phone Edit
+now open in view. Rapid repeated decoration consumes one target/command and DM
+demotion clears private previews in real-hook tests. See interface-clarity-u3b.md
+for achieved automated live-two-client mode, score 7.87 and coverage limits.
+Full gates and boot begin on a frozen snapshot; U3b remains uncommitted.
+
+### U3b full-suite repair and repeat
+
+First full ladder: seven gates and isolated boot PASS, 10,003 unit passes/four
+existing skips, 136.92 KB bundle. Full E2E FAIL: 245 passed/nine failed/three
+existing skips; 257 attempts, no retries/flaky cases, 14 attempt error objects,
+no JSON reporter errors, two raw step-ID diagnostic lines. All 76 hashes matched.
+The old run and attachments remain under u3b-gate-e2e-evidence; no blind retry.
+
+The nine failures are repaired in test navigation/observation: seven missed or
+ambiguous selectors; one drag starting on the wider palette border now uses a
+measured uncovered path; one player bake wait now shares the existing 30-second
+worker budget. It still requires completion, and no renderer fix is claimed.
+Actual seven E2E roots strict PASS. Focused **13/13 PASS**, zero failures/skips/
+retries/flaky/attempt/reporter errors, 156.2 seconds. Observed post-Undo player
+view/worker waits were 9,226ms desktop and 8,215ms phone, both ending idle. Evidence:
+u3b-gate-repair-browser-report.json and its decoded evidence directory. Only
+E2E test navigation/observation and documentation changed after the first gates.
+Fresh full eight gates plus boot now run against u3b-repaired-gate-freeze.json.
+Independent U3b review has not begun; U3b stays uncommitted and local only.
+
+### U3b repaired full ladder complete — independent review next
+
+All eight gates plus isolated boot PASS on the repaired snapshot. Units total
+10,003 passes/four existing skips; bundle 136.92 KB/175 KB. Full E2E:254 passes,
+three existing skips,257 attempts,zero failures/retries/flaky/attempt/reporter
+errors or raw step-ID diagnostics,in23.0minutes. All nine prior failures pass.
+Root independently reconciled unit summaries and browser JSON and checked all
+78 hashes/HEAD b473a3dd. Boot5176/8789 passed readiness/module/30s survival and
+owned cleanup;5174/8787 preserved. Evidence:u3b-repaired-gates-report.md,
+u3b-repaired-gate-e2e-report.json,decoded u3b-repaired-gate-e2e-evidence/,
+u3b-repaired-devboot-report.json. Source/tests stay unchanged; result/status
+notes updated after freeze. Fresh four-lens U3b review starts next,cap3 rounds,
+allPASS and zero agent errors required. No U3b commit or remote action yet.
+
+### U3b review round 1 — two distinct findings, repair in progress
+
+Four fresh pinned reviewers completed STATIC source/test/saved-evidence review.
+UI and interaction each flagged the same phone group-selection P2; privacy/geometry
+flagged stale decoration readiness over surviving floor; evidence/documentation
+returned PASS. The deduplicated union is **two findings**, with **zero agent errors**.
+All 78 frozen file hashes and HEAD `b473a3dd` matched at the end. No reviewer edited
+source, tests or docs. Reports: `u3b-r1-{ui,interaction,privacy,evidence}-review.md`.
+
+Group activation already selects a remembered tool, but bypasses the phone tile's
+close-to-aim policy. The decoration issue originates in the inherited any-floor
+predicate: it does not identify the placed room after Undo or detect a partially
+erased footprint. U3b's new named/outlined readiness claim makes it relevant to
+this slice. Repair preserves last-placement bounds, using perimeter identity and
+floor coverage; it does not add arbitrary-room selection or a second controller.
+
+New actual test roots strictly compile after correcting a missing door fixture
+field (setup error, not RED). Before production repair, the bound-controller unit
+regressions produce **nine intended failures and four passing controls**: three
+phone group-close failures; six target/retained-action failures. The pnpm wrapper
+also emits its known recursive-exec text after Vitest's actual assertion summary;
+it is not counted as another failed test. Evidence: `u3b-r1-unit-red.log` and
+`u3b-r1-regression-types-fixed.json`. Browser reproduction is running. U3b remains
+uncommitted; the previous green ladder predates these new tests and repairs.
+
+### U3b R1 repair verification
+
+Both review findings now have behavioral browser RED evidence. The first two-case
+run reproduced phone group closure but stopped the decoration leg on a test's
+public/private terrain-shape mismatch. That observation was corrected, strictly
+compiled, and the decoration-only repeat failed at the intended enabled button
+after real Undo and verified surviving player terrain. Reports preserve all three
+attempts, no retries; two raw step-ID diagnostics accompanied the second run, with
+zero JSON reporter errors. Neither setup mismatch nor diagnostics counts as a
+second product defect. Saved attachments are retained in the two RED directories.
+
+The phone group path now applies the same no-settings close rule as tool tiles.
+Decoration records required room/hallway perimeter identity with the original grid
+and validates every floor cell. The outline, ghosts, enabled state and retained
+action share validity; normal repaint, door additions and layer presentation stay
+valid. The E2E navigation helper reopens a sheet through the real Tool button when
+a remembered no-settings tool closed it. Existing tile-close assertions are now
+per-tool, avoiding confusion between group activation and tile activation counts.
+
+Focused map-edit and bound phone suites PASS: **546 tests / 66 files**. The wider
+strict root pass found one remaining old layout callback type; corrected by
+forwarding the existing alias. Actual strict recheck and focused browser GREEN
+are pending; a fresh full ladder, boot and independent R2 follow. No commit yet.
+
+R1 focused browser run: 31 passes, one timeout,32 attempts,zero retries/flaky/
+reporter errors/raw step-ID diagnostics,two attempt error objects. Both main
+DM/player journeys and Undo-over-painted-floor pass. The new Lighting case passed
+sheet closure but timed out; teardown initially obscured its action error. A
+separate bounded diagnostic proved the chosen bottom Konva canvas was intercepted
+by another canvas. Test input is corrected to assert a map-canvas hit at the point
+and use native touchscreen.tap. No production changes were needed. The diagnostic
+run and screenshots are preserved; this is not a hidden retry or a second product
+finding. Final actual strict check and focused rerun precede fresh full gates.
+
+Lighting follow-up diagnosis: the native viewport tap proceeded, but the test
+incorrectly expected one compiled light in the player's scene. A further run
+using the established trusted CDP touch helper first proved one light in the
+DM's authoritative document, then failed only that player assertion. The existing
+server contract (`compiledSceneFor`, roomModel tests) deliberately removes light
+geometry from player scenes. The corrected test requires the player's new source
+revision, an empty light-geometry list, and no private map-studio-document frame.
+This fixes the test oracle; no server/product privacy change is needed. All failed
+runs remain retained (`u3b-r1-recovery-final`, `u3b-r1-light-cdp-check`); the latter
+has two raw step-ID diagnostics. A missing ServerMessage discrimination guard in
+the new assertion was caught by strict compilation and fixed before rerunning.
+
+R1 repairs have focused GREEN evidence: 546/66 unit passes, actual strict roots
+pass (final browser root separately rechecked), 31 passing focused browser paths
+plus the corrected Lighting case PASS in its one-attempt final run. That final
+case takes 7.7 seconds and has zero failure/skip/retry/flaky/attempt/reporter errors.
+This is separate-run evidence, not a fabricated 32-case green run. Product source
+has not changed since the 31-pass run. All full gates and boot will rerun against
+the new freeze before fresh R2. Live mode/score/limits remain recorded in the U3b
+verification note. Evidence: u3b-r1-light-final-green-report.json and its decoded
+attachments, plus u3b-r1-browser-green-evidence for the other31. No commit yet.
+
+Root's copy audit between R1 and R2 found one additional P3 overclaim: Room help
+called blocking walls optional, but the None wall ring omits paint while retaining
+the blocking perimeter. Help now says "Drag a room with a floor and perimeter
+walls." No behavior changed. This is a root finding, separate from R1's two-issue
+union. The r1-repaired gate run stopped after passing build/typecheck/lint; the
+remaining five gates and boot did not run. All 84 hashes and HEAD matched before
+the correction. That incomplete report remains preserved. The complete ladder
+restarts with unique `u3b-r1-final-gate-*` artifacts and a new freeze.
+
+### U3b R1 repairs — full verification PASS, fresh R2 next
+
+The complete final ladder passes all eight gates and isolated boot. Actual unit
+summaries total **10,016 passes / four existing skips**: shared452, server2738,
+client6826 across all85 batches. Bundle **137.27 KB gzip / 175 KB**. Full E2E:
+**256 passes / three existing skips**,259 attempts in23.3minutes,zero failures,
+retries,flaky cases,attempt/reporter errors or raw step-ID diagnostics. Both new
+R1 regressions and the complete desktop/phone journeys pass in this same run.
+Artifacts: `u3b-r1-final-gates-report.md`, `u3b-r1-final-gate-e2e-report.json`,
+decoded `u3b-r1-final-gate-e2e-evidence/`, `u3b-r1-final-devboot-report.json`.
+
+Root independently reconciled counts, boot readiness/30-second survival/owned
+cleanup and all84 hashes plus HEAD b473a3dd. Existing5174/8787 were preserved.
+Final screenshots inspected: desktop target, phone Generate/Inspect, player
+after Undo, direct Lighting group and Undo-over-paint. Player bake waits8248ms
+desktop/8214msphone ended idle. Actual mode remains automated live-two-client,
+Chromium mouse/emulated touch; score7.87 and recorded limits unchanged.
+
+Only result/status documentation is updated after this freeze, including an
+IA-06 disposition in the original audit. Fresh R2 will freeze85 files; source and
+tests are unchanged. Four new independent pinned static reviewers are next.
+R1 union remains2, agents_error0; root copy finding is separately recorded above.
+No U3b commit, U4 implementation or remote action yet.
+
+### U3b review round 2 — five findings repaired, full verification next
+
+All four fresh STATIC reviewers completed, agents_error0; root independently
+confirmed all85 hashes and HEAD b473a3dd unchanged before releasing the freeze.
+The union is five: P2 hidden perimeter omitted by target validity; P3 IA-07
+incorrectly left pending in the new audit disposition; P3 inherited Scatter
+rotation-row and shortcut overclaims; P3 inherited Room painted-ring overclaim
+when None is chosen; P3 new Ambient-light help pointing to unnamed layer-opacity
+sliders. UI/interaction duplicated the rotation issue, counted once. Reports:
+`u3b-r2-{ui,privacy,evidence,interaction}-review.md`. Formal counts2→5; R3 is final.
+
+New room/hallway tests strictly compile before RED, use real controller updates
+and shared updateMapElement/compileScene, then fail readiness/outline/ghost/action
+after hiding removes the relevant geometry. Two failures plus eight passing
+controls; known pnpm wrapper text is not another test failure. Two browser cases
+strictly compile and fail exactly Decorate enabled after real desktop/phone
+inspector hiding and verified player wall removal. No setup failures, no retries,
+zero reporter errors; two attempt errors and two raw step-ID diagnostic lines
+(each repeats its diagnostic). All failed attempts and images remain preserved.
+
+Repair adds only hidden-state comparison to the shared target predicate. Existing
+Ambient-light slider labels now match their help, with unchanged opacity commands;
+this does not claim U5 relocation/combined Save. Guide/audit copy is corrected.
+Actual final80 TypeScript roots pass strict checking; focused548/66 unit PASS;
+twelve browser attempts PASS in167.6seconds,zero failures/skips/retries/flaky/
+attempt/reporter/raw diagnostic errors. Both hidden-perimeter screenshots were
+inspected. Browser mode and score/limits stay unchanged. Evidence prefixes:
+`u3b-r2-regression-types`, `u3b-r2-unit-red`, `u3b-r2-browser-red`,
+`u3b-r2-repair-types`, `u3b-r2-final-actual-types`, `u3b-r2-focused-green`,
+`u3b-r2-browser-green`. Next fresh full8+boot under `u3b-r2-repaired-gate-*`, then
+four fresh independent reviewers for final R3. No U3b commit or remote action.
+
+### U3b R2 repairs — full verification PASS, final R3 next
+
+On September 25, `u3b-r2-repaired-gates-report.md` completed all eight gates and
+isolated boot PASS on the same 87-file freeze. Gates 1–6 finished September 24;
+the mechanical runner then hit its usage limit. The owner's resume was followed
+by an independent hash/HEAD audit, then gates 7–8 and boot without repeating the
+unchanged passing checks. One recovered mechanical-runner error is disclosed;
+it does not void the already completed R1/R2 semantic reviews (agents_error: 0).
+R3 had not started during the interruption.
+
+Actual unit summaries: **10,018 passes / four existing skips**, shared 452,
+server 2,738, client 6,828 across 85 batch summaries. Bundle **137.29 KB /175 KB**.
+Full browser run: **258 passes / three existing skips**, 261 attempts, 23.5 minutes,
+zero failures/retries/flaky/attempt/reporter errors and raw step-ID diagnostics.
+Root independently reconciled the captured summaries/JSON and all 87 hashes plus
+HEAD `b473a3dd`. Fresh 5176/8789 boot passed health/client/module readiness,
+30-second survival, empty boot-error list and owned cleanup; 5174/8787 preserved.
+
+Root decoded final screenshots and inspected desktop named target, phone
+Generate/Inspect, player after Undo, both hidden-perimeter cases and tablet Select.
+The invalid target's gold decoration outline disappears while cyan selection can
+remain. Player render settlement was 9,203ms desktop/8,158ms phone, ending idle;
+tablet exposed map remained 582.4px. Automated live-two-client mode, score7.87 and
+recorded limits remain unchanged. Evidence prefix `u3b-r2-repaired-gate-e2e`, boot
+`u3b-r2-repaired-devboot-report.json`, strict `u3b-r2-final-actual-types.json`.
+Source/tests are unchanged; result docs are updated before a fresh R3 freeze.
+Next: four fresh pinned independent read-only reviewers, final round 3. No U3b
+commit, U4 work or remote delivery yet.
+
+### U3b final review round 3 — owner checkpoint required
+
+Four fresh pinned independent STATIC reviewers completed, with zero semantic
+agent errors. UI/state and privacy/geometry PASS; evidence/documentation and
+interaction FAIL on the same P3 stale audit-status sentence. The IA-06/07
+disposition still said R2 repairs were undergoing verification after its ladder
+and boot had passed. This is one distinct documentation finding; no additional
+product defect was found. Root read all four complete reports and independently
+confirmed all 87 frozen hashes and HEAD `b473a3dd` before releasing the freeze.
+Reports: `u3b-r3-{ui,privacy,evidence,interaction}-review.md`.
+
+Formal counts **2 → 5 → 1**, three rounds, **12 completed reviewer assignments**,
+`agents_error: 0`. The mechanical runner's recovered usage error remains separately
+disclosed above. The final round is not unanimous PASS. The count decreased, but
+the [review-convergence cap](../../.claude/skills/review-convergence/SKILL.md) is
+reached: “Cap the rounds at 3. Round 4 is escalation to the owner, not another loop.”
+No fourth review will run.
+
+After review, root corrected only the flagged audit sentence and updated result/
+frontier documentation. Source/tests remain unchanged from full verification.
+The audit now reports the completed gates/boot and the pending owner checkpoint.
+This bounded documentation correction is not represented as a fresh formal PASS.
+The concrete [U3b checkpoint](interface-clarity-u3b.md) asks the owner to accept the
+verified result and its scoped 87-path local commit. Existing working tree remains
+preserved, with nothing staged or committed for U3b. No push/merge/deployment/U4.
+
+### U3b owner acceptance and local closeout — 2026-09-25
+
+The owner explicitly answered **“Accept and commit locally”** to the verified
+checkpoint, including the corrected audit-status sentence. This satisfies the
+U3b cap checkpoint. The scoped 87-path local commit containing this entry follows
+accepted U3a `b473a3dd`; final result/acceptance docs are the only changes after
+the reviewed freeze. Source/tests remain identical to the green full-gate and
+R3 snapshots. The two PASS/two FAIL final verdicts, one duplicate P3 and formal
+counts 2 → 5 → 1 remain the honest historical record; no fourth review ran.
+
+U3b groups existing build tools, preserves persistent controls and phone input
+behavior, and names/validates the last decoration target. The working tree and
+earlier local commits were preserved. All eight gates and isolated boot passed,
+10,018 unit passes/four existing skips, 258 browser passes/three existing skips,
+137.29 KB gzip. Verification mode and limitations remain in the U3b record.
+This completes the requested continuation through U3b. U4a is the next slice;
+no U4 implementation, remote push, merge or deployment was performed.

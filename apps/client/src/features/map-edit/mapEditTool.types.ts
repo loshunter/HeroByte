@@ -49,7 +49,7 @@ export interface UseMapEditToolOptions {
    * flight — the one outcome here that otherwise leaves no evidence at all. */
   onGestureDropped?: () => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
-  onRegionPlaced?: (bounds: RoomBounds) => void;
+  onRegionPlaced?: import("./populateTarget").OnPopulateRegionPlaced;
   /** A generate region was swept — the recipe's target (nothing placed yet). */
   onRegionDragged?: (bounds: RoomBounds) => void;
   /** Currently-selected element (select sub-tool) — drives the highlight. */

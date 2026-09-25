@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "./build-palette.helpers";
 import { expect, test, type Page } from "./fixtures";
 import {
   armGrass,
@@ -46,7 +47,7 @@ test("U2 secondary mouse opens Place/Grass wheel and pans without editing either
     const before = await Promise.all(pages.map(mapContent));
     const sentCount = mapCommands(dmWire).length;
 
-    await dm.getByRole("button", { name: "📦 Place", exact: true }).click();
+    await chooseBuildTool(dm, "place");
     await dm.getByRole("button", { name: "▸ Crate", exact: true }).click();
     const crate = dm.getByRole("listbox", { name: "Assets", exact: true }).getByTitle("Crate", {
       exact: true,
@@ -57,7 +58,7 @@ test("U2 secondary mouse opens Place/Grass wheel and pans without editing either
 
     for (const subTool of ["Place", "Grass"] as const) {
       if (subTool === "Grass") {
-        await dm.getByRole("button", { name: "🖌️ Paint", exact: true }).click();
+        await chooseBuildTool(dm, "terrain");
         await dm.getByTitle("Grass", { exact: true }).first().click();
         await expect(dm.getByText("Brush: Grass", { exact: true })).toBeVisible();
       }
@@ -95,7 +96,7 @@ test("U2 secondary mouse opens Place/Grass wheel and pans without editing either
       if (subTool === "Grass") {
         await expect(dm.getByText("Brush: Grass", { exact: true })).toBeVisible();
       } else {
-        await expect(dm.getByRole("button", { name: "📦 Place", exact: true })).toHaveClass(
+        await expect(dm.getByRole("button", { name: "Place object", exact: true })).toHaveClass(
           /jrpg-button-primary/,
         );
       }

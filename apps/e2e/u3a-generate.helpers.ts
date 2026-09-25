@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "./build-palette.helpers";
 import type { CDPSession, Locator } from "@playwright/test";
 import type { ClientMessage, MapDocument, ServerMessage } from "@herobyte/shared";
 import { expect, type Page } from "./fixtures";
@@ -50,7 +51,7 @@ export async function joinSecondDM(page: Page, roomUrl: string) {
   if (await close.isVisible()) await close.click();
   await expect(settings).toHaveCount(0);
   await page.getByTitle("Author the live map on the table").click();
-  await page.getByRole("button", { name: "🧱 Wall", exact: true }).click();
+  await chooseBuildTool(page, "wall");
   await page.getByRole("button", { name: "🗂 Layers", exact: true }).click();
   return page.getByRole("region", { name: "Layers", exact: true });
 }
@@ -70,11 +71,8 @@ export function generatePanel(page: Page, mobile: boolean) {
 export async function selectGenerate(page: Page, mobile: boolean) {
   if (mobile) {
     await dock(page).getByRole("button", { name: "Tool", exact: true }).tap();
-    await page
-      .getByRole("dialog", { name: "Map tools", exact: true })
-      .getByRole("button", { name: "Gen", exact: true })
-      .tap();
-  } else await page.getByRole("button", { name: "🏰 Gen", exact: true }).click();
+    await chooseBuildTool(page, "generate", true);
+  } else await chooseBuildTool(page, "generate");
   const ui = generatePanel(page, mobile);
   await activate(ui.panel.getByRole("button", { name: "🪵 Wood", exact: true }), mobile);
   await activate(
@@ -215,7 +213,11 @@ export async function viewPlayerDungeon(page: Page, document: MapDocument) {
   const closeChat = page.getByRole("button", { name: "Close Chat & Rolls", exact: true });
   if (await closeChat.isVisible()) await closeChat.click();
   await aimRegion(page, false, document, 12, false);
-  await expect(page.getByRole("status").filter({ hasText: "Painting terrain" })).toHaveCount(0);
+  // The asynchronous field worker uses the same 30s completion budget as
+  // docs-shots.helpers.waitBake; receipt of terrain is earlier than its bake.
+  await expect(page.getByRole("status").filter({ hasText: "Painting terrain" })).toHaveCount(0, {
+    timeout: 30_000,
+  });
   await expect(page.getByTestId("generate-panel")).toHaveCount(0);
   await painted(page);
 }

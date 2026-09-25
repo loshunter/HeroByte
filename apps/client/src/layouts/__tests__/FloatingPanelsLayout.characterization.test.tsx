@@ -264,6 +264,11 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     onMapEditSelectElement: vi.fn(),
     onMapEditSampleAsset: vi.fn(),
     mapEditToolbarProps: {
+      mapName: "Fixture map",
+      activeGroup: "structures",
+      onSelectGroup: vi.fn(),
+      populateTarget: null,
+      populateHint: "Draw a room or hallway first.",
       isLive: false,
       busy: false,
       activeSubTool: "wall" as const,

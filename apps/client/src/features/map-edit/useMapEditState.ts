@@ -13,13 +13,8 @@ import { useMapEditHotkeys } from "./useMapEditHotkeys";
 import { usePopulate } from "./usePopulate";
 import { useGenerate } from "./useGenerate";
 import { usePlacementDials } from "./usePlacementDials";
-import type {
-  MapEditFloorFamily,
-  MapEditSplineKind,
-  MapEditSubTool,
-  MapEditToolbarProps,
-  MapEditWallFamily,
-} from "./mapEditTypes";
+import type { MapEditToolbarProps } from "./mapEditTypes";
+import { useMapEditPaletteState } from "./useMapEditPaletteState";
 
 const LIVE_MAP_SIZE = 8192;
 /** A crate is the friendliest first set-dressing default. */
@@ -37,21 +32,31 @@ export function useMapEditState({
   notifyError,
   dismissError,
 }: UseMapEditStateOptions): UseMapEditStateReturn {
-  const [activeSubTool, setActiveSubTool] = useState<MapEditSubTool>("wall");
-  const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
-  // Rooms ship with a stone wall band by default — the Czepeku look out of the
-  // box; "none" restores the bare floor-plus-perimeter behaviour.
-  const [roomWallFamily, setRoomWallFamily] = useState<MapEditWallFamily | "none">("wall-stone");
-  const [hallwayWidth, setHallwayWidth] = useState(2);
-  // Rope is the friendliest first spline: a two-anchor drag sags immediately.
-  const [splineKind, setSplineKind] = useState<MapEditSplineKind>("rope");
+  const {
+    activeSubTool,
+    activeGroup,
+    onSelectGroup,
+    setActiveSubTool,
+    floorFamily,
+    setFloorFamily,
+    roomWallFamily,
+    setRoomWallFamily,
+    hallwayWidth,
+    setHallwayWidth,
+    splineKind,
+    setSplineKind,
+    layersOpen,
+    inspectorOpen,
+    wallsOverlayPinned,
+    onToggleWallsOverlay,
+    onToggleLayers,
+    onToggleInspector,
+  } = useMapEditPaletteState();
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   // What Place/Scatter/Row drop and how — asset, picker flag, stamp-vs-tile and
   // rotation, in one hook so a phone control and the Alt/R keys write the same
   // state rather than two that can disagree.
   const dials = usePlacementDials({ setFloorFamily, setActiveSubTool });
-  const [layersOpen, setLayersOpen] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
   const populate = usePopulate(controller, notifyError);
   // The id of a document we just created and are waiting to activate before
   // binding it live (createDocument returns synchronously, but the controller
@@ -62,9 +67,6 @@ export function useMapEditState({
   // between "set-live sent" and "snapshot confirms", so a double-click would
   // create a second orphan "Live Map" document.
   const [awaitingLiveBind, setAwaitingLiveBind] = useState(false);
-  // Pin the DM-only walls overlay so it stays visible after leaving map-edit
-  // mode (in map-edit it always shows; the pin persists it beyond that).
-  const [wallsOverlayPinned, setWallsOverlayPinned] = useState(false);
 
   // Stable controller methods (useCallback-memoized inside useMapStudio); the
   // controller OBJECT is recreated each render, so depend on these, not it.
@@ -200,9 +202,6 @@ export function useMapEditState({
   ]);
 
   const onClose = useCallback(() => setActiveTool(null), [setActiveTool]);
-  const onToggleWallsOverlay = useCallback(() => setWallsOverlayPinned((pinned) => !pinned), []);
-  const onToggleLayers = useCallback(() => setLayersOpen((open) => !open), []);
-  const onToggleInspector = useCallback(() => setInspectorOpen((open) => !open), []);
 
   // Quick-wheel dispatch pair (P5): useState setters are identity-stable, so
   // one memo keeps the pair stable for MapBoard.
@@ -220,6 +219,9 @@ export function useMapEditState({
   );
 
   const toolbarProps: MapEditToolbarProps = {
+    mapName: activeDocument?.name ?? "Current table map",
+    activeGroup,
+    onSelectGroup,
     isLive,
     busy: awaitingLiveBind || pendingLiveId !== null || loading,
     activeSubTool,
@@ -257,6 +259,8 @@ export function useMapEditState({
     onSelectPopulateCategory: populate.setCategory,
     onPopulate: populate.onPopulate,
     canPopulate: populate.canPopulate,
+    populateTarget: populate.target,
+    populateHint: populate.hint,
     generateParams: generate.params,
     onGenerateParamsChange: generate.setParams,
     onRerollSeed: generate.rerollSeed,
@@ -288,7 +292,12 @@ export function useMapEditState({
     splineKind,
     onRegionPlaced: populate.onRegionPlaced,
     persistentPreview: {
-      populateGhosts: populate.previewGhosts,
+      populateGhosts:
+        isDM && (activeSubTool === "room" || activeSubTool === "hallway")
+          ? populate.previewGhosts
+          : null,
+      populateTarget:
+        isDM && (activeSubTool === "room" || activeSubTool === "hallway") ? populate.target : null,
       generateRegion: isDM ? generate.preview : null,
     },
     wheelActions,

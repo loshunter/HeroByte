@@ -1,7 +1,8 @@
 # Next-agent prompt — continue HeroByte interface clarity
 
-Use this document as the continuation prompt. Updated 2026-09-24 after verified
-post-cap repair, still at local commit `4e63230d`. Verify the current checkout before
+Use this document as the continuation prompt. Updated 2026-09-25 after U3b's
+verified repair and owner acceptance. The U3b local commit containing this record
+has parent `b473a3dd`. Verify the current checkout before
 relying on these historical identifiers.
 
 ## Your assignment
@@ -9,9 +10,25 @@ relying on these historical identifiers.
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
 The owner accepted the verified U3a checkpoint on 2026-09-24 with “acccepted.”
-The next work is **the scoped IA-18 semantic commit**, followed by **U3b's grouped
-build palette**. Check the latest execution ledger for the resulting commit before
-repeating any work.
+The scoped IA-18 semantic commit is **`b473a3dd`**. **U3b's grouped build palette is
+accepted and locally complete; formal review counts are 2 → 5 → 1**. The first-round
+repairs passed all gates/boot (10,016 unit passes,256 browser passes). Round 2's
+hidden-perimeter validity gap and four copy/label findings are now repaired with
+strict behavioral RED/GREEN,548 focused unit passes and twelve browser passes.
+The full ladder under `u3b-r2-repaired-gate-*` and isolated boot now PASS:
+10,018 unit passes/four existing skips, 258 browser passes/three existing skips,
+137.29 KB gzip. A mechanical usage interruption was recovered after an unchanged
+87-file hash audit; preserve that history. Final R3 is complete: UI/privacy PASS,
+evidence/interaction FAIL on the same P3 stale audit-status sentence. All 12
+review assignments completed, zero semantic agent errors, all 87 hashes unchanged.
+The sentence is now corrected as a bounded result-document update. No additional
+product defect was found, but unanimous final PASS was not achieved. The review
+cap checkpoint is satisfied: the owner explicitly replied “Accept and commit
+locally” to [the U3b checkpoint](../verification/interface-clarity-u3b.md). The scoped
+local commit contains this record. Do not reopen either acceptance decision,
+run a fourth U3b review or repeat unchanged green tests. U4 remains the next slice
+and was not implemented in this continuation. Check the latest execution
+ledger and scratch RESUME before repeating any work.
 The bounded recovery repair is implemented and verified; do not redo it. Read
 [the checkpoint](../verification/interface-clarity-u3a-checkpoint.md) first. This is
 the next part of the existing arc, not a new unrelated arc. Most substantial menu
@@ -19,11 +36,11 @@ rearrangement has not happened yet; do not describe the redesign as complete.
 
 ## Working tree and authority
 
-- Work in **`D:/HeroByte`**, PowerShell, existing branch **`dev`**. Last verified HEAD: **`4e63230d`**. Use this existing checkout: a fresh worktree or clone will omit the substantial uncommitted U3a implementation and ignored local evidence.
-- The dirty tracked files and untracked source/tests are deliberate, adopted U3a work. Preserve them. Do not reset, clean, stash them away, recreate the implementation from old drafts, or stage everything indiscriminately. Inspect `git status`, `git diff`, untracked files, and recent commits first.
-- Local implementation, testing and scoped commits are authorized under the existing plan. **No remote push, merge to main, or deployment is authorized.** Main deploys on push. Do not infer shipping authorization from a passing review or from this handoff.
-- The explicit U3a review-cap checkpoint is satisfied: the owner accepted the verified result on 2026-09-24. Proceed with the scoped local commit and U3b without asking again. Earlier pending-acceptance language below is historical; it does not reopen this decision.
-- At the U3a completion checkpoint, record the proposed destination names and any accepted shipping cadence. Do not repeatedly ask for a decision that the owner has already made in a subsequent message.
+- Work in **`D:/HeroByte`**, PowerShell, existing branch **`dev`**. U3b is the local commit containing this handoff, immediately after **`b473a3dd`**. Use this existing checkout to retain ignored local evidence; verify its exact HEAD through Git.
+- Preserve the current tree. Do not reset, clean, stash changes away, recreate the implementation from old drafts, or stage everything indiscriminately. Inspect `git status`, `git diff`, untracked files, and recent commits first.
+- Local implementation, testing and scoped commits are authorized under the existing plan; U3a and U3b's recorded cap checkpoints are satisfied. **No remote push, merge to main, or deployment is authorized.** Main deploys on push. Do not infer shipping authorization from a passing review or from this handoff.
+- The explicit U3a review-cap checkpoint is satisfied: the owner accepted the verified result on 2026-09-24, and `b473a3dd` committed it. Earlier pending-acceptance language below is historical; it does not reopen this decision.
+- The U3a checkpoint records the proposed destination names and local-only shipping scope. Do not repeatedly ask for a decision that the owner has already made in a subsequent message.
 - User prefers action and candid, concise progress. Explain a required approval by naming/linking the exact rule. Do not bury an unresolved finding beneath green test counts.
 
 ## Read these, in order
@@ -44,21 +61,24 @@ rearrangement has not happened yet; do not describe the redesign as complete.
 | `845d078c` | Authentication retry waits for reconnect after rejected password |
 | `42152fd3` | Characterized U3a queue/lifecycle extraction and seams |
 | `4e63230d` | Focused map Ctrl/Cmd+Z/Redo beside desktop floating panels, with mobile protections |
+| `b473a3dd` | Owner-accepted U3a Generate outcomes and correlated recovery receipts |
 
-U1 and U2 are locally committed and have their recorded owner acceptance. U3a's main semantic changes are **implemented, verified and owner-accepted**, ready for the scoped local commit. Do not redo those implementations. U3b is next.
+U1, U2, U3a and U3b are locally complete with their recorded owner acceptance.
+Do not redo them. U4 is next. Pending-acceptance wording in historical records
+below is superseded by this frontier.
 
 The latest owner-reported hotkey defect is finished. Leaving Chat open blocked Ctrl+Z even after a hallway was drawn on uncovered map canvas. Canvas interaction now focuses the map. Only explicitly opted-in desktop floating panels can coexist with that map's history shortcuts. Mobile screens/sheets, dialogs, popovers, text editing and composition remain protected. `DraggableWindow` revokes its opt-in when entering mobile layout. The owner's exact original window arrangement was not confirmed; the Chat-open case was independently reproduced.
 
-Read [`map-history-hotkeys.md`](../verification/map-history-hotkeys.md) for its scope and manual steps. `MapBoard.tsx` remains dirty because of U3a, but its seven focus lines are already committed. Do not accidentally revert or double-apply them. The hotkey review was separate from U3a acceptance: findings **1 → 0**, four reviewer assignments over two rounds, final two reviewers PASS, zero agent errors.
+Read [`map-history-hotkeys.md`](../verification/map-history-hotkeys.md) for its scope and manual steps. `MapBoard.tsx`'s seven focus lines are in `4e63230d`; its remaining U3a changes are in `b473a3dd`. Do not revert or double-apply them. The hotkey review was separate from U3a acceptance: findings **1 → 0**, four reviewer assignments over two rounds, final two reviewers PASS, zero agent errors.
 
-## U3a: repaired final finding and pending acceptance
+## Historical U3a repair checkpoint — completed and accepted
 
 **Current result:** the following historical defect has strict behavioral RED/GREEN
 evidence and a completed bounded repair. Matching GET request/document identity now
 gates inspection; generic loading, ordinary broadcasts and earlier GETs do not.
 Legacy GET callers and private DM reply boundaries are preserved. Six focused
 Generate journeys, all eight gates and isolated fresh boot PASS. The semantic work
-is still uncommitted pending the owner's verified acceptance; no fourth review ran.
+was subsequently accepted and committed as `b473a3dd`; no fourth review ran.
 
 Read `D:/HeroByte/output/interface-u3a-execution/u3a-r3-ui-review.md`, then the execution ledger's disposition and bounded repair proposal. **The ledger's explicit request-correlation proposal supersedes the report's weaker suggestion to filter out frames carrying `appliedCommandId`.** Absence of an applied command ID does not distinguish a recovery GET from an earlier same-document GET.
 
@@ -81,8 +101,9 @@ U3a's three review rounds found **5 → 1 → 1** distinct issues. All four lens
 
 ### Bounded post-cap repair checklist
 
-Steps 1–4 below are complete, with evidence in the verified checkpoint and latest
-execution-ledger entry. Step 5 is the remaining owner decision and local commit.
+Steps 1–5 below are complete, with evidence in the verified checkpoint and latest
+execution-ledger entry. The owner accepted the result and local commit `b473a3dd`
+completed step 5; this checklist records the historical recovery path.
 
 1. Add a discriminating regression with two DMs, FIFO-buffered outbound Generate/GET traffic, and live inbound same-document broadcasts. Prove the unrelated stale broadcast cannot unlock inspection or permit a fresh Generate. Include the generic loading watchdog expiring without a recovery receipt.
 2. Add explicit **recovery GET request correlation**, echoed on the matching document/error reply. Gate recovery inspection on that matching receipt, not document identity, revision, generic loading, or a map-edit command's `appliedCommandId`. Preserve legacy GET callers and keep ordinary broadcasts updating the document without satisfying recovery.
@@ -99,9 +120,11 @@ Start source inspection at:
 
 Keep queue-entry handles attached before dispatch mints the command ID. Every unsent drop must settle; sent-but-untracked must not be described as successful cancellation. Keep one controller and server-authoritative success. Preserve private document/preview boundaries and named privacy checks when touching this wire path.
 
-## Then U3b — the first substantial build-palette rearrangement
+## Completed U3b — the first substantial build-palette rearrangement
 
-After U3a is accepted and its checkpoint is recorded, execute **U3b**, not U4 or a full shell rewrite. Read plan §2.2 and the U3b capsule before editing.
+The following U3b scope is completed and accepted; retain it during later work.
+Read plan §2.2 and the U3b capsule for its contracts. Future continuation starts
+with U4a when requested, not a replay of U3b or a full shell rewrite.
 
 - Introduce a shared, exhaustive descriptor inventory for current tool groups, labels, help and capabilities; derive from existing tool-kind sets so no parallel inventory drifts.
 - Separate persistent map controls from active-tool settings. History, Layers, Select/Sample and Done must stay reachable when switching Room → Paint → Generate → Spline. Fix Generate/Spline's early-return loss of persistent controls.

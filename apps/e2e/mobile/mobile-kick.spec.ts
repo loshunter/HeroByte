@@ -57,7 +57,7 @@ test.describe("mobile — the kicked-in door", () => {
       // EXIT the mode, not just its sheet: map-edit REPLACES the player dock,
       // and the kick screen is reached from the player dock's DM button. (The
       // sheet's own ✕ says "Close tools" and leaves the mode armed.)
-      await editDock.getByRole("button", { name: /^Exit$/i }).click();
+      await editDock.getByRole("button", { name: /^Done building$/i }).click();
       await expect(dm.getByRole("navigation", { name: /Mobile actions/i })).toBeVisible();
 
       // The screen's controls clear the touch floor in BOTH orientations.
