@@ -24,15 +24,15 @@ export const TOOL_DESCRIPTORS = {
     group: "terrain",
     label: "Paint terrain",
     icon: "🖌️",
-    help: "Paint map cells with the selected material.",
+    help: "Paint with the selected material and square brush size.",
     mobilePanel: true,
   },
   erase: {
     group: "terrain",
     label: "Erase terrain",
     icon: "🧹",
-    help: "Remove painted terrain cells.",
-    mobilePanel: false,
+    help: "Remove terrain with the selected square brush size.",
+    mobilePanel: true,
   },
   room: {
     group: "structures",
@@ -115,7 +115,7 @@ export const TOOL_DESCRIPTORS = {
     group: null,
     label: "Sample",
     icon: "💧",
-    help: "Sample an asset from the map.",
+    help: "Sample a material to Paint, or an object to Place. Ctrl/Cmd keeps the current tool.",
     mobilePanel: false,
   },
 } satisfies Record<MapEditSubTool, ToolDescriptor>;

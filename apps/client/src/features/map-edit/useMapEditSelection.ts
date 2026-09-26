@@ -29,7 +29,7 @@ interface UseMapEditSelectionOptions {
   document: MapDocument | null;
   selectedElementId: string | null;
   onSelectElement: (elementId: string | null) => void;
-  /** Re-arm the place tool with an eyedropper-sampled asset id. */
+  /** Sample an asset; explicit Sample chooses Paint or Place, shortcuts keep the tool. */
   onSampleAsset: (assetId: string, source: "tool" | "shortcut") => void;
 }
 
@@ -78,7 +78,7 @@ export function useMapEditSelection({
       const sampling = subTool === "eyedropper" || (ctrlHeld && SAMPLEABLE.includes(subTool));
       if (sampling) {
         const sampled = sampleAssetAtPoint(document, layers, point);
-        // Same branch, different hand-back: the TOOL re-arms Place, the Ctrl
+        // Explicit Sample routes by asset capability; the Ctrl/Cmd
         // shortcut keeps whatever the DM is holding.
         if (sampled) onSampleAsset(sampled, subTool === "eyedropper" ? "tool" : "shortcut");
         // True either way. A miss must still CONSUME the press: falling through

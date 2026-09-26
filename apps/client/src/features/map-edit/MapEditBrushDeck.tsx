@@ -98,6 +98,16 @@ export function MapEditBrushDeck({ selected, onSelect }: MapEditBrushDeckProps) 
       <p className="jrpg-text-small" style={{ margin: "0 0 4px", color: "var(--jrpg-gold)" }}>
         Brush: <span style={{ color: "var(--jrpg-white)" }}>{armed ? armed.name : selected}</span>
       </p>
+      {armed && (
+        <button
+          type="button"
+          className="terrain-brush-pin"
+          aria-pressed={pins.includes(selected)}
+          onClick={() => togglePin(selected)}
+        >
+          {pins.includes(selected) ? "Unpin" : "Pin"} {armed.name}
+        </button>
+      )}
       <input
         type="search"
         value={query}

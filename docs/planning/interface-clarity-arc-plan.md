@@ -1,6 +1,6 @@
 # Interface clarity — the first session should teach the table — arc plan
 
-> **STATUS: U4a OWNER-ACCEPTED FOR LOCAL CLOSEOUT; U4b NEXT — 2026-09-26.**
+> **STATUS: U4a ACCEPTED/COMMITTED; U4b OWNER ACCEPTED FOR LOCAL CLOSEOUT, R3 INCOMPLETE — 2026-09-26.**
 > U1 and U2 are locally committed following their recorded owner acceptance. U3a's
 > auth prerequisite and characterized extraction are committed; its semantic repair
 > is locally committed as `b473a3dd`. Final review round 3 left one P2 recovery-correlation finding
@@ -31,10 +31,30 @@
 > All three bounded repairs now pass fresh full verification and boot: 10,027 unit
 > passes/four skips, 263 browser passes/three skips, 137.53 KB gzip and zero browser
 > failures/errors/retries. The owner accepted continuation on 2026-09-26 with
-> “Can you continue on now?” The scoped local commit is authorized, then U4b.
+> “Can you continue on now?” The scoped local commit is `681bc391`. U4b passed
+> characterization, then implementation and 722 focused tests with strict compilation.
+> Its final two-client browser run passes six tests without errors or retries.
+> All eight gates and isolated boot pass: 10,066 unit passes/four existing skips,
+> 265 browser passes/three existing skips and 138.82 KB gzip. R1 then found two issues:
+> idle hover exit and fractional edge-cell rounding. Four STATIC assignments completed,
+> zero semantic agent errors. Bounded repairs pass 759 focused tests and 47 strict roots;
+> repaired live verification passes six cases without errors/retries. All eight repaired
+> gates and boot pass: 10,071 unit passes/four skips, 265 browser passes/three skips,
+> 138.87 KB gzip, zero browser errors/retries and all 54 frozen paths unchanged.
+> R2 found two P3 issues: touch-release preview cleanup and decimal interior-boundary
+> assignment. Both bounded repairs pass 768 focused tests, 47 strict roots and six browser
+> cases without errors/retries. All eight R2-repaired gates and boot also pass:
+> 10,080 unit passes/four skips, 265 browser passes/three skips, 138.88 KB gzip and
+> zero browser errors/retries; all 54 hashes/HEAD/strict inputs match. Final R3 is VOID:
+> `agent thread limit reached` blocked documentation dispatch; state never started.
+> UI/tests filed partial reports without PASS or a new established defect. Counts
+> 2 → 2 → INCOMPLETE: eight completed and two partial STATIC assignments, one R3 dispatch
+> error, two unperformed final lenses. The [U4b owner checkpoint](../verification/interface-clarity-u4b.md)
+> was accepted on 2026-09-26 with “Accepted”; its scoped local commit is authorized.
+> All four R1/R2 findings are repaired. The incomplete final review remains recorded.
 > No fourth round. See
 > [its verification record](../verification/interface-clarity-u4a.md).
-> U4b/U4c and U5–U10 remain unimplemented.
+> U4b closeout, U4c and U5–U10 remain ahead.
 > Do not start a fourth formal U3a review. Remote pushes,
 > main merge and production deployment remain outside the execution authorization.
 > Execution evidence: [interface-clarity-execution.md](../verification/interface-clarity-execution.md).
@@ -582,10 +602,14 @@ verification/fresh boot. R1's three test/documentation findings are repaired and
 pass the repeated full ladder and fresh boot. R2's three repairs also pass the full
 ladder and boot. Final R3 reached the cap and plateau with three P3 findings;
 all three bounded repairs now pass fresh full verification and boot. The verified
-owner checkpoint was accepted on 2026-09-26; scoped local closeout is authorized. See the verification
+owner checkpoint was accepted on 2026-09-26 and committed as `681bc391`. See the verification
 record. Desktop and phone
 share labels/settings and retain the existing drawing state, history and authority.
-U4b/U4c remain future slices; the combined U4 Done-when below is not yet complete.
+U4b's R1 and R2 repairs pass full verification and boot. Final R3 was incomplete after
+an agent-limit error; the owner accepted the verified checkpoint on 2026-09-26 with
+“Accepted”. The scoped local commit is authorized, followed by U4c under the existing
+onward authorization. The combined U4 Done-when below
+is not yet complete.
 
 **Changes:** use the Tool/Settings/History grammar and explicit eraser names; provide
 mobile opacity/fill where applicable and hide irrelevant settings. Add actual terrain

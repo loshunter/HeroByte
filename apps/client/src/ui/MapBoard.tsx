@@ -109,6 +109,7 @@ export default function MapBoard({
   mapEditSelectedAssetId = "objects:crate",
   mapEditPlacementDials,
   mapEditHallwayWidth = 2,
+  mapEditTerrainBrushSize = 1,
   mapEditSplineKind = "rope",
   mapEditPersistentPreview = null,
   mapEditWheelActions,
@@ -364,11 +365,13 @@ export default function MapBoard({
   const {
     previewDrag: mapEditPreviewDrag,
     strokeCells: mapEditStrokeCells,
+    brushPreviewCells: mapEditBrushPreviewCells,
     placementGhost: mapEditPlacementGhost,
     draftGhosts: mapEditDraftGhosts,
     selectionShape: mapEditSelectionRect,
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
+    onMouseLeave: handleMapEditMouseLeave,
     onMouseUp: handleMapEditMouseUp,
     onCancel: handleMapEditCancel,
   } = useMapEditTool({
@@ -383,6 +386,7 @@ export default function MapBoard({
     stampRotation: mapEditPlacementDials?.stampRotation,
     onRotateStamp: mapEditPlacementDials?.onRotateStamp,
     hallwayWidth: mapEditHallwayWidth,
+    terrainBrushSize: mapEditTerrainBrushSize,
     splineKind: mapEditSplineKind,
     selectedElementId: mapEditSelectedElementId,
     onRoomRejected: onMapEditRoomRejected,
@@ -723,6 +727,7 @@ export default function MapBoard({
         onTap={onTap}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
+        onMouseLeave={handleMapEditMouseLeave}
         onMouseUp={onMouseUp}
         onTouchStart={(event) => {
           // The guard remembers whether this gesture moved (a pan) or grew a
@@ -981,6 +986,7 @@ export default function MapBoard({
             gridOffsetX={mapEditController?.activeDocument?.grid.offsetX ?? 0}
             gridOffsetY={mapEditController?.activeDocument?.grid.offsetY ?? 0}
             strokeCells={mapEditStrokeCells}
+            brushPreviewCells={mapEditBrushPreviewCells}
             placementGhost={mapEditPlacementGhost}
             draftGhosts={mapEditDraftGhosts}
             persistentPreview={mapEditPersistentPreview}

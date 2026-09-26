@@ -8,7 +8,7 @@ afterEach(cleanup);
 describe("phone group activation uses the remembered tool's close policy", () => {
   it.each([
     ["light", "lighting", true],
-    ["erase", "terrain", true],
+    ["erase", "terrain", false], // U4b: brush size keeps Erase settings open.
     ["wall", "structures", true],
     ["room", "structures", false],
     ["terrain", "terrain", false],

@@ -34,6 +34,8 @@ const bag = (overrides: Record<string, unknown> = {}) =>
     onSelectRoomWallFamily: vi.fn(),
     hallwayWidth: 1,
     onSelectHallwayWidth: vi.fn(),
+    terrainBrushSize: 1 as const,
+    onSelectTerrainBrushSize: vi.fn(),
     splineKind: "rope",
     onSelectSplineKind: vi.fn(),
     selectedAssetId: "objects:crate",

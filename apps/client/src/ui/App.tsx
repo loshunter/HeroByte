@@ -789,6 +789,7 @@ function AuthenticatedApp({
     mapEditRoomWallFamily: mapEdit.roomWallFamily,
     mapEditSelectedAssetId: mapEdit.selectedAssetId,
     mapEditHallwayWidth: mapEdit.hallwayWidth,
+    mapEditTerrainBrushSize: mapEdit.terrainBrushSize,
     mapEditSplineKind: mapEdit.splineKind,
     mapEditPersistentPreview: playerLens ? null : mapEdit.persistentPreview,
     mapEditWheelActions: mapEdit.wheelActions,

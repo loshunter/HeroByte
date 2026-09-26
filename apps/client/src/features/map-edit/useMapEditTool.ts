@@ -46,6 +46,7 @@ export function useMapEditTool({
   stampRotation = 0,
   onRotateStamp,
   hallwayWidth = 2,
+  terrainBrushSize = 1,
   splineKind = "rope",
   onRoomRejected,
   onGestureDropped,
@@ -60,9 +61,18 @@ export function useMapEditTool({
 }: UseMapEditToolOptions): UseMapEditToolReturn {
   const brushingRef = useRef(false);
 
-  const { addStrokePoint, flushStroke, discardStroke, strokeCells } = useTerrainBrush({
+  const {
+    addStrokePoint,
+    flushStroke,
+    discardStroke,
+    strokeCells,
+    updateCursor,
+    clearCursor,
+    brushPreviewCells,
+  } = useTerrainBrush({
     activeDocument: controller?.activeDocument,
     paintTerrain: controller?.paintTerrain ?? NO_OP_PAINT,
+    brushSize: terrainBrushSize,
   });
 
   const isDrag = isDragTool(activeSubTool);
@@ -146,6 +156,18 @@ export function useMapEditTool({
     subTool: activeSubTool,
     documentId: activeDoc?.id,
     liveDocumentId,
+    // Cancel semantic brush changes, while ordinary revisions/callbacks survive.
+    brushContext: isBrush
+      ? JSON.stringify([
+          terrainBrushSize,
+          brushAssetId,
+          activeDoc?.width,
+          activeDoc?.height,
+          activeDoc?.grid.size,
+          activeDoc?.grid.offsetX,
+          activeDoc?.grid.offsetY,
+        ])
+      : undefined,
     currentAim: touchAim.current,
     cancelSignal,
     currentDrag: drag.current,
@@ -211,9 +233,11 @@ export function useMapEditTool({
         return;
       }
       if (isBrush) {
-        if (!brushingRef.current) return;
         const point = toDocPoint(stageRef);
-        if (point) addStrokePoint(point, brushAssetId);
+        if (point && document.id === liveDocumentId) {
+          if (brushingRef.current) addStrokePoint(point, brushAssetId);
+          else updateCursor(point, brushAssetId);
+        }
         return;
       }
       drag.move(stageRef);
@@ -228,6 +252,8 @@ export function useMapEditTool({
       touchAim,
       toDocPoint,
       addStrokePoint,
+      updateCursor,
+      liveDocumentId,
       drag,
     ],
   );
@@ -245,16 +271,19 @@ export function useMapEditTool({
           // freeze the brush); the one-in-flight command queue serializes commits.
           flushStroke();
         }
+        // A lifted finger has no hover position; a mouse keeps its live cursor.
+        if (input === "touch") clearCursor();
         return;
       }
       drag.release();
     },
-    [isClick, touchAim, isBrush, flushStroke, brushingRef, drag],
+    [isClick, touchAim, isBrush, flushStroke, clearCursor, brushingRef, drag],
   );
 
   return {
     previewDrag: drag.previewDrag,
     strokeCells,
+    brushPreviewCells: active && isBrush && liveDocument ? brushPreviewCells : [],
     placementGhost: placement.ghost,
     draftGhosts: placement.draftGhosts,
     selectionShape: selection.selectionShape,
@@ -266,6 +295,10 @@ export function useMapEditTool({
       }
     },
     onMouseMove,
+    onMouseLeave: () => {
+      // An idle hover belongs to the canvas; a held stroke keeps its lifetime.
+      if (!brushingRef.current) clearCursor();
+    },
     onMouseUp: (...args) => {
       try {
         onMouseUp(...args);

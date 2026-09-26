@@ -1,4 +1,5 @@
 import { useCallback, useReducer, useState } from "react";
+import type { TerrainBrushSize } from "../map-studio/terrainBrushGeometry";
 import { TOOL_DESCRIPTORS, TOOL_GROUPS, type MapEditGroup } from "./mapEditToolDescriptors";
 import type {
   MapEditFloorFamily,
@@ -21,6 +22,7 @@ export function useMapEditPaletteState() {
   const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
   const [roomWallFamily, setRoomWallFamily] = useState<MapEditWallFamily | "none">("wall-stone");
   const [hallwayWidth, setHallwayWidth] = useState(2);
+  const [terrainBrushSize, setTerrainBrushSize] = useState<TerrainBrushSize>(1);
   const [splineKind, setSplineKind] = useState<MapEditSplineKind>("rope");
   const [layersOpen, setLayersOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -39,6 +41,8 @@ export function useMapEditPaletteState() {
     setRoomWallFamily,
     hallwayWidth,
     setHallwayWidth,
+    terrainBrushSize,
+    setTerrainBrushSize,
     splineKind,
     setSplineKind,
     layersOpen,

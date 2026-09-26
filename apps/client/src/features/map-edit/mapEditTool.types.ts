@@ -41,6 +41,7 @@ export interface UseMapEditToolOptions {
   onRotateStamp?: (steps: number) => void;
   /** Corridor width in cells for the hallway sub-tool (1–4). */
   hallwayWidth?: number;
+  terrainBrushSize?: import("../map-studio/terrainBrushGeometry").TerrainBrushSize;
   /** Curve kind the spline sub-tool authors (defaults to rope). */
   splineKind?: MapEditSplineKind;
   /** Surfaced when a room/hallway drag is refused (too large / no walls layer). */
@@ -55,7 +56,7 @@ export interface UseMapEditToolOptions {
   /** Currently-selected element (select sub-tool) — drives the highlight. */
   selectedElementId?: string | null;
   onSelectElement?: (elementId: string | null) => void;
-  /** Re-arm the place tool with an eyedropper-sampled asset id. */
+  /** Sample an asset; explicit Sample chooses Paint or Place, shortcuts keep the tool. */
   onSampleAsset?: (assetId: string, source: "tool" | "shortcut") => void;
   /**
    * Legacy external-dock cancellation signal. It shares the same cancellation
@@ -70,6 +71,8 @@ export interface UseMapEditToolReturn {
   previewDrag: RoomDrag | null;
   /** In-progress terrain/erase brush cells (for the live preview). */
   strokeCells: TerrainPaintCell[];
+  /** Exact eligible brush footprint under the cursor; never adds a command. */
+  brushPreviewCells: TerrainPaintCell[];
   /** Translucent placement ghost (place/scatter sub-tools). */
   placementGhost: PlacementGhost | null;
   /** True-result scatter-cluster footprints under the cursor (P2 ghosts). */
@@ -81,6 +84,8 @@ export interface UseMapEditToolReturn {
    * release (useMapEditTouchAim). Every other tool ignores it. */
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>, input?: PointerInput) => void;
+  /** Clear an idle footprint on canvas exit without abandoning a held stroke. */
+  onMouseLeave: () => void;
   onMouseUp: (input?: PointerInput) => void;
   /** Abandon the gesture in flight — the touch path's "not this one". */
   onCancel: () => void;

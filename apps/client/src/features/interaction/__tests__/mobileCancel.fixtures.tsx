@@ -73,6 +73,8 @@ export function expectCommit(mounted: MountedDock, kind: Kind) {
   if (kind === "terrain" || kind === "erase")
     expect(controller.paintTerrain).toHaveBeenCalledWith([
       { x: 6, y: 6, assetId: kind === "terrain" ? "terrain:grass" : null },
+      // U4b fills the crossed cell while preserving one commit after cancellation.
+      { x: 7, y: 6, assetId: kind === "terrain" ? "terrain:grass" : null },
       { x: 8, y: 6, assetId: kind === "terrain" ? "terrain:grass" : null },
     ]);
 }

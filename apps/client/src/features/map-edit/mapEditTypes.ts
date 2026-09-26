@@ -133,6 +133,10 @@ export interface MapEditToolbarProps {
   onToggleAssetPicker: () => void;
   // --- Hallway + POPULATE ---
   hallwayWidth: number; // corridor width in cells (1–4)
+  terrainBrushSize: import("../map-studio/terrainBrushGeometry").TerrainBrushSize;
+  onSelectTerrainBrushSize: (
+    size: import("../map-studio/terrainBrushGeometry").TerrainBrushSize,
+  ) => void;
   onSelectHallwayWidth: (width: number) => void;
   splineKind: MapEditSplineKind; // the spline sub-tool's curve kind
   onSelectSplineKind: (kind: MapEditSplineKind) => void;

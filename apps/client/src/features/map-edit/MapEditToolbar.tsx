@@ -1,5 +1,6 @@
 import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
+import { getMapStudioTileAsset } from "../map-studio/starterTiles";
 import { MapEditActiveSettings } from "./MapEditActiveSettings";
 import { MapEditDocumentPanels } from "./MapEditDocumentPanels";
 import { MapEditPersistentControls } from "./MapEditPersistentControls";
@@ -10,6 +11,13 @@ import type { MapEditToolbarProps } from "./mapEditTypes";
 import "./mapEditPalette.css";
 
 export function MapEditToolbar(props: MapEditToolbarProps) {
+  const tool = props.activeSubTool;
+  const assetId =
+    tool === "terrain"
+      ? `terrain:${props.floorFamily}`
+      : tool === "place" || tool === "scatter" || tool === "row"
+        ? props.selectedAssetId
+        : null;
   return (
     <DraggableWindow
       title="🏗️ MAP TOOLS"
@@ -64,6 +72,14 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
           )}
         </div>
         <div className="map-edit-palette__footer">
+          {props.isLive && (
+            <p className="map-edit-armed" data-testid="map-edit-armed">
+              {TOOL_DESCRIPTORS[tool].label}
+              {assetId && ` · ${getMapStudioTileAsset(assetId).name}`}
+              {(tool === "terrain" || tool === "erase") &&
+                ` · ${props.terrainBrushSize} × ${props.terrainBrushSize}`}
+            </p>
+          )}
           <JRPGButton onClick={props.onClose}>Done building</JRPGButton>
         </div>
       </div>

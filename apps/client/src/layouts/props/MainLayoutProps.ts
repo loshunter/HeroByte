@@ -131,6 +131,7 @@ export interface MainLayoutProps {
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  mapEditTerrainBrushSize: import("../../features/map-studio/terrainBrushGeometry").TerrainBrushSize;
   /** Curve kind the spline tool authors (optional: defaults to rope). */
   mapEditSplineKind?: import("../../features/map-edit/mapEditTypes").MapEditSplineKind;
   /** POPULATE footprints and Generate's normalized target while a region is armed;

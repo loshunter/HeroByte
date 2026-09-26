@@ -43,6 +43,8 @@ export function useMapEditState({
     setRoomWallFamily,
     hallwayWidth,
     setHallwayWidth,
+    terrainBrushSize,
+    setTerrainBrushSize,
     splineKind,
     setSplineKind,
     layersOpen,
@@ -251,6 +253,8 @@ export function useMapEditState({
     onRotateStamp: dials.onRotateStamp,
     hallwayWidth,
     onSelectHallwayWidth: setHallwayWidth,
+    terrainBrushSize,
+    onSelectTerrainBrushSize: setTerrainBrushSize,
     splineKind,
     onSelectSplineKind: setSplineKind,
     populateDensity: populate.density,
@@ -290,6 +294,7 @@ export function useMapEditState({
     selectedAssetId: dials.selectedAssetId,
     hallwayWidth,
     splineKind,
+    terrainBrushSize,
     onRegionPlaced: populate.onRegionPlaced,
     persistentPreview: {
       populateGhosts:

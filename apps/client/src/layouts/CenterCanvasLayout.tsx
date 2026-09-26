@@ -106,6 +106,7 @@ export interface CenterCanvasLayoutProps {
   mapEditPlacementDials?: import("../features/map-edit/usePlacementDials").PlacementModifiers;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  mapEditTerrainBrushSize: import("../features/map-studio/terrainBrushGeometry").TerrainBrushSize;
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind;
   mapEditPersistentPreview?:
     | import("../features/map-edit/MapEditPersistentPreview").MapEditPersistentPreview
@@ -211,6 +212,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditSelectedAssetId,
     mapEditPlacementDials,
     mapEditHallwayWidth,
+    mapEditTerrainBrushSize,
     mapEditSplineKind,
     mapEditPersistentPreview,
     mapEditWheelActions,
@@ -270,6 +272,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditPlacementDials={mapEditPlacementDials}
             mapEditHallwayWidth={mapEditHallwayWidth}
+            mapEditTerrainBrushSize={mapEditTerrainBrushSize}
             mapEditSplineKind={mapEditSplineKind}
             mapEditPersistentPreview={mapEditPersistentPreview}
             mapEditWheelActions={mapEditWheelActions}

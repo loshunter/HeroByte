@@ -46,6 +46,7 @@ export interface UseMapEditStateReturn {
   selectedAssetId: string;
   /** Corridor width in cells for the hallway sub-tool (fed to the tool + preview). */
   hallwayWidth: number;
+  terrainBrushSize: import("../map-studio/terrainBrushGeometry").TerrainBrushSize;
   /** Curve kind the spline sub-tool authors (fed to the tool). */
   splineKind: MapEditSplineKind;
   /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
@@ -59,7 +60,7 @@ export interface UseMapEditStateReturn {
   /** Currently-selected element id (select sub-tool) + its setter (fed to the tool). */
   selectedElementId: string | null;
   onSelectElement: (elementId: string | null) => void;
-  /** Re-arm the place tool with an eyedropper-sampled asset (fed to the tool). */
+  /** Explicit Sample arms Paint for a material, Place otherwise; shortcuts keep the tool. */
   onSampleAsset: (assetId: string, source: "tool" | "shortcut") => void;
   /** Keep the DM walls overlay visible even outside map-edit mode. */
   wallsOverlayPinned: boolean;

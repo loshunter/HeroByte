@@ -44,6 +44,8 @@ export function toolbarProps(): MapEditToolbarProps {
     onToggleAssetPicker: vi.fn(),
     hallwayWidth: 2,
     onSelectHallwayWidth: vi.fn(),
+    terrainBrushSize: 1 as const,
+    onSelectTerrainBrushSize: vi.fn(),
     splineKind: "rope",
     onSelectSplineKind: vi.fn(),
     populateDensity: "medium",

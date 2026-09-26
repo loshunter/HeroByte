@@ -8,6 +8,7 @@ interface UseMapEditCancelOptions {
   subTool: MapEditSubTool;
   documentId: string | undefined;
   liveDocumentId: string | undefined;
+  brushContext?: string;
   cancelSignal: number | undefined;
   currentDrag: () => RoomDrag | null;
   currentAim: () => boolean;
@@ -23,6 +24,7 @@ export function useMapEditCancel({
   subTool,
   documentId,
   liveDocumentId,
+  brushContext,
   cancelSignal,
   currentDrag,
   currentAim,
@@ -49,13 +51,13 @@ export function useMapEditCancel({
   }));
 
   // Revision/object/callback changes are not document or tool transitions.
-  const previous = useRef([active, subTool, documentId, liveDocumentId] as const);
+  const previous = useRef([active, subTool, documentId, liveDocumentId, brushContext] as const);
   useLayoutEffect(() => {
-    const next = [active, subTool, documentId, liveDocumentId] as const;
+    const next = [active, subTool, documentId, liveDocumentId, brushContext] as const;
     const changed = next.some((value, index) => value !== previous.current[index]);
     previous.current = next;
     if (changed) cancelGesture();
-  }, [active, subTool, documentId, liveDocumentId, cancelGesture]);
+  }, [active, subTool, documentId, liveDocumentId, brushContext, cancelGesture]);
 
   const seen = useRef(cancelSignal);
   useLayoutEffect(() => {

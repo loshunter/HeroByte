@@ -1,6 +1,8 @@
 import { CancelGestureButton } from "../../features/interaction/CancelGestureButton";
 import React from "react";
 import type { MapEditToolbarProps } from "../../features/map-edit/mapEditTypes";
+import { TOOL_DESCRIPTORS } from "../../features/map-edit/mapEditToolDescriptors";
+import { getMapStudioTileAsset } from "../../features/map-studio/starterTiles";
 
 interface MobileMapEditDockProps {
   toolbar: MapEditToolbarProps;
@@ -14,13 +16,38 @@ export const MobileMapEditDock: React.FC<MobileMapEditDockProps> = ({
   onToggleTools,
 }) => {
   const { isLive } = toolbar;
+  const tool = toolbar.activeSubTool;
+  const brush = tool === "terrain" || tool === "erase";
+  const assetId =
+    tool === "terrain"
+      ? `terrain:${toolbar.floorFamily}`
+      : tool === "place" || tool === "scatter" || tool === "row"
+        ? toolbar.selectedAssetId
+        : null;
 
   return (
     <nav className="mobile-action-dock" aria-label="Map edit actions">
-      {/* The in-flight window, on the surface that needs it most: a phone DM
-          authors over a real round trip, and a gesture finished inside one is
-          dropped (useMapEditTool's mouse-up gate). The toast says so after the
-          fact; this is what lets the rhythm be learned instead.
+      {isLive && !toolsOpen && (
+        <span className="mobile-map-edit-armed" data-testid="map-edit-armed">
+          {TOOL_DESCRIPTORS[tool].label}
+          {assetId && ` · ${getMapStudioTileAsset(assetId).name}`}
+          {brush && (
+            <>
+              {" "}
+              ·{" "}
+              <span className="mobile-map-edit-armed__size">{`${toolbar.terrainBrushSize} × ${toolbar.terrainBrushSize}`}</span>
+            </>
+          )}
+          {toolbar.saving && (
+            <>
+              {" "}
+              · <span>Saving…</span>
+            </>
+          )}
+        </span>
+      )}
+      {/* Saving is ambient feedback for the current round trip. Terrain strokes
+          queue; tools that reject a gesture while saving also show a toast.
 
           Absolutely positioned, which is load-bearing rather than cosmetic:
           the dock is `grid-template-columns: repeat(5, minmax(0, 1fr))`, a
@@ -35,7 +62,9 @@ export const MobileMapEditDock: React.FC<MobileMapEditDockProps> = ({
           announcing already speaks: the dropped-gesture toast, which fires
           only when something was LOST. This is ambient, and reads as ordinary
           text to anyone browsing the dock. */}
-      {toolbar.saving && <span className="mobile-dock-saving">Saving…</span>}
+      {toolbar.saving && (toolsOpen || !isLive) && (
+        <span className="mobile-dock-saving">Saving…</span>
+      )}
       <button
         type="button"
         className="mobile-dock-button"

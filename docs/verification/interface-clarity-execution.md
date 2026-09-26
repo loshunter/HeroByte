@@ -38,7 +38,7 @@
   R3 finished with one stale audit-status P3, now corrected. Counts are 2 → 5 → 1,
   12 completed assignments, zero semantic agent errors. The owner accepted the
   capped U3b checkpoint with “Accept and commit locally.” U3b is locally complete
-  as `351b5485`; no fourth review. U4a is recorded below; U4b/U4c and U5–U10 remain unimplemented.
+  as `351b5485`; no fourth review. U4a/U4b are recorded below; U4c and U5–U10 remain unimplemented.
   The U3a owner checkpoint is satisfied.
 - U4a resumed on 2026-09-25 at clean `dev` HEAD `351b5485` under the owner's
   local implementation/verification/commit authorization. U3a/U3b remain closed.
@@ -52,8 +52,28 @@
   accepted on 2026-09-26 with “Can you continue on now?”; local closeout is authorized.
   Formal counts 3 → 3 → 3;
   12 completed STATIC assignments, zero semantic agent errors. No fourth round.
-  U4b terrain footprints/sample routing
-  and U4c collection browsing remain separate. No remote delivery is authorized.
+  U4a is now locally committed as `681bc391`; its 26 paths match the acceptance
+  freeze and parent `351b5485`. U4b terrain footprints/sample routing has started
+  with strict characterization and 55 passing baseline tests. U4b is now implemented
+  with 722 focused passes, 47 strict actual roots and six final two-client browser
+  passes without errors or retries. All eight gates and isolated boot pass: 10,066
+  unit passes/four existing skips, 265 browser passes/three existing skips and
+  138.82 KB gzip. R1 completed four STATIC reviews with two findings and zero semantic
+  agent errors. Both bounded repairs pass 759 focused tests/75 files and 47 strict
+  roots plus six browser cases without errors/retries. Repaired full gates and boot pass:
+  10,071 unit passes/four skips, 265 browser passes/three skips, 138.87 KB gzip and zero
+  browser errors/retries; all 54 hashes/HEAD/strict inputs match. R2 found touch-release
+  preview cleanup and decimal interior-boundary assignment issues. Both bounded repairs
+  pass 768 focused tests, 47 strict roots and six browser cases without errors/retries.
+  All eight R2-repaired gates and boot pass: 10,080 unit passes/four skips, 265 browser
+  passes/three skips, 138.88 KB gzip, zero browser errors/retries and unchanged 54
+  hashes/HEAD/strict inputs. Final R3 is VOID/incomplete after an agent-limit dispatch
+  error: UI/tests partial, documentation/state unperformed, no new established defect.
+  Counts 2 → 2 → INCOMPLETE; eight completed STATIC assignments, two partial, one R3
+  dispatch error. The owner accepted the verified U4b checkpoint on 2026-09-26 with
+  “Accepted”; the scoped local commit is authorized, followed by U4c.
+  U4c collection browsing remains
+  separate. No remote delivery is authorized.
 - The September 22 audit is historical evidence; new acceptance results are recorded here.
 - The U2 history follow-up is repaired: recipient-scoped history feedback distinguishes
   ordinary Undo to an empty map from a table-wide Clear All. Its independent verification
@@ -2320,3 +2340,177 @@ only acceptance/result documentation changes before the commit. The existing ful
 green verification remains applicable. Formal review stays capped at three rounds,
 with the original verdicts preserved. U3a/U3b acceptance remains closed. No push,
 merge or deployment is authorized.
+
+### U4a committed; U4b characterization — 2026-09-26
+
+Local U4a commit: `681bc391`, parent `351b5485`, exactly the 26 inspected paths.
+The tree was clean immediately after commit. `u4a-commit-audit.json` confirms all
+26 acceptance hashes. No fourth review or remote action occurred.
+
+U4b starts from that accepted commit. The new terrain characterization strictly
+compiles and five baseline files pass 55 tests, covering one-command release,
+offset full-cell bounds, erase, cancellation/restart, shared sample state, pins and
+existing U2 lifetime behavior. Evidence: `u4b-characterization-types.json` and
+`u4b-characterization.log`. See [the U4b record](interface-clarity-u4b.md) for scope.
+
+### U4b implementation and focused verification — 2026-09-26
+
+Terrain Paint/Erase now share 1×1, 3×3 and 5×5 cell footprints, exact hover/held
+previews and bounded interpolated strokes. Explicit Sample routes paintable materials
+to Paint and objects to Place; shortcut sampling preserves the tool. Desktop gains
+named Pin/Unpin and persistent tool/selection feedback; closed phone feedback includes
+the selected material/object and size. U4c collection browsing remains separate.
+
+Strict characterization preceded extraction, and new behavior had compile-valid RED.
+All 47 actual source/test roots strictly compile and 722 focused tests in 74 files pass.
+The final expanded automated live-two-client run passes six tests/six attempts in
+119 seconds, with zero errors, retries, flaky cases or skips. It includes desktop/phone
+U4b, both earlier build-palette journeys and both existing phone paint cases. Root
+inspected current screenshots and reach measurements. The live evaluation scores
+7.9/10; device and transform-coverage limits remain explicit in the U4b record.
+
+The next step is the frozen full eight-gate ladder and isolated boot, followed by
+fresh bounded independent review. No formal U4b round or local commit has run.
+
+### U4b full verification — 2026-09-26
+
+All eight ordered gates under `u4b-recovered-gate-*` and isolated boot pass.
+**10,066 unit passes/four existing skips** comprise 452 shared, 2,738 server and
+6,876 client passes, with all 88 client batches complete. Bundle: **138.82 KB gzip
+/ 175 KB**. Browser raw/JSON totals agree: **265 passes/three existing skips**,
+268 cases/attempts in 24.2 minutes, zero failures, retries, flaky cases or attempt,
+reporter and raw step-ID errors. The three skip titles match accepted U4a evidence.
+
+The first sandboxed capture failed to load pinned pnpm before any build/test ran.
+It is preserved in `u4b-gates-report.md`; no approval rejection occurred. Normal
+approved execution used new prefixes and the identical 53-file snapshot. No green
+gate was repeated. The recovered report and `u4b-root-final-audit.json` independently
+confirm counts, unchanged HEAD/hashes, unchanged strict inputs, three passing U4b
+reach records and isolated readiness/survival/cleanup on 5176/8789. Main development
+services were preserved. Root inspected current full-suite screenshots.
+
+Only result/frontier docs change after this verified snapshot. Fresh four-lens
+round 1 follows; formal review and the U4b local commit remain pending.
+
+### U4b round 1 repairs — 2026-09-26
+
+Four fresh STATIC assignments completed, zero semantic agent errors. UI/state FAIL,
+tests/docs PASS; union two findings: idle hover persists after canvas exit (P3), and
+decimal grid arithmetic excludes complete edge cells (P2). All 54 review hashes and
+HEAD matched. The bounded fixes clear idle hover through Stage leave while preserving
+held strokes, and normalize rounding-sized grid-edge deviations in cell units.
+
+Actual regression roots compiled before RED: two intended boundary failures/11 passes,
+one intended desktop hover failure (one attempt/error, zero retry/reporter errors;
+two raw step-ID occurrences on one line). Failure screenshots are preserved. Repaired
+focused verification passes 759 tests/75 files and all 47 strict actual roots.
+The repaired browser run passes six cases/six attempts in 113.3 seconds with zero
+skips, failures, retries, flaky cases, attempt/reporter errors or raw step-ID diagnostics.
+Root inspected the preserved failure, repaired desktop/phone held previews and three
+valid reach records. Repaired full gates and fresh R2 are next; initial green gate evidence is
+historical to its frozen snapshot, not a claim that the new repairs already passed it.
+
+### U4b R1 repairs — full verification PASS, fresh R2 next
+
+All eight repaired gates and isolated boot PASS: **10,071 unit passes/four existing
+skips** (452 shared, 2,738 server, 6,881 client; all 88 client batches), **138.87 KB
+gzip / 175 KB**, and **265 browser passes/three existing skips**. Browser raw output
+and JSON agree on 268 cases/attempts in 24.3 minutes with zero failed attempts,
+retries, flaky cases, attempt/reporter errors or raw step-ID diagnostics. The three
+skipped titles match accepted U4a. Both new U4b journeys pass in this full run.
+
+Isolated boot passes readiness, 30.049-second survival, final health/module checks,
+empty error scan and owned cleanup. Root independently audited all 54 hashes, HEAD,
+strict inputs, unit summaries, browser results and boot; all match. Root inspected
+current desktop object/material feedback, phone 5×5 preview, landscape feedback and
+three valid reach records. Evidence: `u4b-r1-repaired-gates-report.md`,
+`u4b-r1-repaired-root-final-audit.json`, `u4b-r1-repaired-root-unit-audit.json`,
+`u4b-r1-repaired-devboot-report.json` and decoded full-browser evidence.
+
+Only five result/frontier documents change before the fresh 54-path R2 freeze.
+R1 remains two findings/four completed STATIC assignments/zero semantic agent errors.
+Four fresh independent reviewers are next; no U4b commit or remote delivery yet.
+
+### U4b round 2 repairs — 2026-09-26
+
+Four fresh STATIC reviews completed, zero semantic errors, UI/state FAIL and tests/docs
+PASS. Root confirmed all 54 hashes/HEAD unchanged. Union **two P3 findings**: touch
+release retains the new footprint outline; exact decimal interior boundaries can choose
+the preceding cell. Both R1 repairs improved, with no repair-induced regression found.
+Counts are **2 → 2**, eight completed assignments; final R3 follows verified repairs.
+
+Three actual regression roots strictly compiled before RED. Units produced four intended
+failures/34 passes; the real phone journey failed on a 50×50 outline after finger lift
+(one attempt/error, zero retries/reporter errors, two raw step-ID occurrences on one
+line). Failure images were preserved and inspected. The bounded production changes
+clear the cursor after touch flush and normalize cursor/path decimal grid coordinates.
+Mouse hover, full/partial-cell containment, command limits and gesture lifetime remain.
+
+Repaired focused verification passes **768 tests/75 files**, all **47 strict actual
+roots**, and **six browser cases/six attempts in 115.4 seconds**, with zero skips,
+failures, retries, flaky cases, attempt/reporter errors or raw step-ID diagnostics.
+Root inspected current phone held/post-release state and all three valid reach records.
+Evidence prefixes: `u4b-r2-before-red-types`, `u4b-r2-unit-red`, `u4b-r2-touch-red`,
+`u4b-r2-repaired-types`, `u4b-r2-repaired-focused`, `u4b-r2-repaired-browser`.
+Fresh full gates/boot and final R3 remain pending; prior full counts belong to R1's
+frozen snapshot. No U4b commit, U4c implementation or remote delivery yet.
+
+### U4b R2 repairs — full verification PASS, final R3 next
+
+All eight gates and isolated boot PASS under `u4b-r2-repaired-gate-*`: **10,080 unit
+passes/four existing skips** (452 shared, 2,738 server, 6,890 client/all 88 batches),
+**138.88 KB gzip / 175 KB**, and **265 browser passes/three existing skips**. Raw and
+JSON results agree: 268 cases/attempts in 24.1 minutes, zero failed attempts, retries,
+flaky cases, attempt/reporter errors or raw step-ID diagnostics. The same three skips
+remain as in accepted U4a; both U4b desktop/phone journeys pass in this full run.
+
+Boot passes readiness, 30.059-second survival, final health/module checks, empty error
+scan and owned cleanup. Root audited all 54 hashes/HEAD/strict inputs, raw unit/browser
+results and boot. Root inspected current desktop material feedback, phone held/released
+previews, landscape feedback and three valid reach records. No authored files changed
+during gates; only five result/frontier documents change before the R3 freeze.
+
+Evidence: `u4b-r2-repaired-gates-report.md`, `u4b-r2-repaired-root-final-audit.json`,
+`u4b-r2-repaired-root-unit-audit.json`, `u4b-r2-repaired-devboot-report.json` and
+decoded full-browser evidence. Counts remain 2 → 2, eight completed STATIC assignments,
+zero semantic agent errors. Four fresh final-R3 reviewers are next; no commit or remote
+delivery. U4c remains separate and unimplemented.
+
+### U4b final R3 — incomplete review and verified owner checkpoint
+
+The fresh documentation-review dispatch failed with **`agent thread limit reached`**;
+state/authority/privacy did not start. The two started UI/test reviewers stopped
+expanding under the review-convergence void/cap rule and filed partial STATIC reports,
+neither PASS. No new actionable finding was established in their inspected scope;
+this is not full-diff approval. Root verified all 54 reviewed hashes and HEAD unchanged.
+
+R3 is **VOID/INCOMPLETE**, with one dispatch error, two partial assignments and two
+unperformed lenses. Formal counts: **2 → 2 → INCOMPLETE**. R1/R2 completed eight
+assignments with zero errors in those rounds; all four confirmed findings are repaired.
+This is an agent-capacity failure, not an automatic approval rejection. No fourth
+round was attempted, and accepted U3a/U3b/U4a checkpoints remain closed.
+
+All latest gates/boot remain PASS: 10,080 unit passes/four skips, 265 browser passes/
+three skips, 138.88 KB gzip, zero browser errors/retries. Source/tests/guide retain
+their verified bytes. Only five result/frontier documents change to present the
+[U4b owner checkpoint](interface-clarity-u4b.md#verified-owner-checkpoint--final-review-incomplete).
+No U4b commit is made until its explicit acceptance. Cost evidence is eight completed
+and two partial review assignments, one failed dispatch, and three full U4b browser
+runs of 24.2/24.3/24.1 minutes; no monetary/token figure is available.
+
+Records: `u4b-r3-incomplete-review.md`, `u4b-r3-ui-review.md`,
+`u4b-r3-tests-review.md` and the R3 freeze plus full R2-repaired results above.
+On owner acceptance, stage only the 54 owned paths, make the attributed local commit,
+audit the committed tree and continue U4c. No push, merge or deployment is authorized.
+
+### U4b owner acceptance and local closeout — 2026-09-26
+
+The owner replied **“Accepted”** to the concrete verified U4b checkpoint and its
+scoped local-commit question. This satisfies the checkpoint despite the explicitly
+recorded incomplete R3; it does not convert partial reviews into PASS verdicts.
+The 54-path acceptance freeze was intact before updating only the five result/frontier
+documents. Source, tests and the player guide retain the verified bytes. Stage and
+inspect exactly those paths, create the attributed local commit, and audit its
+parent, scope, hashes and clean checkout. Continue U4c under the existing onward
+authorization. No fourth U4b review or unchanged green-suite rerun. No push, merge
+or deployment is authorized.

@@ -23,6 +23,7 @@ describe("the shared palette inventory", () => {
     expect([...MOBILE_PANEL_TOOLS].sort()).toEqual(
       [
         "terrain",
+        "erase",
         "room",
         "hallway",
         "place",
@@ -67,7 +68,7 @@ describe("the shared palette inventory", () => {
           expect(h.result.current.state.activeSubTool).toBe(tool);
           if (mobile)
             expect(onToggleTools).toHaveBeenCalledTimes(
-              ["erase", "wall", "door", "light"].includes(tool) ? 1 : 0,
+              ["wall", "door", "light"].includes(tool) ? 1 : 0,
             );
           seen.push(tool);
           view.rerender(palette());

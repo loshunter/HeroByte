@@ -3,6 +3,7 @@ import { JRPGButton } from "../../components/ui/JRPGPanel";
 import { getMapStudioTileAsset } from "../map-studio/starterTiles";
 import { MapEditAssetPicker } from "./MapEditAssetPicker";
 import { MapEditBrushDeck } from "./MapEditBrushDeck";
+import { TerrainBrushSizeControl } from "./TerrainBrushSizeControl";
 import { MapEditSwatchGrid } from "./MapEditSwatchGrid";
 import { WALL_FAMILIES } from "./mapEditFamilies";
 import type { MapEditToolbarProps, MapEditWallFamily } from "./mapEditTypes";
@@ -41,6 +42,8 @@ export function MapEditActiveSettings({
   onRotateStamp,
   hallwayWidth,
   onSelectHallwayWidth,
+  terrainBrushSize,
+  onSelectTerrainBrushSize,
 }: MapEditToolbarProps) {
   const placing =
     activeSubTool === "place" || activeSubTool === "scatter" || activeSubTool === "row";
@@ -49,6 +52,9 @@ export function MapEditActiveSettings({
   const selectedAssetName = getMapStudioTileAsset(selectedAssetId).name;
   return (
     <>
+      {(activeSubTool === "terrain" || activeSubTool === "erase") && (
+        <TerrainBrushSizeControl size={terrainBrushSize} onChange={onSelectTerrainBrushSize} />
+      )}
       {paintsFloor && (
         // The brush deck shows for EVERY tool that consumes the paint
         // family (not just Paint): the swatch state is shared, so a

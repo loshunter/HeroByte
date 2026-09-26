@@ -81,6 +81,22 @@ describe("MapEditBrushDeck", () => {
     expect(screen.queryByText("★ Pinned")).toBeNull();
   });
 
+  it("offers a named Pin action for the armed material even when search hides its tile", () => {
+    const onSelect = vi.fn();
+    render(<MapEditBrushDeck selected="grass" onSelect={onSelect} />);
+    fireEvent.change(screen.getByLabelText("Search brushes"), { target: { value: "oak" } });
+    fireEvent.click(screen.getByRole("button", { name: "Pin Grass" }));
+    expect(JSON.parse(window.localStorage.getItem("herobyte:brush-deck:pins")!)).toEqual(["grass"]);
+    expect(screen.getByRole("button", { name: "Unpin Grass" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("herobyte:brush-deck:recents")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Unpin Grass" }));
+    expect(JSON.parse(window.localStorage.getItem("herobyte:brush-deck:pins")!)).toEqual([]);
+  });
+
   it("hover reveals the family's grammar note", () => {
     render(<MapEditBrushDeck selected="grass" onSelect={vi.fn()} />);
     fireEvent.mouseEnter(screen.getByTitle("Dirt"));

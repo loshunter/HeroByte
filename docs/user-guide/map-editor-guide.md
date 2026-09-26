@@ -70,17 +70,27 @@ Some placed assets (street lamps, braziers) are **emissive** and cast their own 
 
 ## 🖌️ Paint and 🧹 Erase — freehand terrain
 
-**Paint** brushes terrain cell-by-cell as you drag; each stroke is one undo. The **brush deck** is your palette:
+**Paint terrain** brushes terrain with a **1 × 1**, **3 × 3**, or **5 × 5** square
+measured in map cells. It starts at 1 × 1. The outlined footprint shows the cells
+under the cursor, or under a held finger; dragging fills the cells crossed between
+pointer positions. Only complete cells inside the map are affected. Each stroke
+is one undo. The **brush deck** is your palette:
 
 ![The brush deck: shelves, search, and pinned favorites](img/mapedit-brush-deck.jpg)
 
 - **Eight shelves**: Ground (grass, dirt, sand, paths, cavern floor…), Water (including abyss depths and bioluminescence), Molten (lava and cooled crust), Stone (floors, walls, stairs, cliffs, a dais), Wood (plank floors, bridges, timber walls), Roofs, Canopy, and Crystal — 34 families total.
-- **Search** filters instantly; **right-click a tile to pin it** to a ★ Pinned shelf; your six most recent brushes keep a Recent shelf warm. Hover a tile for a preview card and a one-line description.
+- **Search** filters instantly. **Pin [material name]** pins the armed material to
+  a ★ Pinned shelf; **Unpin** removes it. Right-clicking a tile also toggles its pin.
+  Your six most recent brushes appear in Recent. Hover a tile for a preview card
+  and a one-line description.
 - Terrain is procedural: water finds its depth, cliffs get contact shadows, grass mottles — you paint intent, the renderer does the art.
 
 ![A painted pond south of the room](img/mapedit-paint-water.jpg)
 
-**Erase** clears painted terrain the same way (one stroke, one undo). It only erases terrain paint — placed objects come off with Select + Inspect → DELETE.
+**Erase terrain** shares the same brush size and clears painted cells in that
+footprint (one stroke, one undo). It only erases terrain paint; placed objects come
+off with Select + Inspect → DELETE. Cancel a pending stroke with Escape or Stop
+before releasing to leave the map unchanged.
 
 ## 📦 Place, 🎲 Scatter, and 📏 Row — set dressing
 
@@ -92,7 +102,10 @@ Three tools share one **asset picker**:
 - **Place**: click to drop grid-snapped; **hold Alt** for a free-floating stamp at any angle; **R / Shift+R** rotates in 15° steps. A ghost previews the exact landing spot.
 - **Scatter**: one click throws a natural-looking cluster of seven — same spot, same scatter, so you can undo and redo identically.
 - **Row**: drag a line and the asset repeats along it with lived-in jitter and the occasional gap — fences, torch-lined corridors, market stalls.
-- **Eyedropper**: **Ctrl/Cmd-click** anything on the map (with Place, Scatter, or Paint armed) to sample it as your active asset or brush.
+- **Sample**: click a paintable material to select it and arm **Paint terrain**;
+  sample an object or another asset to arm **Place object**. The tool and selection
+  remain above **Done building** in the desktop palette. **Ctrl/Cmd-click**
+  with Place, Scatter, or Paint armed samples while keeping that tool.
 
 ## Decorate last room / hallway — instant set dressing
 
@@ -189,9 +202,17 @@ used below refer to these same tools. **Select**, **Sample**, and **Layers** sta
 above the scrolling settings. Select and Sample use a single tap; the authoring
 tools use press, move, lift. Generate's drag aims a region, then its button builds it.
 
-**Painting.** Arm **🖌️ Paint** and the sheet stays open over the family picker, because Paint needs to know what to paint with. Pick a material shelf, then a floor, then **▶ To the map** and drag. A tap paints a single cell. **🧹 Erase** takes no such argument, so it closes the sheet and puts you straight on the map — drag over anything you want to take back up, including a room's floor.
+**Painting.** Both **Paint terrain** and **Erase terrain** keep the sheet open so
+you can choose **1 × 1**, **3 × 3**, or **5 × 5** cells. Paint also offers a material
+shelf and picker. Choose **▶ To the map**, then press, drag and lift; a tap affects
+one square footprint. The tool, material and size remain visible above the closed
+dock. Erase can remove a room's floor as well as freehand paint.
 
-> **The picker is a deck, and it remembers.** Two extra shelves appear once there is something to remember: **★** for the floors you pinned and **Recent** for the last six you used. They are the same memory the desktop palette keeps in this browser, so pinning on the tablet's desktop layout and its phone layout is one shelf, not two. The memory lives in the browser, though — a floor pinned on the desk PC is not on the tablet's shelf. **☆ Pin** under the swatches pins whatever is armed — the desktop pins by right-click, which a finger cannot make.
+> **The picker is a deck, and it remembers.** Two extra shelves appear once there
+> is something to remember: **★** for pinned materials and **Recent** for the last
+> six used. They share the desktop palette's memory in this browser; pins do not
+> transfer between devices. The named **Pin / Unpin** button changes the armed
+> material's pin on either layout. Desktop also supports right-clicking a swatch.
 
 **Placing.** **📦 Place** and **🎲 Scatter** ask what to drop, so their sheet stays open over a picker: category chips, then that category's assets. **💡 Light** asks nothing and closes the sheet.
 
@@ -201,7 +222,11 @@ That also means you can change your mind. Slide to a better spot before lifting,
 
 **Free stamp, and turning it.** By default Place drops a **grid tile**, snapped to the lattice. **Drop as → Free stamp** puts it wherever your finger is instead, and a **Rotation** row appears with **↺ −15°** and **↻ +15°**. (On a desktop these are Alt and R / Shift+R, and still are — the buttons and the keys write the same setting, so what is armed is visible on both.) Scatter uses seeded angles and has neither Drop as nor a rotation row.
 
-**💧 Sample** is the eyedropper. Tap it, then tap anything on the map, and Place arms itself with what you pointed at — a floor, an object, a wall band. It hands over after one tap, so it is a moment rather than a mode. On a desktop this is Ctrl-click while holding Place, Scatter or Paint, which a phone cannot do; that is why it has a tile of its own here.
+**💧 Sample** is the eyedropper. Tap it, then tap a paintable material to arm
+**Paint terrain**, or an object or another asset to arm **Place object**. The closed
+dock names the resulting tool and selection. Tapping empty space keeps Sample
+armed and places nothing. Desktop **Ctrl/Cmd-click** is different: it keeps Place,
+Scatter or Paint armed while sampling.
 
 **My Stuff works here too.** The picker's last shelf is your own art: **Upload art** takes a photo or image straight from the phone's camera roll, and the moment it lands it is armed — tap the map to place it. It is the same shelf the desktop picker fills, so anything uploaded at the desk in this browser is already waiting on the tablet, and vice versa. Pasting a link works only for art already on this table (an upload's own address); a link to somewhere else on the web cannot be placed, and the field says so rather than failing quietly.
 
@@ -222,6 +247,9 @@ Two things behave differently from a mouse, and both are worth knowing before yo
 - **Lifting your finger commits.** There is no Escape key, which is what **Stop** is for — press it with a second finger while the first is still down, and the release lands nothing.
 - **A second finger always means the camera.** Reach for a pinch mid-drag and the drag is _discarded_, not committed — you wanted to zoom, not to stamp a half-built room on the table.
 
-A **SAVING…** chip appears just above the dock while an edit is on its way to the server. It matters more here than on a desktop, because a phone's round trip is longer: finish a gesture while the chip is up and that gesture is dropped rather than queued, and you get the "Still saving the last change" notice instead of a wall. The chip is how you learn the table's rhythm and time the next drag.
+**Saving…** appears above the dock while an edit is on its way to the server.
+Terrain strokes queue behind that edit. Other authoring tools can reject a gesture
+while saving and show “Still saving the last change”; wait for saving to finish
+before placing the next object or structure.
 
 **Start live map** is the same button as on desktop and creates the same document, so a map begun on a tablet opens on a laptop and the other way round. Rotating the device, or resizing a window across the phone/desktop boundary, keeps the mode armed and simply swaps which palette you get.

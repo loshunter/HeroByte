@@ -7,6 +7,62 @@
   color: var(--jrpg-white);
   background: var(--jrpg-navy);
 }
+.terrain-brush-size {
+  display: grid;
+  gap: 4px;
+  color: var(--jrpg-gold);
+  font-size: 12px;
+}
+.terrain-brush-size > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+.terrain-brush-size button,
+.terrain-brush-pin {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px;
+  border: 1px solid var(--jrpg-gold);
+  border-radius: 3px;
+  background: var(--jrpg-navy);
+  color: var(--jrpg-white);
+  font: inherit;
+  cursor: pointer;
+}
+.terrain-brush-size button[aria-pressed="true"] {
+  background: var(--jrpg-gold);
+  color: var(--jrpg-navy);
+}
+.terrain-brush-pin {
+  margin-bottom: 4px;
+  width: 100%;
+  font-size: 10px;
+}
+.mobile-map-edit-armed {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  padding: 4px 8px;
+  background: var(--jrpg-navy);
+  color: var(--jrpg-gold);
+  font-size: 12px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.mobile-map-edit-armed__size {
+  white-space: nowrap;
+}
+.map-edit-armed {
+  margin: 0;
+  min-height: 28px;
+  font-size: 9px;
+  line-height: 14px;
+  color: var(--jrpg-gold);
+  overflow-wrap: anywhere;
+}
 .map-edit-palette__persistent,
 .map-edit-palette__footer {
   flex: none;

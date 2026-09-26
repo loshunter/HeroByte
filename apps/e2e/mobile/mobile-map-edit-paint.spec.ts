@@ -99,9 +99,12 @@ test.describe("M6 — a finger paints", () => {
     await settle(page);
     await dock.getByRole("button", { name: /Tool/ }).click();
     await chooseBuildTool(toolGrid, "erase");
-    // Erase takes no argument, so it closes the sheet and puts the DM on the
-    // map — the difference from Paint, and the reason PANEL_TOOLS holds one
-    // and not the other.
+    // U4b: Erase now has a size dial, so explicitly return to the map.
+    await expect(toolGrid.getByRole("button", { name: "1 × 1", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByRole("button", { name: /To the map/i }).click();
     await expect(page.locator(".mobile-tool-sheet")).toBeHidden();
 
     // The same line, wider at both ends so a cell the paint drag clipped is

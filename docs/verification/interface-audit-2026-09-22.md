@@ -163,12 +163,33 @@ See the current verification/review frontier in
 strict RED/GREEN, retained failures and device limits. IA-08's terrain footprints
 and sample routing remain U4b; IA-10's collection browsing remains U4c.
 
+**2026-09-26 IA-08 terrain/Sample disposition:** U4b implements square 1×1/3×3/5×5
+cell brushes with matching preview, bounded interpolated strokes and one-command
+history. Explicit Sample arms Paint for supported materials and Place for other
+assets; Ctrl/Cmd retains the current tool. Named desktop Pin and persistent
+desktop/closed-phone feedback expose the armed selection. All eight gates and
+isolated boot pass: 10,066 unit passes/four existing skips, 265 browser passes/three
+existing skips, 138.82 KB gzip and zero browser errors/retries. R1 subsequently found
+idle-hover exit and decimal edge-cell defects; both bounded repairs pass focused
+verification and six browser cases. Repaired full gates and boot also pass: 10,071 unit
+passes/four skips, 265 browser passes/three skips, 138.87 KB gzip and zero browser
+errors/retries. R2 found touch-release preview and decimal interior-boundary issues;
+both repairs pass 768 focused tests, 47 strict roots and six browser cases without
+errors/retries. R2-repaired full gates and boot also pass: 10,080 unit passes/four
+skips, 265 browser passes/three skips, 138.88 KB gzip and zero browser errors/retries.
+Final R3 is VOID/incomplete after an agent-limit dispatch error: UI/tests partial,
+documentation/state unperformed, no new established defect. The owner accepted
+the [verified U4b checkpoint](interface-clarity-u4b.md) on 2026-09-26 with “Accepted”,
+authorizing scoped local closeout. See that record for
+strict RED/GREEN, setup failures, automated two-client evidence and device limits.
+IA-10 collection browsing remains U4c; this does not mark combined U4 complete.
+
 The following observations describe the September 22 audit; the dispositions above
 record later changes.
 
 At the September 22 audit, Drawing had color, 1–50px Brush Size, opacity and shape fill.
-U4a now calls that drawing control Stroke width (px). Paint says “Brush: Grass”
-but changes material and paints grid cells with no adjustable footprint. The erasers affect
+U4a now calls that drawing control Stroke width (px). At that audit, Paint said “Brush: Grass”
+but changed material and painted grid cells with no adjustable footprint. The erasers affect
 different data. The plan keeps the semantic separation and labels it: Stroke width (px)
 versus Material and Brush size (cells), Erase drawings versus Erase terrain. A wider terrain
 brush is a **new bounded behavior**, explicitly split from the menu refactor and tested for
@@ -182,7 +203,7 @@ retaining the shipped responsive presentation model.
 The material deck already offers useful shelves/search/pins/recents. Map object selection
 instead starts with a collapsed asset name and a category/swatches view; NPC tokens offer
 a searchable named library. Preserve the distinct catalogs, but standardize selection
-preview, item naming, search where applicable, and upload labels. Source also shows the
+preview, item naming, search where applicable, and upload labels. The September 22 source showed the
 explicit Sample tool handing off to Place; make material-versus-object sampling outcomes
 explicit. Ctrl/Cmd-sampling already preserves the current tool and should keep that shortcut.
 

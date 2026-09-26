@@ -62,6 +62,7 @@ export interface MapBoardProps {
    * not the tool.
    */
   mapEditPlacementDials?: import("../features/map-edit/usePlacementDials").PlacementModifiers;
+  mapEditTerrainBrushSize?: import("../features/map-studio/terrainBrushGeometry").TerrainBrushSize;
   mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind; // Spline tool curve kind
   mapEditPersistentPreview?:

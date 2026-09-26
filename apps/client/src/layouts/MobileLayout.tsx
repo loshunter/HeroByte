@@ -93,6 +93,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     mapEditRoomWallFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
+    mapEditTerrainBrushSize,
     mapEditSplineKind,
     mapEditPersistentPreview,
     mapEditWheelActions,
@@ -203,6 +204,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditPlacementDials={mapEditToolbarProps}
             mapEditHallwayWidth={mapEditHallwayWidth}
+            mapEditTerrainBrushSize={mapEditTerrainBrushSize}
             mapEditSplineKind={mapEditSplineKind}
             mapEditPersistentPreview={mapEditPersistentPreview}
             mapEditWheelActions={mapEditWheelActions}

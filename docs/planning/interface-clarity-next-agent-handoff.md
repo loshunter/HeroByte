@@ -1,15 +1,56 @@
 # Next-agent prompt — continue HeroByte interface clarity
 
-Use this document as the continuation prompt. Updated 2026-09-26 after owner acceptance
-of U4a's verified bounded post-cap repairs on `dev` at
-`351b5485`, the accepted U3b commit (parent `b473a3dd`). Verify the current checkout
+Use this document as the continuation prompt. Updated 2026-09-26 after U4a local
+commit `681bc391` on `dev` (parent `351b5485`, the accepted U3b commit).
+Verify the current checkout
 and latest execution ledger before relying on these identifiers.
 
 ## Your assignment
 
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
-**Current frontier:** U4a drawing settings/terminology and all bounded post-cap
+**Current frontier:** U4b is verified at `681bc391`; its final review is incomplete and
+the [owner checkpoint](../verification/interface-clarity-u4b.md#verified-owner-checkpoint--final-review-incomplete)
+was accepted on 2026-09-26 with “Accepted”. Its scoped local commit is authorized;
+verify that closeout before starting U4c. R3 documentation dispatch failed with `agent thread limit reached`; state
+never started. UI/tests stopped with partial STATIC reports and no new established
+finding, not PASS. R3 is VOID: one dispatch error, two partial assignments and two
+unperformed lenses. Counts **2 → 2 → INCOMPLETE**. No fourth review. The explicit
+U4b acceptance satisfies this checkpoint; do not reopen it. No product defect remains
+established after the four verified R1/R2 repairs.
+
+R2 verification detail follows:
+R2 found two P3 issues: the touch outline persists after release, and decimal interior
+boundaries select the preceding cell. Both have strict behavioral RED and bounded
+repairs; **768 focused tests/75 files, 47 strict roots and six browser cases PASS**,
+zero browser errors/retries. All eight repaired gates and fresh boot PASS: **10,080
+unit passes/four existing skips, 265 browser passes/three existing skips, 138.88 KB
+gzip**. Root confirmed all 54 frozen paths/HEAD/strict inputs unchanged and zero
+browser errors/retries. Local closeout is authorized by acceptance of the R3 record above.
+R1/R2 counts are **2 → 2**, eight completed STATIC assignments, zero errors in those rounds.
+Both rounds returned UI/state FAIL and tests/docs PASS; all four findings are repaired.
+
+Round 1's four STATIC reviews completed, zero semantic agent errors, union **two findings**:
+idle hover persists after canvas exit, and decimal grid division drops full edge cells.
+Both have strict behavioral RED and bounded repairs; **759 focused tests/75 files**
+and **47 strict actual roots** pass. Repaired live verification passes six cases with
+zero errors/retries. All eight repaired gates and isolated boot PASS: **10,071 unit
+passes/four existing skips, 265 browser passes/three existing skips, 138.87 KB gzip**.
+Root confirmed all 54 frozen paths, HEAD, strict inputs and zero browser errors/retries.
+Those full results describe the R1-repaired snapshot. R2's latest results are above;
+local closeout remains pending.
+The initial U4b snapshot passed all eight gates plus isolated boot: **10,066 unit passes/four
+existing skips, 265 browser passes/three existing skips, 138.82 KB gzip**. There are
+zero browser failures/errors/retries. Root confirmed all 53 frozen paths and all
+strict inputs. Characterization passed 55 tests, focused verification passed 722 tests
+and 47 strict actual roots, and the expanded two-client run passed six cases.
+R1 verdicts remain UI/state FAIL and tests/docs PASS. The sandbox runtime setup failure
+and recovery are preserved separately; no product failure is hidden by that recovery.
+Read [the U4b record](../verification/interface-clarity-u4b.md)
+and latest scratch RESUME before continuing. Preserve accepted U4a and its evidence;
+do not reopen its checkpoint or repeat unchanged green tests.
+
+**Completed U4a:** drawing settings/terminology and all bounded post-cap
 repairs are verified. All eight gates and fresh boot PASS: **10,027 unit passes/four
 existing skips**, **263 browser passes/three existing skips**, **137.53 KB gzip**,
 zero browser failures/errors/retries. Root confirmed all 26 frozen paths and HEAD;
@@ -19,8 +60,8 @@ docs/state FAIL, with three P3 findings, now repaired. Formal counts are
 The cap and plateau are reached. Repairs preserve hidden controls through Tools/Help,
 correct the phone guide and clarify the approval route. **The owner accepted U4a
 and authorized continuation on 2026-09-26 with “Can you continue on now?”** after
-being told acceptance was the remaining step. The scoped local commit is authorized;
-U4b follows its closeout. No fourth round. Read
+being told acceptance was the remaining step. The scoped local commit is `681bc391`;
+all 26 committed paths matched the acceptance freeze. No fourth round. Read
 [the U4a record](../verification/interface-clarity-u4a.md) and scratch RESUME before
 doing work. The normal commit path requires unanimous final PASS with zero semantic
 agent errors. A capped non-unanimous result instead requires stopping formal review,
@@ -59,7 +100,7 @@ rearrangement has not happened yet; do not describe the redesign as complete.
 
 - Work in **`D:/HeroByte`**, PowerShell, existing branch **`dev`**. U3b is **`351b5485`**, immediately after **`b473a3dd`**. Use this existing checkout to retain ignored local evidence; verify its exact HEAD through Git.
 - Preserve the current tree. Do not reset, clean, stash changes away, recreate the implementation from old drafts, or stage everything indiscriminately. Inspect `git status`, `git diff`, untracked files, and recent commits first.
-- Local implementation, testing and scoped commits are authorized under the existing plan; U3a, U3b and U4a's recorded cap checkpoints are satisfied. **No remote push, merge to main, or deployment is authorized.** Main deploys on push. Do not infer shipping authorization from a passing review or from this handoff.
+- Local implementation, testing and scoped commits are authorized under the existing plan; U3a, U3b, U4a and U4b's recorded cap checkpoints are satisfied. **No remote push, merge to main, or deployment is authorized.** Main deploys on push. Do not infer shipping authorization from a passing review or from this handoff.
 - The explicit U3a review-cap checkpoint is satisfied: the owner accepted the verified result on 2026-09-24, and `b473a3dd` committed it. Earlier pending-acceptance language below is historical; it does not reopen this decision.
 - The U3a checkpoint records the proposed destination names and local-only shipping scope. Do not repeatedly ask for a decision that the owner has already made in a subsequent message.
 - User prefers action and candid, concise progress. Explain a required approval by naming/linking the exact rule. Do not bury an unresolved finding beneath green test counts.
@@ -85,7 +126,7 @@ rearrangement has not happened yet; do not describe the redesign as complete.
 | `b473a3dd` | Owner-accepted U3a Generate outcomes and correlated recovery receipts |
 
 U1, U2, U3a and U3b are locally complete with their recorded owner acceptance.
-Do not redo them. U4a review/closeout is current; U4b follows. Pending-acceptance wording in historical records
+Do not redo them. U4a is accepted and committed; U4b is accepted for local closeout, then U4c follows. Pending-acceptance wording in historical records
 below is superseded by this frontier.
 
 The latest owner-reported hotkey defect is finished. Leaving Chat open blocked Ctrl+Z even after a hallway was drawn on uncovered map canvas. Canvas interaction now focuses the map. Only explicitly opted-in desktop floating panels can coexist with that map's history shortcuts. Mobile screens/sheets, dialogs, popovers, text editing and composition remain protected. `DraggableWindow` revokes its opt-in when entering mobile layout. The owner's exact original window arrangement was not confirmed; the Chat-open case was independently reproduced.
