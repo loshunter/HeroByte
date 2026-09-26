@@ -197,7 +197,7 @@ describe("DrawingToolbar", () => {
       expect(screen.getByText(/📏 Line/i)).toBeInTheDocument();
       expect(screen.getByText(/▭ Rect/i)).toBeInTheDocument();
       expect(screen.getByText(/⬤ Circle/i)).toBeInTheDocument();
-      expect(screen.getByText(/🧹 Eraser/i)).toBeInTheDocument();
+      expect(screen.getByText(/🧹 Erase drawings/i)).toBeInTheDocument();
     });
 
     it("should highlight freehand tool when selected", () => {
@@ -240,7 +240,7 @@ describe("DrawingToolbar", () => {
       render(<DrawingToolbar {...defaultProps} drawTool="eraser" />);
 
       const buttons = screen.getAllByTestId("jrpg-button");
-      const eraserButton = buttons.find((btn) => btn.textContent?.includes("🧹 Eraser"));
+      const eraserButton = buttons.find((btn) => btn.textContent?.includes("🧹 Erase drawings"));
 
       expect(eraserButton).toHaveAttribute("data-variant", "primary");
     });
@@ -309,7 +309,7 @@ describe("DrawingToolbar", () => {
       render(<DrawingToolbar {...defaultProps} onToolChange={onToolChange} />);
 
       const buttons = screen.getAllByTestId("jrpg-button");
-      const eraserButton = buttons.find((btn) => btn.textContent?.includes("🧹 Eraser"));
+      const eraserButton = buttons.find((btn) => btn.textContent?.includes("🧹 Erase drawings"));
 
       fireEvent.click(eraserButton!);
 
@@ -534,7 +534,7 @@ describe("DrawingToolbar", () => {
     it("should display current brush size value", () => {
       render(<DrawingToolbar {...defaultProps} drawWidth={25} />);
 
-      expect(screen.getByText(/Brush Size: 25px/i)).toBeInTheDocument();
+      expect(screen.getByText(/Stroke width \(px\): 25/i)).toBeInTheDocument();
     });
 
     it("should set brush size slider value to drawWidth", () => {
@@ -626,25 +626,25 @@ describe("DrawingToolbar", () => {
     it("should display opacity as percentage", () => {
       render(<DrawingToolbar {...defaultProps} drawOpacity={0.75} />);
 
-      expect(screen.getByText(/Opacity: 75%/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\): 75/i)).toBeInTheDocument();
     });
 
     it("should display opacity rounded to nearest percent", () => {
       render(<DrawingToolbar {...defaultProps} drawOpacity={0.456} />);
 
-      expect(screen.getByText(/Opacity: 46%/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\): 46/i)).toBeInTheDocument();
     });
 
     it("should display 100% opacity correctly", () => {
       render(<DrawingToolbar {...defaultProps} drawOpacity={1} />);
 
-      expect(screen.getByText(/Opacity: 100%/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\): 100/i)).toBeInTheDocument();
     });
 
     it("should display 0% opacity correctly", () => {
       render(<DrawingToolbar {...defaultProps} drawOpacity={0} />);
 
-      expect(screen.getByText(/Opacity: 0%/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\): 0/i)).toBeInTheDocument();
     });
 
     it("should set opacity slider value to percentage", () => {
@@ -696,7 +696,7 @@ describe("DrawingToolbar", () => {
     it("should not render opacity slider when using eraser", () => {
       render(<DrawingToolbar {...defaultProps} drawTool="eraser" />);
 
-      const opacityLabel = screen.queryByText(/Opacity:/i);
+      const opacityLabel = screen.queryByText(/Opacity \(%\):/i);
       expect(opacityLabel).not.toBeInTheDocument();
     });
   });
@@ -930,14 +930,14 @@ describe("DrawingToolbar", () => {
     it("should render clear all button when permitted", () => {
       render(<DrawingToolbar {...defaultProps} />);
 
-      expect(screen.getByText(/🗑️ Clear All/i)).toBeInTheDocument();
+      expect(screen.getByText(/🗑️ Clear all drawings/i)).toBeInTheDocument();
     });
 
     it("should render clear all button with danger variant", () => {
       render(<DrawingToolbar {...defaultProps} />);
 
       const buttons = screen.getAllByTestId("jrpg-button");
-      const clearButton = buttons.find((btn) => btn.textContent?.includes("🗑️ Clear All"));
+      const clearButton = buttons.find((btn) => btn.textContent?.includes("🗑️ Clear all drawings"));
 
       expect(clearButton).toHaveAttribute("data-variant", "danger");
     });
@@ -947,7 +947,7 @@ describe("DrawingToolbar", () => {
       render(<DrawingToolbar {...defaultProps} onClearAll={onClearAll} />);
 
       const buttons = screen.getAllByTestId("jrpg-button");
-      const clearButton = buttons.find((btn) => btn.textContent?.includes("🗑️ Clear All"));
+      const clearButton = buttons.find((btn) => btn.textContent?.includes("🗑️ Clear all drawings"));
 
       fireEvent.click(clearButton!);
 
@@ -958,7 +958,7 @@ describe("DrawingToolbar", () => {
       render(<DrawingToolbar {...defaultProps} />);
 
       const buttons = screen.getAllByTestId("jrpg-button");
-      const clearButton = buttons.find((btn) => btn.textContent?.includes("🗑️ Clear All"));
+      const clearButton = buttons.find((btn) => btn.textContent?.includes("🗑️ Clear all drawings"));
 
       expect(clearButton).not.toBeDisabled();
     });
@@ -1022,31 +1022,31 @@ describe("DrawingToolbar", () => {
     it("should show opacity control when freehand is selected", () => {
       render(<DrawingToolbar {...defaultProps} drawTool="freehand" />);
 
-      expect(screen.getByText(/Opacity:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\):/i)).toBeInTheDocument();
     });
 
     it("should show opacity control when line is selected", () => {
       render(<DrawingToolbar {...defaultProps} drawTool="line" />);
 
-      expect(screen.getByText(/Opacity:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\):/i)).toBeInTheDocument();
     });
 
     it("should show opacity control when rect is selected", () => {
       render(<DrawingToolbar {...defaultProps} drawTool="rect" />);
 
-      expect(screen.getByText(/Opacity:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\):/i)).toBeInTheDocument();
     });
 
     it("should show opacity control when circle is selected", () => {
       render(<DrawingToolbar {...defaultProps} drawTool="circle" />);
 
-      expect(screen.getByText(/Opacity:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\):/i)).toBeInTheDocument();
     });
 
     it("should hide opacity control when eraser is selected", () => {
       render(<DrawingToolbar {...defaultProps} drawTool="eraser" />);
 
-      expect(screen.queryByText(/Opacity:/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Opacity \(%\):/i)).not.toBeInTheDocument();
     });
   });
 
@@ -1128,12 +1128,12 @@ describe("DrawingToolbar", () => {
       const { rerender } = render(<DrawingToolbar {...defaultProps} drawTool="rect" />);
 
       expect(screen.getByText(/Color:/i)).toBeInTheDocument();
-      expect(screen.getByText(/Opacity:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\):/i)).toBeInTheDocument();
 
       rerender(<DrawingToolbar {...defaultProps} drawTool="eraser" />);
 
       expect(screen.queryByText(/Color:/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Opacity:/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Opacity \(%\):/i)).not.toBeInTheDocument();
     });
 
     it("should handle switching from eraser to non-eraser", () => {
@@ -1174,25 +1174,25 @@ describe("DrawingToolbar", () => {
     it("should handle opacity of exactly 0.5", () => {
       render(<DrawingToolbar {...defaultProps} drawOpacity={0.5} />);
 
-      expect(screen.getByText(/Opacity: 50%/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\): 50/i)).toBeInTheDocument();
     });
 
     it("should handle very small opacity values", () => {
       render(<DrawingToolbar {...defaultProps} drawOpacity={0.01} />);
 
-      expect(screen.getByText(/Opacity: 1%/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opacity \(%\): 1/i)).toBeInTheDocument();
     });
 
     it("should handle brush size of 1", () => {
       render(<DrawingToolbar {...defaultProps} drawWidth={1} />);
 
-      expect(screen.getByText(/Brush Size: 1px/i)).toBeInTheDocument();
+      expect(screen.getByText(/Stroke width \(px\): 1/i)).toBeInTheDocument();
     });
 
     it("should handle brush size of 50", () => {
       render(<DrawingToolbar {...defaultProps} drawWidth={50} />);
 
-      expect(screen.getByText(/Brush Size: 50px/i)).toBeInTheDocument();
+      expect(screen.getByText(/Stroke width \(px\): 50/i)).toBeInTheDocument();
     });
 
     it("should handle custom color not in preset list", () => {
@@ -1269,7 +1269,7 @@ describe("DrawingToolbar - area templates (S6)", () => {
 
   it("offers all four template tools", () => {
     render(<DrawingToolbar {...baseProps} />);
-    for (const label of [/◯ Burst/, /◺ Cone/, /▢ Cube/, /▬ Bolt/]) {
+    for (const label of [/◯ AoE Burst/, /◺ AoE Cone/, /▢ AoE Cube/, /▬ AoE Bolt/]) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
   });
@@ -1278,7 +1278,7 @@ describe("DrawingToolbar - area templates (S6)", () => {
     const onToolChange = vi.fn();
     render(<DrawingToolbar {...baseProps} onToolChange={onToolChange} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /◺ Cone/ }));
+    fireEvent.click(screen.getByRole("button", { name: /◺ AoE Cone/ }));
 
     expect(onToolChange).toHaveBeenCalledWith("template-cone");
   });
@@ -1286,7 +1286,7 @@ describe("DrawingToolbar - area templates (S6)", () => {
   it("marks the active template", () => {
     render(<DrawingToolbar {...baseProps} drawTool="template-square" />);
 
-    expect(screen.getByRole("button", { name: /▢ Cube/ })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /▢ AoE Cube/ })).toHaveAttribute(
       "data-variant",
       "primary",
     );
@@ -1302,7 +1302,7 @@ describe("DrawingToolbar - area templates (S6)", () => {
     render(<DrawingToolbar {...baseProps} drawTool="template-circle" />);
 
     expect(screen.getByText("Color:")).toBeInTheDocument();
-    expect(screen.getByText(/Opacity:/)).toBeInTheDocument();
+    expect(screen.getByText(/Opacity \(%\):/)).toBeInTheDocument();
   });
 
   it("tells the user the size comes from the drag", () => {

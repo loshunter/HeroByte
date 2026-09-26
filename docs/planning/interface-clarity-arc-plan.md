@@ -1,6 +1,6 @@
 # Interface clarity — the first session should teach the table — arc plan
 
-> **STATUS: U3b ACCEPTED AND LOCALLY COMPLETE; U4 NEXT — 2026-09-25.**
+> **STATUS: U4a OWNER-ACCEPTED FOR LOCAL CLOSEOUT; U4b NEXT — 2026-09-26.**
 > U1 and U2 are locally committed following their recorded owner acceptance. U3a's
 > auth prerequisite and characterized extraction are committed; its semantic repair
 > is locally committed as `b473a3dd`. Final review round 3 left one P2 recovery-correlation finding
@@ -20,8 +20,21 @@
 > assignments, zero semantic agent errors. Two PASS/two FAIL verdicts reflect
 > the duplicated P3, not unanimous review acceptance. The owner accepted the
 > [U3b checkpoint](../verification/interface-clarity-u3b.md) with “Accept and commit
-> locally.” The scoped local commit contains this record; no fourth U3b review ran.
-> U4–U10 remain unimplemented, and this continuation stops after U3b.
+> locally.” The scoped local commit is `351b5485`; no fourth U3b review ran.
+> U4a started at `351b5485`. Its initial and R1-repaired drawing settings passed
+> all eight gates and fresh boot. R2 found landscape canvas obstruction, a missing
+> snapshot oracle gap and stale linked evidence. Bounded repairs pass all eight
+> gates and fresh boot: 10,025 unit passes, 263 browser passes, four/three existing
+> skips and 137.51 KB gzip. Final R3 completed with three P3 findings: disclosure
+> remount lifetime, stale phone-guide copy and the handoff's cap-approval route.
+> Formal counts are 3 → 3 → 3, 12 completed reviews, zero semantic agent errors.
+> All three bounded repairs now pass fresh full verification and boot: 10,027 unit
+> passes/four skips, 263 browser passes/three skips, 137.53 KB gzip and zero browser
+> failures/errors/retries. The owner accepted continuation on 2026-09-26 with
+> “Can you continue on now?” The scoped local commit is authorized, then U4b.
+> No fourth round. See
+> [its verification record](../verification/interface-clarity-u4a.md).
+> U4b/U4c and U5–U10 remain unimplemented.
 > Do not start a fourth formal U3a review. Remote pushes,
 > main merge and production deployment remain outside the execution authorization.
 > Execution evidence: [interface-clarity-execution.md](../verification/interface-clarity-execution.md).
@@ -563,6 +576,16 @@ and can find equivalent settings on desktop and touch.
 **Commit sequence:** U4a aligns drawing settings and terminology; U4b adds terrain
 footprints and sample routing; U4c aligns collection browsing. Gate each before the next;
 do not bundle the new brush behavior with the picker presentation refactor.
+
+**U4a status (2026-09-25):** drawing settings and terminology passed initial full
+verification/fresh boot. R1's three test/documentation findings are repaired and
+pass the repeated full ladder and fresh boot. R2's three repairs also pass the full
+ladder and boot. Final R3 reached the cap and plateau with three P3 findings;
+all three bounded repairs now pass fresh full verification and boot. The verified
+owner checkpoint was accepted on 2026-09-26; scoped local closeout is authorized. See the verification
+record. Desktop and phone
+share labels/settings and retain the existing drawing state, history and authority.
+U4b/U4c remain future slices; the combined U4 Done-when below is not yet complete.
 
 **Changes:** use the Tool/Settings/History grammar and explicit eraser names; provide
 mobile opacity/fill where applicable and hide irrelevant settings. Add actual terrain

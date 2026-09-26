@@ -141,12 +141,33 @@ Inspect for Generate and Spline. The first-round repairs passed all eight gates,
 fresh boot and automated desktop/phone DM-player journeys. Second-round repairs
 passed all eight gates and isolated boot. Final review found one stale status
 sentence, corrected here. The owner accepted the review-cap checkpoint with
-“Accept and commit locally”; U3b is locally complete in the commit containing this record.
+“Accept and commit locally”; U3b is locally complete as `351b5485`.
 See [the U3b verification record](interface-clarity-u3b.md) for actual
-counts, earlier failures and device limits. IA-08–10 and later menu work remain
-separate slices; this update does not expand the original audit's coverage.
+counts, earlier failures and device limits. Later menu work remains separate;
+this update does not expand the original audit's coverage.
 
-Drawing has color, 1–50px Brush Size, opacity and shape fill. Paint says “Brush: Grass”
+**2026-09-25 IA-08 drawing portion / IA-09 disposition:** U4a shares desktop/phone
+drawing names, Tool/Settings/History sections and applicable settings. Phone gains
+opacity/fill; Stroke/Eraser width is labeled in pixels, and Erase drawings hides
+irrelevant settings. State persists through responsive layout swaps. Hide controls
+exposes more canvas and survives temporary Tools/Help sheets; restarting Draw expands
+the controls. All bounded post-cap repairs pass fresh eight-gate verification and
+isolated boot: 10,027 unit passes/four existing skips, 263 browser passes/three existing
+skips, zero browser failures/errors/retries. Formal review counts are 3 → 3 → 3,
+12 completed STATIC assignments and zero semantic agent errors. Final R3's three
+P3 findings are repaired, but its two PASS/two FAIL verdicts remain recorded. The
+verified owner checkpoint was accepted on 2026-09-26 with “Can you continue on now?”;
+the scoped local commit and onward U4b work are authorized.
+See the current verification/review frontier in
+[the U4a record](interface-clarity-u4a.md) for actual two-client/touch evidence,
+strict RED/GREEN, retained failures and device limits. IA-08's terrain footprints
+and sample routing remain U4b; IA-10's collection browsing remains U4c.
+
+The following observations describe the September 22 audit; the dispositions above
+record later changes.
+
+At the September 22 audit, Drawing had color, 1–50px Brush Size, opacity and shape fill.
+U4a now calls that drawing control Stroke width (px). Paint says “Brush: Grass”
 but changes material and paints grid cells with no adjustable footprint. The erasers affect
 different data. The plan keeps the semantic separation and labels it: Stroke width (px)
 versus Material and Brush size (cells), Erase drawings versus Erase terrain. A wider terrain

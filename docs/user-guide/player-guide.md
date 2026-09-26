@@ -150,19 +150,43 @@ put someone else's in.
 
 ![The drawing toolbar with freehand strokes and a circle on the map](img/drawing-tools.jpg)
 
-A draggable toolbox with five tools — **Freehand**, **Line**, **Rect**, **Circle**, **Eraser** — plus four **area templates** (below), 12 preset colors, a full color picker, **brush size** (1–50 px), **opacity**, and a **Filled** checkbox for shapes.
+The desktop toolbox and phone sheet use **Tool → Settings → History**, followed by
+**Done drawing**. Choose **Freehand**, **Line**, **Rectangle**, **Circle**, or
+**Erase drawings**, or one of the four **area templates** below. Settings include
+**Color**, **Stroke width (px)** from 1–50, and **Opacity (%)**. Rectangle and Circle
+also offer **Filled**. Desktop includes 12 preset colors; both layouts have a color
+picker. Your settings stay selected when the layout changes. The screenshot above
+shows the earlier arrangement.
+
+On the phone, **Hide controls** makes room on the map while your drawing tool stays
+active. The compact row keeps **Undo drawing**, **Redo drawing**, **Cancel stroke**
+and **Done drawing** available. Opening and closing Tools or Help keeps that compact
+row. **Show controls** restores the tools and your selected settings; **Done drawing**
+exits drawing mode. Starting Draw again opens the settings sheet.
 
 - A completed drawing syncs to everyone when you finish the stroke or shape.
 - Choose **✥ Move** in the header (phone: **Tools → Move**) to put the toolbox away and return to moving tokens and panning the map.
 - **Undo/redo** (buttons, or **Ctrl+Z / Ctrl+Y** while draw mode is active) affect **your own** drawings only.
-- The **Eraser** is surgical on freehand strokes: dragging across one removes just the crossed section and leaves the rest. Lines, rects, and circles are all-or-nothing.
-- You can erase, move and delete only your own drawings; the DM can remove anyone's. **🗑️ CLEAR ALL** wipes the whole map — that one is DM-only.
+- **Erase drawings** affects annotations, with **Eraser width (px)** as its only setting.
+  Crossing a freehand stroke removes that section; other drawing shapes are removed
+  whole. Partial freehand erasing supports Undo; whole-shape deletion currently does not.
+- You can erase, move and delete only your own drawings; the DM can remove anyone's.
+  **Clear all drawings** removes all annotations, with confirmation, and is DM-only.
+  Terrain painting and **Erase terrain** are separate Build map tools.
 
 ### Area templates
 
-Under **Templates** in the same toolbox: **◯ Circle** (a burst or sphere), **◺ Cone**, **▢ Square** (a cube), and **▬ Line**. Drag from the point of origin outward — the origin snaps to the grid, and the size snaps to whole squares, so a template always reads as a round number of feet. Release and it lands on the map labelled with its size (`15 ft cone`), filled faintly enough to see the tokens standing inside it.
+Choose **AoE Burst**, **AoE Cone**, **AoE Cube**, or **AoE Bolt** under desktop
+**Area templates**, or in the phone's Tool group. Drag from the point of origin
+outward — the origin snaps to the grid, and the size snaps to whole squares, so a
+template reads as a round number of feet. Release and it lands on the map labelled
+with its size (`15 ft cone`), with an automatic translucent fill. Stroke width changes
+the outline; the drag determines the area. There is no separate Filled toggle.
 
-Templates are ordinary drawings: they take your color and opacity, they undo and redo, the eraser removes them, and everyone at the table sees them. A cone is drawn to 5e's rule — as wide at its far edge as it is long.
+Templates use your color. Opacity changes the outline and translucent fill; the size
+label stays visible, including at 0% opacity. Creation supports Undo/Redo, and the
+eraser removes the template. Everyone at the table sees it. A cone is drawn to 5e's
+rule — as wide at its far edge as it is long.
 
 ### 📏 Measure
 
@@ -255,7 +279,7 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
 - **◉ PARTY** — the party screen: portraits, HP (tap or drag to edit), status effects, and — on your own row — **⚙️ EDIT** for name, portrait, and DM mode.
-- **⚒ TOOLS** — Move, Ping, Measure, Draw (a compact strip: tool, size, color, undo/redo), Transform, Select, Snap, Recenter (re-centers the camera), CRT, and Help. Players also have World, plus Props when the DM allows players to add them.
+- **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Recenter (re-centers the camera), CRT, and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
 - **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Map Setup, Atlas, NPCs & Monsters, Props & Objects, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
 

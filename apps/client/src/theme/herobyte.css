@@ -17,6 +17,7 @@
    ---------------------------------------------------------------------------- */
 @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap");
+@import "./drawing-controls.css";
 
 /* ----------------------------------------------------------------------------
    CSS VARIABLES - HEROBYTE DESIGN TOKENS
@@ -2094,119 +2095,6 @@ button.token-library-remove:hover {
      project standard from V1/V5, not a suggestion. */
   min-height: 44px;
   padding-inline: 10px;
-}
-
-/*
- * A three-column grid, not a flex row.
- *
- * Measured at 375x812 before this change: 873px of content inside a 345px box,
- * with 6 of the 10 controls off the right edge — the eraser, the size slider,
- * the colour swatch, and all three of Undo / Redo / Done. Being able to draw
- * but not finish or undo is half a feature.
- *
- * Horizontal scrolling is not the escape it looks like: this sheet is a child
- * of .mobile-layout-root, and touch-action is resolved as the intersection down
- * the ancestor chain, so a `none` above it means no descendant scroller can be
- * panned by finger. (That declaration now lives on .mobile-map-surface, which
- * is the element that actually needs it — see :1204.)
- *
- * The hard constraint is arithmetic and font-independent: 8 tap targets at the
- * 44px floor plus their gaps need ~394px, and there are 329px of content box.
- * No single-row layout fits. So the sheet wraps into rows:
- *
- *   free   line    rect
- *   circle eraser  colour
- *   size ......... (full width)
- *   undo   redo    done
- */
-.mobile-drawing-sheet {
-  display: grid;
-  /* auto-fit rather than a fixed 3: portrait (329px of content) resolves to 3
-     columns and 4 rows, landscape (766px) to 7 columns and 3 rows. Landscape is
-     the tighter case vertically — 375px tall minus the dock leaves ~195px — and
-     it is also where the extra width to spend is, so the column count has to
-     follow the width instead of being pinned. */
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-}
-
-/* Dissolve the wrapper so the five tool buttons become grid items themselves. */
-.mobile-drawing-sheet__tools {
-  display: contents;
-}
-
-.mobile-drawing-sheet .mobile-chip {
-  width: 100%;
-  /* Keep named tools inside narrow cells without shrinking the pixel font. */
-  padding-inline: 4px;
-}
-
-.mobile-drawing-sheet__control {
-  display: flex;
-  align-items: center;
-  grid-column: 1 / -1;
-  gap: 8px;
-  color: var(--hero-text-light);
-  /* Was 0.58rem = 9.28px, under the 11px readability floor. */
-  font-size: 0.7rem;
-}
-
-.mobile-drawing-sheet__control > span {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-/* Attribute selector included deliberately: the bare class loses to
-   `input[type="color"]` (:406), which pins height to 32px. */
-.mobile-drawing-sheet__color[type="color"] {
-  width: 100%;
-  height: 44px;
-}
-
-/*
- * Brush size needs a finger-sized grab band without a finger-sized-looking
- * track. Elsewhere in the app the input element IS the track — it carries the
- * background and border — so making it 44px tall would draw a 44px bar.
- *
- * Here the visual moves to the track pseudo-element and the input becomes a
- * transparent 44px band around it. Scoped to this sheet so every other slider
- * in the app keeps its existing look.
- */
-.mobile-drawing-sheet__control input[type="range"] {
-  flex: 1 1 0;
-  min-width: 0;
-  width: auto;
-  height: 44px;
-  padding-block: 0;
-  border: 0;
-  background: transparent;
-}
-
-/*
- * Vendor track pseudo-elements MUST be separate rules. Grouping them in one
- * selector list drops the entire rule in BOTH engines — an unrecognised
- * pseudo-element invalidates the whole list, so Chrome discards it over
- * ::-moz-range-track and Firefox over ::-webkit-slider-runnable-track.
- * Verified in the browser: grouped, the rule was absent from the CSSOM
- * entirely and the slider rendered with no track at all.
- */
-.mobile-drawing-sheet__control input[type="range"]::-webkit-slider-runnable-track {
-  height: 8px;
-  border: 2px solid var(--hero-gold-light);
-  background: linear-gradient(180deg, var(--hero-navy-dark) 0%, var(--hero-navy) 100%);
-}
-
-.mobile-drawing-sheet__control input[type="range"]::-moz-range-track {
-  height: 8px;
-  border: 2px solid var(--hero-gold-light);
-  background: linear-gradient(180deg, var(--hero-navy-dark) 0%, var(--hero-navy) 100%);
-}
-
-/* Re-centre the 20px thumb on the now-12px track (8px + 2px borders). */
-.mobile-drawing-sheet__control input[type="range"]::-webkit-slider-thumb {
-  margin-top: -6px;
 }
 
 /*

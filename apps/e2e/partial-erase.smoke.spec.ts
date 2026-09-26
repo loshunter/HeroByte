@@ -75,7 +75,7 @@ test.describe("HeroByte partial erase - Smoke Test", () => {
     expect(originalDrawingId).not.toBeNull();
 
     // 2. Partial erase through middle
-    await page.getByRole("button", { name: /Eraser/i }).click();
+    await page.getByRole("button", { name: /Erase drawings/i }).click();
 
     const eraseX = startX + 100;
     const eraseStartY = startY - 30;

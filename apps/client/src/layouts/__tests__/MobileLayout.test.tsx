@@ -1232,6 +1232,94 @@ describe("MobileLayout", () => {
       unmount();
     });
 
+    it("forwards opacity and shape fill from the same drawing controller to the phone", () => {
+      const props = createDefaultProps();
+      props.activeTool = "draw";
+      props.drawMode = true;
+      const onOpacityChange = vi.fn();
+      const onFilledChange = vi.fn();
+      props.drawingToolbarProps = {
+        drawTool: "rect",
+        drawColor: "#66cc66",
+        drawWidth: 17,
+        drawOpacity: 0.4,
+        drawFilled: true,
+        canUndo: false,
+        canRedo: false,
+        onToolChange: vi.fn(),
+        onColorChange: vi.fn(),
+        onWidthChange: vi.fn(),
+        onOpacityChange,
+        onFilledChange,
+        onClearAll: vi.fn(),
+        onClose: vi.fn(),
+        onUndo: vi.fn(),
+        onRedo: vi.fn(),
+      };
+      render(<MobileLayout {...props} />);
+      const opacity = screen.getByRole("slider", { name: /Opacity/ });
+      expect(opacity).toHaveValue("40");
+      expect(screen.getByRole("checkbox", { name: "Filled" })).toBeChecked();
+      fireEvent.change(opacity, { target: { value: "65" } });
+      fireEvent.click(screen.getByRole("checkbox", { name: "Filled" }));
+      expect(onOpacityChange).toHaveBeenCalledWith(0.65);
+      expect(onFilledChange).toHaveBeenCalledWith(false);
+    });
+
+    it.each(["Tools", "Help"])(
+      "retains hidden drawing controls through %s until drawing ends",
+      (surface) => {
+        const props = createDefaultProps();
+        props.activeTool = "draw";
+        props.drawMode = true;
+        props.drawingToolbarProps = {
+          drawTool: "rect",
+          drawColor: "#66cc66",
+          drawWidth: 17,
+          drawOpacity: 0.4,
+          drawFilled: true,
+          canUndo: false,
+          canRedo: false,
+          onToolChange: vi.fn(),
+          onColorChange: vi.fn(),
+          onWidthChange: vi.fn(),
+          onOpacityChange: vi.fn(),
+          onFilledChange: vi.fn(),
+          onClearAll: vi.fn(),
+          onClose: vi.fn(),
+          onUndo: vi.fn(),
+          onRedo: vi.fn(),
+        };
+        const { rerender } = render(<MobileLayout {...props} />);
+        fireEvent.click(screen.getByRole("button", { name: "Hide drawing controls" }));
+        fireEvent.click(dock(/tools/i));
+        expect(screen.queryByRole("toolbar", { name: "Drawing tools" })).toBeNull();
+        if (surface === "Help") {
+          fireEvent.click(screen.getByRole("button", { name: /^help$/i }));
+          fireEvent.click(screen.getByRole("button", { name: /close help/i }));
+        } else {
+          fireEvent.click(screen.getByRole("button", { name: /close tools/i }));
+        }
+        expect(screen.getByRole("button", { name: "Show drawing controls" })).toHaveAttribute(
+          "aria-expanded",
+          "false",
+        );
+        expect(screen.queryByRole("slider")).toBeNull();
+        expect(props.setActiveTool).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole("button", { name: "Show drawing controls" }));
+        expect(screen.getByRole("slider", { name: "Opacity (%)" })).toHaveValue("40");
+        expect(screen.getByRole("slider", { name: "Stroke width (px)" })).toHaveValue("17");
+        expect(screen.getByRole("checkbox", { name: "Filled" })).toBeChecked();
+        fireEvent.click(screen.getByRole("button", { name: "Hide drawing controls" }));
+        rerender(<MobileLayout {...props} activeTool={null} drawMode={false} />);
+        rerender(<MobileLayout {...props} />);
+        expect(screen.getByRole("button", { name: "Hide drawing controls" })).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+      },
+    );
+
     it("the drawing sheet yields the sheet slot to tools AND help", () => {
       const props = createDefaultProps();
       props.activeTool = "draw";

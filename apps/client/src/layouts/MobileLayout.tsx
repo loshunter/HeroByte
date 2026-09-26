@@ -8,7 +8,7 @@
  * of callbacks — and the surfaces themselves render in MobileSurfaces.
  */
 
-import React, { useMemo, Suspense } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
@@ -113,6 +113,12 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     // WebSocket
     sendMessage,
   } = props;
+
+  // Tools/Help temporarily unmount the drawing sheet without ending draw mode.
+  const [drawingControlsCollapsed, setDrawingControlsCollapsed] = useState(false);
+  useEffect(() => {
+    if (!drawMode) setDrawingControlsCollapsed(false);
+  }, [drawMode]);
 
   const machine = useMobileSurface({
     diceRollerOpen,
@@ -270,14 +276,20 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {drawMode && !sheetSlotOccupied && (
         <MobileDrawingControls
+          collapsed={drawingControlsCollapsed}
+          onCollapsedChange={setDrawingControlsCollapsed}
           drawTool={drawingToolbarProps.drawTool}
           drawColor={drawingToolbarProps.drawColor}
           drawWidth={drawingToolbarProps.drawWidth}
+          drawOpacity={drawingToolbarProps.drawOpacity}
+          drawFilled={drawingToolbarProps.drawFilled}
           canUndo={drawingToolbarProps.canUndo}
           canRedo={drawingToolbarProps.canRedo}
           onToolChange={drawingToolbarProps.onToolChange}
           onColorChange={drawingToolbarProps.onColorChange}
           onWidthChange={drawingToolbarProps.onWidthChange}
+          onOpacityChange={drawingToolbarProps.onOpacityChange}
+          onFilledChange={drawingToolbarProps.onFilledChange}
           onUndo={drawingToolbarProps.onUndo}
           onRedo={drawingToolbarProps.onRedo}
           onClose={() => setActiveTool(null)}

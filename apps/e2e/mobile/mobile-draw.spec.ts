@@ -113,7 +113,9 @@ test.describe("mobile touch — taps are not drawings", () => {
     test(`a tap with the ${tool} tool commits nothing`, async ({ page }) => {
       await joinMobileTable(page);
       await selectMobileTool(page, /^Draw$/i);
-      await page.getByRole("button", { name: new RegExp(`^${tool}$`, "i") }).click();
+      await page
+        .getByRole("button", { name: new RegExp(`^${tool === "rect" ? "Rectangle" : tool}$`, "i") })
+        .click();
 
       const before = await readDrawings(page);
       const box = await boardBox(page);
@@ -233,11 +235,11 @@ test.describe("mobile touch — drawing toolbar reach", () => {
         contentType: "image/png",
       });
       expect(report).not.toBeNull();
-      // 15 = five drawing tools + four area templates (S6) + colour + size
-      // + Undo + Redo + Cancel + Done. Pinned deliberately: the point of this test is
+      // 17 = five drawing tools + four area templates + color + width + opacity
+      // + Hide controls + Undo + Redo + Cancel + Done. Pinned deliberately: this tests
       // that ADDING a control cannot quietly push another one off screen, so a
       // new count must be seen and re-measured, not auto-accepted.
-      expect(report!.count).toBe(15);
+      expect(report!.count).toBe(17);
       expect(report!.offScreen).toEqual([]);
       expect(report!.under44).toEqual([]);
       expect(report!.exposedUnder44).toEqual([]);

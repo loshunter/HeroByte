@@ -38,8 +38,22 @@
   R3 finished with one stale audit-status P3, now corrected. Counts are 2 → 5 → 1,
   12 completed assignments, zero semantic agent errors. The owner accepted the
   capped U3b checkpoint with “Accept and commit locally.” U3b is locally complete
-  in the commit containing this record; no fourth review. U4–U10 remain unimplemented.
+  as `351b5485`; no fourth review. U4a is recorded below; U4b/U4c and U5–U10 remain unimplemented.
   The U3a owner checkpoint is satisfied.
+- U4a resumed on 2026-09-25 at clean `dev` HEAD `351b5485` under the owner's
+  local implementation/verification/commit authorization. U3a/U3b remain closed.
+  Drawing settings/terminology passed the initial eight gates and fresh boot. U4a
+  review R1 found three issues; those repairs passed the full repeated ladder and
+  fresh boot. R2's three further repairs pass all eight gates and boot: 10,025 unit
+  passes/four skips, 263 browser passes/three skips, 137.51 KB gzip. Final R3 completed
+  with three P3 findings. All bounded post-cap repairs now pass fresh full verification
+  and boot: 10,027 unit passes/four skips, 263 browser passes/three skips, 137.53 KB
+  gzip and zero browser failures/errors/retries. The verified owner checkpoint is
+  accepted on 2026-09-26 with “Can you continue on now?”; local closeout is authorized.
+  Formal counts 3 → 3 → 3;
+  12 completed STATIC assignments, zero semantic agent errors. No fourth round.
+  U4b terrain footprints/sample routing
+  and U4c collection browsing remain separate. No remote delivery is authorized.
 - The September 22 audit is historical evidence; new acceptance results are recorded here.
 - The U2 history follow-up is repaired: recipient-scoped history feedback distinguishes
   ordinary Undo to an empty map from a table-wide Clear All. Its independent verification
@@ -2072,3 +2086,237 @@ earlier local commits were preserved. All eight gates and isolated boot passed,
 137.29 KB gzip. Verification mode and limitations remain in the U3b record.
 This completes the requested continuation through U3b. U4a is the next slice;
 no U4 implementation, remote push, merge or deployment was performed.
+
+### U4a — drawing settings and terminology, implementation in progress
+
+The owner's explicit continuation starts from clean `dev` at `351b5485`; existing
+ignored evidence and services are preserved. No accepted checkpoint is reopened.
+Read-only focused recon confirmed one App-level drawing state above both layouts:
+mobile omitted opacity/fill forwarding although those stored settings affected its
+drawings. Color/width/opacity apply to annotations and template outlines; fill applies
+to rectangles/circles. Templates keep automatic wash and grid-based drag geometry.
+Eraser uses width only. No renderer, protocol, terrain or history ownership changes.
+
+New characterization strictly compiles and passes with 135 existing controls
+(136 tests/six files) before extraction. The first sandbox attempt could not resolve
+the pinned pnpm path; normal escalated execution succeeded. This was a runner setup
+failure, not behavioral RED. Actual new regression roots strictly compile before RED:
+five expected failures and 53 passing controls. Refinement of two selectors isolates
+the missing accessible opacity control rather than stopping at the changed tool name;
+four intended failures remain. Raw logs preserve both runs and pnpm's trailing wrapper
+diagnostic separately from Vitest's actual assertion failures.
+
+The local implementation shares labels and settings, forwards phone opacity/fill,
+names Stroke/Eraser width (px), hides irrelevant controls, exposes active tool state,
+and groups Tool/Settings/History with Done drawing. Existing clear authority and
+Cancel/history handlers remain intact. A formatting attempt caught a script-generated
+browser-selector syntax error; the affected file was reconstructed from this clean
+HEAD with only the intended selector/count edits. No invalid test is RED evidence.
+The first focused run had 192 passes/two mock-default failures; restoring the explicit
+button default returned the broader focused suite to **425 passes/21 files**.
+
+Strict actual browser roots pass. First browser run: ten passes/three failures;
+two new test oracles wrongly expected whole-shape deletion to be undoable, and the
+third exposed sheet obstruction of an existing stroke path. The unchanged server
+characterization documents non-undoable whole-shape deletion. Correcting those
+oracles and compacting the sheet returns 20 browser cases to PASS at the original
+stroke coordinates, with zero retries, flaky cases, attempt/reporter errors.
+
+Screenshot inspection found phone text overflow missed by box-only reach checks.
+A strictly compiled text-bounds assertion failed on three labels; a separate
+compile-valid opacity no-op in that run made both new journeys fail at 40% versus
+100%. The original handler was restored byte for byte, with matching SHA-256.
+Normal capitalization fixes text fit. Final restored strict checks pass; all three
+new browser cases pass in 43.0 seconds with no skips, retries, failures, flaky cases,
+attempt/reporter errors or raw step-ID diagnostics. All failed artifacts remain.
+Seventeen Rectangle controls pass target, clipping and hit checks at four
+viewports. Root inspected final screenshots. Automated Chromium/two-client mode
+scores 7.9/10 using the house weights; physical devices, WebKit, native Mac/zoom are not claimed.
+
+Full gates and fresh boot now PASS; fresh bounded U4a review is next. U4a is not
+complete or committed. The [U4a record](interface-clarity-u4a.md) carries exact outcomes,
+limits and ignored artifact prefixes under `output/interface-u3a-execution/u4a-*`.
+
+### U4a full verification — ready for independent review
+
+All eight gates PASS on frozen HEAD `351b5485`: 10,024 unit passes/four existing
+skips, 137.43 KB gzip against 175 KB, 261 browser passes/three existing skips.
+Playwright JSON and raw summary agree: 264 attempts, no failed attempts, retries,
+flaky cases, attempt/reporter errors or raw step-ID diagnostics, 24.0 minutes.
+Root independently reconciled every unit summary and the browser report.
+
+The gate runner's first sandbox capture failed before pnpm started; the retained
+normal escalated capture passed. A later tool authentication interruption stopped
+the runner after gate 8, before boot executed. On continuation, all 22 frozen hashes
+and HEAD still matched. Only remaining boot/report work resumed; green gates were
+not repeated. Fresh isolated 5176/8789 boot passed readiness, 30-second survival,
+empty error scan and owned cleanup, preserving 5174/8787. Final hash audit matches.
+
+Result documents now report these outcomes and the correctly weighted live score
+7.9/10. The earlier arithmetic average was corrected; underlying criterion scores
+are unchanged. Source/tests remain identical to the verified freeze. Next is U4a
+round 1: four fresh, pinned, independent read-only lenses; cap three rounds, union
+findings, zero semantic agent errors and all PASS required. Accepted U3 checkpoints
+remain closed. No local U4a commit or remote delivery yet.
+
+### U4a review round 1 — three findings repaired, full re-verification next
+
+Four fresh independent STATIC reviewers completed: UI/input and state/authority
+PASS; test validity and documentation FAIL. Union three findings, four completed
+assignments, zero semantic agent errors. Root independently checked all 24 review
+hashes and HEAD `351b5485`, unchanged. Earlier full-gate results remain historical
+evidence for that snapshot; they do not complete acceptance of these repairs.
+
+The P2 reach oracle measured button text but gave vacuous text passes to four
+setting controls. It now measures associated labels, requires nonempty ranges and
+checks clipped bounds. The viewport test includes width 50 and opacity 100. A
+strictly compiled temporary 120px label shift fails exactly the new text assertion
+while target size/exposure/hit still pass. Exact source bytes are restored, matching
+SHA-256; restored strict roots and all three browser cases PASS in 43.9 seconds.
+The strengthened assertion both fails and passes. See `u4a-r1-label-{red,green}`,
+`u4a-r1-label-probe-types.json` and `u4a-r1-label-probe-restoration.json`.
+
+The two P3s are documentation: mark the audit's Brush Size as historical, and state
+that template opacity changes outline/wash while its size label stays visible.
+Both are corrected. Production behavior remains unchanged. Fresh full gates/boot
+then fresh R2 are next; no U4a commit, U4b implementation or remote delivery yet.
+
+### U4a R1 repairs — full re-verification complete, fresh R2 next
+
+All eight repeated gates and isolated boot PASS. Actual totals: 10,024 unit passes
+and four existing skips; entry gzip 137.43 KB/175 KB; 261 browser passes and three
+existing skips, 264 attempts in 23.5 minutes. No failures, retries, flaky cases,
+attempt/reporter errors or raw step-ID diagnostics. Root independently reconciled
+unit summaries and browser JSON/raw results. The repaired label checks pass in
+all three U4a full-suite cases. No gate was skipped or retried.
+
+Fresh 5176/8789 boot passed health/page/module readiness, 30-second survival, empty
+error scan and owned cleanup; 5174/8787 were preserved. Root verified HEAD `351b5485`
+and all 24 gate hashes unchanged. Evidence: `u4a-r1-repaired-gates-report.md`,
+`u4a-r1-repaired-gate-e2e-report.json`, `u4a-r1-repaired-devboot-report.json` and
+`u4a-r1-root-unit-audit.json`. Only result/frontier documents change before a fresh
+R2 review freeze. R1's three findings and four completed assignments remain the
+historical record. U4a is not yet committed; U4b and remote delivery have not started.
+
+### U4a review round 2 — three findings repaired, final verification next
+
+Four fresh STATIC reviews completed: state PASS; UI, tests and docs FAIL. Union
+three, cumulative 3 -> 3, eight completed assignments, zero semantic agent errors.
+Root verified all 24 hashes and HEAD351b5485 before releasing the review freeze.
+
+The landscape sheet obstructed a two-cell vertical drawing path at 812x375. A
+strictly compiled fixed-coordinate browser regression reproduced the actual canvas
+hit failure; Hide controls now leaves drawing active with five compact buttons.
+Show controls restores the same settings; Undo/Redo and Done work while collapsed.
+The missing-snapshot helper also failed a real blank-page regression by returning
+an invented empty array; it now rejects absent/non-array state. The linked live
+score now measures associated labels as well as buttons, includes landscape input,
+and dates historical gates instead of retaining stale pending status.
+
+Strict before-RED compilation passed after two invalid test-library options were
+corrected (setup failure retained, not RED). Unit RED: one intended failure/six
+passing controls. Browser RED: two intended failures/two attempts, two attempt
+errors, zero retries/flaky/reporter errors; two raw step-ID occurrences on one line.
+Repaired focused results: 192 unit passes/seven files, strict actual roots PASS,
+15 browser passes/15 attempts in81.5s with zero failures/skips/retries/flaky/errors.
+Original mobile stroke coordinates are preserved; 18 expanded and five collapsed
+controls pass reach and actual nonempty text bounds. Two authenticated contexts
+observe the same landscape drawing and history. Root inspected saved screenshots.
+
+Source is ready to freeze for the complete eight-gate ladder and isolated boot.
+Final R3 follows; no fourth round, no U4a commit/U4b implementation/remote delivery.
+See interface-clarity-u4a.md and u4a-r2-browser-{red,green} captures for details.
+
+### U4a R2 repairs — full verification PASS, final R3 next
+
+All eight gates ran in house order under u4a-r2-repaired-gate-* and passed. Unit
+actuals: 10,025 passes/four existing skips (shared452, server2738, client6835 across
+all87 batches). Bundle137.51KB/175KB. Full browser suite263PASS/3existing skips,
+266 cases/attempts in24.1min, zero failed attempts/retries/flaky/attempt/reporter
+errors or raw step-ID diagnostics. All five U4a cases pass. No gate was skipped or
+retried. Isolated5176/8789 boot passes readiness,30-second survival, final health/
+module checks, empty error scan and owned cleanup; owner5174/8787 preserved.
+
+Root independently reconciled counts and all24frozen hashes at HEAD351b5485, read
+boot evidence, inspected final landscape/observer screenshots and checked all six
+U4a reach reports for actual label measurements. See u4a-r2-repaired-gates-report.md,
+u4a-r2-repaired-devboot-report.json and u4a-r2-root-unit-audit.json. Only result/frontier
+documents changed after the gate freeze; source/tests remain identical.
+
+Final R3 now receives the full24-path diff through four fresh independent read-only
+reviewers. Earlier counts3 -> 3, eight completed assignments, semantic agents_error0.
+This is the last round: allPASS required, otherwise the recorded bounded owner
+checkpoint applies. U4a is uncommitted; U4b and remote delivery have not started.
+
+### U4a final R3 — cap/plateau reached, bounded repair before owner checkpoint
+
+All four final STATIC reviews completed: UI/tests PASS, docs/state FAIL. Union3P3,
+counts3 -> 3 -> 3,12 completed assignments, semantic agents_error0. Root read all
+reports and verified all24 review hashes/HEAD351b5485. No fourth formal round.
+
+Findings: hidden drawing controls reset after temporary Tools/Help unmounts; stale
+phone-guide compact-strip wording; handoff's absolute allPASS sentence omits the
+capped owner-acceptance route. The two wording contradictions are corrected. The
+bounded source repair moves only disclosure state to MobileLayout, resets it when
+drawMode ends, and supplies required controlled props to the sheet. App drawing
+preferences, history, renderer and protocol remain unchanged. Existing test fixtures
+supply the props without changing their history/state assertions; two newly touched
+fixture paths bring the authored snapshot to26files.
+
+Strict-before-RED PASS. Two transition tests fail as intended with54 controls passing.
+First live attempt times out on a wrong-case Close Tools selector: setup failure,
+not RED, one failed attempt/two errors, retained screenshots. Corrected lowercase
+selectors strictly compile, then browser RED fails because Show controls is absent
+after Tools closes: one failed attempt/error, zero retries/flaky/reporter errors,
+two raw step-ID occurrences on one line. Unit/strict/browser captures remain under
+u4a-postcap-* in output/interface-u3a-execution.
+
+Repair focused197tests/8files PASS; all7 affected actual test roots strictly PASS.
+Browser15/15PASS62.5s, zero failures/skips/retries/flaky/attempt/reporter/raw errors.
+The landscape journey now traverses Tools AND Help before drawing the fixed path,
+verifies both clients/history, and confirms restarting Draw expands controls.
+Root inspected current collapsed/observer screenshots and all6reachJSONs.
+
+Freeze26paths for fresh full8+boot, then present the concrete verified owner
+checkpoint. This bounded repair is not a fourth review or unanimous formal PASS.
+No U4a commit, U4b implementation, push, merge or deployment has occurred.
+
+### U4a post-cap verification complete — owner checkpoint ready
+
+Completed 2026-09-25 local time (2026-09-26 03:05 UTC). All eight gates pass in
+order under `u4a-postcap-gate-*`: build, typecheck, lint, structure, format, full
+tests, client bundle check and full E2E. Units total **10,027 passes/four existing
+skips** (452 shared, 2,738 server, 6,837 client across all 87 batches). Bundle is
+**137.53 KB gzip / 175 KB**. Browser JSON and raw summary agree: **263 passes/three
+existing skips**, 266 cases/attempts in 19.7 minutes, zero failed attempts, retries,
+flaky cases, attempt/reporter errors or raw step-ID diagnostics. All five U4a cases
+pass. No gate was skipped or retried.
+
+Isolated boot on 5176/8789 passes readiness, 30-second survival, final health/module
+requests, empty error scan and owned cleanup. Existing 5174/8787 services were
+preserved. Root independently reconciled counts, inspected final landscape/observer
+screenshots and verified all six U4a reach reports. HEAD `351b5485` and all 26 gate
+hashes match. Only result/frontier records change afterward; production/tests and
+the player guide remain byte-identical to the verified snapshot.
+
+Evidence under `output/interface-u3a-execution/`: `u4a-postcap-gates-report.md`,
+`u4a-postcap-devboot-report.json`, `u4a-postcap-root-unit-audit.json`,
+`u4a-postcap-root-final-audit.json`, `u4a-postcap-gate-e2e-evidence/` and the
+gate/owner-checkpoint freeze manifests.
+
+All three final P3 findings are repaired and verified; formal counts remain
+**3 → 3 → 3**, 12 completed STATIC reviews, zero semantic agent errors, R3 UI/tests
+PASS and docs/state FAIL. These are not retroactive unanimous PASS verdicts. The
+review-convergence cap/plateau requires the concrete [U4a owner checkpoint](interface-clarity-u4a.md).
+Acceptance has not been received; the scoped local commit waits for that decision.
+U3a/U3b stay accepted and closed. U4b follows U4a closeout. No push, merge or deployment.
+
+### U4a owner acceptance — 2026-09-26
+
+After the verified checkpoint and its remaining acceptance requirement were presented,
+the owner said “Can you continue on now?” This authorizes the scoped U4a local commit
+and onward U4b work. All 26 owner-checkpoint hashes and HEAD `351b5485` still match;
+only acceptance/result documentation changes before the commit. The existing full
+green verification remains applicable. Formal review stays capped at three rounds,
+with the original verdicts preserved. U3a/U3b acceptance remains closed. No push,
+merge or deployment is authorized.

@@ -14,7 +14,11 @@ describe.each([false, true])("real drawing history controls (mobile=%s)", (mobil
     function Controls({ drawingHistory }: { drawingHistory?: DrawingHistoryCapabilities }) {
       const manager = useDrawingStateManager({ sendMessage, setActiveTool, drawingHistory });
       return mobile ? (
-        <MobileDrawingControls {...manager.toolbarProps} />
+        <MobileDrawingControls
+          {...manager.toolbarProps}
+          collapsed={false}
+          onCollapsedChange={vi.fn()}
+        />
       ) : (
         <DrawingToolbar {...manager.toolbarProps} />
       );

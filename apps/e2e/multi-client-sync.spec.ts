@@ -326,7 +326,7 @@ test.describe("HeroByte multi-client synchronization", () => {
       );
 
       // Client 1 partially erases
-      await page1.getByRole("button", { name: /Eraser/i }).click();
+      await page1.getByRole("button", { name: /Erase drawings/i }).click();
 
       const eraseX = startX + 100;
       await page1.mouse.move(eraseX, startY - 30);

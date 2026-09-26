@@ -30,7 +30,8 @@ describe.each(["desktop drawing", "mobile drawing", "map"])("%s history scope", 
       onClearAll: vi.fn(),
     };
     if (surface === "desktop drawing") render(<DrawingToolbar {...props} />);
-    else if (surface === "mobile drawing") render(<MobileDrawingControls {...props} />);
+    else if (surface === "mobile drawing")
+      render(<MobileDrawingControls {...props} collapsed={false} onCollapsedChange={vi.fn()} />);
     else
       render(
         <MapEditHistoryActions activeSubTool="wall" canUndo canRedo onUndo={undo} onRedo={redo} />,
