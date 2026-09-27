@@ -79,7 +79,11 @@ is one undo. The **brush deck** is your palette:
 ![The brush deck: shelves, search, and pinned favorites](img/mapedit-brush-deck.jpg)
 
 - **Eight shelves**: Ground (grass, dirt, sand, paths, cavern floor…), Water (including abyss depths and bioluminescence), Molten (lava and cooled crust), Stone (floors, walls, stairs, cliffs, a dais), Wood (plank floors, bridges, timber walls), Roofs, Canopy, and Crystal — 34 families total.
-- **Search** filters instantly. **Pin [material name]** pins the armed material to
+- Desktop **Material category** narrows the deck; **Search brushes** filters that
+  category. Names stay visible under the swatches, and **Selected material** keeps
+  the armed material's name and preview visible while you browse other results.
+  On phone, search covers all material shelves; tapping a shelf clears the search.
+  **Pin [material name]** pins the armed material to
   a ★ Pinned shelf; **Unpin** removes it. Right-clicking a tile also toggles its pin.
   Your six most recent brushes appear in Recent. Hover a tile for a preview card
   and a one-line description.
@@ -96,9 +100,13 @@ before releasing to leave the map unchanged.
 
 Three tools share one **asset picker**:
 
-![The asset picker: Objects, Structures, Terrain, Decals, Inlays, and My Stuff](img/mapedit-asset-picker.jpg)
+![Earlier asset picker before named cards, search and the My uploads label](img/mapedit-asset-picker.jpg)
 
-- **Objects** (crates, tables, boats, standing stones…), **Structures**, **Terrain** (stamp a terrain patch as an object), **Decals** (scorch craters, stains, wax drips), **Inlays** (medallions, rugs, tracery), and **My Stuff** — **⬆ UPLOAD IMAGE** turns your own PNG/JPEG/WebP/GIF into a placeable asset.
+- **Objects** (crates, tables, boats, standing stones…), **Structures**, **Terrain** (stamp a terrain patch as an object), **Decals** (scorch craters, stains, wax drips), **Inlays** (medallions, rugs, tracery), and **My uploads** — **⬆ Upload image** turns your own PNG/JPEG/WebP/GIF into a placeable asset.
+- **Search objects** searches names in the open category. Every card names its
+  object. **Selected object** shows the armed name, footprint and uploaded image
+  or labeled color swatch. Changing the search/category keeps that selection;
+  choosing a card arms it, and placing still takes a separate action on the map.
 - **Place**: click to drop grid-snapped; **hold Alt** for a free-floating stamp at any angle; **R / Shift+R** rotates in 15° steps. A ghost previews the exact landing spot.
 - **Scatter**: one click throws a natural-looking cluster of seven — same spot, same scatter, so you can undo and redo identically.
 - **Row**: drag a line and the asset repeats along it with lived-in jitter and the occasional gap — fences, torch-lined corridors, market stalls.
@@ -228,7 +236,7 @@ dock names the resulting tool and selection. Tapping empty space keeps Sample
 armed and places nothing. Desktop **Ctrl/Cmd-click** is different: it keeps Place,
 Scatter or Paint armed while sampling.
 
-**My Stuff works here too.** The picker's last shelf is your own art: **Upload art** takes a photo or image straight from the phone's camera roll, and the moment it lands it is armed — tap the map to place it. It is the same shelf the desktop picker fills, so anything uploaded at the desk in this browser is already waiting on the tablet, and vice versa. Pasting a link works only for art already on this table (an upload's own address); a link to somewhere else on the web cannot be placed, and the field says so rather than failing quietly.
+**My uploads works here too.** The picker's last shelf is your own art: **Upload art** takes a photo or image straight from the phone's camera roll, and the moment it lands it is armed — tap the map to place it. Desktop and phone layouts share the shelf within the same browser; the local list does not follow you to another device. Pasting a link works only for art already on this table (an upload's own address); a link to somewhere else on the web cannot be placed, and the field says so rather than failing quietly.
 
 > **Editing what you picked.** With something selected, **✎ Edit** opens under the readout: **↺ / ↻** turn it in fifteens, **− / +** resize it in tenths, a **Layer** picker moves it between layers, and one button hides it from players. Press **✓ Apply** and all of it goes as a single change. A door also gets **Closed / Open / Locked / Secret**, which applies the moment you tap it — a door is opened during play, not authored.
 >

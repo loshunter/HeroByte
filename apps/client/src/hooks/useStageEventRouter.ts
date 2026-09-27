@@ -142,8 +142,8 @@ export function useStageEventRouter({
         return;
       }
 
-      // Priority 1.5: One-shot atlas-link aim — the capture disarms it, so a
-      // tap's duplicate compat click falls through to the priorities below.
+      // Priority 1.5: One-shot atlas-link aim. Touch start claims the native
+      // mouse stream so disarming cannot hand the same gesture to scenery.
       if (linkAimMode) {
         handleLinkAimClick();
         return;
@@ -295,7 +295,11 @@ export function useStageEventRouter({
   // lift is guarded (useAimTouchGuard in MapBoard) — the mobile lens's L3.
   const touchShouldPan = shouldPan || linkAimMode;
 
-  const { onTouchStart, onTouchMove, onTouchEnd } = useTouchGestureRouter({
+  const {
+    onTouchStart: routeTouchStart,
+    onTouchMove,
+    onTouchEnd,
+  } = useTouchGestureRouter({
     tool: armedTouchTool,
     shouldPan: touchShouldPan,
     stageRef,
@@ -303,6 +307,17 @@ export function useStageEventRouter({
     onCameraMove: handleTouchMove,
     onCameraEnd: handleTouchEnd,
   });
+
+  const onTouchStart = useCallback(
+    (event: KonvaEventObject<TouchEvent>) => {
+      // Aim has no drag tool to claim this touch. Suppress its compatibility
+      // mouse pair before capture disarms and makes the underlying door listen.
+      // Camera gestures still receive every event through the existing router.
+      if (linkAimMode && event.evt.cancelable) event.evt.preventDefault();
+      routeTouchStart(event);
+    },
+    [linkAimMode, routeTouchStart],
+  );
 
   return {
     onStageClick,

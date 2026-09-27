@@ -7,6 +7,22 @@
 
 ## Frontier
 
+- Current U4c verification: the fifth full ladder and isolated boot PASS. Results:
+  10,098 unit passes/four existing skips, all 89 client batches, 139.69 KB gzip,
+  268 browser passes/three existing skips in 30.3 minutes. All 271 cases/attempts
+  have zero failures, retries, flaky cases, attempt/reporter errors or raw step-ID
+  diagnostics. Root verified all 37 frozen paths/HEAD/full inventory, 28 strict
+  compiler inputs, seven reach reports/13 controls and Atlas native-touch ownership.
+  Boot readiness, 30-second survival and owned cleanup passed. Earlier failed runs,
+  test-oracle corrections and runtime diagnosis remain recorded; the runtime fault
+  did not recur with capped protocol logging, but its cause is still unproven.
+  R1 is VOID/INCOMPLETE after documentation dispatch hit the agent limit; state never
+  started. UI/tests stopped with partial STATIC reports, no valid verdict or finding.
+  Counts: INCOMPLETE, zero completed/two partial assignments, one error/two unperformed
+  lenses. All 37 review hashes/HEAD/full inventory matched; no further round ran.
+  The [verified U4c checkpoint](interface-clarity-u4c.md#verified-owner-checkpoint--review-incomplete)
+  was accepted on 2026-09-26 with "accepted and ready to proceed". Scoped local
+  closeout and U5 continuation are authorized; incomplete R1 remains recorded.
 - U1's verified post-cap record was **accepted by the owner on 2026-09-23** with
   “Approve.” Local acceptance commits are now authorized; no fourth formal review or
   unanimous final-review PASS is claimed. U1 is committed through `290f9a3d`, following
@@ -38,7 +54,8 @@
   R3 finished with one stale audit-status P3, now corrected. Counts are 2 → 5 → 1,
   12 completed assignments, zero semantic agent errors. The owner accepted the
   capped U3b checkpoint with “Accept and commit locally.” U3b is locally complete
-  as `351b5485`; no fourth review. U4a/U4b are recorded below; U4c and U5–U10 remain unimplemented.
+  as `351b5485`; no fourth review. U4a/U4b are recorded below; U4c is in progress,
+  and U5–U10 remain unimplemented.
   The U3a owner checkpoint is satisfied.
 - U4a resumed on 2026-09-25 at clean `dev` HEAD `351b5485` under the owner's
   local implementation/verification/commit authorization. U3a/U3b remain closed.
@@ -2514,3 +2531,150 @@ inspect exactly those paths, create the attributed local commit, and audit its
 parent, scope, hashes and clean checkout. Continue U4c under the existing onward
 authorization. No fourth U4b review or unchanged green-suite rerun. No push, merge
 or deployment is authorized.
+
+### U4b committed; U4c started — 2026-09-26
+
+U4b is locally committed as `63505c56`. Its 54-path audit passed: parent `681bc391`,
+all accepted hashes, attribution and clean `dev`. Its accepted incomplete-review
+history remains unchanged. U4c follows under the existing onward authorization.
+
+U4c characterized existing collection callbacks, browsing and authority before
+extracting presentation: 43 baseline passes/seven files and strict characterization.
+Three new regression roots compiled after correcting invalid test selector options,
+then failed at ten intended missing behaviors before implementation. The first
+implementation has 15 strictly compiled source/test roots; focused and live checks
+are in progress. See [the U4c record](interface-clarity-u4c.md). No full verification,
+review or U4c commit is claimed. No push, merge or deployment.
+
+### U4c focused and live verification — 2026-09-26
+
+The initial collection implementation passed 702 tests/85 files. Browser work separated
+an invalid optional-snapshot assertion from a genuine 78px token focus shift that
+swallowed the first phone pick. The corrected oracle positively checks the player's
+actual object layers; reserving preview space repairs the focus regression, with 22
+affected unit passes. A later screenshot exposed the desktop brush-size fragment
+wrapping beside Oak Floor. Strict browser RED proved two lines; a bounded nowrap span
+repairs it, and 28 affected palette tests pass. No accepted checkpoint was reopened.
+
+The final six-case browser run passed in 114.5 seconds with zero skips/failures/retries,
+flaky cases, attempt/reporter errors or raw step-ID diagnostics. It covers two new U4c
+journeys and the four existing build-palette/terrain journeys. Root inspected rendered
+evidence and seven U4c reach reports: 13 controls meet 44px, hit and text-fit checks.
+All 17 strict actual roots pass; all compiler input hashes remain unchanged. Achieved
+mode is automated live-two-client, score 7.8/10 with Chromium/device and upload limits
+recorded in the U4c document. A palette-test approval-review timeout prevented dispatch;
+the tool-permitted single retry passed, with no test failure hidden by the recovery.
+Full eight-gate verification, isolated boot and independent review follow this freeze.
+
+### U4c initial full run and selector migration — 2026-09-26
+
+Gates 1–7 passed: 10,094 unit passes/four existing skips and 139.69 KB gzip. A separate
+PowerShell scratch-document write was blocked before launch; the owner's Bitdefender
+image identified that command. The unit runner was paused during identification,
+then restarted under a unique prefix after hash/process checks. Both logs remain;
+the interrupted attempt has no PASS claim. Antivirus settings were not changed and
+the blocked command was not repeated; the file-editing tool wrote the scratch text.
+
+Full E2E recorded 77 passes before a real 150-second timeout: the old history test
+still looked for the removed Assets listbox. Root stopped the failed run, preserving
+its raw log, DOM error context and two screenshots; no final JSON or boot PASS exists.
+The same missed migration affected one secondary-mouse spec. All 26 frozen hashes
+and HEAD were intact after stop, and root confirmed no remaining test runner.
+
+The two unchanged roots compiled strictly before repair. Only the group/button
+locators and selected-state attribute changed; all command, player-state, undo and
+mouse assertions remain. Strict compilation passes all 19 authored roots. The four
+affected browser journeys pass in 55.9 seconds with no skips/failures/retries/flaky,
+attempt/reporter errors or raw step markers. Production code is unchanged by this
+repair. Fresh full gates/boot and independent review are next on 28 authored paths;
+the first interrupted browser run remains FAIL/incomplete, never a green ladder.
+
+### U4c second full run and bounded Atlas touch repair — 2026-09-26
+
+The second run completed naturally: gates 1–7 PASS, 10,094 unit passes/four existing
+skips, 89 client batches, 139.69 KB gzip. Full E2E finished **265 passed/three existing
+skips/two failed**, 270 attempts, 28.9 minutes, zero retries/flaky/reporter errors,
+three attempt errors and one raw step-ID diagnostic. Boot was unperformed after
+failure. Root verified all 28 frozen hashes/HEAD and owned-process cleanup. See
+`u4c-repaired-gates-report.md` and its preserved failed artifacts.
+
+One failure was a mobile Sample test's obsolete grid selector. The other was a
+real Atlas aimed tap creating a link and opening the underlying door. A bounded
+diagnostic agent (not formal review) traced an uncanceled compatibility mouse
+stream after one-shot disarm. Same-socket logs show link creation before toggle;
+the old stale-hit/same-tap-bubbling explanation contradicted propagation handling.
+The remaining Sample and manual screenshot-helper selectors were migrated after
+strict baseline compilation, preserving assertions and existing guide images.
+
+Strict unit RED was one intended failure/seven passes. A separately compiled
+two-client browser regression reached the target through real touch pans, proved
+ordinary shared door toggles, then failed at native cancellation: its trace contains
+trusted touchstart/end followed by mousedown/up/click. That invocation did not toggle
+the aimed door; the second full run remains the double-action reproduction. One
+failed browser attempt, one attempt error and two raw step markers are retained.
+
+Only the Stage touch entry now cancels the compatibility stream while aim is armed,
+retaining camera delegation and idle/Select behavior. All 25 actual roots strictly
+compile and 120 affected unit tests/11 files pass. Focused browser confirmation,
+fresh full gates/boot and independent review are pending. Formal U4c review count
+remains zero; no local commit or remote delivery.
+
+The repaired six-case invocation returned five passes/one failure in the new test's
+public-link oracle. The cancellation and shared door assertions passed first. The
+player intentionally lacks the DM's undiscovered destination and visibility field;
+the server projection and contract confirm this. Only the oracle was corrected to
+the exact public shape. That single case then passed in 37.2 seconds without errors
+or retries, and root audited the five unchanged passing cases and all 25 strict
+inputs. The original failed invocation's attempt error/two raw step markers remain
+preserved. A real observer camera pan is now being verified for a useful door image;
+no additional production fix was made.
+
+The final Atlas capture case passes in 38.8 seconds with zero failures/skips/retries,
+flaky cases, attempt/reporter errors or raw step diagnostics. The player camera now
+reaches the door through actual middle-button panning; root inspected the rendered
+observer view and DM capture. Trusted touchstart is canceled, no compatibility mouse
+events occur, exactly one link is sent and no door toggle is sent. Both clients retain
+the closed door and the player gets the exact public link projection. The final
+25-root strict report and all input hashes match. Five unchanged passing cases from
+the earlier invocation plus this final case cover all six focused journeys; that
+earlier invocation remains five PASS/one FAIL, not a fabricated six-case clean run.
+All seven current collection reach reports/13 controls remain valid. See
+`u4c-touch-focused-audit.json`, `u4c-touch-visible-types.json`, and
+`u4c-atlas-visible-green-*`. The next full run is recorded below.
+
+### U4c third full run — completed FAIL, diagnostic repairs
+
+`u4c-touch-gate-*` passed gates 1–7: 10,098 unit passes/four existing skips, all 89
+client batches and 139.69 KB gzip. E2E completed 258 passes/three existing skips/ten
+failures in 46.1 minutes: 271 attempts, no retries/flaky/reporter errors, 18 attempt
+errors and four raw step-ID diagnostics. Boot did not run. Root's completed-run
+audit matched all 34 hashes, HEAD, inventory and all 25 strict inputs before freeze
+release. The full run and its artifacts remain preserved, never a full PASS.
+
+Five cases timed out creating pages and another navigating initially; phone chat
+and Atlas lost their primary errors during context teardown. Underlying runtime
+causes remain unproven. Two terrain comparisons incorrectly captured the DM's old
+undefined terrain while polling the player's newer state. Their test-only repair
+now correlates the exact command receipt and requires both clients' exact published
+revision before comparing current and authoritative terrain, retaining nonempty
+paint and player privacy assertions. Atlas gains bounded action checks and primary
+error capture for diagnosis, with no claim that this fixes the original timeout.
+All 26 actual roots strictly compile. A ten-case traced diagnostic run is active;
+full gates/boot and formal review still follow. No further product change, U4c
+commit, push, merge or deployment. See [the U4c record](interface-clarity-u4c.md)
+and `u4c-touch-failed-run-audit.json` for exact counts and failure provenance.
+
+The traced ten-case diagnosis then returned eight passes/two failures. The two
+failures came from a new invalid oracle requiring the DM-only live binding on a
+player. Server projection confirms that field must be absent; the assertion now
+checks DM presence/player absence while keeping public scene revision and terrain
+comparisons on both clients. All 26 roots compile again. The original startup and
+Atlas failures did not recur in that invocation, but their cause is not established.
+Its two attempt errors/four raw step diagnostics are retained; it is not relabeled
+as a clean ten-case pass. Focused desktop/phone terrain confirmation then completed
+two passes in 240.2 seconds with zero skips/failures/retries/flaky/errors or raw step
+diagnostics. Root's `u4c-sync-focused-audit.json` confirms only the terrain test
+changed after the eight other passes and all 26 strict inputs match. The next full
+ladder is `u4c-sync-gate-*` on 35 frozen paths, with isolated boot only after all
+gates pass and independent review afterward. No cause for the transient browser
+startup/Atlas interruptions is claimed from these focused passes.

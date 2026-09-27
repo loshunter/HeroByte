@@ -224,10 +224,11 @@ test.describe("docs screenshots: DM", () => {
       await chooseBuildTool(page, "place");
       await page.getByRole("button", { name: /▸ / }).click();
       await shotPage(page, "mapedit-asset-picker");
-      await page.getByRole("option", { name: "Table", exact: true }).click();
+      const objects = page.getByRole("group", { name: "Objects", exact: true });
+      await objects.getByRole("button", { name: "Table", exact: true }).click();
       await page.mouse.click(room.x1 + 170, room.y1 + 150);
       await page.waitForTimeout(300);
-      await page.getByRole("option", { name: "Crate", exact: true }).click();
+      await objects.getByRole("button", { name: "Crate", exact: true }).click();
       await page.mouse.click(room.x1 + 250, room.y1 + 100);
       await waitBake(page);
     });

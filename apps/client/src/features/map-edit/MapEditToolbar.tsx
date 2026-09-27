@@ -76,8 +76,12 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
             <p className="map-edit-armed" data-testid="map-edit-armed">
               {TOOL_DESCRIPTORS[tool].label}
               {assetId && ` · ${getMapStudioTileAsset(assetId).name}`}
-              {(tool === "terrain" || tool === "erase") &&
-                ` · ${props.terrainBrushSize} × ${props.terrainBrushSize}`}
+              {(tool === "terrain" || tool === "erase") && (
+                <>
+                  {" · "}
+                  <span className="map-edit-armed__size">{`${props.terrainBrushSize} × ${props.terrainBrushSize}`}</span>
+                </>
+              )}
             </p>
           )}
           <JRPGButton onClick={props.onClose}>Done building</JRPGButton>

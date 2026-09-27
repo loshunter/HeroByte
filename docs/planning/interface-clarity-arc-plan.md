@@ -1,6 +1,6 @@
 # Interface clarity — the first session should teach the table — arc plan
 
-> **STATUS: U4a ACCEPTED/COMMITTED; U4b OWNER ACCEPTED FOR LOCAL CLOSEOUT, R3 INCOMPLETE — 2026-09-26.**
+> **STATUS: U4a/U4b COMMITTED; U4c ACCEPTED FOR LOCAL CLOSEOUT — 2026-09-26.**
 > U1 and U2 are locally committed following their recorded owner acceptance. U3a's
 > auth prerequisite and characterized extraction are committed; its semantic repair
 > is locally committed as `b473a3dd`. Final review round 3 left one P2 recovery-correlation finding
@@ -54,7 +54,39 @@
 > All four R1/R2 findings are repaired. The incomplete final review remains recorded.
 > No fourth round. See
 > [its verification record](../verification/interface-clarity-u4a.md).
-> U4b closeout, U4c and U5–U10 remain ahead.
+> U4b is locally committed as `63505c56`; its 54-path acceptance audit passed.
+> U4c collection browsing is active; U5–U10 remain ahead.
+> U4c's focused/live checks pass: 702 initial tests, 22/28 affected repair checks,
+> six final browser cases, plus 19 strict roots and four browser passes after migrating
+> two old-picker test selectors exposed by the first full run. Initial gates 1–7
+> passed. The second full browser run finished 265 passes/three skips/two failures:
+> a remaining phone Sample selector and an Atlas touch/compatibility-mouse defect.
+> Bounded repairs have strict unit/browser RED, 120 affected unit passes and 25 strict
+> roots. The six focused journeys now pass (five unchanged cases plus the corrected
+> Atlas case); public-link oracle failure history is retained. The third full run
+> passed gates 1–7 (10,098 unit passes/four skips; 139.69 KB), but finished E2E with
+> 258 passes/three skips/ten failures. All frozen inputs matched afterward. Browser
+> startup/teardown diagnosis and a bounded terrain test-oracle repair now have eight
+> unchanged focused passes plus two corrected terrain passes; intermediate failures
+> remain recorded. All 26 actual roots compile. The fourth full ladder passed
+> gates 1–7, but E2E finished 257 passes/three skips/eleven failures in 57.1 minutes.
+> All 35 frozen paths/HEAD/strict inputs matched. Six failures were page creation;
+> further runtime diagnosis and bounded test-oracle repairs precede another full
+> verification attempt. A 30-context blank-page probe passed but did not establish
+> a cause. Two bounded test-oracle corrections now compile across 28 actual roots;
+> all eleven focused cases pass in 161.8 seconds without errors/retries. All 37
+> frozen paths match. The fifth full ladder and isolated boot now PASS: 10,098 unit
+> passes/four existing skips, 268 browser passes/three existing skips in 30.3 minutes,
+> 139.69 KB gzip, zero browser errors/retries/flaky cases or raw step-ID diagnostics.
+> Root verified all 37 frozen paths/HEAD/full inventory, 28 strict inputs, seven reach
+> reports/13 controls and Atlas touch ownership. The runtime fault did not recur;
+> its cause remains unproven. R1 is VOID/INCOMPLETE after documentation dispatch hit
+> the agent limit; state never started, UI/tests returned only partial STATIC reports.
+> Counts: INCOMPLETE, zero completed/two partial assignments, one error/two unperformed
+> lenses. All 37 review hashes matched. No replacement or further round ran. The
+> [verified U4c checkpoint](../verification/interface-clarity-u4c.md#verified-owner-checkpoint--review-incomplete)
+> was accepted on 2026-09-26 with "accepted and ready to proceed". Scoped local
+> closeout and U5 continuation are authorized; incomplete R1 remains recorded.
 > Do not start a fourth formal U3a review. Remote pushes,
 > main merge and production deployment remain outside the execution authorization.
 > Execution evidence: [interface-clarity-execution.md](../verification/interface-clarity-execution.md).
@@ -607,8 +639,8 @@ record. Desktop and phone
 share labels/settings and retain the existing drawing state, history and authority.
 U4b's R1 and R2 repairs pass full verification and boot. Final R3 was incomplete after
 an agent-limit error; the owner accepted the verified checkpoint on 2026-09-26 with
-“Accepted”. The scoped local commit is authorized, followed by U4c under the existing
-onward authorization. The combined U4 Done-when below
+“Accepted”. The scoped local commit is `63505c56`; its audit passed. U4c collection
+browsing is active under the existing onward authorization. The combined U4 Done-when below
 is not yet complete.
 
 **Changes:** use the Tool/Settings/History grammar and explicit eraser names; provide

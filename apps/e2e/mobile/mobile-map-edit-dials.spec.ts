@@ -90,7 +90,8 @@ test.describe("M7 — the dials a phone has no key for", () => {
     // worked" cannot be satisfied by the tool simply having stayed as it was.
     await chooseBuildTool(toolGrid, "place");
     const picker = page.locator(".mobile-tool-sheet__section", { hasText: "Place" }).first();
-    const swatches = picker.locator(".mobile-tool-sheet__grid").getByRole("button");
+    const objects = picker.getByRole("group", { name: "Objects", exact: true });
+    const swatches = objects.getByRole("button");
     const otherName = (await swatches.nth(1).textContent())!.trim();
     await swatches.nth(1).click();
     await page.getByRole("button", { name: /To the map/i }).click();
@@ -119,9 +120,10 @@ test.describe("M7 — the dials a phone has no key for", () => {
       "true",
     );
     // ...armed with what was under the finger, not what was armed before.
-    await expect(
-      picker.locator(".mobile-tool-sheet__grid").getByRole("button", { name: otherName }),
-    ).toHaveAttribute("aria-pressed", "true");
+    await expect(objects.getByRole("button", { name: otherName, exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
     // And a sample places NOTHING. A miss that fell through to the place tool
     // would drop a crate where the DM was pointing at empty floor.

@@ -1,42 +1,13 @@
-// The floor/paint family picker, shelved.
-//
-// This is the one panel that does NOT simply shrink its desktop counterpart,
-// and the reason is arithmetic. PAINT_FAMILIES is 19 — the catalog holds 38
-// `terrain:` assets, but only those with a VILLAGE_TERRAIN palette entry are
-// paintable, and that intersection is 19. A flat grid of them at the 44px touch
-// floor is 7 rows, roughly 385px — still taller than the entire sheet cap in
-// landscape (~240px), so the DM would scroll a wall of chips to reach a floor.
-// (An earlier version of this comment said 38 and ~570px, counting the catalog
-// rather than the palette-backed subset the picker actually renders. The
-// conclusion held; the number did not.) The desktop MapEditBrushDeck
-// solves the same problem with a hover preview card, a search box and
-// right-click-to-pin; a finger has none of those.
-//
-// So: material shelves first, then only that shelf's families. Two taps to any
-// floor, and the shelves come from buildBrushDeckGroups() — the same pure data
-// the desktop deck uses, already in the entry chunk via useMapEditState, so
-// this costs no new bytes and a new family appears on both surfaces from one
-// catalog edit.
-//
-// The open shelf FOLLOWS the armed family until the DM picks a shelf. Opening
-// on "Ground" while a Stone floor is armed would hide the selection and read as
-// having lost it.
-//
-// M6 added the two shelves that make this a deck rather than a browser. ★ and
-// Recent read and write the SAME localStorage keys the desktop deck uses
-// (brushDeck.ts), so within one browser the desktop and mobile layouts share
-// one memory rather than two that quietly disagree. localStorage is
-// per-browser, so pins do NOT follow a DM from a desk PC to a tablet — the
-// user guide once claimed they did, and it was wrong.
-// Pinning is a right-click on the desktop, which a finger cannot
-// make, so the touch affordance is a single button under the swatches that
-// pins whatever is armed — one control instead of a per-tile one, because a
-// 19-tile grid with a star on every chip is how the 44px floor gets lost.
+// Material shelves and cross-shelf search share the desktop catalog and local pins/recents.
+// The armed preview remains visible when browsing hides its swatch. Keep the heavy
+// procedural thumbnail baker in the lazy desktop chunk; the phone labels its color swatch.
 
 import React, { useMemo, useState } from "react";
+import { CollectionPreview, CollectionSearch } from "../../../components/ui/CollectionBrowser";
 import type { TileMaterial } from "../../map-studio/starterTiles";
 import {
   buildBrushDeckGroups,
+  filterBrushEntries,
   loadBrushPins,
   loadBrushRecents,
   pushBrushRecent,
@@ -64,6 +35,7 @@ export function MobileFloorPicker({
   const groups = useMemo(() => buildBrushDeckGroups(), []);
   const byFamily = useMemo(() => new Map(PAINT_FAMILIES.map((entry) => [entry.family, entry])), []);
   const [pickedShelf, setPickedShelf] = useState<ShelfId | null>(null);
+  const [query, setQuery] = useState("");
   // Seeded from storage on mount and updated locally afterwards: the deck is
   // the only writer, and re-reading on every render would re-parse JSON for
   // nothing.
@@ -110,25 +82,45 @@ export function MobileFloorPicker({
 
   const armedIsPinned = pins.includes(selected);
   const armedName = byFamily.get(selected)?.name ?? selected;
+  const armed = byFamily.get(selected);
+  const shown = query.trim() ? filterBrushEntries(PAINT_FAMILIES, query) : entries;
 
   return (
     <div className="mobile-tool-sheet__section">
       <span className="mobile-tool-sheet__label">{label}</span>
+      {armed && (
+        <CollectionPreview
+          label="Selected material"
+          name={armed.name}
+          fill={armed.fill}
+          detail="Color swatch · See the footprint on the map"
+        />
+      )}
+      <CollectionSearch
+        label="Search brushes"
+        value={query}
+        onChange={setQuery}
+        placeholder="Search all materials"
+      />
+      {query.trim() && <p className="collection-note">Search results across all materials</p>}
       <div className="mobile-tool-sheet__shelves">
         {shelves.map((shelf) => (
           <button
             key={shelf.id}
             type="button"
-            aria-pressed={shelf.id === openShelf}
+            aria-pressed={!query.trim() && shelf.id === openShelf}
             className={`mobile-chip${shelf.id === openShelf ? " mobile-chip--active" : ""}`}
-            onClick={() => setPickedShelf(shelf.id)}
+            onClick={() => {
+              setPickedShelf(shelf.id);
+              setQuery("");
+            }}
           >
             {shelf.label}
           </button>
         ))}
       </div>
       <MobileSwatchRow
-        options={entries.map((entry) => ({
+        options={shown.map((entry) => ({
           id: entry.family,
           label: entry.name,
           fill: entry.fill,
@@ -137,6 +129,7 @@ export function MobileFloorPicker({
         selected={selected}
         onSelect={pick}
       />
+      {shown.length === 0 && <p className="collection-note">No brush matches “{query.trim()}”.</p>}
       {/* Names the family rather than saying "Pin": the armed swatch can be off
           the open shelf entirely (★ and Recent both show families from other
           materials), so "Pin Stone Floor" is the only wording that says what

@@ -13,7 +13,7 @@ describe("MapEditAssetPicker", () => {
         uploadAsset={uploadAsset}
       />,
     );
-    for (const tab of ["Objects", "Structures", "Terrain", "My Stuff"]) {
+    for (const tab of ["Objects", "Structures", "Terrain", "My uploads"]) {
       expect(screen.getByRole("button", { name: tab })).toBeTruthy();
     }
     // Objects is the default category.
@@ -49,7 +49,7 @@ describe("MapEditAssetPicker", () => {
     expect(screen.queryByTitle("Crate")).toBeNull();
   });
 
-  it("offers an upload control on the My Stuff tab", () => {
+  it("offers an upload control on the My uploads tab", () => {
     render(
       <MapEditAssetPicker
         selectedAssetId="objects:crate"
@@ -57,7 +57,7 @@ describe("MapEditAssetPicker", () => {
         uploadAsset={uploadAsset}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "My Stuff" }));
+    fireEvent.click(screen.getByRole("button", { name: "My uploads" }));
     expect(screen.getByRole("button", { name: /Upload image/ })).toBeTruthy();
   });
 });

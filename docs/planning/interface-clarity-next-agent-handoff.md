@@ -1,7 +1,7 @@
 # Next-agent prompt — continue HeroByte interface clarity
 
-Use this document as the continuation prompt. Updated 2026-09-26 after U4a local
-commit `681bc391` on `dev` (parent `351b5485`, the accepted U3b commit).
+Use this document as the continuation prompt. Updated 2026-09-26 after U4b local
+commit `63505c56` on `dev` (parent `681bc391`, the accepted U4a commit).
 Verify the current checkout
 and latest execution ledger before relying on these identifiers.
 
@@ -9,10 +9,66 @@ and latest execution ledger before relying on these identifiers.
 
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
-**Current frontier:** U4b is verified at `681bc391`; its final review is incomplete and
+**Current frontier:** U4b is accepted and committed as `63505c56`; its 54-path commit
+audit passed with the accepted hashes, parent, attribution and clean checkout.
+U4c collection browsing passes focused/live verification: 702 initial focused tests,
+22/28 affected repair checks and six collection/palette/terrain browser cases.
+Initial gates 1–7 passed (10,094 unit passes/four skips; 139.69 KB gzip), but the full
+browser run exposed two missed old-picker test selectors. Their bounded migration
+retains the behavioral assertions; 19 strict roots and all four affected browser
+journeys now pass without errors/retries. See [its record](../verification/interface-clarity-u4c.md)
+and the latest scratch RESUME. The second full run finished 265 browser passes/three
+existing skips/two failures: a remaining phone Sample selector and a real Atlas tap
+that also opened its underlying door. Both have bounded repairs; Atlas has strict
+unit/browser RED, 120 affected unit passes and 25 strict roots. All six focused
+journeys now pass across five unchanged cases and the final two-client Atlas case;
+its native trace has no compatibility mouse events. The intervening public-link
+oracle failure and correction remain recorded. The third full ladder passed gates
+1–7 (10,098 unit passes/four skips; 139.69 KB), but E2E finished 258 passes/three skips/
+ten failures. Full artifacts and all 34 frozen hashes/HEAD/strict inputs were audited.
+Five page-creation failures, one navigation timeout and two masked teardown errors
+need diagnostic evidence; both terrain failures exposed a stale one-time DM-state
+comparison. Its bounded receipt/revision oracle repair and Atlas diagnostic checks
+compile across 26 actual roots. Focused diagnosis completed eight unchanged passes
+and, after correcting a DM-only binding assertion, two terrain passes. The failed
+eight-PASS/two-FAIL intermediate run remains recorded. Root verified current inputs
+and zero errors/retries in the final two cases. Fourth full `u4c-sync-gate-*` checks
+passed gates 1–7 (10,098 unit passes/four skips; 139.69 KB), but E2E finished
+257 passes/three skips/eleven failures in 57.1 minutes. All 35 frozen paths, HEAD,
+inventory and 26 strict inputs matched afterward. Six page-creation failures,
+one initial-navigation timeout and one reset-409 fixture failure remain distinct
+from a phone tap timeout, late decoration readiness and an overly specific native
+text-undo assertion. All artifacts are preserved; a 30-context blank-page probe
+passed without reproducing the runtime failure. Bounded test-oracle repairs and
+protocol diagnosis followed: both corrections compile across 28 actual roots, and all
+eleven focused cases pass in 161.8 seconds without errors/retries. Root verified all
+37 frozen paths/HEAD/strict inputs and preserved every trace. The focused protocol
+run did not reproduce the runtime failure. The fifth full `u4c-runtime-gate-*`
+ladder and isolated boot now PASS: 10,098 unit passes/four existing skips,
+268 browser passes/three existing skips in 30.3 minutes, and 139.69 KB gzip.
+There were 271 browser cases/attempts and zero failures, retries, flaky cases,
+attempt/reporter errors or raw step-ID diagnostics. Root verified all 37 frozen
+paths, full inventory, HEAD, 28 strict inputs, seven reach reports/13 controls and
+Atlas native-touch ownership. Boot readiness, 30-second survival and owned cleanup
+passed. All artifacts are preserved. The runtime fault did not recur with capped
+protocol logging; its cause remains unproven. Independent R1 is now VOID/INCOMPLETE:
+documentation dispatch hit `agent thread limit reached`; state never started.
+UI/tests stopped with partial STATIC reports, no valid verdict and no established
+finding. Counts: INCOMPLETE, zero completed/two partial assignments, one dispatch
+error/two unperformed lenses. All 37 review hashes/HEAD/full inventory still match.
+No replacement reviewer or further round ran. The
+[verified U4c owner checkpoint](../verification/interface-clarity-u4c.md#verified-owner-checkpoint--review-incomplete)
+was accepted on 2026-09-26 with "accepted and ready to proceed". Scoped local
+commit and U5 continuation are authorized. All 37 acceptance hashes and HEAD match;
+only the five result/frontier documents are updated for acceptance. Commit and
+audit the approved snapshot before U5. Do not reopen U4c review or repeat unchanged
+green suites; the incomplete R1 remains recorded as such.
+Preserve the initial timeout and antivirus-related interruption
+records; do not rerun the blocked scratch PowerShell write or change antivirus settings.
+U4b's final review is incomplete and
 the [owner checkpoint](../verification/interface-clarity-u4b.md#verified-owner-checkpoint--final-review-incomplete)
-was accepted on 2026-09-26 with “Accepted”. Its scoped local commit is authorized;
-verify that closeout before starting U4c. R3 documentation dispatch failed with `agent thread limit reached`; state
+was accepted on 2026-09-26 with “Accepted”. Its local closeout is complete.
+R3 documentation dispatch failed with `agent thread limit reached`; state
 never started. UI/tests stopped with partial STATIC reports and no new established
 finding, not PASS. R3 is VOID: one dispatch error, two partial assignments and two
 unperformed lenses. Counts **2 → 2 → INCOMPLETE**. No fourth review. The explicit
@@ -126,7 +182,7 @@ rearrangement has not happened yet; do not describe the redesign as complete.
 | `b473a3dd` | Owner-accepted U3a Generate outcomes and correlated recovery receipts |
 
 U1, U2, U3a and U3b are locally complete with their recorded owner acceptance.
-Do not redo them. U4a is accepted and committed; U4b is accepted for local closeout, then U4c follows. Pending-acceptance wording in historical records
+Do not redo them. U4a/U4b are accepted and committed; U4c is active. Pending-acceptance wording in historical records
 below is superseded by this frontier.
 
 The latest owner-reported hotkey defect is finished. Leaving Chat open blocked Ctrl+Z even after a hallway was drawn on uncovered map canvas. Canvas interaction now focuses the map. Only explicitly opted-in desktop floating panels can coexist with that map's history shortcuts. Mobile screens/sheets, dialogs, popovers, text editing and composition remain protected. `DraggableWindow` revokes its opt-in when entering mobile layout. The owner's exact original window arrangement was not confirmed; the Chat-open case was independently reproduced.

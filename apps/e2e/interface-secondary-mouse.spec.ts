@@ -49,11 +49,11 @@ test("U2 secondary mouse opens Place/Grass wheel and pans without editing either
 
     await chooseBuildTool(dm, "place");
     await dm.getByRole("button", { name: "▸ Crate", exact: true }).click();
-    const crate = dm.getByRole("listbox", { name: "Assets", exact: true }).getByTitle("Crate", {
-      exact: true,
-    });
+    const crate = dm
+      .getByRole("group", { name: "Objects", exact: true })
+      .getByRole("button", { name: "Crate", exact: true });
     await crate.click();
-    await expect(crate).toHaveAttribute("aria-selected", "true");
+    await expect(crate).toHaveAttribute("aria-pressed", "true");
     await dm.getByRole("button", { name: "▾ Crate", exact: true }).click();
 
     for (const subTool of ["Place", "Grass"] as const) {

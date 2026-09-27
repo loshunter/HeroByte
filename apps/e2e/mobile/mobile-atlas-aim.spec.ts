@@ -61,12 +61,10 @@ async function armAim(page: Page): Promise<void> {
 
 /**
  * Konva rebuilds its HIT graph on the next draw, not when React sets a prop.
- * So `listening={false}` (a door yielding to the aim) and a camera move are
- * both only true for hit-testing once a frame has been painted — tap sooner
- * and the tap lands on the stale graph, which is how one full-suite run saw a
- * door BOTH swing (its old listening region caught the tap) and place the link
- * (the same tap bubbled to the Stage, where the armed aim took it). Two frames,
- * because the first can be the one that schedules the redraw.
+ * Wait for camera coordinates and the hit raster to agree. Two frames allow
+ * the first frame to schedule a redraw. Listening is also checked at dispatch;
+ * this wait does not prevent a later compatibility click after aim disarms.
+ * The Stage touch router owns that stream (see interface-atlas-touch-ownership).
  */
 async function settleHitGraph(page: Page): Promise<void> {
   await page.evaluate(

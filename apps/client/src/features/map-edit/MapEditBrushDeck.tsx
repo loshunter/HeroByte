@@ -3,13 +3,14 @@
 // ============================================================================
 // The browsable brush palette that replaced the flat floor/wall/roof swatch
 // grids: live-baked thumbnails (the real painter output) grouped by material
-// shelf, with search, pinned favourites, recents, and a hover card carrying a
-// large preview plus the family's one-line grammar note. Derived entirely
+// shelf, with visible names, category/search, selection preview, pins/recents
+// and an optional hover card. Derived entirely
 // from starterTiles ∩ VILLAGE_TERRAIN (mapEditFamilies) — no hardcoded lists.
 // Right-click a tile to pin it. Deck state (pins/recents) is deck-internal,
 // so MapEditToolbarProps is untouched.
 
-import { useLocalEscape } from "../interaction/useEscapeOwner";
+import { CollectionPreview, CollectionSearch } from "../../components/ui/CollectionBrowser";
+import { BrushTile, BrushHoverCard, type HoverState } from "./MapEditBrushTiles";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { PAINT_FAMILIES, type PaintFamilyEntry } from "./mapEditFamilies";
@@ -34,15 +35,9 @@ interface MapEditBrushDeckProps {
   onSelect: (family: string) => void;
 }
 
-interface HoverState {
-  entry: PaintFamilyEntry;
-  x: number;
-  y: number;
-}
-
 export function MapEditBrushDeck({ selected, onSelect }: MapEditBrushDeckProps) {
-  const localEscape = useLocalEscape();
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
   const [pins, setPins] = useState<string[]>(loadBrushPins);
   const [recents, setRecents] = useState<string[]>(loadBrushRecents);
   const [hover, setHover] = useState<HoverState | null>(null);
@@ -55,11 +50,17 @@ export function MapEditBrushDeck({ selected, onSelect }: MapEditBrushDeckProps) 
   // A tile that unmounts or reflows under a stationary pointer fires no
   // mouseleave — drop the card whenever the rendered tile set can change
   // (search narrows, pin toggles, the Recent shelf inserts on a pick).
-  useEffect(() => setHover(null), [query, pins, recents]);
+  useEffect(() => setHover(null), [query, category, pins, recents]);
 
   const groups = useMemo(() => buildBrushDeckGroups(), []);
   const byFamily = useMemo(() => new Map(PAINT_FAMILIES.map((entry) => [entry.family, entry])), []);
-  const filtered = query.trim() ? filterBrushEntries(PAINT_FAMILIES, query) : null;
+  const filtered =
+    query.trim() || category
+      ? filterBrushEntries(
+          PAINT_FAMILIES.filter((entry) => !category || entry.material === category),
+          query,
+        )
+      : null;
   const pinnedEntries = pins
     .map((family) => byFamily.get(family))
     .filter((entry): entry is PaintFamilyEntry => entry !== undefined);
@@ -94,10 +95,19 @@ export function MapEditBrushDeck({ selected, onSelect }: MapEditBrushDeckProps) 
   const armed = byFamily.get(selected);
 
   return (
-    <div>
+    <div className="collection-browser">
       <p className="jrpg-text-small" style={{ margin: "0 0 4px", color: "var(--jrpg-gold)" }}>
         Brush: <span style={{ color: "var(--jrpg-white)" }}>{armed ? armed.name : selected}</span>
       </p>
+      {armed && (
+        <CollectionPreview
+          label="Selected material"
+          name={armed.name}
+          imageUrl={peekBrushThumbnail(armed.assetId)?.preview}
+          fill={armed.fill}
+          detail={armed.note}
+        />
+      )}
       {armed && (
         <button
           type="button"
@@ -108,22 +118,26 @@ export function MapEditBrushDeck({ selected, onSelect }: MapEditBrushDeckProps) 
           {pins.includes(selected) ? "Unpin" : "Pin"} {armed.name}
         </button>
       )}
-      <input
-        type="search"
+      <label className="collection-search">
+        Material category
+        <select
+          className="collection-category"
+          value={category}
+          onChange={(event) => setCategory(event.target.value)}
+        >
+          <option value="">All materials</option>
+          {groups.map((group) => (
+            <option key={group.material} value={group.material}>
+              {group.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <CollectionSearch
+        label="Search brushes"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            if (query) localEscape(event, () => setQuery(""));
-            return; // Denied or empty-query Escape must reach its actual owner untouched.
-          }
-          // Keep text/history/delete keystrokes away from canvas shortcuts.
-          event.stopPropagation();
-        }}
-        placeholder="Search…"
-        aria-label="Search brushes"
-        className="jrpg-text-small"
-        style={searchStyle}
+        onChange={setQuery}
+        placeholder="Search this category"
       />
 
       <div
@@ -183,92 +197,6 @@ export function MapEditBrushDeck({ selected, onSelect }: MapEditBrushDeckProps) 
   );
 }
 
-interface BrushTileProps {
-  entry: PaintFamilyEntry;
-  selected: boolean;
-  pinned: boolean;
-  onPick: (family: string) => void;
-  onTogglePin: (family: string) => void;
-  onHover: (hover: HoverState | null) => void;
-}
-
-function BrushTile({ entry, selected, pinned, onPick, onTogglePin, onHover }: BrushTileProps) {
-  const baked = peekBrushThumbnail(entry.assetId);
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      title={entry.name}
-      onClick={() => onPick(entry.family)}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        onTogglePin(entry.family);
-      }}
-      onMouseEnter={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        onHover({ entry, x: rect.right, y: rect.top });
-      }}
-      onMouseLeave={() => onHover(null)}
-      style={{
-        position: "relative",
-        width: "100%",
-        aspectRatio: "1 / 1",
-        background: entry.fill,
-        border: selected ? "2px solid var(--jrpg-gold)" : `2px solid ${entry.stroke}`,
-        borderRadius: "2px",
-        cursor: "pointer",
-        padding: 0,
-        overflow: "hidden",
-      }}
-    >
-      {baked && <img src={baked.thumb} alt="" draggable={false} style={tileImageStyle} />}
-      {pinned && <span style={pinBadgeStyle}>★</span>}
-    </button>
-  );
-}
-
-function BrushHoverCard({ hover, pinned }: { hover: HoverState; pinned: boolean }) {
-  const { entry } = hover;
-  const baked = peekBrushThumbnail(entry.assetId);
-  const left = Math.max(4, Math.min(hover.x + 10, window.innerWidth - 168));
-  const top = Math.max(4, Math.min(hover.y, window.innerHeight - 220));
-  return (
-    <div style={{ ...hoverCardStyle, left, top }}>
-      {baked ? (
-        <img src={baked.preview} alt="" draggable={false} style={hoverPreviewStyle} />
-      ) : (
-        <div style={{ ...hoverPreviewStyle, background: entry.fill }} />
-      )}
-      <p className="jrpg-text-small" style={{ margin: "6px 0 0", color: "var(--jrpg-gold)" }}>
-        {pinned ? "★ " : ""}
-        {entry.name}
-      </p>
-      {entry.note && (
-        <p className="jrpg-text-small" style={{ margin: "4px 0 0", color: "var(--jrpg-white)" }}>
-          {entry.note}
-        </p>
-      )}
-      <p className="jrpg-text-small" style={{ margin: "4px 0 0", ...hintStyle }}>
-        right-click {pinned ? "unpins" : "pins"}
-      </p>
-    </div>
-  );
-}
-
-const searchStyle = {
-  display: "block",
-  width: "100%",
-  boxSizing: "border-box",
-  marginBottom: "4px",
-  background: "var(--jrpg-panel-dark, #1a1d29)",
-  border: "1px solid var(--jrpg-gold)",
-  borderRadius: "2px",
-  color: "var(--jrpg-white)",
-  fontSize: "9px",
-  padding: "3px 4px",
-  outline: "none",
-} as const;
-
 const deckScrollStyle = {
   maxHeight: "236px",
   overflowY: "auto",
@@ -286,50 +214,8 @@ const shelfLabelStyle = {
 
 const tileGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, 1fr)",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "4px",
 } as const;
 
-const tileImageStyle = {
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-} as const;
-
-const pinBadgeStyle = {
-  position: "absolute",
-  top: "-1px",
-  right: "1px",
-  color: "var(--jrpg-gold)",
-  fontSize: "9px",
-  textShadow: "0 1px 2px #000",
-  pointerEvents: "none",
-} as const;
-
 const emptyStyle = { margin: 0, color: "var(--jrpg-white)", opacity: 0.7 } as const;
-
-const hintStyle = { color: "var(--jrpg-white)", opacity: 0.55 } as const;
-
-const hoverCardStyle = {
-  position: "fixed",
-  // Above every DraggableWindow (they default to z 1000).
-  zIndex: 1200,
-  width: "152px",
-  padding: "6px",
-  background: "var(--jrpg-panel-dark, #1a1d29)",
-  border: "2px solid var(--jrpg-gold)",
-  borderRadius: "4px",
-  pointerEvents: "none",
-  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.6)",
-} as const;
-
-const hoverPreviewStyle = {
-  width: "120px",
-  height: "120px",
-  display: "block",
-  margin: "0 auto",
-  borderRadius: "2px",
-  imageRendering: "auto",
-} as const;

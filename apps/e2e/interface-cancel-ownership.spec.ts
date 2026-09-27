@@ -76,9 +76,17 @@ for (const touch of [false, true]) {
         const launcher = dm.getByRole("button", { name: "📜 Chat & Rolls", exact: true });
         await openChat(dm);
         await composer(dm).click();
-        await composer(dm).pressSequentially("native text undo");
+        const typed = "native text undo";
+        await composer(dm).pressSequentially(typed);
+        await expect(composer(dm)).toHaveValue(typed);
         await composer(dm).press("Control+z");
-        await expect(composer(dm)).toHaveValue("");
+        // Native typing groups vary; require a real suffix undo, never a no-op.
+        await expect
+          .poll(async () => {
+            const remaining = await composer(dm).inputValue();
+            return remaining.length < typed.length && typed.startsWith(remaining);
+          })
+          .toBe(true);
         await composer(dm).press("Escape");
         await expect(composer(dm)).toHaveCount(0);
         await expect(launcher).toBeFocused();

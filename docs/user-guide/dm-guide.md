@@ -58,6 +58,12 @@ NPCs are yours alone to edit: players can't rename, damage, or move them.
 
 An NPC that already exists can take a library token too. Its card's **📖 LIBRARY** button, under the token image field, swaps the art in place; the portrait follows only when it was empty or was itself a library image, so a portrait you chose stays yours.
 
+Names remain visible on token cards. Keyboard focus shows **Token preview** without
+adding anything; activating a card still immediately performs the action described
+above the grid. The preview stays while you change search or category. The Custom
+shelf remains the table's shared token library, separate from the map object's
+browser-local **My uploads** shelf.
+
 **Mimics come in pairs.** The library holds a closed chest, barrel, dungeon door, sarcophagus and spellbook, each with its revealed monster. Add the closed object, place it, and when the party disturbs it press **🎭 REVEAL MIMIC** on its card: the token swaps to the monster in the same cell at the same size, and **🎭 DISGUISE** puts it back. The name stays whatever you called it, so a chest labelled "Old chest" is still "Old chest" with teeth. Either button also sets the Stance to match the face it just put on — **Enemy** on a reveal, **Neutral** on a disguise — so the card never contradicts the art.
 
 **Stance** says where an NPC stands with the party, and it is what its Entities card wears: a red card for **Enemy**, gold for **Neutral**, green for **Ally**. Every townsfolk in the pack arrives **Neutral** and every monster **Enemy**, and you can change either on the NPC's **Stance** select in the DM menu — including mid-scene, when the hired guard turns on them. It is a label and a colour, nothing more: initiative, movement and HP behave exactly as before.

@@ -97,7 +97,48 @@ test("U3b Undo removes the decoration target even over surviving painted floor",
       .toBe(before.revision);
     const publicBefore = await mapContent(player);
     await chooseBuildTool(dm, "room");
+    const sentBeforeRoom = wire.sent.length;
     await aimRegion(dm, false, before);
+    const roomCommands = () =>
+      wire.sent
+        .slice(sentBeforeRoom)
+        .filter((message) => message.t === "map-studio-command")
+        .map((message) => message.command)
+        .filter((command) => command.type === "place-room");
+    await expect.poll(() => roomCommands().length).toBeGreaterThan(0);
+    // Retransmission may repeat an envelope; it must remain one logical room.
+    expect(new Set(roomCommands().map((command) => command.commandId)).size).toBe(1);
+    const command = roomCommands()[0]!;
+    expect(command.cells.length).toBeGreaterThan(0);
+    expect(command.cells.some((cell) => cell.assetId !== null)).toBe(true);
+    expect(command.elements.length).toBeGreaterThan(0);
+    const receipt = () =>
+      wire.received.find(
+        (frame) =>
+          "t" in frame &&
+          frame.t === "map-studio-document" &&
+          frame.appliedCommandId === command.commandId &&
+          frame.document.id === command.documentId,
+      );
+    await expect.poll(receipt).toBeDefined();
+    const acknowledged = receipt();
+    if (!acknowledged || !("t" in acknowledged) || acknowledged.t !== "map-studio-document")
+      throw new Error("The room command has no matching authoritative receipt");
+    const room = acknowledged.document;
+    expect(room.revision).toBe(command.baseRevision + 1);
+    for (const element of command.elements) {
+      expect(room.elements).toContainEqual(
+        expect.objectContaining({ id: element.id, type: element.type }),
+      );
+    }
+    await expect(async () => {
+      for (const state of await Promise.all([mapContent(dm), mapContent(player)])) {
+        expect(state.scene).toMatchObject({
+          sourceDocumentId: room.id,
+          sourceRevision: room.revision,
+        });
+      }
+    }).toPass({ timeout: 10_000 });
     const decorate = dm.getByRole("button", { name: /Decorate last/ });
     await expect(decorate).toBeEnabled();
     await expect
@@ -114,6 +155,17 @@ test("U3b Undo removes the decoration target even over surviving painted floor",
       contentType: "image/png",
     });
   } finally {
+    await info.attach("decoration-room-delivery.json", {
+      body: JSON.stringify({
+        sent: wire.sent.filter((message) => message.t === "map-studio-command"),
+        received: wire.received.filter(
+          (frame) =>
+            "t" in frame &&
+            ["map-studio-document", "map-studio-error", "error", "ack", "nack"].includes(frame.t),
+        ),
+      }),
+      contentType: "application/json",
+    });
     await dmContext.close();
     await playerContext.close();
   }

@@ -82,13 +82,38 @@ for (const mobile of [false, true]) {
         await dm.mouse.move(target.from.x, target.from.y);
         await expectFootprint(dm, doc, cells);
       };
-      const synchronized = async () => {
-        await expect
-          .poll(async () => (await mapContent(player)).terrain)
-          .toEqual((await mapContent(dm)).terrain);
-        await expect
-          .poll(async () => (await mapContent(player)).scene?.sourceRevision)
-          .toBe(wire.document().revision);
+      const synchronized = async (command: ReturnType<typeof paints>[number]) => {
+        const receipt = () =>
+          wire.received.find(
+            (frame) =>
+              "t" in frame &&
+              frame.t === "map-studio-document" &&
+              frame.appliedCommandId === command.commandId &&
+              frame.document.id === command.documentId,
+          );
+        await expect.poll(receipt).toBeDefined();
+        const acknowledged = receipt();
+        if (!acknowledged || !("t" in acknowledged) || acknowledged.t !== "map-studio-document")
+          throw new Error("The paint command has no matching authoritative receipt");
+        const target = acknowledged.document;
+        expect(target.revision).toBe(command.baseRevision + 1);
+        const hasTerrain = Object.keys(target.terrain?.chunks ?? {}).length > 0;
+        if (command.cells.some((cell) => cell.assetId !== null)) expect(hasTerrain).toBe(true);
+        // A receipt precedes the published snapshot. Reread both clients on every attempt.
+        await expect(async () => {
+          const states = await Promise.all([mapContent(dm), mapContent(player)]);
+          expect(states[0]!.live).toBe(target.id);
+          // The editor binding is DM-only; players receive the compiled scene instead.
+          expect(states[1]!.live).toBeUndefined();
+          for (const current of states) {
+            expect(current.scene).toMatchObject({
+              sourceDocumentId: target.id,
+              sourceRevision: target.revision,
+            });
+            expect(current.terrain?.terrain).toEqual(target.terrain);
+          }
+          expect(states[1]!.terrain).toEqual(states[0]!.terrain);
+        }).toPass({ timeout: 10_000 });
       };
       // A real placed object takes the other explicit Sample route.
       await openBuildTools(dm, mobile);
@@ -149,7 +174,7 @@ for (const mobile of [false, true]) {
         await expect.poll(() => paints().length).toBe(count + 1);
         expect(sortedCells(paints()[count]!.cells)).toEqual(sortedCells(expected));
         await expect.poll(async () => (await mapContent(dm)).terrain).not.toEqual(before.terrain);
-        await synchronized();
+        await synchronized(paints()[count]!);
         const painted = await mapContent(dm);
         await armSize(dm, mobile, size, true);
         await hoverReentry(square(target.cellX, target.cellY, size, null));
@@ -161,7 +186,7 @@ for (const mobile of [false, true]) {
           sortedCells(square(target.cellX, target.cellY, size, null)),
         );
         await expect.poll(async () => (await mapContent(dm)).terrain).not.toEqual(painted.terrain);
-        await synchronized();
+        await synchronized(paints()[count + 1]!);
         await undoStroke(dm, player, mobile, painted);
         await undoStroke(dm, player, mobile, before);
       }
@@ -182,7 +207,7 @@ for (const mobile of [false, true]) {
       expect(sortedCells(paints()[count]!.cells)).toEqual(
         sortedCells([0, 1, 2, 3].flatMap((dx) => square(target.cellX + dx, target.cellY, 1))),
       );
-      await synchronized();
+      await synchronized(paints()[count]!);
       await undoStroke(dm, player, mobile, beforeFast);
 
       // The five-cell brush cancels without a late compatibility release committing it.
@@ -212,7 +237,7 @@ for (const mobile of [false, true]) {
       await press();
       await release();
       await expect.poll(() => paints().length).toBe(count + 2);
-      await synchronized();
+      await synchronized(paints()[count + 1]!);
       await openBuildTools(dm, mobile);
       if (mobile) {
         await dm.getByRole("button", { name: "Ground", exact: true }).tap();

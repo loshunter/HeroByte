@@ -62,6 +62,41 @@ function oneFinger(): KonvaEventObject<TouchEvent> {
 }
 
 describe("useStageEventRouter — panning under the atlas-link aim", () => {
+  it("claims the aimed finger's mouse stream while retaining camera delegation and tap capture", () => {
+    const p = props({ linkAimMode: true });
+    const event = oneFinger();
+    const { result } = renderHook(() => useStageEventRouter(p));
+    result.current.onTouchStart(event);
+    expect(event.evt.preventDefault).toHaveBeenCalledTimes(1);
+    expect(p.handleTouchStart).toHaveBeenCalledWith(event, stageRef, true);
+    result.current.onTouchEnd();
+    expect(p.handleTouchEnd).toHaveBeenCalledTimes(1);
+    result.current.onTap({
+      evt: { touches: { length: 0 } },
+    } as unknown as KonvaEventObject<TouchEvent>);
+    expect(p.handleLinkAimClick).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([false, true])("preserves the mouse stream outside aim (map-edit: %s)", (mapEditMode) => {
+    const p = props({ mapEditMode });
+    const event = oneFinger();
+    const { result } = renderHook(() => useStageEventRouter(p));
+    result.current.onTouchStart(event);
+    expect(event.evt.preventDefault).not.toHaveBeenCalled();
+    expect(p.handleTouchStart).toHaveBeenCalledWith(event, stageRef, !mapEditMode);
+  });
+
+  it("delegates an already non-cancelable aimed touch without claiming cancellation", () => {
+    const p = props({ linkAimMode: true });
+    const event = {
+      evt: { touches: { length: 1 }, cancelable: false, preventDefault: vi.fn() },
+    } as unknown as KonvaEventObject<TouchEvent>;
+    const { result } = renderHook(() => useStageEventRouter(p));
+    result.current.onTouchStart(event);
+    expect(event.evt.preventDefault).not.toHaveBeenCalled();
+    expect(p.handleTouchStart).toHaveBeenCalledWith(event, stageRef, true);
+  });
+
   it("a mouse never pans while the aim is armed (its drag would end in a placing click)", () => {
     const p = props({ linkAimMode: true });
     const { result } = renderHook(() => useStageEventRouter(p));

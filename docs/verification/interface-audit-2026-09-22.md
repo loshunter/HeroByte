@@ -184,6 +184,42 @@ authorizing scoped local closeout. See that record for
 strict RED/GREEN, setup failures, automated two-client evidence and device limits.
 IA-10 collection browsing remains U4c; this does not mark combined U4 complete.
 
+**2026-09-26 IA-10 disposition:** U4c adds named object/material cards, object search,
+desktop material categories, phone material search and persistent collection previews.
+My uploads identifies the browser-local object shelf; Custom remains the shared table
+token library. Existing pick/upload/permission contracts remain. Characterization and
+compile-valid behavioral RED preceded implementation. Focused checks and six final
+desktop/phone two-client journeys pass, including bounded focus-layout and size-wrap
+repairs. All seven U4c reach reports pass. Initial gates 1–7 passed; the full browser
+run exposed two missed old-picker test selectors. Their migration retains behavioral
+assertions, with 19 strict roots and four affected browser journeys now passing.
+The second full run finished 265 browser passes/three skips/two failures: one further
+phone Sample selector and a real Atlas aimed tap that also opened its door. Bounded
+repairs have strict unit/browser RED, 120 affected unit passes and 25 strict roots;
+six focused journeys now pass across five unchanged cases and the final Atlas case,
+with the public-link oracle failure/correction retained. The third full run passed
+gates 1–7 (10,098 unit passes/four skips; 139.69 KB), but E2E finished 258 passes/three
+skips/ten failures. Browser startup/teardown diagnosis and a bounded terrain
+test-oracle repair now have eight unchanged focused passes plus two corrected
+terrain passes, with intermediate failures retained. All 26 actual roots compile.
+The fourth full ladder passed gates 1–7, but E2E finished 257 passes/three skips/
+eleven failures in 57.1 minutes. All 35 frozen paths/HEAD/strict inputs matched.
+Six page-creation failures and other runtime/test-oracle failures remain under
+diagnosis; a 30-context blank-page probe passed without reproducing them. Boot
+and independent review did not run for that failed snapshot. Bounded native-undo and room-receipt
+test corrections compile across 28 roots; all eleven focused cases pass in 161.8
+seconds, with zero errors/retries and all 37 frozen paths unchanged. The fifth full
+ladder and isolated boot now PASS: 10,098 unit passes/four skips, 268 browser passes/
+three existing skips in 30.3 minutes, 139.69 KB gzip and zero browser errors/retries.
+Root verified all 37 paths/HEAD/full inventory, 28 strict inputs and seven reach
+reports/13 controls. The runtime fault did not recur; its cause remains unresolved.
+Independent R1 is VOID/INCOMPLETE after an agent-limit dispatch error: zero completed
+assignments, two partial STATIC reports and two unperformed lenses. No actionable
+finding was established and no valid review verdict exists. All review hashes match;
+the owner accepted the verified checkpoint on 2026-09-26 with "accepted and ready
+to proceed", authorizing scoped local closeout and U5 continuation. See
+[the U4c record](interface-clarity-u4c.md).
+
 The following observations describe the September 22 audit; the dispositions above
 record later changes.
 

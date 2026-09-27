@@ -52,7 +52,8 @@
   overflow-wrap: anywhere;
   pointer-events: none;
 }
-.mobile-map-edit-armed__size {
+.mobile-map-edit-armed__size,
+.map-edit-armed__size {
   white-space: nowrap;
 }
 .map-edit-armed {
