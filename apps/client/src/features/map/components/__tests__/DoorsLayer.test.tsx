@@ -309,4 +309,100 @@ describe("DoorsLayer", () => {
 
     expect(hitLine().listening).toBe(true);
   });
+
+  // Konva fires click/tap whenever press and release land on the same shape —
+  // any mouse button, no movement slop — and a pan carries the door along under
+  // the pointer, so a pan that started on a door also ENDED on it and swung it
+  // for the whole table. The Atlas touch-ownership e2e caught a player's
+  // middle-button pan toggling the very door it was centring.
+  describe("a pan that starts on a door never swings it", () => {
+    type Handler = ((event: unknown) => void) | undefined;
+    const mouse = (button: number, clientX: number) => ({
+      cancelBubble: false,
+      evt: { button, clientX, clientY: 50, altKey: false },
+    });
+    const finger = (clientX: number, down: boolean) => {
+      const point = { clientX, clientY: 50 };
+      return {
+        cancelBubble: false,
+        evt: { touches: down ? [point] : [], changedTouches: [point] },
+      };
+    };
+
+    function renderDoor() {
+      const onToggleDoor = vi.fn();
+      render(
+        <DoorsLayer
+          linkAimArmed={false}
+          selectArmed={false}
+          cam={cam}
+          doors={[door()]}
+          isDM={false}
+          onToggleDoor={onToggleDoor}
+          onSetDoorState={vi.fn()}
+        />,
+      );
+      const hit = hitLine();
+      return {
+        onToggleDoor,
+        // Optional-call: before the guard existed the line had no press handler,
+        // so the RED run fails on the toggle assertion, not on a TypeError.
+        press: (event: { evt: object }) =>
+          (("touches" in event.evt ? hit.onTouchStart : hit.onMouseDown) as Handler)?.(event),
+        click: hit.onClick as (event: unknown) => void,
+        tap: hit.onTap as (event: unknown) => void,
+      };
+    }
+
+    it("a middle-button press and release on the door pans; it does not toggle", () => {
+      const door = renderDoor();
+      door.press(mouse(1, 50));
+      door.click(mouse(1, 50));
+      expect(door.onToggleDoor).not.toHaveBeenCalled();
+    });
+
+    it("a right-button press and release on the door does not toggle", () => {
+      const door = renderDoor();
+      door.press(mouse(2, 50));
+      door.click(mouse(2, 50));
+      expect(door.onToggleDoor).not.toHaveBeenCalled();
+    });
+
+    it("a primary-button drag that moved past the slop does not toggle", () => {
+      const door = renderDoor();
+      door.press(mouse(0, 50));
+      door.click(mouse(0, 90));
+      expect(door.onToggleDoor).not.toHaveBeenCalled();
+    });
+
+    it("a one-finger drag that starts on the door does not toggle", () => {
+      const door = renderDoor();
+      door.press(finger(50, true));
+      door.tap(finger(90, false));
+      expect(door.onToggleDoor).not.toHaveBeenCalled();
+    });
+
+    it("a primary click that stays within the slop still toggles", () => {
+      const door = renderDoor();
+      door.press(mouse(0, 50));
+      door.click(mouse(0, 53));
+      expect(door.onToggleDoor).toHaveBeenCalledWith("door-1");
+    });
+
+    it("a still tap still toggles", () => {
+      const door = renderDoor();
+      door.press(finger(50, true));
+      door.tap(finger(51, false));
+      expect(door.onToggleDoor).toHaveBeenCalledWith("door-1");
+    });
+
+    it("each gesture is judged on its own press, not a stale one", () => {
+      const door = renderDoor();
+      door.press(mouse(0, 50));
+      door.click(mouse(0, 90));
+      door.press(mouse(0, 90));
+      door.click(mouse(0, 91));
+      expect(door.onToggleDoor).toHaveBeenCalledTimes(1);
+    });
+  });
 });
