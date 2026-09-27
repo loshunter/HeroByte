@@ -140,9 +140,12 @@ export interface MapStudioController {
   addLight: (draft: MapLightDraft) => string | null;
   addSpline: (draft: MapSplineDraft) => string | null;
   removeElement: (elementId: string) => void;
-  updateElement: (elementId: string, update: MapElementUpdate) => void;
+  updateElement: (elementId: string, update: MapElementUpdate) => MapOperationHandle;
   /** Author a placed door's initial state + width (dedicated data path). */
-  updateDoor: (elementId: string, update: { state: MapDoorState; width: number }) => void;
+  updateDoor: (
+    elementId: string,
+    update: { state: MapDoorState; width: number },
+  ) => MapOperationHandle;
   /**
    * Run a server-side recipe over a region of the active document. The whole
    * result lands as ONE undo step. The returned handle belongs to this request

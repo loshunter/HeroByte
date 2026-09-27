@@ -5,7 +5,7 @@ import { aimRegion, observeGeneration } from "./u3a-generate.helpers";
 import { closeBuildTools, openBuildTools } from "./u3b-palette.helpers";
 import { openTouch, touchTap } from "./mobile/touch.helpers";
 
-test("U3b phone Lighting group closes directly, places one light and preserves player redaction", async ({
+test("U5 phone Lighting group exposes ambient light, places one light and preserves player redaction", async ({
   browser,
   baseURL,
 }, info) => {
@@ -28,7 +28,9 @@ test("U3b phone Lighting group closes directly, places one light and preserves p
     const sheet = dm.getByRole("dialog", { name: "Map tools", exact: true });
     await expect(sheet).toBeVisible();
     await sheet.getByRole("combobox", { name: "Tool group" }).selectOption("lighting");
-    // No tool-tile click: changing the group already arms its remembered tool.
+    // Group selection arms the tool while retaining its ambient settings.
+    await expect(sheet.getByRole("slider", { name: "Ambient light", exact: true })).toBeVisible();
+    await closeBuildTools(dm, true);
     await expect(sheet).toBeHidden();
     expect((await mapContent(player)).scene?.lights ?? []).toHaveLength(0);
     const canvas = dm.getByTestId("map-board").locator("canvas").first();
@@ -231,14 +233,14 @@ for (const mobile of [false, true]) {
       if (mobile) {
         await dm.getByTestId("mobile-inspector-toggle").tap();
         const inspector = dm.getByTestId("mobile-inspector");
-        await inspector.getByRole("button", { name: /Visible to players/i }).tap();
+        await inspector.getByRole("checkbox", { name: "Hide element" }).check();
         await inspector.getByTestId("mobile-inspector-apply").tap();
         await dm.getByTestId("mobile-inspector-toggle").tap();
       } else {
         await dm.getByRole("button", { name: "🔍 Inspect", exact: true }).click();
-        const inspector = dm.getByRole("group", { name: "Edit wall", exact: true });
+        const inspector = dm.getByRole("group", { name: "Selected properties", exact: true });
         await inspector.getByRole("checkbox", { name: "Hide element" }).check();
-        await inspector.getByRole("button", { name: "APPLY", exact: true }).click();
+        await dm.getByRole("button", { name: "Save changes", exact: true }).click();
         await dm.getByRole("button", { name: "🔍 Inspect", exact: true }).click();
       }
       await expect

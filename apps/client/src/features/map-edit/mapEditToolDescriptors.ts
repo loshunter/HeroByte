@@ -94,8 +94,8 @@ export const TOOL_DESCRIPTORS = {
     group: "lighting",
     label: "Place light",
     icon: "💡",
-    help: "Place a light pool. Adjust Ambient light in Layers.",
-    mobilePanel: false,
+    help: "Set Ambient light from Dark to Daylight, then place a light pool.",
+    mobilePanel: true,
   },
   generate: {
     group: "generate",

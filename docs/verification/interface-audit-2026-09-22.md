@@ -4,6 +4,34 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
+**Latest implementation checkpoint (2026-09-27):** the owner authorized the two
+final U5 repairs with “Proceed”. Session-upload remount and ambient accessibility
+have compiled RED, 194 affected unit passes/24 files, 34 strict roots and affected
+two-client browser passes. Root verifies 78 controls and matching/shared outcomes;
+failed test attempts remain recorded. The 58-path full gate/boot repeat is next.
+No R4, U5 commit or U6. See [the U5 record](interface-clarity-u5.md).
+
+**Historical R3 stop:** U5 final R3 is VOID because
+one reviewer accidentally saw a peer-report line. All four STATIC lenses completed;
+runtime/dispatch errors and missing lenses are zero. Three unique flags are retained:
+session-upload picker remount, ambient-slider accessibility and stale status. The
+checkpoint corrects status text; two code repairs await owner direction. No R4,
+product repair, U5 commit or U6 before that direction. See
+[the final U5 owner checkpoint](interface-clarity-u5.md#owner-checkpoint--final-review-void-two-repairs-proposed).
+
+**Verified snapshot before R3:** U5 R2 completed four STATIC
+lenses, zero agent errors and three flags. Bounded phone-resize, session-upload-name
+and evidence-label repairs have compiled RED and 170 affected unit passes/20 files.
+All 31 strict roots and the phone two-client journey PASS with zero errors/retries.
+Corrected full verification/boot PASS; R3's later result is above and R1 stays VOID. Later pre-R2
+gate figures are historical. See [the U5 record](interface-clarity-u5.md).
+The first R2 gate attempt failed test formatting and stopped its browser run
+without a verdict. Formatting and strict checks are repaired; fresh full gates
+under `u5-r2-format-gate-*` PASS: 10,140 unit passes/four skips, 270 browser passes/
+three skips, 143.28 KB, zero browser errors/retries/raw diagnostics. All 53 hashes/
+31 strict roots match; 77 controls and fresh boot pass. The interrupted attempt
+stays recorded. Only result/frontier docs changed for final R3 and its checkpoint.
+
 The interface has strong individual tools, but weak connections between them. A newcomer
 must learn where a feature was added: chat inside Log, combat inside Players, DM elevation
 inside character settings, night inside layer opacity, and map management inside Map Studio.
@@ -219,6 +247,39 @@ finding was established and no valid review verdict exists. All review hashes ma
 the owner accepted the verified checkpoint on 2026-09-26 with "accepted and ready
 to proceed", authorizing scoped local closeout and U5 continuation. See
 [the U4c record](interface-clarity-u4c.md).
+
+**IA-11 and IA-12 — U5 final repairs implemented and verified; R3 VOID.**
+The owner authorized the two product/accessibility repairs; focused verification
+passes as recorded above, and the full ladder and dev boot pass on the combined
+tree (10,155 units, 272 browser, 143.35 KB; see the U5 record, which also covers a
+separate pre-U5 door-pan fix). The owner accepted it on 2026-09-27; U5 is
+committed locally on `dev`. No fresh semantic review PASS is claimed. Pre-repair counts
+are 10,140 unit passes/four existing skips, 270 browser passes/three existing skips,
+143.28 KB gzip, 53 frozen paths and 31 strict roots. Properties
+now share a staged desktop/phone form with a compact summary, collapsed numeric
+controls and one Save changes action. Each general/door operation requires its own
+matching outcome; partial and unconfirmed results retain the unsaved draft. Lighting
+exposes Ambient light directly and Layers shows percentages. Focused verification
+initially passed 143 affected unit cases and thirteen browser journeys across bounded runs.
+Real two-client checks preserve hidden-door/privacy boundaries and verify delayed
+save acknowledgement, player ambient updates and responsive 44 px targets. All eight
+full gates and isolated boot passed before review. R1 stopped on a documentation-agent dispatch limit:
+UI STATIC FAIL, state/tests partial, named documentation review unperformed. Five
+unique flags were recorded: ambient drag, locked phone draft controls, negative coordinate
+typing, uploaded asset naming and stale phone guide instructions. No U5 completion
+claim. The owner authorized the five bounded repairs and renewed verification/review
+on 2026-09-27. Repairs pass 152 affected unit tests, 28 strict roots and strengthened
+desktop/phone two-client journeys, with all 77 controls reachable. The repaired full
+run initially had one phone DM-menu-reopen failure. It is reproduced with native event diagnostics and isolated
+HTML pan/tap probes. The test now separates its two gesture phases by the measured
+350 ms interval, retaining all assertions; its focused case and 29 strict roots
+pass. This is a test-input correction, not a physical-device/product-fix claim.
+The historical pre-R2 full ladder and isolated boot PASS: 10,137 unit passes/four existing
+skips, 270 browser passes/three existing skips, 143.18 KB gzip. All 52 frozen
+hashes/HEAD/inventory and 29 strict roots match; browser errors/retries/raw
+diagnostics are zero. R2's later repairs, corrected current counts and R3's owner
+checkpoint are recorded at the top. See
+[the U5 record](interface-clarity-u5.md).
 
 The following observations describe the September 22 audit; the dispositions above
 record later changes.

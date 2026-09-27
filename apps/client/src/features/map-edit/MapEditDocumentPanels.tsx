@@ -2,6 +2,7 @@ import { MapEditLayersPopover } from "./MapEditLayersPopover";
 import { MapEditInspectorPopover } from "./MapEditInspectorPopover";
 import type { MapEditToolbarProps } from "./mapEditTypes";
 import { useRevealMapPanel } from "./useRevealMapPanel";
+import { ElementPropertiesSummary, PropertySaveActions } from "./ElementPropertiesForm";
 
 /** Document panels are independent of which authoring tool is active. */
 export function MapEditDocumentPanels(props: MapEditToolbarProps) {
@@ -19,15 +20,20 @@ export function MapEditDocumentPanels(props: MapEditToolbarProps) {
           />
         </div>
       )}
+      {props.selectedElement && (
+        <ElementPropertiesSummary element={props.selectedElement} layers={props.layers} />
+      )}
+      {!props.inspectorOpen && props.properties?.navigation && (
+        <PropertySaveActions properties={props.properties} />
+      )}
       {props.inspectorOpen && (
         <div ref={inspectorRef}>
-          {props.selectedElement ? (
+          {props.selectedElement && props.properties ? (
             <MapEditInspectorPopover
               element={props.selectedElement}
               layers={props.layers}
               disabled={props.saving}
-              onUpdate={props.onUpdateElement}
-              onUpdateDoor={props.onUpdateDoor}
+              properties={props.properties}
               onRemove={props.onRemoveElement}
             />
           ) : (

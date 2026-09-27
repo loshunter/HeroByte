@@ -70,7 +70,9 @@ async function placeAndPick(
 }
 
 test.describe("M8 — the inspector and the layer stack", () => {
-  test("Edit turns a placed object, and the table receives the new angle", async ({ page }) => {
+  test("Properties turns a placed object, and the table receives the saved angle", async ({
+    page,
+  }) => {
     test.setTimeout(150_000);
     const { dock, toolGrid } = await armLiveMapEdit(page, TABLET);
     expect((await placedElements(page)).length).toBe(0); // positive control
@@ -83,6 +85,7 @@ test.describe("M8 — the inspector and the layer stack", () => {
     await page.getByTestId("mobile-inspector-toggle").click();
     await expect(page.getByTestId("mobile-inspector")).toBeVisible();
 
+    await page.getByRole("button", { name: "Position and scale", exact: true }).click();
     const clockwise = page.getByRole("button", { name: /Turn element clockwise/i });
     await clockwise.click();
     await clockwise.click();

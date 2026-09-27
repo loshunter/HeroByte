@@ -7,7 +7,7 @@ afterEach(cleanup);
 
 describe("phone group activation uses the remembered tool's close policy", () => {
   it.each([
-    ["light", "lighting", true],
+    ["light", "lighting", false], // U5: Ambient light is available before returning to the map.
     ["erase", "terrain", false], // U4b: brush size keeps Erase settings open.
     ["wall", "structures", true],
     ["room", "structures", false],

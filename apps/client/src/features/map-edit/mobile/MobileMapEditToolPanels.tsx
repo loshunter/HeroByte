@@ -17,6 +17,7 @@
 
 import React from "react";
 import { TerrainBrushSizeControl } from "../TerrainBrushSizeControl";
+import { AmbientLightControl } from "../AmbientLightControl";
 import { MAP_STUDIO_TILE_ASSETS } from "../../map-studio/starterTiles";
 import { PAINT_FAMILIES, WALL_FAMILIES } from "../mapEditFamilies";
 import type { TouchTool } from "../mapEditToolKinds";
@@ -85,6 +86,8 @@ const ROW_ASSETS = MAP_STUDIO_TILE_ASSETS.filter((asset) => asset.category === "
 );
 
 export function MobileMapEditToolPanels(props: MapEditToolbarProps): JSX.Element | null {
+  if (props.activeSubTool === "light")
+    return <AmbientLightControl key={props.documentId} {...props} />;
   // Generate takes the whole bag: it reads eight fields, and listing them here
   // to forward them one by one is how a forwarding prop goes missing.
   if (props.activeSubTool === "generate") return <MobileGeneratePanel {...props} />;

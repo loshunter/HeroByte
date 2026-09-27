@@ -89,8 +89,15 @@ export async function inspectStamp(page: Page, mobile: boolean, document: MapDoc
     await expect(page.getByTestId("mobile-inspector")).toBeInViewport();
   } else {
     await page.getByRole("button", { name: "🔍 Inspect", exact: true }).click();
-    await expect(page.getByRole("group", { name: /^Edit / })).toBeVisible();
-    await expect(page.getByRole("spinbutton", { name: "X", exact: true })).toBeInViewport({
+    await expect(
+      page.getByRole("group", { name: "Selected properties", exact: true }),
+    ).toBeVisible();
+    const advanced = page.getByRole("button", { name: "Position and scale", exact: true });
+    await expect(advanced).toHaveAttribute("aria-expanded", "false");
+    await advanced.click();
+    const x = page.getByRole("spinbutton", { name: "X (px)", exact: true });
+    await x.scrollIntoViewIfNeeded();
+    await expect(x).toBeInViewport({
       ratio: 1,
     });
   }

@@ -18,6 +18,18 @@ const STORAGE_KEY = "herobyte-my-stuff";
 export const MY_STUFF_MAX_ENTRIES = 60;
 
 const SHA256_HEX = /^[a-f0-9]{64}$/;
+// Mirror the latest shelf mutation for other local surfaces, including when
+// storage is blocked. An empty session shelf also overrides stale persisted art.
+let sessionAssets: MyStuffAsset[] | undefined;
+
+export function myStuffAssetName(hash: string): string | undefined {
+  return currentMyStuffAssets().find((asset) => asset.hash === hash)?.name;
+}
+
+/** A new picker shares this tab's latest shelf, including failed storage writes. */
+export function currentMyStuffAssets(): MyStuffAsset[] {
+  return (sessionAssets ?? loadMyStuffAssets()).map((asset) => ({ ...asset }));
+}
 
 export function loadMyStuffAssets(): MyStuffAsset[] {
   try {
@@ -50,6 +62,7 @@ export function removeMyStuffAsset(current: MyStuffAsset[], hash: string): MyStu
 }
 
 function persist(assets: MyStuffAsset[]): void {
+  sessionAssets = assets.map((asset) => ({ ...asset }));
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
   } catch {

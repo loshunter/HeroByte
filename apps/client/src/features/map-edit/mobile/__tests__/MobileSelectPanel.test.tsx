@@ -19,6 +19,8 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import type { MapElement } from "@herobyte/shared";
 import { MobileSelectPanel } from "../MobileSelectPanel";
 import type { MapEditToolbarProps } from "../../mapEditTypes";
+import { propertyValues, type PropertyView } from "../../elementProperties";
+import { propertyKinds } from "../../__tests__/propertyKinds.fixtures";
 
 afterEach(() => cleanup());
 
@@ -38,6 +40,19 @@ const bag = (overrides: Record<string, unknown> = {}) =>
   ({
     activeSubTool: "select",
     selectedElement: null,
+    properties: {
+      values: propertyValues(element()),
+      dirty: true,
+      pending: false,
+      uncertain: false,
+      canSave: true,
+      message: "Unsaved changes.",
+      change: vi.fn(),
+      save: vi.fn(),
+      discard: vi.fn(),
+      navigation: null,
+      recovery: null,
+    } satisfies PropertyView,
     onRemoveElement: vi.fn(),
     ...overrides,
   }) as unknown as MapEditToolbarProps;
@@ -93,22 +108,9 @@ describe("MobileSelectPanel", () => {
   // like a rendering bug rather than the missing map entry it is. The union is
   // closed in shared, so this is the runtime half of that compile-time check.
   it("has a readable name for every element kind the document can hold", () => {
-    const kinds: MapElement["type"][] = [
-      "tile",
-      "stamp",
-      "shape",
-      "wall",
-      "door",
-      "light",
-      "text",
-      "spline",
-    ];
-
-    for (const type of kinds) {
-      const { unmount } = render(
-        <MobileSelectPanel {...bag({ selectedElement: element({ type }) })} />,
-      );
-      expect(status(), `${type} has no label`).not.toMatch(/undefined/);
+    for (const selectedElement of propertyKinds) {
+      const { unmount } = render(<MobileSelectPanel {...bag({ selectedElement })} />);
+      expect(status(), `${selectedElement.type} has no label`).not.toMatch(/undefined/);
       expect(status().trim().length).toBeGreaterThan(0);
       unmount();
     }
@@ -118,7 +120,7 @@ describe("MobileSelectPanel", () => {
   // create/open/bind round trip, over before this panel can render. The panel
   // shipped reading `busy`, so its guard was inert exactly when it was needed.
   // The pair below is DISCRIMINATING — a swap back fails one of them.
-  it("disables the inspector's Apply while a command is in flight (saving)", () => {
+  it("disables Save changes while a command is in flight (saving)", () => {
     render(
       <MobileSelectPanel
         {...bag({

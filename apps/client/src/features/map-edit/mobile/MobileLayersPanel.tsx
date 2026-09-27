@@ -1,9 +1,7 @@
 // The layer stack, with a finger.
 //
-// This is not a nice-to-have on a phone. The **Lighting layer's opacity IS the
-// ambient light** — 1 is day, lower is night, and the torch pools only glow
-// once it drops. Without this panel a DM authoring on a tablet can place lights
-// and never turn the lights down, which is most of what lighting is for.
+// Lighting exposes Ambient light directly. This panel retains the same value
+// alongside visibility, locking and opacity for the full layer stack.
 //
 // The desktop MapEditLayersPopover is reused in SHAPE (visible / lock / name /
 // reorder / opacity) but not in code: its buttons are 10px type at 2px padding,
@@ -73,11 +71,12 @@ export function MobileLayersPanel({
           </button>
           <label className="mobile-layer-row__slider">
             <span className="mobile-tool-sheet__label">
-              {layer.kind === "lighting" ? "Ambient light" : layer.name} —{" "}
+              {layer.kind === "lighting" ? "Ambient light" : `${layer.name} Opacity`} —{" "}
               {Math.round(layer.opacity * 100)}%
             </span>
             <input
               aria-label={layer.kind === "lighting" ? "Ambient light" : `${layer.name} opacity`}
+              aria-valuetext={`${Math.round(layer.opacity * 100)}%`}
               type="range"
               min={0}
               max={1}

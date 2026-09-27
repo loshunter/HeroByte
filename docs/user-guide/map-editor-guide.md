@@ -62,7 +62,7 @@ At the table, anyone can click a door to swing it — creak and slam included.
 
 ## 💡 Light — torches and night
 
-Click to drop a warm torch pool (fixed radius). In **Layers**, the **Ambient light** slider controls the Lighting layer's opacity — **100%** is full day; drag it down and the map cools into night, and your torch pools start to glow.
+Open **Lighting** and set **Ambient light** from **Dark → Daylight**: **100%** is full daylight; lower values make the map darker and light pools glow. Tap or click the map to place a warm torch pool (fixed radius). On a phone, close the tool sheet to reach the map after adjusting the slider. **Layers** shows the same ambient value; other layer sliders show **Opacity** and a percentage.
 
 ![Night ambient with two torch pools burning](img/mapedit-night-lights.jpg)
 
@@ -238,15 +238,15 @@ Scatter or Paint armed while sampling.
 
 **My uploads works here too.** The picker's last shelf is your own art: **Upload art** takes a photo or image straight from the phone's camera roll, and the moment it lands it is armed — tap the map to place it. Desktop and phone layouts share the shelf within the same browser; the local list does not follow you to another device. Pasting a link works only for art already on this table (an upload's own address); a link to somewhere else on the web cannot be placed, and the field says so rather than failing quietly.
 
-> **Editing what you picked.** With something selected, **✎ Edit** opens under the readout: **↺ / ↻** turn it in fifteens, **− / +** resize it in tenths, a **Layer** picker moves it between layers, and one button hides it from players. Press **✓ Apply** and all of it goes as a single change. A door also gets **Closed / Open / Locked / Secret**, which applies the moment you tap it — a door is opened during play, not authored.
+> **Editing what you picked.** Selection shows a compact **Properties** summary with the element's type, name and layer. Open **Properties** to change layer, player visibility and door state/width. **Position and scale** reveals position in pixels, rotation in degrees and scale multipliers; phone turn and resize buttons are here too. All these fields stay staged until **Save changes**. Saving both general properties and door settings uses two operations and may need two **Undo map edit** actions. Success appears only after the server confirms each operation. If one fails, the form names what saved and retains the unsaved part for retry. Unconfirmed completion requires **Refresh saved values**, then **I've checked the saved values**, before saving the remaining draft. Selecting something else offers **Save changes**, **Discard changes** or **Keep editing**; closing the panel or changing layout preserves the draft.
 >
-> The desktop's X and Y boxes are not here: typing an absolute pixel coordinate for a thing you can see is a mouse's idea of editing. If a piece is in the wrong place, delete it and place it again.
+> To position a piece precisely on phone or desktop, open **Properties → Position and scale** and edit **X (px)** or **Y (px)**, then choose **Save changes**.
 
 > **🗂 Layers.** In the tool sheet, beside Select. Each layer gets a show/hide eye, a lock, and an opacity slider — and **the Lighting layer's opacity is the ambient light**: 1 is broad day, and torch pools only start to glow as you bring it down. That is how you make it night from a tablet. Reordering the stack stays on the desktop.
 
 > **Deleting on a phone.** Tap **⚒ Tool**, tap **👆 SELECT**, then tap the thing on the map — the sheet names what you picked — and tap **🗑 DELETE**. Select reaches everything you can place: objects, floor tiles, shapes, walls, doors, lights, text and splines. Walls and the like are thin, so you get a half-cell of slack — tap near one and it will take it, and the dashed outline traces what you actually caught before you commit to deleting it.
 >
-> On a phone the sheet covers the map, so Select takes two extra taps: arm it, close the sheet with **✕**, tap the thing, then reopen **⚒ Tool** — your pick is still there, with Edit and Delete under it. On a tablet there is room for both at once and you can skip that.
+> On a phone the sheet covers the map, so Select takes two extra taps: arm it, close the sheet with **✕**, tap the thing, then reopen **⚒ Tool** — your pick is still there, with **Properties** and **Delete** under it. On a tablet there is room for both at once and you can skip that.
 >
 > Two things it cannot do. A room's **floor is terrain**, not an element, so it comes off with **🧹 Erase** rather than Select — which is now a tool you have on the phone too. And a room's walls are separate pieces, so deleting one cuts a gap rather than removing the room — which is exactly what you want when you are opening a doorway.
 

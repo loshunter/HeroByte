@@ -94,6 +94,7 @@ export const createKickMobileProps = (): MainLayoutProps => ({
     saving: false,
     layers: [],
     selectedElement: null,
+    properties: null,
     onUpdateLayer: vi.fn(),
     onMoveLayer: vi.fn(),
     onUpdateElement: vi.fn(),

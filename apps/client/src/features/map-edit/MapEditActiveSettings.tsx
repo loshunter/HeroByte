@@ -4,6 +4,7 @@ import { getMapStudioTileAsset } from "../map-studio/starterTiles";
 import { MapEditAssetPicker } from "./MapEditAssetPicker";
 import { MapEditBrushDeck } from "./MapEditBrushDeck";
 import { TerrainBrushSizeControl } from "./TerrainBrushSizeControl";
+import { AmbientLightControl } from "./AmbientLightControl";
 import { MapEditSwatchGrid } from "./MapEditSwatchGrid";
 import { WALL_FAMILIES } from "./mapEditFamilies";
 import type { MapEditToolbarProps, MapEditWallFamily } from "./mapEditTypes";
@@ -26,6 +27,8 @@ const labelStyle = {
 } as const;
 
 export function MapEditActiveSettings({
+  documentId,
+  error,
   activeSubTool,
   floorFamily,
   onSelectFloorFamily,
@@ -44,6 +47,9 @@ export function MapEditActiveSettings({
   onSelectHallwayWidth,
   terrainBrushSize,
   onSelectTerrainBrushSize,
+  layers,
+  saving,
+  onUpdateLayer,
 }: MapEditToolbarProps) {
   const placing =
     activeSubTool === "place" || activeSubTool === "scatter" || activeSubTool === "row";
@@ -66,13 +72,13 @@ export function MapEditActiveSettings({
       )}
 
       {activeSubTool === "light" && (
-        <p
-          className="jrpg-text-small"
-          style={{ margin: 0, color: "var(--jrpg-white)", opacity: 0.8 }}
-        >
-          Click to place a torch pool. The Lighting layer&apos;s opacity (🗂 Layers) is the ambient
-          light: 1 = day, lower = night — pools glow once it drops.
-        </p>
+        <AmbientLightControl
+          key={documentId}
+          layers={layers}
+          saving={saving}
+          error={error}
+          onUpdateLayer={onUpdateLayer}
+        />
       )}
 
       {(activeSubTool === "room" || activeSubTool === "hallway") && (

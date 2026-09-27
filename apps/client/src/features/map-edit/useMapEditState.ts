@@ -15,6 +15,7 @@ import { useGenerate } from "./useGenerate";
 import { usePlacementDials } from "./usePlacementDials";
 import type { MapEditToolbarProps } from "./mapEditTypes";
 import { useMapEditPaletteState } from "./useMapEditPaletteState";
+import { useElementProperties } from "./useElementProperties";
 
 const LIVE_MAP_SIZE = 8192;
 /** A crate is the friendliest first set-dressing default. */
@@ -220,7 +221,15 @@ export function useMapEditState({
     [activeDocument, selectedElementId],
   );
 
+  const properties = useElementProperties(
+    controller,
+    selectedElementId,
+    setSelectedElementId,
+    isDM || !snapshotLoaded,
+  );
   const toolbarProps: MapEditToolbarProps = {
+    documentId: activeDocument?.id,
+    properties: properties.properties,
     mapName: activeDocument?.name ?? "Current table map",
     activeGroup,
     onSelectGroup,
@@ -308,7 +317,7 @@ export function useMapEditState({
     wheelActions,
     onRegionDragged: generate.onRegionDragged,
     selectedElementId,
-    onSelectElement: setSelectedElementId,
+    onSelectElement: properties.selectElement,
     onSampleAsset: dials.onSampleAsset,
     wallsOverlayPinned,
     toolbarProps,

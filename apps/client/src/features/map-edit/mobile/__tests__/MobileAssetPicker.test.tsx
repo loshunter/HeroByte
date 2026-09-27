@@ -24,14 +24,17 @@
 import React from "react";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
-import { MobileAssetPicker } from "../MobileAssetPicker";
+let MobileAssetPicker: typeof import("../MobileAssetPicker").MobileAssetPicker;
 
 afterEach(() => cleanup());
 
 /** This jsdom's window.localStorage is an inert stub with no methods at all —
  * the brushDeck.test.ts pattern. The My uploads shelf IS localStorage, so these
  * tests need a functional one. */
-beforeEach(() => {
+beforeEach(async () => {
+  // Each case starts a new browser session, including the in-memory upload shelf.
+  vi.resetModules();
+  ({ MobileAssetPicker } = await import("../MobileAssetPicker"));
   const store = new Map<string, string>();
   Object.defineProperty(window, "localStorage", {
     configurable: true,

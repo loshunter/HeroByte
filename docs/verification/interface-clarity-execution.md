@@ -7,6 +7,69 @@
 
 ## Frontier
 
+- Latest U5: “Proceed” authorizes the two final repairs and verification.
+  Both are implemented with compiled RED, 194 focused unit passes/24 files,
+  34 strict roots/1,040 inputs and three affected browser journey passes across
+  bounded runs. The new test's Free stamp, inspector-helper and summary-selector
+  corrections preserve earlier failures; no product or existing reach assertion
+  was changed for them. Root verifies 78 controls, matching receipts and shared
+  placement; prior failed combined runs retain FAIL. The `u5-postcap-gate-*`
+  browser suite was cut off by the agent's usage limit (no verdict); its one
+  failure exposed a pre-U5 bug (a pan starting on a door swung it), fixed with
+  unit RED/GREEN and `door-pan.spec.ts`. Full ladder then PASS: 10,155 units/4
+  skips, 272 browser/3 skips, 143.35 KB, dev boot. Owner accepted 2026-09-27;
+  door fix `eb28f30a` then U5 committed locally on `dev`. U6 not started.
+  See the U5 record.
+- Historical R3 stop: final R3 is VOID after accidental exposure to a peer-report line;
+  all four STATIC lenses completed, zero runtime/dispatch errors, none missing.
+  Three retained unique findings: upload-picker remount, ambient accessibility,
+  and stale status text. The checkpoint corrects status only; two code repairs
+  await owner direction. Rounds: VOID (5 retained) → valid FAIL (3) → VOID (3
+  retained), not a valid plateau trend. Eleven semantic agents launched plus one
+  failed dispatch; 108 captured completed commands sum to 226.843 minutes (not
+  elapsed/billed time; interrupted browser, standalone strict and boot excluded).
+  All 53 review hashes/HEAD/inventory and empty staging matched after review.
+  Only five result docs change for this checkpoint; source/tests/guide stay frozen.
+  No R4, product repair, commit or U6 before owner direction. See
+  [the final U5 checkpoint](interface-clarity-u5.md#owner-checkpoint--final-review-void-two-repairs-proposed).
+- Pre-R3 U5 verification: R2 completed four STATIC lenses with zero agent errors. UI FAIL has
+  one P2 resize-direction issue; docs FAIL has two P3 session-name/evidence issues;
+  state/tests PASS. All 52 frozen hashes/HEAD/inventory matched. The three repairs
+  have compiled behavioral RED and 170 affected unit passes across 20 files.
+  All 31 strict roots and the strengthened phone journey PASS, no errors/retries;
+  44 controls and four receipts pass. Full checks/boot PASS; later R3 is above. R1 stays VOID. No U5
+  commit or U6; previous full-gate results below describe the pre-R2 snapshot.
+  First R2 gates failed only lint/format after 10,140 unit passes/four skips and
+  143.28 KB bundle; E2E was deliberately stopped under the current fail-fast rule,
+  with no final verdict or boot. The whitespace-only correction passes stable
+  formatter/ESLint, parsed-syntax equivalence and strict31 roots. Fresh
+  `u5-r2-format-gate-*` full verification and isolated boot PASS: 10,140 unit passes/
+  four skips, 270 browser passes/three skips in 23.6 minutes, 143.28 KB. All 53
+  hashes/HEAD/inventory and 31 strict roots/1,038 inputs match; browser errors,
+  retries/flaky/raw diagnostics are zero. Root confirms 77 controls, both receipt
+  sets, Atlas ownership, 30,027 ms boot survival and cleanup. Only five result docs
+  changed for final R3. All failed evidence remains preserved.
+- U4c is accepted and committed as `a56e92e1`, parent `63505c56`. All 37 approved
+  paths/hashes, attribution and clean `dev` passed the commit audit. U5 properties,
+  correlated save feedback and ambient light are implemented after characterization
+  and RED. The pre-repair snapshot passed all eight gates and boot. R1 is VOID
+  after documentation dispatch hit the agent thread
+  limit: UI completed STATIC FAIL, state/tests partial, docs never ran. Five unique
+  issues were flagged, agents_error 1; all 50 review hashes/HEAD/inventory matched.
+  The owner authorized five bounded repairs, verification and fresh R2 with “yes”
+  on 2026-09-27. Repairs pass 152 affected unit tests, 28 strict roots and both
+  strengthened two-client journeys; all 77 controls and matching receipts pass.
+  The first repaired full run had one Atlas menu-reopen failure, preserved with
+  its diagnostic reproduction. Isolated HTML probes identify pan/tap timing
+  sensitivity; a measured 350 ms test-phase separation keeps all assertions.
+  Pre-R2 `u5-gesture-gate-*` checks and isolated boot PASS: 10,137 unit passes/four
+  existing skips, 270 browser passes/three existing skips, 143.18 KB gzip. All 273
+  browser cases/attempts have zero failures/retries/flaky/errors/raw diagnostics.
+  Root verifies all 52 frozen hashes/HEAD/inventory, 29 strict roots/1,038 inputs,
+  matching property receipts, all 77 controls and Atlas native ownership. Boot
+  survives 30,036 ms and cleans owned processes. No physical-device gesture fix
+  is claimed. R2's later result is above; no U5 commit or U6 work.
+  See [U5's record](interface-clarity-u5.md).
 - Current U4c verification: the fifth full ladder and isolated boot PASS. Results:
   10,098 unit passes/four existing skips, all 89 client batches, 139.69 KB gzip,
   268 browser passes/three existing skips in 30.3 minutes. All 271 cases/attempts

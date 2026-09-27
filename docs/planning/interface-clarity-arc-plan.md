@@ -1,6 +1,48 @@
 # Interface clarity — the first session should teach the table — arc plan
 
-> **STATUS: U4a/U4b COMMITTED; U4c ACCEPTED FOR LOCAL CLOSEOUT — 2026-09-26.**
+> **STATUS: U5 ACCEPTED AND COMMITTED LOCALLY ON `dev` — 2026-09-27.**
+> The owner's “Proceed” authorizes the two final repairs and required verification.
+> Session-upload remount and ambient accessibility repairs have compiled RED,
+> 194 affected unit passes/24 files, 34 strict roots and three affected browser
+> journey passes across bounded runs. Failed test attempts remain recorded.
+> Full gates/boot now PASS (10,155 units, 272 browser, 143.35 KB) with a separate
+> pre-U5 door-pan fix found by the interrupted run. Owner accepted 2026-09-27; the
+> door fix (`eb28f30a`) and U5 are committed locally on `dev`. U6 not started.
+> Read [the latest U5 record](../verification/interface-clarity-u5.md).
+> Historical R3 stop follows; it is not a new repair-permission request.
+> Final U5 R3 completed all four STATIC lenses, but is VOID after one reviewer's
+> search exposed a peer-report line. Runtime/dispatch errors: zero; missing lenses:
+> zero. Three unique flags remain in the record: session-upload picker remount,
+> ambient slider accessibility and stale handoff status. This checkpoint corrects
+> the status text; the two code repairs await owner direction. Counts are VOID (5)
+> → valid FAIL (3) → VOID (3 retained), not a valid plateau trend. No R4, product
+> repair, U5 commit or U6 before direction. See the
+> [final owner checkpoint](../verification/interface-clarity-u5.md#owner-checkpoint--final-review-void-two-repairs-proposed)
+> for the concrete proposal, cost and evidence limits.
+> Prior: valid U5 R2 completed four STATIC lenses, zero agent errors, three flags
+> (UI one P2; docs two P3; state/tests PASS). Bounded resize/name/evidence repairs
+> have compiled RED and 170 affected unit passes/20 files. All 31 strict roots and
+> the strengthened phone journey PASS with no errors/retries. Corrected full checks
+> and boot now PASS: 10,140 unit passes/four skips, 270 browser passes/three skips,
+> 143.28 KB; all 53 hashes/31 strict roots match, zero browser errors/retries/raw
+> diagnostics. R3's later result is above. Older full-gate numbers describe pre-R2.
+> The first R2 gate attempt failed test formatting; its browser run was deliberately
+> stopped, with no verdict/boot. Whitespace is corrected and strict checks pass;
+> fresh `u5-r2-format-gate-*` verification now passes. Preserve the failed attempt.
+> U4c local commit `a56e92e1` passed its 37-path scope/hash/parent/attribution audit;
+> the checkout was clean. U5 properties and ambient light are implemented.
+> U5 R1 is VOID after documentation dispatch hit the agent thread limit. UI completed
+> FAIL, state/tests are partial, documentation never ran; five unique issues were
+> flagged. The owner authorized bounded repairs, verification and fresh R2 with “yes”
+> on 2026-09-27. Repairs pass 152 affected unit tests, 28 strict roots and both
+> strengthened two-client input journeys. A full-run Atlas menu failure was diagnosed
+> with passive events and isolated HTML probes; a measured 350 ms test-phase
+> separation preserves all assertions. No physical-device gesture fix is claimed.
+> The historical pre-R2 `u5-gesture-gate-*` ladder and isolated boot PASS: 10,137 unit passes/
+> four existing skips, 270 browser passes/three existing skips in 23.5 minutes,
+> 143.18 KB gzip. All 52 hashes/HEAD/inventory and 29 strict roots match; browser
+> errors/retries/raw diagnostics are zero. R2's later result is recorded above.
+> No U5 commit or U6 work. See the U5 record and preserved failure history.
 > U1 and U2 are locally committed following their recorded owner acceptance. U3a's
 > auth prerequisite and characterized extraction are committed; its semantic repair
 > is locally committed as `b473a3dd`. Final review round 3 left one P2 recovery-correlation finding

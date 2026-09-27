@@ -42,7 +42,7 @@ type CommandBody = DistributiveOmit<MapStudioCommand, "commandId" | "documentId"
 
 interface UseMapStudioActionsOptions {
   activeDocumentRef: MutableRefObject<MapDocument | null>;
-  applyCommand: (build: CommandBuilder) => void;
+  applyCommand: (build: CommandBuilder) => MapOperationHandle;
   applyMessage: (toMessage: MessageBuilder) => MapOperationHandle;
 }
 
@@ -59,7 +59,7 @@ export function useMapStudioActions({
 }: UseMapStudioActionsOptions) {
   const submit = useCallback(
     (body: CommandBody) => {
-      applyCommand(
+      return applyCommand(
         (document, commandId) =>
           ({
             commandId,
@@ -153,7 +153,7 @@ export function useMapStudioActions({
 
   const updateElement = useCallback(
     (elementId: string, update: MapElementUpdate) =>
-      submit({ type: "update-element", elementId, update }),
+      submit({ type: "update-element", elementId, update: structuredClone(update) }),
     [submit],
   );
 

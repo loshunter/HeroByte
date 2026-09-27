@@ -19,12 +19,16 @@ import { render, screen, fireEvent, cleanup, within } from "@testing-library/rea
 import { MobileMapEditToolPanels, PANEL_TOOLS } from "../MobileMapEditToolPanels";
 import { isTouchTool } from "../../mapEditToolKinds";
 import type { MapEditToolbarProps } from "../../mapEditTypes";
+import { createMapDocument } from "@herobyte/shared";
 
 afterEach(() => cleanup());
 
 const bag = (overrides: Record<string, unknown> = {}) =>
   ({
     isLive: true,
+    layers: createMapDocument({ id: "panels", name: "Panels" }).layers,
+    onUpdateLayer: vi.fn(),
+    saving: false,
     busy: false,
     activeSubTool: "room",
     onSelectSubTool: vi.fn(),

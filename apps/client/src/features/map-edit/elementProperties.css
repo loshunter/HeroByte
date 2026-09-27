@@ -1,0 +1,102 @@
+.properties-summary,
+.properties-form,
+.properties-actions,
+.properties-recovery {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  color: var(--jrpg-white);
+}
+.properties-summary {
+  margin: 6px 0;
+  gap: 2px;
+}
+.properties-summary strong {
+  color: var(--jrpg-gold);
+}
+.properties-form p,
+.properties-actions p {
+  margin: 0;
+}
+.properties-form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-inline-size: 0;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #8a7445;
+  padding: 6px;
+}
+.properties-grid,
+.properties-action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.properties-form label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.properties-form input:not([type="checkbox"]),
+.properties-form select,
+.properties-form button,
+.properties-actions button {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px;
+  border: 1px solid var(--jrpg-gold);
+  background: var(--jrpg-navy, #141329);
+  color: var(--jrpg-white);
+  font: inherit;
+}
+.properties-form button,
+.properties-actions button {
+  cursor: pointer;
+}
+/* Override the shared coarse-pointer input selector within this form only. */
+.properties-form
+  .properties-grid
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]) {
+  min-height: 48px;
+}
+.properties-form :disabled,
+.properties-actions :disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.properties-form .properties-checkbox {
+  flex-direction: row;
+  align-items: center;
+  min-height: 48px;
+  gap: 6px;
+}
+.properties-form :focus-visible,
+.properties-actions :focus-visible {
+  outline: 2px solid var(--jrpg-cyan, #63f0ff);
+  outline-offset: 2px;
+}
+
+/* Keep each field's units beside its control in the short landscape scroller. */
+@media (max-height: 500px) {
+  .properties-form label {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+  .properties-form label input:not([type="checkbox"]),
+  .properties-form label select {
+    flex: 1;
+    width: 0;
+    min-width: 44px;
+  }
+}

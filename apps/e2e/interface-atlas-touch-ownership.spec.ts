@@ -109,8 +109,69 @@ test("Atlas aimed touch owns its mouse stream and leaves the shared door closed"
   player.setDefaultTimeout(12_000);
   const wire = observeWire(dm);
   dm.on("dialog", (dialog) => void dialog.accept());
+  let nativeInput: Awaited<ReturnType<Page["evaluateHandle"]>> | undefined;
   try {
     await createAndJoin(dm, player, true, "Atlas touch ownership");
+    nativeInput = await dm.evaluateHandle(() => {
+      const events: Record<string, unknown>[] = [];
+      const record = (entry: Record<string, unknown>) => {
+        if (events.length < 500) events.push({ time: performance.now(), ...entry });
+      };
+      for (const capture of [true, false]) {
+        for (const type of [
+          "touchstart",
+          "touchend",
+          "touchcancel",
+          "pointerdown",
+          "pointerup",
+          "pointercancel",
+          "click",
+        ]) {
+          document.addEventListener(
+            type,
+            (event) => {
+              const target = event.target instanceof Element ? event.target : null;
+              const button = target?.closest("button");
+              const touch = event instanceof TouchEvent ? event.changedTouches[0] : null;
+              const point = touch ?? (event instanceof MouseEvent ? event : null);
+              record({
+                type,
+                capture,
+                trusted: event.isTrusted,
+                prevented: event.defaultPrevented,
+                target: button?.textContent?.trim() ?? target?.tagName,
+                x: point?.clientX,
+                y: point?.clientY,
+                pressed: button?.getAttribute("aria-pressed"),
+                detail: event instanceof UIEvent ? event.detail : null,
+              });
+            },
+            { capture, passive: true },
+          );
+        }
+      }
+      new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          const target = mutation.target;
+          if (
+            target instanceof HTMLButtonElement &&
+            target.classList.contains("mobile-dock-button") &&
+            target.textContent?.trim().endsWith("DM")
+          )
+            record({
+              type: "dm-pressed",
+              before: mutation.oldValue,
+              after: target.getAttribute("aria-pressed"),
+            });
+        }
+      }).observe(document.body, {
+        subtree: true,
+        attributes: true,
+        attributeOldValue: true,
+        attributeFilter: ["aria-pressed"],
+      });
+      return events;
+    });
     const dialog = await atlas(dm);
     await dialog.getByLabel("New node name").fill("Waystone");
     await dialog.getByRole("button", { name: "+ CREATE NODE", exact: true }).tap();
@@ -152,6 +213,11 @@ test("Atlas aimed touch owns its mouse stream and leaves the shared door closed"
     for (const page of [dm, player]) await expect.poll(() => doorState(page)).toBe("closed");
     expect(wire.sent.filter((m) => m.t === "toggle-door")).toHaveLength(2);
 
+    // Separate the ordinary-door control from the next gesture. Chromium drops
+    // the uncanceled launcher click after a rapid pan/two-tap sequence: the
+    // isolated HTML probe reproduces it at 160 ms, but not at 350 ms or 700 ms.
+    // Keep the real tap and pressed-state assertion; do not retry the launcher.
+    await dm.waitForTimeout(350);
     await test.step("Reopen Atlas after the ordinary door touch controls", () => atlas(dm));
     await dialog.getByLabel("Link target from Waystone").selectOption({ label: "Beyond" });
     await dialog.getByRole("button", { name: "⚓ AIM ON MAP", exact: true }).tap();
@@ -220,6 +286,19 @@ test("Atlas aimed touch owns its mouse stream and leaves the shared door closed"
     });
     throw error;
   } finally {
+    if (nativeInput) {
+      try {
+        await info.attach("atlas-native-input-diagnostic.json", {
+          body: JSON.stringify(await nativeInput.jsonValue()),
+          contentType: "application/json",
+        });
+      } catch (error) {
+        await info.attach("atlas-native-input-diagnostic-error.txt", {
+          body: String(error),
+          contentType: "text/plain",
+        });
+      }
+    }
     await context.close();
     await observer.close();
   }

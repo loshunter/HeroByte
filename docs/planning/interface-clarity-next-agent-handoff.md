@@ -1,7 +1,8 @@
 # Next-agent prompt — continue HeroByte interface clarity
 
-Use this document as the continuation prompt. Updated 2026-09-26 after U4b local
-commit `63505c56` on `dev` (parent `681bc391`, the accepted U4a commit).
+Use this document as the continuation prompt. Updated 2026-09-27 after U5's owner
+acceptance: local commits on `dev` are the door-pan fix `eb28f30a` (parent `a56e92e1`,
+the accepted U4c commit), then U5 on top of it.
 Verify the current checkout
 and latest execution ledger before relying on these identifiers.
 
@@ -9,7 +10,101 @@ and latest execution ledger before relying on these identifiers.
 
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
-**Current frontier:** U4b is accepted and committed as `63505c56`; its 54-path commit
+**Latest U5 frontier:** the owner replied “Proceed” on 2026-09-27, authorizing the
+two final repairs and verification. Both are implemented: copied session-upload
+inventory on remount and accessible ambient percentages/endpoint help. Compiled
+RED precedes **194 unit passes/24 files, 34 strict roots/1,040 inputs** and affected
+two-client browser passes. The new upload browser test needed three bounded input/
+oracle corrections; all failed runs remain preserved, including teardown markers.
+`u5-postcap-focused-audit.json` distinguishes two passing cases from their failed
+combined run and the corrected upload-only PASS. It verifies 78 controls, matching
+receipts, unchanged compiler inputs and the player's uploaded asset. Full repeated
+`u5-postcap-gate-*` checks were cut off mid-browser-suite by the agent's usage
+limit; the one failure before the cut-off was a real pre-U5 bug (a pan starting
+on a door swung it for the table), now fixed in `DoorsLayer.tsx` with unit RED/GREEN
+and the new `door-pan.spec.ts`. The full ladder then PASSED on the combined tree:
+10,155 units/4 skips, 272 browser/3 skips, 143.35 KB, dev boot. The owner accepted
+with "yes" on 2026-09-27: the door fix is committed alone (`eb28f30a`), then U5, both
+local on `dev`. U5 is closed; U6 has not started and needs owner direction. Read the
+latest U5 record. The earlier STOP below is historical, not current.
+
+**Earlier R3 checkpoint:** final R3 completed all four
+STATIC lenses with zero runtime/dispatch errors and three retained unique flags.
+One reviewer accidentally saw a peer-report line in search output, so R3 is VOID
+for strict independence. No R3 lens was missing. Session-upload picker remount and
+ambient slider accessibility remain open; stale handoff status is corrected only
+as checkpoint bookkeeping. All product/test/guide bytes retain their verified
+snapshot. Read the [final U5 owner checkpoint](../verification/interface-clarity-u5.md#owner-checkpoint--final-review-void-two-repairs-proposed)
+for the bounded two-repair proposal, verification, cost and limits. Rounds are
+VOID (5 retained) → valid FAIL (3) → VOID (3 retained). Do not run R4, repair product
+code, commit U5 or start U6 before owner direction. Only five result/frontier docs
+change after R3; `u5-r3-checkpoint-doc-audit.json` and
+`u5-owner-r3-checkpoint-freeze.json` preserve that boundary. No active tests or
+services belong to this checkpoint. Earlier “next” entries below are history.
+
+**Verified snapshot before final R3:** valid R2 completed all four STATIC lenses with zero agent
+errors: UI FAIL/one P2, docs FAIL/two P3, state/tests PASS. All 52 hashes, HEAD and
+inventory matched. The three bounded repairs address reversed phone resize outside
+0.1–10, session-only upload names, and a superseded “Latest” evidence paragraph.
+Compiled RED reproduced three failures; affected GREEN passes 170 tests/20 files.
+All 31 strict roots/1,038 inputs and the strengthened phone two-client journey
+PASS: zero errors/retries, 44 reachable controls and four matching receipts.
+First R2 gates passed build/typecheck/structure, 10,140 unit tests/four skips and
+143.28 KB bundle, but lint/format failed on test whitespace. E2E was stopped under
+the current fail-fast rule; partial results have no verdict and boot did not run.
+Formatting is corrected with syntax-equivalence, stable formatter/ESLint and fresh
+31-root strict checks. The corrected `u5-r2-format-gate-*` full ladder and fresh
+boot now PASS: **10,140 unit passes/four skips, 270 browser passes/three skips**
+in 23.6 minutes, 273 attempts with zero errors/retries/flaky/raw diagnostics,
+143.28 KB gzip. Root verifies all 53 hashes/HEAD/inventory, 31 strict roots/1,038
+inputs, all 77 controls, matching receipts, Atlas ownership and 30,027 ms boot
+survival/owned cleanup. See `u5-r2-root-final-audit.json` and
+`u5-r2-format-gates-report.md`. Only five result/frontier docs change afterward.
+R3's later VOID outcome and owner checkpoint are above. R1 stays VOID; R3 was the final
+permitted round. No U5 commit or U6. The previous green ladder below is historical
+evidence for the pre-R2 snapshot, not verification of these repairs.
+
+**Prior frontier:** U4c is accepted and locally committed as `a56e92e1`, parent
+`63505c56`. Its 37-path commit audit confirms approved hashes, scope, attribution and
+a clean `dev` checkout. U5 properties/save feedback and ambient-light work is implemented;
+read `output/interface-u3a-execution/u5-current-frontier.md` before continuing.
+U5 R1 is VOID: documentation dispatch hit `agent thread limit reached`.
+UI completed STATIC FAIL with four findings; state is PARTIAL STATIC with two flags,
+including one overlapping guide issue; tests stopped before semantic work and docs
+never started. Counts: one completed/two partial/one undispatched assignment,
+agents_error 1, five unique flags. All 50 review hashes/HEAD/full inventory
+matched after interruption. Only five result/frontier docs were updated afterward.
+Read the [U5 owner checkpoint](../verification/interface-clarity-u5.md#owner-checkpoint--review-interrupted-five-issues-flagged)
+and latest scratch frontier. The owner replied “yes” on 2026-09-27, authorizing the
+five bounded repairs, regression/strict/focused/live/full verification and fresh R2.
+The repairs pass 152 affected unit tests across 18 files, 28 strict roots and both
+real mouse/touch/keyboard two-client journeys; 19 reach reports cover 77 controls.
+The touch-cleanup failure/correction and first repaired full run's Atlas menu
+failure remain in the [U5 record](../verification/interface-clarity-u5.md).
+Passive diagnostics reproduced uncanceled button touches without a click.
+Isolated HTML probes establish pan/tap timing sensitivity; the Atlas test now
+separates its ordinary-door control from the next gesture by a measured 350 ms.
+It preserves the real tap and every assertion. All 29 strict roots and the focused
+two-client Atlas case pass. This test-input correction adds the 52nd authored
+path; it does not claim a physical-device or production gesture fix.
+
+**Pre-R2 result:** the `u5-gesture-gate-*` ladder and isolated `u5-r1-devboot`
+PASS. Full units: 10,137 passes/four existing skips, all 91 client batches. Browser:
+270 passes/three existing skips in 23.5 minutes, 273 attempts, zero failures,
+retries, flaky cases, attempt/reporter errors or raw step diagnostics. Bundle:
+143.18 KB/175 KB. Root verifies all 52 frozen hashes/HEAD/full inventory, 29 strict
+roots/1,038 unchanged inputs, matching receipts, all 77 controls and Atlas native
+ownership. Boot readiness, 30,036 ms survival and owned cleanup pass. Images and
+228 copied browser attachments are preserved. Only five result/frontier docs
+change afterward for fresh independent R2, four pinned STATIC lenses in two
+batches of two. No source/test/user-guide change after verification. Read
+`u5-r1-root-final-audit.json` and `u5-gesture-gates-report.md`. R2's result is above.
+R1 remains VOID. Do not reinterpret this authorization as acceptance of U5,
+restart R1, commit U5 or start U6 before the recorded closeout requirements pass.
+U4c's accepted incomplete review remains
+recorded below; do not reopen it or rerun its unchanged green checks.
+
+U4b is accepted and committed as `63505c56`; its 54-path commit
 audit passed with the accepted hashes, parent, attribution and clean checkout.
 U4c collection browsing passes focused/live verification: 702 initial focused tests,
 22/28 affected repair checks and six collection/palette/terrain browser cases.
@@ -154,7 +249,7 @@ rearrangement has not happened yet; do not describe the redesign as complete.
 
 ## Working tree and authority
 
-- Work in **`D:/HeroByte`**, PowerShell, existing branch **`dev`**. U3b is **`351b5485`**, immediately after **`b473a3dd`**. Use this existing checkout to retain ignored local evidence; verify its exact HEAD through Git.
+- Work in **`D:/HeroByte`**, PowerShell, existing branch **`dev`**. Accepted U4c is **`a56e92e1`**, after **`63505c56`**. Use this existing checkout to retain ignored local evidence; verify its exact HEAD through Git.
 - Preserve the current tree. Do not reset, clean, stash changes away, recreate the implementation from old drafts, or stage everything indiscriminately. Inspect `git status`, `git diff`, untracked files, and recent commits first.
 - Local implementation, testing and scoped commits are authorized under the existing plan; U3a, U3b, U4a and U4b's recorded cap checkpoints are satisfied. **No remote push, merge to main, or deployment is authorized.** Main deploys on push. Do not infer shipping authorization from a passing review or from this handoff.
 - The explicit U3a review-cap checkpoint is satisfied: the owner accepted the verified result on 2026-09-24, and `b473a3dd` committed it. Earlier pending-acceptance language below is historical; it does not reopen this decision.
@@ -182,7 +277,7 @@ rearrangement has not happened yet; do not describe the redesign as complete.
 | `b473a3dd` | Owner-accepted U3a Generate outcomes and correlated recovery receipts |
 
 U1, U2, U3a and U3b are locally complete with their recorded owner acceptance.
-Do not redo them. U4a/U4b are accepted and committed; U4c is active. Pending-acceptance wording in historical records
+Do not redo them. U4a/U4b/U4c are accepted and committed; U5 is active. Pending-acceptance wording in historical records
 below is superseded by this frontier.
 
 The latest owner-reported hotkey defect is finished. Leaving Chat open blocked Ctrl+Z even after a hallway was drawn on uncovered map canvas. Canvas interaction now focuses the map. Only explicitly opted-in desktop floating panels can coexist with that map's history shortcuts. Mobile screens/sheets, dialogs, popovers, text editing and composition remain protected. `DraggableWindow` revokes its opt-in when entering mobile layout. The owner's exact original window arrangement was not confirmed; the Chat-open case was independently reproduced.

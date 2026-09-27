@@ -169,8 +169,10 @@ test.describe("M7 — a finger places", () => {
 
     expect(await lights(page)).toBe(0); // positive control
     await chooseBuildTool(toolGrid, "light");
-    // Light takes no argument, so it closes the sheet and puts the DM on the
-    // map — the same rule Erase follows.
+    // Lighting keeps its ambient control open; the DM explicitly returns to
+    // the map before placing a pool.
+    await expect(page.getByRole("slider", { name: "Ambient light", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: /To the map/i }).click();
     await expect(page.locator(".mobile-tool-sheet")).toBeHidden();
 
     await touchTap(cdp, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.45 });

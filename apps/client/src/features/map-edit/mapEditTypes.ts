@@ -82,6 +82,8 @@ export interface GenerateParams {
  * pulling it into the entry bundle.
  */
 export interface MapEditToolbarProps {
+  /** Scopes transient tool gestures when the inspected document changes. */
+  documentId?: string;
   mapName: string;
   activeGroup: import("./mapEditToolDescriptors").MapEditGroup;
   onSelectGroup: (group: import("./mapEditToolDescriptors").MapEditGroup) => MapEditSubTool;
@@ -163,6 +165,7 @@ export interface MapEditToolbarProps {
   // --- Layers + inspector (select sub-tool) ---
   layers: MapLayer[];
   selectedElement: MapElement | null;
+  properties: import("./elementProperties").PropertyView | null;
   onUpdateLayer: (layerId: string, update: MapLayerUpdate) => void;
   onMoveLayer: (layerId: string, targetIndex: number) => void;
   onUpdateElement: (elementId: string, update: MapElementUpdate) => void;
