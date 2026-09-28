@@ -14,7 +14,7 @@ async function openAtlas(page: Page) {
       .getByRole("button", { name: "DM", exact: true })
       .tap();
   }
-  const atlas = menu.getByRole("button", { name: "Atlas", exact: true });
+  const atlas = menu.getByRole("button", { name: "World", exact: true });
   await atlas.scrollIntoViewIfNeeded();
   await atlas.tap();
   return menu;
@@ -22,13 +22,16 @@ async function openAtlas(page: Page) {
 
 async function prepareAim(dm: Page) {
   const menu = await openAtlas(dm);
-  await menu.getByLabel("New node name").fill("Waystone");
-  await menu.getByRole("button", { name: "+ CREATE NODE" }).tap();
-  const generate = menu.getByRole("button", { name: "🎲 Generate…" });
+  await menu.getByLabel("New location name").fill("Waystone");
+  await menu.getByRole("button", { name: "+ Create location" }).tap();
+  const generate = menu.getByRole("button", { name: "🎲 Generate map for location…" });
   await generate.scrollIntoViewIfNeeded();
   await generate.tap();
   await menu.getByLabel("Size for Waystone").selectOption("small");
-  await menu.getByTestId("atlas-generate-panel").getByRole("button", { name: "🎲 GENERATE" }).tap();
+  await menu
+    .getByTestId("atlas-generate-panel")
+    .getByRole("button", { name: /^🎲 Generate map for / })
+    .tap();
   await expect
     .poll(() =>
       dm.evaluate(
@@ -38,7 +41,7 @@ async function prepareAim(dm: Page) {
       ),
     )
     .toBeTruthy();
-  const travel = menu.getByRole("button", { name: "🚩 TRAVEL" });
+  const travel = menu.getByRole("button", { name: "🚩 Travel here" });
   await travel.scrollIntoViewIfNeeded();
   await travel.tap();
   await expect
@@ -50,8 +53,8 @@ async function prepareAim(dm: Page) {
     )
     .toBe("Waystone");
   await openAtlas(dm);
-  await menu.getByLabel("New node name").fill("Beyond");
-  await menu.getByRole("button", { name: "+ CREATE NODE" }).tap();
+  await menu.getByLabel("New location name").fill("Beyond");
+  await menu.getByRole("button", { name: "+ Create location" }).tap();
   const target = menu.getByLabel("Link target from Waystone");
   await target.scrollIntoViewIfNeeded();
   await target.selectOption({ label: "Beyond" });

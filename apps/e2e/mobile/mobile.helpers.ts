@@ -215,7 +215,7 @@ export async function undersizedControls(page: Page, selector: string): Promise<
   return page.evaluate((root) => {
     const scope = document.querySelector<HTMLElement>(root);
     if (!scope) return [`missing surface: ${root}`];
-    return [...scope.querySelectorAll<HTMLElement>("button, input, select, textarea")]
+    return [...scope.querySelectorAll<HTMLElement>("button, input, select, textarea, summary")]
       .filter((control) => {
         const rect = control.getBoundingClientRect();
         // A zero box is scrolled out of a scroller or genuinely hidden; the

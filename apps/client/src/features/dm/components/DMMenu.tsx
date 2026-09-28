@@ -23,6 +23,8 @@ export function DMMenu({
   fogEnabled,
   hasCompiledScene,
   liveSceneDocumentId,
+  liveMapDocumentId,
+  onUseMapAtTable,
   onFogEnabledChange,
   defaultVisionRadius,
   onDefaultVisionRadiusChange,
@@ -174,6 +176,9 @@ export function DMMenu({
           fogEnabled={fogEnabled}
           hasCompiledScene={hasCompiledScene}
           liveSceneDocumentId={liveSceneDocumentId}
+          tableMapDocumentId={liveMapDocumentId}
+          onUseMapAtTable={onUseMapAtTable}
+          atlasNodes={atlasNodes}
           onFogEnabledChange={onFogEnabledChange}
           defaultVisionRadius={defaultVisionRadius}
           onDefaultVisionRadiusChange={onDefaultVisionRadiusChange}
@@ -204,6 +209,9 @@ export function DMMenu({
           linkAimActive={linkAimActive}
           onArmLinkAim={onArmLinkAim}
           onOpenKick={onOpenKick}
+          liveSceneDocumentId={liveSceneDocumentId}
+          hasCompiledScene={hasCompiledScene}
+          hasBackground={Boolean(mapBackground)}
         />
       )}
       {activeTab === "npcs" && (

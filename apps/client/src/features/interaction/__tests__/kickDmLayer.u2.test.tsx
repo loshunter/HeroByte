@@ -65,8 +65,8 @@ function openFromAtlas() {
   render(<DmKickHarness calls={calls} />);
   const launcher = visible(screen.getByRole("button", { name: /DM MENU/ }));
   fireEvent.click(launcher);
-  fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
-  const draft = screen.getByLabelText("New node name");
+  fireEvent.click(screen.getByRole("button", { name: "World" }));
+  const draft = screen.getByLabelText("New location name");
   fireEvent.change(draft, { target: { value: "Unsent Atlas draft" } });
   fireEvent.click(screen.getByRole("button", { name: /KICK IN A DOOR/ }));
   return { calls, launcher, draft };
@@ -87,7 +87,7 @@ describe("desktop DM → Kick foreground ordering", () => {
       expect(calls.close).toHaveBeenCalledTimes(1);
       expect(dmClose).toBeInTheDocument();
       expect(draft).toHaveValue("Unsent Atlas draft");
-      expect(screen.getByLabelText("New node name")).toBe(draft);
+      expect(screen.getByLabelText("New location name")).toBe(draft);
       act(() => queue.flush());
       expect(request).not.toHaveBeenCalled();
       expect(document.activeElement).not.toBe(launcher);

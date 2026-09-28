@@ -1,8 +1,5 @@
 /**
- * Short last-edited stamp for the map-document picker.
- *
- * Extracted from MapStudioControl so that file stays under the 350 LOC
- * structural guardrail.
+ * Short last-edited stamp for the map-document picker (see tableMapIdentity).
  *
  * Today and yesterday get a time, because the case that actually happens is
  * two documents created in the SAME session — a bare date would render both

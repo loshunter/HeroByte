@@ -34,6 +34,10 @@ export interface DMMenuProps {
   hasCompiledScene?: boolean;
   /** The compiled scene's source document — what PUBLISH would replace. */
   liveSceneDocumentId?: string;
+  /** The room's live binding: the saved map the party is on (Maps → On table). */
+  liveMapDocumentId?: string;
+  /** Binds a library map to the table through the existing set-live message. */
+  onUseMapAtTable?: (documentId: string) => void;
   onFogEnabledChange?: (enabled: boolean) => void;
   defaultVisionRadius?: number;
   onDefaultVisionRadiusChange?: (radiusFeet: number | null) => void;

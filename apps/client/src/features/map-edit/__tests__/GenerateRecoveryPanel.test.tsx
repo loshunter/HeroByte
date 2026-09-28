@@ -44,6 +44,6 @@ describe("desktop Generate recovery", () => {
     fireEvent.click(screen.getByRole("button", { name: "I've checked the map" }));
     expect(acknowledge).toHaveBeenCalledOnce();
     expect(onGenerate).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "🎲 GENERATE" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "🎲 Generate in this area" })).toBeDisabled();
   });
 });

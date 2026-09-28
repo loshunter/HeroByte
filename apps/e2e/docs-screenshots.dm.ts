@@ -198,7 +198,7 @@ test.describe("docs screenshots: DM", () => {
         () => (window.__HERO_BYTE_E2E__?.snapshot?.compiledScene?.lights?.length ?? 0) >= 2,
       );
       await page.getByRole("button", { name: /🗂 Layers/ }).click();
-      await page.getByLabel("Ambient light").fill("0.55");
+      await page.getByRole("region", { name: "Layers" }).getByLabel("Ambient light").fill("0.55");
       await waitBake(page, 1_800);
       await shotPage(page, "mapedit-night-lights");
       await page.getByRole("button", { name: /🗂 Layers/ }).click();
@@ -254,7 +254,7 @@ test.describe("docs screenshots: DM", () => {
       const wallsBefore = await page.evaluate(
         () => window.__HERO_BYTE_E2E__?.snapshot?.compiledScene?.walls?.length ?? 0,
       );
-      await page.getByRole("button", { name: /GENERATE/ }).click();
+      await page.getByRole("button", { name: "🎲 Generate in this area", exact: true }).click();
       await page.waitForFunction(
         (before) =>
           (window.__HERO_BYTE_E2E__?.snapshot?.compiledScene?.walls?.length ?? 0) > before,
@@ -285,7 +285,7 @@ test.describe("docs screenshots: DM", () => {
     });
 
     await step("enable fog + player view", async () => {
-      await selectDMTab(page, "Map Setup");
+      await selectDMTab(page, "Maps");
       await page.getByRole("button", { name: /FOG/ }).click();
       await waitSnap(page, () => window.__HERO_BYTE_E2E__?.snapshot?.fogEnabled === true);
       await closeTopWindow(page, "Dungeon Master Tools");
@@ -309,7 +309,7 @@ test.describe("docs screenshots: DM", () => {
       // Clean composition: fog back off (it has its own capture), evening
       // ambient rather than deep night, no palette window, no DM overlays
       // (player lens), CRT for the retro flavor, framed on the authored rooms.
-      await selectDMTab(page, "Map Setup");
+      await selectDMTab(page, "Maps");
       await page.getByRole("button", { name: /FOG/ }).click();
       await waitSnap(page, () => window.__HERO_BYTE_E2E__?.snapshot?.fogEnabled === false);
       await closeTopWindow(page, "Dungeon Master Tools");
@@ -317,7 +317,7 @@ test.describe("docs screenshots: DM", () => {
       // arm a neutral tool first.
       await page.getByRole("button", { name: /👆 Select/ }).click();
       await page.getByRole("button", { name: /🗂 Layers/ }).click();
-      await page.getByLabel("Ambient light").fill("0.75");
+      await page.getByRole("region", { name: "Layers" }).getByLabel("Ambient light").fill("0.75");
       await waitBake(page, 1_500);
       await closeTopWindow(page, "MAP TOOLS");
       await page

@@ -30,7 +30,7 @@ export function parseBackupImport(fileText: string): BackupImport {
   // the DM got no message at all. That call site is fixed now, but this guard
   // stays: a message beats a caught crash. Both halves are pinned by tests.
   if (typeof parsed !== "object" || parsed === null) {
-    return { error: "Import failed: that file is not a HeroByte map JSON backup." };
+    return { error: "Import failed: that file is not a HeroByte editable map (.json)." };
   }
 
   // AND THAT IS THE ONLY THING DETECTION IS ALLOWED TO REJECT. Everything else
@@ -46,8 +46,8 @@ export function parseBackupImport(fileText: string): BackupImport {
     return {
       error:
         format === "map"
-          ? "Import failed: that map backup was written by a different version of HeroByte."
-          : "Import failed: that file is not a HeroByte map JSON backup.",
+          ? "Import failed: that editable map was written by a different version of HeroByte."
+          : "Import failed: that file is not a HeroByte editable map (.json).",
     };
   }
   // Guard the 1MB inbound WebSocket cap: the whole document ships over that
@@ -58,7 +58,7 @@ export function parseBackupImport(fileText: string): BackupImport {
   if (wireBytes > MAX_PUBLISH_BACKGROUND_BYTES) {
     return {
       error:
-        "Import failed: that backup is too large to send (over ~1MB). Split the map or publish a raster instead.",
+        "Import failed: that map is too large to send (over ~1MB). Split the map, or on the table it came from use Export map image and upload that image as the background instead.",
     };
   }
   return { document: parsed as MapDocument };

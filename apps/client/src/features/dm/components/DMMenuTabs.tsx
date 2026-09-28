@@ -2,8 +2,8 @@ import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { DMMenuTab } from "../hooks/useDMMenuState";
 
 const DM_MENU_TABS: Array<{ tab: DMMenuTab; label: string }> = [
-  { tab: "map", label: "Map Setup" },
-  { tab: "atlas", label: "Atlas" },
+  { tab: "map", label: "Maps" },
+  { tab: "atlas", label: "World" },
   { tab: "npcs", label: "NPCs & Monsters" },
   { tab: "props", label: "Props & Objects" },
   { tab: "players", label: "Players" },

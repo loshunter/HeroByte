@@ -1,5 +1,17 @@
 # Interface clarity — the first session should teach the table — arc plan
 
+> **STATUS: U6 IMPLEMENTED, REVIEWED AND REPAIRED — AWAITING OWNER ACCEPTANCE — 2026-09-28.**
+> U5 was pushed to `dev` with the door-pan fix on the owner's instruction. U6 (current map,
+> library and World become distinguishable) is uncommitted on `dev`. Three review rounds of
+> four fresh Opus lenses: ~22 → ~30 → ~21 unique items; round 3 had no P1/P2 (2 PASS,
+> 2 FAIL on P3s). At the round cap the owner chose “Repair all, verify”: every round-3
+> item is repaired, each new assertion proven by sabotage (27 mutants killed), and the full
+> ladder PASSES (452 shared, 2,738 server, 7,056 client units; 274 browser, 0 flaky; dev
+> boot; 145.50 KB). The separate Draw-sheet CSS fix is `11a3728c` on `dev`; its Linux-font
+> follow-up is uncommitted. Read [the U6 record](../verification/interface-clarity-u6.md).
+>
+> Previous status (U5):
+>
 > **STATUS: U5 ACCEPTED AND COMMITTED LOCALLY ON `dev` — 2026-09-27.**
 > The owner's “Proceed” authorizes the two final repairs and required verification.
 > Session-upload remount and ambient accessibility repairs have compiled RED,

@@ -105,6 +105,12 @@ export interface MapEditToolbarProps {
   onUndo: () => void;
   onRedo: () => void;
   onStartLiveMap: () => void;
+  /**
+   * What Build offers before the table's map is open: resume it (naming it and
+   * the library map being viewed) or, only when the table has none, start one.
+   * REQUIRED so a layout cannot fall back to "start" while a map exists.
+   */
+  buildEntry: import("./buildEntry").BuildEntry;
   onClose: () => void;
   hasRasterBackground: boolean; // hint: live terrain may double-draw over a raster
   error: string | null;

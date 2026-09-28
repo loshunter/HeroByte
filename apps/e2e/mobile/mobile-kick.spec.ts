@@ -1,6 +1,6 @@
 /**
  * The kicked-in door on a phone (K3): dock DM → 🚪 Kick in a door → the screen's
- * controls clear the 44px floor in both orientations → ROLL → the table stands
+ * controls clear the 44px floor in both orientations → Generate & enter → the table stands
  * in the new node, and a phone player's world map says so.
  *
  * The physics are atlasKick.contract.test.ts's job; what only THIS spec proves
@@ -77,8 +77,8 @@ test.describe("mobile — the kicked-in door", () => {
       await expect(screen.getByLabel("Name")).toHaveValue("Shop");
       await screen.getByLabel("Name").fill("Cellar");
       await screen.getByLabel("Size").selectOption("small");
-      await screen.getByRole("button", { name: "🚪 ROLL" }).click();
-      // ROLL left the surface.
+      await screen.getByRole("button", { name: "🚪 Generate & enter" }).click();
+      // Generate & enter left the surface.
       await expect(screen).toBeHidden();
 
       await dm.waitForFunction(

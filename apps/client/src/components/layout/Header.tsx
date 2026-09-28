@@ -222,7 +222,7 @@ export const Header: React.FC<HeaderProps> = ({
                     style={{ fontSize: "8px", padding: "4px 10px" }}
                     title="Author the live map on the table"
                   >
-                    🏗️ Map
+                    🏗️ Build map
                   </JRPGButton>
                 )}
               </div>

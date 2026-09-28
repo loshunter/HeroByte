@@ -7,7 +7,7 @@ import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 // carries an undiscovered node's name, any recipe provenance, or a
 // sceneState.
 //
-// UI drives the moments that matter (CREATE NODE, the generate panel, the
+// UI drives the moments that matter (Create location, the generate panel, the
 // TRAVEL confirm, the ⚓ AIM placement); the harness seam drives bookkeeping
 // (door toggles, wire assertions). Secrecy is asserted on KEYS, never on
 // value substrings — a decimal seed inside epoch-millisecond soup is the
@@ -27,30 +27,30 @@ async function waitForSnap<T>(
 async function openAtlasTab(page: Page) {
   // 🛠️ DM MENU is a TOGGLE — clicking it with the window already open closes
   // it, and the Atlas click then waits forever for a button that never comes.
-  const atlasTab = page.getByRole("button", { name: "Atlas" });
+  const atlasTab = page.getByRole("button", { name: "World", exact: true });
   if (!(await atlasTab.isVisible().catch(() => false))) {
     await page.getByRole("button", { name: "🛠️ DM MENU" }).click();
   }
   await atlasTab.click();
-  await expect(page.getByLabel("New node name")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByLabel("New location name")).toBeVisible({ timeout: 15_000 });
 }
 
 async function createNode(page: Page, name: string) {
-  await page.getByLabel("New node name").fill(name);
-  await page.getByRole("button", { name: "+ CREATE NODE" }).click();
+  await page.getByLabel("New location name").fill(name);
+  await page.getByRole("button", { name: "+ Create location" }).click();
   await expect(page.getByLabel(`promise: ${name}`)).toBeVisible();
 }
 
 /** Generate the named promise through the panel UI (small = fastest). */
 async function generateNode(page: Page, name: string) {
   const row = page.getByLabel(`promise: ${name}`).locator("xpath=ancestor::li[1]");
-  await row.getByRole("button", { name: "🎲 Generate…" }).click();
+  await row.getByRole("button", { name: "🎲 Generate map for location…" }).click();
   await page.getByLabel(`Size for ${name}`).selectOption("small");
-  // Playwright role-name matching is SUBSTRING by default, and "🎲 GENERATE"
-  // is inside every row's "🎲 Generate…" — scope to the panel.
+  // Playwright role-name matching is SUBSTRING by default, and "🎲 Generate map for"
+  // is inside every row's "🎲 Generate map for location…" — scope to the panel.
   await page
     .getByTestId("atlas-generate-panel")
-    .getByRole("button", { name: "🎲 GENERATE" })
+    .getByRole("button", { name: `🎲 Generate map for ${name}` })
     .click();
   await waitForSnap(
     page,
@@ -76,19 +76,21 @@ function nodeByName(page: Page, name: string) {
   );
 }
 
-/** Click the row's 🚩 TRAVEL (the dialog listener accepts the confirm). */
+/** Click the row's 🚩 Travel here (the dialog listener accepts the confirm). */
 async function travelTo(page: Page, name: string) {
   const target = await nodeByName(page, name);
   const row = page
     .getByLabel(new RegExp(`^(mapped|promise|you are here): ${name}$`))
     .locator("xpath=ancestor::li[1]");
-  await row.getByRole("button", { name: "🚩 TRAVEL" }).click();
+  await row.getByRole("button", { name: "🚩 Travel here" }).click();
   await waitForSnap(
     page,
     (id) => window.__HERO_BYTE_E2E__?.snapshot?.currentAtlasNodeId === id,
     target.id,
     30_000,
   );
+  // U6: the World tab says where the party is, and it follows the travel.
+  await expect(page.getByText(/^Party is at:/)).toHaveText(`Party is at: ${name}`);
 }
 
 test.describe("Atlas journey smoke", () => {

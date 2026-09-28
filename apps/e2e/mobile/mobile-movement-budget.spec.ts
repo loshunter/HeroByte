@@ -164,7 +164,9 @@ test.describe("mobile — movement budget", () => {
       .click();
     const dialog = page.getByRole("dialog", { name: "DM Menu" });
     await expect(dialog).toBeVisible();
-    await expect(page.getByRole("button", { name: "Map Setup" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Maps", exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
     await dialog.getByRole("button", { name: "NPCs & Monsters" }).click();
 
     const before = new Set(

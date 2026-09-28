@@ -20,6 +20,7 @@ function setup() {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "composition-map",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       });

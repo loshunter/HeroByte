@@ -119,7 +119,7 @@ describe("DMMenu", () => {
     // found nothing asserted the window actually WRAPS in window mode (the
     // content renders identically bare, so the old tests passed either way).
     expect(screen.getByTestId("draggable-window")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Map Setup" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Maps" })).toBeInTheDocument();
     const input = screen.getByPlaceholderText("Paste image URL");
     fireEvent.change(input, { target: { value: "https://example.com/map.png" } });
     fireEvent.click(screen.getByRole("button", { name: "Apply Background" }));
@@ -237,11 +237,13 @@ describe("DMMenu", () => {
     render(<DMMenu {...props} />);
 
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
+    fireEvent.click(screen.getByRole("button", { name: "World" }));
     expect(screen.getByText(/Nothing lies within/)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("New node name"), { target: { value: "The Docks" } });
-    fireEvent.click(screen.getByRole("button", { name: "+ CREATE NODE" }));
+    fireEvent.change(screen.getByLabelText("New location name"), {
+      target: { value: "The Docks" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "+ Create location" }));
     expect(props.onAtlasMessage).toHaveBeenCalledWith(
       expect.objectContaining({ t: "atlas-create-node" }),
     );
@@ -258,7 +260,7 @@ describe("DMMenu", () => {
 
       // The content is there without any launcher click: all five tabs, the
       // exit row, and the default Map tab's controls.
-      expect(screen.getByRole("button", { name: "Map Setup" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Maps" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Session" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /EXIT DM MODE/i })).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Paste image URL")).toBeInTheDocument();

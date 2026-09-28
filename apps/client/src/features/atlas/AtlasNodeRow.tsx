@@ -10,6 +10,7 @@ import { useLocalEscape } from "../interaction/useEscapeOwner";
 import { useState } from "react";
 import type { AtlasNodeSnapshot, MapDocumentSummary } from "@herobyte/shared";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
+import { displayName } from "../map-studio/tableMapIdentity";
 import { AtlasGeneratePanel } from "./AtlasGeneratePanel";
 import type { AtlasActions } from "./useAtlasActions";
 
@@ -27,10 +28,19 @@ interface AtlasNodeRowProps {
   depth: number;
   isCurrent: boolean;
   documents: MapDocumentSummary[];
+  /** The Travel here confirm, which knows what becomes of the table's scene. */
+  travelPrompt: (name: string) => string;
   actions: AtlasActions;
 }
 
-export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: AtlasNodeRowProps) {
+export function AtlasNodeRow({
+  node,
+  depth,
+  isCurrent,
+  documents,
+  travelPrompt,
+  actions,
+}: AtlasNodeRowProps) {
   const localEscape = useLocalEscape();
   const [editingName, setEditingName] = useState<string | null>(null);
   const [linkDocId, setLinkDocId] = useState("");
@@ -84,7 +94,15 @@ export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: Atl
         <JRPGButton
           variant="danger"
           onClick={() => {
-            if (window.confirm(`Delete atlas node "${node.name}"? Its map document stays.`)) {
+            // Links and children follow the server's deleteNode; the map document
+            // (and any scene saved on it) is untouched.
+            const map = node.mapDocumentId
+              ? " Its map stays in the Map library, with any scene saved on it."
+              : "";
+            const prompt =
+              `Delete location "${node.name}"?${map} Any door links to or from it are removed, ` +
+              "and any locations inside it move up a level.";
+            if (window.confirm(prompt)) {
               actions.deleteNode(node.id);
             }
           }}
@@ -96,17 +114,13 @@ export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: Atl
           <JRPGButton
             variant="primary"
             onClick={() => {
-              if (
-                window.confirm(
-                  `Travel the whole table to "${node.name}"? The current scene is suspended exactly as it stands.`,
-                )
-              ) {
+              if (window.confirm(travelPrompt(node.name))) {
                 actions.travel(node.id);
               }
             }}
             style={{ fontSize: "9px", padding: "2px 6px" }}
           >
-            🚩 TRAVEL
+            🚩 Travel here
           </JRPGButton>
         )}
       </div>
@@ -121,7 +135,7 @@ export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: Atl
             <option value="">Pick a map…</option>
             {documents.map((document) => (
               <option key={document.id} value={document.id}>
-                {document.name}
+                {displayName(document.id, documents) ?? document.name}
               </option>
             ))}
           </select>
@@ -135,7 +149,7 @@ export function AtlasNodeRow({ node, depth, isCurrent, documents, actions }: Atl
             onClick={() => setGenerateOpen((open) => !open)}
             style={{ fontSize: "9px", padding: "2px 6px" }}
           >
-            🎲 Generate…
+            🎲 Generate map for location…
           </JRPGButton>
         </div>
       )}

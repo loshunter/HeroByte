@@ -13,6 +13,7 @@ export const toolbar = (overrides: Record<string, unknown> = {}) =>
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     onStartLiveMap: vi.fn(),
+    buildEntry: { kind: "start" as const },
     onClose: vi.fn(),
     error: null,
     ...overrides,

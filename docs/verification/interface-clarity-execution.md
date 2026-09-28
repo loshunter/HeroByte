@@ -7,6 +7,12 @@
 
 ## Frontier
 
+- Latest U6 (2026-09-28): implemented; three review rounds (~22 → ~30 → ~21 items; R3 no
+  P1/P2, 2 PASS/2 FAIL); owner chose “Repair all, verify”; every R3 item repaired with
+  sabotage-proven tests (27 mutants killed); full ladder PASS — 452/2,738/7,056 units,
+  274 browser/3 skips/0 flaky, dev boot, 145.50 KB. Uncommitted, awaiting acceptance.
+  Draw-sheet CSS fix `11a3728c` pushed to `dev`; its Linux-font follow-up uncommitted.
+  See the [U6 record](interface-clarity-u6.md).
 - Latest U5: “Proceed” authorizes the two final repairs and verification.
   Both are implemented with compiled RED, 194 focused unit passes/24 files,
   34 strict roots/1,040 inputs and three affected browser journey passes across

@@ -202,7 +202,9 @@ export function useKickedInDoor({
           current && current.nodeId === ids.nodeId ? { ...current, expired: true } : current,
         );
         dismissStickyToast();
-        toast.error("The door didn't budge — ROLL again (same ids)");
+        toast.error(
+          "The door didn't budge — press G (or 🚪 Kick in a door), set the name again if you changed it, and 🚪 Generate & enter; it will not build the place twice.",
+        );
       }, pendingTimeoutMs);
     },
     [

@@ -86,5 +86,5 @@ export const WRONG_FILE_FOR_MAP_IMPORT =
   "under Session — importing it here would not bring your characters or tokens back.";
 
 export const WRONG_FILE_FOR_SESSION_LOAD =
-  "That is a map backup, not a table backup. Import it with IMPORT JSON BACKUP under Map " +
-  "Studio — loading it here would not restore a table.";
+  "That is an editable map, not a table backup. Import it with Import editable map (.json) " +
+  "under Maps → Map library — loading it here would not restore a table.";

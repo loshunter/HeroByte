@@ -32,10 +32,10 @@ async function openAtlasChip(page: Page): Promise<void> {
       .click();
   }
   await expect(dialog).toBeVisible();
-  const atlasChip = dialog.getByRole("button", { name: "Atlas" });
+  const atlasChip = dialog.getByRole("button", { name: "World", exact: true });
   await atlasChip.scrollIntoViewIfNeeded();
   await atlasChip.click();
-  await expect(dialog.getByLabel("New node name")).toBeVisible({ timeout: 15_000 });
+  await expect(dialog.getByLabel("New location name")).toBeVisible({ timeout: 15_000 });
 }
 
 const linkCount = (page: Page) =>
@@ -112,15 +112,15 @@ test.describe("mobile — the atlas-link aim under a finger", () => {
 
       // A cashed node to stand on (its doors are L2's targets) and a promise
       // to aim at.
-      await dialog.getByLabel("New node name").fill("Waystone");
-      await dialog.getByRole("button", { name: "+ CREATE NODE" }).click();
-      const generateOpen = dialog.getByRole("button", { name: "🎲 Generate…" });
+      await dialog.getByLabel("New location name").fill("Waystone");
+      await dialog.getByRole("button", { name: "+ Create location" }).click();
+      const generateOpen = dialog.getByRole("button", { name: "🎲 Generate map for location…" });
       await generateOpen.scrollIntoViewIfNeeded();
       await generateOpen.click();
       await dialog.getByLabel("Size for Waystone").selectOption("small");
       await dialog
         .getByTestId("atlas-generate-panel")
-        .getByRole("button", { name: "🎲 GENERATE" })
+        .getByRole("button", { name: /^🎲 Generate map for / })
         .click();
       await dm.waitForFunction(
         () =>
@@ -133,7 +133,7 @@ test.describe("mobile — the atlas-link aim under a finger", () => {
         undefined,
         { timeout: 30_000 },
       );
-      const travel = dialog.getByRole("button", { name: "🚩 TRAVEL" });
+      const travel = dialog.getByRole("button", { name: "🚩 Travel here" });
       await travel.scrollIntoViewIfNeeded();
       await travel.click();
       await dm.waitForFunction(
@@ -149,8 +149,8 @@ test.describe("mobile — the atlas-link aim under a finger", () => {
       );
       const dialogsAfterTravel = dialogs;
       await openAtlasChip(dm);
-      await dialog.getByLabel("New node name").fill("Beyond");
-      await dialog.getByRole("button", { name: "+ CREATE NODE" }).click();
+      await dialog.getByLabel("New location name").fill("Beyond");
+      await dialog.getByRole("button", { name: "+ Create location" }).click();
       await expect(dialog.getByLabel("promise: Beyond")).toBeVisible();
       // The screen covers the dock; its own ✕ is the way out.
       await dialog.getByRole("button", { name: "Close DM Menu" }).click();

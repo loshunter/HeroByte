@@ -53,7 +53,7 @@ async function setDefaultFromMapTab(page: Page, feet: string) {
     await page.getByRole("button", { name: /DM MENU/i }).click();
     await expect(heading).toBeVisible();
   }
-  await page.getByRole("button", { name: "Map Setup" }).click();
+  await page.getByRole("button", { name: "Maps", exact: true }).click();
   const input = page.getByLabel("Default sight radius in feet");
   await input.fill(feet);
   await input.press("Enter");

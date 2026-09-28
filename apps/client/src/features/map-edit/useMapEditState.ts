@@ -1,14 +1,15 @@
 // ============================================================================
 // MAP-EDIT STATE (glue hook)
 // ============================================================================
-// Owns the live map-edit palette state and the bind flow. Drives the ONE
+// Owns the live map-edit palette state (the bind flow is useLiveMapEntry). Drives the ONE
 // App-level MapStudioController — never a second useMapStudio (two queues would
 // revision-conflict). Mirrors useDrawingStateManager's shape: takes the
 // controller + sendMessage + mode + setActiveTool, returns palette props.
 
 import type { UseMapEditStateOptions, UseMapEditStateReturn } from "./useMapEditState.types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useFollowLiveDocument } from "./useFollowLiveDocument";
+import { useLiveMapEntry } from "./useLiveMapEntry";
+import { displayName } from "../map-studio/tableMapIdentity";
 import { useMapEditHotkeys } from "./useMapEditHotkeys";
 import { usePopulate } from "./usePopulate";
 import { useGenerate } from "./useGenerate";
@@ -17,7 +18,6 @@ import type { MapEditToolbarProps } from "./mapEditTypes";
 import { useMapEditPaletteState } from "./useMapEditPaletteState";
 import { useElementProperties } from "./useElementProperties";
 
-const LIVE_MAP_SIZE = 8192;
 /** A crate is the friendliest first set-dressing default. */
 
 export function useMapEditState({
@@ -28,6 +28,7 @@ export function useMapEditState({
   isDM,
   snapshotLoaded,
   liveMapDocumentId,
+  sceneSourceDocumentId,
   roomGridSize,
   hasRasterBackground,
   notifyError,
@@ -61,44 +62,26 @@ export function useMapEditState({
   // state rather than two that can disagree.
   const dials = usePlacementDials({ setFloorFamily, setActiveSubTool });
   const populate = usePopulate(controller, notifyError);
-  // The id of a document we just created and are waiting to activate before
-  // binding it live (createDocument returns synchronously, but the controller
-  // no-ops every action until the server's map-studio-document reply lands).
-  const [pendingLiveId, setPendingLiveId] = useState<string | null>(null);
-  // True from the moment START LIVE MAP is clicked until the room snapshot
-  // confirms the binding (isLive). Without it, the button briefly re-enables
-  // between "set-live sent" and "snapshot confirms", so a double-click would
-  // create a second orphan "Live Map" document.
-  const [awaitingLiveBind, setAwaitingLiveBind] = useState(false);
-
-  // Stable controller methods (useCallback-memoized inside useMapStudio); the
-  // controller OBJECT is recreated each render, so depend on these, not it.
-  const {
-    activeDocument,
-    loading,
-    missingDocumentId,
-    createDocument,
-    openDocument,
-    updateGrid,
-    undo,
-    redo,
-  } = controller;
-  const activeId = activeDocument?.id;
-  // The room's binding points at a document the server no longer has (the
-  // maps store reset under the room — e.g. an ephemeral-disk restart). The
-  // binding is DANGLING: never auto-open it again, and let START LIVE MAP
-  // create a fresh document whose set-live repairs the room's binding.
-  const bindingDangling = Boolean(liveMapDocumentId) && missingDocumentId === liveMapDocumentId;
-
-  const isLive = Boolean(liveMapDocumentId) && activeId === liveMapDocumentId;
+  const { activeDocument, undo, redo } = controller;
+  const { isLive, busy, startLiveMap, buildEntry } = useLiveMapEntry({
+    controller,
+    sendMessage,
+    mapEditMode,
+    liveMapDocumentId,
+    sceneSourceDocumentId,
+    hasBackground: hasRasterBackground,
+    roomGridSize,
+  });
 
   const generate = useGenerate(controller, isLive, activeSubTool, mapEditMode, notifyError);
 
-  // Ctrl/Cmd+Z / +Y route to the active (live) map document while map-edit is
-  // on; the useKeyboardShortcuts selection-undo branch is guarded off in the
-  // same mode so exactly one handler acts.
+  // Ctrl/Cmd+Z / +Y route to the table's map while map-edit is on; the
+  // useKeyboardShortcuts selection-undo branch is guarded off in the same mode
+  // so exactly one handler acts. Only while that map is OPEN: with a library
+  // map viewed, the controller's history is that map's, and a Ctrl+Z in Build
+  // silently rewound it while the table did not change.
   useMapEditHotkeys({
-    mapEditMode,
+    mapEditMode: mapEditMode && isLive,
     canUndo: controller.canUndo,
     canRedo: controller.canRedo,
     undo,
@@ -124,33 +107,6 @@ export function useMapEditState({
     lastError.current = err;
   }, [controller.error, mapEditMode, notifyError, dismissError]);
 
-  const startLiveMap = useCallback(() => {
-    if (awaitingLiveBind) return; // a create/bind is already in flight
-    if (activeId && activeId === liveMapDocumentId) return; // already live
-    setAwaitingLiveBind(true);
-    if (liveMapDocumentId && !bindingDangling) {
-      openDocument(liveMapDocumentId);
-      return;
-    }
-    // Date-stamped so repeated backup imports or binding-clearing session loads
-    // do not produce a shelf of documents all reading "Live Map", which nothing
-    // in the UI can then tell apart (there is no rename on the wire).
-    const stamp = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    setPendingLiveId(createDocument(`Live Map ${stamp}`, LIVE_MAP_SIZE, LIVE_MAP_SIZE));
-  }, [
-    awaitingLiveBind,
-    activeId,
-    liveMapDocumentId,
-    bindingDangling,
-    openDocument,
-    createDocument,
-  ]);
-
-  // Release the latch once the binding is confirmed live by the room snapshot.
-  useEffect(() => {
-    if (isLive) setAwaitingLiveBind(false);
-  }, [isLive]);
-
   // LOSING DM LEAVES THE MODE. Every way OUT of map-edit is DM-gated — the
   // header's entry, and the palette itself (TopPanelLayout gates on isDM) —
   // while the mode's effects are not: one-finger pan is off (shouldPan
@@ -168,41 +124,6 @@ export function useMapEditState({
   useEffect(() => {
     if (mapEditMode && snapshotLoaded && !isDM) setActiveTool(null);
   }, [mapEditMode, snapshotLoaded, isDM, setActiveTool]);
-
-  // Create → bind: once the freshly created document activates, bind it live and
-  // sync its grid to the room. set-live FIRST so the grid command rides the S1
-  // live-recompile hook and the table lattice self-corrects (§3).
-  useEffect(() => {
-    if (!pendingLiveId || activeId !== pendingLiveId) return;
-    sendMessage({ t: "map-studio-set-live", documentId: pendingLiveId });
-    updateGrid({ size: roomGridSize });
-    setPendingLiveId(null);
-  }, [pendingLiveId, activeId, sendMessage, updateGrid, roomGridSize]);
-
-  // Rebind after a reload: entering map-edit with a live binding but NO active
-  // document (fresh controller) auto-opens it. Bail whenever ANY document is
-  // already active — including one the DM deliberately opened to export or back
-  // up — so this effect never force-reverts an explicit open (the palette shows
-  // START LIVE MAP when a non-live doc is active). The loading guard prevents
-  // re-firing while the fetch is in flight, and a DANGLING binding (the server
-  // reported the document gone) is never re-opened — without that guard this
-  // effect looped open → not-found → open forever, pinning the palette on
-  // STARTING… after a server-side maps-store reset.
-  useFollowLiveDocument({ liveMapDocumentId, loading, activeId, openDocument });
-
-  useEffect(() => {
-    if (!mapEditMode || !liveMapDocumentId || pendingLiveId || loading) return;
-    if (activeId || bindingDangling) return;
-    openDocument(liveMapDocumentId);
-  }, [
-    mapEditMode,
-    liveMapDocumentId,
-    bindingDangling,
-    pendingLiveId,
-    loading,
-    activeId,
-    openDocument,
-  ]);
 
   const onClose = useCallback(() => setActiveTool(null), [setActiveTool]);
 
@@ -230,11 +151,13 @@ export function useMapEditState({
   const toolbarProps: MapEditToolbarProps = {
     documentId: activeDocument?.id,
     properties: properties.properties,
-    mapName: activeDocument?.name ?? "Current table map",
+    mapName: activeDocument
+      ? (displayName(activeDocument.id, controller.documents) ?? activeDocument.name)
+      : "Current table map",
     activeGroup,
     onSelectGroup,
     isLive,
-    busy: awaitingLiveBind || pendingLiveId !== null || loading,
+    busy,
     activeSubTool,
     onSelectSubTool: setActiveSubTool,
     floorFamily,
@@ -246,6 +169,7 @@ export function useMapEditState({
     onUndo: undo,
     onRedo: redo,
     onStartLiveMap: startLiveMap,
+    buildEntry,
     onClose,
     hasRasterBackground,
     error: controller.error,

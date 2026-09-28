@@ -71,8 +71,12 @@ export function AtlasGeneratePanel({ nodeId, nodeName, actions }: AtlasGenerateP
         onClick={() => actions.generateNode(nodeId, seed, recipe)}
         style={{ fontSize: "9px", padding: "2px 6px" }}
       >
-        🎲 GENERATE
+        🎲 Generate map for {nodeName}
       </JRPGButton>
+      <p className="jrpg-text-small" style={{ margin: 0, flexBasis: "100%" }}>
+        Creates a saved map for {nodeName}. The party stays where it is until you choose Travel
+        here.
+      </p>
     </div>
   );
 }

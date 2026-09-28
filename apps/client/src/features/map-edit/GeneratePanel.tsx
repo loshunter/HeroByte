@@ -115,7 +115,7 @@ export function GeneratePanel({
         title="Build a dungeon in the dragged region — one undo removes all of it"
         style={{ fontSize: "8px", padding: "7px", width: "100%", marginTop: "6px" }}
       >
-        {busy ? "⏳ GENERATING…" : "🎲 GENERATE"}
+        {busy ? "⏳ GENERATING…" : "🎲 Generate in this area"}
       </JRPGButton>
 
       {hint && (

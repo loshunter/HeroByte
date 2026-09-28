@@ -51,6 +51,7 @@ export function propertyHarness(mobile = false) {
       isDM: dm,
       snapshotLoaded: loaded,
       liveMapDocumentId: "properties-a",
+      sceneSourceDocumentId: undefined,
       roomGridSize: 50,
       hasRasterBackground: false,
     });

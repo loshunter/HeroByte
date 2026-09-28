@@ -1401,6 +1401,15 @@ button.token-library-remove:hover {
     touch-action: manipulation;
   }
 
+  /* A disclosure's summary is its tap target (Maps → Advanced). It stays a
+     list-item so its marker still shows; padding centres the one line. */
+  [data-mobile-surface] summary {
+    min-height: 44px;
+    box-sizing: border-box;
+    padding-block: 12px;
+    touch-action: manipulation;
+  }
+
   /* 44px of TRACK to drag, exactly as .mobile-layer-row__slider already does:
      a 4px range passes a hit-target audit on its bounding box and is still
      unusable, because the pointer has to land on the line. Kept out of the

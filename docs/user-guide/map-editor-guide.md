@@ -2,7 +2,7 @@
 
 HeroByte's map editor runs **on the live table**: every room, wall, door, and brushstroke appears for your players the moment you commit it. No export step, no "load map" — you build the dungeon around the party, even mid-session.
 
-It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **🏗️ MAP** in the top toolbar. On a phone or tablet the door is a different one — see [On a phone or tablet](#on-a-phone-or-tablet) at the end.
+It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **🏗️ Build map** in the top toolbar. On a phone or tablet the door is a different one — see [On a phone or tablet](#on-a-phone-or-tablet) at the end.
 
 The **Tool group** menu organizes the palette into **Terrain**, **Structures**,
 **Objects**, **Lighting**, and **Generate**. Returning to a group remembers its last
@@ -17,7 +17,7 @@ show an earlier palette arrangement; their map examples still illustrate the too
 
 ## Starting a live map
 
-Use Start live map to begin:
+Use Start live map to begin. (If the table already has a map and you have a different saved map open in **DM Menu → Maps**, the palette names both — **On table** and **Viewing in library** — and offers **▶ Resume editing _table map_** instead; it never swaps maps by itself.)
 
 **▶ START LIVE MAP** creates a fresh editable map (date-stamped, huge — 8192×8192), binds it to the table, and lights up the **● LIVE** badge — `loading…` sits beside the badge while that round trip runs. From now on every edit auto-compiles and broadcasts; you'll see a brief `saving…` flicker in the same spot as each commit lands.
 
@@ -29,7 +29,7 @@ Things to know before your first wall:
 - **↶ UNDO MAP / ↷ REDO MAP** stay above desktop tool settings; the phone keeps them in its dock. They affect map edits (Ctrl+Z / Ctrl+Y while the map owns keyboard input). Each drag, stroke, or generate is exactly one undo step. **Done building** returns to play.
 - Only one edit is sent at a time. If you finish a drag or a click while the previous one is still in flight, that gesture is dropped rather than queued, and you'll get **"Still saving the last change — draw that again."** Draw it again — nothing was half-applied. You'll notice this most on a phone, where the round trip is longest.
 - Tokens don't respond to clicks while you're editing — leave the mode to move them.
-- If the table still has a raster background image, the palette warns you: live terrain and a background photo fight visually. Clear the background (DM Menu → Map Setup) for a clean canvas.
+- If the table still has a raster background image, the palette warns you: live terrain and a background photo fight visually. Clear the background (DM Menu → Maps → Current table map) for a clean canvas.
 
 ## 🏠 Room and 🚇 Hall — the structural tools
 
@@ -134,7 +134,7 @@ and explain why.
 
 ## 🏰 Gen — the dungeon generator
 
-Drag a region (at least **20×20 cells** — zoom out if needed), pick a theme (**🪨 Stone / 🪵 Wood**) and density, and press **🎲 GENERATE**:
+Drag a region (at least **20×20 cells** — zoom out if needed), pick a theme (**🪨 Stone / 🪵 Wood**) and density, and press **🎲 Generate in this area**:
 
 ![A generated dungeon wing: rooms, corridors, doors, and dressing](img/mapedit-generated-dungeon.jpg)
 

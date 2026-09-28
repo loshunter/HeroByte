@@ -48,6 +48,6 @@ describe("WorldMapPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "🗺 WORLD" }));
     expect(screen.getByLabelText("Discovered world")).toBeInTheDocument();
     // Read-only: no rename/delete/travel controls exist on the player panel.
-    expect(screen.queryByRole("button", { name: /TRAVEL|Rename|Delete/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /travel|rename|delete/i })).toBeNull();
   });
 });

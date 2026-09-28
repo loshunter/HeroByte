@@ -101,6 +101,13 @@ export type GenerateInput = Omit<
   "t" | "documentId" | "commandId"
 >;
 
+/** A refused map-studio-set-live: which map, why, and which refusal this is. */
+export interface MapBindRefusal {
+  documentId: string;
+  reason: string;
+  seq: number;
+}
+
 export interface MapStudioController {
   documents: MapDocumentSummary[];
   activeDocument: MapDocument | null;
@@ -111,6 +118,16 @@ export interface MapStudioController {
    * stops auto-retrying it and offers a fresh start (dangling live binding). */
   missingDocumentId: string | null;
   /**
+   * The last refused table binding (map-studio-set-live), keyed by the map it
+   * named. `seq` makes a repeat of the same refusal a new event.
+   */
+  bindRefusal: MapBindRefusal | null;
+  /**
+   * A list reply has arrived. Until then `documents` is not the library, so
+   * "this scene's map is not in it" means nothing yet (see tableSceneFate).
+   */
+  listed: boolean;
+  /**
    * What the campaign's session export weighs on the wire, per the last list
    * reply (refreshed when the panel opens and when a map is added or removed);
    * null until a server has said. The readout beside the map list.
@@ -119,6 +136,12 @@ export interface MapStudioController {
   canUndo: boolean;
   canRedo: boolean;
   refresh: () => void;
+  /**
+   * Fetch the map list WITHOUT the panel's loading state: Build names maps
+   * from it, and a loud refresh would release `loading` under an open that is
+   * still in flight (a second open) and hold up the follow-the-table effect.
+   */
+  listQuietly: () => void;
   createDocument: (name: string, width?: number, height?: number) => string;
   /** Optional recovery callback settles only for this GET, or its loss of tracking. */
   openDocument: (documentId: string, onRecovery?: MapRecoveryCallback) => void;

@@ -76,5 +76,5 @@ export function useCampaignReadout(sendMessage: (message: ClientMessage) => void
     if (hadList) requestSilentList();
   }, [requestSilentList]);
 
-  return { exportBytes, onListReply, onDocumentFrame, onDeleted, onReconnect };
+  return { exportBytes, onListReply, onDocumentFrame, onDeleted, onReconnect, requestSilentList };
 }

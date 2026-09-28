@@ -74,7 +74,7 @@ export const HelpMenuButton: React.FC = () => {
     };
 
     // A window resize is NOT the only way this button moves. The header is a
-    // wrapping toolbar whose contents change — elevating to DM adds "🏗️ Map"
+    // wrapping toolbar whose contents change — elevating to DM adds "🏗️ Build map"
     // and "👁 Player View", which can rewrap the row — and its top offset moves
     // with the connection banner appearing or disappearing. None of that fires
     // `resize`, and the popover is portalled to document.body, so it cannot

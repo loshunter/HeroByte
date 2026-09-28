@@ -21,6 +21,7 @@ describe("a map error owns its notification through a deliberate retry", () => {
           isDM: true,
           snapshotLoaded: true,
           liveMapDocumentId: undefined,
+          sceneSourceDocumentId: undefined,
           roomGridSize: 50,
           hasRasterBackground: false,
           notifyError: toast.error,

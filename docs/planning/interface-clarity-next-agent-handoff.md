@@ -10,7 +10,15 @@ and latest execution ledger before relying on these identifiers.
 
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
-**Latest U5 frontier:** the owner replied “Proceed” on 2026-09-27, authorizing the
+**Latest U6 frontier (2026-09-28):** U6 is implemented, reviewed for three rounds, repaired
+per the owner's round-3 decision “Repair all, verify”, and fully verified; it is uncommitted on
+`dev` and awaits owner acceptance. U5 and the door-pan fix were pushed to `dev`; the Draw-sheet
+CSS fix is `11a3728c`, with an uncommitted Linux-font follow-up. Two follow-up tasks are
+filed: the docs harness's broken authoring walkthrough, and a heavy-scene camera pan that
+can end one move-step short (the `door-pan.spec.ts` CI flake). Read
+[the U6 record](../verification/interface-clarity-u6.md) first; U7 has not started.
+
+**Previous U5 frontier:** the owner replied “Proceed” on 2026-09-27, authorizing the
 two final repairs and verification. Both are implemented: copied session-upload
 inventory on remount and accessible ambient percentages/endpoint help. Compiled
 RED precedes **194 unit passes/24 files, 34 strict roots/1,040 inputs** and affected

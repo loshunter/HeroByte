@@ -47,11 +47,13 @@ describe("AtlasTab", () => {
 
   it("creates a node with a minted id and clears the input", () => {
     const { onAtlasMessage } = renderTab();
-    fireEvent.change(screen.getByLabelText("New node name"), {
+    fireEvent.change(screen.getByLabelText("New location name"), {
       target: { value: "Port Meridian" },
     });
-    fireEvent.change(screen.getByLabelText("New node kind"), { target: { value: "settlement" } });
-    fireEvent.click(screen.getByRole("button", { name: "+ CREATE NODE" }));
+    fireEvent.change(screen.getByLabelText("New location kind"), {
+      target: { value: "settlement" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "+ Create location" }));
 
     expect(onAtlasMessage).toHaveBeenCalledWith({
       t: "atlas-create-node",
@@ -62,7 +64,7 @@ describe("AtlasTab", () => {
         parentId: undefined,
       },
     });
-    expect(screen.getByLabelText("New node name")).toHaveValue("");
+    expect(screen.getByLabelText("New location name")).toHaveValue("");
   });
 
   it("marks the current node and toggles discovery", () => {
@@ -146,7 +148,7 @@ describe("AtlasTab", () => {
       currentAtlasNodeId: "here",
     });
     // Exactly ONE travel button: the current node offers none.
-    const buttons = screen.getAllByRole("button", { name: "🚩 TRAVEL" });
+    const buttons = screen.getAllByRole("button", { name: "🚩 Travel here" });
     expect(buttons).toHaveLength(1);
 
     confirmSpy.mockReturnValue(false);
@@ -248,8 +250,8 @@ describe("AtlasTab", () => {
 
   it("opens the generate panel on a promise node and sends the message with a minted commandId", () => {
     const { onAtlasMessage } = renderTab({ atlasNodes: [node("n1")] });
-    fireEvent.click(screen.getByRole("button", { name: "🎲 Generate…" }));
-    fireEvent.click(screen.getByRole("button", { name: "🎲 GENERATE" }));
+    fireEvent.click(screen.getByRole("button", { name: "🎲 Generate map for location…" }));
+    fireEvent.click(screen.getByRole("button", { name: "🎲 Generate map for name-n1" }));
 
     expect(onAtlasMessage).toHaveBeenCalledWith(
       expect.objectContaining({

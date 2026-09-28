@@ -7,6 +7,7 @@ import { MapEditToolGroups } from "../MapEditToolGroups";
 import { PERSISTENT_TOOLS, TOOL_DESCRIPTORS } from "../mapEditToolDescriptors";
 import "../mapEditPalette.css";
 import { useRevealMapPanel } from "../useRevealMapPanel";
+import { BuildEntryPrompt } from "../BuildEntryPrompt";
 
 interface MobileMapEditSheetProps {
   toolbar: MapEditToolbarProps;
@@ -87,19 +88,12 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
       )}
       <div className="map-edit-palette__scroll" data-testid="build-settings">
         {!isLive ? (
-          <>
-            <p className="mobile-tool-sheet__note">
-              Author the map on the live table. Rooms and walls appear for every player instantly.
-            </p>
-            <button
-              type="button"
-              className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
-              onClick={toolbar.onStartLiveMap}
-              disabled={busy}
-            >
-              {busy ? "Starting…" : "▶ Start live map"}
-            </button>
-          </>
+          <BuildEntryPrompt
+            entry={toolbar.buildEntry}
+            busy={busy}
+            onStartLiveMap={toolbar.onStartLiveMap}
+            mobile
+          />
         ) : (
           <>
             {(toolbar.saving || busy) && (

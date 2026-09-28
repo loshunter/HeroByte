@@ -26,6 +26,8 @@ export interface UseMapEditStateOptions {
   snapshotLoaded: boolean;
   /** The room's live-bound document id (from the snapshot), if any. */
   liveMapDocumentId: string | undefined;
+  /** The compiled scene's own map (snapshot.compiledScene.sourceDocumentId), if any. */
+  sceneSourceDocumentId: string | undefined;
   /** The room's current live grid size, synced onto a freshly created document. */
   roomGridSize: number;
   /** True when the room still carries a raster background (double-draw hint). */

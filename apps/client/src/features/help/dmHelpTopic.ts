@@ -56,7 +56,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "Fog of War",
       detail:
-        "DM Menu → Map Setup. Needs a built map with walls; publish one in the live editor first.",
+        "DM Menu → Maps → Current table map. Needs a built map with walls; build one with 🏗️ Build map first (on a phone, DM → 🏗️ Edit the live map).",
     },
     {
       term: "👁 Player View",
@@ -64,9 +64,9 @@ export const DM_HELP_TOPIC: HelpTopic = {
         "Renders your own table exactly as players receive it, while you keep every DM power.",
     },
     {
-      term: "🏗️ Map",
+      term: "🏗️ Build map",
       detail:
-        "The live map editor. Tool group offers Terrain, Structures, Objects, Lighting and Generate, remembering the last tool in each group. Select, Sample, Layers, history and Done stay separate from scrolling settings. The map name identifies what you are editing live. On a phone or tablet: DM → Edit the live map, then Tool opens the palette; Done returns to play. Select picks a piece, then Edit turns, resizes, re-layers or hides it. Layers controls ambient light through Lighting opacity. Place object, Scatter objects and Place light aim while your finger is down and commit when you lift. Stop cancels the active gesture.",
+        "The live map editor. Tool group offers Terrain, Structures, Objects, Lighting and Generate, remembering the last tool in each group. Select, Sample, Layers, history and Done stay separate from scrolling settings. Build edits the map on the table and names it. If you opened a different saved map in DM Menu → Maps, Build names both and offers Resume editing <table map>; it never swaps maps by itself. On a phone or tablet: DM → Edit the live map, then Tool opens the palette; Done returns to play. Select picks a piece, then Edit turns, resizes, re-layers or hides it. Layers controls ambient light through Lighting opacity. Place object, Scatter objects and Place light aim while your finger is down and commit when you lift. Stop cancels the active gesture.",
     },
     {
       term: "Decorate last room / hallway",

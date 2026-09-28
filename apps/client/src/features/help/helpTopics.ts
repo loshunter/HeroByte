@@ -64,32 +64,32 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: "atlas",
     icon: "🗺️",
-    title: "The Atlas: linked maps & travel",
+    title: "World: locations, linked maps & travel",
     entries: [
       {
-        term: "The Atlas tab",
+        term: "The World tab",
         detail:
-          "DM Menu → Atlas. Your campaign as a tree of maps: create nodes, link maps you built, or GENERATE a dungeon or a building straight into an empty one.",
+          "DM Menu → World. Your campaign as a tree of locations and their linked maps: create locations, link saved maps, or generate a dungeon or a building for an empty one. The tab says where the party is; nothing here moves them except Travel here and Kick in a door.",
       },
       {
         term: "Promises",
         detail:
-          "A node without a map (⬒) is a promise — pick 🎲 Generate… or 🔗 Link existing map to make it real when the party gets there. It costs nothing until then.",
+          "A location without a map (⬒) is a promise — pick 🎲 Generate map for location… or 🔗 Link existing map to make it real when the party gets there. Generating creates a saved map; the party stays where it is. It costs nothing until then.",
       },
       {
-        term: "🚩 TRAVEL",
+        term: "🚩 Travel here",
         detail:
-          "Moves the whole table to that node. The scene you leave — tokens, open doors, drawings, combat — is suspended exactly as it stands, and coming back resumes it.",
+          "Moves the whole table to that location, after asking. The scene you leave — tokens, open doors, drawings, combat — is suspended exactly as it stands, and coming back resumes it. Two exceptions, both named in the confirmation: a scene whose map was deleted has nowhere to be kept, so only the player characters come along; and a table with no saved map (a background image only) suspends nothing — on a first visit its background, NPCs, props and drawings come along.",
       },
       {
         term: "Discovery",
         detail:
-          "Players only see nodes you've marked 👁 Discovered (first travel discovers automatically). Hidden nodes never reach their screens at all.",
+          "Players only see locations you've marked 👁 Discovered (first travel discovers automatically). Hidden locations never reach their screens at all.",
       },
       {
         term: "🗺 World Map & links",
         detail:
-          "Players carry the discovered world: the 🗺 WORLD button (on a phone, Tools → World). The DM can also pin door/stair/signpost sprites onto the map itself — ⚓ in the Atlas tab, then click where it sits — and click one to travel there.",
+          "Players carry the discovered world: the 🗺 WORLD button (on a phone, Tools → World). The DM can also pin door/stair/signpost sprites onto the map itself — ⚓ in the World tab, then click where it sits — and click one to travel there.",
       },
       {
         term: "The recipes",
@@ -99,7 +99,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🚪 Kick in a door",
         detail:
-          "The party kicked in a door you never prepped? Press G (or 🚪 KICK IN A DOOR in the Atlas tab; on a phone, DM → 🚪 Kick in a door): name it, pick the dials, ROLL — the whole table is standing in a fresh, stocked scene under the node you were on, with a door back. A table that was never on the Atlas is adopted by its first kick.",
+          "The party kicked in a door you never prepped? Press G (or 🚪 KICK IN A DOOR in the World tab; on a phone, DM → 🚪 Kick in a door): name it, pick the dials, 🚪 Generate & enter — the whole table is standing in a fresh, stocked scene under the location you were on, with a door back. A table that was never in World is adopted by its first kick.",
       },
     ],
   },
@@ -161,7 +161,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Move",
         detail:
-          "Drag it, or step it with WASD / arrows (QEZC diagonal; hold to walk). With nothing selected the keys move your own token if you run just one character — except while typing, and ↑/↓ page a panel you last clicked into or scrolled (WASD and ←/→ still walk). 🖱️ SELECT and 🔄 TRANSFORM move only the piece you picked (nothing picked, nothing moves); ✏️ Draw, the grid-alignment wizard and atlas-link take the keys. Phone: TOOLS → □ Select, tap the piece, use the d-pad.",
+          "Drag it, or step it with WASD / arrows (QEZC diagonal; hold to walk). With nothing selected the keys move your own token if you run just one character — except while typing, and ↑/↓ page a panel you last clicked into or scrolled (WASD and ←/→ still walk). 🖱️ SELECT and 🔄 TRANSFORM move only the piece you picked (nothing picked, nothing moves); ✏️ Draw, the grid-alignment wizard and World link placement (⚓ AIM ON MAP) take the keys. Phone: TOOLS → □ Select, tap the piece, use the d-pad.",
       },
       { term: "Recolor", detail: "Double-click your own token for a new random colour." },
       {

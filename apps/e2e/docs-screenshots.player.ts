@@ -238,7 +238,7 @@ test.describe("docs screenshots: player", () => {
         await page.getByRole("button", { name: /^DM$/ }).click();
         // The menu is a lazy chunk; wait for its tabs before shooting — and
         // for the elevation toast to clear, or it covers the chip row.
-        await expect(page.getByRole("button", { name: "Map Setup" })).toBeVisible({
+        await expect(page.getByRole("button", { name: "Maps", exact: true })).toBeVisible({
           timeout: 15_000,
         });
         await expect(page.getByText(/DM elevation successful/i)).toBeHidden({ timeout: 10_000 });

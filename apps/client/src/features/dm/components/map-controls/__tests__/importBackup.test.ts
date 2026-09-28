@@ -99,7 +99,7 @@ describe("parseBackupImport", () => {
       /different version/i,
     );
     expect((parseBackupImport('{"hello":"world"}') as { error: string }).error).toMatch(
-      /not a HeroByte map/i,
+      /not a HeroByte editable map/i,
     );
   });
 
@@ -107,7 +107,9 @@ describe("parseBackupImport", () => {
     // `null` parses fine and is the one result that cannot be read from. The
     // call site cannot surface a throw at all, so a crash here is silence.
     expect(() => parseBackupImport("null")).not.toThrow();
-    expect((parseBackupImport("null") as { error: string }).error).toMatch(/not a HeroByte map/i);
+    expect((parseBackupImport("null") as { error: string }).error).toMatch(
+      /not a HeroByte editable map/i,
+    );
     for (const primitive of ["5", '"hi"', "true", "[]"]) {
       expect(() => parseBackupImport(primitive)).not.toThrow();
       expect(parseBackupImport(primitive)).toHaveProperty("error");

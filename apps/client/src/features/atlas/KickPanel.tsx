@@ -2,7 +2,7 @@
 // KICK PANEL — "🚪 Kick in a door"
 // ============================================================================
 // The fields of plan §1.1: a prefilled name, the recipe's dials, a seed with
-// ⟳, the door type, and ROLL. Rendered by BOTH layouts (a floating JRPG panel
+// ⟳, the door type, and Generate & enter (U6; it used to read ROLL). Rendered by BOTH layouts (a floating JRPG panel
 // on desktop, a full screen on a phone) from the same KickControls; the panel
 // reads its App-level draft and pending state, which survive a layout crossing.
 // Enter rolls, Escape closes.
@@ -104,7 +104,9 @@ export function KickPanel({
     >
       {/* The name is the identity (VISION's Signature Move 1); the subtitle is
           what it DOES, for a DM meeting it for the first time. */}
-      <p style={{ margin: 0, fontSize: "9px", opacity: 0.75 }}>Generate a connected location</p>
+      <p style={{ margin: 0, fontSize: "9px", opacity: 0.75 }}>
+        Creates a connected location and moves the whole table there.
+      </p>
       <label style={labelStyle}>
         Name
         <input
@@ -197,7 +199,7 @@ export function KickPanel({
           data-testid="kick-roll"
           style={{ fontSize: "10px" }}
         >
-          {kicking ? "⏳ Kicking…" : "🚪 ROLL"}
+          {kicking ? "⏳ Kicking…" : "🚪 Generate & enter"}
         </JRPGButton>
       </div>
     </form>

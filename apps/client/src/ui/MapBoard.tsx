@@ -34,6 +34,8 @@ import { useCameraControl } from "../hooks/useCameraControl.js";
 import { useTransformGizmoIntegration } from "../hooks/useTransformGizmoIntegration.js";
 import { isSceneInputArmed, useStageEventRouter } from "../hooks/useStageEventRouter.js";
 import { useAimTouchGuard } from "../features/atlas/useAimTouchGuard";
+import { travelPrompt } from "../features/atlas/travelPrompt";
+import { tableSceneFate } from "../features/map-studio/tableMapIdentity";
 import {
   GridLayer,
   MapImageLayer,
@@ -586,19 +588,33 @@ export default function MapBoard({
     [sendMessage],
   );
 
-  // DM sprite-click travel: the A5 confirm, worded from the target's name.
+  // DM sprite-click travel: the A5 confirm, worded from the target's name and
+  // the World tab's words for the scene it leaves. A sprite lives on a mapped
+  // location's own map, so that scene is kept — unless the maps store lost the
+  // map under it (a boot-time desync). Until the library has listed, assume kept.
+  const sceneDocumentId = snapshot?.compiledScene?.sourceDocumentId;
   const handleLinkTravel = useCallback(
     (toNodeId: string) => {
       const name = snapshot?.atlasNodes?.find((node) => node.id === toNodeId)?.name ?? "that place";
-      if (
-        window.confirm(
-          `Travel the whole table to "${name}"? The current scene is suspended exactly as it stands.`,
-        )
-      ) {
+      const studio = mapEditController;
+      const fate = studio?.listed
+        ? tableSceneFate({
+            sceneDocumentId,
+            missingDocumentId: studio.missingDocumentId,
+            documents: studio.documents,
+          })
+        : "kept";
+      if (window.confirm(travelPrompt(name, fate, Boolean(snapshot?.mapBackground)))) {
         sendMessage({ t: "atlas-travel", nodeId: toNodeId });
       }
     },
-    [snapshot?.atlasNodes, sendMessage],
+    [
+      snapshot?.atlasNodes,
+      snapshot?.mapBackground,
+      sceneDocumentId,
+      mapEditController,
+      sendMessage,
+    ],
   );
 
   // Callback to receive node reference from MapImageLayer

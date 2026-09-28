@@ -116,6 +116,7 @@ export function mountEditor(kind: EditorKind) {
           depth={0}
           isCurrent={false}
           documents={[]}
+          travelPrompt={(name) => `Travel to ${name}?`}
           actions={actions}
         />
       </ul>

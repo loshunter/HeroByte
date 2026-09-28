@@ -4,7 +4,13 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
-**Latest implementation checkpoint (2026-09-27):** the owner authorized the two
+**Latest implementation checkpoint (2026-09-28):** U6 addresses IA-13 (Maps, the Map
+library, Build and World now say which map is on the table and which is being viewed) and
+IA-14's U6 half (backups, exports and generation actions name their scope and
+destination). Implemented, reviewed for three rounds, repaired and fully verified;
+uncommitted pending owner acceptance. See [the U6 record](interface-clarity-u6.md).
+
+**Earlier implementation checkpoint (2026-09-27):** the owner authorized the two
 final U5 repairs with “Proceed”. Session-upload remount and ambient accessibility
 have compiled RED, 194 affected unit passes/24 files, 34 strict roots and affected
 two-client browser passes. Root verifies 78 controls and matching/shared outcomes;

@@ -1,6 +1,7 @@
 import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
 import { getMapStudioTileAsset } from "../map-studio/starterTiles";
+import { BuildEntryPrompt } from "./BuildEntryPrompt";
 import { MapEditActiveSettings } from "./MapEditActiveSettings";
 import { MapEditDocumentPanels } from "./MapEditDocumentPanels";
 import { MapEditPersistentControls } from "./MapEditPersistentControls";
@@ -35,15 +36,11 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
         {props.isLive && <MapEditPersistentControls {...props} />}
         <div className="map-edit-palette__scroll" data-testid="build-settings">
           {!props.isLive ? (
-            <>
-              <p className="jrpg-text-small">
-                Author the map on the live table. Rooms, walls, and doors appear for every player
-                instantly.
-              </p>
-              <JRPGButton onClick={props.onStartLiveMap} disabled={props.busy} variant="primary">
-                {props.busy ? "STARTING…" : "▶ START LIVE MAP"}
-              </JRPGButton>
-            </>
+            <BuildEntryPrompt
+              entry={props.buildEntry}
+              busy={props.busy}
+              onStartLiveMap={props.onStartLiveMap}
+            />
           ) : (
             <>
               <MapEditDocumentPanels {...props} />

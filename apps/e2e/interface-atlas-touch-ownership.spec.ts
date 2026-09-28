@@ -29,9 +29,9 @@ async function atlas(page: Page) {
     await expect(dialog).toBeVisible();
   });
   await test.step("Select Atlas", async () => {
-    await dialog.getByRole("button", { name: "Atlas", exact: true }).tap();
+    await dialog.getByRole("button", { name: "World", exact: true }).tap();
   });
-  await expect(dialog.getByLabel("New node name")).toBeVisible();
+  await expect(dialog.getByLabel("New location name")).toBeVisible();
   return dialog;
 }
 
@@ -173,21 +173,21 @@ test("Atlas aimed touch owns its mouse stream and leaves the shared door closed"
       return events;
     });
     const dialog = await atlas(dm);
-    await dialog.getByLabel("New node name").fill("Waystone");
-    await dialog.getByRole("button", { name: "+ CREATE NODE", exact: true }).tap();
-    await dialog.getByRole("button", { name: "🎲 Generate…", exact: true }).tap();
+    await dialog.getByLabel("New location name").fill("Waystone");
+    await dialog.getByRole("button", { name: "+ Create location", exact: true }).tap();
+    await dialog.getByRole("button", { name: "🎲 Generate map for location…", exact: true }).tap();
     await dialog.getByLabel("Size for Waystone").selectOption("small");
     await dialog
       .getByTestId("atlas-generate-panel")
-      .getByRole("button", { name: "🎲 GENERATE", exact: true })
+      .getByRole("button", { name: "🎲 Generate map for Waystone", exact: true })
       .tap();
-    const travel = dialog.getByRole("button", { name: "🚩 TRAVEL", exact: true });
+    const travel = dialog.getByRole("button", { name: "🚩 Travel here", exact: true });
     await expect(travel).toBeEnabled({ timeout: 30_000 });
     await travel.tap();
     await expect.poll(async () => (await state(dm)).doors.length).toBeGreaterThan(0);
     await expect.poll(async () => (await state(player)).node).toBe((await state(dm)).node);
-    await dialog.getByLabel("New node name").fill("Beyond");
-    await dialog.getByRole("button", { name: "+ CREATE NODE", exact: true }).tap();
+    await dialog.getByLabel("New location name").fill("Beyond");
+    await dialog.getByRole("button", { name: "+ Create location", exact: true }).tap();
     await expect(dialog.getByLabel("promise: Beyond")).toBeVisible();
     await dialog.getByRole("button", { name: "Close DM Menu", exact: true }).tap();
     await expect(dialog).toHaveCount(0);

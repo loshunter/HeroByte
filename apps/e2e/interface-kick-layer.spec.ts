@@ -41,8 +41,8 @@ test("U2 desktop DM Atlas → Kick closes the foreground first without losing th
     const launcher = dm.getByRole("button", { name: /DM MENU/ });
     const closeDM = dm.getByRole("button", { name: "Close Dungeon Master Tools", exact: true });
     await launcher.click();
-    await dm.getByRole("button", { name: "Atlas", exact: true }).click();
-    const draft = dm.getByLabel("New node name", { exact: true });
+    await dm.getByRole("button", { name: "World", exact: true }).click();
+    const draft = dm.getByLabel("New location name", { exact: true });
     await draft.fill("Retained unsent Atlas draft");
 
     // Put the real draggable DM window beneath Kick's centered form, so the

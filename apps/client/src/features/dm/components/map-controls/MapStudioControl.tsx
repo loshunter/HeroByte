@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import type { MapPublishBackgroundMode } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
-import {
-  describePublishFailure,
-  rasterizeAndUploadMapBackground,
-  type MapStudioController,
-} from "../../../map-studio";
+import type { MapStudioController } from "../../../map-studio";
+import type { AtlasNodeSnapshot } from "@herobyte/shared";
+import { displayName, libraryOptionLabel } from "../../../map-studio/tableMapIdentity";
 import { CampaignWeight } from "./CampaignWeight";
-import { MapStudioExportControls } from "./MapStudioExportControls";
-import { formatUpdatedAt } from "./formatUpdatedAt";
-import { parseBackupImport } from "./importBackup";
-import { describeLiveMapReplacement } from "./publishGuard";
+import { deleteMapPrompt } from "./deleteMapPrompt";
+import { useMapImport } from "./useMapImport";
+import { usePublishMapBackground, type PublishToLiveMap } from "./usePublishMapBackground";
+import { useUseMapAtTable } from "./useUseMapAtTable";
+import { ViewedMapDetails } from "./ViewedMapDetails";
 
 export interface MapStudioControlProps {
   controller: MapStudioController;
@@ -20,19 +18,34 @@ export interface MapStudioControlProps {
    * tell a bake from a swap, so it asks nothing (the pre-2026-09-08 behaviour).
    */
   liveSceneDocumentId?: string;
-  onPublishToLiveMap?: (publish: {
-    backgroundUrl: string;
-    gridSize: number;
-    documentId: string;
-    documentName: string;
-    backgroundMode: MapPublishBackgroundMode;
-  }) => void;
+  /** Returns false when nothing was sent (the viewed map changed during the bake). */
+  onPublishToLiveMap?: (publish: PublishToLiveMap) => boolean | void;
+  /** The room's live binding: the saved map the party is on. */
+  tableMapDocumentId?: string;
+  /** The table shows an uploaded background image (it stays under a new map). */
+  hasBackground?: boolean;
+  /** Fog on the table now (Use at table keeps it; Travel here may turn it on). */
+  fogEnabled?: boolean;
+  /** World locations: a location's map says what Travel here and DELETE do to it. */
+  atlasNodes?: ReadonlyArray<Pick<AtlasNodeSnapshot, "name" | "mapDocumentId" | "recipe">>;
+  /** Binds a saved map through the existing set-live transition. */
+  onUseAtTable?: (documentId: string) => void;
 }
 
+/**
+ * The Map library: saved maps, inspected here without moving the party. Only
+ * Use at table (and Advanced → Publish map background) changes the table, and
+ * each asks first. Not a second editor: Build edits the map on the table.
+ */
 export function MapStudioControl({
   controller,
   liveSceneDocumentId,
   onPublishToLiveMap,
+  tableMapDocumentId,
+  hasBackground = false,
+  fogEnabled = false,
+  atlasNodes = [],
+  onUseAtTable,
 }: MapStudioControlProps) {
   const {
     documents,
@@ -40,6 +53,9 @@ export function MapStudioControl({
     loading,
     saving,
     error,
+    missingDocumentId,
+    bindRefusal,
+    listed,
     canUndo,
     canRedo,
     exportBytes,
@@ -57,56 +73,59 @@ export function MapStudioControl({
   const [height, setHeight] = useState(2048);
   const [selectedId, setSelectedId] = useState("");
   const [publishStatus, setPublishStatus] = useState("");
-  const importInputRef = useRef<HTMLInputElement>(null);
-  // The id of the last document sent for import, so we can turn the in-progress
-  // "Importing…" status into a completion once that document activates.
-  const importingIdRef = useRef<string | null>(null);
-
-  const handleImportFile = (fileText: string) => {
-    const parsed = parseBackupImport(fileText);
-    if ("error" in parsed) {
-      setPublishStatus(parsed.error);
-      return;
-    }
-    const id = importDocument(parsed.document);
-    importingIdRef.current = id;
-    setSelectedId(id);
-    setPublishStatus("Importing map backup…");
-  };
+  const { importInputRef, onImportChange } = useMapImport({
+    importDocument,
+    activeDocument,
+    documents,
+    error,
+    setStatus: setPublishStatus,
+    setSelectedId,
+  });
+  const publish = usePublishMapBackground({
+    documents,
+    liveSceneDocumentId,
+    missingDocumentId,
+    listed,
+    fogEnabled,
+    atlasNodes,
+    uploadAsset,
+    onPublishToLiveMap,
+    setStatus: setPublishStatus,
+  });
+  const useAtTable = useUseMapAtTable({
+    documents,
+    tableMapDocumentId,
+    liveSceneDocumentId,
+    missingDocumentId,
+    listed,
+    hasBackground,
+    fogEnabled,
+    atlasNodes,
+    onUseAtTable,
+    bindRefusal,
+    setStatus: setPublishStatus,
+  });
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
+  // Follow the open document when a DIFFERENT one opens — not on every render.
+  // Re-syncing whenever the selection changed made a pick snap straight back to
+  // the open map, so View, Use at table and DELETE acted on the wrong map.
+  const activeId = activeDocument?.id;
+  const followedId = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (activeDocument) {
-      setSelectedId(activeDocument.id);
+    if (activeId && activeId !== followedId.current) {
+      followedId.current = activeId;
+      setSelectedId(activeId);
       return;
     }
+    if (!activeId) followedId.current = undefined;
     if (!selectedId && documents[0]) {
       setSelectedId(documents[0].id);
     }
-  }, [activeDocument, documents, selectedId]);
-
-  // Resolve the "Importing…" status once the imported document activates, so the
-  // panel doesn't read "Importing map backup…" forever under a finished import.
-  useEffect(() => {
-    if (importingIdRef.current && activeDocument?.id === importingIdRef.current) {
-      importingIdRef.current = null;
-      setPublishStatus(`Imported "${activeDocument.name}".`);
-    }
-  }, [activeDocument]);
-
-  // If an import fails, the watchdog surfaces controller.error while the import
-  // is still pending — drop the now-misleading "Importing…" status (the visible
-  // error carries the failure) and stop tracking the import so a later publish
-  // status can't be blanked by an unrelated error.
-  useEffect(() => {
-    if (error && importingIdRef.current) {
-      importingIdRef.current = null;
-      setPublishStatus("");
-    }
-  }, [error]);
+  }, [activeId, documents, selectedId]);
 
   const handleCreate = () => {
     if (!name.trim() || loading || saving) return;
@@ -119,76 +138,37 @@ export function MapStudioControl({
     openDocument(selectedId);
   };
 
+  // A pick that is not in the list (a refused create or import, a map just
+  // deleted) has nothing to view, use or delete.
+  const pickListed = documents.some((document) => document.id === selectedId);
+  const tableName = tableMapDocumentId ? displayName(tableMapDocumentId, documents) : undefined;
+  // What the party sees: the binding, or (an older save, unbound) the scene's own map.
+  const onTableId = tableMapDocumentId ?? liveSceneDocumentId;
+
   const handleDelete = () => {
-    if (!selectedId) return;
-    const selected = documents.find((document) => document.id === selectedId);
-    if (window.confirm(`Delete map "${selected?.name ?? selectedId}"? This cannot be undone.`)) {
+    if (!pickListed) return;
+    const prompt = deleteMapPrompt({
+      name: displayName(selectedId, documents) ?? selectedId,
+      onTable: selectedId === tableMapDocumentId || selectedId === liveSceneDocumentId,
+      locationName: atlasNodes.find((node) => node.mapDocumentId === selectedId)?.name,
+    });
+    if (window.confirm(prompt)) {
       deleteDocument(selectedId);
-      setSelectedId("");
+      // Never leave the deleted map picked: the list drops it only when the
+      // server replies, and falling back to the first entry could re-pick it.
+      const next = activeId && activeId !== selectedId ? activeId : undefined;
+      setSelectedId(next ?? documents.find((document) => document.id !== selectedId)?.id ?? "");
     }
   };
 
-  const handlePublish = () => {
-    const documentToPublish = activeDocument;
-    if (!documentToPublish || !onPublishToLiveMap) return;
-    const replacement = describeLiveMapReplacement(
-      documentToPublish,
-      liveSceneDocumentId,
-      documents,
-    );
-    if (replacement && !window.confirm(replacement.prompt)) {
-      setPublishStatus(`Publish cancelled — the table stays on "${replacement.liveName}".`);
-      return;
-    }
-    // Bake + upload run async; the payload captures the document so a mid-bake
-    // switch can't mismatch id and background.
-    void (async () => {
-      // Full raster, matching the in-studio Publish button: the map is baked to
-      // an opaque PNG (terrain composited) and uploaded by reference, so only a
-      // short /assets URL rides the wire and the table renders it as the map.
-      let backgroundUrl: string;
-      try {
-        backgroundUrl = await rasterizeAndUploadMapBackground(documentToPublish, uploadAsset);
-      } catch (error) {
-        setPublishStatus(describePublishFailure(error));
-        return;
-      }
-      onPublishToLiveMap({
-        backgroundUrl,
-        gridSize: toLiveGridSize(documentToPublish.grid.size),
-        documentId: documentToPublish.id,
-        documentName: documentToPublish.name,
-        backgroundMode: "full",
-      });
-      setPublishStatus(`Published "${documentToPublish.name}" to the live map.`);
-    })();
-  };
-
+  const busy = loading || saving;
   return (
-    <JRPGPanel variant="simple" title="HeroByte Map Studio">
+    <JRPGPanel variant="simple" title="Map library">
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <label className="jrpg-text-small" htmlFor="map-studio-name">
-          New map name
-        </label>
-        <input
-          id="map-studio-name"
-          value={name}
-          maxLength={200}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-          <DimensionInput label="Width" value={width} onChange={setWidth} />
-          <DimensionInput label="Height" value={height} onChange={setHeight} />
-        </div>
-        <JRPGButton
-          variant="primary"
-          disabled={loading || saving || !name.trim()}
-          onClick={handleCreate}
-        >
-          {loading ? "WORKING..." : "CREATE EDITABLE MAP"}
-        </JRPGButton>
-
-        <div style={{ borderTop: "1px solid var(--jrpg-border-gold)", paddingTop: "10px" }}>
+        <p className="jrpg-text-small" style={{ margin: 0 }}>
+          Saved maps. Viewing one never moves the party; Use at table does, after asking.
+        </p>
+        <div>
           <label className="jrpg-text-small" htmlFor="map-studio-document">
             Saved maps
           </label>
@@ -201,66 +181,54 @@ export function MapStudioControl({
             <option value="">{documents.length ? "Choose a map" : "No maps yet"}</option>
             {documents.map((document) => (
               <option key={document.id} value={document.id}>
-                {/*
-                  `revision` is an edit counter, not a copy index, so two
-                  documents both auto-named "Live Map" were indistinguishable
-                  here — and there is no rename anywhere on the wire, only
-                  delete, whose confirm quotes the same ambiguous name. The
-                  last-edited stamp is the one thing that actually tells them
-                  apart, and the summary already carries it.
-                */}
-                {document.name} · r{document.revision} · {formatUpdatedAt(document.updatedAt)}
+                {libraryOptionLabel(document, documents, onTableId)}
               </option>
             ))}
           </select>
           <CampaignWeight bytes={exportBytes} maps={documents.length} />
-          <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+          <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
             <JRPGButton
               style={{ flex: 1, fontSize: "10px" }}
-              disabled={!selectedId || loading || saving}
+              disabled={!pickListed || busy}
               onClick={handleOpen}
             >
-              OPEN
+              View saved map
             </JRPGButton>
+            {onUseAtTable && (
+              <JRPGButton
+                variant="primary"
+                style={{ flex: 1, fontSize: "10px" }}
+                title={
+                  selectedId && selectedId === tableMapDocumentId
+                    ? "Already on the table"
+                    : "Put this map on the table for everyone"
+                }
+                disabled={!pickListed || busy || selectedId === tableMapDocumentId}
+                onClick={() => useAtTable(selectedId)}
+              >
+                Use at table
+              </JRPGButton>
+            )}
             <JRPGButton
               variant="danger"
               style={{ fontSize: "10px" }}
-              disabled={!selectedId || loading || saving}
+              disabled={!pickListed || busy}
               onClick={handleDelete}
             >
               DELETE
             </JRPGButton>
-            <JRPGButton style={{ fontSize: "10px" }} disabled={loading} onClick={refresh}>
+            <JRPGButton
+              aria-label="Refresh map library"
+              style={{ fontSize: "10px" }}
+              disabled={loading}
+              onClick={refresh}
+            >
               ↻
             </JRPGButton>
           </div>
-          <JRPGButton
-            style={{ width: "100%", marginTop: "6px", fontSize: "10px" }}
-            disabled={loading || saving}
-            onClick={() => importInputRef.current?.click()}
-          >
-            IMPORT JSON BACKUP
-          </JRPGButton>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json,.json"
-            style={{ display: "none" }}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (!file) return;
-              // `.catch`, not `.then`'s second argument: that catches a failed
-              // READ only, so a handler throw vanished and the panel said
-              // nothing. One sentence, true of both failures — see importBackup.
-              const failed = () =>
-                setPublishStatus("Import failed: that file could not be read or applied.");
-              file.text().then(handleImportFile).catch(failed);
-            }}
-          />
         </div>
 
-        {/* Status + error live outside the active-document block: import (and its
+        {/* Status + error live outside the viewed-document block: import (and its
             watchdog failure) runs with no active document (restore-from-backup),
             so its feedback must show even then. */}
         {publishStatus && (
@@ -275,50 +243,70 @@ export function MapStudioControl({
         )}
 
         {activeDocument && (
-          <div aria-live="polite">
-            <div className="jrpg-text-small" style={{ marginBottom: "6px" }}>
-              <strong>{activeDocument.name}</strong> · {activeDocument.width}×
-              {activeDocument.height} · revision {activeDocument.revision} ·{" "}
-              {activeDocument.elements.length}
-              {" elements"}
-              {saving && " · saving…"}
-            </div>
-            <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
-              <JRPGButton
-                style={{ flex: 1, fontSize: "10px" }}
-                disabled={saving || !canUndo}
-                onClick={undo}
-              >
-                ↶ UNDO
-              </JRPGButton>
-              <JRPGButton
-                style={{ flex: 1, fontSize: "10px" }}
-                disabled={saving || !canRedo}
-                onClick={redo}
-              >
-                ↷ REDO
-              </JRPGButton>
-            </div>
-            <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
-              <JRPGButton
-                variant="primary"
-                style={{ flex: 1, fontSize: "10px" }}
-                disabled={saving || !onPublishToLiveMap}
-                onClick={handlePublish}
-              >
-                PUBLISH TO LIVE MAP
-              </JRPGButton>
-            </div>
-            <MapStudioExportControls document={activeDocument} disabled={saving} />
-          </div>
+          <ViewedMapDetails
+            document={activeDocument}
+            name={displayName(activeDocument.id, documents) ?? activeDocument.name}
+            onTable={activeDocument.id === onTableId}
+            saving={saving}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
+            canPublish={Boolean(onPublishToLiveMap)}
+            onPublish={() => publish(activeDocument)}
+          />
         )}
+
+        <div
+          style={{
+            borderTop: "1px solid var(--jrpg-border-gold)",
+            paddingTop: "10px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <label className="jrpg-text-small" htmlFor="map-studio-name">
+            New map name
+          </label>
+          <input
+            id="map-studio-name"
+            value={name}
+            maxLength={200}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <DimensionInput label="Width" value={width} onChange={setWidth} />
+            <DimensionInput label="Height" value={height} onChange={setHeight} />
+          </div>
+          <p className="jrpg-text-small" style={{ margin: 0 }}>
+            A new map opens here to view.
+            {tableName
+              ? ` The table stays on "${tableName}" until you choose Use at table`
+              : " Nothing on the table changes until you choose Use at table"}
+            {" (or Advanced → Publish map background)."}
+          </p>
+          <JRPGButton variant="primary" disabled={busy || !name.trim()} onClick={handleCreate}>
+            {loading ? "WORKING..." : "＋ Create map in library"}
+          </JRPGButton>
+          <JRPGButton
+            style={{ fontSize: "10px" }}
+            disabled={busy}
+            onClick={() => importInputRef.current?.click()}
+          >
+            Import editable map (.json)
+          </JRPGButton>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={onImportChange}
+          />
+        </div>
       </div>
     </JRPGPanel>
   );
-}
-
-function toLiveGridSize(documentGridSize: number): number {
-  return Math.min(500, Math.max(10, Math.round(documentGridSize)));
 }
 
 function DimensionInput({

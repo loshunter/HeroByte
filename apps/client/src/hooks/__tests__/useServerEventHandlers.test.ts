@@ -832,7 +832,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         });
       });
 
-      expect(toast.error).toHaveBeenCalledWith("Atlas: That node already has a map.", 5000);
+      expect(toast.error).toHaveBeenCalledWith("World: That node already has a map.", 5000);
       expect(toast.success).not.toHaveBeenCalled();
     });
 
@@ -864,7 +864,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       } as const;
       act(() => handler(message));
       expect(onAtlasError).toHaveBeenCalledWith(message);
-      expect(toast.error).toHaveBeenCalledWith("Atlas: Full.", 5000);
+      expect(toast.error).toHaveBeenCalledWith("World: Full.", 5000);
     });
   });
 

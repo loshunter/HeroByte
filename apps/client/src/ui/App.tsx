@@ -336,8 +336,7 @@ function AuthenticatedApp({
     isConnected,
     registerCommandDelivery,
   );
-  // Live on-table map authoring: drives the ONE controller above (never a second
-  // useMapStudio — two queues would revision-conflict).
+  // Live on-table map authoring: the ONE controller above, never a second queue.
   const mapEdit = useMapEditState({
     controller: mapStudio,
     sendMessage,
@@ -347,6 +346,7 @@ function AuthenticatedApp({
     snapshotLoaded: Boolean(snapshot?.players.some((player) => player.uid === uid)),
     liveMapDocumentId: snapshot?.liveMapDocumentId,
     roomGridSize: snapshot?.gridSize ?? 50,
+    sceneSourceDocumentId: snapshot?.compiledScene?.sourceDocumentId,
     hasRasterBackground: Boolean(snapshot?.mapBackground),
     notifyError: toast.error,
     dismissError: toast.dismiss,

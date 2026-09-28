@@ -91,7 +91,7 @@ export function AtlasLinkPlacer({
         onChange={(event) => setToNodeId(event.target.value)}
         style={{ fontSize: "10px", maxWidth: "150px" }}
       >
-        <option value="">Pick a node…</option>
+        <option value="">Pick a location…</option>
         {targets.map((node) => (
           <option key={node.id} value={node.id}>
             {node.name}

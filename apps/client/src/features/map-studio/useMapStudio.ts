@@ -2,7 +2,7 @@ import type { RegisterCommandDelivery } from "./mapOperation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, MapDocument, MapDocumentSummary } from "@herobyte/shared";
 import { upsertMapDocumentSummary } from "./documentSummaries";
-import type { MapStudioController, MapStudioServerMessage } from "./types";
+import type { MapBindRefusal, MapStudioController, MapStudioServerMessage } from "./types";
 import type { AssetUploadCredentials } from "./uploads/assetUpload";
 import { useMapStudioActions } from "./useMapStudioActions";
 import { useMapStudioRequests } from "./useMapStudioRequests";
@@ -24,6 +24,9 @@ export function useMapStudio(
   // the maps store reset under a room that kept its live binding. Glue code
   // uses it to stop re-fetching the dangling id and offer a fresh start.
   const [missingDocumentId, setMissingDocumentId] = useState<string | null>(null);
+  const [bindRefusal, setBindRefusal] = useState<MapBindRefusal | null>(null);
+  const [listed, setListed] = useState(false);
+  const bindRefusals = useRef(0);
   // The campaign's weight beside the map list, and its silent re-lists (useCampaignReadout).
   const readout = useCampaignReadout(sendMessage);
   // Mints this panel asked for (create, import) whose reply is still owed. A
@@ -129,6 +132,12 @@ export function useMapStudio(
       if (!isActive()) return;
       if (message.t === "map-studio-documents") {
         setDocuments(message.documents);
+        setListed(true);
+        // A map the server once reported gone is back (a loaded game restored
+        // it without a document frame): the list is the newer word.
+        setMissingDocumentId((current) =>
+          current && message.documents.some((document) => document.id === current) ? null : current,
+        );
         readout.onListReply(message);
         // Only the panel's OWN list releases its spinner (a silent or
         // unsolicited reply never does).
@@ -180,6 +189,20 @@ export function useMapStudio(
           }
           if (message.code === "not-found") setMissingDocumentId(message.documentId);
           setError(message.reason);
+          return;
+        }
+        // A refused table binding (Use at table, or Build's bind after a
+        // create) is no queued command, so handleRefusal never matches it and
+        // it vanished — leaving the DM told the table was on its way.
+        if (message.commandId.startsWith("set-live:")) {
+          watchdogFired.current = false;
+          setError(message.reason);
+          bindRefusals.current += 1;
+          setBindRefusal({
+            documentId: message.documentId,
+            reason: message.reason,
+            seq: bindRefusals.current,
+          });
           return;
         }
         const refusal = handleRefusal(message);
@@ -249,10 +272,13 @@ export function useMapStudio(
     saving,
     error,
     missingDocumentId,
+    bindRefusal,
+    listed,
     exportBytes: readout.exportBytes,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
     refresh,
+    listQuietly: readout.requestSilentList,
     createDocument,
     openDocument,
     deleteDocument,

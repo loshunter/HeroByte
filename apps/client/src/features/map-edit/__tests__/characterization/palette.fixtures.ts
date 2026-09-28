@@ -20,6 +20,7 @@ export function boundPalette() {
         isDM,
         snapshotLoaded: true,
         liveMapDocumentId: "palette-map",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       });

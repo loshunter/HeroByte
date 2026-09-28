@@ -281,7 +281,7 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 - **◉ PARTY** — the party screen: portraits, HP (tap or drag to edit), status effects, and — on your own row — **⚙️ EDIT** for name, portrait, and DM mode.
 - **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Recenter (re-centers the camera), CRT, and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
-- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Map Setup, Atlas, NPCs & Monsters, Props & Objects, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
+- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, NPCs & Monsters, Props & Objects, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
 
 ![The DM menu on a phone](img/mobile-dm.jpg)
 

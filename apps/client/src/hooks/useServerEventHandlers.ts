@@ -275,7 +275,7 @@ export function useServerEventHandlers({
         // Atlas ops are fire-and-forget room mutations confirmed by the next
         // snapshot; this channel is their ONLY failure surface (sent to the
         // acting DM alone), so a swallowed one is a silently dead button.
-        toastError(`Atlas: ${message.reason}`, 5000);
+        toastError(`World: ${message.reason}`, 5000);
         onAtlasError?.(message);
       } else if ("t" in message && message.t === "remove-player-refused") {
         // The Players tab's REMOVE is fire-and-forget too, and a refused one

@@ -121,7 +121,7 @@ export async function waitSnap(page: Page, predicate: () => boolean, timeout = 2
 // SUBSTRING, and both upload buttons render "Uploading…", which contains it.
 export async function waitBake(page: Page, extraMs = 1_200) {
   // toHaveCount(0), NOT toBeHidden: "saving…" has TWO render sites — the live
-  // palette (MapEditToolbar) and the Map Setup tab's document line
+  // palette (MapEditToolbar) and the Maps tab's document line
   // (MapStudioControl, " · saving…"). With both on screen a strict-mode
   // violation killed this helper, and with it the whole map-authoring
   // walkthrough. Counting to zero is also the assertion actually wanted: no
@@ -255,7 +255,7 @@ export async function openDMMenu(page: Page) {
 
 export async function selectDMTab(
   page: Page,
-  tab: "Map Setup" | "NPCs & Monsters" | "Props & Objects" | "Players" | "Session" | "Atlas",
+  tab: "Maps" | "NPCs & Monsters" | "Props & Objects" | "Players" | "Session" | "World",
 ) {
   await openDMMenu(page);
   await page.getByRole("button", { name: tab }).click();
@@ -275,7 +275,7 @@ export async function setStagingZone(
   page: Page,
   zone: { x: number; y: number; w: number; h: number },
 ) {
-  await selectDMTab(page, "Map Setup");
+  await selectDMTab(page, "Maps");
   await page.getByLabel("Center X").fill(String(zone.x));
   await page.getByLabel("Center Y").fill(String(zone.y));
   await page.getByLabel("Width (tiles)").fill(String(zone.w));

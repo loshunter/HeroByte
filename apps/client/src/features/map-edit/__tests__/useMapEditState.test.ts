@@ -9,6 +9,8 @@ function makeMethods() {
   return {
     createDocument: vi.fn(() => "new-id"),
     openDocument: vi.fn(),
+    refresh: vi.fn(),
+    listQuietly: vi.fn(),
     updateGrid: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
@@ -24,6 +26,7 @@ function makeController(
 ): MapStudioController {
   return {
     activeDocument,
+    documents: [],
     loading,
     canUndo: false,
     canRedo: false,
@@ -47,6 +50,7 @@ describe("useMapEditState", () => {
       isDM: true,
       snapshotLoaded: true,
       liveMapDocumentId: "doc-a" as string | undefined,
+      sceneSourceDocumentId: undefined,
       roomGridSize: 64,
       hasRasterBackground: false,
     };
@@ -91,6 +95,7 @@ describe("useMapEditState", () => {
       isDM: true,
       snapshotLoaded: true,
       liveMapDocumentId: "doc-a" as string | undefined,
+      sceneSourceDocumentId: undefined,
       roomGridSize: 64,
       hasRasterBackground: false,
     };
@@ -116,6 +121,7 @@ describe("useMapEditState", () => {
       isDM: true,
       snapshotLoaded: true,
       liveMapDocumentId: undefined as string | undefined,
+      sceneSourceDocumentId: undefined,
       roomGridSize: 64,
       hasRasterBackground: false,
     };
@@ -152,6 +158,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: undefined,
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       }),
@@ -177,6 +184,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "existing-id",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       }),
@@ -200,6 +208,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "existing-id",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       }),
@@ -219,6 +228,7 @@ describe("useMapEditState", () => {
       isDM: true,
       snapshotLoaded: true,
       liveMapDocumentId: "gone-id" as string | undefined,
+      sceneSourceDocumentId: undefined,
       roomGridSize: 50,
       hasRasterBackground: false,
     };
@@ -254,6 +264,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "live-id",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       }),
@@ -276,6 +287,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "live-id",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       }),
@@ -298,6 +310,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "existing-id",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       }),
@@ -318,6 +331,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "live-id",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       }),
@@ -340,6 +354,7 @@ describe("useMapEditState", () => {
       isDM,
       snapshotLoaded,
       liveMapDocumentId: "live-id",
+      sceneSourceDocumentId: undefined,
       roomGridSize: 50,
       hasRasterBackground: false,
     });
@@ -438,6 +453,7 @@ describe("useMapEditState", () => {
       isDM: true,
       snapshotLoaded: true,
       liveMapDocumentId: "live-id",
+      sceneSourceDocumentId: undefined,
       roomGridSize: 50,
       hasRasterBackground: false,
       notifyError,
@@ -468,6 +484,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "live-id",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
         notifyError,
@@ -493,6 +510,7 @@ describe("useMapEditState", () => {
         isDM: true,
         snapshotLoaded: true,
         liveMapDocumentId: "live-id",
+        sceneSourceDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
       }),
@@ -507,5 +525,223 @@ describe("useMapEditState", () => {
     act(() => result.current.onSampleAsset("objects:barrel", "tool"));
     expect(result.current.toolbarProps.selectedAssetId).toBe("objects:barrel");
     expect(result.current.toolbarProps.activeSubTool).toBe("place");
+  });
+
+  describe("U6 round 1: Build with a library map open", () => {
+    const base = (controller: MapStudioController) => ({
+      controller,
+      sendMessage: vi.fn(),
+      mapEditMode: true,
+      setActiveTool: vi.fn(),
+      isDM: true,
+      snapshotLoaded: true,
+      liveMapDocumentId: "live-id" as string | undefined,
+      sceneSourceDocumentId: undefined,
+      roomGridSize: 50,
+      hasRasterBackground: false,
+    });
+
+    it("Resume opens the TABLE's map — it never creates or binds one", () => {
+      const methods = makeMethods();
+      const options = base(makeController(methods, doc("library-b")));
+      const { result } = renderHook(() => useMapEditState(options));
+      expect(result.current.toolbarProps.buildEntry).toMatchObject({ kind: "resume" });
+
+      act(() => result.current.toolbarProps.onStartLiveMap());
+      expect(methods.openDocument).toHaveBeenCalledWith("live-id");
+      expect(methods.createDocument).not.toHaveBeenCalled();
+      expect(options.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it("a binding the server reported gone offers Start, not Resume", () => {
+      const methods = makeMethods();
+      const { result } = renderHook(() =>
+        useMapEditState(base(makeController(methods, doc("library-b"), false, null, "live-id"))),
+      );
+      expect(result.current.toolbarProps.buildEntry.kind).toBe("start");
+    });
+
+    it("Ctrl+Z does nothing to the library map being viewed — only the table's map has history here", () => {
+      const methods = makeMethods();
+      const viewing = { ...makeController(methods, doc("library-b")), canUndo: true };
+      const { rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: base(viewing),
+      });
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "z", ctrlKey: true, cancelable: true }),
+        );
+      });
+      expect(methods.undo).not.toHaveBeenCalled();
+
+      rerender(base({ ...makeController(methods, doc("live-id")), canUndo: true }));
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "z", ctrlKey: true, cancelable: true }),
+        );
+      });
+      expect(methods.undo).toHaveBeenCalledTimes(1);
+    });
+
+    it("a Resume that cannot land releases the button instead of sitting on Opening… for good", () => {
+      const methods = makeMethods();
+      const { result, rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: base(makeController(methods, doc("library-b"))),
+      });
+      act(() => result.current.toolbarProps.onStartLiveMap());
+      // The open is in flight…
+      rerender(base(makeController(methods, doc("library-b"), true)));
+      expect(result.current.toolbarProps.busy).toBe(true);
+      // …and times out: the watchdog releases loading and reports an error.
+      rerender(base(makeController(methods, doc("library-b"), false, "server did not respond")));
+      expect(result.current.toolbarProps.busy).toBe(false);
+    });
+
+    it("entering Build loads the library list it names maps from — quietly", () => {
+      // A loud refresh released the shared loading flag under an open still in
+      // flight, so the auto-open fired a second full-document GET.
+      const methods = makeMethods();
+      renderHook(() => useMapEditState(base(makeController(methods, doc("live-id")))));
+      expect(methods.listQuietly).toHaveBeenCalledTimes(1);
+      expect(methods.refresh).not.toHaveBeenCalled();
+    });
+
+    it("outside Build nothing asks for the list (every client mounts this hook)", () => {
+      const methods = makeMethods();
+      renderHook(() =>
+        useMapEditState({
+          ...base(makeController(methods, doc("live-id"))),
+          mapEditMode: false,
+        }),
+      );
+      expect(methods.listQuietly).not.toHaveBeenCalled();
+      expect(methods.refresh).not.toHaveBeenCalled();
+    });
+
+    it("a start that would erase a scene with no saved map is flagged through the hook", () => {
+      // The table's map was deleted: no binding, but the scene still plays and
+      // names a map that is gone. The scene id must reach describeBuildEntry.
+      const methods = makeMethods();
+      const { result } = renderHook(() =>
+        useMapEditState({
+          ...base(makeController(methods, null)),
+          liveMapDocumentId: undefined,
+          sceneSourceDocumentId: "deleted-map",
+        }),
+      );
+      expect(result.current.toolbarProps.buildEntry).toMatchObject({
+        kind: "start",
+        replacesUnsavedScene: true,
+        sceneFateUnknown: false,
+      });
+    });
+  });
+
+  describe("U6 round 3: the entry latch, the list, and names", () => {
+    const unbound = (controller: MapStudioController, extra: object = {}) => ({
+      controller,
+      sendMessage: vi.fn(),
+      mapEditMode: true,
+      setActiveTool: vi.fn(),
+      isDM: true,
+      snapshotLoaded: true,
+      liveMapDocumentId: undefined as string | undefined,
+      sceneSourceDocumentId: undefined as string | undefined,
+      roomGridSize: 50,
+      hasRasterBackground: false,
+      ...extra,
+    });
+
+    it("before the library answers, a start is flagged as a POSSIBLE loss (the controller's listed)", () => {
+      const methods = makeMethods();
+      const controller = { ...makeController(methods, null), listed: false };
+      const { result } = renderHook(() =>
+        useMapEditState(unbound(controller, { sceneSourceDocumentId: "crypt" })),
+      );
+      expect(result.current.toolbarProps.buildEntry).toMatchObject({
+        kind: "start",
+        replacesUnsavedScene: true,
+        sceneFateUnknown: true,
+      });
+    });
+
+    it("a refused create releases the button, and a second press creates again", () => {
+      const methods = makeMethods();
+      const { result, rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: unbound(makeController(methods, null)),
+      });
+      act(() => result.current.toolbarProps.onStartLiveMap());
+      rerender(unbound(makeController(methods, null, true)));
+      expect(result.current.toolbarProps.busy).toBe(true);
+      // The server refused the create: loading ends with a reason, and no id lands.
+      rerender(unbound(makeController(methods, null, false, "The library is full")));
+      expect(result.current.toolbarProps.busy).toBe(false);
+      act(() => result.current.toolbarProps.onStartLiveMap());
+      expect(methods.createDocument).toHaveBeenCalledTimes(2);
+    });
+
+    it("a dangling binding stays latched after set-live, and only THIS attempt's refusal releases it", () => {
+      const methods = makeMethods();
+      methods.createDocument.mockReturnValueOnce("x1").mockReturnValueOnce("x2");
+      const dangling = (activeId: string | null, extra: object = {}) =>
+        unbound(
+          {
+            ...makeController(methods, activeId ? doc(activeId) : null, false, null, "gone"),
+            ...extra,
+          },
+          { liveMapDocumentId: "gone" },
+        );
+      const { result, rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: dangling(null),
+      });
+      act(() => result.current.toolbarProps.onStartLiveMap());
+      rerender(dangling("x1")); // x1 activates: set-live goes out
+      expect(result.current.toolbarProps.busy).toBe(true);
+      act(() => result.current.toolbarProps.onStartLiveMap());
+      expect(methods.createDocument).toHaveBeenCalledTimes(1); // no orphan second map
+
+      const refusedX1 = { bindRefusal: { documentId: "x1", reason: "gone", seq: 1 } };
+      rerender(dangling("x1", refusedX1));
+      expect(result.current.toolbarProps.busy).toBe(false);
+
+      // A second attempt: x1's refusal is still in the controller and must NOT
+      // release it (that reopened the double-click window).
+      act(() => result.current.toolbarProps.onStartLiveMap());
+      rerender(dangling("x2", refusedX1)); // x2 activates: set-live goes out
+      expect(result.current.toolbarProps.busy).toBe(true);
+      act(() => result.current.toolbarProps.onStartLiveMap());
+      expect(methods.createDocument).toHaveBeenCalledTimes(2);
+    });
+
+    it("follows a table move that lands while a load is in flight", () => {
+      const methods = makeMethods();
+      const bound = (live: string, loading: boolean) =>
+        unbound(makeController(methods, doc("doc-a"), loading), { liveMapDocumentId: live });
+      const { rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: bound("doc-a", false),
+      });
+      methods.openDocument.mockClear();
+      rerender(bound("doc-b", true));
+      expect(methods.openDocument).not.toHaveBeenCalledWith("doc-b");
+      rerender(bound("doc-b", false));
+      expect(methods.openDocument).toHaveBeenCalledWith("doc-b");
+    });
+
+    it("names same-named copies apart in the header and on a start", () => {
+      const methods = makeMethods();
+      const copies = [
+        { id: "doc-1a2b", name: "Live Map" },
+        { id: "doc-9f8e", name: "Live Map" },
+      ] as MapStudioController["documents"];
+      const open = { id: "doc-9f8e", name: "Live Map" } as MapDocument;
+      const { result } = renderHook(() =>
+        useMapEditState(unbound({ ...makeController(methods, open), documents: copies })),
+      );
+      expect(result.current.toolbarProps.mapName).toBe("Live Map #9f8e");
+      expect(result.current.toolbarProps.buildEntry).toMatchObject({
+        kind: "start",
+        viewingName: "Live Map #9f8e",
+      });
+    });
   });
 });

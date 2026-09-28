@@ -283,6 +283,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       onUndo: vi.fn(),
       onRedo: vi.fn(),
       onStartLiveMap: vi.fn(),
+      buildEntry: { kind: "start" as const },
       onClose: vi.fn(),
       hasRasterBackground: false,
       error: null,

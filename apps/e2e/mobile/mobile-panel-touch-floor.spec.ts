@@ -94,24 +94,29 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     const dialog = page.getByRole("dialog", { name: "DM Menu" });
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
-    // "Atlas" joined in K3: the generate panel's dials and the 🚪 button are now swept too.
+    // "World" (then "Atlas") joined in K3: the generate panel's dials and the 🚪 button are now swept too.
     for (const tab of [
-      "Map Setup",
+      "Maps",
       "NPCs & Monsters",
       "Props & Objects",
       "Players",
       "Session",
-      "Atlas",
+      "World",
     ]) {
       await dialog.getByRole("button", { name: tab, exact: true }).click();
-      if (tab === "Atlas") {
+      if (tab === "Maps") {
+        // U6 moved map position and grid alignment under Advanced; open it so
+        // those controls are still swept, and the summary itself is measured.
+        await dialog.getByText("Advanced: map position and grid alignment").click();
+      }
+      if (tab === "World") {
         // The Atlas tab's dials only EXIST once a node does: an empty atlas
         // shows the create row and nothing else, so sweeping the tab as-is
         // would measure a panel the DM never uses. Mint a promise and open
         // its generate panel, which is where the small controls live.
-        await dialog.getByLabel("New node name").fill("Floor Sweep");
-        await dialog.getByRole("button", { name: "+ CREATE NODE" }).click();
-        const generate = dialog.getByRole("button", { name: "🎲 Generate…" });
+        await dialog.getByLabel("New location name").fill("Floor Sweep");
+        await dialog.getByRole("button", { name: "+ Create location" }).click();
+        const generate = dialog.getByRole("button", { name: "🎲 Generate map for location…" });
         await generate.scrollIntoViewIfNeeded();
         await generate.click();
         await expect(dialog.getByTestId("atlas-generate-panel")).toBeVisible();

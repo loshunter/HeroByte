@@ -37,7 +37,7 @@ describe("player navigation", () => {
     const tools = within(screen.getByRole("group", { name: "Play tools" }));
     expect(tools.getByRole("button", { name: "👆 Ping" })).toBeInTheDocument();
     expect(tools.getByRole("button", { name: "✏️ Draw" })).toBeInTheDocument();
-    expect(tools.getByRole("button", { name: "🏗️ Map" })).toBeInTheDocument();
+    expect(tools.getByRole("button", { name: "🏗️ Build map" })).toBeInTheDocument();
     expect(tools.queryByRole("button", { name: "👁 Player View" })).not.toBeInTheDocument();
     const panels = within(screen.getByRole("group", { name: "Panels & settings" }));
     expect(panels.getByRole("button", { name: "👁 Player View" })).toBeInTheDocument();

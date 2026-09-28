@@ -125,10 +125,12 @@ describe("loadSession — the file is the wrong kind", () => {
   // a map does not have — telling the DM "tokens must be an array" about a file
   // that was perfectly valid, just for the other importer.
   it("names a map backup as a map backup, not the first field it lacks", async () => {
-    await expect(loadSession(fileOf(DOCUMENT))).rejects.toThrow(/map backup/i);
+    await expect(loadSession(fileOf(DOCUMENT))).rejects.toThrow(
+      /editable map, not a table backup/i,
+    );
     // It must point at the control that WOULD work, or the only move left is to
     // pick the same file again. The opposite direction pins its twin.
-    await expect(loadSession(fileOf(DOCUMENT))).rejects.toThrow(/IMPORT JSON BACKUP/);
+    await expect(loadSession(fileOf(DOCUMENT))).rejects.toThrow(/Import editable map \(\.json\)/);
     await expect(loadSession(fileOf(DOCUMENT))).rejects.not.toThrow(/tokens/i);
   });
 
@@ -137,7 +139,7 @@ describe("loadSession — the file is the wrong kind", () => {
     // detection does not see it here it falls to the bare-snapshot branch and
     // reports "tokens must be an array" — the message this arc exists to kill.
     const thin = { schemaVersion: 1, id: "orig", name: "Restored" };
-    await expect(loadSession(fileOf(thin))).rejects.toThrow(/map backup/i);
+    await expect(loadSession(fileOf(thin))).rejects.toThrow(/editable map, not a table backup/i);
     await expect(loadSession(fileOf(thin))).rejects.not.toThrow(/tokens/i);
   });
 

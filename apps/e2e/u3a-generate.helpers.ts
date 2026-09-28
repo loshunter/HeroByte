@@ -64,7 +64,7 @@ export function generatePanel(page: Page, mobile: boolean) {
     seed: page.getByTestId(mobile ? "mobile-generate-seed" : "generate-seed"),
     fire: mobile
       ? page.getByTestId("mobile-generate-fire")
-      : panel.getByRole("button", { name: "🎲 GENERATE", exact: true }),
+      : panel.getByRole("button", { name: "🎲 Generate in this area", exact: true }),
   };
 }
 

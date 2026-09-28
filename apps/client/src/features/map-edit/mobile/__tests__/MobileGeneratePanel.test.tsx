@@ -182,4 +182,9 @@ describe("Generate operation feedback on a phone", () => {
     expect(onGenerate).not.toHaveBeenCalled();
     expect(generateButton()).toBeDisabled();
   });
+
+  it("names where the map lands before committing (U6)", () => {
+    render(<MobileGeneratePanel {...bag()} />);
+    expect(generateButton()).toHaveTextContent("🎲 Generate in this area");
+  });
 });

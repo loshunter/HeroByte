@@ -207,6 +207,8 @@ export function DMMenuContainer({
       fogEnabled={fogEnabled}
       hasCompiledScene={hasCompiledScene}
       liveSceneDocumentId={liveSceneDocumentId}
+      liveMapDocumentId={snapshot?.liveMapDocumentId}
+      onUseMapAtTable={(documentId) => sendMessage({ t: "map-studio-set-live", documentId })}
       onFogEnabledChange={onFogEnabledChange}
       onClearDrawings={onClearDrawings}
       onSetMapBackground={onSetMapBackground}

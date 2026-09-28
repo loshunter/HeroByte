@@ -83,7 +83,7 @@ export function MobileGeneratePanel({
             ? "⏳ Generating…"
             : saving
               ? "⏳ Working…"
-              : "🎲 Generate"}
+              : "🎲 Generate in this area"}
         </button>
 
         {generateHint && (
