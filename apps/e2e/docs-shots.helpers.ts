@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { Locator } from "@playwright/test";
 import { expect, type Page } from "./fixtures";
 
 // Shared plumbing for the documentation screenshot harness
@@ -22,6 +23,14 @@ export async function shotPage(page: Page, name: string) {
     quality: 90,
     animations: "disabled",
   });
+}
+
+// Scroll a map-palette control to one edge of the settings scroller before a
+// capture. The settings scroll beneath the fixed history / Select / Layers
+// rows, so what a shot shows must be chosen here — not left to wherever the
+// last click happened to scroll it.
+export async function revealInPalette(target: Locator, block: "start" | "end") {
+  await target.evaluate((el, edge) => el.scrollIntoView({ block: edge, inline: "nearest" }), block);
 }
 
 // Soft-step runner: a failed optional step records the failure and moves on so

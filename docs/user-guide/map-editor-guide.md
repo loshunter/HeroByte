@@ -6,9 +6,9 @@ It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **
 
 The **Tool group** menu organizes the palette into **Terrain**, **Structures**,
 **Objects**, **Lighting**, and **Generate**. Returning to a group remembers its last
-tool. Select, Sample, Layers, map history and Done remain outside the scrolling
-tool settings. The header names the map you are editing live. The screenshots below
-show an earlier palette arrangement; their map examples still illustrate the tools.
+tool. Map history, Select, Sample, Layers and Inspect stay above the scrolling
+tool settings; the armed tool's name and **Done building** stay below them. The
+header names the map you are editing live.
 
 > Building by hand is one of three ways to put a map on the table — the other two are bringing your own
 > art and generating a place mid-session with the Kicked-In Door.
@@ -26,7 +26,7 @@ Use Start live map to begin. (If the table already has a map and you have a diff
 Things to know before your first wall:
 
 - **Escape** cancels an in-progress drag; pressing it again (with nothing in progress) leaves map-edit mode. The map _stays_ live — closing the palette never unbinds it, and reopening resumes where you left off.
-- **↶ UNDO MAP / ↷ REDO MAP** stay above desktop tool settings; the phone keeps them in its dock. They affect map edits (Ctrl+Z / Ctrl+Y while the map owns keyboard input). Each drag, stroke, or generate is exactly one undo step. **Done building** returns to play.
+- **↶ UNDO MAP / ↷ REDO MAP** stay above desktop tool settings; the phone keeps them in its dock. They affect map edits (Ctrl+Z / Ctrl+Y while the map owns keyboard input). Each drag, stroke, or generate is exactly one undo step. **Cancel placement** under them (**Cancel stroke** while Paint or Erase is armed) is live only while a drag or stroke is unfinished, and abandons it the way Escape does. **Done building** returns to play.
 - Only one edit is sent at a time. If you finish a drag or a click while the previous one is still in flight, that gesture is dropped rather than queued, and you'll get **"Still saving the last change — draw that again."** Draw it again — nothing was half-applied. You'll notice this most on a phone, where the round trip is longest.
 - Tokens don't respond to clicks while you're editing — leave the mode to move them.
 - If the table still has a raster background image, the palette warns you: live terrain and a background photo fight visually. Clear the background (DM Menu → Maps → Current table map) for a clean canvas.
@@ -42,7 +42,7 @@ Things to know before your first wall:
 
 ![A committed room: floor, wall band, and blocking walls](img/mapedit-room-done.jpg)
 
-**Hall** is the corridor sibling: drag along its length, choose **Width (cells)** 1–4, and only the two long sides get walls — the ends stay open for connecting. Halls and rooms are polite neighbors: where they touch an existing floor, the shared wall band steps aside.
+**Hall** is the corridor sibling: drag along its length, choose **Width (cells)** 1–4, and only the two long sides get walls — the ends stay open for connecting. **Side walls** picks their style from the same choices as the wall ring. Halls and rooms are polite neighbors: where they touch an existing floor, the shared wall band steps aside.
 
 ![A hallway heading east from the room](img/mapedit-hall.jpg)
 
@@ -100,7 +100,7 @@ before releasing to leave the map unchanged.
 
 Three tools share one **asset picker**:
 
-![Earlier asset picker before named cards, search and the My uploads label](img/mapedit-asset-picker.jpg)
+![The asset picker: the selected object, category chips, search, and named cards](img/mapedit-asset-picker.jpg)
 
 - **Objects** (crates, tables, boats, standing stones…), **Structures**, **Terrain** (stamp a terrain patch as an object), **Decals** (scorch craters, stains, wax drips), **Inlays** (medallions, rugs, tracery), and **My uploads** — **⬆ Upload image** turns your own PNG/JPEG/WebP/GIF into a placeable asset.
 - **Search objects** searches names in the open category. Every card names its
@@ -134,7 +134,7 @@ and explain why.
 
 ## 🏰 Gen — the dungeon generator
 
-Drag a region (at least **20×20 cells** — zoom out if needed), pick a theme (**🪨 Stone / 🪵 Wood**) and density, and press **🎲 Generate in this area**:
+In **Generate**, arm **Generate area** and drag a region (at least **20×20 cells** — zoom out if needed); the panel shows its **Region** size. Pick a theme (**🪨 Stone / 🪵 Wood**) and density, and press **🎲 Generate in this area**:
 
 ![A generated dungeon wing: rooms, corridors, doors, and dressing](img/mapedit-generated-dungeon.jpg)
 
