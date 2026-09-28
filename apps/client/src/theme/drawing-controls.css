@@ -88,10 +88,12 @@
   min-width: 0;
 }
 
-/* Tools wrap at their LABEL's width, not in equal columns: "Freehand" cannot
-   wrap, and equal ~61px columns overflowed it on wider system fonts (Linux CI's
-   DejaVu; any user with a larger default). A content basis keeps each label
-   inside its button whatever the font, and rows still grow to fill. */
+/* Tools share rows at a 56px basis, but never narrower than their longest WORD:
+   equal ~61px grid columns overflowed "Freehand" on wider system fonts (Linux
+   CI's DejaVu; any user with a larger default). min-width:auto is a flex item's
+   min-content floor, so one-word labels stay inside their buttons while
+   multi-word ones ("Erase drawings") wrap onto a second line within the 44px
+   chip — the tools keep to two rows instead of growing the sheet over the map. */
 .mobile-drawing-sheet__tools {
   display: flex;
   flex-wrap: wrap;
@@ -99,9 +101,9 @@
 }
 
 .mobile-drawing-sheet .mobile-drawing-sheet__tools > .mobile-chip {
-  flex: 1 0 auto;
+  flex: 1 1 56px;
   width: auto;
-  min-width: 56px;
+  min-width: auto;
 }
 
 .mobile-drawing-sheet__history {
