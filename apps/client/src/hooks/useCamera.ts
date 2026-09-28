@@ -7,6 +7,7 @@
 import { useState, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
+import { useWrittenState } from "./useWrittenState";
 
 export type Camera = { x: number; y: number; scale: number };
 
@@ -47,8 +48,15 @@ interface UseCameraReturn {
 export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   const { minScale = 0.1, maxScale = 8, scaleBy = 1.08 } = options;
 
-  // Camera state (pan and zoom)
-  const [cam, setCam] = useState<Camera>({ x: 0, y: 0, scale: 1 });
+  // Camera state (pan and zoom). A handler's `cam`, as last RENDERED, can be
+  // frames behind its own writes: gestures and the wheel read `latest`, the
+  // camera as last WRITTEN, and every write goes through setCam.
+  const {
+    value: cam,
+    latest,
+    set: setCam,
+    flush: settle,
+  } = useWrittenState<Camera>({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
 
   // Pan tracking
@@ -66,20 +74,24 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   // per step. Instead the gesture shifts its origin by the outside delta: the
   // outside change stands, the finger's own travel is kept in full (nothing
   // absorbed, however many frames the outside writer takes), and the map keeps
-  // moving from where it is.
+  // moving from where it is. "Outside" is judged against `latest`, never the
+  // render's `cam`: that lags the gesture's own frames, and reading the lag as
+  // an outside change took each unrendered frame's step back off the pan, which
+  // then ended short of the pointer.
   const seen = useRef<Camera | null>(null);
   const commit = (next: Camera) => {
     seen.current = next;
     setCam(next);
   };
   const absorbOutsideChange = () => {
-    if (!camOrigin.current || !seen.current || cam === seen.current) return;
+    const now = latest.current;
+    if (!camOrigin.current || !seen.current || now === seen.current) return;
     camOrigin.current = {
-      x: camOrigin.current.x + (cam.x - seen.current.x),
-      y: camOrigin.current.y + (cam.y - seen.current.y),
-      scale: cam.scale,
+      x: camOrigin.current.x + (now.x - seen.current.x),
+      y: camOrigin.current.y + (now.y - seen.current.y),
+      scale: now.scale,
     };
-    seen.current = cam;
+    seen.current = now;
   };
   // A finger resting on the phone's d-pad is a touch too, but not on the map:
   // only the touches that STARTED on the stage are the gesture (else a thumb
@@ -114,14 +126,16 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     stageRef: RefObject<Konva.Stage | null>,
   ) => {
     event.evt.preventDefault();
-    const oldScale = cam.scale;
+    // Zoom the camera as last written: a pan's unrendered frames included.
+    const from = latest.current;
+    const oldScale = from.scale;
 
     const pointer = stageRef.current?.getPointerPosition();
     if (!pointer) return;
 
     const mouseWorld = {
-      x: (pointer.x - cam.x) / oldScale,
-      y: (pointer.y - cam.y) / oldScale,
+      x: (pointer.x - from.x) / oldScale,
+      y: (pointer.y - from.y) / oldScale,
     };
 
     const direction = event.evt.deltaY > 0 ? 1 : -1;
@@ -153,8 +167,8 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
 
     if (shouldPan || isSpace || middleClick) {
       setIsPanning(true);
-      camOrigin.current = cam;
-      seen.current = cam;
+      camOrigin.current = latest.current;
+      seen.current = latest.current;
       dragOrigin.current = stageRef.current?.getPointerPosition() || null;
     }
   };
@@ -187,6 +201,9 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
       setIsPanning(false);
       dragOrigin.current = null;
       camOrigin.current = null;
+      // The release's own render shows the pan's last move, so the pan ends
+      // exactly under the pointer for anything that reads the camera next.
+      settle();
     }
   };
 
@@ -203,8 +220,8 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     if (touches.length === 1 && shouldPan) {
       // Single finger pan
       setIsPanning(true);
-      camOrigin.current = cam;
-      seen.current = cam;
+      camOrigin.current = latest.current;
+      seen.current = latest.current;
       dragOrigin.current = { x: touches[0].clientX, y: touches[0].clientY };
     } else if (touches.length === 2) {
       // Two finger pinch
@@ -214,8 +231,8 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
 
       lastCenter.current = getCenter(p1, p2);
       lastDist.current = getDistance(p1, p2);
-      camOrigin.current = cam;
-      seen.current = cam;
+      camOrigin.current = latest.current;
+      seen.current = latest.current;
     }
   };
 
@@ -294,6 +311,8 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
    * Handle touch end
    */
   const onTouchEnd = () => {
+    // As for the mouse: the lift's render shows the gesture's last frame.
+    if (camOrigin.current) settle();
     setIsPanning(false);
     dragOrigin.current = null;
     camOrigin.current = null;
