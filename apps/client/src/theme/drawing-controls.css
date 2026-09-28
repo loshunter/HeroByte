@@ -88,15 +88,26 @@
   min-width: 0;
 }
 
-.mobile-drawing-sheet__tools,
-.mobile-drawing-sheet__history {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+/* Tools wrap at their LABEL's width, not in equal columns: "Freehand" cannot
+   wrap, and equal ~61px columns overflowed it on wider system fonts (Linux CI's
+   DejaVu; any user with a larger default). A content basis keeps each label
+   inside its button whatever the font, and rows still grow to fill. */
+.mobile-drawing-sheet__tools {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
+.mobile-drawing-sheet .mobile-drawing-sheet__tools > .mobile-chip {
+  flex: 1 0 auto;
+  width: auto;
+  min-width: 56px;
+}
+
 .mobile-drawing-sheet__history {
+  display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .mobile-drawing-sheet.mobile-drawing-sheet--collapsed {
