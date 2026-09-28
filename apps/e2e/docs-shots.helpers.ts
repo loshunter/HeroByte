@@ -281,7 +281,15 @@ export async function setStagingZone(
   await page.getByLabel("Width (tiles)").fill(String(zone.w));
   await page.getByLabel("Height (tiles)").fill(String(zone.h));
   await page.getByRole("button", { name: "Apply Zone" }).click();
-  // The staging zone may not surface under a stable key on the wire snapshot;
-  // give the round trip a moment rather than pinning a field name.
-  await page.waitForTimeout(800);
+  // Wait for the table to hold exactly the typed zone. Apply used to ignore
+  // the fields and centre a zone on the view instead, so this also fails if
+  // that ever comes back.
+  await page.waitForFunction(
+    ({ x, y, w, h }) => {
+      const current = window.__HERO_BYTE_E2E__?.snapshot?.playerStagingZone;
+      return current?.x === x && current.y === y && current.width === w && current.height === h;
+    },
+    zone,
+    { timeout: 20_000 },
+  );
 }
