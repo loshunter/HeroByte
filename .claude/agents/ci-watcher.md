@@ -37,12 +37,14 @@ curl -s "https://api.github.com/repos/loshunter/HeroByte/actions/runs?branch=<BR
 
 Take the newest entry's `id`, `run_number`, `head_sha`, `status`. If the prompt gave a head sha, pick the entry matching it; if none of the five match, say so in the report and watch the newest anyway.
 
-2. **Poll until it completes.** The whole wait is ONE Bash call — copy this loop, do not
-   write a script file (see "Write no files" below, which is not optional):
+2. **Poll until it completes — in the FOREGROUND, in bounded rounds.** A HeroByte run takes
+   about 20 minutes (the e2e job alone is ~19), but one Bash call can last at most 10
+   minutes. So the wait is a sequence of foreground calls, each one this loop, each with
+   `timeout: 570000`. Copy it; do not write a script file (see "Write no files" above):
 
 ```bash
 ID=<ID>
-for i in $(seq 40); do
+for i in $(seq 36); do
   R=$(curl -s "https://api.github.com/repos/loshunter/HeroByte/actions/runs/$ID")
   S=$(printf '%s' "$R" | grep -m1 '"status"' | cut -d'"' -f4)
   C=$(printf '%s' "$R" | grep -m1 '"conclusion"' | cut -d'"' -f4)
@@ -52,12 +54,20 @@ for i in $(seq 40); do
 done
 ```
 
-Stop when `status` is `completed`. The verdict is only ever the `conclusion` field — never a
-curl exit code, never a guess from how long it took. If 40 polls pass without completion,
-report `timeout` with the last status seen.
+   One round is 36 polls × 15 s = 9 minutes. If it ends without `conclusion=`, run the SAME
+   call again as a new foreground call. Stop after 5 rounds (45 minutes) and report
+   `timeout` with the last status seen.
 
-Give the Bash call a `timeout` of at least 660000 ms: 40 polls × 15 s is ten minutes, and
-the default two-minute tool timeout would kill the loop at poll 8 and look like a hang.
+Stop when `status` is `completed`. The verdict is only ever the `conclusion` field — never a
+curl exit code, never a guess from how long it took.
+
+**Never wait in the background.** Do not set `run_in_background` on any Bash call, and never
+write an `until grep …; do sleep …; done` (or `while`) loop that waits on a task's output
+file. This is a hard rule because it has already cost real time: runs of this agent that
+backgrounded the poll, then added a second loop waiting for the first one's output, left
+those waiters sleeping for up to 21 hours after the report was delivered — four at once in
+the owner's task list, "running" long after CI had finished. Everything this agent does
+fits in foreground calls; when your report is written, nothing you started may still run.
 
 3. **On any conclusion other than `success`, triage:**
 
