@@ -35,8 +35,10 @@ export const DEFAULT_STAGING_INPUTS: StagingInputs = {
   rotation: "0",
 };
 
-// The server refuses a zone narrower or shorter than this (validateStagingZone).
-export const MIN_STAGING_SIZE = 0.5;
+// The smallest zone the table keeps. The server refuses anything under 0.5
+// (validateStagingZone) and stores anything under 1 as 1 (sanitizeStagingZone),
+// so a 0.5 typed here would silently come back as 1.
+export const MIN_STAGING_SIZE = 1;
 
 export function stagingInputsFrom(zone?: {
   x: number;

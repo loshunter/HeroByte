@@ -703,8 +703,8 @@ describe("StagingZoneControl - Characterization Tests", () => {
       const widthInput = screen.getByLabelText("Width (tiles)");
       const heightInput = screen.getByLabelText("Height (tiles)");
 
-      expect(widthInput).toHaveAttribute("min", "0.5");
-      expect(heightInput).toHaveAttribute("min", "0.5");
+      expect(widthInput).toHaveAttribute("min", "1");
+      expect(heightInput).toHaveAttribute("min", "1");
     });
 
     it("should have correct step attributes on inputs", () => {

@@ -145,7 +145,7 @@ describe("StagingZoneControl — Apply Zone uses the typed values", () => {
 
   it.each([
     ["a cleared centre", "Center X", ""],
-    ["a width the server refuses", "Width (tiles)", "0.25"],
+    ["a width under the one tile the table keeps", "Width (tiles)", "0.5"],
     ["a cleared rotation", "Rotation (degrees)", ""],
   ])("refuses to apply %s", (_case, label, value) => {
     const { onSetPlayerStagingZone } = renderControl({
@@ -161,6 +161,6 @@ describe("StagingZoneControl — Apply Zone uses the typed values", () => {
     expect(applyButton()).toBeDisabled();
     fireEvent.click(applyButton());
     expect(onSetPlayerStagingZone).not.toHaveBeenCalled();
-    expect(screen.getByRole("status")).toHaveTextContent(/at least 0\.5/);
+    expect(screen.getByRole("status")).toHaveTextContent(/at least 1\./);
   });
 });
