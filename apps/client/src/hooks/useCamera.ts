@@ -63,9 +63,10 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   const dragOrigin = useRef<{ x: number; y: number } | null>(null);
   const camOrigin = useRef<Camera | null>(null);
 
-  // Touch tracking (Pinch zoom)
+  // Touch tracking (Pinch zoom): its anchor, and its latest frame
   const lastCenter = useRef<{ x: number; y: number } | null>(null);
   const lastDist = useRef<number>(0);
+  const pinchFrame = useRef<{ center: { x: number; y: number }; dist: number } | null>(null);
 
   // The camera a gesture last SAW. A gesture computes each frame from the
   // camera it started on; when something else moved the camera meanwhile (the
@@ -86,11 +87,19 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   const absorbOutsideChange = () => {
     const now = latest.current;
     if (!camOrigin.current || !seen.current || now === seen.current) return;
-    camOrigin.current = {
-      x: camOrigin.current.x + (now.x - seen.current.x),
-      y: camOrigin.current.y + (now.y - seen.current.y),
-      scale: now.scale,
-    };
+    if (pinchFrame.current) {
+      // A pinch re-anchors on its latest frame (a shift kept its own zoom in
+      // the origin to apply again: 2x became 4x with the fingers still).
+      camOrigin.current = now;
+      lastCenter.current = pinchFrame.current.center;
+      lastDist.current = pinchFrame.current.dist;
+    } else {
+      camOrigin.current = {
+        x: camOrigin.current.x + (now.x - seen.current.x),
+        y: camOrigin.current.y + (now.y - seen.current.y),
+        scale: now.scale,
+      };
+    }
     seen.current = now;
   };
   // A finger resting on the phone's d-pad is a touch too, but not on the map:
@@ -231,6 +240,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
 
       lastCenter.current = getCenter(p1, p2);
       lastDist.current = getDistance(p1, p2);
+      pinchFrame.current = { center: lastCenter.current, dist: lastDist.current };
       camOrigin.current = latest.current;
       seen.current = latest.current;
     }
@@ -304,6 +314,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
       };
 
       commit(newPos);
+      pinchFrame.current = { center: newCenter, dist: newDist };
     }
   };
 
@@ -318,6 +329,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     camOrigin.current = null;
     lastCenter.current = null;
     lastDist.current = 0;
+    pinchFrame.current = null;
   };
 
   return {
