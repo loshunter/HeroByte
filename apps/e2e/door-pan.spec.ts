@@ -15,7 +15,10 @@ import { openTouch, touchTap, type Pt } from "./mobile/touch.helpers";
 // caught up: Konva's own hit test must put the door under the release, or a
 // synthetic release outruns the redraw and misses the door (the left-button
 // pan did exactly that). The pan must move the camera and send nothing, and a
-// still click/tap on that same door must then swing it for every client.
+// still click/tap on that same door must then swing it for every client. The
+// setup pans press only where Konva hits no shape: the entry camera centres on
+// the player's own token, and a press there starts a Konva node drag instead —
+// the token moves, stage moves are suppressed, and the camera barely does.
 
 const REGION = { x: 3, y: 3, cols: 24, rows: 20 };
 const PAN = 80;
@@ -25,6 +28,7 @@ type Drag = (from: Pt, to: Pt, beforeRelease?: () => Promise<void>) => Promise<v
 type ScreenDoor = { id: string; state: string; a: Pt; b: Pt; mid: Pt };
 
 const toggles = (wire: Ledger) => wire.sent.filter((m) => m.t === "toggle-door").length;
+const moves = (wire: Ledger) => wire.sent.filter((m) => m.t === "transform-object").length;
 const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 
 /** Every door's screen segment: authoritative geometry through map transform and camera. */
@@ -60,14 +64,20 @@ const doorNamed = async (page: Page, id: string) => {
   return door;
 };
 
+/** `window.Konva`, injected by the e2e dev build: read-only hit tests. */
+type KonvaWindow = {
+  Konva?: {
+    stages: {
+      container(): HTMLElement;
+      getIntersection(pos: Pt): { name(): string } | null;
+    }[];
+  };
+};
+
 /** The listening Konva shape under a screen point: what a release there would hit. */
 const konvaHit = (page: Page, at: Pt) =>
   page.evaluate((at) => {
-    type Stage = {
-      container(): HTMLElement;
-      getIntersection(pos: { x: number; y: number }): { name(): string } | null;
-    };
-    const stage = (window as unknown as { Konva?: { stages: Stage[] } }).Konva?.stages[0];
+    const stage = (window as unknown as KonvaWindow).Konva?.stages[0];
     if (!stage) throw new Error("Missing Konva stage");
     const box = stage.container().getBoundingClientRect();
     return stage.getIntersection({ x: at.x - box.left, y: at.y - box.top })?.name() ?? null;
@@ -75,15 +85,28 @@ const konvaHit = (page: Page, at: Pt) =>
 
 /**
  * The point nearest the board's centre from which a straight drag by `by`
- * crosses only bare canvas, 40 px clear of its edges. With `avoid`, the point
- * is also 40 px from every door, so a press there can never land on one.
+ * crosses only bare canvas, 40 px clear of its edges, and where Konva's hit
+ * test — the one its pointerdown runs — finds no listening shape within 8 px:
+ * bare floor (scenery never listens) but never a token, whose press would
+ * start a node drag rather than a pan. With `avoid`, the point is also 40 px
+ * from every door, so a press there can never land on one.
  */
 const findSpot = (page: Page, by: Pt, avoid: ScreenDoor[] | null) =>
   page.evaluate(
-    ({ by, avoid }) => {
+    async ({ by, avoid }) => {
       const canvas = document.querySelector('[data-testid="map-board"] canvas');
-      if (!canvas) throw new Error("Missing canvas");
+      const stage = (window as unknown as KonvaWindow).Konva?.stages[0];
+      if (!canvas || !stage) throw new Error("Missing canvas or Konva stage");
+      // The hit canvas redraws a frame after the camera moves; test the one the press will hit.
+      await new Promise((settled) => requestAnimationFrame(() => requestAnimationFrame(settled)));
       const box = canvas.getBoundingClientRect();
+      const origin = stage.container().getBoundingClientRect();
+      const noShape = (p: Pt) =>
+        [-8, 0, 8].every((dx) =>
+          [-8, 0, 8].every(
+            (dy) => !stage.getIntersection({ x: p.x + dx - origin.left, y: p.y + dy - origin.top }),
+          ),
+        );
       const bare = (x: number, y: number) =>
         x > box.left + 40 &&
         x < box.right - 40 &&
@@ -112,12 +135,12 @@ const findSpot = (page: Page, by: Pt, avoid: ScreenDoor[] | null) =>
         (p, q) =>
           Math.hypot(p.x - centre.x, p.y - centre.y) - Math.hypot(q.x - centre.x, q.y - centre.y),
       );
-      return spots.find((p) => awayFromDoors(p) && clearPath(p)) ?? null;
+      return spots.find((p) => awayFromDoors(p) && clearPath(p) && noShape(p)) ?? null;
     },
     { by, avoid },
   );
 
-/** Real camera drags, each pressed clear of every door, until door `id` sits near `to`. */
+/** Real camera drags, each pressed on bare board clear of every door, until door `id` sits near `to`. */
 async function bringDoorTo(page: Page, id: string, to: Pt, drag: Drag) {
   for (let i = 0; i < 24; i++) {
     const all = await project(page);
@@ -155,8 +178,10 @@ async function panStartingOnDoor(
   const closed = (await project(page)).filter((d) => d.state === "closed");
   const { id } = closed.sort((p, q) => distance(p) - distance(q))[0]!;
   const before = toggles(wire);
+  const moved = moves(wire);
   await bringDoorTo(page, id, target, setup);
   expect(toggles(wire), "setup pans never press a door").toBe(before);
+  expect(moves(wire), "setup pans never drag a token").toBe(moved);
 
   const at = (await doorNamed(page, id)).mid;
   const to = { x: at.x + PAN, y: at.y };
@@ -175,6 +200,7 @@ async function panStartingOnDoor(
   });
   await page.evaluate(() => 0); // flush any frame the release sent
   expect.soft(toggles(wire), "a pan starting on a door sends no toggle").toBe(before);
+  expect.soft(moves(wire), "a pan starting on a door drags no token").toBe(moved);
   for (const client of clients) expect.soft((await doorNamed(client, id)).state).toBe("closed");
   return { id, at: to };
 }
