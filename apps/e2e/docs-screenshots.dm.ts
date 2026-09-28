@@ -234,7 +234,9 @@ test.describe("docs screenshots: DM", () => {
     });
 
     await step("populate the hallway", async () => {
-      await page.getByTitle("Fill the last room or hallway you placed with set dressing").click();
+      // Decorate renders only on the room and hallway tools' panel.
+      await chooseBuildTool(page, "hallway");
+      await page.getByRole("button", { name: /Decorate last hallway/ }).click();
       await waitBake(page, 1_500);
       await shotPage(page, "mapedit-populated");
     });
