@@ -249,6 +249,37 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(lists).toEqual([[], []]);
     });
 
+    it("a file's sole legacy character keeps its seat's list though its player is seated again", () => {
+      // Settled against the FILE's seats, before the merge: seated players keep
+      // their live characters, so after the merge Alice has two and the file's
+      // sole Kira could no longer claim the seat's list.
+      roomService.setState({
+        ...roomService.getState(),
+        players: [{ uid: "alice", name: "Alice", statusEffects: [] } as Player],
+        characters: [
+          {
+            id: "live",
+            type: "pc",
+            name: "Fresh",
+            hp: 1,
+            maxHp: 1,
+            ownedByPlayerUID: "alice",
+            statusEffects: [],
+          } as Character,
+        ],
+      });
+      roomService.loadSnapshot({
+        ...roomService.createSnapshot(),
+        players: [{ uid: "alice", name: "Alice", statusEffects: ["poisoned"] } as Player],
+        characters: [
+          { id: "kira", type: "pc", name: "Kira", hp: 1, maxHp: 1, ownedByPlayerUID: "alice" },
+        ] as Character[],
+      });
+
+      const kira = roomService.getState().characters.find((c) => c.id === "kira");
+      expect(kira?.statusEffects).toEqual(["poisoned"]);
+    });
+
     it("should normalize isDM field to false if missing", () => {
       // Setup: Connected player first
       roomService.setState({

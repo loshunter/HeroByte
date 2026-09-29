@@ -77,7 +77,7 @@ export class SnapshotLoader {
     // wire-only field that must never enter room state. Room state requires
     // real numbers — normalizeHPValues turns absence into 0/1, visibly wrong
     // rather than silently NaN.
-    const loadedCharacters = (snapshot.characters ?? []).map(
+    const normalizedCharacters = (snapshot.characters ?? []).map(
       ({ hpBadge: _wireOnly, tokenSize, disposition, ...character }) => {
         const { hp, maxHp } = normalizeHPValues(character.hp ?? 0, character.maxHp ?? 1);
         // A size off the ladder is dropped, like the state file's (loadCoercions).
@@ -99,6 +99,11 @@ export class SnapshotLoader {
         });
       },
     );
+    // Legacy condition lists settle against the FILE's own seats, before the
+    // merge: seated players keep their live characters, so a file's sole
+    // character could otherwise count as one of two and lose its seat's list.
+    // The live characters were settled when their room loaded.
+    const loadedCharacters = settleLegacyConditionLists(normalizedCharacters, loadedPlayers);
 
     // Get UIDs of currently connected players
     const currentPlayerUIDs = new Set(currentState.players.map((p) => p.uid));
@@ -153,7 +158,7 @@ export class SnapshotLoader {
       ),
       tokens: mergedTokens,
       players: mergedPlayers,
-      characters: settleLegacyConditionLists(mergedCharacters, mergedPlayers),
+      characters: mergedCharacters,
       props: snapshot.props ?? [],
       customTokens: coerceCustomTokens(snapshot.customTokens),
       mapBackground,
