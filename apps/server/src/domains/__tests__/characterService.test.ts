@@ -87,6 +87,49 @@ describe("CharacterService", () => {
     expect(legacy.portrait).toBe("seat.png");
   });
 
+  it("the seat's temp HP and portrait MOVE: they cannot resurface on a later sole character", () => {
+    // Copied, they stayed on the seat: delete the first character and its
+    // sibling became the sole one, wearing the first's portrait and temp HP
+    // (and a drag of its HP bar wrote that temp HP as its own).
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", tempHp: 4, portrait: "seat.png" } as never);
+    const first = service.createCharacter(state, "Ranger", 30, "own.png", "pc", { tempHp: 0 });
+    service.claimCharacter(state, first.id, "alice");
+
+    service.claimCharacter(state, service.createCharacter(state, "Companion", 30).id, "alice");
+
+    const seat = state.players[0]!;
+    expect(seat.tempHp).toBeUndefined();
+    expect(seat.portrait).toBeUndefined();
+  });
+
+  it("adoption is a SOLE character's: a third claim hands nothing to the first", () => {
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", tempHp: 4, portrait: "seat.png" } as never);
+    const first = service.createCharacter(state, "Ranger", 30);
+    const second = service.createCharacter(state, "Companion", 30);
+    first.ownedByPlayerUID = "alice"; // a legacy table: two already, the seat still holding values
+    second.ownedByPlayerUID = "alice";
+
+    service.claimCharacter(state, service.createCharacter(state, "Wolf", 30).id, "alice");
+
+    expect(first.tempHp).toBeUndefined();
+    expect(first.portrait).toBeUndefined();
+  });
+
+  it("an NPC the player owns does not stop their sole character adopting", () => {
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "dm", name: "DM", tempHp: 4, isDM: true } as never);
+    const hero = service.createCharacter(state, "Hero", 30);
+    service.claimCharacter(state, hero.id, "dm");
+    const goblin = service.createCharacter(state, "Goblin", 7, undefined, "npc");
+    goblin.ownedByPlayerUID = "dm";
+
+    service.claimCharacter(state, service.createCharacter(state, "Sidekick", 30).id, "dm");
+
+    expect(hero.tempHp).toBe(4);
+  });
+
   it("a character's own temp HP and portrait are kept when its player gains a second", () => {
     const state = createEmptyRoomState();
     state.players.push({ uid: "alice", name: "Alice", tempHp: 4, portrait: "seat.png" } as never);

@@ -123,6 +123,12 @@ export class CharacterService {
           first.statusEffects = [...(seat?.statusEffects ?? [])];
         if (first.tempHp === undefined && seat?.tempHp !== undefined) first.tempHp = seat.tempHp;
         if (first.portrait === undefined && seat?.portrait) first.portrait = seat.portrait;
+        // MOVED, not copied: left on the seat they would resurface on whichever
+        // character is sole next (the first deleted, its sibling left).
+        if (seat) {
+          delete seat.tempHp;
+          delete seat.portrait;
+        }
       }
     }
 
