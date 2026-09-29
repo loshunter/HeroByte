@@ -162,3 +162,32 @@ describe("MobilePlayerRow name field", () => {
     expect(base.onCharacterNameUpdate).toHaveBeenCalledExactlyOnceWith("char-2", "Dire Wolf");
   });
 });
+
+// A DM who loses DM rights (a deploy, a restart) must not keep another
+// player's EDIT sheet open: every editor in it is now refused by the server.
+// Older than U7; found by its permissions review.
+describe("MobilePlayerRow after losing DM rights", () => {
+  const sheet = () => document.querySelector('[data-mobile-surface="settings"]');
+
+  it("a DM's sheet on another player's row closes, and stays closed on re-elevation", () => {
+    const base = props({ isMe: false, isDM: true });
+    const { rerender } = render(<MobilePlayerRow {...base} />);
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(sheet()).not.toBeNull();
+
+    rerender(<MobilePlayerRow {...base} isDM={false} />);
+    expect(sheet()).toBeNull();
+
+    rerender(<MobilePlayerRow {...base} isDM={true} />);
+    expect(sheet()).toBeNull();
+  });
+
+  it("your own row's sheet stays open when you give up DM", () => {
+    const base = props({ isMe: true, isDM: true });
+    const { rerender } = render(<MobilePlayerRow {...base} />);
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+    rerender(<MobilePlayerRow {...base} isDM={false} />);
+    expect(sheet()).not.toBeNull();
+  });
+});

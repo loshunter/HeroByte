@@ -198,6 +198,15 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
     openModal: openInitiativeModal,
     closeModal: closeInitiativeModal,
   } = useInitiativeModal();
+  // The server's own rule: the DM, or the character's owner. On losing DM
+  // rights the dialog for anyone else's character closes rather than offering
+  // a Set the server refuses, and it does not reopen on re-elevation.
+  const initiativeModalAllowed =
+    initiativeModalCharacter !== null &&
+    (currentIsDM || initiativeModalCharacter.ownedByPlayerUID === uid);
+  useEffect(() => {
+    if (isInitiativeModalOpen && !initiativeModalAllowed) closeInitiativeModal();
+  }, [isInitiativeModalOpen, initiativeModalAllowed, closeInitiativeModal]);
 
   // Use character creation hook for proper state synchronization
   const characterCreation = useCharacterCreation({
@@ -792,7 +801,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
       )}
 
       {/* Initiative Modal */}
-      {isInitiativeModalOpen && initiativeModalCharacter && (
+      {isInitiativeModalOpen && initiativeModalCharacter && initiativeModalAllowed && (
         <InitiativeModal
           character={initiativeModalCharacter}
           onClose={closeInitiativeModal}

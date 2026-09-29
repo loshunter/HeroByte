@@ -83,6 +83,13 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     const isEditingMaxHp = editingMaxHpUID === player.characterId;
     const [isEditingEffects, setIsEditingEffects] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    // Another player's sheet is the DM's to hold. On losing DM rights (a
+    // deploy, a restart) it closes rather than offering editors the server
+    // now refuses, and it does not reopen by itself on re-elevation.
+    const mayEdit = isMe || isDM;
+    useEffect(() => {
+      if (!mayEdit) setSettingsOpen(false);
+    }, [mayEdit]);
     const [localNameInput, setLocalNameInput] = useState(player.name);
     // Re-read the name whenever the sheet opens or someone renames the
     // character, as the desktop card does: a copy taken at mount showed a
@@ -297,7 +304,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
 
         {/* Mobile Settings Menu Overlay */}
         <PlayerSettingsMenu
-          isOpen={settingsOpen}
+          isOpen={mayEdit && settingsOpen}
           onClose={() => setSettingsOpen(false)}
           tokenVisionRadius={token?.visionRadius}
           tableVisionDefault={tableVisionDefault}
