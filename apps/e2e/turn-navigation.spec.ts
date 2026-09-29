@@ -100,7 +100,7 @@ test.describe("Turn Navigation UI", () => {
               t: "set-initiative",
               characterId: charId,
               initiative: init,
-              modifier: mod,
+              initiativeModifier: mod,
             });
           }
         },
