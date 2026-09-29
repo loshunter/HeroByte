@@ -27,6 +27,7 @@ vi.mock("../../../../utils/sanitize", () => ({
 
 // Import component
 import { NpcCard } from "../NpcCard";
+import { npcUpdateMessage, type NpcUpdateFields, type NpcUpdateMessage } from "../../npcUpdate";
 // Import mocked utilities
 import { sanitizeText } from "../../../../utils/sanitize";
 
@@ -94,6 +95,7 @@ interface MockHPBarProps {
   onMaxHpInputChange: (input: string) => void;
   onMaxHpEdit: () => void;
   onMaxHpSubmit: (input: string) => void;
+  onTempHpSubmit: (input: string) => void;
 }
 
 vi.mock("../HPBar", () => ({
@@ -113,6 +115,7 @@ vi.mock("../HPBar", () => ({
     onMaxHpInputChange,
     onMaxHpEdit,
     onMaxHpSubmit,
+    onTempHpSubmit,
   }: MockHPBarProps) => (
     <div data-testid="hp-bar">
       <span data-testid="hp-bar-hp">{hp}</span>
@@ -143,6 +146,9 @@ vi.mock("../HPBar", () => ({
       </button>
       <button data-testid="hp-bar-submit-max-hp" onClick={() => onMaxHpSubmit("200")}>
         Submit Max HP
+      </button>
+      <button data-testid="hp-bar-submit-temp-hp" onClick={() => onTempHpSubmit("0")}>
+        Submit Temp HP 0
       </button>
     </div>
   ),
@@ -1078,7 +1084,7 @@ describe("NpcCard", () => {
       expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: "new-image.png" });
     });
 
-    it("sets tokenImage to undefined when empty string is applied", () => {
+    it("sends an empty tokenImage (a clear) when an NPC's art is cleared", () => {
       const onUpdate = vi.fn();
       const props = createDefaultProps({
         character: createMockCharacter({ id: "npc-123", tokenImage: "existing.png" }),
@@ -1089,7 +1095,7 @@ describe("NpcCard", () => {
       // Clear the input
       fireEvent.click(screen.getByTestId("settings-clear-token"));
 
-      expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: undefined });
+      expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: "" });
     });
 
     it("sets tokenImage to string when non-empty", () => {
@@ -1442,5 +1448,45 @@ describe("Redacted HP (S4 monsterHpDisplay)", () => {
   it("hidden mode (no badge) renders HP: ??? and nothing to infer from", () => {
     render(<NpcCard {...createDefaultProps({ character: redacted(), isDM: false })} />);
     expect(screen.getByTestId("npc-hp-redacted")).toHaveTextContent("HP: ???");
+  });
+});
+
+// `update-npc` carries the NPC's whole record, and the shared merge fills any
+// field an edit leaves undefined from what the NPC holds now. So a "clear" the
+// card sends as undefined arrives at the server as the OLD value: the edit
+// silently does nothing. These run the card's sends through the real merge.
+describe("NpcCard — clearing through the shared merge", () => {
+  const sentThroughMerge = (character: Character) => {
+    const sent: NpcUpdateMessage[] = [];
+    const onUpdate = vi.fn((_id: string, updates: NpcUpdateFields) => {
+      sent.push(npcUpdateMessage(character as SnapshotCharacter, updates));
+    });
+    render(<NpcCard {...createDefaultProps({ character, onUpdate })} />);
+    return sent;
+  };
+
+  it("Temp HP 0 reaches the server as 0, not as the old value", () => {
+    const sent = sentThroughMerge(createMockCharacter({ tempHp: 5 }));
+
+    fireEvent.click(screen.getByTestId("hp-bar-submit-temp-hp"));
+
+    expect(sent.at(-1)?.tempHp).toBe(0);
+  });
+
+  it("an NPC with no temp HP does not gain a 0 it never had", () => {
+    const sent = sentThroughMerge(createMockCharacter({ tempHp: undefined }));
+
+    fireEvent.click(screen.getByTestId("hp-bar-submit-temp-hp"));
+
+    expect(sent.at(-1)?.tempHp).toBeUndefined();
+  });
+
+  it("Clear token art reaches the server as a clear", () => {
+    const sent = sentThroughMerge(createMockCharacter({ tokenImage: "x.png" }));
+
+    fireEvent.click(screen.getByTestId("settings-clear-token"));
+
+    // The server stores `tokenImage?.trim() || null`: "" clears it.
+    expect(sent.at(-1)?.tokenImage).toBe("");
   });
 });

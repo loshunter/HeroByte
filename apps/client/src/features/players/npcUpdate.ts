@@ -24,7 +24,11 @@ export interface NpcUpdateFields {
 
 export type NpcUpdateMessage = Extract<ClientMessage, { t: "update-npc" }>;
 
-/** The full record an update sends: the edits, over what the NPC holds now. */
+/**
+ * The full record an update sends: the edits, over what the NPC holds now. An
+ * undefined field KEEPS its value, so a clear must be explicit: 0 for temp HP,
+ * "" for token art (the server stores `trim() || null`).
+ */
 export function mergeNpcUpdate(existing: SnapshotCharacter, updates: NpcUpdateFields) {
   return {
     name: updates.name ?? existing.name,

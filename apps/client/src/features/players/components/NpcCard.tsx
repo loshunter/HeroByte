@@ -130,10 +130,15 @@ export function NpcCard({
     (value: string) => {
       if (!isDM) return;
       const parsedTempHp = parseHPInput(value, 0);
-      onUpdate?.(character.id, { tempHp: parsedTempHp > 0 ? parsedTempHp : undefined });
+      // 0 is SENT when there is a value to clear: `update-npc` is a whole
+      // record, and the merge refills an undefined field with the old value.
+      // Still omitted for an NPC with none, as the DM menu's editor does.
+      onUpdate?.(character.id, {
+        tempHp: parsedTempHp > 0 || character.tempHp !== undefined ? parsedTempHp : undefined,
+      });
       setEditingTempHp(false);
     },
-    [isDM, character.id, onUpdate],
+    [isDM, character.id, character.tempHp, onUpdate],
   );
 
   const handlePortraitApply = useCallback(
@@ -150,9 +155,13 @@ export function NpcCard({
     (value: string) => {
       if (!isDM) return;
       const trimmed = value.trim();
-      onUpdate?.(character.id, { tokenImage: trimmed.length > 0 ? trimmed : undefined });
+      // "" is the clear (the server stores `trim() || null`); undefined would
+      // be refilled by the merge with the art the NPC already has.
+      onUpdate?.(character.id, {
+        tokenImage: trimmed.length > 0 ? trimmed : character.tokenImage ? "" : undefined,
+      });
     },
-    [isDM, character.id, onUpdate],
+    [isDM, character.id, character.tokenImage, onUpdate],
   );
 
   const handleSettingsToggle = () => {

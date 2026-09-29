@@ -111,6 +111,35 @@ describe("useNpcUpdate", () => {
     expect(result.current.isUpdating).toBe(false);
   });
 
+  it("a token-art clear confirms when the server stores it as null", () => {
+    // The editor sends "" to clear (the merge would refill an undefined); the
+    // server keeps `tokenImage?.trim() || null`. Absent, "" and null are all
+    // "no art", so the confirm must not wait on "" === null for five seconds.
+    const sendMessage = vi.fn();
+    let snapshot = snap({ tokenImage: "x.png" });
+    const { result, rerender } = renderHook(() => useNpcUpdate({ snapshot, sendMessage }));
+    act(() => result.current.updateNpc("npc-1", full({ tokenImage: "" })));
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ tokenImage: "" }));
+    expect(result.current.isUpdating).toBe(true);
+
+    snapshot = snap({ tokenImage: null });
+    rerender();
+    expect(result.current.isUpdating).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("an edit to an NPC with no art (null on the wire) confirms", () => {
+    const sendMessage = vi.fn();
+    let snapshot = snap({ tokenImage: null });
+    const { result, rerender } = renderHook(() => useNpcUpdate({ snapshot, sendMessage }));
+    act(() => result.current.updateNpc("npc-1", full({ hp: 2 })));
+    expect(result.current.isUpdating).toBe(true);
+
+    snapshot = snap({ tokenImage: null, hp: 2 });
+    rerender();
+    expect(result.current.isUpdating).toBe(false);
+  });
+
   it("unmounting mid-flight disarms the timer", () => {
     const sendMessage = vi.fn();
     const { result, unmount } = renderHook(() => useNpcUpdate({ snapshot: snap(), sendMessage }));

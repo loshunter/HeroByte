@@ -126,7 +126,10 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     const maxHpMatches = currentNpc.maxHp === expected.maxHp;
     const tempHpMatches = currentNpc.tempHp === expected.tempHp;
     const portraitMatches = currentNpc.portrait === expected.portrait;
-    const tokenImageMatches = currentNpc.tokenImage === expected.tokenImage;
+    // Absent, "" (the clear sent) and null (what the server stores for no
+    // art) all mean no art; a strict match left every edit to an art-less NPC
+    // waiting out the timeout.
+    const tokenImageMatches = (currentNpc.tokenImage ?? "") === (expected.tokenImage ?? "");
     const initiativeModifierMatches = currentNpc.initiativeModifier === expected.initiativeModifier;
     const dispositionMatches = currentNpc.disposition === expected.disposition;
 

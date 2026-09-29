@@ -151,7 +151,9 @@ export function NPCEditor({
       // still omitted for an NPC with none, or every edit would stamp tempHp: 0.
       tempHp: parsedTempHp > 0 || npc.tempHp !== undefined ? parsedTempHp : undefined,
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
-      tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
+      // "" CLEARS art on file (the merge refills undefined, like tempHp above);
+      // still omitted for an NPC with none.
+      tokenImage: tokenImageValue.length > 0 ? tokenImageValue : npc.tokenImage ? "" : undefined,
       initiativeModifier: clampedInitMod,
       // Only when this edit set one. Three things downstream would each
       // survive a bare `disposition: undefined` anyway — useNpcUpdate merges
