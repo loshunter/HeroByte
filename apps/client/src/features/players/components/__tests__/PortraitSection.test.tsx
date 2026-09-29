@@ -31,7 +31,7 @@ describe("PortraitSection", () => {
   it("shows the portrait image when provided", () => {
     render(<PortraitSection portrait="https://example.com/portrait.png" statusEffects={[]} />);
 
-    const image = screen.getByRole("img", { name: /player portrait/i });
+    const image = screen.getByRole("img", { name: "Portrait" });
     expect(image).toBeVisible();
   });
 
@@ -46,7 +46,8 @@ describe("PortraitSection", () => {
       />,
     );
 
-    const button = screen.getByRole("button", { name: /player portrait/i });
+    // "Portrait", never "Player portrait": NPC and DM cards show this frame too.
+    const button = screen.getByRole("button", { name: "Portrait" });
     expect(button).toBeDisabled();
 
     fireEvent.click(button);
@@ -162,7 +163,7 @@ describe("PortraitSection", () => {
         <PortraitSection portrait={undefined} statusEffects={[]} initiative={12} isCurrentTurn />,
       );
 
-      const portraitButton = screen.getByRole("button", { name: /player portrait/i });
+      const portraitButton = screen.getByRole("button", { name: "Portrait" });
       expect(portraitButton).toHaveStyle("border-color: var(--jrpg-gold)");
     });
   });

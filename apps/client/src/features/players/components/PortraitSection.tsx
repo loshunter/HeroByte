@@ -2,7 +2,8 @@ import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 // ============================================================================
 // PORTRAIT SECTION COMPONENT
 // ============================================================================
-// Player portrait with class icon and mic level animation
+// A character's portrait (a player's, the DM's or an NPC's) with class icon and
+// mic level animation
 
 import React from "react";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
@@ -203,7 +204,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
         className="jrpg-portrait-frame"
         style={frameStyles}
         onClick={handlePortraitClick}
-        aria-label={isEditable ? "Change portrait" : "Player portrait"}
+        aria-label={isEditable ? "Change portrait" : "Portrait"}
         disabled={!isEditable}
         tabIndex={isEditable ? 0 : -1}
       >
@@ -211,7 +212,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
           <img
             key={portrait.substring(0, 100)}
             src={portrait}
-            alt="Player portrait"
+            alt="Portrait"
             className="jrpg-portrait-image"
             style={{
               width: "100%",

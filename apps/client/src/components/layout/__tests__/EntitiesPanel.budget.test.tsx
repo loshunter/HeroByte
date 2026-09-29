@@ -193,9 +193,9 @@ describe("EntitiesPanel — the DM's own character: the bench and the order (F3)
     expect(card.closest(".entities-panel-card-grid")).not.toBeNull();
     expect(card.querySelector(".player-card--dm")).not.toBeNull();
     // Not the player's to edit: no settings entry at all (the portrait is a
-    // plain "Player portrait"), so no speed field and no reset can exist.
+    // plain "Portrait"), so no speed field and no reset can exist.
     expect(card.querySelector('button[aria-label="Change portrait"]')).toBeNull();
-    expect(card.querySelector('button[aria-label="Player portrait"]')).not.toBeNull();
+    expect(card.querySelector('button[aria-label="Portrait"]')).not.toBeNull();
   });
 
   it("after END COMBAT (initiative kept) the DM's character is home on the bench", () => {
