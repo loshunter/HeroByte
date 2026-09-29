@@ -15,6 +15,7 @@ import { NpcPortraitField } from "./NpcPortraitField";
 import { NpcTokenImageField } from "./NpcTokenImageField";
 import { NpcStanceSelect } from "./NpcStanceSelect";
 import { useNpcAssetPick } from "../hooks/useNpcAssetPick";
+import { tempHpEdit, tokenImageEdit } from "../../players/npcUpdate";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -147,13 +148,11 @@ export function NPCEditor({
       name: trimmedName.length > 0 ? trimmedName : "NPC",
       hp: normalized.hp,
       maxHp: normalized.maxHp,
-      // 0 is SENT when there is a value to clear (omitted, the merge refilled it);
-      // still omitted for an NPC with none, or every edit would stamp tempHp: 0.
-      tempHp: parsedTempHp > 0 || npc.tempHp !== undefined ? parsedTempHp : undefined,
+      // A clear is explicit, and an NPC with nothing to clear sends nothing
+      // (npcUpdate.ts): the merge refills an undefined field.
+      tempHp: tempHpEdit(parsedTempHp, npc.tempHp),
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
-      // "" CLEARS art on file (the merge refills undefined, like tempHp above);
-      // still omitted for an NPC with none.
-      tokenImage: tokenImageValue.length > 0 ? tokenImageValue : npc.tokenImage ? "" : undefined,
+      tokenImage: tokenImageEdit(tokenImageValue, npc.tokenImage),
       initiativeModifier: clampedInitMod,
       // Only when this edit set one. Three things downstream would each
       // survive a bare `disposition: undefined` anyway — useNpcUpdate merges

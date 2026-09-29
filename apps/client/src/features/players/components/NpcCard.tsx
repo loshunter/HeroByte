@@ -16,6 +16,7 @@ import { NpcNameEditor } from "./NpcNameEditor";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import { npcDispositionLook } from "./npcDisposition";
+import { tempHpEdit, tokenImageEdit } from "../npcUpdate";
 
 interface NpcCardProps {
   character: SnapshotCharacter;
@@ -129,13 +130,7 @@ export function NpcCard({
   const handleTempHpSubmit = useCallback(
     (value: string) => {
       if (!isDM) return;
-      const parsedTempHp = parseHPInput(value, 0);
-      // 0 is SENT when there is a value to clear: `update-npc` is a whole
-      // record, and the merge refills an undefined field with the old value.
-      // Still omitted for an NPC with none, as the DM menu's editor does.
-      onUpdate?.(character.id, {
-        tempHp: parsedTempHp > 0 || character.tempHp !== undefined ? parsedTempHp : undefined,
-      });
+      onUpdate?.(character.id, { tempHp: tempHpEdit(parseHPInput(value, 0), character.tempHp) });
       setEditingTempHp(false);
     },
     [isDM, character.id, character.tempHp, onUpdate],
@@ -154,12 +149,7 @@ export function NpcCard({
   const handleTokenImageApply = useCallback(
     (value: string) => {
       if (!isDM) return;
-      const trimmed = value.trim();
-      // "" is the clear (the server stores `trim() || null`); undefined would
-      // be refilled by the merge with the art the NPC already has.
-      onUpdate?.(character.id, {
-        tokenImage: trimmed.length > 0 ? trimmed : character.tokenImage ? "" : undefined,
-      });
+      onUpdate?.(character.id, { tokenImage: tokenImageEdit(value, character.tokenImage) });
     },
     [isDM, character.id, character.tokenImage, onUpdate],
   );

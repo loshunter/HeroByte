@@ -25,6 +25,27 @@ export interface NpcUpdateFields {
 export type NpcUpdateMessage = Extract<ClientMessage, { t: "update-npc" }>;
 
 /**
+ * What an edit sends for temp HP. 0 is SENT when the NPC has temp HP to clear
+ * (the merge refills an undefined field); an NPC with none keeps sending none,
+ * so an unrelated edit never stamps `tempHp: 0` on it.
+ */
+export function tempHpEdit(next: number, current: number | undefined): number | undefined {
+  return next > 0 || current !== undefined ? next : undefined;
+}
+
+/**
+ * What an edit sends for token art. "" CLEARS art on file (the server stores
+ * `trim() || null`); an NPC with none keeps sending none.
+ */
+export function tokenImageEdit(
+  next: string,
+  current: string | null | undefined,
+): string | undefined {
+  const trimmed = next.trim();
+  return trimmed.length > 0 ? trimmed : current ? "" : undefined;
+}
+
+/**
  * The full record an update sends: the edits, over what the NPC holds now. An
  * undefined field KEEPS its value, so a clear must be explicit: 0 for temp HP,
  * "" for token art (the server stores `trim() || null`).
