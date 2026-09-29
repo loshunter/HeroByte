@@ -480,12 +480,12 @@ describe("NpcCard", () => {
       expect(settingsButton).not.toBeDisabled();
     });
 
-    it("disables settings button when isDM is false", () => {
+    it("offers a player no settings button at all (permitted actions only)", () => {
+      // It rendered disabled: a DM-only control on every player's screen.
       const props = createDefaultProps({ isDM: false });
       render(<NpcCard {...props} />);
 
-      const settingsButton = screen.getByTitle("NPC settings");
-      expect(settingsButton).toBeDisabled();
+      expect(screen.queryByTitle("NPC settings")).toBeNull();
     });
 
     it("displays NpcSettingsMenu component", () => {
@@ -1167,9 +1167,8 @@ describe("NpcCard", () => {
       const props = createDefaultProps({ isDM: false });
       render(<NpcCard {...props} />);
 
-      const settingsButton = screen.getByTitle("NPC settings");
-      fireEvent.click(settingsButton);
-
+      // No button to press: a player is offered no settings at all.
+      expect(screen.queryByTitle("NPC settings")).toBeNull();
       expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
     });
 
@@ -1274,10 +1273,8 @@ describe("NpcCard", () => {
       const props = createDefaultProps({ isDM: false });
       render(<NpcCard {...props} />);
 
-      // Try to open settings (button is disabled but test the logic)
-      const settingsButton = screen.getByTitle("NPC settings");
-      fireEvent.click(settingsButton);
-
+      // No button to open it from, and the menu's own gate stays closed.
+      expect(screen.queryByTitle("NPC settings")).toBeNull();
       expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
     });
   });
@@ -1292,7 +1289,7 @@ describe("NpcCard", () => {
       render(<NpcCard {...props} />);
 
       expect(screen.getByTestId("portrait-section-is-editable")).toHaveTextContent("false");
-      expect(screen.getByTitle("NPC settings")).toBeDisabled();
+      expect(screen.queryByTitle("NPC settings")).toBeNull();
       expect(screen.getByTestId("hp-bar-is-me")).toHaveTextContent("false");
     });
 

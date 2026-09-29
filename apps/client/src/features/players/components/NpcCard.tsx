@@ -299,18 +299,19 @@ export function NpcCard({
             {character.visibleToPlayers === false ? "👁️‍🗨️" : "👁️"}
           </button>
         )}
-        <button
-          className="btn btn-secondary"
-          style={{
-            fontSize: "var(--player-card-control-font-size, 0.7rem)",
-            padding: "var(--player-card-control-padding, 4px 8px)",
-          }}
-          onClick={handleSettingsToggle}
-          disabled={!canEdit}
-          title="NPC settings"
-        >
-          ⚙️
-        </button>
+        {canEdit && (
+          <button
+            className="btn btn-secondary"
+            style={{
+              fontSize: "var(--player-card-control-font-size, 0.7rem)",
+              padding: "var(--player-card-control-padding, 4px 8px)",
+            }}
+            onClick={handleSettingsToggle}
+            title="NPC settings"
+          >
+            ⚙️
+          </button>
+        )}
       </div>
 
       <NpcSettingsMenu
