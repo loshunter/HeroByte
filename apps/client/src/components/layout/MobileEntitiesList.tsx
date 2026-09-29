@@ -137,7 +137,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       // The character's own, like the conditions below: the player-level
       // value is legacy and only attributable to a sole character.
       tempHp: character.tempHp ?? (owned.length === 1 ? player.tempHp : undefined),
-      portrait: character.portrait ?? player.portrait,
+      // The seat's portrait is legacy too: a sole character's fallback only.
+      portrait: character.portrait ?? (owned.length === 1 ? player.portrait : undefined),
       // Conditions belong to the character. The player-level list is legacy
       // and is only attributable when this player owns one character — the
       // same line the token fallback above draws, for the same reason: with

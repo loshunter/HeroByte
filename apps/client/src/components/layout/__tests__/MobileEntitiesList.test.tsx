@@ -867,3 +867,28 @@ describe("MobileEntitiesList token size", () => {
     expect(screen.queryByRole("button", { name: "Large" })).toBeNull();
   });
 });
+
+// A seat's player-level portrait is legacy, attributable only to the player's
+// SOLE character (UX-02), as on the desktop cards.
+describe("MobileEntitiesList seat portrait", () => {
+  const withSeatPortrait = [
+    { ...players[0], portrait: "https://example.test/seat.png" },
+  ] as unknown as Player[];
+  const rowPortraits = () => document.querySelectorAll('img[src="https://example.test/seat.png"]');
+
+  it("is a sole character's fallback", () => {
+    render(<MobileEntitiesList {...listProps({ players: withSeatPortrait })} />);
+
+    expect(rowPortraits()).toHaveLength(1);
+  });
+
+  it("is nobody's once the seat has two characters", () => {
+    const two = [
+      ...characters,
+      { id: "char-2", name: "Companion", type: "pc", ownedByPlayerUID: ME, hp: 5, maxHp: 5 },
+    ] as unknown as SnapshotCharacter[];
+    render(<MobileEntitiesList {...listProps({ players: withSeatPortrait, characters: two })} />);
+
+    expect(rowPortraits()).toHaveLength(0);
+  });
+});
