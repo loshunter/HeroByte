@@ -105,6 +105,10 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             tokens={props.snapshot?.tokens || []}
             onTokenVisionRadiusChange={props.updateTokenVisionRadius}
             onTokenSizeChange={props.updateTokenSize}
+            onAddCharacter={props.playerActions.addCharacter}
+            sceneObjects={props.snapshot?.sceneObjects ?? []}
+            onToggleTokenLock={props.toggleSceneObjectLock}
+            onPlayerTokenDelete={props.isDM ? props.deleteToken : undefined}
             onCharacterSpeedChange={props.updateCharacterSpeed}
             onCharacterBudgetReset={props.resetCharacterBudget}
             combatActive={props.snapshot?.combatActive ?? false}

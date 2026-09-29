@@ -51,6 +51,9 @@ function renderList(
       onCharacterNameUpdate={vi.fn()}
       onCharacterPortraitUpdate={vi.fn()}
       onTokenSizeChange={vi.fn()}
+      onAddCharacter={vi.fn()}
+      sceneObjects={[]}
+      onToggleTokenLock={vi.fn()}
       tokens={tokens}
       onTokenVisionRadiusChange={onTokenVisionRadiusChange}
     />,
@@ -92,6 +95,9 @@ describe("delete character — the desktop gate, on a phone", () => {
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
         onTokenSizeChange={vi.fn()}
+        onAddCharacter={vi.fn()}
+        sceneObjects={[]}
+        onToggleTokenLock={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -135,6 +141,9 @@ describe("delete character — the desktop gate, on a phone", () => {
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
         onTokenSizeChange={vi.fn()}
+        onAddCharacter={vi.fn()}
+        sceneObjects={[]}
+        onToggleTokenLock={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -351,6 +360,9 @@ function listProps(overrides: Partial<Parameters<typeof MobileEntitiesList>[0]> 
     onCharacterNameUpdate: vi.fn(),
     onCharacterPortraitUpdate: vi.fn(),
     onTokenSizeChange: vi.fn(),
+    onAddCharacter: vi.fn(),
+    sceneObjects: [],
+    onToggleTokenLock: vi.fn(),
     tokens,
     onTokenVisionRadiusChange: vi.fn(),
     ...overrides,
@@ -564,6 +576,9 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
         onTokenSizeChange={vi.fn()}
+        onAddCharacter={vi.fn()}
+        sceneObjects={[]}
+        onToggleTokenLock={vi.fn()}
         tokens={twoTokens}
         onTokenVisionRadiusChange={onChange}
       />,
@@ -600,6 +615,9 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
         onTokenSizeChange={vi.fn()}
+        onAddCharacter={vi.fn()}
+        sceneObjects={[]}
+        onToggleTokenLock={vi.fn()}
         tokens={[]}
         onTokenVisionRadiusChange={vi.fn()}
       />,
@@ -890,5 +908,75 @@ describe("MobileEntitiesList seat portrait", () => {
     render(<MobileEntitiesList {...listProps({ players: withSeatPortrait, characters: two })} />);
 
     expect(rowPortraits()).toHaveLength(0);
+  });
+});
+
+// The phone's EDIT sheet lacked what the desktop window offers and the server
+// allows: a player could never add a second character from a phone (so the
+// seat grouping had nothing to group), and a DM had no token lock or Delete
+// Token there.
+describe("MobileEntitiesList — the phone's own settings", () => {
+  const OTHER = "other-uid";
+  const table = {
+    players: [
+      ...players,
+      { uid: OTHER, name: "Them", hp: 10, maxHp: 10, micLevel: 0, isDM: false, statusEffects: [] },
+    ] as unknown as Player[],
+    characters: [
+      { id: "char-1", name: "Me", type: "pc", ownedByPlayerUID: ME, tokenId: "my-token" },
+      { id: "char-2", name: "Them", type: "pc", ownedByPlayerUID: OTHER, tokenId: "their-token" },
+    ] as unknown as SnapshotCharacter[],
+    tokens: [...tokens, { id: "their-token", owner: OTHER, x: 2, y: 2, color: "blue" }] as Token[],
+  };
+  const editRow = (name: string) => {
+    const row = screen
+      .getAllByTestId("mobile-player-row")
+      .find((candidate) => within(candidate).queryByText(name, { exact: true }))!;
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+  };
+
+  it("your own row adds a character", () => {
+    const onAddCharacter = vi.fn();
+    render(<MobileEntitiesList {...listProps({ ...table, onAddCharacter })} />);
+
+    editRow("Me");
+    fireEvent.click(screen.getByRole("button", { name: "➕ Add Character" }));
+    const field = screen.getByPlaceholderText("Enter character name...");
+    fireEvent.change(field, { target: { value: "Wolf" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+
+    expect(onAddCharacter).toHaveBeenCalledWith("Wolf");
+  });
+
+  it("a DM locks and deletes another player's token from their row", () => {
+    const onToggleTokenLock = vi.fn();
+    const onPlayerTokenDelete = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...table, isDM: true, onToggleTokenLock, onPlayerTokenDelete })}
+      />,
+    );
+
+    editRow("Them");
+    expect(screen.queryByRole("button", { name: "➕ Add Character" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "🔓 Unlocked" }));
+    fireEvent.click(screen.getByRole("button", { name: "🗑️ Delete Token (DM)" }));
+
+    expect(onToggleTokenLock).toHaveBeenCalledWith("token:their-token", true);
+    expect(onPlayerTokenDelete).toHaveBeenCalledWith("their-token");
+    vi.restoreAllMocks();
+  });
+
+  it("a player's own row offers neither token lock nor Delete Token", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...table, onToggleTokenLock: vi.fn(), onPlayerTokenDelete: vi.fn() })}
+      />,
+    );
+
+    editRow("Me");
+    expect(screen.queryByRole("button", { name: "🔓 Unlocked" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "🗑️ Delete Token (DM)" })).toBeNull();
   });
 });

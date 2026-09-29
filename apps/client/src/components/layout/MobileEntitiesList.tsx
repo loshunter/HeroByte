@@ -7,7 +7,8 @@
 
 import React from "react";
 import { looseOwnToken } from "../../utils/looseOwnToken";
-import type { Player, SnapshotCharacter, Token, TokenSize } from "@herobyte/shared";
+import type { Player, SceneObject, SnapshotCharacter, Token, TokenSize } from "@herobyte/shared";
+import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 import { isInInitiativeOrder } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
 
@@ -49,6 +50,14 @@ interface MobileEntitiesListProps {
    * so a phone cannot silently lose the control again.
    */
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  /** The viewer's own rows add a character, as the desktop window does. */
+  onAddCharacter: (name: string) => void;
+  /** Scene objects, for each token's lock state. */
+  sceneObjects: SceneObject[];
+  /** A token's lock — offered to a DM, as on the desktop card. */
+  onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
+  /** DM-only: delete a player's token. */
+  onPlayerTokenDelete?: (tokenId: string) => void;
   /** DM-only: a character's feet per turn (the movement budget). */
   onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
   /** DM-only: zero a character's spend outside a turn boundary. */
@@ -85,10 +94,18 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   tokens,
   onTokenVisionRadiusChange,
   onTokenSizeChange,
+  onAddCharacter,
+  sceneObjects,
+  onToggleTokenLock,
+  onPlayerTokenDelete,
   onCharacterSpeedChange,
   onCharacterBudgetReset,
   combatActive = false,
 }) => {
+  // The desktop panel's creation state, for the viewer's own rows: the
+  // settings window asks for the name and waits on this until it lands.
+  const characterCreation = useCharacterCreation({ addCharacter: onAddCharacter, characters, uid });
+
   // One row per (player, character) PAIR — the desktop model, and the same
   // flatMap useCombatOrdering builds EntitiesPanel's rows from. This used to be
   // players.map + characters.find, which resolved every player to whichever
@@ -206,6 +223,24 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
             onTokenVisionRadiusChange={
               isDM && entityToken && onTokenVisionRadiusChange
                 ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
+                : undefined
+            }
+            onAddCharacter={entity.uid === uid ? characterCreation.createCharacter : undefined}
+            isCreatingCharacter={entity.uid === uid && characterCreation.isCreating}
+            // A DM's, as on the desktop card: the lock and Delete Token.
+            tokenLocked={
+              entityToken
+                ? sceneObjects.find((object) => object.id === `token:${entityToken.id}`)?.locked
+                : undefined
+            }
+            onToggleTokenLock={
+              isDM && entityToken
+                ? (locked) => onToggleTokenLock(`token:${entityToken.id}`, locked)
+                : undefined
+            }
+            onDeleteToken={
+              isDM && entityToken && onPlayerTokenDelete
+                ? () => onPlayerTokenDelete(entityToken.id)
                 : undefined
             }
             tokenSize={entityToken?.size}

@@ -47,6 +47,13 @@ interface MobilePlayerRowProps {
   tokenSize?: TokenSize;
   /** Present when this viewer may resize this row's token (its owner, or a DM). */
   onTokenSizeChange?: (size: TokenSize) => void;
+  /** Your own row: add a character (the settings window asks for its name). */
+  onAddCharacter?: (name: string) => boolean;
+  isCreatingCharacter?: boolean;
+  /** DM-only: the token's lock and deletion. */
+  tokenLocked?: boolean;
+  onToggleTokenLock?: (locked: boolean) => void;
+  onDeleteToken?: () => void;
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
   onCharacterSpeedChange?: (speedFeet: number | null) => void;
@@ -80,6 +87,11 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onTokenVisionRadiusChange,
     tokenSize,
     onTokenSizeChange,
+    onAddCharacter,
+    isCreatingCharacter,
+    tokenLocked,
+    onToggleTokenLock,
+    onDeleteToken,
     characterSpeed,
     onCharacterSpeedChange,
     characterBudget,
@@ -318,6 +330,11 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
+          onAddCharacter={onAddCharacter}
+          isCreatingCharacter={isCreatingCharacter}
+          tokenLocked={tokenLocked}
+          onToggleTokenLock={onToggleTokenLock}
+          onDeleteToken={onDeleteToken}
           characterSpeed={characterSpeed}
           onCharacterSpeedChange={onCharacterSpeedChange}
           characterBudget={characterBudget}
