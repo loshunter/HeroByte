@@ -354,6 +354,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         hp: character.hp,
                         maxHp: character.maxHp,
                         portrait: character.portrait ?? player.portrait,
+                        // See the party grid below: temp HP is the character's.
+                        tempHp: character.tempHp ?? (ownsSoleCharacter ? player.tempHp : undefined),
                       };
 
                       return (
@@ -558,6 +560,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       maxHp: character.maxHp,
                       // Prefer character-specific portrait, fallback to player's portrait
                       portrait: character.portrait ?? player.portrait,
+                      // Temp HP is the character's too: the Temp HP field
+                      // writes it there, so showing the player-level value
+                      // hid what was entered — and the bar's drag sent that
+                      // value back as the character's. The player-level one
+                      // is legacy, attributable only to a sole character.
+                      tempHp: character.tempHp ?? (ownsSoleCharacter ? player.tempHp : undefined),
                     };
 
                     return (

@@ -765,3 +765,45 @@ describe("a condition belongs to its character, not to the player's other rows",
     expect(screen.queryByText("🤢 Poisoned")).toBeNull();
   });
 });
+
+// Temporary HP follows the same rule as conditions: the character's own value,
+// with the legacy player-level one only for a sole character — a second row
+// must not read a sibling's (or the seat's) temporary HP as its own.
+describe("temporary HP belongs to its character, not to the player's other rows", () => {
+  const owner = [
+    { uid: ME, name: "Me", hp: 10, maxHp: 10, micLevel: 0, isDM: false, tempHp: 3 },
+  ] as unknown as Player[];
+  const aria = {
+    id: "char-aria",
+    name: "Aria",
+    type: "pc",
+    ownedByPlayerUID: ME,
+    hp: 10,
+    maxHp: 10,
+  };
+  const boo = { id: "char-boo", name: "Boo", type: "pc", ownedByPlayerUID: ME, hp: 7, maxHp: 12 };
+
+  it("shows each row only its own temporary HP", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          players: owner,
+          characters: [{ ...aria, tempHp: 5 }, boo] as unknown as SnapshotCharacter[],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("10 (+5)")).toBeInTheDocument();
+    expect(screen.queryByText(/\(\+3\)/)).toBeNull();
+  });
+
+  it("still shows a lone character the legacy player-level value", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ players: owner, characters: [aria] as unknown as SnapshotCharacter[] })}
+      />,
+    );
+
+    expect(screen.getByText("10 (+3)")).toBeInTheDocument();
+  });
+});

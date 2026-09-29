@@ -127,7 +127,9 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       name: character.name,
       hp: character.hp ?? player.hp ?? 100,
       maxHp: character.maxHp ?? player.maxHp ?? 100,
-      tempHp: character.tempHp ?? player.tempHp,
+      // The character's own, like the conditions below: the player-level
+      // value is legacy and only attributable to a sole character.
+      tempHp: character.tempHp ?? (owned.length === 1 ? player.tempHp : undefined),
       portrait: character.portrait ?? player.portrait,
       // Conditions belong to the character. The player-level list is legacy
       // and is only attributable when this player owns one character — the
