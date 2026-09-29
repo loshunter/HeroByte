@@ -1380,6 +1380,24 @@ button.token-library-remove:hover {
   }
 
   /*
+   * An HP number its viewer may edit (HPBar's .hp-bar__value) is a button, and
+   * each gets a 44px box of its own. Boxes, not centred ::after targets: the
+   * current and max numbers sit about 30px apart, so two 44px overlays would
+   * overlap and a tap meant for one would open the other. Side by side on the
+   * line they cannot. Every coarse pointer, as .jrpg-button above, so a card on
+   * a touchscreen desktop gets the same target as a phone's Party row.
+   */
+  .hp-bar__value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /*
    * And everything else the mobile shell hosts, scoped by the CONTAINER rather
    * than by class. The reused panels are a wide family — JRPGButton is only
    * some of it, and the DM menu alone measured a bare <button> at 102x24, a

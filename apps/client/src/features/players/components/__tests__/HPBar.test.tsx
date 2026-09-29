@@ -802,4 +802,50 @@ describe("HPBar", () => {
       expect(onMaxHpEdit).toHaveBeenCalledWith("custom-player-uid", 120);
     });
   });
+
+  // ============================================================================
+  // TESTS - REACH
+  // ============================================================================
+  // An editable number is a real button, so a keyboard reaches it and, on a
+  // touch screen, herobyte.css gives it a 44px box of its own. The phone spec
+  // (mobile-hp-targets) measures the box; jsdom has no layout.
+
+  describe("Reach", () => {
+    it("an editable number is a button that names what it edits", () => {
+      const onHpEdit = vi.fn();
+      const onMaxHpEdit = vi.fn();
+      const onTempHpEdit = vi.fn();
+      const props = createDefaultProps({
+        isMe: true,
+        hp: 75,
+        maxHp: 120,
+        tempHp: 5,
+        onHpEdit,
+        onMaxHpEdit,
+        onTempHpEdit,
+        onTempHpSubmit: vi.fn(),
+        onTempHpInputChange: vi.fn(),
+      });
+      render(<HPBar {...props} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Set current HP: 75 (+5)" }));
+      fireEvent.click(screen.getByRole("button", { name: "Set max HP: 120" }));
+      fireEvent.click(screen.getByRole("button", { name: "Set temp HP: 5" }));
+
+      expect(onHpEdit).toHaveBeenCalledWith("player-1", 75);
+      expect(onMaxHpEdit).toHaveBeenCalledWith("player-1", 120);
+      expect(onTempHpEdit).toHaveBeenCalledTimes(1);
+      for (const button of screen.getAllByRole("button")) {
+        expect(button).toHaveAttribute("type", "button");
+        expect(button).toHaveClass("hp-bar__value");
+      }
+    });
+
+    it("someone else's numbers are text, not buttons", () => {
+      render(<HPBar {...createDefaultProps({ isMe: false, hp: 75, maxHp: 120 })} />);
+
+      expect(screen.queryAllByRole("button")).toHaveLength(0);
+      expect(screen.getByText("75")).toBeInTheDocument();
+    });
+  });
 });
