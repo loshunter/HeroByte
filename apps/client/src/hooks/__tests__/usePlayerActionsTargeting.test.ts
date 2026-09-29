@@ -225,3 +225,46 @@ describe("setCharacterStatusEffects mirror", () => {
     expect(sentTypes()).toEqual(["set-character-status-effects"]);
   });
 });
+
+// `sync-player-drawings` carries no owner: the server replaces the SENDER's
+// drawings with the file's. So a DM restoring a player's file onto the
+// player's card deleted the DM's own drawings and re-created the player's as
+// the DM's. Drawings are restored only onto the sender's own card.
+describe("applyPlayerState drawings", () => {
+  beforeEach(() => {
+    mockSendMessage.mockClear();
+  });
+
+  const withDrawings = { ...state, drawings: [] } as PlayerState;
+  function actionsWith(characters: unknown[]) {
+    const withCharacters = { ...snapshot, characters } as unknown as RoomSnapshot;
+    return renderHook(() =>
+      usePlayerActions({ sendMessage: mockSendMessage, snapshot: withCharacters, uid: "dm-uid" }),
+    );
+  }
+
+  it("a file loaded onto someone else's card leaves the loader's drawings alone", () => {
+    const { result } = actionsWith([
+      { id: "char-alice", name: "Alice", type: "pc", ownedByPlayerUID: "alice-uid" },
+    ]);
+    act(() => result.current.applyPlayerState(withDrawings, undefined, "char-alice"));
+
+    expect(sentTypes()).not.toContain("sync-player-drawings");
+  });
+
+  it("a file loaded onto your own card restores your drawings", () => {
+    const { result } = actionsWith([
+      { id: "char-mine", name: "Mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.applyPlayerState(withDrawings, undefined, "char-mine"));
+
+    expect(sentTypes()).toContain("sync-player-drawings");
+  });
+
+  it("a legacy self-restore (no character) still restores drawings", () => {
+    const { result } = actionsWith([]);
+    act(() => result.current.applyPlayerState(withDrawings));
+
+    expect(sentTypes()).toContain("sync-player-drawings");
+  });
+});

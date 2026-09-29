@@ -496,12 +496,19 @@ export function usePlayerActions({
         }
       }
 
-      // Sync player drawings if present
-      if (state.drawings !== undefined) {
+      // Drawings are the SENDER's: `sync-player-drawings` carries no owner, and
+      // the server replaces the sender's own with the file's. Restoring
+      // someone else's file onto their card must not wipe the loader's drawings
+      // and re-create theirs as the loader's, so only a self-restore sends it.
+      const card = characterId
+        ? snapshot?.characters?.find((c) => c.id === characterId)
+        : undefined;
+      const ownCard = !characterId || card?.ownedByPlayerUID === uid;
+      if (state.drawings !== undefined && ownCard) {
         sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
       }
     },
-    [sendMessage, snapshot?.characters],
+    [sendMessage, snapshot?.characters, uid],
   );
 
   /**
