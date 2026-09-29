@@ -1509,3 +1509,17 @@ describe("NpcCard after losing DM rights", () => {
     expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("false");
   });
 });
+
+// The settings window's portrait buffer was seeded once: after the DM set a
+// new portrait elsewhere (the DM menu), this card still offered the old URL,
+// and leaving the field committed it back. It re-fills on the value.
+describe("NpcCard portrait field follows the server", () => {
+  it("shows a portrait set elsewhere", () => {
+    const props = createDefaultProps({ character: createMockCharacter({ portrait: "a.png" }) });
+    const { rerender } = render(<NpcCard {...props} />);
+
+    rerender(<NpcCard {...props} character={createMockCharacter({ portrait: "b.png" })} />);
+
+    expect(screen.getByTestId("settings-portrait-input")).toHaveTextContent("b.png");
+  });
+});

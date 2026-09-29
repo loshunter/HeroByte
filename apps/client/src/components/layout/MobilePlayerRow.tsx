@@ -117,6 +117,11 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
       if (settingsOpen) setLocalNameInput(player.name);
     }, [settingsOpen, player.name]);
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
+    // Like the name: re-read on open and on a change made elsewhere, or
+    // leaving the field sends a stale URL back over it.
+    useEffect(() => {
+      if (settingsOpen) setPortraitImageInput(player.portrait ?? "");
+    }, [settingsOpen, player.portrait]);
 
     const activeEffects = player.statusEffects || [];
 

@@ -206,3 +206,18 @@ describe("MobilePlayerRow conditions grid after losing DM rights", () => {
     expect(screen.queryByRole("button", { name: "Done Editing" })).toBeNull();
   });
 });
+
+describe("MobilePlayerRow portrait field", () => {
+  it("EDIT shows a portrait set elsewhere, not the one it mounted with", () => {
+    const base = props({ isMe: true });
+    const withPortrait = (portrait: string) =>
+      ({ ...base.player, portrait }) as Player & { characterId: string };
+    const { rerender } = render(<MobilePlayerRow {...base} player={withPortrait("a.png")} />);
+    rerender(<MobilePlayerRow {...base} player={withPortrait("b.png")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+    expect(screen.getByDisplayValue("b.png")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("a.png")).not.toBeInTheDocument();
+  });
+});

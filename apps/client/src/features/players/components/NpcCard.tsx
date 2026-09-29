@@ -92,9 +92,9 @@ export function NpcCard({
   // Absent = hostile: an NPC made before stances existed looks exactly as it did.
   const look = npcDispositionLook(character.disposition);
 
-  useEffect(() => {
-    setTokenImageInput(character.tokenImage ?? "");
-  }, [character.tokenImage]);
+  // Art buffers re-fill on the server's VALUE; seeded once, a blur re-sent a stale URL.
+  useEffect(() => setTokenImageInput(character.tokenImage ?? ""), [character.tokenImage]);
+  useEffect(() => setPortraitInput(character.portrait ?? ""), [character.portrait]);
 
   const handleHpChange = useCallback(
     (nextHp: number) => {
