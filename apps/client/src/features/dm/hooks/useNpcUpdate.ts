@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { ClientMessage, NpcDisposition, RoomSnapshot } from "@herobyte/shared";
+import { mergeNpcUpdate, type NpcUpdateFields } from "../../players/npcUpdate";
 
 export interface UseNpcUpdateOptions {
   /**
@@ -27,17 +28,9 @@ export interface UseNpcUpdateOptions {
   sendMessage: (message: ClientMessage) => void;
 }
 
-export interface NpcUpdateFields {
-  name?: string;
-  hp?: number;
-  maxHp?: number;
-  tempHp?: number;
-  portrait?: string | null;
-  tokenImage?: string | null;
-  initiativeModifier?: number | null;
-  /** Where the NPC stands with the party; absent keeps what it has. */
-  disposition?: NpcDisposition;
-}
+// The field set and its merge live with the Party's NPC card, which sends
+// through the same merge (features/players/npcUpdate.ts).
+export type { NpcUpdateFields };
 
 export interface UseNpcUpdateReturn {
   /**
@@ -183,25 +176,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
       console.log("[useNpcUpdate] Starting NPC update:", { id, updates });
 
       // Calculate final values (merge updates with existing)
-      const finalValues = {
-        name: updates.name ?? existing.name,
-        // A DM's snapshot always carries exact numbers (the redaction is for
-        // players), so the trailing fallbacks are type honesty, not a path.
-        hp: updates.hp ?? existing.hp ?? 0,
-        maxHp: updates.maxHp ?? existing.maxHp ?? 1,
-        tempHp: updates.tempHp ?? existing.tempHp,
-        portrait: updates.portrait ?? existing.portrait,
-        tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
-        initiativeModifier: updates.initiativeModifier ?? existing.initiativeModifier,
-        // ?? not ||: the merge has to keep a stance the DM set earlier when the
-        // edit that triggered this send was about something else entirely.
-        // Conditional, like every other writer in this arc: `disposition:
-        // undefined` is a KEY, and it is only inert because JSON.stringify
-        // happens to drop it. It should not depend on the transport.
-        ...((updates.disposition ?? existing.disposition)
-          ? { disposition: updates.disposition ?? existing.disposition }
-          : {}),
-      };
+      const finalValues = mergeNpcUpdate(existing, updates);
 
       // Set loading state BEFORE sending message
       setIsUpdating(true);

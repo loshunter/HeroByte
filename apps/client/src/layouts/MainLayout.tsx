@@ -27,6 +27,7 @@ import { TopPanelLayout } from "./TopPanelLayout";
 import { CenterCanvasLayout } from "./CenterCanvasLayout";
 import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
 import { BottomPanelLayout } from "./BottomPanelLayout";
+import { usePartyNpcActions } from "../components/layout/party/usePartyNpcActions";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
 import { useNpcVisibility } from "../hooks/useNpcVisibility";
@@ -239,6 +240,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     sendMessage({ t: "next-turn" });
   }, [sendMessage]);
 
+  // The Party's NPC cards act for the DM (they were wired to undefined).
+  const partyNpcActions = usePartyNpcActions(snapshot?.characters, sendMessage, isDM);
+
   const handlePreviousTurn = useCallback(() => {
     sendMessage({ t: "previous-turn" });
   }, [sendMessage]);
@@ -374,9 +378,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onStatusEffectsChange={playerActions.setStatusEffects}
         onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
         onCharacterNameUpdate={playerActions.updateCharacterName}
-        onNpcUpdate={undefined}
-        onNpcDelete={undefined}
-        onNpcPlaceToken={undefined}
+        onNpcUpdate={partyNpcActions.onNpcUpdate}
+        onNpcDelete={partyNpcActions.onNpcDelete}
+        onNpcPlaceToken={partyNpcActions.onNpcPlaceToken}
         onNpcToggleVisibility={isDM ? toggleNpcVisibility : undefined}
         // Was hardcoded undefined, which (together with an impossible isDM gate
         // in PlayerSettingsMenu) meant a DM had no way to remove a player's
