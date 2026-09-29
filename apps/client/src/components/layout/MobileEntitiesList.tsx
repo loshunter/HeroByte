@@ -123,7 +123,11 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       (c) => c.type === "pc" && c.ownedByPlayerUID === player.uid,
     );
     if (owned.length === 0) {
-      // A player with no character link (legacy shape) keeps one stats row.
+      // A seat with no character. Someone else's shows nothing, as on the
+      // desktop Party: its editors would send character messages carrying a
+      // player uid, which the server refuses. The viewer's own keeps a row,
+      // since its EDIT is the phone's way to Table role and ➕ Add Character.
+      if (player.uid !== uid) return [];
       return [
         {
           ...player,
@@ -285,9 +289,12 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
               onMaxHpSubmit();
             }}
             onCharacterHpChange={onCharacterHpChange}
-            onStatusEffectsChange={(effects) =>
-              onCharacterStatusEffectsChange(entity.characterId, effects)
+            onStatusEffectsChange={
+              entity.hasCharacter
+                ? (effects) => onCharacterStatusEffectsChange(entity.characterId, effects)
+                : undefined
             }
+            characterless={!entity.hasCharacter}
             onCharacterNameUpdate={onCharacterNameUpdate}
             // The desktop card's gate: the owner, or the DM. A legacy row has
             // no character to delete.

@@ -403,14 +403,36 @@ describe("MobileEntitiesList rows", () => {
     expect(onHpEdit).toHaveBeenCalledExactlyOnceWith("char-boo", 7);
   });
 
-  it("keeps one stats row for a legacy player with no character link", () => {
-    const legacyPlayers = [
+  it("shows no row for another player's seat with no character, as the desktop Party does", () => {
+    // Its editors would all send a character message carrying a player uid,
+    // which the server refuses (a DM clearing an offline player's only
+    // character left exactly this behind).
+    const withEmptySeat = [
       ...players,
       { uid: "old-timer", name: "Old Timer", hp: 4, maxHp: 8, micLevel: 0, isDM: false },
     ] as unknown as Player[];
-    render(<MobileEntitiesList {...listProps({ players: legacyPlayers })} />);
+    render(<MobileEntitiesList {...listProps({ players: withEmptySeat, isDM: true })} />);
 
-    expect(screen.getByText("Old Timer")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Seat: Old Timer" })).toBeNull();
+    expect(screen.queryByText("Old Timer")).toBeNull();
+  });
+
+  it("keeps your own seat with no character, offering only what a seat can use", () => {
+    // Your row's EDIT is the phone's way to Table role and ➕ Add Character;
+    // there is no character for HP, conditions, name or portrait editors.
+    render(<MobileEntitiesList {...listProps({ characters: [] })} />);
+
+    const rows = screen.getAllByTestId("mobile-player-row");
+    expect(rows).toHaveLength(1);
+    const row = rows[0]!;
+    expect(row.querySelector(".jrpg-hp-bar")).toBeNull();
+    expect(within(row).queryByRole("button", { name: "⚡ Manage Status" })).toBeNull();
+
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+    expect(screen.getByRole("button", { name: "➕ Add Character" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "DM Mode: OFF" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Character Name")).toBeNull();
+    expect(screen.queryByText("Status Effects")).toBeNull();
   });
 
   it("gives an NPC no party row, even when the DM owns it", () => {

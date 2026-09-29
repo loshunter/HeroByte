@@ -33,6 +33,11 @@ interface MobilePlayerRowProps {
   onMaxHpSubmit: (maxHp: string) => void;
   // State handlers
   onStatusEffectsChange?: (effects: string[]) => void;
+  /**
+   * The viewer's own seat with no character: no HP, conditions, name, portrait
+   * or status editors — only what a seat can use (➕ Add Character, Table role).
+   */
+  characterless?: boolean;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   /** Present when this viewer may delete this row's character (owner or DM). */
@@ -78,6 +83,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onMaxHpEdit,
     onMaxHpSubmit,
     onStatusEffectsChange,
+    characterless = false,
     onCharacterHpChange,
     onCharacterNameUpdate,
     onDeleteCharacter,
@@ -222,29 +228,31 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
         </div>
 
         {/* HP Bar */}
-        <div style={{ padding: "0 4px" }}>
-          <HPBar
-            hp={player.hp ?? 100}
-            maxHp={player.maxHp ?? 100}
-            tempHp={player.tempHp}
-            isMe={isMe}
-            isEditingHp={isEditingHp}
-            hpInput={hpInput}
-            isEditingMaxHp={isEditingMaxHp}
-            maxHpInput={maxHpInput}
-            playerUid={player.characterId}
-            onHpChange={(newHp) =>
-              onCharacterHpChange(player.characterId, newHp, player.maxHp ?? 100, player.tempHp)
-            }
-            onHpInputChange={onHpInputChange}
-            onHpEdit={onHpEdit}
-            onHpSubmit={onHpSubmit}
-            onMaxHpInputChange={onMaxHpInputChange}
-            onMaxHpEdit={onMaxHpEdit}
-            onMaxHpSubmit={onMaxHpSubmit}
-            onTempHpInputChange={() => {}} // Simplify mobile view
-          />
-        </div>
+        {!characterless && (
+          <div style={{ padding: "0 4px" }}>
+            <HPBar
+              hp={player.hp ?? 100}
+              maxHp={player.maxHp ?? 100}
+              tempHp={player.tempHp}
+              isMe={isMe}
+              isEditingHp={isEditingHp}
+              hpInput={hpInput}
+              isEditingMaxHp={isEditingMaxHp}
+              maxHpInput={maxHpInput}
+              playerUid={player.characterId}
+              onHpChange={(newHp) =>
+                onCharacterHpChange(player.characterId, newHp, player.maxHp ?? 100, player.tempHp)
+              }
+              onHpInputChange={onHpInputChange}
+              onHpEdit={onHpEdit}
+              onHpSubmit={onHpSubmit}
+              onMaxHpInputChange={onMaxHpInputChange}
+              onMaxHpEdit={onMaxHpEdit}
+              onMaxHpSubmit={onMaxHpSubmit}
+              onTempHpInputChange={() => {}} // Simplify mobile view
+            />
+          </div>
+        )}
 
         {/* Status Effects Display */}
         {activeEffects.length > 0 && (
@@ -345,7 +353,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           characterBudget={characterBudget}
           compactControls
           nameInput={localNameInput}
-          onNameInputChange={setLocalNameInput}
+          onNameInputChange={characterless ? undefined : setLocalNameInput}
           onNameSubmit={() => {
             // Leaving the field is a submit; an unchanged name is not a rename.
             const next = localNameInput.trim();
@@ -353,7 +361,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
               onCharacterNameUpdate(player.characterId, next);
             }
           }}
-          portraitImageInput={portraitImageInput}
+          portraitImageInput={characterless ? undefined : portraitImageInput}
           onPortraitInputChange={setPortraitImageInput}
           onPortraitApply={(url) => {
             onCharacterPortraitUpdate(player.characterId, url);
@@ -363,7 +371,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           // does nothing is worse than one that isn't there. PlayerSettingsMenu
           // hides those sections when the handlers are absent.
           selectedEffects={activeEffects}
-          onStatusEffectsChange={onStatusEffectsChange ?? (() => {})}
+          onStatusEffectsChange={characterless ? undefined : (onStatusEffectsChange ?? (() => {}))}
           isDM={isDM}
           // The viewer's own row is the only place DM Mode belongs, and this is
           // the only DM-elevation control that exists on a phone.

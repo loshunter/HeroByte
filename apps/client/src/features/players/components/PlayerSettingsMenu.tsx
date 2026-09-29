@@ -17,6 +17,8 @@ import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import { CharacterNameField, useCharacterEscapeGuard } from "./CharacterNameField";
 import { CharacterCreationModal } from "./CharacterCreationModal";
 
+const NO_EFFECTS_CHANGE = () => {};
+
 interface PlayerSettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,7 +38,8 @@ interface PlayerSettingsMenuProps {
   onSavePlayerState?: () => void;
   onLoadPlayerState?: (file: File) => Promise<void>;
   selectedEffects: string[];
-  onStatusEffectsChange: (effects: string[]) => void;
+  /** Absent for a seat with no character: no picker is offered. */
+  onStatusEffectsChange?: (effects: string[]) => void;
   /**
    * Whether the player/character this card BELONGS TO is a DM. Accepted for
    * the callers' sake and no longer read: it once hid the token image, size
@@ -142,7 +145,10 @@ export function PlayerSettingsMenu({
   const { suppressBlur, beforeEscape } = useCharacterEscapeGuard(isOpen);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
-  const statusEffectsPicker = useStatusEffectsPicker(selectedEffects, onStatusEffectsChange);
+  const statusEffectsPicker = useStatusEffectsPicker(
+    selectedEffects,
+    onStatusEffectsChange ?? NO_EFFECTS_CHANGE,
+  );
 
   if (!isOpen) {
     return null;
@@ -433,7 +439,7 @@ export function PlayerSettingsMenu({
             </JRPGPanel>
           )}
 
-          <StatusEffectsPicker {...statusEffectsPicker} />
+          {onStatusEffectsChange && <StatusEffectsPicker {...statusEffectsPicker} />}
 
           {/* Add Character: the card's own player only. Delete: the owner OR the
               DM — an abandoned seat (a player who started a fresh session) is
