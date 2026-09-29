@@ -3,7 +3,7 @@
 // ============================================================================
 // Compact player/character row for mobile list view.
 
-import React, { memo, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
 import type { MovementBudgetControl } from "../../features/players/components/MovementSpeedField";
 import type { Player, Token } from "@herobyte/shared";
@@ -84,6 +84,12 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     const [isEditingEffects, setIsEditingEffects] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [localNameInput, setLocalNameInput] = useState(player.name);
+    // Re-read the name whenever the sheet opens or someone renames the
+    // character, as the desktop card does: a copy taken at mount showed a
+    // stale name, and leaving the field sent it back over their rename.
+    useEffect(() => {
+      if (settingsOpen) setLocalNameInput(player.name);
+    }, [settingsOpen, player.name]);
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
 
     const activeEffects = player.statusEffects || [];
@@ -303,8 +309,10 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           nameInput={localNameInput}
           onNameInputChange={setLocalNameInput}
           onNameSubmit={() => {
-            if (localNameInput.trim()) {
-              onCharacterNameUpdate(player.characterId, localNameInput.trim());
+            // Leaving the field is a submit; an unchanged name is not a rename.
+            const next = localNameInput.trim();
+            if (next && next !== player.name) {
+              onCharacterNameUpdate(player.characterId, next);
             }
           }}
           portraitImageInput={portraitImageInput}

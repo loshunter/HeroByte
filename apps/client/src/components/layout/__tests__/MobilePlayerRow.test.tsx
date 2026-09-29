@@ -117,3 +117,48 @@ describe("MobilePlayerRow settings access", () => {
     expect(screen.queryByLabelText("Sight radius in feet")).not.toBeInTheDocument();
   });
 });
+
+// The phone's EDIT sheet kept its own copy of the name from the moment the
+// row mounted. After anyone else renamed the character, EDIT still showed the
+// old name, and merely leaving the field sent it back as a rename, reverting
+// theirs. Found by the U7 identity review; older than U7.
+describe("MobilePlayerRow name field", () => {
+  const named = (name: string) =>
+    ({
+      ...props().player,
+      name,
+    }) as Player & { characterId: string };
+
+  it("EDIT shows the character's current name after someone else renames it", () => {
+    const base = props({ isMe: true });
+    const { rerender } = render(<MobilePlayerRow {...base} player={named("Companion")} />);
+    rerender(<MobilePlayerRow {...base} player={named("Wolf")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+    expect(screen.getByDisplayValue("Wolf")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Companion")).not.toBeInTheDocument();
+  });
+
+  it("leaving the name unchanged sends no rename", () => {
+    const base = props({ isMe: true });
+    render(<MobilePlayerRow {...base} player={named("Wolf")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    fireEvent.blur(screen.getByDisplayValue("Wolf"));
+
+    expect(base.onCharacterNameUpdate).not.toHaveBeenCalled();
+  });
+
+  it("a changed name is still sent, trimmed", () => {
+    const base = props({ isMe: true });
+    render(<MobilePlayerRow {...base} player={named("Wolf")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    const field = screen.getByDisplayValue("Wolf");
+    fireEvent.change(field, { target: { value: "  Dire Wolf " } });
+    fireEvent.blur(field);
+
+    expect(base.onCharacterNameUpdate).toHaveBeenCalledExactlyOnceWith("char-2", "Dire Wolf");
+  });
+});
