@@ -67,6 +67,38 @@ describe("CharacterService", () => {
     expect(second.statusEffects).toEqual([]);
   });
 
+  it("a sole character's seat temp HP and portrait become its own when its player gains a second", () => {
+    // The same fallback as the conditions: the clients show a seat's legacy
+    // temp HP and portrait only on its SOLE character, so a second one made
+    // them vanish from the first.
+    const state = createEmptyRoomState();
+    state.players.push({
+      uid: "alice",
+      name: "Alice",
+      tempHp: 4,
+      portrait: "seat.png",
+    } as never);
+    const legacy = service.createCharacter(state, "Ranger", 30);
+    service.claimCharacter(state, legacy.id, "alice");
+
+    service.claimCharacter(state, service.createCharacter(state, "Companion", 30).id, "alice");
+
+    expect(legacy.tempHp).toBe(4);
+    expect(legacy.portrait).toBe("seat.png");
+  });
+
+  it("a character's own temp HP and portrait are kept when its player gains a second", () => {
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", tempHp: 4, portrait: "seat.png" } as never);
+    const first = service.createCharacter(state, "Ranger", 30, "own.png", "pc", { tempHp: 0 });
+    service.claimCharacter(state, first.id, "alice");
+
+    service.claimCharacter(state, service.createCharacter(state, "Companion", 30).id, "alice");
+
+    expect(first.tempHp).toBe(0);
+    expect(first.portrait).toBe("own.png");
+  });
+
   it("a character with its own list keeps it when its player gains a second", () => {
     const state = createEmptyRoomState();
     state.players.push({ uid: "alice", name: "Alice", statusEffects: ["poisoned"] } as never);
