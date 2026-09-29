@@ -17,7 +17,6 @@
 import { useCallback, useMemo } from "react";
 import type { ClientMessage, PlayerState, PlayerStagingZone, RoomSnapshot } from "@herobyte/shared";
 import { normalizeHPValues } from "@herobyte/shared";
-import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
 
 /**
  * Dependencies required by the usePlayerActions hook.
@@ -482,25 +481,15 @@ export function usePlayerActions({
         }
       }
 
-      // The modifier rides `set-initiative`, which has no modifier-only form:
-      // with no value it CLEARS initiative, and with one it enters the order
-      // (a combatant, in combat) and is refused from a player while the table
-      // has manual entry off. So it is restored only alongside an initiative
-      // the character already has, and only when the loader may set one.
+      // The modifier ALONE (`set-initiative-modifier`): `set-initiative` would
+      // enter the order, write a manual entry to the roll log, and after END
+      // COMBAT (which keeps initiatives) start combat on this character's turn.
       if (characterId && state.initiativeModifier !== undefined) {
-        const currentCharacter = snapshot?.characters?.find((c) => c.id === characterId);
-        const senderIsDM = snapshot?.players?.find((p) => p.uid === uid)?.isDM === true;
-        if (
-          currentCharacter?.initiative !== undefined &&
-          manualInitiativeAllowedFor(snapshot, senderIsDM)
-        ) {
-          sendMessage({
-            t: "set-initiative",
-            characterId,
-            initiative: currentCharacter.initiative,
-            initiativeModifier: state.initiativeModifier,
-          });
-        }
+        sendMessage({
+          t: "set-initiative-modifier",
+          characterId,
+          initiativeModifier: Math.max(-20, Math.min(20, state.initiativeModifier)),
+        });
       }
 
       // Drawings are the SENDER's: `sync-player-drawings` carries no owner, and
@@ -515,7 +504,7 @@ export function usePlayerActions({
         sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
       }
     },
-    [sendMessage, snapshot, uid],
+    [sendMessage, snapshot?.characters, uid],
   );
 
   /**

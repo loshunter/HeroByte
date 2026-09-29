@@ -1445,6 +1445,18 @@ describe("validateMessage", () => {
       );
     });
 
+    it("set-initiative-modifier: a characterId and a modifier in the stored range", () => {
+      const message = (initiativeModifier: unknown, characterId: unknown = "c1") =>
+        validateMessage({ t: "set-initiative-modifier", characterId, initiativeModifier });
+      expect(message(3)).toEqual({ valid: true });
+      expect(message(-20).valid).toBe(true);
+      expect(message(20).valid).toBe(true);
+      expect(message(21).valid).toBe(false);
+      expect(message(-21).valid).toBe(false);
+      expect(message(undefined).valid).toBe(false);
+      expect(message(3, "").valid).toBe(false);
+    });
+
     it("validates set-initiative with initiativeModifier", () => {
       expect(
         validateMessage({

@@ -941,6 +941,10 @@ type ClientMessagePayload =
       initiative?: number;
       initiativeModifier?: number;
     }
+  // The modifier ALONE, for a restored character file: `set-initiative` with
+  // no value clears initiative and with one enters the order (and, after END
+  // COMBAT, starts combat again), so neither can restore just the bonus.
+  | { t: "set-initiative-modifier"; characterId: string; initiativeModifier: number }
   // Rolling. Carries a TARGET and no result: the server rolls d20 on
   // cryptoDiceRng — the same generator dice use — and appends the roll to the
   // log so the table witnesses it. Strictly less for a tampered client to lie

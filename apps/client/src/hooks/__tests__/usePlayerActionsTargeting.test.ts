@@ -269,25 +269,21 @@ describe("applyPlayerState drawings", () => {
   });
 });
 
-// `set-initiative` has no modifier-only form: with no value it CLEARS
-// initiative, and with one it enters the order. Loading a file that carried a
-// modifier sent `initiative: current ?? 0`, which put a character with no
-// initiative into the order at 0 (a combatant, in combat), and was refused
-// outright from a player while the table has manual entry off.
+// A file's initiative modifier is restored ALONE (`set-initiative-modifier`).
+// It rode `set-initiative`, which enters the order: a character with no
+// initiative joined it at 0, a manual entry went to the public roll log, and
+// after END COMBAT (which keeps initiatives) combat started again on that
+// character's turn.
 describe("applyPlayerState initiative modifier", () => {
   beforeEach(() => {
     mockSendMessage.mockClear();
   });
 
   const withModifier = { ...state, initiativeModifier: 3 } as PlayerState;
-  function actionsAs(
-    uid: string,
-    character: Record<string, unknown>,
-    extra: Record<string, unknown> = {},
-  ) {
+  function actionsAs(uid: string, character: Record<string, unknown>) {
     const table = {
       ...snapshot,
-      ...extra,
+      combatActive: false,
       players: [
         { uid: "dm-uid", name: "DM", isDM: true },
         { uid: "alice-uid", name: "Alice", isDM: false },
@@ -306,42 +302,37 @@ describe("applyPlayerState initiative modifier", () => {
       usePlayerActions({ sendMessage: mockSendMessage, snapshot: table, uid }),
     );
   }
-  const initiativeSends = () =>
-    mockSendMessage.mock.calls
-      .map((c) => c[0] as ClientMessage)
-      .filter((m) => m.t === "set-initiative");
+  const sent = (t: string) =>
+    mockSendMessage.mock.calls.map((c) => c[0] as ClientMessage).filter((m) => m.t === t);
 
-  it("never puts a character with no initiative into the order", () => {
+  it("restores the modifier alone and never enters the order", () => {
     const { result } = actionsAs("alice-uid", {});
     act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
 
-    expect(initiativeSends()).toEqual([]);
-  });
-
-  it("restores the modifier alongside an initiative the character already has", () => {
-    const { result } = actionsAs("alice-uid", { initiative: 12 });
-    act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
-
-    expect(initiativeSends()).toEqual([
-      { t: "set-initiative", characterId: "char-alice", initiative: 12, initiativeModifier: 3 },
+    expect(sent("set-initiative")).toEqual([]);
+    expect(sent("set-initiative-modifier")).toEqual([
+      { t: "set-initiative-modifier", characterId: "char-alice", initiativeModifier: 3 },
     ]);
   });
 
-  it("sends nothing the server would refuse: a player, while manual entry is off", () => {
-    const { result } = actionsAs(
-      "alice-uid",
-      { initiative: 12 },
-      { initiativeManualOverride: false },
-    );
+  it("after END COMBAT (initiative kept), still only the modifier", () => {
+    const { result } = actionsAs("alice-uid", { initiative: 15 });
     act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
 
-    expect(initiativeSends()).toEqual([]);
+    expect(sent("set-initiative")).toEqual([]);
+    expect(sent("set-initiative-modifier")).toHaveLength(1);
   });
 
-  it("the DM is never blocked by the manual-entry setting", () => {
-    const { result } = actionsAs("dm-uid", { initiative: 12 }, { initiativeManualOverride: false });
-    act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
+  it("clamps a file's out-of-range modifier to the stored range", () => {
+    const { result } = actionsAs("alice-uid", {});
+    act(() =>
+      result.current.applyPlayerState(
+        { ...state, initiativeModifier: 99 } as PlayerState,
+        undefined,
+        "char-alice",
+      ),
+    );
 
-    expect(initiativeSends()).toHaveLength(1);
+    expect(sent("set-initiative-modifier")[0]).toMatchObject({ initiativeModifier: 20 });
   });
 });
