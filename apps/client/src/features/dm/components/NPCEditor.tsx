@@ -4,7 +4,6 @@
 // Extracted from DMMenu.tsx as part of Phase 2: Entity Editors refactoring.
 // Provides editing interface for NPC properties including name, HP, and images.
 
-import { useState, useEffect } from "react";
 import type { NpcDisposition, SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { JRPGPanel } from "../../../components/ui/JRPGPanel";
@@ -15,6 +14,7 @@ import { NpcPortraitField } from "./NpcPortraitField";
 import { NpcTokenImageField } from "./NpcTokenImageField";
 import { NpcStanceSelect } from "./NpcStanceSelect";
 import { useNpcAssetPick } from "../hooks/useNpcAssetPick";
+import { useNpcEditorFields } from "../hooks/useNpcEditorFields";
 import { tempHpEdit, tokenImageEdit } from "../../players/npcUpdate";
 
 interface NPCEditorProps {
@@ -73,35 +73,24 @@ export function NPCEditor({
   isPlacingToken = false,
   tokenPlacementError = null,
 }: NPCEditorProps) {
-  const [name, setName] = useState(npc.name);
-  const [hpInput, setHpInput] = useState(String(npc.hp));
-  const [maxHpInput, setMaxHpInput] = useState(String(npc.maxHp));
-  const [tempHpInput, setTempHpInput] = useState(String(npc.tempHp ?? 0));
-  const [initiativeModifierInput, setInitiativeModifierInput] = useState(
-    String(npc.initiativeModifier ?? 0),
-  );
-  const [portrait, setPortrait] = useState(npc.portrait ?? "");
-  const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
-  const [stance, setStance] = useState(npc.disposition ?? "hostile");
-
-  // Resync — but NOT while this NPC's update is in flight. `npc` is a fresh
-  // object per broadcast, so this fires on a player moving a token or a die
-  // being rolled, not only on the reply we await: unrelated activity put the
-  // optimistic Stance back to the old word, greyed out — the "my click did
-  // not take" the optimism removes — and a half-typed name with it.
-  // useNpcUpdate holds isUpdating (scoped to this NPC by NPCsTab) until the
-  // snapshot MATCHES, so this re-runs on fresh data.
-  useEffect(() => {
-    if (isUpdating) return;
-    setName(npc.name);
-    setHpInput(String(npc.hp));
-    setMaxHpInput(String(npc.maxHp));
-    setTempHpInput(String(npc.tempHp ?? 0));
-    setInitiativeModifierInput(String(npc.initiativeModifier ?? 0));
-    setPortrait(npc.portrait ?? "");
-    setTokenImage(npc.tokenImage ?? "");
-    setStance(npc.disposition ?? "hostile");
-  }, [npc, isUpdating]);
+  const {
+    name,
+    setName,
+    hpInput,
+    setHpInput,
+    maxHpInput,
+    setMaxHpInput,
+    tempHpInput,
+    setTempHpInput,
+    initiativeModifierInput,
+    setInitiativeModifierInput,
+    portrait,
+    setPortrait,
+    tokenImage,
+    setTokenImage,
+    stance,
+    setStance,
+  } = useNpcEditorFields(npc, isUpdating);
 
   const commitUpdate = (
     overrides?: Partial<{
