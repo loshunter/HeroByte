@@ -467,7 +467,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             onDeleteToken={currentIsDM ? onPlayerTokenDelete : undefined}
                             tokenSize={token?.size}
                             onTokenSizeChange={
-                              isMe && token
+                              (isMe || currentIsDM) && token
                                 ? (size: TokenSize) => onTokenSizeChange(token.id, size)
                                 : undefined
                             }
@@ -675,7 +675,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           onDeleteToken={currentIsDM ? onPlayerTokenDelete : undefined}
                           tokenSize={token?.size}
                           onTokenSizeChange={
-                            isMe && token
+                            (isMe || currentIsDM) && token
                               ? (size: TokenSize) => onTokenSizeChange(token.id, size)
                               : undefined
                           }

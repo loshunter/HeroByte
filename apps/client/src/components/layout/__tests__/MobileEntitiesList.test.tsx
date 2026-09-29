@@ -50,6 +50,7 @@ function renderList(
       onCharacterStatusEffectsChange={vi.fn()}
       onCharacterNameUpdate={vi.fn()}
       onCharacterPortraitUpdate={vi.fn()}
+      onTokenSizeChange={vi.fn()}
       tokens={tokens}
       onTokenVisionRadiusChange={onTokenVisionRadiusChange}
     />,
@@ -90,6 +91,7 @@ describe("delete character — the desktop gate, on a phone", () => {
         onCharacterStatusEffectsChange={vi.fn()}
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
+        onTokenSizeChange={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -132,6 +134,7 @@ describe("delete character — the desktop gate, on a phone", () => {
         onCharacterStatusEffectsChange={vi.fn()}
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
+        onTokenSizeChange={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -347,6 +350,7 @@ function listProps(overrides: Partial<Parameters<typeof MobileEntitiesList>[0]> 
     onCharacterStatusEffectsChange: vi.fn(),
     onCharacterNameUpdate: vi.fn(),
     onCharacterPortraitUpdate: vi.fn(),
+    onTokenSizeChange: vi.fn(),
     tokens,
     onTokenVisionRadiusChange: vi.fn(),
     ...overrides,
@@ -559,6 +563,7 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onCharacterStatusEffectsChange={vi.fn()}
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
+        onTokenSizeChange={vi.fn()}
         tokens={twoTokens}
         onTokenVisionRadiusChange={onChange}
       />,
@@ -594,6 +599,7 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onCharacterStatusEffectsChange={vi.fn()}
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
+        onTokenSizeChange={vi.fn()}
         tokens={[]}
         onTokenVisionRadiusChange={vi.fn()}
       />,
@@ -805,5 +811,59 @@ describe("temporary HP belongs to its character, not to the player's other rows"
     );
 
     expect(screen.getByText("10 (+3)")).toBeInTheDocument();
+  });
+});
+
+// Token size on a phone. The server lets the owner or the DM resize a token
+// (TokenMessageHandler.handleSetSize), and the desktop card offers it; the
+// phone's EDIT sheet offered no size control at all.
+describe("MobileEntitiesList token size", () => {
+  const OTHER = "other-uid";
+  const table = {
+    players: [
+      ...players,
+      { uid: OTHER, name: "Them", hp: 10, maxHp: 10, micLevel: 0, isDM: false, statusEffects: [] },
+    ] as unknown as Player[],
+    characters: [
+      { id: "char-1", name: "Me", type: "pc", ownedByPlayerUID: ME, tokenId: "my-token" },
+      { id: "char-2", name: "Them", type: "pc", ownedByPlayerUID: OTHER, tokenId: "their-token" },
+    ] as unknown as SnapshotCharacter[],
+    tokens: [...tokens, { id: "their-token", owner: OTHER, x: 2, y: 2, color: "blue" }] as Token[],
+  };
+  const editRow = (name: string) => {
+    const row = screen
+      .getAllByTestId("mobile-player-row")
+      .find((candidate) => within(candidate).queryByText(name, { exact: true }))!;
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+  };
+
+  it("the owner resizes their own token from EDIT", () => {
+    const onTokenSizeChange = vi.fn();
+    render(<MobileEntitiesList {...listProps({ ...table, onTokenSizeChange })} />);
+
+    editRow("Me");
+    fireEvent.click(screen.getByRole("button", { name: "Large" }));
+
+    expect(onTokenSizeChange).toHaveBeenCalledWith("my-token", "large");
+  });
+
+  it("a DM resizes another player's token from that player's row", () => {
+    const onTokenSizeChange = vi.fn();
+    render(<MobileEntitiesList {...listProps({ ...table, isDM: true, onTokenSizeChange })} />);
+
+    editRow("Them");
+    fireEvent.click(screen.getByRole("button", { name: "Huge" }));
+
+    expect(onTokenSizeChange).toHaveBeenCalledWith("their-token", "huge");
+  });
+
+  it("a row with no token offers no size", () => {
+    render(
+      <MobileEntitiesList {...listProps({ ...table, tokens: [], onTokenSizeChange: vi.fn() })} />,
+    );
+
+    editRow("Me");
+
+    expect(screen.queryByRole("button", { name: "Large" })).toBeNull();
   });
 });

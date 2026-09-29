@@ -6,7 +6,7 @@
 import React, { memo, useEffect, useState } from "react";
 import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
 import type { MovementBudgetControl } from "../../features/players/components/MovementSpeedField";
-import type { Player, Token } from "@herobyte/shared";
+import type { Player, Token, TokenSize } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
 import { STATUS_OPTIONS } from "../../features/players/constants/statusOptions";
 import { JRPGButton } from "../ui/JRPGPanel";
@@ -44,6 +44,9 @@ interface MobilePlayerRowProps {
   /** This player's token, for the DM-only sight controls (S7). */
   token?: Token;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
+  tokenSize?: TokenSize;
+  /** Present when this viewer may resize this row's token (its owner, or a DM). */
+  onTokenSizeChange?: (size: TokenSize) => void;
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
   onCharacterSpeedChange?: (speedFeet: number | null) => void;
@@ -75,6 +78,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onCharacterPortraitUpdate,
     token,
     onTokenVisionRadiusChange,
+    tokenSize,
+    onTokenSizeChange,
     characterSpeed,
     onCharacterSpeedChange,
     characterBudget,
@@ -309,6 +314,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           tokenVisionRadius={token?.visionRadius}
           tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
+          tokenSize={tokenSize}
+          onTokenSizeChange={onTokenSizeChange}
           characterSpeed={characterSpeed}
           onCharacterSpeedChange={onCharacterSpeedChange}
           characterBudget={characterBudget}

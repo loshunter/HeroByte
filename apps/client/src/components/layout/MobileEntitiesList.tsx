@@ -7,7 +7,7 @@
 
 import React from "react";
 import { looseOwnToken } from "../../utils/looseOwnToken";
-import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
+import type { Player, SnapshotCharacter, Token, TokenSize } from "@herobyte/shared";
 import { isInInitiativeOrder } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
 
@@ -43,6 +43,12 @@ interface MobileEntitiesListProps {
   /** Live tokens, so a DM can set each player's sight radius from a phone (S7). */
   tokens?: Token[];
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
+  /**
+   * Resize a token. Offered on the viewer's own rows and, for a DM, on every
+   * row: the server's own rule (TokenMessageHandler.handleSetSize). Required,
+   * so a phone cannot silently lose the control again.
+   */
+  onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
   /** DM-only: a character's feet per turn (the movement budget). */
   onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
   /** DM-only: zero a character's spend outside a turn boundary. */
@@ -78,6 +84,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onCharacterPortraitUpdate,
   tokens,
   onTokenVisionRadiusChange,
+  onTokenSizeChange,
   onCharacterSpeedChange,
   onCharacterBudgetReset,
   combatActive = false,
@@ -198,6 +205,12 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
             onTokenVisionRadiusChange={
               isDM && entityToken && onTokenVisionRadiusChange
                 ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
+                : undefined
+            }
+            tokenSize={entityToken?.size}
+            onTokenSizeChange={
+              (entity.uid === uid || isDM) && entityToken
+                ? (size) => onTokenSizeChange(entityToken.id, size)
                 : undefined
             }
             characterSpeed={entity.speed}
