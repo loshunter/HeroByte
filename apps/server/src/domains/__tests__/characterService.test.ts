@@ -49,6 +49,36 @@ describe("CharacterService", () => {
     );
   });
 
+  it("a sole character's seat conditions become its own when its player gains a second", () => {
+    // A character saved before characters had their own list reads the seat's
+    // legacy list, but only while it is its player's sole character (UX-02).
+    // A second one ends that fallback, and the conditions vanished from its
+    // row, card and token. They are made its own first.
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", statusEffects: ["poisoned"] } as never);
+    const legacy = service.createCharacter(state, "Ranger", 30);
+    delete legacy.statusEffects; // saved before characters had their own list
+    service.claimCharacter(state, legacy.id, "alice");
+
+    const second = service.createCharacter(state, "Companion", 30);
+    service.claimCharacter(state, second.id, "alice");
+
+    expect(legacy.statusEffects).toEqual(["poisoned"]);
+    expect(second.statusEffects).toEqual([]);
+  });
+
+  it("a character with its own list keeps it when its player gains a second", () => {
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", statusEffects: ["poisoned"] } as never);
+    const first = service.createCharacter(state, "Ranger", 30);
+    first.statusEffects = ["prone"];
+    service.claimCharacter(state, first.id, "alice");
+
+    service.claimCharacter(state, service.createCharacter(state, "Companion", 30).id, "alice");
+
+    expect(first.statusEffects).toEqual(["prone"]);
+  });
+
   it("stores tempHp on updateHP, and leaves it alone when omitted", () => {
     const state = createEmptyRoomState();
     const character = service.createCharacter(state, "Hero", 30);

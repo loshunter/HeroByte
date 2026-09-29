@@ -107,6 +107,21 @@ export class CharacterService {
       return false;
     }
 
+    // A player's sole character may still read its conditions from the seat's
+    // legacy list (it was saved before characters had their own), and the
+    // clients honour that fallback only for a SOLE character (UX-02). Before a
+    // second character ends it, the list becomes the first one's own, or its
+    // conditions vanish from its row, card and token.
+    if (character.type === "pc") {
+      const owned = state.characters.filter(
+        (c) => c.type === "pc" && c.ownedByPlayerUID === playerUID,
+      );
+      if (owned.length === 1 && owned[0]!.statusEffects === undefined) {
+        const seat = state.players.find((p) => p.uid === playerUID);
+        owned[0]!.statusEffects = [...(seat?.statusEffects ?? [])];
+      }
+    }
+
     character.ownedByPlayerUID = playerUID;
     console.log(`Character ${character.name} claimed by player ${playerUID}`);
     return true;
