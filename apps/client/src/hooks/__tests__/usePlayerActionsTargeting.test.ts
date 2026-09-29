@@ -159,3 +159,69 @@ describe("applyPlayerState targeting", () => {
     });
   });
 });
+
+// The player-level conditions list is a legacy mirror, read back only for a
+// player's SOLE character. So it may only ever hold that character's list:
+// - not a sibling's: with two characters the mirror wrote whichever was edited
+//   last, and once the other was deleted the survivor showed (and on its next
+//   toggle saved) the deleted one's conditions;
+// - not an NPC's: an NPC the DM placed can carry the DM's uid as its owner,
+//   and since U7 the DM sets NPC conditions from the NPC's window.
+describe("setCharacterStatusEffects mirror", () => {
+  beforeEach(() => {
+    mockSendMessage.mockClear();
+  });
+
+  function actionsWith(characters: unknown[]) {
+    const withCharacters = { ...snapshot, characters } as unknown as RoomSnapshot;
+    return renderHook(() =>
+      usePlayerActions({
+        sendMessage: mockSendMessage,
+        snapshot: withCharacters,
+        uid: "dm-uid",
+      }),
+    );
+  }
+
+  it("mirrors the sender's own player character onto the player-level list", () => {
+    const { result } = actionsWith([
+      { id: "char-mine", name: "Mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.setCharacterStatusEffects("char-mine", ["prone"]));
+
+    expect(sentTypes()).toEqual(["set-character-status-effects", "set-status-effects"]);
+  });
+
+  it("never mirrors when the sender has two player characters", () => {
+    const { result } = actionsWith([
+      { id: "char-mine", name: "Mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+      { id: "char-also", name: "Also mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.setCharacterStatusEffects("char-also", ["poisoned"]));
+
+    expect(sentTypes()).toEqual(["set-character-status-effects"]);
+  });
+
+  it("an NPC the sender owns does not stop their sole character mirroring", () => {
+    const { result } = actionsWith([
+      { id: "char-mine", name: "Mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+      { id: "npc-goblin", name: "Goblin", type: "npc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.setCharacterStatusEffects("char-mine", ["prone"]));
+    expect(sentTypes()).toEqual(["set-character-status-effects", "set-status-effects"]);
+
+    // …and that sole character's mirror is not the NPC's to write.
+    mockSendMessage.mockClear();
+    act(() => result.current.setCharacterStatusEffects("npc-goblin", ["poisoned"]));
+    expect(sentTypes()).toEqual(["set-character-status-effects"]);
+  });
+
+  it("never mirrors an NPC, even one the sender owns", () => {
+    const { result } = actionsWith([
+      { id: "npc-goblin", name: "Goblin", type: "npc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.setCharacterStatusEffects("npc-goblin", ["poisoned"]));
+
+    expect(sentTypes()).toEqual(["set-character-status-effects"]);
+  });
+});

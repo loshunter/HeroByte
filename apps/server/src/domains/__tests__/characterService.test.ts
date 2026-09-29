@@ -35,6 +35,20 @@ describe("CharacterService", () => {
     expect(state.characters).toHaveLength(1);
   });
 
+  it("a new player character starts with its own empty condition list", () => {
+    // Absent, it fell back to the seat's legacy list whenever it became its
+    // player's only character, so a deleted sibling's conditions (or the
+    // conditions this one had before a sibling came and went) reappeared on
+    // it. The fallback is for characters saved before they had lists.
+    const state = createEmptyRoomState();
+
+    expect(service.createCharacter(state, "Hero", 30).statusEffects).toEqual([]);
+    // An NPC keeps no seat fallback to guard against; it is left as it was.
+    expect(service.createCharacter(state, "Goblin", 7, undefined, "npc").statusEffects).toBe(
+      undefined,
+    );
+  });
+
   it("stores tempHp on updateHP, and leaves it alone when omitted", () => {
     const state = createEmptyRoomState();
     const character = service.createCharacter(state, "Hero", 30);

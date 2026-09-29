@@ -79,6 +79,10 @@ export class CharacterService {
       ...(options?.disposition ? { disposition: options.disposition } : {}),
       // Same rule again; 0 is a real value here, so the test is on undefined.
       ...(options?.tempHp !== undefined ? { tempHp: Math.max(0, options.tempHp) } : {}),
+      // A player character's conditions are its own from the start. Absent,
+      // the clients fall back to the seat's legacy list whenever it is its
+      // player's only character, and that list can hold a deleted sibling's.
+      ...(type === "pc" ? { statusEffects: [] } : {}),
     };
 
     state.characters.push(newCharacter);
