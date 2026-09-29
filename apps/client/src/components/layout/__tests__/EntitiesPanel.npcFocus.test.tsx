@@ -42,3 +42,27 @@ describe("EntitiesPanel — an NPC's Focus", () => {
     expect(within(ogreCard()).queryByRole("button", { name: "Focus camera on token" })).toBeNull();
   });
 });
+
+// Lock and Size act on the token on the map too: for a token waiting on another
+// scene the server refuses both (it searches the current scene), so neither is
+// offered.
+describe("EntitiesPanel — an NPC's token settings", () => {
+  const openSettings = () =>
+    fireEvent.click(within(ogreCard()).getByRole("button", { name: "⚙️" }));
+
+  it("offers Lock and Size while its token is on the map", () => {
+    renderCards([{ id: "t-ogre", owner: DM_UID, x: 3, y: 2, color: "#f00" }]);
+    openSettings();
+
+    expect(screen.getByText("Token Size")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "🔓 Unlocked" })).toBeInTheDocument();
+  });
+
+  it("offers neither while its token waits on another scene", () => {
+    renderCards([]);
+    openSettings();
+
+    expect(screen.queryByText("Token Size")).toBeNull();
+    expect(screen.queryByRole("button", { name: "🔓 Unlocked" })).toBeNull();
+  });
+});

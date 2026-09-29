@@ -749,32 +749,32 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         onDelete={onNpcDelete}
                         onPlaceToken={onNpcPlaceToken}
                         onToggleVisibility={onNpcToggleVisibility}
+                        // The token on the map: one waiting on another scene takes no Lock or
+                        // Size — the server looks for it in the current scene only.
                         tokenLocked={
-                          entity.character.tokenId
-                            ? sceneObjects.find(
-                                (obj) => obj.id === `token:${entity.character.tokenId}`,
-                              )?.locked
+                          entity.token?.id
+                            ? sceneObjects.find((obj) => obj.id === `token:${entity.token?.id}`)
+                                ?.locked
                             : undefined
                         }
                         onToggleTokenLock={
-                          currentIsDM && entity.character.tokenId
+                          currentIsDM && entity.token?.id
                             ? (locked: boolean) =>
-                                onToggleTokenLock(`token:${entity.character.tokenId}`, locked)
+                                onToggleTokenLock(`token:${entity.token?.id}`, locked)
                             : undefined
                         }
                         tokenSize={
-                          entity.character.tokenId
+                          entity.token?.id
                             ? (
                                 sceneObjects.find(
-                                  (obj) => obj.id === `token:${entity.character.tokenId}`,
+                                  (obj) => obj.id === `token:${entity.token?.id}`,
                                 ) as (SceneObject & { type: "token" }) | undefined
                               )?.data.size
                             : undefined
                         }
                         onTokenSizeChange={
-                          currentIsDM && entity.character.tokenId
-                            ? (size: TokenSize) =>
-                                onTokenSizeChange(entity.character.tokenId!, size)
+                          currentIsDM && entity.token?.id
+                            ? (size: TokenSize) => onTokenSizeChange(entity.token!.id, size)
                             : undefined
                         }
                         // Its token on the map; one left on another scene is not focusable.
