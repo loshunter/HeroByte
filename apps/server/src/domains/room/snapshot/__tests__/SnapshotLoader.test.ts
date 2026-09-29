@@ -227,6 +227,28 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(roomService.getState().combatRound).toBe(1);
     });
 
+    it("gives a session saved before characters had condition lists its lists on load", () => {
+      // settleLegacyConditionLists at the session-file door.
+      roomService.setState({
+        ...roomService.getState(),
+        players: [{ uid: "alice", name: "Alice", statusEffects: ["poisoned"] } as Player],
+      });
+      roomService.loadSnapshot({
+        ...roomService.createSnapshot(),
+        players: [{ uid: "alice", name: "Alice", statusEffects: ["poisoned"] } as Player],
+        characters: [
+          { id: "a1", type: "pc", name: "Kira", hp: 1, maxHp: 1, ownedByPlayerUID: "alice" },
+          { id: "a2", type: "pc", name: "Wolf", hp: 1, maxHp: 1, ownedByPlayerUID: "alice" },
+        ] as Character[],
+      });
+
+      const lists = roomService
+        .getState()
+        .characters.filter((c) => c.ownedByPlayerUID === "alice")
+        .map((c) => c.statusEffects);
+      expect(lists).toEqual([[], []]);
+    });
+
     it("should normalize isDM field to false if missing", () => {
       // Setup: Connected player first
       roomService.setState({

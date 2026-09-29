@@ -11,6 +11,7 @@ import {
   isCustomTokenImageUrl,
   type Character,
   type CustomToken,
+  type Player,
   type TokenSize,
 } from "@herobyte/shared";
 import {
@@ -146,6 +147,35 @@ export function coerceLoadedCharacters(raw: unknown, combatActive = false): Char
       return { ...coerced, movementUsed: 0, movementDiagonals: 0 };
     }
     return coerced;
+  });
+}
+
+/**
+ * A player character saved before characters had their own condition list
+ * reads the seat's legacy list, and the clients honour that fallback only for
+ * a player's SOLE character (UX-02). The old client mirror also wrote a
+ * sibling's conditions onto that list, so once a sibling was deleted the
+ * survivor showed the deleted one's conditions. Every such character gets its
+ * own list at load: a sole character adopts the seat's (they are its
+ * conditions); one of several, or one with no owner, starts empty (the seat's
+ * list cannot be attributed). No fallback is read for it afterwards.
+ * Applied at all three load doors, after both arrays are coerced.
+ */
+export function settleLegacyConditionLists(
+  characters: Character[],
+  players: readonly Pick<Player, "uid" | "statusEffects">[],
+): Character[] {
+  const pcCount = new Map<string, number>();
+  for (const character of characters) {
+    const owner = character.type === "pc" ? character.ownedByPlayerUID : undefined;
+    if (owner) pcCount.set(owner, (pcCount.get(owner) ?? 0) + 1);
+  }
+  return characters.map((character) => {
+    if (character.type !== "pc" || character.statusEffects !== undefined) return character;
+    const owner = character.ownedByPlayerUID;
+    const seat =
+      owner && pcCount.get(owner) === 1 ? players.find((p) => p.uid === owner) : undefined;
+    return { ...character, statusEffects: [...(seat?.statusEffects ?? [])] };
   });
 }
 

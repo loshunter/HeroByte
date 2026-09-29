@@ -12,6 +12,7 @@ import {
   coerceCombatRound,
   coerceCustomTokens,
   coerceLoadedCharacters,
+  settleLegacyConditionLists,
 } from "../persistence/loadCoercions.js";
 import { sanitizeStagingZone } from "../staging/StagingZoneManager.js";
 import type { RoomStore } from "./RoomStore.js";
@@ -102,6 +103,7 @@ export class RedisRoomStore implements RoomStore {
             defaultVisionRadius: coerceDefaultVisionRadius(parsed.defaultVisionRadius),
             ...normalizeAtlasState(parsed),
           };
+          state.characters = settleLegacyConditionLists(state.characters, state.players);
           this.cache.set(roomId, state);
         } catch (error) {
           console.warn(`[RedisRoomStore] Failed to parse cached state for ${roomId}`, error);

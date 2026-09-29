@@ -7,7 +7,13 @@
 
 import { describe, expect, it } from "vitest";
 import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
-import { coerceCustomTokens, coerceLoadedCharacters, coerceTokenSize } from "../loadCoercions.js";
+import {
+  coerceCustomTokens,
+  coerceLoadedCharacters,
+  coerceTokenSize,
+  settleLegacyConditionLists,
+} from "../loadCoercions.js";
+import type { Character } from "@herobyte/shared";
 
 describe("coerceCustomTokens", () => {
   const good = {
@@ -167,5 +173,40 @@ describe("coerceLoadedCharacters — tokenSize", () => {
       expect("disposition" in ogre!, String(bad)).toBe(false);
     }
     expect("disposition" in coerceLoadedCharacters([base])[0]!).toBe(false);
+  });
+});
+
+// A table saved before characters had their own condition lists: the seat's
+// legacy list is read only for a SOLE character, and the old client mirror
+// wrote a sibling's conditions onto it, so deleting a sibling resurfaced them.
+describe("settleLegacyConditionLists", () => {
+  const pc = (id: string, owner: string | undefined, extra: Partial<Character> = {}) =>
+    ({ id, type: "pc", name: id, hp: 1, maxHp: 1, ownedByPlayerUID: owner, ...extra }) as Character;
+  const seats = [
+    { uid: "alice", statusEffects: ["poisoned"] },
+    { uid: "bob", statusEffects: ["prone"] },
+  ];
+
+  it("a sole character adopts its seat's list, as its own copy", () => {
+    const [bobs] = settleLegacyConditionLists([pc("b1", "bob")], seats);
+
+    expect(bobs?.statusEffects).toEqual(["prone"]);
+    expect(bobs?.statusEffects).not.toBe(seats[1]!.statusEffects);
+  });
+
+  it("characters sharing a seat each start empty: the seat's list is nobody's", () => {
+    const settled = settleLegacyConditionLists([pc("a1", "alice"), pc("a2", "alice")], seats);
+
+    expect(settled.map((c) => c.statusEffects)).toEqual([[], []]);
+  });
+
+  it("leaves a character's own list, an NPC, and gives an unowned character an empty one", () => {
+    const own = pc("a1", "alice", { statusEffects: ["blessed"] });
+    const npc = { id: "n1", type: "npc", name: "Goblin", hp: 1, maxHp: 1 } as Character;
+    const settled = settleLegacyConditionLists([own, npc, pc("u1", undefined)], seats);
+
+    expect(settled[0]).toBe(own);
+    expect(settled[1]).toBe(npc);
+    expect(settled[2]?.statusEffects).toEqual([]);
   });
 });

@@ -13,7 +13,12 @@
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import { renameWithRetry } from "./atomicRename.js";
-import { coerceCombatRound, coerceCustomTokens, coerceLoadedCharacters } from "./loadCoercions.js";
+import {
+  coerceCombatRound,
+  coerceCustomTokens,
+  coerceLoadedCharacters,
+  settleLegacyConditionLists,
+} from "./loadCoercions.js";
 import { SAVE_DEBOUNCE_MS, TrailingDebounce, flushAllPending } from "./saveDebounce.js";
 import type { Player, SceneObject } from "@herobyte/shared";
 import {
@@ -185,6 +190,10 @@ export class StatePersistence {
           ...normalizeAtlasState(data),
         };
 
+        loadedState.characters = settleLegacyConditionLists(
+          loadedState.characters,
+          loadedState.players,
+        );
         this.setState(loadedState);
 
         // Trigger scene graph rebuild

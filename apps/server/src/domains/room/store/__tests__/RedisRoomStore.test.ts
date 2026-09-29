@@ -48,6 +48,25 @@ describe("RedisRoomStore", () => {
     expect(hydrated?.tokens[0]?.id).toBe("token-1");
   });
 
+  it("gives a table saved before characters had condition lists its lists on hydrate", async () => {
+    // settleLegacyConditionLists at the Redis door.
+    const payload = {
+      ...createEmptyRoomState(),
+      players: [{ uid: "alice", name: "Alice", statusEffects: ["poisoned"] }],
+      characters: [
+        { id: "a1", type: "pc", name: "Kira", hp: 1, maxHp: 1, ownedByPlayerUID: "alice" },
+        { id: "a2", type: "pc", name: "Wolf", hp: 1, maxHp: 1, ownedByPlayerUID: "alice" },
+      ],
+      selectionState: {},
+    };
+    client.hkeys.mockResolvedValue(["room-a"]);
+    client.hget.mockResolvedValue(JSON.stringify(payload));
+
+    await store.hydrate();
+
+    expect(store.get("room-a")!.characters.map((c) => c.statusEffects)).toEqual([[], []]);
+  });
+
   it("hydrates through the same whitelist as the disk loader — it is a load door", async () => {
     // This store spread its payload verbatim, so every coercion the disk
     // loader applies was bypassed by a Redis-backed table: the third load

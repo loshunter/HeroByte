@@ -19,6 +19,7 @@ import {
   coerceCustomTokens,
   coerceNpcDisposition,
   coerceTokenSize,
+  settleLegacyConditionLists,
 } from "../persistence/loadCoercions.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
 
@@ -152,7 +153,7 @@ export class SnapshotLoader {
       ),
       tokens: mergedTokens,
       players: mergedPlayers,
-      characters: mergedCharacters,
+      characters: settleLegacyConditionLists(mergedCharacters, mergedPlayers),
       props: snapshot.props ?? [],
       customTokens: coerceCustomTokens(snapshot.customTokens),
       mapBackground,

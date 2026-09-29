@@ -251,6 +251,29 @@ describe("StatePersistence - Characterization Tests", () => {
       expect("movementDiagonals" in loaded).toBe(false);
     });
 
+    it("a table saved before characters had their own condition lists gets them on load", async () => {
+      // settleLegacyConditionLists at the state-file door: a sole character
+      // adopts its seat's list; characters sharing a seat each start empty.
+      roomService.getState().players = [
+        { uid: "alice", name: "Alice", statusEffects: ["poisoned"] },
+        { uid: "bob", name: "Bob", statusEffects: ["prone"] },
+      ] as never;
+      roomService.getState().characters = [
+        { id: "a1", type: "pc", name: "Kira", hp: 10, maxHp: 10, ownedByPlayerUID: "alice" },
+        { id: "a2", type: "pc", name: "Wolf", hp: 10, maxHp: 10, ownedByPlayerUID: "alice" },
+        { id: "b1", type: "pc", name: "Bran", hp: 10, maxHp: 10, ownedByPlayerUID: "bob" },
+      ];
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+      const reloaded = new RoomService({ stateFile: PROD_STATE_FILE });
+      reloaded.loadState();
+
+      const lists = Object.fromEntries(
+        reloaded.getState().characters.map((c) => [c.id, c.statusEffects]),
+      );
+      expect(lists).toEqual({ a1: [], a2: [], b1: ["prone"] });
+    });
+
     it("a fight that survives a restart back-fills a missing budget record with zero", async () => {
       // The DM's monster plate reads only from a record that EXISTS (the
       // elevation-blip guard); a file written before the budget shipped, or
