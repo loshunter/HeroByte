@@ -19,7 +19,10 @@ const goblin = {
 } as unknown as SnapshotCharacter;
 const ranger = { id: "pc-1", name: "Ranger", type: "pc" } as unknown as SnapshotCharacter;
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe("usePartyNpcActions", () => {
   it("merges a one-field edit over the NPC's record, keeping its stance", () => {
@@ -40,6 +43,48 @@ describe("usePartyNpcActions", () => {
       initiativeModifier: undefined,
       disposition: "neutral",
     });
+  });
+
+  it("a second edit inside one round trip builds on the first, not the old snapshot", () => {
+    // Each send is the whole record. Built from the snapshot the first edit
+    // was sent from, the second resent the old name and undid the rename.
+    const send = vi.fn();
+    const { result } = renderHook(() => usePartyNpcActions([goblin], send, true));
+
+    result.current.onNpcUpdate?.("npc-1", { name: "Boss" });
+    result.current.onNpcUpdate?.("npc-1", { hp: 3 });
+
+    expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ name: "Boss", hp: 3 }));
+  });
+
+  it("once the snapshot shows the send, edits build on the snapshot again", () => {
+    const send = vi.fn();
+    let characters = [goblin];
+    const { result, rerender } = renderHook(() => usePartyNpcActions(characters, send, true));
+
+    result.current.onNpcUpdate?.("npc-1", { name: "Boss" });
+    characters = [{ ...goblin, name: "Boss" } as SnapshotCharacter];
+    rerender();
+    // A co-DM then changes the temp HP; the next edit must keep it.
+    characters = [{ ...goblin, name: "Boss", tempHp: 9 } as SnapshotCharacter];
+    rerender();
+    result.current.onNpcUpdate?.("npc-1", { hp: 3 });
+
+    expect(send).toHaveBeenLastCalledWith(
+      expect.objectContaining({ name: "Boss", tempHp: 9, hp: 3 }),
+    );
+  });
+
+  it("a send the snapshot never shows stops steering edits after a while", () => {
+    vi.useFakeTimers();
+    const send = vi.fn();
+    const { result } = renderHook(() => usePartyNpcActions([goblin], send, true));
+
+    result.current.onNpcUpdate?.("npc-1", { name: "Boss" });
+    vi.advanceTimersByTime(5001);
+    result.current.onNpcUpdate?.("npc-1", { hp: 3 });
+
+    expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ name: "Goblin", hp: 3 }));
   });
 
   it("sends nothing for an id that is not an NPC", () => {
