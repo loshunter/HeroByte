@@ -11,12 +11,14 @@ import { createKickMobileProps } from "../../features/interaction/__tests__/kick
 const captured: {
   onNpcUpdate?: (id: string, updates: { hp?: number }) => void;
   onNpcPlaceToken?: (id: string) => void;
+  onNpcDelete?: (id: string) => void;
 } = {};
 
 vi.mock("../../components/layout/EntitiesPanel", () => ({
   EntitiesPanel: (props: typeof captured) => {
     captured.onNpcUpdate = props.onNpcUpdate;
     captured.onNpcPlaceToken = props.onNpcPlaceToken;
+    captured.onNpcDelete = props.onNpcDelete;
     return <div data-testid="entities-panel" />;
   },
 }));
@@ -39,6 +41,8 @@ function propsWithGoblin(isDM: boolean) {
 beforeEach(() => {
   captured.onNpcUpdate = undefined;
   captured.onNpcPlaceToken = undefined;
+  captured.onNpcDelete = undefined;
+  vi.restoreAllMocks();
 });
 
 describe("MainLayout — the Party's NPC cards act for the DM", () => {
@@ -55,10 +59,21 @@ describe("MainLayout — the Party's NPC cards act for the DM", () => {
     expect(props.sendMessage).toHaveBeenCalledWith({ t: "place-npc-token", id: "npc-1" });
   });
 
+  it("deletes the NPC for a DM once they confirm", () => {
+    const props = propsWithGoblin(true);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<MainLayout {...props} />);
+
+    captured.onNpcDelete?.("npc-1");
+
+    expect(props.sendMessage).toHaveBeenCalledWith({ t: "delete-npc", id: "npc-1" });
+  });
+
   it("gives a player's Party no NPC handler", () => {
     render(<MainLayout {...propsWithGoblin(false)} />);
 
     expect(captured.onNpcUpdate).toBeUndefined();
     expect(captured.onNpcPlaceToken).toBeUndefined();
+    expect(captured.onNpcDelete).toBeUndefined();
   });
 });

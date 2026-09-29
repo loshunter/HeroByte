@@ -52,6 +52,33 @@ describe("conditionsByTokenId", () => {
     expect(labels(map, "t-solo")).toEqual(["Prone"]);
   });
 
+  it("an NPC carrying the DM's uid wears none of the DM's seat conditions", () => {
+    // The real case: an NPC the DM placed can carry the DM's uid as its owner.
+    // The DM's seat list belongs to the DM's own sole character, not to it.
+    const DM = "dm-uid";
+    const dmSeat = {
+      uid: DM,
+      name: "DM",
+      isDM: true,
+      statusEffects: ["prone"],
+    } as unknown as Player;
+    const dmCharacter = {
+      ...pc("dm-hero", "t-dm-hero"),
+      ownedByPlayerUID: DM,
+    } as SnapshotCharacter;
+    const goblin = {
+      id: "goblin",
+      name: "Goblin",
+      type: "npc",
+      ownedByPlayerUID: DM,
+      tokenId: "t-goblin",
+    } as unknown as SnapshotCharacter;
+    const map = conditionsByTokenId([dmCharacter, goblin], [dmSeat]);
+
+    expect(labels(map, "t-dm-hero")).toEqual(["Prone"]);
+    expect(labels(map, "t-goblin")).toEqual([]);
+  });
+
   it("badges an NPC from its own list and skips a character with no token", () => {
     const goblin = {
       id: "goblin",
