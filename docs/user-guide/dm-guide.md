@@ -239,7 +239,7 @@ Use it constantly while prepping: it's the difference between "I think that corr
 
 - **Move and transform anyone's tokens**, and lock/unlock objects (select several and use the Lock/Unlock bar).
 - **Delete a player's token** from their card settings (⚙️ on their card → **🗑️ DELETE TOKEN**).
-- **Edit any player's name, portrait, HP, and status effects** from their card.
+- **Edit any player's name, portrait, and status effects** from their card. (Their HP numbers and bar stay the player's own to change there.)
 - **Clear all drawings** (Maps tab → Current table map) — the players' erasers only touch their own ink.
 - **Doors**: click toggles open/closed like anyone, but **Alt-click** cycles the lock — and Alt-clicking a **secret** door reveals it to the table. Secret doors show for you as a dashed seam.
 - **🔓 EXIT DM MODE** (top of the DM Menu) steps you back down to player.
