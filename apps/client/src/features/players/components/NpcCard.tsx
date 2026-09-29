@@ -79,6 +79,13 @@ export function NpcCard({
   const [editingTempHp, setEditingTempHp] = useState(false);
   const [tempHpInput, setTempHpInput] = useState(String(character.tempHp ?? 0));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // The DM's editors close on losing DM rights and stay closed when it returns.
+  useEffect(() => {
+    if (isDM) return;
+    for (const close of [setSettingsOpen, setEditingHp, setEditingMaxHp, setEditingTempHp]) {
+      close(false);
+    }
+  }, [isDM]);
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
   const [portraitInput, setPortraitInput] = useState(character.portrait ?? "");
   const { feedback, flashClass } = useHpFeedback(character.hp);

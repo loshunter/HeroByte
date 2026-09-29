@@ -191,3 +191,18 @@ describe("MobilePlayerRow after losing DM rights", () => {
     expect(sheet()).not.toBeNull();
   });
 });
+
+describe("MobilePlayerRow conditions grid after losing DM rights", () => {
+  it("a DM's open grid on another player's row does not reopen on re-elevation", () => {
+    const base = props({ isMe: false, isDM: true, onStatusEffectsChange: vi.fn() });
+    const { rerender } = render(<MobilePlayerRow {...base} />);
+    fireEvent.click(screen.getByRole("button", { name: "⚡ Manage Status" }));
+    expect(screen.getByRole("button", { name: "Done Editing" })).toBeInTheDocument();
+
+    rerender(<MobilePlayerRow {...base} isDM={false} />);
+    rerender(<MobilePlayerRow {...base} isDM={true} />);
+
+    expect(screen.getByRole("button", { name: "⚡ Manage Status" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Done Editing" })).toBeNull();
+  });
+});

@@ -93,7 +93,9 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     // now refuses, and it does not reopen by itself on re-elevation.
     const mayEdit = isMe || isDM;
     useEffect(() => {
-      if (!mayEdit) setSettingsOpen(false);
+      if (mayEdit) return;
+      setSettingsOpen(false);
+      setIsEditingEffects(false);
     }, [mayEdit]);
     const [localNameInput, setLocalNameInput] = useState(player.name);
     // Re-read the name whenever the sheet opens or someone renames the

@@ -164,6 +164,11 @@ export const PlayerCard = memo<PlayerCardProps>(
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
+    // Another player's window is the DM's to hold: on losing DM rights it
+    // closes, and it does not reopen by itself when DM comes back.
+    useEffect(() => {
+      if (!isMe && !viewerIsDM) setSettingsOpen(false);
+    }, [isMe, viewerIsDM]);
 
     /*
      * The settings window's "Character Name" field gets its OWN buffer, seeded

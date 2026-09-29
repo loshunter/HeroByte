@@ -2511,3 +2511,21 @@ describe("PlayerCard", () => {
     });
   });
 });
+
+// A DM who loses DM rights (a deploy, a restart) sees another player's settings
+// window hidden; it must also stay closed when they get DM back, rather than
+// reappearing unasked (209b603d's rule for the phone sheet).
+describe("PlayerCard settings after losing DM rights", () => {
+  it("closes another player's window, and does not reopen it on re-elevation", () => {
+    const props = createDefaultProps({ isMe: false, viewerIsDM: true });
+    const { rerender } = render(<PlayerCard {...props} />);
+    fireEvent.click(screen.getByTestId("card-controls-open-settings"));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+
+    rerender(<PlayerCard {...props} viewerIsDM={false} />);
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
+
+    rerender(<PlayerCard {...props} viewerIsDM={true} />);
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
+  });
+});

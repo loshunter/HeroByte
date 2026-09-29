@@ -1490,3 +1490,22 @@ describe("NpcCard — clearing through the shared merge", () => {
     expect(sent.at(-1)?.tokenImage).toBe("");
   });
 });
+
+// An NPC's card is the DM's: on losing DM rights its settings window and HP
+// editor close, and neither reappears unasked when DM comes back.
+describe("NpcCard after losing DM rights", () => {
+  it("closes settings and the HP editor, and neither reopens on re-elevation", () => {
+    const props = createDefaultProps({ isDM: true });
+    const { rerender } = render(<NpcCard {...props} />);
+    fireEvent.click(screen.getByTestId("portrait-section-change"));
+    fireEvent.click(screen.getByTestId("hp-bar-edit-hp"));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+    expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("true");
+
+    rerender(<NpcCard {...props} isDM={false} />);
+    rerender(<NpcCard {...props} isDM={true} />);
+
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
+    expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("false");
+  });
+});
