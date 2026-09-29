@@ -72,13 +72,12 @@ export function usePartyNpcActions(
         if (!existing) return;
         const sent = pending.current.get(id);
         // A send the server never reflects (refused, or normalized) stops
-        // steering after a while rather than overriding the snapshot forever.
-        const base =
-          sent && Date.now() - sent.at < PENDING_MS
-            ? ({ ...existing, ...sent.record } as SnapshotCharacter)
-            : existing;
+        // steering five seconds after it — timed from the FIRST unconfirmed
+        // send, so edits built on it cannot keep it alive for ever.
+        const steering = sent !== undefined && Date.now() - sent.at < PENDING_MS;
+        const base = steering ? ({ ...existing, ...sent.record } as SnapshotCharacter) : existing;
         const message = npcUpdateMessage(base, updates);
-        pending.current.set(id, { record: recordOf(message), at: Date.now() });
+        pending.current.set(id, { record: recordOf(message), at: steering ? sent.at : Date.now() });
         sendMessage(message);
       },
       onNpcDelete: (id) => {

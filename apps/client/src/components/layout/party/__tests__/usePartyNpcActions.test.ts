@@ -87,6 +87,39 @@ describe("usePartyNpcActions", () => {
     expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ name: "Goblin", hp: 3 }));
   });
 
+  it("an unrelated broadcast between two edits does not drop the first", () => {
+    // Every broadcast is a new characters array; only one that SHOWS the
+    // send may end its steering.
+    const send = vi.fn();
+    let characters = [goblin];
+    const { result, rerender } = renderHook(() => usePartyNpcActions(characters, send, true));
+
+    result.current.onNpcUpdate?.("npc-1", { name: "Boss" });
+    characters = [{ ...goblin }]; // a player moved a token: nothing about Goblin changed
+    rerender();
+    result.current.onNpcUpdate?.("npc-1", { hp: 3 });
+
+    expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ name: "Boss", hp: 3 }));
+  });
+
+  it("a refused send stops steering five seconds after it, even while edits continue", () => {
+    // The server refuses a 51-character name; a DM dragging HP every two
+    // seconds must not resend it for ever.
+    vi.useFakeTimers();
+    const send = vi.fn();
+    const { result } = renderHook(() => usePartyNpcActions([goblin], send, true));
+
+    result.current.onNpcUpdate?.("npc-1", { name: "X".repeat(51) });
+    for (const hp of [6, 5]) {
+      vi.advanceTimersByTime(2000);
+      result.current.onNpcUpdate?.("npc-1", { hp });
+    }
+    vi.advanceTimersByTime(1500); // 5.5 s after the refused send
+    result.current.onNpcUpdate?.("npc-1", { hp: 4 });
+
+    expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ name: "Goblin", hp: 4 }));
+  });
+
   it("sends nothing for an id that is not an NPC", () => {
     const send = vi.fn();
     const { result } = renderHook(() => usePartyNpcActions([goblin, ranger], send, true));

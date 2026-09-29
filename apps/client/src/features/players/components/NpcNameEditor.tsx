@@ -16,6 +16,7 @@
 
 import React, { useState } from "react";
 import { NameEditor } from "./NameEditor";
+import { NPC_NAME_MAX } from "../npcUpdate";
 
 interface NpcNameEditorProps {
   id: string;
@@ -37,6 +38,7 @@ export function NpcNameEditor({ id, name, canEdit, onRename }: NpcNameEditorProp
         playerName={name}
         playerUid={id}
         nameInput={input}
+        maxLength={NPC_NAME_MAX}
         onNameInputChange={setInput}
         onNameEdit={() => {
           setInput(name);

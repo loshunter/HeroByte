@@ -24,6 +24,9 @@ export interface NpcUpdateFields {
 
 export type NpcUpdateMessage = Extract<ClientMessage, { t: "update-npc" }>;
 
+/** The server's `update-npc` name limit (a player character's allows 100). */
+export const NPC_NAME_MAX = 50;
+
 /**
  * What an edit sends for temp HP. 0 is SENT when the NPC has temp HP to clear
  * (the merge refills an undefined field); an NPC with none keeps sending none,

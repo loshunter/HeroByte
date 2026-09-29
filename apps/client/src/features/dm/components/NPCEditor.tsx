@@ -15,7 +15,7 @@ import { NpcTokenImageField } from "./NpcTokenImageField";
 import { NpcStanceSelect } from "./NpcStanceSelect";
 import { useNpcAssetPick } from "../hooks/useNpcAssetPick";
 import { useNpcEditorFields } from "../hooks/useNpcEditorFields";
-import { tempHpEdit, tokenImageEdit } from "../../players/npcUpdate";
+import { NPC_NAME_MAX, tempHpEdit, tokenImageEdit } from "../../players/npcUpdate";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -184,6 +184,7 @@ export function NPCEditor({
           <input
             type="text"
             value={name}
+            maxLength={NPC_NAME_MAX}
             onChange={(e) => setName(e.target.value)}
             onBlur={handleNameBlur}
             onKeyDown={(e) => {
