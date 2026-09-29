@@ -4,15 +4,13 @@ import {
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
   coerceTokenVisionRadii,
-  type Player,
 } from "@herobyte/shared";
 import { normalizeAtlasState } from "../atlasState.js";
 import { createSelectionMap, type RoomState } from "../../room/model.js";
 import {
   coerceCombatRound,
   coerceCustomTokens,
-  coerceLoadedCharacters,
-  settleLegacyConditionLists,
+  coerceLoadedSeats,
 } from "../persistence/loadCoercions.js";
 import { sanitizeStagingZone } from "../staging/StagingZoneManager.js";
 import type { RoomStore } from "./RoomStore.js";
@@ -63,17 +61,11 @@ export class RedisRoomStore implements RoomStore {
           // writes the whole RoomState, users and undo stacks included, where
           // the disk writer picks a list. Keep this literal in step with the
           // disk loader's; a field with a domain added to one belongs in both.
-          const parsedPlayers: Player[] = Array.isArray(parsed.players) ? parsed.players : [];
           const state: RoomState = {
             users: [],
             stateVersion: typeof parsed.stateVersion === "number" ? parsed.stateVersion : 0,
             tokens: coerceTokenVisionRadii(Array.isArray(parsed.tokens) ? parsed.tokens : []),
-            players: parsedPlayers.map((player) => ({
-              ...player,
-              isDM: player.isDM ?? false,
-              statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
-            })),
-            characters: coerceLoadedCharacters(parsed.characters, parsed.combatActive === true),
+            ...coerceLoadedSeats(parsed.players, parsed.characters, parsed.combatActive === true),
             props: parsed.props || [],
             customTokens: coerceCustomTokens(parsed.customTokens),
             mapBackground: parsed.mapBackground,
@@ -103,7 +95,6 @@ export class RedisRoomStore implements RoomStore {
             defaultVisionRadius: coerceDefaultVisionRadius(parsed.defaultVisionRadius),
             ...normalizeAtlasState(parsed),
           };
-          state.characters = settleLegacyConditionLists(state.characters, state.players);
           this.cache.set(roomId, state);
         } catch (error) {
           console.warn(`[RedisRoomStore] Failed to parse cached state for ${roomId}`, error);

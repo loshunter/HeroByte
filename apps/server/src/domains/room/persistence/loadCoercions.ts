@@ -180,6 +180,26 @@ export function settleLegacyConditionLists(
 }
 
 /**
+ * A loaded room's seats and their characters, coerced together at the state
+ * file's door and at Redis's. The players rule is the same at both, and the
+ * legacy condition-list migration needs both arrays (settleLegacyConditionLists).
+ * A players field that is not an array loads as none rather than throwing.
+ */
+export function coerceLoadedSeats(
+  rawPlayers: unknown,
+  rawCharacters: unknown,
+  combatActive: boolean,
+): { players: Player[]; characters: Character[] } {
+  const players = (Array.isArray(rawPlayers) ? (rawPlayers as Player[]) : []).map((player) => ({
+    ...player,
+    isDM: player.isDM ?? false,
+    statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
+  }));
+  const characters = coerceLoadedCharacters(rawCharacters, combatActive);
+  return { players, characters: settleLegacyConditionLists(characters, players) };
+}
+
+/**
  * The movement-budget round: any integer (a backward wrap from the top of
  * the order in round 1 reads 0, and it is a stamp key, not a display), or
  * absent (round 1).
