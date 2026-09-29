@@ -442,4 +442,25 @@ describe("useCombatOrdering", () => {
       expect(result.current.orderedEntities).toEqual([]);
     });
   });
+
+  it("an NPC carries its token only while that token is on the map", () => {
+    // NPC tokens are scene-local: on another scene the link survives while the
+    // token is stored with its scene, and Focus on it did nothing.
+    const onMap = { ...createMockCharacter("npc-1", "", undefined, "npc"), tokenId: "t-here" };
+    const elsewhere = { ...createMockCharacter("npc-2", "", undefined, "npc"), tokenId: "t-gone" };
+    const { result } = renderHook(() =>
+      useCombatOrdering({
+        players: [],
+        characters: [onMap, elsewhere],
+        tokens: [createMockToken("t-here", "dm-1")],
+        currentUid: "dm-1",
+        combatActive: false,
+      }),
+    );
+
+    const tokenOf = (id: string) =>
+      result.current.orderedEntities.find((e) => e.character.id === id)?.token?.id;
+    expect(tokenOf("npc-1")).toBe("t-here");
+    expect(tokenOf("npc-2")).toBeUndefined();
+  });
 });

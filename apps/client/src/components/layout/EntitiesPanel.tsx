@@ -777,10 +777,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                                 onTokenSizeChange(entity.character.tokenId!, size)
                             : undefined
                         }
+                        // Its token on the map; one left on another scene is not focusable.
                         onFocusToken={
-                          entity.character.tokenId
-                            ? () => onFocusToken(entity.character.tokenId!)
-                            : undefined
+                          entity.token ? () => onFocusToken(entity.token!.id) : undefined
                         }
                         initiative={entity.character.initiative}
                         onInitiativeClick={
