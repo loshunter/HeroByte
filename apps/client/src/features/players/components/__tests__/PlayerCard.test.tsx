@@ -1019,7 +1019,7 @@ describe("PlayerCard", () => {
 
       expect(savePlayerState).toHaveBeenCalledTimes(1);
       expect(savePlayerState).toHaveBeenCalledWith({
-        player,
+        player: { ...player, statusEffects: [] },
         token: expect.objectContaining({
           id: token.id,
           color: token.color,
@@ -1029,6 +1029,26 @@ describe("PlayerCard", () => {
         drawings,
         initiativeModifier,
       });
+    });
+
+    it("saves the conditions this card shows, not the seat's shared list", () => {
+      // The seat's list is legacy: with two characters it holds whichever one
+      // was edited last, and a DM's edits never reach it. The card's own
+      // `statusEffects` is the character's.
+      const props = createDefaultProps({
+        isMe: true,
+        player: createMockPlayer({ statusEffects: ["poisoned"] }),
+        statusEffects: ["prone"],
+      });
+      render(<PlayerCard {...props} />);
+
+      fireEvent.click(screen.getByTestId("settings-save-state"));
+
+      expect(savePlayerState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          player: expect.objectContaining({ statusEffects: ["prone"] }),
+        }),
+      );
     });
 
     it("uses tokenImageInput if available, falls back to tokenImageUrl", () => {

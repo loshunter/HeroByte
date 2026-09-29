@@ -210,7 +210,10 @@ export const PlayerCard = memo<PlayerCardProps>(
           }
         : undefined;
       savePlayerState({
-        player,
+        // The conditions this card shows are the character's own; the seat's
+        // list is legacy and, with two characters, holds whichever one was
+        // edited last. Loading writes the file's list onto the character.
+        player: { ...player, statusEffects: statusEffects ?? [] },
         token: tokenForExport,
         tokenScene: tokenSceneObject ?? null,
         drawings: playerDrawings ?? [],
