@@ -140,6 +140,52 @@ describe("useNpcUpdate", () => {
     expect(result.current.isUpdating).toBe(false);
   });
 
+  it("an edit to another NPC while one is saving is sent after it, not dropped", () => {
+    // One update in flight at a time; a second NPC's edit used to be refused
+    // with only a console warning — and its field, which re-syncs on VALUES,
+    // kept showing the unsent number as if it were saved.
+    const sendMessage = vi.fn();
+    const two = (over: Record<string, unknown> = {}) =>
+      ({
+        characters: [
+          { ...npc, ...over },
+          { id: "npc-2", type: "npc", name: "Goblin 2", hp: 12, maxHp: 12 },
+        ],
+      }) as unknown as RoomSnapshot;
+    let snapshot = two();
+    const { result, rerender } = renderHook(() => useNpcUpdate({ snapshot, sendMessage }));
+
+    act(() => result.current.updateNpc("npc-1", full({ hp: 3 })));
+    act(() => result.current.updateNpc("npc-2", { name: "Goblin 2", hp: 7, maxHp: 12 }));
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+
+    snapshot = two({ hp: 3 }); // npc-1 confirms
+    rerender();
+
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ t: "update-npc", id: "npc-2", hp: 7 }),
+    );
+  });
+
+  it("a queued edit is sent after a timeout too, and queued edits to one NPC merge", () => {
+    const sendMessage = vi.fn();
+    const two = {
+      characters: [{ ...npc }, { id: "npc-2", type: "npc", name: "Goblin 2", hp: 12, maxHp: 12 }],
+    } as unknown as RoomSnapshot;
+    const { result } = renderHook(() => useNpcUpdate({ snapshot: two, sendMessage }));
+
+    act(() => result.current.updateNpc("npc-1", full({ hp: 3 })));
+    act(() => result.current.updateNpc("npc-2", { name: "Boss" }));
+    act(() => result.current.updateNpc("npc-2", { hp: 7 }));
+    act(() => vi.advanceTimersByTime(5000)); // npc-1 never confirms
+
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "npc-2", name: "Boss", hp: 7 }),
+    );
+  });
+
   it("unmounting mid-flight disarms the timer", () => {
     const sendMessage = vi.fn();
     const { result, unmount } = renderHook(() => useNpcUpdate({ snapshot: snap(), sendMessage }));

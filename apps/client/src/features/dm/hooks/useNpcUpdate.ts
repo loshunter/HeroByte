@@ -161,10 +161,15 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
   /**
    * Initiate NPC update
    */
+  // Edits made while an update is in flight, per NPC, sent once it resolves.
+  // They used to be refused with only a console warning, while the editor —
+  // which re-syncs on values — kept showing the unsent number as saved.
+  const queued = useRef(new Map<string, NpcUpdateFields>());
+
   const updateNpc = useCallback(
     (id: string, updates: NpcUpdateFields) => {
       if (isUpdating) {
-        console.warn("[useNpcUpdate] NPC update already in progress");
+        queued.current.set(id, { ...queued.current.get(id), ...updates });
         return;
       }
 
@@ -213,6 +218,16 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     },
     [isUpdating, sendMessage, snapshot?.characters, clearTimer],
   );
+
+  // The in-flight update resolved (confirmed or timed out): send the next.
+  useEffect(() => {
+    if (isUpdating) return;
+    const next = queued.current.entries().next();
+    if (next.done) return;
+    const [id, updates] = next.value;
+    queued.current.delete(id);
+    updateNpc(id, updates);
+  }, [isUpdating, updateNpc]);
 
   return {
     isUpdating,
