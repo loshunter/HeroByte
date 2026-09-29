@@ -47,8 +47,8 @@ test.describe("Kicked-In Door smoke", () => {
       // box still spans the full board — so a click aimed at the canvas centre
       // can land on the panel instead of the map. Collapse it before anything
       // in this journey clicks the map.
-      await dm.getByRole("button", { name: /HIDE ENTITIES/i }).click();
-      await expect(dm.getByRole("button", { name: /SHOW ENTITIES/i })).toBeVisible();
+      await dm.getByRole("button", { name: "▼ Hide party" }).click();
+      await expect(dm.getByRole("button", { name: "▲ Show party" })).toBeVisible();
       await startLiveMap(dm, "kick-journey-origin", "The Harbour Road");
       await joinDefaultRoom(player);
       await waitForSnap(player, () =>

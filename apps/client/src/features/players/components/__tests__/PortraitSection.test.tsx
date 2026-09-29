@@ -23,6 +23,13 @@ describe("PortraitSection", () => {
     const placeholder = within(button).getByTestId("portrait-placeholder");
     expect(placeholder).toHaveStyle(`background-color: ${tokenColor}`);
     expect(screen.getByText(/\+ add portrait/i)).toBeInTheDocument();
+    // IA-20: the instruction is short enough to fit the frame, in body type
+    // rather than the global button rule's uppercase pixel font.
+    expect(screen.getByText("Upload or paste a link")).toBeInTheDocument();
+    expect(placeholder).toHaveStyle("text-transform: none");
+    // A narrow card hides the line (a container query); the instruction stays
+    // the frame's accessible description.
+    expect(button).toHaveAccessibleDescription("Upload or paste a link");
 
     fireEvent.click(button);
     expect(handleRequestChange).toHaveBeenCalledTimes(1);
@@ -49,6 +56,9 @@ describe("PortraitSection", () => {
     // "Portrait", never "Player portrait": NPC and DM cards show this frame too.
     const button = screen.getByRole("button", { name: "Portrait" });
     expect(button).toBeDisabled();
+    // Not "Portrait Pending": nothing is uploading; there simply is none.
+    expect(screen.getByText("No portrait yet")).toBeInTheDocument();
+    expect(screen.queryByText(/pending/i)).toBeNull();
 
     fireEvent.click(button);
     expect(handleRequestChange).not.toHaveBeenCalled();

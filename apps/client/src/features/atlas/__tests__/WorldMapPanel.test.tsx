@@ -43,7 +43,9 @@ describe("WorldMapPanel", () => {
   });
 
   it("desktop presentation: the 🗺 WORLD launcher opens the window, and it is read-only", () => {
-    render(<WorldMapPanel snapshot={snapshotWith([node("n1")], "n1")} />);
+    render(
+      <WorldMapPanel snapshot={snapshotWith([node("n1")], "n1")} launcherDock={document.body} />,
+    );
     expect(screen.queryByLabelText("Discovered world")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "🗺 WORLD" }));
     expect(screen.getByLabelText("Discovered world")).toBeInTheDocument();

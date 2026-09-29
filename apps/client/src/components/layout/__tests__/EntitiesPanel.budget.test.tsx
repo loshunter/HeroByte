@@ -9,9 +9,17 @@
 // like any other, and this is the only lever that clears that spend.
 
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen } from "@testing-library/react";
 import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
 import { EntitiesPanel } from "../EntitiesPanel";
+import { showCards } from "./entitiesPanel.fixtures";
+
+// U7: the Party opens as the compact roster; these suites pin the full cards.
+const render = (...args: Parameters<typeof rtlRender>) => {
+  const result = rtlRender(...args);
+  showCards();
+  return result;
+};
 
 const DM = "dm-uid";
 const ALICE = "alice-uid";
@@ -73,11 +81,13 @@ function panelProps(overrides: Partial<React.ComponentProps<typeof EntitiesPanel
     onCharacterStatusEffectsChange: vi.fn(),
     onToggleTokenLock: vi.fn(),
     onTokenSizeChange: vi.fn(),
+    onCharacterOwnerChange: vi.fn(),
     onCharacterSpeedChange: vi.fn(),
     onCharacterBudgetReset: vi.fn(),
     onAddCharacter: vi.fn(),
     onDeleteCharacter: vi.fn(),
     onFocusToken: vi.fn(),
+    launcherDockRef: vi.fn(),
     combatActive: true,
     onSetInitiative: vi.fn(),
     onRollInitiative: vi.fn(),

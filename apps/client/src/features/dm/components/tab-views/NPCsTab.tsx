@@ -53,6 +53,12 @@ interface NPCsTabProps {
   combatActive?: boolean;
   /** Callback to place an NPC token on the map */
   onPlaceNPCToken: (id: string) => void;
+  /** Set an NPC's conditions (the phone's only route to them). */
+  onSetNPCStatusEffects: (id: string, effects: string[]) => void;
+  /** Centre the map on a token (on a phone, closing the DM screen). */
+  onFocusNPCToken: (tokenId: string) => void;
+  /** The tokens on the current map: an NPC's Focus needs its token here. */
+  mapTokenIds: ReadonlySet<string>;
   /** Callback to delete an NPC */
   onDeleteNPC: (id: string) => void;
   /** Whether NPC creation is in progress */
@@ -103,6 +109,9 @@ export default function NPCsTab({
   onResetNPCBudget,
   combatActive = false,
   onPlaceNPCToken,
+  onSetNPCStatusEffects,
+  onFocusNPCToken,
+  mapTokenIds,
   onDeleteNPC,
   customTokens = NO_CUSTOM_TOKENS,
   onAddCustomToken,
@@ -297,6 +306,12 @@ export default function NPCsTab({
                     : undefined
                 }
                 onPlace={() => onPlaceNPCToken(npc.id)}
+                onStatusEffectsChange={(effects) => onSetNPCStatusEffects(npc.id, effects)}
+                onFocus={
+                  npc.tokenId && mapTokenIds.has(npc.tokenId)
+                    ? () => onFocusNPCToken(npc.tokenId!)
+                    : undefined
+                }
                 onDuplicate={() => onDuplicateNPC(npc.id)}
                 onDelete={() => onDeleteNPC(npc.id)}
                 isDuplicating={isCreatingNpc}

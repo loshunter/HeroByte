@@ -83,6 +83,15 @@ describe("buildDMMenuProps", () => {
     expect(built.alignmentModeActive).toBe(bag.alignmentMode);
   });
 
+  it("hands the NPC editor's Focus the layout's own camera focus", () => {
+    const handleFocusToken = vi.fn();
+    const built = buildDMMenuProps(createBag({ handleFocusToken }), { rollAllInitiative: vi.fn() });
+
+    built.onFocusToken("t-goblin");
+
+    expect(handleFocusToken).toHaveBeenCalledWith("t-goblin");
+  });
+
   it("builds the COMPLETE prop surface — a dropped mapping is a missing key, not a quiet gap", () => {
     // The cast-shaped blindness the review confirmed: optional props make a
     // deleted mapping invisible to tsc, and a fixture only exercises fields
@@ -130,6 +139,8 @@ describe("buildDMMenuProps", () => {
         "snapshot",
         "sendMessage",
         "camera",
+        // The NPC editor's 🎯 (a phone's DM screen overrides it to also close).
+        "onFocusToken",
         "toast",
         // Atlas-link aim (A6) — the arm callback and its armed flag.
         "linkAimActive",

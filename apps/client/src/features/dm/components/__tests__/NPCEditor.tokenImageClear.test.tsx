@@ -24,6 +24,7 @@ function renderEditor(over: Partial<SnapshotCharacter> = {}) {
       onPlace={vi.fn()}
       onDuplicate={vi.fn()}
       onDelete={vi.fn()}
+      onStatusEffectsChange={vi.fn()}
     />,
   );
   return { onUpdate, field: screen.getByLabelText("Token Image URL") as HTMLInputElement };

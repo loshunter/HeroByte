@@ -31,6 +31,7 @@ describe("NPC name inputs stop at the server's limit", () => {
         onPlace={vi.fn()}
         onDuplicate={vi.fn()}
         onDelete={vi.fn()}
+        onStatusEffectsChange={vi.fn()}
       />,
     );
 

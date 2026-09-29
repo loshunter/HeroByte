@@ -27,6 +27,7 @@ function renderEditor(npc: Partial<Character>) {
       onPlace={vi.fn()}
       onDuplicate={vi.fn()}
       onDelete={vi.fn()}
+      onStatusEffectsChange={vi.fn()}
     />,
   );
   return onUpdate;

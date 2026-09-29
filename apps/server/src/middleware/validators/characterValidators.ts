@@ -262,3 +262,18 @@ export function validateSetInitiativeMessage(message: MessageRecord): Validation
 export function validateCombatControlMessage(): ValidationResult {
   return { valid: true };
 }
+
+/**
+ * Validate set-character-owner message
+ * Required: characterId, ownerUid (non-empty strings). Who may send it (the
+ * DM) and whom it may name (a seated player) are the handler's to decide.
+ */
+export function validateSetCharacterOwnerMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+    return { valid: false, error: "set-character-owner: missing or invalid characterId" };
+  }
+  if (typeof message.ownerUid !== "string" || message.ownerUid.length === 0) {
+    return { valid: false, error: "set-character-owner: missing or invalid ownerUid" };
+  }
+  return { valid: true };
+}

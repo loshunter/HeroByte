@@ -3,19 +3,17 @@
 // character with no art of its own wore the seat's old portrait as if it were
 // its own.
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { EntitiesPanel } from "../EntitiesPanel";
-import { ALICE_UID, entitiesPanelProps, pc, seat } from "./entitiesPanel.fixtures";
+import { ALICE_UID, entitiesPanelProps, pc, seat, showCards } from "./entitiesPanel.fixtures";
 
 afterEach(cleanup);
 
 function renderCards(characters: ReturnType<typeof pc>[]) {
   const players = [seat(ALICE_UID, "Alice", { portrait: "https://example.test/seat.png" })];
   render(<EntitiesPanel {...entitiesPanelProps({ players, characters })} />);
-  // Every card at once (the compact roster, where the Party has one, hides them).
-  const cards = screen.queryByRole("button", { name: "▦ Cards" });
-  if (cards) fireEvent.click(cards);
+  showCards(); // every card at once: the compact roster hides them
 }
 
 const seatPortraits = () => document.querySelectorAll('img[src="https://example.test/seat.png"]');

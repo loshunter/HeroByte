@@ -1,186 +1,77 @@
 // ============================================================================
 // ENTITIES PANEL COMPONENT
 // ============================================================================
-// Fixed bottom panel displaying both players and NPCs in the scene.
+// The desktop Party: a fixed bottom panel of the table's characters and NPCs.
+// Compact by default (U7): a one-row roster whose selection opens that
+// character's full card in one inspector; "Cards" shows every card at once.
+// Its bar reserves the launcher dock, so World, Props and DM MENU never float
+// over a card (IA-15).
 
-import React, { useEffect, useMemo, useState } from "react";
-import type {
-  Drawing,
-  Player,
-  PlayerState,
-  Token,
-  SceneObject,
-  SnapshotCharacter,
-} from "@herobyte/shared";
-import { PlayerCard } from "../../features/players/components";
-import { NpcCard } from "../../features/players/components/NpcCard";
-import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
+import React, { useEffect, useId, useMemo, useState } from "react";
+import type { Drawing, SceneObject } from "@herobyte/shared";
+import { JRPGPanel } from "../ui/JRPGPanel";
 import { InitiativeModal } from "../../features/initiative/components/InitiativeModal";
-import { TurnNavigationControls } from "../../features/initiative/components/TurnNavigationControls";
+import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
 import { useCombatOrdering } from "../../hooks/useCombatOrdering";
 import { useInitiativeModal } from "../../hooks/useInitiativeModal";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
+import { PartyCharacterCard } from "./party/PartyCharacterCard";
+import { PartyNpcCard } from "./party/PartyNpcCard";
+import { PartyBar, type PartyLayout } from "./party/PartyBar";
+import { PartyInspector } from "./party/PartyInspector";
+import { PartyRoster } from "./party/PartyRoster";
+import { announcePartyPanelSize } from "./party/partyPanelSize";
+import type { EntitiesPanelProps, PartyCardContext } from "./party/partyTypes";
+import "./party/party.css";
 
-import { isInInitiativeOrder, type TokenSize } from "@herobyte/shared";
-
-interface EntitiesPanelProps {
-  players: Player[];
-  characters: SnapshotCharacter[];
-  tokens: Token[];
-  sceneObjects: SceneObject[];
-  drawings: Drawing[];
-  uid: string;
-  micEnabled: boolean;
-  editingPlayerUID: string | null;
-  nameInput: string;
-  editingMaxHpUID: string | null;
-  maxHpInput: string;
-  editingTempHpUID: string | null;
-  tempHpInput: string;
-  onNameInputChange: (value: string) => void;
-  onNameEdit: (uid: string, currentName: string) => void;
-  onNameSubmit: () => void;
-  onCharacterNameUpdate: (characterId: string, name: string) => void;
-  /** The table's default sight radius in feet, shown on a token that inherits
-   *  it. Undefined means no default is set, which is unlimited. */
-  tableVisionDefault?: number;
-  onCharacterPortraitUpdate: (characterId: string, url: string) => void;
-  onToggleMic: () => void;
-  onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
-  editingHpUID: string | null;
-  hpInput: string;
-  onHpInputChange: (value: string) => void;
-  onHpEdit: (uid: string, currentHp: number) => void;
-  onHpSubmit: () => void;
-  onMaxHpInputChange: (value: string) => void;
-  onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
-  onMaxHpSubmit: () => void;
-  onTempHpInputChange: (value: string) => void;
-  onTempHpEdit: (uid: string) => void;
-  onTempHpSubmit: () => void;
-  currentIsDM: boolean;
-  onToggleDMMode: (next: boolean) => void;
-  onTokenImageChange: (tokenId: string, imageUrl: string) => void;
-  onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
-  _onStatusEffectsChange: (effects: string[]) => void; // Deprecated - kept for backward compatibility
-  onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
-  onNpcUpdate?: (
-    id: string,
-    updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
-  ) => void;
-  onNpcDelete?: (id: string) => void;
-  onNpcPlaceToken?: (id: string) => void;
-  onNpcToggleVisibility?: (id: string, visible: boolean) => void;
-  onPlayerTokenDelete?: (tokenId: string) => void;
-  /** Whether NPC deletion is in progress */
-  isDeletingNpc?: boolean;
-  /** Error message from NPC deletion attempt */
-  npcDeletionError?: string | null;
-  onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
-  onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
-  /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
-   * optional so the layout fixtures stay untouched). */
-  onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
-  /** DM-only: a character's feet per turn — the movement budget's ceiling. */
-  onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
-  /** DM-only: zero a character's spend outside a turn boundary. */
-  onCharacterBudgetReset?: (characterId: string) => void;
-  onAddCharacter: (name: string) => void;
-  onDeleteCharacter: (characterId: string) => void;
-  onFocusToken: (tokenId: string) => void;
-  bottomPanelRef?: React.RefObject<HTMLDivElement>;
-  // Combat/Initiative props
-  combatActive?: boolean;
-  currentTurnCharacterId?: string;
-  onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
-  onRollInitiative: (characterId: string, modifier?: number) => void;
-  /** Whether the modal offers hand-entry: the table setting, or DM always. */
-  manualInitiativeAllowed?: boolean;
-  onClearInitiative?: (characterId: string) => void;
-  isSettingInitiative?: boolean;
-  initiativeError?: string | null;
-  onNextTurn?: () => void;
-  onPreviousTurn?: () => void;
+/** A character's roster row button, where its closed details return focus. */
+function rosterSelectButton(characterId: string): HTMLElement | null {
+  const row = Array.from(document.querySelectorAll<HTMLElement>(".party-roster__entry")).find(
+    (entry) => entry.dataset.characterId === characterId,
+  );
+  return row?.querySelector<HTMLElement>(".party-roster__select") ?? null;
 }
 
 /**
- * Entities panel displaying all players and active NPCs.
+ * The desktop Party panel: every player character and NPC at the table.
  */
-export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
-  players,
-  characters,
-  tokens,
-  sceneObjects,
-  drawings,
-  uid,
-  micEnabled,
-  editingMaxHpUID,
-  maxHpInput,
-  editingTempHpUID,
-  tempHpInput,
-  onCharacterNameUpdate,
-  tableVisionDefault,
-  onCharacterPortraitUpdate,
-  onToggleMic,
-  onCharacterHpChange,
-  editingHpUID,
-  hpInput,
-  onHpInputChange,
-  onHpEdit,
-  onHpSubmit,
-  onMaxHpInputChange,
-  onMaxHpEdit,
-  onMaxHpSubmit,
-  onTempHpInputChange,
-  onTempHpEdit,
-  onTempHpSubmit,
-  currentIsDM,
-  onToggleDMMode,
-  onTokenImageChange,
-  onApplyPlayerState,
-  _onStatusEffectsChange, // Deprecated - kept for backward compatibility
-  onCharacterStatusEffectsChange,
-  onNpcUpdate,
-  onNpcDelete,
-  onNpcPlaceToken,
-  onNpcToggleVisibility,
-  onPlayerTokenDelete,
-  isDeletingNpc = false,
-  npcDeletionError = null,
-  onToggleTokenLock,
-  onTokenSizeChange,
-  onTokenVisionRadiusChange,
-  onCharacterSpeedChange,
-  onCharacterBudgetReset,
-  onAddCharacter,
-  onDeleteCharacter,
-  onFocusToken,
-  bottomPanelRef,
-  // Combat/Initiative props
-  combatActive = false,
-  currentTurnCharacterId,
-  onSetInitiative,
-  onRollInitiative,
-  manualInitiativeAllowed = true,
-  onClearInitiative,
-  isSettingInitiative = false,
-  initiativeError = null,
-  onNextTurn,
-  onPreviousTurn,
-}) => {
+export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
+  const {
+    players,
+    characters,
+    tokens,
+    sceneObjects,
+    drawings,
+    uid,
+    onAddCharacter,
+    onFocusToken,
+    bottomPanelRef,
+    launcherDockRef,
+    // Combat/Initiative props
+    combatActive = false,
+    currentTurnCharacterId,
+    onSetInitiative,
+    onRollInitiative,
+    manualInitiativeAllowed = true,
+    isSettingInitiative = false,
+    initiativeError = null,
+    onNextTurn,
+    onPreviousTurn,
+  } = props;
   const [isCollapsed, setIsCollapsed] = useState(false);
+  // Compact by default; the full cards are one press away (U7).
+  const [layout, setLayout] = useState<PartyLayout>("roster");
+  // The roster selects a CHARACTER (never a seat): its id, not its player's.
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const inspectorId = useId();
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [characterNameInput, setCharacterNameInput] = useState("");
 
-  // Prompt layout to re-measure when the panel collapses/expands so the map
-  // spacing updates immediately instead of waiting for other updates.
+  // The map's bottom edge follows this panel's height (partyPanelSize.ts).
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const frame = window.requestAnimationFrame(() => {
-      window.dispatchEvent(new Event("resize"));
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [isCollapsed]);
+    const node = bottomPanelRef?.current;
+    return node ? announcePartyPanelSize(node) : undefined;
+  }, [bottomPanelRef]);
 
   // Use tested hooks for combat ordering and initiative modal
   const { dmEntities, orderedEntities } = useCombatOrdering({
@@ -203,7 +94,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   // a Set the server refuses, and it does not reopen on re-elevation.
   const initiativeModalAllowed =
     initiativeModalCharacter !== null &&
-    (currentIsDM || initiativeModalCharacter.ownedByPlayerUID === uid);
+    (props.currentIsDM || initiativeModalCharacter.ownedByPlayerUID === uid);
   useEffect(() => {
     if (isInitiativeModalOpen && !initiativeModalAllowed) closeInitiativeModal();
   }, [isInitiativeModalOpen, initiativeModalAllowed, closeInitiativeModal]);
@@ -238,15 +129,53 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
     return map;
   }, [drawings]);
 
+  const cardContext: PartyCardContext = {
+    panel: props,
+    tokenSceneMap,
+    drawingsByOwner,
+    nameEdit: {
+      editingCharacterId,
+      input: characterNameInput,
+      begin: (characterId, currentName) => {
+        setEditingCharacterId(characterId);
+        setCharacterNameInput(currentName);
+      },
+      setInput: setCharacterNameInput,
+      end: () => {
+        setEditingCharacterId(null);
+        setCharacterNameInput("");
+      },
+    },
+    characterCreation,
+    openInitiativeModal,
+  };
+
   const initiativeCombatants = useMemo(() => {
     return orderedEntities.filter((entity) => entity.character.initiative !== undefined);
   }, [orderedEntities]);
 
   const currentTurnIndexDisplay = initiativeCombatants.findIndex((entity) => entity.isCurrentTurn);
 
+  // The roster lists every character the cards do, in the cards' order: the
+  // DM's bench first, then the party and NPCs.
+  const rosterEntities = useMemo(
+    () => [...dmEntities, ...orderedEntities],
+    [dmEntities, orderedEntities],
+  );
+  const selectedEntity =
+    selectedCharacterId === null
+      ? undefined
+      : rosterEntities.find((entity) => entity.character.id === selectedCharacterId);
+  // A selected character that leaves the roster (deleted, hidden, fogged)
+  // clears the selection; kept, its details reopened by themselves on return.
+  useEffect(() => {
+    if (selectedCharacterId !== null && !selectedEntity) setSelectedCharacterId(null);
+  }, [selectedCharacterId, selectedEntity]);
+
   return (
     <div
       ref={bottomPanelRef}
+      className="party-panel"
       style={{
         position: "fixed",
         bottom: 0,
@@ -254,282 +183,84 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
         right: 0,
         zIndex: 100,
         margin: 0,
-        transition: "transform 0.3s ease",
       }}
     >
-      <JRPGButton
-        onClick={() => setIsCollapsed((value) => !value)}
-        variant={isCollapsed ? "default" : "primary"}
-        style={{
-          position: "absolute",
-          top: "-28px",
-          right: "12px",
-          padding: "6px 12px",
-          fontSize: "8px",
-          borderRadius: "4px 4px 0 0",
-        }}
-      >
-        {isCollapsed ? "▲ SHOW ENTITIES" : "▼ HIDE ENTITIES"}
-      </JRPGButton>
+      <JRPGPanel variant="bevel" className="party-panel__frame" style={{ borderRadius: 0 }}>
+        <PartyBar
+          layout={layout}
+          onLayoutChange={setLayout}
+          collapsed={isCollapsed}
+          onToggleCollapsed={() => setIsCollapsed((value) => !value)}
+          launcherDockRef={launcherDockRef}
+          combat={
+            combatActive
+              ? {
+                  turnIndex: currentTurnIndexDisplay,
+                  total: initiativeCombatants.length,
+                  onNextTurn,
+                  onPreviousTurn,
+                }
+              : null
+          }
+        />
 
-      {isCollapsed ? (
-        <div
-          className="jrpg-text-small"
-          style={{
-            margin: "0 auto",
-            padding: "6px 12px",
-            background: "rgba(12, 18, 40, 0.85)",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
-            borderRadius: "6px",
-            textAlign: "center",
-            color: "var(--jrpg-white)",
-            maxWidth: "260px",
-            opacity: 0.85,
-          }}
-        >
-          Entities panel collapsed - click &ldquo;SHOW ENTITIES&rdquo; to expand
-        </div>
-      ) : (
-        <JRPGPanel
-          variant="bevel"
-          style={{
-            padding: "8px",
-            borderRadius: 0,
-            maxHeight: "320px",
-            overflowY: "auto",
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <h3
-              className="jrpg-text-command jrpg-text-highlight"
-              style={{ margin: "0", textAlign: "center" }}
-            >
-              ENTITIES
-            </h3>
-
-            {combatActive && (
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <JRPGPanel
-                  variant="simple"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 16px",
-                    background: "rgba(12, 18, 40, 0.85)",
-                    border: "1px solid var(--jrpg-border-gold)",
-                  }}
-                >
-                  <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                    ⚔️ Combat Active
-                  </span>
-                  {initiativeCombatants.length > 0 && (
-                    <span className="jrpg-text-tiny" style={{ color: "var(--jrpg-white)" }}>
-                      {/* "—" while nobody holds the turn (a combatant cleared its own
-                          initiative on its turn drops the pointer): the banner must
-                          not claim turn 1 while no card wears the mark. */}
-                      Turn {currentTurnIndexDisplay >= 0 ? currentTurnIndexDisplay + 1 : "—"} of{" "}
-                      {initiativeCombatants.length}
-                    </span>
-                  )}
-                  {onNextTurn && onPreviousTurn && (
-                    <TurnNavigationControls
-                      combatActive={combatActive}
-                      onNextTurn={onNextTurn}
-                      onPreviousTurn={onPreviousTurn}
-                    />
-                  )}
-                </JRPGPanel>
-              </div>
+        {!isCollapsed && layout === "roster" && (
+          <div className="party-panel__roster">
+            <PartyRoster
+              entities={rosterEntities}
+              selectedCharacterId={selectedEntity ? selectedCharacterId : null}
+              inspectorId={inspectorId}
+              onSelect={(event, characterId) =>
+                activatePanelLauncher(event, () =>
+                  setSelectedCharacterId((current) =>
+                    current === characterId ? null : characterId,
+                  ),
+                )
+              }
+              onFocusToken={onFocusToken}
+            />
+            {selectedEntity && (
+              <PartyInspector
+                // Keyed by character: switching rows remounts it, so its Escape
+                // returns focus to the row that opened THIS character.
+                key={selectedEntity.character.id}
+                id={inspectorId}
+                name={selectedEntity.character.name}
+                onClose={() => setSelectedCharacterId(null)}
+                returnFocusTo={() => rosterSelectButton(selectedEntity.character.id)}
+              >
+                {selectedEntity.kind === "npc" ? (
+                  <PartyNpcCard entity={selectedEntity} context={cardContext} />
+                ) : (
+                  <PartyCharacterCard
+                    entity={selectedEntity}
+                    context={cardContext}
+                    isCurrentTurn={
+                      dmEntities.includes(selectedEntity) ? false : selectedEntity.isCurrentTurn
+                    }
+                  />
+                )}
+              </PartyInspector>
             )}
+          </div>
+        )}
 
+        {!isCollapsed && layout === "cards" && (
+          <div className="party-panel__cards">
             {/* Horizontal Layout: DM on left, separator, then Players/NPCs */}
             <div className="entities-panel-main-row">
               {/* DM Section - Pinned to left with separator */}
               {dmEntities.length > 0 && (
                 <>
                   <div className="entities-panel-dm-group">
-                    {dmEntities.map((entity) => {
-                      const { player, character, token, isMe, ownsSoleCharacter } = entity;
-                      if (!player) return null;
-
-                      const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
-                      const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
-
-                      const displayPlayer: Player = {
-                        ...player,
-                        name: character.name,
-                        hp: character.hp,
-                        maxHp: character.maxHp,
-                        // The character's own art; the seat's player-level portrait is legacy,
-                        // attributable only to a sole character (UX-02), like the conditions.
-                        portrait:
-                          character.portrait ?? (ownsSoleCharacter ? player.portrait : undefined),
-                        // See the party grid below: temp HP is the character's.
-                        tempHp: character.tempHp ?? (ownsSoleCharacter ? player.tempHp : undefined),
-                      };
-
-                      return (
-                        <div key={entity.id} className="player-card-shell">
-                          <PlayerCard
-                            player={displayPlayer}
-                            isMe={isMe}
-                            tokenColor={token?.color}
-                            token={token ?? undefined}
-                            tokenSceneObject={tokenSceneObject}
-                            playerDrawings={playerDrawings}
-                            statusEffects={
-                              // A character's conditions are its own. The
-                              // player-level list is legacy and is only
-                              // attributable when this player owns one
-                              // character; otherwise it painted every card
-                              // with conditions set on a sibling (UX-02).
-                              character.statusEffects ??
-                              (ownsSoleCharacter ? player.statusEffects : undefined)
-                            }
-                            micEnabled={micEnabled}
-                            editingPlayerUID={
-                              editingCharacterId === character.id ? player.uid : null
-                            }
-                            nameInput={characterNameInput}
-                            onNameInputChange={setCharacterNameInput}
-                            onNameEdit={() => {
-                              setEditingCharacterId(character.id);
-                              setCharacterNameInput(character.name);
-                            }}
-                            onNameSubmit={(submitted) => {
-                              // Commit what the card submitted. The inline
-                              // editor and the settings window keep separate
-                              // buffers, so reading one here loses the other's
-                              // edit.
-                              const next = submitted.trim();
-                              if (next) {
-                                onCharacterNameUpdate(character.id, next);
-                              }
-                              setEditingCharacterId(null);
-                              setCharacterNameInput("");
-                            }}
-                            onPortraitSubmit={(url) => onCharacterPortraitUpdate(character.id, url)}
-                            onToggleMic={onToggleMic}
-                            onHpChange={(hp) =>
-                              onCharacterHpChange(
-                                character.id,
-                                hp,
-                                displayPlayer.maxHp ?? 100,
-                                displayPlayer.tempHp,
-                              )
-                            }
-                            editingHpUID={editingHpUID}
-                            hpInput={hpInput}
-                            onHpInputChange={onHpInputChange}
-                            onHpEdit={onHpEdit}
-                            onHpSubmit={onHpSubmit}
-                            editingMaxHpUID={editingMaxHpUID}
-                            maxHpInput={maxHpInput}
-                            onMaxHpInputChange={onMaxHpInputChange}
-                            onMaxHpEdit={onMaxHpEdit}
-                            onMaxHpSubmit={onMaxHpSubmit}
-                            editingTempHpUID={editingTempHpUID}
-                            tempHpInput={tempHpInput}
-                            onTempHpInputChange={onTempHpInputChange}
-                            onTempHpEdit={onTempHpEdit}
-                            onTempHpSubmit={onTempHpSubmit}
-                            tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
-                            onTokenImageSubmit={
-                              (isMe || currentIsDM) && token
-                                ? (url) => onTokenImageChange(token.id, url)
-                                : undefined
-                            }
-                            tokenId={token?.id}
-                            onApplyPlayerState={
-                              isMe || currentIsDM
-                                ? (state) => onApplyPlayerState(state, token?.id, character.id)
-                                : undefined
-                            }
-                            onStatusEffectsChange={
-                              (isMe || currentIsDM) && character.id
-                                ? (effects) => onCharacterStatusEffectsChange(character.id, effects)
-                                : undefined
-                            }
-                            canEditStatusEffects={isMe || currentIsDM}
-                            isDM={true}
-                            viewerIsDM={currentIsDM}
-                            onToggleDMMode={onToggleDMMode}
-                            tokenLocked={
-                              token
-                                ? sceneObjects.find((obj) => obj.id === `token:${token.id}`)?.locked
-                                : undefined
-                            }
-                            onToggleTokenLock={
-                              currentIsDM && token
-                                ? (locked: boolean) =>
-                                    onToggleTokenLock(`token:${token.id}`, locked)
-                                : undefined
-                            }
-                            onDeleteToken={currentIsDM ? onPlayerTokenDelete : undefined}
-                            tokenSize={token?.size}
-                            onTokenSizeChange={
-                              (isMe || currentIsDM) && token
-                                ? (size: TokenSize) => onTokenSizeChange(token.id, size)
-                                : undefined
-                            }
-                            // The DM's OWN card was the one place this control never
-                            // reached, though PlayerSettingsMenu's note says "a DM sets
-                            // the darkness on every token, including their own". The
-                            // player section below has always had it; this section is a
-                            // separate render and was never given it. Same gate as there.
-                            tokenVisionRadius={token?.visionRadius}
-                            tableVisionDefault={tableVisionDefault}
-                            onTokenVisionRadiusChange={
-                              currentIsDM && token && onTokenVisionRadiusChange
-                                ? (radiusFeet: number | null) =>
-                                    onTokenVisionRadiusChange(token.id, radiusFeet)
-                                : undefined
-                            }
-                            characterSpeed={character.speed}
-                            // The DM's BENCH: a DM-owned character NOT in the ACTIVE
-                            // order — unrolled, or rolled with combat off (END COMBAT
-                            // keeps initiatives; a rolled one renders in the order
-                            // below while combat is on, F3). No plate budget here, so
-                            // the only lever is a spend to clear — the server charges
-                            // any token moved in combat, and nothing but this or the
-                            // end of combat clears it.
-                            characterBudget={
-                              currentIsDM &&
-                              combatActive &&
-                              (character.movementUsed ?? 0) > 0 &&
-                              onCharacterBudgetReset
-                                ? {
-                                    used: character.movementUsed ?? 0,
-                                    onReset: () => onCharacterBudgetReset(character.id),
-                                  }
-                                : undefined
-                            }
-                            onCharacterSpeedChange={
-                              currentIsDM && onCharacterSpeedChange
-                                ? (speed: number | null) =>
-                                    onCharacterSpeedChange(character.id, speed)
-                                : undefined
-                            }
-                            onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
-                            isCreatingCharacter={isMe ? characterCreation.isCreating : false}
-                            characterId={character.id}
-                            onDeleteCharacter={isMe || currentIsDM ? onDeleteCharacter : undefined}
-                            onFocusToken={token ? () => onFocusToken(token.id) : undefined}
-                            initiative={character.initiative}
-                            onInitiativeClick={
-                              isMe || currentIsDM ? () => openInitiativeModal(character) : undefined
-                            }
-                            initiativeModifier={character.initiativeModifier}
-                            onClearInitiative={
-                              onClearInitiative ? () => onClearInitiative(character.id) : undefined
-                            }
-                            isCurrentTurn={false}
-                          />
-                        </div>
-                      );
-                    })}
+                    {dmEntities.map((entity) => (
+                      <PartyCharacterCard
+                        key={entity.id}
+                        entity={entity}
+                        context={cardContext}
+                        isCurrentTurn={false}
+                      />
+                    ))}
                   </div>
 
                   {/* Vertical Separator */}
@@ -550,259 +281,25 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
 
               {/* Players and NPCs Section */}
               <div className="entities-panel-card-grid">
-                {orderedEntities.map((entity) => {
+                {orderedEntities.map((entity) =>
                   // A DM-owned character that has rolled stands in the order
-                  // (kind "dm", F3): the same card, with the DM's affordances
-                  // (player.isDM below).
-                  if (entity.kind === "character" || entity.kind === "dm") {
-                    const { player, character, token, isMe, isCurrentTurn, ownsSoleCharacter } =
-                      entity;
-
-                    // Type guard: player is always defined for character entities
-                    if (!player) return null;
-
-                    const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
-                    const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
-
-                    // Merge player data with character-specific data
-                    const displayPlayer: Player = {
-                      ...player,
-                      name: character.name,
-                      hp: character.hp,
-                      maxHp: character.maxHp,
-                      // The character's own art; the seat's player-level portrait is legacy,
-                      // attributable only to a sole character (UX-02), like the conditions.
-                      portrait:
-                        character.portrait ?? (ownsSoleCharacter ? player.portrait : undefined),
-                      // Temp HP is the character's too: the Temp HP field
-                      // writes it there, so showing the player-level value
-                      // hid what was entered — and the bar's drag sent that
-                      // value back as the character's. The player-level one
-                      // is legacy, attributable only to a sole character.
-                      tempHp: character.tempHp ?? (ownsSoleCharacter ? player.tempHp : undefined),
-                    };
-
-                    return (
-                      <div
-                        key={entity.id}
-                        className={`player-card-shell${
-                          isCurrentTurn ? " player-card-shell--current-turn" : ""
-                        }`}
-                      >
-                        <PlayerCard
-                          player={displayPlayer}
-                          isMe={isMe}
-                          tokenColor={token?.color}
-                          token={token ?? undefined}
-                          tokenSceneObject={tokenSceneObject}
-                          playerDrawings={playerDrawings}
-                          statusEffects={
-                            // See the DM card above: the legacy player-level
-                            // list is only this character's when it is the
-                            // player's only one.
-                            character.statusEffects ??
-                            (ownsSoleCharacter ? player.statusEffects : undefined)
-                          }
-                          micEnabled={micEnabled}
-                          editingPlayerUID={editingCharacterId === character.id ? player.uid : null}
-                          nameInput={characterNameInput}
-                          onNameInputChange={setCharacterNameInput}
-                          onNameEdit={() => {
-                            setEditingCharacterId(character.id);
-                            setCharacterNameInput(character.name);
-                          }}
-                          onNameSubmit={(submitted) => {
-                            // See the DM card above: commit the submitted
-                            // value, not whatever the shared buffer held.
-                            const next = submitted.trim();
-                            if (next) {
-                              onCharacterNameUpdate(character.id, next);
-                            }
-                            setEditingCharacterId(null);
-                            setCharacterNameInput("");
-                          }}
-                          onPortraitSubmit={(url) => onCharacterPortraitUpdate(character.id, url)}
-                          onToggleMic={onToggleMic}
-                          onHpChange={(hp) =>
-                            onCharacterHpChange(
-                              character.id,
-                              hp,
-                              displayPlayer.maxHp ?? 100,
-                              displayPlayer.tempHp,
-                            )
-                          }
-                          editingHpUID={editingHpUID}
-                          hpInput={hpInput}
-                          onHpInputChange={onHpInputChange}
-                          onHpEdit={onHpEdit}
-                          onHpSubmit={onHpSubmit}
-                          editingMaxHpUID={editingMaxHpUID}
-                          maxHpInput={maxHpInput}
-                          onMaxHpInputChange={onMaxHpInputChange}
-                          onMaxHpEdit={onMaxHpEdit}
-                          onMaxHpSubmit={onMaxHpSubmit}
-                          editingTempHpUID={editingTempHpUID}
-                          tempHpInput={tempHpInput}
-                          onTempHpInputChange={onTempHpInputChange}
-                          onTempHpEdit={onTempHpEdit}
-                          onTempHpSubmit={onTempHpSubmit}
-                          tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
-                          onTokenImageSubmit={
-                            (isMe || currentIsDM) && token
-                              ? (url) => onTokenImageChange(token.id, url)
-                              : undefined
-                          }
-                          tokenId={token?.id}
-                          onApplyPlayerState={
-                            isMe || currentIsDM
-                              ? (state) => onApplyPlayerState(state, token?.id, character.id)
-                              : undefined
-                          }
-                          onStatusEffectsChange={
-                            (isMe || currentIsDM) && character.id
-                              ? (effects) => onCharacterStatusEffectsChange(character.id, effects)
-                              : undefined
-                          }
-                          canEditStatusEffects={isMe || currentIsDM}
-                          isDM={player.isDM ?? false}
-                          viewerIsDM={currentIsDM}
-                          onToggleDMMode={onToggleDMMode}
-                          tokenLocked={
-                            token
-                              ? sceneObjects.find((obj) => obj.id === `token:${token.id}`)?.locked
-                              : undefined
-                          }
-                          onToggleTokenLock={
-                            currentIsDM && token
-                              ? (locked: boolean) => onToggleTokenLock(`token:${token.id}`, locked)
-                              : undefined
-                          }
-                          onDeleteToken={currentIsDM ? onPlayerTokenDelete : undefined}
-                          tokenSize={token?.size}
-                          onTokenSizeChange={
-                            (isMe || currentIsDM) && token
-                              ? (size: TokenSize) => onTokenSizeChange(token.id, size)
-                              : undefined
-                          }
-                          tokenVisionRadius={token?.visionRadius}
-                          tableVisionDefault={tableVisionDefault}
-                          onTokenVisionRadiusChange={
-                            currentIsDM && token && onTokenVisionRadiusChange
-                              ? (radiusFeet: number | null) =>
-                                  onTokenVisionRadiusChange(token.id, radiusFeet)
-                              : undefined
-                          }
-                          characterSpeed={character.speed}
-                          // Where the plate shows a budget (in combat, in the order —
-                          // the shared spelling of it; the bench site above is the
-                          // spend clause only), OR where there is a spend to clear:
-                          // the server charges any token moved in combat, initiative or
-                          // not.
-                          characterBudget={
-                            currentIsDM &&
-                            combatActive &&
-                            (isInInitiativeOrder(character, players) ||
-                              (character.movementUsed ?? 0) > 0) &&
-                            onCharacterBudgetReset
-                              ? {
-                                  used: character.movementUsed ?? 0,
-                                  onReset: () => onCharacterBudgetReset(character.id),
-                                }
-                              : undefined
-                          }
-                          onCharacterSpeedChange={
-                            currentIsDM && onCharacterSpeedChange
-                              ? (speed: number | null) =>
-                                  onCharacterSpeedChange(character.id, speed)
-                              : undefined
-                          }
-                          onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
-                          isCreatingCharacter={isMe ? characterCreation.isCreating : false}
-                          characterId={character.id}
-                          onDeleteCharacter={isMe || currentIsDM ? onDeleteCharacter : undefined}
-                          onFocusToken={token ? () => onFocusToken(token.id) : undefined}
-                          initiative={character.initiative}
-                          onInitiativeClick={
-                            isMe || currentIsDM ? () => openInitiativeModal(character) : undefined
-                          }
-                          initiativeModifier={character.initiativeModifier}
-                          onClearInitiative={
-                            onClearInitiative ? () => onClearInitiative(character.id) : undefined
-                          }
-                          isCurrentTurn={isCurrentTurn}
-                        />
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div
-                      key={`npc-${entity.id}`}
-                      className={`player-card-shell${
-                        entity.isCurrentTurn ? " player-card-shell--current-turn" : ""
-                      }`}
-                    >
-                      <NpcCard
-                        character={entity.character}
-                        isDM={currentIsDM}
-                        onUpdate={onNpcUpdate}
-                        onDelete={onNpcDelete}
-                        onPlaceToken={onNpcPlaceToken}
-                        onToggleVisibility={onNpcToggleVisibility}
-                        // The token on the map: one waiting on another scene takes no Lock or
-                        // Size — the server looks for it in the current scene only.
-                        tokenLocked={
-                          entity.token?.id
-                            ? sceneObjects.find((obj) => obj.id === `token:${entity.token?.id}`)
-                                ?.locked
-                            : undefined
-                        }
-                        onToggleTokenLock={
-                          currentIsDM && entity.token?.id
-                            ? (locked: boolean) =>
-                                onToggleTokenLock(`token:${entity.token?.id}`, locked)
-                            : undefined
-                        }
-                        tokenSize={
-                          entity.token?.id
-                            ? (
-                                sceneObjects.find(
-                                  (obj) => obj.id === `token:${entity.token?.id}`,
-                                ) as (SceneObject & { type: "token" }) | undefined
-                              )?.data.size
-                            : undefined
-                        }
-                        onTokenSizeChange={
-                          currentIsDM && entity.token?.id
-                            ? (size: TokenSize) => onTokenSizeChange(entity.token!.id, size)
-                            : undefined
-                        }
-                        // Its token on the map; one left on another scene is not focusable.
-                        onFocusToken={
-                          entity.token ? () => onFocusToken(entity.token!.id) : undefined
-                        }
-                        initiative={entity.character.initiative}
-                        onInitiativeClick={
-                          currentIsDM ? () => openInitiativeModal(entity.character) : undefined
-                        }
-                        initiativeModifier={entity.character.initiativeModifier}
-                        isDeleting={isDeletingNpc}
-                        deletionError={npcDeletionError}
-                        onClearInitiative={
-                          onClearInitiative
-                            ? () => onClearInitiative(entity.character.id)
-                            : undefined
-                        }
-                        isCurrentTurn={entity.isCurrentTurn}
-                      />
-                    </div>
-                  );
-                })}
+                  // (kind "dm", F3): the same card, with the DM's affordances.
+                  entity.kind === "npc" ? (
+                    <PartyNpcCard key={`npc-${entity.id}`} entity={entity} context={cardContext} />
+                  ) : (
+                    <PartyCharacterCard
+                      key={entity.id}
+                      entity={entity}
+                      context={cardContext}
+                      isCurrentTurn={entity.isCurrentTurn}
+                    />
+                  ),
+                )}
               </div>
             </div>
           </div>
-        </JRPGPanel>
-      )}
+        )}
+      </JRPGPanel>
 
       {/* Initiative Modal */}
       {isInitiativeModalOpen && initiativeModalCharacter && initiativeModalAllowed && (

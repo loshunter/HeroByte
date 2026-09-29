@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { hideParty } from "./party.helpers";
 import { chooseBuildTool } from "./build-palette.helpers";
 import {
   activate,
@@ -48,7 +49,7 @@ for (const mobile of [false, true]) {
     const checkpoints: unknown[] = [];
     try {
       await createAndJoin(dm, player, mobile, `U3b ${mobile ? "phone" : "desktop"}`);
-      if (!mobile) await dm.getByRole("button", { name: /Hide entities/i }).click();
+      if (!mobile) await hideParty(dm);
       await armGrass(dm, mobile, true);
       await openBuildTools(dm, mobile);
       await chooseBuildTool(dm, "room", mobile);

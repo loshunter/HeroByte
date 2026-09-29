@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { hideParty } from "./party.helpers";
 import { chooseBuildTool } from "./build-palette.helpers";
 import { activate, armGrass, createAndJoin, mapContent } from "./u2-cancel.helpers";
 import { observeGeneration } from "./u3a-generate.helpers";
@@ -38,7 +39,7 @@ for (const phone of [false, true]) {
       playerWire = observeGeneration(player);
     try {
       await createAndJoin(dm, player, phone, `U5 properties ${phone ? "phone" : "desktop"}`);
-      if (!phone) await dm.getByRole("button", { name: /Hide entities/i }).click();
+      if (!phone) await hideParty(dm);
       await armGrass(dm, phone, true);
       await publicRevision([dm, player], await paintPropertyFloor(dm, phone, wire));
       const { door, document } = await placePropertyDoor(dm, phone, wire);

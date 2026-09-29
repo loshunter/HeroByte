@@ -6,9 +6,23 @@
 // the player owns one character (the conditions rule, UX-02).
 
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, within } from "@testing-library/react";
 import { EntitiesPanel } from "../EntitiesPanel";
-import { ALICE_UID, DM_UID, entitiesPanelProps, pc, seat } from "./entitiesPanel.fixtures";
+import {
+  ALICE_UID,
+  DM_UID,
+  entitiesPanelProps,
+  pc,
+  seat,
+  showCards,
+} from "./entitiesPanel.fixtures";
+
+// U7: the Party opens as the compact roster; these suites pin the full cards.
+const render = (...args: Parameters<typeof rtlRender>) => {
+  const result = rtlRender(...args);
+  showCards();
+  return result;
+};
 
 const dm = seat(DM_UID, "The DM", { isDM: true });
 

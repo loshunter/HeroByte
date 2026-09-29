@@ -945,6 +945,9 @@ type ClientMessagePayload =
   // no value clears initiative and with one enters the order (and, after END
   // COMBAT, starts combat again), so neither can restore just the bonus.
   | { t: "set-initiative-modifier"; characterId: string; initiativeModifier: number }
+  // The DM moves a player character — and its token — to another player's
+  // seat (U7's Token settings, "ownership where allowed").
+  | { t: "set-character-owner"; characterId: string; ownerUid: string }
   // Rolling. Carries a TARGET and no result: the server rolls d20 on
   // cryptoDiceRng — the same generator dice use — and appends the roll to the
   // log so the table witnesses it. Strictly less for a tampered client to lie

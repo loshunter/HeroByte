@@ -18,8 +18,9 @@ import type { CreateNpcRequest } from "../hooks/useNpcCreation";
 import type { CustomTokensApi } from "../token-library/customTokensContext";
 import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
+import type { LauncherPresentation } from "../../../components/layout/party/LauncherDock";
 
-export interface DMMenuProps {
+export interface DMMenuBaseProps {
   isDM: boolean;
   onToggleDM: (next: boolean) => void;
   gridSize: number;
@@ -83,6 +84,9 @@ export interface DMMenuProps {
   onDuplicateNPC: (id: string) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;
+  onSetNPCStatusEffects: (id: string, effects: string[]) => void;
+  onFocusNPCToken: (tokenId: string) => void;
+  mapTokenIds: ReadonlySet<string>;
   isCreatingNpc?: boolean;
   npcCreationError?: string | null;
   isUpdatingNpc?: boolean;
@@ -158,11 +162,13 @@ export interface DMMenuProps {
   initiativeManualOverride?: boolean;
   onInitiativeManualOverrideChange?: (enabled: boolean) => void;
   mapStudio?: MapStudioController;
-  /**
-   * How the menu presents (M4b). "window" is the desktop shape: the floating
-   * 🛠️ DM MENU launcher plus a DraggableWindow. "content" renders ONLY the
-   * inner content — exit row, tabs (as a scrollable chip row), active tab —
-   * for a host that already provides the surface, like the mobile DM screen.
-   */
-  presentation?: "window" | "content";
 }
+
+/**
+ * How the menu presents (M4b). "window" is the desktop shape: the 🛠️ DM MENU
+ * launcher in the Party bar's dock (U7) plus a DraggableWindow; the dock is
+ * required there. "content" renders ONLY the inner content — exit row, tabs
+ * (as a scrollable chip row), active tab — for a host that already provides
+ * the surface, like the mobile DM screen.
+ */
+export type DMMenuProps = DMMenuBaseProps & LauncherPresentation;

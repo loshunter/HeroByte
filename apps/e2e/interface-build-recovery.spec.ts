@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { hideParty } from "./party.helpers";
 import { chooseBuildTool } from "./build-palette.helpers";
 import { armGrass, createAndJoin, mapContent, mouseStroke } from "./u2-cancel.helpers";
 import { aimRegion, observeGeneration } from "./u3a-generate.helpers";
@@ -87,7 +88,7 @@ test("U3b Undo removes the decoration target even over surviving painted floor",
   const wire = observeGeneration(dm);
   try {
     await createAndJoin(dm, player, false, "U3b decoration Undo");
-    await dm.getByRole("button", { name: /Hide entities/i }).click();
+    await hideParty(dm);
     await armGrass(dm, false, true);
     const aim = await aimRegion(dm, false, wire.document(), 12, false);
     // Leave an actual painted stroke underneath the room that will be undone.
@@ -191,7 +192,7 @@ for (const mobile of [false, true]) {
     const wire = observeGeneration(dm);
     try {
       await createAndJoin(dm, player, mobile, "U3b hidden perimeter");
-      if (!mobile) await dm.getByRole("button", { name: /Hide entities/i }).click();
+      if (!mobile) await hideParty(dm);
       await armGrass(dm, mobile, true);
       await openBuildTools(dm, mobile);
       await chooseBuildTool(dm, "room", mobile);

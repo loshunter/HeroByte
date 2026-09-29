@@ -47,6 +47,8 @@ vi.mock("../../../components/dice/DraggableWindow", () => ({
 }));
 
 const createProps = () => ({
+  // U7: a window-presentation menu renders its launcher into the Party dock.
+  launcherDock: document.body,
   isDM: true,
   onToggleDM: vi.fn(),
   gridSize: 50,
@@ -78,6 +80,9 @@ const createProps = () => ({
   onResetNPCBudget: vi.fn(),
   onDeleteNPC: vi.fn(),
   onPlaceNPCToken: vi.fn(),
+  onSetNPCStatusEffects: vi.fn(),
+  onFocusNPCToken: vi.fn(),
+  mapTokenIds: new Set<string>(),
   mapLocked: false,
   onMapLockToggle: vi.fn(),
   mapTransform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },

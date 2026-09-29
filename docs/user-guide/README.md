@@ -8,7 +8,7 @@ This guide walks through everything a player or a DM needs, with screenshots fro
 | --------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | [Getting Started](getting-started.md)   | Everyone        | Joining a table, private tables and invite links, becoming the DM                                                                         |
 | [Running a Game](running-a-game.md)     | Dungeon Masters | **Start here.** The three ways to get a map on the table — bring your own art, build it, or generate it mid-session — and how to mix them |
-| [Player Guide](player-guide.md)         | Players         | The table UI, your character card, tokens, dice, drawing, voice, doors and fog, the world map, mobile                                     |
+| [Player Guide](player-guide.md)         | Players         | The table UI, the Party and your character card, tokens, dice, drawing, voice, doors and fog, the world map, mobile                       |
 | [DM Guide](dm-guide.md)                 | Dungeon Masters | The DM Menu, the Maps tab, NPCs and props, initiative and combat, session save/load, table security, World and the Kicked-In Door         |
 | [Map Editor Guide](map-editor-guide.md) | Dungeon Masters | The live map editor: rooms, halls, doors, terrain painting, props, lighting, the dungeon generator                                        |
 

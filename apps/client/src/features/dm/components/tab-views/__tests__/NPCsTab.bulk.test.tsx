@@ -31,6 +31,9 @@ function renderTabProps(overrides: Partial<React.ComponentProps<typeof NPCsTab>>
     onResetNPCBudget: vi.fn(),
     combatActive: true,
     onPlaceNPCToken: vi.fn(),
+    onSetNPCStatusEffects: vi.fn(),
+    onFocusNPCToken: vi.fn(),
+    mapTokenIds: new Set<string>(),
     onDeleteNPC: vi.fn(),
     ...overrides,
   };

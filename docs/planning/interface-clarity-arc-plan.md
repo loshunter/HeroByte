@@ -1,5 +1,19 @@
 # Interface clarity — the first session should teach the table — arc plan
 
+> **STATUS: U7 ACCEPTED, COMMITTED AND ON `origin/dev` — 2026-09-29. U8 has not started.**
+> U7 (Party is compact; a character is not a player seat) is committed on `dev` after 36
+> fix/test/refactor commits (`ccd18b82`…`2689cf53`) for bugs found along the way, and
+> pushed with them. Three review rounds of four fresh Opus lenses: 34 → 28 → 33 items (P1:
+> 1 → 1 → 0). At the round-3 stop the owner chose “repair all, verify” and decided three
+> questions (a DM edits a player's HP and moves a character between seats, both built in
+> U7; the Table role section is the interim role home). Every round-3 item is repaired;
+> the ladder is green (286 browser/3 accepted skips/0 flaky; 149.95 KB) and the live
+> two-client evaluation scores 8.4. Its one follow-up, phone HP tap targets, is fixed
+> (`2689cf53`). U6 is committed and on `origin/dev` (`4af2cc5e`). Read
+> [the U7 record](../verification/interface-clarity-u7.md).
+>
+> Previous status (U6):
+>
 > **STATUS: U6 IMPLEMENTED, REVIEWED AND REPAIRED — AWAITING OWNER ACCEPTANCE — 2026-09-28.**
 > U5 was pushed to `dev` with the door-pan fix on the owner's instruction. U6 (current map,
 > library and World become distinguishable) is uncommitted on `dev`. Three review rounds of

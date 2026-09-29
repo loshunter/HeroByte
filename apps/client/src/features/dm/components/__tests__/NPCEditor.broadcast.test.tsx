@@ -19,7 +19,13 @@ const npc = {
 } as SnapshotCharacter;
 
 function renderEditor() {
-  const handlers = { onUpdate: vi.fn(), onPlace: vi.fn(), onDuplicate: vi.fn(), onDelete: vi.fn() };
+  const handlers = {
+    onUpdate: vi.fn(),
+    onPlace: vi.fn(),
+    onDuplicate: vi.fn(),
+    onDelete: vi.fn(),
+    onStatusEffectsChange: vi.fn(),
+  };
   const view = render(<NPCEditor npc={{ ...npc }} {...handlers} />);
   const rerenderWith = (next: Partial<SnapshotCharacter>) =>
     view.rerender(<NPCEditor npc={{ ...npc, ...next } as SnapshotCharacter} {...handlers} />);

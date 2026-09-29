@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { closePartyDetails, openOwnCharacterSettings, ownRosterRow } from "./party.helpers";
 import path from "node:path";
 import type { Locator } from "@playwright/test";
 import { expect, type Page } from "./fixtures";
@@ -97,7 +98,7 @@ export async function boardBox(page: Page) {
 }
 
 export async function hideEntitiesPanel(page: Page) {
-  const hide = page.getByRole("button", { name: /HIDE ENTITIES/ });
+  const hide = page.getByRole("button", { name: "▼ Hide party" });
   if (await hide.isVisible().catch(() => false)) {
     await hide.click();
     await page.waitForTimeout(300);
@@ -105,10 +106,8 @@ export async function hideEntitiesPanel(page: Page) {
 }
 
 export async function focusOwnToken(page: Page) {
-  await page
-    .locator(".player-card")
-    .filter({ has: page.getByText("You", { exact: true }) })
-    .getByRole("button", { name: "Focus camera on token" })
+  await ownRosterRow(page)
+    .getByRole("button", { name: /^Focus / })
     .click();
 }
 
@@ -217,9 +216,8 @@ export async function computeGenRegion(
 // password modal, unlike helpers.elevateToDM which injects a WS message).
 export async function elevateViaUI(page: Page, opts: { onModal?: () => Promise<void> } = {}) {
   const dmPassword = process.env.E2E_DM_PASSWORD ?? "FunDM";
-  // The gear button's accessible name is its emoji content, so target the
-  // title attribute rather than a role+name query.
-  await page.getByTitle("Open player settings").first().click();
+  // The Party roster's own row → its card in the inspector → the gear (U7).
+  await openOwnCharacterSettings(page);
   await page.getByRole("button", { name: /DM Mode: OFF/ }).click();
   const passwordField = page.locator("input[type='password']:visible").first();
   await expect(passwordField).toBeVisible();
@@ -228,7 +226,10 @@ export async function elevateViaUI(page: Page, opts: { onModal?: () => Promise<v
   await page.getByRole("button", { name: "Elevate to DM" }).click();
   await expect(page.getByRole("button", { name: /DM MENU/i })).toBeVisible({ timeout: 10_000 });
   await closeTopWindow(page, "Player Settings");
+  await closePartyDetails(page);
 }
+
+export { closePartyDetails };
 
 // Close the top-most draggable window by its × button. Tolerant by design:
 // some windows close themselves (e.g. player settings after a DM status

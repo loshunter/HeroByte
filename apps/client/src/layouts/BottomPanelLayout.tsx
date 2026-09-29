@@ -64,6 +64,11 @@ export interface BottomPanelLayoutProps {
   // Layout & Ref (1 prop)
   /** Reference to the bottom panel DOM element for height measurement */
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
+  /**
+   * Receives the Party bar's launcher dock (U7): the slot World, Props and
+   * DM MENU render into instead of floating over the cards (IA-15).
+   */
+  launcherDockRef: (node: HTMLDivElement | null) => void;
 
   // State Data (9 props)
   /** Array of all players in the session */
@@ -173,6 +178,7 @@ export interface BottomPanelLayoutProps {
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   /** Handler to change token size */
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
   /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
    * optional so the layout fixtures stay untouched). */
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
@@ -275,6 +281,7 @@ export interface BottomPanelLayoutProps {
 export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
   ({
     bottomPanelRef,
+    launcherDockRef,
     players,
     characters,
     tokens,
@@ -320,6 +327,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     npcDeletionError,
     onToggleTokenLock,
     onTokenSizeChange,
+    onCharacterOwnerChange,
     onTokenVisionRadiusChange,
     onCharacterSpeedChange,
     onCharacterBudgetReset,
@@ -386,6 +394,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         npcDeletionError={npcDeletionError}
         onToggleTokenLock={onToggleTokenLock}
         onTokenSizeChange={onTokenSizeChange}
+        onCharacterOwnerChange={onCharacterOwnerChange}
         onTokenVisionRadiusChange={onTokenVisionRadiusChange}
         onCharacterSpeedChange={onCharacterSpeedChange}
         onCharacterBudgetReset={onCharacterBudgetReset}
@@ -395,6 +404,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onDeleteCharacter={onDeleteCharacter}
         onFocusToken={onFocusToken}
         bottomPanelRef={bottomPanelRef}
+        launcherDockRef={launcherDockRef}
         combatActive={combatActive}
         currentTurnCharacterId={currentTurnCharacterId}
         onSetInitiative={onSetInitiative}

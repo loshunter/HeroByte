@@ -71,9 +71,11 @@ vi.mock("../../features/dm/lazy-entry", () => ({
   DMMenuContainer: ({
     presentation,
     openKick,
+    onFocusToken,
   }: {
     presentation?: string;
     openKick?: () => void;
+    onFocusToken?: (tokenId: string) => void;
   }) => (
     <div data-testid="dm-menu-content" data-presentation={presentation}>
       DMMenuContainer
@@ -81,6 +83,12 @@ vi.mock("../../features/dm/lazy-entry", () => ({
       {openKick && (
         <button type="button" onClick={openKick}>
           🚪 KICK IN A DOOR
+        </button>
+      )}
+      {/* The NPCs tab's 🎯 Focus (U7). */}
+      {onFocusToken && (
+        <button type="button" onClick={() => onFocusToken("t-goblin")}>
+          Focus Goblin
         </button>
       )}
     </div>
@@ -485,6 +493,53 @@ describe("MobileLayout", () => {
     expect(document.querySelector(".mobile-tool-sheet")).toBeNull();
   });
 
+  // The phone Party's DM-only token controls ride MobileSurfaces' own wiring;
+  // MobileEntitiesList's tests hand them in, so only this sees a dropped line.
+  it("a DM deletes another player's token and moves their character from the phone Party", () => {
+    const props = {
+      ...createDefaultProps(),
+      isDM: true,
+      snapshot: {
+        combatActive: false,
+        players: [
+          { uid: "test-uid", name: "DM", isDM: true },
+          { uid: "p2", name: "Them" },
+        ],
+        characters: [
+          {
+            id: "char-2",
+            name: "Wolf",
+            type: "pc",
+            hp: 9,
+            maxHp: 9,
+            ownedByPlayerUID: "p2",
+            tokenId: "their-token",
+          },
+        ],
+        tokens: [{ id: "their-token", owner: "p2", x: 1, y: 1, color: "blue" }],
+        sceneObjects: [],
+      } as unknown as MainLayoutProps["snapshot"],
+    };
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<MobileLayout {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /party/i }));
+    const row = screen
+      .getAllByTestId("mobile-player-row")
+      .find((candidate) => within(candidate).queryByText("Wolf", { exact: true }))!;
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+    fireEvent.click(screen.getByRole("button", { name: "🗑️ Delete Token (DM)" }));
+    fireEvent.change(screen.getByLabelText("Owner"), { target: { value: "test-uid" } });
+
+    expect(props.deleteToken).toHaveBeenCalledWith("their-token");
+    expect(props.sendMessage).toHaveBeenCalledWith({
+      t: "set-character-owner",
+      characterId: "char-2",
+      ownerUid: "test-uid",
+    });
+    vi.restoreAllMocks();
+  });
+
   it("closes the open Party panel when a prop-controlled sheet (dice) opens", () => {
     const props = createDefaultProps();
     render(<MobileLayout {...props} />);
@@ -874,6 +929,18 @@ describe("MobileLayout", () => {
       expect(openSurfaces()).toEqual(["party"]);
 
       fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("an NPC's Focus from the DM screen centres its token and shows the map", async () => {
+      const props = { ...createDefaultProps(), isDM: true };
+      render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/^dm$/i));
+      expect(openSurfaces()).toEqual(["dm"]);
+
+      fireEvent.click(await screen.findByRole("button", { name: "Focus Goblin" }));
+
+      expect(props.handleFocusToken).toHaveBeenCalledWith("t-goblin");
       expect(openSurfaces()).toEqual([]);
     });
 

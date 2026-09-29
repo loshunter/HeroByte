@@ -221,3 +221,18 @@ describe("MobilePlayerRow portrait field", () => {
     expect(screen.queryByDisplayValue("a.png")).not.toBeInTheDocument();
   });
 });
+
+describe("MobilePlayerRow HP", () => {
+  it("a DM edits another player's HP from their row; a player does not", () => {
+    const dm = props({ isMe: false, isDM: true });
+    const { unmount } = render(<MobilePlayerRow {...dm} />);
+    fireEvent.click(screen.getAllByText("100")[0]!);
+    expect(dm.onHpEdit).toHaveBeenCalledWith("char-2", 100);
+    unmount();
+
+    const player = props({ isMe: false, isDM: false });
+    render(<MobilePlayerRow {...player} />);
+    fireEvent.click(screen.getAllByText("100")[0]!);
+    expect(player.onHpEdit).not.toHaveBeenCalled();
+  });
+});

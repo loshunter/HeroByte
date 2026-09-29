@@ -1,4 +1,5 @@
 import { chooseBuildTool } from "./build-palette.helpers";
+import { closePartyDetails, openOwnCharacterSettings } from "./party.helpers";
 import type { CDPSession, Locator } from "@playwright/test";
 import type { ClientMessage, MapDocument, ServerMessage } from "@herobyte/shared";
 import { expect, type Page } from "./fixtures";
@@ -33,8 +34,7 @@ export async function joinSecondDM(page: Page, roomUrl: string) {
   await page.getByPlaceholder("Table password").fill("U2-local-table-password");
   await page.getByRole("button", { name: /Enter Table/i }).click();
   await expect(page.getByTestId("map-board")).toBeVisible();
-  await page.getByTitle("Open player settings").click();
-  const settings = page.locator('[data-mobile-surface="settings"]');
+  const settings = await openOwnCharacterSettings(page);
   await settings.getByRole("button", { name: "DM Mode: OFF", exact: true }).click();
   await page.getByLabel("Enter DM Password:", { exact: true }).fill("U2-local-dm-password");
   await page.getByRole("button", { name: "Elevate to DM", exact: true }).click();
@@ -50,6 +50,7 @@ export async function joinSecondDM(page: Page, roomUrl: string) {
   const close = settings.getByRole("button", { name: /^Close / });
   if (await close.isVisible()) await close.click();
   await expect(settings).toHaveCount(0);
+  await closePartyDetails(page);
   await page.getByTitle("Author the live map on the table").click();
   await chooseBuildTool(page, "wall");
   await page.getByRole("button", { name: "🗂 Layers", exact: true }).click();

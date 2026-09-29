@@ -7,7 +7,15 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, it } from "vitest";
 import type { Token } from "@herobyte/shared";
 import { EntitiesPanel } from "../EntitiesPanel";
-import { ALICE_UID, BOB_UID, DM_UID, entitiesPanelProps, pc, seat } from "./entitiesPanel.fixtures";
+import {
+  ALICE_UID,
+  BOB_UID,
+  DM_UID,
+  entitiesPanelProps,
+  pc,
+  seat,
+  showCards,
+} from "./entitiesPanel.fixtures";
 
 const players = [
   seat(DM_UID, "The DM", { isDM: true }),
@@ -22,9 +30,7 @@ afterEach(cleanup);
 function renderAs(uid: string, currentIsDM: boolean) {
   const props = entitiesPanelProps({ players, characters, tokens, uid, currentIsDM });
   render(<EntitiesPanel {...props} />);
-  // Every card at once (the compact roster, where the Party has one, hides them).
-  const cards = screen.queryByRole("button", { name: "▦ Cards" });
-  if (cards) fireEvent.click(cards);
+  showCards(); // every card at once: the compact roster hides them
   return props;
 }
 

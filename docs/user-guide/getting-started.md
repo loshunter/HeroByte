@@ -12,9 +12,9 @@ Open the app in a modern browser (Chrome, Edge, or Firefox recommended). You'll 
 2. Type the **table password** your host gave you.
 3. Press **ENTER TABLE**.
 
-That's it — your token appears on the map, and your player card shows up in the **Entities** panel at the bottom. If the table has a built map on it — one made with **🏗️ Build map**, or a saved map put on the table with **Use at table** or World travel, not a plain uploaded background image — the view starts centred on your token, so you are not staring at unexplored fog wondering whether anything loaded, and the same happens when you reload. Three things narrow that: it needs that built map; it aims at your token only while you run a single character (with two it goes to the party's start zone instead, or stays put); and it happens once on arrival, so a first map put on the table after you join leaves your view alone — though switching the table from one map to another recentres everyone on the new map's staging zone or middle.
+That's it — your token appears on the map, and your character gets a row in the **Party** at the bottom (select it for your full character card). If the table has a built map on it — one made with **🏗️ Build map**, or a saved map put on the table with **Use at table** or World travel, not a plain uploaded background image — the view starts centred on your token, so you are not staring at unexplored fog wondering whether anything loaded, and the same happens when you reload. Three things narrow that: it needs that built map; it aims at your token only while you run a single character (with two it goes to the party's start zone instead, or stays put); and it happens once on arrival, so a first map put on the table after you join leaves your view alone — though switching the table from one map to another recentres everyone on the new map's staging zone or middle.
 
-![First moments at a table: your token on the grid and your player card below](img/table-first-join.jpg)
+![First moments at a table: your token on the grid and your character's row in the Party below](img/table-first-join.jpg)
 
 A few useful details:
 
@@ -80,13 +80,13 @@ Good to know:
 
 Any player at a table can elevate to **Dungeon Master** with that table's DM password:
 
-1. Open your player card's **⚙️ settings** (bottom-right of your card in the Entities panel).
-2. Under **Dungeon Master Mode**, press **DM MODE: OFF**.
+1. In the **Party** at the bottom, select your own row (it reads **You**); your character card opens beside the rows. Press its **⚙️** (bottom-right of the card) to open your settings. (On a phone: **◉ PARTY** → **⚙️ EDIT** on your row.)
+2. Under **Table role → Dungeon Master Mode** at the bottom of the window, press **DM MODE: OFF**.
 3. Enter the DM password and press **ELEVATE TO DM**.
 
 ![The DM elevation prompt](img/dm-elevate-modal.jpg)
 
-You'll get a confirmation toast, plus three new powers in the top toolbar — **🏗️ Build map** (the [live map editor](map-editor-guide.md)), **👁 PLAYER VIEW** (the player lens), and the **🛠️ DM MENU** button in the bottom-right (the [DM Guide](dm-guide.md) covers it all).
+You'll get a confirmation toast, plus two new buttons in the top toolbar — **🏗️ Build map** (the [live map editor](map-editor-guide.md)) and **👁 PLAYER VIEW** (the player lens) — and the **🛠️ DM MENU** button at the right of the Party bar (the [DM Guide](dm-guide.md) covers it all). On a phone, the dock's **◇ View** slot becomes **♛ DM**.
 
 Notes:
 

@@ -10,6 +10,7 @@ import SessionTab from "./tab-views/SessionTab";
 import { useDMMenuState } from "../hooks/useDMMenuState";
 import { DMMenuTabs } from "./DMMenuTabs";
 import type { DMMenuProps } from "./DMMenu.types";
+import { DockedLauncher, LAUNCHER_ORDER } from "../../../components/layout/party/LauncherDock";
 
 export function DMMenu({
   isDM,
@@ -59,6 +60,9 @@ export function DMMenu({
   onResetNPCBudget,
   onDeleteNPC,
   onPlaceNPCToken,
+  onSetNPCStatusEffects,
+  onFocusNPCToken,
+  mapTokenIds,
   isCreatingNpc,
   npcCreationError,
   isUpdatingNpc,
@@ -119,6 +123,7 @@ export function DMMenu({
   onInitiativeManualOverrideChange,
   mapStudio,
   presentation = "window",
+  launcherDock,
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -227,6 +232,9 @@ export function DMMenu({
           onResetNPCBudget={onResetNPCBudget}
           combatActive={combatActive}
           onPlaceNPCToken={onPlaceNPCToken}
+          onSetNPCStatusEffects={onSetNPCStatusEffects}
+          onFocusNPCToken={onFocusNPCToken}
+          mapTokenIds={mapTokenIds}
           onDeleteNPC={onDeleteNPC}
           isCreatingNpc={isCreatingNpc}
           npcCreationError={npcCreationError}
@@ -304,22 +312,15 @@ export function DMMenu({
 
   return (
     <>
-      <div
-        style={{
-          position: "fixed",
-          bottom: "32px",
-          right: "32px",
-          zIndex: 150,
-        }}
-      >
+      {/* In the Party bar's dock (U7, IA-15), never over the Party cards. */}
+      <DockedLauncher dock={launcherDock ?? null} order={LAUNCHER_ORDER.dm}>
         <JRPGButton
           onClick={(event) => activatePanelLauncher(event, toggleOpen)}
           variant={open ? "primary" : "default"}
-          style={{ fontSize: "10px", padding: "10px 16px" }}
         >
           🛠️ DM MENU
         </JRPGButton>
-      </div>
+      </DockedLauncher>
 
       {open && (
         <DraggableWindow

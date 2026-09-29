@@ -7,7 +7,14 @@
 
 ## Frontier
 
-- Latest U6 (2026-09-28): implemented; three review rounds (~22 → ~30 → ~21 items; R3 no
+- Latest U7 (2026-09-29): accepted by the owner, committed on `dev` after 36 fix/test/refactor
+  commits (`ccd18b82`…`2689cf53`), and pushed to `origin/dev` with them. Review: three rounds of four Opus lenses,
+  34 → 28 → 33 items (P1 1 → 1 → 0); stopped at the cap; the owner chose “repair all,
+  verify”, and every round-3 item is repaired. Ladder after the repairs: green;
+  452/2,766/7,259 units, 286 browser/3 skips/0 flaky, dev boot, 149.95 KB; live
+  two-client evaluation 8.4; phone HP tap targets fixed (`2689cf53`). See the
+  [U7 record](interface-clarity-u7.md).
+- Previous U6 (2026-09-28): implemented; three review rounds (~22 → ~30 → ~21 items; R3 no
   P1/P2, 2 PASS/2 FAIL); owner chose “Repair all, verify”; every R3 item repaired with
   sabotage-proven tests (27 mutants killed); full ladder PASS — 452/2,738/7,056 units,
   274 browser/3 skips/0 flaky, dev boot, 145.50 KB. Uncommitted, awaiting acceptance.

@@ -1445,6 +1445,15 @@ describe("validateMessage", () => {
       );
     });
 
+    it("set-character-owner: a characterId and an ownerUid", () => {
+      const message = (characterId: unknown, ownerUid: unknown) =>
+        validateMessage({ t: "set-character-owner", characterId, ownerUid });
+      expect(message("c1", "bob")).toEqual({ valid: true });
+      expect(message("", "bob").valid).toBe(false);
+      expect(message("c1", "").valid).toBe(false);
+      expect(message("c1", 7).valid).toBe(false);
+    });
+
     it("set-initiative-modifier: a characterId and a modifier in the stored range", () => {
       const message = (initiativeModifier: unknown, characterId: unknown = "c1") =>
         validateMessage({ t: "set-initiative-modifier", characterId, initiativeModifier });

@@ -21,11 +21,12 @@ import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
 import { manualInitiativeEnabled } from "../../initiative/manualOverride";
+import type { LauncherPresentation } from "../../../components/layout/party/LauncherDock";
 
 // Exported for buildDMMenuProps, which maps the MainLayoutProps bag onto this
 // shape once, for BOTH layouts. Import it `type`-only: a value import here
 // would pull the DM chunk into the entry bundle and undo the lazy split.
-export interface DMMenuContainerProps {
+export interface DMMenuContainerBaseProps {
   // DM Status
   isDM: boolean;
   onToggleDM: (next: boolean) => void;
@@ -86,6 +87,8 @@ export interface DMMenuContainerProps {
   snapshot: RoomSnapshot | null;
   sendMessage: (message: ClientMessage) => void;
   camera: Camera;
+  /** Centre the map on a token (the NPC editor's 🎯; a phone also closes its DM screen). */
+  onFocusToken: (tokenId: string) => void;
   /** Atlas-link aim (A6): armed flag + the Atlas tab's arm callback. */
   linkAimActive?: boolean;
   onArmLinkAim?: (pending: PendingLink) => void;
@@ -106,10 +109,12 @@ export interface DMMenuContainerProps {
   onRemovePlayer?: (playerUid: string) => void;
   onRollAllInitiative?: () => void;
   mapStudio?: MapStudioController;
-  /** "window" (desktop launcher + DraggableWindow) or "content" (bare, for
-   *  a host that provides the surface — the mobile DM screen). */
-  presentation?: "window" | "content";
 }
+
+/** "window" (a launcher in the Party bar's dock + DraggableWindow; the dock is
+ *  required) or "content" (bare, for a host that provides the surface — the
+ *  mobile DM screen). */
+export type DMMenuContainerProps = DMMenuContainerBaseProps & LauncherPresentation;
 
 /**
  * Container component for DMMenu.
@@ -122,56 +127,57 @@ export interface DMMenuContainerProps {
  * By lazy-loading this container, we defer all DM hook instantiation until
  * the user becomes a DM, reducing bundle size for regular players.
  */
-export function DMMenuContainer({
-  isDM,
-  onToggleDM,
-  gridSize,
-  gridSquareSize,
-  gridLocked,
-  onGridLockToggle,
-  onGridSizeChange,
-  onGridSquareSizeChange,
-  fogEnabled,
-  hasCompiledScene,
-  onFogEnabledChange,
-  onClearDrawings,
-  onSetMapBackground,
-  mapBackground,
-  mapLocked,
-  onMapLockToggle,
-  mapTransform,
-  onMapTransformChange,
-  playerStagingZone,
-  onSetPlayerStagingZone,
-  stagingZoneLocked,
-  onStagingZoneLockToggle,
-  alignmentModeActive,
-  alignmentPoints,
-  alignmentSuggestion,
-  alignmentError,
-  onAlignmentStart,
-  onAlignmentReset,
-  onAlignmentCancel,
-  onAlignmentApply,
-  onSetRoomPassword,
-  roomPasswordStatus,
-  roomPasswordPending,
-  onDismissRoomPasswordStatus,
-  onSaveAsPrivateTable,
-  snapshot,
-  sendMessage,
-  camera,
-  toast,
-  onSelectPlayerTokens,
-  connectedUids,
-  onRemovePlayer,
-  onRollAllInitiative,
-  mapStudio,
-  presentation,
-  linkAimActive,
-  onArmLinkAim,
-  openKick,
-}: DMMenuContainerProps) {
+export function DMMenuContainer(containerProps: DMMenuContainerProps) {
+  const {
+    isDM,
+    onToggleDM,
+    gridSize,
+    gridSquareSize,
+    gridLocked,
+    onGridLockToggle,
+    onGridSizeChange,
+    onGridSquareSizeChange,
+    fogEnabled,
+    hasCompiledScene,
+    onFogEnabledChange,
+    onClearDrawings,
+    onSetMapBackground,
+    mapBackground,
+    mapLocked,
+    onMapLockToggle,
+    mapTransform,
+    onMapTransformChange,
+    playerStagingZone,
+    onSetPlayerStagingZone,
+    stagingZoneLocked,
+    onStagingZoneLockToggle,
+    alignmentModeActive,
+    alignmentPoints,
+    alignmentSuggestion,
+    alignmentError,
+    onAlignmentStart,
+    onAlignmentReset,
+    onAlignmentCancel,
+    onAlignmentApply,
+    onSetRoomPassword,
+    roomPasswordStatus,
+    roomPasswordPending,
+    onDismissRoomPasswordStatus,
+    onSaveAsPrivateTable,
+    snapshot,
+    sendMessage,
+    camera,
+    onFocusToken,
+    toast,
+    onSelectPlayerTokens,
+    connectedUids,
+    onRemovePlayer,
+    onRollAllInitiative,
+    mapStudio,
+    linkAimActive,
+    onArmLinkAim,
+    openKick,
+  } = containerProps;
   // Instantiate DM context with all DM-specific hooks
   const dmContext = useDMContext({
     snapshot,
@@ -245,6 +251,11 @@ export function DMMenuContainer({
       onResetNPCBudget={(id) => sendMessage({ t: "reset-movement-budget", characterId: id })}
       onDeleteNPC={dmContext.npcManagement.deleteNpc}
       onPlaceNPCToken={dmContext.npcManagement.placeToken}
+      onSetNPCStatusEffects={(id, effects) =>
+        sendMessage({ t: "set-character-status-effects", characterId: id, effects })
+      }
+      onFocusNPCToken={onFocusToken}
+      mapTokenIds={new Set((snapshot?.tokens ?? []).map((token) => token.id))}
       isCreatingNpc={dmContext.npcManagement.isCreating}
       npcCreationError={dmContext.npcManagement.creationError}
       isUpdatingNpc={dmContext.npcManagement.isUpdating}
@@ -318,7 +329,9 @@ export function DMMenuContainer({
         sendMessage({ t: "set-default-vision-radius", radius })
       }
       mapStudio={mapStudio}
-      presentation={presentation}
+      {...(containerProps.presentation === "content"
+        ? { presentation: "content" as const }
+        : { presentation: "window" as const, launcherDock: containerProps.launcherDock })}
     />
   );
 }

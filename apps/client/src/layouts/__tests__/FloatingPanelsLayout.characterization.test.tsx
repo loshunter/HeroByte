@@ -198,8 +198,15 @@ vi.mock("../../ui/MapBoard", () => ({
   default: () => <div data-testid="map-board">MapBoard</div>,
 }));
 
+// The stub keeps the real panel's one layout contract with the floating layer:
+// it reports its launcher dock (U7), which the World/Props/DM launchers render into.
 vi.mock("../../components/layout/EntitiesPanel", () => ({
-  EntitiesPanel: () => <div data-testid="entities-panel">EntitiesPanel</div>,
+  EntitiesPanel: (props: { launcherDockRef: (node: HTMLDivElement | null) => void }) => (
+    <div data-testid="entities-panel">
+      EntitiesPanel
+      <div data-testid="launcher-dock" ref={props.launcherDockRef} />
+    </div>
+  ),
 }));
 
 // Import the component AFTER mocks are set up
@@ -544,12 +551,32 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.isDM = false;
       const { unmount } = render(<MainLayout {...props} />);
       expect(screen.getByRole("button", { name: "🗺 WORLD" })).toBeInTheDocument();
+      // In the Party bar's dock, never floating over the cards (U7, IA-15).
+      expect(screen.getByTestId("launcher-dock")).toContainElement(
+        screen.getByRole("button", { name: "🗺 WORLD" }),
+      );
       unmount();
 
       const dmProps = createDefaultProps();
       dmProps.isDM = true;
       render(<MainLayout {...dmProps} />);
       expect(screen.queryByRole("button", { name: "🗺 WORLD" })).not.toBeInTheDocument();
+    });
+
+    it("while the DM tools load, their placeholder waits in the Party bar's dock", async () => {
+      // It was fixed at the bottom-right, over the Party's last card, for as
+      // long as the chunk took to arrive: the obstruction U7 removed (IA-15).
+      // React.lazy resolves once per module instance and earlier tests here
+      // resolved it, so a freshly imported layout is the one still loading.
+      vi.resetModules();
+      const { MainLayout: LoadingLayout } = await import("../MainLayout");
+      const props = createDefaultProps();
+      props.isDM = true;
+      render(<LoadingLayout {...props} />);
+
+      const loading = screen.getByRole("status", { name: "Loading DM tools…" });
+      expect(screen.getByTestId("launcher-dock")).toContainElement(loading);
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
     it("should pass gridSize prop to DMMenu", async () => {

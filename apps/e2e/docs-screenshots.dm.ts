@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { openCharacterDetails, ownRosterRow } from "./party.helpers";
 import { joinDefaultRoom } from "./helpers";
 import {
   closeTopWindow,
@@ -54,6 +55,11 @@ test.describe("docs screenshots: DM", () => {
       await selectDMTab(page, "NPCs & Monsters");
       await page.getByRole("button", { name: "+ Add NPC" }).click();
       await page.getByRole("button", { name: /PLACE ON MAP/i }).click();
+      // Settled, not mid-flight: the editor's banners clear once the server
+      // confirms the new NPC and its token (it once shot "Updating..." and
+      // "Placing token..." still up, 500 ms in).
+      await expect(page.getByText("Placing token...")).toHaveCount(0, { timeout: 8_000 });
+      await expect(page.getByText("Updating...")).toHaveCount(0, { timeout: 8_000 });
       await page.waitForTimeout(500);
       await shotPage(page, "dm-menu-npcs");
     });
@@ -77,6 +83,8 @@ test.describe("docs screenshots: DM", () => {
     });
 
     await step("initiative modal + combat", async () => {
+      // The initiative badge is on the card: the DM's own row's details (U7).
+      await openCharacterDetails(page, ownRosterRow(page));
       await page.getByRole("button", { name: "Set Initiative" }).first().click();
       await expect(page.getByText(/Initiative:/).first()).toBeVisible();
       await shotPage(page, "initiative-modal");

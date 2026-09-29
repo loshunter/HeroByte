@@ -1,0 +1,30 @@
+/* The character settings windows' sections (U7): Character, Token settings and
+   the viewer's Table role, each under a named heading so a control's scope is
+   read from where it sits, not guessed. */
+
+.character-settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.character-settings__section + .character-settings__section {
+  padding-top: 10px;
+  border-top: 2px solid var(--jrpg-border-gold);
+}
+
+.character-settings__heading {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--jrpg-gold);
+  text-transform: uppercase;
+}
+
+.character-settings__note {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--jrpg-white);
+  text-transform: none;
+}

@@ -109,10 +109,19 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             sceneObjects={props.snapshot?.sceneObjects ?? []}
             onToggleTokenLock={props.toggleSceneObjectLock}
             onPlayerTokenDelete={props.isDM ? props.deleteToken : undefined}
+            onCharacterOwnerChange={(characterId, ownerUid) =>
+              props.sendMessage({ t: "set-character-owner", characterId, ownerUid })
+            }
             onCharacterSpeedChange={props.updateCharacterSpeed}
             onCharacterBudgetReset={props.resetCharacterBudget}
             combatActive={props.snapshot?.combatActive ?? false}
             tableVisionDefault={props.snapshot?.defaultVisionRadius}
+            // Focus shows the map: the camera centres on the token, and the
+            // screen that covers the map closes.
+            onFocusToken={(tokenId) => {
+              props.handleFocusToken(tokenId);
+              closeSurface();
+            }}
           />
         </MobileScreen>
       )}
@@ -183,7 +192,15 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
                 </div>
               }
             >
-              <DMMenuContainer {...dmMenuProps} presentation="content" />
+              <DMMenuContainer
+                {...dmMenuProps}
+                presentation="content"
+                // Focus shows the map: the DM screen covering it closes.
+                onFocusToken={(tokenId) => {
+                  props.handleFocusToken(tokenId);
+                  closeSurface();
+                }}
+              />
             </Suspense>
           </ErrorBoundary>
         </MobileScreen>

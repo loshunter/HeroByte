@@ -30,6 +30,7 @@ function renderEditor(npc: SnapshotCharacter, isUpdating = false) {
       onPlace={vi.fn()}
       onDuplicate={vi.fn()}
       onDelete={vi.fn()}
+      onStatusEffectsChange={vi.fn()}
       isUpdating={isUpdating}
     />,
   );
@@ -41,6 +42,7 @@ function renderEditor(npc: SnapshotCharacter, isUpdating = false) {
         onPlace={vi.fn()}
         onDuplicate={vi.fn()}
         onDelete={vi.fn()}
+        onStatusEffectsChange={vi.fn()}
         isUpdating={updating}
       />,
     );

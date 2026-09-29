@@ -4,7 +4,15 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
-**Latest implementation checkpoint (2026-09-28):** U6 addresses IA-13 (Maps, the Map
+**Latest implementation checkpoint (2026-09-29):** U7 addresses IA-15 (the Party's cards
+and the floating World/Props launchers obstructed play; the Party is now a compact roster
+with one inspector, and the launchers sit in the Party bar) and IA-20's U7 half (the
+settings name label, the clipped portrait instructions, 44 px roster targets).
+Its review stopped at the round cap, every round-3 item was repaired and verified on the
+owner's decision, and the owner accepted it; committed on `dev` and pushed 2026-09-29. See
+[the U7 record](interface-clarity-u7.md).
+
+**Previous implementation checkpoint (2026-09-28):** U6 addresses IA-13 (Maps, the Map
 library, Build and World now say which map is on the table and which is being viewed) and
 IA-14's U6 half (backups, exports and generation actions name their scope and
 destination). Implemented, reviewed for three rounds, repaired and fully verified;

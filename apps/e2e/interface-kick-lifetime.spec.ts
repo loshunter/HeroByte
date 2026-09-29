@@ -1,4 +1,5 @@
 import type { Locator } from "@playwright/test";
+import { closePartyDetails, openOwnCharacterSettings } from "./party.helpers";
 import { expect, test, type Page } from "./fixtures";
 import { readState } from "./chat-journey.helpers";
 import { createAndJoin, mapContent, observeWire, publicBarrier } from "./u2-cancel.helpers";
@@ -138,11 +139,7 @@ test("U2 Kick keeps its draft across phone/desktop and G respects foreground win
 
     // Reach a non-editable Character button with real keyboard traversal.
     // Focusing Name instead would let the old editable-target guard hide the bug.
-    await dm
-      .locator(".player-card")
-      .filter({ has: dm.getByText("You", { exact: true }) })
-      .getByTitle("Open player settings")
-      .click();
+    await openOwnCharacterSettings(dm);
     const character = dm.locator('[data-mobile-surface="settings"]');
     const closeCharacter = character.getByRole("button", { name: /^Close / });
     await expect(closeCharacter).toBeVisible();
@@ -157,6 +154,9 @@ test("U2 Kick keeps its draft across phone/desktop and G respects foreground win
     });
     await dm.keyboard.press("Escape");
     await expect(character).toHaveCount(0);
+    // The Character window was reached through the Party inspector (U7), itself
+    // a content panel that owns G's refusal while open: close it as well.
+    await closePartyDetails(dm);
 
     await dm.getByRole("button", { name: "Help", exact: true }).click();
     const help = dm.getByRole("dialog", { name: "HeroByte help", exact: true });

@@ -4,11 +4,11 @@ You've [joined a table](getting-started.md) — here's everything you can do at 
 
 ## The table at a glance
 
-![The table: toolbar along the top, map in the middle, Entities panel below](img/table-first-join.jpg)
+![The table: toolbar along the top, map in the middle, the Party roster below](img/table-first-join.jpg)
 
 - **Top toolbar** — tools and toggles. Hover any button for a tooltip. Tools are exclusive: picking one turns the previous one off, and clicking the active tool turns it off again.
 - **Map canvas** — the shared battlemap. Everything here syncs live to every player.
-- **Entities panel** (bottom) — a card for every character at the table: the party, the DM, and any visible NPCs. **▼ HIDE ENTITIES** collapses it.
+- **Party** (bottom) — one compact row for every character at the table: the party, the DM's, and any visible NPCs. Each row shows a portrait, the name, HP, any conditions and, while that character's token is on the map, **🎯** (focus the map on it; **—** when it isn't); a row reads **You** for your own characters, and another player's character named differently from their seat also shows the seat's name, so you can tell whose it is. Select a row for that character's full card; **▦ CARDS** shows every card at once and **☰ ROSTER** goes back to the rows; **▼ HIDE PARTY** folds the panel down to its bar. The bar also holds **🗺 WORLD** and, when your DM allows it, **📦 PROPS**, so they never sit on top of a card.
 - **🟢 ONLINE** (top center) — your connection to the server.
 
 ### Moving around the map
@@ -18,34 +18,44 @@ You've [joined a table](getting-started.md) — here's everything you can do at 
 | Pan                | Drag empty map space (with no tool active), or **middle-mouse drag** (works even with a tool active) |
 | Zoom               | Mouse wheel — zooms toward your cursor (0.1× to 8×)                                                  |
 | Reset the camera   | **🧭 RECENTER** — returns to the map's origin at 1× zoom, which is not always where you started      |
-| Jump to your token | The ⚔️ button on your player card (**Focus camera on token**)                                        |
+| Jump to your token | **🎯** on your row in the Party — with two characters, each row focuses its own token                 |
 | Touch              | One finger pans, two fingers pinch-zoom                                                              |
 
 ## Your character card
 
-Your card in the Entities panel is your character sheet in miniature:
+The Party lists characters, not players: if you run two, you have two rows, and each keeps its own HP, conditions, token and **🎯**. Select your row (its portrait or name) and your card opens beside the rows — your character sheet in miniature. **✕** or **Esc** closes it; selecting another row switches to that character.
+
+![Your row selected in the Party: your character card open beside the rows](img/party-details.jpg)
 
 - **Name** — click it to edit inline.
-- **Portrait** — open **⚙️** settings and **⬆ UPLOAD IMAGE** a portrait straight from your device — on a phone, that's your camera roll. (Clicking the **+ ADD PORTRAIT** square also takes a pasted image URL, and any image URL still works.) When you talk on voice, your portrait glows and swells.
+- **Portrait** — open **⚙️** settings and **⬆ UPLOAD IMAGE** a portrait straight from your device — on a phone, that's your camera roll. (Clicking the **+ Add portrait** square opens the same settings, where a pasted image URL also works.) When you talk on voice, your portrait glows and swells.
 - **HP** — click either number in `HP: 100 / 100` to type a new value (Enter or click away to save), or **drag along the HP bar** to scrub it. The bar shifts color as you drop: green, amber, red.
 - **Temp HP** — a separate pool absorbed before regular HP; click to edit.
-- **⚔️ / INIT** — status effects and initiative (covered below).
+- **⚔️** — centres the map on this character's token; it also wears up to three condition medallions (covered below). **INIT** — initiative (covered below).
 - **🎤** — voice chat (covered below).
 - **⚙️** — opens your full settings window.
 
 ### The settings window (⚙️)
 
-![Player settings showing the character name, portrait, token image, and player-state controls](img/player-settings.jpg)
+![The settings window: the Character section with name, portrait and token image](img/player-settings.jpg)
 
-Everything about your character in one draggable window:
+One draggable window per character, in two halves — what the character is, and how its token behaves:
+
+**Character**
 
 - **Character Name**, **Portrait**, and a **Token Image** — give your portrait and map token custom art: **⬆ UPLOAD IMAGE** from your device (camera roll on a phone), or paste an image URL. **CLEAR** the token image to go back to a colored ring.
-- **Player State → SAVE TO FILE / LOAD FROM FILE** — download your character (name, HP, portrait, token, position, status effects, your drawings) as a JSON file and restore it later — handy insurance between sessions, or for moving your character to another table.
-- **Dungeon Master Mode** — see [Becoming the DM](getting-started.md#becoming-the-dm).
-- **Initiative Status** — your current initiative, with a **🧹 CLEAR INITIATIVE** reset.
-- **Token Size** — Tiny, Small, Medium, Large, Huge, or Gargantuan (half a cell up to 3 cells).
-- **Status Effects** — a checklist of 38 conditions (Prone, Poisoned, Blessed, Rage, Concentration…). Up to three show as emoji medallions on your portrait and token; the rest roll up into a `+N` bubble.
-- **Multiple Characters → ➕ ADD CHARACTER** — run a second PC (or a familiar): each character gets its own card, token, HP, and initiative.
+- **Status Effects** — a checklist of 38 conditions (Prone, Poisoned, Blessed, Rage, Concentration…). They belong to this character only: your other character's row, card and token do not wear them. Up to three show as emoji medallions on the portrait and token; the rest roll up into a `+N` bubble.
+- **Initiative Status** — this character's current initiative, with a **🧹 CLEAR INITIATIVE** reset.
+- **Player State → SAVE TO FILE / LOAD FROM FILE** — download this character (its name, HP, portrait, token, position and status effects, plus all of your drawings) as a JSON file and restore it later — handy insurance between sessions, or for moving your character to another table.
+- **Multiple Characters → ➕ ADD CHARACTER** — run a second PC (or a familiar): each character gets its own row, card, token, HP, and initiative. **🗑️ Delete this character** removes the one this window belongs to.
+
+**Token settings**
+
+- **Token Size** — Tiny, Small, Medium, Large, Huge, or Gargantuan (half a cell up to 3 cells). Your DM can resize it too. Sight radius, movement speed and the token lock are the DM's to set, so they appear only in the DM's window.
+
+**Table role** (your own card only)
+
+- **Dungeon Master Mode** — your role at the whole table, not a character setting — see [Becoming the DM](getting-started.md#becoming-the-dm).
 
 ## Tokens
 
@@ -206,7 +216,7 @@ Your cursor becomes a pulsing ring; click to plant a ping — a colored burst wi
 
 ## Props (when your DM turns them on)
 
-If your DM ticks **Players can add props** in their menu, a **📦 PROPS** button appears at the bottom right (on a phone: **Tools → Props**). It turns any picture into a piece of the scene:
+If your DM ticks **Players can add props** in their menu, a **📦 PROPS** button appears in the Party bar at the bottom (on a phone: **Tools → Props**). It turns any picture into a piece of the scene:
 
 - **Add a prop** — upload an image or paste a URL, give it a label, pick a size, press **+ ADD PROP**. It lands at the centre of your view; drag it into place. Generate a treasure chest in your favorite image tool and put it on the table while the DM describes the room — that's exactly what this is for.
 - **Scatter** — set **×N** before adding and that many copies land in a loose pile, numbered, each grabbable on its own.
@@ -217,7 +227,7 @@ If the button isn't there, the table has props switched off — ask your DM.
 
 ## Voice chat
 
-Press the **🎤** on your own card and grant the browser's microphone permission. That's the whole setup:
+On desktop, press the **🎤** on your own card (select your row in the Party) and grant the browser's microphone permission; a phone has no mic button. That's the whole setup:
 
 - Voice is **peer-to-peer** (WebRTC) between everyone at the table.
 - When someone talks, their **portrait glows green and scales up** — an at-a-glance "who's speaking".
@@ -226,13 +236,13 @@ Press the **🎤** on your own card and grant the browser's microphone permissio
 
 ## Initiative and combat
 
-Press **INIT** on your card to set initiative:
+Press **INIT** on your card (select your row in the Party, or show every card with **▦ CARDS**) to set initiative:
 
 ![The initiative dialog: modifier, roll, or enter a physical die](img/initiative-modal.jpg)
 
 - Drag the **Initiative Modifier** number left/right (or roll with it at 0), then **ROLL INITIATIVE**. The **server** throws the die, on the same generator the dice roller uses, and the result appears in the roll log for the whole table with your character's name on it. The dialog closes itself — there is nothing further to save.
 - Or press **USE PHYSICAL DICE**, type the d20 you rolled at your real table, and press **SAVE**. That reaches the log too, badged **BY HAND** — see [Rolling real dice instead](#rolling-real-dice-instead), which works the same way everywhere else you roll.
-- **The first initiative set starts combat** for the whole table: cards reorder by initiative, a **⚔️ Combat Active** banner appears with `Turn N of M`, and the current combatant's card wears a white ring in a gold glow (a DM's own card has a gold border of its own, so the ring is the cue, not the colour).
+- **The first initiative set starts combat** for the whole table: the Party reorders by initiative, its bar shows **⚔️ Combat Active** with `Turn N of M`, and the current combatant's row reads **Turn** in a white outline (its card, when shown, wears a white ring in a gold glow — a DM's own card has a gold border of its own, so the ring is the cue, not the colour).
 
 ![Combat active: turn banner, turn controls, and the current character highlighted](img/combat-active.jpg)
 
@@ -278,7 +288,7 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ---------------------------------------------------------------------------- | ----------------------------------------------- |
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
-- **◉ PARTY** — the party screen: portraits, HP (tap or drag to edit), status effects, and — on your own row — **⚙️ EDIT** for name, portrait, and DM mode.
+- **◉ PARTY** — the party screen: each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚙️ EDIT** for name, portrait, token size, **➕ Add Character** and DM mode.
 - **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Recenter (re-centers the camera), CRT, and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
 - **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, NPCs & Monsters, Props & Objects, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.

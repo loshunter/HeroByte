@@ -21,7 +21,7 @@
  * ensure proper spacing.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import type { MainLayoutProps, RollLogEntry } from "./props/MainLayoutProps";
 import { TopPanelLayout } from "./TopPanelLayout";
 import { CenterCanvasLayout } from "./CenterCanvasLayout";
@@ -240,6 +240,10 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     sendMessage({ t: "next-turn" });
   }, [sendMessage]);
 
+  // The Party bar's launcher dock (U7): the bar reports its slot, and the
+  // floating layer's launchers render into it instead of over the cards.
+  const [launcherDock, setLauncherDock] = useState<HTMLDivElement | null>(null);
+
   // The Party's NPC cards act for the DM (they were wired to undefined).
   const partyNpcActions = usePartyNpcActions(snapshot?.characters, sendMessage, isDM);
 
@@ -342,6 +346,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
       {/* Bottom Panel - Entities HUD with player/character/NPC management */}
       <BottomPanelLayout
         bottomPanelRef={bottomPanelRef}
+        launcherDockRef={setLauncherDock}
         players={snapshot?.players || []}
         characters={snapshot?.characters || []}
         tokens={snapshot?.tokens || []}
@@ -390,6 +395,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         npcDeletionError={undefined}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
+        onCharacterOwnerChange={(characterId, ownerUid) =>
+          sendMessage({ t: "set-character-owner", characterId, ownerUid })
+        }
         onTokenVisionRadiusChange={updateTokenVisionRadius}
         onCharacterSpeedChange={updateCharacterSpeed}
         onCharacterBudgetReset={resetCharacterBudget}
@@ -418,6 +426,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         setContextMenu={setContextMenu}
         onStartLiveMap={mapEditToolbarProps.onStartLiveMap}
         dmMenuProps={dmMenuProps}
+        launcherDock={launcherDock}
         snapshot={snapshot}
         kick={kick}
         diceRollerOpen={diceRollerOpen}

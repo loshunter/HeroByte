@@ -15,6 +15,7 @@ import {
   pc,
   seat,
   type EntitiesPanelTestProps,
+  showCards,
 } from "./entitiesPanel.fixtures";
 
 const players = [seat(DM_UID, "The DM", { isDM: true }), seat(ALICE_UID, "Alice")];
@@ -25,9 +26,7 @@ afterEach(cleanup);
 function renderAs(uid: string, currentIsDM: boolean) {
   const props = entitiesPanelProps({ players, characters, uid, currentIsDM });
   const view = render(<EntitiesPanel {...props} />);
-  // Every card at once (the compact roster, where the Party has one, hides them).
-  const cards = screen.queryByRole("button", { name: "▦ Cards" });
-  if (cards) fireEvent.click(cards);
+  showCards(); // every card at once: the compact roster hides them
   const rerenderAs = (next: Partial<EntitiesPanelTestProps>) =>
     view.rerender(<EntitiesPanel {...props} {...next} />);
   return { rerenderAs };

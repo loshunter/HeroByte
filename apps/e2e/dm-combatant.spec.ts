@@ -6,6 +6,7 @@
  * starts, the same road as a player's. After END COMBAT it comes home.
  */
 import { expect, test, type Page } from "./fixtures";
+import { showPartyCards } from "./party.helpers";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 
 const send = (page: Page, message: unknown) =>
@@ -85,6 +86,9 @@ test.describe("the DM's own character in the order (F3)", () => {
         )
         .toBe(35);
       await joinDefaultRoom(player);
+      // The bench and the order are the Cards view's groups (U7).
+      await showPartyCards(page);
+      await showPartyCards(player);
       await player.waitForFunction(
         (id) => window.__HERO_BYTE_E2E__?.snapshot?.characters?.some((c) => c.id === id),
         me.id,

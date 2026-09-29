@@ -3,6 +3,7 @@ import type { CharacterMessageHandler } from "../handlers/CharacterMessageHandle
 import type { NPCMessageHandler } from "../handlers/NPCMessageHandler.js";
 import { handleResetMovementBudget } from "../handlers/movementBudgetMessages.js";
 import { handleSetInitiativeModifier } from "../handlers/initiativeModifierMessages.js";
+import { handleSetCharacterOwner } from "../handlers/characterOwnerMessages.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
 import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
@@ -102,6 +103,15 @@ export class CharacterDispatcher {
 
       case "reset-movement-budget":
         return handleResetMovementBudget(state, message.characterId, senderUid, isDM);
+
+      case "set-character-owner":
+        return handleSetCharacterOwner(
+          state,
+          message.characterId,
+          message.ownerUid,
+          senderUid,
+          isDM,
+        );
 
       case "set-initiative-modifier":
         return handleSetInitiativeModifier(

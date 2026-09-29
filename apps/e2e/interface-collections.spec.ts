@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { hideParty } from "./party.helpers";
 import { activate, armGrass, createAndJoin, mapContent } from "./u2-cancel.helpers";
 import { observeGeneration } from "./u3a-generate.helpers";
 import { closeBuildTools, openBuildTools } from "./u3b-palette.helpers";
@@ -32,7 +33,7 @@ for (const mobile of [false, true]) {
     const commands = () => wire.sent.filter((m) => m.t === "map-studio-command");
     try {
       await createAndJoin(dm, player, mobile, `U4c ${mobile ? "phone" : "desktop"}`);
-      if (!mobile) await dm.getByRole("button", { name: /Hide entities/i }).click();
+      if (!mobile) await hideParty(dm);
       await armGrass(dm, mobile, true);
       await openBuildTools(dm, mobile);
       if (!mobile)

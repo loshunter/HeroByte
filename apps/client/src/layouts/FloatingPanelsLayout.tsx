@@ -17,7 +17,7 @@ import React, { Suspense, lazy } from "react";
 import type { RoomSnapshot, ChatMessage } from "@herobyte/shared";
 import type { RollLogEntry } from "../components/dice/rollLogTypes";
 import type { DiceRollRequest, EnterRollRequest } from "../hooks/useDiceRolling";
-import type { DMMenuContainerProps } from "../features/dm/components/DMMenuContainer";
+import type { DMMenuContainerBaseProps } from "../features/dm/components/DMMenuContainer";
 import { DMMenuLoadFailure } from "../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { PlayerPropsPanel } from "../features/props/PlayerPropsPanel";
@@ -29,6 +29,7 @@ import { VisualEffects } from "../components/effects/VisualEffects";
 import { DicePanels } from "./DicePanels";
 import { ToastContainer } from "../components/ui/Toast";
 import { Spinner } from "../components/ui/Spinner";
+import { DockedLauncher, LAUNCHER_ORDER } from "../components/layout/party/LauncherDock";
 import type { ToastMessage } from "../components/ui/Toast";
 
 // Lazy-load DMMenuContainer to defer DM-specific code until DM elevation
@@ -56,7 +57,13 @@ export interface FloatingPanelsLayoutProps {
   deleteToken: (id: string) => void;
   setContextMenu: (menu: ContextMenuState | null) => void;
   /** The DM menu's whole prop surface, built once by buildDMMenuProps. */
-  dmMenuProps: DMMenuContainerProps;
+  dmMenuProps: DMMenuContainerBaseProps;
+  /**
+   * The Party bar's launcher dock (U7): World, Props and DM MENU render their
+   * launchers into it rather than floating over the Party panel (IA-15).
+   * Required — null only until the bar has mounted.
+   */
+  launcherDock: HTMLElement | null;
   // Shared data (DicePanels reads the player roster off it)
   snapshot: RoomSnapshot | null;
   /** The kicked-in door (K2): its panel mounts here for the DM. */
@@ -107,6 +114,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     deleteToken,
     setContextMenu,
     dmMenuProps,
+    launcherDock,
     snapshot,
     kick,
     onStartLiveMap,
@@ -138,33 +146,35 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           <ErrorBoundary fallback={<DMMenuLoadFailure />}>
             {/* Not `null`: elevating to DM fires a success toast and then,
                 while the chunk downloads, nothing visible happens at all —
-                which reads as the elevation having failed. */}
+                which reads as the elevation having failed. It waits in the
+                DM MENU's own place in the Party bar's dock, not floating over
+                the cards (U7, IA-15). */}
             <Suspense
               fallback={
-                <div
-                  style={{
-                    position: "fixed",
-                    right: "16px",
-                    bottom: "16px",
-                    zIndex: 1002,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "10px 14px",
-                    background: "var(--jrpg-bg)",
-                    border: "2px solid var(--jrpg-border)",
-                    borderRadius: "4px",
-                    color: "var(--jrpg-text)",
-                    fontFamily: "var(--font-body)",
-                    fontSize: "13px",
-                  }}
-                >
-                  <Spinner size={14} />
-                  Loading DM tools…
-                </div>
+                <DockedLauncher dock={launcherDock} order={LAUNCHER_ORDER.dm}>
+                  <div
+                    role="status"
+                    aria-label="Loading DM tools…"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "4px 10px",
+                      background: "var(--jrpg-bg)",
+                      border: "2px solid var(--jrpg-border)",
+                      borderRadius: "4px",
+                      color: "var(--jrpg-text)",
+                      fontFamily: "var(--font-body)",
+                      fontSize: "13px",
+                    }}
+                  >
+                    <Spinner size={14} />
+                    Loading DM tools…
+                  </div>
+                </DockedLauncher>
               }
             >
-              <DMMenuContainer {...dmMenuProps} />
+              <DMMenuContainer {...dmMenuProps} launcherDock={launcherDock} />
             </Suspense>
           </ErrorBoundary>
         )}
@@ -175,21 +185,22 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
             Eager import on purpose — features/props stays OUT of the DM lazy
             chunk, since its whole audience is the players. Its raw deps ride
             the dmMenuProps bag, which is built for every user (only the DM
-            MENU render is role-gated), so mounting this costs the layouts no
-            new threaded props. */}
+            MENU render is role-gated), so mounting this costs the layouts one
+            threaded prop only: the Party bar's launcher dock (U7). */}
         {!isDM && snapshot?.playerPropsEnabled && (
           <PlayerPropsPanel
             snapshot={snapshot}
             uid={uid}
             sendMessage={dmMenuProps.sendMessage}
             camera={dmMenuProps.camera}
+            launcherDock={launcherDock}
           />
         )}
 
         {/* The player's world map (A6). Always offered to players — its empty
             state explains itself before anything is discovered. Same eager,
-            self-launching shape as the props panel: zero new threaded props. */}
-        {!isDM && <WorldMapPanel snapshot={snapshot} />}
+            self-launching shape as the props panel, docked the same way. */}
+        {!isDM && <WorldMapPanel snapshot={snapshot} launcherDock={launcherDock} />}
 
         {/* The kicked-in door's panel (K2): fixed and OUTSIDE the header, like
             the world map — a panel inside the fixed header paints under the

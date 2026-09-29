@@ -12,6 +12,7 @@
  */
 
 import { expect, test, type Page } from "./fixtures";
+import { showPartyCards } from "./party.helpers";
 import { joinDefaultRoomAsDM } from "./helpers";
 
 interface NpcView {
@@ -36,7 +37,7 @@ async function npcs(page: Page): Promise<NpcView[]> {
   );
 }
 
-/** The Entities-panel card for an NPC — where the stance is actually READ. */
+/** The Party card for an NPC — where the stance is actually READ (Cards view). */
 const cardOf = (page: Page, name: string) =>
   page.locator(".player-card-shell").filter({ hasText: name }).first();
 
@@ -193,6 +194,7 @@ test.describe("the Token Library", () => {
       // A townsfolk is born NEUTRAL — the pack calls all 60 of them civilians
       // — so the DM's Entities card says Neutral, not Enemy.
       expect(added.map((n) => n.disposition)).toEqual(["neutral", "neutral", "neutral"]);
+      await showPartyCards(page);
       const card = cardOf(page, added[0]!.name);
       await card.scrollIntoViewIfNeeded();
       await expect(card.locator(".player-card-role")).toHaveText("Neutral");
@@ -294,6 +296,7 @@ test.describe("the Token Library", () => {
       // The stance rides the pick all the way to the card the table reads.
       const [npc] = (await npcs(page)).filter((n) => !before.includes(n.id));
       expect(npc!.disposition).toBe("friendly");
+      await showPartyCards(page);
       const npcCard = cardOf(page, npc!.name);
       await npcCard.scrollIntoViewIfNeeded();
       await expect(npcCard.locator(".player-card-role")).toHaveText("Ally");

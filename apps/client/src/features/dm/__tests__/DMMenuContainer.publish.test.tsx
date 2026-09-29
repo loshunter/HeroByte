@@ -88,7 +88,12 @@ describe("DMMenuContainer — publish knows the live map", () => {
     });
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
 
-    render(<DMMenuContainer {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })} />);
+    render(
+      <DMMenuContainer
+        {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+        launcherDock={document.body}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
     fireEvent.click(screen.getByRole("button", { name: "Maps" }));
     fireEvent.click(await screen.findByRole("button", { name: "Publish map background" }));
@@ -141,7 +146,12 @@ describe("DMMenuContainer — publish knows the live map", () => {
     });
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
 
-    render(<DMMenuContainer {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })} />);
+    render(
+      <DMMenuContainer
+        {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+        launcherDock={document.body}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
     fireEvent.click(screen.getByRole("button", { name: "Maps" }));
 
@@ -199,7 +209,10 @@ describe("DMMenuContainer — publish knows the live map", () => {
         mapStudio: studio,
       });
       const view = render(
-        <DMMenuContainer {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })} />,
+        <DMMenuContainer
+          {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+          launcherDock={document.body}
+        />,
       );
       fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
       fireEvent.click(screen.getByRole("button", { name: "World" }));
@@ -258,7 +271,12 @@ describe("DMMenuContainer — publish knows the live map", () => {
       } as unknown as MainLayoutProps["mapStudio"],
     });
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    render(<DMMenuContainer {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })} />);
+    render(
+      <DMMenuContainer
+        {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+        launcherDock={document.body}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
     fireEvent.click(screen.getByRole("button", { name: "World" }));
     fireEvent.click(screen.getByRole("button", { name: "🚩 Travel here" }));
@@ -292,7 +310,12 @@ describe("DMMenuContainer — publish knows the live map", () => {
         publishDocument: vi.fn(),
       } as unknown as MainLayoutProps["mapStudio"],
     });
-    render(<DMMenuContainer {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })} />);
+    render(
+      <DMMenuContainer
+        {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+        launcherDock={document.body}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
     fireEvent.click(screen.getByRole("button", { name: "Maps" }));
     expect(screen.getByText(/^On table:/)).toHaveTextContent(

@@ -16,7 +16,7 @@
  */
 
 import type { MainLayoutProps } from "../../layouts/props/MainLayoutProps";
-import type { DMMenuContainerProps } from "./components/DMMenuContainer";
+import type { DMMenuContainerBaseProps } from "./components/DMMenuContainer";
 
 export interface DMMenuPropExtras {
   /** From useInitiativeSetting({ snapshot, sendMessage }) at the call site. */
@@ -26,7 +26,7 @@ export interface DMMenuPropExtras {
 export function buildDMMenuProps(
   props: MainLayoutProps,
   extras: DMMenuPropExtras,
-): DMMenuContainerProps {
+): DMMenuContainerBaseProps {
   const { snapshot, mapSceneObject, stagingZoneSceneObject } = props;
 
   return {
@@ -105,6 +105,7 @@ export function buildDMMenuProps(
     snapshot: props.snapshot,
     sendMessage: props.sendMessage,
     camera: props.camera,
+    onFocusToken: props.handleFocusToken,
     toast: props.toast,
 
     // Atlas-link aim (A6)

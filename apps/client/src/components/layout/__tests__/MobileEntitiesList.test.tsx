@@ -8,7 +8,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
+import type { Player, SceneObject, SnapshotCharacter, Token } from "@herobyte/shared";
 import { MobileEntitiesList } from "../MobileEntitiesList";
 
 const ME = "me-uid";
@@ -54,6 +54,9 @@ function renderList(
       onAddCharacter={vi.fn()}
       sceneObjects={[]}
       onToggleTokenLock={vi.fn()}
+      onPlayerTokenDelete={undefined}
+      onCharacterOwnerChange={vi.fn()}
+      onFocusToken={vi.fn()}
       tokens={tokens}
       onTokenVisionRadiusChange={onTokenVisionRadiusChange}
     />,
@@ -98,6 +101,9 @@ describe("delete character — the desktop gate, on a phone", () => {
         onAddCharacter={vi.fn()}
         sceneObjects={[]}
         onToggleTokenLock={vi.fn()}
+        onPlayerTokenDelete={undefined}
+        onCharacterOwnerChange={vi.fn()}
+        onFocusToken={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -144,6 +150,9 @@ describe("delete character — the desktop gate, on a phone", () => {
         onAddCharacter={vi.fn()}
         sceneObjects={[]}
         onToggleTokenLock={vi.fn()}
+        onPlayerTokenDelete={undefined}
+        onCharacterOwnerChange={vi.fn()}
+        onFocusToken={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -363,6 +372,9 @@ function listProps(overrides: Partial<Parameters<typeof MobileEntitiesList>[0]> 
     onAddCharacter: vi.fn(),
     sceneObjects: [],
     onToggleTokenLock: vi.fn(),
+    onPlayerTokenDelete: undefined,
+    onCharacterOwnerChange: vi.fn(),
+    onFocusToken: vi.fn(),
     tokens,
     onTokenVisionRadiusChange: vi.fn(),
     ...overrides,
@@ -422,9 +434,8 @@ describe("MobileEntitiesList rows", () => {
     // there is no character for HP, conditions, name or portrait editors.
     render(<MobileEntitiesList {...listProps({ characters: [] })} />);
 
-    const rows = screen.getAllByTestId("mobile-player-row");
-    expect(rows).toHaveLength(1);
-    const row = rows[0]!;
+    const seat = screen.getByRole("region", { name: "Seat: Me (you)" });
+    const row = within(seat).getByTestId("mobile-player-row");
     expect(row.querySelector(".jrpg-hp-bar")).toBeNull();
     expect(within(row).queryByRole("button", { name: "⚡ Manage Status" })).toBeNull();
 
@@ -601,6 +612,9 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onAddCharacter={vi.fn()}
         sceneObjects={[]}
         onToggleTokenLock={vi.fn()}
+        onPlayerTokenDelete={undefined}
+        onCharacterOwnerChange={vi.fn()}
+        onFocusToken={vi.fn()}
         tokens={twoTokens}
         onTokenVisionRadiusChange={onChange}
       />,
@@ -640,6 +654,9 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onAddCharacter={vi.fn()}
         sceneObjects={[]}
         onToggleTokenLock={vi.fn()}
+        onPlayerTokenDelete={undefined}
+        onCharacterOwnerChange={vi.fn()}
+        onFocusToken={vi.fn()}
         tokens={[]}
         onTokenVisionRadiusChange={vi.fn()}
       />,
@@ -990,6 +1007,35 @@ describe("MobileEntitiesList — the phone's own settings", () => {
     vi.restoreAllMocks();
   });
 
+  it("a DM sees a locked token as locked, and the toggle unlocks it", () => {
+    const onToggleTokenLock = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          ...table,
+          isDM: true,
+          onToggleTokenLock,
+          sceneObjects: [{ id: "token:their-token", locked: true }] as SceneObject[],
+        })}
+      />,
+    );
+
+    editRow("Them");
+    fireEvent.click(screen.getByRole("button", { name: "🔒 Locked" }));
+
+    expect(onToggleTokenLock).toHaveBeenCalledWith("token:their-token", false);
+  });
+
+  it("a DM moves another player's character to a seat from their row", () => {
+    const onCharacterOwnerChange = vi.fn();
+    render(<MobileEntitiesList {...listProps({ ...table, isDM: true, onCharacterOwnerChange })} />);
+
+    editRow("Them");
+    fireEvent.change(screen.getByLabelText("Owner"), { target: { value: ME } });
+
+    expect(onCharacterOwnerChange).toHaveBeenCalledWith("char-2", ME);
+  });
+
   it("a player's own row offers neither token lock nor Delete Token", () => {
     render(
       <MobileEntitiesList
@@ -1000,5 +1046,6 @@ describe("MobileEntitiesList — the phone's own settings", () => {
     editRow("Me");
     expect(screen.queryByRole("button", { name: "🔓 Unlocked" })).toBeNull();
     expect(screen.queryByRole("button", { name: "🗑️ Delete Token (DM)" })).toBeNull();
+    expect(screen.queryByLabelText("Owner")).toBeNull();
   });
 });

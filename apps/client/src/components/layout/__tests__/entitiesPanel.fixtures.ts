@@ -2,6 +2,7 @@
 // each carry a private copy of this bag; new ones start here instead.
 
 import { vi } from "vitest";
+import { fireEvent, screen } from "@testing-library/react";
 import type React from "react";
 import type { Player, SnapshotCharacter } from "@herobyte/shared";
 import type { EntitiesPanel } from "../EntitiesPanel";
@@ -92,12 +93,19 @@ export function entitiesPanelProps(
     onCharacterStatusEffectsChange: vi.fn(),
     onToggleTokenLock: vi.fn(),
     onTokenSizeChange: vi.fn(),
+    onCharacterOwnerChange: vi.fn(),
     onAddCharacter: vi.fn(),
     onDeleteCharacter: vi.fn(),
     onFocusToken: vi.fn(),
+    launcherDockRef: vi.fn(),
     combatActive: false,
     onSetInitiative: vi.fn(),
     onRollInitiative: vi.fn(),
     ...overrides,
   };
+}
+
+/** Switch a rendered Party panel from the compact roster to the full cards. */
+export function showCards(): void {
+  fireEvent.click(screen.getByRole("button", { name: "▦ Cards" }));
 }

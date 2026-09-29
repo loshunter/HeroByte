@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { showPartyCards } from "./party.helpers";
 import { joinDefaultRoom } from "./helpers";
 
 /**
@@ -25,10 +26,8 @@ const rolls = (page: Page) =>
   page.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.diceRolls ?? []);
 
 async function openInitiativeModal(page: Page): Promise<void> {
-  const heading = page.getByRole("heading", { name: "ENTITIES" });
-  if (!(await heading.isVisible().catch(() => false))) {
-    await page.getByRole("button", { name: /show entities/i }).click();
-  }
+  // The initiative badge is on the character's card (the Party's Cards view).
+  await showPartyCards(page);
   await page.getByRole("button", { name: "Set Initiative" }).first().click();
   await expect(page.getByRole("button", { name: "Roll Initiative" })).toBeVisible();
 }

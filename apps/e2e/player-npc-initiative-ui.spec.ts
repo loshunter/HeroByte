@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { showPartyCards } from "./party.helpers";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 
 /**
@@ -34,11 +35,8 @@ const myCharacter = (page: Page) =>
  * it. Expanding is setup, not the thing under test.
  */
 async function showEntities(page: Page): Promise<void> {
-  const heading = page.getByRole("heading", { name: "ENTITIES" });
-  if (!(await heading.isVisible().catch(() => false))) {
-    await page.getByRole("button", { name: /show entities/i }).click();
-  }
-  await expect(heading).toBeVisible();
+  // The badges are on the characters' cards: the Party's Cards view (U7).
+  await showPartyCards(page);
 }
 
 /** The badge is `Init` before a value and the number after, so match the label. */

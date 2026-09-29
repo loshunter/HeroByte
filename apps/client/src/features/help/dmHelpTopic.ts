@@ -11,12 +11,18 @@ export const DM_HELP_TOPIC: HelpTopic = {
   entries: [
     {
       term: "Become the DM",
-      detail: "Your card's ⚙️ → Dungeon Master Mode → DM MODE: OFF, then the table's DM password.",
+      detail:
+        "Your row in the Party → your card's ⚙️ → Table role → DM MODE: OFF, then the table's DM password. On a phone: ◉ PARTY → ⚙️ EDIT on your row → Table role.",
     },
     {
       term: "+ Add NPC",
       detail:
-        "DM Menu → NPCs. Name, HP, initiative modifier, portrait and token art — the same plumbing as a player.",
+        "DM Menu → NPCs. Name, HP, initiative modifier, portrait, token art and conditions — the same plumbing as a player. 🎯 FOCUS centres the map on a placed NPC; on a phone this tab (♛ DM → NPCs & Monsters) is where an NPC's conditions and Focus live.",
+    },
+    {
+      term: "A player's character",
+      detail:
+        "Select its row, then on its card: click an HP number to set it. ⚙️ → Token settings → Owner moves it, token and all, to another player's seat (player characters only). On a phone: ◉ PARTY → the HP on its row, and ⚙️ EDIT → Owner.",
     },
     {
       term: "Adding a whole pack",
@@ -36,7 +42,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "Stance",
       detail:
-        "Enemy, Neutral or Ally — what an NPC’s Entities card wears, in red, gold or green. Townsfolk arrive Neutral and monsters Enemy; change it on the NPC’s Stance select in the DM menu. Players see it, so a disguised enemy is one you set Neutral.",
+        "Enemy, Neutral or Ally — what an NPC’s Party row says and its card wears, in red, gold or green. Townsfolk arrive Neutral and monsters Enemy; change it on the NPC’s Stance select in the DM menu. Players see it, so a disguised enemy is one you set Neutral.",
     },
     {
       term: "CUSTOM (your own tokens)",

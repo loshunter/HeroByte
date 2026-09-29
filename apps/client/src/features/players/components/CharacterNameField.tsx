@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, type MutableRefObject } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, type MutableRefObject } from "react";
 import { JRPGPanel } from "../../../components/ui/JRPGPanel";
 
 export function useCharacterEscapeGuard(isOpen: boolean) {
@@ -20,15 +20,19 @@ interface Props {
 }
 
 export function CharacterNameField({ value, onChange, onSubmit, suppressBlur }: Props) {
+  // The label names its input (IA-20): it once sat beside it unassociated, so
+  // a screen reader announced an unnamed text field.
+  const inputId = useId();
   return (
     <JRPGPanel
       variant="simple"
       style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
     >
-      <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+      <label htmlFor={inputId} className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
         Character Name
       </label>
       <input
+        id={inputId}
         className="jrpg-input"
         type="text"
         value={value}

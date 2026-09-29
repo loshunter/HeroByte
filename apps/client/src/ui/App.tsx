@@ -9,6 +9,7 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PARTY_PANEL_RESIZED } from "../components/layout/party/partyPanelSize";
 import type { AuthenticatedAppProps } from "./AuthenticatedApp.types";
 import type { Camera } from "../hooks/useCamera";
 import type { RoomSnapshot, ServerMessage } from "@herobyte/shared";
@@ -431,7 +432,13 @@ function AuthenticatedApp({
 
     measureHeights();
     window.addEventListener("resize", measureHeights);
-    return () => window.removeEventListener("resize", measureHeights);
+    // The Party panel resizes itself (U7) and says so with its own event —
+    // never a synthetic resize, which would cancel an in-flight map gesture.
+    window.addEventListener(PARTY_PANEL_RESIZED, measureHeights);
+    return () => {
+      window.removeEventListener("resize", measureHeights);
+      window.removeEventListener(PARTY_PANEL_RESIZED, measureHeights);
+    };
   }, [snapshot?.players]);
 
   /**

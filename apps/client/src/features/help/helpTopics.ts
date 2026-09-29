@@ -119,7 +119,11 @@ export const HELP_TOPICS: HelpTopic[] = [
           "Puts the map's top-left corner back at the top-left of your view, at 1× zoom — " +
           "not the middle of the map, and not where you arrived.",
       },
-      { term: "Find your token", detail: "The ⚔️ button on your own card jumps the camera to it." },
+      {
+        term: "Find your token",
+        detail:
+          "🎯 on your row in the Party jumps the camera to it — each of your characters with a token on the map has its own (on desktop a row without one shows —; a phone row shows no 🎯 FOCUS).",
+      },
       { term: "Touch", detail: "One finger pans, two fingers pinch-zoom." },
     ],
   },
@@ -128,7 +132,12 @@ export const HELP_TOPICS: HelpTopic[] = [
     icon: "🧙",
     title: "Your character card",
     entries: [
-      { term: "Name", detail: "Click it to rename inline." },
+      {
+        term: "Open it",
+        detail:
+          "Select your row in the Party at the bottom; your card opens beside the rows. ✕ or Esc closes it. ▦ CARDS shows every card at once. On a phone, ◉ PARTY lists your rows, and ⚙️ EDIT on one opens its settings.",
+      },
+      { term: "Name", detail: "Click it to rename inline (on a phone: ⚙️ EDIT → Character Name)." },
       {
         term: "HP",
         detail: "Click either number to type a value, or drag along the bar to scrub it.",
@@ -136,7 +145,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Portrait & token art",
         detail:
-          "⚙️ → ⬆ UPLOAD IMAGE takes a file from your device — on a phone, the camera roll. A pasted image URL still works.",
+          "⚙️ → ⬆ UPLOAD IMAGE takes a file from your device — on a phone, the camera roll. A pasted image URL still works. Token art is set from the desktop window only.",
       },
       {
         term: "Status effects",
@@ -145,11 +154,12 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         term: "Token size",
-        detail: "⚙️ → Tiny through Gargantuan (half a cell up to three cells).",
+        detail:
+          "⚙️ → Token settings → Tiny through Gargantuan (half a cell up to three cells). A DM can resize anyone's.",
       },
       {
         term: "A second character",
-        detail: "⚙️ → ➕ ADD CHARACTER gives you another card, token, HP and initiative.",
+        detail: "⚙️ → ➕ ADD CHARACTER gives you another row, card, token, HP and initiative.",
       },
     ],
   },
@@ -284,7 +294,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🎤 Voice",
         detail:
-          "Press it on your own card and allow the microphone. Peer-to-peer; a speaker's portrait glows. Needs https:// or localhost.",
+          "Desktop only: press it on your own card and allow the microphone. Peer-to-peer; a speaker's portrait glows. Needs https:// or localhost.",
       },
       {
         term: "INIT",
@@ -294,7 +304,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Combat starts",
         detail:
-          "The first initiative saved starts it for everyone; cards reorder and the current turn glows gold. A party member's plate then reads feet left / speed, refilled at the start of its turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs) and can reset a spend there — the budget is advisory, a red readout is a note, not a wall.",
+          "The first initiative saved starts it for everyone; on desktop the Party's rows reorder and the current turn's row is outlined and tagged Turn. A party member's plate then reads feet left / speed, refilled at the start of its turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs) and can reset a spend there — the budget is advisory, a red readout is a note, not a wall.",
       },
       { term: "◄ PREV / NEXT ►", detail: "Advance the turn — any player can nudge it." },
     ],

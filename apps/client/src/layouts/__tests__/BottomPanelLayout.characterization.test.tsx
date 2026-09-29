@@ -87,6 +87,7 @@ vi.mock("../../components/layout/EntitiesPanel", () => ({
     // Token Management (3 props)
     onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
     onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+    onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
     onTokenImageChange: (tokenId: string, imageUrl: string) => void;
 
     // Character Management (2 props)
@@ -124,6 +125,8 @@ import type { Player as PlayerType, Character as CharacterType } from "@herobyte
 export interface BottomPanelLayoutProps {
   // Layout & Ref (1 prop)
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
+  /** U7: the Party bar reports its launcher dock. */
+  launcherDockRef: (node: HTMLDivElement | null) => void;
 
   // State Data (9 props)
   players: PlayerType[];
@@ -183,6 +186,7 @@ export interface BottomPanelLayoutProps {
   // Token Management (3 props)
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
 
   // Character Management (2 props)
@@ -207,6 +211,7 @@ describe("BottomPanelLayout - Characterization Tests", () => {
   const createDefaultProps = (): BottomPanelLayoutProps => ({
     // Layout & Ref
     bottomPanelRef: undefined,
+    launcherDockRef: vi.fn(),
 
     // State Data
     players: [],
@@ -266,6 +271,7 @@ describe("BottomPanelLayout - Characterization Tests", () => {
     // Token Management
     onToggleTokenLock: vi.fn(),
     onTokenSizeChange: vi.fn(),
+    onCharacterOwnerChange: vi.fn(),
     onTokenImageChange: vi.fn(),
 
     // Character Management

@@ -29,6 +29,7 @@ describe("NPCEditor - Characterization Tests", () => {
     onPlace: vi.fn(),
     onDuplicate: vi.fn(),
     onDelete: vi.fn(),
+    onStatusEffectsChange: vi.fn(),
   });
 
   describe("Initial Rendering", () => {

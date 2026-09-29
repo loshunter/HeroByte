@@ -1,4 +1,5 @@
 import { expect, type Page } from "./fixtures";
+import { closePartyDetails, openOwnCharacterSettings } from "./party.helpers";
 
 export type Command = { t: string; text?: string; to?: string; uid?: string };
 export const composer = (page: Page) => page.getByLabel("Chat message", { exact: true });
@@ -81,8 +82,7 @@ export async function expectAbsent(page: Page, text: string) {
 
 export async function elevateViaUI(page: Page) {
   // Run before other clients join: this is the sole local player's settings.
-  await page.getByTitle("Open player settings").click();
-  const settings = page.locator('[data-mobile-surface="settings"]');
+  const settings = await openOwnCharacterSettings(page);
   await settings.getByRole("button", { name: "DM Mode: OFF", exact: true }).click();
   await page
     .getByLabel("Enter DM Password:", { exact: true })
@@ -92,4 +92,5 @@ export async function elevateViaUI(page: Page) {
   const closeSettings = settings.getByRole("button", { name: /^Close / });
   if (await closeSettings.isVisible()) await closeSettings.click();
   await expect(settings).toHaveCount(0);
+  await closePartyDetails(page);
 }

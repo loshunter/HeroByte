@@ -1,25 +1,36 @@
 // ============================================================================
 // PLAYER SETTINGS MENU
 // ============================================================================
-// Collapsible panel containing token image controls and state save/load actions
+// A character's settings window, in two halves (U7): **Character** — name, art,
+// conditions, initiative, its file — and **Token settings** — how its token
+// behaves on the map. The viewer's own DM Mode control itself sits apart from
+// both, in its own section, until U9 gives role a Table home.
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
-import { VisionRadiusField } from "./VisionRadiusField";
-import { MovementSpeedField, type MovementBudgetControl } from "./MovementSpeedField";
+import type { MovementBudgetControl } from "./MovementSpeedField";
+import {
+  TokenSettingsSection,
+  hasTokenSettings,
+  type OwnerControl,
+  type TokenSettingsProps,
+} from "./TokenSettingsSection";
 import { StatusEffectsPicker } from "./StatusEffectsPicker";
 import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import { CharacterNameField, useCharacterEscapeGuard } from "./CharacterNameField";
 import { CharacterCreationModal } from "./CharacterCreationModal";
+import "./characterSettings.css";
 
 const NO_EFFECTS_CHANGE = () => {};
 
 interface PlayerSettingsMenuProps {
+  /** DM-only: this character's owner (Token settings). */
+  owner?: OwnerControl;
   isOpen: boolean;
   onClose: () => void;
   /*
@@ -103,6 +114,7 @@ interface PlayerSettingsMenuProps {
 }
 
 export function PlayerSettingsMenu({
+  owner,
   isOpen,
   onClose,
   tokenImageInput,
@@ -149,10 +161,32 @@ export function PlayerSettingsMenu({
     selectedEffects,
     onStatusEffectsChange ?? NO_EFFECTS_CHANGE,
   );
+  const characterHeadingId = useId();
+  const tokenHeadingId = useId();
+  const roleHeadingId = useId();
 
   if (!isOpen) {
     return null;
   }
+
+  const tokenSettings: TokenSettingsProps = {
+    // The DM's only, like Delete Token below.
+    owner: viewerIsDM ? owner : undefined,
+    tokenSize,
+    onTokenSizeChange,
+    tokenVisionRadius,
+    tableVisionDefault,
+    onTokenVisionRadiusChange,
+    characterSpeed,
+    onCharacterSpeedChange,
+    characterBudget,
+    tokenLocked,
+    onToggleTokenLock,
+    // Gated on viewerIsDM, not isDM: `isDM` is the CARD OWNER's flag, and
+    // gating on it once made this button impossible to render at all.
+    onDeleteToken: viewerIsDM ? onDeleteToken : undefined,
+    compactControls,
+  };
 
   const settingsMenu = createPortal(
     // The portal lands on document.body, OUTSIDE every mobile surface — so on
@@ -187,318 +221,238 @@ export function PlayerSettingsMenu({
             background: "rgba(12, 18, 40, 0.95)",
           }}
         >
-          {/* Name Editing */}
-          {onNameInputChange && onNameSubmit && nameInput !== undefined && (
-            <CharacterNameField
-              value={nameInput}
-              onChange={onNameInputChange}
-              onSubmit={onNameSubmit}
-              suppressBlur={suppressBlur}
-            />
-          )}
-
-          {/* Portrait: upload from disk/camera roll, or paste a URL (S3) */}
-          {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (
-            <JRPGPanel
-              variant="simple"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                padding: "12px",
-              }}
-            >
-              <ImageField
-                label="Portrait Image URL"
-                value={portraitImageInput}
-                onChange={onPortraitInputChange}
-                onCommit={(url) => {
-                  // An empty commit means "typed nothing"; portraits keep their
-                  // long-standing skip-empty behavior (Clear never existed here).
-                  if (url) onPortraitApply(url);
-                }}
-                placeholder="https://example.com/portrait.png"
-                applyLabel="Apply Portrait"
+          <section className="character-settings__section" aria-labelledby={characterHeadingId}>
+            <h3 id={characterHeadingId} className="character-settings__heading">
+              Character
+            </h3>
+            {/* Name Editing */}
+            {onNameInputChange && onNameSubmit && nameInput !== undefined && (
+              <CharacterNameField
+                value={nameInput}
+                onChange={onNameInputChange}
+                onSubmit={onNameSubmit}
+                suppressBlur={suppressBlur}
               />
-            </JRPGPanel>
-          )}
+            )}
 
-          {/*
+            {/* Portrait: upload from disk/camera roll, or paste a URL (S3) */}
+            {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (
+              <JRPGPanel
+                variant="simple"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  padding: "12px",
+                }}
+              >
+                <ImageField
+                  label="Portrait Image URL"
+                  value={portraitImageInput}
+                  onChange={onPortraitInputChange}
+                  onCommit={(url) => {
+                    // An empty commit means "typed nothing"; portraits keep their
+                    // long-standing skip-empty behavior (Clear never existed here).
+                    if (url) onPortraitApply(url);
+                  }}
+                  placeholder="https://example.com/portrait.png"
+                  applyLabel="Apply Portrait"
+                />
+              </JRPGPanel>
+            )}
+
+            {/*
           Hidden when no handler is supplied: the mobile sheet used to pass a
           value pinned to "" with a no-op onChange, producing a text field that
           physically could not be typed into. (It also used to hide behind
           "DM players don't have tokens" — they do, since their own character
           got one; the caller's handler is the gate now, like Sight Radius.)
         */}
-          {onTokenImageInputChange && onTokenImageApply && (
-            <JRPGPanel
-              variant="simple"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                padding: "12px",
-              }}
-            >
-              <ImageField
-                label="Token Image URL"
-                value={tokenImageInput ?? ""}
-                onChange={onTokenImageInputChange}
-                onCommit={onTokenImageApply}
-                onClear={onTokenImageClear}
-                placeholder="https://example.com/token.png"
-              />
-              {tokenImageUrl ? (
-                <img
-                  src={tokenImageUrl}
-                  alt="Token preview"
-                  style={{
-                    width: "60px",
-                    height: "60px",
-                    margin: "4px auto 0",
-                    objectFit: "cover",
-                    borderRadius: "6px",
-                    border: "2px solid var(--jrpg-border-gold)",
-                  }}
-                  onError={(event) => {
-                    (event.currentTarget as HTMLImageElement).style.display = "none";
+            {onTokenImageInputChange && onTokenImageApply && (
+              <JRPGPanel
+                variant="simple"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  padding: "12px",
+                }}
+              >
+                <ImageField
+                  label="Token Image URL"
+                  value={tokenImageInput ?? ""}
+                  onChange={onTokenImageInputChange}
+                  onCommit={onTokenImageApply}
+                  onClear={onTokenImageClear}
+                  placeholder="https://example.com/token.png"
+                />
+                {tokenImageUrl ? (
+                  <img
+                    src={tokenImageUrl}
+                    alt="Token preview"
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      margin: "4px auto 0",
+                      objectFit: "cover",
+                      borderRadius: "6px",
+                      border: "2px solid var(--jrpg-border-gold)",
+                    }}
+                    onError={(event) => {
+                      (event.currentTarget as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ) : null}
+              </JRPGPanel>
+            )}
+
+            {onStatusEffectsChange && <StatusEffectsPicker {...statusEffectsPicker} />}
+
+            {onClearInitiative && (
+              <JRPGPanel
+                variant="simple"
+                style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+              >
+                <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                  Initiative Status
+                </span>
+                <div className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
+                  {initiative !== undefined ? `Active: ${initiative}` : "No initiative set"}
+                </div>
+                <JRPGButton
+                  onClick={onClearInitiative}
+                  variant="default"
+                  disabled={initiative === undefined}
+                  style={{ fontSize: "10px", padding: "6px 8px" }}
+                >
+                  🧹 Clear Initiative
+                </JRPGButton>
+              </JRPGPanel>
+            )}
+
+            {onSavePlayerState && onLoadPlayerState && (
+              <JRPGPanel
+                variant="simple"
+                style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+              >
+                <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                  Player State
+                </span>
+                <JRPGButton
+                  onClick={onSavePlayerState}
+                  variant="primary"
+                  style={{ fontSize: "10px" }}
+                >
+                  Save to File
+                </JRPGButton>
+                <JRPGButton
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ fontSize: "10px" }}
+                >
+                  Load from File
+                </JRPGButton>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json"
+                  style={{ display: "none" }}
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      await onLoadPlayerState(file);
+                    } catch (error) {
+                      const message =
+                        error instanceof Error
+                          ? error.message
+                          : "Unknown error loading player state";
+                      window.alert(message);
+                    } finally {
+                      event.target.value = "";
+                    }
                   }}
                 />
-              ) : null}
-            </JRPGPanel>
-          )}
+              </JRPGPanel>
+            )}
 
-          {onSavePlayerState && onLoadPlayerState && (
-            <JRPGPanel
-              variant="simple"
-              style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-            >
-              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Player State
-              </span>
-              <JRPGButton
-                onClick={onSavePlayerState}
-                variant="primary"
-                style={{ fontSize: "10px" }}
-              >
-                Save to File
-              </JRPGButton>
-              <JRPGButton
-                onClick={() => fileInputRef.current?.click()}
-                style={{ fontSize: "10px" }}
-              >
-                Load from File
-              </JRPGButton>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json"
-                style={{ display: "none" }}
-                onChange={async (event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  try {
-                    await onLoadPlayerState(file);
-                  } catch (error) {
-                    const message =
-                      error instanceof Error ? error.message : "Unknown error loading player state";
-                    window.alert(message);
-                  } finally {
-                    event.target.value = "";
-                  }
-                }}
-              />
-            </JRPGPanel>
-          )}
-
-          {canToggleDM && (
-            <JRPGPanel
-              variant="simple"
-              style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-            >
-              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Dungeon Master Mode
-              </span>
-              <JRPGButton
-                onClick={() => onToggleDMMode(!viewerIsDM)}
-                variant={viewerIsDM ? "success" : "default"}
-                style={{ fontSize: "10px" }}
-              >
-                {viewerIsDM ? "DM Mode: ON" : "DM Mode: OFF"}
-              </JRPGButton>
-            </JRPGPanel>
-          )}
-
-          {onClearInitiative && (
-            <JRPGPanel
-              variant="simple"
-              style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-            >
-              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Initiative Status
-              </span>
-              <div className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
-                {initiative !== undefined ? `Active: ${initiative}` : "No initiative set"}
-              </div>
-              <JRPGButton
-                onClick={onClearInitiative}
-                variant="default"
-                disabled={initiative === undefined}
-                style={{ fontSize: "10px", padding: "6px 8px" }}
-              >
-                🧹 Clear Initiative
-              </JRPGButton>
-            </JRPGPanel>
-          )}
-
-          {/* Token Size - whoever the caller hands a handler to (a DM's own token included) */}
-          {onTokenSizeChange && (
-            <JRPGPanel
-              variant="simple"
-              style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-            >
-              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Token Size
-              </span>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
-                {(["tiny", "small", "medium", "large", "huge", "gargantuan"] as TokenSize[]).map(
-                  (size) => {
-                    const sizeLabels: Record<TokenSize, string> = {
-                      tiny: "Tiny",
-                      small: "Small",
-                      medium: "Med",
-                      large: "Large",
-                      huge: "Huge",
-                      gargantuan: "Garg",
-                    };
-                    const active = tokenSize === size;
-                    return (
-                      <JRPGButton
-                        key={size}
-                        onClick={() => onTokenSizeChange(size)}
-                        variant={active ? "primary" : "default"}
-                        style={{ fontSize: "10px", padding: "6px 4px" }}
-                        title={size.charAt(0).toUpperCase() + size.slice(1)}
-                      >
-                        {sizeLabels[size]}
-                      </JRPGButton>
-                    );
-                  },
-                )}
-              </div>
-            </JRPGPanel>
-          )}
-
-          {/* Sight Radius — supplied only for a DM viewer (EntitiesPanel), so
-            unlike Token Size this is NOT gated on the card owner's role: a DM
-            sets the darkness on every token, including their own. */}
-          {onTokenVisionRadiusChange && (
-            <JRPGPanel
-              variant="simple"
-              style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-            >
-              <VisionRadiusField
-                value={tokenVisionRadius}
-                inheritsTableDefault
-                tableDefault={tableVisionDefault}
-                onChange={onTokenVisionRadiusChange}
-                compact={compactControls}
-              />
-            </JRPGPanel>
-          )}
-
-          {/* Movement speed — DM-only by the same rule as the sight radius. */}
-          {onCharacterSpeedChange && (
-            <JRPGPanel variant="simple" style={{ display: "flex", padding: "12px" }}>
-              <MovementSpeedField
-                value={characterSpeed}
-                onChange={onCharacterSpeedChange}
-                budget={characterBudget}
-                compact={compactControls}
-              />
-            </JRPGPanel>
-          )}
-
-          {/* Token Lock - likewise */}
-          {onToggleTokenLock && (
-            <JRPGPanel
-              variant="simple"
-              style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-            >
-              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Token Lock
-              </span>
-              <JRPGButton
-                onClick={() => onToggleTokenLock(!tokenLocked)}
-                variant={tokenLocked ? "primary" : "default"}
-                style={{ fontSize: "10px" }}
-                title={tokenLocked ? "Token is locked (DM only)" : "Token is unlocked"}
-              >
-                {tokenLocked ? "🔒 Locked" : "🔓 Unlocked"}
-              </JRPGButton>
-            </JRPGPanel>
-          )}
-
-          {onStatusEffectsChange && <StatusEffectsPicker {...statusEffectsPicker} />}
-
-          {/* Add Character: the card's own player only. Delete: the owner OR the
+            {/* Add Character: the card's own player only. Delete: the owner OR the
               DM — an abandoned seat (a player who started a fresh session) is
               cleared from here, which the server always allowed and the card
               never offered. The panel shows whichever of the two applies. */}
-          {(onAddCharacter || (characterId && onDeleteCharacter)) && (
-            <JRPGPanel
-              variant="simple"
-              style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-            >
-              {onAddCharacter && (
-                <>
-                  <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                    Multiple Characters
-                  </span>
+            {(onAddCharacter || (characterId && onDeleteCharacter)) && (
+              <JRPGPanel
+                variant="simple"
+                style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+              >
+                {onAddCharacter && (
+                  <>
+                    <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                      Multiple Characters
+                    </span>
+                    <JRPGButton
+                      onClick={() => setShowCharacterModal(true)}
+                      variant="primary"
+                      style={{ fontSize: "10px" }}
+                      disabled={isCreatingCharacter}
+                    >
+                      {isCreatingCharacter ? "Creating..." : "➕ Add Character"}
+                    </JRPGButton>
+                  </>
+                )}
+                {characterId && onDeleteCharacter && (
                   <JRPGButton
-                    onClick={() => setShowCharacterModal(true)}
-                    variant="primary"
+                    // The confirm lives in usePlayerActions.deleteCharacter, the one
+                    // funnel every caller goes through; asking here too showed two
+                    // identical dialogs back to back.
+                    onClick={() => onDeleteCharacter(characterId)}
+                    variant="danger"
                     style={{ fontSize: "10px" }}
-                    disabled={isCreatingCharacter}
                   >
-                    {isCreatingCharacter ? "Creating..." : "➕ Add Character"}
+                    🗑️ Delete this character
                   </JRPGButton>
-                </>
-              )}
-              {characterId && onDeleteCharacter && (
-                <JRPGButton
-                  // The confirm lives in usePlayerActions.deleteCharacter, the one
-                  // funnel every caller goes through; asking here too showed two
-                  // identical dialogs back to back.
-                  onClick={() => onDeleteCharacter(characterId)}
-                  variant="danger"
-                  style={{ fontSize: "10px" }}
-                >
-                  🗑️ Delete this character
-                </JRPGButton>
-              )}
-            </JRPGPanel>
+                )}
+              </JRPGPanel>
+            )}
+          </section>
+
+          {hasTokenSettings(tokenSettings) && (
+            <section className="character-settings__section" aria-labelledby={tokenHeadingId}>
+              <h3 id={tokenHeadingId} className="character-settings__heading">
+                Token settings
+              </h3>
+              <TokenSettingsSection {...tokenSettings} />
+            </section>
           )}
 
           {/*
-          Gated on viewerIsDM, not isDM. `isDM` is the CARD OWNER's flag while
-          `onDeleteToken` is only ever supplied to a DM VIEWER — an impossible
-          combination, so this button could never render at all.
-        */}
-          {viewerIsDM && onDeleteToken && (
-            <JRPGPanel variant="simple" style={{ padding: "12px" }}>
-              <JRPGButton
-                onClick={() => {
-                  if (confirm("Delete this player's token? This cannot be undone.")) {
-                    onDeleteToken();
-                  }
-                }}
-                variant="danger"
-                style={{ width: "100%", fontSize: "10px" }}
+            Role is the TABLE's, not this character's (U7): the DM Mode control
+            itself sits apart from both halves above, on the viewer's own card
+            only, until U9 gives role a Table home.
+          */}
+          {canToggleDM && (
+            <section className="character-settings__section" aria-labelledby={roleHeadingId}>
+              <h3 id={roleHeadingId} className="character-settings__heading">
+                Table role
+              </h3>
+              <JRPGPanel
+                variant="simple"
+                style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
               >
-                🗑️ Delete Token (DM)
-              </JRPGButton>
-            </JRPGPanel>
+                <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                  Dungeon Master Mode
+                </span>
+                <span className="character-settings__note">
+                  Your role at this table, not this character&rsquo;s.
+                </span>
+                <JRPGButton
+                  onClick={() => onToggleDMMode(!viewerIsDM)}
+                  variant={viewerIsDM ? "success" : "default"}
+                  style={{ fontSize: "10px" }}
+                >
+                  {viewerIsDM ? "DM Mode: ON" : "DM Mode: OFF"}
+                </JRPGButton>
+              </JRPGPanel>
+            </section>
           )}
         </JRPGPanel>
       </DraggableWindow>

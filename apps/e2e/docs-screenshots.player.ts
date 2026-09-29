@@ -1,8 +1,10 @@
 import { expect, test } from "./fixtures";
+import { openCharacterDetails, openOwnCharacterSettings, ownRosterRow } from "./party.helpers";
 import { joinDefaultRoom } from "./helpers";
 import { openTouch, touchDrag } from "./mobile/touch.helpers";
 import {
   boardCenter,
+  closePartyDetails,
   closeTopWindow,
   dragPath,
   ensureImgDir,
@@ -50,7 +52,7 @@ test.describe("docs screenshots: player", () => {
       await expect(page.getByRole("button", { name: "Snap" })).toBeVisible({ timeout: 20_000 });
       // …then try to elevate: the modal flips into bootstrap mode so the DM
       // seat is still claimable.
-      await page.getByTitle("Open player settings").first().click();
+      await openOwnCharacterSettings(page);
       await page.getByRole("button", { name: /DM Mode: OFF/ }).click();
       await page.locator("input[type='password']:visible").first().fill("first-try");
       await page.getByRole("button", { name: "Elevate to DM" }).click();
@@ -86,8 +88,14 @@ test.describe("docs screenshots: player", () => {
       { required: true },
     );
 
+    await step("party details", async () => {
+      await openCharacterDetails(page, ownRosterRow(page));
+      await page.waitForTimeout(300);
+      await shotPage(page, "party-details");
+    });
+
     await step("player settings + portrait", async () => {
-      await page.getByTitle("Open player settings").first().click();
+      await openOwnCharacterSettings(page);
       await page.getByPlaceholder("Enter Name").fill("Aria the Bold");
       await page.keyboard.press("Enter");
       await page.getByPlaceholder("https://example.com/portrait.png").fill("/icon-512.png");
@@ -95,6 +103,7 @@ test.describe("docs screenshots: player", () => {
       await page.waitForTimeout(400);
       await shotPage(page, "player-settings");
       await closeTopWindow(page, "Player Settings");
+      await closePartyDetails(page);
     });
 
     await step("dice roller build + result", async () => {

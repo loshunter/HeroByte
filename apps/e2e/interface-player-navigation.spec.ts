@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { ownRosterRow } from "./party.helpers";
 import { joinDefaultRoom } from "./helpers";
 import { elevateViaUI, observeCommands } from "./chat-journey.helpers";
 
@@ -76,10 +77,9 @@ test("a player returns from drawing to movement and finds shared chat and rememb
     await expect(closeDrawingTools).toBeHidden();
     // Empty-table arrivals start at (0,0), behind the fixed header. Use the
     // player's own visible focus action; Recenter would put it back at (0,0).
-    const ownCard = player.locator(".player-card").filter({
-      has: player.getByText("You", { exact: true }),
-    });
-    await ownCard.getByRole("button", { name: "Focus camera on token" }).click();
+    await ownRosterRow(player)
+      .getByRole("button", { name: /^Focus / })
+      .click();
     await expect
       .poll(() =>
         player.evaluate(() => {

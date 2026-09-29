@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { hideParty } from "./party.helpers";
 import {
   activate,
   armGrass,
@@ -50,7 +51,7 @@ for (const mobile of [false, true]) {
         .filter((c) => c.type === "paint-terrain");
     try {
       await createAndJoin(dm, player, mobile, `U4b ${mobile ? "phone" : "desktop"}`);
-      if (!mobile) await dm.getByRole("button", { name: /Hide entities/i }).click();
+      if (!mobile) await hideParty(dm);
       await armGrass(dm, mobile, true);
       const doc = wire.document(),
         target = await targetCell(dm, doc, mobile);

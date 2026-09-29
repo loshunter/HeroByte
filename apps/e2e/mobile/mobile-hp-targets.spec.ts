@@ -19,6 +19,7 @@
  */
 import type { Locator } from "@playwright/test";
 import { expect, test } from "../fixtures";
+import { openCharacterDetails, ownRosterRow } from "../party.helpers";
 import { joinMobileTable } from "./mobile.helpers";
 
 const ROOM_PASSWORD = process.env.E2E_ROOM_PASSWORD ?? "Fun1";
@@ -85,6 +86,7 @@ test.describe("HP numbers on a touch screen", () => {
     // The desktop layout with a coarse pointer: what the rule is scoped by.
     expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
 
+    await openCharacterDetails(page, ownRosterRow(page));
     for (const name of [/^Set current HP: /, /^Set max HP: /, /^Set temp HP: /]) {
       const target = page.getByRole("button", { name });
       await expect(target).toHaveCount(1);

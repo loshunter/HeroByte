@@ -9,6 +9,7 @@
  * a toolbar button clicked on the way does not take the keys.
  */
 import { expect, test } from "./fixtures";
+import { ownRosterRow } from "./party.helpers";
 import { joinDefaultRoom } from "./helpers";
 
 type Cell = { x: number; y: number };
@@ -165,7 +166,9 @@ test.describe("keyboard movement", () => {
     // in the entities panel, a 320px overflow:auto scroller. A click on a
     // CONTROL is a click on the control, never "into" the panel — so the
     // arrows, not only the letters, stay the board's.
-    await page.locator('button[aria-label="Focus camera on token"]').first().click();
+    await ownRosterRow(page)
+      .getByRole("button", { name: /^Focus / })
+      .click();
     expect(await selectionEntry(page)).toBeNull();
     const origin = await readCell(page, linked);
 

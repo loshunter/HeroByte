@@ -14,6 +14,7 @@ import { CardControls } from "./CardControls";
 import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
 import { loadPlayerState, savePlayerState } from "../../../utils/playerPersistence";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
+import type { OwnerControl } from "./TokenSettingsSection";
 
 export interface PlayerCardProps {
   player: Player;
@@ -68,6 +69,8 @@ export interface PlayerCardProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  /** DM-only: this character's owner (the settings window's Token settings). */
+  owner?: OwnerControl;
   /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
   tokenVisionRadius?: number;
   /** The table's default sight radius in feet, so a token that INHERITS it can
@@ -138,6 +141,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onToggleTokenLock,
     tokenSize,
     onTokenSizeChange,
+    owner,
     tokenVisionRadius,
     tableVisionDefault,
     onTokenVisionRadiusChange,
@@ -343,7 +347,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           hp={player.hp ?? 100}
           maxHp={player.maxHp ?? 100}
           tempHp={player.tempHp}
-          isMe={isMe}
+          // Its editors: the owner's, and the DM's (the server allows both).
+          isMe={isMe || viewerIsDM}
           isEditingHp={editingHp}
           hpInput={hpInput}
           isEditingMaxHp={editingMaxHp}
@@ -409,6 +414,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           onToggleTokenLock={onToggleTokenLock}
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
+          owner={owner}
           tokenVisionRadius={tokenVisionRadius}
           tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
@@ -481,7 +487,15 @@ export const PlayerCard = memo<PlayerCardProps>(
     // every render (it closes over the character id and a stable handler),
     // so comparing it would defeat the memo for every card in a fight.
     !!prevProps.characterBudget === !!nextProps.characterBudget &&
-    prevProps.characterBudget?.used === nextProps.characterBudget?.used,
+    prevProps.characterBudget?.used === nextProps.characterBudget?.used &&
+    // The owner control's SHAPE too (its onChange is minted every render):
+    // the current seat and the seats offered.
+    prevProps.owner?.uid === nextProps.owner?.uid &&
+    ownerSeats(prevProps.owner) === ownerSeats(nextProps.owner),
 );
 
 PlayerCard.displayName = "PlayerCard";
+
+function ownerSeats(owner?: OwnerControl): string | undefined {
+  return owner?.options.map((option) => `${option.uid}:${option.name}`).join("|");
+}

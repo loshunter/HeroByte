@@ -1,5 +1,6 @@
 /** Terminal CSS failure must stop the mounted table, including body portals. */
 import { expect, test, type Page } from "./fixtures";
+import { openOwnCharacterSettings } from "./party.helpers";
 
 test.describe("terminal boot interactions", () => {
   test.use({ serviceWorkers: "block", viewport: { width: 1440, height: 900 } });
@@ -173,10 +174,7 @@ async function joinTable(page: Page) {
 }
 
 async function openOwnSettings(page: Page) {
-  const ownCard = page.locator(".player-card").filter({
-    has: page.getByText("You", { exact: true }),
-  });
-  await ownCard.getByTitle("Open player settings", { exact: true }).click();
+  await openOwnCharacterSettings(page);
 }
 
 async function readOwnToken(page: Page) {

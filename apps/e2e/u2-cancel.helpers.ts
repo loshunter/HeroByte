@@ -1,4 +1,5 @@
 import { chooseBuildTool } from "./build-palette.helpers";
+import { closePartyDetails, openOwnCharacterSettings } from "./party.helpers";
 import type { Locator } from "@playwright/test";
 import { expect, type Page } from "./fixtures";
 import { composer, identity, openChat, readState, sendDraft } from "./chat-journey.helpers";
@@ -67,7 +68,7 @@ export async function createAndJoin(dm: Page, observer: Page, touch: boolean, la
     await actions.getByRole("button", { name: "Party", exact: true }).tap();
     await dm.getByRole("button", { name: "⚙️ EDIT", exact: true }).tap();
   } else {
-    await dm.getByTitle("Open player settings").click();
+    await openOwnCharacterSettings(dm);
   }
   const settings = dm.locator('[data-mobile-surface="settings"]');
   await activate(settings.getByRole("button", { name: "DM Mode: OFF", exact: true }), touch);
@@ -78,6 +79,9 @@ export async function createAndJoin(dm: Page, observer: Page, touch: boolean, la
   if (await closeSettings.isVisible()) await activate(closeSettings, touch);
   await expect(settings).toHaveCount(0);
   if (touch) await dm.getByRole("button", { name: "Close Party Members", exact: true }).tap();
+  // Desktop (U7): the gear lives in the Party inspector; leave the table as a
+  // DM who elevated would, with the details closed again.
+  else await closePartyDetails(dm);
 
   // The observer stays a player in a separate browser context.
   await observer.goto(roomUrl);

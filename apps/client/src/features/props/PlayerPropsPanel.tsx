@@ -3,12 +3,12 @@
 // ============================================================================
 // The player-facing prop surface, visible only while the table's
 // playerPropsEnabled toggle is on. Two presentations, mirroring the DM menu
-// (M4b): "window" is the desktop shape — a floating 📦 PROPS launcher plus a
-// DraggableWindow; "content" renders only the inner content for a host that
+// (M4b): "window" is the desktop shape — a 📦 PROPS launcher in the Party
+// bar's dock plus a DraggableWindow; "content" renders only the inner content for a host that
 // already provides the surface (the mobile props screen).
 //
-// Self-contained on purpose: launcher state lives here, so mounting it costs
-// the layouts ZERO new threaded props (the PublicTableNotice precedent).
+// Self-contained on purpose: launcher state lives here; the only thing a
+// layout threads in is the dock the launcher renders into (U7, IA-15).
 
 import { useState } from "react";
 import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
@@ -17,24 +17,21 @@ import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { usePlayerProps } from "./usePlayerProps";
 import { PlayerPropForm } from "./PlayerPropForm";
 import { PlayerPropEditor } from "./PlayerPropEditor";
+import {
+  DockedLauncher,
+  LAUNCHER_ORDER,
+  type LauncherPresentation,
+} from "../../components/layout/party/LauncherDock";
 
-export interface PlayerPropsPanelProps {
+export type PlayerPropsPanelProps = {
   snapshot: RoomSnapshot | null;
   uid: string;
   sendMessage: (message: ClientMessage) => void;
   camera: { x: number; y: number; scale: number };
-  /** "window" (desktop launcher + DraggableWindow) or "content" (bare, for
-   *  the mobile props screen). */
-  presentation?: "window" | "content";
-}
+} & LauncherPresentation;
 
-export function PlayerPropsPanel({
-  snapshot,
-  uid,
-  sendMessage,
-  camera,
-  presentation = "window",
-}: PlayerPropsPanelProps) {
+export function PlayerPropsPanel(props: PlayerPropsPanelProps) {
+  const { snapshot, uid, sendMessage, camera } = props;
   const [open, setOpen] = useState(false);
   const { ownProps, isCreating, creationError, createProps, updateProp, deleteProp } =
     usePlayerProps({ snapshot, uid, sendMessage, camera });
@@ -76,30 +73,19 @@ export function PlayerPropsPanel({
     </div>
   );
 
-  if (presentation === "content") {
+  if (props.presentation === "content") {
     return content;
   }
 
   return (
     <>
-      {/* Above the DM menu's slot (bottom-right) — but only players ever see
-          this launcher, so the two never actually stack. */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: "32px",
-          right: "32px",
-          zIndex: 150,
-        }}
-      >
-        <JRPGButton
-          onClick={() => setOpen((prev) => !prev)}
-          variant={open ? "primary" : "default"}
-          style={{ fontSize: "10px", padding: "10px 16px" }}
-        >
+      {/* In the Party bar's dock, right of World (IA-15). Only players see
+          it, so it never sits beside the DM MENU launcher. */}
+      <DockedLauncher dock={props.launcherDock} order={LAUNCHER_ORDER.props}>
+        <JRPGButton onClick={() => setOpen((prev) => !prev)} variant={open ? "primary" : "default"}>
           📦 PROPS
         </JRPGButton>
-      </div>
+      </DockedLauncher>
 
       {open && (
         <DraggableWindow

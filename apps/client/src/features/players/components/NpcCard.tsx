@@ -50,6 +50,8 @@ interface NpcCardProps {
   onToggleVisibility?: (id: string, visible: boolean) => void;
   onClearInitiative?: () => void;
   isCurrentTurn?: boolean;
+  /** DM-only: set THIS NPC's conditions (the settings window's picker). */
+  onStatusEffectsChange?: (effects: string[]) => void;
 }
 
 export function NpcCard({
@@ -71,6 +73,7 @@ export function NpcCard({
   onToggleVisibility,
   onClearInitiative,
   isCurrentTurn = false,
+  onStatusEffectsChange,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));
@@ -109,7 +112,6 @@ export function NpcCard({
       // DM cards always carry exact numbers (redaction is player-only).
       const parsedHp = parseHPInput(value, 0);
       const parsedMaxHp = character.maxHp ?? 1;
-
       // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
       const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
 
@@ -124,7 +126,6 @@ export function NpcCard({
       if (!isDM) return;
       const parsedMaxHp = parseMaxHPInput(value, 1);
       const parsedHp = character.hp ?? 0;
-
       // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
       const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
 
@@ -338,6 +339,8 @@ export function NpcCard({
         deletionError={deletionError}
         onClearInitiative={onClearInitiative}
         hasInitiative={character.initiative !== undefined}
+        selectedEffects={character.statusEffects ?? []}
+        onStatusEffectsChange={canEdit ? onStatusEffectsChange : undefined}
       />
     </div>
   );

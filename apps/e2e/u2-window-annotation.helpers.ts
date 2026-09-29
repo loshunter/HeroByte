@@ -1,4 +1,5 @@
 import type { Locator } from "@playwright/test";
+import { openCharacterDetails, ownRosterRow, partyInspector } from "./party.helpers";
 import type { ClientMessage } from "@herobyte/shared";
 import { expect, type Page } from "./fixtures";
 import { identity, openChat, readState } from "./chat-journey.helpers";
@@ -82,9 +83,12 @@ export async function openPanel(page: Page, panel: Panel, touch: boolean) {
   let close: Locator;
   if (panel === "Character") {
     if (touch) await actions(page).getByRole("button", { name: "Party", exact: true }).tap();
+    // Desktop (U7): the character's card — and its gear — is in the Party
+    // inspector, opened from the viewer's own roster row.
+    if (!touch) await openCharacterDetails(page, ownRosterRow(page));
     launcher = touch
       ? page.getByRole("button", { name: "⚙️ EDIT", exact: true })
-      : page.getByTitle("Open player settings", { exact: true });
+      : partyInspector(page).getByTitle("Open player settings", { exact: true });
     await expect(launcher).toHaveCount(1); // Player context, not the DM's multi-card editor.
     await activate(launcher, touch);
     close = page
@@ -133,6 +137,12 @@ export async function finishPanel(page: Page, panel: Panel, touch: boolean) {
   // Check launcher focus BEFORE closing its parent Party/Tools surface.
   if (touch && panel === "Character") {
     await page.getByRole("button", { name: "Close Party Members", exact: true }).tap();
+  } else if (panel === "Character") {
+    // The desktop inspector is the gear's parent surface: close it too.
+    await partyInspector(page)
+      .getByRole("button", { name: /^Close .* details$/ })
+      .click();
+    await expect(partyInspector(page)).toHaveCount(0);
   } else if (touch && panel === "World") {
     await expect(tools(page)).toBeVisible();
     await tools(page).getByRole("button", { name: "Close tools", exact: true }).tap();

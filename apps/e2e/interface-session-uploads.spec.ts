@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { hideParty } from "./party.helpers";
 import { armGrass, createAndJoin, mapContent } from "./u2-cancel.helpers";
 import { chooseBuildTool } from "./build-palette.helpers";
 import { observeGeneration } from "./u3a-generate.helpers";
@@ -29,7 +30,7 @@ test("U5 blocked-storage upload survives picker reopening and reaches the player
     playerWire = observeGeneration(player);
   try {
     await createAndJoin(dm, player, false, "U5 session uploads");
-    await dm.getByRole("button", { name: /Hide entities/i }).click();
+    await hideParty(dm);
     await armGrass(dm, false, true);
     await chooseBuildTool(dm, "place", false);
     const toggle = dm.getByTestId("build-settings").getByRole("button", { name: /^[▸▾] / });

@@ -13,6 +13,7 @@ import { MovementSpeedField } from "../../players/components/MovementSpeedField"
 import { NpcPortraitField } from "./NpcPortraitField";
 import { NpcTokenImageField } from "./NpcTokenImageField";
 import { NpcStanceSelect } from "./NpcStanceSelect";
+import { NpcConditionsField } from "./NpcConditionsField";
 import { useNpcAssetPick } from "../hooks/useNpcAssetPick";
 import { useNpcEditorFields } from "../hooks/useNpcEditorFields";
 import { NPC_NAME_MAX, tempHpEdit, tokenImageEdit } from "../../players/npcUpdate";
@@ -32,6 +33,10 @@ interface NPCEditorProps {
   onPlace: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** The NPC's conditions (the phone's only route to them). */
+  onStatusEffectsChange: (effects: string[]) => void;
+  /** Present only while its token is on the map. */
+  onFocus?: () => void;
   isUpdating?: boolean;
   updateError?: string | null;
   isPlacingToken?: boolean;
@@ -67,6 +72,8 @@ export function NPCEditor({
   onPlace,
   onDuplicate,
   onDelete,
+  onStatusEffectsChange,
+  onFocus,
   isDuplicating = false,
   isUpdating = false,
   updateError = null,
@@ -317,8 +324,11 @@ export function NPCEditor({
         }}
       />
 
+      <NpcConditionsField effects={npc.statusEffects ?? []} onChange={onStatusEffectsChange} />
+
       <NPCEditorActions
         npcName={npc.name}
+        onFocus={onFocus}
         onPlace={() => {
           commitUpdate();
           onPlace();

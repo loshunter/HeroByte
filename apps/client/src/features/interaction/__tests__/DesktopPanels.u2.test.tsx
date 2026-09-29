@@ -30,7 +30,13 @@ afterEach(() => {
 
 describe("desktop close opt-ins", () => {
   it.each(["world", "dm"] as const)("%s launcher → Escape → same launcher", (panel) => {
-    render(panel === "world" ? <WorldMapPanel snapshot={null} /> : <DMMenu {...dmProps()} />);
+    render(
+      panel === "world" ? (
+        <WorldMapPanel snapshot={null} launcherDock={document.body} />
+      ) : (
+        <DMMenu {...dmProps()} />
+      ),
+    );
     const opener = visible(
       screen.getByRole("button", { name: panel === "world" ? /WORLD/ : /DM MENU/ }),
     );

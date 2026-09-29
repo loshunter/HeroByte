@@ -5,7 +5,8 @@ import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 // A character's portrait (a player's, the DM's or an NPC's) with class icon and
 // mic level animation
 
-import React from "react";
+import React, { useId } from "react";
+import "./portraitSection.css";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
 
 interface PortraitSectionProps {
@@ -33,6 +34,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   onInitiativeClick,
   isCurrentTurn = false,
 }) => {
+  const hintId = useId();
   const handlePortraitClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     // Click portrait to change image (when editable)
     if (isEditable && onRequestChange) {
@@ -205,6 +207,9 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
         style={frameStyles}
         onClick={handlePortraitClick}
         aria-label={isEditable ? "Change portrait" : "Portrait"}
+        // The empty frame's instruction stays available when a narrow card
+        // hides its line (portraitSection.css).
+        aria-describedby={isEditable && !portrait ? hintId : undefined}
         disabled={!isEditable}
         tabIndex={isEditable ? 0 : -1}
       >
@@ -232,6 +237,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
         ) : (
           <div
             data-testid="portrait-placeholder"
+            className="portrait-placeholder"
             style={{
               position: "absolute",
               inset: 0,
@@ -243,35 +249,30 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               backgroundColor: tokenColor,
               color: "#fff",
               textAlign: "center",
-              padding: "8px",
+              padding: "6px",
               textShadow: "0 1px 3px rgba(0, 0, 0, 0.45)",
               pointerEvents: "none",
+              // The frame is a <button>, and the global button rule set this
+              // in uppercase pixel type, which clipped the instruction in a
+              // card-sized square (IA-20). Readable body type that wraps.
+              fontFamily: "var(--font-body)",
+              textTransform: "none",
+              letterSpacing: "normal",
+              overflowWrap: "anywhere",
+              lineHeight: 1.25,
             }}
           >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-              }}
-            >
-              {isEditable ? "+ Add Portrait" : "Portrait Pending"}
+            <span className="portrait-placeholder__title" style={{ fontWeight: 700 }}>
+              {/* Not "Portrait Pending": nothing is on its way; there is none. */}
+              {isEditable ? "+ Add portrait" : "No portrait yet"}
             </span>
             {isEditable ? (
               <span
-                style={{
-                  fontSize: "0.65rem",
-                  opacity: 0.85,
-                  lineHeight: 1.3,
-                  letterSpacing: "0.04em",
-                }}
+                id={hintId}
+                className="portrait-placeholder__hint"
+                style={{ fontSize: "0.68rem", fontWeight: 400, opacity: 0.9 }}
               >
-                Click to upload one, or paste a URL.
+                Upload or paste a link
               </span>
             ) : null}
           </div>
