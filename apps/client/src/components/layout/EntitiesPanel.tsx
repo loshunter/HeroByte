@@ -88,7 +88,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
     isOpen: isInitiativeModalOpen,
     openModal: openInitiativeModal,
     closeModal: closeInitiativeModal,
-  } = useInitiativeModal();
+  } = useInitiativeModal(characters);
   // The server's own rule: the DM, or the character's owner. On losing DM
   // rights the dialog for anyone else's character closes rather than offering
   // a Set the server refuses, and it does not reopen on re-elevation.

@@ -20,9 +20,11 @@ describe("useInitiativeModal", () => {
     initiativeModifier: 0,
   });
 
+  const characters = ["char-1", "char-2"].map((id) => createMockCharacter(id));
+
   describe("initial state", () => {
     it("should start with null (no modal open)", () => {
-      const { result } = renderHook(() => useInitiativeModal());
+      const { result } = renderHook(() => useInitiativeModal(characters));
 
       expect(result.current.character).toBeNull();
       expect(result.current.isOpen).toBe(false);
@@ -31,8 +33,8 @@ describe("useInitiativeModal", () => {
 
   describe("openModal", () => {
     it("should open modal with the specified character", () => {
-      const { result } = renderHook(() => useInitiativeModal());
-      const character = createMockCharacter("char-1");
+      const { result } = renderHook(() => useInitiativeModal(characters));
+      const character = characters[0];
 
       act(() => {
         result.current.openModal(character);
@@ -43,9 +45,8 @@ describe("useInitiativeModal", () => {
     });
 
     it("should replace previously open character", () => {
-      const { result } = renderHook(() => useInitiativeModal());
-      const char1 = createMockCharacter("char-1");
-      const char2 = createMockCharacter("char-2");
+      const { result } = renderHook(() => useInitiativeModal(characters));
+      const [char1, char2] = characters;
 
       act(() => {
         result.current.openModal(char1);
@@ -64,8 +65,8 @@ describe("useInitiativeModal", () => {
 
   describe("closeModal", () => {
     it("should close the modal and clear character", () => {
-      const { result } = renderHook(() => useInitiativeModal());
-      const character = createMockCharacter("char-1");
+      const { result } = renderHook(() => useInitiativeModal(characters));
+      const character = characters[0];
 
       act(() => {
         result.current.openModal(character);
@@ -82,7 +83,7 @@ describe("useInitiativeModal", () => {
     });
 
     it("should be idempotent (safe to call multiple times)", () => {
-      const { result } = renderHook(() => useInitiativeModal());
+      const { result } = renderHook(() => useInitiativeModal(characters));
 
       act(() => {
         result.current.closeModal();
@@ -96,8 +97,8 @@ describe("useInitiativeModal", () => {
 
   describe("isOpen computed property", () => {
     it("should be true when character is set", () => {
-      const { result } = renderHook(() => useInitiativeModal());
-      const character = createMockCharacter("char-1");
+      const { result } = renderHook(() => useInitiativeModal(characters));
+      const character = characters[0];
 
       act(() => {
         result.current.openModal(character);
@@ -107,11 +108,11 @@ describe("useInitiativeModal", () => {
     });
 
     it("should be false when character is null", () => {
-      const { result } = renderHook(() => useInitiativeModal());
+      const { result } = renderHook(() => useInitiativeModal(characters));
 
       expect(result.current.isOpen).toBe(false);
 
-      const character = createMockCharacter("char-1");
+      const character = characters[0];
       act(() => {
         result.current.openModal(character);
       });
@@ -120,6 +121,27 @@ describe("useInitiativeModal", () => {
         result.current.closeModal();
       });
 
+      expect(result.current.isOpen).toBe(false);
+    });
+  });
+
+  describe("the live record", () => {
+    it("follows the character's current record, and closes for good when it is gone", () => {
+      const { result, rerender } = renderHook(({ list }) => useInitiativeModal(list), {
+        initialProps: { list: characters },
+      });
+      act(() => {
+        result.current.openModal(characters[0]);
+      });
+
+      const renamed = { ...characters[0], name: "Renamed" };
+      rerender({ list: [renamed, characters[1]] });
+      expect(result.current.character).toBe(renamed);
+
+      rerender({ list: [characters[1]] });
+      expect(result.current.isOpen).toBe(false);
+
+      rerender({ list: characters });
       expect(result.current.isOpen).toBe(false);
     });
   });
