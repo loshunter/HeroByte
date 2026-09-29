@@ -74,7 +74,7 @@ import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import { MapTransitionOverlay } from "../features/map/MapTransitionOverlay";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
-import { STATUS_OPTIONS, type StatusOption } from "../features/players/constants/statusOptions";
+import { conditionsByTokenId } from "../features/map/tokenConditions";
 
 // Re-export types for backward compatibility
 export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
@@ -176,35 +176,7 @@ export default function MapBoard({
   // Maps token IDs to their character's status effect details
   const statusEffectsByTokenId = useMemo(() => {
     if (!snapshot?.characters) return {};
-
-    const playerStatusMap = new Map<string, string[]>();
-    for (const player of snapshot.players ?? []) {
-      if (player.statusEffects && player.statusEffects.length > 0) {
-        playerStatusMap.set(player.uid, player.statusEffects);
-      }
-    }
-
-    const result: Record<string, StatusOption[]> = {};
-    for (const character of snapshot.characters) {
-      if (!character.tokenId) continue;
-
-      const ownedStatuses =
-        character.statusEffects && character.statusEffects.length > 0
-          ? character.statusEffects
-          : character.ownedByPlayerUID
-            ? (playerStatusMap.get(character.ownedByPlayerUID) ?? [])
-            : [];
-
-      if (ownedStatuses.length === 0) continue;
-
-      const mapped = ownedStatuses.map((value) => {
-        const option = STATUS_OPTIONS.find((opt) => opt.value === value);
-        return option ?? { value, label: value, emoji: "?" };
-      });
-
-      result[`token:${character.tokenId}`] = mapped;
-    }
-    return result;
+    return conditionsByTokenId(snapshot.characters, snapshot.players ?? []);
   }, [snapshot?.characters, snapshot?.players]);
 
   // Current HP per token, so the tokens layer can mirror the card's damage/heal
