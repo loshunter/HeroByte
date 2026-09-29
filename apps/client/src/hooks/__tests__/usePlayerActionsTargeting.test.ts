@@ -268,3 +268,80 @@ describe("applyPlayerState drawings", () => {
     expect(sentTypes()).toContain("sync-player-drawings");
   });
 });
+
+// `set-initiative` has no modifier-only form: with no value it CLEARS
+// initiative, and with one it enters the order. Loading a file that carried a
+// modifier sent `initiative: current ?? 0`, which put a character with no
+// initiative into the order at 0 (a combatant, in combat), and was refused
+// outright from a player while the table has manual entry off.
+describe("applyPlayerState initiative modifier", () => {
+  beforeEach(() => {
+    mockSendMessage.mockClear();
+  });
+
+  const withModifier = { ...state, initiativeModifier: 3 } as PlayerState;
+  function actionsAs(
+    uid: string,
+    character: Record<string, unknown>,
+    extra: Record<string, unknown> = {},
+  ) {
+    const table = {
+      ...snapshot,
+      ...extra,
+      players: [
+        { uid: "dm-uid", name: "DM", isDM: true },
+        { uid: "alice-uid", name: "Alice", isDM: false },
+      ],
+      characters: [
+        {
+          id: "char-alice",
+          name: "Alice",
+          type: "pc",
+          ownedByPlayerUID: "alice-uid",
+          ...character,
+        },
+      ],
+    } as unknown as RoomSnapshot;
+    return renderHook(() =>
+      usePlayerActions({ sendMessage: mockSendMessage, snapshot: table, uid }),
+    );
+  }
+  const initiativeSends = () =>
+    mockSendMessage.mock.calls
+      .map((c) => c[0] as ClientMessage)
+      .filter((m) => m.t === "set-initiative");
+
+  it("never puts a character with no initiative into the order", () => {
+    const { result } = actionsAs("alice-uid", {});
+    act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
+
+    expect(initiativeSends()).toEqual([]);
+  });
+
+  it("restores the modifier alongside an initiative the character already has", () => {
+    const { result } = actionsAs("alice-uid", { initiative: 12 });
+    act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
+
+    expect(initiativeSends()).toEqual([
+      { t: "set-initiative", characterId: "char-alice", initiative: 12, initiativeModifier: 3 },
+    ]);
+  });
+
+  it("sends nothing the server would refuse: a player, while manual entry is off", () => {
+    const { result } = actionsAs(
+      "alice-uid",
+      { initiative: 12 },
+      { initiativeManualOverride: false },
+    );
+    act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
+
+    expect(initiativeSends()).toEqual([]);
+  });
+
+  it("the DM is never blocked by the manual-entry setting", () => {
+    const { result } = actionsAs("dm-uid", { initiative: 12 }, { initiativeManualOverride: false });
+    act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
+
+    expect(initiativeSends()).toHaveLength(1);
+  });
+});

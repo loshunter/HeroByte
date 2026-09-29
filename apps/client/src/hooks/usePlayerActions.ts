@@ -17,6 +17,7 @@
 import { useCallback, useMemo } from "react";
 import type { ClientMessage, PlayerState, PlayerStagingZone, RoomSnapshot } from "@herobyte/shared";
 import { normalizeHPValues } from "@herobyte/shared";
+import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
 
 /**
  * Dependencies required by the usePlayerActions hook.
@@ -481,16 +482,22 @@ export function usePlayerActions({
         }
       }
 
-      // Update initiative modifier if present and characterId provided
+      // The modifier rides `set-initiative`, which has no modifier-only form:
+      // with no value it CLEARS initiative, and with one it enters the order
+      // (a combatant, in combat) and is refused from a player while the table
+      // has manual entry off. So it is restored only alongside an initiative
+      // the character already has, and only when the loader may set one.
       if (characterId && state.initiativeModifier !== undefined) {
-        // Send set-initiative with current initiative (if any) and the modifier
-        // The server will update the modifier; if no initiative is set, it won't change
         const currentCharacter = snapshot?.characters?.find((c) => c.id === characterId);
-        if (currentCharacter) {
+        const senderIsDM = snapshot?.players?.find((p) => p.uid === uid)?.isDM === true;
+        if (
+          currentCharacter?.initiative !== undefined &&
+          manualInitiativeAllowedFor(snapshot, senderIsDM)
+        ) {
           sendMessage({
             t: "set-initiative",
             characterId,
-            initiative: currentCharacter.initiative ?? 0,
+            initiative: currentCharacter.initiative,
             initiativeModifier: state.initiativeModifier,
           });
         }
@@ -508,7 +515,7 @@ export function usePlayerActions({
         sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
       }
     },
-    [sendMessage, snapshot?.characters, uid],
+    [sendMessage, snapshot, uid],
   );
 
   /**
