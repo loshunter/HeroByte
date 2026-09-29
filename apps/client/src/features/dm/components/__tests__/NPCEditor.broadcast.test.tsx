@@ -48,4 +48,24 @@ describe("NPCEditor — typed input survives unrelated broadcasts", () => {
 
     expect(name.value).toBe("Baker the Bold");
   });
+
+  it("takes every value the server changed, not only the name", () => {
+    const { rerenderWith } = renderEditor();
+
+    rerenderWith({
+      hp: 2,
+      maxHp: 8,
+      tempHp: 1,
+      initiativeModifier: 3,
+      portrait: "https://example.test/p.png",
+      tokenImage: "https://example.test/t.png",
+    });
+
+    expect((screen.getByLabelText("HP") as HTMLInputElement).value).toBe("2");
+    expect((screen.getByLabelText("Max HP") as HTMLInputElement).value).toBe("8");
+    expect((screen.getByLabelText("Temp HP") as HTMLInputElement).value).toBe("1");
+    expect((screen.getByLabelText("Init Mod") as HTMLInputElement).value).toBe("3");
+    expect(screen.getByDisplayValue("https://example.test/p.png")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("https://example.test/t.png")).toBeInTheDocument();
+  });
 });

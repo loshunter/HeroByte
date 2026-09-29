@@ -244,8 +244,11 @@ describe("applyPlayerState drawings", () => {
   }
 
   it("a file loaded onto someone else's card leaves the loader's drawings alone", () => {
+    // The loader (the DM) owns a character too: the gate is about THIS card,
+    // not whether the loader owns any.
     const { result } = actionsWith([
       { id: "char-alice", name: "Alice", type: "pc", ownedByPlayerUID: "alice-uid" },
+      { id: "char-dm", name: "Sidekick", type: "pc", ownedByPlayerUID: "dm-uid" },
     ]);
     act(() => result.current.applyPlayerState(withDrawings, undefined, "char-alice"));
 

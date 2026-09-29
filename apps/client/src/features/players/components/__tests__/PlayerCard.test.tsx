@@ -2528,4 +2528,15 @@ describe("PlayerCard settings after losing DM rights", () => {
     rerender(<PlayerCard {...props} viewerIsDM={true} />);
     expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
   });
+
+  it("keeps the owner's own window open when they give up DM", () => {
+    // The Table role section lives in this very window: giving up DM from it
+    // must not close it under the DM's own click.
+    const props = createDefaultProps({ isMe: true, viewerIsDM: true });
+    const { rerender } = render(<PlayerCard {...props} />);
+    fireEvent.click(screen.getByTestId("card-controls-open-settings"));
+
+    rerender(<PlayerCard {...props} viewerIsDM={false} />);
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+  });
 });

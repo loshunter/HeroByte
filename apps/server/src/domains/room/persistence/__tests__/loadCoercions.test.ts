@@ -10,6 +10,7 @@ import { CUSTOM_TOKEN_LIMITS } from "@herobyte/shared";
 import {
   coerceCustomTokens,
   coerceLoadedCharacters,
+  coerceLoadedSeats,
   coerceTokenSize,
   settleLegacyConditionLists,
 } from "../loadCoercions.js";
@@ -208,5 +209,35 @@ describe("settleLegacyConditionLists", () => {
     expect(settled[0]).toBe(own);
     expect(settled[1]).toBe(npc);
     expect(settled[2]?.statusEffects).toEqual([]);
+  });
+});
+
+describe("settleLegacyConditionLists counts player characters only", () => {
+  it("an NPC the player owns does not stop their sole character adopting", () => {
+    // The clients count player characters per owner (useCombatOrdering); so
+    // must the migration, or a DM's sole hero beside a placed goblin starts empty.
+    const hero = { id: "d1", type: "pc", name: "Hero", hp: 1, maxHp: 1, ownedByPlayerUID: "dm" };
+    const goblin = {
+      id: "n1",
+      type: "npc",
+      name: "Goblin",
+      hp: 1,
+      maxHp: 1,
+      ownedByPlayerUID: "dm",
+    };
+    const [settled] = settleLegacyConditionLists([hero, goblin] as Character[], [
+      { uid: "dm", statusEffects: ["prone"] },
+    ]);
+
+    expect(settled?.statusEffects).toEqual(["prone"]);
+  });
+});
+
+describe("coerceLoadedSeats", () => {
+  it("a players field that is not an array loads as none, rather than throwing", () => {
+    expect(coerceLoadedSeats({ poisoned: true }, [], false)).toEqual({
+      players: [],
+      characters: [],
+    });
   });
 });

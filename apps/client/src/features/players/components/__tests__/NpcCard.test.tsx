@@ -96,6 +96,8 @@ interface MockHPBarProps {
   onMaxHpEdit: () => void;
   onMaxHpSubmit: (input: string) => void;
   onTempHpSubmit: (input: string) => void;
+  isEditingTempHp?: boolean;
+  onTempHpEdit?: () => void;
 }
 
 vi.mock("../HPBar", () => ({
@@ -116,6 +118,8 @@ vi.mock("../HPBar", () => ({
     onMaxHpEdit,
     onMaxHpSubmit,
     onTempHpSubmit,
+    isEditingTempHp,
+    onTempHpEdit,
   }: MockHPBarProps) => (
     <div data-testid="hp-bar">
       <span data-testid="hp-bar-hp">{hp}</span>
@@ -146,6 +150,10 @@ vi.mock("../HPBar", () => ({
       </button>
       <button data-testid="hp-bar-submit-max-hp" onClick={() => onMaxHpSubmit("200")}>
         Submit Max HP
+      </button>
+      <span data-testid="hp-bar-is-editing-temp-hp">{String(isEditingTempHp)}</span>
+      <button data-testid="hp-bar-edit-temp-hp" onClick={() => onTempHpEdit?.()}>
+        Edit Temp HP
       </button>
       <button data-testid="hp-bar-submit-temp-hp" onClick={() => onTempHpSubmit("0")}>
         Submit Temp HP 0
@@ -1496,14 +1504,20 @@ describe("NpcCard after losing DM rights", () => {
     const { rerender } = render(<NpcCard {...props} />);
     fireEvent.click(screen.getByTestId("portrait-section-change"));
     fireEvent.click(screen.getByTestId("hp-bar-edit-hp"));
+    fireEvent.click(screen.getByTestId("hp-bar-edit-max-hp"));
+    fireEvent.click(screen.getByTestId("hp-bar-edit-temp-hp"));
     expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
     expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("true");
+    expect(screen.getByTestId("hp-bar-is-editing-max-hp")).toHaveTextContent("true");
+    expect(screen.getByTestId("hp-bar-is-editing-temp-hp")).toHaveTextContent("true");
 
     rerender(<NpcCard {...props} isDM={false} />);
     rerender(<NpcCard {...props} isDM={true} />);
 
     expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
     expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("false");
+    expect(screen.getByTestId("hp-bar-is-editing-max-hp")).toHaveTextContent("false");
+    expect(screen.getByTestId("hp-bar-is-editing-temp-hp")).toHaveTextContent("false");
   });
 });
 
