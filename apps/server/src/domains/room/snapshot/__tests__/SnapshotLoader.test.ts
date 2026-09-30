@@ -82,8 +82,10 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(mergedPlayer.portrait).toBe("saved-portrait.png");
       expect(mergedPlayer.hp).toBe(25);
       expect(mergedPlayer.maxHp).toBe(30);
-      expect(mergedPlayer.isDM).toBe(true);
       expect(mergedPlayer.statusEffects).toEqual(["blessed"]);
+      // Not the DM flag: the file says DM, the room says player, and the room
+      // wins — see "a restore never moves the DM seat".
+      expect(mergedPlayer.isDM).toBe(false);
 
       // Connection metadata preserved from current state
       expect(mergedPlayer.lastHeartbeat).toBe(currentPlayer.lastHeartbeat);
@@ -1410,6 +1412,67 @@ describe("SnapshotLoader - Characterization Tests", () => {
         mapElements: state.mapElements,
         liveMapDocumentId: state.liveMapDocumentId,
       }).toEqual({ compiledScene, mapTerrain, mapElements, liveMapDocumentId: "doc-A" });
+    });
+  });
+
+  describe("a restore never moves the DM seat", () => {
+    // DM status is earned at the table, with the DM password, and lives in the
+    // room's own record of the seat. A session file carries every seat's flag
+    // too — and a file can be hand-edited, or belong to another night's table,
+    // where someone else held the seat. "Restore" must not be a second way to
+    // become the DM, or a way to lose the seat by restoring.
+    const seat = (uid: string, isDM: boolean): Player => ({
+      uid,
+      name: uid,
+      portrait: "",
+      micLevel: 0.5,
+      lastHeartbeat: Date.now(),
+      hp: 10,
+      maxHp: 10,
+      isDM,
+      statusEffects: [],
+    });
+    const fileOf = (players: Player[]): RoomSnapshot => ({
+      users: [],
+      tokens: [],
+      players,
+      characters: [],
+      props: [],
+      pointers: [],
+      drawings: [],
+      gridSize: 50,
+      gridSquareSize: 5,
+      diceRolls: [],
+      sceneObjects: [],
+      combatActive: false,
+    });
+    const isDMOf = (uid: string) =>
+      roomService.getState().players.find((player) => player.uid === uid)?.isDM;
+
+    it("does not make a seated player the DM because the file says so", () => {
+      roomService.setState({ players: [seat("dm-1", true), seat("player-1", false)] });
+
+      roomService.loadSnapshot(fileOf([seat("dm-1", true), seat("player-1", true)]));
+
+      expect(isDMOf("player-1")).toBe(false);
+      expect(isDMOf("dm-1")).toBe(true);
+    });
+
+    it("does not take the seat from the DM who restores a file that names them a player", () => {
+      roomService.setState({ players: [seat("dm-1", true), seat("player-1", false)] });
+
+      roomService.loadSnapshot(fileOf([seat("dm-1", false), seat("player-1", false)]));
+
+      expect(isDMOf("dm-1")).toBe(true);
+      expect(isDMOf("player-1")).toBe(false);
+    });
+
+    it("does not seat a DM the file names who is not at the table", () => {
+      roomService.setState({ players: [seat("dm-1", true)] });
+
+      roomService.loadSnapshot(fileOf([seat("dm-1", true), seat("ghost-dm", true)]));
+
+      expect(roomService.getState().players.map((player) => player.uid)).toEqual(["dm-1"]);
     });
   });
 });

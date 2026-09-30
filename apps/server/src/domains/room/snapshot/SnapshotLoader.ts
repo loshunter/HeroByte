@@ -64,6 +64,11 @@ export class SnapshotLoader {
         // Merge: Keep current connection data (lastHeartbeat, micLevel), restore saved data
         return {
           ...savedPlayer,
+          // Authority is the room's own, never the file's. DM status is earned at
+          // the table with the DM password, and a file can be hand-edited or come
+          // from another night's table where someone else held the seat — so a
+          // restore must neither crown a seated player nor demote the DM who ran it.
+          isDM: currentPlayer.isDM ?? false,
           lastHeartbeat: currentPlayer.lastHeartbeat, // Keep current heartbeat
           micLevel: currentPlayer.micLevel, // Keep current mic level
         };
