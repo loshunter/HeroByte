@@ -25,7 +25,7 @@ interface OwnersProps {
   loading: boolean;
   onClose: () => void;
   onSetInitiative: (value: number, modifier: number) => void;
-  onRollInitiative: (modifier: number) => void;
+  onRollInitiative: (modifier?: number) => void;
 }
 
 // Production hooks + real portalled modal; no keyboard handler is copied.

@@ -81,10 +81,11 @@ export function useInertPage(own: RefObject<HTMLElement>): void {
  * The modifier dial follows the character's STORED modifier until the viewer
  * touches it. It used to read it once, at open: another seat's change (the
  * DM's Init Mod, the owner's own dialog elsewhere) was then written back over
- * by this dialog's Save or Roll.
+ * by this dialog's Save or Roll. The third value says whether the viewer has
+ * touched it: an untouched dial's Roll leaves the modifier to the server.
  */
-export function useFollowedModifier(stored: number): [number, (next: number) => void] {
+export function useFollowedModifier(stored: number): [number, (next: number) => void, boolean] {
   const [touched, setTouched] = useState<number | null>(null);
   const set = useCallback((next: number) => setTouched(next), []);
-  return [touched ?? stored, set];
+  return [touched ?? stored, set, touched !== null];
 }

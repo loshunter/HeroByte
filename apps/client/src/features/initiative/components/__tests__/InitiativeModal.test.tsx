@@ -126,7 +126,7 @@ function createDefaultProps(
     character?: Character;
     onClose?: () => void;
     onSetInitiative?: (initiative: number, modifier: number) => void;
-    onRollInitiative?: (modifier: number) => void;
+    onRollInitiative?: (modifier?: number) => void;
     manualEntryAllowed?: boolean;
     isLoading?: boolean;
     error?: string | null;
@@ -625,7 +625,7 @@ describe("InitiativeModal - Roll Initiative", () => {
     fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
 
     expect(onRollInitiative).toHaveBeenCalledTimes(1);
-    expect(onRollInitiative).toHaveBeenCalledWith(2);
+    expect(onRollInitiative).toHaveBeenCalledWith(undefined); // an untouched dial: the server rolls with its stored +2
   });
 
   it("clicking 'Roll Initiative' closes the modal", () => {
@@ -709,7 +709,7 @@ describe("InitiativeModal - Roll Initiative", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
 
-    expect(onRollInitiative).toHaveBeenCalledWith(2);
+    expect(onRollInitiative).toHaveBeenCalledWith(undefined); // an untouched dial: the server rolls with its stored +2
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSetInitiative).not.toHaveBeenCalled();
   });
@@ -1945,7 +1945,7 @@ describe("InitiativeModal - Loading State", () => {
 
     const rollButton = screen.getByRole("button", { name: "Roll Initiative" });
     fireEvent.click(rollButton);
-    expect(onRollInitiative).toHaveBeenCalledWith(2);
+    expect(onRollInitiative).toHaveBeenCalledWith(undefined); // an untouched dial: the server rolls with its stored +2
 
     const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
     fireEvent.click(manualButton);

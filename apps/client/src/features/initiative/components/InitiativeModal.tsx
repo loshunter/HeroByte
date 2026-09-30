@@ -19,11 +19,11 @@ interface InitiativeModalProps {
   onClose: () => void;
   onSetInitiative: (initiative: number, modifier: number) => void;
   /**
-   * Ask the SERVER to roll. Carries the dial's current modifier, which the
-   * server persists and rolls with — without it the roll would silently apply
-   * whatever modifier was last stored and the dial would stop mattering.
+   * Ask the SERVER to roll. Carries the dial's modifier once the viewer has
+   * touched it (the server persists and rolls with it); untouched, none, and the
+   * server rolls with the stored one — never an old value written back over it.
    */
-  onRollInitiative: (modifier: number) => void;
+  onRollInitiative: (modifier?: number) => void;
   /**
    * Whether entering a number by hand is offered at all.
    *
@@ -65,7 +65,9 @@ export function InitiativeModal({
     handle: own.saving ? undefined : onClose,
   }));
 
-  const [modifier, setModifier] = useFollowedModifier(character.initiativeModifier ?? 0);
+  const [modifier, setModifier, modifierTouched] = useFollowedModifier(
+    character.initiativeModifier ?? 0,
+  );
   const [rolledValue, setRolledValue] = useState<number | null>(null);
   const [manualMode, setManualMode] = useState(false);
   const [manualValue, setManualValue] = useState<string>("");
@@ -108,19 +110,16 @@ export function InitiativeModal({
     [modifier],
   );
 
-  // Roll: the SERVER throws the die, on the same generator dice use, and the
-  // result lands in the public roll log labelled with this character's name.
-  //
-  // This sends and closes rather than showing the number here first. That is
-  // not a shortcut: the server APPLIES the value as it rolls, so there is
-  // nothing left for a confirm press to confirm — a second press could only
-  // re-send it down the manual path, which would log it a second time as
-  // "(entered)" and strike the server's own roll through. The number is not
-  // lost by closing; it appears in the roll log, which every seat can see.
+  // Roll: the SERVER throws the die and APPLIES the value as it rolls, so this
+  // sends and closes — a confirm press could only re-send it by hand, logging a
+  // BY HAND entry that strikes the server's own roll through. The number lands
+  // in the roll log (the DM's alone for a concealed NPC). An untouched dial sends
+  // no modifier: the server rolls with the stored one, even one changed elsewhere
+  // a moment ago.
   const handleRoll = useCallback(() => {
-    onRollInitiative(modifier);
+    onRollInitiative(modifierTouched ? modifier : undefined);
     onClose();
-  }, [onRollInitiative, modifier, onClose]);
+  }, [onRollInitiative, modifierTouched, modifier, onClose]);
 
   const enterManualMode = useCallback(() => {
     setManualMode(true);

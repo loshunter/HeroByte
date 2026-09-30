@@ -22,7 +22,8 @@ describe("foreground modal action preservation", () => {
     const calls = actions();
     render(<ActualModal kind="initiative" calls={calls} />);
     fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
-    expect(calls.roll).toHaveBeenCalledExactlyOnceWith(2);
+    // An untouched dial leaves the stored +2 to the server.
+    expect(calls.roll).toHaveBeenCalledExactlyOnceWith(undefined);
     expect(calls.set).not.toHaveBeenCalled();
     expect(calls.close).toHaveBeenCalledTimes(1);
   });
