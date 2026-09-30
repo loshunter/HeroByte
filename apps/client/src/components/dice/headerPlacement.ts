@@ -25,7 +25,9 @@ export function belowHeader(y: number): number {
  * The header's height changes while a window is open: a player who enters DM mode gains
  * Build map and Player View, the tools wrap a row lower, and a window opened a moment
  * earlier would lie over the buttons that moved. So an un-placed window follows the header
- * (`placed` is true once it has a remembered place or the player has taken hold of it).
+ * (`placed` is true once it has a remembered place or the player has dragged it), and the
+ * callback is told every height the header settles at — it is the caller's to keep the window
+ * from going back UP, since a header that shrinks usually grows again in a moment.
  */
 export function useFollowHeader(
   enabled: boolean,

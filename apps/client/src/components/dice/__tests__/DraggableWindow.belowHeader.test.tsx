@@ -235,7 +235,12 @@ describe("DraggableWindow — follows the header until the player places it", ()
     expect(windowOf(container).style.top).toBe("184px");
   });
 
-  it("goes back up when the header shrinks again, while it is still unplaced", () => {
+  // It follows the header DOWN and never back up. A reconnect takes a DM's Build map and
+  // Player View out of the header (a role the page cannot know is not a DM) and brings them
+  // back, so a header that shrinks usually grows again in a moment; a window that went up and
+  // down with it would be a moving target for the whole outage. A window left one row low
+  // when the tools really are gone costs a gap; one that bobs costs the player the click.
+  it("stays where it is when the header shrinks again", () => {
     const header = growableHeader(180);
     const { container } = render(
       <DraggableWindow title="Dice Roller" initialY={100}>
@@ -244,7 +249,34 @@ describe("DraggableWindow — follows the header until the player places it", ()
     );
     expect(windowOf(container).style.top).toBe("184px");
     header.grow(60);
-    expect(windowOf(container).style.top).toBe("100px");
+    expect(windowOf(container).style.top).toBe("184px");
+  });
+
+  it("holds still through a shrink and a regrow, as a reconnect blip makes the header do", () => {
+    const header = growableHeader(180);
+    const { container } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    const tops: string[] = [];
+    for (const bottom of [60, 180, 60, 180]) {
+      header.grow(bottom);
+      tops.push(windowOf(container).style.top);
+    }
+    expect(tops).toEqual(["184px", "184px", "184px", "184px"]);
+  });
+
+  it("still goes lower when the header outgrows where it stopped", () => {
+    const header = growableHeader(180);
+    const { container } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    header.grow(60);
+    header.grow(240);
+    expect(windowOf(container).style.top).toBe("244px");
   });
 
   it("stops following once the player has dragged it", () => {

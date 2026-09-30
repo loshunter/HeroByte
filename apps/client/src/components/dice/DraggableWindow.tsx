@@ -71,8 +71,10 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   // in desktop dress inside the phone shell. See utils/mobileLayout.
   const [isMobile, setIsMobile] = useState(isMobileLayout);
   const windowRef = useRef<HTMLDivElement>(null);
+  // Down only: a header that shrinks (a reconnect takes a DM's tools out of it) must not lift
+  // the window, or it bobs with every blip.
   useFollowHeader(!isMobile, initialY, placedRef, (y) =>
-    setPosition((current) => (current.y === y ? current : { ...current, y })),
+    setPosition((current) => (current.y >= y ? current : { ...current, y })),
   );
 
   const handleMouseDown = (e: React.MouseEvent) => {
