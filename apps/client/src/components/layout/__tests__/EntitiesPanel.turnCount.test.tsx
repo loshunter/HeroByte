@@ -4,7 +4,7 @@
 // turns, but the Party builds its cards from seats: the bar counted one fewer,
 // and read "Turn —" while that PC held the turn.
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SnapshotCharacter } from "@herobyte/shared";
 import { EntitiesPanel } from "../EntitiesPanel";
@@ -37,7 +37,7 @@ describe("EntitiesPanel — Turn N of M counts the server's order", () => {
     expect(document.querySelector(".party-bar__turn")?.textContent).toBe("Turn 1 of 2");
   });
 
-  it("with combat over, nobody holds the turn", () => {
+  it("outside a fight the bar shows no turn at all", () => {
     const props = entitiesPanelProps({
       players: [seat(DM_UID, "The DM", { isDM: true })],
       characters: [{ ...npc("npc-rat", "Rat"), initiative: 5 }],
@@ -47,6 +47,8 @@ describe("EntitiesPanel — Turn N of M counts the server's order", () => {
       currentTurnCharacterId: "npc-rat",
     });
     render(<EntitiesPanel {...props} />);
-    expect(screen.queryByText(/Turn 1 of/)).toBeNull();
+    // The bar is given no combat at all outside a fight, whatever the stale
+    // pointer says; so nothing here can name a turn.
+    expect(document.querySelector(".party-bar__turn")).toBeNull();
   });
 });

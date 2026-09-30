@@ -36,6 +36,7 @@ function table(fog: { enabled: boolean; scene: boolean }, placed = true) {
   return {
     state,
     goblinId: goblin.id,
+    characters,
     rolls: new InitiativeRollHandler(characters, dice, players),
     // The room service is not read by the hand-entry path.
     messages: new InitiativeMessageHandler(characters, {} as never, dice, players),
@@ -72,6 +73,22 @@ describe("initiative lines and the fog", () => {
       const { state, rolls } = table(fog);
       rolls.handleRollInitiativeAll(state, "dm", true, d20);
       expect(playerSees(state)).toEqual(["Goblin — initiative"]);
+    }
+  });
+
+  it("a player's character keeps a public line under fog: the table's own order", () => {
+    // Rolled by its player, and entered by hand by the DM: a second player sees both.
+    for (const enter of ["roll", "hand"] as const) {
+      const { state, rolls, messages, characters } = table({ enabled: true, scene: true });
+      const hero = characters.createCharacter(state, "Hero", 10, undefined, "pc");
+      hero.ownedByPlayerUID = "p1";
+      hero.tokenId = "t-hero";
+      if (enter === "roll") rolls.handleRollInitiative(state, hero.id, "p1", false, undefined, d20);
+      else messages.handleSetInitiative(state, hero.id, "dm", 12, 0, true);
+
+      expect(visibleRollsFor(state.diceRolls, false, "p2").map((roll) => roll.label)).toEqual([
+        "Hero — initiative",
+      ]);
     }
   });
 

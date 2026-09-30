@@ -36,11 +36,16 @@ describe("InitiativeModal — hand entry after the table turns it off", () => {
     view.rerender(<InitiativeModal {...base(false, onSetInitiative)} />);
 
     expect(screen.queryByRole("spinbutton")).toBeNull();
-    fireEvent.keyDown(document, { key: "Enter" });
+    // Nothing is left to save: the typed value went with the field. (Enter can
+    // no longer save from anywhere but the field, so pressing Save is the test.)
+    expect(screen.queryByText(/d20 Roll:/)).toBeNull();
+    const save = screen.getByRole("button", { name: /^Save/ });
+    expect(save).toBeDisabled();
+    fireEvent.click(save);
     expect(onSetInitiative).not.toHaveBeenCalled();
   });
 
-  it("turned back on, the field starts empty rather than resurrecting the old number", () => {
+  it("turned back on, the field stays closed until asked for, and then opens empty", () => {
     const view = render(<InitiativeModal {...base(true)} />);
     fireEvent.click(handButton());
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "15" } });
