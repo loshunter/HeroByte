@@ -28,10 +28,13 @@ export function useDMElevation({
   snapshot,
   uid,
   send,
+  onRevoked,
 }: {
   snapshot: RoomSnapshot | null;
   uid: string;
   send: (message: ClientMessage) => void;
+  /** The server confirmed a revoke: the roster now lists this seat as no DM. */
+  onRevoked?: () => void;
 }) {
   const [isElevating, setIsElevating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
@@ -40,11 +43,20 @@ export function useDMElevation({
   // Track previous isDM state to detect changes
   const prevIsDMRef = useRef<boolean | undefined>(undefined);
 
-  // Get current DM status from snapshot
-  const currentIsDM = snapshot?.players?.find((player) => player.uid === uid)?.isDM ?? false;
+  // Get current DM status from snapshot. `seatKnown` is the roster having arrived with this
+  // seat in it: a socket close nulls the snapshot while the app stays mounted, and with no
+  // roster the flag reads false — "not known", which is not "no longer the DM".
+  const seat = snapshot?.players?.find((player) => player.uid === uid);
+  const seatKnown = seat !== undefined;
+  const currentIsDM = seat?.isDM ?? false;
+  const onRevokedRef = useRef(onRevoked);
+  onRevokedRef.current = onRevoked;
 
   // Monitor for DM status changes to detect successful elevation/revocation
   useEffect(() => {
+    // A blip confirms nothing, and must not seed the next comparison: a revoke the dying
+    // socket never delivered would otherwise read as done, and the seat would still be a DM's.
+    if (!seatKnown) return;
     const previousIsDM = prevIsDMRef.current;
 
     // Initialize on first run
@@ -63,11 +75,12 @@ export function useDMElevation({
     if (isRevoking && previousIsDM && !currentIsDM) {
       setIsRevoking(false);
       setError(null);
+      onRevokedRef.current?.();
     }
 
     // Update previous state
     prevIsDMRef.current = currentIsDM;
-  }, [currentIsDM, isElevating, isRevoking]);
+  }, [currentIsDM, seatKnown, isElevating, isRevoking]);
 
   /**
    * Elevate current player to DM status
@@ -168,6 +181,7 @@ export function useDMElevation({
     isElevating,
     isRevoking,
     currentIsDM,
+    seatKnown,
     elevate,
     bootstrap,
     notifyElevationFailed,

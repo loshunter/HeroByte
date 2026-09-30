@@ -107,6 +107,8 @@ export interface UseDMManagementReturn {
     isLoading: boolean;
     error: string | null;
     currentIsDM: boolean;
+    /** The roster has this seat in it: until it does, `currentIsDM` is "not known", not "no". */
+    roleKnown: boolean;
   };
 
   /**
@@ -158,13 +160,23 @@ export function useDMManagement({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"elevate" | "revoke" | "bootstrap">("elevate");
 
-  // Use the new useDMElevation hook for state-aware DM management
-  const { isLoading, currentIsDM, elevate, bootstrap, notifyElevationFailed, revoke, error } =
-    useDMElevation({
-      snapshot,
-      uid,
-      send: sendMessage,
-    });
+  // Use the new useDMElevation hook for state-aware DM management. The toast waits for the
+  // server: a leave the dying socket never delivered must not have been announced.
+  const {
+    isLoading,
+    currentIsDM,
+    seatKnown,
+    elevate,
+    bootstrap,
+    notifyElevationFailed,
+    revoke,
+    error,
+  } = useDMElevation({
+    snapshot,
+    uid,
+    send: sendMessage,
+    onRevoked: () => toast.success("You left DM mode. You are a player again.", 3000),
+  });
 
   /**
    * Open modal to toggle DM status
@@ -231,10 +243,8 @@ export function useDMManagement({
    */
   const handleRevoke = useCallback(() => {
     revoke();
-    // Show success toast on revocation
-    toast.success("DM status revoked. You are now a player.", 3000);
-    // Modal will close automatically on success via useEffect in DMElevationModal
-  }, [revoke, toast]);
+    // The success toast and the modal's closing both follow the server's confirmation.
+  }, [revoke]);
 
   /**
    * Close modal
@@ -257,6 +267,7 @@ export function useDMManagement({
       isLoading,
       error,
       currentIsDM,
+      roleKnown: seatKnown,
     },
     modalActions: {
       onElevate: handleElevate,
