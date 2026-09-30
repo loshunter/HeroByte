@@ -8,7 +8,11 @@ import { useDMRole } from "../hooks/useDMRole";
 
 const mockUseWebSocket = vi.fn();
 const mockUseObjectSelection = vi.fn();
-let latestHeaderProps: { onToolSelect: (mode: string | null) => void } | null = null;
+let latestHeaderProps: {
+  onToolSelect: (mode: string | null) => void;
+  playerLens?: boolean;
+  onPlayerLensChange?: (enabled: boolean) => void;
+} | null = null;
 let latestMapBoardProps: Record<string, unknown> | null = null;
 let selectionMock: {
   selectedObjectId: string | null;
@@ -103,7 +107,7 @@ vi.mock("../features/drawing/components", () => ({
 }));
 
 vi.mock("../components/layout/Header", () => ({
-  Header: (props: { onToolSelect: (mode: string | null) => void }) => {
+  Header: (props: NonNullable<typeof latestHeaderProps>) => {
     latestHeaderProps = props;
     return <div data-testid="header">Header</div>;
   },
@@ -693,6 +697,32 @@ describe("App", () => {
     // The next blip must show what a player's blip shows — nothing of the DM's table.
     await blip(rerender);
     expect(latestMapBoardProps?.snapshot ?? null).toBeNull();
+  });
+
+  it("ends Player View when the server says you are no longer a DM, and not for a blip", async () => {
+    // Player View is the DM's lens. Left on through a Leave it came back pressed at the next
+    // elevation, and for the player in between it chose the party's tokens for the fog.
+    const { rerender } = await asDMThenBlip();
+    await waitFor(() => expect(latestHeaderProps).not.toBeNull());
+    await act(async () => {
+      latestHeaderProps!.onPlayerLensChange?.(true);
+    });
+    await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(true));
+
+    await blip(rerender);
+    expect(latestHeaderProps?.playerLens).toBe(true);
+
+    // The roster is back, it lists this seat, it is no DM.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+    await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(false));
   });
 
   it("still drops map-edit when the server says you are no longer a DM", async () => {

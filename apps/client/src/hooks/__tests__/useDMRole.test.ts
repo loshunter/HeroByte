@@ -9,7 +9,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { useClearOnDemotion, useDMRole } from "../useDMRole.js";
+import { useClearOnDemotion, useDMRole, useEndOnDemotion } from "../useDMRole.js";
 import type { RoomSnapshot, ClientMessage, Player } from "@herobyte/shared";
 
 describe("useDMRole - isDM Computation", () => {
@@ -647,5 +647,44 @@ describe("useClearOnDemotion — the DM snapshot cache ends with the role", () =
     expect(clear).not.toHaveBeenCalled();
     rerender({ isDM: false, known: true, cache });
     expect(clear).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useEndOnDemotion — what only a DM holds ends with the role", () => {
+  const run = (serverIsDM: boolean, roleKnown: boolean, active: boolean) => {
+    const end = vi.fn();
+    const view = renderHook(
+      (props) => useEndOnDemotion(props.isDM, props.known, props.active, end),
+      { initialProps: { isDM: serverIsDM, known: roleKnown, active } },
+    );
+    return { end, ...view };
+  };
+
+  it("ends it once the roster says this seat is no DM", () => {
+    const { end } = run(false, true, true);
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not end it for a reconnect blip: the roster is not back, so the flag reads false for no reason", () => {
+    const { end } = run(false, false, true);
+    expect(end).not.toHaveBeenCalled();
+  });
+
+  it("does not end it while the viewer IS a DM", () => {
+    const { end } = run(true, true, true);
+    expect(end).not.toHaveBeenCalled();
+  });
+
+  it("has nothing to end when it was never on", () => {
+    const { end } = run(false, true, false);
+    expect(end).not.toHaveBeenCalled();
+  });
+
+  it("acts when the demotion arrives after the blip that started it", () => {
+    const { end, rerender } = run(true, true, true);
+    rerender({ isDM: false, known: false, active: true });
+    expect(end).not.toHaveBeenCalled();
+    rerender({ isDM: false, known: true, active: true });
+    expect(end).toHaveBeenCalledTimes(1);
   });
 });

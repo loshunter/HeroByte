@@ -18,7 +18,7 @@ import { useWebSocket } from "../hooks/useWebSocket";
 import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
-import { useClearOnDemotion, useDMRole } from "../hooks/useDMRole";
+import { useClearOnDemotion, useDMRole, useEndOnDemotion } from "../hooks/useDMRole";
 import { useToolMode } from "../hooks/useToolMode";
 import { useCameraCommands } from "../hooks/useCameraCommands";
 import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
@@ -307,6 +307,9 @@ function AuthenticatedApp({
   // Player lens (P4): render the DM's own table exactly as players receive
   // it. Pure view state — DM permissions stay live while it is on.
   const [playerLens, setPlayerLens] = useState(false);
+  // It is the DM's lens and ends with the role, or it returns pressed at the next elevation.
+  const endPlayerLens = useCallback(() => setPlayerLens(false), []);
+  useEndOnDemotion(serverIsDM, roleKnown, playerLens, endPlayerLens);
 
   // Camera commands
   const { cameraCommand, handleFocusToken, handleResetCamera, handleCameraCommandHandled } =

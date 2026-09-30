@@ -70,3 +70,21 @@ export function useClearOnDemotion<T>(
     if (roleKnown && !serverIsDM && cache !== null) setCache(null);
   }, [roleKnown, serverIsDM, cache, setCache]);
 }
+
+/**
+ * Player View is the DM's own lens, and it ends with the role. Left on through a Leave (or a
+ * restart that cleared the elevation) it would come back on, the toggle pressed, at the next
+ * elevation — and while the viewer is a player it would pick the PARTY's tokens for their fog
+ * instead of their own. So it ends once the roster HAS arrived and says this seat is no DM,
+ * never on a blip: the snapshot is null for a reconnect and `isDM` reads false with it.
+ */
+export function useEndOnDemotion(
+  serverIsDM: boolean,
+  roleKnown: boolean,
+  active: boolean,
+  end: () => void,
+): void {
+  useEffect(() => {
+    if (roleKnown && !serverIsDM && active) end();
+  }, [roleKnown, serverIsDM, active, end]);
+}
