@@ -3,7 +3,7 @@
 // ============================================================================
 // What keeps an initiative dialog about ITS character and nothing else.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * This dialog's own save.
@@ -12,17 +12,35 @@ import { useEffect, useState } from "react";
  * and `error` describe whatever was sent LAST — another character's clear,
  * another dialog's save. A dialog that read them raw opened as "Setting..."
  * with Save disabled while someone else's request was in flight, closed itself
- * when that request landed, and showed a timeout it never caused. Only after
- * this dialog's own Save do they speak for it (the hook's next send resets
- * both, so a stale error cannot follow the press).
+ * when that request landed, and showed a timeout it never caused. Only between
+ * this dialog's Save and the end of THAT request do they speak for it: when it
+ * ends — confirmed or failed — the dialog stops listening, and a failure's
+ * message is kept as its own until the next Save.
  */
 export function useOwnSave(isLoading: boolean, error: string | null) {
   const [awaiting, setAwaiting] = useState(false);
+  const [ownError, setOwnError] = useState<string | null>(null);
+  const sawLoading = useRef(false);
+  useEffect(() => {
+    if (!awaiting) return;
+    if (isLoading) {
+      sawLoading.current = true;
+      return;
+    }
+    if (!sawLoading.current) return;
+    sawLoading.current = false;
+    setAwaiting(false);
+    setOwnError(error);
+  }, [awaiting, isLoading, error]);
   return {
     awaiting,
     saving: awaiting && isLoading,
-    error: awaiting ? error : null,
-    start: () => setAwaiting(true),
+    error: awaiting ? error : ownError,
+    start: () => {
+      sawLoading.current = false;
+      setOwnError(null);
+      setAwaiting(true);
+    },
   };
 }
 
