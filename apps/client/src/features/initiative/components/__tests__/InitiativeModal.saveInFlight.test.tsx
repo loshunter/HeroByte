@@ -14,7 +14,7 @@ afterEach(cleanup);
 const hero = { id: "hero", name: "Hero", type: "pc", initiativeModifier: 0 } as SnapshotCharacter;
 
 describe("InitiativeModal — its own save in flight", () => {
-  it("disables Roll, and a backdrop click does not close it", () => {
+  it("disables Roll and the hand entry, and a backdrop click does not close it", () => {
     const onClose = vi.fn();
     const onRollInitiative = vi.fn();
     const props = (isLoading: boolean) => ({
@@ -33,6 +33,9 @@ describe("InitiativeModal — its own save in flight", () => {
 
     const roll = screen.getByRole("button", { name: /^Roll/ });
     expect(roll).toBeDisabled();
+    // The value being saved cannot be edited or wiped under the save.
+    expect(screen.getByPlaceholderText("Enter roll...")).toHaveAttribute("readonly");
+    expect(screen.getByRole("button", { name: /Physical Dice|by hand/i })).toBeDisabled();
     fireEvent.click(roll);
     fireEvent.click(document.querySelector("[data-modal-overlay]") as HTMLElement);
 

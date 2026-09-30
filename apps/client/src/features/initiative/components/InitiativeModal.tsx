@@ -239,7 +239,7 @@ export function InitiativeModal({
                     Roll Initiative
                   </JRPGButton>
                   {manualEntryAllowed && (
-                    <JRPGButton onClick={enterManualMode} style={{ flex: 1 }}>
+                    <JRPGButton onClick={enterManualMode} disabled={own.saving} style={{ flex: 1 }}>
                       Use Physical Dice
                     </JRPGButton>
                   )}
@@ -259,6 +259,7 @@ export function InitiativeModal({
                       min={1}
                       max={20}
                       value={manualValue}
+                      readOnly={own.saving}
                       onChange={handleManualValueChange}
                       // Enter saves from HERE only: a document-wide listener also
                       // fired when Enter pressed a focused button (Cancel, Roll).

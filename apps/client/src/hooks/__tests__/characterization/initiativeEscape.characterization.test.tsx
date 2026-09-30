@@ -108,14 +108,24 @@ describe("Initiative and underlying production Escape ownership", () => {
     "loading=%s, button Escape leaves underlying tool and selection alone",
     (loading) => {
       const { props } = renderOwners(loading);
-      // The hand-entry button is enabled in both states (Roll, Cancel and Save
-      // are not while the dialog's own save is in flight). Do not dispatch from
-      // document.body by focusing a disabled one.
-      const button = screen.getByRole("button", { name: /Physical Dice|by hand/i });
-      button.focus();
-      expect(document.activeElement).toBe(button);
+      // Idle, from the hand-entry button. With its own save in flight every
+      // button of the dialog is disabled (nothing may override the save), so the
+      // Escape comes from inside the dialog itself — never from document.body.
+      const title = screen.getByText("Initiative: Escape fixture");
+      if (loading) {
+        for (const name of [/^Roll/, /Physical Dice|by hand/i, /^Save|Setting/]) {
+          expect(screen.getByRole("button", { name })).toBeDisabled();
+        }
+      }
+      const target = loading
+        ? title
+        : screen.getByRole("button", { name: /Physical Dice|by hand/i });
+      if (!loading) {
+        target.focus();
+        expect(document.activeElement).toBe(target);
+      }
 
-      const event = escapeFrom(button);
+      const event = escapeFrom(target);
 
       if (loading) {
         expect(screen.getByText("Initiative: Escape fixture")).toBeInTheDocument();
