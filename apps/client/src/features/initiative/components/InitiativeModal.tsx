@@ -11,6 +11,7 @@ import {
 } from "../../interaction/useEscapeOwner";
 import { createPortal } from "react-dom";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import { useOwnSave } from "./dialogGuards";
 import type { SnapshotCharacter } from "@herobyte/shared";
 
 interface InitiativeModalProps {
@@ -51,16 +52,18 @@ export function InitiativeModal({
 }: InitiativeModalProps) {
   const modalRef = React.useRef<HTMLDivElement>(null);
   const escapeRoot = useEscapeRoot(modalRef, 10000);
+  // This dialog's OWN save: `isLoading` / `error` are the layout's one hook's,
+  // which another character's save or clear drives too (dialogGuards.ts).
+  const own = useOwnSave(isLoading, error);
   useEscapeOwner(() => ({
     kind: "modal",
     name: "InitiativeModal",
     active: true,
     root: escapeRoot,
     anchor: modalRef.current,
-    handle: isLoading ? undefined : onClose,
+    handle: own.saving ? undefined : onClose,
   }));
 
-  // State for initiative modifier and rolled value
   const [modifier, setModifier] = useState(character.initiativeModifier ?? 0);
   const [rolledValue, setRolledValue] = useState<number | null>(null);
   const [manualMode, setManualMode] = useState(false);
@@ -76,7 +79,6 @@ export function InitiativeModal({
     setRolledValue(null);
   }, [manualEntryAllowed]);
 
-  // Calculate final initiative
   const finalInitiative = rolledValue !== null ? rolledValue + modifier : null;
 
   // Handle modifier drag
@@ -119,14 +121,12 @@ export function InitiativeModal({
     onClose();
   }, [onRollInitiative, modifier, onClose]);
 
-  // Switch to manual entry mode
   const enterManualMode = useCallback(() => {
     setManualMode(true);
     setRolledValue(null);
     setManualValue("");
   }, []);
 
-  // Handle manual value change
   const handleManualValueChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setManualValue(value);
@@ -138,33 +138,31 @@ export function InitiativeModal({
     }
   }, []);
 
-  // Handle save
   const handleSave = useCallback(() => {
     if (finalInitiative !== null) {
+      own.start();
       onSetInitiative(finalInitiative, modifier);
       // Don't call onClose here - let the parent handle closing after the message is sent
     }
-  }, [finalInitiative, modifier, onSetInitiative]);
+  }, [finalInitiative, modifier, onSetInitiative, own]);
 
-  // Auto-close when loading completes
   useEffect(() => {
-    if (wasLoading && !isLoading && !error) {
+    if (own.awaiting && wasLoading && !isLoading && !error) {
       onClose();
     }
     setWasLoading(isLoading);
-  }, [isLoading, wasLoading, error, onClose]);
+  }, [own.awaiting, isLoading, wasLoading, error, onClose]);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && finalInitiative !== null && !isLoading) {
+      if (e.key === "Enter" && finalInitiative !== null && !own.saving) {
         handleSave();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [finalInitiative, handleSave, isLoading]);
+  }, [finalInitiative, handleSave, own.saving]);
 
   // PORTALLED for the same reason CharacterCreationModal is: this renders from
   // EntitiesPanel, whose root is a `position: fixed; zIndex: 100` STACKING
@@ -306,7 +304,7 @@ export function InitiativeModal({
                 )}
 
                 {/* Error Display */}
-                {error && (
+                {own.error && (
                   <div
                     style={{
                       padding: "12px",
@@ -319,22 +317,22 @@ export function InitiativeModal({
                       textAlign: "center",
                     }}
                   >
-                    {error}
+                    {own.error}
                   </div>
                 )}
 
                 {/* Action Buttons */}
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                  <JRPGButton onClick={onClose} disabled={isLoading} style={{ flex: 1 }}>
+                  <JRPGButton onClick={onClose} disabled={own.saving} style={{ flex: 1 }}>
                     Cancel
                   </JRPGButton>
                   <JRPGButton
                     variant="success"
                     onClick={handleSave}
-                    disabled={finalInitiative === null || isLoading}
+                    disabled={finalInitiative === null || own.saving}
                     style={{ flex: 1 }}
                   >
-                    {isLoading ? "Setting..." : "Save"}
+                    {own.saving ? "Setting..." : "Save"}
                   </JRPGButton>
                 </div>
               </div>

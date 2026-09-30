@@ -8,6 +8,7 @@ import {
   PendingGesture,
   actions,
   escape,
+  makeOwnSave,
   kinds,
   overlay,
 } from "./modalOwners.fixtures";
@@ -30,6 +31,7 @@ describe.each(kinds)("%s foreground modal ownership", (kind) => {
           selection={selection}
         />,
       );
+      makeOwnSave(kind, loading, calls);
       const root = overlay();
       expect(root.isConnected).toBe(true);
 
@@ -61,6 +63,7 @@ describe.each(kinds)("%s foreground modal ownership", (kind) => {
       const modal = <ActualModal key="modal" kind={kind} calls={calls} loading />;
       const gesture = <PendingGesture key="gesture" pending={pending} cancelled={cancelled} />;
       render(<>{order === "modal-first" ? [modal, gesture] : [gesture, modal]}</>);
+      makeOwnSave(kind, true, calls);
 
       expect(overlay().isConnected).toBe(true);
       expect(pending.current).toBe(false);

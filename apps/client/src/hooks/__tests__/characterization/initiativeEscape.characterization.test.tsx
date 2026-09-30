@@ -79,6 +79,14 @@ function renderOwners(loading: boolean) {
   expect(screen.getByText("Initiative: Escape fixture")).toBeInTheDocument();
   expect(screen.getByTestId("mode")).toHaveTextContent("draw");
   expect(screen.getByTestId("selection")).toHaveTextContent("token:owned");
+  if (loading) {
+    // "Loading" is the dialog's OWN save in flight (dialogGuards.useOwnSave):
+    // make it — hand entry 11, Save — and clear the spy for the case below.
+    fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
+    fireEvent.change(screen.getByPlaceholderText("Enter roll..."), { target: { value: "11" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    props.onSetInitiative.mockClear();
+  }
   return { ...view, props };
 }
 
@@ -127,7 +135,9 @@ describe("Initiative and underlying production Escape ownership", () => {
     "loading=%s, manual-input Escape leaves underlying selection alone",
     (loading) => {
       const { props } = renderOwners(loading);
-      fireEvent.click(screen.getByRole("button", { name: "Use Physical Dice" }));
+      // A loading dialog's hand entry is already open (its own save); focus it.
+      if (loading) screen.getByPlaceholderText("Enter roll...").focus();
+      else fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
       const input = screen.getByPlaceholderText("Enter roll...");
       expect(document.activeElement).toBe(input);
       fireEvent.change(input, { target: { value: "14" } });

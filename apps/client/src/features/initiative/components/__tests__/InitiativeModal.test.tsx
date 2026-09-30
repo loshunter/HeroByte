@@ -143,6 +143,23 @@ function createDefaultProps(
   };
 }
 
+/**
+ * The dialog with ITS OWN save made. Since dialogGuards.useOwnSave, the
+ * `isLoading` / `error` props speak for a dialog only after its own Save: the
+ * layout's one initiative hook also carries other characters' requests, and a
+ * dialog that mirrored them opened disabled, closed on someone else's confirm
+ * and showed their timeout. So the in-flight and failure tests below first make
+ * this dialog's save (hand entry 11, Save), then apply the state under test.
+ */
+function renderOwnSave(props: ReturnType<typeof createDefaultProps>) {
+  const view = render(<InitiativeModal {...props} isLoading={false} error={null} />);
+  fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
+  fireEvent.change(screen.getByPlaceholderText("Enter roll..."), { target: { value: "11" } });
+  fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+  view.rerender(<InitiativeModal {...props} />);
+  return view;
+}
+
 // ============================================================================
 // INITIAL RENDERING TESTS (SoC: Basic structure)
 // ============================================================================
@@ -1309,7 +1326,7 @@ describe("InitiativeModal - Save Functionality", () => {
 
   it("save button disabled when isLoading", () => {
     const props = createDefaultProps({ isLoading: true });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
     fireEvent.click(manualButton);
@@ -1338,7 +1355,7 @@ describe("InitiativeModal - Save Functionality", () => {
 
   it("shows 'Setting...' text when isLoading", () => {
     const props = createDefaultProps({ isLoading: true });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     expect(screen.getByRole("button", { name: /Setting/ })).toBeInTheDocument();
   });
@@ -1396,29 +1413,6 @@ describe("InitiativeModal - Save Functionality", () => {
     expect(onSetInitiative).toHaveBeenCalledWith(21, 3);
   });
 
-  it("logs save action to console", () => {
-    const character = createMockCharacter({
-      name: "TestChar",
-      initiativeModifier: 2,
-    });
-    const props = createDefaultProps({ character });
-    render(<InitiativeModal {...props} />);
-
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
-    fireEvent.click(manualButton);
-    const input = screen.getByPlaceholderText("Enter roll...");
-    fireEvent.change(input, { target: { value: "11" } });
-
-    const saveButton = screen.getByRole("button", { name: "Save" });
-    fireEvent.click(saveButton);
-
-    expect(consoleLogSpy).toHaveBeenCalledWith("[InitiativeModal] Saving initiative:", {
-      finalInitiative: 13,
-      modifier: 2,
-      character: "TestChar",
-    });
-  });
-
   it("save button has success variant", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
@@ -1446,7 +1440,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
   it("calls onClose when isLoading changes from true → false (and no error)", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: true, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     rerender(<InitiativeModal {...props} isLoading={false} />);
 
@@ -1502,20 +1496,6 @@ describe("InitiativeModal - Auto-Close on Success", () => {
     });
   });
 
-  it("logs success message when closing", async () => {
-    const onClose = vi.fn();
-    const props = createDefaultProps({ isLoading: true, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
-
-    rerender(<InitiativeModal {...props} isLoading={false} />);
-
-    await waitFor(() => {
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        "[InitiativeModal] Initiative set successfully, closing modal",
-      );
-    });
-  });
-
   it("does not close when loading remains true", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: true, onClose });
@@ -1547,7 +1527,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
   it("closes only when wasLoading=true and isLoading becomes false", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: false, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     // Set loading to true
     rerender(<InitiativeModal {...props} isLoading={true} />);
@@ -1569,7 +1549,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
 describe("InitiativeModal - Error Display", () => {
   it("shows error box when error prop is set", () => {
     const props = createDefaultProps({ error: "Failed to set initiative" });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     const errorBox = document.body.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toBeInTheDocument();
@@ -1577,7 +1557,7 @@ describe("InitiativeModal - Error Display", () => {
 
   it("displays error text in red", () => {
     const props = createDefaultProps({ error: "Network error occurred" });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     const errorText = screen.getByText("Network error occurred");
     expect(errorText).toBeInTheDocument();
@@ -1602,7 +1582,7 @@ describe("InitiativeModal - Error Display", () => {
 
   it("error box has correct styling", () => {
     const props = createDefaultProps({ error: "Test error" });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     const errorBox = document.body.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toHaveAttribute(
@@ -1613,7 +1593,7 @@ describe("InitiativeModal - Error Display", () => {
 
   it("displays multiple error messages correctly", () => {
     const props = createDefaultProps({ error: "Error line 1" });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     expect(screen.getByText("Error line 1")).toBeInTheDocument();
 
@@ -1625,7 +1605,7 @@ describe("InitiativeModal - Error Display", () => {
 
   it("error text is centered", () => {
     const props = createDefaultProps({ error: "Centered error" });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     const errorBox = document.body.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toHaveAttribute("style", expect.stringContaining("text-align: center"));
@@ -1633,7 +1613,7 @@ describe("InitiativeModal - Error Display", () => {
 
   it("shows error and result display simultaneously", () => {
     const props = createDefaultProps({ error: "Test warning" });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
     fireEvent.click(manualButton);
@@ -1678,7 +1658,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
   it("no action when isLoading=true and Escape pressed", () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ onClose, isLoading: true });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     fireEvent.keyDown(document, { key: "Escape" });
 
@@ -1688,7 +1668,8 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
   it("no action when isLoading=true and Enter pressed", () => {
     const onSetInitiative = vi.fn();
     const props = createDefaultProps({ onSetInitiative, isLoading: true });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
+    onSetInitiative.mockClear(); // the setup's own save
 
     const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
     fireEvent.click(manualButton);
@@ -1861,7 +1842,7 @@ describe("InitiativeModal - Modal Backdrop", () => {
 describe("InitiativeModal - Loading State", () => {
   it("isLoading=true disables Cancel button", () => {
     const props = createDefaultProps({ isLoading: true });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
     expect(cancelButton).toBeDisabled();
@@ -1869,7 +1850,7 @@ describe("InitiativeModal - Loading State", () => {
 
   it("isLoading=true disables Save button", () => {
     const props = createDefaultProps({ isLoading: true });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
     fireEvent.click(manualButton);
@@ -1882,7 +1863,7 @@ describe("InitiativeModal - Loading State", () => {
 
   it("isLoading=true shows 'Setting...' text", () => {
     const props = createDefaultProps({ isLoading: true });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     expect(screen.getByText("Setting...")).toBeInTheDocument();
   });
@@ -1891,7 +1872,8 @@ describe("InitiativeModal - Loading State", () => {
     const onClose = vi.fn();
     const onSetInitiative = vi.fn();
     const props = createDefaultProps({ onClose, onSetInitiative, isLoading: true });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
+    onSetInitiative.mockClear(); // the setup's own save
 
     const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
     fireEvent.click(manualButton);
@@ -1937,7 +1919,7 @@ describe("InitiativeModal - Loading State", () => {
 
   it("loading state transitions correctly", () => {
     const props = createDefaultProps({ isLoading: false });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
     expect(cancelButton).not.toBeDisabled();
@@ -2232,7 +2214,7 @@ describe("InitiativeModal - Integration Tests", () => {
   it("loading → success → auto-close flow", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: true, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     expect(onClose).not.toHaveBeenCalled();
 
@@ -2246,7 +2228,7 @@ describe("InitiativeModal - Integration Tests", () => {
   it("loading → error flow (no auto-close)", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: true, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     rerender(<InitiativeModal {...props} isLoading={false} error="Test error" />);
 

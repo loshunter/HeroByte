@@ -1,11 +1,26 @@
 import React from "react";
-import { act } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import type { SnapshotCharacter } from "@herobyte/shared";
 import { InitiativeModal } from "../../initiative/components/InitiativeModal";
 import { CharacterCreationModal } from "../../players/components/CharacterCreationModal";
 import { DMElevationModal } from "../../dm/components/DMElevationModal";
 import { useEscapeOwner } from "../useEscapeOwner";
+
+/**
+ * The initiative dialog is "loading" only while ITS OWN save is in flight
+ * (dialogGuards.useOwnSave): the layout's one initiative hook also carries
+ * other characters' requests, which must not disable or hold this dialog. So a
+ * loading initiative case first makes that save — hand entry 11, Save — and
+ * clears the spy, so the case's own assertions start from zero calls.
+ */
+export function makeOwnSave(kind: ModalKind, loading: boolean, calls: Actions): void {
+  if (kind !== "initiative" || !loading) return;
+  fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
+  fireEvent.change(screen.getByPlaceholderText("Enter roll..."), { target: { value: "11" } });
+  fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+  calls.set.mockClear();
+}
 
 export const kinds = ["initiative", "character", "dm"] as const;
 export type ModalKind = (typeof kinds)[number];
