@@ -66,6 +66,15 @@ export function InitiativeModal({
   const [manualMode, setManualMode] = useState(false);
   const [manualValue, setManualValue] = useState<string>("");
   const [wasLoading, setWasLoading] = useState(false);
+  // The table can turn hand entry off while this is open (or a DM leave DM
+  // mode over their own character): the server then refuses a typed value
+  // without a word, so the field goes rather than time out.
+  useEffect(() => {
+    if (manualEntryAllowed) return;
+    setManualMode(false);
+    setManualValue("");
+    setRolledValue(null);
+  }, [manualEntryAllowed]);
 
   // Calculate final initiative
   const finalInitiative = rolledValue !== null ? rolledValue + modifier : null;
@@ -132,21 +141,14 @@ export function InitiativeModal({
   // Handle save
   const handleSave = useCallback(() => {
     if (finalInitiative !== null) {
-      console.log("[InitiativeModal] Saving initiative:", {
-        finalInitiative,
-        modifier,
-        character: character.name,
-      });
       onSetInitiative(finalInitiative, modifier);
       // Don't call onClose here - let the parent handle closing after the message is sent
     }
-  }, [finalInitiative, modifier, onSetInitiative, character.name]);
+  }, [finalInitiative, modifier, onSetInitiative]);
 
   // Auto-close when loading completes
   useEffect(() => {
     if (wasLoading && !isLoading && !error) {
-      // Initiative set successfully
-      console.log("[InitiativeModal] Initiative set successfully, closing modal");
       onClose();
     }
     setWasLoading(isLoading);
