@@ -261,8 +261,7 @@ export function InitiativeModal({
                       value={manualValue}
                       readOnly={own.saving}
                       onChange={handleManualValueChange}
-                      // Enter saves from HERE only: a document-wide listener also
-                      // fired when Enter pressed a focused button (Cancel, Roll).
+                      // Enter saves from HERE only, never from a focused button.
                       onKeyDown={(e) => {
                         if (e.key !== "Enter" || finalInitiative === null || own.saving) return;
                         e.preventDefault();
@@ -272,6 +271,7 @@ export function InitiativeModal({
                       autoFocus
                       style={{
                         width: "100%",
+                        boxSizing: "border-box",
                         padding: "8px",
                         background: "#111",
                         color: "var(--jrpg-white)",
