@@ -3,7 +3,7 @@
 // ============================================================================
 // What keeps an initiative dialog about ITS character and nothing else.
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { canReturnFocus } from "../../interaction/dismissalFocus";
 
 /**
@@ -75,4 +75,16 @@ export function useInertPage(own: RefObject<HTMLElement>): void {
       if (canReturnFocus(opener)) opener.focus({ preventScroll: true });
     };
   }, [own]);
+}
+
+/**
+ * The modifier dial follows the character's STORED modifier until the viewer
+ * touches it. It used to read it once, at open: another seat's change (the
+ * DM's Init Mod, the owner's own dialog elsewhere) was then written back over
+ * by this dialog's Save or Roll.
+ */
+export function useFollowedModifier(stored: number): [number, (next: number) => void] {
+  const [touched, setTouched] = useState<number | null>(null);
+  const set = useCallback((next: number) => setTouched(next), []);
+  return [touched ?? stored, set];
 }

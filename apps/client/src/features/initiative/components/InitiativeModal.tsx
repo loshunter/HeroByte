@@ -11,7 +11,7 @@ import {
 } from "../../interaction/useEscapeOwner";
 import { createPortal } from "react-dom";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
-import { useInertPage, useOwnSave } from "./dialogGuards";
+import { useFollowedModifier, useInertPage, useOwnSave } from "./dialogGuards";
 import type { SnapshotCharacter } from "@herobyte/shared";
 
 interface InitiativeModalProps {
@@ -65,7 +65,7 @@ export function InitiativeModal({
     handle: own.saving ? undefined : onClose,
   }));
 
-  const [modifier, setModifier] = useState(character.initiativeModifier ?? 0);
+  const [modifier, setModifier] = useFollowedModifier(character.initiativeModifier ?? 0);
   const [rolledValue, setRolledValue] = useState<number | null>(null);
   const [manualMode, setManualMode] = useState(false);
   const [manualValue, setManualValue] = useState<string>("");
