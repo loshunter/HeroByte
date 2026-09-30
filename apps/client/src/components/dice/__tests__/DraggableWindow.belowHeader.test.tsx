@@ -1,5 +1,5 @@
-import { render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DraggableWindow } from "../DraggableWindow";
 
 // Node 25's global localStorage shadows jsdom's and lacks its methods: a plain store.
@@ -158,5 +158,122 @@ describe("DraggableWindow — opens below the header's controls", () => {
       </DraggableWindow>,
     );
     expect(windowOf(container).style.top).toBe("20px");
+  });
+});
+
+// The header's height can change while a window is open: a player who enters DM mode
+// gains Build map and Player View, the tools wrap a row lower, and a window opened a
+// moment ago would lie over the buttons that moved (covering the one that closes it).
+// It follows the header until the player places it — by dragging it, or by having a
+// remembered position.
+describe("DraggableWindow — follows the header until the player places it", () => {
+  let callbacks: Array<() => void>;
+  let disconnects: number;
+  const added: HTMLElement[] = [];
+
+  beforeEach(() => {
+    callbacks = [];
+    disconnects = 0;
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          callbacks.push(callback);
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {
+          disconnects += 1;
+        }
+      },
+    );
+    Object.defineProperty(window, "localStorage", {
+      value: plainStorage(),
+      configurable: true,
+      writable: true,
+    });
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    while (added.length) added.pop()!.remove();
+  });
+
+  /** A header with one control whose bottom edge can move after the window has opened. */
+  function growableHeader(initialBottom: number) {
+    let bottom = initialBottom;
+    const root = document.createElement("div");
+    root.setAttribute("data-header-root", "");
+    const button = document.createElement("button");
+    button.getBoundingClientRect = () => box(bottom);
+    root.appendChild(button);
+    document.body.appendChild(root);
+    added.push(root);
+    return {
+      grow(to: number) {
+        bottom = to;
+        act(() => callbacks.forEach((callback) => callback()));
+      },
+    };
+  }
+
+  it("moves under the controls when the header grows after it opened", () => {
+    const header = growableHeader(60);
+    const { container } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    expect(windowOf(container).style.top).toBe("100px");
+    header.grow(180);
+    expect(windowOf(container).style.top).toBe("184px");
+  });
+
+  it("goes back up when the header shrinks again, while it is still unplaced", () => {
+    const header = growableHeader(180);
+    const { container } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    expect(windowOf(container).style.top).toBe("184px");
+    header.grow(60);
+    expect(windowOf(container).style.top).toBe("100px");
+  });
+
+  it("stops following once the player has taken hold of it", () => {
+    const header = growableHeader(60);
+    const { container, getByText } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    fireEvent.mouseDown(getByText("Dice Roller"), { clientX: 150, clientY: 110 });
+    fireEvent.mouseUp(document);
+    header.grow(180);
+    expect(windowOf(container).style.top).toBe("100px");
+  });
+
+  it("does not follow a position the player already placed in an earlier visit", () => {
+    window.localStorage.setItem("herobyte-window-position-test", JSON.stringify({ x: 40, y: 20 }));
+    const header = growableHeader(60);
+    const { container } = render(
+      <DraggableWindow title="Dice Roller" storageKey="test" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    header.grow(180);
+    expect(windowOf(container).style.top).toBe("20px");
+  });
+
+  it("stops watching the header when the window closes", () => {
+    growableHeader(60);
+    const { unmount } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    expect(disconnects).toBe(0);
+    unmount();
+    expect(disconnects).toBeGreaterThan(0);
   });
 });

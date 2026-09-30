@@ -5,6 +5,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { registerOpenPanel } from "../effects/panelPresence";
 import { isMobileLayout } from "../../utils/mobileLayout";
+import { belowHeader, useFollowHeader } from "./headerPlacement";
 import {
   WindowInteraction,
   type WindowInteractionOptions,
@@ -28,23 +29,6 @@ interface DraggableWindowProps {
 
 const POSITION_KEY_PREFIX = "herobyte-window-position-";
 
-/**
- * Where a window with no remembered place opens: its own `y`, or just under the header's
- * lowest control, whichever is lower. The header's height is not fixed (its tools wrap; it
- * carries the public-table row; a DM has more of them), and a flat 100px sat under the tools
- * on a short header and ON them on a tall one, covering the button that would close it.
- * Measured from the controls, not the frame, so a palette that was never in the way stays put.
- */
-function belowHeader(y: number): number {
-  const controls = document.querySelectorAll<HTMLElement>("[data-header-root] button");
-  let lowest = 0;
-  for (const control of controls) {
-    const box = control.getBoundingClientRect();
-    if (box.height > 0) lowest = Math.max(lowest, box.bottom);
-  }
-  return lowest === 0 ? y : Math.max(y, Math.ceil(lowest) + 4);
-}
-
 export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   title,
   children,
@@ -60,6 +44,9 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   interaction,
   scrollContent = true,
 }) => {
+  // True once the window has a place of its own (remembered, or dragged): it then stops
+  // following the header as that grows or shrinks (see headerPlacement).
+  const placedRef = useRef(false);
   // Load position from localStorage if storageKey is provided
   const getInitialPosition = () => {
     if (storageKey) {
@@ -75,6 +62,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
             // Ensure position is within viewport bounds
             const maxX = window.innerWidth - 200; // Leave at least 200px visible
             const maxY = window.innerHeight - 100; // Leave at least 100px visible
+            placedRef.current = true;
             return {
               x: Math.max(0, Math.min(parsed.x, maxX)),
               y: Math.max(0, Math.min(parsed.y, maxY)),
@@ -96,6 +84,9 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   // in desktop dress inside the phone shell. See utils/mobileLayout.
   const [isMobile, setIsMobile] = useState(isMobileLayout);
   const windowRef = useRef<HTMLDivElement>(null);
+  useFollowHeader(!isMobile, initialY, placedRef, (y) =>
+    setPosition((current) => (current.y === y ? current : { ...current, y })),
+  );
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // Don't start dragging if clicking on a button or on mobile
@@ -104,6 +95,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
     }
 
     e.preventDefault();
+    placedRef.current = true;
 
     const rect = windowRef.current?.getBoundingClientRect();
     if (rect) {
