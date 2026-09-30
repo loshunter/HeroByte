@@ -75,6 +75,9 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <div
       ref={topPanelRef}
+      // What hangs below the header measures from this frame: a window that opens at a
+      // fixed place (DraggableWindow) and the Table menu. Keep it on the fixed root.
+      data-header-root=""
       style={{
         position: "fixed",
         top: "24px", // Offset for status banner

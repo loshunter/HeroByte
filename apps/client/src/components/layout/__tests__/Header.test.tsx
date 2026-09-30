@@ -113,6 +113,11 @@ describe("Header", () => {
       });
     });
 
+    it("marks its frame for what hangs below it: windows that open at a fixed place, and the Table menu", () => {
+      const { container } = render(<Header {...props} />);
+      expect(container.firstChild).toHaveAttribute("data-header-root");
+    });
+
     it("should render with bevel panel and flexbox layout", () => {
       render(<Header {...props} />);
       const bevelPanel = screen.getByTestId("jrpg-panel-bevel");

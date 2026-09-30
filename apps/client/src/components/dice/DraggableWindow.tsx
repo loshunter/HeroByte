@@ -28,6 +28,23 @@ interface DraggableWindowProps {
 
 const POSITION_KEY_PREFIX = "herobyte-window-position-";
 
+/**
+ * Where a window with no remembered place opens: its own `y`, or just under the header's
+ * lowest control, whichever is lower. The header's height is not fixed (its tools wrap; it
+ * carries the public-table row; a DM has more of them), and a flat 100px sat under the tools
+ * on a short header and ON them on a tall one, covering the button that would close it.
+ * Measured from the controls, not the frame, so a palette that was never in the way stays put.
+ */
+function belowHeader(y: number): number {
+  const controls = document.querySelectorAll<HTMLElement>("[data-header-root] button");
+  let lowest = 0;
+  for (const control of controls) {
+    const box = control.getBoundingClientRect();
+    if (box.height > 0) lowest = Math.max(lowest, box.bottom);
+  }
+  return lowest === 0 ? y : Math.max(y, Math.ceil(lowest) + 4);
+}
+
 export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   title,
   children,
@@ -47,7 +64,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   const getInitialPosition = () => {
     if (storageKey) {
       const storage = getWindowStorage();
-      if (!storage) return { x: initialX, y: initialY };
+      if (!storage) return { x: initialX, y: belowHeader(initialY) };
 
       try {
         const saved = storage.getItem(`${POSITION_KEY_PREFIX}${storageKey}`);
@@ -68,7 +85,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
         console.warn("Failed to load window position from localStorage:", error);
       }
     }
-    return { x: initialX, y: initialY };
+    return { x: initialX, y: belowHeader(initialY) };
   };
 
   const [position, setPosition] = useState(getInitialPosition);
