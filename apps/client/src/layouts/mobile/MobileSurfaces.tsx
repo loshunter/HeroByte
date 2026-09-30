@@ -17,6 +17,8 @@ import { HelpPanel } from "../../features/help/HelpPanel";
 import { Spinner } from "../../components/ui/Spinner";
 import { useEntityEditHandlers } from "../../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../../hooks/useInitiativeSetting";
+import { useInitiativeDialog } from "../../features/initiative/useInitiativeDialog";
+import { manualInitiativeEnabled } from "../../features/initiative/manualOverride";
 import { buildDMMenuProps } from "../../features/dm/buildDMMenuProps";
 import { DMMenuLoadFailure } from "../../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
@@ -53,14 +55,24 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
     playerActions: props.playerActions,
   });
 
-  // Mobile's own instance, deliberately: on desktop MainLayout shares one
-  // between the entities panel and the DM menu, but mobile has no entities
-  // panel — and the builder cannot call hooks, so the caller owns this.
-  const { rollAllInitiative } = useInitiativeSetting({
+  // Mobile's own instance, shared (like the desktop's) by the Party screen's
+  // INIT and the DM screen's Encounter: the builder cannot call hooks, so the
+  // caller owns this.
+  const initiativeSetting = useInitiativeSetting({
     snapshot: props.snapshot,
     sendMessage: props.sendMessage,
   });
-  const dmMenuProps = buildDMMenuProps(props, { rollAllInitiative });
+  const dmMenuProps = buildDMMenuProps(props, { initiative: initiativeSetting });
+  // The phone Party's INIT (U8): the same dialog and rule as the desktop card's.
+  const initiativeDialog = useInitiativeDialog({
+    characters: props.snapshot?.characters ?? [],
+    players: props.snapshot?.players ?? [],
+    uid: props.uid,
+    isDM: props.isDM,
+    initiative: initiativeSetting,
+    manualEntryAllowed: props.isDM || manualInitiativeEnabled(props.snapshot),
+    combatActive: props.snapshot?.combatActive ?? false,
+  });
 
   return (
     <>
@@ -115,6 +127,8 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             onCharacterSpeedChange={props.updateCharacterSpeed}
             onCharacterBudgetReset={props.resetCharacterBudget}
             combatActive={props.snapshot?.combatActive ?? false}
+            currentTurnCharacterId={props.snapshot?.currentTurnCharacterId}
+            onOpenInitiative={initiativeDialog.open}
             tableVisionDefault={props.snapshot?.defaultVisionRadius}
             // Focus shows the map: the camera centres on the token, and the
             // screen that covers the map closes.
@@ -125,6 +139,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           />
         </MobileScreen>
       )}
+      {initiativeDialog.element}
 
       {surface === "log" && (
         <MobileScreen

@@ -74,6 +74,8 @@ function renderList(onFocusToken = vi.fn(), isDM = false) {
       onCharacterOwnerChange={vi.fn()}
       tokens={tokens}
       onFocusToken={onFocusToken}
+      currentTurnCharacterId={undefined}
+      onOpenInitiative={vi.fn()}
     />,
   );
   return onFocusToken;

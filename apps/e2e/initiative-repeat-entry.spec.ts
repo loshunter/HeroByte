@@ -29,7 +29,7 @@ async function openInitiativeModal(page: Page): Promise<void> {
   // The initiative badge is on the character's card (the Party's Cards view).
   await showPartyCards(page);
   await page.getByRole("button", { name: "Set Initiative" }).first().click();
-  await expect(page.getByRole("button", { name: "Roll Initiative" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Roll d20 now" })).toBeVisible();
 }
 
 test.describe("initiative — a hand entry that matches the number on file", () => {
@@ -37,7 +37,7 @@ test.describe("initiative — a hand entry that matches the number on file", () 
     await joinDefaultRoom(page);
 
     await openInitiativeModal(page);
-    await page.getByRole("button", { name: "Roll Initiative" }).click();
+    await page.getByRole("button", { name: "Roll d20 now" }).click();
     await expect
       .poll(async () => (await myCharacter(page))?.initiative, { timeout: 15_000 })
       .toEqual(expect.any(Number));
@@ -45,13 +45,13 @@ test.describe("initiative — a hand entry that matches the number on file", () 
     const before = (await rolls(page)).length;
 
     await openInitiativeModal(page);
-    await page.getByRole("button", { name: "Use Physical Dice" }).click();
+    await page.getByRole("button", { name: "Enter a roll by hand" }).click();
     await page.getByPlaceholder("Enter roll...").fill(String(onFile));
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save initiative" }).click();
 
     // The modal is GONE — not "Setting..." for five seconds, not reopened
     // with an error. The timeout fires at 5 s, so a 15 s bound sees it.
-    await expect(page.getByRole("button", { name: "Roll Initiative" })).toBeHidden({
+    await expect(page.getByRole("button", { name: "Roll d20 now" })).toBeHidden({
       timeout: 15_000,
     });
     await expect(page.getByText("Initiative update timed out")).toHaveCount(0);

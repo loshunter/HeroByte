@@ -299,12 +299,12 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "INIT",
         detail:
-          "Drag the modifier and ROLL INITIATIVE, or USE PHYSICAL DICE to type what you rolled at the real table.",
+          "Set the modifier (drag it, or − / +) and ROLL D20 NOW, or — where the table allows it — ENTER A ROLL BY HAND to type what you rolled at the real table and SAVE INITIATIVE. On a phone: Party → ⚔️ INIT on your character's row.",
       },
       {
         term: "Combat starts",
         detail:
-          "The first initiative saved starts it for everyone; on desktop the Party's rows reorder and the current turn's row is outlined and tagged Turn. A party member's plate then reads feet left / speed, refilled at the start of its turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs) and can reset a spend there — the budget is advisory, a red readout is a note, not a wall.",
+          "Any initiative saved while no fight is running starts it for everyone, on that character's turn — after END COMBAT too, since initiatives stay; on desktop the Party's rows reorder and the current turn's row is outlined and tagged Turn, and on a phone the turn strip names whose turn it is. A party member's plate then reads feet left / speed, refilled at the start of its turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs) and can reset a spend there — the budget is advisory, a red readout is a note, not a wall.",
       },
       { term: "◄ PREV / NEXT ►", detail: "Advance the turn — any player can nudge it." },
     ],

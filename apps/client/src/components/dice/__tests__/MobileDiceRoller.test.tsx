@@ -157,7 +157,7 @@ describe("MobileDiceRoller", () => {
     it("rolls a built-in macro without touching the build strip", () => {
       render(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />);
 
-      fireEvent.click(screen.getByRole("button", { name: "2d6" }));
+      fireEvent.click(screen.getByRole("button", { name: "Roll 2d6 now" }));
 
       expect(mockOnRoll).toHaveBeenCalledWith({
         formula: "2d6",

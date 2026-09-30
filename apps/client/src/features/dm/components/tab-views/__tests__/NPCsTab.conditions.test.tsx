@@ -34,6 +34,7 @@ function renderTab(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}
     onFocusNPCToken: vi.fn(),
     mapTokenIds: new Set(["t-goblin"]),
     onDeleteNPC: vi.fn(),
+    onOpenEncounter: vi.fn(),
     ...overrides,
   };
   render(<NPCsTab {...props} />);

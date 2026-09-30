@@ -60,6 +60,11 @@ export const DM_HELP_TOPIC: HelpTopic = {
         "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again moves that same token rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
     },
     {
+      term: "⚔️ Encounter",
+      detail:
+        "DM Menu → Encounter (on a phone, DM → Encounter): the whole fight in one place. Setup lists who is in the order and who has not rolled — 🎲 Roll, Set…, ✕ to leave the order, 🎯 — with + Add NPCs… (it opens NPCs & Monsters) and the Monster HP players see. Initiative: Roll missing NPC initiative rolls only the NPCs without one (a hidden NPC's line, and while fog is on over a built map any placed NPC's, goes to your log only); players roll their own from INIT; whether they may type a roll by hand is set in Session. Run encounter: Start combat, Next / Previous, End combat (initiatives stay on file). Any initiative saved while no fight is running starts combat, on that character's turn — after End combat too, since initiatives stay; ⏮ Start at top of order moves the turn to the top, starts the round over and refills everyone's movement.",
+    },
+    {
       term: "Fog of War",
       detail:
         "DM Menu → Maps → Current table map. Needs a built map with walls; build one with 🏗️ Build map first (on a phone, DM → 🏗️ Edit the live map).",

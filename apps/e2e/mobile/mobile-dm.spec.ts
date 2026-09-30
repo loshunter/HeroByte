@@ -40,11 +40,19 @@ test.describe("mobile — the DM screen", () => {
 
     const dialog = page.getByRole("dialog", { name: "DM Menu" });
 
-    // The chip row: all six tabs on ONE row at the touch floor. On a 375px
-    // screen six labelled chips cannot fit at once, so the row itself must
-    // scroll — that is the M4b design, not an accident to paper over.
+    // The chip row: all seven tabs (Encounter joined in U8) on ONE row at the
+    // touch floor. On a 375px screen seven labelled chips cannot fit at once,
+    // so the row itself must scroll — the M4b design, not an accident.
     const chips = await page.evaluate(() => {
-      const labels = ["Maps", "World", "NPCs & Monsters", "Props & Objects", "Players", "Session"];
+      const labels = [
+        "Maps",
+        "World",
+        "Encounter",
+        "NPCs & Monsters",
+        "Props & Objects",
+        "Players",
+        "Session",
+      ];
       const buttons = [...document.querySelectorAll<HTMLButtonElement>("button")].filter((b) =>
         labels.includes((b.textContent || "").trim()),
       );
@@ -56,7 +64,7 @@ test.describe("mobile — the DM screen", () => {
         rowScrolls: row ? row.scrollWidth > row.clientWidth : false,
       };
     });
-    expect(chips.count).toBe(6);
+    expect(chips.count).toBe(7);
     expect(chips.shortest).toBeGreaterThanOrEqual(44);
     expect(chips.rows).toBe(1);
     expect(chips.rowScrolls).toBe(true);
@@ -160,7 +168,15 @@ test.describe("mobile — the DM screen", () => {
       // has landed, and the floor is asserted across all five tabs in
       // mobile-panel-touch-floor.spec.ts. Width is still this test's job;
       // height is that one's.
-      const tabs = ["Maps", "World", "NPCs & Monsters", "Props & Objects", "Players", "Session"];
+      const tabs = [
+        "Maps",
+        "World",
+        "Encounter",
+        "NPCs & Monsters",
+        "Props & Objects",
+        "Players",
+        "Session",
+      ];
       for (const tab of tabs) {
         await dialog.getByRole("button", { name: tab, exact: true }).click();
         const report = await page.evaluate((label) => {
@@ -286,7 +302,15 @@ test.describe("mobile — the DM screen", () => {
     await openDMScreen(page);
 
     const shortest = await page.evaluate(() => {
-      const labels = ["Maps", "World", "NPCs & Monsters", "Props & Objects", "Players", "Session"];
+      const labels = [
+        "Maps",
+        "World",
+        "Encounter",
+        "NPCs & Monsters",
+        "Props & Objects",
+        "Players",
+        "Session",
+      ];
       const buttons = [...document.querySelectorAll<HTMLButtonElement>("button")].filter((b) =>
         labels.includes((b.textContent || "").trim()),
       );

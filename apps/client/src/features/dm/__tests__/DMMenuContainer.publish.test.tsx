@@ -13,6 +13,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createMapDocument } from "@herobyte/shared";
 import type { MainLayoutProps } from "../../../layouts/props/MainLayoutProps";
 import { buildDMMenuProps } from "../buildDMMenuProps";
+import type { InitiativeSetting } from "../../../hooks/useInitiativeSetting";
 import { DMMenuContainer } from "../components/DMMenuContainer";
 
 // The same bag shape buildDMMenuProps.test.ts builds — the container's whole
@@ -90,7 +91,7 @@ describe("DMMenuContainer — publish knows the live map", () => {
 
     render(
       <DMMenuContainer
-        {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+        {...buildDMMenuProps(bag, { initiative: {} as InitiativeSetting })}
         launcherDock={document.body}
       />,
     );
@@ -148,7 +149,7 @@ describe("DMMenuContainer — publish knows the live map", () => {
 
     render(
       <DMMenuContainer
-        {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+        {...buildDMMenuProps(bag, { initiative: {} as InitiativeSetting })}
         launcherDock={document.body}
       />,
     );
@@ -210,7 +211,7 @@ describe("DMMenuContainer — publish knows the live map", () => {
       });
       const view = render(
         <DMMenuContainer
-          {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+          {...buildDMMenuProps(bag, { initiative: {} as InitiativeSetting })}
           launcherDock={document.body}
         />,
       );
@@ -273,7 +274,7 @@ describe("DMMenuContainer — publish knows the live map", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     render(
       <DMMenuContainer
-        {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+        {...buildDMMenuProps(bag, { initiative: {} as InitiativeSetting })}
         launcherDock={document.body}
       />,
     );
@@ -312,7 +313,7 @@ describe("DMMenuContainer — publish knows the live map", () => {
     });
     render(
       <DMMenuContainer
-        {...buildDMMenuProps(bag, { rollAllInitiative: vi.fn() })}
+        {...buildDMMenuProps(bag, { initiative: {} as InitiativeSetting })}
         launcherDock={document.body}
       />,
     );

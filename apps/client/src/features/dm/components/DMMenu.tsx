@@ -2,6 +2,7 @@ import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { AtlasTab } from "../../atlas/AtlasTab";
+import { EncounterTab } from "../../encounter/EncounterTab";
 import MapTab from "./tab-views/MapTab";
 import NPCsTab from "./tab-views/NPCsTab";
 import PropsTab from "./tab-views/PropsTab";
@@ -108,15 +109,8 @@ export function DMMenu({
   combatActive,
   diagonalRule,
   onDiagonalRuleChange,
-  monsterHpDisplay,
-  onMonsterHpDisplayChange,
-  onStartCombat,
-  onEndCombat,
-  onClearAllInitiative,
-  onNextTurn,
-  onPreviousTurn,
+  encounter,
   toast,
-  onRollAllInitiative,
   playerPropsEnabled,
   onPlayerPropsEnabledChange,
   initiativeManualOverride,
@@ -219,6 +213,9 @@ export function DMMenu({
           hasBackground={Boolean(mapBackground)}
         />
       )}
+      {activeTab === "encounter" && (
+        <EncounterTab controls={encounter} isDM={isDM} onOpenTab={setActiveTab} toast={toast} />
+      )}
       {activeTab === "npcs" && (
         <NPCsTab
           npcs={npcs}
@@ -244,8 +241,7 @@ export function DMMenu({
           isPlacingToken={isPlacingToken}
           tokenPlacementError={tokenPlacementError}
           placingTokenForNpcId={placingTokenForNpcId}
-          toast={toast}
-          onRollAllInitiative={onRollAllInitiative}
+          onOpenEncounter={() => setActiveTab("encounter")}
         />
       )}
       {activeTab === "props" && (
@@ -273,14 +269,7 @@ export function DMMenu({
           characters={characters}
           connectedUids={connectedUids}
           onRemovePlayer={onRemovePlayer}
-          combatActive={combatActive}
-          monsterHpDisplay={monsterHpDisplay}
-          onMonsterHpDisplayChange={onMonsterHpDisplayChange}
-          onStartCombat={onStartCombat}
-          onEndCombat={onEndCombat}
-          onClearAllInitiative={onClearAllInitiative}
-          onNextTurn={onNextTurn}
-          onPreviousTurn={onPreviousTurn}
+          onOpenEncounter={() => setActiveTab("encounter")}
         />
       )}
       {activeTab === "session" && (

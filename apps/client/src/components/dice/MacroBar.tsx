@@ -51,14 +51,20 @@ export const MacroBar: React.FC<MacroBarProps> = ({
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
       <div
         role="group"
-        aria-label="Dice macros"
+        aria-label="Roll now"
         style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}
       >
+        {/* INSTANT actions (U8, §3.4): one press is one roll — named "Roll d20
+            now", never mistaken for the builder's "Add d20". */}
+        <span className="jrpg-text-small" aria-hidden="true" style={{ opacity: 0.8 }}>
+          Roll now:
+        </span>
         {[...BUILTIN_MACROS, ...saved].map((macro) => (
           <span key={macro.id} style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
             <JRPGButton
               onClick={() => onRollMacro(macro.formula, macro.mode)}
               disabled={disabled}
+              aria-label={`Roll ${macro.label} now`}
               title={`Roll ${macro.formula}${macro.mode === "normal" ? "" : ` (${macro.mode})`}`}
               style={buttonStyle}
             >

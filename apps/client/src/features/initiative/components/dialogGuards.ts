@@ -54,11 +54,14 @@ export function useOwnSave(isLoading: boolean, error: string | null) {
  * re-rendered the open dialog for that character with the first one's typed
  * number, and a settings window's clear could land during this dialog's save.
  * Only what this dialog made inert is restored; focus moves into the dialog on
- * open and back to what had it (the INIT button, usually) on close.
+ * open and back to what had it (the INIT button, usually) on close — or, when
+ * that control was re-rendered meanwhile (an Encounter row moving into the
+ * order on its first initiative), to the one now carrying its `data-focus-key`.
  */
 export function useInertPage(own: RefObject<HTMLElement>): void {
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
+    const focusKey = opener?.dataset.focusKey;
     const mine = own.current;
     const madeInert: Element[] = [];
     for (const child of Array.from(document.body.children)) {
@@ -72,7 +75,12 @@ export function useInertPage(own: RefObject<HTMLElement>): void {
       ?.focus({ preventScroll: true });
     return () => {
       for (const child of madeInert) child.removeAttribute("inert");
-      if (canReturnFocus(opener)) opener.focus({ preventScroll: true });
+      const back = canReturnFocus(opener)
+        ? opener
+        : Array.from(document.querySelectorAll<HTMLElement>("[data-focus-key]")).find(
+            (element) => focusKey !== undefined && element.dataset.focusKey === focusKey,
+          );
+      if (back && canReturnFocus(back)) back.focus({ preventScroll: true });
     };
   }, [own]);
 }

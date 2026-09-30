@@ -10,11 +10,10 @@
 import React, { useEffect, useId, useMemo, useState } from "react";
 import type { Drawing, SceneObject } from "@herobyte/shared";
 import { JRPGPanel } from "../ui/JRPGPanel";
-import { InitiativeModal } from "../../features/initiative/components/InitiativeModal";
+import { useInitiativeDialog } from "../../features/initiative/useInitiativeDialog";
 import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
 import { useCombatOrdering } from "../../hooks/useCombatOrdering";
 import { initiativeOrder } from "../../utils/initiativeOrder";
-import { useInitiativeModal } from "../../hooks/useInitiativeModal";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 import { PartyCharacterCard } from "./party/PartyCharacterCard";
 import { PartyNpcCard } from "./party/PartyNpcCard";
@@ -84,24 +83,23 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
     currentTurnCharacterId,
   });
 
-  // The app's own test for "the snapshot has arrived" (App.tsx, map-edit's guard).
-  const snapshotLoaded = players.some((player) => player.uid === uid);
-  const {
-    character: initiativeModalCharacter,
-    isOpen: isInitiativeModalOpen,
-    openModal: openInitiativeModal,
-    closeModal: closeInitiativeModal,
-  } = useInitiativeModal(characters, snapshotLoaded);
-  // The server's own rule: the DM, or the character's owner. On losing DM
-  // rights the dialog for anyone else's character closes rather than offering
-  // a Set the server refuses, and it does not reopen on re-elevation. Judged
-  // only on a loaded snapshot: a reconnect reads not-DM (useInitiativeModal).
-  const initiativeModalAllowed =
-    initiativeModalCharacter !== null &&
-    (!snapshotLoaded || props.currentIsDM || initiativeModalCharacter.ownedByPlayerUID === uid);
-  useEffect(() => {
-    if (isInitiativeModalOpen && !initiativeModalAllowed) closeInitiativeModal();
-  }, [isInitiativeModalOpen, initiativeModalAllowed, closeInitiativeModal]);
+  // The card's INIT is a shortcut into the one initiative dialog (U8), with
+  // the server's rule — the DM, or the character's owner — applied there.
+  const initiativeDialog = useInitiativeDialog({
+    characters,
+    players,
+    uid,
+    isDM: props.currentIsDM,
+    initiative: {
+      setInitiative: onSetInitiative,
+      rollInitiative: onRollInitiative,
+      isSetting: isSettingInitiative,
+      error: initiativeError,
+    },
+    manualEntryAllowed: manualInitiativeAllowed,
+    combatActive: combatActive ?? false,
+  });
+  const openInitiativeModal = initiativeDialog.open;
 
   // Use character creation hook for proper state synchronization
   const characterCreation = useCharacterCreation({
@@ -154,9 +152,10 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
     openInitiativeModal,
   };
 
-  // The bar counts the order the SERVER walks, not the cards: a PC with no seat
-  // (unclaimed, or its player's seat gone after a load) is in the order though
-  // the Party draws no card for it, and next-turn lands on it all the same.
+  // The bar counts the server's order as this viewer's snapshot carries it (a
+  // player's leaves out the NPCs the server withholds), not the cards: a PC
+  // with no seat (unclaimed, or its player's seat gone after a load) is in the
+  // order though the Party draws no card for it, and next-turn lands on it.
   const turnOrder = useMemo(() => initiativeOrder(characters, players), [characters, players]);
   const currentTurnIndexDisplay = combatActive
     ? turnOrder.findIndex((character) => character.id === currentTurnCharacterId)
@@ -307,34 +306,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
         )}
       </JRPGPanel>
 
-      {/* Initiative Modal */}
-      {isInitiativeModalOpen && initiativeModalCharacter && initiativeModalAllowed && (
-        <InitiativeModal
-          // One instance per character: another's dialog starts fresh.
-          key={initiativeModalCharacter.id}
-          character={initiativeModalCharacter}
-          onClose={closeInitiativeModal}
-          onSetInitiative={(initiative, modifier) => {
-            console.log("[EntitiesPanel] Setting initiative for character:", {
-              id: initiativeModalCharacter.id,
-              name: initiativeModalCharacter.name,
-              initiative,
-              modifier,
-            });
-            onSetInitiative(initiativeModalCharacter.id, initiative, modifier);
-            // Don't close immediately - let the modal auto-close when the hook confirms success
-          }}
-          onRollInitiative={(modifier) => {
-            // The roll closes the modal itself: the server applies the value as
-            // it rolls, and the number arrives in the public roll log rather
-            // than back in this component. There is no confirmation to wait on.
-            onRollInitiative(initiativeModalCharacter.id, modifier);
-          }}
-          manualEntryAllowed={manualInitiativeAllowed}
-          isLoading={isSettingInitiative}
-          error={initiativeError}
-        />
-      )}
+      {initiativeDialog.element}
     </div>
   );
 };

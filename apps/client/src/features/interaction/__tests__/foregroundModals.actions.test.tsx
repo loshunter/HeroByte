@@ -9,7 +9,7 @@ describe("foreground modal action preservation", () => {
   it("Initiative still saves a manual total through its existing Enter handler", () => {
     const calls = actions();
     render(<ActualModal kind="initiative" calls={calls} />);
-    fireEvent.click(screen.getByRole("button", { name: "Use Physical Dice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enter a roll by hand" }));
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "14" } });
     fireEvent.keyDown(input, { key: "Enter" });
@@ -21,7 +21,7 @@ describe("foreground modal action preservation", () => {
   it("Initiative still rolls the modifier and closes through the existing action", () => {
     const calls = actions();
     render(<ActualModal kind="initiative" calls={calls} />);
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
     // An untouched dial leaves the stored +2 to the server.
     expect(calls.roll).toHaveBeenCalledExactlyOnceWith(undefined);
     expect(calls.set).not.toHaveBeenCalled();

@@ -4,7 +4,14 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
-**Latest implementation checkpoint (2026-09-29):** U7 addresses IA-15 (the Party's cards
+**Latest implementation checkpoint (2026-09-29):** U8 addresses IA-16 (encounter
+preparation crossed NPCs, Players, the cards and Session; Encounter is now one DM Menu
+tab, on desktop and phone, and a phone can set initiative). Review stopped at the
+3-round cap, every item repaired and verified on the owner's “repair all, verify”;
+accepted by the owner and committed on `dev` 2026-09-30 (local, not pushed).
+See [the U8 record](interface-clarity-u8.md).
+
+**Previous implementation checkpoint (2026-09-29):** U7 addresses IA-15 (the Party's cards
 and the floating World/Props launchers obstructed play; the Party is now a compact roster
 with one inspector, and the launchers sit in the Party bar) and IA-20's U7 half (the
 settings name label, the clipped portrait instructions, 44 px roster targets).

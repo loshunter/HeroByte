@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { DMMenu } from "./DMMenu";
 import type { Character } from "@herobyte/shared";
+import { encounterControls, npc } from "../../encounter/__tests__/encounterFixtures";
 
 vi.mock("../../../components/ui/JRPGPanel", () => {
   const JRPGPanel = ({
@@ -97,6 +98,7 @@ const createProps = () => ({
   onAlignmentApply: vi.fn(),
   sceneObjects: [],
   onSelectPlayerTokens: vi.fn(),
+  encounter: encounterControls(),
 });
 
 describe("DMMenu", () => {
@@ -232,6 +234,41 @@ describe("DMMenu", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
     expect(onRemovePlayer).toHaveBeenCalledWith("ghost");
     vi.restoreAllMocks();
+  });
+
+  it("mounts Encounter after World, and its Roll missing NPC initiative sends through the controls' ONE initiative instance", () => {
+    const encounter = encounterControls({ characters: [npc("gob", "Goblin")] });
+    render(<DMMenu {...createProps()} encounter={encounter} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+
+    const tabs = ["Maps", "World", "Encounter", "NPCs & Monsters"];
+    const found = tabs.map((name) => screen.getByRole("button", { name }));
+    // In that order: Encounter sits after World (plan §2.1's DM tools order).
+    for (let i = 1; i < found.length; i++) {
+      expect(found[i - 1].compareDocumentPosition(found[i])).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Encounter" }));
+    fireEvent.click(screen.getByRole("button", { name: /Roll missing NPC initiative/ }));
+    expect(encounter.initiative.rollAllInitiative).toHaveBeenCalledTimes(1);
+  });
+
+  it("Players and NPCs no longer carry combat: each forwards to Encounter instead", () => {
+    const props = { ...createProps(), characters: [npc("gob", "Goblin")] as Character[] };
+    render(<DMMenu {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Players" }));
+    expect(screen.queryByRole("button", { name: /Start Combat|End Combat/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Clear All Initiative/i })).toBeNull();
+    expect(screen.queryByText("Monster HP Display")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Open Encounter/ }));
+    expect(screen.getByRole("heading", { name: "Run encounter" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "NPCs & Monsters" }));
+    expect(screen.queryByRole("button", { name: /Roll Missing/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "⚔️ Encounter" }));
+    expect(screen.getByRole("heading", { name: "Run encounter" })).toBeTruthy();
   });
 
   it("switches to the Atlas tab and actually MOUNTS the tree (a dropped mount compiles clean)", () => {

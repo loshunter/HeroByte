@@ -57,6 +57,8 @@ function renderList(
       onPlayerTokenDelete={undefined}
       onCharacterOwnerChange={vi.fn()}
       onFocusToken={vi.fn()}
+      currentTurnCharacterId={extra.currentTurnCharacterId}
+      onOpenInitiative={extra.onOpenInitiative ?? vi.fn()}
       tokens={tokens}
       onTokenVisionRadiusChange={onTokenVisionRadiusChange}
     />,
@@ -104,6 +106,8 @@ describe("delete character — the desktop gate, on a phone", () => {
         onPlayerTokenDelete={undefined}
         onCharacterOwnerChange={vi.fn()}
         onFocusToken={vi.fn()}
+        currentTurnCharacterId={undefined}
+        onOpenInitiative={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -153,6 +157,8 @@ describe("delete character — the desktop gate, on a phone", () => {
         onPlayerTokenDelete={undefined}
         onCharacterOwnerChange={vi.fn()}
         onFocusToken={vi.fn()}
+        currentTurnCharacterId={undefined}
+        onOpenInitiative={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -375,6 +381,8 @@ function listProps(overrides: Partial<Parameters<typeof MobileEntitiesList>[0]> 
     onPlayerTokenDelete: undefined,
     onCharacterOwnerChange: vi.fn(),
     onFocusToken: vi.fn(),
+    currentTurnCharacterId: undefined,
+    onOpenInitiative: vi.fn(),
     tokens,
     onTokenVisionRadiusChange: vi.fn(),
     ...overrides,
@@ -615,6 +623,8 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onPlayerTokenDelete={undefined}
         onCharacterOwnerChange={vi.fn()}
         onFocusToken={vi.fn()}
+        currentTurnCharacterId={undefined}
+        onOpenInitiative={vi.fn()}
         tokens={twoTokens}
         onTokenVisionRadiusChange={onChange}
       />,
@@ -657,6 +667,8 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onPlayerTokenDelete={undefined}
         onCharacterOwnerChange={vi.fn()}
         onFocusToken={vi.fn()}
+        currentTurnCharacterId={undefined}
+        onOpenInitiative={vi.fn()}
         tokens={[]}
         onTokenVisionRadiusChange={vi.fn()}
       />,

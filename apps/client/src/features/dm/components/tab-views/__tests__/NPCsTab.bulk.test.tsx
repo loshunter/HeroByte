@@ -35,6 +35,7 @@ function renderTabProps(overrides: Partial<React.ComponentProps<typeof NPCsTab>>
     onFocusNPCToken: vi.fn(),
     mapTokenIds: new Set<string>(),
     onDeleteNPC: vi.fn(),
+    onOpenEncounter: vi.fn(),
     ...overrides,
   };
 }
@@ -233,5 +234,15 @@ describe("NPCsTab — duplicating", () => {
     renderTab({ npcs: [npc("a", "Goblin 1")], isCreatingNpc: true });
 
     expect(screen.getByRole("button", { name: /copying/i })).toBeDisabled();
+  });
+});
+
+describe("NPCsTab — initiative lives in Encounter (U8)", () => {
+  it("offers no Roll Missing Initiative of its own; its ⚔️ Encounter forwards there", () => {
+    const props = renderTab({ npcs: [npc("n1", "Goblin")] });
+
+    expect(screen.queryByRole("button", { name: /Roll Missing/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "⚔️ Encounter" }));
+    expect(props.onOpenEncounter).toHaveBeenCalledTimes(1);
   });
 });

@@ -2,7 +2,7 @@
  * InitiativeRollHandler
  *
  * The rolled initiative path: the server throws the die, and the result lands
- * in the roll log where the table can see it.
+ * in the roll log — the table's, or the DM's alone when initiativeLineConcealed.
  *
  * Split from InitiativeMessageHandler rather than added to it — that file sits
  * against the 350-LOC guard, and rolling needs two services (dice, players)
@@ -37,7 +37,7 @@ export class InitiativeRollHandler {
    *
    * The roll goes through `DiceService.rollFor` rather than calling the RNG
    * directly, which buys three things at once: `cryptoDiceRng` stays the one
-   * generator, the roll lands in `state.diceRolls` where the table can see it,
+   * generator, the roll lands in `state.diceRolls` (visible as its line allows),
    * and the breakdown renders in the log exactly like any other d20.
    *
    * `rng` is injectable for the same reason `rollFor`'s is — a golden seed pins
@@ -153,7 +153,7 @@ export class InitiativeRollHandler {
    * one iteration from the next.
    *
    * Each NPC goes through `handleRollInitiative` rather than a second copy of
-   * the roll, so the labels, the public log lines and the combat auto-start
+   * the roll, so the labels, the log lines' visibility and the combat auto-start
    * rules cannot drift from the single-character case. No modifier is passed:
    * a bulk roll is not a gesture on any one dial, so every NPC uses its own
    * stored value.

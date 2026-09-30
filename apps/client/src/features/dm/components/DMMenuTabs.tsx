@@ -4,6 +4,8 @@ import type { DMMenuTab } from "../hooks/useDMMenuState";
 const DM_MENU_TABS: Array<{ tab: DMMenuTab; label: string }> = [
   { tab: "map", label: "Maps" },
   { tab: "atlas", label: "World" },
+  // U8: the one combat home (plan §2.1 — DM tools → Encounter).
+  { tab: "encounter", label: "Encounter" },
   { tab: "npcs", label: "NPCs & Monsters" },
   { tab: "props", label: "Props & Objects" },
   { tab: "players", label: "Players" },

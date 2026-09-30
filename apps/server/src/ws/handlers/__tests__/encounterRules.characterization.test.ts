@@ -4,9 +4,10 @@
  * Neither is changed by U8; both are pinned here, with the real services, so the
  * tab's copy cannot drift from what the server does:
  *
- * 1. The first saved initiative starts combat on THAT character's turn. A bulk
- *    "Roll missing NPC initiative" on a fresh fight therefore hands the turn to
- *    the first NPC it rolls (creation order), not to the highest roll.
+ * 1. An initiative saved while no fight is running starts combat on THAT
+ *    character's turn. A bulk "Roll missing NPC initiative" on a fresh fight
+ *    therefore hands the turn to the first NPC it rolls (creation order), not
+ *    to the highest roll.
  * 2. `start-combat` while a fight is already on is accepted: the turn moves to
  *    the top of the order, the round starts over at 1 and every movement budget
  *    refills. Encounter's "Start at top of order" sends exactly that message.

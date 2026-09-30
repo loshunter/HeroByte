@@ -10,15 +10,23 @@ and latest execution ledger before relying on these identifiers.
 
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
-**Latest U7 frontier (2026-09-29):** U7 is accepted by the owner, committed on `dev` and
+**Latest U8 frontier (2026-09-29):** U8 (Encounter is the single combat home) is
+accepted by the owner (2026-09-30) and committed on `dev` above nineteen local, unpushed
+fix and test commits (`b735acb8`…`60a08cea`). Review stopped at the 3-round cap; the
+owner chose “repair all, verify”, and every round-3 item is repaired. The ladder is green
+on the final tree and the live two-client re-evaluation on the repaired tree scores 8.55.
+Nothing is pushed; pushing to `dev` waits for the owner's word, and main stays theirs.
+Read [the U8 record](../verification/interface-clarity-u8.md) first.
+
+**Previous U7 frontier (2026-09-29):** U7 is accepted by the owner, committed on `dev` and
 pushed to `origin/dev`, after 36 commits that fix bugs found on the way
-(`ccd18b82`…`2689cf53`). U8 has not started. Its
+(`ccd18b82`…`2689cf53`). Its
 review stopped at the round cap (34 → 28 → 33 items). The owner chose “repair all,
 verify” and answered the open questions: ownership and a DM's editing of a player's HP
 are built in U7, and the Table role section is accepted as the interim. Every round-3
 item is repaired, the full ladder is green (286 browser, 0 flaky) and the table was
 re-evaluated live (8.4); its follow-up, phone HP tap targets, is fixed (`2689cf53`).
-Read [the U7 record](../verification/interface-clarity-u7.md) first.
+Read [the U7 record](../verification/interface-clarity-u7.md).
 
 **Previous U6 frontier (2026-09-28):** U6 is implemented, reviewed for three rounds, repaired
 per the owner's round-3 decision “Repair all, verify”, and fully verified; it is uncommitted on

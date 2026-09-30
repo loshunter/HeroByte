@@ -540,6 +540,191 @@ describe("MobileLayout", () => {
     vi.restoreAllMocks();
   });
 
+  it("a player rolls their character's initiative from the phone Party (U8): the shared dialog, one roll", () => {
+    const props = {
+      ...createDefaultProps(),
+      snapshot: {
+        combatActive: false,
+        players: [
+          { uid: "test-uid", name: "Me" },
+          { uid: "p2", name: "Them" },
+        ],
+        characters: [
+          {
+            id: "char-me",
+            name: "Ranger",
+            type: "pc",
+            hp: 9,
+            maxHp: 9,
+            ownedByPlayerUID: "test-uid",
+          },
+          { id: "char-2", name: "Wolf", type: "pc", hp: 9, maxHp: 9, ownedByPlayerUID: "p2" },
+        ],
+        tokens: [],
+        sceneObjects: [],
+      } as unknown as MainLayoutProps["snapshot"],
+    };
+    render(<MobileLayout {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /party/i }));
+    // Another player's character offers no INIT to a player; their own does.
+    expect(screen.queryByRole("button", { name: "Set initiative for Wolf" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Set initiative for Ranger" }));
+    expect(screen.getByText("Initiative: Ranger")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "No fight is running: saving an initiative starts combat, on Ranger's turn.",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
+
+    const rolls = vi
+      .mocked(props.sendMessage)
+      .mock.calls.filter(([message]) => message.t === "roll-initiative");
+    // The dial was not touched: no modifier, so the server rolls with the stored one.
+    expect(rolls).toEqual([[{ t: "roll-initiative", characterId: "char-me" }]]);
+    expect(screen.queryByText("Initiative: Ranger")).not.toBeInTheDocument();
+  });
+
+  it("with a fight running, the phone dialog says nothing about starting one", () => {
+    const props = {
+      ...createDefaultProps(),
+      snapshot: {
+        combatActive: true,
+        players: [{ uid: "test-uid", name: "Me" }],
+        characters: [
+          {
+            id: "char-me",
+            name: "Ranger",
+            type: "pc",
+            hp: 9,
+            maxHp: 9,
+            ownedByPlayerUID: "test-uid",
+          },
+        ],
+        tokens: [],
+        sceneObjects: [],
+      } as unknown as MainLayoutProps["snapshot"],
+    };
+    render(<MobileLayout {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /party/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Set initiative for Ranger" }));
+    expect(screen.getByText("Initiative: Ranger")).toBeInTheDocument();
+    expect(screen.queryByText(/No fight is running: saving/)).not.toBeInTheDocument();
+  });
+
+  it("through a reconnect the phone dialog stays, and closing it gives focus back to the row's INIT", () => {
+    // jsdom lays nothing out; focus return needs a control with a box.
+    const rect = new DOMRect(0, 0, 44, 44);
+    const rects = vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue({
+      0: rect,
+      length: 1,
+      item: (index: number) => (index === 0 ? rect : null),
+      [Symbol.iterator]: () => [rect].values(),
+    } as unknown as DOMRectList);
+    const snapshot = {
+      combatActive: true,
+      players: [{ uid: "test-uid", name: "Me" }],
+      characters: [
+        {
+          id: "char-me",
+          name: "Ranger",
+          type: "pc",
+          hp: 9,
+          maxHp: 9,
+          ownedByPlayerUID: "test-uid",
+        },
+      ],
+      tokens: [],
+      sceneObjects: [],
+    } as unknown as MainLayoutProps["snapshot"];
+    const props = { ...createDefaultProps(), snapshot };
+    const view = render(<MobileLayout {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /party/i }));
+    const opener = screen.getByRole("button", { name: "Set initiative for Ranger" });
+    opener.focus();
+    fireEvent.click(opener);
+    // The socket closes (the snapshot goes null), then the table comes back:
+    // the rows are rendered afresh, and the dialog is still the same one.
+    view.rerender(<MobileLayout {...props} snapshot={null} />);
+    view.rerender(<MobileLayout {...props} snapshot={{ ...snapshot! }} />);
+    expect(screen.getByText("Initiative: Ranger")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByText("Initiative: Ranger")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Set initiative for Ranger" }),
+    );
+    rects.mockRestore();
+  });
+
+  it.each([
+    [false, false, false],
+    [false, true, true],
+    [true, false, true],
+  ])(
+    "the phone Party's INIT: isDM=%s, table allows hand entry=%s → Enter a roll by hand offered=%s",
+    (isDM, allowed, offered) => {
+      const props = {
+        ...createDefaultProps(),
+        isDM,
+        snapshot: {
+          combatActive: true,
+          initiativeManualOverride: allowed ? undefined : false,
+          // The seat reads not-DM whatever the prop says: the DM case must come
+          // from the passed-in flag (the snapshot's lags on reconnect).
+          players: [{ uid: "test-uid", name: "Me", isDM: false }],
+          characters: [
+            {
+              id: "char-me",
+              name: "Ranger",
+              type: "pc",
+              hp: 9,
+              maxHp: 9,
+              ownedByPlayerUID: "test-uid",
+            },
+          ],
+          tokens: [],
+          sceneObjects: [],
+        } as unknown as MainLayoutProps["snapshot"],
+      };
+      render(<MobileLayout {...props} />);
+      fireEvent.click(screen.getByRole("button", { name: /party/i }));
+      fireEvent.click(screen.getByRole("button", { name: "Set initiative for Ranger" }));
+
+      expect(Boolean(screen.queryByRole("button", { name: "Enter a roll by hand" }))).toBe(offered);
+      expect(Boolean(screen.queryByText(/Entering a roll by hand is off at this table/))).toBe(
+        !offered,
+      );
+    },
+  );
+
+  it("the turn strip names whose turn it is (U8), from the viewer's own snapshot", () => {
+    const props = createDefaultProps();
+    props.snapshot = {
+      combatActive: true,
+      currentTurnCharacterId: "char-2",
+      characters: [
+        { id: "char-1", name: "Ranger", type: "pc", hp: 9, maxHp: 9 },
+        { id: "char-2", name: "Wolf", type: "pc", hp: 9, maxHp: 9 },
+      ],
+    } as unknown as MainLayoutProps["snapshot"];
+    const { rerender } = render(<MobileLayout {...props} />);
+    expect(screen.getByText("Turn: Wolf")).toBeInTheDocument();
+    expect(screen.queryByText("Turn: Ranger")).not.toBeInTheDocument();
+
+    // A turn the server withheld (a hidden NPC's) arrives as no pointer: no name.
+    rerender(
+      <MobileLayout
+        {...props}
+        snapshot={{ ...props.snapshot!, currentTurnCharacterId: undefined }}
+      />,
+    );
+    expect(screen.getByText("Turn: —")).toBeInTheDocument();
+  });
+
   it("closes the open Party panel when a prop-controlled sheet (dice) opens", () => {
     const props = createDefaultProps();
     render(<MobileLayout {...props} />);

@@ -19,7 +19,7 @@ import type { SnapshotCharacter } from "@herobyte/shared";
  *
  * Rolling here also stops the client inventing the numbers: the server throws
  * on the same generator dice use, and every NPC gets its own named line in the
- * public roll log.
+ * roll log (the DM's alone for a hidden NPC, and under fog for a placed one).
  *
  * THE RETURNED COUNT IS THE CLIENT'S VIEW. It counts the NPCs this snapshot
  * shows without an initiative, using the same predicate the server applies, and

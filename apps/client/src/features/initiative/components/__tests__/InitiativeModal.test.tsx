@@ -128,6 +128,7 @@ function createDefaultProps(
     onSetInitiative?: (initiative: number, modifier: number) => void;
     onRollInitiative?: (modifier?: number) => void;
     manualEntryAllowed?: boolean;
+    combatActive?: boolean;
     isLoading?: boolean;
     error?: string | null;
   } = {},
@@ -137,6 +138,9 @@ function createDefaultProps(
     onClose: vi.fn(),
     onSetInitiative: vi.fn(),
     onRollInitiative: vi.fn(),
+    // A fight is running unless a test says otherwise: the auto-start note
+    // (U8) shows only without one.
+    combatActive: true,
     isLoading: false,
     error: null,
     ...overrides,
@@ -232,23 +236,23 @@ describe("InitiativeModal - Initial Rendering", () => {
     expect(modifierDisplay).toBeInTheDocument();
   });
 
-  it("shows 'Roll Initiative' button", () => {
+  it("shows 'Roll d20 now' button", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
     const rollButton = screen.getByRole("button", {
-      name: "Roll Initiative",
+      name: "Roll d20 now",
     });
     expect(rollButton).toBeInTheDocument();
     expect(rollButton).toHaveAttribute("data-variant", "primary");
   });
 
-  it("shows 'Use Physical Dice' button", () => {
+  it("shows 'Enter a roll by hand' button", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     expect(manualButton).toBeInTheDocument();
   });
@@ -257,7 +261,7 @@ describe("InitiativeModal - Initial Rendering", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toBeDisabled();
   });
 
@@ -354,7 +358,7 @@ describe("InitiativeModal - Modifier State", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    expect(screen.getByText("Click and drag left/right to adjust")).toBeInTheDocument();
+    expect(screen.getByText("Drag the number left/right, or use the buttons")).toBeInTheDocument();
   });
 
   it("modifier display has correct styling", () => {
@@ -617,23 +621,23 @@ describe("InitiativeModal - Roll Initiative", () => {
     HTMLElement.prototype.releasePointerCapture = vi.fn();
   });
 
-  it("clicking 'Roll Initiative' asks the server to roll exactly once", () => {
+  it("clicking 'Roll d20 now' asks the server to roll exactly once", () => {
     const onRollInitiative = vi.fn();
     const props = createDefaultProps({ onRollInitiative });
     render(<InitiativeModal {...props} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
 
     expect(onRollInitiative).toHaveBeenCalledTimes(1);
     expect(onRollInitiative).toHaveBeenCalledWith(undefined); // an untouched dial: the server rolls with its stored +2
   });
 
-  it("clicking 'Roll Initiative' closes the modal", () => {
+  it("clicking 'Roll d20 now' closes the modal", () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ onClose });
     render(<InitiativeModal {...props} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -655,7 +659,7 @@ describe("InitiativeModal - Roll Initiative", () => {
     fireEvent.pointerUp(document);
     expect(screen.getByText("+5")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
 
     expect(onRollInitiative).toHaveBeenCalledWith(5);
   });
@@ -665,7 +669,7 @@ describe("InitiativeModal - Roll Initiative", () => {
     const props = createDefaultProps({ onSetInitiative });
     render(<InitiativeModal {...props} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
 
     expect(onSetInitiative).not.toHaveBeenCalled();
   });
@@ -674,7 +678,7 @@ describe("InitiativeModal - Roll Initiative", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
 
     expect(screen.queryByText(/d20 Roll:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Initiative: \d+/)).not.toBeInTheDocument();
@@ -685,7 +689,7 @@ describe("InitiativeModal - Roll Initiative", () => {
     render(<InitiativeModal {...props} />);
 
     const spy = vi.spyOn(Math, "random");
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
 
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
@@ -703,11 +707,11 @@ describe("InitiativeModal - Roll Initiative", () => {
     const props = createDefaultProps({ onSetInitiative, onRollInitiative, onClose });
     render(<InitiativeModal {...props} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Use Physical Dice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enter a roll by hand" }));
     fireEvent.change(screen.getByPlaceholderText("Enter roll..."), { target: { value: "18" } });
     expect(screen.getByText("Initiative: 20")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
 
     expect(onRollInitiative).toHaveBeenCalledWith(undefined); // an untouched dial: the server rolls with its stored +2
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -725,13 +729,13 @@ describe("InitiativeModal - manual entry gate", () => {
     // setting through should not silently lose the control.
     render(<InitiativeModal {...createDefaultProps()} />);
 
-    expect(screen.getByRole("button", { name: "Use Physical Dice" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enter a roll by hand" })).toBeInTheDocument();
   });
 
   it("offers it when the table allows hand-entry", () => {
     render(<InitiativeModal {...createDefaultProps({ manualEntryAllowed: true })} />);
 
-    expect(screen.getByRole("button", { name: "Use Physical Dice" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enter a roll by hand" })).toBeInTheDocument();
   });
 
   it("hides it when the table has turned hand-entry off", () => {
@@ -741,7 +745,7 @@ describe("InitiativeModal - manual entry gate", () => {
     // seconds and then be told the update timed out.
     render(<InitiativeModal {...createDefaultProps({ manualEntryAllowed: false })} />);
 
-    expect(screen.queryByRole("button", { name: "Use Physical Dice" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Enter a roll by hand" })).not.toBeInTheDocument();
   });
 
   it("still lets you roll when hand-entry is off", () => {
@@ -752,7 +756,7 @@ describe("InitiativeModal - manual entry gate", () => {
       <InitiativeModal {...createDefaultProps({ manualEntryAllowed: false, onRollInitiative })} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
 
     expect(onRollInitiative).toHaveBeenCalledTimes(1);
   });
@@ -769,12 +773,12 @@ describe("InitiativeModal - manual entry gate", () => {
 // ============================================================================
 
 describe("InitiativeModal - Manual Entry Mode", () => {
-  it("clicking 'Use Physical Dice' enables manual mode", () => {
+  it("clicking 'Enter a roll by hand' enables manual mode", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -786,7 +790,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -800,7 +804,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -816,7 +820,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -831,7 +835,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -846,7 +850,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -861,7 +865,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -876,7 +880,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -884,7 +888,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     fireEvent.change(input, { target: { value: "0" } });
 
     expect(screen.queryByText(/d20 Roll:/)).not.toBeInTheDocument();
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toBeDisabled();
   });
 
@@ -893,7 +897,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -901,7 +905,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     fireEvent.change(input, { target: { value: "21" } });
 
     expect(screen.queryByText(/d20 Roll:/)).not.toBeInTheDocument();
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toBeDisabled();
   });
 
@@ -910,7 +914,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -918,7 +922,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     fireEvent.change(input, { target: { value: "abc" } });
 
     expect(screen.queryByText(/d20 Roll:/)).not.toBeInTheDocument();
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toBeDisabled();
   });
 
@@ -927,7 +931,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -935,7 +939,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     fireEvent.change(input, { target: { value: "-5" } });
 
     expect(screen.queryByText(/d20 Roll:/)).not.toBeInTheDocument();
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toBeDisabled();
   });
 
@@ -944,7 +948,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     // Enter a value first
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -961,7 +965,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -973,7 +977,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -988,7 +992,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -996,7 +1000,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     fireEvent.change(input, { target: { value: "" } });
 
     expect(screen.queryByText(/d20 Roll:/)).not.toBeInTheDocument();
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toBeDisabled();
   });
 });
@@ -1011,7 +1015,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1023,7 +1027,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toBeDisabled();
   });
 
@@ -1032,7 +1036,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1055,7 +1059,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1070,7 +1074,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1083,7 +1087,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1096,7 +1100,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1110,7 +1114,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -1125,7 +1129,7 @@ describe("InitiativeModal - Final Initiative Calculation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "1" } });
@@ -1143,7 +1147,7 @@ describe("InitiativeModal - Result Display", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1159,7 +1163,7 @@ describe("InitiativeModal - Result Display", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1172,7 +1176,7 @@ describe("InitiativeModal - Result Display", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1186,7 +1190,7 @@ describe("InitiativeModal - Result Display", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1199,7 +1203,7 @@ describe("InitiativeModal - Result Display", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1225,7 +1229,7 @@ describe("InitiativeModal - Result Display", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
@@ -1240,7 +1244,7 @@ describe("InitiativeModal - Result Display", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1254,7 +1258,7 @@ describe("InitiativeModal - Result Display", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1294,12 +1298,12 @@ describe("InitiativeModal - Save Functionality", () => {
     const props = createDefaultProps({ character, onSetInitiative });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     fireEvent.click(saveButton);
 
     expect(onSetInitiative).toHaveBeenCalledWith(14, 3);
@@ -1309,12 +1313,12 @@ describe("InitiativeModal - Save Functionality", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).not.toBeDisabled();
   });
 
@@ -1322,7 +1326,7 @@ describe("InitiativeModal - Save Functionality", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toBeDisabled();
   });
 
@@ -1330,7 +1334,7 @@ describe("InitiativeModal - Save Functionality", () => {
     const props = createDefaultProps({ isLoading: true });
     renderOwnSave(props);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1344,12 +1348,12 @@ describe("InitiativeModal - Save Functionality", () => {
     const props = createDefaultProps({ onClose });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     fireEvent.click(saveButton);
 
     expect(onClose).not.toHaveBeenCalled();
@@ -1366,7 +1370,7 @@ describe("InitiativeModal - Save Functionality", () => {
     const props = createDefaultProps({ isLoading: false });
     render(<InitiativeModal {...props} />);
 
-    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save initiative" })).toBeInTheDocument();
   });
 
   it("calls onSetInitiative with correct values after modifier drag", () => {
@@ -1375,7 +1379,7 @@ describe("InitiativeModal - Save Functionality", () => {
     const props = createDefaultProps({ character, onSetInitiative });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1389,7 +1393,7 @@ describe("InitiativeModal - Save Functionality", () => {
     });
     fireEvent.pointerUp(document);
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     fireEvent.click(saveButton);
 
     expect(onSetInitiative).toHaveBeenCalledWith(13, 2);
@@ -1402,14 +1406,14 @@ describe("InitiativeModal - Save Functionality", () => {
     render(<InitiativeModal {...props} />);
 
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
 
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "18" } });
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     fireEvent.click(saveButton);
 
     expect(onSetInitiative).toHaveBeenCalledWith(21, 3);
@@ -1419,7 +1423,7 @@ describe("InitiativeModal - Save Functionality", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     expect(saveButton).toHaveAttribute("data-variant", "success");
   });
 });
@@ -1617,7 +1621,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: "Test warning" });
     renderOwnSave(props);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1647,7 +1651,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     const props = createDefaultProps({ onSetInitiative, isLoading: false });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1673,7 +1677,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     renderOwnSave(props);
     onSetInitiative.mockClear(); // the setup's own save
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1740,7 +1744,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     const props = createDefaultProps({ onClose });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1756,7 +1760,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     const props = createDefaultProps({ character, onSetInitiative });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "17" } });
@@ -1810,7 +1814,7 @@ describe("InitiativeModal - Modal Backdrop", () => {
     const props = createDefaultProps({ onClose });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
 
     // onClose should not be called from backdrop
@@ -1860,7 +1864,7 @@ describe("InitiativeModal - Loading State", () => {
     const props = createDefaultProps({ isLoading: true });
     renderOwnSave(props);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1883,7 +1887,7 @@ describe("InitiativeModal - Loading State", () => {
     renderOwnSave(props);
     onSetInitiative.mockClear(); // the setup's own save
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1907,7 +1911,7 @@ describe("InitiativeModal - Loading State", () => {
     const props = createDefaultProps({ isLoading: false });
     render(<InitiativeModal {...props} />);
 
-    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save initiative" })).toBeInTheDocument();
   });
 
   it("isLoading=false allows keyboard shortcuts", () => {
@@ -1915,7 +1919,7 @@ describe("InitiativeModal - Loading State", () => {
     const props = createDefaultProps({ onSetInitiative, isLoading: false });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -1943,11 +1947,11 @@ describe("InitiativeModal - Loading State", () => {
     const props = createDefaultProps({ isLoading: true, onRollInitiative });
     render(<InitiativeModal {...props} />);
 
-    const rollButton = screen.getByRole("button", { name: "Roll Initiative" });
+    const rollButton = screen.getByRole("button", { name: "Roll d20 now" });
     fireEvent.click(rollButton);
     expect(onRollInitiative).toHaveBeenCalledWith(undefined); // an untouched dial: the server rolls with its stored +2
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -2001,12 +2005,12 @@ describe("InitiativeModal - Props Validation", () => {
     const props = createDefaultProps({ onSetInitiative });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     fireEvent.click(saveButton);
 
     expect(onSetInitiative).toHaveBeenCalled();
@@ -2019,7 +2023,7 @@ describe("InitiativeModal - Props Validation", () => {
 
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
     expect(cancelButton).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save initiative" })).toBeInTheDocument();
   });
 
   it("optional prop: error (default: null)", () => {
@@ -2111,7 +2115,7 @@ describe("InitiativeModal - Integration Tests", () => {
     render(<InitiativeModal {...props} />);
 
     // Enter the roll
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -2129,7 +2133,7 @@ describe("InitiativeModal - Integration Tests", () => {
     expect(screen.getByText("Initiative: 16")).toBeInTheDocument();
 
     // Save
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     fireEvent.click(saveButton);
     expect(onSetInitiative).toHaveBeenCalledWith(16, 5);
   });
@@ -2142,7 +2146,7 @@ describe("InitiativeModal - Integration Tests", () => {
 
     // Manual entry
     const manualButton = screen.getByRole("button", {
-      name: "Use Physical Dice",
+      name: "Enter a roll by hand",
     });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
@@ -2163,7 +2167,7 @@ describe("InitiativeModal - Integration Tests", () => {
     expect(screen.getByText("Initiative: 14")).toBeInTheDocument();
 
     // Save
-    const saveButton = screen.getByRole("button", { name: "Save" });
+    const saveButton = screen.getByRole("button", { name: "Save initiative" });
     fireEvent.click(saveButton);
     expect(onSetInitiative).toHaveBeenCalledWith(14, -1);
   });
@@ -2174,7 +2178,7 @@ describe("InitiativeModal - Integration Tests", () => {
     const props = createDefaultProps({ onClose, onSetInitiative });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -2192,7 +2196,7 @@ describe("InitiativeModal - Integration Tests", () => {
     const props = createDefaultProps({ onClose, onSetInitiative });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -2209,7 +2213,7 @@ describe("InitiativeModal - Integration Tests", () => {
     const props = createDefaultProps({ character, onSetInitiative });
     render(<InitiativeModal {...props} />);
 
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
@@ -2286,7 +2290,7 @@ describe("InitiativeModal - Integration Tests", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
 
     // After entering manual mode
-    const manualButton = screen.getByRole("button", { name: "Use Physical Dice" });
+    const manualButton = screen.getByRole("button", { name: "Enter a roll by hand" });
     fireEvent.click(manualButton);
     fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(2);

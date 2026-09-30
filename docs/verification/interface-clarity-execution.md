@@ -7,7 +7,13 @@
 
 ## Frontier
 
-- Latest U7 (2026-09-29): accepted by the owner, committed on `dev` after 36 fix/test/refactor
+- Latest U8 (2026-09-30): accepted by the owner and committed on `dev` above nineteen local own
+  fix and test commits (`b735acb8`…`60a08cea`, unpushed). Review: three rounds of four
+  Opus lenses, P2 7 → 9 → 6 (P1 zero); stopped at the cap; the owner chose “repair all,
+  verify”, and every round-3 item is repaired. Final ladder: green — 452/2,774/7,346
+  units, 288 browser/3 skips/0 flaky, 151.96 KB; 79 of 81 unit mutants killed (two
+  equivalent), browser E1–E6 killed; live two-client re-evaluation 8.55. Not pushed. See the [U8 record](interface-clarity-u8.md).
+- Previous U7 (2026-09-29): accepted by the owner, committed on `dev` after 36 fix/test/refactor
   commits (`ccd18b82`…`2689cf53`), and pushed to `origin/dev` with them. Review: three rounds of four Opus lenses,
   34 → 28 → 33 items (P1 1 → 1 → 0); stopped at the cap; the owner chose “repair all,
   verify”, and every round-3 item is repaired. Ladder after the repairs: green;

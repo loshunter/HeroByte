@@ -59,6 +59,7 @@ function InitiativeOwners({ loading, onClose, onSetInitiative, onRollInitiative 
           onClose={close}
           onSetInitiative={onSetInitiative}
           onRollInitiative={onRollInitiative}
+          combatActive={true}
           isLoading={loading}
         />
       )}

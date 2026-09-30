@@ -46,7 +46,7 @@ const initiativeBadge = (page: Page) =>
 async function openInitiativeModal(page: Page): Promise<void> {
   await showEntities(page);
   await initiativeBadge(page).click();
-  await expect(page.getByRole("button", { name: "Roll Initiative" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Roll d20 now" })).toBeVisible();
 }
 
 /**
@@ -86,11 +86,11 @@ test.describe("initiative — the modal a player presses", () => {
     await expect(page.getByText(`Initiative: ${character!.name}`)).toBeVisible();
 
     const before = (await rolls(page)).length;
-    await page.getByRole("button", { name: "Roll Initiative" }).click();
+    await page.getByRole("button", { name: "Roll d20 now" }).click();
 
     // Roll SENDS and closes: the server applies the value as it rolls, so there
     // is nothing left for a confirm press to confirm.
-    await expect(page.getByRole("button", { name: "Roll Initiative" })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Roll d20 now" })).toBeHidden();
 
     await expect
       .poll(async () => (await myCharacter(page))?.initiative, { timeout: 15_000 })
@@ -128,7 +128,7 @@ test.describe("initiative — the modal a player presses", () => {
     await dragModifierTo(page, 5);
 
     const before = (await rolls(page)).length;
-    await page.getByRole("button", { name: "Roll Initiative" }).click();
+    await page.getByRole("button", { name: "Roll d20 now" }).click();
 
     // Persisted, not merely sent: the dial is the one writer of this stat, and
     // a roll that dropped it would apply the stored 0 and look identical from
@@ -155,7 +155,7 @@ test.describe("initiative — the modal a player presses", () => {
     // value `supersededTotal` is absent and the strike-through half of this
     // never gets exercised.
     await openInitiativeModal(page);
-    await page.getByRole("button", { name: "Roll Initiative" }).click();
+    await page.getByRole("button", { name: "Roll d20 now" }).click();
     await expect
       .poll(async () => (await myCharacter(page))?.initiative, { timeout: 15_000 })
       .toEqual(expect.any(Number));
@@ -165,15 +165,17 @@ test.describe("initiative — the modal a player presses", () => {
     const entered = superseded === 17 ? 18 : 17;
 
     await openInitiativeModal(page);
-    await page.getByRole("button", { name: "Use Physical Dice" }).click();
+    await page.getByRole("button", { name: "Enter a roll by hand" }).click();
     await page.getByPlaceholder("Enter roll...").fill(String(entered));
 
     // The panel does the arithmetic before you commit to it.
     await expect(page.getByText(`Initiative: ${entered}`)).toBeVisible();
 
     const before = (await rolls(page)).length;
-    await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByRole("button", { name: "Save" })).toBeHidden({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Save initiative" }).click();
+    await expect(page.getByRole("button", { name: "Save initiative" })).toBeHidden({
+      timeout: 15_000,
+    });
 
     await expect
       .poll(async () => (await myCharacter(page))?.initiative, { timeout: 15_000 })
@@ -217,7 +219,7 @@ test.describe("initiative — the modal a player presses", () => {
       // Without this half, a renamed or deleted button would make the absence
       // below read as the gate working.
       await openInitiativeModal(playerPage);
-      await expect(playerPage.getByRole("button", { name: "Use Physical Dice" })).toBeVisible();
+      await expect(playerPage.getByRole("button", { name: "Enter a roll by hand" })).toBeVisible();
       await playerPage.getByRole("button", { name: "Cancel" }).click();
 
       await dmPage.evaluate(() => {
@@ -235,13 +237,13 @@ test.describe("initiative — the modal a player presses", () => {
       // no broadcast, no save and no error, so a player who reached Save would
       // watch "Setting..." and then be told the update timed out.
       await openInitiativeModal(playerPage);
-      await expect(playerPage.getByRole("button", { name: "Use Physical Dice" })).toBeHidden();
-      await expect(playerPage.getByRole("button", { name: "Roll Initiative" })).toBeVisible();
+      await expect(playerPage.getByRole("button", { name: "Enter a roll by hand" })).toBeHidden();
+      await expect(playerPage.getByRole("button", { name: "Roll d20 now" })).toBeVisible();
       await playerPage.getByRole("button", { name: "Cancel" }).click();
 
       // The setting is a rule for the players, not a vow the DM takes.
       await openInitiativeModal(dmPage);
-      await expect(dmPage.getByRole("button", { name: "Use Physical Dice" })).toBeVisible();
+      await expect(dmPage.getByRole("button", { name: "Enter a roll by hand" })).toBeVisible();
       await dmPage.getByRole("button", { name: "Cancel" }).click();
     } finally {
       await dmContext.close();
@@ -308,7 +310,7 @@ test.describe("initiative — what the table is allowed to see", () => {
       // The wyrm's card is the last one added; its badge is the last badge.
       await dmPage.getByRole("button", { name: "Set Initiative" }).last().click();
       await expect(dmPage.getByText("Initiative: Ambush Wyrm")).toBeVisible();
-      await dmPage.getByRole("button", { name: "Roll Initiative" }).click();
+      await dmPage.getByRole("button", { name: "Roll d20 now" }).click();
 
       await expect
         .poll(

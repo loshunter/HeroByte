@@ -1,6 +1,18 @@
 # Interface clarity — the first session should teach the table — arc plan
 
-> **STATUS: U7 ACCEPTED, COMMITTED AND ON `origin/dev` — 2026-09-29. U8 has not started.**
+> **STATUS: U8 ACCEPTED AND COMMITTED ON `dev` (LOCAL, NOT PUSHED) — 2026-09-30.**
+> U8 (Encounter is the single combat home: a DM Menu tab and phone DM chip; initiative
+> on the phone) is committed on `dev` above nineteen local, unpushed fix and
+> test commits for what was found on the way (`b735acb8`…`60a08cea`, among them a fog
+> secrecy leak in initiative lines, `6b643b1b`). Review stopped at the 3-round cap (P2
+> 7 → 9 → 6, P1 zero throughout); the owner chose “repair all, verify”, and every
+> round-3 item is repaired. The ladder is green on the final tree (288 browser/3
+> accepted skips/0 flaky; 151.96 KB); the live two-client re-evaluation on the repaired
+> tree scores 8.55. Read [the U8 record](../verification/interface-clarity-u8.md).
+>
+> Previous status (U7):
+>
+> **STATUS: U7 ACCEPTED, COMMITTED AND ON `origin/dev` — 2026-09-29.**
 > U7 (Party is compact; a character is not a player seat) is committed on `dev` after 36
 > fix/test/refactor commits (`ccd18b82`…`2689cf53`) for bugs found along the way, and
 > pushed with them. Three review rounds of four fresh Opus lenses: 34 → 28 → 33 items (P1:

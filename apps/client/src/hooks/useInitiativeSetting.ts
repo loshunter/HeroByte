@@ -175,8 +175,8 @@ export function useInitiativeSetting({
    *
    * Fire-and-forget, unlike setInitiative, and that is not laziness on two
    * counts. The server applies the value as it rolls, and the result reaches
-   * every seat through the public roll log — so there is no pending state worth
-   * holding and nothing here to await. More importantly, reusing the
+   * every seat that may see it through the snapshot — so there is no pending
+   * state worth holding and nothing here to await. More importantly, reusing the
    * confirmation machinery above would be actively WRONG for a roll: it
    * resolves by noticing that the character's initiative CHANGED, and a roll
    * that lands on the number already stored changes nothing. That request would
@@ -213,3 +213,6 @@ export function useInitiativeSetting({
 
   return { isSetting, setInitiative, clearInitiative, rollInitiative, rollAllInitiative, error };
 }
+
+/** What a surface needs from the one useInitiativeSetting instance it shares. */
+export type InitiativeSetting = ReturnType<typeof useInitiativeSetting>;

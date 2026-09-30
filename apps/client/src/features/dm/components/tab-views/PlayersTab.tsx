@@ -17,10 +17,8 @@
 // deciding anything: the server decides, the tab only says so first.
 
 import { useEffect, useState } from "react";
-import { MONSTER_HP_DISPLAY_MODES } from "@herobyte/shared";
-import type { Player, SceneObject, MonsterHpDisplay } from "@herobyte/shared";
+import type { Player, SceneObject } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
-import { TurnNavigationControls } from "../../../initiative/components/TurnNavigationControls";
 import { REMOVE_PLAYER_GRACE_MS, getSeatTokenCount, removePlayerConfirm } from "./seatRemoval";
 import type { SeatCharacter } from "./seatRemoval";
 
@@ -54,22 +52,11 @@ interface PlayersTabProps {
   onRemovePlayer?: (playerUid: string) => void;
   /** The clock for the grace window; tests pin it. */
   nowMs?: () => number;
-  /** Whether combat is currently active */
-  combatActive?: boolean;
-  /** Callback to start combat */
-  onStartCombat?: () => void;
-  /** Callback to end combat */
-  onEndCombat?: () => void;
-  /** Callback to clear all initiative values */
-  onClearAllInitiative?: () => void;
-  /** Callback to advance to next turn */
-  onNextTurn?: () => void;
-  /** Callback to go to previous turn */
-  onPreviousTurn?: () => void;
-  /** Current monster HP display mode (S4) */
-  monsterHpDisplay?: MonsterHpDisplay;
-  /** Callback to change how much monster HP players see (S4) */
-  onMonsterHpDisplayChange?: (mode: MonsterHpDisplay) => void;
+  /**
+   * Combat, turns and Monster HP moved to Encounter (U8); this tab forwards
+   * there for a DM who looks for them where they used to be.
+   */
+  onOpenEncounter: () => void;
 }
 
 /**
@@ -100,14 +87,7 @@ export default function PlayersTab({
   connectedUids,
   onRemovePlayer,
   nowMs = Date.now,
-  combatActive = false,
-  onStartCombat,
-  onEndCombat,
-  onClearAllInitiative,
-  onNextTurn,
-  onPreviousTurn,
-  monsterHpDisplay = "exact",
-  onMonsterHpDisplayChange,
+  onOpenEncounter,
 }: PlayersTabProps) {
   const now = nowMs();
   const isAway = (player: Player) =>
@@ -131,97 +111,17 @@ export default function PlayersTab({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      {/* Combat Controls Section */}
-      <div>
-        <h4 className="jrpg-text-command" style={{ margin: 0, marginBottom: "8px" }}>
-          Combat Controls
-        </h4>
-        <p
-          className="jrpg-text-small"
-          style={{ margin: 0, marginBottom: "12px", color: "var(--jrpg-white)" }}
-        >
-          Manage initiative tracking and combat turns
-        </p>
-
-        <JRPGPanel variant="simple">
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {/* Combat State Controls */}
-            <div style={{ display: "flex", gap: "8px" }}>
-              <JRPGButton
-                onClick={onStartCombat}
-                variant={!combatActive ? "primary" : "default"}
-                disabled={combatActive}
-                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-              >
-                ⚔️ Start Combat
-              </JRPGButton>
-              <JRPGButton
-                onClick={onEndCombat}
-                variant={combatActive ? "primary" : "default"}
-                disabled={!combatActive}
-                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-              >
-                🏁 End Combat
-              </JRPGButton>
-            </div>
-
-            {/* Clear Initiative */}
-            {/*
-              Not gated on combatActive: the server handler has no such
-              precondition, and clearing BEFORE combat is the only way to
-              re-roll a pre-combat initiative — "Roll all Initiative" skips
-              anyone who already has a value. Disabling it here meant the DM
-              had to start combat purely in order to clear it.
-            */}
-            <JRPGButton
-              onClick={onClearAllInitiative}
-              variant="default"
-              style={{ width: "100%", fontSize: "10px", padding: "6px 8px" }}
-            >
-              🗑️ Clear All Initiative
-            </JRPGButton>
-
-            {/* Turn Navigation */}
-            {onNextTurn && onPreviousTurn && (
-              <TurnNavigationControls
-                combatActive={combatActive}
-                onNextTurn={onNextTurn}
-                onPreviousTurn={onPreviousTurn}
-              />
-            )}
-          </div>
-        </JRPGPanel>
-      </div>
-
-      {/* Monster HP Display Section (S4) — enforced server-side; this is the dial */}
-      {onMonsterHpDisplayChange && (
-        <div>
-          <h4 className="jrpg-text-command" style={{ margin: 0, marginBottom: "8px" }}>
-            Monster HP Display
-          </h4>
-          <p
-            className="jrpg-text-small"
-            style={{ margin: 0, marginBottom: "12px", color: "var(--jrpg-white)" }}
-          >
-            How much of a monster&apos;s health players can see. Hidden and Bloodied strip the
-            numbers from their connection entirely.
-          </p>
-          <JRPGPanel variant="simple">
-            <div style={{ display: "flex", gap: "8px" }}>
-              {MONSTER_HP_DISPLAY_MODES.map((mode) => (
-                <JRPGButton
-                  key={mode}
-                  onClick={() => onMonsterHpDisplayChange(mode)}
-                  variant={monsterHpDisplay === mode ? "primary" : "default"}
-                  style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-                >
-                  {mode === "exact" ? "Exact" : mode === "bloodied" ? "Bloodied" : "Hidden"}
-                </JRPGButton>
-              ))}
-            </div>
-          </JRPGPanel>
+      {/* A forward, not a second home: combat lives in Encounter (U8). */}
+      <JRPGPanel variant="simple">
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          <span className="jrpg-text-small" style={{ flex: 1, color: "var(--jrpg-white)" }}>
+            Combat, turns and Monster HP are in Encounter.
+          </span>
+          <JRPGButton onClick={onOpenEncounter} style={{ fontSize: "10px", padding: "6px 8px" }}>
+            ⚔️ Open Encounter
+          </JRPGButton>
         </div>
-      )}
+      </JRPGPanel>
 
       {/* Player Token Shortcuts Section */}
       <div>

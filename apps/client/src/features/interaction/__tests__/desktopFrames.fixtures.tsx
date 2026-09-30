@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { vi } from "vitest";
+import { encounterControls } from "../../encounter/__tests__/encounterFixtures";
 import type { DicePanelsProps } from "../../../layouts/DicePanels";
 import { CardControls } from "../../players/components/CardControls";
 import { PlayerSettingsMenu } from "../../players/components/PlayerSettingsMenu";
@@ -126,5 +127,6 @@ export function dmProps() {
     onAlignmentApply: vi.fn(),
     sceneObjects: [],
     onSelectPlayerTokens: vi.fn(),
+    encounter: encounterControls(),
   };
 }

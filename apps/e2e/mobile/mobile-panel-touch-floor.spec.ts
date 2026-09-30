@@ -95,8 +95,10 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
     // "World" (then "Atlas") joined in K3: the generate panel's dials and the 🚪 button are now swept too.
+    // Encounter joined in U8: its participant rows, dial links and turn buttons too.
     for (const tab of [
       "Maps",
+      "Encounter",
       "NPCs & Monsters",
       "Props & Objects",
       "Players",

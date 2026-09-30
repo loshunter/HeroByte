@@ -18,6 +18,7 @@ const base = {
   onClose: vi.fn(),
   onSetInitiative: vi.fn(),
   onRollInitiative: vi.fn(),
+  combatActive: true,
 };
 
 let appRoot: HTMLElement;

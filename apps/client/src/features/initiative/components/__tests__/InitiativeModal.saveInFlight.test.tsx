@@ -22,6 +22,7 @@ describe("InitiativeModal — its own save in flight", () => {
       onClose,
       onSetInitiative: vi.fn(),
       onRollInitiative,
+      combatActive: true,
       isLoading,
       error: null,
     });

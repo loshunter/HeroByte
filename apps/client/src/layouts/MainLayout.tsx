@@ -214,26 +214,24 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     playerActions,
   });
 
-  // Initiative setting hook for server-confirmed updates
+  // Initiative setting hook for server-confirmed updates: ONE instance, shared
+  // by the Party and the DM menu's Encounter (one pending state, U8).
+  const initiativeSetting = useInitiativeSetting({ snapshot, sendMessage });
   const {
     isSetting: isSettingInitiative,
     setInitiative,
     clearInitiative,
     rollInitiative,
-    rollAllInitiative,
     error: initiativeError,
-  } = useInitiativeSetting({
-    snapshot,
-    sendMessage,
-  });
+  } = initiativeSetting;
 
   // DM-only NPC visibility toggles
   const { toggleNpcVisibility } = useNpcVisibility({ sendMessage });
 
   // The one mapping from the props bag onto DMMenuContainer's shape — shared
   // with the mobile shell, so a DM feature is wired once, not per layout.
-  // rollAllInitiative rides as an extra because it is a hook result, not bag state.
-  const dmMenuProps = buildDMMenuProps(props, { rollAllInitiative });
+  // The initiative actions ride as an extra: a hook result, not bag state.
+  const dmMenuProps = buildDMMenuProps(props, { initiative: initiativeSetting });
 
   // Turn navigation handlers for combat controls
   const handleNextTurn = useCallback(() => {

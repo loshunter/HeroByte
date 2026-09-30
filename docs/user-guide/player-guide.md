@@ -98,7 +98,7 @@ for your player in this browser session when you close it or switch layouts.
 
 ![Building a roll: two d20s and a +1 modifier queued up](img/dice-roller-built.jpg)
 
-1. Click dice to add them to the tray — **d4, d6, d8, d10, d12, d20, d100** — and click again for more of the same (a `×N` badge appears; click the badge to type an exact count).
+1. Click dice to add them to the tray — **+d4, +d6, +d8, +d10, +d12, +d20, +d100** (each is an **Add d20**-style builder: it rolls nothing yet) — and click again for more of the same (a `×N` badge appears; click the badge to type an exact count).
 2. Add **+1 / −1** modifier chips; click a chip to type any value (−99 to +99).
 3. Pick **NORMAL / ADV / DIS** and **TABLE / DM / ME** (below).
 4. Press **⚂ ROLL!**
@@ -143,7 +143,7 @@ rolls protect you from the other people at your table, not from one who waits fo
 
 ### Macros
 
-**d20**, **ADV d20**, **DIS d20** and **2d6** are always there. Build any roll and press
+The **Roll now:** row rolls at once, one press one roll: **d20**, **ADV d20**, **DIS d20** and **2d6** are always there (a screen reader hears **Roll d20 now**). Build any roll and press
 **+ SAVE** to name it and keep it. Saved macros live in **this browser** — they do not
 follow you to another device.
 
@@ -236,13 +236,13 @@ On desktop, press the **🎤** on your own card (select your row in the Party) a
 
 ## Initiative and combat
 
-Press **INIT** on your card (select your row in the Party, or show every card with **▦ CARDS**) to set initiative:
+Press **INIT** on your card (select your row in the Party, or show every card with **▦ CARDS**; on a phone, **⚔️ INIT** on your row in **Party**) to set initiative:
 
 ![The initiative dialog: modifier, roll, or enter a physical die](img/initiative-modal.jpg)
 
-- Drag the **Initiative Modifier** number left/right (or roll with it at 0), then **ROLL INITIATIVE**. The **server** throws the die, on the same generator the dice roller uses, and the result appears in the roll log for the whole table with your character's name on it. The dialog closes itself — there is nothing further to save.
-- Or press **USE PHYSICAL DICE**, type the d20 you rolled at your real table, and press **SAVE**. That reaches the log too, badged **BY HAND** — see [Rolling real dice instead](#rolling-real-dice-instead), which works the same way everywhere else you roll.
-- **The first initiative set starts combat** for the whole table: the Party reorders by initiative, its bar shows **⚔️ Combat Active** with `Turn N of M`, and the current combatant's row reads **Turn** in a white outline (its card, when shown, wears a white ring in a gold glow — a DM's own card has a gold border of its own, so the ring is the cue, not the colour).
+- Set the **Initiative Modifier** — drag the number left/right, or press **−** / **+** — then **ROLL D20 NOW**. The **server** throws the die, on the same generator the dice roller uses, and the result appears in the roll log for the whole table with your character's name on it. The dialog closes itself — there is nothing further to save.
+- Or press **ENTER A ROLL BY HAND**, type the d20 you rolled at your real table, and press **SAVE INITIATIVE**. That reaches the log too, badged **BY HAND** — see [Rolling real dice instead](#rolling-real-dice-instead), which works the same way everywhere else you roll. If your DM has turned hand entry off, the dialog says so instead of offering the button.
+- **Any initiative set while no fight is running starts combat** for the whole table, on that character's turn (when no fight is running, the dialog says so before you press): on desktop the Party reorders by initiative, its bar shows **⚔️ Combat Active** with `Turn N of M`, and the current combatant's row reads **Turn** in a white outline (its card, when shown, wears a white ring in a gold glow — a DM's own card has a gold border of its own, so the ring is the cue, not the colour). On a phone, see [Playing on a phone or tablet](#playing-on-a-phone-or-tablet).
 
 ![Combat active: turn banner, turn controls, and the current character highlighted](img/combat-active.jpg)
 
@@ -280,7 +280,7 @@ Some maps have **🚪 door, stair or signpost sprites** on them — a way throug
 
 ## Playing on a phone or tablet
 
-Initiative and turns are desktop-only today: the phone's party screen shows no **INIT** badge, no order and no turn mark (your spend and the DM's Reset are still in each row's **⚙ EDIT**).
+Initiative works on a phone too: **⚔️ INIT** on your character's row in **Party** opens the same dialog, each row that has an initiative reads its **Init** and, on the character whose turn it is, **▶ Turn**, and while combat runs the turn strip at the top of the map names whose turn it is, just below **◄ PREV / NEXT ►** (**Turn: —** when nobody holds the turn, or when it is a creature you cannot see) (your spend and the DM's Reset are in each row's **⚙ EDIT**).
 
 On a small or touch screen, HeroByte switches to a full-screen map with a five-button dock — no setup required:
 
@@ -288,10 +288,10 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ---------------------------------------------------------------------------- | ----------------------------------------------- |
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
-- **◉ PARTY** — the party screen: each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚙️ EDIT** for name, portrait, token size, **➕ Add Character** and DM mode.
+- **◉ PARTY** — the party screen: each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚔️ INIT** (your character's initiative) and **⚙️ EDIT** for name, portrait, token size, **➕ Add Character** and DM mode.
 - **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Recenter (re-centers the camera), CRT, and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
-- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, NPCs & Monsters, Props & Objects, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
+- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same seven tabs as the desktop window (Maps, World, Encounter, NPCs & Monsters, Props & Objects, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
 
 ![The DM menu on a phone](img/mobile-dm.jpg)
 

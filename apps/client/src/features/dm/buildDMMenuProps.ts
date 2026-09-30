@@ -9,18 +9,21 @@
  * the whole bag too, so a second hand-wiring there is exactly the drift that
  * made the mobile gap expensive — both layouts call this instead.
  *
- * PURE over the bag, with one exception carried explicitly: onRollAllInitiative
- * comes from useInitiativeSetting, a HOOK the caller must own — a builder
- * cannot call hooks, and hiding one inside a "pure" mapper would be worse
- * than the extra argument.
+ * PURE over the bag, with one exception carried explicitly: the initiative
+ * actions come from useInitiativeSetting, a HOOK the caller must own — a
+ * builder cannot call hooks, and hiding one inside a "pure" mapper would be
+ * worse than the extra argument. Required, and the WHOLE result: Encounter
+ * (U8) opens the same initiative dialog the Party does, on the same pending
+ * state, so the layout passes its one instance rather than a second.
  */
 
 import type { MainLayoutProps } from "../../layouts/props/MainLayoutProps";
 import type { DMMenuContainerBaseProps } from "./components/DMMenuContainer";
+import type { InitiativeSetting } from "../../hooks/useInitiativeSetting";
 
 export interface DMMenuPropExtras {
-  /** From useInitiativeSetting({ snapshot, sendMessage }) at the call site. */
-  rollAllInitiative?: () => void;
+  /** useInitiativeSetting({ snapshot, sendMessage }) at the call site. */
+  initiative: InitiativeSetting;
 }
 
 export function buildDMMenuProps(
@@ -123,7 +126,8 @@ export function buildDMMenuProps(
     // speaks the wire protocol outside a hook.
     connectedUids: snapshot?.users ?? [],
     onRemovePlayer: (uid) => props.sendMessage({ t: "remove-player", uid }),
-    onRollAllInitiative: extras.rollAllInitiative,
+    uid: props.uid,
+    initiative: extras.initiative,
     mapStudio: props.mapStudio,
   };
 }

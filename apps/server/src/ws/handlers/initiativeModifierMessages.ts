@@ -2,7 +2,7 @@
  * set-initiative-modifier: a character's initiative modifier ALONE — what a
  * restored character file carries. `set-initiative` cannot do it: with no
  * value it CLEARS initiative, and with one it ENTERS the order, writes a
- * manual entry to the public roll log, and (after END COMBAT, which keeps
+ * manual entry to the roll log, and (after END COMBAT, which keeps
  * initiatives) starts combat again on that character's turn.
  *
  * The DM, or the character's owner — `set-initiative`'s own rule. It writes

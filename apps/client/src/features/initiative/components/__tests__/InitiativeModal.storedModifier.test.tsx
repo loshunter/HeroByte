@@ -23,6 +23,7 @@ describe("InitiativeModal — the stored modifier", () => {
       onClose: vi.fn(),
       onSetInitiative: vi.fn(),
       onRollInitiative,
+      combatActive: true,
     });
     const view = render(<InitiativeModal {...props(2)} />);
     expect(screen.getByTestId("initiative-modifier-dial").textContent).toBe("+2");
@@ -43,6 +44,7 @@ describe("InitiativeModal — the stored modifier", () => {
       onClose: vi.fn(),
       onSetInitiative: vi.fn(),
       onRollInitiative,
+      combatActive: true,
     });
     const view = render(<InitiativeModal {...props(2)} />);
     const dial = screen.getByTestId("initiative-modifier-dial");

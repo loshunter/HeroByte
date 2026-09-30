@@ -5,11 +5,10 @@
 
 import React, { memo, useEffect, useState } from "react";
 import { MobileRowConditions } from "./MobileRowConditions";
-import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
+import { MobileRowActions, type MobileRowInitiative } from "./MobileRowActions";
 import type { MovementBudgetControl } from "../../features/players/components/MovementSpeedField";
 import type { Player, Token, TokenSize } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
-import { JRPGButton } from "../ui/JRPGPanel";
 import { PlayerSettingsMenu } from "../../features/players/components/PlayerSettingsMenu";
 import type { OwnerControl } from "../../features/players/components/TokenSettingsSection";
 
@@ -72,6 +71,8 @@ interface MobilePlayerRowProps {
    * when the character has no token to centre on.
    */
   onFocus?: () => void;
+  /** Its initiative and turn (U8); absent on a characterless row. */
+  initiative?: MobileRowInitiative;
 }
 
 export const MobilePlayerRow = memo<MobilePlayerRowProps>(
@@ -111,6 +112,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onCharacterSpeedChange,
     characterBudget,
     onFocus,
+    initiative,
   }) => {
     const isEditingHp = editingHpUID === player.characterId;
     const isEditingMaxHp = editingMaxHpUID === player.characterId;
@@ -208,6 +210,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
               }}
             >
               {player.isDM ? "Dungeon Master" : "Adventurer"}
+              {initiative?.value !== undefined ? ` · Init ${initiative.value}` : ""}
+              {initiative?.isTurn ? " · ▶ Turn" : ""}
             </div>
           </div>
         </div>
@@ -215,34 +219,14 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
         {/* The row's actions on a line of their own (U7): beside the name,
             FOCUS and EDIT left a phone ~80px for it and cut "Player 1" to
             "Playe…". */}
-        {(onFocus || isMe || isDM) && (
-          <div style={{ display: "flex", gap: "8px" }}>
-            {onFocus && (
-              <JRPGButton
-                onClick={onFocus}
-                variant="default"
-                aria-label={`Focus ${player.name}`}
-                title="Show this character's token on the map"
-                style={{ flex: 1, padding: "4px 8px", fontSize: "11px" }}
-              >
-                🎯 FOCUS
-              </JRPGButton>
-            )}
-            {/* Your own row always, and every row for a DM — matching desktop,
-                where a DM gets a settings button on every card. Without the DM
-                case the phone had no way to reach the DM-only controls inside
-                (S7's sight radius), so they shipped unreachable. */}
-            {(isMe || isDM) && (
-              <JRPGButton
-                onClick={(event) => activatePanelLauncher(event, () => setSettingsOpen(true))}
-                variant="primary"
-                style={{ flex: 1, padding: "4px 8px", fontSize: "11px" }}
-              >
-                ⚙️ EDIT
-              </JRPGButton>
-            )}
-          </div>
-        )}
+        <MobileRowActions
+          name={player.name}
+          onFocus={onFocus}
+          onOpenInitiative={initiative?.onOpen}
+          initiative={initiative?.value}
+          initiativeFocusKey={initiative?.focusKey}
+          onEdit={isMe || isDM ? () => setSettingsOpen(true) : undefined}
+        />
 
         {/* HP Bar */}
         {!characterless && (

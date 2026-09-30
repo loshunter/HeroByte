@@ -214,13 +214,50 @@ describe("DiceRoller", () => {
     it("rolls a built-in macro with the macro's own mode", () => {
       render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
 
-      fireEvent.click(screen.getByRole("button", { name: "ADV d20" }));
+      fireEvent.click(screen.getByRole("button", { name: "Roll ADV d20 now" }));
 
       expect(mockOnRoll).toHaveBeenCalledWith({
         formula: "d20",
         mode: "advantage",
         visibility: "public",
       });
+    });
+  });
+
+  describe("builders stage, instant rolls roll (U8)", () => {
+    it("a large selection stays a build: thirty Add d20 presses send nothing", () => {
+      render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
+
+      const addD20 = screen.getByRole("button", { name: "Add d20" });
+      for (let i = 0; i < 30; i++) fireEvent.click(addD20);
+
+      expect(mockOnRoll).not.toHaveBeenCalled();
+      expect(strip().getByText(DIE_SYMBOLS.d20)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
+      expect(mockOnRoll).toHaveBeenCalledTimes(1);
+      expect(mockOnRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: "30d20" }));
+    });
+
+    it("Roll d20 now is ONE roll, and stages nothing", () => {
+      render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Roll d20 now" }));
+
+      expect(mockOnRoll).toHaveBeenCalledTimes(1);
+      expect(mockOnRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: "d20" }));
+      expect(screen.queryByTestId("dice-build-strip")).toBeNull();
+    });
+
+    it("the two are told apart by name and by group", () => {
+      render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
+      const builders = screen.getByRole("group", { name: "Add dice to the roll" });
+      const instant = screen.getByRole("group", { name: "Roll now" });
+      expect(within(builders).getByRole("button", { name: "Add d20" })).toBeInTheDocument();
+      // Visibly a builder too: "+d20", not the macro's bare "d20".
+      expect(within(builders).getByText("+d20")).toBeInTheDocument();
+      expect(within(builders).queryByRole("button", { name: /now/ })).toBeNull();
+      expect(within(instant).getByRole("button", { name: "Roll d20 now" })).toBeInTheDocument();
+      expect(within(instant).queryByRole("button", { name: /^Add/ })).toBeNull();
     });
   });
 

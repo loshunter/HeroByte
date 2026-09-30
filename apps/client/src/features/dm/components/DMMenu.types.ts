@@ -9,7 +9,6 @@ import type {
   SceneObject,
   SnapshotCharacter,
   DiagonalRule,
-  MonsterHpDisplay,
 } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import type { Camera } from "../../../hooks/useCamera";
@@ -19,6 +18,7 @@ import type { CustomTokensApi } from "../token-library/customTokensContext";
 import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
 import type { LauncherPresentation } from "../../../components/layout/party/LauncherDock";
+import type { EncounterControls } from "../../encounter/encounterControls";
 
 export interface DMMenuBaseProps {
   isDM: boolean;
@@ -139,18 +139,15 @@ export interface DMMenuBaseProps {
   connectedUids?: readonly string[];
   onRemovePlayer?: (playerUid: string) => void;
   combatActive?: boolean;
-  monsterHpDisplay?: MonsterHpDisplay;
-  onMonsterHpDisplayChange?: (mode: MonsterHpDisplay) => void;
-  onStartCombat?: () => void;
-  onEndCombat?: () => void;
-  onClearAllInitiative?: () => void;
-  onNextTurn?: () => void;
-  onPreviousTurn?: () => void;
+  /**
+   * The Encounter tab's reads and sends (U8), one REQUIRED object: combat,
+   * turns, initiative and Monster HP moved there from Players and NPCs.
+   */
+  encounter: EncounterControls;
   toast?: {
     success: (message: string) => void;
     error: (message: string) => void;
   };
-  onRollAllInitiative?: () => void;
   /** Player-props toggle (Session tab): players may manage their OWN props. */
   playerPropsEnabled?: boolean;
   onPlayerPropsEnabledChange?: (enabled: boolean) => void;

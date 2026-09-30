@@ -61,6 +61,7 @@ export function ActualModal({
     return open ? (
       <InitiativeModal
         character={character}
+        combatActive={true}
         isLoading={loading}
         onClose={close}
         onSetInitiative={calls.set}

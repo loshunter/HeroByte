@@ -22,6 +22,7 @@ describe("InitiativeModal — the hand-entry field", () => {
         onClose={vi.fn()}
         onSetInitiative={vi.fn()}
         onRollInitiative={vi.fn()}
+        combatActive={true}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));

@@ -4,6 +4,7 @@
 // Modal for setting character initiative with roll or manual entry options
 
 import React, { useState, useCallback, useEffect } from "react";
+import "./initiativeModal.css";
 import {
   EscapeRootProvider,
   useEscapeRoot,
@@ -13,6 +14,7 @@ import { createPortal } from "react-dom";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useFollowedModifier, useInertPage, useOwnSave } from "./dialogGuards";
 import type { SnapshotCharacter } from "@herobyte/shared";
+import { InitiativeModifierDial } from "./InitiativeModifierDial";
 
 interface InitiativeModalProps {
   character: SnapshotCharacter;
@@ -37,6 +39,12 @@ interface InitiativeModalProps {
    * be told the update timed out.
    */
   manualEntryAllowed?: boolean;
+  /**
+   * Whether a fight is running. Required: with none running, the server starts
+   * one on any initiative saved — on THIS character's turn — and the
+   * dialog says so before the press, rather than the table finding out after.
+   */
+  combatActive: boolean;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -47,6 +55,7 @@ export function InitiativeModal({
   onSetInitiative,
   onRollInitiative,
   manualEntryAllowed = true,
+  combatActive,
   isLoading = false,
   error = null,
 }: InitiativeModalProps) {
@@ -83,32 +92,6 @@ export function InitiativeModal({
   }, [manualEntryAllowed]);
 
   const finalInitiative = rolledValue !== null ? rolledValue + modifier : null;
-
-  // Handle modifier drag
-  const handleModifierDrag = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const element = e.currentTarget;
-      const startX = e.clientX;
-      const startModifier = modifier;
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        const deltaX = moveEvent.clientX - startX;
-        const change = Math.floor(deltaX / 10); // 10px = 1 point
-        setModifier(Math.max(-20, Math.min(20, startModifier + change)));
-      };
-
-      const handlePointerUp = () => {
-        document.removeEventListener("pointermove", handlePointerMove);
-        document.removeEventListener("pointerup", handlePointerUp);
-        element.releasePointerCapture(e.pointerId);
-      };
-
-      element.setPointerCapture(e.pointerId);
-      document.addEventListener("pointermove", handlePointerMove);
-      document.addEventListener("pointerup", handlePointerUp);
-    },
-    [modifier],
-  );
 
   // Roll: the SERVER throws the die and APPLIES the value as it rolls, so this
   // sends and closes — a confirm press could only re-send it by hand, logging a
@@ -160,8 +143,8 @@ export function InitiativeModal({
   // caught the sibling modal; this one is the same defect one file over.
   //
   // The [data-mobile-surface] wrapper carries the 44px touch floor across the
-  // portal, which lands outside every mobile surface. This modal is desktop-only
-  // today — EntitiesPanel is not on the phone — so it is insurance.
+  // portal, which lands outside every mobile surface: since U8 the phone's
+  // Party INIT and Encounter open this dialog too, so the floor depends on it.
   //
   // It is not quite free, and the effect is the one we want: the floor rules are
   // `(pointer: coarse)`-scoped, so a mouse desktop is untouched, but a coarse
@@ -194,41 +177,15 @@ export function InitiativeModal({
               style={{ width: "400px", maxWidth: "90vw" }}
             >
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {/* Initiative Modifier */}
-                <div>
-                  <label
-                    className="jrpg-text-small"
-                    style={{ display: "block", marginBottom: "8px" }}
-                  >
-                    Initiative Modifier
-                  </label>
-                  <div
-                    data-testid="initiative-modifier-dial"
-                    onPointerDown={handleModifierDrag}
-                    style={{
-                      padding: "12px",
-                      background: "#111",
-                      border: "2px solid var(--jrpg-border-gold)",
-                      textAlign: "center",
-                      fontSize: "24px",
-                      fontWeight: "bold",
-                      cursor: "ew-resize",
-                      userSelect: "none",
-                      color: modifier >= 0 ? "var(--jrpg-green)" : "var(--jrpg-red)",
-                    }}
-                  >
-                    {modifier >= 0 ? "+" : ""}
-                    {modifier}
-                  </div>
-                  <div
-                    className="jrpg-text-small"
-                    style={{ marginTop: "4px", textAlign: "center", opacity: 0.7 }}
-                  >
-                    Click and drag left/right to adjust
-                  </div>
-                </div>
+                <InitiativeModifierDial
+                  modifier={modifier}
+                  onChange={setModifier}
+                  disabled={own.saving}
+                />
 
                 {/* Roll Options */}
+                {/* The commit vocabulary (U8, §3.4): "now" rolls at once; a
+                    hand entry waits for Save initiative. */}
                 <div style={{ display: "flex", gap: "8px" }}>
                   <JRPGButton
                     variant="primary"
@@ -236,14 +193,25 @@ export function InitiativeModal({
                     disabled={own.saving}
                     style={{ flex: 1 }}
                   >
-                    Roll Initiative
+                    Roll d20 now
                   </JRPGButton>
                   {manualEntryAllowed && (
                     <JRPGButton onClick={enterManualMode} disabled={own.saving} style={{ flex: 1 }}>
-                      Use Physical Dice
+                      Enter a roll by hand
                     </JRPGButton>
                   )}
                 </div>
+                {!manualEntryAllowed && (
+                  <p className="initiative-modal__note">
+                    Entering a roll by hand is off at this table. The DM can allow it in DM Menu →
+                    Session.
+                  </p>
+                )}
+                {!combatActive && (
+                  <p className="initiative-modal__note">
+                    {`No fight is running: saving an initiative starts combat, on ${character.name}'s turn.`}
+                  </p>
+                )}
 
                 {/* Manual Entry */}
                 {manualMode && (
@@ -334,7 +302,7 @@ export function InitiativeModal({
                     disabled={finalInitiative === null || own.saving}
                     style={{ flex: 1 }}
                   >
-                    {own.saving ? "Setting..." : "Save"}
+                    {own.saving ? "Setting..." : "Save initiative"}
                   </JRPGButton>
                 </div>
               </div>

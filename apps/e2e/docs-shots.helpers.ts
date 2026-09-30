@@ -265,10 +265,17 @@ export async function openDMMenu(page: Page) {
 
 export async function selectDMTab(
   page: Page,
-  tab: "Maps" | "NPCs & Monsters" | "Props & Objects" | "Players" | "Session" | "World",
+  tab:
+    | "Maps"
+    | "World"
+    | "Encounter"
+    | "NPCs & Monsters"
+    | "Props & Objects"
+    | "Players"
+    | "Session",
 ) {
   await openDMMenu(page);
-  await page.getByRole("button", { name: tab }).click();
+  await page.getByRole("button", { name: tab, exact: true }).click();
 }
 
 export async function startLiveMap(page: Page) {

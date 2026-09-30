@@ -5,8 +5,10 @@
 // getCharactersInInitiativeOrder): the characters in the order (the shared
 // isInInitiativeOrder — may participate AND has rolled), initiative high to
 // low, a PC (a player's or the DM's own) before an NPC on a tie, then creation
-// order. The client's one spelling of it, so "Turn N of M" says what next-turn
-// and previous-turn will do.
+// order. The client's one spelling of it, over the viewer's own snapshot: a
+// DM's "Turn N of M" says what next-turn and previous-turn will do; a player's
+// counts only what the server lets them see (a hidden or fogged NPC is not in
+// their snapshot).
 
 import { isInInitiativeOrder } from "@herobyte/shared";
 import type { Character, Player } from "@herobyte/shared";

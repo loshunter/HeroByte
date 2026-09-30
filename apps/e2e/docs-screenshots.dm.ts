@@ -88,15 +88,18 @@ test.describe("docs screenshots: DM", () => {
       await page.getByRole("button", { name: "Set Initiative" }).first().click();
       await expect(page.getByText(/Initiative:/).first()).toBeVisible();
       await shotPage(page, "initiative-modal");
-      await page.getByRole("button", { name: "Roll Initiative" }).click();
+      await page.getByRole("button", { name: "Roll d20 now" }).click();
       // Rolling is ONE press now. The server rolls, applies the value and the
       // modal closes itself, so the Save that used to follow this line no
       // longer exists on the roll path — Save belongs to manual entry only.
       // The first applied initiative auto-starts combat; the banner is public.
       await expect(page.getByText("Combat Active")).toBeVisible({ timeout: 10_000 });
       await shotPage(page, "combat-active");
-      await selectDMTab(page, "Players");
-      await page.getByRole("button", { name: /END COMBAT/i }).click();
+      // U8: the fight is run from DM tools → Encounter.
+      await selectDMTab(page, "Encounter");
+      await expect(page.getByRole("heading", { name: "Run encounter" })).toBeVisible();
+      await shotPage(page, "dm-menu-encounter");
+      await page.getByRole("button", { name: /End combat/i }).click();
       await closeTopWindow(page, "Dungeon Master Tools");
     });
 

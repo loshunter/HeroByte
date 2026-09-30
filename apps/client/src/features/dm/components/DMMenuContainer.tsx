@@ -21,6 +21,8 @@ import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
 import { manualInitiativeEnabled } from "../../initiative/manualOverride";
+import { buildEncounterControls } from "../../encounter/encounterControls";
+import type { InitiativeSetting } from "../../../hooks/useInitiativeSetting";
 import type { LauncherPresentation } from "../../../components/layout/party/LauncherDock";
 
 // Exported for buildDMMenuProps, which maps the MainLayoutProps bag onto this
@@ -107,7 +109,10 @@ export interface DMMenuContainerBaseProps {
   connectedUids?: readonly string[];
   /** The DM clears a player who is not connected: their row, characters and tokens. */
   onRemovePlayer?: (playerUid: string) => void;
-  onRollAllInitiative?: () => void;
+  /** The viewer's uid (Encounter's initiative dialog). */
+  uid: string;
+  /** The layout's one useInitiativeSetting, shared with its Party (U8 Encounter). */
+  initiative: InitiativeSetting;
   mapStudio?: MapStudioController;
 }
 
@@ -172,7 +177,8 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
     onSelectPlayerTokens,
     connectedUids,
     onRemovePlayer,
-    onRollAllInitiative,
+    uid,
+    initiative,
     mapStudio,
     linkAimActive,
     onArmLinkAim,
@@ -198,6 +204,7 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
   const sceneObjects = snapshot?.sceneObjects || [];
   const playerCount = snapshot?.players?.length ?? 0;
   const combatActive = snapshot?.combatActive ?? false;
+  const mapTokenIds = new Set((snapshot?.tokens ?? []).map((token) => token.id));
 
   // Pass everything to presentational DMMenu
   return (
@@ -255,7 +262,7 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
         sendMessage({ t: "set-character-status-effects", characterId: id, effects })
       }
       onFocusNPCToken={onFocusToken}
-      mapTokenIds={new Set((snapshot?.tokens ?? []).map((token) => token.id))}
+      mapTokenIds={mapTokenIds}
       isCreatingNpc={dmContext.npcManagement.isCreating}
       npcCreationError={dmContext.npcManagement.creationError}
       isUpdatingNpc={dmContext.npcManagement.isUpdating}
@@ -301,15 +308,13 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
       combatActive={combatActive}
       diagonalRule={snapshot?.diagonalRule ?? "5e"}
       onDiagonalRuleChange={dmContext.combatControls.handleSetDiagonalRule}
-      monsterHpDisplay={snapshot?.monsterHpDisplay ?? "exact"}
-      onMonsterHpDisplayChange={dmContext.combatControls.handleSetMonsterHpDisplay}
-      onStartCombat={dmContext.combatControls.handleStartCombat}
-      onEndCombat={dmContext.combatControls.handleEndCombat}
-      onClearAllInitiative={dmContext.combatControls.handleClearAllInitiative}
-      onNextTurn={dmContext.combatControls.handleNextTurn}
-      onPreviousTurn={dmContext.combatControls.handlePreviousTurn}
+      encounter={buildEncounterControls(snapshot, dmContext.combatControls, {
+        uid,
+        initiative,
+        mapTokenIds,
+        onFocusToken,
+      })}
       toast={toast}
-      onRollAllInitiative={onRollAllInitiative}
       playerPropsEnabled={snapshot?.playerPropsEnabled ?? false}
       // Sent inline rather than through useDMContext — that hook sits at the
       // 350-line ceiling, and this is one message with no state to manage.

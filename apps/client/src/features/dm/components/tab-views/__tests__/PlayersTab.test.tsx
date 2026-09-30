@@ -1,6 +1,6 @@
-// The Monster HP Display control (S4): the buttons must drive the real
-// callback with the real mode strings, and the current mode must read from
-// the snapshot-fed prop — the wiring the review flagged as silently droppable.
+// The Players tab: REMOVE for a seat that is not at the table, and — since U8
+// moved combat and Monster HP to Encounter (their tests went with them, to
+// features/encounter/__tests__) — a forward to Encounter.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -20,41 +20,27 @@ vi.mock("../../../../juice", () => ({
 }));
 
 function renderTab(overrides: Partial<React.ComponentProps<typeof PlayersTab>> = {}) {
-  const onMonsterHpDisplayChange = vi.fn();
+  const onOpenEncounter = vi.fn();
   const utils = render(
     <PlayersTab
       players={[]}
       sceneObjects={[]}
       characters={[]}
       onSelectPlayerTokens={vi.fn()}
-      onMonsterHpDisplayChange={onMonsterHpDisplayChange}
+      onOpenEncounter={onOpenEncounter}
       {...overrides}
     />,
   );
-  return { onMonsterHpDisplayChange, ...utils };
+  return { onOpenEncounter, ...utils };
 }
 
-describe("PlayersTab — Monster HP Display", () => {
-  it("each button dispatches its real mode string", () => {
-    const { onMonsterHpDisplayChange } = renderTab();
+describe("PlayersTab — combat moved to Encounter (U8)", () => {
+  it("offers no combat or Monster HP control of its own, and forwards to Encounter", () => {
+    const { onOpenEncounter } = renderTab();
 
-    fireEvent.click(screen.getByRole("button", { name: "Bloodied" }));
-    expect(onMonsterHpDisplayChange).toHaveBeenCalledWith("bloodied");
-    fireEvent.click(screen.getByRole("button", { name: "Hidden" }));
-    expect(onMonsterHpDisplayChange).toHaveBeenCalledWith("hidden");
-    fireEvent.click(screen.getByRole("button", { name: "Exact" }));
-    expect(onMonsterHpDisplayChange).toHaveBeenCalledWith("exact");
-  });
-
-  it("highlights the current mode from the snapshot-fed prop", () => {
-    renderTab({ monsterHpDisplay: "bloodied" });
-    expect(screen.getByRole("button", { name: "Bloodied" })).toHaveClass("jrpg-button-primary");
-    expect(screen.getByRole("button", { name: "Exact" })).not.toHaveClass("jrpg-button-primary");
-  });
-
-  it("the whole section is absent without the handler — no dead controls", () => {
-    renderTab({ onMonsterHpDisplayChange: undefined });
-    expect(screen.queryByText("Monster HP Display")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Combat|Initiative|Bloodied/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Open Encounter/ }));
+    expect(onOpenEncounter).toHaveBeenCalledTimes(1);
   });
 });
 

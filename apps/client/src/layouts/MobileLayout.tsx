@@ -239,7 +239,12 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       </div>
 
       {/* Turn Controls */}
-      <MobileCombatStrip combatActive={snapshot?.combatActive ?? false} sendMessage={sendMessage} />
+      <MobileCombatStrip
+        combatActive={snapshot?.combatActive ?? false}
+        sendMessage={sendMessage}
+        characters={snapshot?.characters ?? []}
+        currentTurnCharacterId={snapshot?.currentTurnCharacterId}
+      />
 
       {/* Mobile Floating Controls */}
       <MobileFloatingControls

@@ -22,6 +22,7 @@ const props = (s: ReturnType<typeof spies>, isLoading: boolean, error: string | 
   onSetInitiative: s.onSetInitiative,
   onRollInitiative: vi.fn(),
   manualEntryAllowed: true,
+  combatActive: true,
   isLoading,
   error,
 });
