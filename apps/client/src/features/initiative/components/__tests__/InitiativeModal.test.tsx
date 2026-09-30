@@ -1650,7 +1650,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    fireEvent.keyDown(document, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onSetInitiative).toHaveBeenCalled();
   });
@@ -1676,7 +1676,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    fireEvent.keyDown(document, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onSetInitiative).not.toHaveBeenCalled();
   });
@@ -1685,32 +1685,38 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     const onSetInitiative = vi.fn();
     const props = createDefaultProps({ onSetInitiative, isLoading: false });
     render(<InitiativeModal {...props} />);
+    // The hand-entry field, open but empty: the one place Enter can save from.
+    fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
 
+    fireEvent.keyDown(screen.getByPlaceholderText("Enter roll..."), { key: "Enter" });
+
+    expect(onSetInitiative).not.toHaveBeenCalled();
+  });
+
+  it("Enter on a focused button does not save: only the hand-entry field does", () => {
+    const onSetInitiative = vi.fn();
+    const props = createDefaultProps({ onSetInitiative });
+    render(<InitiativeModal {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
+    fireEvent.change(screen.getByPlaceholderText("Enter roll..."), { target: { value: "11" } });
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Cancel" }), { key: "Enter" });
     fireEvent.keyDown(document, { key: "Enter" });
 
     expect(onSetInitiative).not.toHaveBeenCalled();
   });
 
-  it("adds event listeners properly", () => {
-    const addEventListenerSpy = vi.spyOn(document, "addEventListener");
-    const props = createDefaultProps();
+  it("Enter in the hand-entry field saves exactly once", () => {
+    const onSetInitiative = vi.fn();
+    const props = createDefaultProps({ onSetInitiative });
     render(<InitiativeModal {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
+    const input = screen.getByPlaceholderText("Enter roll...");
+    fireEvent.change(input, { target: { value: "11" } });
 
-    expect(addEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+    fireEvent.keyDown(input, { key: "Enter" });
 
-    addEventListenerSpy.mockRestore();
-  });
-
-  it("removes event listeners on cleanup", () => {
-    const removeEventListenerSpy = vi.spyOn(document, "removeEventListener");
-    const props = createDefaultProps();
-    const { unmount } = render(<InitiativeModal {...props} />);
-
-    unmount();
-
-    expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
-
-    removeEventListenerSpy.mockRestore();
+    expect(onSetInitiative).toHaveBeenCalledTimes(1);
   });
 
   it("other keys do not trigger actions", () => {
@@ -1753,7 +1759,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "17" } });
 
-    fireEvent.keyDown(document, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onSetInitiative).toHaveBeenCalledWith(22, 5);
   });
@@ -1881,7 +1887,7 @@ describe("InitiativeModal - Loading State", () => {
     fireEvent.change(input, { target: { value: "11" } });
 
     fireEvent.keyDown(document, { key: "Escape" });
-    fireEvent.keyDown(document, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onClose).not.toHaveBeenCalled();
     expect(onSetInitiative).not.toHaveBeenCalled();
@@ -1912,7 +1918,7 @@ describe("InitiativeModal - Loading State", () => {
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    fireEvent.keyDown(document, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onSetInitiative).toHaveBeenCalled();
   });
@@ -2206,7 +2212,7 @@ describe("InitiativeModal - Integration Tests", () => {
     const input = screen.getByPlaceholderText("Enter roll...");
     fireEvent.change(input, { target: { value: "11" } });
 
-    fireEvent.keyDown(document, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onSetInitiative).toHaveBeenCalledWith(14, 3);
   });

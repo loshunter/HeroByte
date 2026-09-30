@@ -154,17 +154,6 @@ export function InitiativeModal({
     setWasLoading(isLoading);
   }, [own.awaiting, isLoading, wasLoading, error, onClose]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && finalInitiative !== null && !own.saving) {
-        handleSave();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [finalInitiative, handleSave, own.saving]);
-
   // PORTALLED for the same reason CharacterCreationModal is: this renders from
   // EntitiesPanel, whose root is a `position: fixed; zIndex: 100` STACKING
   // CONTEXT, so an overlay at 10000 inside it still painted under every
@@ -267,6 +256,13 @@ export function InitiativeModal({
                       max={20}
                       value={manualValue}
                       onChange={handleManualValueChange}
+                      // Enter saves from HERE only: a document-wide listener also
+                      // fired when Enter pressed a focused button (Cancel, Roll).
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter" || finalInitiative === null || own.saving) return;
+                        e.preventDefault();
+                        handleSave();
+                      }}
                       placeholder="Enter roll..."
                       autoFocus
                       style={{
