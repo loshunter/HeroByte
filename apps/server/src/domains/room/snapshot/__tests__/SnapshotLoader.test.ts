@@ -13,12 +13,42 @@
 import path from "node:path";
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
-import type { RoomSnapshot, Player, Character, PlayerStagingZone } from "@herobyte/shared";
+import { toSnapshot } from "../../model.js";
+import type { RoomSnapshot, Player, Character, PlayerStagingZone, Token } from "@herobyte/shared";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
 // server then fight over (observed: a torn file, quarantined as .corrupt).
 const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "SnapshotLoader-state.json");
+
+const seat = (uid: string, isDM: boolean): Player => ({
+  uid,
+  name: uid,
+  portrait: "",
+  micLevel: 0.5,
+  lastHeartbeat: Date.now(),
+  hp: 10,
+  maxHp: 10,
+  isDM,
+  statusEffects: [],
+});
+
+/** A bare session file: only what a test names is in it. */
+const fileOf = (overrides: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
+  users: [],
+  tokens: [],
+  players: [],
+  characters: [],
+  props: [],
+  pointers: [],
+  drawings: [],
+  gridSize: 50,
+  gridSquareSize: 5,
+  diceRolls: [],
+  sceneObjects: [],
+  combatActive: false,
+  ...overrides,
+});
 
 describe("SnapshotLoader - Characterization Tests", () => {
   let roomService: RoomService;
@@ -1421,38 +1451,13 @@ describe("SnapshotLoader - Characterization Tests", () => {
     // too — and a file can be hand-edited, or belong to another night's table,
     // where someone else held the seat. "Restore" must not be a second way to
     // become the DM, or a way to lose the seat by restoring.
-    const seat = (uid: string, isDM: boolean): Player => ({
-      uid,
-      name: uid,
-      portrait: "",
-      micLevel: 0.5,
-      lastHeartbeat: Date.now(),
-      hp: 10,
-      maxHp: 10,
-      isDM,
-      statusEffects: [],
-    });
-    const fileOf = (players: Player[]): RoomSnapshot => ({
-      users: [],
-      tokens: [],
-      players,
-      characters: [],
-      props: [],
-      pointers: [],
-      drawings: [],
-      gridSize: 50,
-      gridSquareSize: 5,
-      diceRolls: [],
-      sceneObjects: [],
-      combatActive: false,
-    });
     const isDMOf = (uid: string) =>
       roomService.getState().players.find((player) => player.uid === uid)?.isDM;
 
     it("does not make a seated player the DM because the file says so", () => {
       roomService.setState({ players: [seat("dm-1", true), seat("player-1", false)] });
 
-      roomService.loadSnapshot(fileOf([seat("dm-1", true), seat("player-1", true)]));
+      roomService.loadSnapshot(fileOf({ players: [seat("dm-1", true), seat("player-1", true)] }));
 
       expect(isDMOf("player-1")).toBe(false);
       expect(isDMOf("dm-1")).toBe(true);
@@ -1461,7 +1466,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
     it("does not take the seat from the DM who restores a file that names them a player", () => {
       roomService.setState({ players: [seat("dm-1", true), seat("player-1", false)] });
 
-      roomService.loadSnapshot(fileOf([seat("dm-1", false), seat("player-1", false)]));
+      roomService.loadSnapshot(fileOf({ players: [seat("dm-1", false), seat("player-1", false)] }));
 
       expect(isDMOf("dm-1")).toBe(true);
       expect(isDMOf("player-1")).toBe(false);
@@ -1470,9 +1475,127 @@ describe("SnapshotLoader - Characterization Tests", () => {
     it("does not seat a DM the file names who is not at the table", () => {
       roomService.setState({ players: [seat("dm-1", true)] });
 
-      roomService.loadSnapshot(fileOf([seat("dm-1", true), seat("ghost-dm", true)]));
+      roomService.loadSnapshot(fileOf({ players: [seat("dm-1", true), seat("ghost-dm", true)] }));
 
       expect(roomService.getState().players.map((player) => player.uid)).toEqual(["dm-1"]);
+    });
+  });
+
+  describe("a restore keeps a token only with its character", () => {
+    // The merge keeps every token a SEATED uid owns, and the DM owns the token of
+    // each NPC they placed — but an NPC's record belongs to the file, not to a
+    // seat. Keep the token of a character the file dropped and it is left on the
+    // map with no character behind it, and so no hidden flag: the players are
+    // sent it, image and all, however secret the monster was.
+    const pcToken: Token = {
+      id: "tok-pc",
+      owner: "player-1",
+      x: 1,
+      y: 1,
+      color: "red",
+      size: "medium",
+    };
+    const pc: Character = {
+      id: "char-pc",
+      name: "Hero",
+      type: "pc",
+      ownedByPlayerUID: "player-1",
+      hp: 10,
+      maxHp: 10,
+      tokenId: "tok-pc",
+      tokenImage: undefined,
+    };
+    const mimicToken: Token = {
+      id: "tok-mimic",
+      owner: "dm-1",
+      x: 9,
+      y: 9,
+      color: "blue",
+      imageUrl: "/tokens/mimic-chest.webp",
+      size: "medium",
+    };
+    const mimic: Character = {
+      id: "npc-mimic",
+      name: "Mimic",
+      type: "npc",
+      hp: 30,
+      maxHp: 30,
+      tokenId: "tok-mimic",
+      tokenImage: undefined,
+      visibleToPlayers: false,
+    };
+    const seatTheTable = () =>
+      roomService.setState({
+        players: [seat("dm-1", true), seat("player-1", false)],
+        characters: [pc, mimic],
+        tokens: [pcToken, mimicToken],
+      });
+    const tokenIds = () =>
+      roomService
+        .getState()
+        .tokens.map((token) => token.id)
+        .sort();
+
+    it("drops the token of an NPC the file does not have, and keeps a seated player's own", () => {
+      seatTheTable();
+
+      // A backup from before the mimic was placed.
+      roomService.loadSnapshot(fileOf({ players: [seat("dm-1", true), seat("player-1", false)] }));
+
+      const state = roomService.getState();
+      expect(state.characters.map((character) => character.id)).toEqual(["char-pc"]);
+      expect(tokenIds()).toEqual(["tok-pc"]);
+    });
+
+    it("never sends a player the token of a hidden monster the restore removed", () => {
+      seatTheTable();
+
+      roomService.loadSnapshot(fileOf({ players: [seat("dm-1", true), seat("player-1", false)] }));
+
+      const playerView = toSnapshot(roomService.getState(), false, "player-1");
+      expect(playerView.tokens.map((token) => token.id)).toEqual(["tok-pc"]);
+      expect(JSON.stringify(playerView)).not.toContain("mimic-chest");
+    });
+
+    it("drops the token of an NPC the file points at a different token", () => {
+      seatTheTable();
+      const fileToken: Token = {
+        id: "tok-file",
+        owner: "someone-gone",
+        x: 2,
+        y: 2,
+        color: "green",
+        size: "medium",
+      };
+
+      roomService.loadSnapshot(
+        fileOf({
+          players: [seat("dm-1", true), seat("player-1", false)],
+          characters: [{ ...mimic, tokenId: "tok-file" }],
+          tokens: [fileToken],
+        }),
+      );
+
+      const npc = roomService.getState().characters.find((c) => c.id === "npc-mimic");
+      expect(npc?.tokenId).toBe("tok-file");
+      expect(tokenIds()).toEqual(["tok-file", "tok-pc"]);
+    });
+
+    it("keeps the live token of an NPC the file also has, where it stands now", () => {
+      seatTheTable();
+      const backedUp = { ...mimicToken, x: 0, y: 0 };
+
+      roomService.loadSnapshot(
+        fileOf({
+          players: [seat("dm-1", true), seat("player-1", false)],
+          characters: [mimic],
+          tokens: [backedUp],
+        }),
+      );
+
+      const tokens = roomService.getState().tokens.filter((token) => token.id === "tok-mimic");
+      expect(tokens).toHaveLength(1);
+      expect([tokens[0].x, tokens[0].y]).toEqual([9, 9]);
     });
   });
 });

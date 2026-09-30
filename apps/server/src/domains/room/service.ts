@@ -141,9 +141,6 @@ export class RoomService {
     const currentPlayerCharacters = this.state.characters.filter(
       (char) => char.ownedByPlayerUID && currentPlayerUIDs.has(char.ownedByPlayerUID),
     );
-    const currentPlayerTokens = this.state.tokens.filter((token) =>
-      currentPlayerUIDs.has(token.owner),
-    );
 
     // Merge snapshot with current state
     const mergedState = this.snapshotLoader.mergeSnapshot(
@@ -151,6 +148,11 @@ export class RoomService {
       this.state,
       this.stagingManager,
     );
+    // Counted off the merge's own result: a seated player's token goes with its
+    // character when the file drops it, so "every seated uid's token" overcounts.
+    const preservedTokens = mergedState.tokens.filter((token) =>
+      this.state.tokens.includes(token),
+    ).length;
     Object.assign(this.state, mergedState);
     // A loaded session is a fresh boundary, exactly as a travel is: the file's
     // spend (and a connected player's live one) does not open the fight, and
@@ -178,7 +180,7 @@ export class RoomService {
     console.log(
       `Loaded session snapshot from client - merged ${this.state.players.length} players, ` +
         `preserved ${currentPlayerCharacters.length} current characters, ` +
-        `preserved ${currentPlayerTokens.length} current tokens`,
+        `preserved ${preservedTokens} current tokens`,
     );
   }
 

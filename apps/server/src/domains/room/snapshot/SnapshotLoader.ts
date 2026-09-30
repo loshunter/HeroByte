@@ -127,9 +127,26 @@ export class SnapshotLoader {
       ...loadedCharacters.filter((char) => !preservedCharacterIds.has(char.id)),
     ];
 
+    // A token follows its character. The merge carries a seated player's
+    // characters and the file's, and drops the rest of the room's — an NPC is the
+    // file's, not a seat's. Its token must go with it: the DM owns the token of
+    // every NPC they placed, so keeping "the seated uids' tokens" would leave one
+    // on the map with no record behind it, and no hidden flag to hold it back —
+    // the players are sent it, image and all, however secret the monster was.
+    const carriedTokenIds = new Set<string>();
+    for (const character of mergedCharacters) {
+      if (character.tokenId) carriedTokenIds.add(character.tokenId);
+    }
+    const strandedTokenIds = new Set<string>();
+    for (const character of currentState.characters) {
+      if (character.tokenId && !carriedTokenIds.has(character.tokenId)) {
+        strandedTokenIds.add(character.tokenId);
+      }
+    }
+
     // Preserve tokens belonging to currently connected players
-    const currentPlayerTokens = currentState.tokens.filter((token) =>
-      currentPlayerUIDs.has(token.owner),
+    const currentPlayerTokens = currentState.tokens.filter(
+      (token) => currentPlayerUIDs.has(token.owner) && !strandedTokenIds.has(token.id),
     );
 
     // Get IDs of preserved tokens to avoid duplicates
