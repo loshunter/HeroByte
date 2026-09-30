@@ -16,6 +16,12 @@ import type { SnapshotCharacter } from "@herobyte/shared";
  *   current record (a rename shows) and closes when the character is gone. It
  *   used to hold the object it was opened with: a character deleted while its
  *   dialog was open kept a dialog whose Save the server could only ignore.
+ * - Tell "gone" from "reconnecting": ANY socket close nulls the snapshot while
+ *   the app stays mounted (AuthenticationGate), so `characters` reads empty for
+ *   the blip. With `snapshotLoaded` false the dialog keeps the character it last
+ *   saw — derived, never latched — and only a snapshot that has arrived can say
+ *   the character is gone. Closing on the blip lost the typed value, and a save
+ *   in flight vanished with neither its confirm nor its failure shown.
  * - Provide open/close functions
  * - Provide computed isOpen state
  *
@@ -25,17 +31,27 @@ import type { SnapshotCharacter } from "@herobyte/shared";
  * - Server communication
  * - Rendering logic
  */
-export function useInitiativeModal(characters: readonly SnapshotCharacter[]) {
+export function useInitiativeModal(
+  characters: readonly SnapshotCharacter[],
+  snapshotLoaded: boolean,
+) {
   const [characterId, setCharacterId] = useState<string | null>(null);
-  const character =
-    characterId === null ? null : (characters.find((c) => c.id === characterId) ?? null);
+  const [lastSeen, setLastSeen] = useState<SnapshotCharacter | null>(null);
+  const live = characterId === null ? null : (characters.find((c) => c.id === characterId) ?? null);
+  const held = !snapshotLoaded && lastSeen?.id === characterId ? lastSeen : null;
+  const character = live ?? held;
+
+  useEffect(() => {
+    if (live) setLastSeen(live);
+  }, [live]);
 
   // Gone is closed: it does not reopen if a character with that id returns.
   useEffect(() => {
-    if (characterId !== null && character === null) setCharacterId(null);
-  }, [characterId, character]);
+    if (characterId !== null && snapshotLoaded && live === null) setCharacterId(null);
+  }, [characterId, snapshotLoaded, live]);
 
   const openModal = useCallback((char: SnapshotCharacter) => {
+    setLastSeen(char);
     setCharacterId(char.id);
   }, []);
 

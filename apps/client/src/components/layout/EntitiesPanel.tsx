@@ -84,18 +84,21 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
     currentTurnCharacterId,
   });
 
+  // The app's own test for "the snapshot has arrived" (App.tsx, map-edit's guard).
+  const snapshotLoaded = players.some((player) => player.uid === uid);
   const {
     character: initiativeModalCharacter,
     isOpen: isInitiativeModalOpen,
     openModal: openInitiativeModal,
     closeModal: closeInitiativeModal,
-  } = useInitiativeModal(characters);
+  } = useInitiativeModal(characters, snapshotLoaded);
   // The server's own rule: the DM, or the character's owner. On losing DM
   // rights the dialog for anyone else's character closes rather than offering
-  // a Set the server refuses, and it does not reopen on re-elevation.
+  // a Set the server refuses, and it does not reopen on re-elevation. Judged
+  // only on a loaded snapshot: a reconnect reads not-DM (useInitiativeModal).
   const initiativeModalAllowed =
     initiativeModalCharacter !== null &&
-    (props.currentIsDM || initiativeModalCharacter.ownedByPlayerUID === uid);
+    (!snapshotLoaded || props.currentIsDM || initiativeModalCharacter.ownedByPlayerUID === uid);
   useEffect(() => {
     if (isInitiativeModalOpen && !initiativeModalAllowed) closeInitiativeModal();
   }, [isInitiativeModalOpen, initiativeModalAllowed, closeInitiativeModal]);

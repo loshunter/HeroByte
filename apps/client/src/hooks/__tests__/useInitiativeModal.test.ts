@@ -24,7 +24,7 @@ describe("useInitiativeModal", () => {
 
   describe("initial state", () => {
     it("should start with null (no modal open)", () => {
-      const { result } = renderHook(() => useInitiativeModal(characters));
+      const { result } = renderHook(() => useInitiativeModal(characters, true));
 
       expect(result.current.character).toBeNull();
       expect(result.current.isOpen).toBe(false);
@@ -33,7 +33,7 @@ describe("useInitiativeModal", () => {
 
   describe("openModal", () => {
     it("should open modal with the specified character", () => {
-      const { result } = renderHook(() => useInitiativeModal(characters));
+      const { result } = renderHook(() => useInitiativeModal(characters, true));
       const character = characters[0];
 
       act(() => {
@@ -45,7 +45,7 @@ describe("useInitiativeModal", () => {
     });
 
     it("should replace previously open character", () => {
-      const { result } = renderHook(() => useInitiativeModal(characters));
+      const { result } = renderHook(() => useInitiativeModal(characters, true));
       const [char1, char2] = characters;
 
       act(() => {
@@ -65,7 +65,7 @@ describe("useInitiativeModal", () => {
 
   describe("closeModal", () => {
     it("should close the modal and clear character", () => {
-      const { result } = renderHook(() => useInitiativeModal(characters));
+      const { result } = renderHook(() => useInitiativeModal(characters, true));
       const character = characters[0];
 
       act(() => {
@@ -83,7 +83,7 @@ describe("useInitiativeModal", () => {
     });
 
     it("should be idempotent (safe to call multiple times)", () => {
-      const { result } = renderHook(() => useInitiativeModal(characters));
+      const { result } = renderHook(() => useInitiativeModal(characters, true));
 
       act(() => {
         result.current.closeModal();
@@ -97,7 +97,7 @@ describe("useInitiativeModal", () => {
 
   describe("isOpen computed property", () => {
     it("should be true when character is set", () => {
-      const { result } = renderHook(() => useInitiativeModal(characters));
+      const { result } = renderHook(() => useInitiativeModal(characters, true));
       const character = characters[0];
 
       act(() => {
@@ -108,7 +108,7 @@ describe("useInitiativeModal", () => {
     });
 
     it("should be false when character is null", () => {
-      const { result } = renderHook(() => useInitiativeModal(characters));
+      const { result } = renderHook(() => useInitiativeModal(characters, true));
 
       expect(result.current.isOpen).toBe(false);
 
@@ -127,7 +127,7 @@ describe("useInitiativeModal", () => {
 
   describe("the live record", () => {
     it("follows the character's current record, and closes for good when it is gone", () => {
-      const { result, rerender } = renderHook(({ list }) => useInitiativeModal(list), {
+      const { result, rerender } = renderHook(({ list }) => useInitiativeModal(list, true), {
         initialProps: { list: characters },
       });
       act(() => {
