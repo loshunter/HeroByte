@@ -140,8 +140,12 @@ export function DMElevationModal({
             border: "2px solid #4a4a4a",
             borderRadius: "8px",
             padding: "24px",
-            minWidth: "400px",
-            maxWidth: "500px",
+            // 400px of content plus padding and border is 452px outside, which
+            // hung 38px off both edges of a 375px phone. Same outer widths on a
+            // wide screen (452–552), clamped to the viewport on a narrow one.
+            boxSizing: "border-box",
+            minWidth: "min(452px, calc(100vw - 32px))",
+            maxWidth: "min(552px, calc(100vw - 32px))",
           }}
           onClick={(e) => e.stopPropagation()}
         >
