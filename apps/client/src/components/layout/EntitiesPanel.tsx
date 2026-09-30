@@ -13,6 +13,7 @@ import { JRPGPanel } from "../ui/JRPGPanel";
 import { InitiativeModal } from "../../features/initiative/components/InitiativeModal";
 import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
 import { useCombatOrdering } from "../../hooks/useCombatOrdering";
+import { initiativeOrder } from "../../utils/initiativeOrder";
 import { useInitiativeModal } from "../../hooks/useInitiativeModal";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 import { PartyCharacterCard } from "./party/PartyCharacterCard";
@@ -150,11 +151,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
     openInitiativeModal,
   };
 
-  const initiativeCombatants = useMemo(() => {
-    return orderedEntities.filter((entity) => entity.character.initiative !== undefined);
-  }, [orderedEntities]);
-
-  const currentTurnIndexDisplay = initiativeCombatants.findIndex((entity) => entity.isCurrentTurn);
+  // The bar counts the order the SERVER walks, not the cards: a PC with no seat
+  // (unclaimed, or its player's seat gone after a load) is in the order though
+  // the Party draws no card for it, and next-turn lands on it all the same.
+  const turnOrder = useMemo(() => initiativeOrder(characters, players), [characters, players]);
+  const currentTurnIndexDisplay = combatActive
+    ? turnOrder.findIndex((character) => character.id === currentTurnCharacterId)
+    : -1;
 
   // The roster lists every character the cards do, in the cards' order: the
   // DM's bench first, then the party and NPCs.
@@ -196,7 +199,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
             combatActive
               ? {
                   turnIndex: currentTurnIndexDisplay,
-                  total: initiativeCombatants.length,
+                  total: turnOrder.length,
                   onNextTurn,
                   onPreviousTurn,
                 }
