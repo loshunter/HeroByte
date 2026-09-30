@@ -19,6 +19,7 @@ import type { DiceService } from "../../domains/dice/service.js";
 import type { PlayerService } from "../../domains/player/service.js";
 import { cryptoDiceRng, type DiceRng } from "../../domains/dice/roller.js";
 import { applyInitiative } from "./applyInitiative.js";
+import { initiativeLineConcealed } from "./initiativeLineConcealed.js";
 import type { InitiativeMessageResult } from "./InitiativeMessageHandler.js";
 
 export class InitiativeRollHandler {
@@ -111,7 +112,8 @@ export class InitiativeRollHandler {
     // Fixed at roll time: visibleRollsFor has no re-evaluation hook, so
     // revealing the creature later does not retroactively surface the line.
     // That is the right way round — a spoiler cannot be un-shown.
-    const concealed = character.visibleToPlayers === false;
+    // And a fogged one: the filter strips it too (initiativeLineConcealed.ts).
+    const concealed = initiativeLineConcealed(state, character);
 
     const roll = this.diceService.rollFor(
       state,

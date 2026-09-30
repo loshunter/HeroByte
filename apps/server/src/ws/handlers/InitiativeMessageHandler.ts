@@ -18,6 +18,7 @@ import type { RoomService } from "../../domains/room/service.js";
 import type { DiceService } from "../../domains/dice/service.js";
 import type { PlayerService } from "../../domains/player/service.js";
 import { applyInitiative } from "./applyInitiative.js";
+import { initiativeLineConcealed } from "./initiativeLineConcealed.js";
 import {
   currentRound,
   leaveOrderBudget,
@@ -142,7 +143,7 @@ export class InitiativeMessageHandler {
         initiative,
         modifier,
         supersededTotal,
-        character.visibleToPlayers === false,
+        initiativeLineConcealed(state, character),
       );
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
       return { broadcast: true, save: true };
