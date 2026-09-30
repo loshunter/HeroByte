@@ -107,9 +107,10 @@ describe("Initiative and underlying production Escape ownership", () => {
     "loading=%s, button Escape leaves underlying tool and selection alone",
     (loading) => {
       const { props } = renderOwners(loading);
-      // Roll is enabled in both states. Do not try to focus the disabled
-      // loading Cancel button and accidentally dispatch from document.body.
-      const button = screen.getByRole("button", { name: "Roll Initiative" });
+      // The hand-entry button is enabled in both states (Roll, Cancel and Save
+      // are not while the dialog's own save is in flight). Do not dispatch from
+      // document.body by focusing a disabled one.
+      const button = screen.getByRole("button", { name: /Physical Dice|by hand/i });
       button.focus();
       expect(document.activeElement).toBe(button);
 

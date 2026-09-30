@@ -187,7 +187,7 @@ export function InitiativeModal({
             justifyContent: "center",
             zIndex: 10000,
           }}
-          onClick={onClose}
+          onClick={own.saving ? undefined : onClose}
         >
           <div onClick={(e) => e.stopPropagation()}>
             <JRPGPanel
@@ -231,7 +231,12 @@ export function InitiativeModal({
 
                 {/* Roll Options */}
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <JRPGButton variant="primary" onClick={handleRoll} style={{ flex: 1 }}>
+                  <JRPGButton
+                    variant="primary"
+                    onClick={handleRoll}
+                    disabled={own.saving}
+                    style={{ flex: 1 }}
+                  >
                     Roll Initiative
                   </JRPGButton>
                   {manualEntryAllowed && (
