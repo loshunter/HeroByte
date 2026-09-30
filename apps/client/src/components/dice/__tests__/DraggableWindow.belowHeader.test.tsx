@@ -54,6 +54,13 @@ function header(bottoms: number[], frameBottom = Math.max(...bottoms) + 12) {
 const windowOf = (container: HTMLElement) =>
   container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
+/** Press the title bar at (150, 110), move by (dx, dy), and let go — a click when both are 0. */
+function drag(title: HTMLElement, dx: number, dy: number) {
+  fireEvent.mouseDown(title, { clientX: 150, clientY: 110 });
+  if (dx !== 0 || dy !== 0) fireEvent.mouseMove(document, { clientX: 150 + dx, clientY: 110 + dy });
+  fireEvent.mouseUp(document);
+}
+
 describe("DraggableWindow — opens below the header's controls", () => {
   const added: HTMLElement[] = [];
   const mount = (root: HTMLElement) => {
@@ -240,17 +247,65 @@ describe("DraggableWindow — follows the header until the player places it", ()
     expect(windowOf(container).style.top).toBe("100px");
   });
 
-  it("stops following once the player has taken hold of it", () => {
+  it("stops following once the player has dragged it", () => {
     const header = growableHeader(60);
     const { container, getByText } = render(
       <DraggableWindow title="Dice Roller" initialY={100}>
         <div>Content</div>
       </DraggableWindow>,
     );
-    fireEvent.mouseDown(getByText("Dice Roller"), { clientX: 150, clientY: 110 });
-    fireEvent.mouseUp(document);
+    drag(getByText("Dice Roller"), 40, 30);
+    expect(windowOf(container).style.top).toBe("30px");
     header.grow(180);
+    expect(windowOf(container).style.top).toBe("30px");
+  });
+
+  // A click on the title bar is how a drag starts, and also just a click. Only a drag is the
+  // player placing the window; a click that stopped it following (and saved its place, so no
+  // later visit followed either) would leave it under the header row a DM gains on entering.
+  it("keeps following after a plain click on the title bar", () => {
+    const header = growableHeader(60);
+    const { container, getByText } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    drag(getByText("Dice Roller"), 0, 0);
+    header.grow(180);
+    expect(windowOf(container).style.top).toBe("184px");
+  });
+
+  it("treats a nudge of a pixel or two as a click, not a drag", () => {
+    const header = growableHeader(60);
+    const { container, getByText } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    drag(getByText("Dice Roller"), 2, 1);
     expect(windowOf(container).style.top).toBe("100px");
+    header.grow(180);
+    expect(windowOf(container).style.top).toBe("184px");
+  });
+
+  it("remembers a dragged place, and nothing for a click", () => {
+    growableHeader(60);
+    const key = "herobyte-window-position-test";
+    const { getByText, rerender } = render(
+      <DraggableWindow title="Dice Roller" storageKey="test" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    drag(getByText("Dice Roller"), 0, 0);
+    expect(window.localStorage.getItem(key)).toBeNull();
+
+    drag(getByText("Dice Roller"), 40, 30);
+    rerender(
+      <DraggableWindow title="Dice Roller" storageKey="test" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    expect(JSON.parse(window.localStorage.getItem(key) ?? "null")).toEqual({ x: 40, y: 30 });
   });
 
   it("does not follow a position the player already placed in an earlier visit", () => {

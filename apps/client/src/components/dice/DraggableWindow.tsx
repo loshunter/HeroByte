@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { registerOpenPanel } from "../effects/panelPresence";
 import { isMobileLayout } from "../../utils/mobileLayout";
 import { belowHeader, useFollowHeader } from "./headerPlacement";
+import { loadWindowPosition, saveWindowPosition } from "./windowPosition";
 import {
   WindowInteraction,
   type WindowInteractionOptions,
@@ -27,7 +28,9 @@ interface DraggableWindowProps {
   scrollContent?: boolean;
 }
 
-const POSITION_KEY_PREFIX = "herobyte-window-position-";
+// A press on the title bar is how a drag starts, and also just a click. It has to travel this
+// far before the player has placed the window.
+const DRAG_SLOP_PX = 3;
 
 export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   title,
@@ -47,31 +50,15 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   // True once the window has a place of its own (remembered, or dragged): it then stops
   // following the header as that grows or shrinks (see headerPlacement).
   const placedRef = useRef(false);
-  // Load position from localStorage if storageKey is provided
+  // Where the current press began, and whether it has travelled far enough to be a drag.
+  const pressOrigin = useRef({ x: 0, y: 0 });
+  const draggedRef = useRef(false);
+  // The remembered place, if the window has a storageKey and was left somewhere.
   const getInitialPosition = () => {
-    if (storageKey) {
-      const storage = getWindowStorage();
-      if (!storage) return { x: initialX, y: belowHeader(initialY) };
-
-      try {
-        const saved = storage.getItem(`${POSITION_KEY_PREFIX}${storageKey}`);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          // Validate the saved position
-          if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-            // Ensure position is within viewport bounds
-            const maxX = window.innerWidth - 200; // Leave at least 200px visible
-            const maxY = window.innerHeight - 100; // Leave at least 100px visible
-            placedRef.current = true;
-            return {
-              x: Math.max(0, Math.min(parsed.x, maxX)),
-              y: Math.max(0, Math.min(parsed.y, maxY)),
-            };
-          }
-        }
-      } catch (error) {
-        console.warn("Failed to load window position from localStorage:", error);
-      }
+    const remembered = storageKey ? loadWindowPosition(storageKey) : null;
+    if (remembered) {
+      placedRef.current = true;
+      return remembered;
     }
     return { x: initialX, y: belowHeader(initialY) };
   };
@@ -95,10 +82,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
     }
 
     e.preventDefault();
-    placedRef.current = true;
 
     const rect = windowRef.current?.getBoundingClientRect();
     if (rect) {
+      pressOrigin.current = { x: e.clientX, y: e.clientY };
+      draggedRef.current = false;
       setDragOffset({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
@@ -115,6 +103,15 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging && !isMobile) {
+        if (!draggedRef.current) {
+          const travelled = Math.hypot(
+            e.clientX - pressOrigin.current.x,
+            e.clientY - pressOrigin.current.y,
+          );
+          if (travelled < DRAG_SLOP_PX) return;
+          draggedRef.current = true;
+          placedRef.current = true;
+        }
         const newPosition = {
           x: e.clientX - dragOffset.x,
           y: e.clientY - dragOffset.y,
@@ -125,18 +122,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      // A click is not a placement: nothing moved, so nothing is remembered.
+      if (!draggedRef.current) return;
 
       // Save position to localStorage when dragging ends
-      if (storageKey && !isMobile) {
-        const storage = getWindowStorage();
-        if (!storage) return;
-
-        try {
-          storage.setItem(`${POSITION_KEY_PREFIX}${storageKey}`, JSON.stringify(position));
-        } catch (error) {
-          console.warn("Failed to save window position to localStorage:", error);
-        }
-      }
+      if (storageKey && !isMobile) saveWindowPosition(storageKey, position);
     };
 
     if (isDragging) {
@@ -169,14 +159,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
 
           // Save adjusted position
           if (storageKey) {
-            const storage = getWindowStorage();
-            if (!storage) return;
-
-            try {
-              storage.setItem(`${POSITION_KEY_PREFIX}${storageKey}`, JSON.stringify(newPosition));
-            } catch (error) {
-              console.warn("Failed to save adjusted window position:", error);
-            }
+            saveWindowPosition(storageKey, newPosition, "Failed to save adjusted window position:");
           }
         }
       }
@@ -320,19 +303,3 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
     </WindowInteraction>
   );
 };
-
-function getWindowStorage(): Storage | null {
-  try {
-    const storage = window.localStorage;
-    if (
-      !storage ||
-      typeof storage.getItem !== "function" ||
-      typeof storage.setItem !== "function"
-    ) {
-      return null;
-    }
-    return storage;
-  } catch {
-    return null;
-  }
-}
