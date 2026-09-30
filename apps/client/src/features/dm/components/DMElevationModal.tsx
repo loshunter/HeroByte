@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   EscapeRootProvider,
   useEscapeRoot,
@@ -38,6 +38,18 @@ export function DMElevationModal({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // A request in flight disables the field, and a disabled field drops the cursor:
+  // after a wrong password the next keystroke went nowhere (Ctrl+A selected the page
+  // behind the dialog) until the person clicked back in. When an attempt fails, put
+  // the cursor back with the text selected, so the next try simply replaces it.
+  const passwordRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!isLoading && error) {
+      passwordRef.current?.focus();
+      passwordRef.current?.select();
+    }
+  }, [isLoading, error]);
 
   // Close modal on successful state change
   useEffect(() => {
@@ -172,6 +184,7 @@ export function DMElevationModal({
                 </label>
                 <input
                   id="dm-password"
+                  ref={passwordRef}
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -194,6 +207,7 @@ export function DMElevationModal({
                 </label>
                 <input
                   id="dm-new-password"
+                  ref={passwordRef}
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { DMElevationModal } from "../DMElevationModal";
 
@@ -86,5 +87,55 @@ describe("DMElevationModal", () => {
       rerender(<DMElevationModal {...props} currentIsDM={true} />);
       expect(props.onClose).toHaveBeenCalled();
     });
+  });
+});
+
+describe("DMElevationModal — after a failed attempt", () => {
+  // A request in flight disables the field, and a disabled field drops the cursor.
+  // jsdom does not do that on its own, so the tests do it as the browser does.
+  const dropFocusWhileLoading = (
+    rerender: (ui: ReactElement) => void,
+    props: Parameters<typeof DMElevationModal>[0],
+    field: HTMLElement,
+  ) => {
+    field.focus();
+    field.blur();
+    rerender(<DMElevationModal {...props} isLoading />);
+    expect(document.activeElement).toBe(document.body);
+  };
+
+  it("puts the cursor back in the password field, text selected, so the next try replaces it", () => {
+    const { rerender, props } = renderModal();
+    const field = screen.getByLabelText("Enter DM Password:") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "wrong-one" } });
+    dropFocusWhileLoading(rerender, props, field);
+
+    rerender(<DMElevationModal {...props} isLoading={false} error="Invalid DM password" />);
+
+    expect(document.activeElement).toBe(field);
+    expect(field.selectionStart).toBe(0);
+    expect(field.selectionEnd).toBe("wrong-one".length);
+  });
+
+  it("returns to the new-password field when setting the password is refused", () => {
+    const { rerender, props } = renderModal({ mode: "bootstrap" });
+    const field = screen.getByLabelText("New DM Password (8+ characters):") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "a-long-enough-pw" } });
+    dropFocusWhileLoading(rerender, props, field);
+
+    rerender(
+      <DMElevationModal {...props} isLoading={false} error="Could not set the DM password" />,
+    );
+
+    expect(document.activeElement).toBe(field);
+  });
+
+  it("leaves the cursor alone while nothing has failed", () => {
+    const { rerender, props } = renderModal();
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    cancel.focus();
+    rerender(<DMElevationModal {...props} isLoading />);
+    rerender(<DMElevationModal {...props} isLoading={false} />);
+    expect(document.activeElement).toBe(cancel);
   });
 });
