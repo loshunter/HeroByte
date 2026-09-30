@@ -18,7 +18,7 @@ import { useWebSocket } from "../hooks/useWebSocket";
 import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
-import { useDMRole } from "../hooks/useDMRole";
+import { useClearOnDemotion, useDMRole } from "../hooks/useDMRole";
 import { useToolMode } from "../hooks/useToolMode";
 import { useCameraCommands } from "../hooks/useCameraCommands";
 import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
@@ -166,7 +166,7 @@ function AuthenticatedApp({
 
   // Effective role gates table-wide clearing and confirmed tool transitions.
   // The local override closes DM access immediately while revocation is pending.
-  const { isDM: serverIsDM } = useDMRole({ snapshot, uid, send: sendMessage });
+  const { isDM: serverIsDM, roleKnown } = useDMRole({ snapshot, uid, send: sendMessage });
   const [dmRevocationPending, setDmRevocationPending] = useState(false);
   const isDM = serverIsDM && !dmRevocationPending;
 
@@ -523,6 +523,7 @@ function AuthenticatedApp({
 
   // Cache the last DM-visible snapshot so NPCs/tokens don't disappear
   const [cachedDmSnapshot, setCachedDmSnapshot] = useState<RoomSnapshot | null>(null);
+  useClearOnDemotion(serverIsDM, roleKnown, cachedDmSnapshot, setCachedDmSnapshot);
   const [dmSnapshotPending, setDmSnapshotPending] = useState(false);
   const [dmSnapshotPendingSince, setDmSnapshotPendingSince] = useState<number | null>(null);
   const previousIsDMRef = useRef(isDM);

@@ -79,9 +79,12 @@ vi.mock("../hooks/useHeartbeat", () => ({
   useHeartbeat: vi.fn(),
 }));
 
-vi.mock("../hooks/useDMRole", () => ({
+vi.mock("../hooks/useDMRole", async (importActual) => ({
+  // The real useClearOnDemotion stays: it is the App's wiring under test below.
+  ...(await importActual<typeof import("../hooks/useDMRole")>()),
   useDMRole: vi.fn(() => ({
     isDM: true,
+    roleKnown: true,
     toggleDM: vi.fn(),
   })),
 }));
@@ -617,7 +620,11 @@ describe("App", () => {
     // which is DERIVED from it — reads false. The app stays MOUNTED behind
     // AuthenticationGate's Reconnecting banner, which is what makes this
     // reachable at all.
-    vi.mocked(useDMRole).mockReturnValue({ isDM: false, elevateToDM: vi.fn() });
+    vi.mocked(useDMRole).mockReturnValue({
+      isDM: false,
+      roleKnown: false,
+      elevateToDM: vi.fn(),
+    });
     mockUseWebSocket.mockReturnValue({
       ...baseWebSocketState,
       authState: AuthState.AUTHENTICATED,
@@ -630,7 +637,7 @@ describe("App", () => {
     expect(latestMapBoardProps?.mapEditMode).toBe(true);
 
     // ...and it is still armed once the table comes back.
-    vi.mocked(useDMRole).mockReturnValue({ isDM: true, elevateToDM: vi.fn() });
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
     mockUseWebSocket.mockReturnValue({
       ...baseWebSocketState,
       authState: AuthState.AUTHENTICATED,
@@ -643,7 +650,54 @@ describe("App", () => {
     expect(latestMapBoardProps?.mapEditMode).toBe(true);
   });
 
+  // The DM's snapshot cache keeps a DM's NPCs and tokens on screen through a reconnect
+  // (every socket close nulls the snapshot). It must end with the role.
+  const asDMThenBlip = async () => {
+    // Explicitly a DM: mockReturnValue outlives the test that set it, and a neighbour that
+    // left the role at "not a DM" made this suite pass with the cache never filled.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+    const view = render(<App />);
+    await waitFor(() => expect(latestMapBoardProps?.snapshot).toBeTruthy());
+    return view;
+  };
+  const blip = async (rerender: (ui: React.ReactElement) => void) => {
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, roleKnown: false, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: null,
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+  };
+
+  it("keeps a DM's own snapshot on screen through a reconnect blip", async () => {
+    const { rerender } = await asDMThenBlip();
+    await blip(rerender);
+    expect(latestMapBoardProps?.snapshot).toBeTruthy();
+  });
+
+  it("does NOT keep a demoted DM's snapshot to paint over a later reconnect", async () => {
+    const { rerender } = await asDMThenBlip();
+    // A restart cleared the elevation: the roster is back, it lists this seat, it is no DM.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, roleKnown: true, elevateToDM: vi.fn() });
+    await act(async () => {
+      rerender(<App />);
+    });
+    // The next blip must show what a player's blip shows — nothing of the DM's table.
+    await blip(rerender);
+    expect(latestMapBoardProps?.snapshot ?? null).toBeNull();
+  });
+
   it("still drops map-edit when the server says you are no longer a DM", async () => {
+    // Start as a DM on purpose: the role mock outlives the test that set it.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
     mockUseWebSocket.mockReturnValue({
       ...baseWebSocketState,
       authState: AuthState.AUTHENTICATED,
@@ -656,7 +710,11 @@ describe("App", () => {
     // A real revocation: the snapshot is PRESENT and no longer lists this
     // client as a DM. Without this half the guard would be a no-op and the
     // soft-lock it exists for would be back.
-    vi.mocked(useDMRole).mockReturnValue({ isDM: false, elevateToDM: vi.fn() });
+    vi.mocked(useDMRole).mockReturnValue({
+      isDM: false,
+      roleKnown: true,
+      elevateToDM: vi.fn(),
+    });
     await act(async () => {
       rerender(<App />);
     });

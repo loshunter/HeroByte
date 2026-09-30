@@ -9,7 +9,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { useDMRole } from "../useDMRole.js";
+import { useClearOnDemotion, useDMRole } from "../useDMRole.js";
 import type { RoomSnapshot, ClientMessage, Player } from "@herobyte/shared";
 
 describe("useDMRole - isDM Computation", () => {
@@ -179,6 +179,43 @@ describe("useDMRole - isDM Computation", () => {
 
       expect(result.current.isDM).toBe(false);
     });
+  });
+});
+
+describe("useDMRole - roleKnown (the roster has arrived)", () => {
+  const send = vi.fn<(message: ClientMessage) => void>();
+  const uid = "player-123";
+  const snapshotWith = (players: Player[]): RoomSnapshot =>
+    ({
+      users: [],
+      tokens: [],
+      players,
+      characters: [],
+      pointers: [],
+      drawings: [],
+      gridSize: 50,
+      diceRolls: [],
+    }) as RoomSnapshot;
+  const read = (snapshot: RoomSnapshot | null) =>
+    renderHook(() => useDMRole({ snapshot, uid, send })).result.current;
+
+  it("is true once the viewer's own seat is in the roster, DM or not", () => {
+    expect(read(snapshotWith([{ uid, name: "P", isDM: true }])).roleKnown).toBe(true);
+    expect(read(snapshotWith([{ uid, name: "P", isDM: false }])).roleKnown).toBe(true);
+  });
+
+  it("is false while there is no snapshot: every socket close, when isDM reads false for a DM too", () => {
+    const blip = read(null);
+    expect(blip.isDM).toBe(false);
+    expect(blip.roleKnown).toBe(false);
+  });
+
+  it("is false for a snapshot whose roster is someone else's, empty, or missing", () => {
+    expect(read(snapshotWith([{ uid: "other", name: "O", isDM: true }])).roleKnown).toBe(false);
+    expect(read(snapshotWith([])).roleKnown).toBe(false);
+    expect(
+      read({ ...snapshotWith([]), players: undefined } as unknown as RoomSnapshot).roleKnown,
+    ).toBe(false);
   });
 });
 
@@ -565,5 +602,50 @@ describe("useDMRole - Return Value", () => {
     const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
     expect(typeof result.current.elevateToDM).toBe("function");
+  });
+});
+
+describe("useClearOnDemotion — the DM snapshot cache ends with the role", () => {
+  // App caches the last DM-visible snapshot so a DM's NPCs and tokens do not vanish while a
+  // reconnect is in flight. A restart or a revoke that clears the elevation must end that
+  // cache: left behind, every LATER blip would paint the pre-demotion snapshot — hidden
+  // NPCs included — over what is now a player's screen.
+  const cache = { players: [] };
+  const run = (serverIsDM: boolean, roleKnown: boolean, cached: boolean) => {
+    const clear = vi.fn();
+    const view = renderHook(
+      (props) => useClearOnDemotion(props.isDM, props.known, props.cache, clear),
+      { initialProps: { isDM: serverIsDM, known: roleKnown, cache: cached ? cache : null } },
+    );
+    return { clear, ...view };
+  };
+
+  it("clears the cache once the roster says this seat is no DM", () => {
+    const { clear } = run(false, true, true);
+    expect(clear).toHaveBeenCalledExactlyOnceWith(null);
+  });
+
+  it("does not clear for a reconnect blip: the roster is not back, so the flag reads false for no reason", () => {
+    const { clear } = run(false, false, true);
+    expect(clear).not.toHaveBeenCalled();
+  });
+
+  it("does not clear while the viewer IS a DM", () => {
+    const { clear } = run(true, true, true);
+    expect(clear).not.toHaveBeenCalled();
+  });
+
+  it("has nothing to clear without a cache", () => {
+    const { clear } = run(false, true, false);
+    expect(clear).not.toHaveBeenCalled();
+  });
+
+  it("acts on the demotion when it arrives after the blip that started it", () => {
+    // A restart: the socket closes (blip, cache kept), then the roster returns WITHOUT the DM flag.
+    const { clear, rerender } = run(true, true, true);
+    rerender({ isDM: false, known: false, cache });
+    expect(clear).not.toHaveBeenCalled();
+    rerender({ isDM: false, known: true, cache });
+    expect(clear).toHaveBeenCalledTimes(1);
   });
 });
