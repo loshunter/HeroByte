@@ -1,6 +1,6 @@
 import React from "react";
 import { act, fireEvent, screen } from "@testing-library/react";
-import { vi } from "vitest";
+import { expect, vi } from "vitest";
 import type { SnapshotCharacter } from "@herobyte/shared";
 import { InitiativeModal } from "../../initiative/components/InitiativeModal";
 import { CharacterCreationModal } from "../../players/components/CharacterCreationModal";
@@ -19,6 +19,7 @@ export function makeOwnSave(kind: ModalKind, loading: boolean, calls: Actions): 
   fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
   fireEvent.change(screen.getByPlaceholderText("Enter roll..."), { target: { value: "11" } });
   fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+  expect(calls.set).toHaveBeenCalledTimes(1); // one press, one send
   calls.set.mockClear();
 }
 

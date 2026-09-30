@@ -29,12 +29,15 @@ function table() {
   state.players = [{ uid: "dm", name: "The DM", isDM: true }] as unknown as Player[];
   const goblin = characters.createCharacter(state, "Goblin", 7, undefined, "npc");
   const orc = characters.createCharacter(state, "Orc", 15, undefined, "npc");
+  const rat = characters.createCharacter(state, "Rat", 2, undefined, "npc");
   // setInitiative REPLACES the record, so read it from state, never hold it.
   const live = (id: string) => state.characters.find((c) => c.id === id)!;
   return {
     state,
     goblin: { id: goblin.id, get: () => live(goblin.id) },
     orc: { id: orc.id, get: () => live(orc.id) },
+    rat: { id: rat.id, get: () => live(rat.id) },
+    service: characters,
     // The room service is not read by the handlers exercised here.
     messages: new InitiativeMessageHandler(characters, {} as never, dice, players),
     rolls: new InitiativeRollHandler(characters, dice, players),
@@ -48,24 +51,26 @@ const dieLanding = (...faces: number[]) => {
 };
 
 describe("Encounter rules the tab names (characterization)", () => {
-  it("a bulk roll on a fresh fight starts combat on the FIRST NPC rolled, even when a later one rolls higher", () => {
-    const { state, goblin, orc, rolls } = table();
+  it("a bulk roll on a fresh fight starts combat on the FIRST NPC rolled — neither the top nor the bottom of the order", () => {
+    const { state, goblin, orc, rat, rolls } = table();
 
-    rolls.handleRollInitiativeAll(state, "dm", true, dieLanding(3, 19));
+    // Rolled in creation order: the Goblin 10 (the middle), the Orc 19, the Rat 3.
+    rolls.handleRollInitiativeAll(state, "dm", true, dieLanding(10, 19, 3));
 
-    expect(goblin.get().initiative).toBe(3);
-    expect(orc.get().initiative).toBe(19);
+    expect([goblin, orc, rat].map((c) => c.get().initiative)).toEqual([10, 19, 3]);
     expect(state.combatActive).toBe(true);
-    // Not the top of the order: the Goblin rolled first.
     expect(state.currentTurnCharacterId).toBe(goblin.id);
   });
 
   it("start-combat mid-fight moves the turn to the top of the order, restarts the round and refills every budget", () => {
-    const { state, goblin, orc, rolls, messages } = table();
-    rolls.handleRollInitiativeAll(state, "dm", true, dieLanding(3, 19));
+    const { state, goblin, orc, rolls, messages, service } = table();
+    rolls.handleRollInitiativeAll(state, "dm", true, dieLanding(10, 19, 3));
     state.combatRound = 4;
     goblin.get().movementUsed = 20;
     orc.get().movementUsed = 10;
+    // "Everyone's", not only the order's: a character who never rolled refills too.
+    const bystander = service.createCharacter(state, "Bystander", 10, undefined, "pc");
+    bystander.movementUsed = 5;
 
     const result = messages.handleStartCombat(state, "dm", true);
 
@@ -75,11 +80,12 @@ describe("Encounter rules the tab names (characterization)", () => {
     expect(state.combatRound).toBe(1);
     expect(goblin.get().movementUsed).toBe(0);
     expect(orc.get().movementUsed).toBe(0);
+    expect(state.characters.find((c) => c.name === "Bystander")?.movementUsed).toBe(0);
   });
 
   it("a player cannot send it: start-combat stays DM-only mid-fight too", () => {
     const { state, goblin, rolls, messages } = table();
-    rolls.handleRollInitiativeAll(state, "dm", true, dieLanding(3, 19));
+    rolls.handleRollInitiativeAll(state, "dm", true, dieLanding(10, 19, 3));
 
     expect(messages.handleStartCombat(state, "player", false)).toEqual({
       broadcast: false,

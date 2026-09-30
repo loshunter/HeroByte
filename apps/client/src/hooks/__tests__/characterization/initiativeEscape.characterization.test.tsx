@@ -85,6 +85,7 @@ function renderOwners(loading: boolean) {
     fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
     fireEvent.change(screen.getByPlaceholderText("Enter roll..."), { target: { value: "11" } });
     fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    expect(props.onSetInitiative).toHaveBeenCalledTimes(1); // one press, one send
     props.onSetInitiative.mockClear();
   }
   return { ...view, props };
@@ -136,11 +137,14 @@ describe("Initiative and underlying production Escape ownership", () => {
     "loading=%s, manual-input Escape leaves underlying selection alone",
     (loading) => {
       const { props } = renderOwners(loading);
-      // A loading dialog's hand entry is already open (its own save); focus it.
+      // A loading dialog's hand entry is already open (its own save): focus it
+      // to Escape from it. A fresh one's autoFocus is what is asserted.
       if (loading) screen.getByPlaceholderText("Enter roll...").focus();
-      else fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
+      else {
+        fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
+        expect(document.activeElement).toBe(screen.getByPlaceholderText("Enter roll..."));
+      }
       const input = screen.getByPlaceholderText("Enter roll...");
-      expect(document.activeElement).toBe(input);
       fireEvent.change(input, { target: { value: "14" } });
 
       const event = escapeFrom(input);

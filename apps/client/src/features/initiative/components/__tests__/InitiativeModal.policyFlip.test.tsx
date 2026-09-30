@@ -49,5 +49,7 @@ describe("InitiativeModal — hand entry after the table turns it off", () => {
     view.rerender(<InitiativeModal {...base(true)} />);
 
     expect(screen.queryByRole("spinbutton")).toBeNull();
+    fireEvent.click(handButton());
+    expect(screen.getByRole("spinbutton")).toHaveValue(null);
   });
 });

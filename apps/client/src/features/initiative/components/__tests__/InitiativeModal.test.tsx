@@ -156,6 +156,8 @@ function renderOwnSave(props: ReturnType<typeof createDefaultProps>) {
   fireEvent.click(screen.getByRole("button", { name: /Physical Dice|by hand/i }));
   fireEvent.change(screen.getByPlaceholderText("Enter roll..."), { target: { value: "11" } });
   fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+  // One press, one send — counted before any case clears the spy.
+  expect(props.onSetInitiative).toHaveBeenCalledTimes(1);
   view.rerender(<InitiativeModal {...props} />);
   return view;
 }
@@ -1452,7 +1454,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
   it("does NOT close when isLoading changes to true", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: false, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     rerender(<InitiativeModal {...props} isLoading={true} />);
 
@@ -1464,7 +1466,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
   it("does NOT close when error is present", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: true, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     rerender(<InitiativeModal {...props} isLoading={false} error="Test error" />);
 
@@ -1476,7 +1478,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
   it("tracks wasLoading state internally", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: false, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     // First render with isLoading=false should not close
     rerender(<InitiativeModal {...props} isLoading={false} />);
@@ -1489,7 +1491,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
   it("does not close on initial render when isLoading=false", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: false, onClose });
-    render(<InitiativeModal {...props} />);
+    renderOwnSave(props);
 
     await waitFor(() => {
       expect(onClose).not.toHaveBeenCalled();
@@ -1499,7 +1501,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
   it("does not close when loading remains true", async () => {
     const onClose = vi.fn();
     const props = createDefaultProps({ isLoading: true, onClose });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     rerender(<InitiativeModal {...props} isLoading={true} />);
 
@@ -1515,7 +1517,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
       error: "Test error",
       onClose,
     });
-    const { rerender } = render(<InitiativeModal {...props} />);
+    const { rerender } = renderOwnSave(props);
 
     rerender(<InitiativeModal {...props} isLoading={false} error="Test error" />);
 
@@ -1936,7 +1938,7 @@ describe("InitiativeModal - Loading State", () => {
     expect(screen.getByText("Setting...")).toBeInTheDocument();
   });
 
-  it("roll request and manual entry still work when loading", () => {
+  it("roll request and manual entry still work while ANOTHER request is in flight", () => {
     const onRollInitiative = vi.fn();
     const props = createDefaultProps({ isLoading: true, onRollInitiative });
     render(<InitiativeModal {...props} />);
@@ -1953,7 +1955,7 @@ describe("InitiativeModal - Loading State", () => {
     expect(screen.getByText(/d20 Roll: 11/)).toBeInTheDocument();
   });
 
-  it("modifier drag still works when loading", () => {
+  it("modifier drag still works while ANOTHER request is in flight", () => {
     const character = createMockCharacter({ initiativeModifier: 0 });
     const props = createDefaultProps({ character, isLoading: true });
     render(<InitiativeModal {...props} />);
