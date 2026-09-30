@@ -304,6 +304,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = (props) => {
       {/* Initiative Modal */}
       {isInitiativeModalOpen && initiativeModalCharacter && initiativeModalAllowed && (
         <InitiativeModal
+          // One instance per character: another's dialog starts fresh.
+          key={initiativeModalCharacter.id}
           character={initiativeModalCharacter}
           onClose={closeInitiativeModal}
           onSetInitiative={(initiative, modifier) => {

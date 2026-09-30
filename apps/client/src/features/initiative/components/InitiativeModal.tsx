@@ -11,7 +11,7 @@ import {
 } from "../../interaction/useEscapeOwner";
 import { createPortal } from "react-dom";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
-import { useOwnSave } from "./dialogGuards";
+import { useInertPage, useOwnSave } from "./dialogGuards";
 import type { SnapshotCharacter } from "@herobyte/shared";
 
 interface InitiativeModalProps {
@@ -55,6 +55,7 @@ export function InitiativeModal({
   // This dialog's OWN save: `isLoading` / `error` are the layout's one hook's,
   // which another character's save or clear drives too (dialogGuards.ts).
   const own = useOwnSave(isLoading, error);
+  useInertPage();
   useEscapeOwner(() => ({
     kind: "modal",
     name: "InitiativeModal",
