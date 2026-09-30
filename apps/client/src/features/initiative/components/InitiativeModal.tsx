@@ -55,7 +55,7 @@ export function InitiativeModal({
   // This dialog's OWN save: `isLoading` / `error` are the layout's one hook's,
   // which another character's save or clear drives too (dialogGuards.ts).
   const own = useOwnSave(isLoading, error);
-  useInertPage();
+  useInertPage(modalRef);
   useEscapeOwner(() => ({
     kind: "modal",
     name: "InitiativeModal",

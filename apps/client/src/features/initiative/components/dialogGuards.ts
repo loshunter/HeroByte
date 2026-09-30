@@ -3,7 +3,8 @@
 // ============================================================================
 // What keeps an initiative dialog about ITS character and nothing else.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { canReturnFocus } from "../../interaction/dismissalFocus";
 
 /**
  * This dialog's own save.
@@ -45,19 +46,33 @@ export function useOwnSave(isLoading: boolean, error: string | null) {
 }
 
 /**
- * The page behind an open dialog is inert (§3.4: dialog focus is contained).
- * The dialog portals to <body>, outside the app's #root, so it stays live;
- * everything in #root — another card's INIT, the DM menu — can be neither
- * tabbed to nor pressed. Without this, Tab then Space on another character's
- * INIT re-rendered the open dialog for that character with the first one's
- * typed number, and Enter on a background button also saved the dialog.
- * A root that was already inert is left as it was found.
+ * The page behind an open dialog is inert (§3.4: dialog focus is contained and
+ * returned). EVERY child of <body> but the dialog's own portal: the app's #root
+ * (another card's INIT, the DM menu) and the windows that portal to <body>
+ * beside it (a character's ⚙ settings window, with its Clear Initiative; the
+ * Help popover). Without this, Tab then Space on another character's INIT
+ * re-rendered the open dialog for that character with the first one's typed
+ * number, and a settings window's clear could land during this dialog's save.
+ * Only what this dialog made inert is restored; focus moves into the dialog on
+ * open and back to what had it (the INIT button, usually) on close.
  */
-export function useInertPage(): void {
+export function useInertPage(own: RefObject<HTMLElement>): void {
   useEffect(() => {
-    const root = document.getElementById("root");
-    if (!root || root.hasAttribute("inert")) return;
-    root.setAttribute("inert", "");
-    return () => root.removeAttribute("inert");
-  }, []);
+    const opener = document.activeElement as HTMLElement | null;
+    const mine = own.current;
+    const madeInert: Element[] = [];
+    for (const child of Array.from(document.body.children)) {
+      if (mine && child.contains(mine)) continue;
+      if (child.hasAttribute("inert")) continue;
+      child.setAttribute("inert", "");
+      madeInert.push(child);
+    }
+    mine
+      ?.querySelector<HTMLElement>("button:not([disabled]), input")
+      ?.focus({ preventScroll: true });
+    return () => {
+      for (const child of madeInert) child.removeAttribute("inert");
+      if (canReturnFocus(opener)) opener.focus({ preventScroll: true });
+    };
+  }, [own]);
 }
