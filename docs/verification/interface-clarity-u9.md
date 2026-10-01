@@ -1,7 +1,7 @@
 # U9 — The Table, role, personal preferences and recovery are separate
 
-Status: **committed on `dev` on the owner's word (2026-10-01), local and unpushed: sixteen own fix
-commits (`0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`, `8996993a`,
+Status: **committed on `dev` on the owner's word and pushed to `origin/dev` the same day, 2026-10-01
+(`main` is a separate step): sixteen own fix commits (`0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`, `8996993a`,
 `c44ad4b6`, `a4ac5402`, `a89d2d60`, `ab4da6a2`, `9b88518c`, `8ad5ed24`, `4cdcf1e2`, `1c67afa7`,
 `ebbd20e4`), the slice itself (`94521e4e`) and one fix after it, the leave latch (`0b3f1f9d`).
 Review ran its three rounds and ended at the cap without an all-PASS verdict (round 1: 1 P1 and 13
@@ -138,7 +138,7 @@ forward (U8 added it as a compatibility pointer; the plan retires such forwardin
 new home works, and Encounter is a tab of its own), the Session tab's “N players currently online”
 line (each seat's row says whether it is at the table; nothing shows the count) and the red EXIT DM
 MODE button (Your role, at the top of the Table tab, has Leave DM mode). An outside read of the
-slice noticed all three.
+slice noticed all three, and the owner agreed to leave the count out (2026-10-01).
 
 **Backups say their scope before a file is chosen.** **Download table backup** / **Restore table
 backup…** are “Table backup — the whole table”, with the server's own automatic saving stated
@@ -1340,6 +1340,12 @@ were defects, each checked against the code before it was touched:
 ## Questions for the owner
 
 Nothing below blocks acceptance; each is a choice the slice did not make for you.
+
+**Answered by the owner, 2026-10-01.** Question 12: no further review: the owner's own read covered
+the whole tree after round 3's repairs and the three commits after it, and the slice is pushed to
+`dev`. The dropped “N players currently online” line stays out (the Players section lists who is at
+the table). Merging to `main` is a separate step, and the ladder (`/verify-gates`, `evaluate-live`,
+`review-convergence`) applies to it: `main` is production.
 
 1. **Session identity, not U9 — the two-table lockout** (live finding 3). A player who uses one
    browser (one uid) for two tables is turned away from the first after a server restart that

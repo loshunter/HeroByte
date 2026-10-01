@@ -11,16 +11,18 @@ and latest execution ledger before relying on these identifiers.
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
 **Latest U9 frontier (2026-10-01):** U9 (the Table, role, personal preferences and recovery are
-separate) is committed on `dev` as `94521e4e`, on the owner's word, above sixteen local, unpushed
-fix commits (`0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`, `8996993a`,
+separate) is committed on `dev` as `94521e4e`, on the owner's word, above sixteen fix commits
+(`0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`, `8996993a`,
 `c44ad4b6`, `a4ac5402`, `a89d2d60`, `ab4da6a2`, `9b88518c`, `8ad5ed24`, `4cdcf1e2`, `1c67afa7`,
 `ebbd20e4`), with one more after it (`0b3f1f9d`, the leave latch). Review stopped at the 3-round
 cap without an all-PASS round (P1 1 → 1 → 0, P2 13 → 7 → 8) and every item is repaired; the ladder
 is green on the committed tree and the live two-client evaluation scores 8.0; an outside read of
-the finished slice found it sound and three things to fix, all fixed. Nothing is pushed; pushing to `dev` waits for the owner's word, and main stays theirs.
-Read [the U9 record](../verification/interface-clarity-u9.md) first; its “Questions for the owner”
-lists fourteen open choices, the first a session-identity finding that is not U9's and the
-twelfth whether the round-3 repairs need one more review.
+the finished slice found it sound and three things to fix, all fixed. It is pushed to
+`origin/dev` (the owner's word, 2026-10-01); merging to `main` is a separate step, with the ladder
+(`/verify-gates`, `evaluate-live`, `review-convergence`) and the owner's word, and `main` is
+production. Read [the U9 record](../verification/interface-clarity-u9.md) first; its “Questions for
+the owner” lists fourteen choices: the owner answered 12 (no further review) and left the dropped
+online count out, and the first, a session-identity finding that is not U9's, is still open.
 
 **Previous U8 frontier (2026-09-29):** U8 (Encounter is the single combat home) is
 accepted by the owner (2026-09-30) and committed on `dev` above nineteen local, unpushed
