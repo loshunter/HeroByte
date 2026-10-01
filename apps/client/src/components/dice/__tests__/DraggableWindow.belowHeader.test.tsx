@@ -156,7 +156,22 @@ describe("DraggableWindow — opens below the header's controls", () => {
     expect(windowOf(container).style.maxHeight).toContain("184px");
   });
 
-  it("never moves a window the player has already placed", () => {
+  it("never moves a window the player has already placed below the header's controls", () => {
+    mount(header([180]));
+    window.localStorage.setItem("herobyte-window-position-test", JSON.stringify({ x: 40, y: 300 }));
+    const { container } = render(
+      <DraggableWindow title="Dice Roller" storageKey="test" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    expect(windowOf(container).style.top).toBe("300px");
+  });
+
+  // A remembered place is not a licence to lie over the header: the Dice and Chat buttons are
+  // the way to close the window, and a window over them cannot be closed by them. And a place
+  // over the controls was often never chosen: until a click on a title bar stopped saving, any
+  // click did — at the window's default y, which a DM's taller header has since grown past.
+  it("lifts a remembered place that lies over the header's controls, to just under them", () => {
     mount(header([180]));
     window.localStorage.setItem("herobyte-window-position-test", JSON.stringify({ x: 40, y: 20 }));
     const { container } = render(
@@ -164,7 +179,22 @@ describe("DraggableWindow — opens below the header's controls", () => {
         <div>Content</div>
       </DraggableWindow>,
     );
-    expect(windowOf(container).style.top).toBe("20px");
+    expect(windowOf(container).style.top).toBe("184px");
+    expect(windowOf(container).style.left).toBe("40px");
+  });
+
+  it("lifts the default y an old title-bar click saved, over a DM's three-row header", () => {
+    mount(header([60, 90, 117]));
+    window.localStorage.setItem(
+      "herobyte-window-position-test",
+      JSON.stringify({ x: 860, y: 100 }),
+    );
+    const { container } = render(
+      <DraggableWindow title="Chat & Rolls" storageKey="test" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    expect(windowOf(container).style.top).toBe("121px");
   });
 });
 
@@ -340,16 +370,34 @@ describe("DraggableWindow — follows the header until the player places it", ()
     expect(JSON.parse(window.localStorage.getItem(key) ?? "null")).toEqual({ x: 40, y: 30 });
   });
 
-  it("does not follow a position the player already placed in an earlier visit", () => {
-    window.localStorage.setItem("herobyte-window-position-test", JSON.stringify({ x: 40, y: 20 }));
+  it("does not follow a position placed below the controls in an earlier visit", () => {
+    window.localStorage.setItem("herobyte-window-position-test", JSON.stringify({ x: 40, y: 100 }));
     const header = growableHeader(60);
     const { container } = render(
       <DraggableWindow title="Dice Roller" storageKey="test" initialY={100}>
         <div>Content</div>
       </DraggableWindow>,
     );
+    expect(windowOf(container).style.top).toBe("100px");
     header.grow(180);
-    expect(windowOf(container).style.top).toBe("20px");
+    expect(windowOf(container).style.top).toBe("100px");
+  });
+
+  it("follows the header like a fresh window when its remembered place was over the controls", () => {
+    // Lifted at the start, it was never a place worth keeping: it goes on down with the header,
+    // and (like every window) never back up.
+    window.localStorage.setItem("herobyte-window-position-test", JSON.stringify({ x: 40, y: 20 }));
+    const header = growableHeader(120);
+    const { container } = render(
+      <DraggableWindow title="Dice Roller" storageKey="test" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    expect(windowOf(container).style.top).toBe("124px");
+    header.grow(200);
+    expect(windowOf(container).style.top).toBe("204px");
+    header.grow(120);
+    expect(windowOf(container).style.top).toBe("204px");
   });
 
   // A browser resize clamps a window that has ended up off the screen, and used to SAVE the

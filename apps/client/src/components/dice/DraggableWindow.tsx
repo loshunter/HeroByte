@@ -53,10 +53,16 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   // Where the current press began, and whether it has travelled far enough to be a drag.
   const pressOrigin = useRef({ x: 0, y: 0 });
   const draggedRef = useRef(false);
-  // The remembered place, if the window has a storageKey and was left somewhere.
+  // The remembered place, if the window has a storageKey and was left somewhere. One that lies
+  // over the header's controls is not kept: it covers the buttons that close the window, and it
+  // was often never chosen (until a click on a title bar stopped saving, any click saved the
+  // window's default y, which a taller header has since grown past). Such a window opens under
+  // the controls and goes on following the header like a fresh one.
   const getInitialPosition = () => {
     const remembered = storageKey ? loadWindowPosition(storageKey) : null;
     if (remembered) {
+      const y = belowHeader(remembered.y);
+      if (y !== remembered.y) return { x: remembered.x, y };
       placedRef.current = true;
       return remembered;
     }
