@@ -1,4 +1,4 @@
-import { AREA_TEMPLATE_TOOLS, type DrawTool } from "@herobyte/shared";
+import { AREA_TEMPLATE_TOOLS, type AreaTemplateTool, type DrawTool } from "@herobyte/shared";
 
 export const DRAWING_TOOL_LABELS = {
   freehand: "Freehand",
@@ -11,6 +11,20 @@ export const DRAWING_TOOL_LABELS = {
   "template-square": "AoE Cube",
   "template-line": "AoE Bolt",
 } satisfies Record<DrawTool, string>;
+
+// The shape each template draws, in plain words: the labels are 5e's, and a
+// newcomer cannot read "Burst" or "Bolt" as a shape. Shown beside the tool once
+// it is active (a phone has no hover) and as the desktop button's tooltip.
+export const TEMPLATE_TOOL_DESCRIPTIONS = {
+  "template-circle":
+    "Burst: a circle around the nearest cell centre, grid corner or cell-edge middle to where you press. Drag out to set its radius.",
+  "template-cone":
+    "Cone: a wedge that fans out from the nearest cell centre, grid corner or cell-edge middle to where you press, toward where you drag.",
+  "template-square":
+    "Cube: a square with one corner on the grid corner nearest where you press. Drag toward where it should grow; the longer distance sets its side.",
+  "template-line":
+    "Bolt: a straight line, one square wide, from the nearest cell centre, grid corner or cell-edge middle to where you press toward where you drag.",
+} satisfies Record<AreaTemplateTool, string>;
 
 export const DRAWING_TOOL_ICONS: Record<DrawTool, string> = {
   freehand: "✏️",

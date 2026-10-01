@@ -48,10 +48,8 @@ pnpm dev:client  # Terminal 2
 
 **To Change Passwords:**
 
-1. Connect as DM
-2. Open DM Menu
-3. Update Room Password and/or DM Password
-4. Share new room password with players
+- **The default table (Main Hall):** its passwords are set on the server (see [`DEPLOYMENT.md`](../DEPLOYMENT.md)) and cannot be changed from inside the app.
+- **A private table:** DM Menu → Table → Security → change the table password, then share the new one with your players. A private table's DM password is the one chosen when the table is made, or set by the first person to enter DM mode on a table made without one (so set it yourself straight away); no screen changes it after that.
 
 ## DM Prep Steps (30 minutes before game)
 
@@ -59,7 +57,7 @@ pnpm dev:client  # Terminal 2
 
 1. Navigate to http://localhost:5174
 2. Enter room password: `Fun1`
-3. Click "ENTER ROOM"
+3. Click "ENTER TABLE"
 4. Open the Table button at the left of the header (on a phone: Tools → Table), choose "Enter DM mode", and enter DM password: `FunDM`
 
 ### Step 2: Upload Map
@@ -88,7 +86,7 @@ pnpm dev:client  # Terminal 2
 
 1. Select "Draw" tool
 2. Draw a few test marks
-3. Test "Erase" tool (including partial erase)
+3. Test "Erase drawings" tool (including partial erase)
 4. Clear test drawings
 5. Verify undo/redo works
 
@@ -113,11 +111,11 @@ Welcome to HeroByte!
 
 2. Enter the room password: Fun1
 
-3. Click ENTER ROOM
+3. Click ENTER TABLE
 
 4. You'll see your token appear on the map!
 
-5. Click your player card (right side) to:
+5. Click your row in the Party bar (bottom of the screen) to:
    - Set your character name
    - Upload a portrait
    - Set your HP
@@ -134,7 +132,7 @@ Need help? Ask the DM!
 
 **HP Tracking:**
 
-- Click your player card (right panel)
+- Click your row in the Party bar (bottom of the screen)
 - Update HP in the input field
 - Press Enter to save
 
@@ -149,7 +147,7 @@ Need help? Ask the DM!
 
 - Click "Draw" tool
 - Draw on map (your drawings only)
-- Use "Erase" to remove mistakes
+- Use "Erase drawings" to remove mistakes
 
 **Voice Chat:**
 
@@ -171,12 +169,12 @@ Need help? Ask the DM!
 
 **Drawing Tools:**
 
-- Draw: Freehand drawing
+- Freehand: Freehand drawing
 - Line: Straight lines
 - Rectangle: Boxes
 - Circle: Circles
-- Erase: Remove drawings (supports partial erase)
-- Clear All: Removes all drawings
+- Erase drawings: Remove drawings (supports partial erase)
+- Clear all drawings: Removes all drawings
 
 **Session Management:**
 
@@ -201,7 +199,7 @@ Need help? Ask the DM!
 
 **Stats:**
 
-- HP: Edit in player card
+- HP: your row in the Party bar
 - Name: Click name to edit
 - Portrait: Click portrait to upload
 

@@ -76,7 +76,7 @@ test("a player returns from drawing to movement and finds shared chat and rememb
     await player.getByRole("button", { name: "✥ Move", exact: true }).click();
     await expect(closeDrawingTools).toBeHidden();
     // Empty-table arrivals start at (0,0), behind the fixed header. Use the
-    // player's own visible focus action; Recenter would put it back at (0,0).
+    // player's own visible focus action; Reset view would put it back at (0,0).
     await ownRosterRow(player)
       .getByRole("button", { name: /^Focus / })
       .click();

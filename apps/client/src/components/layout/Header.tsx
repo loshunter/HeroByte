@@ -7,6 +7,7 @@ import { activatePanelLauncher } from "../../features/interaction/useExplicitDis
 
 import React from "react";
 import "./Header.css";
+import { PING_TITLE, RESET_VIEW_TITLE } from "./viewWords";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { HelpMenuButton } from "../../features/help/HelpMenuButton";
 import { TableMenu } from "../../features/table/TableMenu";
@@ -150,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
                   variant={pointerMode ? "primary" : "default"}
                   aria-pressed={pointerMode}
                   style={{ fontSize: "8px", padding: "4px 10px" }}
-                  title="Point at locations on the map (visible to others)"
+                  title={PING_TITLE}
                 >
                   👆 Ping
                 </JRPGButton>
@@ -215,9 +216,10 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={onResetCamera}
                   variant="default"
                   style={{ fontSize: "8px", padding: "4px 10px" }}
-                  title="Reset camera to center of map"
+                  title={RESET_VIEW_TITLE}
+                  aria-label="Reset view"
                 >
-                  🧭 Recenter
+                  🧭 Reset
                 </JRPGButton>
 
                 {isDM && (

@@ -28,9 +28,17 @@ const MODES: { value: DiceRollMode; label: string; title: string }[] = [
 ];
 
 const VISIBILITIES: { value: DiceVisibility; label: string; title: string }[] = [
-  { value: "public", label: "TABLE", title: "Everyone sees this roll" },
-  { value: "dm", label: "DM", title: "Only you and the DM see this roll" },
-  { value: "self", label: "ME", title: "Only you see this roll — the DM included" },
+  { value: "public", label: "TABLE", title: "Everyone at the table sees this roll." },
+  {
+    value: "dm",
+    label: "DM",
+    title: "Only you and whoever is in DM mode, now or later, see this roll.",
+  },
+  {
+    value: "self",
+    label: "ME",
+    title: "Only you see this roll. No other player or DM is sent it.",
+  },
 ];
 
 export const RollOptions: React.FC<RollOptionsProps> = ({
@@ -78,7 +86,7 @@ export const RollOptions: React.FC<RollOptionsProps> = ({
             onClick={() => onVisibilityChange(option.value)}
             variant={visibility === option.value ? "primary" : "default"}
             disabled={disabled}
-            title={option.title}
+            title={compact ? undefined : option.title}
             aria-pressed={visibility === option.value}
             style={buttonStyle}
           >
@@ -86,6 +94,14 @@ export const RollOptions: React.FC<RollOptionsProps> = ({
           </JRPGButton>
         ))}
       </div>
+      {/* A tooltip never shows on a phone, and who can read a roll is the one thing
+          here a mistake leaks. */}
+      <p
+        data-testid="roll-audience"
+        style={{ margin: 0, font: "11px/1.4 system-ui, sans-serif", color: "var(--jrpg-white)" }}
+      >
+        {VISIBILITIES.find((option) => option.value === visibility)?.title}
+      </p>
     </div>
   );
 };

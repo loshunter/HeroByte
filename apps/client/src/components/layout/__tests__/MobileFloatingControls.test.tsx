@@ -166,11 +166,11 @@ describe("MobileFloatingControls", () => {
       expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("dm");
     });
 
-    it("a DM keeps reset-camera: Recenter sits in the tool sheet and closes it", () => {
+    it("a DM keeps reset-camera: Reset view sits in the tool sheet and closes it", () => {
       const props = createProps({ isDM: true, surface: "tools" });
       render(<MobileFloatingControls {...props} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /recenter/i }));
+      fireEvent.click(screen.getByRole("button", { name: /reset view/i }));
 
       expect(props.onResetCamera).toHaveBeenCalledTimes(1);
       expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("tools");

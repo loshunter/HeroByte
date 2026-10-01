@@ -215,7 +215,7 @@ test.describe("the Token Library", () => {
 
     try {
       await openLibrary(page);
-      await page.getByRole("button", { name: "Custom" }).click();
+      await page.getByRole("button", { name: "This table", exact: true }).click();
       const form = page.getByTestId("custom-token-form");
       // ⬆ UPLOAD, not a pasted path: it exercises the road a DM actually
       // takes from a phone's camera roll, and it is the "already ours" branch
@@ -285,7 +285,7 @@ test.describe("the Token Library", () => {
       const cell = page.getByRole("button", { name: NAME, exact: true });
       await expect(cell).toBeVisible();
       await expect(cell.locator("img")).toHaveAttribute("src", added!.thumbUrl!);
-      await expect(cell.locator("xpath=..").getByText("MINE")).toBeVisible();
+      await expect(cell.locator("xpath=..").getByText("ADDED", { exact: true })).toBeVisible();
       await cell.click();
       await expect
         .poll(async () =>

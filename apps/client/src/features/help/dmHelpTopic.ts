@@ -45,9 +45,9 @@ export const DM_HELP_TOPIC: HelpTopic = {
         "Enemy, Neutral or Ally — what an NPC’s Party row says and its card wears, in red, gold or green. Townsfolk arrive Neutral and monsters Enemy; change it on the NPC’s Stance select in the DM menu. Players see it, so a disguised enemy is one you set Neutral.",
     },
     {
-      term: "CUSTOM (your own tokens)",
+      term: "THIS TABLE (the table’s own tokens)",
       detail:
-        "The Library’s CUSTOM chip is this table’s own shelf: upload an image or paste an https link, give it a name, tags, a size and a stance, and it searches and picks like the pack’s. Keep a copy on this table is offered for any https link and tries to copy it into the table’s storage so the token outlives the host; some hosts (Discord) refuse, and then the link stays and a line says so.",
+        "The Library’s THIS TABLE chip is the table’s own shelf, and its tokens wear an ADDED badge: upload an image or paste an https link, give it a name, tags, a size and a stance, and it searches and picks like the pack’s. Players never receive the shelf. Keep a copy on this table is offered for any https link and tries to copy it into the table’s storage so the token outlives the host; some hosts (Discord) refuse, and then the link stays and a line says so.",
     },
     {
       term: "⧉ Duplicate",

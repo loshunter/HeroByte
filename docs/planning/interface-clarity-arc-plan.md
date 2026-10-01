@@ -1,5 +1,21 @@
 # Interface clarity — the first session should teach the table — arc plan
 
+> **STATUS: U10a (THE WORDS) ACCEPTED AND COMMITTED ON `dev` (NOT PUSHED) — 2026-10-01.**
+> U10 was split into U10a (words), U10b (keyboard, focus, touch) and U10c (journeys, the audit
+> ledger, the comparison report, the arc-level review). U10a is accepted and committed: the four template shapes say what they draw; the camera reset is **Reset view**
+> (origin at the top-left at 100%, not "centre of map"); one list of words for Populate/Generate
+> chips on both layouts; the shelf chip is **This table** (badge ADDED); private-dice copy says what
+> the server does; the Table button drops the role word for players; a file that is none of
+> HeroByte's kinds is named as such (never stricter than the server); guides and 43 screenshots
+> brought in line. Review ended at the 3-round cap with every P1/P2 repaired and one fresh read of
+> the repairs (round counts in the record); ladder green (321 browser/3 skips, 7,703 client units,
+> 157.94 KB). A targeted live re-check after the repairs passed (not scored; one measured limit: a height-capped
+> phone sheet moves the chips ~46 px). U10b's starting list and the open questions are
+> in [the U10a record](../verification/interface-clarity-u10a.md). U10b, U10c, and the merge to
+> `main` are not started.
+>
+> Previous status (U9):
+>
 > **STATUS: U9 COMMITTED ON AND PUSHED TO `dev` (NOT `main`), REVIEW ENDED AT THE CAP — 2026-10-01.**
 > U9 (the Table, role, personal preferences and recovery are separate: a Table button in the
 > header and Tools → Table on the phone; Players and Session merged into one DM Menu → Table

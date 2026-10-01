@@ -1,8 +1,14 @@
-import { AREA_TEMPLATE_TOOLS, type DrawTool } from "@herobyte/shared";
+import { AREA_TEMPLATE_TOOLS, type AreaTemplateTool, type DrawTool } from "@herobyte/shared";
 import { CancelGestureButton } from "../../interaction/CancelGestureButton";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
-import { ANNOTATION_TOOLS, DRAWING_TOOL_ICONS, DRAWING_TOOL_LABELS } from "../drawingTools";
+import {
+  ANNOTATION_TOOLS,
+  DRAWING_TOOL_ICONS,
+  DRAWING_TOOL_LABELS,
+  TEMPLATE_TOOL_DESCRIPTIONS,
+} from "../drawingTools";
+import { TemplateToolHint } from "./TemplateToolHint";
 import { DrawingSettings, type DrawingSettingsProps } from "./DrawingSettings";
 
 export interface DrawingToolbarProps extends DrawingSettingsProps {
@@ -34,6 +40,11 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         key={tool}
         onClick={() => onToolChange(tool)}
         aria-pressed={drawTool === tool}
+        title={
+          tool in TEMPLATE_TOOL_DESCRIPTIONS
+            ? TEMPLATE_TOOL_DESCRIPTIONS[tool as AreaTemplateTool]
+            : undefined
+        }
         variant={drawTool === tool ? "primary" : "default"}
         style={{
           fontSize: "8px",
@@ -63,6 +74,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
             <div className="drawing-toolbar__tools">{tools(ANNOTATION_TOOLS)}</div>
             <h4 className="drawing-section-title">Area templates</h4>
             <div className="drawing-toolbar__tools">{tools(AREA_TEMPLATE_TOOLS)}</div>
+            <TemplateToolHint tool={drawTool} />
             <p className="drawing-toolbar__help">
               Drag from the origin; size snaps to whole squares.
             </p>

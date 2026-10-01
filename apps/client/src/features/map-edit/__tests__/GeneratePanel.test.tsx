@@ -26,6 +26,14 @@ function renderPanel(overrides: Partial<Parameters<typeof GeneratePanel>[0]> = {
 }
 
 describe("GeneratePanel", () => {
+  it("names its density chips Low / Medium / High, as Populate does, and marks the chosen one", () => {
+    renderPanel();
+    expect(screen.getByRole("button", { name: "Medium" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Low" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "High" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("button", { name: "medium" })).toBeNull();
+  });
+
   it("asks for a drag before a region exists", () => {
     renderPanel({ region: null, canGenerate: false });
 
@@ -91,7 +99,7 @@ describe("GeneratePanel", () => {
   it("changes the density", () => {
     const props = renderPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: "high" }));
+    fireEvent.click(screen.getByRole("button", { name: "High" }));
 
     expect(props.onChange).toHaveBeenCalledWith({ ...params, density: "high" });
   });

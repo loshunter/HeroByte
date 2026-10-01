@@ -34,8 +34,15 @@ vi.mock("../../ui/JRPGPanel", () => ({
     variant,
     style,
     title,
+    "aria-label": ariaLabel,
   }: React.ComponentProps<typeof JRPGButton>) => (
-    <button onClick={onClick} data-variant={variant} style={style} title={title}>
+    <button
+      onClick={onClick}
+      data-variant={variant}
+      style={style}
+      title={title}
+      aria-label={ariaLabel}
+    >
       {children}
     </button>
   ),
@@ -333,7 +340,7 @@ describe("Header", () => {
   describe("Reset Camera Button", () => {
     it("should render with correct text and variant", () => {
       render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "🧭 Recenter" });
+      const button = screen.getByRole("button", { name: "Reset view" });
 
       expect(button).toBeInTheDocument();
       expect(button).toHaveAttribute("data-variant", "default");
@@ -341,7 +348,7 @@ describe("Header", () => {
 
     it("should call onResetCamera on click without affecting other handlers", () => {
       render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "🧭 Recenter" });
+      const button = screen.getByRole("button", { name: "Reset view" });
 
       fireEvent.click(button);
 

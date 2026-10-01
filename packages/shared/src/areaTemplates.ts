@@ -108,8 +108,8 @@ export interface BuiltAreaTemplate {
 }
 
 /**
- * Snap to the nearest HALF grid step, which lands on cell centres and cell
- * corners alike. A circle centred on a token (cell centre, per
+ * Snap to the nearest HALF grid step on each axis, which lands on cell centres,
+ * cell corners and the middles of cell edges alike. A circle centred on a token (cell centre, per
  * `gridCellToWorldPoint`) and a cone breathed from a corner are both one
  * gesture away; snapping to corners only would put every burst off-centre from
  * the creature casting it.

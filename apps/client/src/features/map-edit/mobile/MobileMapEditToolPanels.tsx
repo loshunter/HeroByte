@@ -199,7 +199,7 @@ function ToolDials({
   if (activeSubTool === "spline") {
     return (
       <MobileSwatchRow
-        label="Curve"
+        label="Rope / curve style"
         options={SPLINE_KINDS}
         selected={splineKind}
         onSelect={onSelectSplineKind}

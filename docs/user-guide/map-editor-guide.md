@@ -31,7 +31,7 @@ Things to know before your first wall:
 - Tokens don't respond to clicks while you're editing — leave the mode to move them.
 - If the table still has a raster background image, the palette warns you: live terrain and a background photo fight visually. Clear the background (DM Menu → Maps → Current table map) for a clean canvas.
 
-## 🏠 Room and 🚇 Hall — the structural tools
+## 🏠 Room and 🚇 Hallway — the structural tools
 
 **Room** drags a rectangle; on release you get floor terrain and a real blocking wall around the perimeter — one committed room, one undo step. The selected wall-ring material also paints a wall band; **None** omits that paint while keeping the blocking perimeter. The preview shows the true baked art plus a live `cols × rows` readout while you drag.
 
@@ -42,7 +42,7 @@ Things to know before your first wall:
 
 ![A committed room: floor, wall band, and blocking walls](img/mapedit-room-done.jpg)
 
-**Hall** is the corridor sibling: drag along its length, choose **Width (cells)** 1–4, and only the two long sides get walls — the ends stay open for connecting. **Side walls** picks their style from the same choices as the wall ring. Halls and rooms are polite neighbors: where they touch an existing floor, the shared wall band steps aside.
+**Hallway** is the corridor sibling: drag along its length, choose **Width (cells)** 1–4, and only the two long sides get walls — the ends stay open for connecting. **Side walls** picks their style from the same choices as the wall ring. Hallways and rooms are polite neighbors: where they touch an existing floor, the shared wall band steps aside.
 
 ![A hallway heading east from the room](img/mapedit-hall.jpg)
 
@@ -96,7 +96,7 @@ footprint (one stroke, one undo). It only erases terrain paint; placed objects c
 off with Select + Inspect → DELETE. Cancel a pending stroke with Escape or Stop
 before releasing to leave the map unchanged.
 
-## 📦 Place, 🎲 Scatter, and 📏 Row — set dressing
+## 📦 Place, 🎲 Scatter, and 📏 Repeat along line — set dressing
 
 Three tools share one **asset picker**:
 
@@ -109,7 +109,7 @@ Three tools share one **asset picker**:
   choosing a card arms it, and placing still takes a separate action on the map.
 - **Place**: click to drop grid-snapped; **hold Alt** for a free-floating stamp at any angle; **R / Shift+R** rotates in 15° steps. A ghost previews the exact landing spot.
 - **Scatter**: one click throws a natural-looking cluster of seven — same spot, same scatter, so you can undo and redo identically.
-- **Row**: drag a line and the asset repeats along it with lived-in jitter and the occasional gap — fences, torch-lined corridors, market stalls.
+- **Repeat along line**: drag a line and the asset repeats along it with lived-in jitter and the occasional gap — fences, torch-lined corridors, market stalls.
 - **Sample**: click a paintable material to select it and arm **Paint terrain**;
   sample an object or another asset to arm **Place object**. The tool and selection
   remain above **Done building** in the desktop palette. **Ctrl/Cmd-click**
@@ -119,8 +119,8 @@ Three tools share one **asset picker**:
 
 In **Structures**, choose **Room** or **Hallway**. After drawing, the named outline
 marks the last region you placed. Its decoration settings offer a category —
-**Objects, Structures, Terrain, Decals** (the phone uses **Structs** and **Wear**)
-— and a density (low / medium / high).
+**Objects, Structures, Terrain, Decals** (the same words on the phone)
+— and a density (Low / Medium / High).
 Translucent ghosts preview the stamps. **Decorate last room** or **Decorate last
 hallway** commits the fill as one undo step. It consumes that target once; draw a
 new room or hallway for another fill. This does not decorate an arbitrary selected
@@ -132,7 +132,7 @@ and explain why.
 
 ![A populated hallway: set dressing where it belongs](img/mapedit-populated.jpg)
 
-## 🏰 Gen — the dungeon generator
+## 🏰 Generate — the dungeon generator
 
 In **Generate**, arm **Generate area** and drag a region (at least **20×20 cells** — zoom out if needed); the panel shows its **Region** size. Pick a theme (**🪨 Stone / 🪵 Wood**) and density, and press **🎲 Generate in this area**:
 
@@ -143,13 +143,13 @@ In **Generate**, arm **Generate area** and drag a region (at least **20×20 cell
 
 ## 👆 Select and 🔍 Inspect — precision edits
 
-**Select** clicks the topmost element under the cursor — **everything you can place**: objects, floor tiles, shapes, walls, doors, lights, text and splines. **Inspect** then edits it numerically: X/Y, scale, rotation, layer, a **Hidden** checkbox, **DELETE** — and the door state controls.
+**Select** clicks the topmost element under the cursor — **everything you can place**: objects, floor tiles, shapes, walls, doors, lights, text and ropes and curves. **Inspect** then edits it numerically: X/Y, scale, rotation, layer, a **Hidden** checkbox, **DELETE** — and the door state controls.
 
-Walls, doors and splines are thin, and lights are a single point, so those are caught by proximity: click within half a cell and the dashed outline traces what you actually got. It follows the wall itself rather than boxing it, so you can see you have the right one before you delete it. Where a door crosses a wall the **door** wins, since that is what you were almost certainly aiming at. A light's ring is drawn at that same half-cell — worth knowing, because a light with the Lighting layer at full day draws nothing else at all.
+Walls, doors and ropes and curves are thin, and lights are a single point, so those are caught by proximity: click within half a cell and the dashed outline traces what you actually got. It follows the wall itself rather than boxing it, so you can see you have the right one before you delete it. Where a door crosses a wall the **door** wins, since that is what you were almost certainly aiming at. A light's ring is drawn at that same half-cell — worth knowing, because a light with the Lighting layer at full day draws nothing else at all.
 
 Two things Select still cannot reach. A room's **floor is terrain**, not an element, so it comes off with **🧹 Erase**. And a room's walls are separate pieces — deleting one cuts a gap rather than removing the room, which is what you want when you are opening a doorway.
 
-## 〰️ Spline — rope, chain, ribbon, filigree
+## 〰️ Rope / curve — rope, chain, ribbon, filigree
 
 Drag two anchors: **Rope** and **Chain** sag naturally; **Ribbon** and **Filigree** run straight. Dockside rigging, chained gates, ceremonial bunting.
 
@@ -198,7 +198,7 @@ The dock becomes five slots:
 | Slot                | What it does                                                                                                                                                                                                                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **✕ Done**          | Leaves the mode. The map stays live.                                                                                                                                                                                                                                                                    |
-| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then Tool group, **👆 Select**, that tool's own dials, and **◇ Recenter**. Picking a tool with no dials closes the sheet, because you picked it in order to use it; a tool that _has_ dials leaves it open so you can set them. |
+| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then Tool group, **👆 Select**, that tool's own dials, and **◇ Reset view**. Picking a tool with no dials closes the sheet, because you picked it in order to use it; a tool that _has_ dials leaves it open so you can set them. |
 | **↶ Undo / ↷ Redo** | The same map-edit history the desktop palette drives. Both stay greyed until the map is live.                                                                                                                                                                                                           |
 | **Stop**         | Abandons the drag in progress.                                                                                                                                                                                                                                                                          |
 
@@ -244,7 +244,7 @@ Scatter or Paint armed while sampling.
 
 > **🗂 Layers.** In the tool sheet, beside Select. Each layer gets a show/hide eye, a lock, and an opacity slider — and **the Lighting layer's opacity is the ambient light**: 1 is broad day, and torch pools only start to glow as you bring it down. That is how you make it night from a tablet. Reordering the stack stays on the desktop.
 
-> **Deleting on a phone.** Tap **⚒ Tool**, tap **👆 SELECT**, then tap the thing on the map — the sheet names what you picked — and tap **🗑 DELETE**. Select reaches everything you can place: objects, floor tiles, shapes, walls, doors, lights, text and splines. Walls and the like are thin, so you get a half-cell of slack — tap near one and it will take it, and the dashed outline traces what you actually caught before you commit to deleting it.
+> **Deleting on a phone.** Tap **⚒ Tool**, tap **👆 SELECT**, then tap the thing on the map — the sheet names what you picked — and tap **🗑 DELETE**. Select reaches everything you can place: objects, floor tiles, shapes, walls, doors, lights, text and ropes and curves. Walls and the like are thin, so you get a half-cell of slack — tap near one and it will take it, and the dashed outline traces what you actually caught before you commit to deleting it.
 >
 > On a phone the sheet covers the map, so Select takes two extra taps: arm it, close the sheet with **✕**, tap the thing, then reopen **⚒ Tool** — your pick is still there, with **Properties** and **Delete** under it. On a tablet there is room for both at once and you can skip that.
 >

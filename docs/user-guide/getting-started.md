@@ -84,7 +84,7 @@ Good to know:
 
 Any player at a table can enter **DM mode** with that table's DM password. DM mode is the table's, not a character's, so it lives in the **Table menu**:
 
-1. Press the **Table button** at the left of the header — it shows the table's name, your role, and a dot for the connection. (On a phone: **⚒ TOOLS → Table**.) Right after you create a table, the next-steps card's **Enter DM mode** does the same thing.
+1. Press the **Table button** at the left of the header — it shows the table's name and a dot for the connection (a DM also sees **DM** on it; your role is in the menu). (On a phone: **⚒ TOOLS → Table**.) Right after you create a table, the next-steps card's **Enter DM mode** does the same thing.
 2. Under **Your role**, press **ENTER DM MODE**.
 3. Type the DM password and press **ENTER DM MODE**.
 

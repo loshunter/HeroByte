@@ -7,6 +7,7 @@ import { boundPalette } from "../../../features/map-edit/__tests__/characterizat
 import { TOOL_DESCRIPTORS } from "../../../features/map-edit/mapEditToolDescriptors";
 afterEach(cleanup);
 import { isTouchTool } from "../../../features/map-edit/mapEditToolKinds";
+import { RESET_VIEW_TITLE } from "../viewWords";
 import {
   TOUCH_TOOL_COUNT,
   MOBILE_TOOL_TILES,
@@ -85,7 +86,7 @@ describe("once live", () => {
     expect(within(dock()).getByRole("button", { name: /Redo/ })).toBeEnabled();
   });
 
-  it("keeps Recenter reachable — the mode costs the DM the normal tool sheet", () => {
+  it("keeps Reset view reachable — the mode costs the DM the normal tool sheet", () => {
     const onResetCamera = vi.fn();
     const onToggleSurface = vi.fn();
     render(
@@ -99,7 +100,9 @@ describe("once live", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Recenter/ }));
+    const recenter = screen.getByRole("button", { name: /Reset view/ });
+    expect(recenter).toHaveAttribute("title", RESET_VIEW_TITLE);
+    fireEvent.click(recenter);
     expect(onResetCamera).toHaveBeenCalledTimes(1);
     expect(onToggleSurface).toHaveBeenCalledWith("tools");
   });
@@ -185,7 +188,7 @@ describe("once live", () => {
     // And the invariant has teeth only if the grid really is the tile list.
     // A stray hand-written button would be a tool with no arming behind it,
     // which is exactly the silent-no-op this mode is worst at. Select and
-    // Recenter are the two deliberate extras; Select gets its own test below.
+    // Reset view are the two deliberate extras; Select gets its own test below.
     //
     // The TOOL grid specifically, not the dialog: the dialog also holds the
     // ✕ close button and the populate footer, and a panel's swatch row wears
@@ -196,7 +199,7 @@ describe("once live", () => {
       .map((button) => button.textContent?.replace(/^\P{L}+/u, "") ?? "");
     // The four deliberate extras. Select and Sample resolve on the compat
     // mouse path rather than being armed (so they are not TouchTools and not
-    // tiles); Recenter is a camera action; Layers edits the DOCUMENT rather
+    // tiles); Reset view is a camera action; Layers edits the DOCUMENT rather
     // than drawing on it, and is a grid cell only because a full-width row
     // cost 16px of map (see mobile-map-edit-panels.spec.ts).
     const known = new Set([
@@ -204,7 +207,7 @@ describe("once live", () => {
       "Select",
       "Sample",
       "Layers",
-      "Recenter",
+      "Reset view",
     ]);
     for (const label of labels) expect(known).toContain(label);
   });

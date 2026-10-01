@@ -210,7 +210,7 @@ Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwr
 - **In-Table Map Editor** – Rooms, hallways, walls, doors (locked & secret), and lights authored on the live table — players watch it appear
 - **Procedural Terrain** – 34 paintable terrain families (grass, water, lava, stone, canopy, crystal…) baked in a background worker
 - **Quick Wheel & Brush Deck** – Right-click radial tool picker; searchable, pinnable brush palette
-- **Set Dressing** – Place/scatter/row tools, one-click room population, custom image uploads
+- **Set Dressing** – Place / scatter / repeat-along-line tools, one-click room population, custom image uploads
 - **Dungeon Generator** – Seeded server-side generation: rooms, corridors, doors, and dressing in one undo step
 
 ### 🔦 Lighting, Fog & Visibility
@@ -221,26 +221,26 @@ Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwr
 
 ### 🎲 Dice & Combat
 
-- **Visual Dice Roller** – d4–d100 with modifiers, animated rolls, crit/fumble banners, and a shared roll log
+- **Visual Dice Roller** – d4–d100 with modifiers, animated rolls, crit/fumble banners, and a roll log with table, DM-only and private rolls
 - **Initiative & Turn Order** – Roll or type initiative, auto-starting combat, turn banners, and NPC batch rolls
 - **HP Tracking** – Click-to-edit or drag-to-scrub HP with temp HP and floating damage numbers
 
 ### 🎨 Drawing & Visual Tools
 
-- **Advanced Drawing** – Freehand, line, rect, circle with color/width/opacity/fill; partial erase on freehand strokes
-- **Measure & Pointer** – Grid-aware distance readouts (squares + feet) and broadcast pings
+- **Advanced Drawing** – Freehand, line, rectangle, circle with color/width/opacity/fill; partial erase on freehand strokes
+- **Measure & Ping** – Grid-aware distance readouts (squares + feet) and pings (a player's hidden by fog, a DM's seen by all)
 - **CRT Filter** – Optional retro scanline effect with bloom and chromatic aberration
 
 ### 🎧 Voice & Characters
 
 - **WebRTC Voice Chat** – Peer-to-peer voice with speaking-glow portraits
 - **Character System** – Portraits, token art, multi-character support, per-player state export/import
-- **NPCs & Props** – DM-managed monsters with visibility toggles and an Enemy/Neutral/Ally stance; a bundled 244-token art pack (184 monsters, 60 townsfolk) plus each table's own custom-token shelf; ownable map objects
+- **NPCs & Props** – DM-managed monsters with visibility toggles and an Enemy/Neutral/Ally stance; a bundled 244-token art pack (184 monsters, 60 townsfolk) plus each table's own DM-only token shelf; ownable map objects
 
 ### 📱 Presentation & Feel
 
 - **Mobile Layout** – Touch-first dock, party drawer, dice roller, and pinch-zoom for phones and tablets
-- **SNES-Style SFX** – Sample-based sound effects, dice rattle, door creaks, and a game-feel panel (motion/sound controls)
+- **SNES-Style SFX** – Sample-based sound effects, dice rattle, door creaks, and Sound & motion preferences (Table → Preferences)
 
 ---
 

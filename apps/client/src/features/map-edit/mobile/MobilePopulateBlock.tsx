@@ -3,22 +3,10 @@
 // the canvas shows the named bounds and the same draft footprints we commit.
 
 import React from "react";
-import type { MapEditToolbarProps, PopulateCategory, PopulateDensity } from "../mapEditTypes";
+import type { MapEditToolbarProps } from "../mapEditTypes";
 import { MobileSwatchRow } from "./MobileSwatchRow";
 import { decorateLabel } from "../populateTarget";
-
-const CATEGORIES: { id: PopulateCategory; label: string }[] = [
-  { id: "objects", label: "Objects" },
-  { id: "structures", label: "Structs" },
-  { id: "terrain", label: "Terrain" },
-  { id: "decals", label: "Wear" },
-];
-
-const DENSITIES: { id: PopulateDensity; label: string }[] = [
-  { id: "low", label: "Low" },
-  { id: "medium", label: "Med" },
-  { id: "high", label: "High" },
-];
+import { POPULATE_CATEGORIES, POPULATE_DENSITIES } from "../populateLabels";
 
 export function MobilePopulateBlock({
   populateTarget,
@@ -43,13 +31,14 @@ export function MobilePopulateBlock({
         <>
           <MobileSwatchRow
             label="From"
-            options={CATEGORIES}
+            options={POPULATE_CATEGORIES}
+            minChipPx={128}
             selected={populateCategory}
             onSelect={onSelectPopulateCategory}
           />
           <MobileSwatchRow
             label="How much"
-            options={DENSITIES}
+            options={POPULATE_DENSITIES}
             selected={populateDensity}
             onSelect={onSelectPopulateDensity}
           />

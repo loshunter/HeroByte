@@ -120,6 +120,17 @@ export const TABLE_BACKUP_FOR_CHARACTER_LOAD =
   "That is a table backup (the whole table), not a character file. A DM restores it under " +
   "DM Menu → Table → Backups; Load character only reads a file saved with Save character.";
 
+// A file that is none of the three kinds. Used only where the loader already refused
+// it (as a field message, or not at all); a file that IS one of the kinds with a bad
+// field keeps its field-level message, which says what to fix.
+export const NOT_A_TABLE_BACKUP =
+  "That is not a table backup. Restore a file saved with Download table backup, under " +
+  "DM Menu → Table → Backups.";
+
+export const NOT_A_CHARACTER_FILE =
+  "That is not a character file. Load a file saved with Save character, in a character's " +
+  "⚙️ settings (⚙️ EDIT on a phone).";
+
 export const MAP_FOR_CHARACTER_LOAD =
   "That is an editable map, not a character file. A DM imports it under DM Menu → Maps → " +
   "Map library; Load character only reads a file saved with Save character.";

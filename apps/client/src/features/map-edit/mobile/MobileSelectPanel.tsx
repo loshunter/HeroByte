@@ -37,7 +37,7 @@ const ELEMENT_LABELS: Record<MapElement["type"], string> = {
   door: "Door",
   light: "Light",
   text: "Text",
-  spline: "Curve",
+  spline: "Rope / curve",
 };
 
 export function MobileSelectPanel({

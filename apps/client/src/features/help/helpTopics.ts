@@ -115,9 +115,9 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       { term: "Zoom", detail: "Mouse wheel, toward the cursor (0.1× to 8×)." },
       {
-        term: "🧭 Recenter",
+        term: "🧭 Reset view",
         detail:
-          "Puts the map's top-left corner back at the top-left of your view, at 1× zoom — " +
+          "Puts the origin (0, 0) at the top-left of your view, at 1× zoom (100%) — " +
           "not the middle of the map, and not where you arrived.",
       },
       {
@@ -213,7 +213,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Who sees it",
         detail:
-          "TABLE is everyone, DM is you and the DM, ME is you alone. A hidden roll is never sent to anyone else — there is no copy in their browser.",
+          "TABLE is everyone at the table, DM is you and whoever is in DM mode (now or later), ME is you alone — no other player or DM is sent it. A hidden roll is not sent to anyone outside its audience: there is no copy in their browser. (Someone with the table password could claim your seat once you have been gone more than six hours, or right after the server restarts for an update, and read the hidden rolls still stored for it.)",
       },
       { term: "Macros", detail: "+ SAVE names a built roll. Macros live in this browser only." },
       {
@@ -236,7 +236,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "✏️ Draw",
         detail:
-          "Freehand, Line, Rect, Circle, Eraser, plus colour, brush size, opacity and Filled.",
+          "Freehand, Line, Rectangle, Circle, Erase drawings, plus colour, stroke width, opacity and Filled.",
       },
       {
         term: "Undo / redo",
@@ -245,7 +245,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Area templates",
         detail:
-          "◯ Circle, ◺ Cone, ▢ Square, ▬ Line. Drag out from the origin; it snaps to whole squares and lands labelled (“15 ft cone”).",
+          "AoE Burst (a circle), Cone, Cube (a square) and Bolt (a line); a line beside the buttons (under them on a desktop, above them on a phone) says what the active one draws. Drag out from the origin; it snaps to whole squares and lands labelled by its shape (“15 ft cone”; a Burst reads “20 ft circle”, its radius; a Cube reads “15 ft square” and a Bolt “30 ft line”).",
       },
       {
         term: "📏 Measure",
@@ -257,7 +257,11 @@ export const HELP_TOPICS: HelpTopic[] = [
         detail:
           "Counted by the table's rule, which the DM sets — 5e by default, so a two-square diagonal is 10 ft.",
       },
-      { term: "👆 Ping", detail: "Click to plant a ping everyone sees for three seconds." },
+      {
+        term: "👆 Ping",
+        detail:
+          "Click to plant a ping for three seconds. A player’s ping reaches the DM and the players who can see that spot; a DM’s ping reaches everyone.",
+      },
       { term: "✥ Move", detail: "Return to moving tokens and panning the map after using a tool." },
     ],
   },

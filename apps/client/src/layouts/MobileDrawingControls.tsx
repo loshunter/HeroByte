@@ -1,6 +1,7 @@
 import type { DrawTool } from "@herobyte/shared";
 import { CancelGestureButton } from "../features/interaction/CancelGestureButton";
 import { DRAWING_TOOLS, DRAWING_TOOL_LABELS } from "../features/drawing/drawingTools";
+import { TemplateToolHint } from "../features/drawing/components/TemplateToolHint";
 import {
   DrawingSettings,
   type DrawingSettingsProps,
@@ -37,8 +38,12 @@ export function MobileDrawingControls(props: MobileDrawingControlsProps): JSX.El
     >
       {!collapsed && (
         <>
-          <section aria-label="Drawing tool">
+          <section aria-label="Drawing tool" className="mobile-drawing-sheet__tool-section">
             <h3 className="drawing-section-title">Tool</h3>
+            {/* Above the chips, not below: the sheet is pinned to the bottom of the screen and
+                grows upward, so a line inserted under them would lift every chip by its own
+                height the moment a template is armed — under the finger that armed it. */}
+            <TemplateToolHint tool={drawTool} />
             <div className="mobile-drawing-sheet__tools">
               {DRAWING_TOOLS.map((tool) => (
                 <button

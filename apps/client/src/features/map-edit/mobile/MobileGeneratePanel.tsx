@@ -1,17 +1,12 @@
 // Phone Generate uses its own request outcome; other map edits remain Working.
 import React, { useEffect, useRef } from "react";
-import type { MapEditToolbarProps, PopulateDensity } from "../mapEditTypes";
+import type { MapEditToolbarProps } from "../mapEditTypes";
+import { POPULATE_DENSITIES } from "../populateLabels";
 import { MobileSwatchRow } from "./MobileSwatchRow";
 
 const THEMES: { id: "stone" | "wood"; label: string }[] = [
   { id: "stone", label: "🪨 Stone" },
   { id: "wood", label: "🪵 Wood" },
-];
-
-const DENSITIES: { id: PopulateDensity; label: string }[] = [
-  { id: "low", label: "Low" },
-  { id: "medium", label: "Med" },
-  { id: "high", label: "High" },
 ];
 
 export function MobileGeneratePanel({
@@ -49,7 +44,7 @@ export function MobileGeneratePanel({
       />
       <MobileSwatchRow
         label="Density"
-        options={DENSITIES}
+        options={POPULATE_DENSITIES}
         selected={generateParams.density}
         onSelect={(density) => onGenerateParamsChange({ ...generateParams, density })}
       />

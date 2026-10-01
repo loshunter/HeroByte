@@ -9,6 +9,7 @@ import type {
 } from "@herobyte/shared";
 import {
   MAP_FOR_CHARACTER_LOAD,
+  NOT_A_CHARACTER_FILE,
   TABLE_BACKUP_FOR_CHARACTER_LOAD,
   detectBackupFormat,
 } from "./backupFormat";
@@ -171,7 +172,7 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
   }
 
   if (!isRecord(parsed)) {
-    throw new Error("That is not a character file (it is not a JSON object)");
+    throw new Error(NOT_A_CHARACTER_FILE);
   }
 
   // Asked before the field checks, which only ever said "missing a valid name" of
@@ -181,6 +182,12 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
   if (format === "map") throw new Error(MAP_FOR_CHARACTER_LOAD);
 
   const { name, hp, maxHp, portrait, tokenImage, color } = parsed;
+
+  // None of the fields a character is checked by: not a character with a bad field,
+  // so say what the file is not. Anything with one of them keeps its field message.
+  if (name === undefined && hp === undefined && maxHp === undefined) {
+    throw new Error(NOT_A_CHARACTER_FILE);
+  }
 
   if (typeof name !== "string" || name.trim().length === 0) {
     throw new Error("That character file is missing a valid name");

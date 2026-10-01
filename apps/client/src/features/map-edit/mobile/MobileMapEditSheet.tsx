@@ -8,6 +8,7 @@ import { PERSISTENT_TOOLS, TOOL_DESCRIPTORS } from "../mapEditToolDescriptors";
 import "../mapEditPalette.css";
 import { useRevealMapPanel } from "../useRevealMapPanel";
 import { BuildEntryPrompt } from "../BuildEntryPrompt";
+import { RESET_VIEW_TITLE } from "../../../components/layout/viewWords";
 
 interface MobileMapEditSheetProps {
   toolbar: MapEditToolbarProps;
@@ -120,8 +121,13 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
               <MobilePopulateBlock {...toolbar} />
             )}
             {PANEL_TOOLS.has(activeSubTool) && <MobileMapEditToolPanels {...toolbar} />}
-            <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
-              ◇ Recenter
+            <button
+              type="button"
+              className="mobile-tool-sheet__button"
+              title={RESET_VIEW_TITLE}
+              onClick={recenter}
+            >
+              ◇ Reset view
             </button>
           </>
         )}

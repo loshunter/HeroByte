@@ -7,7 +7,13 @@
 
 ## Frontier
 
-- Latest U9 (2026-10-01): committed on `dev` as `94521e4e`, on the owner's word, above sixteen own
+- Latest U10a (2026-10-01, the words; accepted, committed on `dev`, not pushed): above `59030162`. Review:
+  three rounds of four Opus lenses, all FAIL (P1 2 → 1 → 1, P2 ~18 → ~10 → 9) then one fresh read of the
+  repairs (0 P1, 3 P2, fixed); the owner chose "repair P1+P2, no round 4". Ladder green on the final
+  tree: 452/2,786/7,703 units, 321 browser/3 skips, 157.94 KB; 34 unit mutants and 3 browser mutants,
+  all killed. Live two-client 8.0 before the repairs, plus a targeted unscored re-check after them. See the
+  [U10a record](interface-clarity-u10a.md).
+- Previous U9 (2026-10-01): committed on `dev` as `94521e4e`, on the owner's word, above sixteen own
   commits `0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`, `8996993a`,
   `c44ad4b6`, `a4ac5402`, `a89d2d60`, `ab4da6a2`, `9b88518c`, `8ad5ed24`, `4cdcf1e2`, `1c67afa7`,
   `ebbd20e4`, with one more after it (`0b3f1f9d`, the leave latch); pushed to `origin/dev` the same

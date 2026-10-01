@@ -13,6 +13,7 @@ import type { ToolMode } from "./Header";
 import type { MobileSurface } from "../../hooks/useMobileSurface";
 import type { MapEditToolbarProps } from "../../features/map-edit/mapEditTypes";
 import { MobileMapEditPalette } from "./MobileMapEditPalette";
+import { PING_TITLE, RESET_VIEW_TITLE } from "./viewWords";
 
 interface MobileFloatingControlsProps {
   surface: MobileSurface;
@@ -67,9 +68,9 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
     );
   }
 
-  // Recenter lives in the sheet so a DM — whose dock slot five is `DM`, not
+  // Reset view lives in the sheet so a DM — whose dock slot five is `DM`, not
   // `View` — still has reset-camera. Closing the sheet on tap is the point:
-  // you recenter to SEE the map.
+  // you reset the view to SEE the map.
   const recenter = () => {
     onResetCamera();
     onToggleSurface("tools");
@@ -107,6 +108,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("pointer")}
+              title={PING_TITLE}
               onClick={() => selectTool(activeTool === "pointer" ? null : "pointer")}
             >
               <span aria-hidden="true">⌖</span>
@@ -154,9 +156,14 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <span aria-hidden="true">#</span>
               Snap
             </button>
-            <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
+            <button
+              type="button"
+              className="mobile-tool-sheet__button"
+              title={RESET_VIEW_TITLE}
+              onClick={recenter}
+            >
               <span aria-hidden="true">◇</span>
-              Recenter
+              Reset view
             </button>
             {/* The table itself (U9): your role, your Preferences (CRT, sound and
                 motion) and, for a DM, the table's settings. It has no dock slot —
@@ -275,7 +282,12 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             DM
           </button>
         ) : (
-          <button type="button" className="mobile-dock-button" onClick={onResetCamera}>
+          <button
+            type="button"
+            className="mobile-dock-button"
+            title={RESET_VIEW_TITLE}
+            onClick={onResetCamera}
+          >
             <span className="mobile-dock-button__icon" aria-hidden="true">
               ◇
             </span>

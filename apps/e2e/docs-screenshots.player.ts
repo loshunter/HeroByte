@@ -183,12 +183,12 @@ test.describe("docs screenshots: player", () => {
     });
 
     await step("pointer ping", async () => {
-      await page.getByTitle("Point at locations on the map (visible to others)").click();
+      await page.getByRole("button", { name: "👆 Ping" }).click();
       const center = await boardCenter(page);
       await page.mouse.click(center.x - 80, center.y + 40);
       await page.waitForTimeout(350);
       await shotPage(page, "pointer-ping");
-      await page.getByTitle("Point at locations on the map (visible to others)").click();
+      await page.getByRole("button", { name: "👆 Ping" }).click();
     });
 
     expect(failures, failures.join("\n")).toEqual([]);

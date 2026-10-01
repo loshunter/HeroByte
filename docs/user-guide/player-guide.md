@@ -9,7 +9,7 @@ You've [joined a table](getting-started.md) — here's everything you can do at 
 - **Top toolbar** — tools and toggles. Hover any button for a tooltip. Tools are exclusive: picking one turns the previous one off, and clicking the active tool turns it off again.
 - **Map canvas** — the shared battlemap. Everything here syncs live to every player.
 - **Party** (bottom) — one compact row for every character at the table: the party, the DM's, and any visible NPCs. Each row shows a portrait, the name, HP, any conditions and, while that character's token is on the map, **🎯** (focus the map on it; **—** when it isn't); a row reads **You** for your own characters, and another player's character named differently from their seat also shows the seat's name, so you can tell whose it is. Select a row for that character's full card; **▦ CARDS** shows every card at once and **☰ ROSTER** goes back to the rows; **▼ HIDE PARTY** folds the panel down to its bar. The bar also holds **🗺 WORLD** and, when your DM allows it, **📦 PROPS**, so they never sit on top of a card.
-- **Table button** (top left) — the table's name, your role and a dot for your connection to the server (🟢 online, 🔴 offline). It opens the [Table menu](#the-table-menu).
+- **Table button** (top left) — the table's name and a dot for your connection to the server (🟢 online, 🔴 offline); a DM also sees **DM** on it, and a player sees no role word (your role is in the menu). It opens the [Table menu](#the-table-menu).
 
 ### The Table menu
 
@@ -29,7 +29,7 @@ On a phone the same menu is a screen: **⚒ TOOLS → Table**.
 | ------------------ | ---------------------------------------------------------------------------------------------------- |
 | Pan                | Drag empty map space (with no tool active), or **middle-mouse drag** (works even with a tool active) |
 | Zoom               | Mouse wheel — zooms toward your cursor (0.1× to 8×)                                                  |
-| Reset the camera   | **🧭 RECENTER** — returns to the map's origin at 1× zoom, which is not always where you started      |
+| Reset the camera   | **🧭 RESET** (**RESET VIEW** on a phone) — resets the view: the origin (0, 0) at the top-left of your view, at 1× zoom (100%). Not the middle of the map, and not always where you started      |
 | Jump to your token | **🎯** on your row in the Party — with two characters, each row focuses its own token                 |
 | Touch              | One finger pans, two fingers pinch-zoom                                                              |
 
@@ -77,7 +77,7 @@ Your token is your presence on the map:
 - **Resize / rotate** — with the **🔄 TRANSFORM** tool, click a token for Photoshop-style handles: 8 scale handles plus a rotation handle above (rotation snaps to 45°; hold **Ctrl/Cmd** to rotate freely). The center crosshair drags the object.
 - **Delete** — select and press **Delete** (you can only delete what you own; a confirm dialog lists the exact casualties).
 - **Locked** tokens (🔒 badge) can't be moved or deleted until unlocked — DMs use this to pin scenery and important pieces.
-- **Ping** — double-click (or double-tap) empty map space to drop a quick ping everyone sees, in any tool mode.
+- **Ping** — double-click (or double-tap) empty map space to drop a quick ping, in any tool mode. A player's ping reaches the DM and the players who can see that spot; a DM's ping reaches everyone.
 
 You can only move **your own** tokens. The DM can move everyone's.
 
@@ -140,13 +140,15 @@ got away with. The log tags the entry **ADV** or **DIS**.
 ### Who sees a roll
 
 - **TABLE** — everyone. The default.
-- **DM** — you and the DM only.
-- **ME** — only you. Other players and DMs do not receive the roll.
+- **DM** — you and whoever is in DM mode — including someone who enters DM mode later, who sees the earlier DM rolls still in the log — and no one else.
+- **ME** — only you. No other player or DM receives the roll.
+
+The line under the three buttons spells out who sees the one you picked, so a phone does not need a hover.
 
 A hidden roll is not merely hidden in other people's app: it is never sent to them. Their
 browser has no copy to find. While you are at the table, your seat is yours: another browser
 claiming your id gets nothing and cannot knock you off. (Within reason: someone with the table
-password could still claim your seat hours after you leave, as a plain player — so hidden
+password could still claim your seat hours after you leave (or as soon as the server restarts for an update), as a plain player — so hidden
 rolls protect you from the other people at your table, not from one who waits for you to go.)
 
 ### Macros
@@ -174,7 +176,7 @@ The desktop toolbox and phone sheet use **Tool → Settings → History**, follo
 **Color**, **Stroke width (px)** from 1–50, and **Opacity (%)**. Rectangle and Circle
 also offer **Filled**. Desktop includes 12 preset colors; both layouts have a color
 picker. Your settings stay selected when the layout changes. The screenshot above
-shows the earlier arrangement.
+shows the desktop window's Tool, Area templates and Settings sections; scroll the window for History.
 
 On the phone, **Hide controls** makes room on the map while your drawing tool stays
 active. The compact row keeps **Undo drawing**, **Redo drawing**, **Cancel stroke**
@@ -194,11 +196,11 @@ exits drawing mode. Starting Draw again opens the settings sheet.
 
 ### Area templates
 
-Choose **AoE Burst**, **AoE Cone**, **AoE Cube**, or **AoE Bolt** under desktop
-**Area templates**, or in the phone's Tool group. Drag from the point of origin
+Choose **AoE Burst** (a circle), **AoE Cone**, **AoE Cube** (a square) or **AoE Bolt** (a line) under desktop
+**Area templates**, or in the phone's Tool group; once one is active, a line beside the buttons (under them on a desktop, above them on a phone) says what shape it draws. Drag from the point of origin
 outward — the origin snaps to the grid, and the size snaps to whole squares, so a
 template reads as a round number of feet. Release and it lands on the map labelled
-with its size (`15 ft cone`), with an automatic translucent fill. Stroke width changes
+with its size and shape (`15 ft cone`; a Burst reads `20 ft circle` — its radius — a Cube `15 ft square`, a Bolt `30 ft line`), with an automatic translucent fill. Stroke width changes
 the outline; the drag determines the area. There is no separate Filled toggle.
 
 Templates use your color. Opacity changes the outline and translucent fill; the size
@@ -218,7 +220,7 @@ Distance is counted by the table's **diagonal rule**, which the DM sets (5e by d
 
 ### 👆 Ping
 
-Your cursor becomes a pulsing ring; click to plant a ping — a colored burst with your name under it, visible to the whole table for 3 seconds, with a chime.
+Your cursor becomes a pulsing ring; click to plant a ping — a colored burst with your name under it, visible for 3 seconds, with a chime, to the DM and to every player who can see that spot (with fog on, a player whose fog covers the spot does not see a player's ping); a DM's ping reaches everyone, fog or not.
 
 ![A ping on the map, labeled with the player's name](img/pointer-ping.jpg)
 
@@ -299,9 +301,9 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
 - **◉ PARTY** — the party screen: each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚔️ INIT** (your character's initiative) and **⚙️ EDIT** for name, portrait, token size, **➕ Add Character**, and **Save character / Load character…**.
-- **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Recenter (re-centers the camera), **Table** (your role and Preferences), and Help. Players also have World, plus Props when the DM allows players to add them.
+- **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Reset view (resets the view: the origin (0, 0) at the top-left of your view, at 100% zoom), **Table** (your role and Preferences), and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
-- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, Encounter, NPCs & Monsters, Props & Objects, Table) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
+- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** does the same reset (origin (0, 0) at the top-left, 100% zoom); if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, Encounter, NPCs & Monsters, Props & Objects, Table) behind a swipeable chip row. Reset view in TOOLS covers the camera for a DM.
 
 ![The DM menu on a phone](img/mobile-dm.jpg)
 

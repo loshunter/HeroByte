@@ -2,7 +2,7 @@
 // TOKEN LIBRARY
 // ============================================================================
 // The bundled token pack, and the table's own tokens beside it, as a picker:
-// a Monsters/Townsfolk/Custom switch, a family select, a search box, and a
+// a Monsters/Townsfolk/This table switch, a family select, a search box, and a
 // grid of thumbnails. It knows nothing about NPCs — the NPCs tab adds a picked
 // token as a new NPC, the NPC editor swaps an existing one's art — so one
 // panel serves both, and the caller's `hint` says which it is doing. The
@@ -39,7 +39,7 @@ type CategoryChoice = LibraryCategory | "custom" | "";
 const CHOICES: readonly { id: CategoryChoice; label: string }[] = [
   { id: "", label: "All" },
   ...LIBRARY_CATEGORIES,
-  { id: "custom", label: "Custom" },
+  { id: "custom", label: "This table" },
 ];
 
 export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryProps) {
@@ -140,7 +140,7 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
             label="Token preview"
             name={previewItem.name}
             imageUrl={previewItem.portraitUrl}
-            detail={`${previewItem.size}${previewItem.custom ? " · Shared with this table" : ""}`}
+            detail={`${previewItem.size}${previewItem.custom ? " · From this table’s shelf (players never see the shelf)" : ""}`}
           />
         ) : (
           <p className="collection-note">Focus or choose a token to preview its art.</p>
@@ -154,8 +154,8 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
       {results.length === 0 ? (
         <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
           {category === "custom" && customTokens.length === 0
-            ? "Nothing of your own yet. Add an image below and it joins the shelf."
-            : "No tokens match. Try a shorter word, another family, or the other category."}
+            ? "Nothing on this table’s shelf yet. Add an image below and it joins the shelf."
+            : "No tokens match. Try a shorter word, another family, or another chip."}
         </p>
       ) : (
         <div data-testid="token-library-grid" style={gridStyle}>
@@ -186,7 +186,7 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
                 />
                 <span style={captionStyle}>{item.name}</span>
               </button>
-              {item.custom && <span style={badgeStyle}>MINE</span>}
+              {item.custom && <span style={badgeStyle}>ADDED</span>}
               {item.custom && removeToken && (
                 <button
                   type="button"

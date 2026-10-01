@@ -42,7 +42,7 @@ async function openShelf(page: Page): Promise<void> {
   const library = dialog.getByRole("button", { name: "📖 Library" });
   await library.scrollIntoViewIfNeeded();
   await library.click();
-  await dialog.getByRole("button", { name: "Custom" }).click();
+  await dialog.getByRole("button", { name: "This table", exact: true }).click();
 }
 
 test.describe("mobile — the shelf and the stance", () => {

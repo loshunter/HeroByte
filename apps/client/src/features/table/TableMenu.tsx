@@ -1,7 +1,7 @@
 // ============================================================================
 // TABLE MENU (the header's Table button)
 // ============================================================================
-// The header's home for the TABLE: its name, your role, and the connection, with
+// The header's home for the TABLE: its name, the connection and a DM's mark, with
 // a menu behind it for role (Enter / Leave DM mode), personal Preferences and,
 // for a DM, the way on to the table's settings. It replaces the UID block, the
 // fixed ONLINE badge, and the CRT and Juice buttons that each had their own
@@ -128,9 +128,14 @@ export const TableMenu: React.FC<{ menu: TableMenuProps }> = ({ menu }) => {
       >
         <span aria-hidden="true">{menu.isConnected ? "🟢" : "🔴"}</span>
         <span className="table-menu-button__name">{label}</span>
-        <span className="table-menu-button__role" aria-hidden="true">
-          {menu.isConnected ? roleText : "OFFLINE"}
-        </span>
+        {/* A player is the default, so the word is not spent on one: the dot and the
+            name say where you are, a DM gets a mark, and the accessible name keeps
+            the role. OFFLINE and the unknown-role dots still show. */}
+        {(!menu.isConnected || roleText !== "Player") && (
+          <span className="table-menu-button__role" aria-hidden="true">
+            {menu.isConnected ? roleText : "OFFLINE"}
+          </span>
+        )}
         <span aria-hidden="true">▾</span>
       </JRPGButton>
 

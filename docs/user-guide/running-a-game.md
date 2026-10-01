@@ -80,9 +80,9 @@ lights pool and cast shadows, fog reveals the room as the party walks into it.
 1. Open the map tools (**⚒ TOOLS** on a phone) and press **▶ START LIVE MAP**. That creates a fresh
    map, binds it to the table, and lights the **● LIVE** badge. Every edit from now on compiles and
    reaches players immediately.
-2. Block out space with **🏠 Room** and **🚇 Hall**.
+2. Block out space with **🏠 Room** and **🚇 Hallway**.
 3. Add **🧱 Wall** where sight should stop and **🚪 Door** where the party can get through.
-4. Optional and quick: **💡 Light** for torches, **🖌️ Paint** for terrain, **✨ Populate** for
+4. Optional and quick: **💡 Place light** for torches, **🖌️ Paint terrain**, **✨ Decorate** (Room or Hallway settings) for
    instant furniture.
 5. Turn on **Fog of War** in **DM Menu → Maps**. Set **Table Sight Default** to 30 ft if you want the place
    dark.

@@ -6,7 +6,7 @@
 
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { joinDefaultRoom } from "./helpers";
+import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 import { createTable, openTableMenu, tableButton } from "./table-role.helpers";
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -76,11 +76,11 @@ async function playToolsRows(page: Page) {
  * background computes transparent), which is not the state a person reads the open menu in
  * — the pointer is on the menu — and measured there the gold-on-gold mistake passes.
  */
-async function expectLegibleRole(page: Page) {
+async function expectLegibleRole(page: Page, part: "role" | "name" = "role") {
   await page.mouse.move(700, 420);
-  const ratio = await page.evaluate(() => {
+  const ratio = await page.evaluate((part) => {
     const button = document.querySelector<HTMLElement>(".table-menu-button")!;
-    const role = button.querySelector<HTMLElement>(".table-menu-button__role")!;
+    const role = button.querySelector<HTMLElement>(`.table-menu-button__${part}`)!;
     const channels = (css: string) => (css.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
     // The first opaque ground at or above the button (a transparent one shows what is behind).
     const groundOf = (start: Element | null) => {
@@ -104,8 +104,8 @@ async function expectLegibleRole(page: Page) {
     const ground = luminance(channels(groundOf(button)));
     const [hi, lo] = text > ground ? [text, ground] : [ground, text];
     return (hi + 0.05) / (lo + 0.05);
-  });
-  expect(ratio, "the role reads against the button").toBeGreaterThanOrEqual(4.5);
+  }, part);
+  expect(ratio, `the ${part} reads against the button`).toBeGreaterThanOrEqual(4.5);
 }
 
 test.describe("U9 — the connection on a desktop", () => {
@@ -119,19 +119,17 @@ test.describe("U9 — the connection on a desktop", () => {
       // With the menu closed the connection is said by the button alone: no badge is
       // fixed over the page, and the public-table warning rides in the header's own row.
       await expect(page.getByTestId("connection-chip")).toHaveCount(0);
-      await expect(tableButton(page)).toHaveAttribute(
-        "aria-label",
-        /, (Player|Dungeon Master), online/,
-      );
+      await expect(tableButton(page)).toHaveAttribute("aria-label", /, Player, online/);
       await expectClear(page);
 
       // Open, the menu hangs from the bottom edge of the WHOLE header (the button sits
       // beside two rows of controls), inside the screen, and its own chip clears its title.
-      // The button reads in both states: its role is legible on its own ground (open, the
-      // button turns gold and the role once stayed gold on it).
-      await expectLegibleRole(page);
+      // A player's button spends no room on a role word (U10a): there is none to measure, and
+      // the name must read in both states. A DM's role mark has its own test below.
+      await expect(tableButton(page).locator(".table-menu-button__role")).toHaveCount(0);
+      await expectLegibleRole(page, "name");
       const menu = await openTableMenu(page);
-      await expectLegibleRole(page);
+      await expectLegibleRole(page, "name");
       const header = await boxOf(page.locator("[data-header-root]"));
       const panel = await boxOf(menu);
       expect(panel.y).toBeGreaterThanOrEqual(header.y + header.height);
@@ -154,6 +152,18 @@ test.describe("U9 — the connection on a desktop", () => {
       }
     });
   }
+
+  test("a DM's role mark reads on the button's own ground, closed and open (gold once sat on gold)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await joinDefaultRoomAsDM(page);
+    await expect(tableButton(page)).toHaveAttribute("aria-label", /, Dungeon Master, online/);
+    await expect(tableButton(page).locator(".table-menu-button__role")).toHaveText("DM");
+    await expectLegibleRole(page);
+    await openTableMenu(page);
+    await expectLegibleRole(page);
+  });
 
   test("at 1280px a player's header keeps its Play tools on one row on the public table", async ({
     page,

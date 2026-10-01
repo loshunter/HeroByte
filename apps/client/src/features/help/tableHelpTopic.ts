@@ -14,7 +14,7 @@ export const TABLE_MENU_HELP_TOPIC: HelpTopic = {
     {
       term: "The Table button",
       detail:
-        "Top left of the header: the table's name, your role (Player or DM) and the connection (🟢 online, 🔴 offline). It opens the Table menu. On a phone: Tools → Table. The connection shows in the header of every full screen too (Party, Chat & Rolls, the DM menu, Table and the rest), so it never covers a title.",
+        "Top left of the header: the table's name and the connection (🟢 online, 🔴 offline); a DM also sees DM on it, and a player sees no role word — your role is in the menu. It opens the Table menu. On a phone: Tools → Table. The connection shows in the header of every full screen too (Party, Chat & Rolls, the DM menu, Table and the rest), so it never covers a title.",
     },
     {
       term: "Enter DM mode",

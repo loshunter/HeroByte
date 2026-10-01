@@ -1,9 +1,7 @@
 import { JRPGButton } from "../../components/ui/JRPGPanel";
 import { decorateLabel } from "./populateTarget";
-import type { MapEditToolbarProps, PopulateCategory, PopulateDensity } from "./mapEditTypes";
-
-const categories: PopulateCategory[] = ["objects", "structures", "terrain", "decals"];
-const densities: PopulateDensity[] = ["low", "medium", "high"];
+import type { MapEditToolbarProps } from "./mapEditTypes";
+import { POPULATE_CATEGORIES, POPULATE_DENSITIES } from "./populateLabels";
 
 export function MapEditPopulatePanel(props: MapEditToolbarProps) {
   return (
@@ -11,25 +9,27 @@ export function MapEditPopulatePanel(props: MapEditToolbarProps) {
       <p className="jrpg-text-small">{props.populateHint}</p>
       {props.populateTarget && (
         <>
-          <div className="map-edit-tool-grid">
-            {categories.map((category) => (
+          <div className="map-edit-tool-grid" role="group" aria-label="Decorate from">
+            {POPULATE_CATEGORIES.map(({ id, label }) => (
               <JRPGButton
-                key={category}
-                variant={props.populateCategory === category ? "primary" : "default"}
-                onClick={() => props.onSelectPopulateCategory(category)}
+                key={id}
+                variant={props.populateCategory === id ? "primary" : "default"}
+                aria-pressed={props.populateCategory === id}
+                onClick={() => props.onSelectPopulateCategory(id)}
               >
-                {category}
+                {label}
               </JRPGButton>
             ))}
           </div>
-          <div className="map-edit-density">
-            {densities.map((density) => (
+          <div className="map-edit-density" role="group" aria-label="How much">
+            {POPULATE_DENSITIES.map(({ id, label }) => (
               <JRPGButton
-                key={density}
-                variant={props.populateDensity === density ? "primary" : "default"}
-                onClick={() => props.onSelectPopulateDensity(density)}
+                key={id}
+                variant={props.populateDensity === id ? "primary" : "default"}
+                aria-pressed={props.populateDensity === id}
+                onClick={() => props.onSelectPopulateDensity(id)}
               >
-                {density}
+                {label}
               </JRPGButton>
             ))}
           </div>

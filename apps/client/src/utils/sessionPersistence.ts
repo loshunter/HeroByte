@@ -26,6 +26,7 @@ import type { PlayerStagingZone, RoomSnapshot, SessionFile } from "@herobyte/sha
 import {
   CHARACTER_FILE_FOR_SESSION_LOAD,
   WRONG_FILE_FOR_SESSION_LOAD,
+  NOT_A_TABLE_BACKUP,
   detectBackupFormat,
 } from "./backupFormat";
 
@@ -172,7 +173,7 @@ export function loadSession(file: File): Promise<SessionFile> {
           throw new Error("that file is not valid JSON.");
         }
         if (!isRecord(parsed)) {
-          throw new Error("Invalid session data");
+          throw new Error(NOT_A_TABLE_BACKUP);
         }
 
         // A MAP backup has no `snapshot`, so without this it fell into the
@@ -185,6 +186,19 @@ export function loadSession(file: File): Promise<SessionFile> {
         }
         if (format === "character") {
           throw new Error(CHARACTER_FILE_FOR_SESSION_LOAD);
+        }
+
+        // None of the kinds, and nothing that could be a snapshot: this used to fall
+        // into the branch below and report the first collection it lacked. Anything
+        // that reaches that branch and loads has a tokens and a players array, which
+        // detection calls a table backup, so this refuses nothing that ever loaded.
+        if (
+          format === "unknown" &&
+          isLegacyBareSnapshot(parsed) &&
+          !("tokens" in parsed) &&
+          !("players" in parsed)
+        ) {
+          throw new Error(NOT_A_TABLE_BACKUP);
         }
 
         if (isLegacyBareSnapshot(parsed)) {

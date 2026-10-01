@@ -49,7 +49,7 @@ test.describe("docs screenshots: DM", () => {
       "elevate + start live map",
       async () => {
         await joinDefaultRoomAsDM(page);
-        await page.getByTitle("Reset camera to center of map").click();
+        await page.getByRole("button", { name: "Reset view" }).click();
         await hideEntitiesPanel(page);
         await startLiveMap(page);
         // The pointer is left where START LIVE MAP was, which is now Cancel
@@ -191,7 +191,7 @@ test.describe("docs screenshots: DM", () => {
       await chooseBuildTool(page, "hallway");
       const decorate = page.getByRole("region", { name: "Decorate the last placed area" });
       // High density: at medium a two-cell hallway rolls about one stamp.
-      await decorate.getByRole("button", { name: "high", exact: true }).click({ timeout: 15_000 });
+      await decorate.getByRole("button", { name: "High", exact: true }).click({ timeout: 15_000 });
       await decorate
         .getByRole("button", { name: /Decorate last hallway/ })
         .click({ timeout: 15_000 });
@@ -287,7 +287,7 @@ test.describe("docs screenshots: DM", () => {
       await page
         .getByTitle("See the table exactly as players do (fog, secret doors, no DM overlays)")
         .click();
-      await page.getByTitle("Reset camera to center of map").click();
+      await page.getByRole("button", { name: "Reset view" }).click();
       await page.mouse.move(box.x + 720, box.y + 200);
       for (let i = 0; i < 4; i += 1) {
         await page.mouse.wheel(0, 120);

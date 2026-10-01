@@ -16,7 +16,7 @@
 // Which is why the TOGGLE is a cell in the tool grid and only the BODY is a
 // footer. As a full-width row it cost 16px of map on a tablet and the floor
 // caught it; in the grid it costs nothing, because 14 buttons across five
-// columns already leave a slot empty. It sits with Select, Sample and Recenter
+// columns already leave a slot empty. It sits with Select, Sample and Reset view
 // — the things in that grid that are not drag tools.
 //
 // Open state rides the SAME `layersOpen` the desktop popover uses, so a tablet

@@ -60,10 +60,7 @@ export async function selectGenerate(page: Page, mobile: boolean) {
   } else await chooseBuildTool(page, "generate");
   const ui = generatePanel(page, mobile);
   await activate(ui.panel.getByRole("button", { name: "🪵 Wood", exact: true }), mobile);
-  await activate(
-    ui.panel.getByRole("button", { name: mobile ? "Low" : "low", exact: true }),
-    mobile,
-  );
+  await activate(ui.panel.getByRole("button", { name: "Low", exact: true }), mobile);
   return ui;
 }
 

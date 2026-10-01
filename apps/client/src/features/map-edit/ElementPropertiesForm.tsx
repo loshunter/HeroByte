@@ -14,7 +14,7 @@ const LABELS: Record<MapElement["type"], string> = {
   door: "Door",
   light: "Light",
   text: "Text",
-  spline: "Curve",
+  spline: "Rope / curve",
 };
 function assetName(assetId: string) {
   const hash = uploadHashFromAssetId(assetId);

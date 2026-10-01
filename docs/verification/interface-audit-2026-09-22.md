@@ -4,7 +4,13 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
-**Latest implementation checkpoint (2026-09-30):** U9 addresses IA-17 (the host's role was buried in
+**Latest implementation checkpoint (2026-10-01):** U10a (the words) addresses IA-19 (labels, help and
+permission text drift): template shapes explained, Reset view, shared Populate/Generate words, the
+shelf's name, the private-dice audience, the wrong-file messages. IA-20 (small, unlabelled or hover-only
+controls) is U10b's. Accepted and committed on `dev`, not pushed. See
+[the U10a record](interface-clarity-u10a.md).
+
+**Previous implementation checkpoint (2026-09-30):** U9 addresses IA-17 (the host's role was buried in
 character settings and ONLINE covered phone headings: a Table button in the header and
 Tools → Table on the phone hold the role, Enter/Leave DM mode and the preferences, and the
 connection has a row of its own), the U9 halves of IA-01 and IA-14 (backups now name their scope,

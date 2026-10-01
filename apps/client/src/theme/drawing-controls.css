@@ -202,6 +202,14 @@
     gap: 8px;
   }
 
+  /* The sheet grows upward from the bottom edge, so the tool chips keep to the bottom of
+     their column: the template hint (above them) can then come and go without lifting
+     the chip under the finger that armed it. (Known: when the Settings column is taller, the
+     Tool heading sits lower than its neighbours' headings; U10b's landscape pass owns it.) */
+  .mobile-drawing-sheet__tool-section {
+    align-self: end;
+  }
+
   .mobile-drawing-sheet__history {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

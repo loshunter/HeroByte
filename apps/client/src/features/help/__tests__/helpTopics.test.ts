@@ -19,11 +19,11 @@ const entry = (topicId: string, term: string) => {
 };
 
 describe("helpTopics stays in step with the camera's behaviour", () => {
-  it("describes Recenter as the origin, never the middle of the map", () => {
+  it("describes Reset view as the origin, never the middle of the map", () => {
     // `reset` is applied as { x: 0, y: 0, scale: 1 } in useCameraControl — the
     // map's top-left corner at 1x, which is not its middle and is not where a
     // player arrives.
-    const recenter = entry("moving", "🧭 Recenter");
+    const recenter = entry("moving", "🧭 Reset view");
     expect(recenter.detail).toMatch(/top-left/i);
     // The old copy read "Puts the camera back at the middle of the map." Match
     // the AFFIRMATIVE claim only — the current text names the middle to deny it.

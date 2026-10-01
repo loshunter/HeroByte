@@ -3,7 +3,7 @@
  * 5-column grid and a sixth child overlaps rather than wraps — a settled
  * decision — so the DM entry takes the slot `View` spent on the single
  * reset-camera action, and reset-camera moves into the tool sheet as
- * Recenter so a DM still has it.
+ * Reset view so a DM still has it.
  */
 import { expect, test } from "../fixtures";
 import { elevateToDM } from "../helpers";
@@ -39,7 +39,7 @@ test.describe("mobile dock — slot five", () => {
     await expect(dmScreen).toBeHidden();
   });
 
-  test("Recenter in the tool sheet really resets the camera", async ({ page }) => {
+  test("Reset view in the tool sheet really resets the camera", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await joinMobileTable(page);
 
@@ -52,13 +52,13 @@ test.describe("mobile dock — slot five", () => {
       .getByRole("navigation", { name: /Mobile actions/i })
       .getByRole("button", { name: /Tools/i })
       .click();
-    const recenter = page.getByRole("button", { name: /Recenter/i });
+    const recenter = page.getByRole("button", { name: /Reset view/i });
     const box = (await recenter.boundingBox())!;
     expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
     expect(Math.round(box.width)).toBeGreaterThanOrEqual(44);
     await recenter.click();
 
-    // The sheet closes — you recenter to SEE the map — and the camera has
+    // The sheet closes — you reset the view to SEE the map — and the camera has
     // demonstrably left the planted state.
     await expect(page.locator(".mobile-tool-sheet")).toBeHidden();
     await page.waitForFunction(() => {

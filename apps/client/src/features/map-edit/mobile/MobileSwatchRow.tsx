@@ -11,7 +11,7 @@
 // editing this file, and a future change to the floor reaches these panels for
 // free. No new button class is introduced by this slice.
 
-import React from "react";
+import React, { useId } from "react";
 
 export interface MobileSwatchOption<T extends string | number> {
   id: T;
@@ -27,6 +27,8 @@ interface MobileSwatchRowProps<T extends string | number> {
   options: readonly MobileSwatchOption<T>[];
   selected: T;
   onSelect: (id: T) => void;
+  /** Narrowest a chip may be, in px: long labels get fewer, wider columns than the sheet's four. */
+  minChipPx?: number;
 }
 
 export function MobileSwatchRow<T extends string | number>({
@@ -34,11 +36,26 @@ export function MobileSwatchRow<T extends string | number>({
   options,
   selected,
   onSelect,
+  minChipPx,
 }: MobileSwatchRowProps<T>): JSX.Element {
+  const labelId = useId();
   return (
     <div className="mobile-tool-sheet__section">
-      {label && <span className="mobile-tool-sheet__label">{label}</span>}
-      <div className="mobile-tool-sheet__grid">
+      {label && (
+        <span id={labelId} className="mobile-tool-sheet__label">
+          {label}
+        </span>
+      )}
+      <div
+        className="mobile-tool-sheet__grid"
+        role="group"
+        aria-labelledby={label ? labelId : undefined}
+        style={
+          minChipPx
+            ? { gridTemplateColumns: `repeat(auto-fill, minmax(${minChipPx}px, 1fr))` }
+            : undefined
+        }
+      >
         {options.map((option) => (
           <button
             key={String(option.id)}

@@ -80,6 +80,14 @@ describe("GENERATE on a phone", () => {
     expect(big).not.toBe(small);
   });
 
+  it("names its density chips Low / Medium / High, as Populate and the desktop panel do", () => {
+    render(<MobileGeneratePanel {...bag()} />);
+    for (const name of ["Low", "Medium", "High"]) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("button", { name: "Med" })).toBeNull();
+  });
+
   it("says nothing when there is nothing to say", () => {
     render(<MobileGeneratePanel {...bag()} />);
 

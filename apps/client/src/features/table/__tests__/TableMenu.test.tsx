@@ -81,11 +81,24 @@ describe("TableMenu — the popover follows the HEADER", () => {
 });
 
 describe("TableMenu — the header's Table button", () => {
-  it("names the table, your role and the connection on the button", () => {
+  it("names the table, and your role and the connection in its accessible name", () => {
     render(<TableMenu menu={menuProps()} />);
     expect(button()).toHaveAccessibleName("Table menu: Sunday Game, Player, online");
     expect(button()).toHaveTextContent("Sunday Game");
-    expect(button()).toHaveTextContent("Player");
+  });
+
+  it("spends no room on the word Player: the dot and the name say where you are", () => {
+    // The role word took 6 of the button's ~13 characters of name. A player is the
+    // default; a DM alone gets a mark, and the accessible name keeps the role.
+    render(<TableMenu menu={menuProps()} />);
+    expect(button()).not.toHaveTextContent("Player");
+    expect(button()).toHaveAccessibleName(/Player/);
+    expect(button().querySelector(".table-menu-button__role")).toBeNull();
+  });
+
+  it("shows the unknown-role dots to a player too, rather than a blank where a role may appear", () => {
+    render(<TableMenu menu={menuProps({ roleKnown: false })} />);
+    expect(button()).toHaveTextContent("…");
   });
 
   it("says Dungeon Master for a DM and OFFLINE when the server is lost", () => {

@@ -9,7 +9,8 @@
 // seed is shown rather than hidden, and why ⟳ is an explicit act.
 
 import { JRPGButton } from "../../components/ui/JRPGPanel";
-import type { GenerateParams, PopulateDensity } from "./mapEditTypes";
+import type { GenerateParams } from "./mapEditTypes";
+import { POPULATE_DENSITIES } from "./populateLabels";
 
 interface GeneratePanelProps {
   params: GenerateParams;
@@ -29,7 +30,6 @@ const THEMES: { id: GenerateParams["theme"]; label: string }[] = [
   { id: "stone", label: "🪨 Stone" },
   { id: "wood", label: "🪵 Wood" },
 ];
-const DENSITIES: PopulateDensity[] = ["low", "medium", "high"];
 
 const labelStyle = { display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" } as const;
 const cell = { fontSize: "8px", padding: "6px 2px" } as const;
@@ -72,14 +72,15 @@ export function GeneratePanel({
           marginTop: "4px",
         }}
       >
-        {DENSITIES.map((density) => (
+        {POPULATE_DENSITIES.map(({ id: density, label }) => (
           <JRPGButton
             key={density}
             onClick={() => onChange({ ...params, density })}
             variant={params.density === density ? "primary" : "default"}
+            aria-pressed={params.density === density}
             style={cell}
           >
-            {density}
+            {label}
           </JRPGButton>
         ))}
       </div>
