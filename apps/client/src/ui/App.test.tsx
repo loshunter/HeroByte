@@ -771,6 +771,59 @@ describe("App", () => {
     }
   });
 
+  it("is the DM again at the next elevation once the server has confirmed the leave", async () => {
+    // The wait ends when the roster says the seat is no DM; left standing it would keep the next
+    // elevation's tools away.
+    asTheDM();
+    const { rerender } = render(<App />);
+    await confirmLeave();
+
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: { ...buildSnapshot(), players: [{ uid: "test-uid", name: "Hero", isDM: false }] },
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+    await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(false));
+
+    asTheDM();
+    await act(async () => {
+      rerender(<App />);
+    });
+    await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(true));
+  });
+
+  it("keeps waiting for the leave through a reconnect blip, and does not flash the DM back", async () => {
+    // The socket dies under the confirm: the snapshot goes, and the DM flag with it, though nobody
+    // has stopped being a DM. The wait has to outlive that, or the roster that comes back (it
+    // lists the DM until the queued leave is heard) shows the DM's tools for a moment.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      asTheDM();
+      const { rerender } = render(<App />);
+      await confirmLeave();
+      await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(false));
+
+      await blip(rerender);
+      asTheDM();
+      await act(async () => {
+        rerender(<App />);
+      });
+      expect(latestHeaderProps?.table?.isDM).toBe(false);
+
+      // The leave is never heard: it is given up on, and the seat is the DM again.
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(true));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("still drops map-edit when the server says you are no longer a DM", async () => {
     // Start as a DM on purpose: the role mock outlives the test that set it.
     vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });

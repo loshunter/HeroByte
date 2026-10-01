@@ -518,12 +518,6 @@ function AuthenticatedApp({
   // and are now instantiated only when isDM is true via DMMenuContainer
   // This reduces bundle size for non-DM players by ~12-18 KB
 
-  useEffect(() => {
-    if (!serverIsDM) {
-      setDmRevocationPending(false);
-    }
-  }, [serverIsDM]);
-
   // Cache the last DM-visible snapshot so NPCs/tokens don't disappear
   const [cachedDmSnapshot, setCachedDmSnapshot] = useState<RoomSnapshot | null>(null);
   useClearOnDemotion(serverIsDM, roleKnown, cachedDmSnapshot, setCachedDmSnapshot);
@@ -607,14 +601,17 @@ function AuthenticatedApp({
     sendMessage,
     toast,
   });
-  // A leave the server never heard (the socket died under the confirm) must not leave the
-  // role latched to "player": once the request is no longer in flight and the roster still
-  // lists this seat as the DM, it is one, and Leave / Enter DM mode must say so again.
+  // The wait for a leave ends when the request does: the roster confirmed it (the seat is no
+  // DM), the server refused it, or its five seconds ran out. In that last case the roster still
+  // lists the seat as the DM, and it is one: left latched, the Table menu would read "Player"
+  // and offer no Leave. It does NOT end on a reconnect blip: the snapshot and the DM flag go with
+  // the socket though nobody has stopped being a DM, and ending it there would flash the DM's
+  // tools back when the roster returns, still listing the DM until the queued leave is heard.
   useEffect(() => {
-    if (dmRevocationPending && !modalState.isLoading && roleKnown && serverIsDM) {
+    if (dmRevocationPending && !modalState.isLoading) {
       setDmRevocationPending(false);
     }
-  }, [dmRevocationPending, modalState.isLoading, roleKnown, serverIsDM]);
+  }, [dmRevocationPending, modalState.isLoading]);
   useEffect(() => {
     dmElevationFailedRef.current = onElevationFailed;
     return () => {
