@@ -352,6 +352,100 @@ describe("DraggableWindow — follows the header until the player places it", ()
     expect(windowOf(container).style.top).toBe("20px");
   });
 
+  // A browser resize clamps a window that has ended up off the screen, and used to SAVE the
+  // clamped place whether or not the player had ever placed it. A saved place is read back as
+  // placed, so a window the player never touched would never follow the header again.
+  describe("a browser resize", () => {
+    const resizeTo = (width: number) => {
+      Object.defineProperty(window, "innerWidth", { value: width, configurable: true });
+      act(() => {
+        window.dispatchEvent(new Event("resize"));
+      });
+    };
+    let originalWidth: number;
+    beforeEach(() => {
+      originalWidth = window.innerWidth;
+    });
+    afterEach(() => {
+      Object.defineProperty(window, "innerWidth", { value: originalWidth, configurable: true });
+    });
+    const KEY = "herobyte-window-position-t";
+
+    it("clamps a window that is off the screen, but remembers nothing for one the player never placed", () => {
+      const header = growableHeader(60);
+      Object.defineProperty(window, "innerWidth", { value: 1920, configurable: true });
+      const { container, unmount } = render(
+        <DraggableWindow title="Dice Roller" storageKey="t" initialX={1500} initialY={100}>
+          <div>Content</div>
+        </DraggableWindow>,
+      );
+
+      resizeTo(960);
+      expect(windowOf(container).style.left).toBe("760px");
+      expect(window.localStorage.getItem(KEY)).toBeNull();
+
+      // So it is still unplaced when it next opens, and still follows the header.
+      unmount();
+      const again = render(
+        <DraggableWindow title="Dice Roller" storageKey="t" initialX={760} initialY={100}>
+          <div>Content</div>
+        </DraggableWindow>,
+      );
+      header.grow(180);
+      expect(windowOf(again.container).style.top).toBe("184px");
+    });
+
+    it("remembers the clamped place of a window the player HAS placed", () => {
+      growableHeader(60);
+      Object.defineProperty(window, "innerWidth", { value: 1920, configurable: true });
+      const { container, getByText } = render(
+        <DraggableWindow title="Dice Roller" storageKey="t" initialX={100} initialY={100}>
+          <div>Content</div>
+        </DraggableWindow>,
+      );
+      // Dragged out to x = 1500 (jsdom has no layout, so the grab offset is the press point and
+      // the window lands where the move takes it).
+      drag(getByText("Dice Roller"), 1500, 0);
+      expect(windowOf(container).style.left).toBe("1500px");
+
+      resizeTo(960);
+
+      expect(windowOf(container).style.left).toBe("760px");
+      expect(JSON.parse(window.localStorage.getItem(KEY) ?? "null").x).toBe(760);
+    });
+  });
+
+  // The slop is three pixels: a move of exactly three is a drag, a bit under is a click.
+  it("counts a move of exactly three pixels as a drag, and 2.8 as a click", () => {
+    const header = growableHeader(60);
+    const { container, getByText, unmount } = render(
+      <DraggableWindow title="Dice Roller" initialY={100}>
+        <div>Content</div>
+      </DraggableWindow>,
+    );
+    drag(getByText("Dice Roller"), 2, 2);
+    header.grow(180);
+    expect(windowOf(container).style.top).toBe("184px");
+    unmount();
+
+    for (const [dx, dy] of [
+      [3, 0],
+      [0, 3],
+      [4, 0],
+    ] as const) {
+      const fresh = growableHeader(60);
+      const view = render(
+        <DraggableWindow title="Dice Roller" initialY={100}>
+          <div>Content</div>
+        </DraggableWindow>,
+      );
+      drag(view.getByText("Dice Roller"), dx, dy);
+      fresh.grow(180);
+      expect(windowOf(view.container).style.top, `a ${dx},${dy} move`).not.toBe("184px");
+      view.unmount();
+    }
+  });
+
   it("stops watching the header when the window closes", () => {
     growableHeader(60);
     const { unmount } = render(

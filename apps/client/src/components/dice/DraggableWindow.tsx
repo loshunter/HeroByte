@@ -159,8 +159,10 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
           };
           setPosition(newPosition);
 
-          // Save adjusted position
-          if (storageKey) {
+          // Save adjusted position — of a window that HAS a place of its own. A saved place is read
+          // back as placed, so remembering the clamp of one nobody placed would stop it following
+          // the header for good.
+          if (storageKey && placedRef.current) {
             saveWindowPosition(storageKey, newPosition, "Failed to save adjusted window position:");
           }
         }
