@@ -162,11 +162,11 @@ describe("useSessionManagement — save", () => {
     act(() => result.current.handleSaveSession("second"));
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
-    expect(toast.info).toHaveBeenLastCalledWith("A session export is already in progress...");
+    expect(toast.info).toHaveBeenLastCalledWith("A table backup is already being prepared…");
   });
 
   it("gives up loudly if the server never replies", () => {
-    // Otherwise the DM watches "Preparing session file..." forever with no idea
+    // Otherwise the DM watches "Preparing your table backup…" forever with no idea
     // whether to click again.
     const { result } = mount();
 
@@ -198,7 +198,7 @@ describe("useSessionManagement — save", () => {
 
     expect(downloadSessionJson).toHaveBeenCalled();
     const said = vi.mocked(toast.success).mock.calls[0]?.[0] ?? "";
-    expect(said).toContain(`${mb(wire)} of the 1.00 MB a load accepts`);
+    expect(said).toContain(`${mb(wire)} of the 1.00 MB a restore accepts`);
     expect(said).toContain(`(${mb(disk)} on disk with images)`);
     expect(toast.warning).not.toHaveBeenCalled();
   });
@@ -224,7 +224,7 @@ describe("useSessionManagement — save", () => {
     expect(downloadSessionJson).toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
     const said = vi.mocked(toast.warning).mock.calls[0]?.[0] ?? "";
-    expect(said).toContain("NOT load back");
+    expect(said).toContain("NOT restore");
     expect(said).toContain("at 1.50 MB on the wire");
     expect(said).toContain("accepts 1.00 MB");
   });
@@ -337,7 +337,7 @@ describe("useSessionManagement — load", () => {
     // shows the weigh-in happens first, before a doomed load costs uploads.
     expect(vi.mocked(toast.error)).toHaveBeenCalledTimes(1);
     const said = vi.mocked(toast.error).mock.calls[0]?.[0] ?? "";
-    expect(said).toContain("too large to load");
+    expect(said).toContain("too large to restore");
     expect(said).toContain("has NOT been changed");
   });
 
@@ -412,5 +412,94 @@ describe("useSessionManagement — load", () => {
 
     expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Invalid session file"), 5000);
     expect(sendMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("useSessionManagement — the words name the scope (U9)", () => {
+  const file = () =>
+    sessionFile({
+      snapshot: { gridSize: 50, sceneObjects: [{}], characters: [{}] } as never,
+      mapDocuments: [{ id: "doc-A" } as never],
+      liveMapDocumentId: "doc-A",
+    });
+
+  it("asks before a restore, naming the file, what is in it, what it replaces, what it keeps, and that it cannot be undone", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    vi.mocked(loadSession).mockResolvedValue(file());
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "friday.json"));
+    });
+
+    const asked = String(confirm.mock.calls[0]?.[0]);
+    expect(asked).toContain('Restore table backup "friday.json"');
+    expect(asked).toContain("1 character(s), 1 map document(s)");
+    // The server MERGES a restore (SnapshotLoader.mergeSnapshot): the map, NPCs, props and
+    // drawings come from the file, while every roster seat's characters and tokens stay.
+    expect(asked).toContain("REPLACES the map, NPCs, props and drawings for everyone connected");
+    expect(asked).toContain("Everyone with a seat here keeps their own characters and tokens");
+    // A file carries every seat's DM flag too, and a restore leaves them all where they are.
+    expect(asked).toContain("nobody's DM status changes");
+    expect(asked).not.toMatch(/whole table/i);
+    expect(asked).toContain("cannot be undone");
+  });
+
+  it("declining sends nothing and says the table has not changed", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    vi.mocked(loadSession).mockResolvedValue(file());
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "friday.json"));
+    });
+
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(toast.info).toHaveBeenLastCalledWith("Restore cancelled. The table has not changed.");
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("says the backup was restored, by the file's name", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(loadSession).mockResolvedValue(file());
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "friday.json"));
+    });
+
+    expect(toast.success).toHaveBeenCalledWith('Table backup "friday.json" restored.', 4000);
+  });
+
+  it("passes the loader's wrong-kind message through, by name, and changes nothing", async () => {
+    // The loader refuses a character file or a map with a sentence naming what it is
+    // and where its own picker lives; the hook must show THAT, not a generic failure.
+    const confirm = vi.spyOn(window, "confirm");
+    vi.mocked(loadSession).mockRejectedValue(
+      new Error("That is a character file, not a table backup. Load it with Load character."),
+    );
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "aria.json"));
+    });
+
+    expect(toast.error).toHaveBeenCalledWith(
+      "Restore failed: That is a character file, not a table backup. Load it with Load character.",
+      5000,
+    );
+    expect(confirm).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("names the backup it downloaded as a table backup, not a session", async () => {
+    const { result } = mount();
+    act(() => result.current.handleSaveSession("friday"));
+    await act(async () => {
+      deliverSessionFile(sessionFile({ mapDocuments: [{ id: "doc-A" } as never] }));
+    });
+    const said = vi.mocked(toast.success).mock.calls[0]?.[0] ?? "";
+    expect(said).toContain('Table backup "friday" downloaded');
+    expect(said).not.toMatch(/session/i);
   });
 });

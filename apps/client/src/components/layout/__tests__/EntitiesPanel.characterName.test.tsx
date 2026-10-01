@@ -73,7 +73,6 @@ function panelProps(overrides: Partial<React.ComponentProps<typeof EntitiesPanel
     onTempHpEdit: vi.fn(),
     onTempHpSubmit: vi.fn(),
     currentIsDM: false,
-    onToggleDMMode: vi.fn(),
     onTokenImageChange: vi.fn(),
     onApplyPlayerState: vi.fn(),
     _onStatusEffectsChange: vi.fn(),

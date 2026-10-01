@@ -114,7 +114,8 @@ test("removed whisper recipient preserves desktop and phone drafts until explici
     await expect(
       dm.getByRole("button", { name: "Close Dungeon Master Tools", exact: true }),
     ).toBeVisible();
-    await dm.getByRole("button", { name: "Players", exact: true }).click();
+    // U9: the roster of people lives in DM Menu → Table → Players at this table.
+    await dm.getByRole("button", { name: "Table", exact: true }).click();
     // Only Bob is away. The real UI waits for the server's 60s heartbeat age;
     // its 15s refresh tick makes ~75s the worst normal wait. Share it once.
     const remove = dm.getByRole("button", { name: "Remove", exact: true });

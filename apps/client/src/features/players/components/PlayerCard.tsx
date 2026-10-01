@@ -12,7 +12,8 @@ import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
 import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
-import { loadPlayerState, savePlayerState } from "../../../utils/playerPersistence";
+import { loadPlayerState } from "../../../utils/playerPersistence";
+import { saveCharacterFile } from "../characterFile";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import type { OwnerControl } from "./TokenSettingsSection";
 
@@ -64,7 +65,6 @@ export interface PlayerCardProps {
   onStatusEffectsChange?: (effects: string[]) => void;
   isDM: boolean;
   viewerIsDM: boolean;
-  onToggleDMMode: (next: boolean) => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
@@ -136,7 +136,6 @@ export const PlayerCard = memo<PlayerCardProps>(
     onDeleteToken,
     isDM,
     viewerIsDM,
-    onToggleDMMode,
     tokenLocked,
     onToggleTokenLock,
     tokenSize,
@@ -211,21 +210,14 @@ export const PlayerCard = memo<PlayerCardProps>(
 
     const handleSavePlayerState = () => {
       if (!isMe && !viewerIsDM) return;
-      const imageRef = tokenImageInput.trim() || tokenImageUrl || undefined;
-      const tokenForExport: Token | undefined = token
-        ? {
-            ...token,
-            imageUrl: imageRef ?? token.imageUrl ?? undefined,
-          }
-        : undefined;
-      savePlayerState({
-        // The conditions this card shows are the character's own; the seat's
-        // list is legacy and, with two characters, holds whichever one was
-        // edited last. Loading writes the file's list onto the character.
-        player: { ...player, statusEffects: statusEffects ?? [] },
-        token: tokenForExport,
-        tokenScene: tokenSceneObject ?? null,
-        drawings: playerDrawings ?? [],
+      // The conditions this card shows are the character's own (see characterFile).
+      saveCharacterFile({
+        player,
+        statusEffects: statusEffects ?? [],
+        token: token ?? undefined,
+        tokenImage: tokenImageInput.trim() || tokenImageUrl || undefined,
+        tokenScene: tokenSceneObject,
+        drawings: playerDrawings,
         initiativeModifier,
       });
     };
@@ -407,9 +399,6 @@ export const PlayerCard = memo<PlayerCardProps>(
           onStatusEffectsChange={handleStatusEffectsChange}
           isDM={isDM}
           viewerIsDM={viewerIsDM}
-          // Only on your own card: the toggle grants/revokes the VIEWER's DM.
-          canToggleDM={isMe}
-          onToggleDMMode={onToggleDMMode}
           tokenLocked={tokenLocked}
           onToggleTokenLock={onToggleTokenLock}
           tokenSize={tokenSize}

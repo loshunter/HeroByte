@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { chooseBuildTool } from "./build-palette.helpers";
 import { expect, test } from "./fixtures";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
@@ -19,10 +20,19 @@ import {
   waitBake,
   waitSnap,
 } from "./docs-shots.helpers";
+import { openTableMenu } from "./table-role.helpers";
 
 // Documentation screenshots — live map authoring (the map editor guide).
 // Split from docs-screenshots.dm.ts for the 350-line guard; unchanged.
 // Run via `pnpm docs:screenshots`; images land in docs/user-guide/img/.
+
+/** CRT is a Preference now (U9): the Table menu's Display group, closed again before the shot. */
+async function toggleCrt(page: Page) {
+  const menu = await openTableMenu(page);
+  await menu.getByRole("button", { name: "📺 CRT", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+}
 
 test.describe("docs screenshots: DM", () => {
   test("live map authoring walkthrough", async ({ page, browser }) => {
@@ -45,7 +55,7 @@ test.describe("docs screenshots: DM", () => {
         // The pointer is left where START LIVE MAP was, which is now Cancel
         // placement — hovered, it reads as armed. The elevation toast is 4s.
         await page.mouse.move(1000, 10);
-        await expect(page.getByText(/DM elevation successful/)).toBeHidden({ timeout: 10_000 });
+        await expect(page.getByText(/You are in DM mode\./)).toBeHidden({ timeout: 10_000 });
         await shotPage(page, "mapedit-start");
       },
       { required: true },
@@ -286,10 +296,10 @@ test.describe("docs screenshots: DM", () => {
       // Zooming kicks off another progressive bake — let the progress chip
       // clear before framing the shot.
       await expect(page.getByText(/Painting terrain/)).toBeHidden({ timeout: 30_000 });
-      await page.getByTitle("Toggle retro CRT visual effect").click();
+      await toggleCrt(page);
       await page.waitForTimeout(800);
       await shotPage(page, "hero-table");
-      await page.getByTitle("Toggle retro CRT visual effect").click();
+      await toggleCrt(page);
       await page
         .getByTitle("See the table exactly as players do (fog, secret doors, no DM overlays)")
         .click();

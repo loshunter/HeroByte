@@ -25,7 +25,7 @@ export interface EncounterControls {
   onPreviousTurn: () => void;
   /** The caller's one useInitiativeSetting: per-character roll/set/clear and the bulk roll. */
   initiative: InitiativeSetting;
-  /** The table policy (DM Menu → Session): may players enter a roll by hand. */
+  /** The table policy (DM Menu → Table → Permissions): may players enter a roll by hand. */
   playersMayEnterByHand: boolean;
   /** Tokens on the current map: a participant's Focus needs its token here. */
   mapTokenIds: ReadonlySet<string>;

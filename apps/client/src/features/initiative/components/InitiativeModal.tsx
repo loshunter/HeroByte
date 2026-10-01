@@ -204,7 +204,7 @@ export function InitiativeModal({
                 {!manualEntryAllowed && (
                   <p className="initiative-modal__note">
                     Entering a roll by hand is off at this table. The DM can allow it in DM Menu →
-                    Session.
+                    Table → Permissions.
                   </p>
                 )}
                 {!combatActive && (

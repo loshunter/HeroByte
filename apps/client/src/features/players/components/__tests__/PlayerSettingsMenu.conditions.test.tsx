@@ -28,7 +28,6 @@ function openPicker(selectedEffects: string[] = []) {
       selectedEffects={selectedEffects}
       onStatusEffectsChange={onStatusEffectsChange}
       isDM={false}
-      onToggleDMMode={vi.fn()}
     />,
   );
   fireEvent.click(screen.getByRole("button", { name: /effect/i }));

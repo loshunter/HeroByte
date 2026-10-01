@@ -11,14 +11,13 @@ import type { Player, Token, TokenSize } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
 import { PlayerSettingsMenu } from "../../features/players/components/PlayerSettingsMenu";
 import type { OwnerControl } from "../../features/players/components/TokenSettingsSection";
+import type { CharacterFileActions } from "../../features/players/characterFile";
 
 interface MobilePlayerRowProps {
   player: Player & { characterId: string };
   isMe: boolean;
   /** The VIEWER's DM state (mobile passes one flag to every row). */
   isDM: boolean;
-  /** Grant/revoke the viewer's own DM status. */
-  onToggleDMMode: (next: boolean) => void;
   // HP Editing
   editingHpUID: string | null;
   hpInput: string;
@@ -35,7 +34,7 @@ interface MobilePlayerRowProps {
   onStatusEffectsChange?: (effects: string[]) => void;
   /**
    * The viewer's own seat with no character: no HP, conditions, name, portrait
-   * or status editors — only what a seat can use (➕ Add Character, Table role).
+   * or status editors — only what a seat can use (➕ Add Character).
    */
   characterless?: boolean;
   /** DM-only: this character's owner (the sheet's Token settings). */
@@ -73,6 +72,11 @@ interface MobilePlayerRowProps {
   onFocus?: () => void;
   /** Its initiative and turn (U8); absent on a characterless row. */
   initiative?: MobileRowInitiative;
+  /**
+   * Save character / Load character (U9): this character's file, for the row's
+   * own player and the DM. Absent on a characterless row and on anyone else's.
+   */
+  characterFile?: CharacterFileActions;
 }
 
 export const MobilePlayerRow = memo<MobilePlayerRowProps>(
@@ -80,7 +84,6 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     player,
     isMe,
     isDM,
-    onToggleDMMode,
     editingHpUID,
     hpInput,
     onHpInputChange,
@@ -93,6 +96,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onMaxHpSubmit,
     onStatusEffectsChange,
     characterless = false,
+    characterFile,
     owner,
     onCharacterHpChange,
     onCharacterNameUpdate,
@@ -296,18 +300,24 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           onPortraitApply={(url) => {
             onCharacterPortraitUpdate(player.characterId, url);
           }}
-          // Token-image and save/load are deliberately OMITTED rather than
-          // stubbed: they are not wired on mobile, and a control that silently
-          // does nothing is worse than one that isn't there. PlayerSettingsMenu
-          // hides those sections when the handlers are absent.
+          // The token image is deliberately OMITTED rather than stubbed: it is not
+          // wired on mobile, and a control that silently does nothing is worse
+          // than one that isn't there. PlayerSettingsMenu hides a section whose
+          // handlers are absent. Save / Load character are wired (U9).
+          onSavePlayerState={characterFile?.save}
+          onLoadPlayerState={
+            characterFile
+              ? async (file) => {
+                  const state = await characterFile.load(file);
+                  // The portrait field mirrors what the file just set.
+                  setPortraitImageInput(state.portrait ?? "");
+                }
+              : undefined
+          }
           selectedEffects={activeEffects}
           onStatusEffectsChange={characterless ? undefined : (onStatusEffectsChange ?? (() => {}))}
           isDM={isDM}
-          // The viewer's own row is the only place DM Mode belongs, and this is
-          // the only DM-elevation control that exists on a phone.
           viewerIsDM={isDM}
-          canToggleDM={isMe}
-          onToggleDMMode={onToggleDMMode}
           characterId={player.characterId}
           onDeleteCharacter={onDeleteCharacter}
         />

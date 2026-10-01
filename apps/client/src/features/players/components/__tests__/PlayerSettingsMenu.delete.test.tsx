@@ -28,8 +28,6 @@ function renderMenu(overrides: Partial<React.ComponentProps<typeof PlayerSetting
       onStatusEffectsChange={vi.fn()}
       isDM={false}
       viewerIsDM
-      canToggleDM={false}
-      onToggleDMMode={vi.fn()}
       characterId="char-alice"
       {...overrides}
     />,

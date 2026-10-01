@@ -2,7 +2,6 @@
  * TopPanelLayout Component
  *
  * Renders the top panel section of the main application layout, including:
- * - Server connection status indicator
  * - Drawing toolbar (when draw mode is active)
  * - Main application header with controls
  * - Multi-select toolbar (when multiple objects are selected)
@@ -22,7 +21,9 @@ import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManag
 import type { MapEditToolbarProps } from "../features/map-edit/mapEditTypes";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { MapEditToolbarLoadFailure } from "../features/map-edit/MapEditToolbarLoadFailure";
-import { ServerStatus } from "../components/layout/ServerStatus";
+import type { TableMenuProps } from "../features/table/tableMenuProps";
+import { HostNextSteps } from "../features/table/HostNextSteps";
+import { ReconnectNoticeDock } from "../features/table/ReconnectNotice";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
 import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
@@ -41,7 +42,7 @@ const MapEditToolbar = React.lazy(() =>
  * Props for the TopPanelLayout component
  *
  * Organized into 8 semantic groups for clarity:
- * 1. Connection & Status
+ * 1. Table (name, role, connection, preferences)
  * 2. Tool State
  * 3. Header & Controls
  * 4. UI State & Toggles
@@ -50,9 +51,13 @@ const MapEditToolbar = React.lazy(() =>
  * 7. Selection & Multi-Select
  */
 export interface TopPanelLayoutProps {
-  // ===== Connection & Status (1 prop) =====
-  /** Whether the client is connected to the server */
-  isConnected: boolean;
+  // ===== Table (1 prop) =====
+  /**
+   * The Table button's object: table name, your role, the connection and the
+   * preferences behind it. The connection used to be a fixed badge drawn over
+   * the top centre; it is the header's now.
+   */
+  tableMenu: TableMenuProps;
 
   // ===== Tool State (2 props) =====
   /** Whether drawing mode is currently active */
@@ -64,23 +69,17 @@ export interface TopPanelLayoutProps {
   /** Props to pass to the (lazy) MapEditToolbar palette */
   mapEditToolbarProps: MapEditToolbarProps;
 
-  // ===== Header & Controls (3 props) =====
-  /** Unique identifier for the current user */
-  uid: string;
+  // ===== Header & Controls (2 props) =====
   /** Currently active tool mode in the header */
   activeTool: ToolMode;
   /** Handler to change the active tool */
   setActiveTool: (mode: ToolMode) => void;
 
-  // ===== UI State & Toggles (6 props) =====
+  // ===== UI State & Toggles (4 props) =====
   /** Whether snap-to-grid is enabled */
   snapToGrid: boolean;
   /** Handler to toggle snap-to-grid */
   setSnapToGrid: (value: boolean) => void;
-  /** Whether CRT filter effect is enabled */
-  crtFilter: boolean;
-  /** Handler to toggle CRT filter */
-  setCrtFilter: (value: boolean) => void;
   /** Whether the dice roller panel is open */
   diceRollerOpen: boolean;
   /** Whether the roll log panel is open */
@@ -124,18 +123,15 @@ export interface TopPanelLayoutProps {
  */
 export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
   ({
-    isConnected,
+    tableMenu,
     drawMode,
     drawingToolbarProps,
     mapEditMode,
     mapEditToolbarProps,
-    uid,
     activeTool,
     setActiveTool,
     snapToGrid,
     setSnapToGrid,
-    crtFilter,
-    setCrtFilter,
     diceRollerOpen,
     rollLogOpen,
     playerLens,
@@ -152,8 +148,6 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
   }) => {
     return (
       <>
-        <ServerStatus isConnected={isConnected} />
-
         {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
         {drawMode && <DrawingToolbar {...drawingToolbarProps} />}
 
@@ -195,23 +189,27 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
 
         {/* Header - Fixed at top */}
         <Header
-          uid={uid}
+          table={tableMenu}
           snapToGrid={snapToGrid}
           activeTool={activeTool}
-          crtFilter={crtFilter}
           diceRollerOpen={diceRollerOpen}
           rollLogOpen={rollLogOpen}
-          isDM={isDM}
           playerLens={playerLens}
           onPlayerLensChange={onTogglePlayerLens}
           onSnapToGridChange={setSnapToGrid}
           onToolSelect={setActiveTool}
-          onCrtFilterChange={setCrtFilter}
           onDiceRollerToggle={toggleDiceRoller}
           onRollLogToggle={toggleRollLog}
           topPanelRef={topPanelRef}
           onResetCamera={handleResetCamera}
         />
+
+        {/* After a host creates a table: the next two steps, below the header, until dismissed. */}
+        <HostNextSteps menu={tableMenu} placement={{ top: topHeight + 8 }} />
+
+        {/* The gate's "Reconnecting…": below the header's measured bottom edge, above the floating
+            windows (it used to be a fixed banner at the top right, over the header's controls). */}
+        <ReconnectNoticeDock top={topHeight + 8} />
 
         {/* Multi-select toolbar - shows when multiple objects are selected and user is DM */}
         <MultiSelectToolbar

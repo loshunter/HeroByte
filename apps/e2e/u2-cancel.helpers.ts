@@ -1,5 +1,5 @@
 import { chooseBuildTool } from "./build-palette.helpers";
-import { closePartyDetails, openOwnCharacterSettings } from "./party.helpers";
+import { dismissNextSteps, enterDMMode } from "./table-role.helpers";
 import type { Locator } from "@playwright/test";
 import { expect, type Page } from "./fixtures";
 import { composer, identity, openChat, readState, sendDraft } from "./chat-journey.helpers";
@@ -63,25 +63,10 @@ export async function createAndJoin(dm: Page, observer: Page, touch: boolean, la
   await joined(dm);
   const roomUrl = dm.url();
   expect(new URL(roomUrl).searchParams.get("room")).toBeTruthy();
-  if (touch) {
-    const actions = dm.getByRole("navigation", { name: "Mobile actions" });
-    await actions.getByRole("button", { name: "Party", exact: true }).tap();
-    await dm.getByRole("button", { name: "⚙️ EDIT", exact: true }).tap();
-  } else {
-    await openOwnCharacterSettings(dm);
-  }
-  const settings = dm.locator('[data-mobile-surface="settings"]');
-  await activate(settings.getByRole("button", { name: "DM Mode: OFF", exact: true }), touch);
-  await dm.getByLabel("Enter DM Password:", { exact: true }).fill(dmPassword);
-  await activate(dm.getByRole("button", { name: "Elevate to DM", exact: true }), touch);
+  // The host's own path (U9): the Table menu on desktop, Tools → Table on a phone.
+  await enterDMMode(dm, dmPassword, touch);
+  await dismissNextSteps(dm, touch);
   await expect.poll(async () => (await identity(dm)).isDM).toBe(true);
-  const closeSettings = settings.getByRole("button", { name: /^Close / });
-  if (await closeSettings.isVisible()) await activate(closeSettings, touch);
-  await expect(settings).toHaveCount(0);
-  if (touch) await dm.getByRole("button", { name: "Close Party Members", exact: true }).tap();
-  // Desktop (U7): the gear lives in the Party inspector; leave the table as a
-  // DM who elevated would, with the details closed again.
-  else await closePartyDetails(dm);
 
   // The observer stays a player in a separate browser context.
   await observer.goto(roomUrl);

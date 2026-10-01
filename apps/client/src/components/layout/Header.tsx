@@ -8,8 +8,10 @@ import { activatePanelLauncher } from "../../features/interaction/useExplicitDis
 import React from "react";
 import "./Header.css";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
-import { JuiceMenuButton } from "../../features/juice/JuiceMenuButton";
 import { HelpMenuButton } from "../../features/help/HelpMenuButton";
+import { TableMenu } from "../../features/table/TableMenu";
+import type { TableMenuProps } from "../../features/table/tableMenuProps";
+import { PublicTableNotice } from "../../features/rooms/PublicTableNotice";
 
 export type ToolMode =
   | "pointer"
@@ -25,19 +27,21 @@ export type ToolMode =
   | null;
 
 interface HeaderProps {
-  uid: string;
+  /**
+   * The table's own corner (U9): its name, your role, the connection, and the
+   * menu behind them (role, Preferences, the DM's way to Table settings). One
+   * REQUIRED object, the same one the phone's Table screen reads.
+   */
+  table: TableMenuProps;
   snapToGrid: boolean;
   activeTool: ToolMode;
-  crtFilter: boolean;
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
-  isDM?: boolean;
   /** Player lens (P4): the DM's view rendered as players receive it. */
   playerLens?: boolean;
   onPlayerLensChange?: (enabled: boolean) => void;
   onSnapToGridChange: (snap: boolean) => void;
   onToolSelect: (mode: ToolMode) => void;
-  onCrtFilterChange: (enabled: boolean) => void;
   onDiceRollerToggle: (open: boolean) => void;
   onRollLogToggle: (open: boolean) => void;
   topPanelRef?: React.RefObject<HTMLDivElement>;
@@ -48,23 +52,21 @@ interface HeaderProps {
  * Header component with logo, controls, and tool toggles
  */
 export const Header: React.FC<HeaderProps> = ({
-  uid,
+  table,
   snapToGrid,
   activeTool,
-  crtFilter,
   diceRollerOpen,
   rollLogOpen,
-  isDM = false,
   playerLens = false,
   onPlayerLensChange,
   onSnapToGridChange,
   onToolSelect,
-  onCrtFilterChange,
   onDiceRollerToggle,
   onRollLogToggle,
   topPanelRef,
   onResetCamera,
 }) => {
+  const { isDM } = table;
   const pointerMode = activeTool === "pointer";
   const measureMode = activeTool === "measure";
   const drawMode = activeTool === "draw";
@@ -75,12 +77,13 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <div
       ref={topPanelRef}
-      // What hangs below the header measures from this frame: a window that opens at a
-      // fixed place (DraggableWindow) and the Table menu. Keep it on the fixed root.
+      // What hangs below the header reads it: a window with no place of its own opens under
+      // the lowest control inside this root (DraggableWindow, headerPlacement), and the Table
+      // menu hangs from this frame's bottom edge. Keep the marker on the fixed root.
       data-header-root=""
       style={{
         position: "fixed",
-        top: "24px", // Offset for status banner
+        top: 0,
         left: 0,
         right: 0,
         zIndex: 100,
@@ -88,6 +91,10 @@ export const Header: React.FC<HeaderProps> = ({
       }}
     >
       <JRPGPanel variant="bevel" style={{ padding: "6px 10px", borderRadius: 0 }}>
+        {/* The public table's warning is a ROW of the header now, in its flow: it
+            was a fixed chip over the header's own band, and its width decided
+            which buttons could still be clicked. */}
+        {table.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
         <div
           style={{
             display: "flex",
@@ -96,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({
             flexWrap: "wrap",
           }}
         >
-          {/* Left side: Logo and UID packed tightly */}
+          {/* Left side: Logo and the Table button packed tightly */}
           <JRPGPanel
             variant="simple"
             style={{
@@ -117,11 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="jrpg-pixelated"
               style={{ height: "32px", mixBlendMode: "screen" }}
             />
-            <div style={{ textAlign: "left" }}>
-              <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
-                <strong style={{ color: "var(--jrpg-gold)" }}>UID</strong> {uid.substring(0, 8)}...
-              </p>
-            </div>
+            <TableMenu menu={table} />
           </JRPGPanel>
 
           {/* Right side: Controls and Tools */}
@@ -245,20 +248,6 @@ export const Header: React.FC<HeaderProps> = ({
                     👁 Player View
                   </JRPGButton>
                 )}
-                {/* CRT Filter */}
-                <JRPGButton
-                  onClick={() => onCrtFilterChange(!crtFilter)}
-                  variant={crtFilter ? "primary" : "default"}
-                  style={{ fontSize: "8px", padding: "4px 10px" }}
-                  title="Toggle retro CRT visual effect"
-                  aria-pressed={crtFilter}
-                >
-                  📺 CRT
-                </JRPGButton>
-
-                {/* Game-feel (motion + sound) settings */}
-                <JuiceMenuButton />
-
                 {/* Dice Roller */}
                 <JRPGButton
                   onClick={() => onDiceRollerToggle(!diceRollerOpen)}

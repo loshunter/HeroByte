@@ -48,7 +48,6 @@ export function CharacterWindow({ close }: { close: () => void }) {
       onClose={close}
       selectedEffects={[]}
       onStatusEffectsChange={noAction}
-      onToggleDMMode={noAction}
     />
   );
 }
@@ -145,7 +144,12 @@ export function KickHarness({
       <button onClick={kick.openKick}>Open kick</button>
       {kick.open &&
         (mobile ? (
-          <MobileScreen title="Kick in a door" surface="kick" onClose={controls.closeKick}>
+          <MobileScreen
+            title="Kick in a door"
+            surface="kick"
+            isConnected
+            onClose={controls.closeKick}
+          >
             {panel}
           </MobileScreen>
         ) : (

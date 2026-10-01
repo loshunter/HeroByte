@@ -208,6 +208,14 @@ export interface MainLayoutProps {
   gridSquareSize: number;
   /** Whether current user is DM */
   isDM: boolean;
+  /**
+   * The viewer's seat is in the roster: the app's own test that the snapshot has
+   * arrived. REQUIRED, like the one rule it serves — every socket close nulls
+   * the snapshot while the app stays mounted, and for that blip `isDM` reads
+   * false. A control that judges the role (Enter or Leave DM mode) waits for
+   * this rather than offering a DM the wrong button.
+   */
+  roleKnown: boolean;
 
   // -------------------------------------------------------------------------
   // Camera

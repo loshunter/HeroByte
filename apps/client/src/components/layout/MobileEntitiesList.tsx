@@ -7,7 +7,16 @@
 
 import React from "react";
 import { looseOwnToken } from "../../utils/looseOwnToken";
-import type { Player, SceneObject, SnapshotCharacter, Token, TokenSize } from "@herobyte/shared";
+import type {
+  Drawing,
+  Player,
+  PlayerState,
+  SceneObject,
+  SnapshotCharacter,
+  Token,
+  TokenSize,
+} from "@herobyte/shared";
+import { characterFileActions } from "../../features/players/characterFile";
 import { mobilePartyRows } from "./mobilePartyRows";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 import { MobilePlayerRow } from "./MobilePlayerRow";
@@ -19,8 +28,6 @@ interface MobileEntitiesListProps {
   uid: string;
   /** The VIEWER's DM state — mobile passes the same flag to every row. */
   isDM: boolean;
-  /** Grant/revoke the viewer's own DM status. */
-  onToggleDMMode: (next: boolean) => void;
 
   // Edit props passed through to row
   editingHpUID: string | null;
@@ -53,8 +60,12 @@ interface MobileEntitiesListProps {
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
   /** The viewer's own rows add a character, as the desktop window does. */
   onAddCharacter: (name: string) => void;
-  /** Scene objects, for each token's lock state. */
+  /** Scene objects, for each token's lock state and a character file's token transform. */
   sceneObjects: SceneObject[];
+  /** Everyone's drawings: a character file carries its owner's. */
+  drawings: Drawing[];
+  /** Applies a loaded character file to a character and its token (Load character). */
+  onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   /** A token's lock — offered to a DM, as on the desktop card. */
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   /** DM-only: delete a player's token. A required key: undefined for a player. */
@@ -89,7 +100,6 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   characters,
   uid,
   isDM,
-  onToggleDMMode,
   editingHpUID,
   hpInput,
   onHpInputChange,
@@ -111,6 +121,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onTokenSizeChange,
   onAddCharacter,
   sceneObjects,
+  drawings,
+  onApplyPlayerState,
   onToggleTokenLock,
   onPlayerTokenDelete,
   onCharacterOwnerChange,
@@ -179,6 +191,28 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
               : entity.ownerTokenFallbackOk
                 ? looseOwnToken(tokens, characters, entity.uid)
                 : undefined;
+            // Save / Load character (U9), on a row the viewer may edit: their own,
+            // and any character for a DM — the same rule as the desktop card.
+            const characterFile =
+              entity.hasCharacter && (entity.uid === uid || isDM)
+                ? characterFileActions(
+                    {
+                      player: entity,
+                      statusEffects: entity.statusEffects ?? [],
+                      token: entityToken,
+                      tokenImage: entityToken?.imageUrl ?? undefined,
+                      tokenScene: entityToken
+                        ? ((sceneObjects.find(
+                            (object) => object.id === `token:${entityToken.id}`,
+                          ) ?? null) as (SceneObject & { type: "token" }) | null)
+                        : null,
+                      drawings: drawings.filter((drawing) => drawing.owner === entity.uid),
+                      initiativeModifier: characters.find((c) => c.id === entity.characterId)
+                        ?.initiativeModifier,
+                    },
+                    (state) => onApplyPlayerState(state, entityToken?.id, entity.characterId),
+                  )
+                : undefined;
             return (
               <MobilePlayerRow
                 // uid alone duplicates the moment a player has two rows; the pair
@@ -187,6 +221,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
                 player={entity}
                 isMe={entity.uid === uid}
                 token={entityToken}
+                characterFile={characterFile}
                 // `isDM` is the VIEWER's flag (see the prop doc above), and it is
                 // required here for the same reason EntitiesPanel gates on
                 // `currentIsDM`: sight radius is DM-only, the server refuses it
@@ -238,7 +273,6 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
                     : undefined
                 }
                 isDM={isDM}
-                onToggleDMMode={onToggleDMMode}
                 editingHpUID={editingHpUID}
                 hpInput={hpInput}
                 onHpInputChange={onHpInputChange}

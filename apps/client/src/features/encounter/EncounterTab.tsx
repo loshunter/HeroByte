@@ -11,7 +11,7 @@
 // Setup: an add-NPCs shortcut (forwards to NPCs & Monsters, where adding
 //   lives), the participant list in the server's order, Monster HP.
 // Initiative: roll the NPCs' missing initiative, clear all, and the table's
-//   hand-entry policy (it stays under Session; this links there).
+//   hand-entry policy (it lives in Table → Permissions; this links there).
 // Run encounter: start/end, previous/next, whose turn (EncounterRun).
 
 import { useMemo } from "react";
@@ -30,11 +30,20 @@ export interface EncounterTabProps {
   /** The viewer's DM flag, passed in (never read off the snapshot). */
   isDM: boolean;
   /** Forward to the tab that owns a thing Encounter only links to. */
-  onOpenTab: (tab: "npcs" | "session") => void;
+  onOpenTab: (tab: "npcs" | "table") => void;
   toast?: { success: (message: string) => void; error: (message: string) => void };
 }
 
 const HP_MODE_LABEL = { exact: "Exact", bloodied: "Bloodied", hidden: "Hidden" } as const;
+
+/** What the choice means at the table (U9): what players SEE, not how the server enforces it. */
+const HP_MODE_OUTCOME = {
+  exact: "Players see the exact HP of every NPC they can see.",
+  bloodied:
+    "Players see 🩸 Bloodied at half HP or below, and Healthy above it, on every NPC they can see — never the numbers. Player characters always show exact HP.",
+  hidden:
+    "Players see ??? in place of HP on every NPC they can see — never the numbers. Player characters always show exact HP.",
+} as const;
 
 export function EncounterTab({ controls, isDM, onOpenTab, toast }: EncounterTabProps) {
   const { characters, players, combatActive, currentTurnCharacterId, initiative } = controls;
@@ -122,8 +131,8 @@ export function EncounterTab({ controls, isDM, onOpenTab, toast }: EncounterTabP
               </JRPGButton>
             ))}
           </div>
-          <p className="encounter-note">
-            Hidden and Bloodied keep the numbers off players&apos; screens entirely.
+          <p className="encounter-note" aria-live="polite">
+            {HP_MODE_OUTCOME[controls.monsterHpDisplay]}
           </p>
         </div>
       </section>
@@ -147,8 +156,8 @@ export function EncounterTab({ controls, isDM, onOpenTab, toast }: EncounterTabP
           </p>
           <p className="encounter-note">
             Players {controls.playersMayEnterByHand ? "may" : "may not"} enter a roll by hand.{" "}
-            <button type="button" className="encounter-link" onClick={() => onOpenTab("session")}>
-              Change in Session
+            <button type="button" className="encounter-link" onClick={() => onOpenTab("table")}>
+              Change in Table
             </button>
           </p>
           <JRPGButton onClick={controls.onClearAllInitiative}>🗑️ Clear all initiative</JRPGButton>

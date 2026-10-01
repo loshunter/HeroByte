@@ -2,8 +2,13 @@ import { type Page, type TestInfo } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 import { elevateViaUI } from "./docs-shots.helpers";
+import { openTableMenu, openTableScreen } from "./table-role.helpers";
 
-const toggle = (page: Page) => page.getByTitle("Toggle retro CRT visual effect");
+// CRT is a personal Preference (U9): Display → CRT, in the header's Table menu on a
+// desktop and on the Table screen (Tools → Table) on a phone.
+const toggle = (page: Page) => page.getByRole("button", { name: "📺 CRT", exact: true });
+const openPreferences = (page: Page, touch = false) =>
+  touch ? openTableScreen(page) : openTableMenu(page);
 
 async function capture(page: Page, info: TestInfo, name: string) {
   const path = info.outputPath(`${name}.png`);
@@ -41,11 +46,15 @@ test.describe("CRT preference and rendered treatment", () => {
       const page = await context.newPage();
       try {
         await joinDefaultRoom(page);
+        await openPreferences(page);
         await expect(toggle(page)).toHaveAttribute("aria-pressed", "false");
         expect(await page.evaluate(() => localStorage.getItem("herobyte:crt"))).toBeNull();
         await toggle(page).click();
         await page.reload();
+        await openPreferences(page);
         await expect(toggle(page)).toHaveAttribute("aria-pressed", "true");
+        await page.keyboard.press("Escape");
+        await expect(page.getByRole("dialog", { name: "Table menu" })).toHaveCount(0);
         await expect(page.locator(".crt-filter")).toHaveCount(1);
         await expect(page.locator(".crt-bezel")).toHaveCount(1);
         const styles = await overlayStyles(page);
@@ -88,8 +97,10 @@ test.describe("CRT preference and rendered treatment", () => {
         expect((await overlayStyles(page)).transition).toBe("0s");
         await expect(page.locator(".pixel-sparkle").first()).toHaveCSS("animation-name", "none");
 
+        await openPreferences(page);
         await toggle(page).click();
         await page.reload();
+        await openPreferences(page);
         await expect(toggle(page)).toHaveAttribute("aria-pressed", "false");
         await expect(page.locator(".crt-filter")).toHaveCount(0);
         expect(await page.evaluate(() => localStorage.getItem("herobyte:crt"))).toBe("false");
@@ -122,11 +133,13 @@ test.describe("CRT preference and rendered treatment", () => {
         [dm, player].map((page) => page.evaluate(() => window.__HERO_BYTE_E2E__!.uid)),
       );
       expect(identities[0]).not.toBe(identities[1]);
+      await openPreferences(dm);
       await toggle(dm).click();
+      await dm.keyboard.press("Escape");
       await expect(player.locator(".crt-filter")).toHaveCount(0);
       expect(await player.evaluate(() => localStorage.getItem("herobyte:crt"))).toBeNull();
 
-      await player.getByRole("button", { name: /Tools/ }).tap();
+      await openPreferences(player, true);
       const tile = toggle(player);
       const bounds = await tile.boundingBox();
       expect(bounds!.width).toBeGreaterThanOrEqual(44);
@@ -178,7 +191,9 @@ test.describe("CRT preference and rendered treatment", () => {
       await dm.getByRole("button", { name: /✏️ Draw/i }).click();
       await capture(dm, info, "dm-shared-drawing");
 
+      await openPreferences(dm);
       await toggle(dm).click();
+      await dm.keyboard.press("Escape");
       await expect(dm.locator(".crt-filter")).toHaveCount(0);
       await expect(player.locator(".crt-filter--mobile")).toBeVisible();
     } finally {
@@ -201,6 +216,7 @@ test.describe("CRT preference and rendered treatment", () => {
       };
     });
     await joinDefaultRoom(page);
+    await openPreferences(page);
     await toggle(page).click();
     await expect(toggle(page)).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator(".crt-filter")).toBeVisible();

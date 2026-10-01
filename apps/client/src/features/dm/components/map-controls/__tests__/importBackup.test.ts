@@ -74,8 +74,18 @@ describe("parseBackupImport", () => {
     expect((result as { error: string }).error).toMatch(/table backup/i);
     // It must point at the control that WOULD work, or the only move left is
     // to pick the same file again.
-    expect((result as { error: string }).error).toMatch(/Load Game State/);
+    expect((result as { error: string }).error).toMatch(/Restore table backup/);
+    expect((result as { error: string }).error).toMatch(/DM Menu → Table → Backups/);
     expect(result).not.toHaveProperty("document");
+  });
+
+  it("names a character file as a character file, and points at Load character", () => {
+    const character = { name: "Aria", hp: 30, maxHp: 40 };
+    const result = parseBackupImport(JSON.stringify(character));
+    expect(result).not.toHaveProperty("document");
+    const error = (result as { error: string }).error;
+    expect(error).toMatch(/character file, not an editable map/i);
+    expect(error).toMatch(/Load character/);
   });
 
   it("needs BOTH collections to call something a bare snapshot", () => {

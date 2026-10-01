@@ -10,6 +10,7 @@ const mockUseWebSocket = vi.fn();
 const mockUseObjectSelection = vi.fn();
 let latestHeaderProps: {
   onToolSelect: (mode: string | null) => void;
+  table?: { isDM: boolean; onToggleDM: (next: boolean) => void };
   playerLens?: boolean;
   onPlayerLensChange?: (enabled: boolean) => void;
 } | null = null;
@@ -117,10 +118,6 @@ vi.mock("../components/layout/EntitiesPanel", () => ({
   EntitiesPanel: () => <div data-testid="entities-panel">Entities</div>,
 }));
 
-vi.mock("../components/layout/ServerStatus", () => ({
-  ServerStatus: () => <div data-testid="server-status">Status</div>,
-}));
-
 vi.mock("../components/dice/DiceRoller", () => ({
   DiceRoller: () => <div data-testid="dice-roller">Dice Roller</div>,
 }));
@@ -129,7 +126,8 @@ vi.mock("../components/dice/RollLog", () => ({
   RollLog: () => <div data-testid="roll-log">Roll Log</div>,
 }));
 
-vi.mock("../utils/session", () => ({
+vi.mock("../utils/session", async (importActual) => ({
+  ...(await importActual<typeof import("../utils/session")>()),
   getSessionUID: vi.fn(() => "test-uid"),
 }));
 
@@ -309,7 +307,6 @@ describe("App", () => {
     expect(screen.getByTestId("map-board")).toBeInTheDocument();
     expect(screen.getByTestId("header")).toBeInTheDocument();
     expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
-    expect(screen.getByTestId("server-status")).toBeInTheDocument();
   });
 
   it("appends selection when MapBoard requests append mode", async () => {
@@ -723,6 +720,55 @@ describe("App", () => {
       rerender(<App />);
     });
     await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(false));
+  });
+
+  // Leaving DM mode is optimistic: the moment it is confirmed the app stops acting as the
+  // DM, and waits for the server to agree.
+  const dmSnapshot = () => ({
+    ...buildSnapshot(),
+    players: [{ uid: "test-uid", name: "Hero", isDM: true }],
+  });
+  const asTheDM = () => {
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: dmSnapshot(),
+    });
+  };
+  const confirmLeave = async () => {
+    await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(true));
+    await act(async () => {
+      latestHeaderProps!.table!.onToggleDM(false);
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Leave DM mode" }));
+  };
+
+  it("stops acting as the DM the moment the leave is confirmed", async () => {
+    asTheDM();
+    render(<App />);
+    await confirmLeave();
+    await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(false));
+  });
+
+  it("is the DM again when the server never answers the leave", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      asTheDM();
+      render(<App />);
+      await confirmLeave();
+      await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(false));
+
+      // No answer for the length of the request (the leave was dropped, or the server is slow):
+      // the roster still lists this seat as the DM, so it is one. Left latched, the Table menu
+      // read "Player", offered no Leave, and Enter DM mode did nothing until a reload.
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(true));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("still drops map-edit when the server says you are no longer a DM", async () => {

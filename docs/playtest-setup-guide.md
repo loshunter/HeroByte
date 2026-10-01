@@ -60,11 +60,11 @@ pnpm dev:client  # Terminal 2
 1. Navigate to http://localhost:5174
 2. Enter room password: `Fun1`
 3. Click "ENTER ROOM"
-4. Open your player settings, choose "Make myself DM", and enter DM password: `FunDM`
+4. Open the Table button at the left of the header (on a phone: Tools → Table), choose "Enter DM mode", and enter DM password: `FunDM`
 
 ### Step 2: Upload Map
 
-1. Open DM Menu → "Map Setup" tab
+1. Open DM Menu → "Maps" tab
 2. In the "Map Background" panel, paste an image URL
 3. Click "Apply Background"
 4. Adjust map position/scale in the "Map Transform" panel if needed
@@ -72,7 +72,7 @@ pnpm dev:client  # Terminal 2
 
 ### Step 3: Set Up Player Staging Zone
 
-1. Open DM Menu → "Map Setup" tab
+1. Open DM Menu → "Maps" tab
 2. Scroll to the "Player Staging Zone" panel (unlock it with the 🔓 ZONE UNLOCKED toggle if it is locked)
 3. Set Center X/Y, Width, and Height in grid tiles to define the spawn area
 4. Players will spawn randomly within this zone when they join
@@ -94,9 +94,9 @@ pnpm dev:client  # Terminal 2
 
 ### Step 6: Save Initial State
 
-1. Open DM Menu → "Session" tab
-2. In the "Session Save/Load" panel, click "Save Game State"
-3. Save file as `session-start.json`
+1. Open DM Menu → "Table" tab
+2. In the "Backups" section, click "Download table backup"
+3. Save the file as `session-start.json`
 4. This is your backup if anything goes wrong
 
 ## Player Onboarding (First-Time Players)
@@ -180,10 +180,10 @@ Need help? Ask the DM!
 
 **Session Management:**
 
-- Save: DM Menu → "Session" tab → "Save Game State"
-- Load: DM Menu → "Session" tab → "Load Game State"
-- Room passwords: DM Menu → "Session" tab → "Room Security"
-- Clear drawings: DM Menu → "Map Setup" tab → "Clear All Drawings"
+- Save: DM Menu → "Table" tab → Backups → "Download table backup"
+- Load: DM Menu → "Table" tab → Backups → "Restore table backup…"
+- Table password: DM Menu → "Table" tab → Security
+- Clear drawings: DM Menu → "Maps" tab → "Clear All Drawings"
 
 **Map Controls:**
 
@@ -275,7 +275,7 @@ Need help? Ask the DM!
 
 ### Session Won't Load
 
-**Issue**: "Failed to load session" error
+**Issue**: "Restore failed: …" toast when restoring a table backup
 
 **Solutions:**
 
@@ -288,7 +288,7 @@ Need help? Ask the DM!
 
 ### Save Final State
 
-1. DM: Open DM Menu → "Save Session"
+1. DM: Open DM Menu → "Table" tab → Backups → "Download table backup"
 2. Name file with date: `session-2025-10-19.json`
 3. Keep for next game
 

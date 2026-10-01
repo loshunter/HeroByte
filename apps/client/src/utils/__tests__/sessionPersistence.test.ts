@@ -120,7 +120,7 @@ describe("saveSessionFile", () => {
 
 describe("loadSession — the file is the wrong kind", () => {
   // Both backups say `schemaVersion: 1`, so neither picker could tell them
-  // apart. A map handed to Load Game State has no `snapshot`, took the legacy
+  // apart. A map handed to Restore table backup has no `snapshot`, took the legacy
   // bare-snapshot path, was read AS a room, and failed on the first collection
   // a map does not have — telling the DM "tokens must be an array" about a file
   // that was perfectly valid, just for the other importer.
@@ -141,6 +141,17 @@ describe("loadSession — the file is the wrong kind", () => {
     const thin = { schemaVersion: 1, id: "orig", name: "Restored" };
     await expect(loadSession(fileOf(thin))).rejects.toThrow(/editable map, not a table backup/i);
     await expect(loadSession(fileOf(thin))).rejects.not.toThrow(/tokens/i);
+  });
+
+  it("names a character file as a character file, not the first collection it lacks", async () => {
+    // A character file has no `snapshot` either, so it too fell into the legacy
+    // bare-snapshot branch and failed on "tokens must be an array".
+    const character = { name: "Aria", hp: 30, maxHp: 40, portrait: null };
+    await expect(loadSession(fileOf(character))).rejects.toThrow(
+      /character file, not a table backup/i,
+    );
+    await expect(loadSession(fileOf(character))).rejects.toThrow(/Load character/);
+    await expect(loadSession(fileOf(character))).rejects.not.toThrow(/tokens/i);
   });
 
   it("still loads a real session file", async () => {

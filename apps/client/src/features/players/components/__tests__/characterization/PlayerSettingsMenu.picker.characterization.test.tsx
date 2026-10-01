@@ -13,7 +13,6 @@ function props() {
     onClose: vi.fn(),
     selectedEffects: ["prone"],
     onStatusEffectsChange: vi.fn(),
-    onToggleDMMode: vi.fn(),
   };
 }
 

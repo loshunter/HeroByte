@@ -3,6 +3,23 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Header, type ToolMode } from "../Header";
 import type { JRPGButton, JRPGPanel } from "../../ui/JRPGPanel";
+import type { TableMenuProps } from "../../../features/table/tableMenuProps";
+import { ReconnectPhaseContext } from "../../../features/table/reconnectPhase";
+
+// The Table button is its own component with its own suite (features/table). Here
+// it is a stub that shows what the header HANDED it: the header's job is to give it
+// the table's object and its place, not to re-test it.
+vi.mock("../../../features/table/TableMenu", () => ({
+  TableMenu: ({ menu }: { menu: TableMenuProps }) => (
+    <div
+      data-testid="table-menu"
+      data-dm={String(menu.isDM)}
+      data-connected={String(menu.isConnected)}
+    >
+      {menu.tableName}
+    </div>
+  ),
+}));
 
 // Mock the JRPGPanel components
 vi.mock("../../ui/JRPGPanel", () => ({
@@ -27,16 +44,27 @@ vi.mock("../../ui/JRPGPanel", () => ({
 /**
  * Test data factory for Header component props
  */
-const createDefaultProps = () => ({
+const tableMenu = (overrides: Partial<TableMenuProps> = {}): TableMenuProps => ({
   uid: "12345678-1234-1234-1234-123456789012",
+  tableName: "Sunday Game",
+  isPublicTable: false,
+  isConnected: true,
+  isDM: false,
+  roleKnown: true,
+  onToggleDM: vi.fn(),
+  crtFilter: false,
+  onCrtFilterChange: vi.fn(),
+  ...overrides,
+});
+
+const createDefaultProps = () => ({
+  table: tableMenu(),
   snapToGrid: false,
   activeTool: null as ToolMode,
-  crtFilter: false,
   diceRollerOpen: false,
   rollLogOpen: false,
   onSnapToGridChange: vi.fn(),
   onToolSelect: vi.fn(),
-  onCrtFilterChange: vi.fn(),
   onDiceRollerToggle: vi.fn(),
   onRollLogToggle: vi.fn(),
   onResetCamera: vi.fn(),
@@ -66,32 +94,29 @@ describe("Header", () => {
   describe("Player lens toggle (P4)", () => {
     it("shows the toggle only for a DM with a handler wired", () => {
       const onPlayerLensChange = vi.fn();
+      const dm = tableMenu({ isDM: true });
       const { rerender } = render(
-        <Header {...props} isDM={true} onPlayerLensChange={onPlayerLensChange} />,
+        <Header {...props} table={dm} onPlayerLensChange={onPlayerLensChange} />,
       );
       expect(screen.getByText(/Player View/)).toBeTruthy();
-      rerender(<Header {...props} isDM={false} onPlayerLensChange={onPlayerLensChange} />);
+      rerender(<Header {...props} table={tableMenu()} onPlayerLensChange={onPlayerLensChange} />);
       expect(screen.queryByText(/Player View/)).toBeNull();
-      rerender(<Header {...props} isDM={true} />);
+      rerender(<Header {...props} table={dm} />);
       expect(screen.queryByText(/Player View/)).toBeNull();
     });
 
     it("toggles the lens and reflects its active state", () => {
       const onPlayerLensChange = vi.fn();
+      const dm = tableMenu({ isDM: true });
       const { rerender } = render(
-        <Header
-          {...props}
-          isDM={true}
-          playerLens={false}
-          onPlayerLensChange={onPlayerLensChange}
-        />,
+        <Header {...props} table={dm} playerLens={false} onPlayerLensChange={onPlayerLensChange} />,
       );
       const button = screen.getByText(/Player View/);
       expect(button.getAttribute("data-variant")).toBe("default");
       fireEvent.click(button);
       expect(onPlayerLensChange).toHaveBeenCalledWith(true);
       rerender(
-        <Header {...props} isDM={true} playerLens={true} onPlayerLensChange={onPlayerLensChange} />,
+        <Header {...props} table={dm} playerLens={true} onPlayerLensChange={onPlayerLensChange} />,
       );
       expect(screen.getByText(/Player View/).getAttribute("data-variant")).toBe("primary");
     });
@@ -105,7 +130,7 @@ describe("Header", () => {
       expect(headerContainer).toBeInTheDocument();
       expect(headerContainer).toHaveStyle({
         position: "fixed",
-        top: "24px",
+        top: "0",
         left: "0",
         right: "0",
         zIndex: "100",
@@ -177,7 +202,7 @@ describe("Header", () => {
     });
   });
 
-  describe("Logo and UID Display", () => {
+  describe("Logo and the Table button", () => {
     it("should render logo with correct attributes and styling", () => {
       render(<Header {...props} />);
       const logo = screen.getByAltText("HeroByte");
@@ -191,21 +216,71 @@ describe("Header", () => {
       expect(logo).toHaveStyle({ height: "32px" });
     });
 
-    it("should display UID label and truncated UID", () => {
+    it("puts the Table button beside the logo, in the left block where the UID used to be", () => {
       render(<Header {...props} />);
-
-      expect(screen.getByText("UID", { selector: "strong" })).toBeInTheDocument();
-      expect(screen.getByText("12345678...")).toBeInTheDocument();
+      const leftPanel = screen.getAllByTestId("jrpg-panel-simple")[0];
+      expect(leftPanel).toContainElement(screen.getByAltText("HeroByte"));
+      expect(leftPanel).toContainElement(screen.getByTestId("table-menu"));
     });
 
-    it("should truncate UID correctly for different lengths", () => {
-      const customProps = {
-        ...props,
-        uid: "abcdefghijklmnopqrstuvwxyz",
-      };
-      render(<Header {...customProps} />);
+    it("hands the Table button the table's own object, unchanged", () => {
+      render(<Header {...props} table={tableMenu({ tableName: "Friday", isDM: true })} />);
+      const menu = screen.getByTestId("table-menu");
+      expect(menu).toHaveTextContent("Friday");
+      expect(menu).toHaveAttribute("data-dm", "true");
+    });
 
-      expect(screen.getByText("abcdefgh...")).toBeInTheDocument();
+    it("prints no UID and no connection words of its own: the Table button carries both", () => {
+      render(<Header {...props} />);
+      expect(screen.queryByText("UID", { selector: "strong" })).toBeNull();
+      expect(screen.queryByText(/12345678/)).toBeNull();
+      expect(screen.queryByText(/ONLINE|OFFLINE/)).toBeNull();
+    });
+
+    it("follows the table object when it changes", () => {
+      const { rerender } = render(<Header {...props} table={tableMenu({ tableName: "One" })} />);
+      expect(screen.getByTestId("table-menu")).toHaveTextContent("One");
+      rerender(<Header {...props} table={tableMenu({ tableName: "Two", isConnected: false })} />);
+      expect(screen.getByTestId("table-menu")).toHaveTextContent("Two");
+      expect(screen.getByTestId("table-menu")).toHaveAttribute("data-connected", "false");
+    });
+  });
+
+  describe("Preferences moved out (U9)", () => {
+    it("has no CRT or Juice button: Display and Sound & motion are in the Table menu", () => {
+      render(<Header {...props} />);
+      expect(screen.queryByRole("button", { name: /CRT/ })).toBeNull();
+      expect(screen.queryByRole("button", { name: /Juice/ })).toBeNull();
+    });
+  });
+
+  describe("The public table's warning", () => {
+    it("is a row of the header on the public test table, in its flow", () => {
+      render(<Header {...props} table={tableMenu({ isPublicTable: true })} />);
+      const chip = screen.getByTestId("public-table-chip");
+      const bevelPanel = screen.getByTestId("jrpg-panel-bevel");
+      expect(bevelPanel).toContainElement(chip);
+      // First in the header's panel, above the tool rows, never a fixed overlay.
+      expect(bevelPanel.firstElementChild).toBe(chip);
+    });
+
+    it("is absent on a private table", () => {
+      render(<Header {...props} table={tableMenu({ isPublicTable: false })} />);
+      expect(screen.queryByTestId("public-table-chip")).toBeNull();
+    });
+  });
+
+  describe("The gate's reconnect notice", () => {
+    it("does not host it: the layout places it outside the header's own layer", () => {
+      // Inside the header it would share the header's z-index 100, and a floating window opened
+      // at the right edge would paint over the words that say the table is away.
+      const { container } = render(
+        <ReconnectPhaseContext.Provider value="reconnecting">
+          <Header {...props} />
+        </ReconnectPhaseContext.Provider>,
+      );
+      expect(container.querySelector("[data-header-root]")).not.toBeNull();
+      expect(screen.queryByTestId("reconnect-notice")).toBeNull();
     });
   });
 
@@ -217,7 +292,7 @@ describe("Header", () => {
       expect(topPanelRef.current).toBeInTheDocument();
       expect(topPanelRef.current).toHaveStyle({
         position: "fixed",
-        top: "24px",
+        top: "0",
       });
     });
 
@@ -390,11 +465,10 @@ describe("Header", () => {
   });
 
   describe.each<{
-    prop: "crtFilter" | "diceRollerOpen" | "rollLogOpen";
+    prop: "diceRollerOpen" | "rollLogOpen";
     label: string;
     handler: string;
   }>([
-    { prop: "crtFilter", label: "📺 CRT", handler: "onCrtFilterChange" },
     { prop: "diceRollerOpen", label: "⚂ Dice", handler: "onDiceRollerToggle" },
     { prop: "rollLogOpen", label: "📜 Chat & Rolls", handler: "onRollLogToggle" },
   ])("Toggle Button - $label", ({ prop, label, handler }) => {
@@ -431,31 +505,13 @@ describe("Header", () => {
         {
           name: "Snap",
           handler: "onSnapToGridChange",
-          excluded: [
-            "onToolSelect",
-            "onCrtFilterChange",
-            "onDiceRollerToggle",
-            "onRollLogToggle",
-            "onResetCamera",
-          ],
+          excluded: ["onToolSelect", "onDiceRollerToggle", "onRollLogToggle", "onResetCamera"],
         },
         {
           name: "👆 Ping",
           handler: "onToolSelect",
           excluded: [
             "onSnapToGridChange",
-            "onCrtFilterChange",
-            "onDiceRollerToggle",
-            "onRollLogToggle",
-            "onResetCamera",
-          ],
-        },
-        {
-          name: "📺 CRT",
-          handler: "onCrtFilterChange",
-          excluded: [
-            "onSnapToGridChange",
-            "onToolSelect",
             "onDiceRollerToggle",
             "onRollLogToggle",
             "onResetCamera",
@@ -464,24 +520,12 @@ describe("Header", () => {
         {
           name: "⚂ Dice",
           handler: "onDiceRollerToggle",
-          excluded: [
-            "onSnapToGridChange",
-            "onToolSelect",
-            "onCrtFilterChange",
-            "onRollLogToggle",
-            "onResetCamera",
-          ],
+          excluded: ["onSnapToGridChange", "onToolSelect", "onRollLogToggle", "onResetCamera"],
         },
         {
           name: "📜 Chat & Rolls",
           handler: "onRollLogToggle",
-          excluded: [
-            "onSnapToGridChange",
-            "onToolSelect",
-            "onCrtFilterChange",
-            "onDiceRollerToggle",
-            "onResetCamera",
-          ],
+          excluded: ["onSnapToGridChange", "onToolSelect", "onDiceRollerToggle", "onResetCamera"],
         },
       ];
 
@@ -505,12 +549,13 @@ describe("Header", () => {
   });
 
   describe("Component Re-rendering", () => {
-    it("should update UID display when prop changes", () => {
-      const { rerender } = render(<Header {...props} uid="11111111-aaaa-bbbb-cccc-dddddddddddd" />);
-      expect(screen.getByText("11111111...")).toBeInTheDocument();
-
-      rerender(<Header {...props} uid="99999999-zzzz-yyyy-xxxx-wwwwwwwwwwww" />);
-      expect(screen.getByText("99999999...")).toBeInTheDocument();
+    it("keeps its tools live while the table object changes under it", () => {
+      const { rerender } = render(<Header {...props} activeTool="draw" />);
+      rerender(<Header {...props} activeTool="draw" table={tableMenu({ tableName: "Other" })} />);
+      expect(screen.getByRole("button", { name: "✏️ Draw" })).toHaveAttribute(
+        "data-variant",
+        "primary",
+      );
     });
   });
 });

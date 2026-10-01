@@ -7,6 +7,11 @@ import type {
   Token,
   TokenSize,
 } from "@herobyte/shared";
+import {
+  MAP_FOR_CHARACTER_LOAD,
+  TABLE_BACKUP_FOR_CHARACTER_LOAD,
+  detectBackupFormat,
+} from "./backupFormat";
 import { cloneDrawingForExport, sanitizeDrawingFromImport } from "./characterDrawings";
 
 interface SavePlayerStateParams {
@@ -140,7 +145,7 @@ export function savePlayerState({
     .toISOString()
     .replace(/[-:]/g, "")
     .replace(/\.\d{3}Z$/, "Z");
-  const fileName = `${safeName || "player"}-state-${timestamp}.json`;
+  const fileName = `${safeName || "player"}-character-${timestamp}.json`;
   const json = JSON.stringify(state, null, 2);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -162,33 +167,39 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new Error("Invalid player state file (not valid JSON)");
+    throw new Error("That is not a character file (it is not valid JSON)");
   }
 
   if (!isRecord(parsed)) {
-    throw new Error("Invalid player state structure");
+    throw new Error("That is not a character file (it is not a JSON object)");
   }
+
+  // Asked before the field checks, which only ever said "missing a valid name" of
+  // a file that was simply the other kind: a whole-table backup or an editable map.
+  const format = detectBackupFormat(parsed);
+  if (format === "session") throw new Error(TABLE_BACKUP_FOR_CHARACTER_LOAD);
+  if (format === "map") throw new Error(MAP_FOR_CHARACTER_LOAD);
 
   const { name, hp, maxHp, portrait, tokenImage, color } = parsed;
 
   if (typeof name !== "string" || name.trim().length === 0) {
-    throw new Error("Player state is missing a valid name");
+    throw new Error("That character file is missing a valid name");
   }
   if (!isFiniteNumber(hp)) {
-    throw new Error("Player state is missing a valid hp value");
+    throw new Error("That character file is missing a valid hp value");
   }
   if (!isFiniteNumber(maxHp)) {
-    throw new Error("Player state is missing a valid maxHp value");
+    throw new Error("That character file is missing a valid maxHp value");
   }
   if (hp < 0 || maxHp <= 0) {
-    throw new Error("Player state contains invalid HP values");
+    throw new Error("That character file has invalid HP values");
   }
 
   if (portrait !== undefined && portrait !== null && typeof portrait !== "string") {
-    throw new Error("Player state portrait must be a string or null");
+    throw new Error("That character file's portrait must be a string or null");
   }
   if (tokenImage !== undefined && tokenImage !== null && typeof tokenImage !== "string") {
-    throw new Error("Player state tokenImage must be a string or null");
+    throw new Error("That character file's tokenImage must be a string or null");
   }
 
   const normalizedPortrait =

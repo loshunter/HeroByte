@@ -135,11 +135,13 @@ test("the 375px Chat dock fits and opens chat before remembering the Rolls tab",
   expect(closeBox).not.toBeNull();
   expect(closeBox!.width).toBeGreaterThanOrEqual(44);
   expect(closeBox!.height).toBeGreaterThanOrEqual(44);
-  // A visible title can still be painted over by the connection badge: it
-  // ignores pointer events, so hit-testing the heading misses that overlap.
+  // A visible title can still be painted over by the connection chip. It is the
+  // screen's own header row now (U9), not a badge laid over it, so the proof is
+  // two boxes that do not overlap — measured, since hit-testing the heading
+  // would pass either way.
   const title = screen.getByRole("heading", { name: "Chat & Rolls", exact: true });
   const titleBox = await title.boundingBox();
-  const connection = page.getByText("ONLINE", { exact: true }).locator("..");
+  const connection = screen.getByTestId("connection-chip");
   await expect(connection).toBeVisible();
   const connectionBox = await connection.boundingBox();
   expect(titleBox).not.toBeNull();

@@ -3,16 +3,14 @@
 // ============================================================================
 // Self-contained header button that toggles the in-app manual. No props, so
 // it drops into the toolbar without threading state through MainLayoutProps
-// and its four layout fixtures — the same reason JuiceMenuButton is shaped
-// this way.
+// and its four layout fixtures.
 //
-// Unlike JuiceMenuButton the popover is PORTALLED to document.body. The header
-// is a fixed container at z-index 100, which makes it a stacking context: a
-// child cannot paint above the entities panel, a later sibling at the same
-// z-index. Juice's popover never notices because it is a few rows tall, but
-// the manual is 500px and was being cut off exactly at the entities panel's
-// top edge. Portalling also lets the panel size itself to the viewport instead
-// of guessing with vh.
+// The popover is PORTALLED to document.body. The header is a fixed container
+// at z-index 100, which makes it a stacking context: a child cannot paint
+// above the entities panel, a later sibling at the same z-index. The manual is
+// 500px and was being cut off exactly at the entities panel's top edge.
+// Portalling also lets the panel size itself to the viewport instead of
+// guessing with vh. (The Table menu is portalled for the same reason.)
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -75,8 +73,8 @@ export const HelpMenuButton: React.FC = () => {
 
     // A window resize is NOT the only way this button moves. The header is a
     // wrapping toolbar whose contents change — elevating to DM adds "🏗️ Build map"
-    // and "👁 Player View", which can rewrap the row — and its top offset moves
-    // with the connection banner appearing or disappearing. None of that fires
+    // and "👁 Player View", which can rewrap the row — and the header's bottom edge moves
+    // with the public-table warning row appearing or disappearing. None of that fires
     // `resize`, and the popover is portalled to document.body, so it cannot
     // simply be positioned relative to its button. Observing the button's own
     // box catches every case: a rewrap changes where it is, and that is exactly

@@ -34,7 +34,7 @@ export function mobilePartyRows(
       // A seat with no character. Someone else's shows nothing, as on the
       // desktop Party: its editors would send character messages carrying a
       // player uid, which the server refuses. The viewer's own keeps a row,
-      // since its EDIT is the phone's way to Table role and ➕ Add Character.
+      // since its EDIT is the phone's way to ➕ Add Character.
       if (player.uid !== uid) return [];
       return [
         {

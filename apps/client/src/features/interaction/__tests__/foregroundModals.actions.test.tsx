@@ -41,7 +41,7 @@ describe("foreground modal action preservation", () => {
   it("DM elevation still submits its unchanged password through the actual form", () => {
     const calls = actions();
     render(<ActualModal kind="dm" calls={calls} />);
-    const input = screen.getByLabelText("Enter DM Password:");
+    const input = screen.getByLabelText("DM password");
     fireEvent.change(input, { target: { value: " keeper-password " } });
     const form = input.closest("form");
     expect(form).not.toBeNull();

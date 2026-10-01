@@ -22,8 +22,15 @@ import { NestedMobileDiceResult } from "./NestedMobileDiceResult";
 import { HandEntry } from "./HandEntry";
 import { RollOptions } from "./RollOptions";
 import { JRPGButton } from "../ui/JRPGPanel";
+import { ConnectionChip } from "../../features/table/ConnectionChip";
 
 interface MobileDiceRollerProps {
+  /**
+   * The table's link to the server. REQUIRED: this overlay covers the whole screen, the top
+   * stack's chip is under it, and a default of "online" would be a cheerful chip over a dead
+   * table — the thing every screen's own chip exists to prevent.
+   */
+  isConnected: boolean;
   onRoll?: (request: { formula: string; mode: DiceRollMode; visibility: DiceVisibility }) => void;
   latestOwnRoll?: RollLogEntry | null;
   /**
@@ -42,6 +49,7 @@ interface MobileDiceRollerProps {
 }
 
 export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
+  isConnected,
   onRoll,
   latestOwnRoll,
   onEnterRoll,
@@ -110,6 +118,11 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
               pointerEvents: "auto",
             }}
           >
+            {/* The roller covers the whole screen, the top stack's chip with it: it carries its own. */}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <ConnectionChip isConnected={isConnected} />
+            </div>
+
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h2 style={{ color: "var(--hero-gold)", margin: 0, fontSize: "1.5rem" }}>

@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { MobileDiceRoller } from "../MobileDiceRoller";
 import type { RollLogEntry } from "../rollLogTypes";
 
@@ -51,7 +51,14 @@ describe("MobileDiceRoller", () => {
   ) {
     fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
     fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
-    rerender(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={answer} onClose={mockOnClose} />);
+    rerender(
+      <MobileDiceRoller
+        isConnected
+        onRoll={mockOnRoll}
+        latestOwnRoll={answer}
+        onClose={mockOnClose}
+      />,
+    );
     act(() => {
       vi.advanceTimersByTime(600);
     });
@@ -60,7 +67,14 @@ describe("MobileDiceRoller", () => {
 
   describe("Rolling", () => {
     it("asks the server for a formula and sends no result of its own", () => {
-      render(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />);
+      render(
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
+      );
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
       fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
@@ -75,7 +89,12 @@ describe("MobileDiceRoller", () => {
 
     it("shows the SERVER's total inside the roller once it arrives", () => {
       const { rerender } = render(
-        <MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />,
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
       );
 
       rollAndAnswer(rerender, serverRoll("r1", 17));
@@ -85,7 +104,14 @@ describe("MobileDiceRoller", () => {
     });
 
     it("should not show a result before rolling", () => {
-      render(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />);
+      render(
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
+      );
 
       expect(screen.queryByTestId("mobile-roll-result")).not.toBeInTheDocument();
     });
@@ -96,7 +122,12 @@ describe("MobileDiceRoller", () => {
       // were this roll's.
       const stale = serverRoll("old", 3);
       const { rerender } = render(
-        <MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={stale} onClose={mockOnClose} />,
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={stale}
+          onClose={mockOnClose}
+        />,
       );
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
@@ -109,6 +140,7 @@ describe("MobileDiceRoller", () => {
 
       rerender(
         <MobileDiceRoller
+          isConnected
           onRoll={mockOnRoll}
           latestOwnRoll={serverRoll("new", 19)}
           onClose={mockOnClose}
@@ -124,7 +156,14 @@ describe("MobileDiceRoller", () => {
     it("gives the roll button back when the server never answers", () => {
       // A refused roll produces no reply at all. Without the failsafe, ROLL
       // stays disabled until the panel is reopened.
-      render(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />);
+      render(
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
+      );
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
       fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
@@ -140,7 +179,14 @@ describe("MobileDiceRoller", () => {
 
   describe("Roll options", () => {
     it("sends advantage and a private visibility when they are selected", () => {
-      render(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />);
+      render(
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
+      );
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
       fireEvent.click(screen.getByRole("button", { name: "ADV" }));
@@ -155,7 +201,14 @@ describe("MobileDiceRoller", () => {
     });
 
     it("rolls a built-in macro without touching the build strip", () => {
-      render(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />);
+      render(
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
+      );
 
       fireEvent.click(screen.getByRole("button", { name: "Roll 2d6 now" }));
 
@@ -170,7 +223,12 @@ describe("MobileDiceRoller", () => {
   describe("Dismissing the result", () => {
     it("should hide the result when its close button is tapped", () => {
       const { rerender } = render(
-        <MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />,
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
       );
 
       rollAndAnswer(rerender, serverRoll("r1"));
@@ -181,7 +239,12 @@ describe("MobileDiceRoller", () => {
 
     it("should keep the build after dismissing so the player can re-roll", () => {
       const { rerender } = render(
-        <MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />,
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
       );
 
       rollAndAnswer(rerender, serverRoll("r1"));
@@ -192,6 +255,7 @@ describe("MobileDiceRoller", () => {
       fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
       rerender(
         <MobileDiceRoller
+          isConnected
           onRoll={mockOnRoll}
           latestOwnRoll={serverRoll("r2", 12)}
           onClose={mockOnClose}
@@ -207,7 +271,12 @@ describe("MobileDiceRoller", () => {
 
     it("should not close the whole roller when dismissing the result", () => {
       const { rerender } = render(
-        <MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />,
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
       );
 
       rollAndAnswer(rerender, serverRoll("r1"));
@@ -223,7 +292,14 @@ describe("MobileDiceRoller", () => {
     // accepts. Before it was checked here, the request went out, the server
     // dropped it in silence, and ROLL sat dead for six seconds.
     it("says why instead of sending a roll that would vanish", () => {
-      render(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />);
+      render(
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
+      );
 
       // Seventeen +1 chips: one term each, over the 16-term ceiling.
       for (let i = 0; i < 17; i++) {
@@ -238,7 +314,14 @@ describe("MobileDiceRoller", () => {
     });
 
     it("clears the message once the build changes", () => {
-      render(<MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />);
+      render(
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
+      );
 
       for (let i = 0; i < 17; i++) {
         fireEvent.click(screen.getByRole("button", { name: /add \+1 modifier/i }));
@@ -254,7 +337,12 @@ describe("MobileDiceRoller", () => {
   describe("a slow answer", () => {
     it("gives the button back at the timeout but still shows a late result", () => {
       const { rerender } = render(
-        <MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />,
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
       );
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
@@ -267,6 +355,7 @@ describe("MobileDiceRoller", () => {
       // The answer finally arrives. The request was never abandoned.
       rerender(
         <MobileDiceRoller
+          isConnected
           onRoll={mockOnRoll}
           latestOwnRoll={serverRoll("late", 11)}
           onClose={mockOnClose}
@@ -284,7 +373,12 @@ describe("MobileDiceRoller", () => {
       // followed by #2's. Capturing the roll that woke the effect would show
       // #1's numbers as #2's result and throw #2's away.
       const { rerender } = render(
-        <MobileDiceRoller onRoll={mockOnRoll} latestOwnRoll={null} onClose={mockOnClose} />,
+        <MobileDiceRoller
+          isConnected
+          onRoll={mockOnRoll}
+          latestOwnRoll={null}
+          onClose={mockOnClose}
+        />,
       );
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
@@ -296,6 +390,7 @@ describe("MobileDiceRoller", () => {
 
       rerender(
         <MobileDiceRoller
+          isConnected
           onRoll={mockOnRoll}
           latestOwnRoll={serverRoll("first", 2)}
           onClose={mockOnClose}
@@ -303,6 +398,7 @@ describe("MobileDiceRoller", () => {
       );
       rerender(
         <MobileDiceRoller
+          isConnected
           onRoll={mockOnRoll}
           latestOwnRoll={serverRoll("second", 18)}
           onClose={mockOnClose}
@@ -313,6 +409,18 @@ describe("MobileDiceRoller", () => {
       });
 
       expect(screen.getByTestId("roll-result-total").textContent).toBe("18");
+    });
+  });
+  // The roller covers the whole screen, and with it the top stack's chip: a player rolling
+  // with the table gone would see nothing of it. It carries its own, like every other screen.
+  describe("the connection", () => {
+    it("shows the table's state inside the overlay, online and lost", () => {
+      const { rerender } = render(<MobileDiceRoller isConnected onClose={mockOnClose} />);
+      const roller = screen.getByTestId("dice-roller");
+      expect(within(roller).getByTestId("connection-chip")).toHaveTextContent("ONLINE");
+
+      rerender(<MobileDiceRoller isConnected={false} onClose={mockOnClose} />);
+      expect(within(roller).getByTestId("connection-chip")).toHaveTextContent("OFFLINE");
     });
   });
 });

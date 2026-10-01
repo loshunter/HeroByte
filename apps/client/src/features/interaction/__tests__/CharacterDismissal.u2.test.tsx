@@ -77,7 +77,6 @@ describe("Character explicit dismissal and existing save boundaries", () => {
       onClose: close,
       selectedEffects: ["prone"],
       onStatusEffectsChange: change,
-      onToggleDMMode: vi.fn(),
     };
     const view = render(<PlayerSettingsMenu {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "1 Active Effect" }));
@@ -107,7 +106,6 @@ describe("Character explicit dismissal and existing save boundaries", () => {
       onClose: vi.fn(),
       selectedEffects: [],
       onStatusEffectsChange: vi.fn(),
-      onToggleDMMode: vi.fn(),
       nameInput: "Dirty",
       onNameInputChange: vi.fn(),
       onNameSubmit: submit,

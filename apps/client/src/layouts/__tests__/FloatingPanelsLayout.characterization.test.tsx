@@ -178,10 +178,6 @@ vi.mock("../../components/ui/Toast", () => ({
 }));
 
 // Mock other components that are not part of FloatingPanelsLayout but required by MainLayout
-vi.mock("../../components/layout/ServerStatus", () => ({
-  ServerStatus: () => <div data-testid="server-status">ServerStatus</div>,
-}));
-
 vi.mock("../../features/drawing/components", () => ({
   DrawingToolbar: () => <div data-testid="drawing-toolbar">DrawingToolbar</div>,
 }));
@@ -363,6 +359,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     gridSize: 50,
     gridSquareSize: 5,
     isDM: true,
+    roleKnown: true,
 
     // Camera
     cameraState: { x: 0, y: 0, scale: 1 },

@@ -67,7 +67,7 @@ describe("EntitiesPanel roster — a player sees permitted actions only", () => 
     expect(props.onHpEdit).not.toHaveBeenCalled();
   });
 
-  it("gets settings and HP edit on their own character, and the table role apart", () => {
+  it("gets settings and HP edit on their own character, and no table role in it (the Table menu holds it)", () => {
     // Every DM-only handler supplied, as the app does for every viewer: the
     // card's own gates are what must keep them off a player's window.
     const props = renderAs(ALICE_UID, {
@@ -83,7 +83,6 @@ describe("EntitiesPanel roster — a player sees permitted actions only", () => 
     fireEvent.click(within(inspector()).getByRole("button", { name: "Open player settings" }));
     const character = screen.getByRole("region", { name: "Character" });
     const token = screen.getByRole("region", { name: "Token settings" });
-    const role = screen.getByRole("region", { name: "Table role" });
     expect(within(character).getByLabelText("Character Name")).toBeInTheDocument();
     expect(within(character).getByText("Status Effects")).toBeInTheDocument();
     expect(within(token).getByText("Token Size")).toBeInTheDocument();
@@ -94,7 +93,10 @@ describe("EntitiesPanel roster — a player sees permitted actions only", () => 
     expect(screen.queryByRole("button", { name: "🗑️ Delete Token (DM)" })).toBeNull();
     // Ownership is the DM's to change.
     expect(screen.queryByLabelText("Owner")).toBeNull();
-    expect(within(role).getByRole("button", { name: "DM Mode: OFF" })).toBeInTheDocument();
+    // Role is the table's, not the character's: Enter / Leave DM mode is in the
+    // Table menu (U9), so this window has no such section and no pointer to it.
+    expect(screen.queryByRole("region", { name: "Table role" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /DM Mode/i })).toBeNull();
   });
 
   it("never sees a withheld monster's numbers, in the row or the inspector", () => {
@@ -203,7 +205,8 @@ describe("EntitiesPanel roster — the DM's NPC equivalents", () => {
     expect(within(token).getByLabelText("Movement speed in feet per turn")).toBeInTheDocument();
     expect(within(token).getByText("Token Lock")).toBeInTheDocument();
     expect(within(token).getByRole("button", { name: "🗑️ Delete Token (DM)" })).toBeVisible();
-    // The DM's role toggle lives on the DM's own card only.
+    // A DM's window has no role section either: Leave DM mode is in the Table menu.
     expect(screen.queryByRole("region", { name: "Table role" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /DM Mode|Leave DM/i })).toBeNull();
   });
 });

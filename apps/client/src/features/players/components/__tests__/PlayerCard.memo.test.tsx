@@ -55,7 +55,6 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Play
   onStatusEffectsChange: vi.fn(),
   isDM: false,
   viewerIsDM: false,
-  onToggleDMMode: vi.fn(),
   tokenLocked: false,
   onToggleTokenLock: vi.fn(),
   tokenSize: "medium" as TokenSize,

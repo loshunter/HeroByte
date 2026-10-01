@@ -347,7 +347,7 @@ function AuthenticatedApp({
     mapEditMode,
     setActiveTool,
     isDM,
-    snapshotLoaded: Boolean(snapshot?.players.some((player) => player.uid === uid)),
+    snapshotLoaded: roleKnown,
     liveMapDocumentId: snapshot?.liveMapDocumentId,
     roomGridSize: snapshot?.gridSize ?? 50,
     sceneSourceDocumentId: snapshot?.compiledScene?.sourceDocumentId,
@@ -607,6 +607,14 @@ function AuthenticatedApp({
     sendMessage,
     toast,
   });
+  // A leave the server never heard (the socket died under the confirm) must not leave the
+  // role latched to "player": once the request is no longer in flight and the roster still
+  // lists this seat as the DM, it is one, and Leave / Enter DM mode must say so again.
+  useEffect(() => {
+    if (dmRevocationPending && !modalState.isLoading && roleKnown && serverIsDM) {
+      setDmRevocationPending(false);
+    }
+  }, [dmRevocationPending, modalState.isLoading, roleKnown, serverIsDM]);
   useEffect(() => {
     dmElevationFailedRef.current = onElevationFailed;
     return () => {
@@ -768,8 +776,6 @@ function AuthenticatedApp({
     [playerActions],
   );
 
-  // Note: No wrapper needed - SessionPersistenceControl has its own file input
-
   // -------------------------------------------------------------------------
   // RENDER
   // -------------------------------------------------------------------------
@@ -834,6 +840,7 @@ function AuthenticatedApp({
     gridSize,
     gridSquareSize,
     isDM,
+    roleKnown,
     // Camera
     cameraState,
     // `camera` previously came from a dead useState whose setter was never

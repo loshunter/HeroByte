@@ -62,19 +62,24 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
 }
 
 describe("MapStudioControl", () => {
-  it("shows the campaign's weight beside the map list, and warns past the mint ceiling", () => {
+  it("says what the library can still take beside the map list (the numbers are the tooltip)", () => {
     const { rerender } = render(
-      <MapStudioControl controller={controller({ exportBytes: 640_000, documents: [] })} />,
+      <MapStudioControl controller={controller({ exportBytes: 100_000, documents: [] })} />,
     );
-    expect(screen.getByTestId("campaign-weight").textContent).toMatch(
-      /^Campaign 0\.61 MB of 0\.75 MB · 0 maps — a new map also costs the scene it installs/,
+    expect(screen.getByTestId("campaign-weight").textContent).toBe("0 maps · Room for more maps.");
+
+    rerender(<MapStudioControl controller={controller({ exportBytes: 640_000 })} />);
+    expect(screen.getByTestId("campaign-weight").textContent).toMatch(/^0 maps · Nearly full/);
+    expect(screen.getByTestId("campaign-weight")).toHaveAttribute(
+      "title",
+      "Campaign 0.61 MB of 0.75 MB",
     );
 
     rerender(<MapStudioControl controller={controller({ exportBytes: 900_000 })} />);
-    expect(screen.getByTestId("campaign-weight").textContent).toContain("past the mint ceiling");
+    expect(screen.getByTestId("campaign-weight").textContent).toMatch(/^0 maps · Full/);
 
     rerender(<MapStudioControl controller={controller({ exportBytes: 1_100_000 })} />);
-    expect(screen.getByTestId("campaign-weight").textContent).toContain("NOT load back");
+    expect(screen.getByTestId("campaign-weight").textContent).toContain("would not load back");
 
     // Nothing until a server has said: no number that means nothing.
     rerender(<MapStudioControl controller={controller({ exportBytes: null })} />);

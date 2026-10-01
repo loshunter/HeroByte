@@ -2,7 +2,7 @@
 
 HeroByte's map editor runs **on the live table**: every room, wall, door, and brushstroke appears for your players the moment you commit it. No export step, no "load map" — you build the dungeon around the party, even mid-session.
 
-It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **🏗️ Build map** in the top toolbar. On a phone or tablet the door is a different one — see [On a phone or tablet](#on-a-phone-or-tablet) at the end.
+It's DM-only: [enter DM mode first](getting-started.md#becoming-the-dm), then press **🏗️ Build map** in the top toolbar. On a phone or tablet the door is a different one — see [On a phone or tablet](#on-a-phone-or-tablet) at the end.
 
 The **Tool group** menu organizes the palette into **Terrain**, **Structures**,
 **Objects**, **Lighting**, and **Generate**. Returning to a group remembers its last

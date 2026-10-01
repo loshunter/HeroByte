@@ -12,6 +12,7 @@
 // for everything else. Keep the two in step when a slice changes behaviour.
 
 import { DM_HELP_TOPIC } from "./dmHelpTopic";
+import { TABLE_MENU_HELP_TOPIC } from "./tableHelpTopic";
 
 /** One "how do I…" line inside a topic. */
 export interface HelpEntry {
@@ -51,7 +52,7 @@ export const HELP_LINKS: HelpLink[] = [
   {
     label: "DM Guide",
     href: `${GUIDE_BASE}/dm-guide.md`,
-    detail: "The DM Menu, fog, NPCs, initiative, session saves",
+    detail: "The DM Menu, fog, NPCs, initiative, the Table tab and backups",
   },
   {
     label: "Map Editor Guide",
@@ -336,5 +337,6 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
     ],
   },
+  TABLE_MENU_HELP_TOPIC,
   DM_HELP_TOPIC,
 ];

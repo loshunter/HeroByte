@@ -31,8 +31,8 @@ import { usePartyNpcActions } from "../components/layout/party/usePartyNpcAction
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
 import { useNpcVisibility } from "../hooks/useNpcVisibility";
-import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 import { buildDMMenuProps } from "../features/dm/buildDMMenuProps";
+import { useTableMenuProps } from "../features/table/tableMenuProps";
 import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
 
 // Re-export for backward compatibility
@@ -48,6 +48,8 @@ export type { MainLayoutProps, RollLogEntry };
  * unnecessary re-renders during drag operations.
  */
 export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps): JSX.Element {
+  // The Table menu's facts, held through a reconnect's empty snapshot (see the hook).
+  const tableMenu = useTableMenuProps(props);
   const {
     // Layout state
     topHeight,
@@ -56,9 +58,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     bottomPanelRef,
     contextMenu,
     setContextMenu,
-
-    // Connection state
-    isConnected,
 
     // Tool state
     activeTool,
@@ -97,7 +96,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     snapToGrid,
     setSnapToGrid,
     crtFilter,
-    setCrtFilter,
     playerLens,
     onTogglePlayerLens,
     diceRollerOpen,
@@ -184,10 +182,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleClearLog,
     handleViewRoll,
 
-    // DM management (hooks now in DMMenuContainer; the rename/derive wiring
-    // now lives in buildDMMenuProps)
-    handleToggleDM,
-
     // Toast
     toast,
 
@@ -251,26 +245,19 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
-      {/* Marks the shared default table for anyone who bookmarked its URL and
-          never saw the join screen. Driven by the live snapshot flag, not the
-          room id: setting a password claims the table and this goes away.
-          Rendered here rather than in TopPanelLayout because the snapshot is
-          already in scope — no new prop to thread through the layout fixtures. */}
-      {snapshot?.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
-      {/* Top Panel - Server status, drawing toolbar, header, and multi-select toolbar */}
+      {/* Top Panel - drawing toolbar, header (the Table button carries the
+          connection; the public-table warning is a row of the header), and
+          multi-select toolbar */}
       <TopPanelLayout
-        isConnected={isConnected}
+        tableMenu={tableMenu}
         drawMode={drawMode}
         drawingToolbarProps={drawingToolbarProps}
         mapEditMode={mapEditMode}
         mapEditToolbarProps={mapEditToolbarProps}
-        uid={uid}
         activeTool={activeTool}
         setActiveTool={setActiveTool}
         snapToGrid={snapToGrid}
         setSnapToGrid={setSnapToGrid}
-        crtFilter={crtFilter}
-        setCrtFilter={setCrtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
         playerLens={playerLens}
@@ -376,7 +363,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onTempHpSubmit={handleCharacterTempHpSubmit}
         onCharacterPortraitUpdate={onCharacterPortraitUpdate}
         onToggleMic={toggleMic}
-        onToggleDMMode={handleToggleDM}
         onApplyPlayerState={playerActions.applyPlayerState}
         onStatusEffectsChange={playerActions.setStatusEffects}
         onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}

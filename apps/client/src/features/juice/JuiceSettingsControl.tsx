@@ -1,8 +1,9 @@
 // ============================================================================
 // JUICE SETTINGS CONTROL
 // ============================================================================
-// Self-contained UI for game-feel preferences. Reads/writes the juice settings
-// singleton directly, so it can be dropped anywhere without prop threading.
+// Self-contained UI for the sound and motion preferences. Reads/writes the
+// juice settings singleton directly, so it can be dropped anywhere without prop
+// threading. Its heading ("Sound & motion") belongs to the panel that hosts it.
 
 import React from "react";
 import { useJuiceSettings } from "./useJuiceSettings";
@@ -23,10 +24,6 @@ export const JuiceSettingsControl: React.FC = () => {
       className="juice-settings"
       style={{ display: "flex", flexDirection: "column", gap: "8px" }}
     >
-      <div className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-        ✦ GAME FEEL
-      </div>
-
       <label
         className="jrpg-text-small"
         htmlFor="juice-motion"

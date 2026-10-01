@@ -3,7 +3,7 @@
  *
  * The done-when is "a player can drop an AI-generated chest on the table
  * without DM elevation — but only after the DM says so", so the happy path
- * drives the real DM Session tab and the real player panel with real clicks;
+ * drives the real DM Table tab and the real player panel with real clicks;
  * hand-sent frames cover the refusal matrix the UI never offers buttons for.
  *
  * The default table is shared between specs and runs, so every test restores
@@ -84,7 +84,7 @@ test.describe("player props toggle", () => {
     }
   });
 
-  test("the DM flips the Session-tab toggle; a player adds and edits a chest by clicking", async ({
+  test("the DM flips the Table-tab toggle; a player adds and edits a chest by clicking", async ({
     browser,
     page,
   }) => {
@@ -95,13 +95,13 @@ test.describe("player props toggle", () => {
     try {
       await joinDefaultRoom(playerPage);
 
-      // The real toggle, not a hand-sent frame: DM MENU → Session → checkbox.
+      // The real toggle, not a hand-sent frame: DM MENU → Table → Permissions → checkbox.
       // click() + a retrying toBeChecked, NOT check(): the input is
       // controlled off the SNAPSHOT, so its state only flips when the
       // server's broadcast comes back — check() asserts the flip
       // synchronously and loses that race.
       await page.getByRole("button", { name: /DM MENU/i }).click();
-      await page.getByRole("button", { name: /Session/i }).click();
+      await page.getByRole("button", { name: "Table", exact: true }).click();
       const checkbox = page.getByRole("checkbox", { name: /players can add props/i });
       await checkbox.click();
       await expect(checkbox).toBeChecked();

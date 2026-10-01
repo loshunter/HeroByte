@@ -4,7 +4,7 @@
 // SETUP only — every behaviour under test is driven through the page.
 
 import { expect, type Locator, type Page } from "@playwright/test";
-import { openOwnCharacterSettings, partyInspector } from "./party.helpers";
+import { dismissNextSteps, enterDMMode } from "./table-role.helpers";
 
 const TABLE_PASSWORD = "U7-local-table-password";
 const DM_PASSWORD = "U7-local-dm-password";
@@ -55,7 +55,7 @@ async function joined(page: Page): Promise<void> {
   );
 }
 
-/** A fresh private table: `dm` creates it and elevates through its own character window. */
+/** A fresh private table: `dm` creates it and enters DM mode through the Table menu (U9). */
 export async function createTableAsDM(dm: Page, label: string): Promise<string> {
   await dm.goto("/");
   await dm.getByRole("button", { name: /New Table/i }).click();
@@ -64,19 +64,10 @@ export async function createTableAsDM(dm: Page, label: string): Promise<string> 
   await dm.getByLabel("New DM password", { exact: true }).fill(DM_PASSWORD);
   await dm.getByRole("button", { name: "Create private table", exact: true }).click();
   await joined(dm);
-  const settings = await openOwnCharacterSettings(dm);
-  await settings.getByRole("button", { name: "DM Mode: OFF", exact: true }).click();
-  await dm.getByLabel("Enter DM Password:", { exact: true }).fill(DM_PASSWORD);
-  await dm.getByRole("button", { name: "Elevate to DM", exact: true }).click();
-  await expect.poll(() => isDM(dm)).toBe(true);
-  const close = settings.getByRole("button", { name: /^Close / });
-  if (await close.isVisible()) await close.click();
-  await expect(settings).toHaveCount(0);
-  // Back to the compact roster: the elevation path opened the DM's details.
-  await partyInspector(dm)
-    .getByRole("button", { name: /^Close .* details$/ })
-    .click();
-  await expect(partyInspector(dm)).toHaveCount(0);
+  // The host's own path: the Table menu, then the password dialog. The next-steps
+  // card a new host is shown is not what this helper is about, so it is cleared.
+  await enterDMMode(dm, DM_PASSWORD);
+  await dismissNextSteps(dm);
   return dm.url();
 }
 

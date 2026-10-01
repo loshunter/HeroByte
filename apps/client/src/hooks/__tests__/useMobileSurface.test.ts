@@ -61,17 +61,24 @@ describe("useMobileSurface — a screen whose gate refuses reads as none, DERIVE
     expect(result.current.surface).toBe("dm");
   });
 
-  it("the props switch gates only when SUPPLIED as false (undefined is 'not gated')", () => {
-    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
-      initialProps: options({ isDM: false }),
-    });
-    act(() => result.current.openSurface("props"));
-    expect(result.current.surface).toBe("props");
-    rerender(options({ isDM: false, playerPropsEnabled: false }));
-    expect(result.current.surface).toBe("none");
-    rerender(options({ isDM: false, playerPropsEnabled: true }));
-    expect(result.current.surface).toBe("props");
-  });
+  // The layout always passes roleKnown; a caller that does not is the other row. The rule that a
+  // screen the table switch hides comes BACK when it is switched on again is not the role rule
+  // (a known demotion ends a screen for good): with the roster known, only this case shows the two
+  // apart — a hide that ended the screen for good would pass the undefined row.
+  it.each([[undefined], [true]])(
+    "the props switch gates only when SUPPLIED as false (undefined is 'not gated'), and what it hides comes back when switched on (roleKnown %s)",
+    (roleKnown) => {
+      const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+        initialProps: options({ isDM: false, roleKnown }),
+      });
+      act(() => result.current.openSurface("props"));
+      expect(result.current.surface).toBe("props");
+      rerender(options({ isDM: false, roleKnown, playerPropsEnabled: false }));
+      expect(result.current.surface).toBe("none");
+      rerender(options({ isDM: false, roleKnown, playerPropsEnabled: true }));
+      expect(result.current.surface).toBe("props");
+    },
+  );
 
   it("the kick screen too; and a player's props/atlas screens close on elevation, props on the table switch", () => {
     const { result, rerender } = renderHook((props) => useControlledKickSurface(props), {
@@ -88,6 +95,43 @@ describe("useMobileSurface — a screen whose gate refuses reads as none, DERIVE
     act(() => result.current.openSurface("props"));
     expect(result.current.surface).toBe("props");
     rerender(options({ isDM: false, playerPropsEnabled: false }));
+    expect(result.current.surface).toBe("none");
+  });
+
+  it("a KNOWN demotion ends the DM screen for good: entering DM mode again does not bring it back over the map", () => {
+    // The roster arrived and says this seat is no DM (Leave DM mode from the Table screen,
+    // or a server restart that cleared the elevation): unlike a blip, nothing will make
+    // the old screen right again, and it must not spring open on the next elevation.
+    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+      initialProps: options({ isDM: true, roleKnown: true }),
+    });
+    act(() => result.current.openSurface("dm"));
+    expect(result.current.surface).toBe("dm");
+    rerender(options({ isDM: false, roleKnown: true }));
+    expect(result.current.surface).toBe("none");
+    rerender(options({ isDM: true, roleKnown: true }));
+    expect(result.current.surface).toBe("none");
+  });
+
+  it("a blip (the roster not yet back) only hides the DM screen, even when the caller reports the role", () => {
+    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+      initialProps: options({ isDM: true, roleKnown: true }),
+    });
+    act(() => result.current.openSurface("dm"));
+    rerender(options({ isDM: false, roleKnown: false }));
+    expect(result.current.surface).toBe("none");
+    rerender(options({ isDM: true, roleKnown: true }));
+    expect(result.current.surface).toBe("dm");
+  });
+
+  it("a player's Props and Atlas screens end for good when a known elevation refuses them", () => {
+    const { result, rerender } = renderHook((props) => useMobileSurface(props), {
+      initialProps: options({ isDM: false, roleKnown: true, playerPropsEnabled: true }),
+    });
+    act(() => result.current.openSurface("atlas"));
+    rerender(options({ isDM: true, roleKnown: true, playerPropsEnabled: true }));
+    expect(result.current.surface).toBe("none");
+    rerender(options({ isDM: false, roleKnown: true, playerPropsEnabled: true }));
     expect(result.current.surface).toBe("none");
   });
 

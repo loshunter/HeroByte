@@ -223,7 +223,6 @@ vi.mock("../PlayerSettingsMenu", () => ({
     selectedEffects,
     onStatusEffectsChange,
     isDM,
-    onToggleDMMode,
     tokenLocked,
     onToggleTokenLock,
     tokenSize,
@@ -245,7 +244,6 @@ vi.mock("../PlayerSettingsMenu", () => ({
     selectedEffects: string[];
     onStatusEffectsChange: (effects: string[]) => void;
     isDM: boolean;
-    onToggleDMMode: (next: boolean) => void;
     onDeleteToken?: () => void;
     tokenLocked?: boolean;
     onToggleTokenLock?: (locked: boolean) => void;
@@ -306,9 +304,6 @@ vi.mock("../PlayerSettingsMenu", () => ({
         onClick={() => onStatusEffectsChange(["poisoned", "burning"])}
       >
         Change Effects
-      </button>
-      <button data-testid="settings-toggle-dm" onClick={() => onToggleDMMode(!isDM)}>
-        Toggle DM
       </button>
       {onToggleTokenLock && (
         <button data-testid="settings-toggle-lock" onClick={() => onToggleTokenLock(!tokenLocked)}>
@@ -445,7 +440,6 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Play
   onStatusEffectsChange: vi.fn(),
   isDM: false,
   viewerIsDM: false,
-  onToggleDMMode: vi.fn(),
   tokenLocked: false,
   onToggleTokenLock: vi.fn(),
   tokenSize: "medium" as TokenSize,
@@ -983,7 +977,7 @@ describe("PlayerCard", () => {
   // TESTS - SAVE PLAYER STATE
   // ============================================================================
 
-  describe("Save Player State", () => {
+  describe("Save character", () => {
     it("only works when isMe is true", () => {
       const props = createDefaultProps({
         isMe: false,
@@ -1204,7 +1198,7 @@ describe("PlayerCard", () => {
   // TESTS - LOAD PLAYER STATE
   // ============================================================================
 
-  describe("Load Player State", () => {
+  describe("Load character", () => {
     beforeEach(() => {
       // Reset the mock before each test
       mockedLoadPlayerState.mockReset();
@@ -1908,7 +1902,6 @@ describe("PlayerCard", () => {
       });
 
       it("receives all callbacks", () => {
-        const onToggleDMMode = vi.fn();
         const onToggleTokenLock = vi.fn();
         const onTokenSizeChange = vi.fn();
         const onAddCharacter = vi.fn().mockReturnValue(true);
@@ -1917,16 +1910,12 @@ describe("PlayerCard", () => {
           isMe: true,
           tokenId: "token-1",
           characterId: "char-1",
-          onToggleDMMode,
           onToggleTokenLock,
           onTokenSizeChange,
           onAddCharacter,
           onDeleteCharacter,
         });
         render(<PlayerCard {...props} />);
-
-        fireEvent.click(screen.getByTestId("settings-toggle-dm"));
-        expect(onToggleDMMode).toHaveBeenCalledWith(true);
 
         fireEvent.click(screen.getByTestId("settings-toggle-lock"));
         expect(onToggleTokenLock).toHaveBeenCalledWith(true);
@@ -2530,8 +2519,9 @@ describe("PlayerCard settings after losing DM rights", () => {
   });
 
   it("keeps the owner's own window open when they give up DM", () => {
-    // The Table role section lives in this very window: giving up DM from it
-    // must not close it under the DM's own click.
+    // Leave DM mode used to sit in this very window (a Table role section; U9 moved it to
+    // the Table menu). Giving up DM, from wherever, must still not close a window the
+    // owner has open under their own click.
     const props = createDefaultProps({ isMe: true, viewerIsDM: true });
     const { rerender } = render(<PlayerCard {...props} />);
     fireEvent.click(screen.getByTestId("card-controls-open-settings"));

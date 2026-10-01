@@ -6,7 +6,6 @@ import type {
   PlayerStagingZone,
   Prop,
   Player,
-  SceneObject,
   SnapshotCharacter,
   DiagonalRule,
 } from "@herobyte/shared";
@@ -19,10 +18,10 @@ import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
 import type { LauncherPresentation } from "../../../components/layout/party/LauncherDock";
 import type { EncounterControls } from "../../encounter/encounterControls";
+import type { TableControls } from "../../table/tab/tableControls";
 
 export interface DMMenuBaseProps {
   isDM: boolean;
-  onToggleDM: (next: boolean) => void;
   gridSize: number;
   gridSquareSize?: number;
   gridLocked: boolean;
@@ -52,7 +51,6 @@ export interface DMMenuBaseProps {
   stagingZoneLocked?: boolean;
   onStagingZoneLockToggle?: () => void;
   camera: Camera;
-  playerCount: number;
   characters: SnapshotCharacter[];
   // The Atlas tab (A2). REQUIRED on purpose — required options over optional
   // ones for wiring that must not silently unwire (arc rule §6): an optional
@@ -69,8 +67,6 @@ export interface DMMenuBaseProps {
   onArmLinkAim?: (pending: PendingLink) => void;
   /** The kicked-in door (K2): the Atlas tab's 🚪 button. */
   onOpenKick?: () => void;
-  onRequestSaveSession?: (sessionName: string) => void;
-  onRequestLoadSession?: (file: File) => void;
   onCreateNPC: (request?: CreateNpcRequest) => void;
   /** The table's own Library tokens; absent means the shelf is read-only. */
   customTokens?: readonly CustomToken[];
@@ -123,49 +119,30 @@ export interface DMMenuBaseProps {
   onAlignmentReset: () => void;
   onAlignmentCancel: () => void;
   onAlignmentApply: () => void;
-  onSetRoomPassword?: (secret?: string) => void;
-  roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
-  roomPasswordPending?: boolean;
-  onDismissRoomPasswordStatus?: () => void;
-  /** Test table only: copy this table into a new private one. */
-  onSaveAsPrivateTable?: (input: {
-    name: string;
-    roomPassword: string;
-    dmPassword?: string;
-  }) => Promise<void>;
-  sceneObjects: SceneObject[];
-  onSelectPlayerTokens: (playerUid: string) => void;
-  /** The connected roster; a player outside it is shown as not connected and can be removed. */
-  connectedUids?: readonly string[];
-  onRemovePlayer?: (playerUid: string) => void;
   combatActive?: boolean;
   /**
    * The Encounter tab's reads and sends (U8), one REQUIRED object: combat,
    * turns, initiative and Monster HP moved there from Players and NPCs.
    */
   encounter: EncounterControls;
+  /**
+   * The Table tab's reads and sends (U9), one REQUIRED object: invites, the
+   * roster, permissions, backups and security moved there from Session and
+   * Players, and so did leaving DM mode.
+   */
+  table: TableControls;
   toast?: {
     success: (message: string) => void;
     error: (message: string) => void;
   };
-  /** Player-props toggle (Session tab): players may manage their OWN props. */
-  playerPropsEnabled?: boolean;
-  onPlayerPropsEnabledChange?: (enabled: boolean) => void;
-  /**
-   * Initiative manual-override toggle (Session tab): players may enter a
-   * number by hand instead of rolling. Unlike the flag above this one is ON by
-   * default, so the caller derives it with `!== false`.
-   */
-  initiativeManualOverride?: boolean;
-  onInitiativeManualOverrideChange?: (enabled: boolean) => void;
   mapStudio?: MapStudioController;
 }
 
 /**
  * How the menu presents (M4b). "window" is the desktop shape: the 🛠️ DM MENU
  * launcher in the Party bar's dock (U7) plus a DraggableWindow; the dock is
- * required there. "content" renders ONLY the inner content — exit row, tabs
- * (as a scrollable chip row), active tab — for a host that already provides
+ * required there. "content" renders ONLY the inner content — tabs (as a
+ * scrollable chip row) and the active tab — for a host that already provides
  * the surface, like the mobile DM screen.
  */
 export type DMMenuProps = DMMenuBaseProps & LauncherPresentation;

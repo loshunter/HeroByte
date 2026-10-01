@@ -54,7 +54,7 @@ export interface NPC {
  * 4. HP Editing (6 props)
  * 5. Max HP Editing (5 props)
  * 6. Portrait & Mic (2 props)
- * 7. DM & Player State (4 props)
+ * 7. Player State (4 props)
  * 8. NPC Management (4 props)
  * 9. Token Management (3 props)
  * 10. Character Management (2 props)
@@ -145,9 +145,7 @@ export interface BottomPanelLayoutProps {
   /** Handler to toggle microphone on/off */
   onToggleMic: () => void;
 
-  // DM & Player State (5 props)
-  /** Handler to toggle DM mode on/off */
-  onToggleDMMode: (next: boolean) => void;
+  // Player State (4 props)
   /** Handler to apply a player state (dead, unconscious, etc.) */
   onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   /** Handler to update status effects for a character (deprecated - use onCharacterStatusEffectsChange) */
@@ -262,7 +260,6 @@ export interface BottomPanelLayoutProps {
  *   onMaxHpEdit={startMaxHpEdit}
  *   onMaxHpSubmit={handleMaxHpSubmit}
  *   onToggleMic={toggleMic}
- *   onToggleDMMode={handleToggleDM}
  *   onApplyPlayerState={playerActions.applyPlayerState}
  *   onStatusEffectsChange={playerActions.setStatusEffects}
  *   onCharacterNameUpdate={playerActions.updateCharacterName}
@@ -313,7 +310,6 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onTempHpSubmit,
     onCharacterPortraitUpdate,
     onToggleMic,
-    onToggleDMMode,
     onApplyPlayerState,
     onStatusEffectsChange,
     onCharacterStatusEffectsChange,
@@ -380,7 +376,6 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onTempHpSubmit={onTempHpSubmit}
         onCharacterPortraitUpdate={onCharacterPortraitUpdate}
         onToggleMic={onToggleMic}
-        onToggleDMMode={onToggleDMMode}
         onApplyPlayerState={onApplyPlayerState}
         _onStatusEffectsChange={onStatusEffectsChange}
         onCharacterStatusEffectsChange={onCharacterStatusEffectsChange}

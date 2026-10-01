@@ -11,7 +11,6 @@ it.each(["Enter", "blur"])("Character name %s retains the existing submit bounda
       onClose={vi.fn()}
       selectedEffects={[]}
       onStatusEffectsChange={vi.fn()}
-      onToggleDMMode={vi.fn()}
       nameInput="Alice"
       onNameInputChange={change}
       onNameSubmit={submit}

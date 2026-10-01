@@ -2,7 +2,11 @@
 // MapStudioControl for the 350-LOC cap; the rules are unchanged.
 import type { MapDocument } from "@herobyte/shared";
 import { MAX_PUBLISH_BACKGROUND_BYTES } from "../../../map-studio";
-import { WRONG_FILE_FOR_MAP_IMPORT, detectBackupFormat } from "../../../../utils/backupFormat";
+import {
+  CHARACTER_FILE_FOR_MAP_IMPORT,
+  WRONG_FILE_FOR_MAP_IMPORT,
+  detectBackupFormat,
+} from "../../../../utils/backupFormat";
 
 export type BackupImport = { document: MapDocument } | { error: string };
 
@@ -20,6 +24,9 @@ export function parseBackupImport(fileText: string): BackupImport {
   const format = detectBackupFormat(parsed);
   if (format === "session") {
     return { error: `Import failed: ${WRONG_FILE_FOR_MAP_IMPORT}` };
+  }
+  if (format === "character") {
+    return { error: `Import failed: ${CHARACTER_FILE_FOR_MAP_IMPORT}` };
   }
 
   // `null` IS valid JSON, and it is the one parse result that cannot be read

@@ -47,7 +47,7 @@ describe("InitiativeModal — U8", () => {
     renderModal({ manualEntryAllowed: false });
     expect(screen.queryByRole("button", { name: "Enter a roll by hand" })).toBeNull();
     expect(screen.getByText(/Entering a roll by hand is off at this table/)).toBeTruthy();
-    expect(screen.getByText(/DM Menu → Session/)).toBeTruthy();
+    expect(screen.getByText(/DM Menu → Table → Permissions/)).toBeTruthy();
   });
 
   it("says nothing about the policy where hand entry is allowed", () => {

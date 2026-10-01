@@ -300,10 +300,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       });
 
       expect(toast.success).toHaveBeenCalledTimes(1);
-      expect(toast.success).toHaveBeenCalledWith(
-        "DM elevation successful! You are now the Dungeon Master.",
-        4000,
-      );
+      expect(toast.success).toHaveBeenCalledWith("You are in DM mode. The DM tools are on.", 4000);
     });
 
     it("should only show toast when transitioning from non-DM to DM", () => {

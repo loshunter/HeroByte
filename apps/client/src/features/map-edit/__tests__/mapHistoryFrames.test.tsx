@@ -52,6 +52,7 @@ describe("real frames with retained map focus", () => {
       <MobileScreen
         title="Chat"
         surface="log"
+        isConnected
         onClose={vi.fn()}
         interaction={behavior === "close" ? { behavior: "close", panel: "chat" } : undefined}
       >
@@ -81,7 +82,7 @@ describe("real frames with retained map focus", () => {
   it.each(["dice", "result"] as const)("blocks history beneath mobile %s", (kind) => {
     render(
       kind === "dice" ? (
-        <MobileDiceRoller onClose={vi.fn()} />
+        <MobileDiceRoller isConnected onClose={vi.fn()} />
       ) : (
         <MobileResultOverlay result={serverRoll()} onClose={vi.fn()} />
       ),

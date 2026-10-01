@@ -14,7 +14,7 @@
 // (the entities panel lets a DM delete any character; the linked token goes
 // with it) or the table clears itself (the Main Hall wipes after an hour
 // empty; a private table never does). The old player's bare roster row
-// outlives a character delete — the DM menu's Players tab lists it with no
+// outlives a character delete — the DM menu's Table tab lists it with no
 // tokens — but not a Main Hall clear, which wipes players too; on a private
 // table nothing removes it. The old uid's DM flag stays dormant on
 // the server until a tokenless reclaim of that uid resets it; from this

@@ -35,12 +35,12 @@ describe("EncounterTab — the three parts", () => {
     expect(headings).toEqual(["Setup", "Initiative", "Run encounter"]);
   });
 
-  it("+ Add NPCs… forwards to NPCs & Monsters, and the hand-entry policy links to Session", () => {
+  it("+ Add NPCs… forwards to NPCs & Monsters, and the hand-entry policy links to Table", () => {
     const { onOpenTab } = renderTab();
     fireEvent.click(screen.getByRole("button", { name: "+ Add NPCs…" }));
     expect(onOpenTab).toHaveBeenLastCalledWith("npcs");
-    fireEvent.click(screen.getByRole("button", { name: "Change in Session" }));
-    expect(onOpenTab).toHaveBeenLastCalledWith("session");
+    fireEvent.click(screen.getByRole("button", { name: "Change in Table" }));
+    expect(onOpenTab).toHaveBeenLastCalledWith("table");
   });
 
   it("says what the hand-entry policy is, both ways", () => {
@@ -72,6 +72,39 @@ describe("EncounterTab — Monster HP (moved from Players)", () => {
     expect(screen.getByRole("button", { name: "Exact" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "Bloodied" })).toHaveClass("jrpg-button-primary");
     expect(screen.getByRole("button", { name: "Exact" })).not.toHaveClass("jrpg-button-primary");
+  });
+});
+
+describe("EncounterTab — what players see of a monster's HP", () => {
+  it.each([
+    // "they can see": the server never sends a hidden or out-of-sight NPC's record at all
+    // (recipientFilter), so none of the three sentences may promise every NPC at the table. And
+    // "NPC", not "monster": the rule covers every NPC character — allies and townsfolk too.
+    ["exact", /^Players see the exact HP of every NPC they can see\.$/],
+    [
+      "bloodied",
+      /^Players see 🩸 Bloodied at half HP or below, and Healthy above it, on every NPC they can see — never the numbers\./,
+    ],
+    [
+      "hidden",
+      /^Players see \?\?\? in place of HP on every NPC they can see — never the numbers\./,
+    ],
+  ] as const)("in %s mode the note states the outcome for that mode only", (mode, outcome) => {
+    renderTab({ monsterHpDisplay: mode });
+    const note = screen.getByText(outcome);
+    expect(note).toHaveAttribute("aria-live", "polite");
+    // One outcome at a time: the other modes' sentences are not on screen.
+    expect(screen.queryAllByText(/^Players see /)).toHaveLength(1);
+  });
+
+  it("does not describe how the server enforces it", () => {
+    renderTab({ monsterHpDisplay: "hidden" });
+    expect(screen.queryByText(/wire|socket|redact|filter|screens entirely/i)).toBeNull();
+  });
+
+  it("says player characters keep their exact HP when monsters are redacted", () => {
+    renderTab({ monsterHpDisplay: "bloodied" });
+    expect(screen.getByText(/Player characters always show exact HP\./)).toBeTruthy();
   });
 });
 

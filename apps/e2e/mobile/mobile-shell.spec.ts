@@ -173,32 +173,35 @@ test.describe("mobile shell — the log screen", () => {
             intruders.push(`${f}: ${(hit.className || hit.tagName).toString().slice(0, 40)}`);
           }
         }
-        // The connection banner is the only place the table reports a lost
-        // server, and the screen is an opaque full-viewport cover — so the
-        // banner must PAINT above the screen while it is open, yet stay
-        // transparent to INPUT (it swallowed the header's drag-to-dismiss the
-        // first time it was lifted). It cannot be probed with
-        // elementFromPoint: hit tests skip pointer-events:none elements, so
-        // the probe is structural — the banner's lift and the screen are both
-        // direct children of the root (no intervening stacking context), so
-        // the larger z-index paints later.
-        const root = document.querySelector(".mobile-layout-root");
-        const banner = [...document.querySelectorAll<HTMLElement>("*")].find(
-          (n) =>
-            getComputedStyle(n).position === "fixed" &&
-            /^(🟢|🔴)(ONLINE|OFFLINE)$/.test((n.textContent || "").trim()),
-        );
-        const lift = banner?.parentElement ?? null;
-        const liftStyle = lift ? getComputedStyle(lift) : null;
+        // The connection chip is the only place the table reports a lost server,
+        // and the screen is an opaque full-viewport cover — so the screen carries
+        // its OWN chip, in the header's top row (U9). It used to be a fixed badge
+        // lifted above the screen and made inert so it would not swallow the
+        // header's drag-to-dismiss; a chip that is part of the header needs
+        // neither, and cannot paint over the title because it is in another grid
+        // row. Measured rather than inferred: where the chip, the title and the
+        // close actually are, and that the chip is what a finger would hit.
+        const header = el.querySelector<HTMLElement>(".mobile-screen__header")!;
+        const chip = header.querySelector<HTMLElement>("[data-testid='connection-chip']");
+        const titleRect = header.querySelector(".mobile-screen__title")!.getBoundingClientRect();
+        const closeRect = header.querySelector(".mobile-screen__close")!.getBoundingClientRect();
+        const chipRect = chip?.getBoundingClientRect() ?? null;
+        const chipHit = chipRect
+          ? document.elementFromPoint(
+              Math.round(chipRect.left + chipRect.width / 2),
+              Math.round(chipRect.top + chipRect.height / 2),
+            )
+          : null;
 
         return {
-          bannerVisible: banner ? banner.checkVisibility() : false,
-          bannerLiftZ:
-            liftStyle && liftStyle.position !== "static" && lift?.parentElement === root
-              ? Number(liftStyle.zIndex)
-              : null,
-          screenZ: el.parentElement === root ? Number(style.zIndex) : null,
-          bannerInert: banner ? getComputedStyle(banner).pointerEvents === "none" : false,
+          chipVisible: chip ? chip.checkVisibility() : false,
+          chipText: (chip?.textContent ?? "").trim(),
+          chipPosition: chip ? getComputedStyle(chip).position : null,
+          chipIsOnTop: chip !== null && chipHit !== null && chip.contains(chipHit),
+          chipTop: chipRect ? Math.round(chipRect.top) : null,
+          chipBottom: chipRect ? Math.round(chipRect.bottom) : null,
+          titleTop: Math.round(titleRect.top),
+          closeTop: Math.round(closeRect.top),
           top: Math.round(r.top),
           left: Math.round(r.left),
           bottom: Math.round(r.bottom),
@@ -227,13 +230,16 @@ test.describe("mobile shell — the log screen", () => {
       // string — swap either stop for an rgba() and it stops matching.
       expect(report.background).toMatch(/linear-gradient\(rgb\(26, 24, 53\), rgb\(15, 14, 42\)\)/);
       expect(report.intruders).toEqual([]);
-      // The banner paints above the screen (bigger z, same stacking parent),
-      // stays visible, and passes touches through to the header beneath it.
-      expect(report.bannerVisible).toBe(true);
-      expect(report.bannerLiftZ).not.toBeNull();
-      expect(report.screenZ).not.toBeNull();
-      expect(report.bannerLiftZ!).toBeGreaterThan(report.screenZ!);
-      expect(report.bannerInert).toBe(true);
+      // The screen's own chip: visible, in flow (not a fixed badge), the thing on
+      // top at its own centre, on the header's first row — above BOTH the title
+      // and the ✕, so it cannot cover either (two boxes, not one painted over the other).
+      expect(report.chipVisible).toBe(true);
+      expect(report.chipText).toMatch(/^(🟢|🔴)(ONLINE|OFFLINE)$/);
+      expect(report.chipPosition).not.toBe("fixed");
+      expect(report.chipIsOnTop).toBe(true);
+      expect(report.chipTop!).toBeGreaterThanOrEqual(0);
+      expect(report.chipBottom!).toBeLessThanOrEqual(report.titleTop);
+      expect(report.chipBottom!).toBeLessThanOrEqual(report.closeTop);
       // The machine's invariant, counted in a real DOM: one surface, this one.
       expect(report.surfaces).toEqual(["log"]);
 
@@ -271,75 +277,4 @@ test.describe("mobile shell — the log screen", () => {
     await touchDrag(cdp, grip, [{ x: grip.x, y: grip.y + 200 }]);
     await expect(page.locator(".mobile-screen")).toBeHidden();
   });
-});
-
-/**
- * The fixed chrome across the top: the connection banner and the public-table
- * chip. Both are new to mobile as of S8, which is when their 8px and 7px text
- * and their hard-coded `top` first mattered on a device with a notch.
- *
- * NOTE the visibility test. An earlier sweep used `offsetParent !== null`,
- * which is null for EVERY position:fixed element — so it silently skipped the
- * two elements this describe block exists to check, and reported a clean bill
- * of health while a 7px chip sat on screen.
- */
-test.describe("mobile shell — the fixed chrome", () => {
-  for (const vp of VIEWPORTS) {
-    test(`is readable and clear of the insets (${vp.label})`, async ({ page }) => {
-      await page.setViewportSize({ width: vp.width, height: vp.height });
-      await joinMobileTable(page);
-
-      const report = await page.evaluate(() => {
-        const rectOf = (el: Element) => el.getBoundingClientRect();
-        const visible = [...document.querySelectorAll<HTMLElement>("*")].filter((el) =>
-          el.checkVisibility(),
-        );
-
-        const tooSmall = visible
-          .filter(
-            (el) =>
-              parseFloat(getComputedStyle(el).fontSize) < 11 &&
-              el.children.length === 0 &&
-              (el.textContent || "").trim().length > 0,
-          )
-          .map((el) => `${getComputedStyle(el).fontSize} "${(el.textContent || "").trim()}"`);
-
-        const find = (test: (t: string) => boolean) =>
-          visible.find(
-            (el) =>
-              getComputedStyle(el).position === "fixed" && test((el.textContent || "").trim()),
-          );
-        const banner = find((t) => /^(🟢|🔴)(ONLINE|OFFLINE)$/.test(t));
-        const chip = find((t) => t.startsWith("⚠ PUBLIC"));
-
-        return {
-          tooSmall,
-          bannerTop: banner ? Math.round(rectOf(banner).top) : null,
-          bannerBottom: banner ? Math.round(rectOf(banner).bottom) : null,
-          chipTop: chip ? Math.round(rectOf(chip).top) : null,
-          chipLeft: chip ? Math.round(rectOf(chip).left) : null,
-          chipRight: chip ? Math.round(rectOf(chip).right) : null,
-          viewportWidth: window.innerWidth,
-          bodyOverflowsX: document.documentElement.scrollWidth > window.innerWidth,
-        };
-      });
-
-      // The readability floor, over everything actually on screen.
-      expect(report.tooSmall).toEqual([]);
-
-      // Both were pinned to the top edge and to a literal 26px. Playwright
-      // emulates no notch, so env(safe-area-inset-top) is 0 here and the
-      // max(12px, …) floor is what shows — which is enough to prove the offset
-      // comes from the variable rather than from a hard-coded number.
-      expect(report.bannerTop).toBeGreaterThanOrEqual(12);
-      expect(report.chipTop).toBeGreaterThanOrEqual(report.bannerBottom!);
-
-      // Raising the chip from 7px to 11px makes its one long sentence far
-      // wider than a phone, so it must wrap inside the screen rather than run
-      // off both edges.
-      expect(report.chipLeft).toBeGreaterThanOrEqual(0);
-      expect(report.chipRight).toBeLessThanOrEqual(report.viewportWidth);
-      expect(report.bodyOverflowsX).toBe(false);
-    });
-  }
 });

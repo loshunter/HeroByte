@@ -39,7 +39,7 @@ already invested in.
 
 ### Do this
 
-1. Elevate to DM ([how](getting-started.md#becoming-the-dm)), then open **🛠️ DM MENU** →
+1. Enter DM mode ([how](getting-started.md#becoming-the-dm)), then open **🛠️ DM MENU** →
    **Maps**. Everything below is under **Current table map**.
 2. Under **Map Background**, either **⬆ UPLOAD IMAGE** (from your device — it is stored with your
    table and stays there) or paste an image URL and **APPLY BACKGROUND**. A URL only works if the

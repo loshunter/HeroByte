@@ -17,6 +17,7 @@ export const serverRoll = (id = "mobile-answer"): RollLogEntry => ({
 
 export function rollerProps() {
   return {
+    isConnected: true,
     onRoll: vi.fn(),
     onClose: vi.fn(),
     onEnterRoll: vi.fn(),

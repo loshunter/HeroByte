@@ -74,7 +74,6 @@ function panelProps(overrides: Partial<React.ComponentProps<typeof EntitiesPanel
     onTempHpEdit: vi.fn(),
     onTempHpSubmit: vi.fn(),
     currentIsDM: true,
-    onToggleDMMode: vi.fn(),
     onTokenImageChange: vi.fn(),
     onApplyPlayerState: vi.fn(),
     _onStatusEffectsChange: vi.fn(),
@@ -175,11 +174,11 @@ describe("EntitiesPanel — the DM's own character: the bench and the order (F3)
     expect(screen.getByText("Sidekick").closest(".entities-panel-dm-group")).toBeNull();
     expect(screen.getByText("Sidekick").closest(".entities-panel-card-grid")).not.toBeNull();
     openSettingsOf("Sidekick");
-    // The DM's own card's affordances travel with it into the order: the
-    // DM-mode section (gated on ownership, isMe) and the token controls the
-    // menu once hid for any DM's card — it no longer does (own commit), so
-    // this card, like the bench card, can size its own token.
-    expect(screen.getByText("Dungeon Master Mode")).toBeInTheDocument();
+    // The DM's own card's affordances travel with it into the order: the token
+    // controls the menu once hid for any DM's card — it no longer does (own
+    // commit), so this card, like the bench card, can size its own token. (Its
+    // DM-mode section went to the Table menu in U9: role is not a character's.)
+    expect(screen.queryByText("Dungeon Master Mode")).toBeNull();
     expect(screen.getByText(/Token Size/i)).toBeInTheDocument();
     // And "+ Add Character" — the DM\'s card offers it now (own commit), on the
     // bench and in the order alike.

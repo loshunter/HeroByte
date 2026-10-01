@@ -28,7 +28,6 @@ function props(overrides: Partial<Parameters<typeof MobilePlayerRow>[0]> = {}) {
     player,
     isMe: false,
     isDM: false,
-    onToggleDMMode: vi.fn(),
     editingHpUID: null,
     hpInput: "",
     onHpInputChange: vi.fn(),

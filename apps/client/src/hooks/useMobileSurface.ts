@@ -19,6 +19,7 @@ export type MobileSurface =
   | "dice"
   | "log"
   | "help"
+  | "table"
   | "dm"
   | "props"
   | "atlas"
@@ -61,6 +62,13 @@ export interface UseMobileSurfaceOptions {
   // the menu hides for the blip and returns with the roster (the same rule
   // useMapEditState spells out for the map-edit guard).
   isDM?: boolean;
+  /**
+   * The roster arrived (`useDMRole.roleKnown`), so `isDM` is a fact and not a blip. A KNOWN
+   * role that refuses a screen ends it for good — Leave DM mode, or a restart that cleared
+   * the elevation, must not leave "dm" stored to spring open over the map on the next
+   * elevation. Unsupplied or false: the screen is only hidden, and returns with the roster.
+   */
+  roleKnown?: boolean;
   playerPropsEnabled?: boolean;
 }
 
@@ -89,12 +97,15 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
   // this value is what makes "at most one surface" true by construction rather
   // than by callbacks remembering to close each other. The role gate is
   // derived the same way (see the option's comment).
-  const { isDM, playerPropsEnabled } = options;
-  const roleRefuses =
+  const { isDM, playerPropsEnabled, roleKnown } = options;
+  const roleEnded =
     isDM !== undefined &&
-    ((local === "dm" && !isDM) ||
-      ((local === "props" || local === "atlas") && isDM) ||
-      (local === "props" && playerPropsEnabled === false));
+    ((local === "dm" && !isDM) || ((local === "props" || local === "atlas") && isDM));
+  const roleRefuses =
+    roleEnded || (isDM !== undefined && local === "props" && playerPropsEnabled === false);
+  useEffect(() => {
+    if (roleKnown && roleEnded) setLocal("none");
+  }, [roleKnown, roleEnded]);
   const surface: MobileSurface = kickOpen
     ? isDM === false
       ? "none"

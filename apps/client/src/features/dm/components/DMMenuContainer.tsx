@@ -20,8 +20,8 @@ import { useCustomTokens } from "../hooks/useCustomTokens";
 import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
-import { manualInitiativeEnabled } from "../../initiative/manualOverride";
 import { buildEncounterControls } from "../../encounter/encounterControls";
+import { buildTableControls } from "../../table/tab/tableControls";
 import type { InitiativeSetting } from "../../../hooks/useInitiativeSetting";
 import type { LauncherPresentation } from "../../../components/layout/party/LauncherDock";
 
@@ -201,8 +201,6 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
   const players = snapshot?.players || [];
   // What PUBLISH TO LIVE MAP would replace: derived here, beside hasCompiledScene.
   const liveSceneDocumentId = snapshot?.compiledScene?.sourceDocumentId;
-  const sceneObjects = snapshot?.sceneObjects || [];
-  const playerCount = snapshot?.players?.length ?? 0;
   const combatActive = snapshot?.combatActive ?? false;
   const mapTokenIds = new Set((snapshot?.tokens ?? []).map((token) => token.id));
 
@@ -210,7 +208,6 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
   return (
     <DMMenu
       isDM={isDM}
-      onToggleDM={onToggleDM}
       gridSize={gridSize}
       gridSquareSize={gridSquareSize}
       gridLocked={gridLocked}
@@ -233,7 +230,6 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
       stagingZoneLocked={stagingZoneLocked}
       onStagingZoneLockToggle={onStagingZoneLockToggle}
       camera={camera}
-      playerCount={playerCount}
       characters={characters}
       atlasNodes={snapshot?.atlasNodes ?? []}
       atlasLinks={snapshot?.atlasLinks ?? []}
@@ -244,8 +240,6 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
       linkAimActive={linkAimActive}
       onArmLinkAim={onArmLinkAim}
       onOpenKick={openKick}
-      onRequestSaveSession={snapshot ? dmContext.sessionManagement.handleSaveSession : undefined}
-      onRequestLoadSession={dmContext.sessionManagement.handleLoadSession}
       onCreateNPC={dmContext.npcManagement.createNpc}
       customTokens={customTokens.tokens}
       onAddCustomToken={customTokens.addToken}
@@ -296,15 +290,6 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
       onAlignmentReset={onAlignmentReset}
       onAlignmentCancel={onAlignmentCancel}
       onAlignmentApply={onAlignmentApply}
-      onSetRoomPassword={onSetRoomPassword}
-      roomPasswordStatus={roomPasswordStatus}
-      roomPasswordPending={roomPasswordPending}
-      onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
-      onSaveAsPrivateTable={onSaveAsPrivateTable}
-      sceneObjects={sceneObjects}
-      onSelectPlayerTokens={onSelectPlayerTokens}
-      connectedUids={connectedUids}
-      onRemovePlayer={onRemovePlayer}
       combatActive={combatActive}
       diagonalRule={snapshot?.diagonalRule ?? "5e"}
       onDiagonalRuleChange={dmContext.combatControls.handleSetDiagonalRule}
@@ -314,20 +299,28 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
         mapTokenIds,
         onFocusToken,
       })}
+      // The Table tab (U9): invites, the roster, permissions, backups and
+      // security, as ONE required object. The permission messages are sent
+      // inline rather than through useDMContext — that hook sits at the 350-line
+      // ceiling, and each is one message with no state to manage.
+      table={buildTableControls(snapshot, {
+        onToggleDM,
+        connectedUids,
+        onSelectPlayerTokens,
+        onRemovePlayer,
+        onPlayerPropsEnabledChange: (enabled) =>
+          sendMessage({ t: "set-player-props-enabled", enabled }),
+        onInitiativeManualOverrideChange: (enabled) =>
+          sendMessage({ t: "set-initiative-manual-override", enabled }),
+        onRequestSaveSession: snapshot ? dmContext.sessionManagement.handleSaveSession : undefined,
+        onRequestLoadSession: dmContext.sessionManagement.handleLoadSession,
+        onSetRoomPassword,
+        roomPasswordStatus,
+        roomPasswordPending,
+        onDismissRoomPasswordStatus,
+        onSaveAsPrivateTable,
+      })}
       toast={toast}
-      playerPropsEnabled={snapshot?.playerPropsEnabled ?? false}
-      // Sent inline rather than through useDMContext — that hook sits at the
-      // 350-line ceiling, and this is one message with no state to manage.
-      onPlayerPropsEnabledChange={(enabled) =>
-        sendMessage({ t: "set-player-props-enabled", enabled })
-      }
-      // A named rule, NOT `?? false` like the line above: this flag defaults
-      // ON and the snapshot carries the key only when it is off. See
-      // features/initiative/manualOverride.ts.
-      initiativeManualOverride={manualInitiativeEnabled(snapshot)}
-      onInitiativeManualOverrideChange={(enabled) =>
-        sendMessage({ t: "set-initiative-manual-override", enabled })
-      }
       defaultVisionRadius={snapshot?.defaultVisionRadius}
       // Inline for the same reason: one message, no state to manage.
       onDefaultVisionRadiusChange={(radius) =>

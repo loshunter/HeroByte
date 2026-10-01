@@ -70,12 +70,12 @@ it("Character Creation input Escape closes once without falling through its form
 it("DM loading Escape preserves its entered password and does not submit", () => {
   const calls = actions();
   const view = render(<ActualModal kind="dm" calls={calls} />);
-  fireEvent.change(screen.getByLabelText("Enter DM Password:"), {
+  fireEvent.change(screen.getByLabelText("DM password"), {
     target: { value: "keeper-password" },
   });
   view.rerender(<ActualModal kind="dm" calls={calls} loading />);
   expect(escape(document.body).defaultPrevented).toBe(true);
-  expect(screen.getByLabelText("Enter DM Password:")).toHaveValue("keeper-password");
+  expect(screen.getByLabelText("DM password")).toHaveValue("keeper-password");
   expect(calls.close).not.toHaveBeenCalled();
   expect(calls.elevate).not.toHaveBeenCalled();
 });
@@ -83,12 +83,12 @@ it("DM loading Escape preserves its entered password and does not submit", () =>
 it("DM Escape uses the existing cancel path, clearing the password before reopen", () => {
   const calls = actions();
   render(<Controlled kind="dm" calls={calls} loading={false} tool={vi.fn()} selection={vi.fn()} />);
-  fireEvent.change(screen.getByLabelText("Enter DM Password:"), {
+  fireEvent.change(screen.getByLabelText("DM password"), {
     target: { value: "keeper-password" },
   });
-  expect(escape(screen.getByLabelText("Enter DM Password:")).defaultPrevented).toBe(true);
+  expect(escape(screen.getByLabelText("DM password")).defaultPrevented).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Reopen modal" }));
-  expect(screen.getByLabelText("Enter DM Password:")).toHaveValue("");
+  expect(screen.getByLabelText("DM password")).toHaveValue("");
   expect(calls.close).toHaveBeenCalledTimes(1);
   expect(calls.elevate).not.toHaveBeenCalled();
 });

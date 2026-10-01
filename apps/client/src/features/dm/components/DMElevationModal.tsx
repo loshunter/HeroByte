@@ -12,6 +12,12 @@ interface DMElevationModalProps {
   isLoading: boolean;
   error: string | null;
   currentIsDM: boolean;
+  /**
+   * The roster has this seat in it. REQUIRED: a socket close nulls the snapshot while the app
+   * stays mounted, and `currentIsDM` reads false for that blip — which must not close a Leave
+   * dialog nobody has answered.
+   */
+  roleKnown: boolean;
   onElevate: (password: string) => void;
   onBootstrap: (password: string) => void;
   onRevoke: () => void;
@@ -19,10 +25,14 @@ interface DMElevationModalProps {
 }
 
 /**
- * Modal for DM elevation and revocation with proper loading states.
+ * Modal for entering and leaving DM mode, with proper loading states.
  *
  * Replaces native window.prompt() and window.confirm() dialogs with
  * a proper UI that shows loading feedback while waiting for server confirmation.
+ *
+ * Its words are the plan's (U9): **Enter DM mode** is a password gate; **Leave DM
+ * mode** ends DM powers and is an ordinary confirm — it is not styled as danger,
+ * because nothing at the table is deleted.
  */
 export function DMElevationModal({
   isOpen,
@@ -30,6 +40,7 @@ export function DMElevationModal({
   isLoading,
   error,
   currentIsDM,
+  roleKnown,
   onElevate,
   onBootstrap,
   onRevoke,
@@ -51,22 +62,24 @@ export function DMElevationModal({
     }
   }, [isLoading, error]);
 
-  // Close modal on successful state change
+  // Close on the OUTCOME the dialog was opened for, with an error on screen or not: a late
+  // answer (a leave the server heard after its five seconds, a frame the client flushed after an
+  // outage) would otherwise leave a stale "timed out" under a dialog whose job is done.
   useEffect(() => {
-    if (!isLoading && !error) {
-      // Successful elevation/bootstrap: currentIsDM becomes true
-      if ((mode === "elevate" || mode === "bootstrap") && currentIsDM) {
-        onClose();
-        setPassword("");
-        setConfirmPassword("");
-        setLocalError(null);
-      }
-      // Successful revocation: mode is "revoke" and currentIsDM becomes false
-      if (mode === "revoke" && !currentIsDM) {
-        onClose();
-      }
+    if (isLoading) return;
+    // Successful elevation/bootstrap: currentIsDM becomes true
+    if ((mode === "elevate" || mode === "bootstrap") && currentIsDM) {
+      onClose();
+      setPassword("");
+      setConfirmPassword("");
+      setLocalError(null);
     }
-  }, [isLoading, error, currentIsDM, mode, onClose]);
+    // Successful revocation: mode is "revoke" and the roster says currentIsDM is false —
+    // not merely that there is no roster (a reconnect blip).
+    if (mode === "revoke" && roleKnown && !currentIsDM) {
+      onClose();
+    }
+  }, [isLoading, currentIsDM, roleKnown, mode, onClose]);
 
   const handleCancel = () => {
     if (!isLoading) {
@@ -78,6 +91,7 @@ export function DMElevationModal({
   };
 
   const modalRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
   const escapeRoot = useEscapeRoot(modalRef, 3000);
   useEscapeOwner(() => ({
     kind: "modal",
@@ -147,6 +161,9 @@ export function DMElevationModal({
         onClick={handleCancel}
       >
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
           style={{
             backgroundColor: "#2a2a2a",
             border: "2px solid #4a4a4a",
@@ -161,12 +178,12 @@ export function DMElevationModal({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <h2 style={{ marginTop: 0, marginBottom: "16px", color: "#fff" }}>
+          <h2 id={titleId} style={{ marginTop: 0, marginBottom: "16px", color: "#fff" }}>
             {mode === "elevate"
-              ? "Elevate to DM"
+              ? "Enter DM mode"
               : mode === "bootstrap"
-                ? "Set the DM Password"
-                : "Revoke DM Status"}
+                ? "Set the DM password"
+                : "Leave DM mode"}
           </h2>
 
           <form onSubmit={handleSubmit}>
@@ -180,7 +197,7 @@ export function DMElevationModal({
                     color: "#ccc",
                   }}
                 >
-                  Enter DM Password:
+                  DM password
                 </label>
                 <input
                   id="dm-password"
@@ -196,14 +213,14 @@ export function DMElevationModal({
             ) : mode === "bootstrap" ? (
               <div style={{ marginBottom: "16px" }}>
                 <p style={{ marginTop: 0, color: "#ccc" }}>
-                  This table doesn&apos;t have a DM password yet. Set one now — you&apos;ll become
-                  the DM immediately, and anyone with this password can claim the DM seat later.
+                  This table doesn&apos;t have a DM password yet. Set one now — you&apos;ll enter DM
+                  mode immediately, and anyone with this password can enter it later.
                 </p>
                 <label
                   htmlFor="dm-new-password"
                   style={{ display: "block", marginBottom: "8px", color: "#ccc" }}
                 >
-                  New DM Password (8+ characters):
+                  New DM password (8+ characters)
                 </label>
                 <input
                   id="dm-new-password"
@@ -219,7 +236,7 @@ export function DMElevationModal({
                   htmlFor="dm-confirm-password"
                   style={{ display: "block", marginBottom: "8px", color: "#ccc" }}
                 >
-                  Confirm DM Password:
+                  Confirm DM password
                 </label>
                 <input
                   id="dm-confirm-password"
@@ -232,12 +249,18 @@ export function DMElevationModal({
               </div>
             ) : (
               <div style={{ marginBottom: "16px", color: "#ccc" }}>
-                <p>Are you sure you want to revoke your DM status?</p>
+                <p>Leave DM mode?</p>
                 <p style={{ fontSize: "12px", color: "#999" }}>
-                  You will lose access to DM tools and will need to re-enter the password to become
-                  DM again.
+                  You keep your character and your seat. The DM tools close, and the DM password
+                  brings them back.
                 </p>
               </div>
+            )}
+
+            {!roleKnown && (
+              <p style={{ margin: "0 0 12px", color: "#ccc", fontSize: "12px" }}>
+                Reconnecting… the table has not said who anyone is yet. Try again once it has.
+              </p>
             )}
 
             {(localError ?? error) && (
@@ -267,20 +290,20 @@ export function DMElevationModal({
               </JRPGButton>
               <JRPGButton
                 type="submit"
-                disabled={isLoading || (mode !== "revoke" && !password.trim())}
-                variant={mode === "revoke" ? "danger" : "success"}
+                disabled={isLoading || !roleKnown || (mode !== "revoke" && !password.trim())}
+                variant={mode === "revoke" ? "primary" : "success"}
               >
                 {isLoading
                   ? mode === "elevate"
-                    ? "Elevating..."
+                    ? "Entering…"
                     : mode === "bootstrap"
-                      ? "Setting..."
-                      : "Revoking..."
+                      ? "Setting…"
+                      : "Leaving…"
                   : mode === "elevate"
-                    ? "Elevate to DM"
+                    ? "Enter DM mode"
                     : mode === "bootstrap"
-                      ? "Set Password & Become DM"
-                      : "Revoke DM Status"}
+                      ? "Set password & enter DM mode"
+                      : "Leave DM mode"}
               </JRPGButton>
             </div>
           </form>

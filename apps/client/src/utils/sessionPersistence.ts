@@ -23,7 +23,11 @@
 // must be safe, and pass the rest through untouched.
 
 import type { PlayerStagingZone, RoomSnapshot, SessionFile } from "@herobyte/shared";
-import { WRONG_FILE_FOR_SESSION_LOAD, detectBackupFormat } from "./backupFormat";
+import {
+  CHARACTER_FILE_FOR_SESSION_LOAD,
+  WRONG_FILE_FOR_SESSION_LOAD,
+  detectBackupFormat,
+} from "./backupFormat";
 
 /**
  * Trigger a download of a complete session file.
@@ -175,8 +179,12 @@ export function loadSession(file: File): Promise<SessionFile> {
         // legacy bare-snapshot branch below, was read AS a room, and failed on
         // the first collection it did not have — reporting "tokens must be an
         // array" for a file that was simply the other kind.
-        if (detectBackupFormat(parsed) === "map") {
+        const format = detectBackupFormat(parsed);
+        if (format === "map") {
           throw new Error(WRONG_FILE_FOR_SESSION_LOAD);
+        }
+        if (format === "character") {
+          throw new Error(CHARACTER_FILE_FOR_SESSION_LOAD);
         }
 
         if (isLegacyBareSnapshot(parsed)) {

@@ -71,14 +71,10 @@ test.describe("docs screenshots: DM", () => {
       await shotPage(page, "dm-menu-props");
     });
 
-    await step("players tab", async () => {
-      await selectDMTab(page, "Players");
-      await shotPage(page, "dm-menu-players");
-    });
-
-    await step("session tab", async () => {
-      await selectDMTab(page, "Session");
-      await shotPage(page, "dm-menu-session");
+    await step("table tab", async () => {
+      // U9: Players and Session are ONE tab — the table's own settings.
+      await selectDMTab(page, "Table");
+      await shotPage(page, "dm-menu-table");
       await closeTopWindow(page, "Dungeon Master Tools");
     });
 

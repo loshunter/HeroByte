@@ -8,8 +8,9 @@ const DM_MENU_TABS: Array<{ tab: DMMenuTab; label: string }> = [
   { tab: "encounter", label: "Encounter" },
   { tab: "npcs", label: "NPCs & Monsters" },
   { tab: "props", label: "Props & Objects" },
-  { tab: "players", label: "Players" },
-  { tab: "session", label: "Session" },
+  // U9: invites, the roster, permissions, backups and security — what the
+  // Players and Session tabs held, under the word the plan gives the table.
+  { tab: "table", label: "Table" },
 ];
 
 interface DMMenuTabsProps {

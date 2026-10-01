@@ -212,21 +212,25 @@ export async function computeGenRegion(
   throw new Error("Could not zoom out far enough to fit a generator region");
 }
 
-// UI-driven DM elevation (screenshot-friendly path through the settings menu +
+// UI-driven DM elevation (screenshot-friendly path through the Table menu +
 // password modal, unlike helpers.elevateToDM which injects a WS message).
 export async function elevateViaUI(page: Page, opts: { onModal?: () => Promise<void> } = {}) {
   const dmPassword = process.env.E2E_DM_PASSWORD ?? "FunDM";
-  // The Party roster's own row → its card in the inspector → the gear (U7).
-  await openOwnCharacterSettings(page);
-  await page.getByRole("button", { name: /DM Mode: OFF/ }).click();
+  // The header's Table button → Enter DM mode (U9: role is the table's, not a card's).
+  await page.getByRole("button", { name: /^Table menu:/ }).click();
+  await page
+    .getByRole("dialog", { name: "Table menu" })
+    .getByRole("button", { name: "Enter DM mode", exact: true })
+    .click();
   const passwordField = page.locator("input[type='password']:visible").first();
   await expect(passwordField).toBeVisible();
   if (opts.onModal) await opts.onModal();
   await passwordField.fill(dmPassword);
-  await page.getByRole("button", { name: "Elevate to DM" }).click();
+  await page
+    .getByRole("dialog", { name: "Enter DM mode" })
+    .getByRole("button", { name: "Enter DM mode", exact: true })
+    .click();
   await expect(page.getByRole("button", { name: /DM MENU/i })).toBeVisible({ timeout: 10_000 });
-  await closeTopWindow(page, "Player Settings");
-  await closePartyDetails(page);
 }
 
 export { closePartyDetails };
@@ -265,14 +269,7 @@ export async function openDMMenu(page: Page) {
 
 export async function selectDMTab(
   page: Page,
-  tab:
-    | "Maps"
-    | "World"
-    | "Encounter"
-    | "NPCs & Monsters"
-    | "Props & Objects"
-    | "Players"
-    | "Session",
+  tab: "Maps" | "World" | "Encounter" | "NPCs & Monsters" | "Props & Objects" | "Table",
 ) {
   await openDMMenu(page);
   await page.getByRole("button", { name: tab, exact: true }).click();

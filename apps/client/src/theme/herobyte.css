@@ -1202,16 +1202,34 @@ h4 {
   touch-action: none;
 }
 
-.mobile-combat-strip {
+/*
+ * The top stack (U9): the connection chip, the gate's reconnect notice, the
+ * public-table chip, the host's next steps and the combat strip, IN FLOW in one
+ * column over the map. There were three fixed things with hand-picked `top`s (the
+ * badge at 0, the chip at +30, the strip at +8) and the badge painted over the
+ * strip's PREV / NEXT. A column cannot overlap itself, whatever any child's
+ * height turns out to be.
+ */
+.mobile-top-stack {
   position: absolute;
   top: calc(var(--mobile-safe-top) + 8px);
   left: 50%;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   width: min(92vw, 420px);
   transform: translateX(-50%);
-  /* The box paints nothing between PREV and NEXT, and in landscape the
-     move-pad follow may park a token under it (there is no room below it):
-     only the buttons take the tap, the gaps go to the map. */
+  /* Nothing in the stack paints between its members, and in landscape the
+     move-pad follow may park a token under it (there is no room below it): only
+     the controls take the tap, the gaps go to the map. */
+  pointer-events: none;
+}
+
+.mobile-combat-strip {
+  width: 100%;
+  /* The box paints nothing between PREV and NEXT: only the buttons take the tap. */
   pointer-events: none;
 }
 
@@ -2168,21 +2186,33 @@ button.token-library-remove:hover {
 }
 
 .mobile-screen__header {
-  display: flex;
+  /* Two rows: the connection chip, then the title and its close. The chip is the
+     header's own row (U9) — it used to be a fixed badge painted over a reserved
+     30px band, which only kept off the title by leaving that band empty. Safe-area
+     insets still keep the top row clear of a notched phone's housing. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "status status"
+    "title close";
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  /* Reserve the connection badge's 30px band above the title and close row.
-     It must stay visible over this opaque screen without covering its title.
-     Safe-area insets still keep the row clear of a notched phone's housing. */
-  padding: calc(var(--mobile-safe-top) + 30px) var(--mobile-safe-right) 10px var(--mobile-safe-left);
+  column-gap: 10px;
+  row-gap: 8px;
+  padding: var(--mobile-safe-top) var(--mobile-safe-right) 10px var(--mobile-safe-left);
   border-bottom: 3px solid var(--hero-gold-light);
   background: linear-gradient(180deg, rgba(42, 40, 69, 0.98) 0%, rgba(15, 14, 42, 0.99) 100%);
   color: var(--hero-gold);
   touch-action: none;
 }
 
+.mobile-screen__status {
+  grid-area: status;
+  justify-self: center;
+}
+
 .mobile-screen__title {
+  grid-area: title;
+  min-width: 0;
   margin: 0;
   overflow: hidden;
   flex: 1;
@@ -2196,6 +2226,7 @@ button.token-library-remove:hover {
 
 /* The exit holds the 44px floor the rest of the mobile UI honours. */
 .mobile-screen__close {
+  grid-area: close;
   min-width: 44px;
   min-height: 44px;
   padding: 0;
@@ -2268,62 +2299,35 @@ button.token-library-remove:hover {
 }
 
 /*
- * PUBLIC TABLE CHIP — one component, two presentations.
+ * PUBLIC TABLE CHIP — in flow, wherever its host puts it (U9).
  *
- * The base rule is the DESKTOP one, unchanged, and it is deliberately still
- * 7px. It sits at z-index 199 in the same band as the fixed header, with
- * pointer-events on, so its width decides what the header can still be clicked
- * through. At 11px the same sentence measured 682px wide and covered the
- * header's buttons outright — `elementFromPoint` at the centre of "Draw Tools"
- * returned this chip, and six desktop e2e specs sat waiting for a click that
- * could never land. Making it readable on desktop therefore needs it moved out
- * of the header band first, which is a design decision, not a font size.
+ * It was position:fixed in the header's own band on desktop — at 7px, because
+ * at 11px the same sentence measured 682px wide and covered the header's buttons
+ * outright (`elementFromPoint` at the centre of "Draw Tools" returned this chip,
+ * and six desktop e2e specs sat waiting for a click that could never land) — and
+ * a second fixed rule on the phone. Both hosts now own a place for it: a row of
+ * the desktop header, a member of the phone's top stack. So it is readable
+ * everywhere and cannot cover anything.
+ *
+ * width: fit-content as well as the cap: a block that only has `max-width`
+ * stretches to it, and this one sentence should hug its text. border-box keeps
+ * the padding and border inside the cap.
  */
 .public-table-chip {
-  position: fixed;
-  top: 26px;
-  left: 50%;
-  z-index: 199;
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 6px;
   padding: 3px 10px;
-  transform: translateX(-50%);
   border: 2px solid var(--jrpg-border-outer, #f0e2c3);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 8px;
   background: var(--jrpg-navy, #16162b);
   color: var(--jrpg-gold, #f0e2c3);
   font-family: "Press Start 2P", monospace;
-  font-size: 7px;
-  white-space: nowrap;
-  pointer-events: auto;
-}
-
-/*
- * The phone version, where there is no header to collide with — the chip's only
- * neighbour is the connection banner, which it stacks below.
- *
- * width: max-content is as load-bearing as the cap. A fixed element with only
- * `left` set shrinks to fit, and once wrapping is allowed it collapses far
- * narrower than the cap: measured 187px and five lines deep on a 375px phone.
- * Asking for max-content first makes the cap the binding constraint. border-box
- * matters for the same reason it does on the dock — without it the 20px of
- * padding and 4px of border land outside the cap and the chip renders exactly
- * viewport-wide, touching both edges.
- */
-.mobile-layout-root .public-table-chip {
-  top: calc(var(--mobile-safe-top) + 30px);
-  /* On the phone it floats over the MAP, not a header: it has no controls,
-     and with the move-pad follow parking a token under it in landscape a tap
-     there must reach the token. (Desktop keeps pointer-events on — its band
-     is the header's, see above.) */
-  pointer-events: none;
-  box-sizing: border-box;
-  width: max-content;
-  max-width: calc(100vw - 24px);
-  /* Was 7px, the smallest functional text anywhere in the app. */
   font-size: 11px;
   line-height: 1.5;
-  white-space: normal;
   text-align: center;
+  white-space: normal;
 }
 
 @media (max-width: 420px) {

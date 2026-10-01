@@ -133,7 +133,6 @@ export function PartyCharacterCard({
         // renders with the DM's affordances.
         isDM={player.isDM ?? false}
         viewerIsDM={currentIsDM}
-        onToggleDMMode={panel.onToggleDMMode}
         tokenLocked={tokenLocked}
         onToggleTokenLock={
           currentIsDM && token

@@ -36,7 +36,7 @@ pnpm dev
 
 Then open http://localhost:5174, enter the development table password `Fun1`, and you're at the table. To unlock DM tools, use the DM password `FunDM` — the [Getting Started guide](docs/user-guide/getting-started.md) walks through it.
 
-> The default **Main Hall** is the public test table: both its passwords are these documented ones and **cannot be changed**, and the server wipes it once it has sat empty for an hour. Build there freely — to keep any of it, use DM Menu → Session → **Save as a Private Table**, or create a private table from the join screen.
+> The default **Main Hall** is the public test table: both its passwords are these documented ones and **cannot be changed**, and the server wipes it once it has sat empty for an hour. Build there freely — to keep any of it, use DM Menu → Table → Security → **Save as a Private Table**, or create a private table from the join screen.
 
 <details>
 <summary>📦 Full Installation & Setup Guide</summary>
@@ -166,13 +166,13 @@ The server reads more variables than these (storage paths, table limits, feature
 
 **The [User Guide](docs/user-guide/README.md) is the front door** — a full walkthrough of everything a player or DM can do, with screenshots captured from the real app:
 
-| Guide                                                       | What it covers                                                                                                                    |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **[Getting Started](docs/user-guide/getting-started.md)**   | Joining a table, private tables & invite links, becoming the DM                                                                   |
-| **[Running a Game](docs/user-guide/running-a-game.md)**     | The three ways to run a map — your own art, build it, or generate it mid-session — and how to mix them                            |
-| **[Player Guide](docs/user-guide/player-guide.md)**         | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, the world map, mobile play                     |
-| **[DM Guide](docs/user-guide/dm-guide.md)**                 | The DM Menu: the Maps tab, NPCs & props, combat, session save/load, table security, World and the Kicked-In Door, the player lens |
-| **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator                          |
+| Guide                                                       | What it covers                                                                                                                                          |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Getting Started](docs/user-guide/getting-started.md)**   | Joining a table, private tables & invite links, becoming the DM                                                                                         |
+| **[Running a Game](docs/user-guide/running-a-game.md)**     | The three ways to run a map — your own art, build it, or generate it mid-session — and how to mix them                                                  |
+| **[Player Guide](docs/user-guide/player-guide.md)**         | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, the world map, mobile play                                           |
+| **[DM Guide](docs/user-guide/dm-guide.md)**                 | The DM Menu: the Maps tab, NPCs & props, combat, the Table tab (invites, permissions, backups, security), World and the Kicked-In Door, the player lens |
+| **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator                                                |
 
 Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwright harness that drives real player and DM sessions — so the docs can't quietly drift from the app.
 

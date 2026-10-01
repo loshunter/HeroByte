@@ -11,13 +11,14 @@
 // Extracted from: apps/client/src/features/dm/components/DMMenu.tsx (lines 127-139)
 // Extraction date: 2025-10-21
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import type { SnapshotCharacter } from "@herobyte/shared";
+import { subscribeDMMenuRequests, takeDMMenuTabRequest } from "../../table/menuRequest";
 
 /**
  * Type for DMMenu tab identifiers
  */
-export type DMMenuTab = "map" | "atlas" | "encounter" | "npcs" | "props" | "players" | "session";
+export type DMMenuTab = "map" | "atlas" | "encounter" | "npcs" | "props" | "table";
 
 /**
  * State object returned by useDMMenuState hook
@@ -49,7 +50,7 @@ export interface DMMenuState {
   setActiveTab: (tab: DMMenuTab) => void;
 
   /**
-   * The current session name (used for save/load operations)
+   * The backup file's name (Table → Backups), kept here so it survives a tab switch
    */
   sessionName: string;
 
@@ -122,7 +123,7 @@ export interface UseDMMenuStateOptions {
 export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMMenuState {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
-  const [sessionName, setSessionName] = useState("session");
+  const [sessionName, setSessionName] = useState("table-backup");
 
   /**
    * Memoized list of NPCs filtered from all characters
@@ -138,6 +139,27 @@ export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMM
    */
   const toggleOpen = useCallback(() => {
     setOpen((prev) => !prev);
+  }, []);
+
+  /**
+   * "Table settings…" in the Table menu asks this menu to open on a tab. A
+   * request made before this mounted (the phone's DM screen mounts after the
+   * tap) is taken now; later ones arrive through the subscription.
+   */
+  const isDMRef = useRef(isDM);
+  isDMRef.current = isDM;
+  useEffect(() => {
+    const takeRequest = () => {
+      // Always taken (so it cannot linger), but honoured for a DM only: a request made for
+      // anyone else must not open the menu by itself at the next elevation.
+      const tab = takeDMMenuTabRequest();
+      if (tab && isDMRef.current) {
+        setActiveTab(tab);
+        setOpen(true);
+      }
+    };
+    takeRequest();
+    return subscribeDMMenuRequests(takeRequest);
   }, []);
 
   /**

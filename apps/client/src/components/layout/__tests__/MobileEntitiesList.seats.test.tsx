@@ -51,7 +51,6 @@ function renderList(onFocusToken = vi.fn(), isDM = false) {
       characters={characters}
       uid={ME}
       isDM={isDM}
-      onToggleDMMode={vi.fn()}
       editingHpUID={null}
       hpInput=""
       onHpInputChange={vi.fn()}
@@ -69,6 +68,8 @@ function renderList(onFocusToken = vi.fn(), isDM = false) {
       onTokenSizeChange={vi.fn()}
       onAddCharacter={vi.fn()}
       sceneObjects={[]}
+      drawings={[]}
+      onApplyPlayerState={vi.fn()}
       onToggleTokenLock={vi.fn()}
       onPlayerTokenDelete={undefined}
       onCharacterOwnerChange={vi.fn()}

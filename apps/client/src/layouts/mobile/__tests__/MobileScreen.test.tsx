@@ -21,7 +21,7 @@ afterEach(() => {
 
 const renderScreen = (onClose = vi.fn()) => {
   render(
-    <MobileScreen title="Roll Log" surface="log" onClose={onClose}>
+    <MobileScreen title="Roll Log" surface="log" isConnected onClose={onClose}>
       <p>the content</p>
     </MobileScreen>,
   );
@@ -122,7 +122,7 @@ describe("MobileScreen", () => {
   it("announces itself as an open panel for as long as it is mounted", () => {
     expect(openPanelCount()).toBe(0);
     const { unmount } = render(
-      <MobileScreen title="Party Members" surface="party" onClose={vi.fn()}>
+      <MobileScreen title="Party Members" surface="party" isConnected onClose={vi.fn()}>
         <p>rows</p>
       </MobileScreen>,
     );

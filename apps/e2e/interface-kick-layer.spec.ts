@@ -49,7 +49,7 @@ test("U2 desktop DM Atlas → Kick closes the foreground first without losing th
     // browser verifies actual paint/hit order as well as keyboard ownership.
     // The elevation toast initially covers this title bar; wait for its real
     // dismissal before dragging, then prove the window actually moved.
-    await expect(dm.getByText(/DM elevation successful!/)).toHaveCount(0);
+    await expect(dm.getByText(/You are in DM mode\./)).toHaveCount(0);
     const titleBar = closeDM.locator("..");
     const titleBox = await titleBar.boundingBox();
     expect(titleBox).not.toBeNull();

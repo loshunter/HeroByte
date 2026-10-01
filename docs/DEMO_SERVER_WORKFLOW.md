@@ -8,7 +8,7 @@ HeroByte's demo server is designed for **casual, drop-in sessions** where you ca
 
 The demo server comes with permissive defaults for easy testing:
 
-- **Room Password**: `Fun1`
+- **Table password**: `Fun1` (published in this repository: a table that still uses it is open to anyone who has its code)
 - **DM Password**: `FunDM`
 
 ⚠️ **Production Note**: These defaults are for development only. For production deployments, set secure passwords via environment variables:
@@ -25,26 +25,25 @@ HEROBYTE_DM_PASSWORD="your-secure-dm-password"
 **Before your players join:**
 
 1. **Become DM**
-   - Open your player settings (gear icon on your player card)
-   - Click "Make myself DM"
+   - Open the Table button at the left of the header (on a phone: Tools → Table)
+   - Click "Enter DM mode"
    - Enter DM password: `FunDM` (or your custom password)
 
-2. **Set a Private Table Password** (Optional but recommended)
-   - Open DM Menu (bottom-right corner)
-   - Go to **Session** tab
-   - Under "Table Security", enter a private password (e.g., `MyPrivateGame123`)
-   - Confirm the password
-   - Click "Update Password"
+2. **Make It Private** (Optional but recommended)
+   - The public test table's password is fixed (the server's configured default: `Fun1` unless `HEROBYTE_ROOM_SECRET` sets another) so the table stays open for everyone; it cannot be changed there
+   - Open DM Menu (bottom-right corner) and go to the **Table** tab
+   - Under **Save as a Private Table**, give it a name, a table password (e.g., `MyPrivateGame123`) and a DM password, then press **Save & Go There**
+   - Everything on the table is copied to your own private table and you arrive there as a player: choose **Enter DM mode** again, with the DM password you just set
 
-3. **Share the New Password with Your Players**
-   - Send the new room password to your trusted players via Discord/Slack/etc.
+3. **Share the Link and the Password with Your Players**
+   - Copy the link from the Table tab's **Invite** section and send it to your trusted players via Discord/Slack/etc., and send the table password separately (the link never carries it)
    - This prevents random users from joining your game
 
 ### 2. During the Game
 
 - **Manage your session** as normal (maps, tokens, drawings, NPCs)
-- **Save Important Sessions**: Use DM Menu → Session → "Save Game State" before major milestones
-- Your private room password keeps random users out
+- **Save Important Sessions**: Use DM Menu → Table → Backups → "Download table backup" before major milestones
+- Your private table's password keeps random users out
 - Only players with the password can join
 
 ### 3. Post-Game Cleanup
@@ -52,29 +51,24 @@ HEROBYTE_DM_PASSWORD="your-secure-dm-password"
 **When your session is done:**
 
 1. **Save Your Session** (if you want to continue later)
-   - DM Menu → Session → "Save Game State"
+   - DM Menu → Table → Backups → "Download table backup"
    - Download saves as a JSON file
    - Store it somewhere safe (Google Drive, Dropbox, etc.)
 
-2. **Reset the Table Password**
-   - DM Menu → Session → Table Security → "Reset to Default"
-   - This resets the table password to the server's configured default (the
-     dev fallback `Fun1` unless `HEROBYTE_ROOM_SECRET` overrides it)
-   - The DM password and table contents are not affected
+2. **Leave the passwords as they are** (if you will keep using the table)
+   - A private table keeps its own table password and DM password between sessions, so the same link and passwords still work next session
+   - Do not use "Reset to default" on a table you keep: it gives the table the public Main Hall's password (`Fun1` unless `HEROBYTE_ROOM_SECRET` sets another), which anyone who has the table's code could then join with
 
 ### Manual Cleanup
 
 For a fuller cleanup:
 
-1. **Reset Table Password**
-   - DM Menu → Session → Table Security → "Reset to Default"
-
-2. **Clear Session State** (optional)
-   - DM Menu → Map Setup → "Clear All Drawings"
+1. **Clear Session State** (optional)
+   - DM Menu → Maps → "Clear All Drawings"
    - Manually delete NPCs from the NPCs & Monsters tab
    - Ask players to disconnect
 
-3. **Server Restart** (nuclear option)
+2. **Server Restart** (nuclear option)
    - If you're running the server locally, restart it
    - This clears all in-memory state
    - State persists in `herobyte-state.json` and `herobyte-room-secret.json`
@@ -101,16 +95,16 @@ The server will recreate these files with default values.
 ### For Demo/Development
 
 - Default passwords are **intentionally simple** for quick testing
-- Anyone with access to the server URL can join (if they know the room password)
+- Anyone with access to the server URL can join (if they know the table password)
 - DM password prevents random users from gaining admin privileges
 - **Do not use default passwords in production**
 
 ### For Private Games
 
-1. **Always change the room password** before your session
+1. **Always play on a private table** with its own table password (Table → Save as a Private Table) before your session
 2. **Use a strong DM password** (8+ characters, mix of letters/numbers)
 3. **Share passwords securely** (private chat, not public channels)
-4. **Reset to defaults** after your session to prevent password leaks
+4. **Change the table password if it may have leaked** (DM Menu → Table → Security → "Change table password"). Never use "Reset to default" on a table you keep: it gives the table the published password (`Fun1` unless `HEROBYTE_ROOM_SECRET` sets another)
 
 ### For Production Deployments
 
@@ -186,5 +180,5 @@ The implementation would involve:
 
 1. New client message: `{ t: "reset-to-demo-mode"; clearState: boolean }`
 2. Server handler that resets passwords and optionally clears state
-3. UI button in DM Menu → Session tab
+3. UI button in DM Menu → Table tab
 4. Confirmation dialog to prevent accidental resets

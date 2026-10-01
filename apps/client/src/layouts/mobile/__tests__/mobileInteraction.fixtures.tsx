@@ -120,6 +120,7 @@ export function MobileWorldHost({
         <MobileScreen
           title="World Map"
           surface="atlas"
+          isConnected
           onClose={machine.worldReturn.closeExplicitly}
           interaction={{
             behavior: "close",
@@ -134,6 +135,7 @@ export function MobileWorldHost({
         <MobileScreen
           title="Chat & Rolls"
           surface="log"
+          isConnected
           onClose={machine.closeExplicitSurface}
           interaction={{ behavior: "close", panel: "chat" }}
         >

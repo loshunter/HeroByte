@@ -119,9 +119,13 @@ test.describe("mobile — Encounter and the phone's initiative (U8)", () => {
       await expect(phoneDm.locator(".encounter-status")).toContainText("Turn 1 of 3:");
       await expect(turnName(player)).toHaveText(`Turn: ${await holderName()}`);
       // Readable, not just present: the connection badge (fixed, top centre)
-      // once painted over this line. The two boxes must not overlap.
+      // once painted over this line. It is the top stack's first member now
+      // (U9), above the strip; the two boxes must still not overlap.
       const line = await turnName(player).boundingBox();
-      const badge = await player.getByText("ONLINE", { exact: true }).locator("..").boundingBox();
+      const badge = await player
+        .locator(".mobile-top-stack")
+        .getByTestId("connection-chip")
+        .boundingBox();
       expect(line && badge).toBeTruthy();
       expect(line!.y >= badge!.y + badge!.height || line!.y + line!.height <= badge!.y).toBe(true);
 

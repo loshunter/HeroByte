@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { vi } from "vitest";
 import { encounterControls } from "../../encounter/__tests__/encounterFixtures";
+import { tableControls } from "../../table/tab/__tests__/tableFixtures";
 import type { DicePanelsProps } from "../../../layouts/DicePanels";
 import { CardControls } from "../../players/components/CardControls";
 import { PlayerSettingsMenu } from "../../players/components/PlayerSettingsMenu";
@@ -36,7 +37,6 @@ export function CharacterHarness({
         }}
         selectedEffects={[]}
         onStatusEffectsChange={() => {}}
-        onToggleDMMode={() => {}}
         nameInput={name}
         onNameInputChange={setName}
         onNameSubmit={submit}
@@ -83,7 +83,6 @@ export function dmProps() {
     // U7: a window-presentation menu renders its launcher into the Party dock.
     launcherDock: document.body,
     isDM: true,
-    onToggleDM: vi.fn(),
     gridSize: 50,
     gridSquareSize: 5,
     gridLocked: false,
@@ -92,7 +91,6 @@ export function dmProps() {
     onGridSquareSizeChange: vi.fn(),
     onClearDrawings: vi.fn(),
     onSetMapBackground: vi.fn(),
-    playerCount: 2,
     camera: { x: 0, y: 0, scale: 1 },
     characters: [],
     atlasNodes: [],
@@ -102,7 +100,6 @@ export function dmProps() {
     onCreateProp: vi.fn(),
     onUpdateProp: vi.fn(),
     onDeleteProp: vi.fn(),
-    onRequestLoadSession: vi.fn(),
     onCreateNPC: vi.fn(),
     onDuplicateNPC: vi.fn(),
     onUpdateNPC: vi.fn(),
@@ -125,8 +122,7 @@ export function dmProps() {
     onAlignmentReset: vi.fn(),
     onAlignmentCancel: vi.fn(),
     onAlignmentApply: vi.fn(),
-    sceneObjects: [],
-    onSelectPlayerTokens: vi.fn(),
     encounter: encounterControls(),
+    table: tableControls(),
   };
 }

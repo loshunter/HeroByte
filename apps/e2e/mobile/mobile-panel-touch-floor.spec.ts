@@ -18,6 +18,7 @@
  */
 import { expect, test, type Page } from "../fixtures";
 import { elevateToDM } from "../helpers";
+import { DM_PASSWORD, createTable, enterDMMode } from "../table-role.helpers";
 import { joinMobileTable, undersizedControls } from "./mobile.helpers";
 import { openTouch, touchTap } from "./touch.helpers";
 
@@ -101,8 +102,7 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
       "Encounter",
       "NPCs & Monsters",
       "Props & Objects",
-      "Players",
-      "Session",
+      "Table",
       "World",
     ]) {
       await dialog.getByRole("button", { name: tab, exact: true }).click();
@@ -135,6 +135,29 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
         data?.sendMessage?.({ t: "atlas-delete-node", nodeId: node.id });
       }
     });
+  });
+
+  test("the Table tab of a PRIVATE table — password fields, Change and Reset — clears the floor too", async ({
+    page,
+  }) => {
+    // The sweep above runs on the public test table, whose Table tab offers Save as a Private
+    // Table where a private one has its password controls: the ones measured here are not on it.
+    test.setTimeout(120_000);
+    await page.setViewportSize(PHONE);
+    await createTable(page, "u9-floor-private", true);
+    await enterDMMode(page, DM_PASSWORD, true);
+    await page.getByRole("button", { name: /^DM$/i }).click();
+
+    const dialog = page.getByRole("dialog", { name: "DM Menu" });
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await dialog.getByRole("button", { name: "Table", exact: true }).click();
+    // Present, so that what is swept is the private table's tab and not the public one's.
+    await expect(dialog.getByPlaceholder("New table password")).toBeVisible();
+    for (const name of ["Change table password", "Reset to default"]) {
+      await expect(dialog.getByRole("button", { name })).toBeVisible();
+    }
+    const small = await undersizedControls(page, "[data-mobile-surface='dm']");
+    expect(small, `Table (private): controls under 44px — ${small.join(", ")}`).toEqual([]);
   });
 
   test("the player settings window joins the touch floor", async ({ page }) => {

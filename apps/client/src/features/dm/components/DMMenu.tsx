@@ -6,8 +6,7 @@ import { EncounterTab } from "../../encounter/EncounterTab";
 import MapTab from "./tab-views/MapTab";
 import NPCsTab from "./tab-views/NPCsTab";
 import PropsTab from "./tab-views/PropsTab";
-import PlayersTab from "./tab-views/PlayersTab";
-import SessionTab from "./tab-views/SessionTab";
+import TableTab from "../../table/tab/TableTab";
 import { useDMMenuState } from "../hooks/useDMMenuState";
 import { DMMenuTabs } from "./DMMenuTabs";
 import type { DMMenuProps } from "./DMMenu.types";
@@ -15,7 +14,6 @@ import { DockedLauncher, LAUNCHER_ORDER } from "../../../components/layout/party
 
 export function DMMenu({
   isDM,
-  onToggleDM,
   gridSize,
   gridSquareSize = 5,
   gridLocked,
@@ -40,7 +38,6 @@ export function DMMenu({
   stagingZoneLocked,
   onStagingZoneLockToggle,
   camera,
-  playerCount,
   characters,
   atlasNodes,
   atlasLinks,
@@ -49,8 +46,6 @@ export function DMMenu({
   linkAimActive,
   onArmLinkAim,
   onOpenKick,
-  onRequestSaveSession,
-  onRequestLoadSession,
   onCreateNPC,
   customTokens,
   onAddCustomToken,
@@ -97,24 +92,12 @@ export function DMMenu({
   onAlignmentReset,
   onAlignmentCancel,
   onAlignmentApply,
-  onSetRoomPassword,
-  roomPasswordStatus = null,
-  roomPasswordPending = false,
-  onDismissRoomPasswordStatus,
-  onSaveAsPrivateTable,
-  sceneObjects,
-  onSelectPlayerTokens,
-  connectedUids,
-  onRemovePlayer,
   combatActive,
   diagonalRule,
   onDiagonalRuleChange,
   encounter,
+  table,
   toast,
-  playerPropsEnabled,
-  onPlayerPropsEnabledChange,
-  initiativeManualOverride,
-  onInitiativeManualOverrideChange,
   mapStudio,
   presentation = "window",
   launcherDock,
@@ -133,22 +116,6 @@ export function DMMenu({
   // screen renders it bare (the screen already provides surface and exit).
   const content = (
     <div style={{ padding: "12px" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: "12px",
-        }}
-      >
-        <JRPGButton
-          onClick={() => onToggleDM(false)}
-          variant="danger"
-          style={{ fontSize: "10px", padding: "6px 12px" }}
-        >
-          🔓 EXIT DM MODE
-        </JRPGButton>
-      </div>
-
       <DMMenuTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -261,36 +228,8 @@ export function DMMenu({
           updatingPropId={updatingPropId}
         />
       )}
-      {activeTab === "players" && (
-        <PlayersTab
-          players={players}
-          sceneObjects={sceneObjects}
-          onSelectPlayerTokens={onSelectPlayerTokens}
-          characters={characters}
-          connectedUids={connectedUids}
-          onRemovePlayer={onRemovePlayer}
-          onOpenEncounter={() => setActiveTab("encounter")}
-        />
-      )}
-      {activeTab === "session" && (
-        <SessionTab
-          sessionName={sessionName}
-          setSessionName={setSessionName}
-          onRequestSaveSession={onRequestSaveSession}
-          onRequestLoadSession={onRequestLoadSession}
-          saveDisabled={!onRequestSaveSession}
-          loadDisabled={!onRequestLoadSession}
-          onSetRoomPassword={onSetRoomPassword}
-          roomPasswordStatus={roomPasswordStatus}
-          roomPasswordPending={roomPasswordPending}
-          onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
-          onSaveAsPrivateTable={onSaveAsPrivateTable}
-          playerCount={playerCount}
-          playerPropsEnabled={playerPropsEnabled}
-          onPlayerPropsEnabledChange={onPlayerPropsEnabledChange}
-          initiativeManualOverride={initiativeManualOverride}
-          onInitiativeManualOverrideChange={onInitiativeManualOverrideChange}
-        />
+      {activeTab === "table" && (
+        <TableTab controls={table} sessionName={sessionName} setSessionName={setSessionName} />
       )}
     </div>
   );

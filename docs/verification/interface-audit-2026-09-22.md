@@ -4,7 +4,15 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
-**Latest implementation checkpoint (2026-09-29):** U8 addresses IA-16 (encounter
+**Latest implementation checkpoint (2026-09-30):** U9 addresses IA-17 (the host's role was buried in
+character settings and ONLINE covered phone headings: a Table button in the header and
+Tools → Table on the phone hold the role, Enter/Leave DM mode and the preferences, and the
+connection has a row of its own), the U9 halves of IA-01 and IA-14 (backups now name their scope,
+and each file picker names a wrong-kind file) and U9's part of IA-19. Implemented and verified,
+uncommitted; review ended at its 3-round cap with every finding repaired, and U9 is not yet
+accepted. See [the U9 record](interface-clarity-u9.md).
+
+**Previous implementation checkpoint (2026-09-29):** U8 addresses IA-16 (encounter
 preparation crossed NPCs, Players, the cards and Session; Encounter is now one DM Menu
 tab, on desktop and phone, and a phone can set initiative). Review stopped at the
 3-round cap, every item repaired and verified on the owner's “repair all, verify”;

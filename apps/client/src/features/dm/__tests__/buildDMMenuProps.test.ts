@@ -153,7 +153,7 @@ describe("buildDMMenuProps", () => {
         // The kicked-in door (K2) — the Atlas tab's button, through the bag.
         "openKick",
         "onSelectPlayerTokens",
-        // The Players tab's REMOVE — the roster it compares against, and the send.
+        // The Table tab's REMOVE — the roster it compares against, and the send.
         "connectedUids",
         "onRemovePlayer",
         // Encounter (U8): the viewer, and the layout's one initiative instance.
@@ -286,7 +286,7 @@ describe("buildDMMenuProps", () => {
   });
 });
 
-describe("buildDMMenuProps — the Players tab's REMOVE", () => {
+describe("buildDMMenuProps — the Table tab's REMOVE", () => {
   it("onRemovePlayer speaks the wire: remove-player with the uid", () => {
     const bag = createBag();
     buildDMMenuProps(bag, extras).onRemovePlayer!("ghost");

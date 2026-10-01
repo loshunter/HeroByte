@@ -57,15 +57,23 @@ describe("desktop close opt-ins", () => {
       return (
         <>
           <Header
-            uid="me"
+            table={{
+              uid: "me",
+              tableName: "Sunday Game",
+              isPublicTable: false,
+              isConnected: true,
+              isDM: false,
+              roleKnown: true,
+              onToggleDM: vi.fn(),
+              crtFilter: false,
+              onCrtFilterChange: vi.fn(),
+            }}
             snapToGrid
             activeTool={null}
-            crtFilter={false}
             diceRollerOpen={false}
             rollLogOpen={open}
             onSnapToGridChange={vi.fn()}
             onToolSelect={vi.fn()}
-            onCrtFilterChange={vi.fn()}
             onDiceRollerToggle={vi.fn()}
             onRollLogToggle={setOpen}
             onResetCamera={vi.fn()}

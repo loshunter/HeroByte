@@ -84,6 +84,7 @@ export function ActualModal({
       isLoading={loading}
       error={null}
       currentIsDM={false}
+      roleKnown
       onElevate={calls.elevate}
       onBootstrap={calls.bootstrap}
       onRevoke={calls.revoke}

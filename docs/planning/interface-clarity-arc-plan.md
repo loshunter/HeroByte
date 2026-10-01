@@ -1,5 +1,22 @@
 # Interface clarity — the first session should teach the table — arc plan
 
+> **STATUS: U9 IMPLEMENTED AND VERIFIED, REVIEW ENDED AT THE CAP, NOT YET ACCEPTED — 2026-09-30.**
+> U9 (the Table, role, personal preferences and recovery are separate: a Table button in the
+> header and Tools → Table on the phone; Players and Session merged into one DM Menu → Table
+> tab; Save character / Load character; each file picker names a wrong-kind file) is
+> uncommitted slice work on `dev` above sixteen local, unpushed fix commits for what was found
+> on the way (`0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`,
+> `8996993a`, `c44ad4b6`, `a4ac5402`, `a89d2d60`, `ab4da6a2`, `9b88518c`, `8ad5ed24`,
+> `4cdcf1e2`, `1c67afa7`, `ebbd20e4`; three of them are server fixes in the restore path). Review
+> stopped at the 3-round cap without an all-PASS round (P1 1 → 1 → 0, P2 13 → 7 → 8); every
+> finding is repaired and the final ladder is green (318 browser/3 accepted skips/0 flaky;
+> 157.02 KB); the live two-client evaluation, re-run on the final tree, scores 8.0. A read of the
+> finished slice by a reviewer outside the session found it sound and three things to fix: the last
+> two commits are two of them, and the third (the leave latch) waits for the slice to be committed.
+> Read [the U9 record](../verification/interface-clarity-u9.md).
+>
+> Previous status (U8):
+>
 > **STATUS: U8 ACCEPTED AND COMMITTED ON `dev` (LOCAL, NOT PUSHED) — 2026-09-30.**
 > U8 (Encounter is the single combat home: a DM Menu tab and phone DM chip; initiative
 > on the phone) is committed on `dev` above nineteen local, unpushed fix and

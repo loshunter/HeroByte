@@ -8,8 +8,23 @@ import { KickLayoutUnderTest } from "./kickLayout.fixtures";
 import { HELP_TOPICS } from "../../features/help/helpTopics";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
 import type { KickControls } from "../../features/atlas/useKickedInDoor";
+import {
+  __resetDMMenuRequestsForTests,
+  takeDMMenuTabRequest,
+} from "../../features/table/menuRequest";
+import { markNewTable } from "../../features/table/newTableMarker";
+import { savePlayerState } from "../../utils/playerPersistence";
+import { ReconnectPhaseContext } from "../../features/table/reconnectPhase";
+import { installMemoryStorage } from "../../test-utils/memoryStorage";
 type DrawingToolbarProps = MainLayoutProps["drawingToolbarProps"];
 type DrawingProps = MainLayoutProps["drawingProps"];
+// Save character reaches the real file writer; here it is a spy, so a test can read what the
+// phone's party list was handed to write. The loader stays real.
+vi.mock("../../utils/playerPersistence", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../utils/playerPersistence")>()),
+  savePlayerState: vi.fn(),
+}));
+
 type PlayerActions = MainLayoutProps["playerActions"];
 
 // Mock child components. MapBoard's mock RECORDS its props: the mobile shell's
@@ -227,6 +242,7 @@ describe("MobileLayout", () => {
     gridSize: 50,
     gridSquareSize: 5,
     isDM: false,
+    roleKnown: true,
     cameraState: { x: 0, y: 0, scale: 1 },
     camera: { x: 0, y: 0, scale: 1 },
     cameraCommand: null,
@@ -333,18 +349,22 @@ describe("MobileLayout", () => {
     expect(container.querySelector(".crt-vignette")).toBeNull();
   });
 
-  it("wires the CRT tool tile to the App preference in both directions", () => {
+  it("wires Display → CRT (now in the Table screen) to the App preference in both directions", () => {
     const props = createDefaultProps();
     const { rerender } = render(<MobileLayout {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /tools/i }));
-    const tile = screen.getByRole("button", { name: "CRT" });
-    expect(tile).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(tile);
+    // The tool sheet no longer carries a CRT tile: it is a preference, and Table holds it.
+    expect(screen.queryByRole("button", { name: "CRT" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Table" }));
+
+    const crt = screen.getByRole("button", { name: "📺 CRT" });
+    expect(crt).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(crt);
     expect(props.setCrtFilter).toHaveBeenLastCalledWith(true);
 
     rerender(<MobileLayout {...props} crtFilter={true} />);
-    expect(tile).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(tile);
+    expect(screen.getByRole("button", { name: "📺 CRT" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "📺 CRT" }));
     expect(props.setCrtFilter).toHaveBeenLastCalledWith(false);
   });
 
@@ -1419,6 +1439,31 @@ describe("MobileLayout", () => {
       expect(openSurfaces()).toEqual([]);
     });
 
+    it("a KNOWN demotion ends the DM screen for good, so entering DM mode again leaves the map clear", async () => {
+      // Leave DM mode (or a restart that cleared the elevation), then the next-steps card's
+      // Enter DM mode: nothing on the phone may spring the old screen open over the map.
+      const props = createDefaultProps();
+      props.isDM = true;
+      const { rerender } = render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/dm/i));
+      expect(openSurfaces()).toEqual(["dm"]);
+      rerender(<MobileLayout {...props} isDM={false} roleKnown />);
+      expect(openSurfaces()).toEqual([]);
+      rerender(<MobileLayout {...props} isDM roleKnown />);
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("a reconnect blip only hides the DM screen: it returns with the roster", async () => {
+      const props = createDefaultProps();
+      props.isDM = true;
+      const { rerender } = render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/dm/i));
+      rerender(<MobileLayout {...props} isDM={false} roleKnown={false} />);
+      expect(openSurfaces()).toEqual([]);
+      rerender(<MobileLayout {...props} isDM roleKnown />);
+      expect(openSurfaces()).toEqual(["dm"]);
+    });
+
     it("de-elevating with the DM screen open takes the shell down with it — and the machine with it, so the move-pad follow resumes", async () => {
       // A selected, movable token under the sheet (phone rects stubbed by
       // class): while the DM screen covers the map the follow is inert; once
@@ -1454,7 +1499,7 @@ describe("MobileLayout", () => {
         fireEvent.click(dock(/dm/i));
         expect(await screen.findByTestId("dm-menu-content")).toBeInTheDocument();
 
-        // The server revokes DM (or EXIT DM MODE lands): the screen must not
+        // The server revokes DM (or Leave DM mode lands): the screen must not
         // stay up as an empty shell around a menu that renders null.
         rerender(<MobileLayout {...props} isDM={false} />);
         expect(screen.queryByRole("dialog", { name: "DM Menu" })).not.toBeInTheDocument();
@@ -1608,6 +1653,329 @@ describe("MobileLayout", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /close help/i }));
       expect(document.querySelector(".mobile-drawing-sheet")).not.toBeNull();
+    });
+  });
+
+  describe("the Table screen and the top stack (U9)", () => {
+    const openSurfaces = () =>
+      [...document.querySelectorAll("[data-mobile-surface]")].map((el) =>
+        el.getAttribute("data-mobile-surface"),
+      );
+    const dock = (name: RegExp) =>
+      within(screen.getByRole("navigation", { name: /mobile actions/i })).getByRole("button", {
+        name,
+      });
+    const openTable = () => {
+      fireEvent.click(dock(/tools/i));
+      fireEvent.click(screen.getByRole("button", { name: "Table" }));
+      return screen.getByRole("dialog", { name: "Table" });
+    };
+
+    beforeEach(() => {
+      installMemoryStorage();
+      __resetDMMenuRequestsForTests();
+      window.history.replaceState(null, "", "/?room=table-abc123");
+    });
+
+    it("opens from a Table tile in the Tools sheet, as the one surface, with no sixth dock slot", () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      expect(
+        within(screen.getByRole("navigation", { name: /mobile actions/i })).getAllByRole("button"),
+      ).toHaveLength(5);
+
+      const table = openTable();
+      expect(openSurfaces()).toEqual(["table"]);
+      expect(within(table).getByRole("heading", { name: "Your role" })).toBeInTheDocument();
+      expect(within(table).getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
+      expect(within(table).getByRole("group", { name: "Display" })).toBeInTheDocument();
+      expect(within(table).getByRole("group", { name: "Sound & motion" })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Close Table" }));
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("says the connection once on the Table screen: in its header row, not again in its body", () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      const table = openTable();
+      const chips = within(table).getAllByTestId("connection-chip");
+      expect(chips).toHaveLength(1);
+      expect(table.querySelector(".mobile-screen__header")).toContainElement(chips[0]!);
+    });
+
+    it("gives a player Enter DM mode, which asks for the dialog and elevates nothing itself", () => {
+      const props = createDefaultProps();
+      render(<MobileLayout {...props} />);
+      fireEvent.click(within(openTable()).getByRole("button", { name: "Enter DM mode" }));
+      expect(props.handleToggleDM).toHaveBeenCalledExactlyOnceWith(true);
+    });
+
+    it("gives a DM Leave DM mode, and Table settings opens the DM screen on the Table tab", () => {
+      const props = { ...createDefaultProps(), isDM: true };
+      render(<MobileLayout {...props} />);
+      const table = openTable();
+
+      fireEvent.click(within(table).getByRole("button", { name: "Leave DM mode" }));
+      expect(props.handleToggleDM).toHaveBeenCalledExactlyOnceWith(false);
+
+      fireEvent.click(within(table).getByRole("button", { name: /Table settings/ }));
+      expect(openSurfaces()).toEqual(["dm"]);
+      // The request the DM menu takes when it mounts (the test's DM container is a stub).
+      expect(takeDMMenuTabRequest()).toBe("table");
+    });
+
+    it("offers a player no Table settings", () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      expect(within(openTable()).queryByRole("button", { name: /Table settings/ })).toBeNull();
+    });
+
+    it("does not judge the role during a reconnect: nothing to enter or leave until the roster is back", () => {
+      const props = { ...createDefaultProps(), isDM: true, roleKnown: false };
+      render(<MobileLayout {...props} />);
+      const table = openTable();
+      expect(within(table).getByText("Reconnecting…")).toBeInTheDocument();
+      expect(within(table).queryByRole("button", { name: "Leave DM mode" })).toBeNull();
+      expect(within(table).queryByRole("button", { name: /Table settings/ })).toBeNull();
+    });
+
+    it("carries the connection in every screen's own header, and never as a fixed badge", () => {
+      const props = createDefaultProps();
+      const { rerender } = render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/party/i));
+      const party = screen.getByRole("dialog", { name: "Party Members" });
+      const chip = within(party).getByRole("status");
+      expect(chip).toHaveTextContent("ONLINE");
+      // In the header's own row: a descendant of the header, where the title is.
+      expect(party.querySelector(".mobile-screen__header")).toContainElement(chip);
+
+      rerender(<MobileLayout {...props} isConnected={false} />);
+      expect(
+        within(screen.getByRole("dialog", { name: "Party Members" })).getByRole("status"),
+      ).toHaveTextContent("OFFLINE");
+    });
+
+    it("tells the truth on EVERY screen when the server is lost — each passes the real state, not a constant", () => {
+      // Each screen is built by its own branch of MobileSurfaces; one that hard-wired
+      // "online" would show a cheerful chip over a dead table. Party was the only one checked.
+      const screens: Array<[string, Partial<MainLayoutProps>, () => void]> = [
+        ["Party Members", {}, () => fireEvent.click(dock(/party/i))],
+        // The chat log is a prop-controlled surface: the layout's own state says it is open.
+        ["Chat & Rolls", { rollLogOpen: true }, () => undefined],
+        ["DM Menu", {}, () => fireEvent.click(dock(/dm/i))],
+        [
+          "Table",
+          {},
+          () => {
+            fireEvent.click(dock(/tools/i));
+            fireEvent.click(screen.getByRole("button", { name: "Table" }));
+          },
+        ],
+        // Seven screens, seven branches of MobileSurfaces, seven separate isConnected props: the
+        // four above were all this test once looked at. The Kick screen is below, with its layout.
+        [
+          "Props",
+          {
+            isDM: false,
+            snapshot: {
+              ...createDefaultProps().snapshot,
+              playerPropsEnabled: true,
+            } as MainLayoutProps["snapshot"],
+          },
+          () => {
+            fireEvent.click(dock(/tools/i));
+            fireEvent.click(screen.getByRole("button", { name: /^props$/i }));
+          },
+        ],
+        [
+          "World Map",
+          { isDM: false },
+          () => {
+            fireEvent.click(dock(/tools/i));
+            fireEvent.click(screen.getByRole("button", { name: /^world$/i }));
+          },
+        ],
+      ];
+      for (const [name, extra, open] of screens) {
+        const props = { ...createDefaultProps(), isDM: true, isConnected: false, ...extra };
+        const { unmount } = render(<MobileLayout {...props} />);
+        open();
+        const dialog = screen.getByRole("dialog", { name });
+        expect(within(dialog).getByTestId("connection-chip"), name).toHaveTextContent("OFFLINE");
+        unmount();
+      }
+    });
+
+    it("tells the truth on the dice overlay when the server is lost, too", () => {
+      // It covers the whole screen, the top stack's chip with it, so it carries its own.
+      render(<MobileLayout {...createDefaultProps()} diceRollerOpen isConnected={false} />);
+      const roller = screen.getByTestId("dice-roller");
+      expect(within(roller).getByTestId("connection-chip")).toHaveTextContent("OFFLINE");
+    });
+
+    it("tells the truth on the Kick screen when the server is lost, too", async () => {
+      const kick: KickControls = {
+        open: false,
+        draft: null,
+        updateDraft: vi.fn(),
+        openKick: vi.fn(),
+        closeKick: vi.fn(),
+        kick: vi.fn(),
+        pending: null,
+        settings: {
+          recipe: { recipeId: "dungeon", theme: "stone", density: "medium", size: "small" },
+          linkType: "door",
+        },
+        canKick: true,
+      };
+      render(
+        <KickLayoutUnderTest
+          {...{ ...createDefaultProps(), isDM: true, isConnected: false, kick }}
+        />,
+      );
+      fireEvent.click(dock(/^dm$/i));
+      fireEvent.click(await screen.findByRole("button", { name: "🚪 Kick in a door" }));
+      const dialog = screen.getByRole("dialog", { name: "Kick in a door" });
+      expect(within(dialog).getByTestId("connection-chip")).toHaveTextContent("OFFLINE");
+    });
+
+    it("gives the gate's reconnect notice a place in that column, right after the chip", () => {
+      // It was a fixed banner at the top right, and 26px of it lay over the OFFLINE chip.
+      render(
+        <ReconnectPhaseContext.Provider value="reconnecting">
+          <MobileLayout {...createDefaultProps()} isConnected={false} />
+        </ReconnectPhaseContext.Provider>,
+      );
+      const stack = document.querySelector(".mobile-top-stack") as HTMLElement;
+      const chip = within(stack).getByTestId("connection-chip");
+      const notice = within(stack).getByTestId("reconnect-notice");
+      expect(chip.compareDocumentPosition(notice)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(document.querySelectorAll('[data-testid="reconnect-notice"]')).toHaveLength(1);
+    });
+
+    it("stacks the connection, the public-table warning and the turn strip in ONE column over the map", () => {
+      const props = createDefaultProps();
+      props.snapshot = {
+        isPublicTable: true,
+        combatActive: true,
+        currentTurnCharacterId: "c1",
+        characters: [{ id: "c1", name: "Ranger", type: "pc", hp: 9, maxHp: 9 }],
+      } as unknown as MainLayoutProps["snapshot"];
+      render(<MobileLayout {...props} />);
+
+      const stack = document.querySelector(".mobile-top-stack") as HTMLElement;
+      expect(stack).not.toBeNull();
+      const chip = within(stack).getByTestId("connection-chip");
+      const warning = within(stack).getByTestId("public-table-chip");
+      const strip = stack.querySelector(".mobile-combat-strip") as HTMLElement;
+      expect(strip).not.toBeNull();
+      // One column, in this order: nothing can be painted over anything else.
+      expect(chip.compareDocumentPosition(warning)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(warning.compareDocumentPosition(strip)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      // And there is no other, fixed copy of the chip on the page.
+      expect(document.querySelectorAll('[data-testid="connection-chip"]')).toHaveLength(1);
+    });
+
+    it("keeps the public-table warning through a reconnect blip, so the stack does not jump", () => {
+      // The warning is a member of the in-flow stack: one that went with the snapshot moved
+      // the strip and the chip under it on every reconnect.
+      const props = createDefaultProps();
+      props.snapshot = { isPublicTable: true } as unknown as MainLayoutProps["snapshot"];
+      const { rerender } = render(<MobileLayout {...props} />);
+      expect(screen.getByTestId("public-table-chip")).toBeInTheDocument();
+      rerender(<MobileLayout {...props} snapshot={null} isConnected={false} roleKnown={false} />);
+      expect(screen.getByTestId("public-table-chip")).toBeInTheDocument();
+    });
+
+    it("shows the host's next steps in the stack only in the tab that just made the table", () => {
+      const props = createDefaultProps();
+      const { unmount } = render(<MobileLayout {...props} />);
+      expect(screen.queryByRole("region", { name: "Next steps for the host" })).toBeNull();
+      unmount();
+
+      markNewTable("table-abc123");
+      render(<MobileLayout {...props} />);
+      const steps = screen.getByRole("region", { name: "Next steps for the host" });
+      expect(document.querySelector(".mobile-top-stack")).toContainElement(steps);
+      fireEvent.click(within(steps).getByRole("button", { name: "Enter DM mode" }));
+      expect(props.handleToggleDM).toHaveBeenCalledExactlyOnceWith(true);
+    });
+
+    it("gives the viewer's own row Save character / Load character, and no DM Mode control in it", () => {
+      const props = createDefaultProps();
+      props.snapshot = {
+        players: [{ uid: "test-uid", name: "Me", isDM: false, hp: 9, maxHp: 9 }],
+        characters: [
+          { id: "char-1", name: "Me", type: "pc", ownedByPlayerUID: "test-uid", hp: 9, maxHp: 9 },
+        ],
+        tokens: [],
+        sceneObjects: [],
+        drawings: [],
+      } as unknown as MainLayoutProps["snapshot"];
+      render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/party/i));
+      fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+      expect(screen.getByRole("button", { name: "Save character" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Load character…" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /DM Mode/i })).toBeNull();
+    });
+
+    it("hands the party list the table's drawings and the layout's own apply", async () => {
+      // The list's own tests supply both themselves, so they cannot see a layout that forgot to:
+      // a Save would hold no drawings (or everyone's), and a Load would change nothing.
+      vi.mocked(savePlayerState).mockClear();
+      const applyPlayerState = vi.fn();
+      const props = {
+        ...createDefaultProps(),
+        playerActions: { applyPlayerState } as unknown as PlayerActions,
+      };
+      props.snapshot = {
+        players: [{ uid: "test-uid", name: "Me", isDM: false, hp: 9, maxHp: 9 }],
+        characters: [
+          {
+            id: "char-1",
+            name: "Me",
+            type: "pc",
+            ownedByPlayerUID: "test-uid",
+            hp: 9,
+            maxHp: 9,
+            tokenId: "tok-1",
+          },
+        ],
+        tokens: [{ id: "tok-1", owner: "test-uid", x: 1, y: 1, color: "red" }],
+        sceneObjects: [],
+        drawings: [
+          {
+            id: "d-mine",
+            owner: "test-uid",
+            type: "freehand",
+            points: [],
+            color: "#fff",
+            width: 2,
+          },
+          {
+            id: "d-theirs",
+            owner: "someone",
+            type: "freehand",
+            points: [],
+            color: "#fff",
+            width: 2,
+          },
+        ],
+      } as unknown as MainLayoutProps["snapshot"];
+      render(<MobileLayout {...props} />);
+      fireEvent.click(dock(/party/i));
+      fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+      fireEvent.click(screen.getByRole("button", { name: "Save character" }));
+      const saved = vi.mocked(savePlayerState).mock.calls[0]![0];
+      expect(saved.drawings?.map((drawing) => drawing.id)).toEqual(["d-mine"]);
+
+      const input = screen.getByLabelText("Choose a character file to load");
+      const file = { text: async () => JSON.stringify({ name: "Aria", hp: 4, maxHp: 9 }) };
+      fireEvent.change(input, { target: { files: [file] } });
+      await vi.waitFor(() => expect(applyPlayerState).toHaveBeenCalledTimes(1));
+      const [state, tokenId, characterId] = applyPlayerState.mock.calls[0]!;
+      expect(state).toMatchObject({ name: "Aria", hp: 4, maxHp: 9 });
+      expect([tokenId, characterId]).toEqual(["tok-1", "char-1"]);
     });
   });
 });

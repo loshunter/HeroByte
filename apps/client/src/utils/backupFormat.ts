@@ -1,15 +1,17 @@
 // ============================================================================
 // BACKUP FORMAT DETECTION
 // ============================================================================
-// HeroByte writes two kinds of JSON backup and offers two file pickers, and
-// until this existed neither picker could tell which file it had been handed.
+// HeroByte writes three kinds of JSON file and offers three file pickers —
+// a table backup (Download table backup / Restore table backup), an editable
+// map (Export / Import editable map) and a character (Save / Load character) —
+// and until this existed no picker could tell which file it had been handed.
 //
 // Both files declare `schemaVersion: 1` — SessionFile and MapDocument were
 // numbered independently and happen to collide — so the map importer's version
 // check waved a whole table backup through, sent it as a map document, and the
 // DM was eventually told the MAP SERVER DID NOT RESPOND. The server had in fact
 // answered immediately, rejecting a document with no name. The mirror image was
-// no better: a map backup handed to Load Game State has no `snapshot` key, so
+// no better: a map backup handed to the table restore has no `snapshot` key, so
 // the loader took its legacy bare-snapshot branch, tried to read the map AS a
 // room, and reported TOKENS MUST BE AN ARRAY.
 //
@@ -26,12 +28,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-/** Which of HeroByte's two backup files this is, if either. */
+/** Which of HeroByte's three files this is, if any. */
 export type BackupFormat =
   /** A SessionFile envelope, or the bare RoomSnapshot older saves wrote. */
   | "session"
-  /** A single MapDocument, as BACKUP JSON writes. */
+  /** A single MapDocument, as Export editable map writes. */
   | "map"
+  /** One character, as Save character writes. */
+  | "character"
   /** Valid JSON, but not something HeroByte wrote. */
   | "unknown";
 
@@ -77,14 +81,45 @@ export function detectBackupFormat(parsed: unknown): BackupFormat {
     return "map";
   }
 
+  // A character file: a name and its two HP numbers, and none of the collections
+  // that make a table or a map. Asked last, so a table or a map can never land here.
+  if (
+    typeof parsed.name === "string" &&
+    typeof parsed.hp === "number" &&
+    typeof parsed.maxHp === "number"
+  ) {
+    return "character";
+  }
+
   return "unknown";
 }
 
-/** What to tell someone who picked the right file in the wrong place. */
+/**
+ * What to tell someone who picked the right file in the wrong place. Each names
+ * what the file IS and where its own picker is, since the honest next move is not
+ * "try again".
+ */
 export const WRONG_FILE_FOR_MAP_IMPORT =
-  "That is a table backup (a whole saved game), not a map. Restore it with Load Game State " +
-  "under Session — importing it here would not bring your characters or tokens back.";
+  "That is a table backup (the whole table), not an editable map. Restore it with Restore table " +
+  "backup under DM Menu → Table → Backups — importing it here would not bring your characters or " +
+  "tokens back.";
 
 export const WRONG_FILE_FOR_SESSION_LOAD =
   "That is an editable map, not a table backup. Import it with Import editable map (.json) " +
-  "under Maps → Map library — loading it here would not restore a table.";
+  "under DM Menu → Maps → Map library — restoring it here would not restore a table.";
+
+export const CHARACTER_FILE_FOR_SESSION_LOAD =
+  "That is a character file, not a table backup. Load it with Load character, in that " +
+  "character's ⚙️ settings — restoring it here would not bring a table back.";
+
+export const CHARACTER_FILE_FOR_MAP_IMPORT =
+  "That is a character file, not an editable map. Load it with Load character, in that " +
+  "character's ⚙️ settings.";
+
+export const TABLE_BACKUP_FOR_CHARACTER_LOAD =
+  "That is a table backup (the whole table), not a character file. A DM restores it under " +
+  "DM Menu → Table → Backups; Load character only reads a file saved with Save character.";
+
+export const MAP_FOR_CHARACTER_LOAD =
+  "That is an editable map, not a character file. A DM imports it under DM Menu → Maps → " +
+  "Map library; Load character only reads a file saved with Save character.";

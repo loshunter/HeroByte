@@ -123,6 +123,7 @@ export const createKickMobileProps = (): MainLayoutProps => ({
   gridSize: 50,
   gridSquareSize: 5,
   isDM: false,
+  roleKnown: true,
   cameraState: { x: 0, y: 0, scale: 1 },
   camera: { x: 0, y: 0, scale: 1 },
   cameraCommand: null,

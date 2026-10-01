@@ -1,6 +1,6 @@
-/* The character settings windows' sections (U7): Character, Token settings and
-   the viewer's Table role, each under a named heading so a control's scope is
-   read from where it sits, not guessed. */
+/* The character settings windows' two sections (U7): Character and Token settings,
+   each under a named heading so a control's scope is read from where it sits, not
+   guessed. (Character file, since U9, is a labelled panel inside Character.) */
 
 .character-settings__section {
   display: flex;

@@ -23,8 +23,6 @@ interface MobileFloatingControlsProps {
   onResetCamera: () => void;
   activeTool: ToolMode;
   snapToGrid: boolean;
-  crtFilter?: boolean;
-  onCrtFilterChange?: (enabled: boolean) => void;
   /** Slot five is contextual: `DM` for a DM, `View` (reset camera) otherwise. */
   isDM: boolean;
   /** The table's player-props toggle — gates the Props tile in the sheet.
@@ -47,8 +45,6 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   onResetCamera,
   activeTool,
   snapToGrid,
-  crtFilter = false,
-  onCrtFilterChange,
   isDM,
   playerPropsEnabled = false,
   mode,
@@ -162,18 +158,17 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <span aria-hidden="true">◇</span>
               Recenter
             </button>
-            {onCrtFilterChange && (
-              <button
-                type="button"
-                className={`mobile-tool-sheet__button${crtFilter ? " mobile-tool-sheet__button--active" : ""}`}
-                aria-pressed={crtFilter}
-                title="Toggle retro CRT visual effect"
-                onClick={() => onCrtFilterChange(!crtFilter)}
-              >
-                <span aria-hidden="true">📺</span>
-                CRT
-              </button>
-            )}
+            {/* The table itself (U9): your role, your Preferences (CRT, sound and
+                motion) and, for a DM, the table's settings. It has no dock slot —
+                the dock is five columns — so it lives in this sheet. */}
+            <button
+              type="button"
+              className="mobile-tool-sheet__button"
+              onClick={() => onToggleSurface("table")}
+            >
+              <span aria-hidden="true">▤</span>
+              Table
+            </button>
             {/* A surface, not a tool — but it earns a tile here because this
                 sheet is where players look for "things I can do to the map".
                 DMs never see it; their prop editor is the DM menu's Props

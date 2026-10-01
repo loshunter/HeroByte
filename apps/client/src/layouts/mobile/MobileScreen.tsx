@@ -13,6 +13,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { registerOpenPanel } from "../../components/effects/panelPresence";
+import { ConnectionChip } from "../../features/table/ConnectionChip";
 import type { MobileSurface } from "../../hooks/useMobileSurface";
 import {
   WindowInteraction,
@@ -25,6 +26,11 @@ const DISMISS_DRAG_PX = 96;
 interface MobileScreenProps {
   title: string;
   surface: Exclude<MobileSurface, "none">;
+  /**
+   * The connection, in the header's own top row (U9). REQUIRED: a screen is an
+   * opaque cover, so it must say for itself that the table has lost the server.
+   */
+  isConnected: boolean;
   onClose: () => void;
   children: React.ReactNode;
   interaction?: Extract<WindowInteractionOptions, { behavior: "close" }>;
@@ -33,6 +39,7 @@ interface MobileScreenProps {
 export function MobileScreen({
   title,
   surface,
+  isConnected,
   onClose,
   children,
   interaction,
@@ -111,6 +118,9 @@ export function MobileScreen({
             >
               ✕
             </button>
+            <div className="mobile-screen__status">
+              <ConnectionChip isConnected={isConnected} />
+            </div>
           </header>
           <div className="mobile-screen__body">{children}</div>
         </section>

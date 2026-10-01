@@ -59,7 +59,7 @@ describe("ordinary phone frames block without gaining Escape dismissal", () => {
       <>
         <PendingGesture cancel={cancel} />
         <HiddenTool handle={tool} />
-        <MobileScreen title="Party" surface="party" onClose={close}>
+        <MobileScreen title="Party" surface="party" isConnected onClose={close}>
           <p>Party</p>
         </MobileScreen>
       </>,
@@ -87,7 +87,7 @@ describe("ordinary phone frames block without gaining Escape dismissal", () => {
               {content}
             </MobileSheet>
           ) : (
-            <MobileScreen title={surface} surface={surface} onClose={close}>
+            <MobileScreen title={surface} surface={surface} isConnected onClose={close}>
               {content}
             </MobileScreen>
           )}
@@ -128,6 +128,7 @@ describe("only explicit Chat/World/DM screen opt-ins gain close and return", () 
         <MobileScreen
           title={panel}
           surface={surface}
+          isConnected
           interaction={{ behavior: "close", panel }}
           onClose={() => {
             closed();
@@ -157,6 +158,7 @@ describe("only explicit Chat/World/DM screen opt-ins gain close and return", () 
       <MobileScreen
         title="Chat"
         surface="log"
+        isConnected
         onClose={close}
         interaction={{ behavior: "close", panel: "chat" }}
       >
@@ -184,6 +186,7 @@ describe("only explicit Chat/World/DM screen opt-ins gain close and return", () 
       <MobileScreen
         title="DM"
         surface="dm"
+        isConnected
         onClose={close}
         interaction={{ behavior: "close", panel: "dm" }}
       >

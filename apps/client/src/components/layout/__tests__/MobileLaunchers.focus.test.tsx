@@ -62,6 +62,7 @@ function DockHost({
         <MobileScreen
           title={panel === "chat" ? "Chat & Rolls" : "DM Menu"}
           surface={panel === "chat" ? "log" : "dm"}
+          isConnected
           onClose={machine.closeExplicitSurface}
           interaction={{ behavior: "close", panel }}
         >
@@ -115,7 +116,6 @@ function rowProps(isMe: boolean, isDM: boolean): ComponentProps<typeof MobilePla
     player: { uid: "seat-alice", characterId: "pc-alice", name: "Alice", hp: 10, maxHp: 10 },
     isMe,
     isDM,
-    onToggleDMMode: vi.fn(),
     editingHpUID: null,
     hpInput: "",
     onHpInputChange: vi.fn(),
@@ -164,7 +164,6 @@ describe("actual phone Character EDIT launcher", () => {
     expect(screen.queryByPlaceholderText("Enter Name")).toBeNull();
     expect(document.activeElement).toBe(opener);
     expect(props.onCharacterNameUpdate).not.toHaveBeenCalled();
-    expect(props.onToggleDMMode).not.toHaveBeenCalled();
   });
 
   it("still refuses another player's EDIT to a plain player", () => {

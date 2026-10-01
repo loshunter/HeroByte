@@ -50,19 +50,32 @@ test.describe("docs screenshots: player", () => {
       await page.getByLabel("New table password").fill("docs-table-pw");
       await page.getByRole("button", { name: "Create private table" }).click();
       await expect(page.getByRole("button", { name: "Snap" })).toBeVisible({ timeout: 20_000 });
+      // A new host arrives as a player, with the two next steps offered (U9).
+      await expect(page.getByRole("region", { name: "Next steps for the host" })).toBeVisible();
+      await shotPage(page, "table-next-steps");
+      // The card is done with: the Table menu is shot without it half-hidden behind the popover.
+      await page.getByRole("button", { name: "Dismiss next steps", exact: true }).click();
+      await expect(page.getByRole("region", { name: "Next steps for the host" })).toHaveCount(0);
       // …then try to elevate: the modal flips into bootstrap mode so the DM
       // seat is still claimable.
-      await openOwnCharacterSettings(page);
-      await page.getByRole("button", { name: /DM Mode: OFF/ }).click();
+      await page.getByRole("button", { name: /^Table menu:/ }).click();
+      await shotPage(page, "table-menu");
+      await page
+        .getByRole("dialog", { name: "Table menu" })
+        .getByRole("button", { name: "Enter DM mode", exact: true })
+        .click();
       await page.locator("input[type='password']:visible").first().fill("first-try");
-      await page.getByRole("button", { name: "Elevate to DM" }).click();
+      await page
+        .getByRole("dialog", { name: "Enter DM mode" })
+        .getByRole("button", { name: "Enter DM mode", exact: true })
+        .click();
       await expect(page.getByText(/doesn't have a DM password yet/)).toBeVisible({
         timeout: 10_000,
       });
       await shotPage(page, "dm-bootstrap-modal");
       await page.locator("#dm-new-password").fill("docs-dm-password");
       await page.locator("#dm-confirm-password").fill("docs-dm-password");
-      await page.getByRole("button", { name: "Set Password & Become DM" }).click();
+      await page.getByRole("button", { name: "Set password & enter DM mode" }).click();
       await expect(page.getByRole("button", { name: /DM MENU/i })).toBeVisible({
         timeout: 10_000,
       });
@@ -223,7 +236,12 @@ test.describe("docs screenshots: player", () => {
         await page.getByRole("button", { name: "Tools", exact: true }).click();
         await expect(page.getByRole("dialog", { name: "Map tools", exact: true })).toBeVisible();
         await shotPage(page, "mobile-tools");
-        await page.getByRole("button", { name: "Close tools" }).click();
+        // U9: the Table tile opens the phone's Table screen — role and Preferences.
+        await page.getByRole("button", { name: "Table", exact: true }).click();
+        await expect(page.getByRole("dialog", { name: "Table", exact: true })).toBeVisible();
+        await page.waitForTimeout(300);
+        await shotPage(page, "mobile-table-screen");
+        await page.getByRole("button", { name: "Close Table", exact: true }).click();
       });
 
       await step("mobile party drawer", async () => {
@@ -250,7 +268,7 @@ test.describe("docs screenshots: player", () => {
         await expect(page.getByRole("button", { name: "Maps", exact: true })).toBeVisible({
           timeout: 15_000,
         });
-        await expect(page.getByText(/DM elevation successful/i)).toBeHidden({ timeout: 10_000 });
+        await expect(page.getByText(/You are in DM mode\./i)).toBeHidden({ timeout: 10_000 });
         await page.waitForTimeout(300);
         await shotPage(page, "mobile-dm");
       });

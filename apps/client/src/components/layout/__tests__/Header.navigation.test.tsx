@@ -1,17 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { Header, type ToolMode } from "../Header";
+import type { TableMenuProps } from "../../../features/table/tableMenuProps";
+
+const table = (overrides: Partial<TableMenuProps> = {}): TableMenuProps => ({
+  uid: "player",
+  tableName: "Sunday Game",
+  isPublicTable: false,
+  isConnected: true,
+  isDM: false,
+  roleKnown: true,
+  onToggleDM: vi.fn(),
+  crtFilter: false,
+  onCrtFilterChange: vi.fn(),
+  ...overrides,
+});
 
 const props = {
-  uid: "player",
+  table: table(),
   snapToGrid: true,
   activeTool: null as ToolMode,
-  crtFilter: false,
   diceRollerOpen: false,
   rollLogOpen: false,
   onSnapToGridChange: vi.fn(),
   onToolSelect: vi.fn(),
-  onCrtFilterChange: vi.fn(),
   onDiceRollerToggle: vi.fn(),
   onRollLogToggle: vi.fn(),
   onResetCamera: vi.fn(),
@@ -32,7 +44,12 @@ describe("player navigation", () => {
   it("separates labelled tool and panel groups without changing the panel action", () => {
     const onRollLogToggle = vi.fn();
     render(
-      <Header {...props} isDM onPlayerLensChange={vi.fn()} onRollLogToggle={onRollLogToggle} />,
+      <Header
+        {...props}
+        table={table({ isDM: true })}
+        onPlayerLensChange={vi.fn()}
+        onRollLogToggle={onRollLogToggle}
+      />,
     );
     const tools = within(screen.getByRole("group", { name: "Play tools" }));
     expect(tools.getByRole("button", { name: "👆 Ping" })).toBeInTheDocument();

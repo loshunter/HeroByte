@@ -3,8 +3,8 @@
 // ============================================================================
 // A character's settings window, in two halves (U7): **Character** — name, art,
 // conditions, initiative, its file — and **Token settings** — how its token
-// behaves on the map. The viewer's own DM Mode control itself sits apart from
-// both, in its own section, until U9 gives role a Table home.
+// behaves on the map. Role (Enter / Leave DM mode) is the table's, not this
+// character's, and lives in the Table menu (U9).
 
 import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -61,20 +61,11 @@ interface PlayerSettingsMenuProps {
    */
   isDM?: boolean;
   /**
-   * Whether the person LOOKING at this card is a DM, and may they toggle it.
-   *
-   * These are separate on purpose. `onToggleDMMode` is viewer-scoped — it grants
-   * or revokes the VIEWER's own DM status — but the panel used to label itself
-   * from `isDM`, the card owner's flag. On another player's card that meant the
-   * button read their state and acted on yours: it silently no-opped for a
-   * non-DM viewer, and for a second DM it offered to "revoke your DM status"
-   * while appearing to demote someone else. The panel is now rendered only on
-   * the viewer's own card, and reads `viewerIsDM`.
+   * Whether the person LOOKING at this card is a DM: the owner control, the
+   * sight and movement settings and Delete Token are theirs. Separate from
+   * `isDM`, the card OWNER's flag — the two differ on anyone else's card.
    */
   viewerIsDM?: boolean;
-  /** Show the DM Mode panel at all — true only on the viewer's own card. */
-  canToggleDM?: boolean;
-  onToggleDMMode: (next: boolean) => void;
   onDeleteToken?: () => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
@@ -127,8 +118,6 @@ export function PlayerSettingsMenu({
   selectedEffects,
   onStatusEffectsChange,
   viewerIsDM = false,
-  canToggleDM = false,
-  onToggleDMMode,
   onDeleteToken,
   tokenLocked,
   onToggleTokenLock,
@@ -163,7 +152,6 @@ export function PlayerSettingsMenu({
   );
   const characterHeadingId = useId();
   const tokenHeadingId = useId();
-  const roleHeadingId = useId();
 
   if (!isOpen) {
     return null;
@@ -336,25 +324,31 @@ export function PlayerSettingsMenu({
                 style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
               >
                 <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                  Player State
+                  Character file
+                </span>
+                <span className="character-settings__note">
+                  {viewerIsDM
+                    ? "This character — name, HP, portrait, token and conditions — plus its player's drawings, if they have any. Loading onto your own character replaces your drawings on the map if the file holds any; onto another player's it leaves their drawings alone. It never saves or restores the table."
+                    : "This character — name, HP, portrait, token and conditions — plus your own drawings, if you have any. Loading a file that holds drawings replaces the ones you have on the map. It never saves or restores the table."}
                 </span>
                 <JRPGButton
                   onClick={onSavePlayerState}
                   variant="primary"
                   style={{ fontSize: "10px" }}
                 >
-                  Save to File
+                  Save character
                 </JRPGButton>
                 <JRPGButton
                   onClick={() => fileInputRef.current?.click()}
                   style={{ fontSize: "10px" }}
                 >
-                  Load from File
+                  Load character…
                 </JRPGButton>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="application/json"
+                  aria-label="Choose a character file to load"
                   style={{ display: "none" }}
                   onChange={async (event) => {
                     const file = event.target.files?.[0];
@@ -365,7 +359,7 @@ export function PlayerSettingsMenu({
                       const message =
                         error instanceof Error
                           ? error.message
-                          : "Unknown error loading player state";
+                          : "Could not load that character file";
                       window.alert(message);
                     } finally {
                       event.target.value = "";
@@ -421,37 +415,6 @@ export function PlayerSettingsMenu({
                 Token settings
               </h3>
               <TokenSettingsSection {...tokenSettings} />
-            </section>
-          )}
-
-          {/*
-            Role is the TABLE's, not this character's (U7): the DM Mode control
-            itself sits apart from both halves above, on the viewer's own card
-            only, until U9 gives role a Table home.
-          */}
-          {canToggleDM && (
-            <section className="character-settings__section" aria-labelledby={roleHeadingId}>
-              <h3 id={roleHeadingId} className="character-settings__heading">
-                Table role
-              </h3>
-              <JRPGPanel
-                variant="simple"
-                style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-              >
-                <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                  Dungeon Master Mode
-                </span>
-                <span className="character-settings__note">
-                  Your role at this table, not this character&rsquo;s.
-                </span>
-                <JRPGButton
-                  onClick={() => onToggleDMMode(!viewerIsDM)}
-                  variant={viewerIsDM ? "success" : "default"}
-                  style={{ fontSize: "10px" }}
-                >
-                  {viewerIsDM ? "DM Mode: ON" : "DM Mode: OFF"}
-                </JRPGButton>
-              </JRPGPanel>
             </section>
           )}
         </JRPGPanel>

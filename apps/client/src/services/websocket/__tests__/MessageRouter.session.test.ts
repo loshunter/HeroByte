@@ -1,5 +1,5 @@
 // ============================================================================
-// MESSAGE ROUTER — Save Game State's reply is a control message this build knows
+// MESSAGE ROUTER — Download table backup's reply is a control message this build knows
 // ============================================================================
 // `session-file` was never on the router's runtime control list. It rode the
 // old fallthrough, and the forward-compat guard that stopped unknown types
@@ -65,7 +65,7 @@ function unionEndFrom(text: string, start: number): number {
 }
 
 describe("MessageRouter — session-file", () => {
-  it("delivers the Save Game State reply to the control handler", () => {
+  it("delivers the table backup's reply to the control handler", () => {
     const onControlMessage = vi.fn();
     const router = new MessageRouter({ onMessage: vi.fn(), onControlMessage });
     const frame = {

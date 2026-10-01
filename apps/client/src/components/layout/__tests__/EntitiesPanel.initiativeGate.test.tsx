@@ -83,7 +83,6 @@ function panelProps(overrides: Partial<React.ComponentProps<typeof EntitiesPanel
     onTempHpEdit: noop,
     onTempHpSubmit: noop,
     currentIsDM: false,
-    onToggleDMMode: noop,
     onTokenImageChange: noop,
     onApplyPlayerState: noop,
     _onStatusEffectsChange: noop,

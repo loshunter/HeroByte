@@ -139,7 +139,7 @@ it("Initiative's actual 10000 overlay wins over a later mounted DM 3000 overlay"
       <ActualModal kind="dm" calls={dm} />
     </>,
   );
-  escape(screen.getByLabelText("Enter DM Password:"));
+  escape(screen.getByLabelText("DM password"));
   expect(initiative.close).toHaveBeenCalledTimes(1);
   expect(dm.close).not.toHaveBeenCalled();
 });

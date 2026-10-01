@@ -33,7 +33,7 @@ describe("mobile Dice/Result remain passive content panels", () => {
       try {
         const view = render(
           kind === "dice" ? (
-            <MobileDiceRoller onClose={close} />
+            <MobileDiceRoller isConnected onClose={close} />
           ) : (
             <MobileResultOverlay result={serverRoll()} onClose={close} />
           ),
@@ -77,7 +77,7 @@ describe("mobile Dice/Result remain passive content panels", () => {
       const request = vi.spyOn(dismissalFocus, "request");
       render(
         kind === "dice" ? (
-          <MobileDiceRoller onClose={close} />
+          <MobileDiceRoller isConnected onClose={close} />
         ) : (
           <MobileResultOverlay result={serverRoll()} onClose={close} />
         ),

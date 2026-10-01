@@ -9,7 +9,19 @@ You've [joined a table](getting-started.md) — here's everything you can do at 
 - **Top toolbar** — tools and toggles. Hover any button for a tooltip. Tools are exclusive: picking one turns the previous one off, and clicking the active tool turns it off again.
 - **Map canvas** — the shared battlemap. Everything here syncs live to every player.
 - **Party** (bottom) — one compact row for every character at the table: the party, the DM's, and any visible NPCs. Each row shows a portrait, the name, HP, any conditions and, while that character's token is on the map, **🎯** (focus the map on it; **—** when it isn't); a row reads **You** for your own characters, and another player's character named differently from their seat also shows the seat's name, so you can tell whose it is. Select a row for that character's full card; **▦ CARDS** shows every card at once and **☰ ROSTER** goes back to the rows; **▼ HIDE PARTY** folds the panel down to its bar. The bar also holds **🗺 WORLD** and, when your DM allows it, **📦 PROPS**, so they never sit on top of a card.
-- **🟢 ONLINE** (top center) — your connection to the server.
+- **Table button** (top left) — the table's name, your role and a dot for your connection to the server (🟢 online, 🔴 offline). It opens the [Table menu](#the-table-menu).
+
+### The Table menu
+
+The **Table button** opens a small menu about the table and about you, not about one character:
+
+![The Table menu: your role, and your Display and Sound & motion preferences](img/table-menu.jpg)
+
+- **Your role** — **You are a player**, with **ENTER DM MODE**, which asks for the table's DM password (see [Becoming the DM](getting-started.md#becoming-the-dm)). When you are the DM it says so and offers **LEAVE DM MODE** and **⚙️ Table settings…**.
+- **Preferences** — yours alone and remembered in this browser: **Display → 📺 CRT**, and **Sound & motion** (see [Look & feel](#look--feel)).
+- **Your ID** — the start of your seat's identifier, which the header used to print as “UID”.
+
+On a phone the same menu is a screen: **⚒ TOOLS → Table**.
 
 ### Moving around the map
 
@@ -46,16 +58,12 @@ One draggable window per character, in two halves — what the character is, and
 - **Character Name**, **Portrait**, and a **Token Image** — give your portrait and map token custom art: **⬆ UPLOAD IMAGE** from your device (camera roll on a phone), or paste an image URL. **CLEAR** the token image to go back to a colored ring.
 - **Status Effects** — a checklist of 38 conditions (Prone, Poisoned, Blessed, Rage, Concentration…). They belong to this character only: your other character's row, card and token do not wear them. Up to three show as emoji medallions on the portrait and token; the rest roll up into a `+N` bubble.
 - **Initiative Status** — this character's current initiative, with a **🧹 CLEAR INITIATIVE** reset.
-- **Player State → SAVE TO FILE / LOAD FROM FILE** — download this character (its name, HP, portrait, token, position and status effects, plus all of your drawings) as a JSON file and restore it later — handy insurance between sessions, or for moving your character to another table.
+- **Character file → Save character / Load character…** — download this character (its name, HP, portrait, token, position and status effects, plus your drawings if you have any) as a JSON file and restore it later — handy insurance between sessions, or for moving your character to another table. Drawings belong to you rather than to one character, so loading a file that holds drawings replaces the drawings you have on the map with the file's, and a file with none leaves yours alone. It is one character's file and never the table: a table backup (the DM's) and an editable map are different files, and each picker tells you what it was handed if you pick the wrong kind. On a phone the same two buttons are in the row's **⚙️ EDIT** sheet.
 - **Multiple Characters → ➕ ADD CHARACTER** — run a second PC (or a familiar): each character gets its own row, card, token, HP, and initiative. **🗑️ Delete this character** removes the one this window belongs to.
 
 **Token settings**
 
 - **Token Size** — Tiny, Small, Medium, Large, Huge, or Gargantuan (half a cell up to 3 cells). Your DM can resize it too. Sight radius, movement speed and the token lock are the DM's to set, so they appear only in the DM's window.
-
-**Table role** (your own card only)
-
-- **Dungeon Master Mode** — your role at the whole table, not a character setting — see [Becoming the DM](getting-started.md#becoming-the-dm).
 
 ## Tokens
 
@@ -121,7 +129,7 @@ There are two ways in, and they cover the two moments you need them:
 
 Either way the entry wears a **BY HAND** badge in the log, in its own colour, with anything it replaced struck through. Nothing typed is ever dressed up as something the server rolled. Correct the same roll twice and the struck-through number stays the app's **original** roll, which is the one worth being able to check.
 
-You can correct your own rolls; the DM can correct anybody's. And your DM can switch hand entry off for players entirely (**DM Menu → Session**), in which case the app's dice are the only way in.
+You can correct your own rolls; the DM can correct anybody's. And your DM can switch hand entry off for players entirely (**DM Menu → Table → Permissions**), in which case the app's dice are the only way in.
 
 ### Advantage and disadvantage
 
@@ -275,8 +283,10 @@ Some maps have **🚪 door, stair or signpost sprites** on them — a way throug
 
 ## Look & feel
 
-- **📺 CRT** — scanlines, bloom, and a monitor bezel for the full retro-dungeon experience. Purely local to you.
-- **🔊 JUICE** — the game-feel panel: **Motion** (Full / Subtle / Off) for animations, plus sound mute and volume. HeroByte respects your OS "reduce motion" setting by default. Damage and healing float off cards and tokens as rising `-7` / `+4` numbers.
+Both live in the [Table menu](#the-table-menu) under **Preferences**. They are yours alone: nobody else at the table sees them change, and each is remembered in this browser.
+
+- **Display → 📺 CRT** — scanlines, bloom, and a monitor bezel for the full retro-dungeon experience.
+- **Sound & motion** — **Motion** (Full / Subtle / Off) for animations, **Mute sound effects**, and **Volume**. HeroByte respects your OS "reduce motion" setting by default. Damage and healing float off cards and tokens as rising `-7` / `+4` numbers.
 
 ## Playing on a phone or tablet
 
@@ -288,17 +298,19 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ---------------------------------------------------------------------------- | ----------------------------------------------- |
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
-- **◉ PARTY** — the party screen: each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚔️ INIT** (your character's initiative) and **⚙️ EDIT** for name, portrait, token size, **➕ Add Character** and DM mode.
-- **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Recenter (re-centers the camera), CRT, and Help. Players also have World, plus Props when the DM allows players to add them.
+- **◉ PARTY** — the party screen: each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚔️ INIT** (your character's initiative) and **⚙️ EDIT** for name, portrait, token size, **➕ Add Character**, and **Save character / Load character…**.
+- **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Recenter (re-centers the camera), **Table** (your role and Preferences), and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
-- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same seven tabs as the desktop window (Maps, World, Encounter, NPCs & Monsters, Props & Objects, Players, Session) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
+- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, Encounter, NPCs & Monsters, Props & Objects, Table) behind a swipeable chip row. Recenter in TOOLS covers the camera for a DM.
 
 ![The DM menu on a phone](img/mobile-dm.jpg)
 
-Party and Chat & Rolls open as full screens: close them with the **✕**, or drag their title bar downward to flick them away.
+Party and Chat & Rolls open as full screens: close them with the **✕**, or drag their title bar downward to flick them away. The connection (🟢 ONLINE / 🔴 OFFLINE) is the first line of every full screen's header, above its title (and at the top of the full-screen dice roller), and the first line at the top of the map, above the turn strip — laid out with them, not painted over them. When the table drops, a **Reconnecting…** note joins that column under it, and on a desktop hangs from the bottom edge of the header.
+
+![The phone's Table screen: your role, Display and Sound & motion](img/mobile-table-screen.jpg)
 
 ![The mobile party screen](img/mobile-party.jpg)
 
 To move a piece by steps on a phone: **TOOLS → □ Select**, tap the piece, and a d-pad appears in its sheet (hold a direction to walk; the map scrolls to keep the piece in view — the whole piece and its nameplate when the strip above the sheet has room, otherwise its top edge).
 
-One finger pans, two fingers pinch-zoom. The game-feel settings and player-state files remain desktop-only; CRT is in TOOLS. DM map authoring also works on mobile — see [On a phone or tablet](map-editor-guide.md#on-a-phone-or-tablet) in the map editor guide.
+One finger pans, two fingers pinch-zoom. Preferences (CRT, Sound & motion) are in **TOOLS → Table**, and character files are in a row's **⚙️ EDIT**. DM map authoring also works on mobile — see [On a phone or tablet](map-editor-guide.md#on-a-phone-or-tablet) in the map editor guide.

@@ -13,7 +13,10 @@ import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
 import { ToastContainer } from "../components/ui/Toast";
-import { ServerStatus } from "../components/layout/ServerStatus";
+import { ConnectionChip } from "../features/table/ConnectionChip";
+import { ReconnectNotice } from "../features/table/ReconnectNotice";
+import { HostNextSteps } from "../features/table/HostNextSteps";
+import { useTableMenuProps } from "../features/table/tableMenuProps";
 import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
 import { useMobileSurface } from "../hooks/useMobileSurface";
@@ -28,6 +31,8 @@ import { MobileCombatStrip } from "./mobile/MobileCombatStrip";
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
 
 export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutProps): JSX.Element {
+  // The Table menu's facts, held through a reconnect's empty snapshot (see the hook).
+  const tableMenu = useTableMenuProps(props);
   const {
     // Data
     snapshot,
@@ -135,6 +140,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     // machine sees its edge even when alignment was already armed.
     linkAimMode: props.linkAimActive ?? false,
     isDM,
+    roleKnown: props.roleKnown,
     playerPropsEnabled: snapshot?.playerPropsEnabled ?? false,
   });
   const { surface, toggleSurface } = machine;
@@ -238,13 +244,22 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         </Suspense>
       </div>
 
-      {/* Turn Controls */}
-      <MobileCombatStrip
-        combatActive={snapshot?.combatActive ?? false}
-        sendMessage={sendMessage}
-        characters={snapshot?.characters ?? []}
-        currentTurnCharacterId={snapshot?.currentTurnCharacterId}
-      />
+      {/* The top stack: what the table says about itself over the map — the
+          connection, the public-table warning, the turn controls — in ONE column,
+          so none can be painted over another. (A screen carries its own connection
+          chip in its header: it is an opaque cover.) */}
+      <div className="mobile-top-stack">
+        <ConnectionChip isConnected={props.isConnected} />
+        <ReconnectNotice />
+        {tableMenu.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
+        <HostNextSteps menu={tableMenu} />
+        <MobileCombatStrip
+          combatActive={snapshot?.combatActive ?? false}
+          sendMessage={sendMessage}
+          characters={snapshot?.characters ?? []}
+          currentTurnCharacterId={snapshot?.currentTurnCharacterId}
+        />
+      </div>
 
       {/* Mobile Floating Controls */}
       <MobileFloatingControls
@@ -255,8 +270,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         onToolSelect={setActiveTool}
         onSnapToGridChange={setSnapToGrid}
         onResetCamera={handleResetCamera}
-        crtFilter={props.crtFilter}
-        onCrtFilterChange={props.setCrtFilter}
         activeTool={activeTool}
         snapToGrid={snapToGrid}
         isDM={isDM}
@@ -309,19 +322,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       {/* Viewing Roll Result */}
       <MobileResultOverlay result={viewingRoll} onClose={() => handleViewRoll(null)} />
 
-      {/* Mobile rendered neither of these, so a phone user got no non-blocking
-          feedback ever — no save confirmation, no dropped-command warning, no
-          sign the server had gone. Both props were already being passed in. */}
-      {/* The banner is the only place the table reports a lost server, and an
-          open Screen is an opaque full-viewport cover at z-index 1700 — so the
-          banner rides a stacking context above the screens (and below the dice
-          overlay at 2000). position:relative does not move a fixed descendant;
-          it only lifts its paint. */}
-      {/* No controls, floats over the map's top band: taps go through. */}
-      <div style={{ position: "relative", zIndex: 1800, pointerEvents: "none" }}>
-        <ServerStatus isConnected={props.isConnected} />
-      </div>
-      {props.snapshot?.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
+      {/* Non-blocking feedback: a save confirmation, a dropped-command warning. */}
       <ToastContainer messages={props.toast.messages} onDismiss={props.toast.dismiss} />
     </div>
   );
