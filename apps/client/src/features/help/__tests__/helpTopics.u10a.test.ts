@@ -33,7 +33,7 @@ describe("the drawing topic uses the toolbar's words", () => {
 describe("Reset view names the real action", () => {
   it("puts the origin at the top-left of the view at 1x, and is not 'Recenter'", () => {
     const text = entry("moving", "🧭 Reset view").detail;
-    expect(text).toMatch(/origin \(0, 0\).*top-left.*100%/);
+    expect(text).toMatch(/top-left corner \(the origin, 0, 0\).*100%/);
     expect(text).not.toMatch(/back at the middle/i);
     const terms = HELP_TOPICS.flatMap((topic) => topic.entries.map((e) => e.term)).join("\n");
     expect(terms).not.toMatch(/Recenter/);

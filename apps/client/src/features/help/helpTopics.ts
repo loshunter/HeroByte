@@ -117,7 +117,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🧭 Reset view",
         detail:
-          "Puts the origin (0, 0) at the top-left of your view, at 1× zoom (100%) — " +
+          "Moves the view back to the map's top-left corner (the origin, 0, 0) at 1× zoom (100%) — " +
           "not the middle of the map, and not where you arrived.",
       },
       {

@@ -29,7 +29,7 @@ On a phone the same menu is a screen: **⚒ TOOLS → Table**.
 | ------------------ | ---------------------------------------------------------------------------------------------------- |
 | Pan                | Drag empty map space (with no tool active), or **middle-mouse drag** (works even with a tool active) |
 | Zoom               | Mouse wheel — zooms toward your cursor (0.1× to 8×)                                                  |
-| Reset the camera   | **🧭 RESET** (**RESET VIEW** on a phone) — resets the view: the origin (0, 0) at the top-left of your view, at 1× zoom (100%). Not the middle of the map, and not always where you started      |
+| Reset the camera   | **🧭 RESET** (**RESET VIEW** on a phone) — moves the view back to the map's top-left corner (the origin, 0, 0) at 1× zoom (100%). Not the middle of the map, and not always where you started      |
 | Jump to your token | **🎯** on your row in the Party — with two characters, each row focuses its own token                 |
 | Touch              | One finger pans, two fingers pinch-zoom                                                              |
 
@@ -301,9 +301,9 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
 - **◉ PARTY** — the party screen: each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚔️ INIT** (your character's initiative) and **⚙️ EDIT** for name, portrait, token size, **➕ Add Character**, and **Save character / Load character…**.
-- **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Reset view (resets the view: the origin (0, 0) at the top-left of your view, at 100% zoom), **Table** (your role and Preferences), and Help. Players also have World, plus Props when the DM allows players to add them.
+- **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Reset view (moves the view back to the map's top-left corner at 100% zoom), **Table** (your role and Preferences), and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
-- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** does the same reset (origin (0, 0) at the top-left, 100% zoom); if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, Encounter, NPCs & Monsters, Props & Objects, Table) behind a swipeable chip row. Reset view in TOOLS covers the camera for a DM.
+- **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ VIEW** does the same reset (back to the map's top-left corner, 100% zoom); if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, Encounter, NPCs & Monsters, Props & Objects, Table) behind a swipeable chip row. Reset view in TOOLS covers the camera for a DM.
 
 ![The DM menu on a phone](img/mobile-dm.jpg)
 

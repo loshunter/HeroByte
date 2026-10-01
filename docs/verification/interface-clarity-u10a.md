@@ -83,7 +83,7 @@ sheet, roller, Populate/Generate chips, Table screen unchanged in structure).
   `mobile/mobile-draw-template.spec.ts` (portrait and landscape).
 - Structure guard: 22 baselined files, no new. `mobile-draw.spec.ts` is back to its committed content
   (359 lines with my additions tripped the guard; the checks moved to the new spec).
-- Strict e2e `tsc`: **not run** (61 pre-existing errors at handoff).
+- Strict e2e `tsc`: not run by me; the owner's review ran it on every changed e2e file and found no error on a line U10a added (the new phone spec has none).
 - Verdana: the touched specs (table geometry, token library, phone token library, map-edit panels,
   drawing-template) pass with a style forcing Verdana on everything, run from temporary copies that are
   deleted. I did not independently confirm the injected style applied to every element.
@@ -118,7 +118,7 @@ the Main Hall, pinned uids). U10c runs the full scored journeys and the `main` m
 
 - **Header:** the DM's Table button reads "Table menu: Main Hall, Dungeon Master, online" with a "DM" mark
   (the player's showed no role word); the camera button shows "🧭 Reset", accessible name "Reset view",
-  tooltip "Reset the view: the origin (0, 0)…". The DM's Play tools wrap to two rows at 1280 px: that is
+  tooltip "Reset the view: the origin (0, 0)…" (reworded afterwards, on the owner's word, to "Moves the view back to the map's top-left corner at 100% zoom…"). The DM's Play tools wrap to two rows at 1280 px: that is
   Q9, older than U10a.
 - **Private roll, both ways:** the DM rolled ME and the player's snapshot held no roll; the player rolled
   ME on the phone and the DM's snapshot held only its own roll. The audience line read "Only you see this
