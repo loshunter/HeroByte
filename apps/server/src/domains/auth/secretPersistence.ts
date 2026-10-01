@@ -19,13 +19,23 @@ export interface LoadedSecrets {
   rooms: Record<string, RoomSecretRecord>;
 }
 
-/** The default-room record + per-room overrides, from disk or freshly seeded. */
+/**
+ * The default-room record + per-room overrides.
+ *
+ * The default table's passwords ALWAYS come from the server settings
+ * (HEROBYTE_ROOM_SECRET / HEROBYTE_DM_PASSWORD, else the documented defaults), re-derived on every
+ * start: nothing in the app can change them (the server refuses both password messages for the
+ * default table), so a saved copy can only ever be stale. It used to win once the file existed —
+ * and creating any private table writes the file — so a host who changed a setting after a leak
+ * and restarted found the old password still working. Private tables' passwords live under
+ * `rooms` and are loaded exactly as saved.
+ */
 export function loadSecretRecords(storagePath: string): LoadedSecrets {
   const persisted = loadPersistedSecret(storagePath);
-  if (persisted) {
-    return persisted;
-  }
+  return { rooms: persisted?.rooms ?? {}, secret: seedDefaultRecord() };
+}
 
+function seedDefaultRecord(): StoredSecret {
   const envSecret = process.env.HEROBYTE_ROOM_SECRET?.trim();
   const roomSecret = envSecret || getRoomSecret();
   const { hash, salt } = hashSecret(roomSecret);
@@ -34,17 +44,14 @@ export function loadSecretRecords(storagePath: string): LoadedSecrets {
   const dmHashData = hashSecret(dmPassword);
 
   return {
-    rooms: {},
-    secret: {
-      hash,
-      salt,
-      updatedAt: Date.now(),
-      source: envSecret ? "env" : "fallback",
-      dmHash: dmHashData.hash,
-      dmSalt: dmHashData.salt,
-      dmUpdatedAt: Date.now(),
-      dmSource: "fallback",
-    },
+    hash,
+    salt,
+    updatedAt: Date.now(),
+    source: envSecret ? "env" : "fallback",
+    dmHash: dmHashData.hash,
+    dmSalt: dmHashData.salt,
+    dmUpdatedAt: Date.now(),
+    dmSource: "fallback",
   };
 }
 

@@ -48,7 +48,7 @@ pnpm dev:client  # Terminal 2
 
 **To Change Passwords:**
 
-- **The default table (Main Hall):** its passwords are set on the server (see [`DEPLOYMENT.md`](../DEPLOYMENT.md)) and cannot be changed from inside the app.
+- **The default table (Main Hall):** its passwords come from the server's `HEROBYTE_ROOM_SECRET` and `HEROBYTE_DM_PASSWORD` settings, read at every start (see [`DEPLOYMENT.md`](../DEPLOYMENT.md)), and cannot be changed from inside the app.
 - **A private table:** DM Menu → Table → Security → change the table password, then share the new one with your players. A private table's DM password is the one chosen when the table is made, or set by the first person to enter DM mode on a table made without one (so set it yourself straight away); no screen changes it after that.
 
 ## DM Prep Steps (30 minutes before game)

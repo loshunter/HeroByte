@@ -56,13 +56,19 @@ sheet, roller, Populate/Generate chips, Table screen unchanged in structure).
 - **The drawing sheet's history row is below the fold at 667×375** (a short single-column landscape).
   Pre-existing: it fails with a freehand tool and no hint. **Not fixed here;** U10b fixes it in its own
   commit (a red spec was not added to U10a).
-- **Server finding, not U10a's, not fixed.** On a server whose `herobyte-room-secret.json` exists,
-  `HEROBYTE_ROOM_SECRET` / `HEROBYTE_DM_PASSWORD` changes are ignored (`secretPersistence.ts`
-  `loadSecretRecords` returns the persisted record before it reads the env). Read and confirmed in
-  code by two review lenses; **never run.** The owner asked for it to be its own item: RED test first,
-  then a fix, with the owner's go-ahead. The playtest guide therefore says only that the default
-  table's passwords "are set on the server (see DEPLOYMENT.md)" and cannot be changed in the app.
-  `DEPLOYMENT.md` lines 93 and 253 also disagree with each other.
+- **Server finding, not U10a's: FIXED in its own commit after U10a** ("The default table's passwords
+  follow the server settings on every start"). `loadSecretRecords` returned the saved record whenever
+  `herobyte-room-secret.json` existed, so a changed `HEROBYTE_ROOM_SECRET` / `HEROBYTE_DM_PASSWORD` was
+  silently ignored (creating any private table writes the file). Now the default table's passwords are
+  re-derived from the settings on every start (the app cannot change them) and private tables' saved
+  passwords load exactly as saved. RED first (4 of 5 new tests failed, the private-table one passed as the
+  negative control); mutants (the old "file wins" and "wipe `rooms`") killed. Server 166 files / 2,792
+  tests. `routes.ts` reads `getRoomSecret()` for its demo hint only when the source is "fallback"; a test
+  now pins that what it would print is what is accepted. Three `authService.test.ts` cases that pinned the
+  old contract for the default table were retargeted to a private table. `DEPLOYMENT.md` (its two
+  contradicting lines) and the playtest guide say what is true now. **Effect on a deployed server:** at its
+  next start the default table's passwords become the settings (or `Fun1`/`FunDM`), whatever an old
+  secret file held.
 - Pre-existing doc-image doubts the reader of the regenerated screenshots found, none from U10a:
   `mapedit-door.jpg` (door not on the east wall band), `mapedit-night-lights.jpg` (daylit, no torch
   pools), `pointer-ping.jpg` (no name label on the ping), `dm-menu-npcs.jpg` (a dropdown over a field).
