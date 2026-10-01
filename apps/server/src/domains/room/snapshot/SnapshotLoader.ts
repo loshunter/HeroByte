@@ -152,6 +152,15 @@ export class SnapshotLoader {
     // Get IDs of preserved tokens to avoid duplicates
     const preservedTokenIds = new Set(currentPlayerTokens.map((t) => t.id));
 
+    // The file's side of the same rule: a file token that one of the FILE's characters
+    // points at stays only if a merged character still does. A seated player's live
+    // character wins over the file's, and points at the live token — the file's token for
+    // it would be a second one, with no character behind it, that the player controls.
+    const fileCharacterTokenIds = new Set<string>();
+    for (const character of normalizedCharacters) {
+      if (character.tokenId) fileCharacterTokenIds.add(character.tokenId);
+    }
+
     // Add loaded tokens that don't conflict with preserved ones. The uploaded
     // half is whitelist-coerced (S7) — tokens are otherwise copied verbatim
     // out of the least trustworthy source there is, straight into the vision
@@ -159,8 +168,23 @@ export class SnapshotLoader {
     const mergedTokens = [
       ...currentPlayerTokens,
       ...coerceTokenVisionRadii(
-        (snapshot.tokens ?? []).filter((token) => !preservedTokenIds.has(token.id)),
+        (snapshot.tokens ?? []).filter(
+          (token) =>
+            !preservedTokenIds.has(token.id) &&
+            (!fileCharacterTokenIds.has(token.id) || carriedTokenIds.has(token.id)),
+        ),
       ),
+    ];
+
+    // A kept token's lock, scale and rotation live in its scene object, and the scene graph
+    // is rebuilt from the list the merge hands it: the file's would replace the live one,
+    // and a player's token would come back unlocked, unrotated, as the file had it.
+    const keptSceneIds = new Set([...preservedTokenIds].map((id) => `token:${id}`));
+    const sceneObjects = [
+      ...(snapshot.sceneObjects ?? currentState.sceneObjects).filter(
+        (object) => !keptSceneIds.has(object.id),
+      ),
+      ...currentState.sceneObjects.filter((object) => keptSceneIds.has(object.id)),
     ];
 
     const currentGridSquareSize = currentState.gridSquareSize ?? 5;
@@ -200,7 +224,7 @@ export class SnapshotLoader {
       chatLog: Array.isArray(snapshot.chatLog) ? snapshot.chatLog : [],
       drawingUndoStacks: {},
       drawingRedoStacks: {},
-      sceneObjects: snapshot.sceneObjects ?? currentState.sceneObjects,
+      sceneObjects,
       selectionState: createSelectionMap(),
       playerStagingZone: stagingManager.sanitize(snapshot.playerStagingZone),
       combatActive: snapshot.combatActive ?? false,

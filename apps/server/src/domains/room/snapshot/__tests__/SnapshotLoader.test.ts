@@ -11,10 +11,17 @@
  */
 
 import path from "node:path";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { RoomService } from "../../service.js";
 import { toSnapshot } from "../../model.js";
-import type { RoomSnapshot, Player, Character, PlayerStagingZone, Token } from "@herobyte/shared";
+import type {
+  RoomSnapshot,
+  Player,
+  Character,
+  PlayerStagingZone,
+  SceneObject,
+  Token,
+} from "@herobyte/shared";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
@@ -1596,6 +1603,178 @@ describe("SnapshotLoader - Characterization Tests", () => {
       const tokens = roomService.getState().tokens.filter((token) => token.id === "tok-mimic");
       expect(tokens).toHaveLength(1);
       expect([tokens[0].x, tokens[0].y]).toEqual([9, 9]);
+    });
+  });
+
+  describe("a restore leaves a seated player's tokens as they are", () => {
+    // "Players already seated keep their own characters and tokens as they are now" is what the
+    // confirm says. A token follows its character on the file's side too, and its lock, scale and
+    // rotation live in the scene object, which the file's list used to replace.
+    const mine: Token = {
+      id: "tok-me",
+      owner: "player-1",
+      x: 3,
+      y: 4,
+      color: "red",
+      size: "medium",
+    };
+    const hero: Character = {
+      id: "char-me",
+      name: "Hero",
+      type: "pc",
+      ownedByPlayerUID: "player-1",
+      hp: 10,
+      maxHp: 10,
+      tokenId: "tok-me",
+      tokenImage: undefined,
+    };
+    const sceneOf = (tokenId: string, overrides: Partial<SceneObject> = {}): SceneObject =>
+      ({
+        id: `token:${tokenId}`,
+        type: "token",
+        owner: "player-1",
+        locked: false,
+        zIndex: 10,
+        transform: { x: 3, y: 4, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { color: "red", size: "medium" },
+        ...overrides,
+      }) as SceneObject;
+    const sceneFor = (tokenId: string) =>
+      roomService.getState().sceneObjects.find((object) => object.id === `token:${tokenId}`);
+    const tokenIds = () =>
+      roomService
+        .getState()
+        .tokens.map((token) => token.id)
+        .sort();
+    const seated = () => [seat("player-1", false)];
+
+    it("does not add the file's token for a character the room already has", () => {
+      // The live character wins over the file's, and points at the live token; the file's token
+      // for the same character would be a second, character-less one the player controls.
+      roomService.setState({ players: seated(), characters: [hero], tokens: [mine] });
+      const oldToken: Token = { ...mine, id: "tok-old", x: 9, y: 9 };
+
+      roomService.loadSnapshot(
+        fileOf({
+          players: seated(),
+          characters: [{ ...hero, tokenId: "tok-old" }],
+          tokens: [oldToken],
+        }),
+      );
+
+      expect(tokenIds()).toEqual(["tok-me"]);
+      expect(roomService.getState().characters.find((c) => c.id === "char-me")?.tokenId).toBe(
+        "tok-me",
+      );
+    });
+
+    it("still adds a file token no character points at, and the token of a file character it carries", () => {
+      roomService.setState({ players: seated(), characters: [hero], tokens: [mine] });
+      const loose: Token = { id: "tok-loose", owner: "someone-gone", x: 1, y: 1, color: "green" };
+      const goblin: Character = {
+        id: "npc-goblin",
+        name: "Goblin",
+        type: "npc",
+        hp: 7,
+        maxHp: 7,
+        tokenId: "tok-goblin",
+        tokenImage: undefined,
+      };
+      const goblinToken: Token = { id: "tok-goblin", owner: "dm-1", x: 5, y: 5, color: "blue" };
+
+      roomService.loadSnapshot(
+        fileOf({
+          players: seated(),
+          characters: [goblin],
+          tokens: [loose, goblinToken],
+        }),
+      );
+
+      expect(tokenIds()).toEqual(["tok-goblin", "tok-loose", "tok-me"]);
+    });
+
+    it("keeps the lock, scale and rotation a seated player's token has now, not the file's", () => {
+      roomService.setState({
+        players: seated(),
+        characters: [hero],
+        tokens: [mine],
+        sceneObjects: [sceneOf("tok-me")],
+      });
+
+      roomService.loadSnapshot(
+        fileOf({
+          players: seated(),
+          characters: [hero],
+          tokens: [{ ...mine, x: 0, y: 0 }],
+          sceneObjects: [
+            sceneOf("tok-me", {
+              locked: true,
+              transform: { x: 0, y: 0, scaleX: 3, scaleY: 3, rotation: 90 },
+            }),
+          ],
+        }),
+      );
+
+      const kept = sceneFor("tok-me");
+      expect([kept?.locked, kept?.transform.scaleX, kept?.transform.rotation]).toEqual([
+        false,
+        1,
+        0,
+      ]);
+      // And where it stands is the live token's.
+      expect([kept?.transform.x, kept?.transform.y]).toEqual([3, 4]);
+    });
+
+    it("keeps the scene state of a token the file does not list at all", () => {
+      roomService.setState({
+        players: seated(),
+        characters: [hero],
+        tokens: [mine],
+        sceneObjects: [
+          sceneOf("tok-me", {
+            locked: true,
+            transform: { x: 3, y: 4, scaleX: 1, scaleY: 1, rotation: 45 },
+          }),
+        ],
+      });
+
+      roomService.loadSnapshot(fileOf({ players: seated() }));
+
+      const kept = sceneFor("tok-me");
+      expect([kept?.locked, kept?.transform.rotation]).toEqual([true, 45]);
+    });
+
+    it("says in its log how many of the room's tokens it kept", () => {
+      const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      try {
+        roomService.setState({
+          players: seated(),
+          characters: [hero],
+          tokens: [mine, { id: "tok-npc", owner: "player-1", x: 8, y: 8, color: "blue" }],
+        });
+        // The second token is a seated player's, but its NPC is not in the file: it goes.
+        roomService.setState({
+          characters: [
+            hero,
+            {
+              id: "npc-1",
+              name: "Imp",
+              type: "npc",
+              hp: 3,
+              maxHp: 3,
+              tokenId: "tok-npc",
+              tokenImage: undefined,
+            },
+          ],
+        });
+
+        roomService.loadSnapshot(fileOf({ players: seated() }));
+
+        const said = log.mock.calls.map((call) => String(call[0])).join("\n");
+        expect(said).toContain("preserved 1 current tokens");
+      } finally {
+        log.mockRestore();
+      }
     });
   });
 });
