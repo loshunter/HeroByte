@@ -7,16 +7,16 @@
 
 ## Frontier
 
-- Latest U9 (2026-09-30): implemented on `dev` (uncommitted, above sixteen own commits `0fb9b7bd`,
-  `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`, `8996993a`, `c44ad4b6`, `a4ac5402`,
-  `a89d2d60`, `ab4da6a2`, `9b88518c`, `8ad5ed24`, `4cdcf1e2`, `1c67afa7`, `ebbd20e4`, unpushed);
-  review ended at the 3-round
-  cap (four Opus lenses a round, P1 1 → 1 → 0, P2 13 → 7 → 8, no all-PASS round) and every item
-  is repaired. Final ladder: green — 452/2,786/7,625 units (4 skipped; the batched runner, 75
-  batches, too), 318 browser/3 skips/0 flaky, 157.02 KB; 280 unit mutants and 37 browser mutants (four
-  equivalent); Verdana 54/54; live two-client evaluation re-run on the final tree 8.0. An outside read
-  of the finished slice found it sound and three things to fix: the last two commits are two of them,
-  and the third (the leave latch) waits for the slice to be committed. Not pushed. See the [U9 record](interface-clarity-u9.md).
+- Latest U9 (2026-10-01): committed on `dev` as `94521e4e`, on the owner's word, above sixteen own
+  commits `0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`, `8996993a`,
+  `c44ad4b6`, `a4ac5402`, `a89d2d60`, `ab4da6a2`, `9b88518c`, `8ad5ed24`, `4cdcf1e2`, `1c67afa7`,
+  `ebbd20e4`, with one more after it (`0b3f1f9d`, the leave latch); unpushed. Review ended at the
+  3-round cap (four Opus lenses a round, P1 1 → 1 → 0, P2 13 → 7 → 8, no all-PASS round) and every
+  item is repaired. Ladder, on the committed tree: green — 452/2,786/7,635 units (4 skipped; the
+  batched runner, 75 batches, too), 318 browser/3 skips/0 flaky, 157.08 KB; 284 unit mutants and 37
+  browser mutants (four equivalent); Verdana 54/54 (before the last three commits); live two-client
+  evaluation 8.0. An outside read of the finished slice found it sound and three things to fix, all
+  fixed. Not pushed. See the [U9 record](interface-clarity-u9.md).
 - Previous U8 (2026-09-30): accepted by the owner and committed on `dev` above nineteen local own
   fix and test commits (`b735acb8`…`60a08cea`, unpushed). Review: three rounds of four
   Opus lenses, P2 7 → 9 → 6 (P1 zero); stopped at the cap; the owner chose “repair all,

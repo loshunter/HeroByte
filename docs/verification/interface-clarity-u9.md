@@ -1,17 +1,17 @@
 # U9 — The Table, role, personal preferences and recovery are separate
 
-Status: **implemented on `dev` and verified; not accepted. Uncommitted slice work above sixteen own
-fix commits, local and unpushed: `0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`,
-`b54bb0ee`, `8996993a`, `c44ad4b6`, `a4ac5402`, `a89d2d60`, `ab4da6a2`, `9b88518c`, `8ad5ed24`,
-`4cdcf1e2`, `1c67afa7`, `ebbd20e4`. Review ran its three rounds and ended at the cap without an
-all-PASS verdict (round 1: 1 P1 and 13 P2; round 2: 1 P1 and 7 P2; round 3: 0 P1 and 8 P2); every
-finding is repaired and re-verified (280 unit and 37 browser mutants, four of them equivalent and
-every other one killed). The final ladder is green (318 browser tests and the 3 accepted skips, 0
-flaky; units 29 / 452, 165 / 2,786 and 531 files / 7,625 tests; 157.02 KB of 175), and the live
-two-client evaluation, re-run on the final tree, scores 8.0; the last two own commits came after
-it and were verified on their own staged trees. A read of the finished slice by a reviewer outside
-this session found it sound and three things to fix (see Review): two are those two commits, and
-the third, the leave latch, edits a file the slice owns and waits for the slice to be committed.**
+Status: **committed on `dev` on the owner's word (2026-10-01), local and unpushed: sixteen own fix
+commits (`0fb9b7bd`, `5262bdb7`, `07b7844b`, `15dd3899`, `bc3e3384`, `b54bb0ee`, `8996993a`,
+`c44ad4b6`, `a4ac5402`, `a89d2d60`, `ab4da6a2`, `9b88518c`, `8ad5ed24`, `4cdcf1e2`, `1c67afa7`,
+`ebbd20e4`), the slice itself (`94521e4e`) and one fix after it, the leave latch (`0b3f1f9d`).
+Review ran its three rounds and ended at the cap without an all-PASS verdict (round 1: 1 P1 and 13
+P2; round 2: 1 P1 and 7 P2; round 3: 0 P1 and 8 P2); every finding is repaired and re-verified (284
+unit and 37 browser mutants, four of them equivalent and every other one killed). A read of the
+finished slice by a reviewer outside this session found it sound and three things to fix, all now
+fixed. The ladder is green on the committed tree (318 browser tests and the 3 accepted skips, 0
+flaky; units 29 / 452, 165 / 2,786 and 531 files / 7,635 tests; 157.08 KB of 175), and the live
+two-client evaluation, run before the outside read, scores 8.0; a last live check covered the
+window placement the read found wrong.**
 
 ## Owner decisions (2026-09-30, before building)
 
@@ -264,7 +264,9 @@ commit `bc3e3384` had promised the slice would give its line back, and it did no
 passes because the file is baselined, but it is the largest god file and U9 made it eleven lines
 bigger) and `MainLayoutProps.ts` 462 → 470 (the `roleKnown` prop and its comment). Near the guard:
 `DMMenuContainer.tsx` 335 (was 342), `DMMenu.tsx` 271 (was 332), `MobileSurfaces.tsx` 324 (was 279: it
-gained the Table screen and the dice chip), `MobileLayout.tsx` 329 (was 328),
+gained the Table screen and the dice chip), `MobileEntitiesList.tsx` 329 (was 295: the phone's Save
+character / Load character…), `DMElevationModal.tsx` 314 (was 273: the roster's gates and its hint),
+`MobileLayout.tsx` 329 (was 328),
 `DraggableWindow.tsx` 315 (was 329: its placement moved into `headerPlacement.ts`, and its stored
 position into `windowPosition.ts`). All counts are `wc -l` on the final tree; “was” is the base,
 `f69bb331`.
@@ -274,8 +276,9 @@ position into `windowPosition.ts`). All counts are `wc -l` on the final tree; �
 Each was committed from the index alone — where the working tree carried the slice's uncommitted
 changes to the same file, HEAD's copy patched by script — and verified from an export of the staged
 tree (`git write-tree`: vitest, `tsc`, eslint, prettier, `lint:structure:enforce`). Round 2 added
-six, round 3 three more and an outside read of the finished slice two (sixteen in all); the test
-of a fix is always written and watched to fail first.
+six, round 3 three more and an outside read of the finished slice three (seventeen in all, the last
+made right after the slice's own commit); the test of a fix is always written and watched to fail
+first.
 
 - `0fb9b7bd` **fix(dm): the elevation dialog fits a 375px phone.** The DM password dialog was a
   centred box with a 400 px minimum width (452 px outside): on a 375 px phone its left edge hung
@@ -451,6 +454,19 @@ of a fix is always written and watched to fail first.
   still says nothing. RED first: the late confirmation fails against the previous hook; the tests that
   bound it (a minute, a later request, once) already held; eight mutants killed. Found by the outside
   read.
+- `0b3f1f9d` **fix(dm): a reconnect blip no longer ends the wait for a leave.** (The one own commit
+  made after the slice's: it edits `App.tsx`, the slice's file, and needs the slice's recovery of a leave
+  nobody heard.) App latches the role to “player” the moment a leave is confirmed, so the DM's tools go at
+  once, and it ended that latch whenever the DM flag read false. A reconnect blip reads false without
+  anyone having left, so with a leave in flight the DM's tools came back when the roster returned, which
+  still lists the DM until the queued leave is heard. The wait now ends with the request — the roster
+  confirmed it, the server refused it, or its five seconds ran out (the roster then still lists the seat
+  as the DM, and it is one) — and one effect decides it where two did; `App.tsx` is three lines smaller.
+  RED first: the blip test fails against the previous latch (the Table menu reads DM again while the
+  leave is unanswered); the other new test (the next elevation after a confirmed leave) and the existing
+  ones hold; four mutants killed, and a fifth, which changed the condition without watching the flag it
+  read, survived because it could never run (void; its corrected twin is among the four). Found by the
+  outside read.
 
 Inside the slice, fixed as they were found in the slice's own new UI (they are not earlier
 bugs): the open Table button drew its role text gold on its own gold ground (now a 4.5:1
@@ -687,7 +703,14 @@ and closes on the outcome; the notice is above every window; the phone's dice ov
 the restore copy says what the server does, and the server does what it says for tokens; Reset to
 default asks; Player View ends with the role. **What regressed:** nothing seen. **What this
 evaluation cannot say:** one browser engine, an emulated touchscreen, two players (not a full
-table), the desktop at 1280×720 only, and no fresh read of round 3's repairs (see Review).
+table), the desktop at 1280×720 only, and, at the time, no fresh read of round 3's repairs (the
+outside read in Review came after).
+
+**One more live check, after the outside read** (desktop, a throwaway table, the DM's header at three
+rows, its lowest control ending at 117 px): a Chat & Rolls window with no remembered place opens at
+121; one remembered at y = 100, which is what an old click on its title bar saved (it opened at 100,
+over the third row, before `1c67afa7`), opens at 121; one remembered at y = 300 stays at 300; one
+remembered at y = 20, over the header, is lifted to 121.
 
 ## Verification
 
@@ -730,11 +753,20 @@ Also, on the final tree:
   of the own commits (106 files / 1,452 tests) all pass — the fourteen own commits that existed then
   stand without the slice; the two after the outside read were each verified from an export of their
   own staged tree (every one of the sixteen was; see Own commits).
+- **The ladder again, on the committed tree** (HEAD `0b3f1f9d`, clean, after the outside read's three
+  commits; `gates-runner`, logs `.tmp/gates-u9-final-3/`): lint, format, the structure guard (994 files,
+  22 baselined, no new) and the typechecks, CI's own `pnpm typecheck` included, pass; shared 29 files /
+  452 tests, server 165 / 2,786 and client 531 files = 527 passed + 4 skipped / 7,635 tests = 7,631
+  passed + 4 skipped, in one `npx vitest run`; CI's batched client runner, all 75 batches; e2e 321
+  tests, **318 passed**, the 3 accepted skips, 0 flaky, 0 failed, 24.9 min; the tree did not change
+  during the run. The bundle, on its own: **157.08 KB** of 175 (17.92 KB remain; the three commits
+  added 0.06 KB). Verdana and the strict e2e type check were not repeated: the three commits touch no
+  e2e file.
 
 The raw logs are under `.tmp/gates-u9-final-2/` (`g-*` the gates-runner's, `h-*` the bundle, the
 batched run, the slop mutants and the e2e type check, `i-*` Verdana; the unnumbered `01`–`06` are
-focused e2e runs and the screenshot re-shoot made during round 3's repairs) and `.tmp/gates-u9-head/`
-(HEAD alone).
+focused e2e runs and the screenshot re-shoot made during round 3's repairs), `.tmp/gates-u9-final-3/`
+(the committed tree) and `.tmp/gates-u9-head/` (HEAD alone).
 
 **Before any review round**, the full ladder (`gates-runner`, with e2e) on HEAD `07b7844b` plus the
 slice — the tree the live evaluation's two fixes left:
@@ -916,14 +948,16 @@ the dock sets and the property inherits (E33 removes the dock's, and is killed).
 were **266 unit mutants and 37 browser mutants, each restored byte-for-byte, four of them equivalent**
 (the focus mutant of `5262bdb7`, E25, T4 and E32).
 
-**After the outside read** (fourteen more unit mutants, all killed at once). The remembered place
+**After the outside read** (eighteen more unit mutants, all killed). The remembered place
 (`1c67afa7`): kept as it was, lifted but still counted as placed, lifted only to the window's own
 default y, every remembered place thrown away for the default, a place below the controls not
 counted as placed, the remembered x forgotten (Y1–Y6). The late answer (`ebbd20e4`): no late answer
 at all, a late answer waited for however late it comes, Enter DM mode and setting the DM password not
 withdrawing a leave, an answered leave still waited for, the stale timeout left on screen, a leave never
-recorded as asked, a late answer not announced (L1–L8). The totals are **280 unit mutants and 37
-browser mutants**, four equivalent. (The leave latch's mutants are counted with its commit.)
+recorded as asked, a late answer not announced (L1–L8). The leave latch (`0b3f1f9d`): the wait never
+ended, ended at once, ended only by a roster that says no DM, ended again by a blip (B1–B3, B4b; B4,
+which could never run, is void). The totals are **284 unit mutants and 37 browser mutants**, four
+equivalent.
 
 ## Review (`review-convergence`)
 
@@ -1202,9 +1236,9 @@ were defects, each checked against the code before it was touched:
   fix ends the wait with the request, not with a blip, and so replaces the two effects that decided it
   with one; it also takes `App.tsx` three lines smaller. (The review suggested adding `roleKnown &&` to
   the old check; once the wait ends with the request, a roster guard cannot be observed, so the rule
-  has none.) **It edits `App.tsx`, which the slice owns, and it only holds together with the slice's
-  recovery of a leave nobody heard, so it cannot stand on HEAD without the slice: the fix and its two new
-  App tests are prepared and apply as a commit right after the slice's.**
+  has none.) → **fixed**, own commit `0b3f1f9d`, made right after the slice's commit: it edits `App.tsx`,
+  which the slice owns, and it only holds together with the slice's recovery of a leave nobody heard
+  (the rule replaces that recovery), so it could not stand on HEAD without the slice.
 
 ## Known limits
 
@@ -1341,9 +1375,10 @@ Nothing below blocks acceptance; each is a choice the slice did not make for you
 11. **The header lost its mute indicator** with the Juice button. Put a small muted mark on the
     Table button, or leave it to the menu?
 12. **Review ended at the cap with every finding repaired, but with no all-PASS round.** Round 3
-    found no P1 and eight P2s; the repairs have had the mutants, the final ladder and a live
-    two-client evaluation, not a fresh read. The rules say escalate: accept on that evidence, or
-    have the round-3 repairs reviewed once more before this is committed?
+    found no P1 and eight P2s. An outside read of the finished slice has since found it sound (and
+    three things, now fixed), and the slice is committed on your word; what is left is whether the
+    round-3 repairs, and the three commits made after the outside read, need one more review before
+    anything is pushed.
 13. **A frame the socket cannot send is queued and sent after re-authentication** — including
     `elevate-to-dm` and `revoke-dm`. The dialog no longer lets anyone confirm while the roster is
     unknown, so the UI cannot reach it now, but the queue still would (the permissions lens suggested
