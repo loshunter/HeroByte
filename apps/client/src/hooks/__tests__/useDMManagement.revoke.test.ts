@@ -84,6 +84,23 @@ describe("useDMManagement — leaving DM mode", () => {
     expect(result.current.modalState.currentIsDM).toBe(true);
   });
 
+  it("opens a new dialog clean: an earlier request's timeout error is gone", () => {
+    const { result, rerender } = mount();
+    act(() => result.current.handleToggleDM(false));
+    act(() => result.current.modalActions.onRevoke());
+    rerender({ snapshot: asDM });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(result.current.modalState.error).toBe("Revocation request timed out. Please try again.");
+    act(() => result.current.modalActions.onClose());
+
+    act(() => result.current.handleToggleDM(false));
+
+    expect(result.current.modalState.isOpen).toBe(true);
+    expect(result.current.modalState.error).toBeNull();
+  });
+
   it("says nothing while the dialog is merely open", () => {
     const { result, messages } = mount();
     act(() => result.current.handleToggleDM(false));

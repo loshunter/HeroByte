@@ -24,6 +24,9 @@ import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
  * await revoke();
  * ```
  */
+/** How long a request may go unanswered before it is given up on, with an error. */
+const REQUEST_TIMEOUT_MS = 5000;
+
 export function useDMElevation({
   snapshot,
   uid,
@@ -52,6 +55,28 @@ export function useDMElevation({
   const onRevokedRef = useRef(onRevoked);
   onRevokedRef.current = onRevoked;
 
+  // One request in flight, one timer for it. An earlier request's timer must not end a later
+  // one early (leave, come back, leave again: the second was told it "timed out" at the first's
+  // mark), and a request the roster has answered must leave none running.
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+  const startTimer = useCallback(
+    (onTimeout: () => void) => {
+      stopTimer();
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        onTimeout();
+      }, REQUEST_TIMEOUT_MS);
+    },
+    [stopTimer],
+  );
+  useEffect(() => stopTimer, [stopTimer]);
+
   // Monitor for DM status changes to detect successful elevation/revocation
   useEffect(() => {
     // A blip confirms nothing, and must not seed the next comparison: a revoke the dying
@@ -67,12 +92,14 @@ export function useDMElevation({
 
     // Detect successful elevation (false -> true)
     if (isElevating && !previousIsDM && currentIsDM) {
+      stopTimer();
       setIsElevating(false);
       setError(null);
     }
 
     // Detect successful revocation (true -> false)
     if (isRevoking && previousIsDM && !currentIsDM) {
+      stopTimer();
       setIsRevoking(false);
       setError(null);
       onRevokedRef.current?.();
@@ -80,7 +107,7 @@ export function useDMElevation({
 
     // Update previous state
     prevIsDMRef.current = currentIsDM;
-  }, [currentIsDM, seatKnown, isElevating, isRevoking]);
+  }, [currentIsDM, seatKnown, isElevating, isRevoking, stopTimer]);
 
   /**
    * Elevate current player to DM status
@@ -97,7 +124,7 @@ export function useDMElevation({
       send({ t: "elevate-to-dm", dmPassword: dmPassword.trim() });
 
       // Set a timeout in case server doesn't respond
-      setTimeout(() => {
+      startTimer(() => {
         setIsElevating((prev) => {
           if (prev) {
             setError("Elevation request timed out. Please try again.");
@@ -105,9 +132,9 @@ export function useDMElevation({
           }
           return prev;
         });
-      }, 5000);
+      });
     },
-    [send],
+    [send, startTimer],
   );
 
   /**
@@ -131,7 +158,7 @@ export function useDMElevation({
       setError(null);
       send({ t: "set-dm-password", dmPassword: trimmed });
 
-      setTimeout(() => {
+      startTimer(() => {
         setIsElevating((prev) => {
           if (prev) {
             setError("The server did not confirm the DM password. Please try again.");
@@ -139,9 +166,9 @@ export function useDMElevation({
           }
           return prev;
         });
-      }, 5000);
+      });
     },
-    [send],
+    [send, startTimer],
   );
 
   /**
@@ -150,10 +177,17 @@ export function useDMElevation({
    * pending state without showing an error — used when the failure is being
    * redirected into another flow (e.g. bootstrap mode).
    */
-  const notifyElevationFailed = useCallback((reason: string | null) => {
-    setIsElevating(false);
-    setError(reason);
-  }, []);
+  const notifyElevationFailed = useCallback(
+    (reason: string | null) => {
+      stopTimer();
+      setIsElevating(false);
+      setError(reason);
+    },
+    [stopTimer],
+  );
+
+  /** A dialog that opens afresh must not open showing the last request's error. */
+  const clearError = useCallback(() => setError(null), []);
 
   /**
    * Revoke DM status for current player
@@ -161,11 +195,10 @@ export function useDMElevation({
   const revoke = useCallback(() => {
     setIsRevoking(true);
     setError(null);
-    console.trace("[useDMElevation] revoke() sending revoke-dm");
     send({ t: "revoke-dm" });
 
     // Set a timeout in case server doesn't respond
-    setTimeout(() => {
+    startTimer(() => {
       setIsRevoking((prev) => {
         if (prev) {
           setError("Revocation request timed out. Please try again.");
@@ -173,8 +206,8 @@ export function useDMElevation({
         }
         return prev;
       });
-    }, 5000);
-  }, [send]);
+    });
+  }, [send, startTimer]);
 
   return {
     isLoading: isElevating || isRevoking,
@@ -185,6 +218,7 @@ export function useDMElevation({
     elevate,
     bootstrap,
     notifyElevationFailed,
+    clearError,
     revoke,
     error,
   };

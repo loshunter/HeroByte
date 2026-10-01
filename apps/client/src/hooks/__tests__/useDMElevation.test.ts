@@ -120,3 +120,115 @@ describe("useDMElevation — becoming the DM", () => {
     expect(result.current.isElevating).toBe(false);
   });
 });
+
+describe("useDMElevation — one request, one timer", () => {
+  // A request that is not answered ends, with an error, five seconds on. That timer must belong
+  // to its request: an earlier one's must not end a later request early (a DM who left, came back
+  // and left again was told the second leave "timed out" at the first one's mark), and one that has
+  // been answered must leave nothing running.
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("leaves no timer running once the roster has answered", () => {
+    const { result, rerender } = start();
+    act(() => result.current.revoke());
+    expect(vi.getTimerCount()).toBe(1);
+
+    rerender({ snapshot: roster(false) });
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("leaves none running after an elevation is answered either", () => {
+    const { result, rerender } = start(roster(false));
+    act(() => result.current.elevate("a password"));
+    expect(vi.getTimerCount()).toBe(1);
+
+    rerender({ snapshot: roster(true) });
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("does not let an earlier request's timer end a later one early", () => {
+    const { result, rerender } = start();
+    act(() => result.current.revoke());
+    rerender({ snapshot: roster(false) }); // answered at once...
+    rerender({ snapshot: roster(true) }); // ...and the person is the DM again
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    act(() => result.current.revoke()); // a second leave, at t = 1 s
+
+    act(() => {
+      vi.advanceTimersByTime(4000); // t = 5 s: where the FIRST request's timer would have fired
+    });
+    expect(result.current.isRevoking).toBe(true);
+    expect(result.current.error).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(1000); // t = 6 s: the second one's own
+    });
+    expect(result.current.isRevoking).toBe(false);
+    expect(result.current.error).toBe("Revocation request timed out. Please try again.");
+  });
+
+  it("gives a second request, made while the first is still unanswered, its own full window", () => {
+    const { result } = start();
+    act(() => result.current.revoke());
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    act(() => result.current.revoke()); // a double confirm, or a retry on an impatient click
+
+    act(() => {
+      vi.advanceTimersByTime(4500); // t = 5.5 s: past the first request's mark, inside the second's
+    });
+    expect(result.current.isRevoking).toBe(true);
+
+    act(() => {
+      vi.advanceTimersByTime(1000); // t = 6.5 s: past the second's
+    });
+    expect(result.current.isRevoking).toBe(false);
+    expect(result.current.error).toBe("Revocation request timed out. Please try again.");
+  });
+
+  it("leaves none running when the server refuses an elevation", () => {
+    const { result } = start(roster(false));
+    act(() => result.current.elevate("a password"));
+    expect(vi.getTimerCount()).toBe(1);
+
+    act(() => result.current.notifyElevationFailed("Invalid DM password"));
+
+    expect(vi.getTimerCount()).toBe(0);
+    expect(result.current.error).toBe("Invalid DM password");
+    expect(result.current.isElevating).toBe(false);
+  });
+
+  it("leaves none running when the person goes away", () => {
+    const { result, unmount } = start();
+    act(() => result.current.revoke());
+    expect(vi.getTimerCount()).toBe(1);
+
+    unmount();
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("clears the error on request, so a new dialog does not open already showing the last one's", () => {
+    const { result, rerender } = start();
+    act(() => result.current.revoke());
+    rerender({ snapshot: roster(true) });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(result.current.error).toBe("Revocation request timed out. Please try again.");
+
+    act(() => result.current.clearError());
+
+    expect(result.current.error).toBeNull();
+  });
+});

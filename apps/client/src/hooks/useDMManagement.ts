@@ -169,6 +169,7 @@ export function useDMManagement({
     elevate,
     bootstrap,
     notifyElevationFailed,
+    clearError,
     revoke,
     error,
   } = useDMElevation({
@@ -189,9 +190,11 @@ export function useDMManagement({
       }
 
       setModalMode(requestDM ? "elevate" : "revoke");
+      // Opens clean: an earlier request's error is not this dialog's.
+      clearError();
       setIsModalOpen(true);
     },
-    [currentIsDM],
+    [currentIsDM, clearError],
   );
 
   /**
