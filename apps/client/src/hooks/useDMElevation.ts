@@ -27,6 +27,13 @@ import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 /** How long a request may go unanswered before it is given up on, with an error. */
 const REQUEST_TIMEOUT_MS = 5000;
 
+/**
+ * How long after a leave was asked its answer may still arrive. A request the dying socket queued
+ * is sent when the socket reconnects, so the roster can confirm it long after the five seconds
+ * above have given up on it: the person asked to leave, and is told they have.
+ */
+const LATE_ANSWER_MS = 60_000;
+
 export function useDMElevation({
   snapshot,
   uid,
@@ -54,6 +61,8 @@ export function useDMElevation({
   const currentIsDM = seat?.isDM ?? false;
   const onRevokedRef = useRef(onRevoked);
   onRevokedRef.current = onRevoked;
+  // When a leave was last asked, until it is answered or another request withdraws it.
+  const leaveAskedAtRef = useRef<number | null>(null);
 
   // One request in flight, one timer for it. An earlier request's timer must not end a later
   // one early (leave, come back, leave again: the second was told it "timed out" at the first's
@@ -97,10 +106,17 @@ export function useDMElevation({
       setError(null);
     }
 
-    // Detect successful revocation (true -> false)
-    if (isRevoking && previousIsDM && !currentIsDM) {
-      stopTimer();
-      setIsRevoking(false);
+    // Detect successful revocation (true -> false): of the request in flight, or of one whose
+    // five seconds ran out a little while ago and which the server has heard since. A demotion
+    // nobody asked for (a restart clears every elevation) is neither.
+    const askedAt = leaveAskedAtRef.current;
+    const answeredLate = !isRevoking && askedAt !== null && Date.now() - askedAt <= LATE_ANSWER_MS;
+    if ((isRevoking || answeredLate) && previousIsDM && !currentIsDM) {
+      leaveAskedAtRef.current = null;
+      if (isRevoking) {
+        stopTimer();
+        setIsRevoking(false);
+      }
       setError(null);
       onRevokedRef.current?.();
     }
@@ -119,6 +135,7 @@ export function useDMElevation({
         return;
       }
 
+      leaveAskedAtRef.current = null;
       setIsElevating(true);
       setError(null);
       send({ t: "elevate-to-dm", dmPassword: dmPassword.trim() });
@@ -154,6 +171,7 @@ export function useDMElevation({
         return;
       }
 
+      leaveAskedAtRef.current = null;
       setIsElevating(true);
       setError(null);
       send({ t: "set-dm-password", dmPassword: trimmed });
@@ -193,6 +211,7 @@ export function useDMElevation({
    * Revoke DM status for current player
    */
   const revoke = useCallback(() => {
+    leaveAskedAtRef.current = Date.now();
     setIsRevoking(true);
     setError(null);
     send({ t: "revoke-dm" });

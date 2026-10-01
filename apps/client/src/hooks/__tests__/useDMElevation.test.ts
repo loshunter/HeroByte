@@ -98,6 +98,73 @@ describe("useDMElevation — leaving DM mode", () => {
     expect(result.current.currentIsDM).toBe(true);
     expect(onRevoked).not.toHaveBeenCalled();
   });
+
+  // A leave the dying socket queued is sent when it reconnects: the server hears it long after the
+  // five seconds, and the roster says so then. The person asked to leave, and is told they have.
+  describe("answered after its five seconds", () => {
+    const timedOut = () => {
+      const view = start();
+      act(() => view.result.current.revoke());
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(view.result.current.error).toBe("Revocation request timed out. Please try again.");
+      return view;
+    };
+
+    it("is still confirmed by the roster, once, and the stale timeout goes", () => {
+      const { result, rerender, onRevoked } = timedOut();
+      act(() => {
+        vi.advanceTimersByTime(20_000);
+      });
+
+      rerender({ snapshot: roster(false) });
+
+      expect(onRevoked).toHaveBeenCalledTimes(1);
+      expect(result.current.error).toBeNull();
+    });
+
+    it("is not waited for beyond a minute: a demotion an hour later is something else", () => {
+      const { rerender, onRevoked } = timedOut();
+      act(() => {
+        vi.advanceTimersByTime(56_001);
+      });
+
+      rerender({ snapshot: roster(false) });
+
+      expect(onRevoked).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["Enter DM mode", (hook: ReturnType<typeof useDMElevation>) => hook.elevate("a password")],
+      [
+        "setting the DM password",
+        (hook: ReturnType<typeof useDMElevation>) => hook.bootstrap("a long enough password"),
+      ],
+    ])("is withdrawn by %s", (_what, ask) => {
+      const { result, rerender, onRevoked } = timedOut();
+      act(() => ask(result.current));
+
+      // The server never demoted the seat; a restart does, a while later.
+      rerender({ snapshot: roster(true) });
+      rerender({ snapshot: roster(false) });
+
+      expect(onRevoked).not.toHaveBeenCalled();
+    });
+
+    it("is answered once: a restart that demotes the seat later says nothing", () => {
+      const { result, rerender, onRevoked } = start();
+      act(() => result.current.revoke());
+      rerender({ snapshot: roster(false) });
+      expect(onRevoked).toHaveBeenCalledTimes(1);
+
+      // Elected again, then a restart clears the elevation: nobody asked to leave this time.
+      rerender({ snapshot: roster(true) });
+      rerender({ snapshot: roster(false) });
+
+      expect(onRevoked).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe("useDMElevation — becoming the DM", () => {
