@@ -7,7 +7,15 @@
 
 ## Frontier
 
-- Latest U10b (2026-10-02, keyboard, focus and touch; ACCEPTED, `51ef5bf3` on `dev`): committed above `319be12a`. Review: three rounds of four Opus lenses (P1 1 → 1 → 0, P2 14 → 10 → 5; round 3 three FAIL one PASS),
+- Latest U10c (2026-10-02, the journeys, the audit ledger, the report, the arc review; READY FOR THE OWNER, not pushed):
+  above `335bf94f`. Fixes found by the journeys and the review, each its own commit: ambient and Layers sliders keep
+  focus while saving (`9a4e1456`), NPC card button names (`40d59a42`), Grid slider names (`42782656`), collapsed
+  sections leave the Tab order (`94e67d92`), layer Move and Undo/Redo edit keep focus (`7d5bc64e`), glyph-only and HP
+  names (`9034503c`), the whisper status line (`1ff39cd5`), the dock's Reset (`bd910344`), help text (`b058f30b`), two
+  assertions that could not fail (`6504cc19`), the wizard's Cancel after a mid-alignment lock (`708fd4fe`) and polish
+  (`79830044`). Six-lens arc review: 0 P1; P2s repaired or recorded. See the
+  [U10c record](interface-clarity-u10c.md) and the [report](interface-clarity-report.md).
+- Previous U10b (2026-10-02, keyboard, focus and touch; ACCEPTED, `51ef5bf3` on `dev`): committed above `319be12a`. Review: three rounds of four Opus lenses (P1 1 → 1 → 0, P2 14 → 10 → 5; round 3 three FAIL one PASS),
   every item repaired, then one fresh read (4 P2, repaired). Ladder green on the final tree: 452/2,792/7,813 units, 358
   browser/3 skips, 159.64 KB; about 90 mutants killed (four documented survivors); Verdana pass found and fixed two
   defects. Live two-client ≈ 8.2 before the repairs. See the [U10b record](interface-clarity-u10b.md).

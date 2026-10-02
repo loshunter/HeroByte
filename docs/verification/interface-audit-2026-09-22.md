@@ -4,12 +4,18 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
-**Latest implementation checkpoint (2026-10-01):** U10b (keyboard, focus, touch) finishes IA-20 (small,
+**Latest implementation checkpoint (2026-10-02):** U10c (the journeys, this ledger, the comparison report and the
+arc-level review) closes the arc: the five plan section 7 journeys were walked with a DM and a player client on desktop,
+phone and tablet; the disposition ledger below gives every finding a disposition (three fixed in part with named
+deferrals, none not reproduced); the report is [interface-clarity-report.md](interface-clarity-report.md). See
+[the U10c record](interface-clarity-u10c.md).
+
+**Previous implementation checkpoint (2026-10-02):** U10b (keyboard, focus, touch) finishes IA-20 (small,
 unlabelled or hover-only controls) and the accessibility half of U10: popover focus, the phone ✕, readable chat,
 named groups and pressed states, a persistent microphone failure line, and phone sheets that hold still. Accepted,
 committed (`51ef5bf3`). See [the U10b record](interface-clarity-u10b.md).
 
-**Previous implementation checkpoint (2026-10-01):** U10a (the words) addresses IA-19 (labels, help and
+**Earlier implementation checkpoint (2026-10-01):** U10a (the words) addresses IA-19 (labels, help and
 permission text drift): template shapes explained, Reset view, shared Populate/Generate words, the
 shelf's name, the private-dice audience, the wrong-file messages. IA-20 (small, unlabelled or hover-only
 controls) is U10b's. Accepted and committed on `dev`, not pushed. See
@@ -139,6 +145,43 @@ confusion or blocked access; P3 means terminology/polish. These are product prio
 | IA-18 | P2 · Live/Source | Failed Generate says Built here already and blocks an unchanged retry | U3 |
 | IA-19 | P3 · Live/Source | Labels, help and permission explanations drift or expose implementation details | U9, U10 |
 | IA-20 | P2 · Live/Source | Small unlabeled/hover-only controls and clipped portrait instructions hinder discovery | U7, U10 |
+
+## Disposition ledger (U10c, 2026-10-02)
+
+Every finding above, with what happened to it. "Commit" is the slice commit on `dev` (checked against `git log`);
+"evidence" is the slice record in this directory, which names its specs, mutants and live evaluation. Nothing here is a
+claim the records do not make; where a record is silent the cell says so. Not one finding was **not reproduced**.
+
+| ID | Disposition | Commit | Evidence | What remains, and why |
+| --- | --- | --- | --- | --- |
+| IA-01 | **Fixed in part; remainder deferred** | U1 `290f9a3d`; U9 `94521e4e`; words `55fe3649` | [execution ledger](interface-clarity-execution.md) U1; [U9](interface-clarity-u9.md); [U10a](interface-clarity-u10a.md) (the camera chip says "Reset"); [report §3–4](interface-clarity-report.md) | A DM's header is **three rows** at 1280×720 and 1366×768 and six at 768 wide (a mouse-pointer viewport): the map band is 455 px (63.2 %) and 503 px (65.5 %) with the party drawer open (measured in the [report](interface-clarity-report.md)). **Deferred:** a further regrouping of the DM header. Reason: no control is unreachable at 200 % zoom (U10b measured 960×540 and 768×540, all 14 controls in view), the owner ruled the multi-row header a limit (Q9), and a regroup would reshuffle the toolbar the owner tuned in U1 and U9. |
+| IA-02 | **Fixed** | U1 `290f9a3d`, `71c06a5c` | execution ledger U1 (live 7.8; its whisper privacy flow 8.65); `interface-player-navigation.spec.ts`, `interface-chat-privacy.spec.ts` | 8 px chat text fixed in U10b `51ef5bf3`. Draft lifetime unchanged. |
+| IA-03 | **Fixed** | U1 `1bcb7ec3` | execution ledger U1 (RED test, mutation probe, live check); `drawing-clear-permission.spec.ts` | Live role revocation not claimed. |
+| IA-04 | **Fixed** | U2 `7923c3de` | execution ledger U2 (two-client desktop and touch grass journeys, controlled mutation); `interface-cancel-ownership.spec.ts` | Escape cannot retract a command already sent (Undo map edit is the recovery); Chromium touch only. |
+| IA-05 | **Fixed** | U2 `7923c3de`; popover focus U10b `51ef5bf3` | execution ledger U2 (four windows return focus); [U10b](interface-clarity-u10b.md); `interface-popover-focus.spec.ts`, `interface-window-annotation-acceptance.spec.ts` | Escape follows paint order by design: the Character window outranks Help ([report §5](interface-clarity-report.md), O-1). |
+| IA-06 | **Fixed** | U3b `351b5485` | [U3b](interface-clarity-u3b.md) (two two-client journeys and two reach checks, 7.87); `interface-build-palette.spec.ts` | Populate targets the last placed room or hallway only. |
+| IA-07 | **Fixed** | U3b `351b5485` | U3b (reach checks); `u3b-palette.helpers.ts` | "Spline" is "Rope / curve" in the UI. |
+| IA-08 | **Fixed** | U4a `681bc391`, U4b `63505c56` | [U4a](interface-clarity-u4a.md), [U4b](interface-clarity-u4b.md) (7.9 each); `interface-drawing-settings.spec.ts`, `interface-terrain-clarity.spec.ts` | Whole-shape erase has no Undo. |
+| IA-09 | **Fixed** | U4a `681bc391`; history row U10b | U4a; `mobile/mobile-draw-template.spec.ts` | Settings do not persist across reloads; sheet stacks below 640 px landscape. |
+| IA-10 | **Fixed** | U4c `a56e92e1` | [U4c](interface-clarity-u4c.md) (six journeys, 7.8); `interface-collections.spec.ts` | No live upload drill. |
+| IA-11 | **Fixed** | U5 `34a0436c` (door-pan `eb28f30a`) | [U5](interface-clarity-u5.md) (8.0); `interface-properties-lighting.spec.ts`, `door-pan.spec.ts` | Two commands, two Undo steps for a compound inspector save. |
+| IA-12 | **Fixed** | U5 `34a0436c`; label in U3b `351b5485` | U5 (`aria-valuetext` REDs); `interface-properties-lighting.spec.ts` | **U10c found and fixed a keyboard defect in this control** (F1, `9a4e1456`): the slider dropped focus while saving. |
+| IA-13 | **Fixed** | U6 `4af2cc5e` | [U6](interface-clarity-u6.md) (27 mutants); `interface-map-identity.spec.ts` | Stale `dm-player-lens.jpg` in the docs; server "node" wording. |
+| IA-14 | **Fixed** | U6 `4af2cc5e`; U9 `94521e4e`; words U10a `55fe3649` | U6; U9; `interface-table-backups.spec.ts` | A restore keeps a seat's record (Q10, open, not U10's). |
+| IA-15 | **Fixed** | U7 `26fa56e0` (own commits `ccd18b82` … `2689cf53`) | [U7](interface-clarity-u7.md) (66.5 % map at 1366×768; live 8.3/8.4); `interface-party-roster-zoom.spec.ts`, `interface-party-roster.spec.ts` | A floating DM window can lie over the inspector (the U7 record is silent on this; seen in the [World tab image](interface-clarity-report/j4-dm-world-tab-1366x768.jpg)). |
+| IA-16 | **Fixed** | U8 `f69bb331` (own commits `b735acb8` … `60a08cea`) | [U8](interface-clarity-u8.md) (live 8.4/8.55); `interface-encounter.spec.ts`, `mobile/mobile-encounter.spec.ts` | Round count is not on the wire; a hidden NPC counts in the DM's order only. |
+| IA-17 | **Fixed** | U9 `94521e4e`, `0b3f1f9d` | [U9](interface-clarity-u9.md) (live 8.0); `interface-table.spec.ts`, `mobile/mobile-top-stack.spec.ts` | Two-table lockout (Q1) is open and not U10's. |
+| IA-18 | **Fixed** | U3a `b473a3dd` | [U3a checkpoint](interface-clarity-u3a-checkpoint.md) (7.925); `interface-generate-outcomes.spec.ts`, `interface-generate-correlation.spec.ts` | The failure toast can persist after a retry. |
+| IA-19 | **Fixed in part; remainder deferred** | U9 `94521e4e`; U10a `55fe3649`; Reset view `fc06b5aa`; U10c `bd910344`, `b058f30b` | [U10a](interface-clarity-u10a.md) (23 + 11 mutants); [report §5](interface-clarity-report.md) | **Deferred:** the quick wheel still says Paint / Erase (its hub is 88 px, "Paint terrain" would be cut); desktop Decorate says "Decorate from" and the phone "From"; the Ping help phrase lacks "right now"; Help opens on World before "Getting around the map". Each is a wording or order change with no control hidden. (The phone dock's "View", which reset the camera with only a tooltip, is fixed: it says **Reset** — U10c F7.) |
+| IA-20 | **Fixed in part; remainder deferred** | U7 `26fa56e0`; U10b `51ef5bf3`; U10c `40d59a42`, `42782656`, `94e67d92`, `7d5bc64e`, `9034503c`, `1ff39cd5` | [U7](interface-clarity-u7.md); [U10b](interface-clarity-u10b.md) (≈ 90 mutants); [U10c](interface-clarity-u10c.md); the name-and-size sweep in the [report §4](interface-clarity-report.md) | **Deferred** (the U10c record and the [report](interface-clarity-report.md) section 5 list them): names that do not say which item ("Open player settings", "Set Initiative" on every card, Place on Map / Duplicate / Delete on an NPC); 36 controls that still use `disabled` while saving and drop focus after a press; phone dialogs (Party, Table, Props, Kick, Help, Tools) that do not move focus in or back; `.table-menu-button` 10 px vs a stylesheet that says 8. The 31 px the reserved tool line costs on a 320×568 phone is kept (owner's ruling). No real device, iOS, WebKit or screen reader. |
+
+**U10c's own fixes** (found by walking the journeys and by the arc-level review; each its own commit, RED first,
+mutants killed; listed in [the U10c record](interface-clarity-u10c.md)): the Ambient light and Layers sliders keep
+keyboard focus while a change is saved (IA-12, IA-20); the NPC card's visibility and settings buttons are named by action
+and NPC; the Grid size and Square size sliders are named; **collapsed "locked" sections leave the Tab order** (a keyboard
+user could press an invisible Clear Zone); layer Move and Undo/Redo edit keep focus while saving; the dice "×", the
+roll log's "⋯", Generate's "⟳", the stamp rotate pair and the HP fields are named; the whisper-recipient message is
+mounted before it is filled; the phone dock says **Reset**; and the help text that was false or incomplete is corrected (except the Delete entry's missing phone path and Ping's "right now", deferred).
 
 ### IA-01–03 — the first player actions
 

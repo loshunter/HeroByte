@@ -1,5 +1,22 @@
 # Interface clarity — the first session should teach the table — arc plan
 
+> **STATUS: THE ARC (U1–U10c) IS BUILT ON `dev` WITH NAMED DEFERRALS, READY FOR THE OWNER — 2026-10-02. NOT MERGED TO `main`.**
+> U10c walked the five section 7 journeys with a DM and a player client on desktop, phone and tablet (live,
+> Chromium emulation; no real device), gave every audit finding a disposition (all 20: 17 fixed, IA-01, IA-19 and
+> IA-20 fixed in part with named deferrals, none not reproduced) and published the comparison report. It found and
+> fixed real defects (an ambient slider and layer buttons that dropped keyboard focus; collapsed "locked" sections
+> that stayed operable by keyboard; glyph-only buttons; false help text) and closed with a six-lens arc review
+> (0 P1; the P2s repaired or recorded). **Not met on a phone:** the U10 "Done when" (no capability orphaned): a DM
+> cannot preview Player View there, and Temp HP, Clear Initiative on your own character, deleting a selection and
+> correcting an older roll have no phone route, until the owner builds them or rules them desktop-only.
+> **Deferred, with reasons:** the phone gaps above, phone dialogs' focus in and out, names that do not say which
+> item, the "Objects" wording, 36 controls that still drop focus after a press, reduced motion's infinite loops, a
+> further regrouping of the DM header, Help's topic order, Ping's "right now", `.table-menu-button`'s 10 px. Read [the U10c record](../verification/interface-clarity-u10c.md) (including "what to do before
+> merging to `main`"), [the report](../verification/interface-clarity-report.md) and the ledger in
+> [the audit](../verification/interface-audit-2026-09-22.md).
+>
+> Previous status (U10b):
+>
 > **STATUS: U10b (KEYBOARD, FOCUS, TOUCH) ACCEPTED, COMMITTED (`51ef5bf3`) ON `dev` — 2026-10-02.**
 > Both header popovers take focus in, return it only on Escape or the toggle, hand it to what an item
 > opens and never trap Tab; the phone ✕ is 18 px; chat is readable (13 px body face, 16 px composer on
