@@ -13,6 +13,7 @@
 
 import { DM_HELP_TOPIC } from "./dmHelpTopic";
 import { TABLE_MENU_HELP_TOPIC } from "./tableHelpTopic";
+import { CORRECT_A_ROLL_ENTRY, DELETE_ENTRY, HP_ENTRY } from "./phoneHelpEntries";
 
 /** One "how do I…" line inside a topic. */
 export interface HelpEntry {
@@ -139,11 +140,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           "Select your row in the Party at the bottom; your card opens beside the rows. ✕ or Esc closes it. ▦ CARDS shows every card at once. On a phone, ◉ PARTY lists your rows, and ⚙️ EDIT on one opens its settings.",
       },
       { term: "Name", detail: "Click it to rename inline (on a phone: ⚙️ EDIT → Character Name)." },
-      {
-        term: "HP",
-        detail:
-          "Click either number to type a value, or drag along the bar to scrub it. Temp HP is the number on the line below. On a phone, tap a number on your row in ◉ PARTY.",
-      },
+      HP_ENTRY,
       {
         term: "Portrait & token art",
         detail:
@@ -184,11 +181,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         term: "Resize / rotate",
         detail: "🔄 Transform gives handles; rotation snaps to 45°, hold Ctrl/Cmd to go free.",
       },
-      {
-        term: "Delete",
-        detail:
-          "Select and press Delete — only what you own, and it asks first. A phone has no Delete key: erase drawings with the Draw sheet's Erase drawings (Undo drawing takes back the last one), delete your props in Props, and a DM deletes map pieces with Select → 🗑 Delete and NPCs in the NPC editor.",
-      },
+      DELETE_ENTRY,
       {
         term: "🔒 Locked",
         detail: "Pinned by the DM; it cannot be moved or deleted until unlocked.",
@@ -221,11 +214,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           "TABLE is everyone at the table, DM is you and whoever is in DM mode (now or later), ME is you alone — no other player or DM is sent it. A hidden roll is not sent to anyone outside its audience: there is no copy in their browser. (Someone with the table password could claim your seat once you have been gone more than six hours, or right after the server restarts for an update, and read the hidden rolls still stored for it.)",
       },
       { term: "Macros", detail: "+ SAVE names a built roll. Macros live in this browser only." },
-      {
-        term: "Correct a roll",
-        detail:
-          "Where the table allows entering a roll by hand, open a roll in 📜 Rolls and use ENTER A ROLL BY HAND to replace it with what the real dice showed: your own, or any if you are the DM. Desktop only for an older roll in the log; on a phone you can correct your latest roll from the roller.",
-      },
+      CORRECT_A_ROLL_ENTRY,
       {
         term: "📜 Chat & Rolls",
         detail:

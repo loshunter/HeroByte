@@ -64,6 +64,7 @@ function renderList(isDM: boolean) {
       drawings={[]}
       onApplyPlayerState={vi.fn()}
       onToggleTokenLock={vi.fn()}
+      onPlayerTokenDelete={undefined}
       onCharacterOwnerChange={vi.fn()}
       onFocusToken={vi.fn()}
       combatActive={false}
