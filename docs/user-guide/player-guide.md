@@ -42,7 +42,7 @@ The Party lists characters, not players: if you run two, you have two rows, and 
 - **Name** — click it to edit inline.
 - **Portrait** — open **⚙️** settings and **⬆ UPLOAD IMAGE** a portrait straight from your device — on a phone, that's your camera roll. (Clicking the **+ Add portrait** square opens the same settings, where a pasted image URL also works.) When you talk on voice, your portrait glows and swells.
 - **HP** — click either number in `HP: 100 / 100` to type a new value (Enter or click away to save), or **drag along the HP bar** to scrub it. The bar shifts color as you drop: green, amber, red.
-- **Temp HP** — a separate pool absorbed before regular HP; click to edit.
+- **Temp HP** — a separate pool absorbed before regular HP; click to edit (on a phone, tap the number on your row in **◉ PARTY**).
 - **⚔️** — centres the map on this character's token; it also wears up to three condition medallions (covered below). **INIT** — initiative (covered below).
 - **🎤** — voice chat (covered below).
 - **⚙️** — opens your full settings window.
@@ -57,7 +57,7 @@ One draggable window per character, in two halves — what the character is, and
 
 - **Character Name**, **Portrait**, and a **Token Image** — give your portrait and map token custom art: **⬆ UPLOAD IMAGE** from your device (camera roll on a phone), or paste an image URL. **CLEAR** the token image to go back to a colored ring.
 - **Status Effects** — a checklist of 38 conditions (Prone, Poisoned, Blessed, Rage, Concentration…). They belong to this character only: your other character's row, card and token do not wear them. Up to three show as emoji medallions on the portrait and token; the rest roll up into a `+N` bubble.
-- **Initiative Status** — this character's current initiative, with a **🧹 CLEAR INITIATIVE** reset.
+- **Initiative Status** — this character's current initiative, with a **🧹 CLEAR INITIATIVE** reset (on a phone too: **⚙️ EDIT** on your row).
 - **Character file → Save character / Load character…** — download this character (its name, HP, portrait, token, position and status effects, plus your drawings if you have any) as a JSON file and restore it later — handy insurance between sessions, or for moving your character to another table. Drawings belong to you rather than to one character, so loading a file that holds drawings replaces the drawings you have on the map with the file's, and a file with none leaves yours alone. It is one character's file and never the table: a table backup (the DM's) and an editable map are different files, and each picker tells you what it was handed if you pick the wrong kind. On a phone the same two buttons are in the row's **⚙️ EDIT** sheet.
 - **Multiple Characters → ➕ ADD CHARACTER** — run a second PC (or a familiar): each character gets its own row, card, token, HP, and initiative. **🗑️ Delete this character** removes the one this window belongs to.
 

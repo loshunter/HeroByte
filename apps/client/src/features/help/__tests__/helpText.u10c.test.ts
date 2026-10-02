@@ -34,6 +34,21 @@ describe("help text, after the U10c review", () => {
     expect(entry(drawing, /Undo/)).toMatch(/Erasing a whole line or shape cannot be undone/);
   });
 
+  it("tells a phone player how to do what a desktop key or log does (U10d)", () => {
+    const character = HELP_TOPICS.find((t) => t.id === "character")!;
+    expect(entry(character, /^HP$/)).toMatch(/Temp HP is the number on the line below/);
+    expect(entry(character, /^HP$/)).toMatch(/On a phone, tap a number on your row/);
+    const tokens = HELP_TOPICS.find((t) => t.id === "tokens")!;
+    expect(entry(tokens, /^Delete$/)).toMatch(/A phone has no Delete key/);
+    expect(entry(tokens, /^Delete$/)).toMatch(/Erase drawings/);
+    const dice = HELP_TOPICS.find((t) => t.id === "dice")!;
+    expect(entry(dice, /Correct a roll/)).toMatch(/Desktop only for an older roll/);
+    const table = HELP_TOPICS.find((t) => t.id === "table")!;
+    expect(entry(table, /^INIT$/)).toMatch(
+      /Clear Initiative \(on a phone: ⚙️ EDIT → Clear Initiative\)/,
+    );
+  });
+
   it("names the NPC tab the way the tab is named", () => {
     expect(everything).not.toMatch(/DM Menu → NPCs(?! & Monsters)/);
   });
