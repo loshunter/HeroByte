@@ -13,6 +13,15 @@ import { PlayerSettingsMenu } from "../../features/players/components/PlayerSett
 import type { OwnerControl } from "../../features/players/components/TokenSettingsSection";
 import type { CharacterFileActions } from "../../features/players/characterFile";
 
+/** The temp HP editor's state and handlers (the same ones the desktop card gets). */
+export interface TempHpEditing {
+  editingUID: string | null;
+  input: string;
+  onInputChange: (value: string) => void;
+  onEdit: (characterId: string) => void;
+  onSubmit: () => void;
+}
+
 interface MobilePlayerRowProps {
   player: Player & { characterId: string };
   isMe: boolean;
@@ -30,6 +39,8 @@ interface MobilePlayerRowProps {
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: (maxHp: string) => void;
+  /** Temp HP: the owner's and the DM's, as with HP. Absent = no editor (a read-only row). */
+  tempHp?: TempHpEditing;
   // State handlers
   onStatusEffectsChange?: (effects: string[]) => void;
   /**
@@ -94,6 +105,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onMaxHpInputChange,
     onMaxHpEdit,
     onMaxHpSubmit,
+    tempHp,
     onStatusEffectsChange,
     characterless = false,
     characterFile,
@@ -255,7 +267,11 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
               onMaxHpInputChange={onMaxHpInputChange}
               onMaxHpEdit={onMaxHpEdit}
               onMaxHpSubmit={onMaxHpSubmit}
-              onTempHpInputChange={() => {}} // Simplify mobile view
+              isEditingTempHp={tempHp?.editingUID === player.characterId}
+              tempHpInput={tempHp?.input}
+              onTempHpInputChange={tempHp?.onInputChange}
+              onTempHpEdit={tempHp ? () => tempHp.onEdit(player.characterId) : undefined}
+              onTempHpSubmit={tempHp ? () => tempHp.onSubmit() : undefined}
             />
           </div>
         )}
@@ -314,6 +330,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
                 }
               : undefined
           }
+          initiative={initiative?.value}
+          onClearInitiative={initiative?.onClear}
           selectedEffects={activeEffects}
           onStatusEffectsChange={characterless ? undefined : (onStatusEffectsChange ?? (() => {}))}
           isDM={isDM}

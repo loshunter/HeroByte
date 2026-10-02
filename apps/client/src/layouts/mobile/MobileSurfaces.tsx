@@ -47,17 +47,18 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
   const { surface, closeSurface } = machine;
   const showParty = surface === "party";
 
-  const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit } = useEntityEditHandlers({
-    editingHpUID: props.editingHpUID,
-    editingMaxHpUID: props.editingMaxHpUID,
-    editingTempHpUID: props.editingTempHpUID,
-    snapshot: props.snapshot,
-    submitHpEdit: props.submitHpEdit,
-    submitMaxHpEdit: props.submitMaxHpEdit,
-    submitTempHpEdit: props.submitTempHpEdit,
-    submitNameEdit: props.submitNameEdit,
-    playerActions: props.playerActions,
-  });
+  const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit, handleCharacterTempHpSubmit } =
+    useEntityEditHandlers({
+      editingHpUID: props.editingHpUID,
+      editingMaxHpUID: props.editingMaxHpUID,
+      editingTempHpUID: props.editingTempHpUID,
+      snapshot: props.snapshot,
+      submitHpEdit: props.submitHpEdit,
+      submitMaxHpEdit: props.submitMaxHpEdit,
+      submitTempHpEdit: props.submitTempHpEdit,
+      submitNameEdit: props.submitNameEdit,
+      playerActions: props.playerActions,
+    });
 
   // Mobile's own instance, shared (like the desktop's) by the Party screen's
   // INIT and the DM screen's Encounter: the builder cannot call hooks, so the
@@ -117,6 +118,13 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             onMaxHpInputChange={props.updateMaxHpInput}
             onMaxHpEdit={props.startMaxHpEdit}
             onMaxHpSubmit={handleCharacterMaxHpSubmit}
+            tempHp={{
+              editingUID: props.editingTempHpUID,
+              input: props.tempHpInput,
+              onInputChange: props.updateTempHpInput,
+              onEdit: props.startTempHpEdit,
+              onSubmit: handleCharacterTempHpSubmit,
+            }}
             onCharacterHpChange={props.playerActions.updateCharacterHP}
             onCharacterStatusEffectsChange={props.playerActions.setCharacterStatusEffects}
             onCharacterNameUpdate={props.playerActions.updateCharacterName}
@@ -139,6 +147,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             combatActive={props.snapshot?.combatActive ?? false}
             currentTurnCharacterId={props.snapshot?.currentTurnCharacterId}
             onOpenInitiative={initiativeDialog.open}
+            onClearInitiative={initiativeSetting.clearInitiative}
             tableVisionDefault={props.snapshot?.defaultVisionRadius}
             // Focus shows the map: the camera centres on the token, and the
             // screen that covers the map closes.

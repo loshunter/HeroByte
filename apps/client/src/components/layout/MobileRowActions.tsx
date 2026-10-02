@@ -19,6 +19,8 @@ export interface MobileRowInitiative {
   value: number | undefined;
   isTurn: boolean;
   onOpen?: () => void;
+  /** Take this character out of the order (the settings sheet's Clear Initiative); the owner's and the DM's. */
+  onClear?: () => void;
   /** Names the INIT button's successor when a reconnect re-renders the row, so
    *  the dialog's focus comes back to it (useInertPage). */
   focusKey: string;

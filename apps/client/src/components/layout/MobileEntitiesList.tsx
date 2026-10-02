@@ -19,7 +19,7 @@ import type {
 import { characterFileActions } from "../../features/players/characterFile";
 import { mobilePartyRows } from "./mobilePartyRows";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
-import { MobilePlayerRow } from "./MobilePlayerRow";
+import { MobilePlayerRow, type TempHpEditing } from "./MobilePlayerRow";
 import "./mobileParty.css";
 
 interface MobileEntitiesListProps {
@@ -40,6 +40,7 @@ interface MobileEntitiesListProps {
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: () => void;
+  tempHp?: TempHpEditing;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
@@ -93,6 +94,7 @@ interface MobileEntitiesListProps {
    * offered on the viewer's own rows and, for a DM, on every row.
    */
   onOpenInitiative: (character: SnapshotCharacter) => void;
+  onClearInitiative?: (characterId: string) => void;
 }
 
 export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
@@ -110,6 +112,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
+  tempHp,
   onCharacterHpChange,
   onCharacterStatusEffectsChange,
   onCharacterNameUpdate,
@@ -132,6 +135,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onFocusToken,
   currentTurnCharacterId,
   onOpenInitiative,
+  onClearInitiative,
 }) => {
   // The desktop panel's creation state, for the viewer's own rows: the
   // settings window asks for the name and waits on this until it lands.
@@ -145,12 +149,13 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       ? characters.find((c) => c.id === entity.characterId)
       : undefined; // the characterless seat: its id is the player's uid
     if (!character) return undefined;
+    const mayAct = character.ownedByPlayerUID === uid || isDM;
     return {
       value: character.initiative,
       isTurn: combatActive && currentTurnCharacterId === character.id,
       focusKey: `initiative:${character.id}`,
-      onOpen:
-        character.ownedByPlayerUID === uid || isDM ? () => onOpenInitiative(character) : undefined,
+      onOpen: mayAct ? () => onOpenInitiative(character) : undefined,
+      onClear: mayAct && onClearInitiative ? () => onClearInitiative(character.id) : undefined,
     };
   };
 
@@ -290,6 +295,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
                   // HPBar passes the string value, but onMaxHpSubmit expects void here
                   onMaxHpSubmit();
                 }}
+                tempHp={tempHp}
                 onCharacterHpChange={onCharacterHpChange}
                 onStatusEffectsChange={
                   entity.hasCharacter
