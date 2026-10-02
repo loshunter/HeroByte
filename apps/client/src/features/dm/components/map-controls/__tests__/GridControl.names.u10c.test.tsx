@@ -21,4 +21,35 @@ describe("GridControl sliders are named", () => {
     const square = screen.getByRole("slider", { name: "Square size" });
     expect(square).toHaveAttribute("aria-valuetext", "5 feet");
   });
+
+  it("takes both sliders out of reach while the grid is locked", () => {
+    render(
+      <GridControl
+        gridSize={50}
+        gridSquareSize={5}
+        gridLocked
+        onGridSizeChange={vi.fn()}
+        onGridSquareSizeChange={vi.fn()}
+        onGridLockToggle={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("slider", { name: "Grid size" })).toBeNull();
+    expect(screen.queryByRole("slider", { name: "Square size" })).toBeNull();
+  });
+
+  it("reads the clamped square size, the value the slider shows", () => {
+    render(
+      <GridControl
+        gridSize={50}
+        gridSquareSize={250}
+        gridLocked={false}
+        onGridSizeChange={vi.fn()}
+        onGridSquareSizeChange={vi.fn()}
+        onGridLockToggle={vi.fn()}
+      />,
+    );
+    const square = screen.getByRole("slider", { name: "Square size" });
+    expect(square).toHaveValue("100");
+    expect(square).toHaveAttribute("aria-valuetext", "100 feet");
+  });
 });

@@ -48,12 +48,19 @@ export interface CollapsibleSectionProps {
 export const CollapsibleSection = React.memo(
   ({ isCollapsed, children }: CollapsibleSectionProps) => {
     return (
+      // Collapsed content must leave the Tab order and the accessibility tree, not only the
+      // eye: with maxHeight 0 alone its fields and buttons stayed focusable, so a keyboard user
+      // could change a LOCKED grid or press an invisible Clear Zone. `visibility` transitions
+      // too: it stays visible for the 150ms fade on the way out and shows at once on the way in.
       <div
+        aria-hidden={isCollapsed || undefined}
         style={{
           maxHeight: isCollapsed ? "0" : "2000px",
           opacity: isCollapsed ? 0 : 1,
+          visibility: isCollapsed ? "hidden" : "visible",
           overflow: "hidden",
-          transition: "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+          transition:
+            "max-height 150ms ease-in-out, opacity 150ms ease-in-out, visibility 150ms ease-in-out",
         }}
       >
         {children}

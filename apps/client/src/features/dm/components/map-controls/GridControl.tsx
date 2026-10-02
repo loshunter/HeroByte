@@ -109,7 +109,7 @@ export function GridControl({
               step={1}
               value={Math.min(100, Math.max(1, gridSquareSize))}
               aria-label="Square size"
-              aria-valuetext={`${formatSquareSize(gridSquareSize)} feet`}
+              aria-valuetext={`${formatSquareSize(Math.min(100, Math.max(1, gridSquareSize)))} feet`}
               onChange={(event) => onGridSquareSizeChange?.(Number(event.target.value))}
               disabled={!onGridSquareSizeChange}
               style={{ width: "100%" }}
