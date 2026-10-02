@@ -17,7 +17,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "+ Add NPC",
       detail:
-        "DM Menu → NPCs. Name, HP, initiative modifier, portrait, token art and conditions — the same plumbing as a player. 🎯 FOCUS centres the map on a placed NPC; on a phone this tab (♛ DM → NPCs & Monsters) is where an NPC's conditions and Focus live.",
+        "DM Menu → NPCs & Monsters. Name, HP, initiative modifier, portrait, token art and conditions — the same plumbing as a player. 🎯 FOCUS centres the map on a placed NPC; on a phone this tab (♛ DM → NPCs & Monsters) is where an NPC's conditions and Focus live.",
     },
     {
       term: "A player's character",
@@ -32,7 +32,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "📖 Library",
       detail:
-        "DM Menu → NPCs → 📖 LIBRARY. 244 bundled tokens — 184 monsters and 60 townsfolk — searchable by name, ancestry, trade and the pack’s own tags. A pick becomes an NPC with its art, portrait and size already set, and the ×N field applies.",
+        "DM Menu → NPCs & Monsters → 📖 LIBRARY. 244 bundled tokens — 184 monsters and 60 townsfolk — searchable by name, ancestry, trade and the pack’s own tags. A pick becomes an NPC with its art, portrait and size already set, and the ×N field applies.",
     },
     {
       term: "🎭 Reveal mimic",
@@ -57,7 +57,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "PLACE ON MAP",
       detail:
-        "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again moves that same token rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
+        "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again replaces the old token with a fresh one at the corner (its position and lock reset) rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
     },
     {
       term: "⚔️ Encounter",
@@ -72,12 +72,12 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "👁 Player View",
       detail:
-        "Renders your own table exactly as players receive it, while you keep every DM power.",
+        "Renders your own table exactly as players receive it, while you keep every DM power. Desktop only: a phone has no Player View.",
     },
     {
       term: "🏗️ Build map",
       detail:
-        "The live map editor. Tool group offers Terrain, Structures, Objects, Lighting and Generate, remembering the last tool in each group. Select, Sample, Layers, history and Done stay separate from scrolling settings. Build edits the map on the table and names it. If you opened a different saved map in DM Menu → Maps, Build names both and offers Resume editing <table map>; it never swaps maps by itself. On a phone or tablet: DM → Edit the live map, then Tool opens the palette; Done returns to play. Select picks a piece, then Edit turns, resizes, re-layers or hides it. Layers controls ambient light through Lighting opacity. Place object, Scatter objects and Place light aim while your finger is down and commit when you lift. Stop cancels the active gesture.",
+        "The live map editor. Tool group offers Terrain, Structures, Objects, Lighting and Generate, remembering the last tool in each group. Select, Sample, Layers, history and Done stay separate from scrolling settings. Build edits the map on the table and names it. If you opened a different saved map in DM Menu → Maps, Build names both and offers Resume editing <table map>; it never swaps maps by itself. On a phone or tablet: DM → Edit the live map, then Tool opens the palette; Done returns to play. Select picks a piece, then Edit turns, resizes, re-layers or hides it. Ambient light (Dark → Daylight) is a slider in the Lighting group beside Place light; Layers shows the same slider. Place object, Scatter objects and Place light aim while your finger is down and commit when you lift. Stop cancels the active gesture.",
     },
     {
       term: "Decorate last room / hallway",
@@ -92,27 +92,27 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "Download table backup",
       detail:
-        "DM Menu → Table → Backups. The whole table as one file — map, tokens, characters, props, drawings, images. The server also keeps the table saved between visits (the public test table is wiped once it has sat empty); a backup is what you keep yourself, to move the table or bring an earlier map back. Download before every risky experiment. Restore table backup… replaces the map, NPCs, props and drawings for everyone connected and cannot be undone. Everyone with a seat here keeps their characters and tokens as they are now (one the file has and they no longer do comes back), though each seat's own record — name, portrait, HP and conditions — comes back as the file had it; a monster that is in both stays where it stands; and nobody's DM status changes: that stays with the DM password. The toast says the table's wire weight (what a restore sends; images not counted) and the file's disk size: a restore must fit 1 MB, so mints are refused past 0.75 MB.",
+        "DM Menu → Table → Backups (on a phone: ♛ DM → Table). The whole table as one file — map, tokens, characters, props, drawings, images. The server also keeps the table saved between visits (the public test table is wiped once it has sat empty); a backup is what you keep yourself, to move the table or bring an earlier map back. Download before every risky experiment. Restore table backup… replaces the map, NPCs, props and drawings for everyone connected and cannot be undone. Everyone with a seat here keeps their characters and tokens as they are now (one the file has and they no longer do comes back), though each seat's own record — name, portrait, HP and conditions — comes back as the file had it; a monster that is in both stays where it stands; and nobody's DM status changes: that stays with the DM password. The toast says the table's wire weight (what a restore sends; images not counted) and the file's disk size: a restore must fit 1 MB, so mints are refused past 0.75 MB.",
     },
     {
       term: "Invite players",
       detail:
-        "DM Menu → Table → Invite: the table's name and code and a link to copy. The link never carries the table password — send that separately. Right after you create a table, a card offers Enter DM mode and Invite players as your next steps.",
+        "DM Menu → Table → Invite (on a phone: ♛ DM → Table): the table's name and code and a link to copy. The link never carries the table password — send that separately. Right after you create a table, a card offers Enter DM mode and Invite players as your next steps.",
     },
     {
       term: "Permissions",
       detail:
-        "DM Menu → Table → Permissions. Players can add props: their own furniture and scene dressing, never map tools. Players can enter rolls by hand (on by default): a number typed from a real table goes in the roll log marked BY HAND, struck through over any server roll it replaced; with it off, players get the server's die only. You can always enter rolls by hand.",
+        "DM Menu → Table → Permissions (on a phone: ♛ DM → Table). Players can add props: their own furniture and scene dressing, never map tools. Players can enter rolls by hand (on by default): a number typed from a real table goes in the roll log marked BY HAND, struck through over any server roll it replaced; with it off, players get the server's die only. You can always enter rolls by hand.",
     },
     {
       term: "Table password & private copy",
       detail:
-        "DM Menu → Table → Security. Change table password: players already here stay connected, anyone joining afterwards needs the new one. Reset to default gives the table the public Main Hall's password, which the setup docs publish. The public test table's password is fixed so it stays open — there, Save as a Private Table copies the whole table to one of your own.",
+        "DM Menu → Table → Security (on a phone: ♛ DM → Table). Change table password: players already here stay connected, anyone joining afterwards needs the new one. Reset to default gives the table the public Main Hall's password, which the setup docs publish. The public test table's password is fixed so it stays open — there, Save as a Private Table copies the whole table to one of your own.",
     },
     {
       term: "REMOVE (a player)",
       detail:
-        "DM Menu → Table → Players at this table. A player who is not at the table shows REMOVE (a browser still open on a login screen or at another table counts as here for five minutes; a seat dropped in the last minute reads 'dropped just now' and waits): their seat, character sheets and tokens go, and a fight in progress passes the turn on rather than skipping a round. Not a ban — the table password still lets them back in, as a new player.",
+        "DM Menu → Table → Players at this table (on a phone: ♛ DM → Table). A player who is not at the table shows REMOVE (a browser still open on a login screen or at another table counts as here for five minutes; a seat dropped in the last minute reads 'dropped just now' and waits): their seat, character sheets and tokens go, and a fight in progress passes the turn on rather than skipping a round. Not a ban — the table password still lets them back in, as a new player.",
     },
   ],
 };

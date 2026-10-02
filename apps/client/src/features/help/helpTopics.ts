@@ -240,7 +240,8 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         term: "Undo / redo",
-        detail: "Buttons, or Ctrl+Z / Ctrl+Y while draw mode is active. Yours only.",
+        detail:
+          "Buttons, or Ctrl+Z / Ctrl+Y while draw mode is active. Yours only. Erasing a whole line or shape cannot be undone (Undo then takes back the drawing before it); erasing part of a freehand stroke can.",
       },
       {
         term: "Area templates",
@@ -309,7 +310,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Combat starts",
         detail:
-          "Any initiative saved while no fight is running starts it for everyone, on that character's turn — after END COMBAT too, since initiatives stay; on desktop the Party's rows reorder and the current turn's row is outlined and tagged Turn, and on a phone the turn strip names whose turn it is. A party member's plate then reads feet left / speed, refilled at the start of its turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs) and can reset a spend there — the budget is advisory, a red readout is a note, not a wall.",
+          "Any initiative saved while no fight is running starts it for everyone, on that character's turn — after END COMBAT too, since initiatives stay; on desktop the Party's rows reorder and the current turn's row is outlined and tagged Turn, and on a phone the turn strip names whose turn it is. A party member's plate then reads feet left / speed, refilled at the start of its turn; the DM sets speed in ⚙️ settings (monsters: DM Menu → NPCs & Monsters) and can reset a spend there — the budget is advisory, a red readout is a note, not a wall.",
       },
       { term: "◄ PREV / NEXT ►", detail: "Advance the turn — any player can nudge it." },
     ],
