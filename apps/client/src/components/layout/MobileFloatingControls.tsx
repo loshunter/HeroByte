@@ -293,12 +293,13 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             type="button"
             className="mobile-dock-button"
             title={RESET_VIEW_TITLE}
+            aria-label="Reset view"
             onClick={onResetCamera}
           >
             <span className="mobile-dock-button__icon" aria-hidden="true">
               ◇
             </span>
-            View
+            Reset
           </button>
         )}
       </nav>

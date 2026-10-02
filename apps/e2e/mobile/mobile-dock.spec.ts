@@ -10,12 +10,15 @@ import { elevateToDM } from "../helpers";
 import { joinMobileTable } from "./mobile.helpers";
 
 test.describe("mobile dock — slot five", () => {
-  test("View for a player, DM for a DM — never a sixth button", async ({ page }) => {
+  test("Reset for a player, DM for a DM — never a sixth button", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await joinMobileTable(page);
 
     const dock = page.getByRole("navigation", { name: /Mobile actions/i });
-    await expect(dock.getByRole("button", { name: /View/i })).toBeVisible();
+    // The word on the button says what it does (a phone has no hover): Reset, named "Reset view".
+    const reset = dock.getByRole("button", { name: "Reset view", exact: true });
+    await expect(reset).toBeVisible();
+    await expect(reset).toHaveText(/Reset/);
     await expect(dock.getByRole("button", { name: /^DM$/i })).toHaveCount(0);
     await expect(dock.getByRole("button")).toHaveCount(5);
 
@@ -23,7 +26,7 @@ test.describe("mobile dock — slot five", () => {
 
     const dmButton = dock.getByRole("button", { name: /^DM$/i });
     await expect(dmButton).toBeVisible();
-    await expect(dock.getByRole("button", { name: /View/i })).toHaveCount(0);
+    await expect(dock.getByRole("button", { name: /Reset view/i })).toHaveCount(0);
     await expect(dock.getByRole("button")).toHaveCount(5);
 
     // The slot opens a real surface in the machine, not a dead end — a
@@ -52,7 +55,10 @@ test.describe("mobile dock — slot five", () => {
       .getByRole("navigation", { name: /Mobile actions/i })
       .getByRole("button", { name: /Tools/i })
       .click();
-    const recenter = page.getByRole("button", { name: /Reset view/i });
+    // The sheet's own tile: the dock's button carries the same name, so scope to the sheet.
+    const recenter = page
+      .locator(".mobile-tool-sheet")
+      .getByRole("button", { name: /Reset view/i });
     const box = (await recenter.boundingBox())!;
     expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
     expect(Math.round(box.width)).toBeGreaterThanOrEqual(44);

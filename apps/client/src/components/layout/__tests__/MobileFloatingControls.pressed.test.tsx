@@ -60,6 +60,9 @@ it("marks Snap as pressed when snapping is on, and not when it is off", () => {
 it("leaves the tiles that open something (actions) without aria-pressed", () => {
   sheet();
   for (const name of ["Table", "Reset view", "Help"]) {
-    expect(screen.getByRole("button", { name })).not.toHaveAttribute("aria-pressed");
+    // "Reset view" is both a tile in the sheet and the dock's button: none carries aria-pressed.
+    for (const button of screen.getAllByRole("button", { name })) {
+      expect(button).not.toHaveAttribute("aria-pressed");
+    }
   }
 });

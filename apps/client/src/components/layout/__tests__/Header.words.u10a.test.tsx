@@ -70,13 +70,19 @@ describe("Reset view's tooltip", () => {
 
   it("is described the same way in the phone's tool sheet", () => {
     render(<MobileFloatingControls {...mobileProps} />);
-    const title = screen.getByRole("button", { name: /Reset view/ }).getAttribute("title") ?? "";
-    expect(title).toBe(RESET_VIEW_TITLE);
+    // The tile in the sheet and the dock's own button (named the same way) both carry it.
+    const buttons = screen.getAllByRole("button", { name: /Reset view/ });
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
+    for (const button of buttons) expect(button.getAttribute("title")).toBe(RESET_VIEW_TITLE);
   });
 
   it("is described the same way on a player's dock button", () => {
     render(<MobileFloatingControls {...mobileProps} surface={"none" as MobileSurface} />);
-    expect(screen.getByRole("button", { name: /View/ })).toHaveAttribute("title", RESET_VIEW_TITLE);
+    // The dock says "Reset" on the button and "Reset view" to a screen reader: a phone has no
+    // hover, so the word on the button is what tells a player what it does.
+    const button = screen.getByRole("button", { name: "Reset view" });
+    expect(button).toHaveAttribute("title", RESET_VIEW_TITLE);
+    expect(button).toHaveTextContent(/Reset/);
   });
 });
 

@@ -106,7 +106,7 @@ describe("actual phone dock launchers", () => {
     const dock = screen.getByRole("navigation", { name: "Mobile actions" });
     expect(within(dock).getAllByRole("button")).toHaveLength(5);
     expect(within(dock).queryByRole("button", { name: "DM" })).toBeNull();
-    expect(within(dock).getByRole("button", { name: "View" })).toBeInTheDocument();
+    expect(within(dock).getByRole("button", { name: "Reset view" })).toBeInTheDocument();
     expect(onToggle).not.toHaveBeenCalled();
   });
 });

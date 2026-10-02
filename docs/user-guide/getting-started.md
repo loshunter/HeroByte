@@ -92,7 +92,7 @@ Any player at a table can enter **DM mode** with that table's DM password. DM mo
 
 ![The DM password prompt](img/dm-elevate-modal.jpg)
 
-You'll get a confirmation toast, plus two new buttons in the top toolbar — **🏗️ Build map** (the [live map editor](map-editor-guide.md)) and **👁 PLAYER VIEW** (the player lens) — and the **🛠️ DM MENU** button at the right of the Party bar (the [DM Guide](dm-guide.md) covers it all). On a phone, the dock's **◇ View** slot becomes **♛ DM**. The Table menu now also offers **⚙️ Table settings…**, which opens the DM Menu on its **Table** tab.
+You'll get a confirmation toast, plus two new buttons in the top toolbar — **🏗️ Build map** (the [live map editor](map-editor-guide.md)) and **👁 PLAYER VIEW** (the player lens) — and the **🛠️ DM MENU** button at the right of the Party bar (the [DM Guide](dm-guide.md) covers it all). On a phone, the dock's **◇ Reset** slot becomes **♛ DM**. The Table menu now also offers **⚙️ Table settings…**, which opens the DM Menu on its **Table** tab.
 
 Notes:
 
