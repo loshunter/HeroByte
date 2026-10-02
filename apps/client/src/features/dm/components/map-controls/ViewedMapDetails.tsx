@@ -45,18 +45,20 @@ export function ViewedMapDetails({
       </div>
       <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
         <JRPGButton
-          style={{ flex: 1, fontSize: "10px" }}
+          style={{ flex: 1, fontSize: "10px", ...(saving ? { opacity: 0.5 } : {}) }}
           title={`Undo ${history}`}
-          disabled={saving || !canUndo}
-          onClick={onUndo}
+          disabled={!canUndo}
+          aria-disabled={saving || undefined}
+          onClick={saving ? undefined : onUndo}
         >
           ↶ Undo edit
         </JRPGButton>
         <JRPGButton
-          style={{ flex: 1, fontSize: "10px" }}
+          style={{ flex: 1, fontSize: "10px", ...(saving ? { opacity: 0.5 } : {}) }}
           title={`Redo ${history}`}
-          disabled={saving || !canRedo}
-          onClick={onRedo}
+          disabled={!canRedo}
+          aria-disabled={saving || undefined}
+          onClick={saving ? undefined : onRedo}
         >
           ↷ Redo edit
         </JRPGButton>

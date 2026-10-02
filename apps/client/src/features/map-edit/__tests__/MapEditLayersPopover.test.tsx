@@ -77,4 +77,38 @@ describe("MapEditLayersPopover", () => {
     fireEvent.change(slider, { target: { value: "0.5" } });
     expect(onUpdateLayer).not.toHaveBeenCalled();
   });
+
+  it("keeps the layer-move buttons focusable while saving, and ignores the press", () => {
+    const onMoveLayer = vi.fn();
+    render(
+      <MapEditLayersPopover
+        layers={layers}
+        saving
+        onUpdateLayer={vi.fn()}
+        onMoveLayer={onMoveLayer}
+      />,
+    );
+    // Walls is index 1 (can move down), Floor is index 0 (can move up).
+    const down = screen.getByRole("button", { name: "Move Walls down" });
+    const up = screen.getByRole("button", { name: "Move Floor up" });
+    for (const button of [down, up]) {
+      expect(button).toBeEnabled();
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(button);
+    }
+    expect(onMoveLayer).not.toHaveBeenCalled();
+  });
+
+  it("still truly disables a move that goes past either end of the stack", () => {
+    render(
+      <MapEditLayersPopover
+        layers={layers}
+        saving={false}
+        onUpdateLayer={vi.fn()}
+        onMoveLayer={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Move Floor down" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Move Walls up" })).toBeDisabled();
+  });
 });

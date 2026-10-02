@@ -53,16 +53,18 @@ export function MapEditLayersPopover({
               </span>
               <button
                 aria-label={`Move ${layer.name} up`}
-                disabled={saving || index === layers.length - 1}
-                onClick={() => onMoveLayer(layer.id, index + 1)}
+                disabled={index === layers.length - 1}
+                aria-disabled={saving || undefined}
+                onClick={() => !saving && onMoveLayer(layer.id, index + 1)}
                 style={iconButtonStyle}
               >
                 ▲
               </button>
               <button
                 aria-label={`Move ${layer.name} down`}
-                disabled={saving || index === 0}
-                onClick={() => onMoveLayer(layer.id, index - 1)}
+                disabled={index === 0}
+                aria-disabled={saving || undefined}
+                onClick={() => !saving && onMoveLayer(layer.id, index - 1)}
                 style={iconButtonStyle}
               >
                 ▼
