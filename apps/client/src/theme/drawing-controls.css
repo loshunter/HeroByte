@@ -106,10 +106,27 @@
   min-width: auto;
 }
 
+/* The tool line is a slot of AT LEAST two lines (11px / 1.4), whatever it says. The
+   descriptions are written to fit two lines in the narrowest place the slot appears (a 320px
+   portrait sheet, or the Tool column of the three-column landscape layout, which starts at
+   640px), because a slot that grew or shrank would move every chip under the finger that
+   armed a tool. Narrower landscape screens (568x320) still stack in one column: a known limit. */
+.mobile-drawing-sheet__hint {
+  min-height: 2.8em;
+}
+
 .mobile-drawing-sheet__history {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
+}
+
+/* A word that cannot fit its History chip (a wide font on a 320px or 640px landscape sheet:
+   "drawing" is wider than the chip's text room) breaks inside it instead of spilling into the
+   next chip. History ONLY: the Tool chips are sized by their longest word on purpose (see
+   `.mobile-drawing-sheet__tools` above), and breaking "Freehand" mid-word would defeat that. */
+.mobile-drawing-sheet__history .mobile-chip {
+  overflow-wrap: anywhere;
 }
 
 .mobile-drawing-sheet.mobile-drawing-sheet--collapsed {
@@ -196,18 +213,10 @@
   margin-top: -6px;
 }
 
-@media (min-width: 700px) and (max-height: 520px) {
+@media (min-width: 640px) and (max-height: 520px) {
   .mobile-drawing-sheet {
     grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr);
     gap: 8px;
-  }
-
-  /* The sheet grows upward from the bottom edge, so the tool chips keep to the bottom of
-     their column: the template hint (above them) can then come and go without lifting
-     the chip under the finger that armed it. (Known: when the Settings column is taller, the
-     Tool heading sits lower than its neighbours' headings; U10b's landscape pass owns it.) */
-  .mobile-drawing-sheet__tool-section {
-    align-self: end;
   }
 
   .mobile-drawing-sheet__history {

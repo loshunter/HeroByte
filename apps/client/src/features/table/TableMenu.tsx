@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom";
 import { JRPGButton, JRPGPanel } from "../../components/ui/JRPGPanel";
 import { EscapeRootProvider, useEscapeOwner, useEscapeRoot } from "../interaction/useEscapeOwner";
+import { usePopoverFocus } from "../interaction/usePopoverFocus";
 import { currentRoomId, listRememberedRooms } from "../rooms/roomDirectory";
 import { TableMenuContent } from "./TableMenuContent";
 import { requestDMMenuTab } from "./menuRequest";
@@ -65,21 +66,24 @@ export const TableMenu: React.FC<{ menu: TableMenuProps }> = ({ menu }) => {
   const popRef = useRef<HTMLDivElement>(null);
   const label = useTableLabel(menu.tableName);
   const escapeRoot = useEscapeRoot(popRef, 2000);
+  const { closeToLauncher, onKeyDown } = usePopoverFocus({ open, popRef, wrapRef, setOpen });
   useEscapeOwner(() => ({
     kind: "popover",
     name: "Table menu",
     active: open && anchor !== null,
     root: escapeRoot,
     anchor: popRef.current,
-    handle: () => setOpen(false),
+    handle: closeToLauncher,
   }));
 
   const toggle = useCallback(() => {
-    setOpen((wasOpen) => {
-      if (!wasOpen) setAnchor(anchorTo(wrapRef.current));
-      return !wasOpen;
-    });
-  }, []);
+    if (open) {
+      closeToLauncher();
+      return;
+    }
+    setAnchor(anchorTo(wrapRef.current));
+    setOpen(true);
+  }, [open, closeToLauncher]);
 
   useEffect(() => {
     if (!open) return;
@@ -123,7 +127,9 @@ export const TableMenu: React.FC<{ menu: TableMenuProps }> = ({ menu }) => {
         style={{ padding: "4px 6px" }}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Table menu: ${label}, ${roleText === "DM" ? "Dungeon Master" : roleText}, ${status}`}
+        // Label in name: the button PRINTS "DM", so the name says "DM" too (speech input
+        // matches what is printed) and keeps "Dungeon Master" for a screen reader.
+        aria-label={`Table menu: ${label}, ${roleText === "DM" ? "DM, Dungeon Master" : roleText}, ${status}`}
         title="Table: your role, preferences and settings"
       >
         <span aria-hidden="true">{menu.isConnected ? "🟢" : "🔴"}</span>
@@ -147,6 +153,8 @@ export const TableMenu: React.FC<{ menu: TableMenuProps }> = ({ menu }) => {
               ref={popRef}
               role="dialog"
               aria-label="Table menu"
+              tabIndex={-1}
+              onKeyDown={onKeyDown}
               style={{
                 position: "fixed",
                 top: anchor.top,

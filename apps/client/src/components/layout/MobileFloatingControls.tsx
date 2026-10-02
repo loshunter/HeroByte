@@ -100,6 +100,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass(null)}
+              aria-pressed={activeTool === null}
               onClick={() => selectTool(null)}
             >
               <span aria-hidden="true">✥</span>
@@ -108,6 +109,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("pointer")}
+              aria-pressed={activeTool === "pointer"}
               title={PING_TITLE}
               onClick={() => selectTool(activeTool === "pointer" ? null : "pointer")}
             >
@@ -117,6 +119,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("measure")}
+              aria-pressed={activeTool === "measure"}
               onClick={() => selectTool(activeTool === "measure" ? null : "measure")}
             >
               <span aria-hidden="true">↔</span>
@@ -125,6 +128,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("draw")}
+              aria-pressed={activeTool === "draw"}
               onClick={() => selectTool(activeTool === "draw" ? null : "draw")}
             >
               <span aria-hidden="true">✎</span>
@@ -133,6 +137,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("transform")}
+              aria-pressed={activeTool === "transform"}
               onClick={() => selectTool(activeTool === "transform" ? null : "transform")}
             >
               <span aria-hidden="true">⤢</span>
@@ -141,6 +146,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("select")}
+              aria-pressed={activeTool === "select"}
               onClick={() => selectTool(activeTool === "select" ? null : "select")}
             >
               <span aria-hidden="true">□</span>
@@ -151,6 +157,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               className={`mobile-tool-sheet__button${
                 snapToGrid ? " mobile-tool-sheet__button--active" : ""
               }`}
+              aria-pressed={snapToGrid}
               onClick={() => onSnapToGridChange(!snapToGrid)}
             >
               <span aria-hidden="true">#</span>

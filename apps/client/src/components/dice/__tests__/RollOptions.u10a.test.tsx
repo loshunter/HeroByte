@@ -36,7 +36,9 @@ describe("RollOptions — who sees this roll", () => {
   });
 
   it("DM names the roller and whoever is in DM mode, and TABLE names everyone at the table", () => {
-    renderOptions("public");
+    // "self" chosen, so TABLE and DM are both unpressed: the PRESSED button no longer
+    // repeats its sentence as a tooltip (U10b; RollOptions.audience.test.tsx).
+    renderOptions("self");
     expect(screen.getByRole("button", { name: "DM" })).toHaveAttribute(
       "title",
       expect.stringMatching(/you and whoever is in DM mode, now or later/i),

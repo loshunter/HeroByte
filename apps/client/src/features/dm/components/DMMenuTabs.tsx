@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { DMMenuTab } from "../hooks/useDMMenuState";
 
@@ -22,11 +23,29 @@ interface DMMenuTabsProps {
    * Desktop keeps the wrap — a 400px window fits it and always has.
    */
   scrollable?: boolean;
+  /**
+   * Changes to a nonzero value when something ("Table settings…") sent the person
+   * here: the active tab takes focus, on mount and again on each later request.
+   */
+  focusRequest?: number;
 }
 
-export function DMMenuTabs({ activeTab, onTabChange, scrollable = false }: DMMenuTabsProps) {
+export function DMMenuTabs({
+  activeTab,
+  onTabChange,
+  scrollable = false,
+  focusRequest = 0,
+}: DMMenuTabsProps) {
+  const stripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusRequest > 0) {
+      stripRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+    }
+  }, [focusRequest]);
+
   return (
     <div
+      ref={stripRef}
       style={
         scrollable
           ? {
@@ -45,6 +64,7 @@ export function DMMenuTabs({ activeTab, onTabChange, scrollable = false }: DMMen
           key={tab}
           onClick={() => onTabChange(tab)}
           variant={activeTab === tab ? "primary" : "default"}
+          aria-pressed={activeTab === tab}
           style={
             scrollable ? { minHeight: "44px", whiteSpace: "nowrap", flex: "0 0 auto" } : undefined
           }

@@ -55,10 +55,17 @@ export function DMElevationModal({
   // behind the dialog) until the person clicked back in. When an attempt fails, put
   // the cursor back with the text selected, so the next try simply replaces it.
   const passwordRef = useRef<HTMLInputElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!isLoading && error) {
-      passwordRef.current?.focus();
-      passwordRef.current?.select();
+      if (passwordRef.current) {
+        passwordRef.current.focus();
+        passwordRef.current.select();
+      } else {
+        // Leave DM mode has no field: both buttons were disabled while the request ran, so
+        // focus fell to the page. Cancel (the first button) takes it back.
+        actionsRef.current?.querySelector("button")?.focus();
+      }
     }
   }, [isLoading, error]);
 
@@ -279,12 +286,18 @@ export function DMElevationModal({
               </div>
             )}
 
-            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+            <div
+              ref={actionsRef}
+              style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}
+            >
               <JRPGButton
                 type="button"
                 onClick={handleCancel}
                 disabled={isLoading}
                 variant="default"
+                // Leave DM mode has no field to autofocus: Cancel, the safe choice, takes focus
+                // so a keyboard user is not left behind the dialog (the Table menu just closed).
+                autoFocus={mode === "revoke"}
               >
                 Cancel
               </JRPGButton>

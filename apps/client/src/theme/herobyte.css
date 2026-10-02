@@ -571,6 +571,33 @@ h4 {
   flex-wrap: wrap;
 }
 
+/* A range input's own outline is off (the slider rule above sets outline: none): keyboard focus
+   must still show, and the Table menu's Volume slider is on the Tab path U10b made the rule. */
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--jrpg-gold);
+  outline-offset: 2px;
+}
+
+/* A failed microphone's one line (what happened, what to do), under the controls and as wide as
+   the card. Body face: it is a sentence, not a label. The region is mounted before it has
+   anything to say (a live region added already filled is not reliably announced), so empty it
+   is clipped to nothing but STAYS in the accessibility tree: display: none would take it out. */
+.player-card-mic-notice:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.player-card-mic-notice {
+  flex: 1 1 100%;
+  margin: 2px 0 0;
+  color: var(--jrpg-gold);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
 .player-card::before {
   content: "";
   position: absolute;
@@ -1473,12 +1500,27 @@ button.token-library-remove:hover {
     min-height: 44px;
   }
 
-  /* Chat's message box lives OUTSIDE a surface on the desktop layout too, so it
-     keeps a rule of its own. Element-qualified, because .jrpg-text-small is
-     mostly used on spans. */
+  /* A text box outside a surface (the desktop layout on a tablet) keeps a rule of its own.
+     Element-qualified, because .jrpg-text-small is mostly used on spans. (Chat's composer
+     left this class for the body face in U10b and is covered by its own rule below.) */
   input.jrpg-text-small,
   textarea.jrpg-text-small {
     min-height: 44px;
+  }
+
+  /* The chat composer: 16px, not the 13px of its desktop text. iOS Safari zooms the
+     whole page when a focused field is under 16px, and on a map app that moves the
+     view every time someone starts typing. Its 44px floor is not set here: it shares
+     a flex row with SEND, which carries the floor, and the row stretches it (measured
+     in mobile/mobile-chat-text.spec.ts on a phone and on a tablet's desktop layout). */
+  input.chat-composer__input {
+    font-size: 16px;
+  }
+
+  /* The Send-to select is a text control too: iOS zooms on focus for any control under 16px.
+     !important because the select carries its 11px inline (it keeps that on a mouse device). */
+  select.chat-composer__target {
+    font-size: 16px !important;
   }
 
   /* The dice build's corner ✕ badges. The surface rule above stretched their
@@ -2224,8 +2266,10 @@ button.token-library-remove:hover {
   white-space: nowrap;
 }
 
-/* The exit holds the 44px floor the rest of the mobile UI honours. */
-.mobile-screen__close {
+/* The exit holds the 44px floor the rest of the mobile UI honours. Scoped with
+   `.jrpg-button`: jrpg.css loads AFTER this file, so at one class apiece its 10px
+   and 6px 12px padding won and the ✕ shipped small in a padded box. */
+.jrpg-button.mobile-screen__close {
   grid-area: close;
   min-width: 44px;
   min-height: 44px;

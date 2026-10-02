@@ -190,6 +190,8 @@ test.describe("the map-edit sheet at its tallest", () => {
       for (const size of [
         { width: 375, height: 812 },
         { width: 812, height: 375 },
+        // The narrowest phone (U10b): Populate's category chips ask for 128px each.
+        { width: 320, height: 568 },
       ]) {
         await page.setViewportSize(size);
         // Give the layout a frame to settle before measuring.

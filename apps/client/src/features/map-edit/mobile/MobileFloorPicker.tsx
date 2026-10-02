@@ -120,6 +120,7 @@ export function MobileFloorPicker({
         ))}
       </div>
       <MobileSwatchRow
+        ariaLabel={`${label} brushes`}
         options={shown.map((entry) => ({
           id: entry.family,
           label: entry.name,

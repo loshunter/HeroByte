@@ -20,6 +20,7 @@ export function CharacterHarness({
   return (
     <>
       <CardControls
+        controlId="fixture-card"
         canControlMic={false}
         canOpenSettings
         micEnabled={false}

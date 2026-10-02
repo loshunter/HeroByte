@@ -245,7 +245,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Area templates",
         detail:
-          "AoE Burst (a circle), Cone, Cube (a square) and Bolt (a line); a line beside the buttons (under them on a desktop, above them on a phone) says what the active one draws. Drag out from the origin; it snaps to whole squares and lands labelled by its shape (“15 ft cone”; a Burst reads “20 ft circle”, its radius; a Cube reads “15 ft square” and a Bolt “30 ft line”).",
+          "AoE Burst (a circle), Cone, Cube (a square) and Bolt (a line); a line beside the buttons (under them on a desktop, above them on a phone) says what the active one draws. Drag out from the origin: a Burst, Cone or Bolt starts at the nearest cell centre, grid corner or cell-edge middle to where you press, and a Cube at the nearest grid corner; the size snaps to whole squares and lands labelled by its shape (“15 ft cone”; a Burst reads “20 ft circle”, its radius; a Cube reads “15 ft square” and a Bolt “30 ft line”).",
       },
       {
         term: "📏 Measure",

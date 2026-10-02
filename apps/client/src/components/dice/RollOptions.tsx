@@ -7,7 +7,7 @@
 // the same reasoning that made chat a tab in the roll log rather than a
 // button of its own.
 
-import React from "react";
+import React, { useId } from "react";
 import type { DiceRollMode, DiceVisibility } from "@herobyte/shared";
 import { JRPGButton } from "../ui/JRPGPanel";
 
@@ -49,6 +49,7 @@ export const RollOptions: React.FC<RollOptionsProps> = ({
   disabled = false,
   compact = false,
 }) => {
+  const audienceId = useId();
   const buttonStyle = compact
     ? { flex: 1, padding: "10px 6px", fontSize: "10px" }
     : { padding: "6px 10px", fontSize: "8px" };
@@ -86,8 +87,11 @@ export const RollOptions: React.FC<RollOptionsProps> = ({
             onClick={() => onVisibilityChange(option.value)}
             variant={visibility === option.value ? "primary" : "default"}
             disabled={disabled}
-            title={compact ? undefined : option.title}
+            // A tooltip says what pressing it will do: the pressed one has nothing left to
+            // say, and its sentence is the line below (its description).
+            title={compact || visibility === option.value ? undefined : option.title}
             aria-pressed={visibility === option.value}
+            aria-describedby={visibility === option.value ? audienceId : undefined}
             style={buttonStyle}
           >
             {option.label}
@@ -97,8 +101,17 @@ export const RollOptions: React.FC<RollOptionsProps> = ({
       {/* A tooltip never shows on a phone, and who can read a roll is the one thing
           here a mistake leaks. */}
       <p
+        id={audienceId}
+        role="status"
         data-testid="roll-audience"
-        style={{ margin: 0, font: "11px/1.4 system-ui, sans-serif", color: "var(--jrpg-white)" }}
+        style={{
+          margin: 0,
+          font: "11px/1.4 system-ui, sans-serif",
+          color: "var(--jrpg-white)",
+          // Phone: a two-line minimum. The three sentences run one to two lines, and a line that
+          // changed height would move every control under it as you choose an audience.
+          ...(compact ? { minHeight: "2.8em" } : {}),
+        }}
       >
         {VISIBILITIES.find((option) => option.value === visibility)?.title}
       </p>

@@ -8,7 +8,7 @@ import {
   DRAWING_TOOL_LABELS,
   TEMPLATE_TOOL_DESCRIPTIONS,
 } from "../drawingTools";
-import { TemplateToolHint } from "./TemplateToolHint";
+import { TEMPLATE_HINT_ID, TemplateToolHint } from "./TemplateToolHint";
 import { DrawingSettings, type DrawingSettingsProps } from "./DrawingSettings";
 
 export interface DrawingToolbarProps extends DrawingSettingsProps {
@@ -40,10 +40,15 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
         key={tool}
         onClick={() => onToolChange(tool)}
         aria-pressed={drawTool === tool}
+        // The description is a tooltip until the tool is active; then the line under the
+        // buttons says it (and is this button's description), so it is not said twice.
         title={
-          tool in TEMPLATE_TOOL_DESCRIPTIONS
+          tool in TEMPLATE_TOOL_DESCRIPTIONS && drawTool !== tool
             ? TEMPLATE_TOOL_DESCRIPTIONS[tool as AreaTemplateTool]
             : undefined
+        }
+        aria-describedby={
+          tool in TEMPLATE_TOOL_DESCRIPTIONS && drawTool === tool ? TEMPLATE_HINT_ID : undefined
         }
         variant={drawTool === tool ? "primary" : "default"}
         style={{

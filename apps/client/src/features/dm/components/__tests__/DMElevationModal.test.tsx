@@ -148,6 +148,24 @@ describe("DMElevationModal — bootstrap mode (table has no DM password yet)", (
 });
 
 describe("DMElevationModal — Leave DM mode", () => {
+  it("puts focus back on Cancel when the attempt fails (both buttons were disabled while it ran, so focus fell to the page)", () => {
+    // While the request runs both buttons are disabled and a disabled button cannot hold focus, so
+    // a dialog mounted in that state has focus on the page, as a browser leaves it.
+    const { rerender, props } = renderModal({ mode: "revoke", currentIsDM: true, isLoading: true });
+    expect(document.activeElement).toBe(document.body);
+    rerender(
+      <DMElevationModal {...props} isLoading={false} error="Revocation request timed out" />,
+    );
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" }));
+  });
+
+  it("takes focus when it opens, on Cancel (the safe choice), so a keyboard user is not left behind it", () => {
+    // The Table menu closes when Leave DM mode is chosen and passes focus to THIS dialog
+    // (U10b, owner's rule 3). The password fields autofocus themselves; this one has none.
+    renderModal({ mode: "revoke", currentIsDM: true });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" }));
+  });
+
   it("is a plain confirm: it says what is kept and how to come back", () => {
     renderModal({ mode: "revoke", currentIsDM: true });
     expect(screen.getByRole("dialog", { name: "Leave DM mode" })).toBeTruthy();

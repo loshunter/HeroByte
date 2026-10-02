@@ -3,7 +3,7 @@
 // ============================================================================
 // Modal for creating a new player character with loading state feedback
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useId } from "react";
 import {
   EscapeRootProvider,
   useEscapeRoot,
@@ -45,6 +45,7 @@ export function CharacterCreationModal({
   onClose,
 }: CharacterCreationModalProps): JSX.Element | null {
   const [characterName, setCharacterName] = useState("");
+  const nameFieldId = useId();
   const [wasCreating, setWasCreating] = useState(false);
 
   // Auto-close when creation completes
@@ -158,10 +159,15 @@ export function CharacterCreationModal({
 
                 {/* Name Input */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                  <label
+                    htmlFor={nameFieldId}
+                    className="jrpg-text-small"
+                    style={{ color: "var(--jrpg-gold)" }}
+                  >
                     Character Name:
                   </label>
                   <input
+                    id={nameFieldId}
                     type="text"
                     value={characterName}
                     onChange={(e) => setCharacterName(e.target.value)}

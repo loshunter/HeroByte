@@ -111,6 +111,9 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
               maxWidth: "400px",
               maxHeight: "100%",
               overflowY: "auto",
+              // The pinned ROLL block (about 70px, about 114px with a two-line refusal) would otherwise cover the
+              // control a keyboard or screen reader scrolls to at the bottom of this box.
+              scrollPaddingBottom: "120px",
               display: "flex",
               flexDirection: "column",
               gap: "12px",
@@ -189,40 +192,55 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
               compact
             />
 
-            {/* Why a roll was refused — see the desktop roller for the reasoning. */}
-            {error && (
-              <div
-                role="alert"
-                data-testid="dice-error"
-                style={{
-                  color: "var(--hero-danger, #FF6B6B)",
-                  fontSize: "12px",
-                  textAlign: "center",
-                }}
-              >
-                {error}
+            {/* Pinned to the bottom of the scrolling box, so ROLL is in reach on a short window
+                without scrolling for it (it was below the fold at 375x450 and 812x375). The
+                refusal ("why a roll was refused": see the desktop roller) lives INSIDE the pinned
+                block, above ROLL: where it sat before, just above ROLL's natural spot, the pinned
+                row would cover it. The ground is opaque so what scrolls under it does not show. */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                position: "sticky",
+                bottom: 0,
+                zIndex: 1,
+                padding: "8px 0 2px",
+                background: "rgb(8, 8, 16)",
+              }}
+            >
+              {error && (
+                <div
+                  role="alert"
+                  data-testid="dice-error"
+                  style={{
+                    color: "var(--hero-danger, #FF6B6B)",
+                    fontSize: "12px",
+                    textAlign: "center",
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <JRPGButton
+                  onClick={clearBuild}
+                  variant="danger"
+                  disabled={build.length === 0}
+                  style={{ flex: 1, padding: "16px", fontSize: "14px" }}
+                >
+                  CLEAR
+                </JRPGButton>
+                <JRPGButton
+                  onClick={roll}
+                  variant="primary"
+                  disabled={build.length === 0 || isAnimating}
+                  aria-label="Roll dice"
+                  style={{ flex: 2, padding: "16px", fontSize: "18px", fontWeight: "bold" }}
+                >
+                  ⚂ ROLL!
+                </JRPGButton>
               </div>
-            )}
-
-            {/* Actions */}
-            <div style={{ display: "flex", gap: "12px" }}>
-              <JRPGButton
-                onClick={clearBuild}
-                variant="danger"
-                disabled={build.length === 0}
-                style={{ flex: 1, padding: "16px", fontSize: "14px" }}
-              >
-                CLEAR
-              </JRPGButton>
-              <JRPGButton
-                onClick={roll}
-                variant="primary"
-                disabled={build.length === 0 || isAnimating}
-                aria-label="Roll dice"
-                style={{ flex: 2, padding: "16px", fontSize: "18px", fontWeight: "bold" }}
-              >
-                ⚂ ROLL!
-              </JRPGButton>
             </div>
 
             {/* Same control as the desktop roller, same slice — the standing rule

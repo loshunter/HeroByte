@@ -103,7 +103,7 @@ describe("TableMenu — the header's Table button", () => {
 
   it("says Dungeon Master for a DM and OFFLINE when the server is lost", () => {
     const { rerender } = render(<TableMenu menu={menuProps({ isDM: true })} />);
-    expect(button()).toHaveAccessibleName("Table menu: Sunday Game, Dungeon Master, online");
+    expect(button()).toHaveAccessibleName("Table menu: Sunday Game, DM, Dungeon Master, online");
     expect(button()).toHaveTextContent("DM");
 
     rerender(<TableMenu menu={menuProps({ isConnected: false })} />);

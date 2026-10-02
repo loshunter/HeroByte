@@ -102,11 +102,17 @@ export function DMMenu({
   presentation = "window",
   launcherDock,
 }: DMMenuProps) {
-  const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
-    useDMMenuState({
-      isDM,
-      characters,
-    });
+  const {
+    open,
+    setOpen,
+    toggleOpen,
+    focusTabRequest,
+    activeTab,
+    setActiveTab,
+    sessionName,
+    setSessionName,
+    npcs,
+  } = useDMMenuState({ isDM, characters });
 
   if (!isDM) {
     return null;
@@ -120,6 +126,7 @@ export function DMMenu({
         activeTab={activeTab}
         onTabChange={setActiveTab}
         scrollable={presentation === "content"}
+        focusRequest={focusTabRequest}
       />
       {activeTab === "map" && (
         <MapTab

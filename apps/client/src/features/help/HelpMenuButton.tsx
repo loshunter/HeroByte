@@ -17,6 +17,7 @@ import { createPortal } from "react-dom";
 import { JRPGButton, JRPGPanel } from "../../components/ui/JRPGPanel";
 import { HelpPanel } from "./HelpPanel";
 import { EscapeRootProvider, useEscapeOwner, useEscapeRoot } from "../interaction/useEscapeOwner";
+import { usePopoverFocus } from "../interaction/usePopoverFocus";
 
 interface Anchor {
   top: number;
@@ -42,21 +43,24 @@ export const HelpMenuButton: React.FC = () => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const escapeRoot = useEscapeRoot(popRef, 2000);
+  const { closeToLauncher, onKeyDown } = usePopoverFocus({ open, popRef, wrapRef, setOpen });
   useEscapeOwner(() => ({
     kind: "popover",
     name: "Help",
     active: open && anchor !== null,
     root: escapeRoot,
     anchor: popRef.current,
-    handle: () => setOpen(false),
+    handle: closeToLauncher,
   }));
 
   const toggle = useCallback(() => {
-    setOpen((wasOpen) => {
-      if (!wasOpen) setAnchor(anchorTo(wrapRef.current));
-      return !wasOpen;
-    });
-  }, []);
+    if (open) {
+      closeToLauncher();
+      return;
+    }
+    setAnchor(anchorTo(wrapRef.current));
+    setOpen(true);
+  }, [open, closeToLauncher]);
 
   useEffect(() => {
     if (!open) return;
@@ -119,6 +123,8 @@ export const HelpMenuButton: React.FC = () => {
               ref={popRef}
               role="dialog"
               aria-label="HeroByte help"
+              tabIndex={-1}
+              onKeyDown={onKeyDown}
               style={{
                 position: "fixed",
                 top: anchor.top,

@@ -40,6 +40,14 @@ export interface DMMenuState {
   toggleOpen: () => void;
 
   /**
+   * Counts the requests ("Table settings…") that opened or moved the menu, 0 when
+   * the menu was opened any other way: the tab strip focuses its active tab when
+   * this changes to a nonzero value, so focus follows the person to what they
+   * asked for. Forgotten when the menu closes.
+   */
+  focusTabRequest: number;
+
+  /**
    * The currently active tab in the DM menu
    */
   activeTab: DMMenuTab;
@@ -124,6 +132,7 @@ export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMM
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
   const [sessionName, setSessionName] = useState("table-backup");
+  const [focusTabRequest, setFocusTabRequest] = useState(0);
 
   /**
    * Memoized list of NPCs filtered from all characters
@@ -148,6 +157,10 @@ export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMM
    */
   const isDMRef = useRef(isDM);
   isDMRef.current = isDM;
+  // Declared BEFORE the request effect: on mount both run, and the request's ask must win.
+  useEffect(() => {
+    if (!open) setFocusTabRequest(0);
+  }, [open]);
   useEffect(() => {
     const takeRequest = () => {
       // Always taken (so it cannot linger), but honoured for a DM only: a request made for
@@ -156,6 +169,7 @@ export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMM
       if (tab && isDMRef.current) {
         setActiveTab(tab);
         setOpen(true);
+        setFocusTabRequest((count) => count + 1);
       }
     };
     takeRequest();
@@ -176,6 +190,7 @@ export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMM
     open,
     setOpen,
     toggleOpen,
+    focusTabRequest,
     activeTab,
     setActiveTab,
     sessionName,

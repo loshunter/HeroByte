@@ -1,6 +1,12 @@
 // ============================================================================
 // CHAT TAB - table talk inside the roll-log panel
 // ============================================================================
+// Text here is read, so it takes the body face (`.jrpg-text-body`, 13 px) rather than
+// the 8 px pixel face `jrpg-text-small` gives; the controls (SEND, "Send to") keep the
+// pixel face at 11 px, the size the stylesheet uses for functional labels (set inline here).
+// On a coarse pointer the composer and the Send-to select are 16 px instead (herobyte.css: iOS
+// zooms the page when a focused control is under 16 px).
+//
 // A sibling of RollEntry rather than more lines in RollLog, for the same
 // reason RollEntry moved out: the shell hosts tabs, the tabs own their own
 // bodies.
@@ -80,7 +86,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
         <div ref={scrollerRef} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {messages.length === 0 ? (
             <div
-              className="jrpg-text-small"
+              className="jrpg-text-body"
               style={{
                 textAlign: "center",
                 color: "var(--jrpg-white)",
@@ -102,7 +108,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
                 <div
                   key={message.id}
                   data-testid="chat-message"
-                  className="jrpg-text-small"
+                  className="jrpg-text-body"
                   style={{
                     color: "var(--jrpg-white)",
                     // Whispers read as set apart without relying on colour alone.
@@ -151,12 +157,13 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
               if (recipient)
                 setTarget({ uid: recipient.uid, name: recipient.name, needsChoice: false });
             }}
-            className="jrpg-text-small"
+            className="jrpg-text-small chat-composer__target"
             style={{
               minWidth: 0,
               background: "var(--jrpg-black)",
               color: "var(--jrpg-white)",
               padding: "4px",
+              fontSize: "11px",
             }}
           >
             <option value={WHOLE_TABLE}>Everyone</option>
@@ -175,8 +182,8 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
         {targetUnavailable && (
           <div
             role="status"
-            className="jrpg-text-small"
-            style={{ color: "var(--jrpg-gold)", fontSize: "11px", lineHeight: 1.6 }}
+            className="jrpg-text-tiny"
+            style={{ color: "var(--jrpg-gold)", lineHeight: 1.6 }}
           >
             {recipientMissing
               ? "Recipient unavailable."
@@ -199,7 +206,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
               }
             }}
             placeholder={target.uid === WHOLE_TABLE ? "Say something..." : "Whisper something..."}
-            className="jrpg-text-small"
+            className="jrpg-text-body chat-composer__input"
             style={{
               flex: 1,
               minWidth: 0,
@@ -212,7 +219,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
             onClick={send}
             disabled={targetUnavailable}
             variant="primary"
-            style={{ fontSize: "8px", padding: "6px 12px" }}
+            style={{ fontSize: "11px", padding: "6px 12px" }}
           >
             SEND
           </JRPGButton>

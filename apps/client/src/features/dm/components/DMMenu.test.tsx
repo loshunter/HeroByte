@@ -29,13 +29,15 @@ vi.mock("../../../components/ui/JRPGPanel", () => {
   const JRPGButton = ({
     children,
     onClick,
+    "aria-pressed": ariaPressed,
   }: {
     children: React.ReactNode;
     onClick?: () => void;
     variant?: string;
     style?: React.CSSProperties;
+    "aria-pressed"?: boolean;
   }) => (
-    <button type="button" onClick={onClick}>
+    <button type="button" onClick={onClick} aria-pressed={ariaPressed}>
       {children}
     </button>
   );
@@ -337,10 +339,22 @@ describe("DMMenu", () => {
       expect(screen.getByRole("heading", { name: "Permissions" })).toBeInTheDocument();
     });
 
+    it("hands focus to the Table tab it opened on (and not for the launcher's own open)", () => {
+      render(<DMMenu {...createProps()} />);
+      fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: /DM MENU/i }));
+
+      act(() => requestDMMenuTab("table"));
+
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "Table" }));
+    });
+
     it("is taken on mount by the phone's DM screen, which mounts after the tap", () => {
       requestDMMenuTab("table");
       render(<DMMenu {...createProps()} presentation="content" />);
       expect(screen.getByRole("heading", { name: "Permissions" })).toBeInTheDocument();
+      // ...and hands focus to the tab it opened on, as the desktop window does.
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "Table" }));
     });
 
     it("drops a request made while the viewer was no DM, so it cannot open the menu at the next elevation", () => {

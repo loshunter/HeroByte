@@ -361,6 +361,7 @@ export const PlayerCard = memo<PlayerCardProps>(
         />
 
         <CardControls
+          controlId={characterId ?? player.uid}
           canControlMic={isMe}
           canOpenSettings={isMe || viewerIsDM}
           micEnabled={micEnabled}

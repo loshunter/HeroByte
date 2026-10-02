@@ -21,18 +21,24 @@ export interface MobileSwatchOption<T extends string | number> {
   stroke?: string;
 }
 
-interface MobileSwatchRowProps<T extends string | number> {
-  /** Omitted when a parent section already carries the heading. */
-  label?: string;
+/**
+ * The group is always NAMED: by a visible `label`, or, where a parent section already
+ * carries the heading, by `ariaLabel`. One or the other is required (a bare
+ * role="group" is announced as "group"), so a new call site cannot leave it unnamed.
+ */
+type Naming = { label: string; ariaLabel?: never } | { label?: never; ariaLabel: string };
+
+type MobileSwatchRowProps<T extends string | number> = Naming & {
   options: readonly MobileSwatchOption<T>[];
   selected: T;
   onSelect: (id: T) => void;
   /** Narrowest a chip may be, in px: long labels get fewer, wider columns than the sheet's four. */
   minChipPx?: number;
-}
+};
 
 export function MobileSwatchRow<T extends string | number>({
   label,
+  ariaLabel,
   options,
   selected,
   onSelect,
@@ -50,6 +56,7 @@ export function MobileSwatchRow<T extends string | number>({
         className="mobile-tool-sheet__grid"
         role="group"
         aria-labelledby={label ? labelId : undefined}
+        aria-label={label ? undefined : ariaLabel}
         style={
           minChipPx
             ? { gridTemplateColumns: `repeat(auto-fill, minmax(${minChipPx}px, 1fr))` }

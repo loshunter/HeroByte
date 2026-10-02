@@ -1,7 +1,11 @@
 import type { DrawTool } from "@herobyte/shared";
 import { CancelGestureButton } from "../features/interaction/CancelGestureButton";
-import { DRAWING_TOOLS, DRAWING_TOOL_LABELS } from "../features/drawing/drawingTools";
-import { TemplateToolHint } from "../features/drawing/components/TemplateToolHint";
+import {
+  DRAWING_TOOLS,
+  DRAWING_TOOL_HINT_DEFAULT,
+  DRAWING_TOOL_LABELS,
+  TEMPLATE_TOOL_DESCRIPTIONS,
+} from "../features/drawing/drawingTools";
 import {
   DrawingSettings,
   type DrawingSettingsProps,
@@ -40,10 +44,18 @@ export function MobileDrawingControls(props: MobileDrawingControlsProps): JSX.El
         <>
           <section aria-label="Drawing tool" className="mobile-drawing-sheet__tool-section">
             <h3 className="drawing-section-title">Tool</h3>
-            {/* Above the chips, not below: the sheet is pinned to the bottom of the screen and
-                grows upward, so a line inserted under them would lift every chip by its own
-                height the moment a template is armed — under the finger that armed it. */}
-            <TemplateToolHint tool={drawTool} />
+            {/* Above the chips, not below, and ALWAYS present at a fixed two-line height: the
+                sheet is pinned to the bottom of the screen and grows upward, so a line that
+                came and went would lift every chip by its own height the moment a template
+                is armed, under the finger that armed it. A status, so arming one is said. */}
+            <p
+              className="drawing-toolbar__help mobile-drawing-sheet__hint"
+              role="status"
+              data-testid="drawing-tool-hint"
+            >
+              {TEMPLATE_TOOL_DESCRIPTIONS[drawTool as keyof typeof TEMPLATE_TOOL_DESCRIPTIONS] ??
+                DRAWING_TOOL_HINT_DEFAULT}
+            </p>
             <div className="mobile-drawing-sheet__tools">
               {DRAWING_TOOLS.map((tool) => (
                 <button

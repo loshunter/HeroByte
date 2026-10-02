@@ -9,6 +9,7 @@ import { afterEach } from "vitest";
 import { Header, type ToolMode } from "../Header";
 import { MobileFloatingControls } from "../MobileFloatingControls";
 import type { MobileSurface } from "../../../hooks/useMobileSurface";
+import { HELP_TOPICS } from "../../../features/help/helpTopics";
 import { PING_TITLE, RESET_VIEW_TITLE } from "../viewWords";
 import type { MapEditToolbarProps } from "../../../features/map-edit/mapEditTypes";
 import type { TableMenuProps } from "../../../features/table/tableMenuProps";
@@ -88,13 +89,19 @@ describe("Ping's tooltip", () => {
     // Fog hides a PLAYER's ping from players who cannot see the spot, but a DM's ping
     // (the narrator's) reaches everyone (recipientFilter.ts): the tooltip says both.
     expect(title).toBe(PING_TITLE);
-    expect(title).toMatch(/A player's ping reaches the DM and the players who can see that spot/);
-    expect(title).toMatch(/a DM's ping reaches everyone/);
+    expect(title).toMatch(/A player’s ping reaches the DM and the players who can see that spot/);
+    expect(title).toMatch(/a DM’s ping reaches everyone/);
     expect(title).not.toMatch(/everyone sees/i);
   });
 
-  it("is described on the phone too", () => {
+  it("the phone's Ping tile carries the same tooltip as the header's Ping button", () => {
     render(<MobileFloatingControls {...mobileProps} />);
     expect(screen.getByRole("button", { name: /Ping/ })).toHaveAttribute("title", PING_TITLE);
+  });
+
+  it("the tooltip and the help say who sees a ping in the same words, apostrophes included", () => {
+    const audience = PING_TITLE.slice(PING_TITLE.indexOf("A player"));
+    expect(audience).toMatch(/^A player’s ping reaches/);
+    expect(JSON.stringify(HELP_TOPICS)).toContain(audience);
   });
 });

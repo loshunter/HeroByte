@@ -150,7 +150,10 @@ it("honors IME flags and tracked composition before a subsequent ordinary Escape
   expect(screen.getByTestId("tool")).toHaveTextContent("draw");
 });
 
-it("respects a prevented input Escape, then closes without adding launcher focus return", () => {
+// U2 pinned "no launcher focus return" because focus did not yet move into the
+// popover. U10b (owner's Q5) made it a rule: Escape returns focus to the launcher
+// (TableMenu.focus.test.tsx holds the rest of the focus contract).
+it("respects a prevented input Escape, then closes and returns focus to the launcher", () => {
   render(<Harness />);
   const button = openMenu();
   const volume = screen.getByRole("slider", { name: "Volume" });
@@ -162,7 +165,7 @@ it("respects a prevented input Escape, then closes without adding launcher focus
   expect(escape(volume).defaultPrevented).toBe(true);
   expect(button).toHaveAttribute("aria-expanded", "false");
   expect(screen.getByTestId("tool")).toHaveTextContent("draw");
-  expect(document.activeElement).toBe(document.body);
+  expect(document.activeElement).toBe(button);
 });
 
 it("stays open behind a higher root instead of flattening its own layer", () => {

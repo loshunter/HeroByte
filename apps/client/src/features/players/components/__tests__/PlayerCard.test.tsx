@@ -182,12 +182,14 @@ vi.mock("../HPBar", () => ({
 
 vi.mock("../CardControls", () => ({
   CardControls: ({
+    controlId,
     canControlMic,
     canOpenSettings,
     micEnabled,
     onToggleMic,
     onOpenSettings,
   }: {
+    controlId: string;
     canControlMic: boolean;
     canOpenSettings: boolean;
     micEnabled: boolean;
@@ -195,6 +197,7 @@ vi.mock("../CardControls", () => ({
     onOpenSettings: () => void;
   }) => (
     <div data-testid="card-controls">
+      <span data-testid="card-controls-id">{controlId}</span>
       <span data-testid="card-controls-can-control-mic">{String(canControlMic)}</span>
       <span data-testid="card-controls-can-open-settings">{String(canOpenSettings)}</span>
       <span data-testid="card-controls-mic-enabled">{String(micEnabled)}</span>
@@ -1799,6 +1802,15 @@ describe("PlayerCard", () => {
     });
 
     describe("CardControls props", () => {
+      it("receives the character's id as controlId (so each of a player's cards is its own mic control), else the player's uid", () => {
+        render(<PlayerCard {...createDefaultProps({ characterId: "char-9" })} />);
+        expect(screen.getByTestId("card-controls-id")).toHaveTextContent("char-9");
+        cleanup();
+        const bare = createDefaultProps({ characterId: undefined });
+        render(<PlayerCard {...bare} />);
+        expect(screen.getByTestId("card-controls-id")).toHaveTextContent(bare.player.uid);
+      });
+
       it("receives canControlMic as isMe", () => {
         const props = createDefaultProps({ isMe: true });
         render(<PlayerCard {...props} />);
