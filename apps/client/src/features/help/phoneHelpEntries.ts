@@ -5,17 +5,17 @@ import type { HelpEntry } from "./helpTopics";
 export const DELETE_ENTRY: HelpEntry = {
   term: "Delete",
   detail:
-    "Select and press Delete — only what you own, and it asks first. A phone has no Delete key: erase drawings with the Draw sheet's Erase drawings (Undo drawing takes back the last one), delete your props in Props, and a DM deletes map pieces with Select → 🗑 Delete and NPCs in the NPC editor.",
+    "Select and press Delete — only what you own, and it asks first. A phone has no Delete key: Tools → Draw → Erase drawings (Undo drawing takes back your latest), Tools → Props (when the DM allows player props) → Delete on your prop, and a DM uses ♛ DM → 🏗️ Edit the live map → 👆 Select → 🗑 Delete for map pieces and ♛ DM → NPCs & Monsters → Delete for an NPC. A player's own token cannot be deleted on a phone.",
 };
 
 export const CORRECT_A_ROLL_ENTRY: HelpEntry = {
   term: "Correct a roll",
   detail:
-    "Where the table allows entering a roll by hand, open a roll in 📜 Rolls and use ENTER A ROLL BY HAND to replace it with what the real dice showed: your own, or any if you are the DM. Desktop only for an older roll in the log; on a phone you can correct your latest roll from the roller.",
+    "Where the table allows entering a roll by hand, open a roll in 📜 Rolls and press ✋ THAT'S NOT WHAT I ROLLED (✋ CHANGE IT AGAIN once corrected) to replace it with what the real dice showed: your own, or any if you are the DM. On a phone, only the roll you just made, on its result card before you close it; correcting an older roll from the log is desktop only.",
 };
 
 export const HP_ENTRY: HelpEntry = {
   term: "HP",
   detail:
-    "Click either number to type a value, or drag along the bar to scrub it. Temp HP is the number on the line below. On a phone, tap a number on your row in ◉ PARTY.",
+    "Click either number to type a value, or drag along the bar to scrub it. Temp HP is the number on the line below. On a phone, tap a number on your row in ◉ PARTY (a DM: on any row).",
 };

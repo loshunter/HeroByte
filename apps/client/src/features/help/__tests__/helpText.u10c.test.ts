@@ -42,7 +42,10 @@ describe("help text, after the U10c review", () => {
     expect(entry(tokens, /^Delete$/)).toMatch(/A phone has no Delete key/);
     expect(entry(tokens, /^Delete$/)).toMatch(/Erase drawings/);
     const dice = HELP_TOPICS.find((t) => t.id === "dice")!;
-    expect(entry(dice, /Correct a roll/)).toMatch(/Desktop only for an older roll/);
+    expect(entry(dice, /Correct a roll/)).toMatch(/THAT'S NOT WHAT I ROLLED/);
+    expect(entry(dice, /Correct a roll/)).not.toMatch(/ENTER A ROLL BY HAND/);
+    expect(entry(dice, /Correct a roll/)).toMatch(/older roll from the log is desktop only/);
+    expect(entry(tokens, /^Delete$/)).toMatch(/A player's own token cannot be deleted on a phone/);
     const table = HELP_TOPICS.find((t) => t.id === "table")!;
     expect(entry(table, /^INIT$/)).toMatch(
       /Clear Initiative \(on a phone: ⚙️ EDIT → Clear Initiative\)/,
