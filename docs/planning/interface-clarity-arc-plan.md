@@ -1,5 +1,18 @@
 # Interface clarity — the first session should teach the table — arc plan
 
+> **STATUS: U10b (KEYBOARD, FOCUS, TOUCH) ACCEPTED, COMMITTED (`51ef5bf3`) ON `dev` — 2026-10-02.**
+> Both header popovers take focus in, return it only on Escape or the toggle, hand it to what an item
+> opens and never trap Tab; the phone ✕ is 18 px; chat is readable (13 px body face, 16 px composer on
+> touch); a failed microphone says what failed, beside the control, instead of a blocking alert; the
+> phone drawing sheet and dice roller hold still and keep their controls in reach; names, groups and
+> pressed states on the changed surfaces. Review ended at the 3-round cap (P1 1 → 1 → 0, P2 14 → 10 → 5),
+> every item repaired, then one fresh read of the last repairs (0 P1, 4 P2, all repaired); ladder green
+> (358 browser/3 skips, 7,814 client units, 159.64 KB). The owner kept the always-present tool line (the
+> 31 px on a 320×568 phone is a known limit); see [the U10b record](../verification/interface-clarity-u10b.md).
+> U10c is next; the merge to `main` is not started.
+>
+> Previous status (U10a):
+>
 > **STATUS: U10a (THE WORDS) ACCEPTED AND COMMITTED ON `dev` (NOT PUSHED) — 2026-10-01.**
 > U10 was split into U10a (words), U10b (keyboard, focus, touch) and U10c (journeys, the audit
 > ledger, the comparison report, the arc-level review). U10a is accepted and committed: the four template shapes say what they draw; the camera reset is **Reset view**

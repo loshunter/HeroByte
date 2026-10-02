@@ -7,7 +7,11 @@
 
 ## Frontier
 
-- Latest U10a (2026-10-01, the words; accepted, committed on `dev`, not pushed): above `59030162`. Review:
+- Latest U10b (2026-10-02, keyboard, focus and touch; ACCEPTED, `51ef5bf3` on `dev`): committed above `319be12a`. Review: three rounds of four Opus lenses (P1 1 → 1 → 0, P2 14 → 10 → 5; round 3 three FAIL one PASS),
+  every item repaired, then one fresh read (4 P2, repaired). Ladder green on the final tree: 452/2,792/7,813 units, 358
+  browser/3 skips, 159.64 KB; about 90 mutants killed (four documented survivors); Verdana pass found and fixed two
+  defects. Live two-client ≈ 8.2 before the repairs. See the [U10b record](interface-clarity-u10b.md).
+- Previous U10a (2026-10-01, the words; accepted, committed on `dev`, not pushed): above `59030162`. Review:
   three rounds of four Opus lenses, all FAIL (P1 2 → 1 → 1, P2 ~18 → ~10 → 9) then one fresh read of the
   repairs (0 P1, 3 P2, fixed); the owner chose "repair P1+P2, no round 4". Ladder green on the final
   tree: 452/2,786/7,703 units, 321 browser/3 skips, 157.94 KB; 34 unit mutants and 3 browser mutants,

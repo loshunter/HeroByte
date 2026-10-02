@@ -10,7 +10,12 @@ and latest execution ledger before relying on these identifiers.
 
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
-**Latest U10a frontier (2026-10-01):** U10a (the words) is accepted and committed on `dev` (not pushed); see [the U10a record](../verification/interface-clarity-u10a.md) for what it
+**Latest U10b frontier (2026-10-02):** U10b (keyboard, focus, touch) is ACCEPTED and committed on `dev` (`51ef5bf3`); see [the U10b record](../verification/interface-clarity-u10b.md) for what it changes, the
+review (3-round cap; P1 1 → 1 → 0, P2 14 → 10 → 5), the live evaluation (≈ 8.2), what the wide-font pass found, the
+known limits and the owner's answers (the 31 px kept; one fresh read of the last repairs, done). U10c
+(journeys, ledger, report, arc review) closes the arc and is not started.
+
+**Previous U10a frontier (2026-10-01):** U10a (the words) is accepted and committed on `dev` (not pushed); see [the U10a record](../verification/interface-clarity-u10a.md) for what it
 changes, the review, the findings that belong to U10b (a named list) and the open questions. U10b
 (keyboard, focus, touch) is next; U10c (journeys, ledger, report, arc review) closes the arc.
 

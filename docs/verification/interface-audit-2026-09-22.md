@@ -4,7 +4,12 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
-**Latest implementation checkpoint (2026-10-01):** U10a (the words) addresses IA-19 (labels, help and
+**Latest implementation checkpoint (2026-10-01):** U10b (keyboard, focus, touch) finishes IA-20 (small,
+unlabelled or hover-only controls) and the accessibility half of U10: popover focus, the phone ✕, readable chat,
+named groups and pressed states, a persistent microphone failure line, and phone sheets that hold still. Accepted,
+committed (`51ef5bf3`). See [the U10b record](interface-clarity-u10b.md).
+
+**Previous implementation checkpoint (2026-10-01):** U10a (the words) addresses IA-19 (labels, help and
 permission text drift): template shapes explained, Reset view, shared Populate/Generate words, the
 shelf's name, the private-dice audience, the wrong-file messages. IA-20 (small, unlabelled or hover-only
 controls) is U10b's. Accepted and committed on `dev`, not pushed. See
