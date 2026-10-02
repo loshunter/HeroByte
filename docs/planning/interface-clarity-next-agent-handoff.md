@@ -10,8 +10,8 @@ and latest execution ledger before relying on these identifiers.
 
 Continue the existing HeroByte interface-clarity arc with the same standard of evidence, small changes, and bounded review. The owner wanted a first-time player/DM audit of confusing menus, discoverability, and inconsistent interactions such as drawing versus terrain painting, followed by implementation in the project's slice style. The audit and plan already exist. Do not restart them or replace the JRPG/CRT identity.
 
-**Latest frontier (2026-10-02): the arc is built, with named deferrals.** U10c (journeys, the audit's disposition ledger, the comparison
-report, the arc-level review) is done on `dev`; see [the U10c record](../verification/interface-clarity-u10c.md) and
+**Latest frontier (2026-10-02): the arc is built, with named deferrals; U10d closed its phone-parity gaps (see [the U10d record](../verification/interface-clarity-u10d.md)).** U10c (journeys, the audit's disposition ledger, the comparison
+report, the arc-level review) is ACCEPTED and pushed (`3c4f659c`, CI #917 green); U10d's commits (`99c09cf9` through `4ef5a21e`) are **local, unpushed, no CI yet**; see [the U10c record](../verification/interface-clarity-u10c.md) and
 [the report](../verification/interface-clarity-report.md). Nothing is left to build in U1–U10 except what the record lists as deferred; what remains is the owner's:
 accept U10c, decide the deferrals (the U10c record's questions), push `dev`, and decide the merge to `main` (the record
 ends with the list to do first). There is no next slice.

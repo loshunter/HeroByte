@@ -75,7 +75,7 @@ Your token is your presence on the map:
 - **Recolor** — double-click your token for a new random color.
 - **Select** — click it. **Shift-click** adds to a selection, **Ctrl/Cmd-click** toggles. With the **🖱️ SELECT** tool you can drag a marquee to grab several tokens and drawings at once, then drag any one of them to move the whole group.
 - **Resize / rotate** — with the **🔄 TRANSFORM** tool, click a token for Photoshop-style handles: 8 scale handles plus a rotation handle above (rotation snaps to 45°; hold **Ctrl/Cmd** to rotate freely). The center crosshair drags the object.
-- **Delete** — select and press **Delete** (you can only delete what you own; a confirm dialog lists the exact casualties).
+- **Delete** — select and press **Delete** (you can only delete what you own; a confirm dialog lists the exact casualties). Props are deleted in the **Props** panel. A phone has no Delete key: **Tools → Draw → Erase drawings** or **Undo drawing** for your drawings; your own token cannot be deleted on a phone (ask the DM to remove it, or use a computer).
 - **Locked** tokens (🔒 badge) can't be moved or deleted until unlocked — DMs use this to pin scenery and important pieces.
 - **Ping** — double-click (or double-tap) empty map space to drop a quick ping, in any tool mode. A player's ping reaches the DM and the players who can see that spot; a DM's ping reaches everyone.
 
@@ -129,7 +129,7 @@ There are two ways in, and they cover the two moments you need them:
 
 Either way the entry wears a **BY HAND** badge in the log, in its own colour, with anything it replaced struck through. Nothing typed is ever dressed up as something the server rolled. Correct the same roll twice and the struck-through number stays the app's **original** roll, which is the one worth being able to check.
 
-You can correct your own rolls; the DM can correct anybody's. And your DM can switch hand entry off for players entirely (**DM Menu → Table → Permissions**), in which case the app's dice are the only way in.
+You can correct your own rolls; the DM can correct anybody's. On a phone, only the roll you just made, on its result card before you close it; correcting an older roll from the log is desktop only. And your DM can switch hand entry off for players entirely (**DM Menu → Table → Permissions**), in which case the app's dice are the only way in.
 
 ### Advantage and disadvantage
 

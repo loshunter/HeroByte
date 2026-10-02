@@ -7,7 +7,8 @@
 
 ## Frontier
 
-- Latest U10c (2026-10-02, the journeys, the audit ledger, the report, the arc review; READY FOR THE OWNER, not pushed):
+- Latest U10d (2026-10-02, phone parity; see the [U10d record](interface-clarity-u10d.md)): Temp HP and Clear Initiative on the phone (`99c09cf9`), Help's phone paths (`22f1621e`, `971f5fde`, `4ef5a21e`), the Temp HP editor opening at the current value (`2394d105`), the line-guard repair (`60ff0f60`) and the prop-Delete notice (`209bb19c`).
+- Previous U10c (2026-10-02, the journeys, the audit ledger, the report, the arc review; READY FOR THE OWNER, not pushed):
   above `335bf94f`. Fixes found by the journeys and the review, each its own commit: ambient and Layers sliders keep
   focus while saving (`9a4e1456`), NPC card button names (`40d59a42`), Grid slider names (`42782656`), collapsed
   sections leave the Tab order (`94e67d92`), layer Move and Undo/Redo edit keep focus (`7d5bc64e`), glyph-only and HP

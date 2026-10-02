@@ -101,9 +101,9 @@ step-to-spec map below). A step is a pass only where the visible control was fou
 | Invite | **Live:** the clipboard was not granted in the pane, so the **manual link** appeared (no password, no `sessionUid`); the card says "Players also need the table password" | Spec | |
 | Current table map | **Live:** Build map → "On table: no map yet" → **Start live map** | Live: DM menu → Maps shows "On table: Live Map Oct 2" | |
 | Build room / hallway / door | **Live:** Structures group, a room (grass floor, "Decorate last room"), a hallway, a door across the opening | Spec | |
-| Grass paint / sample / erase | **Live:** Paint, Erase (a pit appeared), Sample (it routed back to Paint with Grass) | Spec for paint (the default material) and erase (`mobile-map-edit-paint.spec.ts:74`); **terrain Sample on a phone is driven by no spec** (the phone Sample spec samples a placed object) | |
+| Grass paint / sample / erase | **Live:** Paint, Erase (a pit appeared), Sample (it routed back to Paint with Grass) | Spec for paint (the default material) and erase (`mobile-map-edit-paint.spec.ts:74`); **terrain Sample on a phone is driven by no spec** (the phone Sample spec samples a placed object); nor is the phone's rename or self-condition | |
 | Light / ambient | **Live:** Lighting group; ambient 100 → 70 by keyboard (found **F1**, fixed); Place light was armed and the map clicked (the new light was not independently confirmed) | Spec | |
-| Player preview | **Live:** Player View is `aria-pressed`; toggled on and off | **No phone route** (the button is in `Header.tsx` only; Help now says "Desktop only") | No spec clicks it |
+| Player preview | **Live:** Player View is `aria-pressed`; toggled on and off | **No phone route: desktop-only by the owner's ruling (U10d)**; the button is in `Header.tsx` only and Help says "Desktop only" | No spec clicks it |
 | Done | **Live:** Done building closed the tools | Spec | |
 
 Map space for a DM, measured at the end of this journey (party drawer open, "next steps" card dismissable):
@@ -123,8 +123,8 @@ participant** (the turn passed to its successor on both clients and the player's
 (both clients inactive, initiatives kept). HP and conditions were set on the player's character in Journey 1 and not
 again here. Spec covers Place and hide/reveal on desktop (`interface-encounter.spec.ts`) and the phone's Encounter tab, initiative and turns (`mobile-encounter.spec.ts`).
 **Not covered by a spec or live:** the phone's Previous, Remove and library batch, NPC placement through the UI on a
-phone, and **editing Temp HP on a phone** (the phone row wires no Temp HP editor: `MobilePlayerRow.tsx:258` passes a
-no-op, a pre-arc simplification).
+phone. (**Temp HP** and **Clear Initiative** on a phone did not exist at U10c's close; U10d built them and drives them
+with `mobile-temp-hp.spec.ts` and `mobile-clear-initiative.spec.ts`.)
 
 ### Journey 4 — World and recovery
 
@@ -202,12 +202,17 @@ RED first; mutants were run for most (the record says which); the commits are li
 | O-6 | `prefers-reduced-motion` is honoured by the CRT filter, the sparkle, and the Game-feel default (`data-motion`); the **infinite** CSS loops (shimmer, glow-pulse, the low-HP flash, bounce, the loading spin) are not gated. | **Deferred**: which loops are essential (the spinner) is the owner's call. |
 | O-7 | Two characters spawn at the same map cell, so their nameplates overprint. | Open, minor; pre-existing. |
 
-**Phone-parity gaps the review found, documented and not built** (each is a feature, not a repair; the owner decides):
-**Player View** has no phone route (a DM on a phone cannot preview the players' view); **Temp HP** cannot be edited on a
-phone; Clear Initiative on a player's own character, **deleting a selection** (Help says "press Delete" for phones
-too), and correcting an older roll from the log have no phone route; the phone's rename, self-condition and terrain
-Sample are driven by no spec. **Phone dialogs** (Party, Table, Props, Kick, Help, Tools) do not move focus in or return
-it on ✕ (Chat and DM do): a keyboard or screen-reader user on a phone is the case.
+**Phone-parity gaps the review found: resolved in U10d (2026-10-02), with the exceptions named below.** **Temp HP** and **Clear Initiative** on your own
+character now exist on the phone (the Party row's number; the character sheet's Initiative Status). **Deleting a
+selection** was not an orphan: the phone already deletes map pieces (Select → 🗑 Delete), props (Props), NPCs (the NPC
+editor) and drawings (Erase drawings, Undo drawing), so only Help's "press Delete" lacked a phone path (it has one now).
+**Player View** and **correcting an older roll from the log** are ruled **desktop-only** (rare, deliberate desk tasks) and
+Help says so. **Also desktop-only:** Voice (Help says "Desktop only"), unlocking a locked map element (Help does not yet say so: open),
+deleting your own token (Help says so), and removing an NPC token from the table by Delete (an NPC is deleted in the
+NPC editor). A player's own token cannot be deleted on a phone (ruled desktop-only; Help says to ask the DM or use a
+computer); Delete on a selection of props now says "Props are deleted in the Props panel." with the app's toast.
+**Still open:** phone dialogs (Party, Table, Props, Kick, Help, Tools) do not move focus in or return it
+on ✕ (Chat and DM do): a keyboard or screen-reader user on a phone is the case.
 
 **Open, not built:** names that do not say *which* item ("Open player settings", "Set Initiative", Place on Map /
 Duplicate / Delete on an NPC, Remove / Select All on a player, two "Upload image" buttons in one window); and
@@ -230,8 +235,8 @@ on a private table), Q10 (a restore brings back a seat's record), Q13 (DM-author
 ## 7. Does a newcomer complete the table loop on both input models?
 
 On this evidence, **yes for the loop as an expert walks it, with named exceptions**: on desktop every step of the five
-journeys has a visible, named entry point; on a phone every step does **except Player View** (desktop only) and
-editing Temp HP, and the phone's focus handling in some dialogs is open (section 5). The cross-client claims held
+journeys has a visible, named entry point; on a phone every step does **except Player View** and correcting an older
+roll from the log, both ruled desktop-only (section 5), and the phone's focus handling in some dialogs is open. The cross-client claims held
 between two live clients where they were checked: a private roll stayed with its roller (desktop and phone), the
 DM's chat log carried the whisper, combat state agreed after Next, Previous, Remove and End, and the DM's Party bar
 showed the rename. That a whisper reaches **only** its recipient needs a third client and is carried by

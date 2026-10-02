@@ -1,6 +1,6 @@
 # U10c — the journeys, the audit ledger and the arc's close
 
-**Status: READY FOR THE OWNER. Not pushed.** U10b was accepted, fresh-read, committed (`51ef5bf3`) and pushed with `dev`
+**Status: ACCEPTED, PUSHED (`3c4f659c`, CI #917 green); the phone-parity gaps below were closed by [U10d](interface-clarity-u10d.md).** U10b was accepted, fresh-read, committed (`51ef5bf3`) and pushed with `dev`
 (`335bf94f`); CI #916 passed on it before U10c began. U10c is the last part of U10: the five plan section 7 journeys, the
 audit's disposition ledger, the comparison report and the arc-level review. It found and fixed real defects on the
 way (own commits, below). `main` is `7f63156b` (2026-09-22) and holds none of this arc.
@@ -83,7 +83,7 @@ focus still on the slider). The later repairs (collapsed sections, the dock's Re
 | Functionality (0.35) | 8.5 | every driven step worked on both input models; the keyboard walk found one real defect (F1) |
 | Multiplayer integrity (0.30) | 8.5 | the private roll never reached the other client (desktop and phone), combat state agreed after Next, Previous, Remove and End, the DM's chat log carried the whisper and the DM's Party bar the rename |
 | Craft (0.20) | 7.5 | overprinting nameplates for two tokens at one cell, the roller's scrim showing an open Draw sheet, Help opening on World, the dock's "View" (since fixed) |
-| Reach (0.15) | 8 | the phone sweep found no control under 44 px; **a DM cannot preview Player View on a phone and cannot edit Temp HP there**; no real device |
+| Reach (0.15) | 8 | the phone sweep found no control under 44 px; **a DM cannot preview Player View on a phone (ruled desktop-only in U10d) and could not edit Temp HP there (built in U10d)**; no real device |
 | **Weighted** | **≈ 8.2** | U10b 8.2, U10a 8.0 |
 
 ## Review
@@ -115,7 +115,7 @@ viewport" claim, the downloads claim, the "none unnamed" claim, the `disabled` i
 and IA-01's ledger cells, wrong baselines and counts.
 
 **Recorded as deferrals, not built** (each is product work, listed in the report section 5 with its reason): Player View
-and Temp HP editing on a phone; phone dialogs' focus in and out; names that do not say which item; "Objects" naming;
+on a phone (later ruled desktop-only) and Temp HP editing on a phone (later built; both in U10d); phone dialogs' focus in and out; names that do not say which item; "Objects" naming;
 the remaining `disabled` buttons; the infinite CSS loops under reduced motion; Help's topic order.
 Server P3s the state lens raised, **not U10 and not changed**: changing a character's owner skips the claim path's
 legacy temp-HP/portrait settling; a malformed default record in the secret file drops private tables' passwords; the
@@ -152,7 +152,7 @@ repairs, no round 4"; the remaining items are P3 or deferrals, listed above and 
 - **Not run live because they download a file** (the owner's permission is needed first): Save character, table backup,
   map export. Save character and the table backup are downloaded by specs; **no spec downloads a map export**.
 - The Invite button's clipboard write never settled in the built-in pane; the manual-link fallback appeared.
-- **A phone has no Player View, no Temp HP editor, no Clear Initiative on your own character, no way to delete a selection and no way to correct an older roll from the log**, and its dialogs (Party, Table, Props, Kick, Help, Tools) do not
+- **At U10c's close a phone had no Player View, no Temp HP editor, no Clear Initiative on your own character, no way to delete a selection and no way to correct an older roll from the log** (all settled in U10d: [the record](interface-clarity-u10d.md)), and its dialogs (Party, Table, Props, Kick, Help, Tools) do not
   move focus in or return it (report section 5).
 - Reduced motion: the infinite CSS loops (shimmer, glow-pulse, the low-HP flash, bounce, the loading spin) are not gated
   by `prefers-reduced-motion`; the CRT, the sparkle and the Game-feel default are. **Deferred:** which loops are
@@ -165,13 +165,14 @@ repairs, no round 4"; the remaining items are P3 or deferrals, listed above and 
 ## Questions for the owner
 
 1. **Accept U10c**, and when to push `dev` (about a dozen fix commits and the docs; the owner decides).
-2. **Phone parity.** Build a **Player View** and a **Temp HP editor** on the phone (each is a small feature, in the arc's
+2. **Phone parity** (answered 2026-10-02: build Temp HP and Clear Initiative, rule Player View and correcting an older roll
+   desktop-only, Help for the Delete path: done in [U10d](interface-clarity-u10d.md)). The question as asked: build a **Player View** and a **Temp HP editor** on the phone (each is a small feature, in the arc's
    own rule "every part ships its phone surface"), or leave them documented as desktop-only (Help now says so for Player
    View)? There are also three more capabilities with no phone route (report section 5): Clear Initiative on your own character, deleting a selected token or drawing (Help's "press Delete" gives no phone path), and correcting an older roll from the log. The plan's U10 "Done when" (no capability orphaned) is not met on a phone
    until these are built or ruled desktop-only.
 3. **The deferrals.** IA-01 (a further regrouping of the DM header: three rows at 1280/1366, no control unreachable at
    200 %), IA-19's remainder (Help's topic order, the quick wheel's Paint/Erase, "Decorate from" vs "From", Ping's "right
-   now", the Delete entry's missing phone path), `.table-menu-button` at 10 px against a stylesheet that says 8,
+   now", the Delete entry's missing phone path, since given in U10d), `.table-menu-button` at 10 px against a stylesheet that says 8,
    "Objects" wording, names that do not say which item, reduced motion's infinite loops, phone dialogs' focus.
    Take them into a later arc, or ask for one now?
 4. **The remaining 36 `disabled` controls** (a list above). Leave them, or give them the same `aria-disabled` treatment?

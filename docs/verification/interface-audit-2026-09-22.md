@@ -4,7 +4,11 @@
 **Disposition:** audit and planning only; no application implementation or deployment.
 **Implementation proposal:** [Interface clarity arc](../planning/interface-clarity-arc-plan.md).
 
-**Latest implementation checkpoint (2026-10-02):** U10c (the journeys, this ledger, the comparison report and the
+**Latest implementation checkpoint (2026-10-02, later):** U10d closed the phone-parity gaps U10c's review found: Temp HP
+and Clear Initiative on the phone; Player View and correcting an older roll ruled desktop-only; Help's phone path for
+Delete. See [the U10d record](interface-clarity-u10d.md).
+
+**Previous implementation checkpoint (2026-10-02):** U10c (the journeys, this ledger, the comparison report and the
 arc-level review) closes the arc: the five plan section 7 journeys were walked with a DM and a player client on desktop,
 phone and tablet; the disposition ledger below gives every finding a disposition (three fixed in part with named
 deferrals, none not reproduced); the report is [interface-clarity-report.md](interface-clarity-report.md). See
