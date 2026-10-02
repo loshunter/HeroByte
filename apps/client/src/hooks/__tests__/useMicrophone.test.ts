@@ -72,7 +72,11 @@ it("a mute stops the stream, the level loop and the audio context, and a restart
   const close = vi.fn(() => Promise.resolve());
   (globalThis as { AudioContext?: unknown }).AudioContext = function () {
     return {
-      createAnalyser: () => ({ fftSize: 0, frequencyBinCount: 4, getByteFrequencyData: () => {} }),
+      createAnalyser: () => ({
+        fftSize: 0,
+        frequencyBinCount: 4,
+        getByteFrequencyData: (data: Uint8Array) => data.fill(128),
+      }),
       createMediaStreamSource: () => ({ connect: () => {} }),
       close,
     };
@@ -87,8 +91,12 @@ it("a mute stops the stream, the level loop and the audio context, and a restart
     });
   await press();
   expect(result.current.micEnabled).toBe(true);
+  // A live mic reports a real level (the fake analyser reads 128/255), so the 0 below can
+  // only be the mute's own report, not the start's first read.
+  expect(result.current.micLevel).toBeGreaterThan(0.4);
   await press();
   expect(result.current.micEnabled).toBe(false);
+  expect(result.current.micLevel).toBe(0);
   // The browser's mic light goes out only when every track is stopped.
   expect(a.stop).toHaveBeenCalledTimes(2);
   expect(close).toHaveBeenCalledTimes(1);

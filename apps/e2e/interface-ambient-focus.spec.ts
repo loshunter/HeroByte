@@ -24,9 +24,13 @@ async function slowReplies(page: Page, ms: { current: number }) {
     (route) => {
       const server = route.connectToServer();
       route.onMessage((message) => server.send(message));
+      // Frames keep their order: each waits for the one before it, then for its own delay.
+      let chain = Promise.resolve();
       server.onMessage((message) => {
-        if (ms.current === 0) route.send(message);
-        else setTimeout(() => route.send(message), ms.current);
+        const due = Date.now() + ms.current;
+        chain = chain
+          .then(() => new Promise((r) => setTimeout(r, Math.max(0, due - Date.now()))))
+          .then(() => route.send(message));
       });
       route.onClose((code, reason) => void server.close({ code, reason }));
       server.onClose((code, reason) => void route.close({ code, reason }));
@@ -62,20 +66,25 @@ test("the ambient light slider keeps keyboard focus while its change is saved", 
       );
 
     delay.current = 1500;
-    await slider.press("ArrowLeft");
-    // The change is on its way and not yet acknowledged: the slider says so, and a key
-    // pressed now still lands on it.
-    await expect.poll(waiting).toBe(true);
-    await expect(slider).toBeFocused();
-    await slider.press("ArrowLeft");
-    await expect(slider).toBeFocused();
+    // dm.keyboard, not slider.press: press() focuses its target first, which would hide the
+    // very thing under test (focus being lost while the change is saved).
+    await dm.keyboard.press("ArrowLeft");
+    // The change is on its way and not yet acknowledged: the slider says so, and focus is
+    // still on it in that same window (not only later, once it is back).
+    await expect.poll(waiting, { timeout: 1000 }).toBe(true);
+    // Read once, not retried: a retry could wait out the hold and miss a focus that was lost
+    // for the whole of the save.
+    const focused = () => slider.evaluate((el) => el === document.activeElement);
+    expect(await focused()).toBe(true);
+    await dm.keyboard.press("ArrowLeft");
+    expect(await focused()).toBe(true);
 
     delay.current = 0;
     await expect.poll(waiting, { timeout: 15_000 }).toBe(false);
     await expect(slider).toBeFocused();
     await expect(slider).toHaveValue("0.95");
     // And the next step after the save works without going back to find the slider.
-    await slider.press("ArrowLeft");
+    await dm.keyboard.press("ArrowLeft");
     await expect(slider).toHaveValue("0.9");
     await expect(slider).toBeFocused();
   } finally {
