@@ -739,12 +739,15 @@ function AuthenticatedApp({
     [snapshot?.characters, startMaxHpEdit],
   );
 
-  // Wrap startTempHpEdit to match MainLayout's signature (uid only)
+  // Wrap startTempHpEdit to match MainLayout's signature (uid only), and open the field on the
+  // CURRENT temp HP: it used to open at 0, so leaving it without typing (every way out of a
+  // field on a phone, which has no Escape) wrote 0 over whatever the character had.
   const handleStartTempHpEdit = useCallback(
     (uid: string) => {
       startTempHpEdit(uid);
+      updateTempHpInput(String(snapshot?.characters?.find((c) => c.id === uid)?.tempHp ?? 0));
     },
-    [startTempHpEdit],
+    [snapshot?.characters, startTempHpEdit, updateTempHpInput],
   );
 
   // Transform mapSceneObject to extract only needed properties

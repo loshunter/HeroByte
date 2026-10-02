@@ -15,7 +15,11 @@ test("a player sets their initiative, then clears it from the phone's character 
   const hero = () =>
     page.evaluate(() => {
       const snap = window.__HERO_BYTE_E2E__?.snapshot;
-      return snap?.characters?.find((c) => c.type === "pc") ?? null;
+      return (
+        snap?.characters?.find(
+          (c) => c.type === "pc" && c.ownedByPlayerUID === window.__HERO_BYTE_E2E__?.uid,
+        ) ?? null
+      );
     });
   await page
     .getByRole("navigation", { name: /Mobile actions/i })

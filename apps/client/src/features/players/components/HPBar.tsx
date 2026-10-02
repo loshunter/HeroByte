@@ -171,6 +171,7 @@ export const HPBar: React.FC<HPBarProps> = ({
         {isEditingHp ? (
           <input
             type="number"
+            className="hp-bar__input"
             aria-label="Current HP"
             value={hpInput}
             onChange={(e) => onHpInputChange(e.target.value)}
@@ -203,6 +204,7 @@ export const HPBar: React.FC<HPBarProps> = ({
         {isEditingMaxHp ? (
           <input
             type="number"
+            className="hp-bar__input"
             aria-label="Max HP"
             value={maxHpInput}
             onChange={(e) => onMaxHpInputChange(e.target.value)}
@@ -238,6 +240,7 @@ export const HPBar: React.FC<HPBarProps> = ({
           {isEditingTempHp ? (
             <input
               type="number"
+              className="hp-bar__input"
               aria-label="Temp HP"
               value={tempHpInput}
               onChange={(e) => onTempHpInputChange(e.target.value)}

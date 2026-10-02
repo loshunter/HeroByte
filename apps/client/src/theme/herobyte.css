@@ -1509,6 +1509,12 @@ button.token-library-remove:hover {
     min-height: 44px;
   }
 
+  /* The HP fields a tap opens: 16px for the same reason (they carry 8px inline, so !important). */
+  input.hp-bar__input {
+    font-size: 16px !important;
+    min-width: 44px;
+  }
+
   /* The chat composer: 16px, not the 13px of its desktop text. iOS Safari zooms the
      whole page when a focused field is under 16px, and on a map app that moves the
      view every time someone starts typing. Its 44px floor is not set here: it shares
