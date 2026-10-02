@@ -17,6 +17,7 @@ import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import { npcDispositionLook } from "./npcDisposition";
 import { tempHpEdit, tokenImageEdit } from "../npcUpdate";
+import { npcSettingsProps, npcVisibilityProps } from "./npcButtonNames";
 
 interface NpcCardProps {
   character: SnapshotCharacter;
@@ -291,11 +292,7 @@ export function NpcCard({
               const newVisibility = character.visibleToPlayers === false;
               onToggleVisibility(character.id, newVisibility);
             }}
-            title={
-              character.visibleToPlayers === false
-                ? "Hidden from players (click to show)"
-                : "Visible to players (click to hide)"
-            }
+            {...npcVisibilityProps(character)}
           >
             {character.visibleToPlayers === false ? "👁️‍🗨️" : "👁️"}
           </button>
@@ -308,7 +305,7 @@ export function NpcCard({
               padding: "var(--player-card-control-padding, 4px 8px)",
             }}
             onClick={handleSettingsToggle}
-            title="NPC settings"
+            {...npcSettingsProps(character)}
           >
             ⚙️
           </button>

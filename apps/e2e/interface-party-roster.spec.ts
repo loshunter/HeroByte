@@ -148,7 +148,7 @@ test.describe("U7 — the compact Party", () => {
 
       // Place its token from its card's settings, then Focus it.
       const inspector = await openCharacterDetails(dm, goblin);
-      await inspector.getByRole("button", { name: "⚙️" }).click();
+      await inspector.getByRole("button", { name: /^NPC settings/ }).click();
       await dm.getByRole("button", { name: "Place Token" }).click();
       await expect(goblin.getByRole("button", { name: "Focus Goblin" })).toBeVisible();
       // PLACE ON MAP drops it on the top-left cell, onto the DM's own token:
@@ -230,7 +230,7 @@ test.describe("U7 — the compact Party", () => {
         await takesItsOwnClick(inspector.locator(".jrpg-hp-bar"));
       }
       const npcInspector = await openCharacterDetails(dm, rosterRow(dm, "Goblin").first());
-      await takesItsOwnClick(npcInspector.getByRole("button", { name: "⚙️" }));
+      await takesItsOwnClick(npcInspector.getByRole("button", { name: /^NPC settings/ }));
       await takesItsOwnClick(npcInspector.locator(".jrpg-hp-bar"));
 
       // The pre-U7 obstruction (IA-15): all cards open, launchers docked. Counted

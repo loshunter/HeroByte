@@ -46,7 +46,7 @@ describe("EntitiesPanel — an NPC's Focus", () => {
 // offered.
 describe("EntitiesPanel — an NPC's token settings", () => {
   const openSettings = () =>
-    fireEvent.click(within(ogreCard()).getByRole("button", { name: "⚙️" }));
+    fireEvent.click(within(ogreCard()).getByRole("button", { name: /^NPC settings/ }));
 
   it("offers Lock and Size while its token is on the map", () => {
     renderCards([{ id: "t-ogre", owner: DM_UID, x: 3, y: 2, color: "#f00" }]);

@@ -111,7 +111,7 @@ describe("EntitiesPanel roster — a player sees permitted actions only", () => 
     expect(within(row("Ogre")).queryByText(/HP \d/)).toBeNull();
     open("Ogre");
     // No DM-only settings gear on a player's screen, not even a disabled one.
-    expect(within(inspector()).queryByRole("button", { name: "⚙️" })).toBeNull();
+    expect(within(inspector()).queryByRole("button", { name: /^NPC settings/ })).toBeNull();
   });
 });
 
@@ -135,7 +135,7 @@ describe("EntitiesPanel roster — the DM's NPC equivalents", () => {
     expect(props.onFocusToken).toHaveBeenCalledWith("t-goblin");
 
     open("Goblin");
-    fireEvent.click(within(inspector()).getByRole("button", { name: "⚙️" }));
+    fireEvent.click(within(inspector()).getByRole("button", { name: /^NPC settings/ }));
     const character = screen.getByRole("region", { name: "Character" });
     expect(screen.getByRole("region", { name: "Token settings" })).toBeInTheDocument();
     fireEvent.click(within(character).getByRole("button", { name: "No Effects" }));
@@ -150,7 +150,7 @@ describe("EntitiesPanel roster — the DM's NPC equivalents", () => {
     renderAs(DM_UID, { characters: [ranger, goblin], onNpcDelete });
 
     open("Goblin");
-    fireEvent.click(within(inspector()).getByRole("button", { name: "⚙️" }));
+    fireEvent.click(within(inspector()).getByRole("button", { name: /^NPC settings/ }));
     fireEvent.click(screen.getByRole("button", { name: "Delete NPC" }));
 
     expect(onNpcDelete).toHaveBeenCalledWith("npc-goblin");
