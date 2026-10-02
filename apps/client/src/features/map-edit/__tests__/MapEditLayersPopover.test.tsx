@@ -60,4 +60,21 @@ describe("MapEditLayersPopover", () => {
     );
     expect(screen.getByRole("button", { name: "Hide Floor" })).toBeDisabled();
   });
+
+  it("keeps an opacity slider focusable while saving (a disabled control loses keyboard focus)", () => {
+    const onUpdateLayer = vi.fn();
+    render(
+      <MapEditLayersPopover
+        layers={layers}
+        saving
+        onUpdateLayer={onUpdateLayer}
+        onMoveLayer={vi.fn()}
+      />,
+    );
+    const slider = screen.getByRole("slider", { name: "Floor opacity" });
+    expect(slider).toBeEnabled();
+    expect(slider).toHaveAttribute("aria-disabled", "true");
+    fireEvent.change(slider, { target: { value: "0.5" } });
+    expect(onUpdateLayer).not.toHaveBeenCalled();
+  });
 });

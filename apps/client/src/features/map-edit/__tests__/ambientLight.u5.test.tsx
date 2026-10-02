@@ -30,6 +30,24 @@ describe("U5 ambient light lives in Lighting", () => {
     }
   });
 
+  it("keeps the phone Layers sliders focusable while saving (a disabled control loses keyboard focus)", () => {
+    const onUpdateLayer = vi.fn();
+    render(
+      <MobileLayersPanel
+        layers={propertyDocument().layers}
+        open
+        saving
+        onUpdateLayer={onUpdateLayer}
+      />,
+    );
+    for (const slider of screen.getAllByRole("slider")) {
+      expect(slider).toBeEnabled();
+      expect(slider).toHaveAttribute("aria-disabled", "true");
+      fireEvent.change(slider, { target: { value: "0.5" } });
+    }
+    expect(onUpdateLayer).not.toHaveBeenCalled();
+  });
+
   it("associates endpoint help uniquely and exposes a gesture's draft percentage", () => {
     const props = { layers: propertyDocument().layers, saving: false, onUpdateLayer: vi.fn() };
     render(

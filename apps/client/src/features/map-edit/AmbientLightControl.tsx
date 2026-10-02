@@ -75,7 +75,10 @@ export function AmbientLightControl({
             max={1}
             step={0.05}
             value={value}
-            disabled={saving}
+            // Waiting for the server is said with aria-disabled, never `disabled`: a browser
+            // takes focus off a control that becomes disabled, and a keyboard user stepping the
+            // slider would be put back at the top of the page after every step.
+            aria-disabled={saving || undefined}
             onChange={(event) => {
               if (saving) return;
               pending.current = Number(event.target.value);

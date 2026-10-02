@@ -80,7 +80,9 @@ export function MapEditLayersPopover({
               max={1}
               step={0.05}
               value={layer.opacity}
-              disabled={saving}
+              // aria-disabled, not `disabled`: a disabled slider drops keyboard focus (see
+              // AmbientLightControl).
+              aria-disabled={saving || undefined}
               onChange={(event) => {
                 if (saving) return;
                 onUpdateLayer(layer.id, { opacity: Number(event.target.value) });

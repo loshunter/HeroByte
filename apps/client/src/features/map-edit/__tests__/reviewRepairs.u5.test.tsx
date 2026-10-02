@@ -37,7 +37,12 @@ describe("U5 interrupted-review regressions", () => {
     view.rerender(
       <AmbientLightControl layers={propertyDocument().layers} saving onUpdateLayer={update} />,
     );
-    expect(slider).toBeDisabled();
+    // Waiting is aria-disabled and NOT disabled: a disabled control loses keyboard focus.
+    expect(slider).toBeEnabled();
+    expect(slider).toHaveAttribute("aria-disabled", "true");
+    expect(slider).toHaveValue("0.2");
+    fireEvent.change(slider, { target: { value: "0.8" } });
+    expect(update).toHaveBeenCalledTimes(1);
     expect(slider).toHaveValue("0.2");
   });
 
