@@ -73,8 +73,10 @@ export function GridAlignmentWizard({
   onAlignmentCancel,
   onAlignmentApply,
 }: GridAlignmentWizardProps) {
+  // A locked grid hides the wizard, but never while an alignment is under way: Cancel and
+  // Apply must stay reachable.
   return (
-    <CollapsibleSection isCollapsed={gridLocked ?? false}>
+    <CollapsibleSection isCollapsed={(gridLocked ?? false) && !alignmentModeActive}>
       <JRPGPanel variant="simple" title="Grid Alignment Wizard">
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <span className="jrpg-text-body">
