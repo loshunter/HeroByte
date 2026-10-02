@@ -164,6 +164,7 @@ export function MapEditActiveSettings({
                 onClick={() => onRotateStamp(-1)}
                 style={{ fontSize: "8px", padding: "6px 4px" }}
                 title="Rotate counter-clockwise (Shift+R)"
+                aria-label={`Rotate counter-clockwise, now ${stampRotation}°`}
               >
                 ↺ {stampRotation}°
               </JRPGButton>
@@ -171,6 +172,7 @@ export function MapEditActiveSettings({
                 onClick={() => onRotateStamp(1)}
                 style={{ fontSize: "8px", padding: "6px 4px" }}
                 title="Rotate clockwise (R)"
+                aria-label="Rotate clockwise"
               >
                 ↻
               </JRPGButton>

@@ -84,6 +84,7 @@ describe("RollLog - Long Formula Formatting", () => {
 
     // Should show expand button (⋯)
     expect(screen.getByTitle("Expand formula")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show the whole formula" })).toBeInTheDocument();
   });
 
   it("should show hint text for long formulas", () => {

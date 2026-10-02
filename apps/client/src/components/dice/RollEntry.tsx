@@ -196,6 +196,7 @@ export const RollEntry: React.FC<{
                 flexShrink: 0,
               }}
               title="Expand formula"
+              aria-label="Show the whole formula"
             >
               ⋯
             </button>

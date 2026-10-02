@@ -118,7 +118,7 @@ describe("GeneratePanel", () => {
   it("rerolls the seed", () => {
     const props = renderPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: "⟳" }));
+    fireEvent.click(screen.getByRole("button", { name: "Roll a new seed" }));
 
     expect(props.onRerollSeed).toHaveBeenCalledTimes(1);
   });

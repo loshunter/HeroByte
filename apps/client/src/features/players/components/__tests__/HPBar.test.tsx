@@ -185,6 +185,14 @@ describe("HPBar", () => {
       expect(onHpEdit).not.toHaveBeenCalled();
     });
 
+    it("names the HP fields it opens (a number box with no name reads as an unnamed spin button)", () => {
+      const first = render(<HPBar {...createDefaultProps({ isEditingHp: true, hpInput: "85" })} />);
+      expect(screen.getByRole("spinbutton", { name: "Current HP" })).toHaveValue(85);
+      first.unmount();
+      render(<HPBar {...createDefaultProps({ isEditingMaxHp: true, maxHpInput: "90" })} />);
+      expect(screen.getByRole("spinbutton", { name: "Max HP" })).toHaveValue(90);
+    });
+
     it("shows input field when isEditingHp is true", () => {
       const props = createDefaultProps({ isEditingHp: true, hpInput: "85" });
       render(<HPBar {...props} />);

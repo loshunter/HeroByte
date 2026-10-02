@@ -121,7 +121,12 @@ export function GeneratePanel({
         >
           {params.seed}
         </span>
-        <JRPGButton onClick={onRerollSeed} title="Roll a new seed" style={cell}>
+        <JRPGButton
+          onClick={onRerollSeed}
+          title="Roll a new seed"
+          aria-label="Roll a new seed"
+          style={cell}
+        >
           ⟳
         </JRPGButton>
       </div>

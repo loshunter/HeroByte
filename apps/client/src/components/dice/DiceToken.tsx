@@ -179,6 +179,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
             lineHeight: 1,
           }}
           title="Remove"
+          aria-label={`Remove ${token.qty}${token.die}`}
         >
           ×
         </button>
@@ -278,6 +279,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
             lineHeight: 1,
           }}
           title="Remove"
+          aria-label={`Remove modifier ${token.value > 0 ? "+" : ""}${token.value}`}
         >
           ×
         </button>
