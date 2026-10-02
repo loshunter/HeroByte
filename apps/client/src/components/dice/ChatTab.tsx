@@ -179,18 +179,20 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
             ))}
           </select>
         )}
-        {targetUnavailable && (
-          <div
-            role="status"
-            className="jrpg-text-tiny"
-            style={{ color: "var(--jrpg-gold)", lineHeight: 1.6 }}
-          >
-            {recipientMissing
-              ? "Recipient unavailable."
-              : "Recipient returned; confirm your choice."}{" "}
-            Choose a recipient or Everyone before sending.
-          </div>
-        )}
+        {/* Always mounted, empty until a recipient goes away: a live region that appears already
+            filled is not reliably announced (empty it is clipped, see herobyte.css). */}
+        <div
+          role="status"
+          className="jrpg-text-tiny chat-recipient-status"
+          style={{ color: "var(--jrpg-gold)", lineHeight: 1.6 }}
+        >
+          {targetUnavailable &&
+            `${
+              recipientMissing
+                ? "Recipient unavailable."
+                : "Recipient returned; confirm your choice."
+            } Choose a recipient or Everyone before sending.`}
+        </div>
         <div style={{ display: "flex", gap: "4px" }}>
           <input
             aria-label="Chat message"

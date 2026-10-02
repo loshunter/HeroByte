@@ -32,6 +32,14 @@ function attemptBothSendPaths() {
   fireEvent.click(screen.getByRole("button", { name: "SEND" }));
 }
 
+describe("the recipient status line", () => {
+  it("is mounted, and empty, before any recipient goes away (a live region that appears already filled is not reliably announced)", () => {
+    prepare();
+    const status = screen.getByRole("status");
+    expect(status).toBeEmptyDOMElement();
+  });
+});
+
 describe("whisper destination changes", () => {
   it.each([false, true])(
     "preserves a draft and unavailable recipient (another target=%s)",
@@ -62,7 +70,7 @@ describe("whisper destination changes", () => {
       attemptBothSendPaths();
       expect(onSendChat).not.toHaveBeenCalled();
       choose(destination);
-      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(screen.getByRole("status")).toBeEmptyDOMElement();
       expect(screen.getByRole("button", { name: "SEND" })).toBeEnabled();
       expect(screen.getByRole("textbox", { name: "Chat message" })).toHaveValue(secret);
       fireEvent.click(screen.getByRole("button", { name: "SEND" }));

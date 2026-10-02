@@ -582,7 +582,8 @@ input[type="range"]:focus-visible {
    the card. Body face: it is a sentence, not a label. The region is mounted before it has
    anything to say (a live region added already filled is not reliably announced), so empty it
    is clipped to nothing but STAYS in the accessibility tree: display: none would take it out. */
-.player-card-mic-notice:empty {
+.player-card-mic-notice:empty,
+.chat-recipient-status:empty {
   position: absolute;
   width: 1px;
   height: 1px;
