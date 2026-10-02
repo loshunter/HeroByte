@@ -85,6 +85,8 @@ export function GridControl({
               max={500}
               step={5}
               value={gridSize}
+              aria-label="Grid size"
+              aria-valuetext={`${gridSize} pixels`}
               onChange={(event) => onGridSizeChange(Number(event.target.value))}
               style={{ width: "100%" }}
             />
@@ -106,6 +108,8 @@ export function GridControl({
               max={100}
               step={1}
               value={Math.min(100, Math.max(1, gridSquareSize))}
+              aria-label="Square size"
+              aria-valuetext={`${formatSquareSize(gridSquareSize)} feet`}
               onChange={(event) => onGridSquareSizeChange?.(Number(event.target.value))}
               disabled={!onGridSquareSizeChange}
               style={{ width: "100%" }}
