@@ -6,7 +6,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { RoomSnapshot } from "@herobyte/shared";
-import { useKeyboardShortcuts, type UseKeyboardShortcutsOptions } from "../useKeyboardShortcuts";
+import {
+  PROPS_NOT_HERE,
+  useKeyboardShortcuts,
+  type UseKeyboardShortcutsOptions,
+} from "../useKeyboardShortcuts";
 
 const NOOP_DRAWING = { canUndo: false, canRedo: false, handleUndo: () => {}, handleRedo: () => {} };
 
@@ -69,5 +73,65 @@ describe("useKeyboardShortcuts — typing-surface guard", () => {
     renderHook(() => useKeyboardShortcuts(baseOptions({ undoSelection })));
     dispatchOn(input, { key: "z", ctrlKey: true });
     expect(undoSelection).not.toHaveBeenCalled();
+  });
+});
+
+// Delete on a selection that holds props: they are not deleted by the key (they have their own
+// panel) and it used to say nothing. A short toast now points to the panel (U10d).
+describe("useKeyboardShortcuts — Delete and props", () => {
+  const PROP_SNAPSHOT = {
+    sceneObjects: [
+      { id: "prop:p1", locked: false, owner: "dm" },
+      { id: "token:t1", locked: false, owner: "dm" },
+    ],
+  } as unknown as RoomSnapshot;
+
+  it("says where props are deleted when the selection holds only props", () => {
+    const notify = vi.fn();
+    const sendMessage = vi.fn();
+    renderHook(() =>
+      useKeyboardShortcuts(
+        baseOptions({
+          selectedObjectIds: ["prop:p1"],
+          snapshot: PROP_SNAPSHOT,
+          sendMessage,
+          notify,
+        }),
+      ),
+    );
+    dispatchOn(window, { key: "Delete" });
+    expect(notify).toHaveBeenCalledExactlyOnceWith(PROPS_NOT_HERE);
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("says nothing when the selection holds no prop", () => {
+    const notify = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() =>
+      useKeyboardShortcuts(
+        baseOptions({ selectedObjectIds: ["token:t1"], snapshot: PROP_SNAPSHOT, notify }),
+      ),
+    );
+    dispatchOn(window, { key: "Delete" });
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("deletes the tokens of a mixed selection and still says props are elsewhere", () => {
+    const notify = vi.fn();
+    const sendMessage = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() =>
+      useKeyboardShortcuts(
+        baseOptions({
+          selectedObjectIds: ["token:t1", "prop:p1"],
+          snapshot: PROP_SNAPSHOT,
+          sendMessage,
+          notify,
+        }),
+      ),
+    );
+    dispatchOn(window, { key: "Delete" });
+    expect(sendMessage).toHaveBeenCalledWith({ t: "delete-token", id: "t1" });
+    expect(notify).toHaveBeenCalledExactlyOnceWith(PROPS_NOT_HERE);
   });
 });

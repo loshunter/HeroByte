@@ -103,6 +103,12 @@ export interface UseKeyboardShortcutsOptions {
    * selection-undo branch below is skipped — exactly one handler acts.
    */
   mapEditMode?: boolean;
+
+  /**
+   * Optional: a short, non-blocking notice (the app's toast). Used for "Delete does not remove
+   * props": a selection that holds props deletes nothing for them, and said nothing before.
+   */
+  notify?: (message: string) => void;
 }
 
 /**
@@ -143,6 +149,9 @@ export interface UseKeyboardShortcutsOptions {
  * @see {@link UseKeyboardShortcutsOptions} for all available options
  * @see {@link DrawingManager} for drawing manager interface
  */
+/** Said when Delete is pressed on a selection that holds props. */
+export const PROPS_NOT_HERE = "Props are deleted in the Props panel.";
+
 export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void {
   const {
     selectedObjectIds,
@@ -156,6 +165,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     undoSelection,
     canUndoSelection,
     mapEditMode,
+    notify,
   } = options;
 
   useEffect(() => {
@@ -237,7 +247,11 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
           .map((id) => id.split(":")[1]!)
           .filter(Boolean);
 
+        // Props are not deleted by this key (they have their own panel): say so, so a
+        // selection of only props is not a silent no-op.
+        const hasProps = objectsToDelete.some((id) => id.startsWith("prop:"));
         if (tokens.length === 0 && drawings.length === 0) {
+          if (hasProps) notify?.(PROPS_NOT_HERE);
           return;
         }
 
@@ -264,6 +278,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
             sendMessage({ t: "delete-drawing", id });
           }
 
+          if (hasProps) notify?.(PROPS_NOT_HERE);
           clearSelection();
         }
         return;
@@ -315,5 +330,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     undoSelection,
     canUndoSelection,
     mapEditMode,
+    notify,
   ]);
 }

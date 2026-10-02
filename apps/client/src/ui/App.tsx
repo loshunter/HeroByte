@@ -680,6 +680,7 @@ function AuthenticatedApp({
     undoSelection,
     canUndoSelection: canUndo,
     mapEditMode,
+    notify: toast.info,
   });
 
   // Keyboard movement: one cell per press for whatever is selected, App-level
