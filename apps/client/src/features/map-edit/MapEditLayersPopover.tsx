@@ -56,7 +56,7 @@ export function MapEditLayersPopover({
                 disabled={index === layers.length - 1}
                 aria-disabled={saving || undefined}
                 onClick={() => !saving && onMoveLayer(layer.id, index + 1)}
-                style={iconButtonStyle}
+                style={saving ? { ...iconButtonStyle, ...savingStyle } : iconButtonStyle}
               >
                 ▲
               </button>
@@ -65,7 +65,7 @@ export function MapEditLayersPopover({
                 disabled={index === 0}
                 aria-disabled={saving || undefined}
                 onClick={() => !saving && onMoveLayer(layer.id, index - 1)}
-                style={iconButtonStyle}
+                style={saving ? { ...iconButtonStyle, ...savingStyle } : iconButtonStyle}
               >
                 ▼
               </button>
@@ -116,3 +116,5 @@ const listStyle: CSSProperties = {
 const rowStyle: CSSProperties = { border: "1px solid #3a3f52", padding: "4px 6px" };
 const rowTopStyle: CSSProperties = { display: "flex", alignItems: "center", gap: "4px" };
 const iconButtonStyle: CSSProperties = { fontSize: "10px", padding: "2px 6px", cursor: "pointer" };
+// A button that waits with aria-disabled (so it keeps keyboard focus) must still LOOK inert.
+const savingStyle: CSSProperties = { opacity: 0.5, cursor: "not-allowed" };

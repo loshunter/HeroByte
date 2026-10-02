@@ -43,7 +43,7 @@ describe("bound palette controls before U3b extraction", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: /Free stamp/ }));
-    fireEvent.click(screen.getByRole("button", { name: /^Rotate counter-clockwise/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Rotate stamp counter-clockwise/ }));
     expect(onToggleStampMode).toHaveBeenCalledTimes(1);
     expect(onRotateStamp).toHaveBeenCalledExactlyOnceWith(-1);
     view.rerender(<MapEditToolbar {...h.props({ activeSubTool: "scatter", stampMode: true })} />);

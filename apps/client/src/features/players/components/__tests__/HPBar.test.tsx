@@ -10,7 +10,7 @@
 
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { HPBar } from "../HPBar";
 
 // ============================================================================
@@ -191,6 +191,20 @@ describe("HPBar", () => {
       first.unmount();
       render(<HPBar {...createDefaultProps({ isEditingMaxHp: true, maxHpInput: "90" })} />);
       expect(screen.getByRole("spinbutton", { name: "Max HP" })).toHaveValue(90);
+      cleanup();
+      render(
+        <HPBar
+          {...createDefaultProps({
+            isMe: true,
+            isEditingTempHp: true,
+            tempHpInput: "5",
+            onTempHpEdit: vi.fn(),
+            onTempHpInputChange: vi.fn(),
+            onTempHpSubmit: vi.fn(),
+          })}
+        />,
+      );
+      expect(screen.getByRole("spinbutton", { name: "Temp HP" })).toHaveValue(5);
     });
 
     it("shows input field when isEditingHp is true", () => {

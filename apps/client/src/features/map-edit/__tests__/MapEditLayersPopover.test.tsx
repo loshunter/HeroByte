@@ -94,6 +94,8 @@ describe("MapEditLayersPopover", () => {
     for (const button of [down, up]) {
       expect(button).toBeEnabled();
       expect(button).toHaveAttribute("aria-disabled", "true");
+      // A button that keeps focus while it waits must still look inert.
+      expect(button).toHaveStyle({ opacity: "0.5", cursor: "not-allowed" });
       fireEvent.click(button);
     }
     expect(onMoveLayer).not.toHaveBeenCalled();

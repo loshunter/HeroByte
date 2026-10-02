@@ -72,7 +72,7 @@ describe("Reset view's tooltip", () => {
     render(<MobileFloatingControls {...mobileProps} />);
     // The tile in the sheet and the dock's own button (named the same way) both carry it.
     const buttons = screen.getAllByRole("button", { name: /Reset view/ });
-    expect(buttons.length).toBeGreaterThanOrEqual(1);
+    expect(buttons).toHaveLength(2);
     for (const button of buttons) expect(button.getAttribute("title")).toBe(RESET_VIEW_TITLE);
   });
 

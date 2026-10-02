@@ -241,7 +241,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Undo / redo",
         detail:
-          "Buttons, or Ctrl+Z / Ctrl+Y while draw mode is active. Yours only. Erasing a whole line or shape cannot be undone (Undo then takes back the drawing before it); erasing part of a freehand stroke can.",
+          "Buttons, or Ctrl+Z / Ctrl+Y while draw mode is active. Yours only. Erasing a whole line or shape cannot be undone (Undo skips it and takes back your latest remaining drawing); erasing part of a freehand stroke can.",
       },
       {
         term: "Area templates",

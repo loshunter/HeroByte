@@ -26,6 +26,7 @@ describe("help text, after the U10c review", () => {
     const place = entry(DM_HELP_TOPIC, /PLACE ON MAP/);
     expect(place).not.toMatch(/moves that same token/);
     expect(place).toMatch(/replaces the old token with a fresh one/);
+    expect(place).toMatch(/size and sight radius reset/);
   });
 
   it("warns that erasing a whole shape cannot be undone", () => {

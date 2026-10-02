@@ -128,12 +128,12 @@ describe("the live palette's in-flight indicator", () => {
     const { unmount } = render(
       <MapEditToolbar {...toolbar({ activeSubTool: "place", ...dials })} />,
     );
-    expect(screen.getByRole("button", { name: /^Rotate counter-clockwise/ })).toBeVisible();
+    expect(screen.getByRole("button", { name: /^Rotate stamp counter-clockwise/ })).toBeVisible();
     // Both rotate buttons are named by their action, not by a glyph, and the counter-clockwise
     // one also says the angle it is at now.
-    expect(screen.getByRole("button", { name: "Rotate clockwise" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Rotate stamp clockwise" })).toBeVisible();
     expect(
-      screen.getByRole("button", { name: /^Rotate counter-clockwise, now -?\d+°$/ }),
+      screen.getByRole("button", { name: /^Rotate stamp counter-clockwise, now -?\d+°$/ }),
     ).toBeVisible();
     unmount();
 

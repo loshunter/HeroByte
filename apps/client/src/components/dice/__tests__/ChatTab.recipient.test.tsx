@@ -37,6 +37,8 @@ describe("the recipient status line", () => {
     prepare();
     const status = screen.getByRole("status");
     expect(status).toBeEmptyDOMElement();
+    // The class carries the clip that keeps the empty line from adding a gap (herobyte.css).
+    expect(status).toHaveClass("chat-recipient-status");
   });
 });
 

@@ -57,7 +57,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "PLACE ON MAP",
       detail:
-        "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again replaces the old token with a fresh one at the corner (its position and lock reset) rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
+        "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again replaces the old token with a fresh one at the corner (its position, lock, size and sight radius reset) rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
     },
     {
       term: "⚔️ Encounter",
