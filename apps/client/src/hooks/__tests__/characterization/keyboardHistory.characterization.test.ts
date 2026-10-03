@@ -22,6 +22,7 @@ function fixture(canUndo: boolean, canRedo = false) {
     drawingManager,
     undoSelection: vi.fn(),
     canUndoSelection: true,
+    notify: vi.fn(),
   };
   renderHook(() => useKeyboardShortcuts(options));
   return { options, drawingManager };

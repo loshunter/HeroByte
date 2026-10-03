@@ -31,6 +31,7 @@ function drawingHistory() {
       drawingManager: { canUndo: true, canRedo: true, handleUndo, handleRedo },
       canUndoSelection: true,
       undoSelection,
+      notify: vi.fn(),
     }),
   );
   return { undo: handleUndo, redo: handleRedo, undoSelection };

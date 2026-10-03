@@ -23,6 +23,7 @@ function baseOptions(over: Partial<UseKeyboardShortcutsOptions>): UseKeyboardSho
     drawingManager: NOOP_DRAWING,
     undoSelection: vi.fn(),
     canUndoSelection: true,
+    notify: vi.fn(),
     ...over,
   };
 }

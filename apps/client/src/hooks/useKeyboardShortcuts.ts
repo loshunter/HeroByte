@@ -105,10 +105,11 @@ export interface UseKeyboardShortcutsOptions {
   mapEditMode?: boolean;
 
   /**
-   * Optional: a short, non-blocking notice (the app's toast). Used for "Delete does not remove
-   * props": a selection that holds props deletes nothing for them, and said nothing before.
+   * A short, non-blocking notice (the app's toast). Delete says through it that props are deleted in
+   * their own panel, and why a selection could not be deleted (locked, or not yours); these were
+   * blocking alert()s.
    */
-  notify?: (message: string) => void;
+  notify: (message: string) => void;
 }
 
 /**
@@ -151,6 +152,11 @@ export interface UseKeyboardShortcutsOptions {
  */
 /** Said when Delete is pressed on a selection that holds props. */
 export const PROPS_NOT_HERE = "Props are deleted in the Props panel.";
+
+/** Said (a toast, not a blocking alert) when Delete is pressed on a selection that cannot be deleted. */
+export const LOCKED_CANNOT_DELETE =
+  "Cannot delete locked objects. Unlock them first using the lock icon.";
+export const NOT_YOURS_CANNOT_DELETE = "You can only delete objects you own.";
 
 export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void {
   const {
@@ -212,9 +218,9 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
           });
 
           if (hasLocked) {
-            alert("Cannot delete locked objects. Unlock them first using the lock icon.");
+            notify(LOCKED_CANNOT_DELETE);
           } else {
-            alert("You can only delete objects you own.");
+            notify(NOT_YOURS_CANNOT_DELETE);
           }
           return;
         }
@@ -251,7 +257,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
         // selection of only props is not a silent no-op.
         const hasProps = objectsToDelete.some((id) => id.startsWith("prop:"));
         if (tokens.length === 0 && drawings.length === 0) {
-          if (hasProps) notify?.(PROPS_NOT_HERE);
+          if (hasProps) notify(PROPS_NOT_HERE);
           return;
         }
 
@@ -278,7 +284,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
             sendMessage({ t: "delete-drawing", id });
           }
 
-          if (hasProps) notify?.(PROPS_NOT_HERE);
+          if (hasProps) notify(PROPS_NOT_HERE);
           clearSelection();
         }
         return;

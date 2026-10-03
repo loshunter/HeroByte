@@ -7,6 +7,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { RoomSnapshot } from "@herobyte/shared";
 import {
+  LOCKED_CANNOT_DELETE,
+  NOT_YOURS_CANNOT_DELETE,
   PROPS_NOT_HERE,
   useKeyboardShortcuts,
   type UseKeyboardShortcutsOptions,
@@ -30,6 +32,7 @@ function baseOptions(over: Partial<UseKeyboardShortcutsOptions>): UseKeyboardSho
     drawingManager: NOOP_DRAWING,
     undoSelection: vi.fn(),
     canUndoSelection: true,
+    notify: vi.fn(),
     ...over,
   };
 }
@@ -133,5 +136,41 @@ describe("useKeyboardShortcuts — Delete and props", () => {
     dispatchOn(window, { key: "Delete" });
     expect(sendMessage).toHaveBeenCalledWith({ t: "delete-token", id: "t1" });
     expect(notify).toHaveBeenCalledExactlyOnceWith(PROPS_NOT_HERE);
+  });
+});
+
+// A selection Delete cannot act on says why through the toast; it used to open a blocking alert()
+// (U10d, at the owner's word). The partial-delete "Continue?" stays a confirm().
+describe("useKeyboardShortcuts — Delete that cannot proceed", () => {
+  const SNAP = {
+    sceneObjects: [
+      { id: "token:locked", locked: true, owner: "dm" },
+      { id: "token:theirs", locked: false, owner: "someone-else" },
+    ],
+  } as unknown as RoomSnapshot;
+
+  it.each([
+    ["a locked token", "token:locked", true, LOCKED_CANNOT_DELETE],
+    ["a token someone else owns", "token:theirs", false, NOT_YOURS_CANNOT_DELETE],
+  ])("says so with the toast, not an alert, for %s", (_name, id, isDM, message) => {
+    const notify = vi.fn();
+    const sendMessage = vi.fn();
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    renderHook(() =>
+      useKeyboardShortcuts(
+        baseOptions({
+          selectedObjectIds: [id],
+          snapshot: SNAP,
+          isDM,
+          uid: "me",
+          sendMessage,
+          notify,
+        }),
+      ),
+    );
+    dispatchOn(window, { key: "Delete" });
+    expect(notify).toHaveBeenCalledExactlyOnceWith(message);
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 });
