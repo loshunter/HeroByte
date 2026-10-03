@@ -15,6 +15,7 @@ let latestHeaderProps: {
   onPlayerLensChange?: (enabled: boolean) => void;
 } | null = null;
 let latestMapBoardProps: Record<string, unknown> | null = null;
+let latestPanelRoleKnown: boolean | null = null;
 let selectionMock: {
   selectedObjectId: string | null;
   selectedObjectIds: string[];
@@ -114,9 +115,15 @@ vi.mock("../components/layout/Header", () => ({
   },
 }));
 
-vi.mock("../components/layout/EntitiesPanel", () => ({
-  EntitiesPanel: () => <div data-testid="entities-panel">Entities</div>,
-}));
+vi.mock("../components/layout/EntitiesPanel", async () => {
+  const { useRoleKnown } = await import("../features/table/roleKnown");
+  return {
+    EntitiesPanel: () => {
+      latestPanelRoleKnown = useRoleKnown();
+      return <div data-testid="entities-panel">Entities</div>;
+    },
+  };
+});
 
 vi.mock("../components/dice/DiceRoller", () => ({
   DiceRoller: () => <div data-testid="dice-roller">Dice Roller</div>,
@@ -682,6 +689,15 @@ describe("App", () => {
     const { rerender } = await asDMThenBlip();
     await blip(rerender);
     expect(latestMapBoardProps?.snapshot).toBeTruthy();
+  });
+
+  // Editors that close on losing DM rights read this, so the blip above (cached roster,
+  // DM flag false) is not taken for a demotion (features/table/roleKnown).
+  it("tells the layouts the role is unknown through the blip, and known again after", async () => {
+    const { rerender } = await asDMThenBlip();
+    expect(latestPanelRoleKnown).toBe(true);
+    await blip(rerender);
+    expect(latestPanelRoleKnown).toBe(false);
   });
 
   it("does NOT keep a demoted DM's snapshot to paint over a later reconnect", async () => {

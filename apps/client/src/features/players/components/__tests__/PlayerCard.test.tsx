@@ -22,6 +22,7 @@ vi.mock("../../../../utils/playerPersistence", () => ({
 
 // Import component
 import { PlayerCard } from "../PlayerCard";
+import { RoleKnownContext } from "../../../table/roleKnown";
 // Import mocked functions
 import { savePlayerState, loadPlayerState } from "../../../../utils/playerPersistence";
 
@@ -2540,5 +2541,25 @@ describe("PlayerCard settings after losing DM rights", () => {
 
     rerender(<PlayerCard {...props} viewerIsDM={false} />);
     expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+  });
+});
+
+// A reconnect blip reads not-DM beside the DM's cached roster: it is not a demotion.
+describe("PlayerCard settings through a reconnect blip", () => {
+  it("keeps another player's window open until the roster confirms the demotion", () => {
+    const props = createDefaultProps({ isMe: false, viewerIsDM: true });
+    const view = (known: boolean, viewerIsDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <PlayerCard {...props} viewerIsDM={viewerIsDM} />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    fireEvent.click(screen.getByTestId("card-controls-open-settings"));
+
+    rerender(view(false, false));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+
+    rerender(view(true, false));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
   });
 });

@@ -16,6 +16,7 @@ import { loadPlayerState } from "../../../utils/playerPersistence";
 import { saveCharacterFile } from "../characterFile";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import type { OwnerControl } from "./TokenSettingsSection";
+import { useRoleKnown } from "../../table/roleKnown";
 
 export interface PlayerCardProps {
   player: Player;
@@ -167,11 +168,12 @@ export const PlayerCard = memo<PlayerCardProps>(
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
-    // Another player's window is the DM's to hold: on losing DM rights it
-    // closes, and it does not reopen by itself when DM comes back.
+    // Another player's window is the DM's to hold: on losing DM rights it closes (a
+    // reconnect blip waits for the roster), and does not reopen when DM comes back.
+    const roleKnown = useRoleKnown();
     useEffect(() => {
-      if (!isMe && !viewerIsDM) setSettingsOpen(false);
-    }, [isMe, viewerIsDM]);
+      if (!isMe && !viewerIsDM && roleKnown) setSettingsOpen(false);
+    }, [isMe, viewerIsDM, roleKnown]);
 
     /*
      * The settings window's "Character Name" field gets its OWN buffer, seeded
@@ -370,7 +372,7 @@ export const PlayerCard = memo<PlayerCardProps>(
         />
 
         <PlayerSettingsMenu
-          isOpen={(isMe || viewerIsDM) && settingsOpen}
+          isOpen={(isMe || viewerIsDM || !roleKnown) && settingsOpen}
           onClose={() => setSettingsOpen(false)}
           tokenImageInput={tokenImageInput}
           tokenImageUrl={tokenImageUrl}

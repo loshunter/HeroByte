@@ -19,6 +19,7 @@ import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useClearOnDemotion, useDMRole, useEndOnDemotion } from "../hooks/useDMRole";
+import { RoleKnownContext } from "../features/table/roleKnown";
 import { useToolMode } from "../hooks/useToolMode";
 import { useCameraCommands } from "../hooks/useCameraCommands";
 import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
@@ -950,11 +951,11 @@ function AuthenticatedApp({
   };
 
   return (
-    <>
+    <RoleKnownContext.Provider value={roleKnown}>
       {isMobile ? <MobileLayout {...layoutProps} /> : <MainLayout {...layoutProps} />}
 
       {/* DM Elevation Modal */}
       <DMElevationModal {...modalState} {...modalActionsWithSync} />
-    </>
+    </RoleKnownContext.Provider>
   );
 }

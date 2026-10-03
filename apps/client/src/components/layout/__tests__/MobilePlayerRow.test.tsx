@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { Player } from "@herobyte/shared";
 import { MobilePlayerRow } from "../MobilePlayerRow";
+import { RoleKnownContext } from "../../../features/table/roleKnown";
 
 function props(overrides: Partial<Parameters<typeof MobilePlayerRow>[0]> = {}) {
   const player = {
@@ -233,5 +234,50 @@ describe("MobilePlayerRow HP", () => {
     render(<MobilePlayerRow {...player} />);
     fireEvent.click(screen.getAllByText("100")[0]!);
     expect(player.onHpEdit).not.toHaveBeenCalled();
+  });
+});
+
+// A reconnect blip reads not-DM beside the DM's cached roster: it is not a demotion.
+describe("MobilePlayerRow through a reconnect blip", () => {
+  it("keeps a DM's conditions grid open until the roster confirms the demotion", () => {
+    const base = props({ isMe: false, isDM: true, onStatusEffectsChange: vi.fn() });
+    const view = (known: boolean, isDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <MobilePlayerRow
+          {...base}
+          isDM={isDM}
+          onStatusEffectsChange={isDM ? base.onStatusEffectsChange : undefined}
+        />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    fireEvent.click(screen.getByRole("button", { name: "⚡ Manage Status" }));
+
+    rerender(view(false, false));
+    expect(screen.getByRole("button", { name: "Done Editing" })).toBeInTheDocument();
+
+    rerender(view(true, false));
+    expect(screen.queryByRole("button", { name: "Done Editing" })).toBeNull();
+  });
+});
+
+describe("MobilePlayerRow EDIT sheet through a reconnect blip", () => {
+  const sheet = () => document.querySelector('[data-mobile-surface="settings"]');
+
+  it("keeps a DM's sheet on another player's row until the roster confirms the demotion", () => {
+    const base = props({ isMe: false, isDM: true });
+    const view = (known: boolean, isDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <MobilePlayerRow {...base} isDM={isDM} />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+    rerender(view(false, false));
+    expect(sheet()).not.toBeNull();
+
+    rerender(view(true, false));
+    expect(sheet()).toBeNull();
   });
 });

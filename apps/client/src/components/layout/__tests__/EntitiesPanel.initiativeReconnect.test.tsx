@@ -7,6 +7,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { EntitiesPanel } from "../EntitiesPanel";
+import { RoleKnownContext } from "../../../features/table/roleKnown";
 import {
   ALICE_UID,
   DM_UID,
@@ -111,5 +112,31 @@ describe("EntitiesPanel — the initiative dialog through a reconnect", () => {
     update({ players: seats, characters: [{ ...hero, ownedByPlayerUID: DM_UID }] });
 
     expect(screen.queryByText("Initiative: Hero")).toBeNull();
+  });
+
+  // The DM's layout keeps the CACHED roster through the blip (App's layoutSnapshot),
+  // so the seats are there while the DM flag reads false: only the role says "blip".
+  it("a DM's dialog on an NPC survives a blip that keeps the cached roster", () => {
+    const props = entitiesPanelProps({
+      players: seats,
+      characters: [ogre],
+      uid: DM_UID,
+      currentIsDM: true,
+    });
+    const view = (known: boolean, currentIsDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <EntitiesPanel {...props} currentIsDM={currentIsDM} />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    showCards();
+    typeByHand("Ogre", "9");
+
+    rerender(view(false, false));
+    expect(screen.getByText("Initiative: Ogre")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Enter roll...")).toHaveValue(9);
+
+    rerender(view(true, false));
+    expect(screen.queryByText("Initiative: Ogre")).toBeNull();
   });
 });

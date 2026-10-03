@@ -18,6 +18,7 @@ import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import { npcDispositionLook } from "./npcDisposition";
 import { tempHpEdit, tokenImageEdit } from "../npcUpdate";
 import { npcSettingsProps, npcVisibilityProps } from "./npcButtonNames";
+import { useRoleKnown } from "../../table/roleKnown";
 
 interface NpcCardProps {
   character: SnapshotCharacter;
@@ -84,12 +85,14 @@ export function NpcCard({
   const [tempHpInput, setTempHpInput] = useState(String(character.tempHp ?? 0));
   const [settingsOpen, setSettingsOpen] = useState(false);
   // The DM's editors close on losing DM rights and stay closed when it returns.
+  // A reconnect blip reads not-DM too; it waits for the roster to say so.
+  const roleKnown = useRoleKnown();
   useEffect(() => {
-    if (isDM) return;
+    if (isDM || !roleKnown) return;
     for (const close of [setSettingsOpen, setEditingHp, setEditingMaxHp, setEditingTempHp]) {
       close(false);
     }
-  }, [isDM]);
+  }, [isDM, roleKnown]);
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
   const [portraitInput, setPortraitInput] = useState(character.portrait ?? "");
   const { feedback, flashClass } = useHpFeedback(character.hp);
@@ -313,7 +316,7 @@ export function NpcCard({
       </div>
 
       <NpcSettingsMenu
-        isOpen={canEdit && settingsOpen}
+        isOpen={(canEdit || !roleKnown) && settingsOpen}
         onClose={() => setSettingsOpen(false)}
         tokenImageInput={tokenImageInput}
         tokenImageUrl={character.tokenImage ?? undefined}

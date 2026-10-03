@@ -12,6 +12,7 @@ import { HPBar } from "../../features/players/components/HPBar";
 import { PlayerSettingsMenu } from "../../features/players/components/PlayerSettingsMenu";
 import type { OwnerControl } from "../../features/players/components/TokenSettingsSection";
 import type { CharacterFileActions } from "../../features/players/characterFile";
+import { useRoleKnown } from "../../features/table/roleKnown";
 
 /** The temp HP editor's state and handlers (the same ones the desktop card gets). */
 export interface TempHpEditing {
@@ -133,10 +134,10 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     const isEditingHp = editingHpUID === player.characterId;
     const isEditingMaxHp = editingMaxHpUID === player.characterId;
     const [settingsOpen, setSettingsOpen] = useState(false);
-    // Another player's sheet is the DM's to hold. On losing DM rights (a
-    // deploy, a restart) it closes rather than offering editors the server
-    // now refuses, and it does not reopen by itself on re-elevation.
-    const mayEdit = isMe || isDM;
+    // Another player's sheet is the DM's to hold. On losing DM rights (a deploy, a
+    // restart; a reconnect blip waits for the roster) it closes rather than offering
+    // editors the server now refuses, and does not reopen by itself on re-elevation.
+    const mayEdit = !useRoleKnown() || isMe || isDM;
     useEffect(() => {
       if (!mayEdit) setSettingsOpen(false);
     }, [mayEdit]);

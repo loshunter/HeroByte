@@ -27,6 +27,7 @@ vi.mock("../../../../utils/sanitize", () => ({
 
 // Import component
 import { NpcCard } from "../NpcCard";
+import { RoleKnownContext } from "../../../table/roleKnown";
 import { npcUpdateMessage, type NpcUpdateFields, type NpcUpdateMessage } from "../../npcUpdate";
 // Import mocked utilities
 import { sanitizeText } from "../../../../utils/sanitize";
@@ -1532,5 +1533,27 @@ describe("NpcCard portrait field follows the server", () => {
     rerender(<NpcCard {...props} character={createMockCharacter({ portrait: "b.png" })} />);
 
     expect(screen.getByTestId("settings-portrait-input")).toHaveTextContent("b.png");
+  });
+});
+
+// A reconnect blip reads not-DM beside the DM's cached roster: it is not a demotion.
+describe("NpcCard through a reconnect blip", () => {
+  it("keeps settings and the HP editor open until the roster confirms the demotion", () => {
+    const props = createDefaultProps({ isDM: true });
+    const view = (known: boolean, isDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <NpcCard {...props} isDM={isDM} />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    fireEvent.click(screen.getByTestId("portrait-section-change"));
+    fireEvent.click(screen.getByTestId("hp-bar-edit-hp"));
+
+    rerender(view(false, false));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+    expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("true");
+
+    rerender(view(true, false));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
   });
 });

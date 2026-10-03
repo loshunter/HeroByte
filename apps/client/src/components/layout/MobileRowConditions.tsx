@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { STATUS_OPTIONS } from "../../features/players/constants/statusOptions";
 import { JRPGButton } from "../ui/JRPGPanel";
+import { useRoleKnown } from "../../features/table/roleKnown";
 
 interface MobileRowConditionsProps {
   activeEffects: string[];
@@ -22,10 +23,12 @@ export function MobileRowConditions({
   const [isEditingEffects, setIsEditingEffects] = useState(false);
   const canEdit = Boolean(onStatusEffectsChange);
   // The grid is the editor's: when the handler goes (the DM lost DM rights)
-  // it closes, and it does not reopen by itself when DM comes back.
+  // it closes, and it does not reopen by itself when DM comes back. A reconnect
+  // blip takes the handler too; that waits for the roster to say so.
+  const roleKnown = useRoleKnown();
   useEffect(() => {
-    if (!canEdit) setIsEditingEffects(false);
-  }, [canEdit]);
+    if (!canEdit && roleKnown) setIsEditingEffects(false);
+  }, [canEdit, roleKnown]);
 
   const handleToggleEffect = (value: string) => {
     if (!onStatusEffectsChange) return;
@@ -62,7 +65,7 @@ export function MobileRowConditions({
       )}
 
       {/* Edit Effects Button (Only for owner/DM) */}
-      {canEdit && (
+      {(canEdit || (!roleKnown && isEditingEffects)) && (
         <div style={{ padding: "0 4px" }}>
           <JRPGButton
             onClick={() => setIsEditingEffects(!isEditingEffects)}

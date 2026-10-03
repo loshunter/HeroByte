@@ -19,6 +19,7 @@ import { useEffect } from "react";
 import type { Player, SnapshotCharacter } from "@herobyte/shared";
 import { InitiativeModal } from "./components/InitiativeModal";
 import { useInitiativeModal } from "../../hooks/useInitiativeModal";
+import { useRoleKnown } from "../table/roleKnown";
 import type { InitiativeSetting } from "../../hooks/useInitiativeSetting";
 
 export interface InitiativeDialogOptions {
@@ -51,7 +52,10 @@ export function useInitiativeDialog({
   combatActive,
 }: InitiativeDialogOptions): InitiativeDialog {
   // The app's own test for "the snapshot has arrived" (App.tsx, map-edit's guard).
-  const snapshotLoaded = players.some((player) => player.uid === uid);
+  // A DM's layout keeps the cached roster through a reconnect blip, so the seat is
+  // there while the DM flag reads false: the role must be known as well.
+  const roleKnown = useRoleKnown();
+  const snapshotLoaded = roleKnown && players.some((player) => player.uid === uid);
   const { character, isOpen, openModal, closeModal } = useInitiativeModal(
     characters,
     snapshotLoaded,
