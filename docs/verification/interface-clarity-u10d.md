@@ -16,7 +16,8 @@ changes a surface ships its phone surface in the same slice, or says it does not
 - **A player's own token cannot be deleted on a phone:** desktop-only, on two conditions: Help says what to do ("…ask
   the DM to remove it, or use a computer"), and the phone's drawings are confirmed not orphaned (pinned with a spec).
 - **Delete on a selection of props (desktop):** say so, with the app's toast, not `alert()`: "Props are deleted in the
-  Props panel." The existing blocking alerts in the same handler are left alone (see the deferral list).
+  Props panel." The existing blocking alerts in the same handler were first left alone; at the owner's later word they became the toast
+  too (commit `909e4373`). The partial-delete "Continue?" stays a `confirm()`, because it asks.
 - **Later, not now:** reduced motion's infinite CSS loops and the ~36 `disabled`-while-saving buttons go first into an
   accessibility pass; IA-01 (the DM header regrouping) is its own design job.
 
@@ -39,8 +40,10 @@ changes a surface ships its phone surface in the same slice, or says it does not
 - **Drawings are not orphaned on a phone.** Checked rather than assumed: `mobile-erase-drawing.spec.ts` draws two
   strokes by real touch, Undo drawing takes back the latest (2 → 1), Erase drawings rubs the other out (→ 0). It fails
   when the eraser tap is removed. Help's Delete entry says so (`4ef5a21e`).
-- **The Delete key on props says nothing** (above), and `useKeyboardShortcuts.ts` has two blocking `alert()`s ("Cannot
-  delete locked objects…", "You can only delete objects you own."). Left alone (see below).
+- **The Delete key on props says nothing** (above), and `useKeyboardShortcuts.ts` had two blocking `alert()`s ("Cannot
+  delete locked objects…", "You can only delete objects you own."). Converted to the toast afterwards (`909e4373`;
+  `notify` is now required, one caller). The big `useKeyboardShortcuts.test.ts` tests a local copy of the handler, not
+  the real hook, so the real coverage is `useKeyboardShortcuts.editableGuard.test.ts`; four mutants turn it red.
 - **`helpTopics.ts` reached 358 lines** (guard 350); the three phone entries moved to `phoneHelpEntries.ts` (346).
 
 ## Checks
@@ -61,20 +64,23 @@ changes a surface ships its phone surface in the same slice, or says it does not
 - Reduced motion's infinite CSS loops: first into the accessibility pass; which loops are essential is the owner's call.
 - The 36 `disabled`-while-saving buttons: second into that pass.
 - IA-01, the DM header's regrouping: its own design job.
-- **Blocking `alert()`s in `useKeyboardShortcuts.ts`** ("locked", "only objects you own"): reaching the toast needed new
-  plumbing for them; convert later (the new notice already has the `notify` option, so it is a small follow-up).
-- **Desktop Delete does not remove props.** A `delete-prop` message already exists in `packages/shared/src/index.ts`
-  (about line 992), so making the key remove them is a small follow-up if the owner wants it.
+- **Desktop Delete does not remove props** (owner, 2026-10-02: not now; on the follow-up list). The toast says where
+  props are deleted. A `delete-prop` message already exists in `packages/shared/src/index.ts` (line 992), so making the
+  key remove them later is small.
 - Phone dialogs' focus in and out; names that do not say which item; "Objects" naming (unchanged from U10c).
-- Unlocking a locked map element on a phone: desktop-only and Help does not say so yet.
+- Unlocking a locked map element on a phone is desktop-only; Help now says so (`c5bb27b9`).
 - The user guide's phone screenshots still show the dock's old "VIEW": regenerate with `pnpm docs:screenshots`.
 
-## Questions for the owner
+## Owner's answers (2026-10-02) and what is left
 
-1. **Push `dev`** (seven U10d commits plus this record), then watch CI before anything else?
-2. Should Help say that unlocking a map element is desktop-only (one sentence), or leave it?
-3. Make the Delete key remove props (small), or keep it "says where"?
-4. Convert the two blocking alerts to the toast now (small) or with the accessibility pass?
+1. **Push `dev`:** done (`c3ed4851`), CI #918 green.
+2. **Help on unlocking a map element:** desktop-only, said in Help: done (`c5bb27b9`).
+3. **Delete removing props:** not now; follow-up list.
+4. **The two blocking alerts:** converted to the toast: done (`909e4373`).
+5. **Order of the deferred accessibility work:** first animations that keep running under reduced motion, then the 36
+   `disabled`-while-saving buttons; the DM header regrouping (IA-01) separately, as its own design job.
+
+Nothing is left open in U10d except the follow-up list above.
 
 ## Before merging to `main`
 

@@ -9,7 +9,7 @@
 > (0 P1; the P2s repaired or recorded). **Phone parity (U10d, 2026-10-02):** Temp HP and Clear Initiative are on the
 > phone; Player View and correcting an older roll from the log are ruled desktop-only and Help says so; deleting a
 > selection already had phone routes and Help names them, so "no capability orphaned" holds with named exceptions: those two, plus Voice, unlocking
-> a map element, and deleting your own token on a phone (each desktop-only; Help says so for all but unlocking a map element, which it does not yet name). **Deferred, with reasons:** phone dialogs' focus in and out, names that do not say which
+> a map element, and deleting your own token on a phone (each desktop-only; Help says so for each). **Deferred, with reasons:** phone dialogs' focus in and out, names that do not say which
 > item, the "Objects" wording, 36 controls that still drop focus after a press, reduced motion's infinite loops, a
 > further regrouping of the DM header, Help's topic order, Ping's "right now", `.table-menu-button`'s 10 px. Read [the U10c record](../verification/interface-clarity-u10c.md) (including "what to do before
 > merging to `main`"), [the report](../verification/interface-clarity-report.md) and the ledger in

@@ -207,7 +207,7 @@ character now exist on the phone (the Party row's number; the character sheet's 
 selection** was not an orphan: the phone already deletes map pieces (Select → 🗑 Delete), props (Props), NPCs (the NPC
 editor) and drawings (Erase drawings, Undo drawing), so only Help's "press Delete" lacked a phone path (it has one now).
 **Player View** and **correcting an older roll from the log** are ruled **desktop-only** (rare, deliberate desk tasks) and
-Help says so. **Also desktop-only:** Voice (Help says "Desktop only"), unlocking a locked map element (Help does not yet say so: open),
+Help says so. **Also desktop-only:** Voice (Help says "Desktop only"), unlocking a locked map element (Help says so since U10d),
 deleting your own token (Help says so), and removing an NPC token from the table by Delete (an NPC is deleted in the
 NPC editor). A player's own token cannot be deleted on a phone (ruled desktop-only; Help says to ask the DM or use a
 computer); Delete on a selection of props now says "Props are deleted in the Props panel." with the app's toast.
