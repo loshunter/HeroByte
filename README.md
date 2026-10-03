@@ -117,7 +117,7 @@ To use on your local network:
 
 ### Security Configuration
 
-Set environment variables in `.env`:
+Set these as environment variables in the shell or service that starts the server (on Render: the service's **Environment** page). The server does not read a `.env` file:
 
 ```bash
 HEROBYTE_ROOM_SECRET="your-secure-room-password"
@@ -155,7 +155,7 @@ The server reads more variables than these (storage paths, table limits, feature
 - **WebSocket refuses connections** – Confirm backend is running on `http://localhost:8787`
 - **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or hosted demo)
 - **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` and re-run `pnpm test`
-- **"Room secret not set" warning** – Set `HEROBYTE_ROOM_SECRET` in `.env`
+- **"Room secret not set" warning** – Set `HEROBYTE_ROOM_SECRET` as an environment variable where the server starts (no `.env` file is read)
 - **Map images don't load (CORS errors)** – Use the **⬆ Upload image** button instead of pasting a URL; uploads are stored on your own table's server and always load. A pasted URL only works if its host allows cross-origin loading
 
 </details>

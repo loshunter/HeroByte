@@ -145,7 +145,7 @@ The server will recreate these files with default values.
 
 - Ensure you're using the correct DM password (`FunDM` by default)
 - Check server logs for authentication errors
-- Verify `herobyte-room-secret.json` exists and has DM password fields
+- On the default table the DM password is `HEROBYTE_DM_PASSWORD` (else `FunDM`) as set when the server last started; on a private table it is the one its creator set
 
 ### Want to start completely fresh
 
