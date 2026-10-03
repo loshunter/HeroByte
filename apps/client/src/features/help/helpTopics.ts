@@ -184,7 +184,8 @@ export const HELP_TOPICS: HelpTopic[] = [
       DELETE_ENTRY,
       {
         term: "🔒 Locked",
-        detail: "Pinned by the DM; it cannot be moved or deleted until unlocked.",
+        detail:
+          "Pinned by the DM; it cannot be moved or deleted until unlocked. Unlocking is desktop only: unlock it on a computer.",
       },
       { term: "Ping", detail: "Double-click (or double-tap) empty space in any tool mode." },
     ],

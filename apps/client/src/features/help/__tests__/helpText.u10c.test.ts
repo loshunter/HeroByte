@@ -34,6 +34,11 @@ describe("help text, after the U10c review", () => {
     expect(entry(drawing, /Undo/)).toMatch(/Erasing a whole line or shape cannot be undone/);
   });
 
+  it("tells a phone user that unlocking a map element is desktop only (U10d)", () => {
+    const tokens = HELP_TOPICS.find((t) => t.id === "tokens")!;
+    expect(entry(tokens, /Locked/)).toMatch(/Unlocking is desktop only: unlock it on a computer/);
+  });
+
   it("tells a phone player how to do what a desktop key or log does (U10d)", () => {
     const character = HELP_TOPICS.find((t) => t.id === "character")!;
     expect(entry(character, /^HP$/)).toMatch(/Temp HP is the number on the line below/);
