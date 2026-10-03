@@ -657,10 +657,13 @@ export default function MapBoard({
       ref={ref}
       className="map-canvas-wrapper"
       data-testid="map-board"
-      data-map-history-surface={mapEditMode ? "true" : undefined}
-      tabIndex={mapEditMode ? -1 : undefined}
+      // Pressing the map gives it keyboard focus in every mode, so its keys
+      // (Delete, undo/redo, G, map-edit history) still reach it beside an open
+      // floating window like Chat & Rolls — see features/interaction/mapShortcut.
+      data-map-history-surface="true"
+      tabIndex={-1}
       onPointerDownCapture={(event) => {
-        if (mapEditMode && event.target instanceof HTMLCanvasElement) {
+        if (event.target instanceof HTMLCanvasElement) {
           event.currentTarget.focus({ preventScroll: true });
         }
       }}

@@ -16,7 +16,7 @@
 
 import { useEffect } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
-import { escapeRegistry } from "../features/interaction/useEscapeOwner";
+import { mapShortcutAllowed } from "../features/interaction/mapShortcut";
 
 /**
  * Drawing manager interface for undo/redo operations
@@ -178,8 +178,9 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     const handleKeyDown = (e: KeyboardEvent) => {
       // Typing surfaces own their keystrokes (chat box, brush/asset search,
       // inspector fields): Backspace there edits text — it must not delete
-      // the selected tokens — and Ctrl+Z is native text undo.
-      if (!escapeRegistry.canHandleShortcut(e, { root: null, anchor: document.body })) return;
+      // the selected tokens — and Ctrl+Z is native text undo. The focused map
+      // keeps its keys beside an open floating window (see mapShortcut).
+      if (!mapShortcutAllowed(e)) return;
       // Delete or Backspace to delete selected object(s)
       if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectIds.length > 0) {
         console.log("[KeyDown] Delete/Backspace pressed:", {

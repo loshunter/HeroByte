@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { forwardRef } from "react";
 import type { ReactNode, Ref } from "react";
 import MapBoard from "../MapBoard";
@@ -548,5 +548,17 @@ describe("MapBoard", () => {
 
       expect(screen.getByTestId("fog-layer")).toHaveAttribute("data-viewer-radii", "unlimited");
     });
+  });
+
+  // Outside map edit too: the map's keys (Delete, undo, G) reach it beside an
+  // open floating window only while it holds focus (features/interaction/mapShortcut).
+  it("takes keyboard focus when its canvas is pressed, outside map edit", () => {
+    render(<MapBoard {...getDefaultProps({ mapEditMode: false })} />);
+    const board = screen.getByTestId("map-board");
+    expect(board).toHaveAttribute("data-map-history-surface", "true");
+    const canvas = document.createElement("canvas");
+    board.append(canvas);
+    fireEvent.pointerDown(canvas);
+    expect(document.activeElement).toBe(board);
   });
 });

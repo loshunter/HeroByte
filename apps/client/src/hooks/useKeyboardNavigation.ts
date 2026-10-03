@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { escapeRegistry, useEscapeOwner } from "../features/interaction/useEscapeOwner";
+import { mapShortcutAllowed } from "../features/interaction/mapShortcut";
+import { useEscapeOwner } from "../features/interaction/useEscapeOwner";
 
 export interface UseKeyboardNavigationParams {
   selectedDrawingId: string | null;
@@ -27,7 +28,7 @@ export function useKeyboardNavigation({
       // The shared definition of "typing surface": the hand-rolled check
       // missed <select> and contentEditable, so Delete inside a select (the
       // inspector's, the DM menu's) deleted the selected drawing.
-      if (!escapeRegistry.canHandleShortcut(event, { root: null, anchor: document.body })) {
+      if (!mapShortcutAllowed(event)) {
         return;
       }
 

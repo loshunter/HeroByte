@@ -23,7 +23,7 @@ import type {
 } from "@herobyte/shared";
 import type { ToolMode } from "../../components/layout/Header";
 import { generateUUID } from "../../utils/uuid";
-import { escapeRegistry } from "../interaction/useEscapeOwner";
+import { mapShortcutAllowed } from "../interaction/mapShortcut";
 import {
   defaultName,
   freshSeed,
@@ -270,7 +270,7 @@ export function useKickedInDoor({
       if (event.key.toLowerCase() !== "g") return;
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       if (activeToolRef.current !== null) return;
-      if (!escapeRegistry.canHandleShortcut(event, { root: null, anchor: document.body })) return;
+      if (!mapShortcutAllowed(event)) return;
       event.preventDefault();
       openKick();
     };
