@@ -34,9 +34,15 @@ describe("help text, after the U10c review", () => {
     expect(entry(drawing, /Undo/)).toMatch(/Erasing a whole line or shape cannot be undone/);
   });
 
-  it("tells a phone user that unlocking a map element is desktop only (U10d)", () => {
+  // A DM unlocks a TOKEN anywhere, phone included (Party → EDIT → Token Lock, which
+  // MobileEntitiesList passes to the sheet); only a locked map element needs a
+  // computer (MobileSelectPanel: "unlock it on a desktop to delete").
+  it("says where a DM unlocks a token, and that only a map element needs a computer", () => {
     const tokens = HELP_TOPICS.find((t) => t.id === "tokens")!;
-    expect(entry(tokens, /Locked/)).toMatch(/Unlocking is desktop only: unlock it on a computer/);
+    const locked = entry(tokens, /Locked/);
+    expect(locked).toMatch(/Token Lock in its ⚙️ settings \(on a phone: ◉ Party → ⚙️ EDIT\)/);
+    expect(locked).toMatch(/a locked map element can only be unlocked on a computer/);
+    expect(locked).not.toMatch(/Unlocking is desktop only/);
   });
 
   it("tells a phone player how to do what a desktop key or log does (U10d)", () => {

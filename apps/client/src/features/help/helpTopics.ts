@@ -185,7 +185,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🔒 Locked",
         detail:
-          "Pinned by the DM; it cannot be moved or deleted until unlocked. Unlocking is desktop only: unlock it on a computer.",
+          "Pinned by the DM; it cannot be moved or deleted until unlocked. The DM unlocks a token with Token Lock in its ⚙️ settings (on a phone: ◉ Party → ⚙️ EDIT); a locked map element can only be unlocked on a computer.",
       },
       { term: "Ping", detail: "Double-click (or double-tap) empty space in any tool mode." },
     ],
