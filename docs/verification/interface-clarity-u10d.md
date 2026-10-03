@@ -1,7 +1,7 @@
 # U10d — phone parity
 
-**Status: BUILT, REVIEWED, NOT PUSHED.** Seven commits on `dev` after `3c4f659c` (the pushed U10c): `99c09cf9`,
-`22f1621e`, `60ff0f60`, `2394d105`, `971f5fde`, `209bb19c`, `4ef5a21e`, then this record. No CI has run on them. Merge to
+**Status: BUILT, REVIEWED, PUSHED (`c3ed4851`, CI #918 green).** Seven commits on `dev` after `3c4f659c` (the pushed U10c): `99c09cf9`,
+`22f1621e`, `60ff0f60`, `2394d105`, `971f5fde`, `209bb19c`, `4ef5a21e`, then this record (`c3ed4851`). CI #918 passed on the pushed tip. Merge to
 `main` is the owner's word alone.
 
 U10d is a small slice the U10c arc review asked for (owner answered "Yes, as the review proposed", 2026-10-02): close
@@ -100,5 +100,9 @@ passed / 4 skipped. Bundle (measured separately): **160.72 KB gzipped** of 175 (
 (re-run during this slice). Notes from the investigation: on this machine a download started by a user gesture in the
 mobile project raises no download event, while a script-started download does; delaying `revokeObjectURL` did not help;
 Playwright 1.56.0 and its browsers are unchanged; the experiment was reverted. It needs a look on a clean machine or on
-CI before anyone calls it environmental for certain. **Do not read this ladder as green.** Dev boot was not requested
-(`packages/shared` gained no export).
+CI before anyone calls it environmental for certain. **CI result (pushed 2026-10-02, `c3ed4851`): run #918 succeeded**, including the `e2e-full-suite` job's "Run full E2E
+suite" step (read from the GitHub API; the step log itself needs authentication, so the per-spec counts were not read here).
+A full suite that exits clean on CI means the two character-file download specs did not fail there: the failures are
+specific to the machine the local ladder ran on, not to U10d. **The local ladder above was not green; CI's is.**
+(Original note, written before CI ran: **Do not read the local ladder as green.** Dev boot was not requested
+(`packages/shared` gained no export).)
