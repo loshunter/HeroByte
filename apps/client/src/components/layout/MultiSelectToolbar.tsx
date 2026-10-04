@@ -50,13 +50,6 @@ export interface MultiSelectToolbarProps {
 }
 
 /**
- * The selection bar's layer: above Chat & Rolls (1000), NPC settings (1001) and the DM
- * menu, props and world map windows (1002). A character's ⚙️ settings (2500), the Kick
- * panel (1100), the map-edit wheel (1190+), menus, modals and toasts stay above it.
- */
-export const MULTI_SELECT_TOOLBAR_Z = 1004;
-
-/**
  * MultiSelectToolbar Component
  *
  * Displays a floating toolbar with object count and lock/unlock actions
@@ -96,9 +89,11 @@ export function MultiSelectToolbar({
         top: `${topHeight + 20}px`,
         left: "50%",
         transform: "translateX(-50%)",
-        // Above Chat & Rolls and the other 1000–1002 windows: at equal z the later
-        // window covered 🔓 Unlock, the button the DM's locked-Delete toast names.
-        zIndex: MULTI_SELECT_TOOLBAR_Z,
+        // Not raised above the floating windows: Chat & Rolls (1000) can cover 🔓 Unlock
+        // at narrow widths, but the windows that open under the header (NPC settings,
+        // ROLL RESULT, the dice roller) put their ✕ where this bar sits, and a bar over
+        // them turns a close into a lock or an unlock.
+        zIndex: 1000,
         display: "flex",
         gap: "8px",
         padding: "8px 16px",

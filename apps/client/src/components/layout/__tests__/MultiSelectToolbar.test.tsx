@@ -239,10 +239,8 @@ describe("MultiSelectToolbar - Characterization", () => {
       );
 
       const toolbar = container.firstChild as HTMLElement;
-      // Above the floating windows (Chat & Rolls' frame 1000, NPC settings 1001, DM
-      // menu 1002): at 1000 the later-mounted Chat window covered 🔓 Unlock.
       expect(toolbar).toHaveStyle({
-        zIndex: "1004",
+        zIndex: "1000",
         display: "flex",
         gap: "8px",
         padding: "8px 16px",
