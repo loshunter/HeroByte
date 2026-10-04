@@ -43,16 +43,16 @@ This guide covers deploying HeroByte to production using:
 
 ### B. Configure Service
 
-| Setting            | Value                                                                                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Name**           | `herobyte-server` (or your choice)                                                                                                                                                               |
-| **Root Directory** | `apps/server`                                                                                                                                                                                    |
-| **Environment**    | `Node`                                                                                                                                                                                           |
-| **Region**         | `US East (Ohio)` (lowest average US latency)                                                                                                                                                     |
-| **Branch**         | `main`                                                                                                                                                                                           |
-| **Build Command**  | `pnpm install --frozen-lockfile && pnpm build`                                                                                                                                                   |
-| **Start Command**  | `pnpm start`                                                                                                                                                                                     |
-| **Instance Type**  | Paid instance + persistent disk (what HeroByte runs — see §1E/§1F). `Free` works for a personal copy, with `HEROBYTE_ALLOW_EPHEMERAL_DATA=true` (no disk: everything is wiped on each redeploy). |
+| Setting            | Value                                                                                                                                                                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**           | `herobyte-server` (or your choice)                                                                                                                                                                                                              |
+| **Root Directory** | `apps/server`                                                                                                                                                                                                                                   |
+| **Environment**    | `Node`                                                                                                                                                                                                                                          |
+| **Region**         | `US East (Ohio)` (lowest average US latency)                                                                                                                                                                                                    |
+| **Branch**         | `main`                                                                                                                                                                                                                                          |
+| **Build Command**  | `pnpm install --frozen-lockfile && pnpm build`                                                                                                                                                                                                  |
+| **Start Command**  | `pnpm start`                                                                                                                                                                                                                                    |
+| **Instance Type**  | Paid instance + persistent disk (what HeroByte runs — see §1E/§1F). `Free` works for a personal copy, with `HEROBYTE_ALLOW_EPHEMERAL_DATA=true` (no disk: everything is wiped on every spin-down after 15 idle minutes, and on every redeploy). |
 
 ### C. Environment Variables
 
@@ -257,7 +257,7 @@ password means one visitor can padlock a public demo and its host loses their ow
 server restarts (the settings are re-read on every start).
 
 It follows that the table can never quietly become someone's real table, so it is swept unless `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0`.
-The server empties it in place once it has sat **empty of authenticated clients for 1 hour** — room
+The server empties it in place once it has sat **empty of authenticated clients for `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS` hours (1 by default)** — room
 state, map documents, and its claim on uploaded images. Specifics worth knowing:
 
 - **Private tables are never auto-cleared.** They unload after 30 minutes idle, which is lossless:
