@@ -2097,10 +2097,7 @@ button.token-library-remove:hover {
  */
 .mobile-selection-sheet {
   display: grid;
-  /* 128px, not 96: at 375px three chips a row left 105px each, under TRANSFORM's
-     width in the pixel font (it overflowed) and wrapping 🔓 UNLOCK's icon onto its
-     own line. Two a row fits every label; the DM's four still take two rows. */
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 7px;
   padding: 8px;
@@ -2116,6 +2113,23 @@ button.token-library-remove:hover {
 
 .mobile-selection-sheet .mobile-chip {
   width: 100%;
+}
+
+/* The action chips wrap in their own row, each as wide as its label (flex-basis
+   auto = max-content, never shrinking below it) and sharing what is left. A fixed
+   column minimum could not suit every width: 96px clipped TRANSFORM at 375px (wider
+   still in Linux fonts), and 128px pushed the DM's four onto a second row on a
+   568px landscape phone. Wrapping by label gives each row as many as fit. */
+.mobile-selection-sheet__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.mobile-selection-sheet__actions .mobile-chip {
+  flex: 1 0 auto;
+  width: auto;
+  white-space: nowrap;
 }
 
 /* The d-pad: a 3x3 of chips spanning the sheet, each on the 44px floor the

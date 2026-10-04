@@ -34,28 +34,30 @@ export function MobileSelectionSheet({
     <div className="mobile-selection-sheet" role="region" aria-label="Selected object actions">
       <strong>{selectedCount} selected</strong>
       {movement && movement.movableCount > 0 && <MobileMovePad movement={movement} />}
-      <button
-        type="button"
-        className={transformMode ? "mobile-chip mobile-chip--active" : "mobile-chip"}
-        onClick={onTransform}
-      >
-        Transform
-      </button>
-      {isDM && (
-        <>
-          {/* The desktop toolbar's own labels: the DM's locked-Delete toast and Help
-              name "🔓 Unlock", and the phone must show the same button. */}
-          <button type="button" className="mobile-chip" onClick={onLock}>
-            🔒 Lock
-          </button>
-          <button type="button" className="mobile-chip" onClick={onUnlock}>
-            🔓 Unlock
-          </button>
-        </>
-      )}
-      <button type="button" className="mobile-chip" onClick={onClear}>
-        Clear
-      </button>
+      <div className="mobile-selection-sheet__actions">
+        <button
+          type="button"
+          className={transformMode ? "mobile-chip mobile-chip--active" : "mobile-chip"}
+          onClick={onTransform}
+        >
+          Transform
+        </button>
+        {isDM && (
+          <>
+            {/* The desktop toolbar's own labels: the DM's locked-Delete toast and Help
+                name "🔓 Unlock", and the phone must show the same button. */}
+            <button type="button" className="mobile-chip" onClick={onLock}>
+              🔒 Lock
+            </button>
+            <button type="button" className="mobile-chip" onClick={onUnlock}>
+              🔓 Unlock
+            </button>
+          </>
+        )}
+        <button type="button" className="mobile-chip" onClick={onClear}>
+          Clear
+        </button>
+      </div>
     </div>
   );
 }
