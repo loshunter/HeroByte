@@ -133,7 +133,7 @@ describe("CollapsibleSection - Characterization", () => {
 
       const wrapper1 = container1.firstChild as HTMLElement;
       expect(wrapper1.style.transition).toBe(
-        "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+        "max-height 150ms ease-in-out, opacity 150ms ease-in-out, visibility 150ms ease-in-out",
       );
 
       const { container: container2 } = render(
@@ -144,7 +144,7 @@ describe("CollapsibleSection - Characterization", () => {
 
       const wrapper2 = container2.firstChild as HTMLElement;
       expect(wrapper2.style.transition).toBe(
-        "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+        "max-height 150ms ease-in-out, opacity 150ms ease-in-out, visibility 150ms ease-in-out",
       );
     });
   });
@@ -496,7 +496,7 @@ describe("CollapsibleSection - Characterization", () => {
       // Initial state
       expect(wrapper.style.overflow).toBe("hidden");
       expect(wrapper.style.transition).toBe(
-        "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+        "max-height 150ms ease-in-out, opacity 150ms ease-in-out, visibility 150ms ease-in-out",
       );
 
       // Toggle to collapsed
@@ -511,7 +511,7 @@ describe("CollapsibleSection - Characterization", () => {
       // CSS properties should be maintained
       expect(wrapper.style.overflow).toBe("hidden");
       expect(wrapper.style.transition).toBe(
-        "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+        "max-height 150ms ease-in-out, opacity 150ms ease-in-out, visibility 150ms ease-in-out",
       );
     });
   });
@@ -571,5 +571,43 @@ describe("CollapsibleSection - Characterization", () => {
       expect(wrapper.style.overflow).toBe(initialOverflow);
       expect(wrapper.style.transition).toBe(initialTransition);
     });
+  });
+});
+
+// Collapsed content leaves the Tab order and the accessibility tree (U10c): with maxHeight 0
+// alone its controls stayed focusable, so a keyboard user could change a LOCKED grid or press an
+// invisible Clear Zone.
+describe("CollapsibleSection - collapsed content is not operable", () => {
+  it("hides collapsed controls from the accessibility tree and shows expanded ones", () => {
+    const { rerender } = render(
+      <CollapsibleSection isCollapsed={true}>
+        <button type="button">Clear</button>
+      </CollapsibleSection>,
+    );
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+    rerender(
+      <CollapsibleSection isCollapsed={false}>
+        <button type="button">Clear</button>
+      </CollapsibleSection>,
+    );
+    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+  });
+
+  it("marks the collapsed wrapper aria-hidden and visibility: hidden, and only then", () => {
+    const { container, rerender } = render(
+      <CollapsibleSection isCollapsed={true}>
+        <button type="button">Clear</button>
+      </CollapsibleSection>,
+    );
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute("aria-hidden", "true");
+    expect(wrapper.style.visibility).toBe("hidden");
+    rerender(
+      <CollapsibleSection isCollapsed={false}>
+        <button type="button">Clear</button>
+      </CollapsibleSection>,
+    );
+    expect(wrapper).not.toHaveAttribute("aria-hidden");
+    expect(wrapper.style.visibility).toBe("visible");
   });
 });

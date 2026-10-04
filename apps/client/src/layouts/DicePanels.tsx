@@ -6,7 +6,8 @@
 // are one concern — everything the dice surface renders on desktop — so they
 // leave together rather than the guard being re-baselined.
 
-import React from "react";
+import React, { useRef } from "react";
+import { useEscapeRoot } from "../features/interaction/useEscapeOwner";
 import type { ChatMessage, Player } from "@herobyte/shared";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { ResultPanel } from "../components/dice/ResultPanel";
@@ -57,55 +58,61 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
   uid,
   handleSendChat,
   isDM,
-}) => (
-  <>
-    {diceRollerOpen && (
-      <DiceRoller
-        onRoll={handleRoll}
-        latestOwnRoll={latestOwnRoll}
-        onEnterRoll={handleEnterRoll}
-        onOverrideRoll={(rollId, total) => handleEnterRoll({ rollId, total })}
-        onClose={() => toggleDiceRoller(false)}
-      />
-    )}
-
-    {rollLogOpen && (
-      <div
-        style={{
-          position: "fixed",
-          right: 20,
-          top: 200,
-          width: 350,
-          height: 500,
-          zIndex: 1000,
-        }}
-      >
-        <RollLog
-          rolls={rollHistory}
-          onClearLog={handleClearLog}
-          onViewRoll={(roll) => handleViewRoll(roll)}
-          onClose={() => toggleRollLog(false)}
-          chatMessages={chatMessages}
-          players={players}
-          currentUid={uid}
-          onSendChat={handleSendChat}
-          canClearLog={isDM}
+}) => {
+  const rollLogFrame = useRef<HTMLDivElement>(null);
+  const rollLogRoot = useEscapeRoot(rollLogFrame, 1000);
+  return (
+    <>
+      {diceRollerOpen && (
+        <DiceRoller
+          onRoll={handleRoll}
+          latestOwnRoll={latestOwnRoll}
+          onEnterRoll={handleEnterRoll}
+          onOverrideRoll={(rollId, total) => handleEnterRoll({ rollId, total })}
+          onClose={() => toggleDiceRoller(false)}
         />
-      </div>
-    )}
+      )}
 
-    {/* Clicking a row in the log opens ITS breakdown. This used to mount a
+      {rollLogOpen && (
+        <div
+          ref={rollLogFrame}
+          style={{
+            position: "fixed",
+            right: 20,
+            top: 200,
+            width: 350,
+            height: 500,
+            zIndex: 1000,
+          }}
+        >
+          <RollLog
+            containingRoot={rollLogRoot}
+            rolls={rollHistory}
+            onClearLog={handleClearLog}
+            onViewRoll={(roll) => handleViewRoll(roll)}
+            onClose={() => toggleRollLog(false)}
+            chatMessages={chatMessages}
+            players={players}
+            currentUid={uid}
+            onSendChat={handleSendChat}
+            canClearLog={isDM}
+          />
+        </div>
+      )}
+
+      {/* Clicking a row in the log opens ITS breakdown. This used to mount a
         second, empty DiceRoller — `viewingRoll` was read as a boolean — so the
         desktop "view roll" gesture showed a blank roller instead of the roll,
         and that roller could fire real rolls into a no-op onRoll. */}
-    <ResultPanel
-      result={viewingRoll}
-      onClose={() => handleViewRoll(null)}
-      onEnterRoll={
-        canEnterOver(viewingRoll) && viewingRoll
-          ? (total) => handleEnterRoll({ rollId: viewingRoll.id, total })
-          : undefined
-      }
-    />
-  </>
-);
+      <ResultPanel
+        result={viewingRoll}
+        onClose={() => handleViewRoll(null)}
+        onEnterRoll={
+          canEnterOver(viewingRoll) && viewingRoll
+            ? (total) => handleEnterRoll({ rollId: viewingRoll.id, total })
+            : undefined
+        }
+      />
+    </>
+  );
+};

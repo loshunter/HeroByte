@@ -6,10 +6,18 @@
 // never happens in production and a test that omits the handler proves nothing.
 // These supply it exactly as the app does and vary only `isDM`.
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
+import type { Drawing, Player, SceneObject, SnapshotCharacter, Token } from "@herobyte/shared";
 import { MobileEntitiesList } from "../MobileEntitiesList";
+import { savePlayerState } from "../../../utils/playerPersistence";
+
+// Save character reaches the real file writer; here it is a spy, so a test can read the
+// contents the phone assembled. The loader stays real (a wrong-kind file is named by it).
+vi.mock("../../../utils/playerPersistence", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../utils/playerPersistence")>()),
+  savePlayerState: vi.fn(),
+}));
 
 const ME = "me-uid";
 
@@ -35,7 +43,6 @@ function renderList(
       characters={characters}
       uid={ME}
       isDM={isDM}
-      onToggleDMMode={vi.fn()}
       editingHpUID={null}
       hpInput=""
       onHpInputChange={vi.fn()}
@@ -50,6 +57,17 @@ function renderList(
       onCharacterStatusEffectsChange={vi.fn()}
       onCharacterNameUpdate={vi.fn()}
       onCharacterPortraitUpdate={vi.fn()}
+      onTokenSizeChange={vi.fn()}
+      onAddCharacter={vi.fn()}
+      sceneObjects={[]}
+      drawings={[]}
+      onApplyPlayerState={vi.fn()}
+      onToggleTokenLock={vi.fn()}
+      onPlayerTokenDelete={undefined}
+      onCharacterOwnerChange={vi.fn()}
+      onFocusToken={vi.fn()}
+      currentTurnCharacterId={extra.currentTurnCharacterId}
+      onOpenInitiative={extra.onOpenInitiative ?? vi.fn()}
       tokens={tokens}
       onTokenVisionRadiusChange={onTokenVisionRadiusChange}
     />,
@@ -75,7 +93,6 @@ describe("delete character — the desktop gate, on a phone", () => {
         characters={[characters[0], otherCharacter] as SnapshotCharacter[]}
         uid={ME}
         isDM={true}
-        onToggleDMMode={vi.fn()}
         editingHpUID={null}
         hpInput=""
         onHpInputChange={vi.fn()}
@@ -90,6 +107,17 @@ describe("delete character — the desktop gate, on a phone", () => {
         onCharacterStatusEffectsChange={vi.fn()}
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
+        onTokenSizeChange={vi.fn()}
+        onAddCharacter={vi.fn()}
+        sceneObjects={[]}
+        drawings={[]}
+        onApplyPlayerState={vi.fn()}
+        onToggleTokenLock={vi.fn()}
+        onPlayerTokenDelete={undefined}
+        onCharacterOwnerChange={vi.fn()}
+        onFocusToken={vi.fn()}
+        currentTurnCharacterId={undefined}
+        onOpenInitiative={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -117,7 +145,6 @@ describe("delete character — the desktop gate, on a phone", () => {
         characters={[characters[0], otherCharacter] as SnapshotCharacter[]}
         uid={ME}
         isDM={false}
-        onToggleDMMode={vi.fn()}
         editingHpUID={null}
         hpInput=""
         onHpInputChange={vi.fn()}
@@ -132,6 +159,17 @@ describe("delete character — the desktop gate, on a phone", () => {
         onCharacterStatusEffectsChange={vi.fn()}
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
+        onTokenSizeChange={vi.fn()}
+        onAddCharacter={vi.fn()}
+        sceneObjects={[]}
+        drawings={[]}
+        onApplyPlayerState={vi.fn()}
+        onToggleTokenLock={vi.fn()}
+        onPlayerTokenDelete={undefined}
+        onCharacterOwnerChange={vi.fn()}
+        onFocusToken={vi.fn()}
+        currentTurnCharacterId={undefined}
+        onOpenInitiative={vi.fn()}
         onDeleteCharacter={onDeleteCharacter}
       />,
     );
@@ -332,7 +370,6 @@ function listProps(overrides: Partial<Parameters<typeof MobileEntitiesList>[0]> 
     characters,
     uid: ME,
     isDM: false,
-    onToggleDMMode: vi.fn(),
     editingHpUID: null,
     hpInput: "",
     onHpInputChange: vi.fn(),
@@ -347,6 +384,17 @@ function listProps(overrides: Partial<Parameters<typeof MobileEntitiesList>[0]> 
     onCharacterStatusEffectsChange: vi.fn(),
     onCharacterNameUpdate: vi.fn(),
     onCharacterPortraitUpdate: vi.fn(),
+    onTokenSizeChange: vi.fn(),
+    onAddCharacter: vi.fn(),
+    sceneObjects: [],
+    drawings: [],
+    onApplyPlayerState: vi.fn(),
+    onToggleTokenLock: vi.fn(),
+    onPlayerTokenDelete: undefined,
+    onCharacterOwnerChange: vi.fn(),
+    onFocusToken: vi.fn(),
+    currentTurnCharacterId: undefined,
+    onOpenInitiative: vi.fn(),
     tokens,
     onTokenVisionRadiusChange: vi.fn(),
     ...overrides,
@@ -387,14 +435,37 @@ describe("MobileEntitiesList rows", () => {
     expect(onHpEdit).toHaveBeenCalledExactlyOnceWith("char-boo", 7);
   });
 
-  it("keeps one stats row for a legacy player with no character link", () => {
-    const legacyPlayers = [
+  it("shows no row for another player's seat with no character, as the desktop Party does", () => {
+    // Its editors would all send a character message carrying a player uid,
+    // which the server refuses (a DM clearing an offline player's only
+    // character left exactly this behind).
+    const withEmptySeat = [
       ...players,
       { uid: "old-timer", name: "Old Timer", hp: 4, maxHp: 8, micLevel: 0, isDM: false },
     ] as unknown as Player[];
-    render(<MobileEntitiesList {...listProps({ players: legacyPlayers })} />);
+    render(<MobileEntitiesList {...listProps({ players: withEmptySeat, isDM: true })} />);
 
-    expect(screen.getByText("Old Timer")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Seat: Old Timer" })).toBeNull();
+    expect(screen.queryByText("Old Timer")).toBeNull();
+  });
+
+  it("keeps your own seat with no character, offering only what a seat can use", () => {
+    // Your row's EDIT is the phone's way to ➕ Add Character (role moved to the
+    // Table screen in U9); there is no character for HP, conditions, name or
+    // portrait editors — nor for a character file, which is one character's.
+    render(<MobileEntitiesList {...listProps({ characters: [] })} />);
+
+    const seat = screen.getByRole("region", { name: "Seat: Me (you)" });
+    const row = within(seat).getByTestId("mobile-player-row");
+    expect(row.querySelector(".jrpg-hp-bar")).toBeNull();
+    expect(within(row).queryByRole("button", { name: "⚡ Manage Status" })).toBeNull();
+
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+    expect(screen.getByRole("button", { name: "➕ Add Character" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /DM Mode/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save character" })).toBeNull();
+    expect(screen.queryByLabelText("Character Name")).toBeNull();
+    expect(screen.queryByText("Status Effects")).toBeNull();
   });
 
   it("gives an NPC no party row, even when the DM owns it", () => {
@@ -544,7 +615,6 @@ describe("MobileEntitiesList sight-radius gate", () => {
         characters={linked}
         uid={ME}
         isDM
-        onToggleDMMode={vi.fn()}
         editingHpUID={null}
         hpInput=""
         onHpInputChange={vi.fn()}
@@ -559,6 +629,17 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onCharacterStatusEffectsChange={vi.fn()}
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
+        onTokenSizeChange={vi.fn()}
+        onAddCharacter={vi.fn()}
+        sceneObjects={[]}
+        drawings={[]}
+        onApplyPlayerState={vi.fn()}
+        onToggleTokenLock={vi.fn()}
+        onPlayerTokenDelete={undefined}
+        onCharacterOwnerChange={vi.fn()}
+        onFocusToken={vi.fn()}
+        currentTurnCharacterId={undefined}
+        onOpenInitiative={vi.fn()}
         tokens={twoTokens}
         onTokenVisionRadiusChange={onChange}
       />,
@@ -579,7 +660,6 @@ describe("MobileEntitiesList sight-radius gate", () => {
         characters={characters}
         uid={ME}
         isDM
-        onToggleDMMode={vi.fn()}
         editingHpUID={null}
         hpInput=""
         onHpInputChange={vi.fn()}
@@ -594,6 +674,17 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onCharacterStatusEffectsChange={vi.fn()}
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
+        onTokenSizeChange={vi.fn()}
+        onAddCharacter={vi.fn()}
+        sceneObjects={[]}
+        drawings={[]}
+        onApplyPlayerState={vi.fn()}
+        onToggleTokenLock={vi.fn()}
+        onPlayerTokenDelete={undefined}
+        onCharacterOwnerChange={vi.fn()}
+        onFocusToken={vi.fn()}
+        currentTurnCharacterId={undefined}
+        onOpenInitiative={vi.fn()}
         tokens={[]}
         onTokenVisionRadiusChange={vi.fn()}
       />,
@@ -763,5 +854,457 @@ describe("a condition belongs to its character, not to the player's other rows",
     );
 
     expect(screen.queryByText("🤢 Poisoned")).toBeNull();
+  });
+});
+
+// Temporary HP follows the same rule as conditions: the character's own value,
+// with the legacy player-level one only for a sole character — a second row
+// must not read a sibling's (or the seat's) temporary HP as its own.
+describe("temporary HP belongs to its character, not to the player's other rows", () => {
+  const owner = [
+    { uid: ME, name: "Me", hp: 10, maxHp: 10, micLevel: 0, isDM: false, tempHp: 3 },
+  ] as unknown as Player[];
+  const aria = {
+    id: "char-aria",
+    name: "Aria",
+    type: "pc",
+    ownedByPlayerUID: ME,
+    hp: 10,
+    maxHp: 10,
+  };
+  const boo = { id: "char-boo", name: "Boo", type: "pc", ownedByPlayerUID: ME, hp: 7, maxHp: 12 };
+
+  it("shows each row only its own temporary HP", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          players: owner,
+          characters: [{ ...aria, tempHp: 5 }, boo] as unknown as SnapshotCharacter[],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("10 (+5)")).toBeInTheDocument();
+    expect(screen.queryByText(/\(\+3\)/)).toBeNull();
+  });
+
+  it("still shows a lone character the legacy player-level value", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ players: owner, characters: [aria] as unknown as SnapshotCharacter[] })}
+      />,
+    );
+
+    expect(screen.getByText("10 (+3)")).toBeInTheDocument();
+  });
+});
+
+// Token size on a phone. The server lets the owner or the DM resize a token
+// (TokenMessageHandler.handleSetSize), and the desktop card offers it; the
+// phone's EDIT sheet offered no size control at all.
+describe("MobileEntitiesList token size", () => {
+  const OTHER = "other-uid";
+  const table = {
+    players: [
+      ...players,
+      { uid: OTHER, name: "Them", hp: 10, maxHp: 10, micLevel: 0, isDM: false, statusEffects: [] },
+    ] as unknown as Player[],
+    characters: [
+      { id: "char-1", name: "Me", type: "pc", ownedByPlayerUID: ME, tokenId: "my-token" },
+      { id: "char-2", name: "Them", type: "pc", ownedByPlayerUID: OTHER, tokenId: "their-token" },
+    ] as unknown as SnapshotCharacter[],
+    tokens: [...tokens, { id: "their-token", owner: OTHER, x: 2, y: 2, color: "blue" }] as Token[],
+  };
+  const editRow = (name: string) => {
+    const row = screen
+      .getAllByTestId("mobile-player-row")
+      .find((candidate) => within(candidate).queryByText(name, { exact: true }))!;
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+  };
+
+  it("the owner resizes their own token from EDIT", () => {
+    const onTokenSizeChange = vi.fn();
+    render(<MobileEntitiesList {...listProps({ ...table, onTokenSizeChange })} />);
+
+    editRow("Me");
+    fireEvent.click(screen.getByRole("button", { name: "Large" }));
+
+    expect(onTokenSizeChange).toHaveBeenCalledWith("my-token", "large");
+  });
+
+  it("a DM resizes another player's token from that player's row", () => {
+    const onTokenSizeChange = vi.fn();
+    render(<MobileEntitiesList {...listProps({ ...table, isDM: true, onTokenSizeChange })} />);
+
+    editRow("Them");
+    fireEvent.click(screen.getByRole("button", { name: "Huge" }));
+
+    expect(onTokenSizeChange).toHaveBeenCalledWith("their-token", "huge");
+  });
+
+  it("a row with no token offers no size", () => {
+    render(
+      <MobileEntitiesList {...listProps({ ...table, tokens: [], onTokenSizeChange: vi.fn() })} />,
+    );
+
+    editRow("Me");
+
+    expect(screen.queryByRole("button", { name: "Large" })).toBeNull();
+  });
+});
+
+// A seat's player-level portrait is legacy, attributable only to the player's
+// SOLE character (UX-02), as on the desktop cards.
+describe("MobileEntitiesList seat portrait", () => {
+  const withSeatPortrait = [
+    { ...players[0], portrait: "https://example.test/seat.png" },
+  ] as unknown as Player[];
+  const rowPortraits = () => document.querySelectorAll('img[src="https://example.test/seat.png"]');
+
+  it("is a sole character's fallback", () => {
+    render(<MobileEntitiesList {...listProps({ players: withSeatPortrait })} />);
+
+    expect(rowPortraits()).toHaveLength(1);
+  });
+
+  it("is nobody's once the seat has two characters", () => {
+    const two = [
+      ...characters,
+      { id: "char-2", name: "Companion", type: "pc", ownedByPlayerUID: ME, hp: 5, maxHp: 5 },
+    ] as unknown as SnapshotCharacter[];
+    render(<MobileEntitiesList {...listProps({ players: withSeatPortrait, characters: two })} />);
+
+    expect(rowPortraits()).toHaveLength(0);
+  });
+});
+
+// The phone's EDIT sheet lacked what the desktop window offers and the server
+// allows: a player could never add a second character from a phone (so the
+// seat grouping had nothing to group), and a DM had no token lock or Delete
+// Token there.
+describe("MobileEntitiesList — the phone's own settings", () => {
+  const OTHER = "other-uid";
+  const table = {
+    players: [
+      ...players,
+      { uid: OTHER, name: "Them", hp: 10, maxHp: 10, micLevel: 0, isDM: false, statusEffects: [] },
+    ] as unknown as Player[],
+    characters: [
+      { id: "char-1", name: "Me", type: "pc", ownedByPlayerUID: ME, tokenId: "my-token" },
+      { id: "char-2", name: "Them", type: "pc", ownedByPlayerUID: OTHER, tokenId: "their-token" },
+    ] as unknown as SnapshotCharacter[],
+    tokens: [...tokens, { id: "their-token", owner: OTHER, x: 2, y: 2, color: "blue" }] as Token[],
+  };
+  const editRow = (name: string) => {
+    const row = screen
+      .getAllByTestId("mobile-player-row")
+      .find((candidate) => within(candidate).queryByText(name, { exact: true }))!;
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+  };
+
+  it("your own row adds a character", () => {
+    const onAddCharacter = vi.fn();
+    render(<MobileEntitiesList {...listProps({ ...table, onAddCharacter })} />);
+
+    editRow("Me");
+    fireEvent.click(screen.getByRole("button", { name: "➕ Add Character" }));
+    const field = screen.getByPlaceholderText("Enter character name...");
+    fireEvent.change(field, { target: { value: "Wolf" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+
+    expect(onAddCharacter).toHaveBeenCalledWith("Wolf");
+  });
+
+  it("a DM locks and deletes another player's token from their row", () => {
+    const onToggleTokenLock = vi.fn();
+    const onPlayerTokenDelete = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...table, isDM: true, onToggleTokenLock, onPlayerTokenDelete })}
+      />,
+    );
+
+    editRow("Them");
+    expect(screen.queryByRole("button", { name: "➕ Add Character" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "🔓 Unlocked" }));
+    fireEvent.click(screen.getByRole("button", { name: "🗑️ Delete Token (DM)" }));
+
+    expect(onToggleTokenLock).toHaveBeenCalledWith("token:their-token", true);
+    expect(onPlayerTokenDelete).toHaveBeenCalledWith("their-token");
+    vi.restoreAllMocks();
+  });
+
+  it("a DM sees a locked token as locked, and the toggle unlocks it", () => {
+    const onToggleTokenLock = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          ...table,
+          isDM: true,
+          onToggleTokenLock,
+          sceneObjects: [{ id: "token:their-token", locked: true }] as SceneObject[],
+        })}
+      />,
+    );
+
+    editRow("Them");
+    fireEvent.click(screen.getByRole("button", { name: "🔒 Locked" }));
+
+    expect(onToggleTokenLock).toHaveBeenCalledWith("token:their-token", false);
+  });
+
+  it("a DM moves another player's character to a seat from their row", () => {
+    const onCharacterOwnerChange = vi.fn();
+    render(<MobileEntitiesList {...listProps({ ...table, isDM: true, onCharacterOwnerChange })} />);
+
+    editRow("Them");
+    fireEvent.change(screen.getByLabelText("Owner"), { target: { value: ME } });
+
+    expect(onCharacterOwnerChange).toHaveBeenCalledWith("char-2", ME);
+  });
+
+  it("a player's own row offers neither token lock nor Delete Token", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ ...table, onToggleTokenLock: vi.fn(), onPlayerTokenDelete: vi.fn() })}
+      />,
+    );
+
+    editRow("Me");
+    expect(screen.queryByRole("button", { name: "🔓 Unlocked" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "🗑️ Delete Token (DM)" })).toBeNull();
+    expect(screen.queryByLabelText("Owner")).toBeNull();
+  });
+});
+
+describe("MobileEntitiesList — Save character / Load character on a phone (U9)", () => {
+  const OTHER = "other-uid";
+  const both = [
+    { uid: ME, name: "Me", hp: 10, maxHp: 10, micLevel: 0, isDM: false, statusEffects: [] },
+    { uid: OTHER, name: "Other", hp: 8, maxHp: 8, micLevel: 0, isDM: false, statusEffects: [] },
+  ] as unknown as Player[];
+  const bothCharacters = [
+    { id: "char-1", name: "Me", type: "pc", ownedByPlayerUID: ME, hp: 10, maxHp: 10 },
+    { id: "char-2", name: "Other", type: "pc", ownedByPlayerUID: OTHER, hp: 8, maxHp: 8 },
+  ] as unknown as SnapshotCharacter[];
+
+  const openEdit = (rowName: string) => {
+    const seat = screen.getByRole("region", { name: new RegExp(`^Seat: ${rowName}`) });
+    fireEvent.click(within(seat).getByRole("button", { name: /EDIT/ }));
+  };
+
+  it("names its scope before a file is chosen, on the viewer's own row", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ players: both, characters: bothCharacters, isDM: false })}
+      />,
+    );
+    openEdit("Me");
+    expect(screen.getByText("Character file")).toBeInTheDocument();
+    expect(screen.getByText(/plus your own drawings/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save character" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load character…" })).toBeInTheDocument();
+  });
+
+  it("a player has no file control on anyone else's row: there is no such EDIT to open", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ players: both, characters: bothCharacters, isDM: false })}
+      />,
+    );
+    const other = screen.getByRole("region", { name: /^Seat: Other/ });
+    expect(within(other).queryByRole("button", { name: /EDIT/ })).toBeNull();
+    // With the viewer's OWN sheet open there is exactly one Save character in the whole list,
+    // and it is not in the other's row: a closed sheet would show none anywhere.
+    openEdit("Me");
+    expect(screen.getAllByRole("button", { name: "Save character" })).toHaveLength(1);
+    expect(within(other).queryByRole("button", { name: "Save character" })).toBeNull();
+  });
+
+  it("a DM's Load character on another player's row applies the file to THAT character and token, not the DM's own", async () => {
+    // Existence of the button proves nothing about what it acts on: load a real file and
+    // read which character and token the apply was told to write to.
+    const onApplyPlayerState = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          players: both,
+          characters: bothCharacters.map((character) =>
+            character.id === "char-2" ? { ...character, tokenId: "tok-other" } : character,
+          ),
+          isDM: true,
+          onApplyPlayerState,
+          tokens: [{ id: "tok-other", owner: OTHER, x: 1, y: 1, color: "blue" }] as never,
+        })}
+      />,
+    );
+    openEdit("Other");
+    const input = screen.getByLabelText("Choose a character file to load") as HTMLInputElement;
+    const good = { text: async () => JSON.stringify({ name: "Borin", hp: 3, maxHp: 8 }) };
+    fireEvent.change(input, { target: { files: [good] } });
+    await vi.waitFor(() => expect(onApplyPlayerState).toHaveBeenCalledTimes(1));
+    const [state, tokenId, characterId] = onApplyPlayerState.mock.calls[0]!;
+    expect(state).toMatchObject({ name: "Borin", hp: 3, maxHp: 8 });
+    expect(characterId).toBe("char-2");
+    expect(tokenId).toBe("tok-other");
+  });
+
+  it("a DM has the file control on another player's row", () => {
+    const onApplyPlayerState = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          players: both,
+          characters: bothCharacters,
+          isDM: true,
+          onApplyPlayerState,
+        })}
+      />,
+    );
+    openEdit("Other");
+    expect(screen.getByRole("button", { name: "Save character" })).toBeInTheDocument();
+  });
+
+  it("Load character applies the file to THIS row's character and token, and reports the wrong kind by name", async () => {
+    const onApplyPlayerState = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({
+          players: both,
+          characters: bothCharacters,
+          isDM: false,
+          onApplyPlayerState,
+          tokens: [{ id: "tok-me", owner: ME, x: 1, y: 1, color: "red" }] as never,
+        })}
+      />,
+    );
+    openEdit("Me");
+    const input = screen.getByLabelText("Choose a character file to load") as HTMLInputElement;
+    const good = { text: async () => JSON.stringify({ name: "Aria", hp: 4, maxHp: 9 }) };
+    fireEvent.change(input, { target: { files: [good] } });
+    await vi.waitFor(() => expect(onApplyPlayerState).toHaveBeenCalledTimes(1));
+    const [state, tokenId, characterId] = onApplyPlayerState.mock.calls[0]!;
+    expect(state).toMatchObject({ name: "Aria", hp: 4, maxHp: 9 });
+    expect(characterId).toBe("char-1");
+    // The token the row is about (the viewer's one loose token, for a sole character).
+    expect(tokenId).toBe("tok-me");
+
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const table = { text: async () => JSON.stringify({ snapshot: {}, schemaVersion: 1 }) };
+    fireEvent.change(input, { target: { files: [table] } });
+    await vi.waitFor(() =>
+      expect(alert).toHaveBeenCalledWith(expect.stringMatching(/table backup.*not a character/i)),
+    );
+    // A refused file applied nothing beyond the first, good one.
+    expect(onApplyPlayerState).toHaveBeenCalledTimes(1);
+    alert.mockRestore();
+  });
+});
+
+// What the phone's Save character puts in the file, and what Load character shows of it. The desktop card is handed these by its
+// parents; the phone's row assembles them from the table's collections itself, so each one is
+// a place the two surfaces can drift — and what Load would then give back to a character.
+describe("MobileEntitiesList — the character file's contents, both ways (U9)", () => {
+  const OTHER = "other-uid";
+  const drawing = (id: string, owner: string) =>
+    ({ id, owner, type: "freehand", points: [], color: "#fff", width: 2 }) as unknown as Drawing;
+  const tokenScene = (tokenId: string, owner: string) =>
+    ({
+      id: `token:${tokenId}`,
+      type: "token",
+      owner,
+      locked: false,
+      zIndex: 1,
+      transform: { x: 1, y: 1, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { color: "red", size: "medium" },
+    }) as unknown as SceneObject;
+  const table = {
+    players: [
+      { uid: ME, name: "Me", hp: 10, maxHp: 10, micLevel: 0, isDM: false, statusEffects: [] },
+      { uid: OTHER, name: "Other", hp: 8, maxHp: 8, micLevel: 0, isDM: false, statusEffects: [] },
+    ] as unknown as Player[],
+    characters: [
+      {
+        id: "char-1",
+        name: "Me",
+        type: "pc",
+        ownedByPlayerUID: ME,
+        hp: 10,
+        maxHp: 10,
+        tokenId: "tok-me",
+        initiativeModifier: 3,
+      },
+      {
+        id: "char-2",
+        name: "Other",
+        type: "pc",
+        ownedByPlayerUID: OTHER,
+        hp: 8,
+        maxHp: 8,
+        tokenId: "tok-other",
+        initiativeModifier: -1,
+      },
+    ] as unknown as SnapshotCharacter[],
+    tokens: [
+      { id: "tok-me", owner: ME, x: 1, y: 1, color: "red", imageUrl: "me.png" },
+      { id: "tok-other", owner: OTHER, x: 2, y: 2, color: "blue" },
+    ] as Token[],
+    sceneObjects: [tokenScene("tok-me", ME), tokenScene("tok-other", OTHER)],
+    drawings: [drawing("d-mine", ME), drawing("d-theirs", OTHER)],
+  };
+  const openEdit = (rowName: string) => {
+    const seat = screen.getByRole("region", { name: new RegExp(`^Seat: ${rowName}`) });
+    fireEvent.click(within(seat).getByRole("button", { name: /EDIT/ }));
+  };
+  const saved = () => vi.mocked(savePlayerState).mock.calls[0]![0];
+
+  beforeEach(() => vi.mocked(savePlayerState).mockClear());
+
+  it("holds the viewer's own drawings, token, token's place and initiative modifier — nobody else's", () => {
+    render(<MobileEntitiesList {...listProps({ ...table, isDM: false })} />);
+    openEdit("Me");
+    fireEvent.click(screen.getByRole("button", { name: "Save character" }));
+
+    expect(vi.mocked(savePlayerState)).toHaveBeenCalledTimes(1);
+    expect(saved().player.uid).toBe(ME);
+    expect(saved().drawings?.map((d) => d.id)).toEqual(["d-mine"]);
+    expect(saved().tokenScene?.id).toBe("token:tok-me");
+    expect(saved().initiativeModifier).toBe(3);
+    expect(saved().token).toMatchObject({ id: "tok-me", imageUrl: "me.png" });
+  });
+
+  it("shows the loaded portrait in the open sheet's portrait field, not the one it opened with", async () => {
+    // The field holds a copy taken when the sheet opened; a Load that set the portrait on the
+    // server but left the field alone would send the OLD one back over it on the next Apply.
+    render(<MobileEntitiesList {...listProps({ ...table, isDM: false })} />);
+    openEdit("Me");
+    const field = screen.getByPlaceholderText("https://example.com/portrait.png");
+    expect(field).toHaveValue("");
+
+    const input = screen.getByLabelText("Choose a character file to load");
+    const file = {
+      text: async () =>
+        JSON.stringify({
+          name: "Aria",
+          hp: 4,
+          maxHp: 9,
+          portrait: "https://example.test/aria.png",
+        }),
+    };
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await vi.waitFor(() => expect(field).toHaveValue("https://example.test/aria.png"));
+  });
+
+  it("for a DM on another player's row holds THAT player's file, not the DM's own", () => {
+    render(<MobileEntitiesList {...listProps({ ...table, isDM: true })} />);
+    openEdit("Other");
+    fireEvent.click(screen.getByRole("button", { name: "Save character" }));
+
+    expect(saved().player.uid).toBe(OTHER);
+    expect(saved().drawings?.map((d) => d.id)).toEqual(["d-theirs"]);
+    expect(saved().tokenScene?.id).toBe("token:tok-other");
+    expect(saved().initiativeModifier).toBe(-1);
   });
 });

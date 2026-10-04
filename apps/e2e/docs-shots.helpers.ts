@@ -1,5 +1,7 @@
 import fs from "node:fs";
+import { closePartyDetails, openOwnCharacterSettings, ownRosterRow } from "./party.helpers";
 import path from "node:path";
+import type { Locator } from "@playwright/test";
 import { expect, type Page } from "./fixtures";
 
 // Shared plumbing for the documentation screenshot harness
@@ -14,6 +16,7 @@ export function ensureImgDir() {
 // Full-viewport JPEG. Screenshots are committed to the repo, so JPEG keeps the
 // canvas-heavy captures an order of magnitude smaller than PNG.
 export async function shotPage(page: Page, name: string) {
+  await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(300);
   await page.screenshot({
     path: path.join(IMG_DIR, `${name}.jpg`),
@@ -21,6 +24,14 @@ export async function shotPage(page: Page, name: string) {
     quality: 90,
     animations: "disabled",
   });
+}
+
+// Scroll a map-palette control to one edge of the settings scroller before a
+// capture. The settings scroll beneath the fixed history / Select / Layers
+// rows, so what a shot shows must be chosen here — not left to wherever the
+// last click happened to scroll it.
+export async function revealInPalette(target: Locator, block: "start" | "end") {
+  await target.evaluate((el, edge) => el.scrollIntoView({ block: edge, inline: "nearest" }), block);
 }
 
 // Soft-step runner: a failed optional step records the failure and moves on so
@@ -87,11 +98,17 @@ export async function boardBox(page: Page) {
 }
 
 export async function hideEntitiesPanel(page: Page) {
-  const hide = page.getByRole("button", { name: /HIDE ENTITIES/ });
+  const hide = page.getByRole("button", { name: "▼ Hide party" });
   if (await hide.isVisible().catch(() => false)) {
     await hide.click();
     await page.waitForTimeout(300);
   }
+}
+
+export async function focusOwnToken(page: Page) {
+  await ownRosterRow(page)
+    .getByRole("button", { name: /^Focus / })
+    .click();
 }
 
 export async function waitSnap(page: Page, predicate: () => boolean, timeout = 20_000) {
@@ -112,7 +129,7 @@ export async function waitSnap(page: Page, predicate: () => boolean, timeout = 2
 // SUBSTRING, and both upload buttons render "Uploading…", which contains it.
 export async function waitBake(page: Page, extraMs = 1_200) {
   // toHaveCount(0), NOT toBeHidden: "saving…" has TWO render sites — the live
-  // palette (MapEditToolbar) and the Map Setup tab's document line
+  // palette (MapEditToolbar) and the Maps tab's document line
   // (MapStudioControl, " · saving…"). With both on screen a strict-mode
   // violation killed this helper, and with it the whole map-authoring
   // walkthrough. Counting to zero is also the assertion actually wanted: no
@@ -195,22 +212,28 @@ export async function computeGenRegion(
   throw new Error("Could not zoom out far enough to fit a generator region");
 }
 
-// UI-driven DM elevation (screenshot-friendly path through the settings menu +
+// UI-driven DM elevation (screenshot-friendly path through the Table menu +
 // password modal, unlike helpers.elevateToDM which injects a WS message).
 export async function elevateViaUI(page: Page, opts: { onModal?: () => Promise<void> } = {}) {
   const dmPassword = process.env.E2E_DM_PASSWORD ?? "FunDM";
-  // The gear button's accessible name is its emoji content, so target the
-  // title attribute rather than a role+name query.
-  await page.getByTitle("Open player settings").first().click();
-  await page.getByRole("button", { name: /DM Mode: OFF/ }).click();
+  // The header's Table button → Enter DM mode (U9: role is the table's, not a card's).
+  await page.getByRole("button", { name: /^Table menu:/ }).click();
+  await page
+    .getByRole("dialog", { name: "Table menu" })
+    .getByRole("button", { name: "Enter DM mode", exact: true })
+    .click();
   const passwordField = page.locator("input[type='password']:visible").first();
   await expect(passwordField).toBeVisible();
   if (opts.onModal) await opts.onModal();
   await passwordField.fill(dmPassword);
-  await page.getByRole("button", { name: "Elevate to DM" }).click();
+  await page
+    .getByRole("dialog", { name: "Enter DM mode" })
+    .getByRole("button", { name: "Enter DM mode", exact: true })
+    .click();
   await expect(page.getByRole("button", { name: /DM MENU/i })).toBeVisible({ timeout: 10_000 });
-  await closeTopWindow(page, "Player Settings");
 }
+
+export { closePartyDetails };
 
 // Close the top-most draggable window by its × button. Tolerant by design:
 // some windows close themselves (e.g. player settings after a DM status
@@ -246,10 +269,10 @@ export async function openDMMenu(page: Page) {
 
 export async function selectDMTab(
   page: Page,
-  tab: "Map Setup" | "NPCs & Monsters" | "Props & Objects" | "Players" | "Session" | "Atlas",
+  tab: "Maps" | "World" | "Encounter" | "NPCs & Monsters" | "Props & Objects" | "Table",
 ) {
   await openDMMenu(page);
-  await page.getByRole("button", { name: tab }).click();
+  await page.getByRole("button", { name: tab, exact: true }).click();
 }
 
 export async function startLiveMap(page: Page) {
@@ -266,13 +289,21 @@ export async function setStagingZone(
   page: Page,
   zone: { x: number; y: number; w: number; h: number },
 ) {
-  await selectDMTab(page, "Map Setup");
+  await selectDMTab(page, "Maps");
   await page.getByLabel("Center X").fill(String(zone.x));
   await page.getByLabel("Center Y").fill(String(zone.y));
   await page.getByLabel("Width (tiles)").fill(String(zone.w));
   await page.getByLabel("Height (tiles)").fill(String(zone.h));
   await page.getByRole("button", { name: "Apply Zone" }).click();
-  // The staging zone may not surface under a stable key on the wire snapshot;
-  // give the round trip a moment rather than pinning a field name.
-  await page.waitForTimeout(800);
+  // Wait for the table to hold exactly the typed zone. Apply used to ignore
+  // the fields and centre a zone on the view instead, so this also fails if
+  // that ever comes back.
+  await page.waitForFunction(
+    ({ x, y, w, h }) => {
+      const current = window.__HERO_BYTE_E2E__?.snapshot?.playerStagingZone;
+      return current?.x === x && current.y === y && current.width === w && current.height === h;
+    },
+    zone,
+    { timeout: 20_000 },
+  );
 }

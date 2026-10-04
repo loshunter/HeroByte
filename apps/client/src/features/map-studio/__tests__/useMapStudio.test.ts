@@ -301,6 +301,64 @@ describe("useMapStudio", () => {
     expect(result.current.error).toMatch(/your edit was dropped/i);
   });
 
+  it("is not listed until a list reply arrives — before that, an absent map proves nothing", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    expect(result.current.listed).toBe(false);
+    act(() => result.current.handleServerMessage({ t: "map-studio-documents", documents: [] }));
+    expect(result.current.listed).toBe(true);
+  });
+
+  it("lists quietly: the list goes out, and neither it nor its reply touches loading", () => {
+    // Build fetches the list on entry while its open may be in flight; a loud
+    // list released `loading` under that open, and the auto-open fired twice.
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() => result.current.openDocument("doc-a"));
+    expect(result.current.loading).toBe(true);
+    sendMessage.mockClear();
+    act(() => result.current.listQuietly());
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+    expect(result.current.loading).toBe(true);
+    act(() => result.current.handleServerMessage({ t: "map-studio-documents", documents: [] }));
+    expect(result.current.loading).toBe(true); // the open is still the one being waited on
+  });
+
+  it("a map reported gone that a later list contains is no longer missing (a loaded game restored it)", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() => result.current.openDocument("crypt"));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "get:crypt",
+        documentId: "crypt",
+        code: "not-found",
+        reason: "Map document not found: crypt",
+      }),
+    );
+    expect(result.current.missingDocumentId).toBe("crypt");
+    // A list WITHOUT it keeps the marker…
+    act(() => result.current.handleServerMessage({ t: "map-studio-documents", documents: [] }));
+    expect(result.current.missingDocumentId).toBe("crypt");
+    // …a list WITH it clears the marker.
+    const crypt = createMapDocument({ id: "crypt", name: "Crypt", timestamp: 1 });
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          {
+            id: crypt.id,
+            name: crypt.name,
+            width: crypt.width,
+            height: crypt.height,
+            revision: crypt.revision,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      }),
+    );
+    expect(result.current.missingDocumentId).toBeNull();
+  });
+
   it("releases an open when the server reports the document gone (not-found)", () => {
     // A maps-store reset under a room that kept its live binding: the get for
     // the bound id must clear the load and mark the id missing — glue code
@@ -330,6 +388,65 @@ describe("useMapStudio", () => {
       }),
     );
     expect(result.current.missingDocumentId).toBeNull();
+  });
+
+  it("shows a refused table binding — set-live is no queued command, so it used to vanish", () => {
+    // Use at table (and Build's start-then-bind) send map-studio-set-live. A
+    // refusal comes back keyed set-live:<id>, which no queue entry owns, so it
+    // was dropped and the panel kept saying the table was on its way.
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "set-live:gone-map",
+        documentId: "gone-map",
+        code: "command-rejected",
+        reason: "Map document not found",
+      }),
+    );
+    expect(result.current.error).toBe("Map document not found");
+    expect(result.current.bindRefusal).toMatchObject({ documentId: "gone-map", seq: 1 });
+    // The same refusal again is a NEW event (the panel must hear it twice).
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "set-live:gone-map",
+        documentId: "gone-map",
+        code: "command-rejected",
+        reason: "Map document not found",
+      }),
+    );
+    expect(result.current.bindRefusal).toMatchObject({ documentId: "gone-map", seq: 2 });
+  });
+
+  it("a refused binding is a real reply: a slow open landing later keeps its reason", () => {
+    // Without the watchdog reset on a set-live refusal, the open that timed
+    // out earlier would clear the refusal's reason when it finally lands.
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+      act(() => result.current.openDocument("slow"));
+      act(() => vi.advanceTimersByTime(20_000));
+      expect(result.current.error).toMatch(/didn't respond/i);
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-error",
+          commandId: "set-live:gone-map",
+          documentId: "gone-map",
+          code: "command-rejected",
+          reason: "Map document not found",
+        }),
+      );
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-document",
+          document: createMapDocument({ id: "slow", name: "Slow", timestamp: 1 }),
+        }),
+      );
+      expect(result.current.error).toBe("Map document not found");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("releases a CREATE the server refused (empty commandId) — the reason shows, nothing is marked missing", () => {

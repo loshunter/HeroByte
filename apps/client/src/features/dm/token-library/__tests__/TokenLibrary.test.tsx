@@ -13,7 +13,7 @@ import { LIBRARY_ASSETS } from "../tokenCatalog";
 /** The thumbnail buttons — every button in the panel but the category chips. */
 const cells = () =>
   within(screen.getByTestId("token-library")).queryAllByRole("button", {
-    name: (name) => !["All", "Monsters", "Townsfolk", "Custom"].includes(name),
+    name: (name) => !["All", "Monsters", "Townsfolk", "This table"].includes(name),
   });
 
 describe("TokenLibrary", () => {
@@ -39,6 +39,9 @@ describe("TokenLibrary", () => {
       "/tokens/Thumbs/NPC/Enemies/Goblins/goblinClub.png",
     );
     expect(club.getAttribute("title")).toContain("small");
+    // A pack description is the generator's prompt and pipeline notes ("Approved TopDown-v3
+    // skeleton… Pixel Size 15 export"), not copy: the tooltip is the name and size alone.
+    expect(club.getAttribute("title")).toBe("Goblin club brute · small");
   });
 
   it("the category switch narrows the grid AND the family select", () => {
@@ -94,5 +97,6 @@ describe("TokenLibrary", () => {
     fireEvent.change(screen.getByLabelText("Search"), { target: { value: "zzzz" } });
     expect(cells()).toHaveLength(0);
     expect(screen.getByText(/No tokens match/)).toBeInTheDocument();
+    expect(screen.getByText(/or another chip\./)).toBeInTheDocument();
   });
 });

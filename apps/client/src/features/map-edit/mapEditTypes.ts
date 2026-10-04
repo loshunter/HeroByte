@@ -82,6 +82,11 @@ export interface GenerateParams {
  * pulling it into the entry bundle.
  */
 export interface MapEditToolbarProps {
+  /** Scopes transient tool gestures when the inspected document changes. */
+  documentId?: string;
+  mapName: string;
+  activeGroup: import("./mapEditToolDescriptors").MapEditGroup;
+  onSelectGroup: (group: import("./mapEditToolDescriptors").MapEditGroup) => MapEditSubTool;
   isLive: boolean; // a live document is bound AND active in the controller
   // The two round-trip flags, side by side BECAUSE they were confusable: the
   // palette rendered "saving…" off `busy` from M1 to M5, so the label was
@@ -100,6 +105,12 @@ export interface MapEditToolbarProps {
   onUndo: () => void;
   onRedo: () => void;
   onStartLiveMap: () => void;
+  /**
+   * What Build offers before the table's map is open: resume it (naming it and
+   * the library map being viewed) or, only when the table has none, start one.
+   * REQUIRED so a layout cannot fall back to "start" while a map exists.
+   */
+  buildEntry: import("./buildEntry").BuildEntry;
   onClose: () => void;
   hasRasterBackground: boolean; // hint: live terrain may double-draw over a raster
   error: string | null;
@@ -130,6 +141,10 @@ export interface MapEditToolbarProps {
   onToggleAssetPicker: () => void;
   // --- Hallway + POPULATE ---
   hallwayWidth: number; // corridor width in cells (1–4)
+  terrainBrushSize: import("../map-studio/terrainBrushGeometry").TerrainBrushSize;
+  onSelectTerrainBrushSize: (
+    size: import("../map-studio/terrainBrushGeometry").TerrainBrushSize,
+  ) => void;
   onSelectHallwayWidth: (width: number) => void;
   splineKind: MapEditSplineKind; // the spline sub-tool's curve kind
   onSelectSplineKind: (kind: MapEditSplineKind) => void;
@@ -139,6 +154,8 @@ export interface MapEditToolbarProps {
   onSelectPopulateCategory: (category: PopulateCategory) => void;
   onPopulate: () => void; // fills the last-placed room/hallway with set dressing
   canPopulate: boolean; // a region has been placed and the controller is idle
+  populateTarget: import("./populateTarget").PopulateTarget | null;
+  populateHint: string;
   // --- Generate (dungeon recipe) ---
   generateParams: GenerateParams;
   onGenerateParamsChange: (params: GenerateParams) => void;
@@ -149,10 +166,12 @@ export interface MapEditToolbarProps {
   // REQUIRED, not optional: an optional forwarding prop can be deleted with a
   // green typecheck and every suite passing (M4b's mapStudio line, twice more
   // in the vision slice). Required makes a dropped mapping a compile error.
-  generateHint: string | null; // why GENERATE is refused, shown under the button
+  generateHint: string | null;
+  generateFeedback?: import("./useGenerateOutcome").GenerateFeedback; // why GENERATE is refused, shown under the button
   // --- Layers + inspector (select sub-tool) ---
   layers: MapLayer[];
   selectedElement: MapElement | null;
+  properties: import("./elementProperties").PropertyView | null;
   onUpdateLayer: (layerId: string, update: MapLayerUpdate) => void;
   onMoveLayer: (layerId: string, targetIndex: number) => void;
   onUpdateElement: (elementId: string, update: MapElementUpdate) => void;

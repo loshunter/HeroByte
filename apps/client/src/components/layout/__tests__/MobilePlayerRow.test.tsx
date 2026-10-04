@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { Player } from "@herobyte/shared";
 import { MobilePlayerRow } from "../MobilePlayerRow";
+import { RoleKnownContext } from "../../../features/table/roleKnown";
 
 function props(overrides: Partial<Parameters<typeof MobilePlayerRow>[0]> = {}) {
   const player = {
@@ -28,7 +29,6 @@ function props(overrides: Partial<Parameters<typeof MobilePlayerRow>[0]> = {}) {
     player,
     isMe: false,
     isDM: false,
-    onToggleDMMode: vi.fn(),
     editingHpUID: null,
     hpInput: "",
     onHpInputChange: vi.fn(),
@@ -115,5 +115,178 @@ describe("MobilePlayerRow settings access", () => {
     fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
 
     expect(screen.queryByLabelText("Sight radius in feet")).not.toBeInTheDocument();
+  });
+});
+
+// The phone's EDIT sheet kept its own copy of the name from the moment the
+// row mounted. After anyone else renamed the character, EDIT still showed the
+// old name, and merely leaving the field sent it back as a rename, reverting
+// theirs. Found by the U7 identity review; older than U7.
+describe("MobilePlayerRow name field", () => {
+  const named = (name: string) =>
+    ({
+      ...props().player,
+      name,
+    }) as Player & { characterId: string };
+
+  it("EDIT shows the character's current name after someone else renames it", () => {
+    const base = props({ isMe: true });
+    const { rerender } = render(<MobilePlayerRow {...base} player={named("Companion")} />);
+    rerender(<MobilePlayerRow {...base} player={named("Wolf")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+    expect(screen.getByDisplayValue("Wolf")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Companion")).not.toBeInTheDocument();
+  });
+
+  it("leaving the name unchanged sends no rename", () => {
+    const base = props({ isMe: true });
+    render(<MobilePlayerRow {...base} player={named("Wolf")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    fireEvent.blur(screen.getByDisplayValue("Wolf"));
+
+    expect(base.onCharacterNameUpdate).not.toHaveBeenCalled();
+  });
+
+  it("a changed name is still sent, trimmed", () => {
+    const base = props({ isMe: true });
+    render(<MobilePlayerRow {...base} player={named("Wolf")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    const field = screen.getByDisplayValue("Wolf");
+    fireEvent.change(field, { target: { value: "  Dire Wolf " } });
+    fireEvent.blur(field);
+
+    expect(base.onCharacterNameUpdate).toHaveBeenCalledExactlyOnceWith("char-2", "Dire Wolf");
+  });
+});
+
+// A DM who loses DM rights (a deploy, a restart) must not keep another
+// player's EDIT sheet open: every editor in it is now refused by the server.
+// Older than U7; found by its permissions review.
+describe("MobilePlayerRow after losing DM rights", () => {
+  const sheet = () => document.querySelector('[data-mobile-surface="settings"]');
+
+  it("a DM's sheet on another player's row closes, and stays closed on re-elevation", () => {
+    const base = props({ isMe: false, isDM: true });
+    const { rerender } = render(<MobilePlayerRow {...base} />);
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+    expect(sheet()).not.toBeNull();
+
+    rerender(<MobilePlayerRow {...base} isDM={false} />);
+    expect(sheet()).toBeNull();
+
+    rerender(<MobilePlayerRow {...base} isDM={true} />);
+    expect(sheet()).toBeNull();
+  });
+
+  it("your own row's sheet stays open when you give up DM", () => {
+    const base = props({ isMe: true, isDM: true });
+    const { rerender } = render(<MobilePlayerRow {...base} />);
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+    rerender(<MobilePlayerRow {...base} isDM={false} />);
+    expect(sheet()).not.toBeNull();
+  });
+});
+
+describe("MobilePlayerRow conditions grid after losing DM rights", () => {
+  it("a DM's open grid on another player's row does not reopen on re-elevation", () => {
+    const base = props({ isMe: false, isDM: true, onStatusEffectsChange: vi.fn() });
+    const { rerender } = render(<MobilePlayerRow {...base} />);
+    fireEvent.click(screen.getByRole("button", { name: "⚡ Manage Status" }));
+    expect(screen.getByRole("button", { name: "Done Editing" })).toBeInTheDocument();
+
+    rerender(<MobilePlayerRow {...base} isDM={false} />);
+    rerender(<MobilePlayerRow {...base} isDM={true} />);
+
+    expect(screen.getByRole("button", { name: "⚡ Manage Status" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Done Editing" })).toBeNull();
+  });
+});
+
+describe("MobilePlayerRow portrait field", () => {
+  it("EDIT shows a portrait set elsewhere, not the one it mounted with", () => {
+    const base = props({ isMe: true });
+    const withPortrait = (portrait: string) =>
+      ({ ...base.player, portrait }) as Player & { characterId: string };
+    const { rerender } = render(<MobilePlayerRow {...base} player={withPortrait("a.png")} />);
+    rerender(<MobilePlayerRow {...base} player={withPortrait("b.png")} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+    expect(screen.getByDisplayValue("b.png")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("a.png")).not.toBeInTheDocument();
+  });
+});
+
+describe("MobilePlayerRow HP", () => {
+  it("a DM edits another player's HP from their row; a player does not", () => {
+    const dm = props({ isMe: false, isDM: true });
+    const { unmount } = render(<MobilePlayerRow {...dm} />);
+    fireEvent.click(screen.getAllByText("100")[0]!);
+    expect(dm.onHpEdit).toHaveBeenCalledWith("char-2", 100);
+    unmount();
+
+    const player = props({ isMe: false, isDM: false });
+    render(<MobilePlayerRow {...player} />);
+    fireEvent.click(screen.getAllByText("100")[0]!);
+    expect(player.onHpEdit).not.toHaveBeenCalled();
+  });
+});
+
+// A reconnect blip reads not-DM beside the DM's cached roster: it is not a demotion.
+describe("MobilePlayerRow through a reconnect blip", () => {
+  it("keeps a DM's conditions grid open until the roster confirms the demotion", () => {
+    const base = props({ isMe: false, isDM: true, onStatusEffectsChange: vi.fn() });
+    const view = (known: boolean, isDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <MobilePlayerRow
+          {...base}
+          isDM={isDM}
+          onStatusEffectsChange={isDM ? base.onStatusEffectsChange : undefined}
+        />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    fireEvent.click(screen.getByRole("button", { name: "⚡ Manage Status" }));
+
+    rerender(view(false, false));
+    expect(screen.getByRole("button", { name: "Done Editing" })).toBeInTheDocument();
+
+    rerender(view(true, false));
+    expect(screen.queryByRole("button", { name: "Done Editing" })).toBeNull();
+  });
+
+  it("offers no Manage Status on a row whose grid was never open, while the role is unknown", () => {
+    render(
+      <RoleKnownContext.Provider value={false}>
+        <MobilePlayerRow {...props({ isMe: false, isDM: false })} />
+      </RoleKnownContext.Provider>,
+    );
+    expect(screen.queryByRole("button", { name: "⚡ Manage Status" })).toBeNull();
+  });
+});
+
+describe("MobilePlayerRow EDIT sheet through a reconnect blip", () => {
+  const sheet = () => document.querySelector('[data-mobile-surface="settings"]');
+
+  it("keeps a DM's sheet on another player's row until the roster confirms the demotion", () => {
+    const base = props({ isMe: false, isDM: true });
+    const view = (known: boolean, isDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <MobilePlayerRow {...base} isDM={isDM} />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    fireEvent.click(screen.getByRole("button", { name: /EDIT/ }));
+
+    rerender(view(false, false));
+    expect(sheet()).not.toBeNull();
+
+    rerender(view(true, false));
+    expect(sheet()).toBeNull();
   });
 });

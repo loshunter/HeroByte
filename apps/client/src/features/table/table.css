@@ -1,0 +1,282 @@
+/* The Table (U9): the connection chip and the reconnect notice, the Table menu /
+   phone Table screen, and the host's next steps. Body copy uses the readable body
+   font; headings keep the pixel font. The 44px touch floor for buttons, selects
+   and ranges comes from herobyte.css' [data-mobile-surface] rule; only what it
+   cannot reach (a checkbox's label row, the next steps' manual-copy field) is
+   sized here. */
+
+/* ---- Connection chip: in flow, never positioned over content ---- */
+
+.connection-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 4px 12px;
+  border: 2px solid var(--jrpg-border-outer);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--jrpg-border-shadow);
+  color: var(--jrpg-navy);
+  font-family: "Press Start 2P", monospace;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.connection-chip--online {
+  background: var(--jrpg-hp-full);
+}
+
+.connection-chip--offline {
+  background: var(--jrpg-hp-low);
+}
+
+.connection-chip__dot {
+  font-size: 12px;
+}
+
+/* ---- Reconnect notice: the gate says why; the host places it, and it never takes a tap ---- */
+
+.reconnect-notice {
+  display: inline-block;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid var(--jrpg-gold);
+  border-radius: 6px;
+  background: rgba(12, 19, 38, 0.9);
+  color: var(--jrpg-white);
+  font-family: "Press Start 2P", monospace;
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The desktop's: fixed under the header (the layout sets `top` from the header's measured
+   bottom edge) and above the floating windows, which top out at 2000. */
+.reconnect-notice-dock {
+  position: fixed;
+  right: 16px;
+  z-index: 2100;
+  pointer-events: none;
+}
+
+/* ---- The Table menu (desktop popover) and the phone's Table screen ---- */
+
+.table-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--jrpg-white);
+  font-family: var(--font-body);
+}
+
+.table-menu__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.table-menu__name {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--jrpg-gold);
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.table-menu__section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.table-menu__title {
+  margin: 0;
+  color: var(--jrpg-gold);
+  font-family: var(--font-pixel);
+  font-size: 11px;
+}
+
+.table-note {
+  margin: 0;
+  color: var(--jrpg-white);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.table-note--soft {
+  opacity: 0.75;
+}
+
+.table-role {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.table-role__state {
+  margin: 0;
+  color: var(--jrpg-white);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.table-prefs {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
+.table-prefs__group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.table-prefs__state {
+  color: var(--jrpg-white);
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+/* Sound & motion reuses the popover's 8px pixel labels; on the Table surfaces they
+   follow the 11px readability floor the phone holds everywhere else. (Two classes, so
+   it wins whatever order jrpg.css loads in.) */
+.table-prefs .jrpg-text-small {
+  font-size: 11px;
+}
+
+/* The Motion select shows its value in the control's own type; the words of an option are
+   text no label owns, so the same floor is set on the select itself. */
+.table-prefs select {
+  font-size: 11px;
+}
+
+@media (pointer: coarse) {
+  /* A checkbox's hit area is its label, not its box (see herobyte.css). */
+  .table-prefs label {
+    min-height: 44px;
+  }
+
+  /* The next-steps card's manual-copy field (shown when the clipboard is refused) is where
+     a finger has to land to select the link. The card sits on the map, outside the mobile
+     surfaces whose floor covers inputs, so it carries its own. */
+  .host-steps__manual {
+    min-height: 44px;
+  }
+}
+
+/* ---- The Table button in the header ---- */
+
+/* Sized so the header does not wrap at 1280px (the common laptop, and the test
+   viewport): at 340px wide the logo block pushed the Play tools' last button onto a
+   second row and the header grew a row taller. A longer name is cut with an ellipsis
+   here and shown whole in the menu. */
+.table-menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 200px;
+  font-size: 8px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.table-menu-button__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-menu-button__role {
+  color: var(--jrpg-gold);
+  white-space: nowrap;
+}
+
+/* Open, the button turns primary (gold ground, dark text): the role follows the
+   button's own text colour instead of staying gold on gold. */
+.jrpg-button-primary .table-menu-button__role {
+  color: inherit;
+}
+
+/* ---- The host's next steps, after a table is created ---- */
+
+.host-steps {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 440px);
+  padding: 10px 12px;
+  border: 2px solid var(--jrpg-border-gold);
+  border-radius: 8px;
+  background: rgba(12, 18, 40, 0.96);
+  color: var(--jrpg-white);
+  font-family: var(--font-body);
+  pointer-events: auto;
+}
+
+.host-steps__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.host-steps__title {
+  margin: 0;
+  color: var(--jrpg-gold);
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Pixel buttons default to 10px; on these surfaces they hold the phone's 11px floor. */
+.host-steps .jrpg-button,
+.table-menu .jrpg-button {
+  font-size: 11px;
+}
+
+.host-steps__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.host-steps__step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.host-steps__done {
+  color: var(--jrpg-hp-full);
+  font-size: 12px;
+  font-weight: bold;
+}

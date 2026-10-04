@@ -30,11 +30,9 @@ test.describe("HeroByte partial erase - Smoke Test", () => {
       return Boolean(data?.snapshot?.drawings !== undefined && data.uid);
     });
 
-    // Clear all drawings to start fresh
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    // The automatic fixture reset provides a clean table; players cannot clear it.
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
-    await page.getByRole("button", { name: /Clear All/i }).click();
-    await page.waitForTimeout(500); // Wait for clear to propagate
   });
 
   test("WebSocket round-trip: draw → partial erase → undo → redo", async ({ page }) => {
@@ -77,7 +75,7 @@ test.describe("HeroByte partial erase - Smoke Test", () => {
     expect(originalDrawingId).not.toBeNull();
 
     // 2. Partial erase through middle
-    await page.getByRole("button", { name: /Eraser/i }).click();
+    await page.getByRole("button", { name: /Erase drawings/i }).click();
 
     const eraseX = startX + 100;
     const eraseStartY = startY - 30;

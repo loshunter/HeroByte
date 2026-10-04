@@ -1,0 +1,26 @@
+/* The empty portrait frame (IA-20). A frame is only as wide as its card lets
+   it be — a current-turn card's ring takes ~20px, and at 200% zoom a card can
+   leave ~40px — and the empty state clipped out of the narrow ones. The frame
+   is a size container: the title scales with it (never below 9px), and below
+   ~72px the instruction line hides and stays the button's accessible
+   description. */
+
+.jrpg-portrait-frame {
+  container-type: inline-size;
+}
+
+.portrait-placeholder__title {
+  font-size: clamp(9px, 17cqi, 0.78rem);
+}
+
+@container (max-width: 72px) {
+  .portrait-placeholder__hint {
+    display: none;
+  }
+}
+
+@container (max-width: 60px) {
+  .portrait-placeholder {
+    padding: 2px !important;
+  }
+}

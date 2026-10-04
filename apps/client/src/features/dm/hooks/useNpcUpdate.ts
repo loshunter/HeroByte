@@ -14,6 +14,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { ClientMessage, NpcDisposition, RoomSnapshot } from "@herobyte/shared";
+import { mergeNpcUpdate, type NpcUpdateFields } from "../../players/npcUpdate";
 
 export interface UseNpcUpdateOptions {
   /**
@@ -27,17 +28,9 @@ export interface UseNpcUpdateOptions {
   sendMessage: (message: ClientMessage) => void;
 }
 
-export interface NpcUpdateFields {
-  name?: string;
-  hp?: number;
-  maxHp?: number;
-  tempHp?: number;
-  portrait?: string | null;
-  tokenImage?: string | null;
-  initiativeModifier?: number | null;
-  /** Where the NPC stands with the party; absent keeps what it has. */
-  disposition?: NpcDisposition;
-}
+// The field set and its merge live with the Party's NPC card, which sends
+// through the same merge (features/players/npcUpdate.ts).
+export type { NpcUpdateFields };
 
 export interface UseNpcUpdateReturn {
   /**
@@ -133,7 +126,10 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     const maxHpMatches = currentNpc.maxHp === expected.maxHp;
     const tempHpMatches = currentNpc.tempHp === expected.tempHp;
     const portraitMatches = currentNpc.portrait === expected.portrait;
-    const tokenImageMatches = currentNpc.tokenImage === expected.tokenImage;
+    // Absent, "" (the clear sent) and null (what the server stores for no
+    // art) all mean no art; a strict match left every edit to an art-less NPC
+    // waiting out the timeout.
+    const tokenImageMatches = (currentNpc.tokenImage ?? "") === (expected.tokenImage ?? "");
     const initiativeModifierMatches = currentNpc.initiativeModifier === expected.initiativeModifier;
     const dispositionMatches = currentNpc.disposition === expected.disposition;
 
@@ -165,10 +161,15 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
   /**
    * Initiate NPC update
    */
+  // Edits made while an update is in flight, per NPC, sent once it resolves.
+  // They used to be refused with only a console warning, while the editor —
+  // which re-syncs on values — kept showing the unsent number as saved.
+  const queued = useRef(new Map<string, NpcUpdateFields>());
+
   const updateNpc = useCallback(
     (id: string, updates: NpcUpdateFields) => {
       if (isUpdating) {
-        console.warn("[useNpcUpdate] NPC update already in progress");
+        queued.current.set(id, { ...queued.current.get(id), ...updates });
         return;
       }
 
@@ -183,25 +184,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
       console.log("[useNpcUpdate] Starting NPC update:", { id, updates });
 
       // Calculate final values (merge updates with existing)
-      const finalValues = {
-        name: updates.name ?? existing.name,
-        // A DM's snapshot always carries exact numbers (the redaction is for
-        // players), so the trailing fallbacks are type honesty, not a path.
-        hp: updates.hp ?? existing.hp ?? 0,
-        maxHp: updates.maxHp ?? existing.maxHp ?? 1,
-        tempHp: updates.tempHp ?? existing.tempHp,
-        portrait: updates.portrait ?? existing.portrait,
-        tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
-        initiativeModifier: updates.initiativeModifier ?? existing.initiativeModifier,
-        // ?? not ||: the merge has to keep a stance the DM set earlier when the
-        // edit that triggered this send was about something else entirely.
-        // Conditional, like every other writer in this arc: `disposition:
-        // undefined` is a KEY, and it is only inert because JSON.stringify
-        // happens to drop it. It should not depend on the transport.
-        ...((updates.disposition ?? existing.disposition)
-          ? { disposition: updates.disposition ?? existing.disposition }
-          : {}),
-      };
+      const finalValues = mergeNpcUpdate(existing, updates);
 
       // Set loading state BEFORE sending message
       setIsUpdating(true);
@@ -235,6 +218,16 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     },
     [isUpdating, sendMessage, snapshot?.characters, clearTimer],
   );
+
+  // The in-flight update resolved (confirmed or timed out): send the next.
+  useEffect(() => {
+    if (isUpdating) return;
+    const next = queued.current.entries().next();
+    if (next.done) return;
+    const [id, updates] = next.value;
+    queued.current.delete(id);
+    updateNpc(id, updates);
+  }, [isUpdating, updateNpc]);
 
   return {
     isUpdating,

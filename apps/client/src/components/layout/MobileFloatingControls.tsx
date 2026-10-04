@@ -6,21 +6,24 @@
 // reports the surface it stands for, and the machine arbitrates.
 
 import React from "react";
+import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
+import { MobileSheet } from "../../layouts/mobile/MobileSheet";
+import type { MobileWorldReturnControls } from "../../hooks/useMobileWorldReturn";
 import type { ToolMode } from "./Header";
 import type { MobileSurface } from "../../hooks/useMobileSurface";
 import type { MapEditToolbarProps } from "../../features/map-edit/mapEditTypes";
 import { MobileMapEditPalette } from "./MobileMapEditPalette";
+import { PING_TITLE, RESET_VIEW_TITLE } from "./viewWords";
 
 interface MobileFloatingControlsProps {
   surface: MobileSurface;
+  worldReturn?: MobileWorldReturnControls;
   onToggleSurface: (surface: Exclude<MobileSurface, "none">) => void;
   onToolSelect: (mode: ToolMode) => void;
   onSnapToGridChange: (snap: boolean) => void;
   onResetCamera: () => void;
   activeTool: ToolMode;
   snapToGrid: boolean;
-  crtFilter?: boolean;
-  onCrtFilterChange?: (enabled: boolean) => void;
   /** Slot five is contextual: `DM` for a DM, `View` (reset camera) otherwise. */
   isDM: boolean;
   /** The table's player-props toggle — gates the Props tile in the sheet.
@@ -32,25 +35,22 @@ interface MobileFloatingControlsProps {
   /** A kick is in flight (pending and not expired): the ⏳ chip floats over the dock. */
   kickPending?: boolean;
   mapEditToolbarProps: MapEditToolbarProps;
-  onCancelMapEditDrag: () => void;
 }
 
 export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   surface,
+  worldReturn,
   onToggleSurface,
   onToolSelect,
   onSnapToGridChange,
   onResetCamera,
   activeTool,
   snapToGrid,
-  crtFilter = false,
-  onCrtFilterChange,
   isDM,
   playerPropsEnabled = false,
   mode,
   kickPending = false,
   mapEditToolbarProps,
-  onCancelMapEditDrag,
 }) => {
   const toolsOpen = surface === "tools";
 
@@ -63,15 +63,14 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         toolbar={mapEditToolbarProps}
         toolsOpen={toolsOpen}
         onToggleTools={() => onToggleSurface("tools")}
-        onCancelDrag={onCancelMapEditDrag}
         onResetCamera={onResetCamera}
       />
     );
   }
 
-  // Recenter lives in the sheet so a DM — whose dock slot five is `DM`, not
+  // Reset view lives in the sheet so a DM — whose dock slot five is `DM`, not
   // `View` — still has reset-camera. Closing the sheet on tap is the point:
-  // you recenter to SEE the map.
+  // you reset the view to SEE the map.
   const recenter = () => {
     onResetCamera();
     onToggleSurface("tools");
@@ -90,27 +89,18 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   return (
     <>
       {toolsOpen && (
-        <div
-          className="mobile-tool-sheet"
-          role="dialog"
-          aria-label="Map tools"
-          data-mobile-surface="tools"
+        <MobileSheet
+          title="Tools"
+          label="Map tools"
+          surface="tools"
+          onClose={() => onToggleSurface("tools")}
+          rootRef={worldReturn?.toolsRootRef}
         >
-          <div className="mobile-tool-sheet__header">
-            <strong>Tools</strong>
-            <button
-              type="button"
-              className="mobile-tool-sheet__close"
-              onClick={() => onToggleSurface("tools")}
-              aria-label="Close tools"
-            >
-              ✕
-            </button>
-          </div>
           <div className="mobile-tool-sheet__grid">
             <button
               type="button"
               className={toolButtonClass(null)}
+              aria-pressed={activeTool === null}
               onClick={() => selectTool(null)}
             >
               <span aria-hidden="true">✥</span>
@@ -119,6 +109,8 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("pointer")}
+              aria-pressed={activeTool === "pointer"}
+              title={PING_TITLE}
               onClick={() => selectTool(activeTool === "pointer" ? null : "pointer")}
             >
               <span aria-hidden="true">⌖</span>
@@ -127,6 +119,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("measure")}
+              aria-pressed={activeTool === "measure"}
               onClick={() => selectTool(activeTool === "measure" ? null : "measure")}
             >
               <span aria-hidden="true">↔</span>
@@ -135,6 +128,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("draw")}
+              aria-pressed={activeTool === "draw"}
               onClick={() => selectTool(activeTool === "draw" ? null : "draw")}
             >
               <span aria-hidden="true">✎</span>
@@ -143,6 +137,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("transform")}
+              aria-pressed={activeTool === "transform"}
               onClick={() => selectTool(activeTool === "transform" ? null : "transform")}
             >
               <span aria-hidden="true">⤢</span>
@@ -151,6 +146,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             <button
               type="button"
               className={toolButtonClass("select")}
+              aria-pressed={activeTool === "select"}
               onClick={() => selectTool(activeTool === "select" ? null : "select")}
             >
               <span aria-hidden="true">□</span>
@@ -161,27 +157,32 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               className={`mobile-tool-sheet__button${
                 snapToGrid ? " mobile-tool-sheet__button--active" : ""
               }`}
+              aria-pressed={snapToGrid}
               onClick={() => onSnapToGridChange(!snapToGrid)}
             >
               <span aria-hidden="true">#</span>
               Snap
             </button>
-            <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
+            <button
+              type="button"
+              className="mobile-tool-sheet__button"
+              title={RESET_VIEW_TITLE}
+              onClick={recenter}
+            >
               <span aria-hidden="true">◇</span>
-              Recenter
+              Reset view
             </button>
-            {onCrtFilterChange && (
-              <button
-                type="button"
-                className={`mobile-tool-sheet__button${crtFilter ? " mobile-tool-sheet__button--active" : ""}`}
-                aria-pressed={crtFilter}
-                title="Toggle retro CRT visual effect"
-                onClick={() => onCrtFilterChange(!crtFilter)}
-              >
-                <span aria-hidden="true">📺</span>
-                CRT
-              </button>
-            )}
+            {/* The table itself (U9): your role, your Preferences (CRT, sound and
+                motion) and, for a DM, the table's settings. It has no dock slot —
+                the dock is five columns — so it lives in this sheet. */}
+            <button
+              type="button"
+              className="mobile-tool-sheet__button"
+              onClick={() => onToggleSurface("table")}
+            >
+              <span aria-hidden="true">▤</span>
+              Table
+            </button>
             {/* A surface, not a tool — but it earns a tile here because this
                 sheet is where players look for "things I can do to the map".
                 DMs never see it; their prop editor is the DM menu's Props
@@ -202,6 +203,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <button
                 type="button"
                 className="mobile-tool-sheet__button"
+                data-focus-return="world"
                 onClick={() => onToggleSurface("atlas")}
               >
                 <span aria-hidden="true">🗺</span>
@@ -217,7 +219,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               Help
             </button>
           </div>
-        </div>
+        </MobileSheet>
       )}
 
       <nav className="mobile-action-dock" aria-label="Mobile actions">
@@ -242,6 +244,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             toolsOpen || activeTool ? " mobile-dock-button--active" : ""
           }`}
           onClick={() => onToggleSurface("tools")}
+          ref={worldReturn?.toolsDockButtonRef}
           aria-expanded={toolsOpen}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
@@ -263,13 +266,13 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         <button
           type="button"
           className={`mobile-dock-button${surface === "log" ? " mobile-dock-button--active" : ""}`}
-          onClick={() => onToggleSurface("log")}
+          onClick={(event) => activatePanelLauncher(event, () => onToggleSurface("log"))}
           aria-pressed={surface === "log"}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ≡
           </span>
-          Log
+          Chat
         </button>
         {isDM ? (
           // Slot five, not slot six: the dock is a hardcoded 5-column grid and
@@ -277,7 +280,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
           <button
             type="button"
             className={`mobile-dock-button${surface === "dm" ? " mobile-dock-button--active" : ""}`}
-            onClick={() => onToggleSurface("dm")}
+            onClick={(event) => activatePanelLauncher(event, () => onToggleSurface("dm"))}
             aria-pressed={surface === "dm"}
           >
             <span className="mobile-dock-button__icon" aria-hidden="true">
@@ -286,11 +289,17 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
             DM
           </button>
         ) : (
-          <button type="button" className="mobile-dock-button" onClick={onResetCamera}>
+          <button
+            type="button"
+            className="mobile-dock-button"
+            title={RESET_VIEW_TITLE}
+            aria-label="Reset view"
+            onClick={onResetCamera}
+          >
             <span className="mobile-dock-button__icon" aria-hidden="true">
               ◇
             </span>
-            View
+            Reset
           </button>
         )}
       </nav>

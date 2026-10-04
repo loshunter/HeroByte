@@ -233,9 +233,9 @@ test.describe("S6 area templates", () => {
       () => window.__HERO_BYTE_E2E__?.snapshot?.drawings?.length ?? 0,
     );
 
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
-    const coneButton = page.getByRole("button", { name: /◺ Cone/ });
+    const coneButton = page.getByRole("button", { name: /◺ AoE Cone/ });
     await coneButton.click();
     // Prove the tool armed, so a later failure points at the drag and not at
     // a button that quietly moved. `jrpg-button-primary` is how JRPGButton
@@ -284,8 +284,8 @@ test.describe("S6 area templates", () => {
       () => window.__HERO_BYTE_E2E__?.snapshot?.drawings?.length ?? 0,
     );
 
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
-    await page.getByRole("button", { name: /◯ Burst/ }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
+    await page.getByRole("button", { name: /◯ AoE Burst/ }).click();
 
     const spot = await mapPoint(page, 1, 1);
     await page.mouse.click(spot.x, spot.y);

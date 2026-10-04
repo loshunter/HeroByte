@@ -26,8 +26,8 @@ function badgesFor(roll: RollLogEntry): string[] {
   const badges: string[] = [];
   if (roll.mode === "advantage") badges.push("ADV");
   if (roll.mode === "disadvantage") badges.push("DIS");
-  if (roll.visibility === "dm") badges.push("DM ONLY");
-  if (roll.visibility === "self") badges.push("PRIVATE");
+  if (roll.visibility === "dm") badges.push("TO DM");
+  if (roll.visibility === "self") badges.push("ME ONLY");
   return badges;
 }
 
@@ -196,6 +196,7 @@ export const RollEntry: React.FC<{
                 flexShrink: 0,
               }}
               title="Expand formula"
+              aria-label="Show the whole formula"
             >
               ⋯
             </button>

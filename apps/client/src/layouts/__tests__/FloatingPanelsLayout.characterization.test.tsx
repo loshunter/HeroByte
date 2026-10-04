@@ -178,10 +178,6 @@ vi.mock("../../components/ui/Toast", () => ({
 }));
 
 // Mock other components that are not part of FloatingPanelsLayout but required by MainLayout
-vi.mock("../../components/layout/ServerStatus", () => ({
-  ServerStatus: () => <div data-testid="server-status">ServerStatus</div>,
-}));
-
 vi.mock("../../features/drawing/components", () => ({
   DrawingToolbar: () => <div data-testid="drawing-toolbar">DrawingToolbar</div>,
 }));
@@ -198,8 +194,15 @@ vi.mock("../../ui/MapBoard", () => ({
   default: () => <div data-testid="map-board">MapBoard</div>,
 }));
 
+// The stub keeps the real panel's one layout contract with the floating layer:
+// it reports its launcher dock (U7), which the World/Props/DM launchers render into.
 vi.mock("../../components/layout/EntitiesPanel", () => ({
-  EntitiesPanel: () => <div data-testid="entities-panel">EntitiesPanel</div>,
+  EntitiesPanel: (props: { launcherDockRef: (node: HTMLDivElement | null) => void }) => (
+    <div data-testid="entities-panel">
+      EntitiesPanel
+      <div data-testid="launcher-dock" ref={props.launcherDockRef} />
+    </div>
+  ),
 }));
 
 // Import the component AFTER mocks are set up
@@ -255,6 +258,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     mapEditRoomWallFamily: "none" as const,
     mapEditSelectedAssetId: "objects:crate",
     mapEditHallwayWidth: 2,
+    mapEditTerrainBrushSize: 1 as const,
     mapEditSelectedElementId: null,
     mapEditWallsOverlayPinned: false,
     onMapEditRoomRejected: vi.fn(),
@@ -264,6 +268,11 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     onMapEditSelectElement: vi.fn(),
     onMapEditSampleAsset: vi.fn(),
     mapEditToolbarProps: {
+      mapName: "Fixture map",
+      activeGroup: "structures",
+      onSelectGroup: vi.fn(),
+      populateTarget: null,
+      populateHint: "Draw a room or hallway first.",
       isLive: false,
       busy: false,
       activeSubTool: "wall" as const,
@@ -277,6 +286,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       onUndo: vi.fn(),
       onRedo: vi.fn(),
       onStartLiveMap: vi.fn(),
+      buildEntry: { kind: "start" as const },
       onClose: vi.fn(),
       hasRasterBackground: false,
       error: null,
@@ -293,6 +303,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       onToggleAssetPicker: vi.fn(),
       hallwayWidth: 2,
       onSelectHallwayWidth: vi.fn(),
+      terrainBrushSize: 1 as const,
+      onSelectTerrainBrushSize: vi.fn(),
       splineKind: "rope" as const,
       onSelectSplineKind: vi.fn(),
       populateDensity: "medium" as const,
@@ -315,6 +327,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       saving: false,
       layers: [],
       selectedElement: null,
+      properties: null,
       onUpdateLayer: vi.fn(),
       onMoveLayer: vi.fn(),
       onUpdateElement: vi.fn(),
@@ -346,6 +359,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     gridSize: 50,
     gridSquareSize: 5,
     isDM: true,
+    roleKnown: true,
 
     // Camera
     cameraState: { x: 0, y: 0, scale: 1 },
@@ -534,12 +548,32 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.isDM = false;
       const { unmount } = render(<MainLayout {...props} />);
       expect(screen.getByRole("button", { name: "🗺 WORLD" })).toBeInTheDocument();
+      // In the Party bar's dock, never floating over the cards (U7, IA-15).
+      expect(screen.getByTestId("launcher-dock")).toContainElement(
+        screen.getByRole("button", { name: "🗺 WORLD" }),
+      );
       unmount();
 
       const dmProps = createDefaultProps();
       dmProps.isDM = true;
       render(<MainLayout {...dmProps} />);
       expect(screen.queryByRole("button", { name: "🗺 WORLD" })).not.toBeInTheDocument();
+    });
+
+    it("while the DM tools load, their placeholder waits in the Party bar's dock", async () => {
+      // It was fixed at the bottom-right, over the Party's last card, for as
+      // long as the chunk took to arrive: the obstruction U7 removed (IA-15).
+      // React.lazy resolves once per module instance and earlier tests here
+      // resolved it, so a freshly imported layout is the one still loading.
+      vi.resetModules();
+      const { MainLayout: LoadingLayout } = await import("../MainLayout");
+      const props = createDefaultProps();
+      props.isDM = true;
+      render(<LoadingLayout {...props} />);
+
+      const loading = screen.getByRole("status", { name: "Loading DM tools…" });
+      expect(screen.getByTestId("launcher-dock")).toContainElement(loading);
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
     it("should pass gridSize prop to DMMenu", async () => {

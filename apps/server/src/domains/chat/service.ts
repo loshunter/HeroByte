@@ -47,6 +47,11 @@ export class ChatService {
     // author.
     if (to && to.trim().length > 0) {
       message.to = to.trim();
+      // Snapshot the roster name now so rename/removal does not rewrite history.
+      const recipientName = state.players.find((player) => player.uid === message.to)?.name;
+      if (typeof recipientName === "string") {
+        message.toName = recipientName;
+      }
     }
 
     state.chatLog.push(message);

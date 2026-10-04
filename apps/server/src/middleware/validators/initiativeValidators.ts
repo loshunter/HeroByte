@@ -68,3 +68,18 @@ export function validateSetInitiativeManualOverrideMessage(
   }
   return { valid: true };
 }
+
+/**
+ * Validate set-initiative-modifier message
+ * Required: characterId (non-empty string), initiativeModifier (-20 to 20, the
+ * bound every path that stores the modifier enforces)
+ */
+export function validateSetInitiativeModifierMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+    return { valid: false, error: "set-initiative-modifier: missing or invalid characterId" };
+  }
+  if (!isInitiativeModifier(message.initiativeModifier)) {
+    return { valid: false, error: "set-initiative-modifier: initiativeModifier must be -20 to 20" };
+  }
+  return { valid: true };
+}

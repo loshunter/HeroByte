@@ -31,6 +31,7 @@ import { compiledSceneFor } from "./compiledSceneView.js";
 import { buildRecipientView } from "./snapshot/recipientFilter.js";
 import { createSelectionMap } from "./selectionSerialization.js";
 import type { DrawingOperation } from "../map/types.js";
+import { drawingHistoryFor } from "../map/drawingHistory.js";
 
 /**
  * Room state - holds all game data for a session
@@ -244,5 +245,6 @@ export function toSnapshot(
     snapshot.assetRefs = assetRefs;
   }
 
+  if (recipientUid !== undefined) snapshot.drawingHistory = drawingHistoryFor(state, recipientUid);
   return snapshot;
 }

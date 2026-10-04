@@ -1,3 +1,4 @@
+import type { EscapeRoot } from "../../features/interaction/escapeTypes";
 // ============================================================================
 // ROLL LOG - the desktop window over RollLogContent
 // ============================================================================
@@ -13,13 +14,15 @@ import { RollLogContent, type RollLogContentProps } from "./RollLogContent";
 
 interface RollLogProps extends RollLogContentProps {
   onClose?: () => void;
+  containingRoot?: EscapeRoot;
 }
 
-export const RollLog: React.FC<RollLogProps> = ({ onClose, ...content }) => {
+export const RollLog: React.FC<RollLogProps> = ({ onClose, containingRoot, ...content }) => {
   return (
     <DraggableWindow
-      title="⚂ ROLL LOG"
+      title="Chat & Rolls"
       onClose={onClose}
+      interaction={{ behavior: "close", panel: "chat", containingRoot }}
       initialX={window.innerWidth - 420}
       initialY={100}
       width={400}

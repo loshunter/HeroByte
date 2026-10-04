@@ -54,7 +54,7 @@ export interface NPC {
  * 4. HP Editing (6 props)
  * 5. Max HP Editing (5 props)
  * 6. Portrait & Mic (2 props)
- * 7. DM & Player State (4 props)
+ * 7. Player State (4 props)
  * 8. NPC Management (4 props)
  * 9. Token Management (3 props)
  * 10. Character Management (2 props)
@@ -64,6 +64,11 @@ export interface BottomPanelLayoutProps {
   // Layout & Ref (1 prop)
   /** Reference to the bottom panel DOM element for height measurement */
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
+  /**
+   * Receives the Party bar's launcher dock (U7): the slot World, Props and
+   * DM MENU render into instead of floating over the cards (IA-15).
+   */
+  launcherDockRef: (node: HTMLDivElement | null) => void;
 
   // State Data (9 props)
   /** Array of all players in the session */
@@ -140,9 +145,7 @@ export interface BottomPanelLayoutProps {
   /** Handler to toggle microphone on/off */
   onToggleMic: () => void;
 
-  // DM & Player State (5 props)
-  /** Handler to toggle DM mode on/off */
-  onToggleDMMode: (next: boolean) => void;
+  // Player State (4 props)
   /** Handler to apply a player state (dead, unconscious, etc.) */
   onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   /** Handler to update status effects for a character (deprecated - use onCharacterStatusEffectsChange) */
@@ -173,6 +176,7 @@ export interface BottomPanelLayoutProps {
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   /** Handler to change token size */
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
   /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
    * optional so the layout fixtures stay untouched). */
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
@@ -256,7 +260,6 @@ export interface BottomPanelLayoutProps {
  *   onMaxHpEdit={startMaxHpEdit}
  *   onMaxHpSubmit={handleMaxHpSubmit}
  *   onToggleMic={toggleMic}
- *   onToggleDMMode={handleToggleDM}
  *   onApplyPlayerState={playerActions.applyPlayerState}
  *   onStatusEffectsChange={playerActions.setStatusEffects}
  *   onCharacterNameUpdate={playerActions.updateCharacterName}
@@ -275,6 +278,7 @@ export interface BottomPanelLayoutProps {
 export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
   ({
     bottomPanelRef,
+    launcherDockRef,
     players,
     characters,
     tokens,
@@ -306,7 +310,6 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onTempHpSubmit,
     onCharacterPortraitUpdate,
     onToggleMic,
-    onToggleDMMode,
     onApplyPlayerState,
     onStatusEffectsChange,
     onCharacterStatusEffectsChange,
@@ -320,6 +323,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     npcDeletionError,
     onToggleTokenLock,
     onTokenSizeChange,
+    onCharacterOwnerChange,
     onTokenVisionRadiusChange,
     onCharacterSpeedChange,
     onCharacterBudgetReset,
@@ -372,7 +376,6 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onTempHpSubmit={onTempHpSubmit}
         onCharacterPortraitUpdate={onCharacterPortraitUpdate}
         onToggleMic={onToggleMic}
-        onToggleDMMode={onToggleDMMode}
         onApplyPlayerState={onApplyPlayerState}
         _onStatusEffectsChange={onStatusEffectsChange}
         onCharacterStatusEffectsChange={onCharacterStatusEffectsChange}
@@ -386,6 +389,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         npcDeletionError={npcDeletionError}
         onToggleTokenLock={onToggleTokenLock}
         onTokenSizeChange={onTokenSizeChange}
+        onCharacterOwnerChange={onCharacterOwnerChange}
         onTokenVisionRadiusChange={onTokenVisionRadiusChange}
         onCharacterSpeedChange={onCharacterSpeedChange}
         onCharacterBudgetReset={onCharacterBudgetReset}
@@ -395,6 +399,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onDeleteCharacter={onDeleteCharacter}
         onFocusToken={onFocusToken}
         bottomPanelRef={bottomPanelRef}
+        launcherDockRef={launcherDockRef}
         combatActive={combatActive}
         currentTurnCharacterId={currentTurnCharacterId}
         onSetInitiative={onSetInitiative}

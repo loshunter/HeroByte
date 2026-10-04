@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "./build-palette.helpers";
 import { expect, test, type Page } from "./fixtures";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 
@@ -62,7 +63,7 @@ test.describe("Dungeon generate smoke", () => {
 
       // The GENERATE tool is on the palette and its panel opens (the UI surface;
       // its dials and drag→cells maths are unit-tested).
-      await page.getByRole("button", { name: /🏰 Gen/ }).click();
+      await chooseBuildTool(page, "generate");
       await expect(page.getByTestId("generate-panel")).toBeVisible();
       await expect(page.getByTestId("generate-seed")).not.toBeEmpty();
 

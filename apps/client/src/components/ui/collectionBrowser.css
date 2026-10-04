@@ -1,0 +1,132 @@
+.collection-search {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font: 12px/1.3 var(--font-body);
+  color: var(--jrpg-white);
+}
+.collection-search input,
+.collection-category {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 6px;
+  font: inherit;
+  color: var(--jrpg-white);
+  background: var(--jrpg-panel-dark, #1a1d29);
+  border: 1px solid var(--jrpg-gold);
+  border-radius: 3px;
+}
+.collection-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--jrpg-gold);
+  border-radius: 3px;
+  color: var(--jrpg-white);
+  background: var(--jrpg-panel-dark, #1a1d29);
+  font: 12px/1.35 var(--font-body);
+}
+.collection-preview > img,
+.collection-preview__swatch {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: 1px solid var(--jrpg-border-gold, #8a7445);
+  box-sizing: border-box;
+}
+.collection-preview > div {
+  min-width: 0;
+}
+.collection-preview small,
+.collection-preview strong,
+.collection-preview div > span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.collection-preview small {
+  color: var(--jrpg-gold);
+}
+/* Focus can happen during pointer-down. Reserve space so its preview cannot
+   move the card before pointer-up and swallow the user's first pick. */
+.token-library-preview {
+  height: 100px;
+  flex: 0 0 100px;
+  overflow-y: auto;
+}
+.token-library-preview > .collection-preview {
+  min-height: 100%;
+  box-sizing: border-box;
+}
+.collection-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.collection-categories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.collection-categories button,
+.collection-tile {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 4px;
+  font: 12px/1.3 var(--font-body);
+  color: var(--jrpg-white);
+  background: var(--jrpg-panel, #232638);
+  border: 1px solid var(--jrpg-border-gold, #8a7445);
+  border-radius: 3px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.collection-categories [aria-pressed="true"],
+.collection-tile[aria-pressed="true"] {
+  border: 2px solid var(--jrpg-gold);
+}
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.collection-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.collection-tile__art {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: 1px solid;
+  box-sizing: border-box;
+}
+.collection-tile__name {
+  display: block;
+  position: relative;
+  overflow-wrap: anywhere;
+}
+.collection-note {
+  margin: 0;
+  color: var(--jrpg-white);
+  font: 12px/1.4 var(--font-body);
+}
+.collection-search input:focus-visible,
+.collection-category:focus-visible,
+.collection-categories button:focus-visible,
+.collection-tile:focus-visible {
+  outline: 2px solid var(--jrpg-cyan);
+  outline-offset: 1px;
+}

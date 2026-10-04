@@ -39,7 +39,12 @@ import { toSnapshot, type RoomState } from "./model.js";
  * `drawings` is always an array — that is the invariant both loaders rely on.
  */
 function flattenForFile(snapshot: RoomSnapshot, state: RoomState): RoomSnapshot {
-  const { assets: _assets, assetRefs: _assetRefs, ...rest } = snapshot;
+  const {
+    assets: _assets,
+    assetRefs: _assetRefs,
+    drawingHistory: _drawingHistory,
+    ...rest
+  } = snapshot;
   return {
     ...rest,
     drawings: state.drawings,

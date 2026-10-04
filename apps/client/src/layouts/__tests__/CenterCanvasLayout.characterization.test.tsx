@@ -92,10 +92,6 @@ vi.mock("../../ui/MapBoard", () => ({
 }));
 
 // Mock other components that are not part of CenterCanvasLayout but required by MainLayout
-vi.mock("../../components/layout/ServerStatus", () => ({
-  ServerStatus: () => <div data-testid="server-status">ServerStatus</div>,
-}));
-
 vi.mock("../../features/drawing/components", () => ({
   DrawingToolbar: () => <div data-testid="drawing-toolbar">DrawingToolbar</div>,
 }));
@@ -169,6 +165,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     mapEditRoomWallFamily: "none" as const,
     mapEditSelectedAssetId: "objects:crate",
     mapEditHallwayWidth: 2,
+    mapEditTerrainBrushSize: 1 as const,
     mapEditSelectedElementId: null,
     mapEditWallsOverlayPinned: false,
     onMapEditRoomRejected: vi.fn(),
@@ -178,6 +175,11 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     onMapEditSelectElement: vi.fn(),
     onMapEditSampleAsset: vi.fn(),
     mapEditToolbarProps: {
+      mapName: "Fixture map",
+      activeGroup: "structures",
+      onSelectGroup: vi.fn(),
+      populateTarget: null,
+      populateHint: "Draw a room or hallway first.",
       isLive: false,
       busy: false,
       activeSubTool: "wall" as const,
@@ -191,6 +193,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       onUndo: vi.fn(),
       onRedo: vi.fn(),
       onStartLiveMap: vi.fn(),
+      buildEntry: { kind: "start" as const },
       onClose: vi.fn(),
       hasRasterBackground: false,
       error: null,
@@ -207,6 +210,8 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       onToggleAssetPicker: vi.fn(),
       hallwayWidth: 2,
       onSelectHallwayWidth: vi.fn(),
+      terrainBrushSize: 1 as const,
+      onSelectTerrainBrushSize: vi.fn(),
       splineKind: "rope" as const,
       onSelectSplineKind: vi.fn(),
       populateDensity: "medium" as const,
@@ -229,6 +234,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       saving: false,
       layers: [],
       selectedElement: null,
+      properties: null,
       onUpdateLayer: vi.fn(),
       onMoveLayer: vi.fn(),
       onUpdateElement: vi.fn(),
@@ -260,6 +266,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     gridSize: 50,
     gridSquareSize: 5,
     isDM: false,
+    roleKnown: true,
 
     // Camera
     cameraState: { x: 0, y: 0, scale: 1 },

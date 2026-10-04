@@ -30,9 +30,13 @@ export function useFollowLiveDocument({
 }: FollowLiveDocumentOptions): void {
   const previousLiveId = useRef<string | undefined>(liveMapDocumentId);
   useEffect(() => {
+    // Hold the previous pointer while a load is in flight: recording the move
+    // first and bailing on `loading` second lost any move that landed during
+    // a list or open round trip, and the palette stopped following the table.
+    if (loading) return;
     const before = previousLiveId.current;
     previousLiveId.current = liveMapDocumentId;
-    if (!liveMapDocumentId || loading) return;
+    if (!liveMapDocumentId) return;
     if (!before || before === liveMapDocumentId) return;
     if (activeId !== before) return; // an explicit open stays put
     openDocument(liveMapDocumentId);

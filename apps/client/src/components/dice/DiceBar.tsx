@@ -15,7 +15,11 @@ const DICE: DieType[] = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"];
 
 export const DiceBar: React.FC<DiceBarProps> = ({ onAddDie, onAddModifier }) => {
   return (
+    // A BUILDER (U8, §3.4): each press adds to the roll below and rolls
+    // nothing — "+d20", named "Add d20" — unlike the macros' "Roll d20 now".
     <div
+      role="group"
+      aria-label="Add dice to the roll"
       style={{
         display: "flex",
         gap: "8px",
@@ -103,7 +107,7 @@ export const DiceBar: React.FC<DiceBarProps> = ({ onAddDie, onAddModifier }) => 
               textTransform: "uppercase",
             }}
           >
-            {die}
+            +{die}
           </div>
         </button>
       ))}

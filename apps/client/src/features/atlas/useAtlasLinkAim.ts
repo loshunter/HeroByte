@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, MapLink } from "@herobyte/shared";
 import type { ToolMode } from "../../components/layout/Header";
 import { generateUUID } from "../../utils/uuid";
-import { isEditableTarget } from "../../utils/isEditableTarget";
+import { escapeRegistry, useEscapeOwner } from "../interaction/useEscapeOwner";
 
 /** Everything but the anchor, which the canvas click supplies. */
 export interface PendingLink {
@@ -60,10 +60,12 @@ export function useAtlasLinkAim({
 
   const armLinkAim = useCallback(
     (pending: PendingLink) => {
+      // Transition cancellation must finish before the new one-shot payload exists.
+      setActiveTool("atlas-link");
       pendingRef.current = pending;
       armedSceneRef.current = sceneId;
       setArmed(true);
-      setActiveTool("atlas-link");
+      escapeRegistry.refresh();
     },
     [setActiveTool, sceneId],
   );
@@ -72,7 +74,19 @@ export function useAtlasLinkAim({
     pendingRef.current = null;
     setArmed(false);
     setActiveTool(null);
+    escapeRegistry.refresh();
   }, [setActiveTool]);
+
+  useEscapeOwner(() => ({
+    kind: "gesture",
+    name: "Atlas link aim",
+    // The ref is authoritative during arm/cancel/capture in the same event.
+    active: pendingRef.current !== null,
+    order: 10,
+    label: "Cancel link placement",
+    // This one-shot action already returns to Move; it is not a reusable brush.
+    handle: cancelLinkAim,
+  }));
 
   const captureLinkAnchor = useCallback(
     (point: { x: number; y: number }) => {
@@ -85,6 +99,7 @@ export function useAtlasLinkAim({
         link: { id: generateUUID(), ...pending, anchor: { x: point.x, y: point.y } },
       });
       setActiveTool(null);
+      escapeRegistry.refresh();
     },
     [sendMessage, setActiveTool],
   );
@@ -107,6 +122,7 @@ export function useAtlasLinkAim({
       pendingRef.current = null;
       setArmed(false);
       sawToolRef.current = false;
+      escapeRegistry.refresh();
     }
   }, [armed, activeTool]);
 
@@ -115,18 +131,6 @@ export function useAtlasLinkAim({
   useEffect(() => {
     if (armed && sceneId !== armedSceneRef.current) cancelLinkAim();
   }, [armed, sceneId, cancelLinkAim]);
-
-  // ESC cancels the aim (the shipped cancel semantics). Guarded so typing
-  // Escape in a rename field never reaches the map.
-  useEffect(() => {
-    if (!linkAimActive) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || isEditableTarget(event.target)) return;
-      cancelLinkAim();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [linkAimActive, cancelLinkAim]);
 
   return { linkAimActive, armLinkAim, cancelLinkAim, captureLinkAnchor };
 }

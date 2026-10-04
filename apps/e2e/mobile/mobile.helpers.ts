@@ -152,7 +152,7 @@ export async function armLiveMapEdit(
   await page.waitForFunction(() => Boolean(window.__HERO_BYTE_E2E__?.snapshot?.liveMapDocumentId), {
     timeout: 30_000,
   });
-  const toolGrid = page.locator(".mobile-tool-sheet__grid").first();
+  const toolGrid = page.getByRole("dialog", { name: "Map tools", exact: true });
   await expect(toolGrid).toBeVisible({ timeout: 30_000 });
   return { dock, toolGrid };
 }
@@ -215,7 +215,7 @@ export async function undersizedControls(page: Page, selector: string): Promise<
   return page.evaluate((root) => {
     const scope = document.querySelector<HTMLElement>(root);
     if (!scope) return [`missing surface: ${root}`];
-    return [...scope.querySelectorAll<HTMLElement>("button, input, select, textarea")]
+    return [...scope.querySelectorAll<HTMLElement>("button, input, select, textarea, summary")]
       .filter((control) => {
         const rect = control.getBoundingClientRect();
         // A zero box is scrolled out of a scroller or genuinely hidden; the
@@ -237,3 +237,37 @@ export async function undersizedControls(page: Page, selector: string): Promise<
       });
   }, selector);
 }
+
+/**
+ * Visible text in `selector` set in less than the phone's 11px readability floor. Two kinds
+ * count. Every element that OWNS a text node, not only leaves: a label holding its words and
+ * its control ("Motion" + the select) has children and was invisible to a leaf-only sweep.
+ * And every text-bearing FORM CONTROL by its own size: what a select shows ("Full") and what
+ * an input holds are not text nodes of any element, so the walk above cannot see them — the
+ * Motion select sat at 10px through the first version of this sweep, found live.
+ */
+export const tooSmallText = (page: Page, selector: string) =>
+  page.evaluate((root) => {
+    const scope = document.querySelector(root);
+    if (!scope) return [`missing: ${root}`];
+    const words = (el: Element) =>
+      [...el.childNodes]
+        .filter((node) => node.nodeType === Node.TEXT_NODE)
+        .map((node) => (node.textContent ?? "").trim())
+        .join(" ")
+        .trim();
+    const owners = [...scope.querySelectorAll<HTMLElement>("*")].filter(
+      (el) => words(el).length > 0,
+    );
+    const fields = [
+      ...scope.querySelectorAll<HTMLElement>(
+        "select, textarea, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=hidden])",
+      ),
+    ];
+    return [...new Set([...owners, ...fields])]
+      .filter((el) => el.checkVisibility() && parseFloat(getComputedStyle(el).fontSize) < 11)
+      .map(
+        (el) =>
+          `${getComputedStyle(el).fontSize} "${(words(el) || el.getAttribute("aria-label") || el.tagName).slice(0, 30)}"`,
+      );
+  }, selector);

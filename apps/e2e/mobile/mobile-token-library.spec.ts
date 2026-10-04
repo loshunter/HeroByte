@@ -29,7 +29,9 @@ async function openDMScreen(page: Page): Promise<void> {
   const dialog = page.getByRole("dialog", { name: "DM Menu" });
   await expect(dialog).toBeVisible();
   // The menu is a lazy chunk on mobile exactly as on desktop — wait for it.
-  await expect(page.getByRole("button", { name: "Map Setup" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Maps", exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
   await dialog.getByRole("button", { name: "NPCs & Monsters" }).click();
 }
 
@@ -40,7 +42,7 @@ async function openShelf(page: Page): Promise<void> {
   const library = dialog.getByRole("button", { name: "📖 Library" });
   await library.scrollIntoViewIfNeeded();
   await library.click();
-  await dialog.getByRole("button", { name: "Custom" }).click();
+  await dialog.getByRole("button", { name: "This table", exact: true }).click();
 }
 
 test.describe("mobile — the shelf and the stance", () => {

@@ -49,7 +49,7 @@ export interface UseMapEditDragGestureOptions {
   splineKind: MapEditSplineKind;
   onRoomRejected?: (message: string) => void;
   onGestureDropped?: () => void;
-  onRegionPlaced?: (bounds: RoomBounds) => void;
+  onRegionPlaced?: import("./populateTarget").OnPopulateRegionPlaced;
   onRegionDragged?: (bounds: RoomBounds) => void;
   /** Stage pointer -> document point, snapped to the tool's effective grid. */
   toSnappedDocPoint: (

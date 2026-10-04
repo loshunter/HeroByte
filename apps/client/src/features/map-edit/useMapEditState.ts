@@ -1,84 +1,23 @@
 // ============================================================================
 // MAP-EDIT STATE (glue hook)
 // ============================================================================
-// Owns the live map-edit palette state and the bind flow. Drives the ONE
+// Owns the live map-edit palette state (the bind flow is useLiveMapEntry). Drives the ONE
 // App-level MapStudioController — never a second useMapStudio (two queues would
 // revision-conflict). Mirrors useDrawingStateManager's shape: takes the
 // controller + sendMessage + mode + setActiveTool, returns palette props.
 
+import type { UseMapEditStateOptions, UseMapEditStateReturn } from "./useMapEditState.types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ClientMessage } from "@herobyte/shared";
-import type { ToolMode } from "../../components/layout/Header";
-import type { MapStudioController } from "../map-studio/types";
-import { useFollowLiveDocument } from "./useFollowLiveDocument";
+import { useLiveMapEntry } from "./useLiveMapEntry";
+import { displayName } from "../map-studio/tableMapIdentity";
 import { useMapEditHotkeys } from "./useMapEditHotkeys";
 import { usePopulate } from "./usePopulate";
 import { useGenerate } from "./useGenerate";
 import { usePlacementDials } from "./usePlacementDials";
-import type { RoomBounds } from "./roomBuilder";
-import type {
-  MapEditFloorFamily,
-  MapEditSplineKind,
-  MapEditSubTool,
-  MapEditToolbarProps,
-  MapEditWallFamily,
-} from "./mapEditTypes";
+import type { MapEditToolbarProps } from "./mapEditTypes";
+import { useMapEditPaletteState } from "./useMapEditPaletteState";
+import { useElementProperties } from "./useElementProperties";
 
-interface UseMapEditStateOptions {
-  controller: MapStudioController;
-  sendMessage: (message: ClientMessage) => void;
-  mapEditMode: boolean;
-  setActiveTool: (tool: ToolMode) => void;
-  /** Whether this client currently holds DM. Losing it leaves the mode. */
-  isDM: boolean;
-  /**
-   * Has the server actually told us the roster yet? `isDM` is DERIVED from the
-   * snapshot, so it reads false whenever there is no snapshot — which includes
-   * every reconnect. Without this the guard below cannot tell "the server
-   * revoked you" from "the server has not spoken yet".
-   */
-  snapshotLoaded: boolean;
-  /** The room's live-bound document id (from the snapshot), if any. */
-  liveMapDocumentId: string | undefined;
-  /** The room's current live grid size, synced onto a freshly created document. */
-  roomGridSize: number;
-  /** True when the room still carries a raster background (double-draw hint). */
-  hasRasterBackground: boolean;
-  /** Surface a server-side map-studio error to the DM (e.g. a toast). */
-  notifyError?: (message: string) => void;
-}
-
-interface UseMapEditStateReturn {
-  activeSubTool: MapEditSubTool;
-  /** Floor terrain family the room sub-tool paints. */
-  floorFamily: MapEditFloorFamily;
-  /** The Room tool's painted wall-ring material (fed to the tool). */
-  roomWallFamily: MapEditWallFamily | "none";
-  /** Asset the place/scatter sub-tools drop (fed to the tool + preview). */
-  selectedAssetId: string;
-  /** Corridor width in cells for the hallway sub-tool (fed to the tool + preview). */
-  hallwayWidth: number;
-  /** Curve kind the spline sub-tool authors (fed to the tool). */
-  splineKind: MapEditSplineKind;
-  /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
-  onRegionPlaced: (bounds: RoomBounds) => void;
-  /** POPULATE's true draft footprints while a region is armed (P2 ghosts). */
-  populateGhosts: import("./useMapEditPlacement").PlacementGhost[] | null;
-  /** Quick-wheel dispatch pair (P5) — stable identity. */
-  wheelActions: import("./mapEditTypes").MapEditWheelActions;
-  /** Record a generate drag's bounds as the recipe's target (fed to the tool). */
-  onRegionDragged: (bounds: RoomBounds) => void;
-  /** Currently-selected element id (select sub-tool) + its setter (fed to the tool). */
-  selectedElementId: string | null;
-  onSelectElement: (elementId: string | null) => void;
-  /** Re-arm the place tool with an eyedropper-sampled asset (fed to the tool). */
-  onSampleAsset: (assetId: string, source: "tool" | "shortcut") => void;
-  /** Keep the DM walls overlay visible even outside map-edit mode. */
-  wallsOverlayPinned: boolean;
-  toolbarProps: MapEditToolbarProps;
-}
-
-const LIVE_MAP_SIZE = 8192;
 /** A crate is the friendliest first set-dressing default. */
 
 export function useMapEditState({
@@ -89,67 +28,60 @@ export function useMapEditState({
   isDM,
   snapshotLoaded,
   liveMapDocumentId,
+  sceneSourceDocumentId,
   roomGridSize,
   hasRasterBackground,
   notifyError,
+  dismissError,
 }: UseMapEditStateOptions): UseMapEditStateReturn {
-  const [activeSubTool, setActiveSubTool] = useState<MapEditSubTool>("wall");
-  const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
-  // Rooms ship with a stone wall band by default — the Czepeku look out of the
-  // box; "none" restores the bare floor-plus-perimeter behaviour.
-  const [roomWallFamily, setRoomWallFamily] = useState<MapEditWallFamily | "none">("wall-stone");
-  const [hallwayWidth, setHallwayWidth] = useState(2);
-  // Rope is the friendliest first spline: a two-anchor drag sags immediately.
-  const [splineKind, setSplineKind] = useState<MapEditSplineKind>("rope");
+  const {
+    activeSubTool,
+    activeGroup,
+    onSelectGroup,
+    setActiveSubTool,
+    floorFamily,
+    setFloorFamily,
+    roomWallFamily,
+    setRoomWallFamily,
+    hallwayWidth,
+    setHallwayWidth,
+    terrainBrushSize,
+    setTerrainBrushSize,
+    splineKind,
+    setSplineKind,
+    layersOpen,
+    inspectorOpen,
+    wallsOverlayPinned,
+    onToggleWallsOverlay,
+    onToggleLayers,
+    onToggleInspector,
+  } = useMapEditPaletteState();
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   // What Place/Scatter/Row drop and how — asset, picker flag, stamp-vs-tile and
   // rotation, in one hook so a phone control and the Alt/R keys write the same
   // state rather than two that can disagree.
   const dials = usePlacementDials({ setFloorFamily, setActiveSubTool });
-  const [layersOpen, setLayersOpen] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
   const populate = usePopulate(controller, notifyError);
-  // The id of a document we just created and are waiting to activate before
-  // binding it live (createDocument returns synchronously, but the controller
-  // no-ops every action until the server's map-studio-document reply lands).
-  const [pendingLiveId, setPendingLiveId] = useState<string | null>(null);
-  // True from the moment START LIVE MAP is clicked until the room snapshot
-  // confirms the binding (isLive). Without it, the button briefly re-enables
-  // between "set-live sent" and "snapshot confirms", so a double-click would
-  // create a second orphan "Live Map" document.
-  const [awaitingLiveBind, setAwaitingLiveBind] = useState(false);
-  // Pin the DM-only walls overlay so it stays visible after leaving map-edit
-  // mode (in map-edit it always shows; the pin persists it beyond that).
-  const [wallsOverlayPinned, setWallsOverlayPinned] = useState(false);
-
-  // Stable controller methods (useCallback-memoized inside useMapStudio); the
-  // controller OBJECT is recreated each render, so depend on these, not it.
-  const {
-    activeDocument,
-    loading,
-    missingDocumentId,
-    createDocument,
-    openDocument,
-    updateGrid,
-    undo,
-    redo,
-  } = controller;
-  const activeId = activeDocument?.id;
-  // The room's binding points at a document the server no longer has (the
-  // maps store reset under the room — e.g. an ephemeral-disk restart). The
-  // binding is DANGLING: never auto-open it again, and let START LIVE MAP
-  // create a fresh document whose set-live repairs the room's binding.
-  const bindingDangling = Boolean(liveMapDocumentId) && missingDocumentId === liveMapDocumentId;
-
-  const isLive = Boolean(liveMapDocumentId) && activeId === liveMapDocumentId;
+  const { activeDocument, undo, redo } = controller;
+  const { isLive, busy, startLiveMap, buildEntry } = useLiveMapEntry({
+    controller,
+    sendMessage,
+    mapEditMode,
+    liveMapDocumentId,
+    sceneSourceDocumentId,
+    hasBackground: hasRasterBackground,
+    roomGridSize,
+  });
 
   const generate = useGenerate(controller, isLive, activeSubTool, mapEditMode, notifyError);
 
-  // Ctrl/Cmd+Z / +Y route to the active (live) map document while map-edit is
-  // on; the useKeyboardShortcuts selection-undo branch is guarded off in the
-  // same mode so exactly one handler acts.
+  // Ctrl/Cmd+Z / +Y route to the table's map while map-edit is on; the
+  // useKeyboardShortcuts selection-undo branch is guarded off in the same mode
+  // so exactly one handler acts. Only while that map is OPEN: with a library
+  // map viewed, the controller's history is that map's, and a Ctrl+Z in Build
+  // silently rewound it while the table did not change.
   useMapEditHotkeys({
-    mapEditMode,
+    mapEditMode: mapEditMode && isLive,
     canUndo: controller.canUndo,
     canRedo: controller.canRedo,
     undo,
@@ -161,38 +93,19 @@ export function useMapEditState({
   // focus is usually on the canvas. Fires once per error: the controller resets
   // error to null before each command, so a recurring failure re-toasts.
   const lastError = useRef<string | null>(null);
+  const errorNotification = useRef<string | null>(null);
   useEffect(() => {
     const err = controller.error;
-    if (err && err !== lastError.current && mapEditMode) notifyError?.(err);
-    lastError.current = err;
-  }, [controller.error, mapEditMode, notifyError]);
-
-  const startLiveMap = useCallback(() => {
-    if (awaitingLiveBind) return; // a create/bind is already in flight
-    if (activeId && activeId === liveMapDocumentId) return; // already live
-    setAwaitingLiveBind(true);
-    if (liveMapDocumentId && !bindingDangling) {
-      openDocument(liveMapDocumentId);
-      return;
+    if (err !== lastError.current && errorNotification.current) {
+      dismissError?.(errorNotification.current);
+      errorNotification.current = null;
     }
-    // Date-stamped so repeated backup imports or binding-clearing session loads
-    // do not produce a shelf of documents all reading "Live Map", which nothing
-    // in the UI can then tell apart (there is no rename on the wire).
-    const stamp = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    setPendingLiveId(createDocument(`Live Map ${stamp}`, LIVE_MAP_SIZE, LIVE_MAP_SIZE));
-  }, [
-    awaitingLiveBind,
-    activeId,
-    liveMapDocumentId,
-    bindingDangling,
-    openDocument,
-    createDocument,
-  ]);
-
-  // Release the latch once the binding is confirmed live by the room snapshot.
-  useEffect(() => {
-    if (isLive) setAwaitingLiveBind(false);
-  }, [isLive]);
+    if (err && err !== lastError.current && mapEditMode) {
+      const id = notifyError?.(err);
+      if (typeof id === "string") errorNotification.current = id;
+    }
+    lastError.current = err;
+  }, [controller.error, mapEditMode, notifyError, dismissError]);
 
   // LOSING DM LEAVES THE MODE. Every way OUT of map-edit is DM-gated — the
   // header's entry, and the palette itself (TopPanelLayout gates on isDM) —
@@ -212,45 +125,7 @@ export function useMapEditState({
     if (mapEditMode && snapshotLoaded && !isDM) setActiveTool(null);
   }, [mapEditMode, snapshotLoaded, isDM, setActiveTool]);
 
-  // Create → bind: once the freshly created document activates, bind it live and
-  // sync its grid to the room. set-live FIRST so the grid command rides the S1
-  // live-recompile hook and the table lattice self-corrects (§3).
-  useEffect(() => {
-    if (!pendingLiveId || activeId !== pendingLiveId) return;
-    sendMessage({ t: "map-studio-set-live", documentId: pendingLiveId });
-    updateGrid({ size: roomGridSize });
-    setPendingLiveId(null);
-  }, [pendingLiveId, activeId, sendMessage, updateGrid, roomGridSize]);
-
-  // Rebind after a reload: entering map-edit with a live binding but NO active
-  // document (fresh controller) auto-opens it. Bail whenever ANY document is
-  // already active — including one the DM deliberately opened to export or back
-  // up — so this effect never force-reverts an explicit open (the palette shows
-  // START LIVE MAP when a non-live doc is active). The loading guard prevents
-  // re-firing while the fetch is in flight, and a DANGLING binding (the server
-  // reported the document gone) is never re-opened — without that guard this
-  // effect looped open → not-found → open forever, pinning the palette on
-  // STARTING… after a server-side maps-store reset.
-  useFollowLiveDocument({ liveMapDocumentId, loading, activeId, openDocument });
-
-  useEffect(() => {
-    if (!mapEditMode || !liveMapDocumentId || pendingLiveId || loading) return;
-    if (activeId || bindingDangling) return;
-    openDocument(liveMapDocumentId);
-  }, [
-    mapEditMode,
-    liveMapDocumentId,
-    bindingDangling,
-    pendingLiveId,
-    loading,
-    activeId,
-    openDocument,
-  ]);
-
   const onClose = useCallback(() => setActiveTool(null), [setActiveTool]);
-  const onToggleWallsOverlay = useCallback(() => setWallsOverlayPinned((pinned) => !pinned), []);
-  const onToggleLayers = useCallback(() => setLayersOpen((open) => !open), []);
-  const onToggleInspector = useCallback(() => setInspectorOpen((open) => !open), []);
 
   // Quick-wheel dispatch pair (P5): useState setters are identity-stable, so
   // one memo keeps the pair stable for MapBoard.
@@ -267,9 +142,22 @@ export function useMapEditState({
     [activeDocument, selectedElementId],
   );
 
+  const properties = useElementProperties(
+    controller,
+    selectedElementId,
+    setSelectedElementId,
+    isDM || !snapshotLoaded,
+  );
   const toolbarProps: MapEditToolbarProps = {
+    documentId: activeDocument?.id,
+    properties: properties.properties,
+    mapName: activeDocument
+      ? (displayName(activeDocument.id, controller.documents) ?? activeDocument.name)
+      : "Current table map",
+    activeGroup,
+    onSelectGroup,
     isLive,
-    busy: awaitingLiveBind || pendingLiveId !== null || loading,
+    busy,
     activeSubTool,
     onSelectSubTool: setActiveSubTool,
     floorFamily,
@@ -281,6 +169,7 @@ export function useMapEditState({
     onUndo: undo,
     onRedo: redo,
     onStartLiveMap: startLiveMap,
+    buildEntry,
     onClose,
     hasRasterBackground,
     error: controller.error,
@@ -297,6 +186,8 @@ export function useMapEditState({
     onRotateStamp: dials.onRotateStamp,
     hallwayWidth,
     onSelectHallwayWidth: setHallwayWidth,
+    terrainBrushSize,
+    onSelectTerrainBrushSize: setTerrainBrushSize,
     splineKind,
     onSelectSplineKind: setSplineKind,
     populateDensity: populate.density,
@@ -305,6 +196,8 @@ export function useMapEditState({
     onSelectPopulateCategory: populate.setCategory,
     onPopulate: populate.onPopulate,
     canPopulate: populate.canPopulate,
+    populateTarget: populate.target,
+    populateHint: populate.hint,
     generateParams: generate.params,
     onGenerateParamsChange: generate.setParams,
     onRerollSeed: generate.rerollSeed,
@@ -312,6 +205,7 @@ export function useMapEditState({
     canGenerate: generate.canGenerate,
     generateRegion: generate.region,
     generateHint: generate.hint,
+    generateFeedback: generate.feedback,
     saving: controller.saving,
     layers: activeDocument?.layers ?? [],
     selectedElement,
@@ -333,12 +227,21 @@ export function useMapEditState({
     selectedAssetId: dials.selectedAssetId,
     hallwayWidth,
     splineKind,
+    terrainBrushSize,
     onRegionPlaced: populate.onRegionPlaced,
-    populateGhosts: populate.previewGhosts,
+    persistentPreview: {
+      populateGhosts:
+        isDM && (activeSubTool === "room" || activeSubTool === "hallway")
+          ? populate.previewGhosts
+          : null,
+      populateTarget:
+        isDM && (activeSubTool === "room" || activeSubTool === "hallway") ? populate.target : null,
+      generateRegion: isDM ? generate.preview : null,
+    },
     wheelActions,
     onRegionDragged: generate.onRegionDragged,
     selectedElementId,
-    onSelectElement: setSelectedElementId,
+    onSelectElement: properties.selectElement,
     onSampleAsset: dials.onSampleAsset,
     wallsOverlayPinned,
     toolbarProps,

@@ -90,7 +90,7 @@ export interface UseServerEventHandlersOptions {
   onAtlasError?: (message: Extract<ServerMessage, { t: "atlas-error" }>) => void;
 }
 
-/** What the DM reads when the server refused a REMOVE (Players tab). */
+/** What the DM reads when the server refused a REMOVE (Table → Players at this table). */
 export const REMOVE_PLAYER_REFUSAL_COPY: Record<
   Extract<ServerMessage, { t: "remove-player-refused" }>["reason"],
   string
@@ -236,9 +236,9 @@ export function useServerEventHandlers({
         const previousStatus = lastDmStatusRef.current;
         lastDmStatusRef.current = message.isDM;
 
-        // DM elevation successful (only toast on transition to DM)
+        // Entered DM mode (only toast on transition to DM); the leave toast says "DM mode" too
         if (message.isDM && previousStatus !== true) {
-          toastSuccess("DM elevation successful! You are now the Dungeon Master.", 4000);
+          toastSuccess("You are in DM mode. The DM tools are on.", 4000);
         }
       } else if ("t" in message && message.t === "dm-elevation-failed") {
         // DM elevation failed — the modal shows the reason (and offers
@@ -275,10 +275,10 @@ export function useServerEventHandlers({
         // Atlas ops are fire-and-forget room mutations confirmed by the next
         // snapshot; this channel is their ONLY failure surface (sent to the
         // acting DM alone), so a swallowed one is a silently dead button.
-        toastError(`Atlas: ${message.reason}`, 5000);
+        toastError(`World: ${message.reason}`, 5000);
         onAtlasError?.(message);
       } else if ("t" in message && message.t === "remove-player-refused") {
-        // The Players tab's REMOVE is fire-and-forget too, and a refused one
+        // The Table tab's REMOVE is fire-and-forget too, and a refused one
         // changes nothing on the table: this is the DM's only failure surface.
         toastError(REMOVE_PLAYER_REFUSAL_COPY[message.reason], 5000);
       }

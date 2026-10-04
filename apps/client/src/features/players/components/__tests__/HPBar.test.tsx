@@ -10,7 +10,7 @@
 
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { HPBar } from "../HPBar";
 
 // ============================================================================
@@ -183,6 +183,28 @@ describe("HPBar", () => {
       fireEvent.click(hpValue);
 
       expect(onHpEdit).not.toHaveBeenCalled();
+    });
+
+    it("names the HP fields it opens (a number box with no name reads as an unnamed spin button)", () => {
+      const first = render(<HPBar {...createDefaultProps({ isEditingHp: true, hpInput: "85" })} />);
+      expect(screen.getByRole("spinbutton", { name: "Current HP" })).toHaveValue(85);
+      first.unmount();
+      render(<HPBar {...createDefaultProps({ isEditingMaxHp: true, maxHpInput: "90" })} />);
+      expect(screen.getByRole("spinbutton", { name: "Max HP" })).toHaveValue(90);
+      cleanup();
+      render(
+        <HPBar
+          {...createDefaultProps({
+            isMe: true,
+            isEditingTempHp: true,
+            tempHpInput: "5",
+            onTempHpEdit: vi.fn(),
+            onTempHpInputChange: vi.fn(),
+            onTempHpSubmit: vi.fn(),
+          })}
+        />,
+      );
+      expect(screen.getByRole("spinbutton", { name: "Temp HP" })).toHaveValue(5);
     });
 
     it("shows input field when isEditingHp is true", () => {
@@ -800,6 +822,52 @@ describe("HPBar", () => {
 
       fireEvent.click(screen.getByText("120"));
       expect(onMaxHpEdit).toHaveBeenCalledWith("custom-player-uid", 120);
+    });
+  });
+
+  // ============================================================================
+  // TESTS - REACH
+  // ============================================================================
+  // An editable number is a real button, so a keyboard reaches it and, on a
+  // touch screen, herobyte.css gives it a 44px box of its own. The phone spec
+  // (mobile-hp-targets) measures the box; jsdom has no layout.
+
+  describe("Reach", () => {
+    it("an editable number is a button that names what it edits", () => {
+      const onHpEdit = vi.fn();
+      const onMaxHpEdit = vi.fn();
+      const onTempHpEdit = vi.fn();
+      const props = createDefaultProps({
+        isMe: true,
+        hp: 75,
+        maxHp: 120,
+        tempHp: 5,
+        onHpEdit,
+        onMaxHpEdit,
+        onTempHpEdit,
+        onTempHpSubmit: vi.fn(),
+        onTempHpInputChange: vi.fn(),
+      });
+      render(<HPBar {...props} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Set current HP: 75 (+5)" }));
+      fireEvent.click(screen.getByRole("button", { name: "Set max HP: 120" }));
+      fireEvent.click(screen.getByRole("button", { name: "Set temp HP: 5" }));
+
+      expect(onHpEdit).toHaveBeenCalledWith("player-1", 75);
+      expect(onMaxHpEdit).toHaveBeenCalledWith("player-1", 120);
+      expect(onTempHpEdit).toHaveBeenCalledTimes(1);
+      for (const button of screen.getAllByRole("button")) {
+        expect(button).toHaveAttribute("type", "button");
+        expect(button).toHaveClass("hp-bar__value");
+      }
+    });
+
+    it("someone else's numbers are text, not buttons", () => {
+      render(<HPBar {...createDefaultProps({ isMe: false, hp: 75, maxHp: 120 })} />);
+
+      expect(screen.queryAllByRole("button")).toHaveLength(0);
+      expect(screen.getByText("75")).toBeInTheDocument();
     });
   });
 });

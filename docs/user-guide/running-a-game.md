@@ -39,16 +39,18 @@ already invested in.
 
 ### Do this
 
-1. Elevate to DM ([how](getting-started.md#becoming-the-dm)), then open **🛠️ DM MENU** →
-   **Map Setup**.
+1. Enter DM mode ([how](getting-started.md#becoming-the-dm)), then open **🛠️ DM MENU** →
+   **Maps**. Everything below is under **Current table map**.
 2. Under **Map Background**, either **⬆ UPLOAD IMAGE** (from your device — it is stored with your
    table and stays there) or paste an image URL and **APPLY BACKGROUND**. A URL only works if the
    image's host allows other sites to load it; if nothing appears, download it and upload instead.
-3. Make the table's grid match the grid printed on your image: **Grid Alignment Wizard** →
+3. Make the table's grid match the grid printed on your image: open
+   **Advanced: map position and grid alignment**, then **Grid Alignment Wizard** →
    **START ALIGNMENT**, click two _opposite corners of one square_ on the image, then
    **APPLY ALIGNMENT**. The map scales and shifts itself to mesh.
 4. Set **Square Size** in feet (usually 5) so measuring and templates report real distances.
-5. Turn on **Map is locked** in **Map Transform** so nobody drags the map by accident mid-fight.
+5. Turn on **Map is locked** in **Map Transform** (the same Advanced section) so nobody drags the
+   map by accident mid-fight.
 
 Drop tokens on it and play.
 
@@ -58,8 +60,8 @@ You get the art, the grid, measurement, drawing, dice, initiative — the whole 
 
 You do **not** get fog of war, doors that open, or light that stops at walls, because those are
 computed from a map's geometry and a photograph has none. HeroByte will not pretend otherwise: the
-**Fog of War** button stays disabled and says _"Publish a Map Studio map first — fog uses its
-compiled walls and doors."_
+**Fog of War** button stays disabled and says _"Build a map on the table first (🏗️ Build map; on a
+phone, 🏗️ Edit the live map) — fog uses its walls and doors."_
 
 If you want fog on this image, you do not have to abandon it — see [Mixing them](#mixing-them).
 
@@ -78,11 +80,11 @@ lights pool and cast shadows, fog reveals the room as the party walks into it.
 1. Open the map tools (**⚒ TOOLS** on a phone) and press **▶ START LIVE MAP**. That creates a fresh
    map, binds it to the table, and lights the **● LIVE** badge. Every edit from now on compiles and
    reaches players immediately.
-2. Block out space with **🏠 Room** and **🚇 Hall**.
+2. Block out space with **🏠 Room** and **🚇 Hallway**.
 3. Add **🧱 Wall** where sight should stop and **🚪 Door** where the party can get through.
-4. Optional and quick: **💡 Light** for torches, **🖌️ Paint** for terrain, **✨ Populate** for
+4. Optional and quick: **💡 Place light** for torches, **🖌️ Paint terrain**, **✨ Decorate** (Room or Hallway settings) for
    instant furniture.
-5. Turn on **Fog of War** in Map Setup. Set **Table Sight Default** to 30 ft if you want the place
+5. Turn on **Fog of War** in **DM Menu → Maps**. Set **Table Sight Default** to 30 ft if you want the place
    dark.
 
 The [Map Editor Guide](map-editor-guide.md) covers every tool in detail. Two things worth knowing
@@ -110,13 +112,14 @@ place you left is waiting exactly as it stood when you come back.
 
 1. Be on a live map. Path B gives you one, and any place you have already kicked in is one — but a
    background image on its own is not. If the table has no live map the panel says so and offers
-   **▶ START LIVE MAP** right there; click it, wait a moment, and **ROLL** lights up.
+   **▶ START LIVE MAP** right there; click it, wait a moment, and **🚪 Generate & enter** lights up.
 2. Press **G**. On a phone: **♛ DM** → **🚪 Kick in a door**. There is also
-   **🚪 KICK IN A DOOR** on the DM Menu's **Atlas** tab.
+   **🚪 KICK IN A DOOR** on the DM Menu's **World** tab.
 3. The panel opens with the name already filled in and your last dials remembered. Type a name if
    you want one — _The Salt Hound_ beats _Tavern 3_ at the table.
 4. Pick the **Recipe** and its dials (below).
-5. Hit **🚪 ROLL**, or just press Enter.
+5. Hit **🚪 Generate & enter**, or just press Enter. The panel says what that does: it creates a
+   connected location and moves the whole table there. **⟳ Reroll** only changes the seed.
 
 That is the whole interaction. Seconds later the table is somewhere new.
 
@@ -128,10 +131,10 @@ That is the whole interaction. Seconds later the table is somewhere new.
   solid rock.
 - A **🚪 door sprite** now sits on the map you left, where the party was standing.
 - Another sits at the new entrance, leading **back**.
-- The new place hangs under the one you were on in the **Atlas**, already discovered, so players see
+- The new place hangs under the one you were on in **World**, already discovered, so players see
   its name on their **🗺 WORLD** map at once.
-- If your table was not on the Atlas at all, it just **adopted itself** as your campaign's first
-  node, named after the map. You never have to set anything up in advance.
+- If your table was not in World at all, it just **adopted itself** as your campaign's first
+  location, named after the map. You never have to set anything up in advance.
 
 ### Getting back
 
@@ -150,10 +153,10 @@ underneath it. A cellar under the tavern under the town is three keystrokes.
 
 ### If it does not budge
 
-You get a toast after twenty seconds. Press **🚪 ROLL** again — it retries safely and cannot build
-the place twice.
+You get a toast after twenty seconds, and the panel has closed. Press **G** again (set the name again if you
+had changed it) and **🚪 Generate & enter** — it retries safely and cannot build the place twice.
 
-If **ROLL** is greyed out, the table has no live map — click **▶ START LIVE MAP** in the panel and
+If **🚪 Generate & enter** is greyed out, the table has no live map — click **▶ START LIVE MAP** in the panel and
 it will light up on its own.
 
 ### The dials
@@ -183,7 +186,7 @@ notes rather than on the map.
 
 ## Mixing them
 
-The three paths are not lanes. They share one campaign and one Atlas.
+The three paths are not lanes. They share one campaign and one World.
 
 **Fog and doors on a downloaded map (A then B).** Upload your image as in Path A, then press
 **▶ START LIVE MAP** and draw only **🧱 Wall** and **🚪 Door** over it — no terrain painting. Walls
@@ -195,14 +198,14 @@ _painting_, and this hybrid deliberately skips painting.
 edit mode after you arrive and move a wall, add a secret door, paint a bloodstain. Nothing about it
 is locked.
 
-**Bring any map into the campaign tree.** On the Atlas tab, **+ CREATE NODE** for a place, then
-**🔗 Link existing map** to attach a map you built or a background you set up. Kicked-in places,
-hand-built places and bought art all sit in the same tree and all travel the same way with
-**🚩 TRAVEL**.
+**Bring any map into the campaign tree.** On the World tab, **+ Create location** for a place, then
+**🔗 Link existing map** to attach a saved map — one you built, or the live map you started over your
+background (A then B). Kicked-in places, hand-built places and bought art all sit in the same tree and
+all travel the same way with **🚩 Travel here**.
 
-**Promise now, build later.** A node with no map yet (**⬒**) costs nothing — it is about a hundred
+**Promise now, build later.** A location with no map yet (**⬒**) costs nothing — it is about a hundred
 bytes of _"there is a tavern here."_ Make them freely while planning, and cash one with
-**🎲 Generate…** or **🔗 Link existing map** when the party actually walks in.
+**🎲 Generate map for location…** or **🔗 Link existing map** when the party actually walks in.
 
 ---
 
@@ -226,7 +229,7 @@ Your party is in a port town. You have a lovely bought map of the harbour, so th
 uploaded and aligned before the session, five minutes.
 
 They decide to rob a warehouse you never wrote. **Path C**: G, _"Kestrel & Sons"_, building →
-warehouse → medium, ROLL. Four seconds later everyone is standing inside the door in the dark,
+warehouse → medium, Generate & enter. Four seconds later everyone is standing inside the door in the dark,
 because you had already set **Table Sight Default** to 30 ft. Crates, a light per room, a key
 telling you what is in the back office.
 
@@ -245,7 +248,7 @@ Three workflows, one campaign tree, one evening.
 
 Nothing above is a requirement. Run a whole campaign on downloaded PNGs and never open the editor.
 Build every room by hand because you enjoy it. Generate everything and never draw a wall. Use fog or
-leave it off. Use the Atlas or ignore it and swap backgrounds by hand.
+leave it off. Use World or ignore it and swap backgrounds by hand.
 
 HeroByte's job is to have the tool ready when you want it, and to stay out of the way when you
 don't.

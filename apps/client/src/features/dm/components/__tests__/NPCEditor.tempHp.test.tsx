@@ -31,6 +31,7 @@ function renderEditor(over: Partial<SnapshotCharacter> = {}) {
       onPlace={vi.fn()}
       onDuplicate={vi.fn()}
       onDelete={vi.fn()}
+      onStatusEffectsChange={vi.fn()}
     />,
   );
   return { onUpdate, tempHp: screen.getByLabelText("Temp HP") as HTMLInputElement };

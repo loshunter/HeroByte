@@ -17,7 +17,6 @@ import type { Character, CustomToken, SnapshotCharacter } from "@herobyte/shared
 import { NPC_CREATE_LIMITS } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { NPCEditor } from "../NPCEditor";
-import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";
 import type { CreateNpcRequest } from "../../hooks/useNpcCreation";
 import { TokenLibrary } from "../../token-library/TokenLibrary";
 import {
@@ -53,6 +52,12 @@ interface NPCsTabProps {
   combatActive?: boolean;
   /** Callback to place an NPC token on the map */
   onPlaceNPCToken: (id: string) => void;
+  /** Set an NPC's conditions (the phone's only route to them). */
+  onSetNPCStatusEffects: (id: string, effects: string[]) => void;
+  /** Centre the map on a token (on a phone, closing the DM screen). */
+  onFocusNPCToken: (tokenId: string) => void;
+  /** The tokens on the current map: an NPC's Focus needs its token here. */
+  mapTokenIds: ReadonlySet<string>;
   /** Callback to delete an NPC */
   onDeleteNPC: (id: string) => void;
   /** Whether NPC creation is in progress */
@@ -71,13 +76,11 @@ interface NPCsTabProps {
   tokenPlacementError?: string | null;
   /** ID of the NPC whose token is being placed */
   placingTokenForNpcId?: string | null;
-  /** Toast notification functions */
-  toast?: {
-    success: (message: string) => void;
-    error: (message: string) => void;
-  };
-  /** Asks the server to roll initiative for every NPC that still lacks one */
-  onRollAllInitiative?: () => void;
+  /**
+   * Initiative and the fight moved to Encounter (U8): Roll Missing Initiative
+   * is there now, and this tab forwards to it.
+   */
+  onOpenEncounter: () => void;
 }
 
 /** One stable empty shelf, so a host that passes none does not re-provide the context per render. */
@@ -103,6 +106,9 @@ export default function NPCsTab({
   onResetNPCBudget,
   combatActive = false,
   onPlaceNPCToken,
+  onSetNPCStatusEffects,
+  onFocusNPCToken,
+  mapTokenIds,
   onDeleteNPC,
   customTokens = NO_CUSTOM_TOKENS,
   onAddCustomToken,
@@ -115,18 +121,8 @@ export default function NPCsTab({
   isPlacingToken = false,
   tokenPlacementError = null,
   placingTokenForNpcId = null,
-  toast,
-  onRollAllInitiative,
+  onOpenEncounter,
 }: NPCsTabProps) {
-  // One message asks the server to sweep every NPC that still lacks initiative.
-  const handleRollAll = () => {
-    if (onRollAllInitiative) {
-      onRollAllInitiative();
-    }
-  };
-
-  const { rollAllInitiative } = useBulkInitiativeRoll(npcs, handleRollAll);
-
   // How many the next "+ Add NPC" makes. Kept as a string so the field can be
   // empty mid-edit instead of snapping back to 1 under the DM's cursor.
   const [countInput, setCountInput] = useState("1");
@@ -134,15 +130,6 @@ export default function NPCsTab({
   const count = Number.isFinite(parsedCount)
     ? Math.min(Math.max(parsedCount, NPC_CREATE_LIMITS.COUNT_MIN), NPC_CREATE_LIMITS.COUNT_MAX)
     : NPC_CREATE_LIMITS.COUNT_MIN;
-
-  const handleRollAllInitiative = () => {
-    const count = rollAllInitiative();
-    if (count > 0 && toast) {
-      toast.success(`Rolled initiative for ${count} NPC${count === 1 ? "" : "s"}`);
-    } else if (count === 0 && toast) {
-      toast.error("No NPCs without initiative to roll for");
-    }
-  };
 
   // The bundled token pack. A pick is an Add with the art filled in — the ×N
   // count applies, so "five goblin archers" is still one press. The map gets
@@ -188,19 +175,14 @@ export default function NPCsTab({
             NPCs & Monsters
           </h4>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-            {npcs.length > 0 && (
-              <JRPGButton
-                variant="primary"
-                onClick={handleRollAllInitiative}
-                disabled={!toast}
-                style={{ fontSize: "10px", padding: "6px 12px" }}
-              >
-                {/* "Missing", not "all": it skips any NPC that already has a value.
-                  No "Rolling..." state any more — one message goes out and the
-                  press is over; the waiting used to be the batching delay. */}
-                ⚔️ Roll Missing Initiative
-              </JRPGButton>
-            )}
+            {/* A forward, not a second roll button: initiative is Encounter's. */}
+            <JRPGButton
+              onClick={onOpenEncounter}
+              style={{ fontSize: "10px", padding: "6px 12px" }}
+              title="Initiative, turns and the fight itself are in Encounter"
+            >
+              ⚔️ Encounter
+            </JRPGButton>
             <JRPGButton
               onClick={() => setLibraryOpen((open) => !open)}
               variant={libraryOpen ? "primary" : "default"}
@@ -297,6 +279,12 @@ export default function NPCsTab({
                     : undefined
                 }
                 onPlace={() => onPlaceNPCToken(npc.id)}
+                onStatusEffectsChange={(effects) => onSetNPCStatusEffects(npc.id, effects)}
+                onFocus={
+                  npc.tokenId && mapTokenIds.has(npc.tokenId)
+                    ? () => onFocusNPCToken(npc.tokenId!)
+                    : undefined
+                }
                 onDuplicate={() => onDuplicateNPC(npc.id)}
                 onDelete={() => onDeleteNPC(npc.id)}
                 isDuplicating={isCreatingNpc}

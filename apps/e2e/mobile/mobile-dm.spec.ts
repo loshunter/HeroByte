@@ -1,8 +1,8 @@
 /**
  * The DM screen (M4b): a DM on a phone reaches the full menu — background,
- * grid, fog, staging zone, NPC/prop CRUD, session save/load, invite link and
- * table password — through a scrollable chip row of the same five tabs the
- * desktop window has. The tab views are reused unchanged; what this spec
+ * grid, fog, staging zone, NPC/prop CRUD, table backup and restore, invite link
+ * and table password — through a scrollable chip row of the same six tabs the
+ * desktop window has (Players and Session became one Table tab in U9). The tab views are reused unchanged; what this spec
  * proves is REACHABILITY on a 375px screen, where "on screen at once" is the
  * wrong bar (the body scrolls) but "reachable by scrolling, at the 44px
  * floor" is the contract.
@@ -19,7 +19,9 @@ async function openDMScreen(page: Page): Promise<void> {
     .click();
   await expect(page.getByRole("dialog", { name: "DM Menu" })).toBeVisible();
   // The menu is a lazy chunk on mobile exactly as on desktop — wait for it.
-  await expect(page.getByRole("button", { name: "Map Setup" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Maps", exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 /** Assert a control is reachable by scrolling, then leave it in view. */
@@ -38,18 +40,12 @@ test.describe("mobile — the DM screen", () => {
 
     const dialog = page.getByRole("dialog", { name: "DM Menu" });
 
-    // The chip row: all six tabs on ONE row at the touch floor. On a 375px
-    // screen six labelled chips cannot fit at once, so the row itself must
-    // scroll — that is the M4b design, not an accident to paper over.
+    // The chip row: all six tabs (Encounter joined in U8; Players and Session
+    // became Table in U9) on ONE row at the touch floor. On a 375px screen six
+    // labelled chips cannot fit at once, so the row itself must scroll — the
+    // M4b design, not an accident.
     const chips = await page.evaluate(() => {
-      const labels = [
-        "Map Setup",
-        "Atlas",
-        "NPCs & Monsters",
-        "Props & Objects",
-        "Players",
-        "Session",
-      ];
+      const labels = ["Maps", "World", "Encounter", "NPCs & Monsters", "Props & Objects", "Table"];
       const buttons = [...document.querySelectorAll<HTMLButtonElement>("button")].filter((b) =>
         labels.includes((b.textContent || "").trim()),
       );
@@ -83,15 +79,18 @@ test.describe("mobile — the DM screen", () => {
     await dialog.getByRole("button", { name: "Props & Objects" }).click();
     await reach(page, dialog.getByRole("button", { name: "+ Add Prop" }));
 
-    // Players.
-    await dialog.getByRole("button", { name: "Players", exact: true }).click();
+    // Table (U9): role, invite, the players at this table, permissions, backups
+    // and — on the public test table — the save-as-private-table flow that
+    // stands in for the password control, each reachable by scrolling.
+    await dialog.getByRole("button", { name: "Table", exact: true }).click();
+    await reach(page, dialog.getByRole("heading", { name: "Your role" }));
+    await reach(page, dialog.getByRole("button", { name: "Leave DM mode", exact: true }));
+    await reach(page, dialog.getByRole("heading", { name: "Invite" }));
+    await reach(page, dialog.getByRole("heading", { name: "Players at this table" }));
     await reach(page, dialog.getByRole("button", { name: /SELECT ALL/i }).first());
-
-    // Session: save/load, invite link, and — on the public test table — the
-    // save-as-private-table flow that stands in for the password control.
-    await dialog.getByRole("button", { name: "Session", exact: true }).click();
-    await reach(page, dialog.getByText("Session Save/Load"));
-    await reach(page, dialog.getByText("Invite Players"));
+    await reach(page, dialog.getByRole("heading", { name: "Permissions" }));
+    await reach(page, dialog.getByRole("heading", { name: "Backups" }));
+    await reach(page, dialog.getByRole("button", { name: "Download table backup" }));
     await reach(page, dialog.getByText(/Save as a Private Table/i));
   });
 
@@ -162,17 +161,10 @@ test.describe("mobile — the DM screen", () => {
       //
       // This used to add "44px floors inside the reused tab views are a
       // deliberate non-goal — the owner's deferred panel-wide pass". That pass
-      // has landed, and the floor is asserted across all five tabs in
+      // has landed, and the floor is asserted across every tab in
       // mobile-panel-touch-floor.spec.ts. Width is still this test's job;
       // height is that one's.
-      const tabs = [
-        "Map Setup",
-        "Atlas",
-        "NPCs & Monsters",
-        "Props & Objects",
-        "Players",
-        "Session",
-      ];
+      const tabs = ["Maps", "World", "Encounter", "NPCs & Monsters", "Props & Objects", "Table"];
       for (const tab of tabs) {
         await dialog.getByRole("button", { name: tab, exact: true }).click();
         const report = await page.evaluate((label) => {
@@ -200,7 +192,7 @@ test.describe("mobile — the DM screen", () => {
     });
   }
 
-  test("Map Studio is reachable and usable on a phone", async ({ page }) => {
+  test("the Map library is reachable and usable on a phone", async ({ page }) => {
     // M4b's completeness critic named this: MapStudioControl became
     // phone-reachable with no phone coverage at all. It is a dense control —
     // a text field, two number fields, a select and six buttons — written for
@@ -211,13 +203,13 @@ test.describe("mobile — the DM screen", () => {
     await openDMScreen(page);
     const dialog = page.getByRole("dialog", { name: "DM Menu" });
 
-    await reach(page, dialog.getByText("HeroByte Map Studio"));
+    await reach(page, dialog.getByText("Map library", { exact: true }));
 
     // The create form: every field reachable, and nothing clipped sideways.
     await reach(page, dialog.getByLabel("New map name"));
     await reach(page, dialog.getByLabel("Width in pixels"));
     await reach(page, dialog.getByLabel("Height in pixels"));
-    const create = dialog.getByRole("button", { name: /CREATE EDITABLE MAP/i });
+    const create = dialog.getByRole("button", { name: /Create map in library/ });
     await reach(page, create);
     // NOT asserting the 44px floor here. Measured: 26px — and that is the
     // OWNER-DEFERRED class, not a new defect. Every JRPGButton inside these
@@ -229,7 +221,7 @@ test.describe("mobile — the DM screen", () => {
     // The saved-maps row is four controls wide on a 375px screen — the shape
     // most likely to spill. Assert it does not, rather than assuming.
     await reach(page, dialog.getByLabel("Saved maps"));
-    for (const name of [/^OPEN$/, /^DELETE$/, /IMPORT JSON BACKUP/i]) {
+    for (const name of [/^View saved map$/, /^Use at table$/, /^DELETE$/, /Import editable map/]) {
       const control = dialog.getByRole("button", { name });
       await reach(page, control);
       const box = (await control.boundingBox())!;
@@ -254,6 +246,10 @@ test.describe("mobile — the DM screen", () => {
     await openDMScreen(page);
     const dialog = page.getByRole("dialog", { name: "DM Menu" });
 
+    // U6: alignment lives under Maps → Current table map → Advanced.
+    const advanced = dialog.getByText("Advanced: map position and grid alignment");
+    await reach(page, advanced);
+    await advanced.click();
     await reach(page, dialog.getByText("Grid Alignment Wizard"));
     await dialog.getByRole("button", { name: "Start Alignment" }).click();
 
@@ -294,14 +290,7 @@ test.describe("mobile — the DM screen", () => {
     await openDMScreen(page);
 
     const shortest = await page.evaluate(() => {
-      const labels = [
-        "Map Setup",
-        "Atlas",
-        "NPCs & Monsters",
-        "Props & Objects",
-        "Players",
-        "Session",
-      ];
+      const labels = ["Maps", "World", "Encounter", "NPCs & Monsters", "Props & Objects", "Table"];
       const buttons = [...document.querySelectorAll<HTMLButtonElement>("button")].filter((b) =>
         labels.includes((b.textContent || "").trim()),
       );

@@ -1,7 +1,7 @@
 // ============================================================================
 // NPC EDITOR ACTIONS
 // ============================================================================
-// The Place / Duplicate / Delete row from an NPC card.
+// The Focus / Place / Duplicate / Delete row from an NPC card.
 //
 // Extracted from NPCEditor.tsx, which sat at 339 of the 348-line structural
 // ceiling — adding a third action inline would have made it a new violator.
@@ -12,6 +12,8 @@ interface NPCEditorActionsProps {
   /** Used only in the delete confirmation copy. */
   npcName: string;
   onPlace: () => void;
+  /** Centre the map on this NPC's token; absent when it is not on the map. */
+  onFocus?: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   isUpdating?: boolean;
@@ -22,6 +24,7 @@ interface NPCEditorActionsProps {
 export function NPCEditorActions({
   npcName,
   onPlace,
+  onFocus,
   onDuplicate,
   onDelete,
   isUpdating = false,
@@ -32,6 +35,15 @@ export function NPCEditorActions({
 
   return (
     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+      {onFocus && (
+        <JRPGButton
+          onClick={onFocus}
+          aria-label={`Focus ${npcName}`}
+          style={{ fontSize: "10px", flex: 1 }}
+        >
+          🎯 Focus
+        </JRPGButton>
+      )}
       <JRPGButton
         variant="primary"
         onClick={onPlace}

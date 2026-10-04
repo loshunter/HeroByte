@@ -1,0 +1,397 @@
+/* ============================================================================
+   PARTY PANEL (U7) — the compact roster, its inspector, and the Party bar
+   ============================================================================
+   The roster is ONE row that scrolls sideways rather than wrapping, so the
+   collapsed panel's height does not grow with the party: at 1366x768 it must
+   leave at least 60% of the viewport to the map. Row text uses the readable
+   body font; only the bar's title and buttons are pixel type. */
+
+.party-panel__frame {
+  padding: 6px 8px;
+}
+
+/* ---------------------------------------------------------------- the bar */
+
+.party-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+.party-bar__title {
+  margin: 0;
+  font-size: 10px;
+}
+
+.party-bar .jrpg-button {
+  font-size: 8px;
+  padding: 5px 10px;
+}
+
+.party-bar__views {
+  display: flex;
+  gap: 4px;
+}
+
+.party-bar__combat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 0 8px;
+  border: 1px solid var(--jrpg-border-gold);
+  border-radius: 4px;
+  background: rgba(12, 18, 40, 0.85);
+}
+
+.party-bar__combat > div {
+  /* TurnNavigationControls' own padding is sized for a standalone banner. */
+  padding: 2px 0 !important;
+}
+
+.party-bar__combat-label,
+.party-bar__turn {
+  font-family: var(--font-body);
+  text-transform: none;
+  font-size: 12px;
+  color: var(--jrpg-gold);
+}
+
+.party-bar__turn {
+  color: var(--jrpg-white);
+}
+
+/* Reserved layout space for the World, Props and DM MENU launchers (IA-15):
+   they render INTO this slot, so they take room instead of covering a card. */
+.party-bar__dock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.party-bar__dock:empty {
+  display: none;
+}
+
+.party-bar__dock:empty + .party-bar__hide {
+  margin-left: auto;
+}
+
+/* ------------------------------------------------------ roster + inspector */
+
+/* The inspector opens to the RIGHT of the rows, so opening details never
+   slides a row out from under the pointer. */
+.party-panel__roster {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+  min-width: 0;
+}
+
+.party-panel__cards {
+  margin-top: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.party-roster {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 2px 2px 4px;
+  list-style: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.party-roster__empty {
+  margin: 6px 0 0;
+  text-transform: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--jrpg-white);
+}
+
+.party-roster__entry {
+  flex: 0 0 200px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "select focus"
+    "vitals vitals";
+  align-items: center;
+  gap: 2px 6px;
+  padding: 4px 6px;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(12, 18, 40, 0.88);
+  color: var(--jrpg-white);
+  font-family: var(--font-body);
+  /* The bevel frame uppercases its text; a character's name keeps its case. */
+  text-transform: none;
+}
+
+.party-roster__entry--me {
+  border-color: rgba(240, 226, 195, 0.45);
+}
+
+.party-roster__entry--dm {
+  background: rgba(60, 48, 10, 0.88);
+}
+
+.party-roster__entry--npc {
+  background: rgba(40, 9, 15, 0.82);
+}
+
+.party-roster__entry--selected {
+  border-color: var(--jrpg-gold);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.45);
+}
+
+.party-roster__entry--current-turn {
+  /* White, like the card's current-turn ring: a DM's own row is already gold. */
+  outline: 2px solid var(--jrpg-white);
+  outline-offset: 1px;
+}
+
+/* The global `button` rule (herobyte.css) paints every button as a gold pixel
+   chip, hover included; the Party's own row controls opt out explicitly. */
+.party-panel .party-roster__select,
+.party-panel .party-roster__focus,
+.party-panel .party-inspector__close {
+  box-shadow: none;
+  text-transform: none;
+  transition: none;
+  font-weight: normal;
+}
+
+.party-panel .party-roster__select:hover,
+.party-panel .party-roster__select:active {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.party-panel .party-roster__focus:hover,
+.party-panel .party-inspector__close:hover {
+  background: var(--jrpg-navy);
+  box-shadow: 0 0 6px var(--jrpg-gold);
+}
+
+.party-panel .party-roster__select {
+  grid-area: select;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.party-roster__select:focus-visible,
+.party-roster__focus:focus-visible,
+.party-inspector__close:focus-visible {
+  outline: 2px solid var(--jrpg-cyan);
+  outline-offset: 2px;
+}
+
+.party-roster__portrait {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--jrpg-border-gold);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--jrpg-navy);
+}
+
+.party-roster__portrait img,
+.party-roster__initial {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  object-fit: cover;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.party-roster__heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.party-roster__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hero-gold-light, #f0e2c3);
+}
+
+.party-roster__meta {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.party-roster__turn {
+  color: var(--jrpg-gold);
+  font-weight: 700;
+}
+
+.party-roster__vitals {
+  grid-area: vitals;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.party-roster__hp {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.party-roster__hp-track {
+  flex: 1;
+  min-width: 24px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.party-roster__hp-fill {
+  display: block;
+  height: 100%;
+  background: var(--jrpg-hp-full, #5aff9b);
+}
+
+.party-roster__hp[data-hp-state="medium"] .party-roster__hp-fill {
+  background: var(--jrpg-hp-medium, #ffd23f);
+}
+
+.party-roster__hp[data-hp-state="low"] .party-roster__hp-fill {
+  background: var(--jrpg-hp-low, #ff4d5e);
+}
+
+.party-roster__hp--redacted {
+  color: var(--jrpg-gold);
+}
+
+.party-roster__conditions {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.party-panel .party-roster__focus {
+  grid-area: focus;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid var(--jrpg-border-gold);
+  border-radius: 4px;
+  background: var(--jrpg-indigo, #1a1650);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.party-roster__focus--none {
+  border-style: dashed;
+  opacity: 0.5;
+  cursor: default;
+  color: var(--jrpg-white);
+}
+
+.party-inspector {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-height: calc(50vh - 60px);
+  overflow-y: auto;
+  padding: 4px 6px 6px;
+  border: 2px solid var(--jrpg-gold);
+  border-radius: 6px;
+  background: rgba(12, 18, 40, 0.94);
+}
+
+.party-inspector__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+
+.party-inspector__title {
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--jrpg-gold);
+}
+
+.party-panel .party-inspector__close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid var(--jrpg-border-gold);
+  border-radius: 4px;
+  background: var(--jrpg-indigo, #1a1650);
+  color: var(--jrpg-white);
+  cursor: pointer;
+}
+
+/* Touch-first desktops (tablets in landscape): every roster target meets the
+   44px floor (§3.4), as the phone surfaces do. */
+@media (pointer: coarse) {
+  .party-roster__entry {
+    flex-basis: 220px;
+  }
+
+  .party-roster__select,
+  .party-roster__focus,
+  .party-inspector__close,
+  .party-bar .jrpg-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

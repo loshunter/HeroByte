@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { RoomLobby } from "../RoomLobby";
 import { rememberRoom } from "../roomDirectory";
+import { readNewTable } from "../../table/newTableMarker";
 
 describe("RoomLobby", () => {
   beforeEach(() => {
@@ -77,6 +78,26 @@ describe("RoomLobby", () => {
     expect(input.roomPassword).toBe("dragons6");
     expect(input.dmPassword).toBe("masterkey8");
     await vi.waitFor(() => expect(onNavigate).toHaveBeenCalledWith(input.roomId));
+    // The page is about to be replaced: leave a note for the next one that THIS tab
+    // made the table, so its host is shown what to do next (Enter DM mode, Invite).
+    expect(readNewTable(input.roomId)).toBe(true);
+  });
+
+  it("a create the server refuses leaves no note and goes nowhere", async () => {
+    const onNavigate = vi.fn();
+    const onCreateRoom = vi.fn().mockRejectedValue(new Error("Name taken"));
+    render(<RoomLobby onNavigate={onNavigate} onCreateRoom={onCreateRoom} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /New Table/i }));
+    fireEvent.change(screen.getByLabelText("New table password"), {
+      target: { value: "dragons6" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Create private table/i }));
+
+    expect(await screen.findByText("Name taken")).toBeInTheDocument();
+    expect(onNavigate).not.toHaveBeenCalled();
+    const attempted = onCreateRoom.mock.calls[0]![0].roomId as string;
+    expect(readNewTable(attempted)).toBe(false);
   });
 
   it("rejects a too-short room password before calling the server", () => {

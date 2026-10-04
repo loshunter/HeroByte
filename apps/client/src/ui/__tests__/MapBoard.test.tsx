@@ -9,8 +9,8 @@
  * Source: apps/client/src/ui/MapBoard.tsx
  */
 
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { cleanup, createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { forwardRef } from "react";
 import type { ReactNode, Ref } from "react";
 import MapBoard from "../MapBoard";
@@ -547,6 +547,98 @@ describe("MapBoard", () => {
       render(<MapBoard {...props} />);
 
       expect(screen.getByTestId("fog-layer")).toHaveAttribute("data-viewer-radii", "unlimited");
+    });
+  });
+
+  // Outside map edit too: the map's keys (Delete, undo, G) reach it beside an
+  // open floating window only while it holds focus (features/interaction/mapShortcut).
+  it("takes keyboard focus when its canvas is pressed, outside map edit", () => {
+    render(<MapBoard {...getDefaultProps({ mapEditMode: false })} />);
+    const board = screen.getByTestId("map-board");
+    expect(board).toHaveAttribute("data-map-history-surface", "true");
+    const canvas = document.createElement("canvas");
+    board.append(canvas);
+    fireEvent.pointerDown(canvas);
+    expect(document.activeElement).toBe(board);
+  });
+
+  // Focus follows the LAYOUT, not the pointer type. In the phone layout the map has no
+  // keys to take outside map edit, and a tap (or its compat mousedown) that focused it
+  // would blur — and so submit — an open field; there it is not even focusable. In the
+  // desktop layout it takes focus from a finger too (a touchscreen laptop's Ctrl+Z).
+  describe("keyboard focus by layout", () => {
+    const tap = (target: Element, pointerType: string) => {
+      const event = createEvent.pointerDown(target);
+      Object.defineProperty(event, "pointerType", { value: pointerType });
+      fireEvent(target, event);
+    };
+    const pressedBoard = (mapEditMode: boolean, pointerType: string) => {
+      render(<MapBoard {...getDefaultProps({ mapEditMode })} />);
+      const board = screen.getByTestId("map-board");
+      const field = document.createElement("input");
+      document.body.append(field);
+      field.focus();
+      const canvas = document.createElement("canvas");
+      board.append(canvas);
+      tap(canvas, pointerType);
+      return { board, field };
+    };
+    afterEach(() => {
+      window.history.replaceState({}, "", "/");
+      document.querySelectorAll("body > input").forEach((input) => input.remove());
+    });
+
+    it("phone layout, outside map edit: not focusable, and a tap leaves the field focused", () => {
+      window.history.replaceState({}, "", "/?mobile=true");
+      for (const pointerType of ["touch", "pen", "mouse"]) {
+        const { board, field } = pressedBoard(false, pointerType);
+        expect(board).not.toHaveAttribute("tabindex");
+        expect(document.activeElement).toBe(field);
+        cleanup();
+      }
+    });
+
+    // jsdom never moves focus on a press, so the test above cannot see a browser's
+    // mousedown blurring the field (focus falls to the body even off an unfocusable
+    // element). What stops that is the cancelled default, pinned here — and kept off
+    // wherever the map takes keys, where the press must focus it.
+    it("phone layout, outside map edit: the press's mousedown cannot take focus", () => {
+      const pressDefaultPrevented = (mobile: boolean, mapEditMode: boolean) => {
+        window.history.replaceState({}, "", `/?mobile=${mobile}`);
+        render(<MapBoard {...getDefaultProps({ mapEditMode })} />);
+        const canvas = document.createElement("canvas");
+        screen.getByTestId("map-board").append(canvas);
+        const event = createEvent.mouseDown(canvas);
+        fireEvent(canvas, event);
+        cleanup();
+        return event.defaultPrevented;
+      };
+      expect(pressDefaultPrevented(true, false)).toBe(true);
+      expect(pressDefaultPrevented(true, true)).toBe(false);
+      expect(pressDefaultPrevented(false, false)).toBe(false);
+    });
+
+    // Canvas presses only: a control inside the wrapper must still take focus when pressed.
+    it("phone layout, outside map edit: a press on a control inside the map keeps its default", () => {
+      window.history.replaceState({}, "", "/?mobile=true");
+      render(<MapBoard {...getDefaultProps({ mapEditMode: false })} />);
+      const button = document.createElement("button");
+      screen.getByTestId("map-board").append(button);
+      const event = createEvent.mouseDown(button);
+      fireEvent(button, event);
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it("phone layout, in map edit: a tap gives the map its history keys", () => {
+      window.history.replaceState({}, "", "/?mobile=true");
+      const { board } = pressedBoard(true, "touch");
+      expect(document.activeElement).toBe(board);
+    });
+
+    it("desktop layout: a finger on a touchscreen laptop gives the map focus too", () => {
+      window.history.replaceState({}, "", "/?mobile=false");
+      const { board } = pressedBoard(false, "touch");
+      expect(document.activeElement).toBe(board);
     });
   });
 });

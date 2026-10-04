@@ -16,6 +16,7 @@ import {
   rememberRoom,
   stashRoomSecret,
 } from "./roomDirectory";
+import { markNewTable } from "../table/newTableMarker";
 import type { CreateRoomInput } from "./useCreateRoom";
 
 export interface RoomLobbyProps {
@@ -126,6 +127,8 @@ export function RoomLobby({
       // a second prompt, then navigate into it. Scoped to the room we just
       // minted, not to whatever table the URL currently names.
       stashRoomSecret(roomPassword, roomId);
+      // And that this tab made it: the host's next steps show on arrival.
+      markNewTable(roomId);
       // Remember the name now: the picker has to label this table on the very
       // next load, before any snapshot has arrived to tell us what it's called.
       rememberRoom(roomId, name);
@@ -174,7 +177,8 @@ export function RoomLobby({
           password field. What's left here are the actions AROUND that choice.
           Inviting is NOT one of them: before you have joined anything there is
           no ?room= yet, so the link could only be the bare site URL — an invite
-          to nothing. It lives in DM Menu → Session now (TableInviteControl). */}
+          to nothing. It lives in DM Menu → Table → Invite now, and a host is
+          prompted to it right after creating a table (HostNextSteps). */}
       <div style={rowStyle}>
         {activeRoomId && (
           <button

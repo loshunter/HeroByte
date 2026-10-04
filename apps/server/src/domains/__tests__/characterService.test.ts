@@ -35,6 +35,125 @@ describe("CharacterService", () => {
     expect(state.characters).toHaveLength(1);
   });
 
+  it("a new player character starts with its own empty condition list", () => {
+    // Absent, it fell back to the seat's legacy list whenever it became its
+    // player's only character, so a deleted sibling's conditions (or the
+    // conditions this one had before a sibling came and went) reappeared on
+    // it. The fallback is for characters saved before they had lists.
+    const state = createEmptyRoomState();
+
+    expect(service.createCharacter(state, "Hero", 30).statusEffects).toEqual([]);
+    // An NPC keeps no seat fallback to guard against; it is left as it was.
+    expect(service.createCharacter(state, "Goblin", 7, undefined, "npc").statusEffects).toBe(
+      undefined,
+    );
+  });
+
+  it("a sole character's seat conditions become its own when its player gains a second", () => {
+    // A character saved before characters had their own list reads the seat's
+    // legacy list, but only while it is its player's sole character (UX-02).
+    // A second one ends that fallback, and the conditions vanished from its
+    // row, card and token. They are made its own first.
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", statusEffects: ["poisoned"] } as never);
+    const legacy = service.createCharacter(state, "Ranger", 30);
+    delete legacy.statusEffects; // saved before characters had their own list
+    service.claimCharacter(state, legacy.id, "alice");
+
+    const second = service.createCharacter(state, "Companion", 30);
+    service.claimCharacter(state, second.id, "alice");
+
+    expect(legacy.statusEffects).toEqual(["poisoned"]);
+    expect(second.statusEffects).toEqual([]);
+  });
+
+  it("a sole character's seat temp HP and portrait become its own when its player gains a second", () => {
+    // The same fallback as the conditions: the clients show a seat's legacy
+    // temp HP and portrait only on its SOLE character, so a second one made
+    // them vanish from the first.
+    const state = createEmptyRoomState();
+    state.players.push({
+      uid: "alice",
+      name: "Alice",
+      tempHp: 4,
+      portrait: "seat.png",
+    } as never);
+    const legacy = service.createCharacter(state, "Ranger", 30);
+    service.claimCharacter(state, legacy.id, "alice");
+
+    service.claimCharacter(state, service.createCharacter(state, "Companion", 30).id, "alice");
+
+    expect(legacy.tempHp).toBe(4);
+    expect(legacy.portrait).toBe("seat.png");
+  });
+
+  it("the seat's temp HP and portrait MOVE: they cannot resurface on a later sole character", () => {
+    // Copied, they stayed on the seat: delete the first character and its
+    // sibling became the sole one, wearing the first's portrait and temp HP
+    // (and a drag of its HP bar wrote that temp HP as its own).
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", tempHp: 4, portrait: "seat.png" } as never);
+    const first = service.createCharacter(state, "Ranger", 30, "own.png", "pc", { tempHp: 0 });
+    service.claimCharacter(state, first.id, "alice");
+
+    service.claimCharacter(state, service.createCharacter(state, "Companion", 30).id, "alice");
+
+    const seat = state.players[0]!;
+    expect(seat.tempHp).toBeUndefined();
+    expect(seat.portrait).toBeUndefined();
+  });
+
+  it("adoption is a SOLE character's: a third claim hands nothing to the first", () => {
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", tempHp: 4, portrait: "seat.png" } as never);
+    const first = service.createCharacter(state, "Ranger", 30);
+    const second = service.createCharacter(state, "Companion", 30);
+    first.ownedByPlayerUID = "alice"; // a legacy table: two already, the seat still holding values
+    second.ownedByPlayerUID = "alice";
+
+    service.claimCharacter(state, service.createCharacter(state, "Wolf", 30).id, "alice");
+
+    expect(first.tempHp).toBeUndefined();
+    expect(first.portrait).toBeUndefined();
+  });
+
+  it("an NPC the player owns does not stop their sole character adopting", () => {
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "dm", name: "DM", tempHp: 4, isDM: true } as never);
+    const hero = service.createCharacter(state, "Hero", 30);
+    service.claimCharacter(state, hero.id, "dm");
+    const goblin = service.createCharacter(state, "Goblin", 7, undefined, "npc");
+    goblin.ownedByPlayerUID = "dm";
+
+    service.claimCharacter(state, service.createCharacter(state, "Sidekick", 30).id, "dm");
+
+    expect(hero.tempHp).toBe(4);
+  });
+
+  it("a character's own temp HP and portrait are kept when its player gains a second", () => {
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", tempHp: 4, portrait: "seat.png" } as never);
+    const first = service.createCharacter(state, "Ranger", 30, "own.png", "pc", { tempHp: 0 });
+    service.claimCharacter(state, first.id, "alice");
+
+    service.claimCharacter(state, service.createCharacter(state, "Companion", 30).id, "alice");
+
+    expect(first.tempHp).toBe(0);
+    expect(first.portrait).toBe("own.png");
+  });
+
+  it("a character with its own list keeps it when its player gains a second", () => {
+    const state = createEmptyRoomState();
+    state.players.push({ uid: "alice", name: "Alice", statusEffects: ["poisoned"] } as never);
+    const first = service.createCharacter(state, "Ranger", 30);
+    first.statusEffects = ["prone"];
+    service.claimCharacter(state, first.id, "alice");
+
+    service.claimCharacter(state, service.createCharacter(state, "Companion", 30).id, "alice");
+
+    expect(first.statusEffects).toEqual(["prone"]);
+  });
+
   it("stores tempHp on updateHP, and leaves it alone when omitted", () => {
     const state = createEmptyRoomState();
     const character = service.createCharacter(state, "Hero", 30);

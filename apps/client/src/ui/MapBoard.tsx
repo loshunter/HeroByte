@@ -34,6 +34,8 @@ import { useCameraControl } from "../hooks/useCameraControl.js";
 import { useTransformGizmoIntegration } from "../hooks/useTransformGizmoIntegration.js";
 import { isSceneInputArmed, useStageEventRouter } from "../hooks/useStageEventRouter.js";
 import { useAimTouchGuard } from "../features/atlas/useAimTouchGuard";
+import { travelPrompt } from "../features/atlas/travelPrompt";
+import { tableSceneFate } from "../features/map-studio/tableMapIdentity";
 import {
   GridLayer,
   MapImageLayer,
@@ -72,7 +74,8 @@ import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import { MapTransitionOverlay } from "../features/map/MapTransitionOverlay";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
-import { STATUS_OPTIONS, type StatusOption } from "../features/players/constants/statusOptions";
+import { conditionsByTokenId } from "../features/map/tokenConditions";
+import { isMobileLayout } from "../utils/mobileLayout";
 
 // Re-export types for backward compatibility
 export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
@@ -109,8 +112,9 @@ export default function MapBoard({
   mapEditSelectedAssetId = "objects:crate",
   mapEditPlacementDials,
   mapEditHallwayWidth = 2,
+  mapEditTerrainBrushSize = 1,
   mapEditSplineKind = "rope",
-  mapEditPopulateGhosts = null,
+  mapEditPersistentPreview = null,
   mapEditWheelActions,
   playerLens = false,
   mapEditSelectedElementId = null,
@@ -173,35 +177,7 @@ export default function MapBoard({
   // Maps token IDs to their character's status effect details
   const statusEffectsByTokenId = useMemo(() => {
     if (!snapshot?.characters) return {};
-
-    const playerStatusMap = new Map<string, string[]>();
-    for (const player of snapshot.players ?? []) {
-      if (player.statusEffects && player.statusEffects.length > 0) {
-        playerStatusMap.set(player.uid, player.statusEffects);
-      }
-    }
-
-    const result: Record<string, StatusOption[]> = {};
-    for (const character of snapshot.characters) {
-      if (!character.tokenId) continue;
-
-      const ownedStatuses =
-        character.statusEffects && character.statusEffects.length > 0
-          ? character.statusEffects
-          : character.ownedByPlayerUID
-            ? (playerStatusMap.get(character.ownedByPlayerUID) ?? [])
-            : [];
-
-      if (ownedStatuses.length === 0) continue;
-
-      const mapped = ownedStatuses.map((value) => {
-        const option = STATUS_OPTIONS.find((opt) => opt.value === value);
-        return option ?? { value, label: value, emoji: "?" };
-      });
-
-      result[`token:${character.tokenId}`] = mapped;
-    }
-    return result;
+    return conditionsByTokenId(snapshot.characters, snapshot.players ?? []);
   }, [snapshot?.characters, snapshot?.players]);
 
   // Current HP per token, so the tokens layer can mirror the card's damage/heal
@@ -364,11 +340,13 @@ export default function MapBoard({
   const {
     previewDrag: mapEditPreviewDrag,
     strokeCells: mapEditStrokeCells,
+    brushPreviewCells: mapEditBrushPreviewCells,
     placementGhost: mapEditPlacementGhost,
     draftGhosts: mapEditDraftGhosts,
     selectionShape: mapEditSelectionRect,
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
+    onMouseLeave: handleMapEditMouseLeave,
     onMouseUp: handleMapEditMouseUp,
     onCancel: handleMapEditCancel,
   } = useMapEditTool({
@@ -383,6 +361,7 @@ export default function MapBoard({
     stampRotation: mapEditPlacementDials?.stampRotation,
     onRotateStamp: mapEditPlacementDials?.onRotateStamp,
     hallwayWidth: mapEditHallwayWidth,
+    terrainBrushSize: mapEditTerrainBrushSize,
     splineKind: mapEditSplineKind,
     selectedElementId: mapEditSelectedElementId,
     onRoomRejected: onMapEditRoomRejected,
@@ -582,19 +561,33 @@ export default function MapBoard({
     [sendMessage],
   );
 
-  // DM sprite-click travel: the A5 confirm, worded from the target's name.
+  // DM sprite-click travel: the A5 confirm, worded from the target's name and
+  // the World tab's words for the scene it leaves. A sprite lives on a mapped
+  // location's own map, so that scene is kept — unless the maps store lost the
+  // map under it (a boot-time desync). Until the library has listed, assume kept.
+  const sceneDocumentId = snapshot?.compiledScene?.sourceDocumentId;
   const handleLinkTravel = useCallback(
     (toNodeId: string) => {
       const name = snapshot?.atlasNodes?.find((node) => node.id === toNodeId)?.name ?? "that place";
-      if (
-        window.confirm(
-          `Travel the whole table to "${name}"? The current scene is suspended exactly as it stands.`,
-        )
-      ) {
+      const studio = mapEditController;
+      const fate = studio?.listed
+        ? tableSceneFate({
+            sceneDocumentId,
+            missingDocumentId: studio.missingDocumentId,
+            documents: studio.documents,
+          })
+        : "kept";
+      if (window.confirm(travelPrompt(name, fate, Boolean(snapshot?.mapBackground)))) {
         sendMessage({ t: "atlas-travel", nodeId: toNodeId });
       }
     },
-    [snapshot?.atlasNodes, sendMessage],
+    [
+      snapshot?.atlasNodes,
+      snapshot?.mapBackground,
+      sceneDocumentId,
+      mapEditController,
+      sendMessage,
+    ],
   );
 
   // Callback to receive node reference from MapImageLayer
@@ -660,11 +653,31 @@ export default function MapBoard({
     viewport: { width: w, height: h },
   });
 
+  const mapTakesKeys = mapEditMode || !isMobileLayout();
   return (
     <div
       ref={ref}
       className="map-canvas-wrapper"
       data-testid="map-board"
+      // Pressing the map gives it keyboard focus, so its keys (Delete, undo/redo, G,
+      // map-edit history) still reach it beside an open floating window like Chat & Rolls
+      // (features/interaction/mapShortcut). The phone layout has none to give it outside
+      // map edit, and a tap (or its compat mousedown) would blur and submit an open field.
+      // Not being focusable is not enough there: a mousedown on an unfocusable element
+      // still blurs the field (focus falls to the body), so its default is cancelled too.
+      // That does not stop propagation: Konva still gets the press.
+      data-map-history-surface="true"
+      tabIndex={mapTakesKeys ? -1 : undefined}
+      onPointerDownCapture={(event) => {
+        if (mapTakesKeys && event.target instanceof HTMLCanvasElement) {
+          event.currentTarget.focus({ preventScroll: true });
+        }
+      }}
+      onMouseDownCapture={(event) => {
+        if (!mapTakesKeys && event.target instanceof HTMLCanvasElement) {
+          event.preventDefault();
+        }
+      }}
       style={{
         width: "100%",
         height: "100%",
@@ -716,6 +729,7 @@ export default function MapBoard({
         onTap={onTap}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
+        onMouseLeave={handleMapEditMouseLeave}
         onMouseUp={onMouseUp}
         onTouchStart={(event) => {
           // The guard remembers whether this gesture moved (a pan) or grew a
@@ -974,9 +988,10 @@ export default function MapBoard({
             gridOffsetX={mapEditController?.activeDocument?.grid.offsetX ?? 0}
             gridOffsetY={mapEditController?.activeDocument?.grid.offsetY ?? 0}
             strokeCells={mapEditStrokeCells}
+            brushPreviewCells={mapEditBrushPreviewCells}
             placementGhost={mapEditPlacementGhost}
-            // Scatter cluster + armed POPULATE preview — both true-result drafts.
-            draftGhosts={[...mapEditDraftGhosts, ...(mapEditPopulateGhosts ?? [])]}
+            draftGhosts={mapEditDraftGhosts}
+            persistentPreview={mapEditPersistentPreview}
             selectionShape={mapEditSelectionRect}
             splineKind={mapEditSplineKind}
             floorFamily={mapEditFloorFamily}

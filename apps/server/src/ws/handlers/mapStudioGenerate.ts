@@ -48,6 +48,7 @@ export interface MapStudioGenerateDeps {
     senderUid: string,
     command: { commandId: string; documentId: string },
     error: unknown,
+    code?: "command-not-applied",
   ) => void;
   /**
    * The byte ceiling, weighed on the post-apply document REPLACING its
@@ -64,6 +65,7 @@ export function handleMapStudioGenerate(
   roomId: string,
   message: MapStudioGenerateMessage,
 ): RouteHandlerResult {
+  let beforeApply = false;
   try {
     // A replay (the client queue re-sends the in-flight message after a
     // reconnect) must ack from the dedupe cache BEFORE any validation:
@@ -71,9 +73,18 @@ export function handleMapStudioGenerate(
     // if the document changed since (a layer locked, the grid moved).
     const replay = deps.service.cachedResult(roomId, message.documentId, message.commandId);
     if (replay) {
-      deps.broadcastDocument(roomId, replay.document, replay.commandId);
-      return IDLE;
+      if (!replay.generationCompleted) {
+        throw new Error(
+          "This generation already affected the document, but its completion cannot be confirmed. Refresh and inspect the map before generating again.",
+        );
+      }
+      deps.broadcastDocument(roomId, replay.document, replay.commandId, true);
+      // A lost first response may also have prevented the route's public snapshot.
+      return deps.getRoomState(roomId).liveMapDocumentId === message.documentId
+        ? { broadcast: true, save: true }
+        : IDLE;
     }
+    beforeApply = true;
     const document = deps.service.get(roomId, message.documentId);
     const ctx = resolveRecipeContext(document, message.bounds, message.commandId);
     assertGenerateSeed(message.seed);
@@ -98,10 +109,17 @@ export function handleMapStudioGenerate(
     ).document;
     const overflow = deps.weighMint(roomId, senderUid, candidate);
     if (overflow) {
-      deps.sendCommandError(senderUid, message, new Error(mintRefusal(overflow)));
+      deps.sendCommandError(
+        senderUid,
+        message,
+        new Error(mintRefusal(overflow)),
+        "command-not-applied",
+      );
       return IDLE;
     }
     const isLive = deps.getRoomState(roomId).liveMapDocumentId === message.documentId;
+    // apply may write the store before a later step throws; never promise rollback.
+    beforeApply = false;
     const result = deps.service.apply(roomId, command, timestamp);
     if (isLive) {
       // `document` is the store's pre-apply object (the clone above was consumed
@@ -110,6 +128,7 @@ export function handleMapStudioGenerate(
       // the table's after the recipe, scene included.
       deps.recompileLiveScene(roomId, document, result.document);
     }
+    deps.service.completeGeneration(roomId, message.documentId, message.commandId);
     // Every DM's readout follows the recipe from this frame — no re-list, and
     // not only the DM who fired it (round 2 of the review).
     deps.broadcastDocument(roomId, result.document, result.commandId, true);
@@ -119,10 +138,15 @@ export function handleMapStudioGenerate(
   } catch (error) {
     // A replay whose dedupe entry has been evicted (the cache is global and
     // bounded) re-runs the recipe, deterministically re-mints the same ids,
-    // and trips the duplicate-id guard. Nothing half-applies — the batch
-    // validates before it commits — but "Map element already exists:
-    // <uuid>:e17" is a lie dressed as an error: the dungeon IS on the map.
-    deps.sendCommandError(senderUid, message, alreadyApplied(error) ? REPLAY_LANDED : error);
+    // and trips the duplicate-id guard. That proves prior effects, not that
+    // the complete dungeon remains: elements may have since been removed.
+    const replay = alreadyApplied(error);
+    deps.sendCommandError(
+      senderUid,
+      message,
+      replay ? REPLAY_LANDED : error,
+      beforeApply && !replay ? "command-not-applied" : undefined,
+    );
   }
   return IDLE;
 }

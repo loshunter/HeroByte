@@ -72,8 +72,7 @@ vi.mock("../../components/layout/EntitiesPanel", () => ({
     // Portrait & Mic (2 props)
     onToggleMic: () => void;
 
-    // DM & Player State (4 props)
-    onToggleDMMode: (next: boolean) => void;
+    // Player State (3 props)
     onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
     onStatusEffectsChange: (effects: string[]) => void;
     onCharacterNameUpdate: (characterId: string, name: string) => void;
@@ -87,6 +86,7 @@ vi.mock("../../components/layout/EntitiesPanel", () => ({
     // Token Management (3 props)
     onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
     onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+    onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
     onTokenImageChange: (tokenId: string, imageUrl: string) => void;
 
     // Character Management (2 props)
@@ -124,6 +124,8 @@ import type { Player as PlayerType, Character as CharacterType } from "@herobyte
 export interface BottomPanelLayoutProps {
   // Layout & Ref (1 prop)
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
+  /** U7: the Party bar reports its launcher dock. */
+  launcherDockRef: (node: HTMLDivElement | null) => void;
 
   // State Data (9 props)
   players: PlayerType[];
@@ -166,8 +168,7 @@ export interface BottomPanelLayoutProps {
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   onToggleMic: () => void;
 
-  // DM & Player State (4 props)
-  onToggleDMMode: (next: boolean) => void;
+  // Player State (3 props)
   onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
   onStatusEffectsChange: (effects: string[]) => void;
   _onStatusEffectsChange: (effects: string[]) => void;
@@ -183,6 +184,7 @@ export interface BottomPanelLayoutProps {
   // Token Management (3 props)
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
 
   // Character Management (2 props)
@@ -207,6 +209,7 @@ describe("BottomPanelLayout - Characterization Tests", () => {
   const createDefaultProps = (): BottomPanelLayoutProps => ({
     // Layout & Ref
     bottomPanelRef: undefined,
+    launcherDockRef: vi.fn(),
 
     // State Data
     players: [],
@@ -250,7 +253,6 @@ describe("BottomPanelLayout - Characterization Tests", () => {
     onToggleMic: vi.fn(),
 
     // DM & Player State
-    onToggleDMMode: vi.fn(),
     onApplyPlayerState: vi.fn(),
     onStatusEffectsChange: vi.fn(),
     _onStatusEffectsChange: vi.fn(),
@@ -266,6 +268,7 @@ describe("BottomPanelLayout - Characterization Tests", () => {
     // Token Management
     onToggleTokenLock: vi.fn(),
     onTokenSizeChange: vi.fn(),
+    onCharacterOwnerChange: vi.fn(),
     onTokenImageChange: vi.fn(),
 
     // Character Management
@@ -762,20 +765,10 @@ describe("BottomPanelLayout - Characterization Tests", () => {
   });
 
   // ============================================================================
-  // DM & Player State Props Tests (4 props)
+  // Player State Props Tests (3 props)
   // ============================================================================
 
-  describe("DM & Player State props", () => {
-    it("should pass onToggleDMMode handler to EntitiesPanel", () => {
-      const props = createDefaultProps();
-      const mockHandler = vi.fn();
-      props.onToggleDMMode = mockHandler;
-
-      render(<BottomPanelLayout {...props} />);
-
-      expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
-    });
-
+  describe("Player State props", () => {
     it("should pass onApplyPlayerState handler to EntitiesPanel", () => {
       const props = createDefaultProps();
       const mockHandler = vi.fn();

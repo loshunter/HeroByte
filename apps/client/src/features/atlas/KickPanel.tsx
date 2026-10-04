@@ -2,17 +2,23 @@
 // KICK PANEL — "🚪 Kick in a door"
 // ============================================================================
 // The fields of plan §1.1: a prefilled name, the recipe's dials, a seed with
-// ⟳, the door type, and ROLL. Rendered by BOTH layouts (a floating JRPG panel
+// ⟳, the door type, and Generate & enter (U6; it used to read ROLL). Rendered by BOTH layouts (a floating JRPG panel
 // on desktop, a full screen on a phone) from the same KickControls; the panel
-// owns its form state only — the pending kick is the hook's, App-level, and
-// survives a layout crossing. Enter rolls, Escape closes.
+// reads its App-level draft and pending state, which survive a layout crossing.
+// Enter rolls, Escape closes.
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import type { AtlasNodeSnapshot, GenerateRequest, MapLink } from "@herobyte/shared";
+import { useEffect, useRef, type FormEvent } from "react";
+import type { AtlasNodeSnapshot, MapLink } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../components/ui/JRPGPanel";
 import { defaultName, freshSeed } from "./kickDefaults";
 import { RecipeDials } from "./RecipeDials";
 import type { KickControls } from "./useKickedInDoor";
+import {
+  EscapeRootProvider,
+  useEscapeOwner,
+  useEscapeRoot,
+  useEscapeRootContext,
+} from "../interaction/useEscapeOwner";
 
 export const KICK_NEEDS_LIVE_MAP =
   "This table has no live map yet — a background image is a picture, and a kick needs geometry to put a door on.";
@@ -37,6 +43,8 @@ export interface KickPanelProps {
 // whole reason that floor uses min-* rather than padding. A 28px inline height
 // here put all five of this panel's dials under the floor on a phone.
 const selectStyle = { fontSize: "11px" } as const;
+// Atlas launches over the still-open DM window (1002), below Help (2000).
+const panelLayer = 1100;
 const labelStyle = {
   fontSize: "9px",
   display: "flex",
@@ -50,21 +58,29 @@ export function KickPanel({
   onStartLiveMap,
   presentation = "panel",
 }: KickPanelProps) {
-  const { settings, pending, canKick } = kick;
-  const [recipe, setRecipe] = useState<GenerateRequest>(settings.recipe);
-  // The name follows the recipe until the DM types over it: picking `building`
-  // should prefill "Tavern", not leave "Dungeon" on a tavern.
-  const [name, setName] = useState(() => defaultName(atlasNodes, settings.recipe));
-  const [renamed, setRenamed] = useState(false);
-  const [seed, setSeed] = useState<number>(freshSeed);
-  const [linkType, setLinkType] = useState<MapLink["linkType"]>(settings.linkType);
+  const { draft, pending, canKick, updateDraft } = kick;
   const nameRef = useRef<HTMLInputElement | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const panelRoot = useEscapeRoot(panelRef, panelLayer);
+  const inheritedRoot = useEscapeRootContext();
+  const escapeRoot = presentation === "content" ? inheritedRoot : panelRoot;
+  useEscapeOwner(() => ({
+    kind: "popover",
+    name: "Kick in a door",
+    active: kick.open && escapeRoot !== null,
+    root: escapeRoot ?? panelRoot,
+    anchor: formRef.current,
+    handle: kick.closeKick,
+  }));
 
   useEffect(() => {
     nameRef.current?.focus();
     nameRef.current?.select();
   }, []);
 
+  if (!draft) return null;
+  const { recipe, name, renamed, seed, linkType } = draft;
   const kicking = Boolean(pending && !pending.expired);
   const rollDisabled = !canKick || kicking || !name.trim();
 
@@ -74,16 +90,9 @@ export function KickPanel({
     kick.kick({ name, seed, recipe, linkType });
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      kick.closeKick();
-    }
-  };
-
   const form = (
     <form
+      ref={formRef}
       // The host owns the dialog when the panel is embedded: a MobileScreen is
       // already role="dialog" with this very title, and nesting a second one
       // inside it is two dialogs deep to a screen reader for one form.
@@ -91,12 +100,13 @@ export function KickPanel({
       aria-label={presentation === "panel" ? "Kick in a door" : undefined}
       data-testid="kick-panel"
       onSubmit={roll}
-      onKeyDown={onKeyDown}
       style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "260px" }}
     >
       {/* The name is the identity (VISION's Signature Move 1); the subtitle is
           what it DOES, for a DM meeting it for the first time. */}
-      <p style={{ margin: 0, fontSize: "9px", opacity: 0.75 }}>Generate a connected location</p>
+      <p style={{ margin: 0, fontSize: "9px", opacity: 0.75 }}>
+        Creates a connected location and moves the whole table there.
+      </p>
       <label style={labelStyle}>
         Name
         <input
@@ -105,8 +115,7 @@ export function KickPanel({
           value={name}
           maxLength={64}
           onChange={(event) => {
-            setRenamed(true);
-            setName(event.target.value);
+            updateDraft({ renamed: true, name: event.target.value });
           }}
           style={{ fontSize: "11px" }}
         />
@@ -115,8 +124,11 @@ export function KickPanel({
         <RecipeDials
           recipe={recipe}
           onChange={(next) => {
-            setRecipe(next);
-            if (!renamed) setName(defaultName(atlasNodes, next));
+            // Recipe naming follows the dials until the DM types a name.
+            updateDraft({
+              recipe: next,
+              ...(!renamed ? { name: defaultName(atlasNodes, next) } : {}),
+            });
           }}
         />
         <label style={labelStyle}>
@@ -124,7 +136,9 @@ export function KickPanel({
           <select
             aria-label="Door type"
             value={linkType}
-            onChange={(event) => setLinkType(event.target.value as MapLink["linkType"])}
+            onChange={(event) =>
+              updateDraft({ linkType: event.target.value as MapLink["linkType"] })
+            }
             style={selectStyle}
           >
             <option value="door">door</option>
@@ -143,14 +157,14 @@ export function KickPanel({
             value={seed}
             onChange={(event) => {
               const next = Number.parseInt(event.target.value, 10);
-              if (Number.isInteger(next)) setSeed(next);
+              if (Number.isInteger(next)) updateDraft({ seed: next });
             }}
             style={{ fontSize: "11px", width: "110px" }}
           />
         </label>
         <JRPGButton
           type="button"
-          onClick={() => setSeed(freshSeed())}
+          onClick={() => updateDraft({ seed: freshSeed() })}
           style={{ fontSize: "9px", padding: "6px 8px" }}
         >
           ⟳ Reroll
@@ -185,31 +199,34 @@ export function KickPanel({
           data-testid="kick-roll"
           style={{ fontSize: "10px" }}
         >
-          {kicking ? "⏳ Kicking…" : "🚪 ROLL"}
+          {kicking ? "⏳ Kicking…" : "🚪 Generate & enter"}
         </JRPGButton>
       </div>
     </form>
   );
 
   if (presentation === "content") {
-    return form;
+    return <EscapeRootProvider value={escapeRoot}>{form}</EscapeRootProvider>;
   }
 
   return (
-    // Fixed and OUTSIDE the header (the S8 stacking-context lesson): a panel
-    // inside the fixed header paints under the entities panel.
-    <div
-      style={{
-        position: "fixed",
-        top: "72px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 260,
-      }}
-    >
-      <JRPGPanel title="🚪 Kick in a door" style={{ padding: "12px" }}>
-        {form}
-      </JRPGPanel>
-    </div>
+    <EscapeRootProvider value={escapeRoot}>
+      {/* Fixed and OUTSIDE the header (the S8 stacking-context lesson): a panel
+        inside the fixed header paints under the entities panel. */}
+      <div
+        ref={panelRef}
+        style={{
+          position: "fixed",
+          top: "72px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: panelLayer,
+        }}
+      >
+        <JRPGPanel title="🚪 Kick in a door" style={{ padding: "12px" }}>
+          {form}
+        </JRPGPanel>
+      </div>
+    </EscapeRootProvider>
   );
 }

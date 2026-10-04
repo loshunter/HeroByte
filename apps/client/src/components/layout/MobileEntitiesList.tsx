@@ -7,9 +7,20 @@
 
 import React from "react";
 import { looseOwnToken } from "../../utils/looseOwnToken";
-import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
-import { isInInitiativeOrder } from "@herobyte/shared";
-import { MobilePlayerRow } from "./MobilePlayerRow";
+import type {
+  Drawing,
+  Player,
+  PlayerState,
+  SceneObject,
+  SnapshotCharacter,
+  Token,
+  TokenSize,
+} from "@herobyte/shared";
+import { characterFileActions } from "../../features/players/characterFile";
+import { mobilePartyRows } from "./mobilePartyRows";
+import { useCharacterCreation } from "../../hooks/useCharacterCreation";
+import { MobilePlayerRow, type TempHpEditing } from "./MobilePlayerRow";
+import "./mobileParty.css";
 
 interface MobileEntitiesListProps {
   players: Player[];
@@ -17,8 +28,6 @@ interface MobileEntitiesListProps {
   uid: string;
   /** The VIEWER's DM state — mobile passes the same flag to every row. */
   isDM: boolean;
-  /** Grant/revoke the viewer's own DM status. */
-  onToggleDMMode: (next: boolean) => void;
 
   // Edit props passed through to row
   editingHpUID: string | null;
@@ -31,6 +40,7 @@ interface MobileEntitiesListProps {
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: () => void;
+  tempHp?: TempHpEditing;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
@@ -43,6 +53,26 @@ interface MobileEntitiesListProps {
   /** Live tokens, so a DM can set each player's sight radius from a phone (S7). */
   tokens?: Token[];
   onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
+  /**
+   * Resize a token. Offered on the viewer's own rows and, for a DM, on every
+   * row: the server's own rule (TokenMessageHandler.handleSetSize). Required,
+   * so a phone cannot silently lose the control again.
+   */
+  onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  /** The viewer's own rows add a character, as the desktop window does. */
+  onAddCharacter: (name: string) => void;
+  /** Scene objects, for each token's lock state and a character file's token transform. */
+  sceneObjects: SceneObject[];
+  /** Everyone's drawings: a character file carries its owner's. */
+  drawings: Drawing[];
+  /** Applies a loaded character file to a character and its token (Load character). */
+  onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
+  /** A token's lock — offered to a DM, as on the desktop card. */
+  onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
+  /** DM-only: delete a player's token. A required key: undefined for a player. */
+  onPlayerTokenDelete: ((tokenId: string) => void) | undefined;
+  /** DM-only: move a player character and its token to another seat. */
+  onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
   /** DM-only: a character's feet per turn (the movement budget). */
   onCharacterSpeedChange?: (characterId: string, speedFeet: number | null) => void;
   /** DM-only: zero a character's spend outside a turn boundary. */
@@ -52,6 +82,19 @@ interface MobileEntitiesListProps {
    * in the order — or wherever there is a spend to clear.
    */
   combatActive?: boolean;
+  /**
+   * Centre the map on a character's token and show the map (U7): each row
+   * focuses ITS character, so a second character is as findable as the first.
+   */
+  onFocusToken: (tokenId: string) => void;
+  /** Whose turn it is (combat on): the row that holds it says so (U8). */
+  currentTurnCharacterId: string | undefined;
+  /**
+   * Opens the ONE initiative dialog for a character (U8): the phone's INIT,
+   * offered on the viewer's own rows and, for a DM, on every row.
+   */
+  onOpenInitiative: (character: SnapshotCharacter) => void;
+  onClearInitiative?: (characterId: string) => void;
 }
 
 export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
@@ -59,7 +102,6 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   characters,
   uid,
   isDM,
-  onToggleDMMode,
   editingHpUID,
   hpInput,
   onHpInputChange,
@@ -70,6 +112,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
+  tempHp,
   onCharacterHpChange,
   onCharacterStatusEffectsChange,
   onCharacterNameUpdate,
@@ -78,176 +121,215 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onCharacterPortraitUpdate,
   tokens,
   onTokenVisionRadiusChange,
+  onTokenSizeChange,
+  onAddCharacter,
+  sceneObjects,
+  drawings,
+  onApplyPlayerState,
+  onToggleTokenLock,
+  onPlayerTokenDelete,
+  onCharacterOwnerChange,
   onCharacterSpeedChange,
   onCharacterBudgetReset,
   combatActive = false,
+  onFocusToken,
+  currentTurnCharacterId,
+  onOpenInitiative,
+  onClearInitiative,
 }) => {
-  // One row per (player, character) PAIR — the desktop model, and the same
-  // flatMap useCombatOrdering builds EntitiesPanel's rows from. This used to be
-  // players.map + characters.find, which resolved every player to whichever
-  // owned character the find hit first: anyone's second character
-  // ("+ Add Character") had NO row on a phone — no HP, no status, no rename,
-  // and S7's sight radius unreachable for exactly the extra tokens a DM most
-  // needs to reach. MobilePlayerRow was already character-keyed throughout
-  // (editing state, HP, name, portrait all go by characterId); the list was
-  // the only place still thinking in players.
-  const entities = players.flatMap((player) => {
-    const owned = characters.filter(
-      // type gate matches useCombatOrdering: an NPC is the DM's to run from
-      // the DM screen, not a party member — and without it a DM who owns NPCs
-      // can have their own row resolve to one.
-      (c) => c.type === "pc" && c.ownedByPlayerUID === player.uid,
-    );
-    if (owned.length === 0) {
-      // A player with no character link (legacy shape) keeps one stats row.
-      return [
-        {
-          ...player,
-          hp: player.hp ?? 100,
-          maxHp: player.maxHp ?? 100,
-          characterId: player.uid,
-          hasCharacter: false,
-          speed: undefined as number | undefined,
-          movementUsed: undefined as number | undefined,
-          hasBudget: false,
-          tokenId: undefined as SnapshotCharacter["tokenId"],
-          ownerTokenFallbackOk: true,
-        },
-      ];
-    }
-    return owned.map((character) => ({
-      // The by-owner token fallback is only MEANINGFUL when it cannot be
-      // ambiguous: for the legacy row above, and for a player with exactly one
-      // character whose token predates linking. With two characters it is
-      // guaranteed wrong for at least one of them — measured live: a token-less
-      // second character's row rendered a sight control bound to the FIRST
-      // character's token, which a DM would use believing it was the second's.
-      ownerTokenFallbackOk: owned.length === 1,
-      ...player,
-      name: character.name,
-      hp: character.hp ?? player.hp ?? 100,
-      maxHp: character.maxHp ?? player.maxHp ?? 100,
-      tempHp: character.tempHp ?? player.tempHp,
-      portrait: character.portrait ?? player.portrait,
-      // Conditions belong to the character. The player-level list is legacy
-      // and is only attributable when this player owns one character — the
-      // same line the token fallback above draws, for the same reason: with
-      // two characters it paints a sibling's condition onto both rows (UX-02).
-      statusEffects:
-        character.statusEffects ?? (owned.length === 1 ? player.statusEffects : undefined),
-      characterId: character.id,
-      hasCharacter: true,
-      speed: character.speed,
-      movementUsed: character.movementUsed,
-      // The plate's own predicate (tokenPlates.ts): a budget exists in combat
-      // for a character in the order (the shared spelling of it), OR a spend
-      // to clear: the server charges any token moved in combat, initiative or
-      // not, and that spend needs the DM's lever too (the plate hides it; the
-      // card must not).
-      hasBudget:
-        combatActive &&
-        (isInInitiativeOrder(character, players) || (character.movementUsed ?? 0) > 0),
-      // The token this ROW is about. Bound through the CHARACTER, as
-      // EntitiesPanel does, and not by owner: a player can own several tokens —
-      // one from joining, one per "+ Add Character" — so picking by owner shows
-      // one character's row while writing to a different character's token.
-      tokenId: character.tokenId,
-    }));
-  });
+  // The desktop panel's creation state, for the viewer's own rows: the
+  // settings window asks for the name and waits on this until it lands.
+  const characterCreation = useCharacterCreation({ addCharacter: onAddCharacter, characters, uid });
 
-  // Me first, then the DM, then everyone else alphabetically. Rank-based on
-  // purpose: the old comparator answered "a first" whenever a was mine without
-  // looking at b, which is consistent only while a player can never meet their
-  // own second row. Array.sort is stable, so one player's characters keep
-  // their creation order within a rank.
-  const rank = (e: { uid: string; isDM?: boolean }) => (e.uid === uid ? 0 : e.isDM ? 1 : 2);
-  entities.sort((a, b) => rank(a) - rank(b) || (rank(a) === 2 ? a.name.localeCompare(b.name) : 0));
+  const entities = mobilePartyRows(players, characters, uid, combatActive);
+  // A row's initiative and turn; its INIT for the viewer's own and a DM's rows.
+  // INIT follows the server's rule: the character's owner, or the DM.
+  const rowInitiative = (entity: { characterId: string; hasCharacter: boolean }) => {
+    const character = entity.hasCharacter
+      ? characters.find((c) => c.id === entity.characterId)
+      : undefined; // the characterless seat: its id is the player's uid
+    if (!character) return undefined;
+    const mayAct = character.ownedByPlayerUID === uid || isDM;
+    return {
+      value: character.initiative,
+      isTurn: combatActive && currentTurnCharacterId === character.id,
+      focusKey: `initiative:${character.id}`,
+      onOpen: mayAct ? () => onOpenInitiative(character) : undefined,
+      onClear: mayAct && onClearInitiative ? () => onClearInitiative(character.id) : undefined,
+    };
+  };
+
+  // One SEAT per player, its characters listed under it (U7): a player with
+  // two characters shows as one seat with two rows, never as a seat that
+  // silently stands for its first character. Seats: me first, then the DM,
+  // then everyone else alphabetically — rank-based on purpose (the old
+  // comparator answered "a first" whenever a was mine without looking at b).
+  // Rows keep their creation order within a seat.
+  const rank = (p: Player) => (p.uid === uid ? 0 : p.isDM ? 1 : 2);
+  const seats = [...players]
+    .sort((a, b) => rank(a) - rank(b) || (rank(a) === 2 ? a.name.localeCompare(b.name) : 0))
+    .map((player) => ({ player, rows: entities.filter((entity) => entity.uid === player.uid) }))
+    // A seat with nothing to list (someone else's, characterless) shows nothing.
+    .filter(({ rows }) => rows.length > 0);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
-      }}
-    >
-      {entities.map((entity) => {
-        // Prefer the row's own character token; the by-owner fallback is
-        // gated to rows where it cannot pick the wrong character's token —
-        // and reads the one LOOSE own token, never a goblin the DM placed.
-        const entityToken = entity.tokenId
-          ? tokens?.find((candidate) => candidate.id === entity.tokenId)
-          : entity.ownerTokenFallbackOk
-            ? looseOwnToken(tokens, characters, entity.uid)
-            : undefined;
-        return (
-          <MobilePlayerRow
-            // uid alone duplicates the moment a player has two rows; the pair
-            // mirrors useCombatOrdering's `${player.uid}-${character.id}` ids.
-            key={`${entity.uid}-${entity.characterId}`}
-            player={entity}
-            isMe={entity.uid === uid}
-            token={entityToken}
-            // `isDM` is the VIEWER's flag (see the prop doc above), and it is
-            // required here for the same reason EntitiesPanel gates on
-            // `currentIsDM`: sight radius is DM-only, the server refuses it
-            // from anyone else, and a control that silently does nothing is
-            // worse than one that isn't there.
-            onTokenVisionRadiusChange={
-              isDM && entityToken && onTokenVisionRadiusChange
-                ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
-                : undefined
-            }
-            characterSpeed={entity.speed}
-            characterBudget={
-              isDM && entity.hasBudget && onCharacterBudgetReset
-                ? {
-                    used: entity.movementUsed ?? 0,
-                    onReset: () => onCharacterBudgetReset(entity.characterId),
-                  }
-                : undefined
-            }
-            // The legacy row's characterId is the player's uid — there is no
-            // character to set a speed on, so the control does not render.
-            onCharacterSpeedChange={
-              isDM && entity.hasCharacter && onCharacterSpeedChange
-                ? (speed) => onCharacterSpeedChange(entity.characterId, speed)
-                : undefined
-            }
-            isDM={isDM}
-            onToggleDMMode={onToggleDMMode}
-            editingHpUID={editingHpUID}
-            hpInput={hpInput}
-            onHpInputChange={onHpInputChange}
-            onHpEdit={onHpEdit}
-            onHpSubmit={(_hpStr) => {
-              // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
-              // Here we just trigger the submit logic
-              onHpSubmit();
-            }}
-            editingMaxHpUID={editingMaxHpUID}
-            maxHpInput={maxHpInput}
-            onMaxHpInputChange={onMaxHpInputChange}
-            onMaxHpEdit={onMaxHpEdit}
-            onMaxHpSubmit={(_maxHpStr) => {
-              // HPBar passes the string value, but onMaxHpSubmit expects void here
-              onMaxHpSubmit();
-            }}
-            onCharacterHpChange={onCharacterHpChange}
-            onStatusEffectsChange={(effects) =>
-              onCharacterStatusEffectsChange(entity.characterId, effects)
-            }
-            onCharacterNameUpdate={onCharacterNameUpdate}
-            // The desktop card's gate: the owner, or the DM. A legacy row has
-            // no character to delete.
-            onDeleteCharacter={
-              (entity.uid === uid || isDM) && entity.hasCharacter ? onDeleteCharacter : undefined
-            }
-            tableVisionDefault={tableVisionDefault}
-            onCharacterPortraitUpdate={onCharacterPortraitUpdate}
-          />
-        );
-      })}
+    <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+      {seats.map(({ player: seat, rows }) => (
+        <section
+          key={seat.uid}
+          className="mobile-party-seat"
+          aria-label={`Seat: ${seat.name}${seat.uid === uid ? " (you)" : ""}`}
+          style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+        >
+          <h3 className="mobile-party-seat__heading">
+            {seat.name}
+            {seat.uid === uid ? " (you)" : ""}
+            {seat.isDM ? " · DM" : ""}
+            {rows.length > 1 ? ` · ${rows.length} characters` : ""}
+          </h3>
+          {rows.map((entity) => {
+            // Prefer the row's own character token; the by-owner fallback is
+            // gated to rows where it cannot pick the wrong character's token —
+            // and reads the one LOOSE own token, never a goblin the DM placed.
+            const entityToken = entity.tokenId
+              ? tokens?.find((candidate) => candidate.id === entity.tokenId)
+              : entity.ownerTokenFallbackOk
+                ? looseOwnToken(tokens, characters, entity.uid)
+                : undefined;
+            // Save / Load character (U9), on a row the viewer may edit: their own,
+            // and any character for a DM — the same rule as the desktop card.
+            const characterFile =
+              entity.hasCharacter && (entity.uid === uid || isDM)
+                ? characterFileActions(
+                    {
+                      player: entity,
+                      statusEffects: entity.statusEffects ?? [],
+                      token: entityToken,
+                      tokenImage: entityToken?.imageUrl ?? undefined,
+                      tokenScene: entityToken
+                        ? ((sceneObjects.find(
+                            (object) => object.id === `token:${entityToken.id}`,
+                          ) ?? null) as (SceneObject & { type: "token" }) | null)
+                        : null,
+                      drawings: drawings.filter((drawing) => drawing.owner === entity.uid),
+                      initiativeModifier: characters.find((c) => c.id === entity.characterId)
+                        ?.initiativeModifier,
+                    },
+                    (state) => onApplyPlayerState(state, entityToken?.id, entity.characterId),
+                  )
+                : undefined;
+            return (
+              <MobilePlayerRow
+                // uid alone duplicates the moment a player has two rows; the pair
+                // mirrors useCombatOrdering's `${player.uid}-${character.id}` ids.
+                key={`${entity.uid}-${entity.characterId}`}
+                player={entity}
+                isMe={entity.uid === uid}
+                token={entityToken}
+                characterFile={characterFile}
+                // `isDM` is the VIEWER's flag (see the prop doc above), and it is
+                // required here for the same reason EntitiesPanel gates on
+                // `currentIsDM`: sight radius is DM-only, the server refuses it
+                // from anyone else, and a control that silently does nothing is
+                // worse than one that isn't there.
+                onTokenVisionRadiusChange={
+                  isDM && entityToken && onTokenVisionRadiusChange
+                    ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
+                    : undefined
+                }
+                onAddCharacter={entity.uid === uid ? characterCreation.createCharacter : undefined}
+                isCreatingCharacter={entity.uid === uid && characterCreation.isCreating}
+                // A DM's, as on the desktop card: the lock and Delete Token.
+                tokenLocked={
+                  entityToken
+                    ? sceneObjects.find((object) => object.id === `token:${entityToken.id}`)?.locked
+                    : undefined
+                }
+                onToggleTokenLock={
+                  isDM && entityToken
+                    ? (locked) => onToggleTokenLock(`token:${entityToken.id}`, locked)
+                    : undefined
+                }
+                onDeleteToken={
+                  isDM && entityToken && onPlayerTokenDelete
+                    ? () => onPlayerTokenDelete(entityToken.id)
+                    : undefined
+                }
+                tokenSize={entityToken?.size}
+                onTokenSizeChange={
+                  (entity.uid === uid || isDM) && entityToken
+                    ? (size) => onTokenSizeChange(entityToken.id, size)
+                    : undefined
+                }
+                characterSpeed={entity.speed}
+                characterBudget={
+                  isDM && entity.hasBudget && onCharacterBudgetReset
+                    ? {
+                        used: entity.movementUsed ?? 0,
+                        onReset: () => onCharacterBudgetReset(entity.characterId),
+                      }
+                    : undefined
+                }
+                // The legacy row's characterId is the player's uid — there is no
+                // character to set a speed on, so the control does not render.
+                onCharacterSpeedChange={
+                  isDM && entity.hasCharacter && onCharacterSpeedChange
+                    ? (speed) => onCharacterSpeedChange(entity.characterId, speed)
+                    : undefined
+                }
+                isDM={isDM}
+                editingHpUID={editingHpUID}
+                hpInput={hpInput}
+                onHpInputChange={onHpInputChange}
+                onHpEdit={onHpEdit}
+                onHpSubmit={(_hpStr) => {
+                  // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
+                  // Here we just trigger the submit logic
+                  onHpSubmit();
+                }}
+                editingMaxHpUID={editingMaxHpUID}
+                maxHpInput={maxHpInput}
+                onMaxHpInputChange={onMaxHpInputChange}
+                onMaxHpEdit={onMaxHpEdit}
+                onMaxHpSubmit={(_maxHpStr) => {
+                  // HPBar passes the string value, but onMaxHpSubmit expects void here
+                  onMaxHpSubmit();
+                }}
+                tempHp={tempHp}
+                onCharacterHpChange={onCharacterHpChange}
+                onStatusEffectsChange={
+                  entity.hasCharacter
+                    ? (effects) => onCharacterStatusEffectsChange(entity.characterId, effects)
+                    : undefined
+                }
+                characterless={!entity.hasCharacter}
+                owner={
+                  isDM && entity.hasCharacter
+                    ? {
+                        uid: entity.uid,
+                        options: players.map(({ uid: seatUid, name }) => ({ uid: seatUid, name })),
+                        onChange: (ownerUid) =>
+                          onCharacterOwnerChange(entity.characterId, ownerUid),
+                      }
+                    : undefined
+                }
+                onCharacterNameUpdate={onCharacterNameUpdate}
+                // The desktop card's gate: the owner, or the DM. A legacy row has
+                // no character to delete.
+                onDeleteCharacter={
+                  (entity.uid === uid || isDM) && entity.hasCharacter
+                    ? onDeleteCharacter
+                    : undefined
+                }
+                tableVisionDefault={tableVisionDefault}
+                onCharacterPortraitUpdate={onCharacterPortraitUpdate}
+                onFocus={entityToken ? () => onFocusToken(entityToken.id) : undefined}
+                initiative={rowInitiative(entity)}
+              />
+            );
+          })}
+        </section>
+      ))}
     </div>
   );
 };

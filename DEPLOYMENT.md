@@ -43,16 +43,16 @@ This guide covers deploying HeroByte to production using:
 
 ### B. Configure Service
 
-| Setting            | Value                                                                                                 |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| **Name**           | `herobyte-server` (or your choice)                                                                    |
-| **Root Directory** | `apps/server`                                                                                         |
-| **Environment**    | `Node`                                                                                                |
-| **Region**         | `US East (Ohio)` (lowest average US latency)                                                          |
-| **Branch**         | `main`                                                                                                |
-| **Build Command**  | `pnpm install --frozen-lockfile && pnpm build`                                                        |
-| **Start Command**  | `pnpm start`                                                                                          |
-| **Instance Type**  | Paid instance + persistent disk (what HeroByte runs — see §1E/§1F). `Free` works for a personal copy. |
+| Setting            | Value                                                                                                                                                                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**           | `herobyte-server` (or your choice)                                                                                                                                                                                                              |
+| **Root Directory** | `apps/server`                                                                                                                                                                                                                                   |
+| **Environment**    | `Node`                                                                                                                                                                                                                                          |
+| **Region**         | `US East (Ohio)` (lowest average US latency)                                                                                                                                                                                                    |
+| **Branch**         | `main`                                                                                                                                                                                                                                          |
+| **Build Command**  | `pnpm install --frozen-lockfile && pnpm build`                                                                                                                                                                                                  |
+| **Start Command**  | `pnpm start`                                                                                                                                                                                                                                    |
+| **Instance Type**  | Paid instance + persistent disk (what HeroByte runs — see §1E/§1F). `Free` works for a personal copy, with `HEROBYTE_ALLOW_EPHEMERAL_DATA=true` (no disk: everything is wiped on every spin-down after 15 idle minutes, and on every redeploy). |
 
 ### C. Environment Variables
 
@@ -90,13 +90,13 @@ Every variable the server reads. All are optional; the defaults run a working de
 | Variable                            | Default                                            | Purpose                                                                                                                                                                                                                                                                                                                    |
 | ----------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PORT`                              | `8787`                                             | HTTP + WebSocket listen port. Render sets this automatically.                                                                                                                                                                                                                                                              |
-| `HEROBYTE_ROOM_SECRET`              | `Fun1` (dev fallback, warns)                       | Default room's entry password (6–128 chars). Seeds the secret file on first boot; after that, DM-set passwords in the file win.                                                                                                                                                                                            |
-| `HEROBYTE_DM_PASSWORD`              | `FunDM` (dev fallback, warns)                      | Default room's DM elevation password (8–128 chars).                                                                                                                                                                                                                                                                        |
+| `HEROBYTE_ROOM_SECRET`              | `Fun1` (dev fallback, warns)                       | Default room's entry password (use 6+ characters; the setting itself is not length-checked). Read on **every** start: the default table's passwords always follow the settings (the app cannot change them), so changing this and restarting takes effect. Private tables' saved passwords are untouched.                  |
+| `HEROBYTE_DM_PASSWORD`              | `FunDM` (dev fallback, warns)                      | Default room's DM elevation password (use 8+ characters; the setting itself is not length-checked).                                                                                                                                                                                                                        |
 | `HEROBYTE_ALLOWED_ORIGINS`          | localhost dev ports + `https://herobyte.pages.dev` | Comma-separated origin allowlist for HTTP/WebSocket. `*` disables the check (not recommended).                                                                                                                                                                                                                             |
 | `HEROBYTE_DEFAULT_ROOM_ID`          | `default`                                          | Room id of the default table.                                                                                                                                                                                                                                                                                              |
 | `HEROBYTE_MAX_CUSTOM_ROOMS`         | `500`                                              | Cap on private rooms (bounds the pre-auth `create-room` flood).                                                                                                                                                                                                                                                            |
 | `HEROBYTE_DEMO_MODE`                | off                                                | `true` renders the fallback room password in plaintext on the HTTP landing page. Demo servers only.                                                                                                                                                                                                                        |
-| `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS` | `1`                                                | How long the default table may sit empty before the server wipes it, while it still uses the published password (see §4). **Set `0` to disable.**                                                                                                                                                                          |
+| `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS` | `1`                                                | How long the default table may sit empty before the server wipes it, whatever password it uses (see §4). **Set `0` to disable.**                                                                                                                                                                                           |
 | `HEROBYTE_DATA_DIR`                 | the `apps/server` package root                     | **The persistent-disk lever.** Re-anchors every on-disk store default below onto one directory. Set in production to the Render disk's mount path; always use an absolute path. The server refuses to boot if this points at a directory that does not exist (an unmounted disk or a typo — either way, silent data loss). |
 | `HEROBYTE_ALLOW_EPHEMERAL_DATA`     | off                                                | In production (`NODE_ENV=production`, or any Render service) the server refuses to boot without `HEROBYTE_DATA_DIR` — otherwise every store is silently wiped on redeploy. `true` opts a deliberately diskless deploy (e.g. a free-tier demo) back in.                                                                     |
 | `HEROBYTE_ASSET_DIR`                | `<data dir>/herobyte-assets/`                      | Uploaded-image store directory (content-addressed). Quota is derived from the disk it sits on (available space minus a 256MB reserve; per-table = a quarter of that, min 50MB), logged at boot. `HEROBYTE_ASSET_MAX_TOTAL_MB` / `HEROBYTE_ASSET_MAX_ROOM_MB` override.                                                     |
@@ -253,11 +253,11 @@ persistent disk makes it stick.)
 **The default table's passwords are immutable.** The server refuses `set-room-password` and
 `set-dm-password` for it, so the published `HEROBYTE_ROOM_SECRET` / `HEROBYTE_DM_PASSWORD` always
 work there. That is deliberate: they are the credentials every deployment publishes, so a mutable
-password means one visitor can padlock a public demo and its host loses their own test bed with no
-way back in — permanently, since the change persists to disk.
+password means one visitor can padlock a public demo and its host loses their own test bed until the
+server restarts (the settings are re-read on every start).
 
-It follows that the table can never quietly become someone's real table, so it is **always** swept.
-The server empties it in place once it has sat **empty of authenticated clients for 1 hour** — room
+It follows that the table can never quietly become someone's real table, so it is swept unless `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0`.
+The server empties it in place once it has sat **empty of authenticated clients for `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS` hours (1 by default)** — room
 state, map documents, and its claim on uploaded images. Specifics worth knowing:
 
 - **Private tables are never auto-cleared.** They unload after 30 minutes idle, which is lossless:
@@ -273,7 +273,7 @@ state, map documents, and its claim on uploaded images. Specifics worth knowing:
   serving) for a grace window — 7 days by default, `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS` to change,
   `0` for immediate deletion — so an Undo, a re-placed palette item, or a saved player file
   re-claims them instead of finding a dead link.
-- Users keep work via **DM Menu → Session → Save as a Private Table** (`fork-table`), which copies
+- Users keep work via **DM Menu → Table → Security → Save as a Private Table** (`fork-table`), which copies
   the whole table into a fresh private one — including a co-claim on its uploads, so a later sweep
   of the source cannot delete images the copy still uses.
 

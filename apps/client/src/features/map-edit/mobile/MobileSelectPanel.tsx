@@ -18,13 +18,14 @@
 // that IS armed cancels its touchstart (useTouchGestureRouter), so select is
 // unaffected precisely because it stays unarmed.
 //
-// So this file is a readout and a button. The selection, the hit test, the wire
-// command and the server's checks are all the desktop ones, untouched.
+// Selection and hit testing share the desktop path. U5's collapsed Properties
+// form also shares its staged draft and save outcomes with desktop.
 
 import React from "react";
 import type { MapElement } from "@herobyte/shared";
 import type { MapEditToolbarProps } from "../mapEditTypes";
 import { MobileElementInspector } from "./MobileElementInspector";
+import { ElementPropertiesSummary } from "../ElementPropertiesForm";
 
 /** Short, phone-width names for the eight element kinds. The union is closed in
  * shared, so a new kind is a compile error here rather than a blank readout. */
@@ -36,7 +37,7 @@ const ELEMENT_LABELS: Record<MapElement["type"], string> = {
   door: "Door",
   light: "Light",
   text: "Text",
-  spline: "Curve",
+  spline: "Rope / curve",
 };
 
 export function MobileSelectPanel({
@@ -45,8 +46,7 @@ export function MobileSelectPanel({
   layers,
   inspectorOpen,
   onToggleInspector,
-  onUpdateElement,
-  onUpdateDoor,
+  properties,
   saving,
 }: MapEditToolbarProps): JSX.Element {
   // Falsy, not `=== null`: selectedElement is absent from partial toolbar bags
@@ -54,9 +54,7 @@ export function MobileSelectPanel({
   // than crash the readout.
   const element = selectedElement ?? null;
 
-  // Locked is refused SERVER-side (removeMapElement throws before the filter),
-  // so desktop's always-enabled DELETE round-trips a locked element to an error
-  // toast. Saying so up front is cheaper than a toast the DM has to read.
+  // Both layouts explain a locked element before the server refuses deletion.
   const locked = element?.locked === true;
 
   return (
@@ -66,14 +64,15 @@ export function MobileSelectPanel({
         {!element
           ? "Tap an element on the map to pick it."
           : locked
-            ? `${ELEMENT_LABELS[element.type]} — locked, unlock it on a desktop to delete.`
+            ? `${ELEMENT_LABELS[element.type]} — locked; it cannot be deleted.`
             : `${ELEMENT_LABELS[element.type]} picked.`}
       </p>
 
       {/* Edit BEFORE delete, and closed by default: picking a thing to remove
           it is the common case, so the destructive button stays where the
           thumb already expects it and the editor costs one collapsed row. */}
-      {element && !locked && (
+      {element && <ElementPropertiesSummary element={element} layers={layers ?? []} />}
+      {element && properties && (
         <MobileElementInspector
           element={element}
           layers={layers ?? []}
@@ -82,8 +81,7 @@ export function MobileSelectPanel({
           // `saving`, NOT `busy` — busy is the bind round trip, already over by
           // the time this panel exists (mapEditTypes' two-flag warning).
           disabled={Boolean(saving)}
-          onUpdate={onUpdateElement}
-          onUpdateDoor={onUpdateDoor}
+          properties={properties}
         />
       )}
 
@@ -91,7 +89,7 @@ export function MobileSelectPanel({
         type="button"
         className="mobile-tool-sheet__button mobile-tool-sheet__button--wide mobile-tool-sheet__button--danger"
         onClick={() => element && onRemoveElement(element.id)}
-        disabled={!element || locked}
+        disabled={!element || locked || saving || properties?.pending || properties?.uncertain}
         data-testid="mobile-select-delete"
       >
         🗑 Delete

@@ -5,11 +5,13 @@ test.describe("HeroByte UI state and accessibility", () => {
   test("all main UI panels can be opened and closed", async ({ page }) => {
     await joinDefaultRoom(page);
 
-    // Test Draw Tools panel
-    const drawButton = page.getByRole("button", { name: /Draw Tools/i });
+    // Test Draw panel
+    const drawButton = page.getByRole("button", { name: /✏️ Draw/i });
     await expect(drawButton).toBeVisible();
     await drawButton.click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole("button", { name: "✏️ Freehand", exact: true })).toBeVisible();
+    await expect(drawButton).toHaveCount(1);
 
     // Close by clicking button again
     await drawButton.click();
@@ -25,22 +27,25 @@ test.describe("HeroByte UI state and accessibility", () => {
     await expect(page.locator("text=DICE ROLLER")).not.toBeVisible({ timeout: 5000 });
 
     // Test Log panel. Exact, not /Log/i: the panel's own close button is named
-    // "Close ⚂ ROLL LOG", so the loose regex matches two buttons the moment the
+    // "Close Chat & Rolls", so the loose regex matches two buttons the moment the
     // panel is open. It only ever worked because that button had no accessible
     // name at all.
-    const logButton = page.getByRole("button", { name: "📜 Log" });
+    const logButton = page.getByRole("button", { name: "📜 Chat & Rolls" });
     await expect(logButton).toBeVisible();
     await logButton.click();
-    await expect(page.locator("text=ROLL LOG")).toBeVisible({ timeout: 5000 });
+    const closeLog = page.getByRole("button", { name: "Close Chat & Rolls", exact: true });
+    await expect(closeLog).toBeVisible({ timeout: 5000 });
 
     await logButton.click();
-    await expect(page.locator("text=ROLL LOG")).not.toBeVisible({ timeout: 5000 });
+    await expect(closeLog).not.toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test("panels can be dragged to reposition", async ({ page }) => {
     await joinDefaultRoom(page);
 
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
 
     const header = page.locator("text=DRAWING TOOLS").first();
@@ -123,7 +128,7 @@ test.describe("HeroByte UI state and accessibility", () => {
     });
 
     // Open drawing tools and draw
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     const canvas = page.getByTestId("map-board").locator("canvas").first();
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
@@ -176,7 +181,7 @@ test.describe("HeroByte UI state and accessibility", () => {
     });
 
     // Draw something
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     const canvas = page.getByTestId("map-board").locator("canvas").first();
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
@@ -254,7 +259,7 @@ test.describe("HeroByte UI state and accessibility", () => {
   test("color picker is accessible and functional", async ({ page }) => {
     await joinDefaultRoom(page);
 
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
 
     // Look for color input

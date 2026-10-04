@@ -1,6 +1,6 @@
 /**
  * The table's own tokens in the picker: they arrive through the context, lead
- * the grid, wear the MINE badge, search by their tags, and can be removed —
+ * the grid, wear the ADDED badge, search by their tags, and can be removed —
  * and without the DM plumbing the shelf is read-only and the form is absent.
  */
 
@@ -42,7 +42,7 @@ function renderWith(api: Partial<CustomTokensApi>, onPick = vi.fn()) {
 const cells = () =>
   within(screen.getByTestId("token-library")).queryAllByRole("button", {
     name: (name) =>
-      !["All", "Monsters", "Townsfolk", "Custom"].includes(name) && !/^Remove /.test(name),
+      !["All", "Monsters", "Townsfolk", "This table"].includes(name) && !/^Remove /.test(name),
   });
 
 afterEach(() => vi.restoreAllMocks());
@@ -59,13 +59,24 @@ describe("TokenLibrary — the table's own tokens", () => {
     expect(names).toContain("Goblin club brute");
     const martaCell = screen.getByRole("button", { name: "Old Marta" });
     expect(martaCell.querySelector("img")).toHaveAttribute("src", marta.imageUrl);
-    expect(martaCell.parentElement?.textContent).toContain("MINE");
-    expect(screen.getAllByText("MINE")).toHaveLength(2);
+    // A DM's own token keeps the description they wrote.
+    expect(martaCell.getAttribute("title")).toContain("Runs the Gilded Tankard.");
+    expect(martaCell.parentElement?.textContent).toContain("ADDED");
+    expect(screen.getAllByText("ADDED")).toHaveLength(2);
   });
 
-  it("the Custom chip shows only them, hides the family select, and searches their tags", () => {
+  it("the preview says the shelf is the table's own and that players never see it", () => {
     renderWith({});
-    fireEvent.click(screen.getByRole("button", { name: "Custom" }));
+    fireEvent.focus(screen.getByRole("button", { name: "Old Marta" }));
+    expect(
+      screen.getByText(/From this table’s shelf \(players never see the shelf\)/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Shared with this table/)).toBeNull();
+  });
+
+  it("the This table chip shows only them, hides the family select, and searches their tags", () => {
+    renderWith({});
+    fireEvent.click(screen.getByRole("button", { name: "This table" }));
     expect(cells().map((b) => b.textContent)).toEqual(["Old Marta", "Merchant wagon"]);
     expect(screen.queryByLabelText("Family")).toBeNull();
     fireEvent.change(screen.getByLabelText("Search"), { target: { value: "prop" } });
@@ -88,7 +99,7 @@ describe("TokenLibrary — the table's own tokens", () => {
     );
   });
 
-  it("remove asks first, then calls removeToken; the form shows only under Custom", () => {
+  it("remove asks first, then calls removeToken; the form shows only under This table", () => {
     const removeToken = vi.fn();
     const addToken = vi.fn();
     renderWith({ removeToken, addToken });
@@ -99,7 +110,7 @@ describe("TokenLibrary — the table's own tokens", () => {
     expect(removeToken).not.toHaveBeenCalled();
     fireEvent.click(remove);
     expect(removeToken).toHaveBeenCalledWith("ct-marta");
-    fireEvent.click(screen.getByRole("button", { name: "Custom" }));
+    fireEvent.click(screen.getByRole("button", { name: "This table" }));
     expect(screen.getByTestId("custom-token-form")).toBeInTheDocument();
   });
 
@@ -120,14 +131,14 @@ describe("TokenLibrary — the table's own tokens", () => {
   it("without the DM plumbing the shelf is read-only: no remover, no form", () => {
     renderWith({ removeToken: undefined, addToken: undefined });
     expect(screen.queryByRole("button", { name: /^Remove /i })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Custom" }));
+    fireEvent.click(screen.getByRole("button", { name: "This table" }));
     expect(screen.queryByTestId("custom-token-form")).toBeNull();
     expect(cells()).toHaveLength(2);
   });
 
-  it("with no shelf at all, Custom explains itself", () => {
+  it("with no shelf at all, This table explains itself", () => {
     render(<TokenLibrary onPick={vi.fn()} hint="Pick" />);
-    fireEvent.click(screen.getByRole("button", { name: "Custom" }));
-    expect(screen.getByText(/Nothing of your own yet/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "This table" }));
+    expect(screen.getByText(/Nothing on this table’s shelf yet/)).toBeInTheDocument();
   });
 });

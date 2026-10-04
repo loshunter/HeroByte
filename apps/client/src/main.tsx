@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { markBootTerminated } from "./utils/terminalBoot";
 import "./theme/herobyte.css";
 import "./theme/jrpg.css";
 
@@ -25,7 +26,16 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-createRoot(document.getElementById("root")!).render(
+const appRoot = createRoot(document.getElementById("root")!);
+window.addEventListener(
+  "herobyte-boot-failed",
+  () => {
+    markBootTerminated();
+    appRoot.unmount();
+  },
+  { once: true },
+);
+appRoot.render(
   <ErrorBoundary>
     <App />
   </ErrorBoundary>,

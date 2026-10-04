@@ -7,9 +7,17 @@
 // combatant's initiative away from a player.
 
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render as rtlRender, screen, within } from "@testing-library/react";
 import type { Player, SnapshotCharacter } from "@herobyte/shared";
 import { EntitiesPanel } from "../EntitiesPanel";
+import { showCards } from "./entitiesPanel.fixtures";
+
+// U7: the Party opens as the compact roster; these suites pin the full cards.
+const render = (...args: Parameters<typeof rtlRender>) => {
+  const result = rtlRender(...args);
+  showCards();
+  return result;
+};
 
 const DM = "dm-uid";
 const ALICE = "alice-uid";
@@ -75,16 +83,17 @@ function panelProps(overrides: Partial<React.ComponentProps<typeof EntitiesPanel
     onTempHpEdit: noop,
     onTempHpSubmit: noop,
     currentIsDM: false,
-    onToggleDMMode: noop,
     onTokenImageChange: noop,
     onApplyPlayerState: noop,
     _onStatusEffectsChange: noop,
     onCharacterStatusEffectsChange: noop,
     onToggleTokenLock: noop,
     onTokenSizeChange: noop,
+    onCharacterOwnerChange: noop,
     onAddCharacter: noop,
     onDeleteCharacter: noop,
     onFocusToken: noop,
+    launcherDockRef: noop,
     combatActive: false,
     onSetInitiative: noop,
     onRollInitiative: noop,

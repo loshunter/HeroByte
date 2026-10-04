@@ -16,6 +16,8 @@ interface NameEditorProps {
   onNameInputChange: (value: string) => void;
   onNameEdit: (uid: string, name: string) => void;
   onNameSubmit: (value: string) => void;
+  /** The server's name limit, where the caller knows it. */
+  maxLength?: number;
 }
 
 export const NameEditor: React.FC<NameEditorProps> = ({
@@ -28,12 +30,14 @@ export const NameEditor: React.FC<NameEditorProps> = ({
   onNameInputChange,
   onNameEdit,
   onNameSubmit,
+  maxLength,
 }) => {
   if (isMe && isEditing) {
     return (
       <input
         type="text"
         value={nameInput}
+        maxLength={maxLength}
         onChange={(e) => onNameInputChange(e.target.value)}
         onBlur={() => onNameSubmit(nameInput)}
         onKeyDown={(e) => {

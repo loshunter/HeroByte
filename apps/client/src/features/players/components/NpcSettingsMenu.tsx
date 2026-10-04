@@ -1,15 +1,22 @@
 // ============================================================================
 // NPC SETTINGS MENU
 // ============================================================================
-// Collapsible panel for NPC-specific management actions (token image, placement,
-// deletion). Mirrors the styling of the player settings popover.
+// The DM's window for one NPC, in the player window's two halves (U7):
+// **Character** — art, conditions, initiative, deletion — and **Token
+// settings** — placing, sizing and locking its token on the map.
 
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { ImageField } from "../../../components/ui/ImageField";
+import { StatusEffectsPicker } from "./StatusEffectsPicker";
+import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
+import "./characterSettings.css";
+
+const NO_EFFECTS: string[] = [];
+const IGNORE_EFFECTS = () => {};
 
 interface NpcSettingsMenuProps {
   isOpen: boolean;
@@ -46,6 +53,13 @@ interface NpcSettingsMenuProps {
   deletionError?: string | null;
   onClearInitiative?: () => void;
   hasInitiative?: boolean;
+  /*
+   * The NPC's conditions (U7). The server has always let a DM set any
+   * character's, and the map draws an NPC's — but no NPC editor offered them.
+   * Optional as a pair: without the handler there is no picker.
+   */
+  selectedEffects?: string[];
+  onStatusEffectsChange?: (effects: string[]) => void;
 }
 
 export function NpcSettingsMenu({
@@ -69,8 +83,17 @@ export function NpcSettingsMenu({
   deletionError = null,
   onClearInitiative,
   hasInitiative = false,
+  selectedEffects,
+  onStatusEffectsChange,
 }: NpcSettingsMenuProps): JSX.Element | null {
   const [wasDeleting, setWasDeleting] = useState(false);
+  // In the mounted parent, even while closed (the player window's rule).
+  const statusEffectsPicker = useStatusEffectsPicker(
+    selectedEffects ?? NO_EFFECTS,
+    onStatusEffectsChange ?? IGNORE_EFFECTS,
+  );
+  const characterHeadingId = useId();
+  const tokenHeadingId = useId();
 
   // Auto-close when deletion completes successfully
   useEffect(() => {
@@ -88,6 +111,7 @@ export function NpcSettingsMenu({
 
   return createPortal(
     <DraggableWindow
+      interaction={{ behavior: "block" }}
       title="NPC Settings"
       onClose={onClose}
       initialX={350}
@@ -106,57 +130,111 @@ export function NpcSettingsMenu({
           gap: "8px",
         }}
       >
-        {/* Portrait: upload from disk/camera roll, or paste a URL. Until now
+        <section className="character-settings__section" aria-labelledby={characterHeadingId}>
+          <h3 id={characterHeadingId} className="character-settings__heading">
+            Character
+          </h3>
+          {/* Portrait: upload from disk/camera roll, or paste a URL. Until now
             the only way to set an NPC portrait anywhere was a window.prompt
             on the card, so NPCs alone had no upload path. */}
-        {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (
+          {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <ImageField
+                label="Portrait Image URL"
+                value={portraitImageInput}
+                onChange={onPortraitInputChange}
+                onCommit={(url) => {
+                  // Empty means "typed nothing" — portraits have never had a
+                  // Clear, and an empty commit must not wipe the existing one.
+                  if (url) onPortraitApply(url);
+                }}
+                placeholder="https://example.com/portrait.png"
+                applyLabel="Apply Portrait"
+              />
+            </div>
+          )}
+
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <ImageField
-              label="Portrait Image URL"
-              value={portraitImageInput}
-              onChange={onPortraitInputChange}
-              onCommit={(url) => {
-                // Empty means "typed nothing" — portraits have never had a
-                // Clear, and an empty commit must not wipe the existing one.
-                if (url) onPortraitApply(url);
-              }}
-              placeholder="https://example.com/portrait.png"
-              applyLabel="Apply Portrait"
+              label="Token Image URL"
+              value={tokenImageInput}
+              onChange={onTokenImageInputChange}
+              onCommit={onTokenImageApply}
+              onClear={onTokenImageClear}
+              placeholder="https://enemy-token.png"
             />
+            {tokenImageUrl ? (
+              <img
+                src={tokenImageUrl}
+                alt="Token preview"
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  margin: "6px auto 0",
+                  objectFit: "cover",
+                  borderRadius: "6px",
+                  border: "1px solid var(--jrpg-border-gold)",
+                }}
+                onError={(event) => {
+                  (event.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : null}
           </div>
-        )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <ImageField
-            label="Token Image URL"
-            value={tokenImageInput}
-            onChange={onTokenImageInputChange}
-            onCommit={onTokenImageApply}
-            onClear={onTokenImageClear}
-            placeholder="https://enemy-token.png"
-          />
-          {tokenImageUrl ? (
-            <img
-              src={tokenImageUrl}
-              alt="Token preview"
+          {onStatusEffectsChange && <StatusEffectsPicker {...statusEffectsPicker} />}
+          {onClearInitiative && (
+            <>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}
+              >
+                <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                  Initiative
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: "0.65rem" }}
+                  onClick={onClearInitiative}
+                  disabled={!hasInitiative}
+                >
+                  🧹 Clear Initiative
+                </button>
+              </div>
+            </>
+          )}
+
+          {deletionError && (
+            <div
+              className="jrpg-text-small"
               style={{
-                width: "56px",
-                height: "56px",
-                margin: "6px auto 0",
-                objectFit: "cover",
-                borderRadius: "6px",
-                border: "1px solid var(--jrpg-border-gold)",
+                color: "var(--jrpg-red)",
+                padding: "4px",
+                textAlign: "center",
+                border: "1px solid var(--jrpg-red)",
+                borderRadius: "4px",
+                background: "rgba(214, 60, 83, 0.1)",
               }}
-              onError={(event) => {
-                (event.currentTarget as HTMLImageElement).style.display = "none";
-              }}
-            />
-          ) : null}
-        </div>
+            >
+              {deletionError}
+            </div>
+          )}
 
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+          {onDelete && (
+            <button
+              className="btn btn-danger"
+              style={{ fontSize: "0.65rem" }}
+              onClick={onDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete NPC"}
+            </button>
+          )}
+        </section>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <section className="character-settings__section" aria-labelledby={tokenHeadingId}>
+          <h3 id={tokenHeadingId} className="character-settings__heading">
+            Token settings
+          </h3>
           <button
             className="btn btn-secondary"
             style={{ fontSize: "0.65rem" }}
@@ -199,28 +277,6 @@ export function NpcSettingsMenu({
                   )}
                 </div>
               </div>
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
-            </>
-          )}
-
-          {onClearInitiative && (
-            <>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}
-              >
-                <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                  Initiative
-                </span>
-                <button
-                  className="btn btn-secondary"
-                  style={{ fontSize: "0.65rem" }}
-                  onClick={onClearInitiative}
-                  disabled={!hasInitiative}
-                >
-                  🧹 Clear Initiative
-                </button>
-              </div>
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
             </>
           )}
 
@@ -234,34 +290,7 @@ export function NpcSettingsMenu({
               {tokenLocked ? "🔒 Locked" : "🔓 Unlocked"}
             </button>
           )}
-
-          {deletionError && (
-            <div
-              className="jrpg-text-small"
-              style={{
-                color: "var(--jrpg-red)",
-                padding: "4px",
-                textAlign: "center",
-                border: "1px solid var(--jrpg-red)",
-                borderRadius: "4px",
-                background: "rgba(214, 60, 83, 0.1)",
-              }}
-            >
-              {deletionError}
-            </div>
-          )}
-
-          {onDelete && (
-            <button
-              className="btn btn-danger"
-              style={{ fontSize: "0.65rem" }}
-              onClick={onDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete NPC"}
-            </button>
-          )}
-        </div>
+        </section>
       </div>
     </DraggableWindow>,
     document.body,

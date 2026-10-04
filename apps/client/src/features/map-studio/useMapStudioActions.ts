@@ -1,3 +1,4 @@
+import type { MapOperationHandle } from "./mapOperation";
 import { useCallback, useMemo, type MutableRefObject } from "react";
 import type {
   ClientMessage,
@@ -41,8 +42,8 @@ type CommandBody = DistributiveOmit<MapStudioCommand, "commandId" | "documentId"
 
 interface UseMapStudioActionsOptions {
   activeDocumentRef: MutableRefObject<MapDocument | null>;
-  applyCommand: (build: CommandBuilder) => void;
-  applyMessage: (toMessage: MessageBuilder) => void;
+  applyCommand: (build: CommandBuilder) => MapOperationHandle;
+  applyMessage: (toMessage: MessageBuilder) => MapOperationHandle;
 }
 
 /**
@@ -58,7 +59,7 @@ export function useMapStudioActions({
 }: UseMapStudioActionsOptions) {
   const submit = useCallback(
     (body: CommandBody) => {
-      applyCommand(
+      return applyCommand(
         (document, commandId) =>
           ({
             commandId,
@@ -152,7 +153,7 @@ export function useMapStudioActions({
 
   const updateElement = useCallback(
     (elementId: string, update: MapElementUpdate) =>
-      submit({ type: "update-element", elementId, update }),
+      submit({ type: "update-element", elementId, update: structuredClone(update) }),
     [submit],
   );
 
@@ -172,14 +173,15 @@ export function useMapStudioActions({
    */
   const generate = useCallback(
     (input: GenerateInput) => {
-      applyMessage((document, commandId) => ({
+      const captured = structuredClone(input);
+      return applyMessage((document, commandId) => ({
         t: "map-studio-generate",
         documentId: document.id,
         commandId,
-        recipe: input.recipe,
-        seed: input.seed,
-        bounds: input.bounds,
-        params: input.params,
+        recipe: captured.recipe,
+        seed: captured.seed,
+        bounds: captured.bounds,
+        params: captured.params,
       }));
     },
     [applyMessage],

@@ -47,8 +47,14 @@
  * See: docs/refactoring/CLIENT_WEBSOCKET_PLAN.md
  */
 
-import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
-import type { SignalData } from "simple-peer";
+import type { ClientMessage } from "@herobyte/shared";
+import type {
+  WebSocketServiceConfig,
+  AuthResponseMessage,
+  ConnectionClosingMessage,
+} from "./websocket/serviceTypes";
+export type { SessionTokenStore } from "./websocket/serviceTypes";
+export { AuthState, type AuthEvent, ConnectionState };
 import { MessageRouter } from "./websocket/MessageRouter";
 import {
   AuthenticationManager,
@@ -64,77 +70,6 @@ import {
 import { ServerWarmupManager } from "./websocket/ServerWarmupManager";
 import { SnapshotReconciler, type SnapshotResyncReason } from "./websocket/SnapshotReconciler";
 import { CommandAckManager } from "./websocket/CommandAckManager";
-
-type MessageHandler = (snapshot: RoomSnapshot) => void;
-type RtcSignalHandler = (from: string, signal: SignalData) => void;
-type ConnectionStateHandler = (state: ConnectionState) => void;
-
-// Auth response and control message types extracted to MessageRouter
-type AuthResponseMessage =
-  | Extract<ServerMessage, { t: "auth-ok" }>
-  | Extract<ServerMessage, { t: "auth-failed" }>;
-
-type ConnectionClosingMessage = Extract<ServerMessage, { t: "connection-closing" }>;
-
-type ControlMessage =
-  | Extract<ServerMessage, { t: "room-password-updated" }>
-  | Extract<ServerMessage, { t: "room-password-update-failed" }>
-  | Extract<ServerMessage, { t: "dm-status" }>
-  | Extract<ServerMessage, { t: "dm-elevation-failed" }>
-  | Extract<ServerMessage, { t: "dm-password-updated" }>
-  | Extract<ServerMessage, { t: "dm-password-update-failed" }>
-  | Extract<ServerMessage, { t: "map-studio-documents" }>
-  | Extract<ServerMessage, { t: "map-studio-document" }>
-  | Extract<ServerMessage, { t: "map-studio-deleted" }>
-  | Extract<ServerMessage, { t: "map-studio-error" }>
-  // THREE hand-lists must agree on a new server message: this config copy,
-  // MessageRouter's type union, and MessageRouter's runtime isControlMessage
-  // guard — and only the guard changes behavior. tsc catches this copy
-  // drifting (the two unions meet at the config boundary); nothing but a test
-  // catches the guard.
-  | Extract<ServerMessage, { t: "atlas-error" }>
-  | Extract<ServerMessage, { t: "remove-player-refused" }>
-  | Extract<ServerMessage, { t: "room-created" }>
-  | Extract<ServerMessage, { t: "room-create-failed" }>
-  | Extract<ServerMessage, { t: "session-file" }>
-  | Extract<ServerMessage, { t: "table-forked" }>
-  | Extract<ServerMessage, { t: "table-fork-failed" }>;
-
-// Re-export for backward compatibility
-export { AuthState, type AuthEvent, ConnectionState };
-
-interface WebSocketServiceConfig {
-  url: string;
-  uid: string;
-  onMessage: MessageHandler;
-  onRtcSignal?: RtcSignalHandler;
-  onStateChange?: ConnectionStateHandler;
-  onAuthEvent?: (event: AuthEvent) => void;
-  onControlMessage?: (message: ControlMessage) => void;
-  /** Someone's live measurement (S6). Ephemeral — never part of a snapshot. */
-  onMeasure?: (measure: MeasureEvent) => void;
-  /** A RELIABLE command (one carrying a commandId) was dropped for good —
-   * retries exhausted or the offline queue overflowed. The user's change did
-   * NOT reach the server; surface it (toast) instead of losing it to the
-   * console. Fire-and-forget traffic (previews, heartbeats) never fires this. */
-  onCommandDropped?: (messageType: string, reason: string) => void;
-  /**
-   * Where the session token from `auth-ok` is kept between page loads and
-   * shared between this browser's tabs. Injected rather than imported so the
-   * service stays storage-agnostic; the hook binds it to per-table, per-uid
-   * localStorage keys. Without one, the token lives only for this page load.
-   */
-  sessionTokenStore?: SessionTokenStore;
-  reconnectInterval?: number; // ms between reconnect attempts
-  maxReconnectAttempts?: number; // 0 = infinite
-  heartbeatInterval?: number; // ms between heartbeats
-}
-
-/** Read/write the session token for a table (`undefined` roomId = the default table). */
-export interface SessionTokenStore {
-  read: (roomId: string | undefined) => string | undefined;
-  write: (roomId: string | undefined, token: string) => void;
-}
 
 /**
  * WebSocket service orchestrator
@@ -234,6 +169,7 @@ export class WebSocketService {
       onAuthEvent: () => {},
       onControlMessage: () => {},
       onCommandDropped: () => {},
+      onCommandDelivery: () => {},
       onMeasure: () => {},
       ...config,
       // No store: the token lives for this page load only (see lastSessionToken).
@@ -258,7 +194,22 @@ export class WebSocketService {
       onRtcSignal: this.config.onRtcSignal,
       onAuthResponse: this.handleAuthResponse.bind(this),
       onConnectionClosing: this.handleConnectionClosing.bind(this),
-      onControlMessage: this.config.onControlMessage,
+      onControlMessage: (message) => {
+        const identity =
+          message.t === "map-studio-error"
+            ? message
+            : message.t === "map-studio-document" && message.appliedCommandId
+              ? { documentId: message.document.id, commandId: message.appliedCommandId }
+              : null;
+        if (identity) {
+          const retired = this.messageQueueManager.retireGeneration(
+            identity.documentId,
+            identity.commandId,
+          );
+          if (retired) this.commandAckManager.handleDrop(retired, "application-result");
+        }
+        this.config.onControlMessage(message);
+      },
       onDelta: (delta) => this.snapshotReconciler.applyDelta(delta),
       onPointerPreview: (pointer) => this.snapshotReconciler.applyPointerPreview(pointer),
       onDragPreview: (preview) => this.snapshotReconciler.applyDragPreview(preview),
@@ -268,22 +219,34 @@ export class WebSocketService {
       onHeartbeatAck: (timestamp) => this.heartbeatManager.recordHeartbeatAck(timestamp),
       onAck: (commandId) => {
         this.commandAckManager.handleAck(commandId);
-        this.messageQueueManager.handleCommandResult(commandId);
+        this.messageQueueManager.handleCommandResult(commandId, true);
       },
       onNack: (commandId, reason) => {
         this.commandAckManager.handleNack(commandId, reason);
-        this.messageQueueManager.handleCommandResult(commandId);
+        const message = this.messageQueueManager.handleCommandResult(commandId);
+        if (message) {
+          if (message.t === "map-studio-generate") {
+            this.messageQueueManager.retireGeneration(message.documentId, message.commandId);
+          }
+          this.config.onCommandDelivery({
+            type: "dropped",
+            message,
+            reason: reason ?? "transport-refusal",
+          });
+        }
       },
     });
 
     // Initialize MessageQueueManager (independent)
     this.messageQueueManager = new MessageQueueManager({
       maxQueueSize: 200,
+      onBeforeSend: (message) => this.config.onCommandDelivery({ type: "send-attempt", message }),
       onQueueOverflow: (message, queueSize) => {
         console.warn(
           `[WebSocket] Queue overflow detected (length=${queueSize}) dropping message type=${message.t}`,
         );
         this.commandAckManager.handleDrop(message, "queue-overflow");
+        this.config.onCommandDelivery({ type: "dropped", message, reason: "queue-overflow" });
         if (message.commandId) this.config.onCommandDropped(message.t, "queue-overflow");
       },
       onRetryDispatch: (message) => {
@@ -291,6 +254,7 @@ export class WebSocketService {
       },
       onRetryExhausted: (message) => {
         this.commandAckManager.handleDrop(message, "retry-exhausted");
+        this.config.onCommandDelivery({ type: "dropped", message, reason: "retry-exhausted" });
         if (message.commandId) this.config.onCommandDropped(message.t, "retry-exhausted");
       },
     });

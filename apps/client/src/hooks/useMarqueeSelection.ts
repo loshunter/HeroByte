@@ -3,6 +3,7 @@ import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { MutableRefObject } from "react";
 import type { SelectionRequestOptions } from "../ui/MapBoard.types";
+import { escapeRegistry, useEscapeOwner } from "../features/interaction/useEscapeOwner";
 
 type Point = { x: number; y: number };
 
@@ -57,11 +58,11 @@ export function useMarqueeSelection({
 
   const updateMarquee = useCallback(
     (updater: (prev: MarqueeState | null) => MarqueeState | null) => {
-      setMarquee((prev) => {
-        const next = updater(prev);
-        marqueeRef.current = next;
-        return next;
-      });
+      // Events may cancel and release before React flushes its state updates.
+      const next = updater(marqueeRef.current);
+      marqueeRef.current = next;
+      setMarquee(next);
+      escapeRegistry.refresh();
     },
     [],
   );
@@ -188,13 +189,23 @@ export function useMarqueeSelection({
         }
       : null;
 
-    applySelection(rect);
+    // Disarm before a selection callback can re-enter the gesture lifecycle.
     updateMarquee(() => null);
+    applySelection(rect);
   }, [applySelection, updateMarquee]);
 
   const cancelMarquee = useCallback(() => {
     updateMarquee(() => null);
   }, [updateMarquee]);
+
+  useEscapeOwner(() => ({
+    kind: "gesture",
+    name: "marquee selection",
+    order: 0,
+    active: marqueeRef.current !== null,
+    label: "Cancel selection",
+    handle: cancelMarquee,
+  }));
 
   return {
     isActive: marquee !== null,

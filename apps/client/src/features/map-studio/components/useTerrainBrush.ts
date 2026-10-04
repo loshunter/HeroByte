@@ -1,11 +1,16 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { MapDocument, TerrainPaintCell } from "@herobyte/shared";
-
-const MAX_STROKE_CELLS = 16384;
+import {
+  MAX_TERRAIN_STROKE_CELLS,
+  terrainBrushFootprint,
+  terrainBrushPath,
+  type TerrainBrushSize,
+} from "../terrainBrushGeometry";
 
 interface UseTerrainBrushOptions {
   activeDocument?: MapDocument | null;
   paintTerrain: (cells: TerrainPaintCell[]) => void;
+  brushSize?: TerrainBrushSize;
 }
 
 /**
@@ -14,33 +19,61 @@ interface UseTerrainBrushOptions {
  * per stroke, per the Terrain Brush contract. strokeCells drives the live
  * in-progress preview on the canvas.
  */
-export function useTerrainBrush({ activeDocument, paintTerrain }: UseTerrainBrushOptions) {
+export function useTerrainBrush({
+  activeDocument,
+  paintTerrain,
+  brushSize = 1,
+}: UseTerrainBrushOptions) {
   const stroke = useRef(new Map<string, TerrainPaintCell>());
+  const previous = useRef<{ x: number; y: number } | null>(null);
   const [strokeCells, setStrokeCells] = useState<TerrainPaintCell[]>([]);
+  const [cursor, setCursor] = useState<{
+    point: { x: number; y: number };
+    assetId: string | null;
+  } | null>(null);
+  const updateCursor = useCallback(
+    (point: { x: number; y: number }, assetId: string | null) => setCursor({ point, assetId }),
+    [],
+  );
+  const clearCursor = useCallback(() => setCursor(null), []);
+  const brushPreviewCells = useMemo(
+    () =>
+      activeDocument && cursor
+        ? terrainBrushFootprint(activeDocument, cursor.point, brushSize)
+            .filter(
+              (cell) =>
+                stroke.current.size < MAX_TERRAIN_STROKE_CELLS ||
+                stroke.current.has(`${cell.x},${cell.y}`),
+            )
+            .map((cell) => ({ ...cell, assetId: cursor.assetId }))
+        : [],
+    [activeDocument, cursor, brushSize, strokeCells],
+  );
 
   const addStrokePoint = useCallback(
     (point: { x: number; y: number }, assetId: string | null) => {
-      if (!activeDocument || stroke.current.size >= MAX_STROKE_CELLS) return;
-      const { size, offsetX, offsetY } = activeDocument.grid;
-      const cellX = Math.floor((point.x - offsetX) / size);
-      const cellY = Math.floor((point.y - offsetY) / size);
-      // Only cells fully inside the document are paintable.
-      const left = offsetX + cellX * size;
-      const top = offsetY + cellY * size;
-      if (left < 0 || top < 0 || left + size > activeDocument.width) return;
-      if (top + size > activeDocument.height) return;
-      const key = `${cellX},${cellY}`;
-      if (stroke.current.has(key)) return;
-      const cell = { x: cellX, y: cellY, assetId };
-      stroke.current.set(key, cell);
-      setStrokeCells((current) => [...current, cell]);
+      if (!activeDocument || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+      updateCursor(point, assetId);
+      const from = previous.current ?? point;
+      previous.current = point;
+      if (stroke.current.size >= MAX_TERRAIN_STROKE_CELLS) return;
+      let changed = false;
+      for (const cell of terrainBrushPath(activeDocument, from, point, brushSize)) {
+        const key = `${cell.x},${cell.y}`;
+        if (stroke.current.has(key)) continue;
+        stroke.current.set(key, { ...cell, assetId });
+        changed = true;
+        if (stroke.current.size >= MAX_TERRAIN_STROKE_CELLS) break;
+      }
+      if (changed) setStrokeCells([...stroke.current.values()]);
     },
-    [activeDocument],
+    [activeDocument, brushSize, updateCursor],
   );
 
   const flushStroke = useCallback(() => {
     const cells = [...stroke.current.values()];
     stroke.current = new Map();
+    previous.current = null;
     setStrokeCells([]);
     if (cells.length > 0) paintTerrain(cells);
   }, [paintTerrain]);
@@ -50,8 +83,18 @@ export function useTerrainBrush({ activeDocument, paintTerrain }: UseTerrainBrus
   // discard the abandoned cells would simply ride along on the next flush.
   const discardStroke = useCallback(() => {
     stroke.current = new Map();
+    previous.current = null;
+    setCursor(null);
     setStrokeCells([]);
   }, []);
 
-  return { addStrokePoint, flushStroke, discardStroke, strokeCells };
+  return {
+    addStrokePoint,
+    flushStroke,
+    discardStroke,
+    strokeCells,
+    updateCursor,
+    clearCursor,
+    brushPreviewCells,
+  };
 }

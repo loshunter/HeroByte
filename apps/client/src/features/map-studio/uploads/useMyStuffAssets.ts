@@ -7,7 +7,7 @@ import {
 } from "./assetUpload";
 import {
   addMyStuffAsset,
-  loadMyStuffAssets,
+  currentMyStuffAssets,
   removeMyStuffAsset,
   type MyStuffAsset,
 } from "./myStuffStore";
@@ -31,13 +31,13 @@ export interface MyStuffAssetsState {
 
 /**
  * The "My Stuff" shelf: uploads files through the controller and mirrors the
- * localStorage inventory into React state. Batch uploads continue past
- * individual failures; the last failure message is surfaced.
+ * current session inventory into React state, initially hydrated from storage.
+ * Batch uploads continue past individual failures; the last failure is surfaced.
  */
 export function useMyStuffAssets(
   uploadAsset: (file: File) => Promise<UploadedAssetInfo>,
 ): MyStuffAssetsState {
-  const [assets, setAssets] = useState<MyStuffAsset[]>(() => loadMyStuffAssets());
+  const [assets, setAssets] = useState<MyStuffAsset[]>(() => currentMyStuffAssets());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

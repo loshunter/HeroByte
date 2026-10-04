@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * M5's tools driven by a finger, end to end, on the MOBILE layout.
  *
@@ -50,8 +51,10 @@ async function armLiveMapEdit(page: Page, viewport = TABLET) {
     undefined,
     { timeout: 30_000 },
   );
-  await expect(page.locator(".mobile-tool-sheet__grid")).toBeVisible({ timeout: 30_000 });
-  return { dock, toolGrid: page.locator(".mobile-tool-sheet__grid") };
+  await expect(page.getByRole("dialog", { name: "Map tools", exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
+  return { dock, toolGrid: page.getByRole("dialog", { name: "Map tools", exact: true }) };
 }
 
 const walls = (page: Page) =>
@@ -90,7 +93,7 @@ test.describe("M5 tools by finger", () => {
 
     // ---- HALL, three cells wide ----
     expect(await walls(page)).toBe(0); // positive control
-    await toolGrid.getByRole("button", { name: /^Hall$/ }).click();
+    await chooseBuildTool(toolGrid, "hallway");
     // Hall carries dials, so the sheet STAYS open — and the width control only
     // exists because it does.
     const widthRow = page.locator(".mobile-tool-sheet__section", { hasText: "Width (cells)" });
@@ -107,7 +110,7 @@ test.describe("M5 tools by finger", () => {
     await settle(page);
     expect(await doors(page)).toBe(0); // positive control
     await dock.getByRole("button", { name: /Tool/ }).click();
-    await toolGrid.getByRole("button", { name: /^Door$/ }).click();
+    await chooseBuildTool(toolGrid, "door");
     // Door has no dials, so it closes the sheet on its own.
     await expect(page.locator(".mobile-tool-sheet")).toBeHidden();
     await touchDrag(cdp, at(0.3, 0.55), [at(0.45, 0.55)]);
@@ -120,7 +123,7 @@ test.describe("M5 tools by finger", () => {
     await settle(page);
     const beforeSpline = await elements(page);
     await dock.getByRole("button", { name: /Tool/ }).click();
-    await toolGrid.getByRole("button", { name: /^Spline$/ }).click();
+    await chooseBuildTool(toolGrid, "spline");
     await page.getByRole("button", { name: /^Chain$/ }).click();
     await page.getByRole("button", { name: /To the map/i }).click();
     await touchDrag(cdp, at(0.25, 0.8), [at(0.7, 0.8)]);
@@ -144,7 +147,7 @@ test.describe("M5 tools by finger", () => {
     });
 
     expect(await walls(page)).toBe(0); // positive control
-    await toolGrid.getByRole("button", { name: /^Hall$/ }).click();
+    await chooseBuildTool(toolGrid, "hallway");
 
     // Reachable AND hittable: a control scrolled into view but sized under the
     // touch guideline is not usable, and at this width it is the one at risk.
@@ -173,14 +176,15 @@ test.describe("M5 tools by finger", () => {
     });
 
     const status = page.getByTestId("mobile-populate-status");
-    const populate = page.getByRole("button", { name: /✨ Populate/i });
+    const populate = page.getByRole("button", { name: /Decorate last/i });
+    await chooseBuildTool(toolGrid, "room");
 
     // Nothing drawn yet: the footer says so, and the button refuses.
     await expect(status).toHaveText(/draw a room or hallway first/i);
     await expect(populate).toBeDisabled();
 
     // ---- draw a room ----
-    await toolGrid.getByRole("button", { name: /^Room$/ }).click();
+    await chooseBuildTool(toolGrid, "room");
     await page.getByRole("button", { name: /To the map/i }).click();
     await touchDrag(cdp, at(0.25, 0.3), [at(0.7, 0.65)]);
     await expect.poll(() => walls(page), { timeout: 30_000 }).toBeGreaterThan(0);

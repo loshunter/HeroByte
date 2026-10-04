@@ -13,7 +13,12 @@
 
 import React, { useEffect, useRef } from "react";
 import { registerOpenPanel } from "../../components/effects/panelPresence";
+import { ConnectionChip } from "../../features/table/ConnectionChip";
 import type { MobileSurface } from "../../hooks/useMobileSurface";
+import {
+  WindowInteraction,
+  type WindowInteractionOptions,
+} from "../../features/interaction/WindowInteraction";
 
 /** Past this the release dismisses; short of it the screen snaps back. */
 const DISMISS_DRAG_PX = 96;
@@ -21,15 +26,23 @@ const DISMISS_DRAG_PX = 96;
 interface MobileScreenProps {
   title: string;
   surface: Exclude<MobileSurface, "none">;
+  /**
+   * The connection, in the header's own top row (U9). REQUIRED: a screen is an
+   * opaque cover, so it must say for itself that the table has lost the server.
+   */
+  isConnected: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  interaction?: Extract<WindowInteractionOptions, { behavior: "close" }>;
 }
 
 export function MobileScreen({
   title,
   surface,
+  isConnected,
   onClose,
   children,
+  interaction,
 }: MobileScreenProps): JSX.Element {
   const rootRef = useRef<HTMLElement | null>(null);
   const dragStartY = useRef<number | null>(null);
@@ -67,39 +80,51 @@ export function MobileScreen({
     }
   };
 
-  const onTouchEnd = (event: React.TouchEvent) => {
+  const onTouchEnd = (event: React.TouchEvent, close: () => void) => {
     if (dragStartY.current === null) return;
     const dy = event.changedTouches[0].clientY - dragStartY.current;
     settle();
-    if (dy > DISMISS_DRAG_PX) onClose();
+    if (dy > DISMISS_DRAG_PX) close();
   };
 
   return (
-    <section
-      ref={rootRef}
-      className="mobile-screen"
-      role="dialog"
-      aria-label={title}
-      data-mobile-surface={surface}
+    <WindowInteraction
+      frameRef={rootRef}
+      band={1700}
+      options={interaction ?? { behavior: "block" }}
+      onClose={onClose}
     >
-      <header
-        className="mobile-screen__header"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onTouchCancel={settle}
-      >
-        <h2 className="mobile-screen__title">{title}</h2>
-        <button
-          type="button"
-          className="jrpg-button jrpg-button-danger mobile-screen__close"
-          onClick={onClose}
-          aria-label={`Close ${title}`}
+      {(close) => (
+        <section
+          ref={rootRef}
+          className="mobile-screen"
+          role="dialog"
+          aria-label={title}
+          data-mobile-surface={surface}
         >
-          ✕
-        </button>
-      </header>
-      <div className="mobile-screen__body">{children}</div>
-    </section>
+          <header
+            className="mobile-screen__header"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={(event) => onTouchEnd(event, close ?? onClose)}
+            onTouchCancel={settle}
+          >
+            <h2 className="mobile-screen__title">{title}</h2>
+            <button
+              type="button"
+              className="jrpg-button jrpg-button-danger mobile-screen__close"
+              onClick={close ?? onClose}
+              aria-label={`Close ${title}`}
+            >
+              ✕
+            </button>
+            <div className="mobile-screen__status">
+              <ConnectionChip isConnected={isConnected} />
+            </div>
+          </header>
+          <div className="mobile-screen__body">{children}</div>
+        </section>
+      )}
+    </WindowInteraction>
   );
 }

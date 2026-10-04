@@ -231,10 +231,15 @@ export function usePlayerActions({
     (characterId: string, effects: string[]) => {
       sendMessage({ t: "set-character-status-effects", characterId, effects });
 
-      // If this character belongs to the current player, mirror the change
-      // to the legacy player-level status effects for backward compatibility.
-      const character = snapshot?.characters?.find((c) => c.id === characterId);
-      if (character?.ownedByPlayerUID === uid) {
+      // Mirror onto the legacy player-level list only when this is the
+      // sender's SOLE player character: that list is read back for a sole
+      // character alone (UX-02). With two it held whichever was edited last,
+      // and a deleted sibling's conditions resurfaced on the survivor. Never
+      // for an NPC: one can carry its placing DM's uid, and U7 gave NPCs a
+      // condition picker.
+      const ownPcs =
+        snapshot?.characters?.filter((c) => c.type === "pc" && c.ownedByPlayerUID === uid) ?? [];
+      if (ownPcs.length === 1 && ownPcs[0]!.id === characterId) {
         sendMessage({ t: "set-status-effects", effects });
       }
     },
@@ -476,27 +481,30 @@ export function usePlayerActions({
         }
       }
 
-      // Update initiative modifier if present and characterId provided
+      // The modifier ALONE (`set-initiative-modifier`): `set-initiative` would
+      // enter the order, write a manual entry to the roll log, and after END
+      // COMBAT (which keeps initiatives) start combat on this character's turn.
       if (characterId && state.initiativeModifier !== undefined) {
-        // Send set-initiative with current initiative (if any) and the modifier
-        // The server will update the modifier; if no initiative is set, it won't change
-        const currentCharacter = snapshot?.characters?.find((c) => c.id === characterId);
-        if (currentCharacter) {
-          sendMessage({
-            t: "set-initiative",
-            characterId,
-            initiative: currentCharacter.initiative ?? 0,
-            initiativeModifier: state.initiativeModifier,
-          });
-        }
+        sendMessage({
+          t: "set-initiative-modifier",
+          characterId,
+          initiativeModifier: Math.max(-20, Math.min(20, state.initiativeModifier)),
+        });
       }
 
-      // Sync player drawings if present
-      if (state.drawings !== undefined) {
+      // Drawings are the SENDER's: `sync-player-drawings` carries no owner, and
+      // the server replaces the sender's own with the file's. Restoring
+      // someone else's file onto their card must not wipe the loader's drawings
+      // and re-create theirs as the loader's, so only a self-restore sends it.
+      const card = characterId
+        ? snapshot?.characters?.find((c) => c.id === characterId)
+        : undefined;
+      const ownCard = !characterId || card?.ownedByPlayerUID === uid;
+      if (state.drawings !== undefined && ownCard) {
         sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
       }
     },
-    [sendMessage, snapshot?.characters],
+    [sendMessage, snapshot?.characters, uid],
   );
 
   /**

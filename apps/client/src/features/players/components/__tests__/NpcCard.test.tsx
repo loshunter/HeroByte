@@ -27,6 +27,8 @@ vi.mock("../../../../utils/sanitize", () => ({
 
 // Import component
 import { NpcCard } from "../NpcCard";
+import { RoleKnownContext } from "../../../table/roleKnown";
+import { npcUpdateMessage, type NpcUpdateFields, type NpcUpdateMessage } from "../../npcUpdate";
 // Import mocked utilities
 import { sanitizeText } from "../../../../utils/sanitize";
 
@@ -94,6 +96,9 @@ interface MockHPBarProps {
   onMaxHpInputChange: (input: string) => void;
   onMaxHpEdit: () => void;
   onMaxHpSubmit: (input: string) => void;
+  onTempHpSubmit: (input: string) => void;
+  isEditingTempHp?: boolean;
+  onTempHpEdit?: () => void;
 }
 
 vi.mock("../HPBar", () => ({
@@ -113,6 +118,9 @@ vi.mock("../HPBar", () => ({
     onMaxHpInputChange,
     onMaxHpEdit,
     onMaxHpSubmit,
+    onTempHpSubmit,
+    isEditingTempHp,
+    onTempHpEdit,
   }: MockHPBarProps) => (
     <div data-testid="hp-bar">
       <span data-testid="hp-bar-hp">{hp}</span>
@@ -143,6 +151,13 @@ vi.mock("../HPBar", () => ({
       </button>
       <button data-testid="hp-bar-submit-max-hp" onClick={() => onMaxHpSubmit("200")}>
         Submit Max HP
+      </button>
+      <span data-testid="hp-bar-is-editing-temp-hp">{String(isEditingTempHp)}</span>
+      <button data-testid="hp-bar-edit-temp-hp" onClick={() => onTempHpEdit?.()}>
+        Edit Temp HP
+      </button>
+      <button data-testid="hp-bar-submit-temp-hp" onClick={() => onTempHpSubmit("0")}>
+        Submit Temp HP 0
       </button>
     </div>
   ),
@@ -474,12 +489,12 @@ describe("NpcCard", () => {
       expect(settingsButton).not.toBeDisabled();
     });
 
-    it("disables settings button when isDM is false", () => {
+    it("offers a player no settings button at all (permitted actions only)", () => {
+      // It rendered disabled: a DM-only control on every player's screen.
       const props = createDefaultProps({ isDM: false });
       render(<NpcCard {...props} />);
 
-      const settingsButton = screen.getByTitle("NPC settings");
-      expect(settingsButton).toBeDisabled();
+      expect(screen.queryByTitle("NPC settings")).toBeNull();
     });
 
     it("displays NpcSettingsMenu component", () => {
@@ -1078,7 +1093,7 @@ describe("NpcCard", () => {
       expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: "new-image.png" });
     });
 
-    it("sets tokenImage to undefined when empty string is applied", () => {
+    it("sends an empty tokenImage (a clear) when an NPC's art is cleared", () => {
       const onUpdate = vi.fn();
       const props = createDefaultProps({
         character: createMockCharacter({ id: "npc-123", tokenImage: "existing.png" }),
@@ -1089,7 +1104,7 @@ describe("NpcCard", () => {
       // Clear the input
       fireEvent.click(screen.getByTestId("settings-clear-token"));
 
-      expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: undefined });
+      expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: "" });
     });
 
     it("sets tokenImage to string when non-empty", () => {
@@ -1161,9 +1176,8 @@ describe("NpcCard", () => {
       const props = createDefaultProps({ isDM: false });
       render(<NpcCard {...props} />);
 
-      const settingsButton = screen.getByTitle("NPC settings");
-      fireEvent.click(settingsButton);
-
+      // No button to press: a player is offered no settings at all.
+      expect(screen.queryByTitle("NPC settings")).toBeNull();
       expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
     });
 
@@ -1268,10 +1282,8 @@ describe("NpcCard", () => {
       const props = createDefaultProps({ isDM: false });
       render(<NpcCard {...props} />);
 
-      // Try to open settings (button is disabled but test the logic)
-      const settingsButton = screen.getByTitle("NPC settings");
-      fireEvent.click(settingsButton);
-
+      // No button to open it from, and the menu's own gate stays closed.
+      expect(screen.queryByTitle("NPC settings")).toBeNull();
       expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
     });
   });
@@ -1286,7 +1298,7 @@ describe("NpcCard", () => {
       render(<NpcCard {...props} />);
 
       expect(screen.getByTestId("portrait-section-is-editable")).toHaveTextContent("false");
-      expect(screen.getByTitle("NPC settings")).toBeDisabled();
+      expect(screen.queryByTitle("NPC settings")).toBeNull();
       expect(screen.getByTestId("hp-bar-is-me")).toHaveTextContent("false");
     });
 
@@ -1442,5 +1454,106 @@ describe("Redacted HP (S4 monsterHpDisplay)", () => {
   it("hidden mode (no badge) renders HP: ??? and nothing to infer from", () => {
     render(<NpcCard {...createDefaultProps({ character: redacted(), isDM: false })} />);
     expect(screen.getByTestId("npc-hp-redacted")).toHaveTextContent("HP: ???");
+  });
+});
+
+// `update-npc` carries the NPC's whole record, and the shared merge fills any
+// field an edit leaves undefined from what the NPC holds now. So a "clear" the
+// card sends as undefined arrives at the server as the OLD value: the edit
+// silently does nothing. These run the card's sends through the real merge.
+describe("NpcCard — clearing through the shared merge", () => {
+  const sentThroughMerge = (character: Character) => {
+    const sent: NpcUpdateMessage[] = [];
+    const onUpdate = vi.fn((_id: string, updates: NpcUpdateFields) => {
+      sent.push(npcUpdateMessage(character as SnapshotCharacter, updates));
+    });
+    render(<NpcCard {...createDefaultProps({ character, onUpdate })} />);
+    return sent;
+  };
+
+  it("Temp HP 0 reaches the server as 0, not as the old value", () => {
+    const sent = sentThroughMerge(createMockCharacter({ tempHp: 5 }));
+
+    fireEvent.click(screen.getByTestId("hp-bar-submit-temp-hp"));
+
+    expect(sent.at(-1)?.tempHp).toBe(0);
+  });
+
+  it("an NPC with no temp HP does not gain a 0 it never had", () => {
+    const sent = sentThroughMerge(createMockCharacter({ tempHp: undefined }));
+
+    fireEvent.click(screen.getByTestId("hp-bar-submit-temp-hp"));
+
+    expect(sent.at(-1)?.tempHp).toBeUndefined();
+  });
+
+  it("Clear token art reaches the server as a clear", () => {
+    const sent = sentThroughMerge(createMockCharacter({ tokenImage: "x.png" }));
+
+    fireEvent.click(screen.getByTestId("settings-clear-token"));
+
+    // The server stores `tokenImage?.trim() || null`: "" clears it.
+    expect(sent.at(-1)?.tokenImage).toBe("");
+  });
+});
+
+// An NPC's card is the DM's: on losing DM rights its settings window and HP
+// editor close, and neither reappears unasked when DM comes back.
+describe("NpcCard after losing DM rights", () => {
+  it("closes settings and the HP editor, and neither reopens on re-elevation", () => {
+    const props = createDefaultProps({ isDM: true });
+    const { rerender } = render(<NpcCard {...props} />);
+    fireEvent.click(screen.getByTestId("portrait-section-change"));
+    fireEvent.click(screen.getByTestId("hp-bar-edit-hp"));
+    fireEvent.click(screen.getByTestId("hp-bar-edit-max-hp"));
+    fireEvent.click(screen.getByTestId("hp-bar-edit-temp-hp"));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+    expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("true");
+    expect(screen.getByTestId("hp-bar-is-editing-max-hp")).toHaveTextContent("true");
+    expect(screen.getByTestId("hp-bar-is-editing-temp-hp")).toHaveTextContent("true");
+
+    rerender(<NpcCard {...props} isDM={false} />);
+    rerender(<NpcCard {...props} isDM={true} />);
+
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
+    expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("false");
+    expect(screen.getByTestId("hp-bar-is-editing-max-hp")).toHaveTextContent("false");
+    expect(screen.getByTestId("hp-bar-is-editing-temp-hp")).toHaveTextContent("false");
+  });
+});
+
+// The settings window's portrait buffer was seeded once: after the DM set a
+// new portrait elsewhere (the DM menu), this card still offered the old URL,
+// and leaving the field committed it back. It re-fills on the value.
+describe("NpcCard portrait field follows the server", () => {
+  it("shows a portrait set elsewhere", () => {
+    const props = createDefaultProps({ character: createMockCharacter({ portrait: "a.png" }) });
+    const { rerender } = render(<NpcCard {...props} />);
+
+    rerender(<NpcCard {...props} character={createMockCharacter({ portrait: "b.png" })} />);
+
+    expect(screen.getByTestId("settings-portrait-input")).toHaveTextContent("b.png");
+  });
+});
+
+// A reconnect blip reads not-DM beside the DM's cached roster: it is not a demotion.
+describe("NpcCard through a reconnect blip", () => {
+  it("keeps settings and the HP editor open until the roster confirms the demotion", () => {
+    const props = createDefaultProps({ isDM: true });
+    const view = (known: boolean, isDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <NpcCard {...props} isDM={isDM} />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    fireEvent.click(screen.getByTestId("portrait-section-change"));
+    fireEvent.click(screen.getByTestId("hp-bar-edit-hp"));
+
+    rerender(view(false, false));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+    expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("true");
+
+    rerender(view(true, false));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
   });
 });

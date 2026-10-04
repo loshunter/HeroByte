@@ -9,7 +9,8 @@
 // seed is shown rather than hidden, and why ⟳ is an explicit act.
 
 import { JRPGButton } from "../../components/ui/JRPGPanel";
-import type { GenerateParams, PopulateDensity } from "./mapEditTypes";
+import type { GenerateParams } from "./mapEditTypes";
+import { POPULATE_DENSITIES } from "./populateLabels";
 
 interface GeneratePanelProps {
   params: GenerateParams;
@@ -18,6 +19,7 @@ interface GeneratePanelProps {
   onGenerate: () => void;
   canGenerate: boolean;
   busy: boolean;
+  feedback?: import("./useGenerateOutcome").GenerateFeedback;
   /** The dragged region in cells, or null before the first drag. */
   region: { cols: number; rows: number } | null;
   /** Why GENERATE is refused, or null. Absent region is covered by the label. */
@@ -28,10 +30,12 @@ const THEMES: { id: GenerateParams["theme"]; label: string }[] = [
   { id: "stone", label: "🪨 Stone" },
   { id: "wood", label: "🪵 Wood" },
 ];
-const DENSITIES: PopulateDensity[] = ["low", "medium", "high"];
 
 const labelStyle = { display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" } as const;
 const cell = { fontSize: "8px", padding: "6px 2px" } as const;
+const rowStyle = { display: "flex", alignItems: "center", gap: "6px" } as const;
+const rowLabelStyle = { flex: "0 0 52px", color: "var(--jrpg-gold)" } as const;
+const groupStyle = { flex: 1, minWidth: 0, display: "grid", gap: "4px" } as const;
 
 export function GeneratePanel({
   params,
@@ -40,6 +44,7 @@ export function GeneratePanel({
   onGenerate,
   canGenerate,
   busy,
+  feedback,
   region,
   hint,
 }: GeneratePanelProps) {
@@ -49,37 +54,52 @@ export function GeneratePanel({
         {region ? `Region: ${region.cols} × ${region.rows} cells` : "Drag a region on the map…"}
       </label>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
-        {THEMES.map((theme) => (
-          <JRPGButton
-            key={theme.id}
-            onClick={() => onChange({ ...params, theme: theme.id })}
-            variant={params.theme === theme.id ? "primary" : "default"}
-            style={cell}
-          >
-            {theme.label}
-          </JRPGButton>
-        ))}
+      {/* Each row's visible label sits BESIDE its buttons: stacked above them the two labels
+          cost ~36px of the DM window, and the Generate hint fell below its fold at 1280x720. */}
+      <div style={rowStyle}>
+        <span id="generate-theme-label" className="jrpg-text-small" style={rowLabelStyle}>
+          Theme
+        </span>
+        <div
+          role="group"
+          aria-labelledby="generate-theme-label"
+          style={{ ...groupStyle, gridTemplateColumns: "1fr 1fr" }}
+        >
+          {THEMES.map((theme) => (
+            <JRPGButton
+              key={theme.id}
+              onClick={() => onChange({ ...params, theme: theme.id })}
+              variant={params.theme === theme.id ? "primary" : "default"}
+              aria-pressed={params.theme === theme.id}
+              style={cell}
+            >
+              {theme.label}
+            </JRPGButton>
+          ))}
+        </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: "4px",
-          marginTop: "4px",
-        }}
-      >
-        {DENSITIES.map((density) => (
-          <JRPGButton
-            key={density}
-            onClick={() => onChange({ ...params, density })}
-            variant={params.density === density ? "primary" : "default"}
-            style={cell}
-          >
-            {density}
-          </JRPGButton>
-        ))}
+      <div style={{ ...rowStyle, marginTop: "4px" }}>
+        <span id="generate-density-label" className="jrpg-text-small" style={rowLabelStyle}>
+          Density
+        </span>
+        <div
+          role="group"
+          aria-labelledby="generate-density-label"
+          style={{ ...groupStyle, gridTemplateColumns: "1fr 1fr 1fr" }}
+        >
+          {POPULATE_DENSITIES.map(({ id: density, label }) => (
+            <JRPGButton
+              key={density}
+              onClick={() => onChange({ ...params, density })}
+              variant={params.density === density ? "primary" : "default"}
+              aria-pressed={params.density === density}
+              style={cell}
+            >
+              {label}
+            </JRPGButton>
+          ))}
+        </div>
       </div>
 
       <label className="jrpg-text-small" style={{ ...labelStyle, marginTop: "6px" }}>
@@ -101,7 +121,12 @@ export function GeneratePanel({
         >
           {params.seed}
         </span>
-        <JRPGButton onClick={onRerollSeed} title="Roll a new seed" style={cell}>
+        <JRPGButton
+          onClick={onRerollSeed}
+          title="Roll a new seed"
+          aria-label="Roll a new seed"
+          style={cell}
+        >
           ⟳
         </JRPGButton>
       </div>
@@ -113,7 +138,7 @@ export function GeneratePanel({
         title="Build a dungeon in the dragged region — one undo removes all of it"
         style={{ fontSize: "8px", padding: "7px", width: "100%", marginTop: "6px" }}
       >
-        {busy ? "⏳ GENERATING…" : "🎲 GENERATE"}
+        {busy ? "⏳ GENERATING…" : "🎲 Generate in this area"}
       </JRPGButton>
 
       {hint && (
@@ -125,6 +150,25 @@ export function GeneratePanel({
         >
           {hint}
         </p>
+      )}
+
+      {feedback?.recovery && (
+        <div style={{ display: "grid", gap: "6px", marginTop: "6px" }}>
+          <JRPGButton
+            onClick={feedback.recovery.refresh}
+            disabled={feedback.recovery.refreshing}
+            style={cell}
+          >
+            {feedback.recovery.refreshing ? "Refreshing…" : "Refresh map"}
+          </JRPGButton>
+          <JRPGButton
+            onClick={feedback.recovery.acknowledge}
+            disabled={!feedback.recovery.canAcknowledge}
+            style={cell}
+          >
+            I&apos;ve checked the map
+          </JRPGButton>
+        </div>
       )}
 
       {/* Say it out loud rather than let a DM wonder where the option went — or

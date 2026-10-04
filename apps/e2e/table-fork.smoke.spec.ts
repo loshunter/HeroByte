@@ -17,7 +17,7 @@ import { selectDMTab } from "./docs-shots.helpers";
 test.describe("Table Fork - Smoke Tests", () => {
   test("Save & Go There mints a private table and lands the DM in it", async ({ page }) => {
     await joinDefaultRoomAsDM(page);
-    await selectDMTab(page, "Session");
+    await selectDMTab(page, "Table");
 
     await page.locator("#fork-name").fill("Fork Smoke");
     await page.locator("#fork-pw").fill("smoke-table-pw");

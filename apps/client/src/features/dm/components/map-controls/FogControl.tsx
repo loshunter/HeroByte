@@ -28,7 +28,7 @@ export function FogControl({ fogEnabled, hasCompiledScene, onFogEnabledChange }:
         <span className="jrpg-text-body" style={{ opacity: 0.85, display: "block" }}>
           {hasCompiledScene
             ? "Players see only what their tokens can see. Walls and closed doors block sight."
-            : "Publish a Map Studio map first — fog uses its compiled walls and doors."}
+            : "Build a map on the table first (🏗️ Build map; on a phone, 🏗️ Edit the live map) — fog uses its walls and doors."}
         </span>
       </div>
     </JRPGPanel>

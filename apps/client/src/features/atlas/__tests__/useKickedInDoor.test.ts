@@ -175,7 +175,8 @@ describe("useKickedInDoor", () => {
 
     act(() => pressG());
     expect(result.current.open).toBe(true);
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    // Escape belongs to the rendered panel, covered with the real hook + UI below.
+    act(() => result.current.closeKick());
     expect(result.current.open).toBe(false);
   });
 
@@ -270,7 +271,9 @@ describe("useKickedInDoor", () => {
     const first = sentKick(sendMessage);
     act(() => vi.advanceTimersByTime(KICK_PENDING_TIMEOUT_MS));
     expect(result.current.pending).toMatchObject({ nodeId: first.nodeId, expired: true });
-    expect(toast.error).toHaveBeenCalledWith("The door didn't budge — ROLL again (same ids)");
+    expect(toast.error).toHaveBeenCalledWith(
+      "The door didn't budge — press G (or 🚪 Kick in a door), set the name again if you changed it, and 🚪 Generate & enter; it will not build the place twice.",
+    );
     expect(toast.dismiss).toHaveBeenCalledWith("toast-1");
 
     act(() => result.current.kick(REQUEST));

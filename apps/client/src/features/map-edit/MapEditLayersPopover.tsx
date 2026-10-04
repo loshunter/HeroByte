@@ -53,29 +53,38 @@ export function MapEditLayersPopover({
               </span>
               <button
                 aria-label={`Move ${layer.name} up`}
-                disabled={saving || index === layers.length - 1}
-                onClick={() => onMoveLayer(layer.id, index + 1)}
-                style={iconButtonStyle}
+                disabled={index === layers.length - 1}
+                aria-disabled={saving || undefined}
+                onClick={() => !saving && onMoveLayer(layer.id, index + 1)}
+                style={saving ? { ...iconButtonStyle, ...savingStyle } : iconButtonStyle}
               >
                 ▲
               </button>
               <button
                 aria-label={`Move ${layer.name} down`}
-                disabled={saving || index === 0}
-                onClick={() => onMoveLayer(layer.id, index - 1)}
-                style={iconButtonStyle}
+                disabled={index === 0}
+                aria-disabled={saving || undefined}
+                onClick={() => !saving && onMoveLayer(layer.id, index - 1)}
+                style={saving ? { ...iconButtonStyle, ...savingStyle } : iconButtonStyle}
               >
                 ▼
               </button>
             </div>
+            <span className="jrpg-text-small">
+              {layer.kind === "lighting" ? "Ambient light" : "Opacity"} —{" "}
+              {Math.round(layer.opacity * 100)}%
+            </span>
             <input
-              aria-label={`${layer.name} opacity`}
+              aria-label={layer.kind === "lighting" ? "Ambient light" : `${layer.name} opacity`}
+              aria-valuetext={`${Math.round(layer.opacity * 100)}%`}
               type="range"
               min={0}
               max={1}
               step={0.05}
               value={layer.opacity}
-              disabled={saving}
+              // aria-disabled, not `disabled`: a disabled slider drops keyboard focus (see
+              // AmbientLightControl).
+              aria-disabled={saving || undefined}
               onChange={(event) => {
                 if (saving) return;
                 onUpdateLayer(layer.id, { opacity: Number(event.target.value) });
@@ -107,3 +116,5 @@ const listStyle: CSSProperties = {
 const rowStyle: CSSProperties = { border: "1px solid #3a3f52", padding: "4px 6px" };
 const rowTopStyle: CSSProperties = { display: "flex", alignItems: "center", gap: "4px" };
 const iconButtonStyle: CSSProperties = { fontSize: "10px", padding: "2px 6px", cursor: "pointer" };
+// A button that waits with aria-disabled (so it keeps keyboard focus) must still LOOK inert.
+const savingStyle: CSSProperties = { opacity: 0.5, cursor: "not-allowed" };

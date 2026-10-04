@@ -30,6 +30,8 @@ The pattern: a required field was just added to a shared or domain type (RoomSta
 - Never change an assertion, an expectation, or a characterization pin. Twice in this repo a green characterization test turned out to be faithfully protecting a bug — deciding that a pin is wrong and re-pinning it is a judgment call that belongs to the orchestrator, never to a mechanical repair pass. If your fix makes a test fail, that test goes in ESCALATE, unfixed.
 - Never edit non-test source beyond rule 2(b)'s optional-prop hatch.
 - Never delete a test, and never add `as any` to make an error disappear — the ripple pattern needs neither.
+- Never run a git command that changes files or the index: no `git checkout`, `git restore`, `git reset`, `git stash`, `git clean`, `git apply`. The working tree you are repairing holds the orchestrator's UNCOMMITTED work, and git cannot give it back. On 2026-09-27 a run of this agent broke a file with a bad `sed`, ran `git checkout --` to undo it, and silently wiped a whole uncommitted describe block it had not written; it had to be rebuilt from the transcript. If an edit goes wrong, repair it with the Edit tool against what you read before editing — and prefer the Edit tool to `sed` for every change in the first place. If you cannot repair it, stop and ESCALATE with the file named.
+- Never wait in the background: every command is a foreground Bash call, and nothing you started may still be running when you report.
 
 ## Report format — your entire final message
 

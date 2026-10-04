@@ -80,6 +80,14 @@ describe("GENERATE on a phone", () => {
     expect(big).not.toBe(small);
   });
 
+  it("names its density chips Low / Medium / High, as Populate and the desktop panel do", () => {
+    render(<MobileGeneratePanel {...bag()} />);
+    for (const name of ["Low", "Medium", "High"]) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("button", { name: "Med" })).toBeNull();
+  });
+
   it("says nothing when there is nothing to say", () => {
     render(<MobileGeneratePanel {...bag()} />);
 
@@ -117,5 +125,74 @@ describe("GENERATE on a phone", () => {
   it("warns that generated doors are not secret — the recipe cannot make one", () => {
     render(<MobileGeneratePanel {...bag()} />);
     expect(screen.getByText(/No secret doors/i)).toBeInTheDocument();
+  });
+});
+
+describe("Generate operation feedback on a phone", () => {
+  it("separates its own pending operation from an unrelated map edit", () => {
+    const view = render(
+      <MobileGeneratePanel
+        {...bag({
+          saving: true,
+          canGenerate: false,
+          generateFeedback: { status: "idle", recovery: null },
+        })}
+      />,
+    );
+    expect(generateButton()).toHaveTextContent("Working");
+    expect(generateButton()).not.toHaveTextContent("Generating");
+    view.rerender(
+      <MobileGeneratePanel
+        {...bag({
+          saving: true,
+          canGenerate: false,
+          generateFeedback: { status: "pending", recovery: null },
+        })}
+      />,
+    );
+    expect(generateButton()).toHaveTextContent("Generating");
+  });
+
+  it("keeps recovery explicit, reports uncertainty, and never uses inspection as Generate", () => {
+    const refresh = vi.fn();
+    const acknowledge = vi.fn();
+    const onGenerate = vi.fn();
+    const recovery = { refreshing: false, canAcknowledge: false, refresh, acknowledge };
+    const props = bag({
+      canGenerate: false,
+      onGenerate,
+      generateHint: "Completion unconfirmed. Refresh this map and inspect the result.",
+      generateFeedback: { status: "failed", recovery },
+    });
+    const view = render(<MobileGeneratePanel {...props} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Completion unconfirmed");
+    const inspect = () => screen.getByRole("button", { name: "I've checked the map" });
+    expect(inspect()).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh map" }));
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(onGenerate).not.toHaveBeenCalled();
+    view.rerender(
+      <MobileGeneratePanel
+        {...props}
+        generateFeedback={{ status: "failed", recovery: { ...recovery, refreshing: true } }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Refreshing…" })).toBeDisabled();
+    expect(inspect()).toBeDisabled();
+    view.rerender(
+      <MobileGeneratePanel
+        {...props}
+        generateFeedback={{ status: "failed", recovery: { ...recovery, canAcknowledge: true } }}
+      />,
+    );
+    fireEvent.click(inspect());
+    expect(acknowledge).toHaveBeenCalledOnce();
+    expect(onGenerate).not.toHaveBeenCalled();
+    expect(generateButton()).toBeDisabled();
+  });
+
+  it("names where the map lands before committing (U6)", () => {
+    render(<MobileGeneratePanel {...bag()} />);
+    expect(generateButton()).toHaveTextContent("🎲 Generate in this area");
   });
 });

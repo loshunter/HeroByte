@@ -1,3 +1,4 @@
+import { activatePanelLauncher } from "../../features/interaction/useExplicitDismissal";
 // ============================================================================
 // HEADER COMPONENT
 // ============================================================================
@@ -5,9 +6,13 @@
 // Extracted from App.tsx to follow single responsibility principle
 
 import React from "react";
+import "./Header.css";
+import { PING_TITLE, RESET_VIEW_TITLE } from "./viewWords";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
-import { JuiceMenuButton } from "../../features/juice/JuiceMenuButton";
 import { HelpMenuButton } from "../../features/help/HelpMenuButton";
+import { TableMenu } from "../../features/table/TableMenu";
+import type { TableMenuProps } from "../../features/table/tableMenuProps";
+import { PublicTableNotice } from "../../features/rooms/PublicTableNotice";
 
 export type ToolMode =
   | "pointer"
@@ -23,19 +28,21 @@ export type ToolMode =
   | null;
 
 interface HeaderProps {
-  uid: string;
+  /**
+   * The table's own corner (U9): its name, your role, the connection, and the
+   * menu behind them (role, Preferences, the DM's way to Table settings). One
+   * REQUIRED object, the same one the phone's Table screen reads.
+   */
+  table: TableMenuProps;
   snapToGrid: boolean;
   activeTool: ToolMode;
-  crtFilter: boolean;
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
-  isDM?: boolean;
   /** Player lens (P4): the DM's view rendered as players receive it. */
   playerLens?: boolean;
   onPlayerLensChange?: (enabled: boolean) => void;
   onSnapToGridChange: (snap: boolean) => void;
   onToolSelect: (mode: ToolMode) => void;
-  onCrtFilterChange: (enabled: boolean) => void;
   onDiceRollerToggle: (open: boolean) => void;
   onRollLogToggle: (open: boolean) => void;
   topPanelRef?: React.RefObject<HTMLDivElement>;
@@ -46,23 +53,21 @@ interface HeaderProps {
  * Header component with logo, controls, and tool toggles
  */
 export const Header: React.FC<HeaderProps> = ({
-  uid,
+  table,
   snapToGrid,
   activeTool,
-  crtFilter,
   diceRollerOpen,
   rollLogOpen,
-  isDM = false,
   playerLens = false,
   onPlayerLensChange,
   onSnapToGridChange,
   onToolSelect,
-  onCrtFilterChange,
   onDiceRollerToggle,
   onRollLogToggle,
   topPanelRef,
   onResetCamera,
 }) => {
+  const { isDM } = table;
   const pointerMode = activeTool === "pointer";
   const measureMode = activeTool === "measure";
   const drawMode = activeTool === "draw";
@@ -73,9 +78,13 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <div
       ref={topPanelRef}
+      // What hangs below the header reads it: a window with no place of its own opens under
+      // the lowest control inside this root (DraggableWindow, headerPlacement), and the Table
+      // menu hangs from this frame's bottom edge. Keep the marker on the fixed root.
+      data-header-root=""
       style={{
         position: "fixed",
-        top: "24px", // Offset for status banner
+        top: 0,
         left: 0,
         right: 0,
         zIndex: 100,
@@ -83,6 +92,10 @@ export const Header: React.FC<HeaderProps> = ({
       }}
     >
       <JRPGPanel variant="bevel" style={{ padding: "6px 10px", borderRadius: 0 }}>
+        {/* The public table's warning is a ROW of the header now, in its flow: it
+            was a fixed chip over the header's own band, and its width decided
+            which buttons could still be clicked. */}
+        {table.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
         <div
           style={{
             display: "flex",
@@ -91,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
             flexWrap: "wrap",
           }}
         >
-          {/* Left side: Logo and UID packed tightly */}
+          {/* Left side: Logo and the Table button packed tightly */}
           <JRPGPanel
             variant="simple"
             style={{
@@ -112,11 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="jrpg-pixelated"
               style={{ height: "32px", mixBlendMode: "screen" }}
             />
-            <div style={{ textAlign: "left" }}>
-              <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
-                <strong style={{ color: "var(--jrpg-gold)" }}>UID</strong> {uid.substring(0, 8)}...
-              </p>
-            </div>
+            <TableMenu menu={table} />
           </JRPGPanel>
 
           {/* Right side: Controls and Tools */}
@@ -125,138 +134,150 @@ export const Header: React.FC<HeaderProps> = ({
             style={{ padding: "6px 10px", flex: 1, display: "flex", alignItems: "center" }}
           >
             <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-              {/* Snap to Grid */}
-              <JRPGButton
-                onClick={() => onSnapToGridChange(!snapToGrid)}
-                variant={snapToGrid ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Toggle snap-to-grid for tokens and measurements"
-              >
-                Snap
-              </JRPGButton>
-
-              {/* Viewport Controls */}
-              <JRPGButton
-                onClick={onResetCamera}
-                variant="default"
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Reset camera to center of map"
-              >
-                🧭 Recenter
-              </JRPGButton>
-
-              {/* Pointer Mode */}
-              <JRPGButton
-                onClick={() => onToolSelect(pointerMode ? null : "pointer")}
-                variant={pointerMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Point at locations on the map (visible to others)"
-              >
-                👆 Pointer
-              </JRPGButton>
-
-              {/* Measure Mode */}
-              <JRPGButton
-                onClick={() => onToolSelect(measureMode ? null : "measure")}
-                variant={measureMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Measure distances on the grid"
-              >
-                📏 Measure
-              </JRPGButton>
-
-              {/* Drawing Toolbar Toggle */}
-              <JRPGButton
-                onClick={() => onToolSelect(drawMode ? null : "draw")}
-                variant={drawMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Open drawing tools menu"
-              >
-                ✏️ Draw Tools
-              </JRPGButton>
-
-              {/* Transform Mode */}
-              <JRPGButton
-                onClick={() => onToolSelect(transformMode ? null : "transform")}
-                variant={transformMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Scale and rotate objects"
-              >
-                🔄 Transform
-              </JRPGButton>
-
-              {/* Select Mode */}
-              <JRPGButton
-                onClick={() => onToolSelect(selectMode ? null : "select")}
-                variant={selectMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Select multiple objects"
-              >
-                🖱️ Select
-              </JRPGButton>
-
-              {isDM && (
+              <div role="group" aria-label="Play tools" className="header-control-group">
+                <span className="header-control-group__label">Play tools</span>
                 <JRPGButton
-                  onClick={() => onToolSelect(mapEditMode ? null : "map-edit")}
-                  variant={mapEditMode ? "primary" : "default"}
+                  onClick={() => onToolSelect(null)}
+                  variant={activeTool === null ? "primary" : "default"}
+                  aria-pressed={activeTool === null}
                   style={{ fontSize: "8px", padding: "4px 10px" }}
-                  title="Author the live map on the table"
+                  title="Move tokens and pan the map"
                 >
-                  🏗️ Map
+                  ✥ Move
                 </JRPGButton>
-              )}
+                {/* Pointer Mode */}
+                <JRPGButton
+                  onClick={() => onToolSelect(pointerMode ? null : "pointer")}
+                  variant={pointerMode ? "primary" : "default"}
+                  aria-pressed={pointerMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title={PING_TITLE}
+                >
+                  👆 Ping
+                </JRPGButton>
 
-              {/* Player lens (P4): render the DM's own table exactly as
+                {/* Measure Mode */}
+                <JRPGButton
+                  onClick={() => onToolSelect(measureMode ? null : "measure")}
+                  variant={measureMode ? "primary" : "default"}
+                  aria-pressed={measureMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Measure distances on the grid"
+                >
+                  📏 Measure
+                </JRPGButton>
+
+                {/* Drawing Toolbar Toggle */}
+                <JRPGButton
+                  onClick={() => onToolSelect(drawMode ? null : "draw")}
+                  variant={drawMode ? "primary" : "default"}
+                  aria-pressed={drawMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Open drawing tools menu"
+                >
+                  ✏️ Draw
+                </JRPGButton>
+
+                {/* Transform Mode */}
+                <JRPGButton
+                  onClick={() => onToolSelect(transformMode ? null : "transform")}
+                  variant={transformMode ? "primary" : "default"}
+                  aria-pressed={transformMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Scale and rotate objects"
+                >
+                  🔄 Transform
+                </JRPGButton>
+
+                {/* Select Mode */}
+                <JRPGButton
+                  onClick={() => onToolSelect(selectMode ? null : "select")}
+                  variant={selectMode ? "primary" : "default"}
+                  aria-pressed={selectMode}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Select multiple objects"
+                >
+                  🖱️ Select
+                </JRPGButton>
+
+                {/* Snap to Grid */}
+                <JRPGButton
+                  onClick={() => onSnapToGridChange(!snapToGrid)}
+                  variant={snapToGrid ? "primary" : "default"}
+                  aria-pressed={snapToGrid}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Toggle snap-to-grid for tokens and measurements"
+                >
+                  Snap
+                </JRPGButton>
+
+                {/* Viewport Controls */}
+                <JRPGButton
+                  onClick={onResetCamera}
+                  variant="default"
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title={RESET_VIEW_TITLE}
+                  aria-label="Reset view"
+                >
+                  🧭 Reset
+                </JRPGButton>
+
+                {isDM && (
+                  <JRPGButton
+                    onClick={() => onToolSelect(mapEditMode ? null : "map-edit")}
+                    variant={mapEditMode ? "primary" : "default"}
+                    aria-pressed={mapEditMode}
+                    style={{ fontSize: "8px", padding: "4px 10px" }}
+                    title="Author the live map on the table"
+                  >
+                    🏗️ Build map
+                  </JRPGButton>
+                )}
+              </div>
+              <div role="group" aria-label="Panels & settings" className="header-control-group">
+                <span className="header-control-group__label">Panels &amp; settings</span>
+                {/* Player lens (P4): render the DM's own table exactly as
                   players receive it — fog on, secret doors hidden, DM
                   overlays off. A VIEW toggle only; DM powers stay live. */}
-              {isDM && onPlayerLensChange && (
+                {isDM && onPlayerLensChange && (
+                  <JRPGButton
+                    onClick={() => onPlayerLensChange(!playerLens)}
+                    variant={playerLens ? "primary" : "default"}
+                    aria-pressed={playerLens}
+                    style={{ fontSize: "8px", padding: "4px 10px" }}
+                    title="See the table exactly as players do (fog, secret doors, no DM overlays)"
+                  >
+                    👁 Player View
+                  </JRPGButton>
+                )}
+                {/* Dice Roller */}
                 <JRPGButton
-                  onClick={() => onPlayerLensChange(!playerLens)}
-                  variant={playerLens ? "primary" : "default"}
+                  onClick={() => onDiceRollerToggle(!diceRollerOpen)}
+                  variant={diceRollerOpen ? "primary" : "default"}
+                  aria-pressed={diceRollerOpen}
                   style={{ fontSize: "8px", padding: "4px 10px" }}
-                  title="See the table exactly as players do (fog, secret doors, no DM overlays)"
+                  title="Open 3D dice roller"
                 >
-                  👁 Player View
+                  ⚂ Dice
                 </JRPGButton>
-              )}
 
-              {/* CRT Filter */}
-              <JRPGButton
-                onClick={() => onCrtFilterChange(!crtFilter)}
-                variant={crtFilter ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Toggle retro CRT visual effect"
-                aria-pressed={crtFilter}
-              >
-                📺 CRT
-              </JRPGButton>
+                {/* Roll Log */}
+                <JRPGButton
+                  onClick={(event) =>
+                    activatePanelLauncher(event, () => onRollLogToggle(!rollLogOpen))
+                  }
+                  variant={rollLogOpen ? "primary" : "default"}
+                  aria-pressed={rollLogOpen}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Open table chat and dice roll history"
+                >
+                  📜 Chat &amp; Rolls
+                </JRPGButton>
 
-              {/* Game-feel (motion + sound) settings */}
-              <JuiceMenuButton />
-
-              {/* Dice Roller */}
-              <JRPGButton
-                onClick={() => onDiceRollerToggle(!diceRollerOpen)}
-                variant={diceRollerOpen ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="Open 3D dice roller"
-              >
-                ⚂ Dice
-              </JRPGButton>
-
-              {/* Roll Log */}
-              <JRPGButton
-                onClick={() => onRollLogToggle(!rollLogOpen)}
-                variant={rollLogOpen ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "4px 10px" }}
-                title="View dice roll history"
-              >
-                📜 Log
-              </JRPGButton>
-
-              {/* The manual. Last in the row so it reads as "and if you're
+                {/* The manual. Last in the row so it reads as "and if you're
                   stuck, here" rather than competing with the tools. */}
-              <HelpMenuButton />
+                <HelpMenuButton />
+              </div>
             </div>
           </JRPGPanel>
         </div>

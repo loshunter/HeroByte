@@ -33,7 +33,7 @@ test.describe("HeroByte player state save/load", () => {
     );
 
     // Create a drawing
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
 
     const canvas = page.getByTestId("map-board").locator("canvas").first();
@@ -182,7 +182,7 @@ test.describe("HeroByte player state save/load", () => {
     const myUid = await page.evaluate(() => window.__HERO_BYTE_E2E__?.uid ?? null);
 
     // Create multiple drawings
-    await page.getByRole("button", { name: /Draw Tools/i }).click();
+    await page.getByRole("button", { name: /✏️ Draw/i }).click();
     await expect(page.locator("text=DRAWING TOOLS")).toBeVisible();
 
     const canvas = page.getByTestId("map-board").locator("canvas").first();

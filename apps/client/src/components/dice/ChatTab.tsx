@@ -1,12 +1,18 @@
 // ============================================================================
 // CHAT TAB - table talk inside the roll-log panel
 // ============================================================================
+// Text here is read, so it takes the body face (`.jrpg-text-body`, 13 px) rather than
+// the 8 px pixel face `jrpg-text-small` gives; the controls (SEND, "Send to") keep the
+// pixel face at 11 px, the size the stylesheet uses for functional labels (set inline here).
+// On a coarse pointer the composer and the Send-to select are 16 px instead (herobyte.css: iOS
+// zooms the page when a focused control is under 16 px).
+//
 // A sibling of RollEntry rather than more lines in RollLog, for the same
 // reason RollEntry moved out: the shell hosts tabs, the tabs own their own
 // bodies.
 //
 // Riding inside the existing panel is deliberate — the mobile dock is a
-// hardcoded 5-column grid (Party/Tools/Dice/Log/View), so a sixth button
+// hardcoded 5-column grid (Party/Tools/Dice/Chat/View), so a sixth button
 // would silently overflow it. A tab costs no dock slot.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -17,6 +23,8 @@ import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 const CHAT_TEXT_MAX = 2000;
 
 const WHOLE_TABLE = "";
+const UNAVAILABLE_TARGET = "unavailable";
+const optionValue = (uid: string) => (uid ? `recipient:${uid}` : WHOLE_TABLE);
 
 export interface ChatTabProps {
   messages: ChatMessage[];
@@ -28,7 +36,7 @@ export interface ChatTabProps {
 
 export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid, onSendChat }) => {
   const [draft, setDraft] = useState("");
-  const [target, setTarget] = useState<string>(WHOLE_TABLE);
+  const [target, setTarget] = useState({ uid: WHOLE_TABLE, name: "Everyone", needsChoice: false });
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   // Newest message last (chat reads top-to-bottom, unlike the roll log which
@@ -49,18 +57,26 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
     [players, currentUid],
   );
 
-  // A target who leaves would otherwise strand the composer in a whisper to
-  // nobody, silently. Fall back to the whole table.
-  const effectiveTarget =
-    target !== WHOLE_TABLE && whisperTargets.some((p) => p.uid === target) ? target : WHOLE_TABLE;
+  // Preserve the author's audience and draft when a recipient is removed.
+  // Making a private draft public must always require an explicit choice.
+  const recipientMissing =
+    target.uid !== WHOLE_TABLE && !whisperTargets.some((player) => player.uid === target.uid);
+  const targetUnavailable = recipientMissing || target.needsChoice;
+  useEffect(() => {
+    if (recipientMissing) {
+      setTarget((current) =>
+        current.uid === target.uid ? { ...current, needsChoice: true } : current,
+      );
+    }
+  }, [recipientMissing, target.uid]);
 
   const nameFor = (uid: string): string =>
     players.find((player) => player.uid === uid)?.name ?? "unknown";
 
   const send = () => {
     const text = draft.trim();
-    if (!text) return;
-    onSendChat(text, effectiveTarget === WHOLE_TABLE ? undefined : effectiveTarget);
+    if (!text || targetUnavailable) return;
+    onSendChat(text, target.uid === WHOLE_TABLE ? undefined : target.uid);
     setDraft("");
   };
 
@@ -70,7 +86,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
         <div ref={scrollerRef} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {messages.length === 0 ? (
             <div
-              className="jrpg-text-small"
+              className="jrpg-text-body"
               style={{
                 textAlign: "center",
                 color: "var(--jrpg-white)",
@@ -84,11 +100,15 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
             messages.map((message) => {
               const isMine = message.authorUid === currentUid;
               const isWhisper = Boolean(message.to);
+              const recipientName =
+                typeof message.toName === "string" && message.toName.trim()
+                  ? message.toName
+                  : nameFor(message.to ?? "");
               return (
                 <div
                   key={message.id}
                   data-testid="chat-message"
-                  className="jrpg-text-small"
+                  className="jrpg-text-body"
                   style={{
                     color: "var(--jrpg-white)",
                     // Whispers read as set apart without relying on colour alone.
@@ -100,7 +120,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
                   <span style={{ color: isMine ? "var(--jrpg-gold)" : "var(--jrpg-cyan)" }}>
                     {isWhisper
                       ? isMine
-                        ? `→ ${nameFor(message.to as string)}`
+                        ? `→ ${recipientName}`
                         : `${message.authorName} →`
                       : message.authorName}
                     :{" "}
@@ -122,22 +142,57 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
       </JRPGPanel>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
-        {whisperTargets.length > 0 && (
+        {(whisperTargets.length > 0 || targetUnavailable) && (
           <select
             aria-label="Send to"
-            value={effectiveTarget}
-            onChange={(event) => setTarget(event.target.value)}
-            className="jrpg-text-small"
-            style={{ background: "var(--jrpg-black)", color: "var(--jrpg-white)", padding: "4px" }}
+            value={targetUnavailable ? UNAVAILABLE_TARGET : optionValue(target.uid)}
+            onChange={(event) => {
+              if (event.target.value === WHOLE_TABLE) {
+                setTarget({ uid: WHOLE_TABLE, name: "Everyone", needsChoice: false });
+                return;
+              }
+              const recipient = whisperTargets.find(
+                (player) => optionValue(player.uid) === event.target.value,
+              );
+              if (recipient)
+                setTarget({ uid: recipient.uid, name: recipient.name, needsChoice: false });
+            }}
+            className="jrpg-text-small chat-composer__target"
+            style={{
+              minWidth: 0,
+              background: "var(--jrpg-black)",
+              color: "var(--jrpg-white)",
+              padding: "4px",
+              fontSize: "11px",
+            }}
           >
             <option value={WHOLE_TABLE}>Everyone</option>
+            {targetUnavailable && (
+              <option value={UNAVAILABLE_TARGET} disabled>
+                Whisper to {target.name} ({recipientMissing ? "unavailable" : "choose again"})
+              </option>
+            )}
             {whisperTargets.map((player) => (
-              <option key={player.uid} value={player.uid}>
+              <option key={player.uid} value={optionValue(player.uid)}>
                 Whisper to {player.name}
               </option>
             ))}
           </select>
         )}
+        {/* Always mounted, empty until a recipient goes away: a live region that appears already
+            filled is not reliably announced (empty it is clipped, see herobyte.css). */}
+        <div
+          role="status"
+          className="jrpg-text-tiny chat-recipient-status"
+          style={{ color: "var(--jrpg-gold)", lineHeight: 1.6 }}
+        >
+          {targetUnavailable &&
+            `${
+              recipientMissing
+                ? "Recipient unavailable."
+                : "Recipient returned; confirm your choice."
+            } Choose a recipient or Everyone before sending.`}
+        </div>
         <div style={{ display: "flex", gap: "4px" }}>
           <input
             aria-label="Chat message"
@@ -152,10 +207,8 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
                 send();
               }
             }}
-            placeholder={
-              effectiveTarget === WHOLE_TABLE ? "Say something..." : "Whisper something..."
-            }
-            className="jrpg-text-small"
+            placeholder={target.uid === WHOLE_TABLE ? "Say something..." : "Whisper something..."}
+            className="jrpg-text-body chat-composer__input"
             style={{
               flex: 1,
               minWidth: 0,
@@ -166,8 +219,9 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
           />
           <JRPGButton
             onClick={send}
+            disabled={targetUnavailable}
             variant="primary"
-            style={{ fontSize: "8px", padding: "6px 12px" }}
+            style={{ fontSize: "11px", padding: "6px 12px" }}
           >
             SEND
           </JRPGButton>

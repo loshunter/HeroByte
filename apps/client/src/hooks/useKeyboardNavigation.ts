@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { isEditableTarget } from "../utils/isEditableTarget";
+import { mapShortcutAllowed } from "../features/interaction/mapShortcut";
+import { useEscapeOwner } from "../features/interaction/useEscapeOwner";
 
 export interface UseKeyboardNavigationParams {
   selectedDrawingId: string | null;
@@ -27,11 +28,12 @@ export function useKeyboardNavigation({
       // The shared definition of "typing surface": the hand-rolled check
       // missed <select> and contentEditable, so Delete inside a select (the
       // inspector's, the DM menu's) deleted the selected drawing.
-      if (isEditableTarget(event.target)) {
+      if (!mapShortcutAllowed(event)) {
         return;
       }
 
       if (selectMode && selectedDrawingId) {
+        event.preventDefault();
         sendMessage({ t: "delete-drawing", id: selectedDrawingId });
         handleSelectDrawing(null);
       }
@@ -41,18 +43,11 @@ export function useKeyboardNavigation({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleSelectDrawing, selectMode, selectedDrawingId, sendMessage]);
 
-  useEffect(() => {
-    if (!onSelectObject) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && selectedObjectId) {
-        onSelectObject(null);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onSelectObject, selectedObjectId]);
+  useEscapeOwner(() => ({
+    kind: "selection",
+    name: "table selection",
+    order: 0,
+    active: Boolean(selectedObjectId && onSelectObject),
+    handle: () => onSelectObject?.(null),
+  }));
 }

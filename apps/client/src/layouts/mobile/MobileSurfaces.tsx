@@ -17,13 +17,20 @@ import { HelpPanel } from "../../features/help/HelpPanel";
 import { Spinner } from "../../components/ui/Spinner";
 import { useEntityEditHandlers } from "../../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../../hooks/useInitiativeSetting";
+import { useInitiativeDialog } from "../../features/initiative/useInitiativeDialog";
+import { manualInitiativeEnabled } from "../../features/initiative/manualOverride";
 import { buildDMMenuProps } from "../../features/dm/buildDMMenuProps";
 import { DMMenuLoadFailure } from "../../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { PlayerPropsPanel } from "../../features/props/PlayerPropsPanel";
 import { WorldMapPanel } from "../../features/atlas/WorldMapPanel";
 import { KickPanel } from "../../features/atlas/KickPanel";
+import { TableMenuContent } from "../../features/table/TableMenuContent";
+import { useTableLabel } from "../../features/table/TableMenu";
+import { requestDMMenuTab } from "../../features/table/menuRequest";
+import { useTableMenuProps } from "../../features/table/tableMenuProps";
 import { MobileScreen } from "./MobileScreen";
+import { MobileSheet } from "./MobileSheet";
 
 // The same lazy split the desktop uses: DM-only code stays out of the entry
 // bundle until someone actually elevates (FloatingPanelsLayout does this too).
@@ -40,32 +47,46 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
   const { surface, closeSurface } = machine;
   const showParty = surface === "party";
 
-  const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit } = useEntityEditHandlers({
-    editingHpUID: props.editingHpUID,
-    editingMaxHpUID: props.editingMaxHpUID,
-    editingTempHpUID: props.editingTempHpUID,
-    snapshot: props.snapshot,
-    submitHpEdit: props.submitHpEdit,
-    submitMaxHpEdit: props.submitMaxHpEdit,
-    submitTempHpEdit: props.submitTempHpEdit,
-    submitNameEdit: props.submitNameEdit,
-    playerActions: props.playerActions,
-  });
+  const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit, handleCharacterTempHpSubmit } =
+    useEntityEditHandlers({
+      editingHpUID: props.editingHpUID,
+      editingMaxHpUID: props.editingMaxHpUID,
+      editingTempHpUID: props.editingTempHpUID,
+      snapshot: props.snapshot,
+      submitHpEdit: props.submitHpEdit,
+      submitMaxHpEdit: props.submitMaxHpEdit,
+      submitTempHpEdit: props.submitTempHpEdit,
+      submitNameEdit: props.submitNameEdit,
+      playerActions: props.playerActions,
+    });
 
-  // Mobile's own instance, deliberately: on desktop MainLayout shares one
-  // between the entities panel and the DM menu, but mobile has no entities
-  // panel — and the builder cannot call hooks, so the caller owns this.
-  const { rollAllInitiative } = useInitiativeSetting({
+  // Mobile's own instance, shared (like the desktop's) by the Party screen's
+  // INIT and the DM screen's Encounter: the builder cannot call hooks, so the
+  // caller owns this.
+  const initiativeSetting = useInitiativeSetting({
     snapshot: props.snapshot,
     sendMessage: props.sendMessage,
   });
-  const dmMenuProps = buildDMMenuProps(props, { rollAllInitiative });
+  const dmMenuProps = buildDMMenuProps(props, { initiative: initiativeSetting });
+  const tableMenu = useTableMenuProps(props);
+  const tableLabel = useTableLabel(tableMenu.tableName);
+  // The phone Party's INIT (U8): the same dialog and rule as the desktop card's.
+  const initiativeDialog = useInitiativeDialog({
+    characters: props.snapshot?.characters ?? [],
+    players: props.snapshot?.players ?? [],
+    uid: props.uid,
+    isDM: props.isDM,
+    initiative: initiativeSetting,
+    manualEntryAllowed: props.isDM || manualInitiativeEnabled(props.snapshot),
+    combatActive: props.snapshot?.combatActive ?? false,
+  });
 
   return (
     <>
       {surface === "dice" && (
         <div style={{ display: "contents" }} data-mobile-surface="dice">
           <MobileDiceRoller
+            isConnected={props.isConnected}
             onRoll={props.handleRoll}
             latestOwnRoll={props.latestOwnRoll}
             onEnterRoll={props.handleEnterRoll}
@@ -76,16 +97,17 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
       )}
 
       {showParty && (
-        <MobileScreen title="Party Members" surface="party" onClose={closeSurface}>
+        <MobileScreen
+          title="Party Members"
+          surface="party"
+          isConnected={props.isConnected}
+          onClose={closeSurface}
+        >
           <MobileEntitiesList
             players={props.snapshot?.players || []}
             characters={props.snapshot?.characters || []}
             uid={props.uid}
             isDM={props.isDM}
-            // The mobile settings sheet is the ONLY DM-elevation control on a
-            // phone, and it used to be wired to a no-op — so a mobile user
-            // could never become DM at all.
-            onToggleDMMode={props.handleToggleDM}
             editingHpUID={props.editingHpUID}
             hpInput={props.hpInput}
             onHpInputChange={props.updateHpInput}
@@ -96,6 +118,13 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             onMaxHpInputChange={props.updateMaxHpInput}
             onMaxHpEdit={props.startMaxHpEdit}
             onMaxHpSubmit={handleCharacterMaxHpSubmit}
+            tempHp={{
+              editingUID: props.editingTempHpUID,
+              input: props.tempHpInput,
+              onInputChange: props.updateTempHpInput,
+              onEdit: props.startTempHpEdit,
+              onSubmit: handleCharacterTempHpSubmit,
+            }}
             onCharacterHpChange={props.playerActions.updateCharacterHP}
             onCharacterStatusEffectsChange={props.playerActions.setCharacterStatusEffects}
             onCharacterNameUpdate={props.playerActions.updateCharacterName}
@@ -103,16 +132,42 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             onCharacterPortraitUpdate={props.playerActions.setCharacterPortrait}
             tokens={props.snapshot?.tokens || []}
             onTokenVisionRadiusChange={props.updateTokenVisionRadius}
+            onTokenSizeChange={props.updateTokenSize}
+            onAddCharacter={props.playerActions.addCharacter}
+            sceneObjects={props.snapshot?.sceneObjects ?? []}
+            drawings={props.snapshot?.drawings ?? []}
+            onApplyPlayerState={props.playerActions.applyPlayerState}
+            onToggleTokenLock={props.toggleSceneObjectLock}
+            onPlayerTokenDelete={props.isDM ? props.deleteToken : undefined}
+            onCharacterOwnerChange={(characterId, ownerUid) =>
+              props.sendMessage({ t: "set-character-owner", characterId, ownerUid })
+            }
             onCharacterSpeedChange={props.updateCharacterSpeed}
             onCharacterBudgetReset={props.resetCharacterBudget}
             combatActive={props.snapshot?.combatActive ?? false}
+            currentTurnCharacterId={props.snapshot?.currentTurnCharacterId}
+            onOpenInitiative={initiativeDialog.open}
+            onClearInitiative={initiativeSetting.clearInitiative}
             tableVisionDefault={props.snapshot?.defaultVisionRadius}
+            // Focus shows the map: the camera centres on the token, and the
+            // screen that covers the map closes.
+            onFocusToken={(tokenId) => {
+              props.handleFocusToken(tokenId);
+              closeSurface();
+            }}
           />
         </MobileScreen>
       )}
+      {initiativeDialog.element}
 
       {surface === "log" && (
-        <MobileScreen title="Roll Log" surface="log" onClose={closeSurface}>
+        <MobileScreen
+          title="Chat & Rolls"
+          surface="log"
+          isConnected={props.isConnected}
+          onClose={machine.closeExplicitSurface}
+          interaction={{ behavior: "close", panel: "chat" }}
+        >
           <RollLogContent
             canClearLog={props.isDM}
             rolls={props.rollHistory}
@@ -130,7 +185,13 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           open must not leave an empty shell up (DMMenu would render null),
           and the same guard is what the desktop's auto-close effect does. */}
       {surface === "dm" && props.isDM && (
-        <MobileScreen title="DM Menu" surface="dm" onClose={closeSurface}>
+        <MobileScreen
+          title="DM Menu"
+          surface="dm"
+          isConnected={props.isConnected}
+          onClose={machine.closeExplicitSurface}
+          interaction={{ behavior: "close", panel: "dm" }}
+        >
           {/* The one way into map-edit on a phone. It lives HERE rather than
               in the tool sheet because the mode is DM-only and this screen is
               already the DM gate — and because arming it closes this screen
@@ -167,7 +228,15 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
                 </div>
               }
             >
-              <DMMenuContainer {...dmMenuProps} presentation="content" />
+              <DMMenuContainer
+                {...dmMenuProps}
+                presentation="content"
+                // Focus shows the map: the DM screen covering it closes.
+                onFocusToken={(tokenId) => {
+                  props.handleFocusToken(tokenId);
+                  closeSurface();
+                }}
+              />
             </Suspense>
           </ErrorBoundary>
         </MobileScreen>
@@ -179,7 +248,12 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           and unmounts this too; that is a hidden screen during reconnect, not
           a destructive act, and it re-renders when the roster returns. */}
       {surface === "props" && !props.isDM && props.snapshot?.playerPropsEnabled && (
-        <MobileScreen title="Props" surface="props" onClose={closeSurface}>
+        <MobileScreen
+          title="Props"
+          surface="props"
+          isConnected={props.isConnected}
+          onClose={closeSurface}
+        >
           <PlayerPropsPanel
             snapshot={props.snapshot}
             uid={props.uid}
@@ -194,21 +268,30 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           DMs have the Atlas tab, and elevation with this open must not leave
           a player surface up. */}
       {surface === "atlas" && !props.isDM && (
-        <MobileScreen title="World Map" surface="atlas" onClose={closeSurface}>
+        <MobileScreen
+          title="World Map"
+          surface="atlas"
+          isConnected={props.isConnected}
+          onClose={machine.worldReturn.closeExplicitly}
+          interaction={{
+            behavior: "close",
+            panel: "world",
+            resolveReturnFocus: machine.worldReturn.resolveTarget,
+          }}
+        >
           <WorldMapPanel snapshot={props.snapshot} presentation="content" />
         </MobileScreen>
       )}
 
-      {/* The kicked-in door (K3): the same panel the desktop floats, as a full
-          screen. Gated isDM like the dm screen — de-elevation must not leave
-          it up. ROLL closes the surface (MobileLayout wrapped kick.kick).
-          ✕ and the drag-down dismissal close through `kick.closeKick`, NOT the
-          bare `closeSurface`: MobileLayout's wrapper clears the surface AND the
-          App-level `open` flag together, and a screen that closed only the
-          surface would leave that flag set — so a later crossing to the desktop
-          layout would find the panel already open. */}
-      {surface === "kick" && props.isDM && props.kick && (
-        <MobileScreen title="Kick in a door" surface="kick" onClose={props.kick.closeKick}>
+      {/* Both layouts read the same open session and draft. ROLL, Cancel,
+          Escape, ✕ and drag-down dismissal close that App-level session. */}
+      {surface === "kick" && props.isDM && props.kick?.open && (
+        <MobileScreen
+          title="Kick in a door"
+          surface="kick"
+          isConnected={props.isConnected}
+          onClose={props.kick.closeKick}
+        >
           <KickPanel
             kick={props.kick}
             atlasNodes={props.snapshot?.atlasNodes ?? []}
@@ -218,26 +301,32 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
         </MobileScreen>
       )}
 
-      {surface === "help" && (
-        <div
-          className="mobile-help-sheet"
-          role="dialog"
-          aria-label="HeroByte help"
-          data-mobile-surface="help"
+      {/* The Table screen (U9): the phone's way to your role, your Preferences and —
+          for a DM — the table's settings. It is the desktop Table menu's content,
+          read from the same object. */}
+      {surface === "table" && (
+        <MobileScreen
+          title="Table"
+          surface="table"
+          isConnected={props.isConnected}
+          onClose={closeSurface}
         >
-          <div className="mobile-tool-sheet__header">
-            <strong>Help</strong>
-            <button
-              type="button"
-              className="mobile-tool-sheet__close"
-              onClick={closeSurface}
-              aria-label="Close help"
-            >
-              ✕
-            </button>
-          </div>
+          <TableMenuContent
+            menu={tableMenu}
+            label={tableLabel}
+            showConnection={false}
+            onOpenTableSettings={() => {
+              requestDMMenuTab("table");
+              machine.openSurface("dm");
+            }}
+          />
+        </MobileScreen>
+      )}
+
+      {surface === "help" && (
+        <MobileSheet title="Help" label="HeroByte help" surface="help" onClose={closeSurface}>
           <HelpPanel />
-        </div>
+        </MobileSheet>
       )}
     </>
   );

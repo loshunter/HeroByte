@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "./build-palette.helpers";
 /**
  * The stamp-vs-tile toggle and the rotate pair, on the DESKTOP.
  *
@@ -62,7 +63,7 @@ test.describe("map-edit — stamp mode and rotation from the palette", () => {
     );
 
     const center = await boardCenter(page);
-    await page.getByRole("button", { name: /📦 Place/ }).click();
+    await chooseBuildTool(page, "place");
 
     // A plain click is a grid TILE — the positive control for the toggle.
     expect(await placed(page)).toHaveLength(0);

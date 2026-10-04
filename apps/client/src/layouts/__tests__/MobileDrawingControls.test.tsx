@@ -8,6 +8,7 @@
  * Source: apps/client/src/layouts/MobileDrawingControls.tsx
  */
 
+import { useState } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { AREA_TEMPLATE_TOOLS } from "@herobyte/shared";
@@ -15,22 +16,70 @@ import { MobileDrawingControls } from "../MobileDrawingControls";
 
 function renderSheet(overrides: Partial<Parameters<typeof MobileDrawingControls>[0]> = {}) {
   const onToolChange = vi.fn();
-  render(
-    <MobileDrawingControls
-      drawTool="freehand"
-      drawColor="#ffffff"
-      drawWidth={3}
-      onToolChange={onToolChange}
-      onColorChange={vi.fn()}
-      onWidthChange={vi.fn()}
-      onClose={vi.fn()}
-      {...overrides}
-    />,
-  );
+  function Sheet() {
+    const [collapsed, setCollapsed] = useState(false);
+    return (
+      <MobileDrawingControls
+        collapsed={collapsed}
+        onCollapsedChange={setCollapsed}
+        drawTool="freehand"
+        drawColor="#ffffff"
+        drawWidth={3}
+        drawOpacity={1}
+        drawFilled={false}
+        onToolChange={onToolChange}
+        onColorChange={vi.fn()}
+        onWidthChange={vi.fn()}
+        onOpacityChange={vi.fn()}
+        onFilledChange={vi.fn()}
+        onClose={vi.fn()}
+        {...overrides}
+      />
+    );
+  }
+  render(<Sheet />);
   return { onToolChange };
 }
 
 describe("MobileDrawingControls — templates", () => {
+  it("can hide settings while keeping drawing and history active, then restore them", () => {
+    const onClose = vi.fn();
+    const onUndo = vi.fn();
+    const { onToolChange } = renderSheet({
+      drawTool: "rect",
+      drawColor: "#66cc66",
+      drawWidth: 17,
+      drawOpacity: 0.4,
+      drawFilled: true,
+      canUndo: true,
+      onUndo,
+      onClose,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Hide drawing controls" }));
+    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Rectangle" })).toBeNull();
+    expect(screen.getByText("Drawing: Rectangle")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show drawing controls" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Undo drawing" }));
+    expect(onUndo).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onToolChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Show drawing controls" }));
+    expect(screen.getByRole("slider", { name: "Stroke width (px)" })).toHaveValue("17");
+    expect(screen.getByRole("slider", { name: "Opacity (%)" })).toHaveValue("40");
+    expect(screen.getByLabelText("Drawing color", { exact: true })).toHaveValue("#66cc66");
+    expect(screen.getByRole("checkbox", { name: "Filled" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Rectangle" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Done drawing" }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("offers every template tool on a phone", () => {
     renderSheet();
     expect(screen.getByRole("button", { name: "AoE Burst" })).toBeInTheDocument();
@@ -41,7 +90,7 @@ describe("MobileDrawingControls — templates", () => {
 
   it("keeps the original five drawing tools alongside them", () => {
     renderSheet();
-    for (const label of ["Free", "line", "rect", "circle", "eraser"]) {
+    for (const label of ["Freehand", "Line", "Rectangle", "Circle", "Erase drawings"]) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
   });
@@ -77,7 +126,7 @@ describe("MobileDrawingControls — templates", () => {
     expect(screen.getByRole("button", { name: "AoE Cone" }).className).toContain(
       "mobile-chip--active",
     );
-    expect(screen.getByRole("button", { name: "Free" }).className).not.toContain(
+    expect(screen.getByRole("button", { name: "Freehand" }).className).not.toContain(
       "mobile-chip--active",
     );
   });

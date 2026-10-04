@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 import { generateRoomId, rememberRoom, stashRoomSecret, navigateToRoom } from "./roomDirectory";
+import { markNewTable } from "../table/newTableMarker";
 
 export interface ForkTableInput {
   name: string;
@@ -68,6 +69,8 @@ export function useForkTable(
               // in the picker on arrival.
               stashRoomSecret(roomPassword, roomId);
               rememberRoom(roomId, name);
+              // The forked table is a new one: its host is prompted on arrival too.
+              markNewTable(roomId);
               resolve();
               navigate(roomId);
             }),

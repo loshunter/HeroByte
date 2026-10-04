@@ -8,12 +8,15 @@
  * of callbacks — and the surfaces themselves render in MobileSurfaces.
  */
 
-import React, { useMemo, Suspense, useReducer } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
 import { ToastContainer } from "../components/ui/Toast";
-import { ServerStatus } from "../components/layout/ServerStatus";
+import { ConnectionChip } from "../features/table/ConnectionChip";
+import { ReconnectNotice } from "../features/table/ReconnectNotice";
+import { HostNextSteps } from "../features/table/HostNextSteps";
+import { useTableMenuProps } from "../features/table/tableMenuProps";
 import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
 import { useMobileSurface } from "../hooks/useMobileSurface";
@@ -28,6 +31,8 @@ import { MobileCombatStrip } from "./mobile/MobileCombatStrip";
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
 
 export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutProps): JSX.Element {
+  // The Table menu's facts, held through a reconnect's empty snapshot (see the hook).
+  const tableMenu = useTableMenuProps(props);
   const {
     // Data
     snapshot,
@@ -93,8 +98,9 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     mapEditRoomWallFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
+    mapEditTerrainBrushSize,
     mapEditSplineKind,
-    mapEditPopulateGhosts,
+    mapEditPersistentPreview,
     mapEditWheelActions,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
@@ -114,11 +120,18 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     sendMessage,
   } = props;
 
+  // Tools/Help temporarily unmount the drawing sheet without ending draw mode.
+  const [drawingControlsCollapsed, setDrawingControlsCollapsed] = useState(false);
+  useEffect(() => {
+    if (!drawMode) setDrawingControlsCollapsed(false);
+  }, [drawMode]);
+
   const machine = useMobileSurface({
     diceRollerOpen,
     rollLogOpen,
     toggleDiceRoller,
     toggleRollLog,
+    kick: props.kick,
     mapEditMode,
     alignmentMode,
     // The atlas-link aim is alignment's species exactly (A6): not a Mode,
@@ -127,13 +140,12 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     // machine sees its edge even when alignment was already armed.
     linkAimMode: props.linkAimActive ?? false,
     isDM,
+    roleKnown: props.roleKnown,
     playerPropsEnabled: snapshot?.playerPropsEnabled ?? false,
   });
   const { surface, toggleSurface } = machine;
-  // The kicked-in door on a phone (K3): the Atlas tab's button and the DM
-  // screen's verb both land on the surface MACHINE — one open signal, so the
-  // one-open-surface invariant holds — and ROLL leaves the surface the way
-  // arming a tool does. The App-level pending state rides through untouched.
+  // Phone launchers use the machine's transition, which opens the shared App
+  // session. Draft, Cancel and ROLL use that same session across both layouts.
   const kick = props.kick;
   const openKick = machine.openSurface;
   const surfaceProps = useMemo<MainLayoutProps>(
@@ -144,21 +156,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             kick: {
               ...kick,
               openKick: () => openKick("kick"),
-              kick: (request) => {
-                kick.kick(request);
-                openKick("none");
-              },
-              // CANCEL and the panel's Escape both land here, and on a phone
-              // the App-level `open` flag they used to flip is read by nobody:
-              // the screen is mounted by the surface machine. Without this
-              // override they were dead controls — the panel stayed up and
-              // nothing happened. The flag is cleared too, so the two signals
-              // cannot disagree if a layout crossing hands this back to the
-              // desktop mount.
-              closeKick: () => {
-                kick.closeKick();
-                openKick("none");
-              },
             },
           }
         : props,
@@ -168,12 +165,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
   // surfaces, so they yield while either occupies it: same anchor, same
   // z-index, and stacking them is the bug S8 shipped.
   const sheetSlotOccupied = surface === "tools" || surface === "help";
-
-  // The dock's Cancel and the canvas are SIBLINGS, so the abort travels as a
-  // counter rather than a callback (useMapEditCancel explains the mechanism).
-  // Mobile-local on purpose: desktop has Escape, and threading this through
-  // MainLayoutProps would put a mobile affordance in four layout fixtures.
-  const [mapEditCancelSignal, cancelMapEditDrag] = useReducer((n: number) => n + 1, 0);
 
   const selectedObjectCount = selectedObjectIds.length || (selectedObjectId ? 1 : 0);
   const selectionSheetMounted =
@@ -219,8 +210,9 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditPlacementDials={mapEditToolbarProps}
             mapEditHallwayWidth={mapEditHallwayWidth}
+            mapEditTerrainBrushSize={mapEditTerrainBrushSize}
             mapEditSplineKind={mapEditSplineKind}
-            mapEditPopulateGhosts={mapEditPopulateGhosts}
+            mapEditPersistentPreview={mapEditPersistentPreview}
             mapEditWheelActions={mapEditWheelActions}
             mapEditSelectedElementId={mapEditSelectedElementId}
             mapEditController={mapStudio}
@@ -231,7 +223,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onMapEditRegionDragged={onMapEditRegionDragged}
             onMapEditSelectElement={onMapEditSelectElement}
             onMapEditSampleAsset={onMapEditSampleAsset}
-            mapEditCancelSignal={mapEditCancelSignal}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}
@@ -253,26 +244,38 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         </Suspense>
       </div>
 
-      {/* Turn Controls */}
-      <MobileCombatStrip combatActive={snapshot?.combatActive ?? false} sendMessage={sendMessage} />
+      {/* The top stack: what the table says about itself over the map — the
+          connection, the public-table warning, the turn controls — in ONE column,
+          so none can be painted over another. (A screen carries its own connection
+          chip in its header: it is an opaque cover.) */}
+      <div className="mobile-top-stack">
+        <ConnectionChip isConnected={props.isConnected} />
+        <ReconnectNotice />
+        {tableMenu.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
+        <HostNextSteps menu={tableMenu} />
+        <MobileCombatStrip
+          combatActive={snapshot?.combatActive ?? false}
+          sendMessage={sendMessage}
+          characters={snapshot?.characters ?? []}
+          currentTurnCharacterId={snapshot?.currentTurnCharacterId}
+        />
+      </div>
 
       {/* Mobile Floating Controls */}
       <MobileFloatingControls
+        worldReturn={machine.worldReturn}
         kickPending={Boolean(kick?.pending && !kick.pending.expired)}
         surface={surface}
         onToggleSurface={toggleSurface}
         onToolSelect={setActiveTool}
         onSnapToGridChange={setSnapToGrid}
         onResetCamera={handleResetCamera}
-        crtFilter={props.crtFilter}
-        onCrtFilterChange={props.setCrtFilter}
         activeTool={activeTool}
         snapToGrid={snapToGrid}
         isDM={isDM}
         playerPropsEnabled={snapshot?.playerPropsEnabled ?? false}
         mode={machine.mode}
         mapEditToolbarProps={mapEditToolbarProps}
-        onCancelMapEditDrag={cancelMapEditDrag}
       />
 
       {selectionSheetMounted && (
@@ -293,14 +296,20 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {drawMode && !sheetSlotOccupied && (
         <MobileDrawingControls
+          collapsed={drawingControlsCollapsed}
+          onCollapsedChange={setDrawingControlsCollapsed}
           drawTool={drawingToolbarProps.drawTool}
           drawColor={drawingToolbarProps.drawColor}
           drawWidth={drawingToolbarProps.drawWidth}
+          drawOpacity={drawingToolbarProps.drawOpacity}
+          drawFilled={drawingToolbarProps.drawFilled}
           canUndo={drawingToolbarProps.canUndo}
           canRedo={drawingToolbarProps.canRedo}
           onToolChange={drawingToolbarProps.onToolChange}
           onColorChange={drawingToolbarProps.onColorChange}
           onWidthChange={drawingToolbarProps.onWidthChange}
+          onOpacityChange={drawingToolbarProps.onOpacityChange}
+          onFilledChange={drawingToolbarProps.onFilledChange}
           onUndo={drawingToolbarProps.onUndo}
           onRedo={drawingToolbarProps.onRedo}
           onClose={() => setActiveTool(null)}
@@ -313,19 +322,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       {/* Viewing Roll Result */}
       <MobileResultOverlay result={viewingRoll} onClose={() => handleViewRoll(null)} />
 
-      {/* Mobile rendered neither of these, so a phone user got no non-blocking
-          feedback ever — no save confirmation, no dropped-command warning, no
-          sign the server had gone. Both props were already being passed in. */}
-      {/* The banner is the only place the table reports a lost server, and an
-          open Screen is an opaque full-viewport cover at z-index 1700 — so the
-          banner rides a stacking context above the screens (and below the dice
-          overlay at 2000). position:relative does not move a fixed descendant;
-          it only lifts its paint. */}
-      {/* No controls, floats over the map's top band: taps go through. */}
-      <div style={{ position: "relative", zIndex: 1800, pointerEvents: "none" }}>
-        <ServerStatus isConnected={props.isConnected} />
-      </div>
-      {props.snapshot?.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
+      {/* Non-blocking feedback: a save confirmation, a dropped-command warning. */}
       <ToastContainer messages={props.toast.messages} onDismiss={props.toast.dismiss} />
     </div>
   );

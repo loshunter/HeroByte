@@ -7,18 +7,16 @@
 // keeps its asset quota from filling — but none of that is visible from the
 // table, so it looked like a fine place to keep a campaign.
 //
-// "Public" is NOT a property of the room id: it is true only while the password
-// is still the published one. Setting any other password claims the table — the
-// server stops clearing it and stops flagging it — so the copy's job is to name
-// that escape hatch, not just to warn.
+// Its password is FIXED (the server refuses a change there) so nobody can padlock
+// the one table every server publishes, and the flag is set at boot for that table
+// alone. The copy's job is to name the way to keep what is built here: copy the
+// table to a private one of your own (KEEP_PATH), not just to warn.
 //
 // Two presentations of the same fact:
 //   "gate"  — on the join screen, BEFORE authentication, so there is no snapshot
-//             to consult. Its copy states the rule conditionally ("while it
-//             still uses that password"), which is true whether or not the
-//             table has already been claimed.
-//   "chip"  — at the table, driven by the live snapshot flag, so it disappears
-//             the moment someone claims the table.
+//             to consult.
+//   "chip"  — at the table, driven by the snapshot flag: a row of the header on a
+//             desktop, a member of the top stack on a phone.
 
 import React from "react";
 
@@ -26,16 +24,16 @@ interface PublicTableNoticeProps {
   variant: "gate" | "chip";
 }
 
-const KEEP_PATH = "DM Menu → Session → Save as a private table";
+const KEEP_PATH = "DM Menu → Table → Security → Save as a Private Table";
 
 export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant }) => {
   if (variant === "chip") {
     return (
       <div
         data-testid="public-table-chip"
-        // Presentation is in herobyte.css, because the phone needs a readable
-        // version of this and the desktop cannot have one: enlarging the chip
-        // for both widened it across the header's buttons.
+        // Presentation is in herobyte.css: one readable (11px) chip for both layouts. It is
+        // a row of the header's own flow on a desktop and a member of the top stack on a
+        // phone, so its width no longer decides which buttons can be clicked.
         className="public-table-chip"
         title={`Anyone with the published password can join this table, and it is wiped once it has sat empty for an hour. To keep what you build here, copy it to a private table of your own: ${KEEP_PATH}.`}
       >

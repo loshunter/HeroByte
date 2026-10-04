@@ -6,7 +6,12 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { WebSocketService, ConnectionState, AuthState, AuthEvent } from "../services/websocket";
 import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
+import type {
+  CommandDeliveryEvent,
+  RegisterCommandDelivery,
+} from "../services/websocket/serviceTypes";
 import { readSessionToken, stashSessionToken } from "../features/rooms/roomDirectory";
+import { isBootTerminated } from "../utils/terminalBoot";
 
 interface UseWebSocketOptions {
   url: string;
@@ -36,8 +41,10 @@ interface UseWebSocketReturn {
   /** Room credentials retained for reconnects; null until authenticated. */
   getAuthCredentials: () => { secret: string; roomId?: string } | null;
   registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
+  /** Observe actual send attempts, terminal drops, and loss of continuous tracking. */
+  registerCommandDelivery: RegisterCommandDelivery;
   /** Fires when a reliable command was dropped for good (retries exhausted /
-   * offline-queue overflow) — the user's change never reached the server. */
+   * offline-queue overflow) — completion of the change is unconfirmed. */
   registerCommandDropHandler: (handler: (messageType: string, reason: string) => void) => void;
 }
 
@@ -70,6 +77,8 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const commandDropHandlerRef = useRef<
     ((messageType: string, reason: string) => void) | undefined
   >();
+
+  const commandDeliveryRef = useRef<(event: CommandDeliveryEvent) => void>();
 
   // Use ref to avoid recreating service on re-renders
   const serviceRef = useRef<WebSocketService | null>(null);
@@ -137,6 +146,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       onControlMessage: (message) => {
         controlHandlerRef.current?.(message);
       },
+      onCommandDelivery: (event) => commandDeliveryRef.current?.(event),
       onCommandDropped: (messageType, reason) => {
         commandDropHandlerRef.current?.(messageType, reason);
       },
@@ -165,6 +175,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
     // Cleanup on unmount
     return () => {
+      commandDeliveryRef.current?.({ type: "tracking-lost" });
       service.disconnect();
     };
   }, [url, uid]); // Only recreate if URL or UID changes
@@ -195,6 +206,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const remoteMeasurements = useMemo(() => Object.values(measurements), [measurements]);
 
   const send = useCallback((message: ClientMessage) => {
+    if (isBootTerminated()) return;
     serviceRef.current?.send(message);
   }, []);
 
@@ -220,6 +232,15 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     },
     [],
   );
+
+  const registerCommandDelivery = useCallback<RegisterCommandDelivery>((handler) => {
+    if (commandDeliveryRef.current !== handler)
+      commandDeliveryRef.current?.({ type: "tracking-lost" });
+    commandDeliveryRef.current = handler;
+    return () => {
+      if (commandDeliveryRef.current === handler) commandDeliveryRef.current = undefined;
+    };
+  }, []);
 
   const authenticate = useCallback((secret: string, roomId?: string) => {
     serviceRef.current?.authenticate(secret, roomId);
@@ -247,5 +268,6 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     getAuthCredentials,
     registerServerEventHandler,
     registerCommandDropHandler,
+    registerCommandDelivery,
   };
 }

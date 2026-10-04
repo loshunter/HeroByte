@@ -8,6 +8,8 @@ import { useCallback, useEffect, type MutableRefObject } from "react";
 import type { ClientMessage, MapDocument, MapPublishBackgroundMode } from "@herobyte/shared";
 import { generateUUID } from "../../utils/uuid";
 import { uploadAssetFile, type AssetUploadCredentials } from "./uploads/assetUpload";
+import type { MapRecoveryCallback } from "./mapRecovery";
+import { useMapRecovery } from "./useMapRecovery";
 
 /**
  * How long a list/get/create/import request may leave the panel in `loading`
@@ -46,6 +48,7 @@ export function useMapStudioRequests({
   pendingMintIds,
   explicitListPending,
 }: UseMapStudioRequestsOptions) {
+  const { begin, cancel, receive, activate, discard } = useMapRecovery();
   // Every user-initiated request clears any stale error first — so retrying
   // after a watchdog timeout ("server didn't respond") doesn't leave that
   // message lingering under the freshly-loaded result.
@@ -58,6 +61,7 @@ export function useMapStudioRequests({
 
   const createDocument = useCallback(
     (name: string, width?: number, height?: number) => {
+      cancel();
       const id = generateUUID();
       requestedDocumentId.current = id;
       pendingMintIds.current.add(id);
@@ -66,17 +70,19 @@ export function useMapStudioRequests({
       sendMessage({ t: "map-studio-create", document: { id, name, width, height } });
       return id;
     },
-    [sendMessage, setError, setLoading, requestedDocumentId, pendingMintIds],
+    [sendMessage, setError, setLoading, requestedDocumentId, pendingMintIds, cancel],
   );
 
   const openDocument = useCallback(
-    (documentId: string) => {
+    (documentId: string, onRecovery?: MapRecoveryCallback) => {
+      cancel();
+      const requestId = onRecovery ? begin(documentId, onRecovery) : undefined;
       requestedDocumentId.current = documentId;
       setError(null);
       setLoading(true);
-      sendMessage({ t: "map-studio-get", documentId });
+      sendMessage({ t: "map-studio-get", documentId, ...(requestId ? { requestId } : {}) });
     },
-    [sendMessage, setError, setLoading, requestedDocumentId],
+    [sendMessage, setError, setLoading, requestedDocumentId, begin, cancel],
   );
 
   const deleteDocument = useCallback(
@@ -110,6 +116,7 @@ export function useMapStudioRequests({
 
   const importDocument = useCallback(
     (document: MapDocument) => {
+      cancel();
       // A fresh id lets the same backup restore repeatedly without colliding.
       const id = generateUUID();
       requestedDocumentId.current = id;
@@ -119,7 +126,7 @@ export function useMapStudioRequests({
       sendMessage({ t: "map-studio-import", document: { ...document, id } });
       return id;
     },
-    [sendMessage, setError, setLoading, requestedDocumentId, pendingMintIds],
+    [sendMessage, setError, setLoading, requestedDocumentId, pendingMintIds, cancel],
   );
 
   // Loading watchdog: if a request's reply never arrives (socket drop, or an
@@ -143,6 +150,9 @@ export function useMapStudioRequests({
   }, [loading, setLoading, setError, requestedDocumentId, watchdogFired, explicitListPending]);
 
   return {
+    handleRecoveryReply: receive,
+    activateRecoveryDocument: activate,
+    discardRecoveryDocument: discard,
     refresh,
     createDocument,
     openDocument,

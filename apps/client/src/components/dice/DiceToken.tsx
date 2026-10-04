@@ -2,6 +2,7 @@
 // DICE TOKEN COMPONENT
 // ============================================================================
 
+import { useLocalEscape } from "../../features/interaction/useEscapeOwner";
 import React from "react";
 import type { Token } from "./types";
 import { DIE_COLORS, DIE_SYMBOLS } from "./types";
@@ -21,6 +22,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
   onUpdateMod,
   isAnimating = false,
 }) => {
+  const localEscape = useLocalEscape();
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState("");
 
@@ -128,7 +130,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
               onBlur={handleSubmit}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSubmit();
-                if (e.key === "Escape") setIsEditing(false);
+                if (e.key === "Escape") localEscape(e, () => setIsEditing(false));
               }}
               autoFocus
               onClick={(e) => e.stopPropagation()}
@@ -177,6 +179,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
             lineHeight: 1,
           }}
           title="Remove"
+          aria-label={`Remove ${token.qty}${token.die}`}
         >
           ×
         </button>
@@ -227,7 +230,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
             onBlur={handleSubmit}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSubmit();
-              if (e.key === "Escape") setIsEditing(false);
+              if (e.key === "Escape") localEscape(e, () => setIsEditing(false));
             }}
             autoFocus
             onClick={(e) => e.stopPropagation()}
@@ -276,6 +279,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
             lineHeight: 1,
           }}
           title="Remove"
+          aria-label={`Remove modifier ${token.value > 0 ? "+" : ""}${token.value}`}
         >
           ×
         </button>

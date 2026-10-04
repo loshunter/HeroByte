@@ -132,6 +132,16 @@ vi.mock("../../map-controls/StagingZoneControl", () => ({
   ),
 }));
 
+vi.mock("../../map-controls/MapStudioControl", () => ({
+  MapStudioControl: vi.fn(({ tableMapDocumentId, onTableName }) => (
+    <div data-component="MapStudioControl">
+      <span>
+        Library: {tableMapDocumentId ?? "none"} / {onTableName ?? "none"}
+      </span>
+    </div>
+  )),
+}));
+
 vi.mock("../../map-controls/DrawingControls", () => ({
   DrawingControls: vi.fn(({ onClearDrawings }) => (
     <div data-component="DrawingControls">
@@ -148,6 +158,8 @@ import { GridControl } from "../../map-controls/GridControl";
 import { GridAlignmentWizard } from "../../map-controls/GridAlignmentWizard";
 import { StagingZoneControl } from "../../map-controls/StagingZoneControl";
 import { DrawingControls } from "../../map-controls/DrawingControls";
+import { MapStudioControl } from "../../map-controls/MapStudioControl";
+import type { MapStudioController } from "../../../../map-studio";
 
 // ============================================================================
 // TESTS
@@ -206,13 +218,14 @@ describe("MapTab - Characterization Tests", () => {
         el.getAttribute("data-component"),
       );
 
+      // U6: position and alignment moved under Current table map → Advanced.
       expect(components).toEqual([
         "MapBackgroundControl",
-        "MapTransformControl",
         "GridControl",
-        "GridAlignmentWizard",
         "StagingZoneControl",
         "DrawingControls",
+        "MapTransformControl",
+        "GridAlignmentWizard",
       ]);
     });
 
@@ -1032,5 +1045,242 @@ describe("MapTab - Characterization Tests", () => {
       expect(StagingZoneControl).toHaveBeenCalledTimes(1);
       expect(DrawingControls).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+// U6: the Maps tab names what the party sees and what is being viewed, keeps
+// the current table map's settings together, tucks position/alignment under
+// Advanced, and hands the library the table's identity.
+describe("MapTab — current table map vs library (U6)", () => {
+  const base = (): MapTabProps => ({
+    onSetMapBackground: vi.fn(),
+    onMapLockToggle: vi.fn(),
+    onMapTransformChange: vi.fn(),
+    mapTransform: { scaleX: 1, scaleY: 1, x: 0, y: 0, rotation: 0 },
+    gridSize: 50,
+    gridLocked: false,
+    onGridSizeChange: vi.fn(),
+    onGridLockToggle: vi.fn(),
+    alignmentModeActive: false,
+    alignmentPoints: [],
+    alignmentSuggestion: null,
+    onAlignmentStart: vi.fn(),
+    onAlignmentReset: vi.fn(),
+    onAlignmentCancel: vi.fn(),
+    onAlignmentApply: vi.fn(),
+    camera: { x: 0, y: 0, scale: 1 },
+    onClearDrawings: vi.fn(),
+  });
+  const studio = (activeId: string | null) =>
+    ({
+      documents: [
+        { id: "crypt", name: "Crypt" },
+        { id: "tavern", name: "Tavern" },
+      ],
+      activeDocument: activeId
+        ? { id: activeId, name: activeId === "crypt" ? "Crypt" : "Tavern" }
+        : null,
+      publishDocument: vi.fn(),
+    }) as unknown as MapStudioController;
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it("names the map on the table and the library map being viewed", () => {
+    render(
+      <MapTab
+        {...base()}
+        mapStudio={studio("tavern")}
+        tableMapDocumentId="crypt"
+        hasCompiledScene
+      />,
+    );
+    expect(screen.getByText(/^On table:/)).toHaveTextContent("On table: Crypt");
+    expect(screen.getByText(/^Viewing in library:/)).toHaveTextContent(
+      "Viewing in library: Tavern",
+    );
+  });
+
+  it("does not claim a second map when the table's map is the one open", () => {
+    render(
+      <MapTab
+        {...base()}
+        mapStudio={studio("crypt")}
+        tableMapDocumentId="crypt"
+        hasCompiledScene
+      />,
+    );
+    expect(screen.getByText(/^On table:/)).toHaveTextContent("On table: Crypt");
+    expect(screen.queryByText(/^Viewing in library:/)).toBeNull();
+  });
+
+  it("an unbound scene is named for what it is", () => {
+    render(<MapTab {...base()} mapStudio={studio(null)} hasCompiledScene />);
+    expect(screen.getByText(/^On table:/)).toHaveTextContent(
+      "On table: a scene with no editable map",
+    );
+  });
+
+  it("groups the table's settings and collapses position and alignment under Advanced", () => {
+    const { container } = render(<MapTab {...base()} />);
+    expect(screen.getByRole("heading", { name: "Current table map" })).toBeInTheDocument();
+    const advanced = container.querySelector("details")!;
+    expect(advanced.querySelector("summary")).toHaveTextContent(
+      "Advanced: map position and grid alignment",
+    );
+    expect(advanced.open).toBe(false);
+    expect(advanced.querySelector('[data-component="MapTransformControl"]')).not.toBeNull();
+    expect(advanced.querySelector('[data-component="GridAlignmentWizard"]')).not.toBeNull();
+    expect(advanced.querySelector('[data-component="GridControl"]')).toBeNull();
+    expect(advanced.querySelector('[data-component="MapBackgroundControl"]')).toBeNull();
+  });
+
+  it("opens Advanced while grid alignment is running, so the wizard is never hidden", () => {
+    const { container } = render(<MapTab {...base()} alignmentModeActive />);
+    expect(container.querySelector("details")!.open).toBe(true);
+  });
+
+  it("keeps Advanced open after an alignment ends, so Cancel does not hide the wizard", () => {
+    const { container, rerender } = render(<MapTab {...base()} alignmentModeActive />);
+    rerender(<MapTab {...base()} alignmentModeActive={false} />);
+    expect(container.querySelector("details")!.open).toBe(true);
+  });
+
+  it("a binding to a map the server reported gone is named for what it is", () => {
+    const gone = { ...studio(null), missingDocumentId: "crypt" } as unknown as MapStudioController;
+    render(<MapTab {...base()} mapStudio={gone} tableMapDocumentId="crypt" hasCompiledScene />);
+    expect(screen.getByText(/^On table:/)).toHaveTextContent(
+      "On table: a scene with no editable map",
+    );
+  });
+
+  it("keeps every table setting in Current table map, out of Advanced, and the library outside", () => {
+    const { container } = render(
+      <MapTab
+        {...base()}
+        mapStudio={studio(null)}
+        onFogEnabledChange={vi.fn()}
+        onDefaultVisionRadiusChange={vi.fn()}
+      />,
+    );
+    const section = screen.getByRole("region", { name: "Current table map" });
+    const advanced = container.querySelector("details")!;
+    for (const setting of [
+      "MapBackgroundControl",
+      "GridControl",
+      "StagingZoneControl",
+      "DrawingControls",
+    ]) {
+      const node = section.querySelector(`[data-component="${setting}"]`);
+      expect(node, setting).not.toBeNull();
+      expect(advanced.contains(node), setting).toBe(false);
+    }
+    // Fog and vision render real controls (no mock): find them by their panels.
+    expect(section.textContent).toMatch(/Fog of War/i);
+    expect(advanced.textContent).not.toMatch(/Fog of War/i);
+    const vision = screen.getByLabelText("Default sight radius in feet");
+    expect(section.contains(vision)).toBe(true);
+    expect(advanced.contains(vision)).toBe(false);
+    expect(section.querySelector('[data-component="MapStudioControl"]')).toBeNull();
+    expect(container.querySelector('[data-component="MapStudioControl"]')).not.toBeNull();
+  });
+
+  it("hands the library the table's identity, fog, World locations and the Use at table action", () => {
+    const onUseMapAtTable = vi.fn();
+    const nodes = [{ id: "n", kind: "building", name: "Tavern", discovered: true }] as const;
+    render(
+      <MapTab
+        {...base()}
+        mapStudio={studio("tavern")}
+        tableMapDocumentId="crypt"
+        hasCompiledScene
+        fogEnabled
+        atlasNodes={[...nodes]}
+        onUseMapAtTable={onUseMapAtTable}
+      />,
+    );
+    const libraryProps = vi.mocked(MapStudioControl).mock.calls.at(-1)![0];
+    expect(libraryProps).toMatchObject({
+      tableMapDocumentId: "crypt",
+      hasBackground: false,
+      fogEnabled: true,
+      atlasNodes: [expect.objectContaining({ name: "Tavern" })],
+    });
+    expect(libraryProps.onUseAtTable).toBe(onUseMapAtTable);
+  });
+
+  it("tells same-named maps apart on both identity lines", () => {
+    const copies = {
+      documents: [
+        { id: "doc-1a2b", name: "Live Map" },
+        { id: "doc-9f8e", name: "Live Map" },
+      ],
+      activeDocument: { id: "doc-9f8e", name: "Live Map" },
+      publishDocument: vi.fn(),
+    } as unknown as MapStudioController;
+    render(
+      <MapTab {...base()} mapStudio={copies} tableMapDocumentId="doc-1a2b" hasCompiledScene />,
+    );
+    expect(screen.getByText(/^On table:/)).toHaveTextContent("On table: Live Map #1a2b");
+    expect(screen.getByText(/^Viewing in library:/)).toHaveTextContent(
+      "Viewing in library: Live Map #9f8e",
+    );
+  });
+
+  it("reports a publish only when it was sent, naming copies apart", () => {
+    const publishDocument = vi.fn(() => false);
+    const onMapBackgroundSuccess = vi.fn();
+    const copies = {
+      documents: [
+        { id: "doc-1a2b", name: "Live Map" },
+        { id: "doc-9f8e", name: "Live Map" },
+      ],
+      activeDocument: null,
+      publishDocument,
+    } as unknown as MapStudioController;
+    render(
+      <MapTab
+        {...base()}
+        mapStudio={copies}
+        onMapBackgroundSuccess={onMapBackgroundSuccess}
+        mapBackground="https://example.test/town.png"
+      />,
+    );
+    const props = vi.mocked(MapStudioControl).mock.calls.at(-1)![0];
+    expect(props.hasBackground).toBe(true);
+    const publish = {
+      backgroundUrl: "/assets/x",
+      gridSize: 50,
+      documentId: "doc-9f8e",
+      documentName: "Live Map",
+      backgroundMode: "full" as const,
+    };
+    // Nothing sent (another map opened mid-bake): false, and no success toast.
+    expect(props.onPublishToLiveMap!(publish)).toBe(false);
+    expect(onMapBackgroundSuccess).not.toHaveBeenCalled();
+    publishDocument.mockReturnValue(true);
+    expect(props.onPublishToLiveMap!(publish)).toBe(true);
+    expect(onMapBackgroundSuccess).toHaveBeenCalledWith(
+      'Published "Live Map #9f8e" as the table\'s map background.',
+    );
+  });
+
+  it("an older unbound save viewing the scene's own map does not name it twice", () => {
+    render(
+      <MapTab
+        {...base()}
+        mapStudio={studio("crypt")}
+        liveSceneDocumentId="crypt"
+        hasCompiledScene
+      />,
+    );
+    expect(screen.getByText(/^On table:/)).toHaveTextContent("On table: Crypt");
+    expect(screen.queryByText(/^Viewing in library:/)).toBeNull();
+  });
+
+  it("an unbound scene whose own map is still saved is named by that map", () => {
+    render(
+      <MapTab {...base()} mapStudio={studio(null)} liveSceneDocumentId="crypt" hasCompiledScene />,
+    );
+    expect(screen.getByText(/^On table:/)).toHaveTextContent("On table: Crypt");
   });
 });

@@ -20,6 +20,9 @@ describe("detectBackupFormat", () => {
     // Map: the full shape, at any version (the version is the caller's to judge).
     [{ name: "Dungeon", layers: [], elements: [] }, "map"],
     [{ schemaVersion: 2, name: "Dungeon", layers: [], elements: [] }, "map"],
+    // …but BOTH collections make a document a map: a name and one of them is not enough.
+    [{ name: "Dungeon", layers: [] }, "unknown"],
+    [{ name: "Dungeon", elements: [] }, "unknown"],
     // Map: the thin shape the importer deliberately accepts.
     [{ schemaVersion: 1, id: "doc-A", name: "Dungeon" }, "map"],
     // …and the two ways it must NOT match. Without the id, arbitrary JSON gets
@@ -28,6 +31,14 @@ describe("detectBackupFormat", () => {
     [{ schemaVersion: 1, name: "anything" }, "unknown"],
     [{ id: "doc-A", name: "Dungeon" }, "unknown"],
     [{ schemaVersion: 2, id: "doc-A", name: "Dungeon" }, "unknown"],
+    // Character (Save character): a name and BOTH HP numbers, nothing of a table or a map.
+    [{ name: "Aria", hp: 30, maxHp: 40 }, "character"],
+    [{ name: "Aria", hp: 30, maxHp: 40, token: { id: "tok-1" }, drawings: [] }, "character"],
+    // …and the ways it must NOT match: a name alone, one HP, HP as text.
+    [{ name: "Aria" }, "unknown"],
+    [{ name: "Aria", hp: 30 }, "unknown"],
+    [{ name: "Aria", hp: "30", maxHp: "40" }, "unknown"],
+    [{ hp: 30, maxHp: 40 }, "unknown"],
     // Not objects at all. `null` is the one that used to throw.
     [null, "unknown"],
     [5, "unknown"],
@@ -35,6 +46,15 @@ describe("detectBackupFormat", () => {
     [[], "unknown"],
   ])("%j -> %s", (input, expected) => {
     expect(detectBackupFormat(input)).toBe(expected);
+  });
+
+  it("never takes a table or a map for a character, whatever else they carry", () => {
+    // The character rule is asked LAST, so the two files that can lose data when
+    // refused are matched first — a table backup must restore, a map must import.
+    expect(detectBackupFormat({ snapshot: {}, name: "Aria", hp: 30, maxHp: 40 })).toBe("session");
+    expect(
+      detectBackupFormat({ name: "Dungeon", layers: [], elements: [], hp: 30, maxHp: 40 }),
+    ).toBe("map");
   });
 
   it("classifies a session envelope as a session even when it also looks map-shaped", () => {

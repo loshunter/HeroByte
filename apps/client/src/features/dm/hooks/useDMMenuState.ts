@@ -11,13 +11,14 @@
 // Extracted from: apps/client/src/features/dm/components/DMMenu.tsx (lines 127-139)
 // Extraction date: 2025-10-21
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import type { SnapshotCharacter } from "@herobyte/shared";
+import { subscribeDMMenuRequests, takeDMMenuTabRequest } from "../../table/menuRequest";
 
 /**
  * Type for DMMenu tab identifiers
  */
-export type DMMenuTab = "map" | "atlas" | "npcs" | "props" | "players" | "session";
+export type DMMenuTab = "map" | "atlas" | "encounter" | "npcs" | "props" | "table";
 
 /**
  * State object returned by useDMMenuState hook
@@ -39,6 +40,14 @@ export interface DMMenuState {
   toggleOpen: () => void;
 
   /**
+   * Counts the requests ("Table settings…") that opened or moved the menu, 0 when
+   * the menu was opened any other way: the tab strip focuses its active tab when
+   * this changes to a nonzero value, so focus follows the person to what they
+   * asked for. Forgotten when the menu closes.
+   */
+  focusTabRequest: number;
+
+  /**
    * The currently active tab in the DM menu
    */
   activeTab: DMMenuTab;
@@ -49,7 +58,7 @@ export interface DMMenuState {
   setActiveTab: (tab: DMMenuTab) => void;
 
   /**
-   * The current session name (used for save/load operations)
+   * The backup file's name (Table → Backups), kept here so it survives a tab switch
    */
   sessionName: string;
 
@@ -122,7 +131,8 @@ export interface UseDMMenuStateOptions {
 export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMMenuState {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
-  const [sessionName, setSessionName] = useState("session");
+  const [sessionName, setSessionName] = useState("table-backup");
+  const [focusTabRequest, setFocusTabRequest] = useState(0);
 
   /**
    * Memoized list of NPCs filtered from all characters
@@ -141,6 +151,32 @@ export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMM
   }, []);
 
   /**
+   * "Table settings…" in the Table menu asks this menu to open on a tab. A
+   * request made before this mounted (the phone's DM screen mounts after the
+   * tap) is taken now; later ones arrive through the subscription.
+   */
+  const isDMRef = useRef(isDM);
+  isDMRef.current = isDM;
+  // Declared BEFORE the request effect: on mount both run, and the request's ask must win.
+  useEffect(() => {
+    if (!open) setFocusTabRequest(0);
+  }, [open]);
+  useEffect(() => {
+    const takeRequest = () => {
+      // Always taken (so it cannot linger), but honoured for a DM only: a request made for
+      // anyone else must not open the menu by itself at the next elevation.
+      const tab = takeDMMenuTabRequest();
+      if (tab && isDMRef.current) {
+        setActiveTab(tab);
+        setOpen(true);
+        setFocusTabRequest((count) => count + 1);
+      }
+    };
+    takeRequest();
+    return subscribeDMMenuRequests(takeRequest);
+  }, []);
+
+  /**
    * Auto-close the menu when DM mode is disabled
    * Ensures the menu is not visible to non-DM users
    */
@@ -154,6 +190,7 @@ export function useDMMenuState({ isDM, characters }: UseDMMenuStateOptions): DMM
     open,
     setOpen,
     toggleOpen,
+    focusTabRequest,
     activeTab,
     setActiveTab,
     sessionName,

@@ -1,6 +1,7 @@
 /**
- * Save Game State, end to end — the DM clicks the button and a session file
- * the loader accepts actually downloads, with a toast that says its weight.
+ * Download table backup (once "Save Game State"), end to end — the DM clicks the
+ * button and a backup file the restore accepts actually downloads, with a toast
+ * that says its weight.
  *
  * Why this spec exists: the server's `session-file` reply was silently dropped
  * by the client router for as long as the forward-compat guard existed (it was
@@ -12,20 +13,20 @@ import { expect, test } from "./fixtures";
 import { joinDefaultRoomAsDM } from "./helpers";
 import { selectDMTab } from "./docs-shots.helpers";
 
-test.describe("Session Save - Smoke Tests", () => {
-  test("Save Game State downloads a file the loader accepts, and the toast says its weight", async ({
+test.describe("Table backup - Smoke Tests", () => {
+  test("Download table backup downloads a file the restore accepts, and the toast says its weight", async ({
     page,
   }) => {
     await joinDefaultRoomAsDM(page);
-    await selectDMTab(page, "Session");
+    await selectDMTab(page, "Table");
 
     // The toast: the WEIGHT (digits, not just the limit) beside the map count.
     // Waited for from before the click — a 4 s toast does not wait for us.
-    const weighToast = page.getByText(/\d\.\d\d MB of the 1\.00 MB a load accepts/);
+    const weighToast = page.getByText(/\d\.\d\d MB of the 1\.00 MB a restore accepts/);
     const [download, , , said] = await Promise.all([
       page.waitForEvent("download", { timeout: 15_000 }),
       weighToast.waitFor({ state: "visible", timeout: 15_000 }),
-      page.getByRole("button", { name: /Save Game State/i }).click(),
+      page.getByRole("button", { name: /Download table backup/i }).click(),
       weighToast.textContent({ timeout: 15_000 }),
     ]);
 

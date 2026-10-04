@@ -3,21 +3,31 @@
 // ============================================================================
 // Compact player/character row for mobile list view.
 
-import React, { memo, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
+import { MobileRowConditions } from "./MobileRowConditions";
+import { MobileRowActions, type MobileRowInitiative } from "./MobileRowActions";
 import type { MovementBudgetControl } from "../../features/players/components/MovementSpeedField";
-import type { Player, Token } from "@herobyte/shared";
+import type { Player, Token, TokenSize } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
-import { STATUS_OPTIONS } from "../../features/players/constants/statusOptions";
-import { JRPGButton } from "../ui/JRPGPanel";
 import { PlayerSettingsMenu } from "../../features/players/components/PlayerSettingsMenu";
+import type { OwnerControl } from "../../features/players/components/TokenSettingsSection";
+import type { CharacterFileActions } from "../../features/players/characterFile";
+import { useRoleKnown } from "../../features/table/roleKnown";
+
+/** The temp HP editor's state and handlers (the same ones the desktop card gets). */
+export interface TempHpEditing {
+  editingUID: string | null;
+  input: string;
+  onInputChange: (value: string) => void;
+  onEdit: (characterId: string) => void;
+  onSubmit: () => void;
+}
 
 interface MobilePlayerRowProps {
   player: Player & { characterId: string };
   isMe: boolean;
   /** The VIEWER's DM state (mobile passes one flag to every row). */
   isDM: boolean;
-  /** Grant/revoke the viewer's own DM status. */
-  onToggleDMMode: (next: boolean) => void;
   // HP Editing
   editingHpUID: string | null;
   hpInput: string;
@@ -30,8 +40,17 @@ interface MobilePlayerRowProps {
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: (maxHp: string) => void;
+  /** Temp HP: the owner's and the DM's, as with HP. Absent = no editor (a read-only row). */
+  tempHp?: TempHpEditing;
   // State handlers
   onStatusEffectsChange?: (effects: string[]) => void;
+  /**
+   * The viewer's own seat with no character: no HP, conditions, name, portrait
+   * or status editors — only what a seat can use (➕ Add Character).
+   */
+  characterless?: boolean;
+  /** DM-only: this character's owner (the sheet's Token settings). */
+  owner?: OwnerControl;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   /** Present when this viewer may delete this row's character (owner or DM). */
@@ -43,11 +62,33 @@ interface MobilePlayerRowProps {
   /** This player's token, for the DM-only sight controls (S7). */
   token?: Token;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
+  tokenSize?: TokenSize;
+  /** Present when this viewer may resize this row's token (its owner, or a DM). */
+  onTokenSizeChange?: (size: TokenSize) => void;
+  /** Your own row: add a character (the settings window asks for its name). */
+  onAddCharacter?: (name: string) => boolean;
+  isCreatingCharacter?: boolean;
+  /** DM-only: the token's lock and deletion. */
+  tokenLocked?: boolean;
+  onToggleTokenLock?: (locked: boolean) => void;
+  onDeleteToken?: () => void;
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
   characterSpeed?: number;
   onCharacterSpeedChange?: (speedFeet: number | null) => void;
   /** DM-only: the spend and its reset. */
   characterBudget?: MovementBudgetControl;
+  /**
+   * Centre the map on THIS character's token and show the map (U7). Absent
+   * when the character has no token to centre on.
+   */
+  onFocus?: () => void;
+  /** Its initiative and turn (U8); absent on a characterless row. */
+  initiative?: MobileRowInitiative;
+  /**
+   * Save character / Load character (U9): this character's file, for the row's
+   * own player and the DM. Absent on a characterless row and on anyone else's.
+   */
+  characterFile?: CharacterFileActions;
 }
 
 export const MobilePlayerRow = memo<MobilePlayerRowProps>(
@@ -55,7 +96,6 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     player,
     isMe,
     isDM,
-    onToggleDMMode,
     editingHpUID,
     hpInput,
     onHpInputChange,
@@ -66,7 +106,11 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onMaxHpInputChange,
     onMaxHpEdit,
     onMaxHpSubmit,
+    tempHp,
     onStatusEffectsChange,
+    characterless = false,
+    characterFile,
+    owner,
     onCharacterHpChange,
     onCharacterNameUpdate,
     onDeleteCharacter,
@@ -74,27 +118,44 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onCharacterPortraitUpdate,
     token,
     onTokenVisionRadiusChange,
+    tokenSize,
+    onTokenSizeChange,
+    onAddCharacter,
+    isCreatingCharacter,
+    tokenLocked,
+    onToggleTokenLock,
+    onDeleteToken,
     characterSpeed,
     onCharacterSpeedChange,
     characterBudget,
+    onFocus,
+    initiative,
   }) => {
     const isEditingHp = editingHpUID === player.characterId;
     const isEditingMaxHp = editingMaxHpUID === player.characterId;
-    const [isEditingEffects, setIsEditingEffects] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    // Another player's sheet is the DM's to hold. On losing DM rights (a deploy, a
+    // restart; a reconnect blip waits for the roster) it closes rather than offering
+    // editors the server now refuses, and does not reopen by itself on re-elevation.
+    const mayEdit = !useRoleKnown() || isMe || isDM;
+    useEffect(() => {
+      if (!mayEdit) setSettingsOpen(false);
+    }, [mayEdit]);
     const [localNameInput, setLocalNameInput] = useState(player.name);
+    // Re-read the name whenever the sheet opens or someone renames the
+    // character, as the desktop card does: a copy taken at mount showed a
+    // stale name, and leaving the field sent it back over their rename.
+    useEffect(() => {
+      if (settingsOpen) setLocalNameInput(player.name);
+    }, [settingsOpen, player.name]);
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
+    // Like the name: re-read on open and on a change made elsewhere, or
+    // leaving the field sends a stale URL back over it.
+    useEffect(() => {
+      if (settingsOpen) setPortraitImageInput(player.portrait ?? "");
+    }, [settingsOpen, player.portrait]);
 
     const activeEffects = player.statusEffects || [];
-
-    const handleToggleEffect = (value: string) => {
-      if (!onStatusEffectsChange) return;
-      const current = activeEffects;
-      const next = current.includes(value)
-        ? current.filter((e) => e !== value)
-        : [...current, value];
-      onStatusEffectsChange(next);
-    };
 
     return (
       <div
@@ -166,163 +227,116 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
               }}
             >
               {player.isDM ? "Dungeon Master" : "Adventurer"}
+              {initiative?.value !== undefined ? ` · Init ${initiative.value}` : ""}
+              {initiative?.isTurn ? " · ▶ Turn" : ""}
             </div>
           </div>
-          {/* Your own row always, and every row for a DM — matching desktop,
-              where EntitiesPanel gives a DM a settings button on every card.
-              Without the DM case the phone had no way to reach the DM-only
-              controls inside (S7's sight radius), so they shipped unreachable. */}
-          {(isMe || isDM) && (
-            <JRPGButton
-              onClick={() => setSettingsOpen(true)}
-              variant="primary"
-              style={{ padding: "4px 8px", fontSize: "11px" }}
-            >
-              ⚙️ EDIT
-            </JRPGButton>
-          )}
         </div>
+
+        {/* The row's actions on a line of their own (U7): beside the name,
+            FOCUS and EDIT left a phone ~80px for it and cut "Player 1" to
+            "Playe…". */}
+        <MobileRowActions
+          name={player.name}
+          onFocus={onFocus}
+          onOpenInitiative={initiative?.onOpen}
+          initiative={initiative?.value}
+          initiativeFocusKey={initiative?.focusKey}
+          onEdit={isMe || isDM ? () => setSettingsOpen(true) : undefined}
+        />
 
         {/* HP Bar */}
-        <div style={{ padding: "0 4px" }}>
-          <HPBar
-            hp={player.hp ?? 100}
-            maxHp={player.maxHp ?? 100}
-            tempHp={player.tempHp}
-            isMe={isMe}
-            isEditingHp={isEditingHp}
-            hpInput={hpInput}
-            isEditingMaxHp={isEditingMaxHp}
-            maxHpInput={maxHpInput}
-            playerUid={player.characterId}
-            onHpChange={(newHp) =>
-              onCharacterHpChange(player.characterId, newHp, player.maxHp ?? 100, player.tempHp)
-            }
-            onHpInputChange={onHpInputChange}
-            onHpEdit={onHpEdit}
-            onHpSubmit={onHpSubmit}
-            onMaxHpInputChange={onMaxHpInputChange}
-            onMaxHpEdit={onMaxHpEdit}
-            onMaxHpSubmit={onMaxHpSubmit}
-            onTempHpInputChange={() => {}} // Simplify mobile view
-          />
-        </div>
-
-        {/* Status Effects Display */}
-        {activeEffects.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", padding: "0 4px" }}>
-            {activeEffects.map((effectVal) => {
-              const opt = STATUS_OPTIONS.find((o) => o.value === effectVal);
-              return (
-                <div
-                  key={effectVal}
-                  style={{
-                    fontSize: "12px",
-                    background: "rgba(0,0,0,0.5)",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    border: "1px solid rgba(255, 255, 255, 0.2)",
-                    color: "#ddd",
-                  }}
-                >
-                  {opt ? `${opt.emoji} ${opt.label}` : effectVal}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Edit Effects Button (Only for owner/DM) */}
-        {(isMe || isDM) && onStatusEffectsChange && (
+        {!characterless && (
           <div style={{ padding: "0 4px" }}>
-            <JRPGButton
-              onClick={() => setIsEditingEffects(!isEditingEffects)}
-              variant="default"
-              style={{ width: "100%", fontSize: "12px", padding: "6px" }}
-            >
-              {isEditingEffects ? "Done Editing" : "⚡ Manage Status"}
-            </JRPGButton>
-
-            {/* Effects Selection Grid */}
-            {isEditingEffects && (
-              <div
-                style={{
-                  marginTop: "8px",
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "6px",
-                  background: "rgba(0,0,0,0.3)",
-                  padding: "8px",
-                  borderRadius: "4px",
-                }}
-              >
-                {STATUS_OPTIONS.map((opt) => {
-                  const isActive = activeEffects.includes(opt.value);
-                  return (
-                    <button
-                      key={opt.value}
-                      onClick={() => handleToggleEffect(opt.value)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        background: isActive ? "rgba(255, 215, 0, 0.2)" : "transparent",
-                        border: isActive
-                          ? "1px solid var(--hero-gold)"
-                          : "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "4px",
-                        padding: "6px",
-                        color: isActive ? "var(--hero-gold)" : "#aaa",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        textAlign: "left",
-                      }}
-                    >
-                      <span>{opt.emoji}</span>
-                      <span>{opt.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <HPBar
+              hp={player.hp ?? 100}
+              maxHp={player.maxHp ?? 100}
+              tempHp={player.tempHp}
+              // Its editors: the owner's, and the DM's (the server allows both).
+              isMe={isMe || isDM}
+              isEditingHp={isEditingHp}
+              hpInput={hpInput}
+              isEditingMaxHp={isEditingMaxHp}
+              maxHpInput={maxHpInput}
+              playerUid={player.characterId}
+              onHpChange={(newHp) =>
+                onCharacterHpChange(player.characterId, newHp, player.maxHp ?? 100, player.tempHp)
+              }
+              onHpInputChange={onHpInputChange}
+              onHpEdit={onHpEdit}
+              onHpSubmit={onHpSubmit}
+              onMaxHpInputChange={onMaxHpInputChange}
+              onMaxHpEdit={onMaxHpEdit}
+              onMaxHpSubmit={onMaxHpSubmit}
+              isEditingTempHp={tempHp?.editingUID === player.characterId}
+              tempHpInput={tempHp?.input}
+              onTempHpInputChange={tempHp?.onInputChange}
+              onTempHpEdit={tempHp ? () => tempHp.onEdit(player.characterId) : undefined}
+              onTempHpSubmit={tempHp ? () => tempHp.onSubmit() : undefined}
+            />
           </div>
         )}
+
+        <MobileRowConditions
+          activeEffects={activeEffects}
+          // The owner or the DM: the handler is supplied for every row, so
+          // this is the gate that keeps a player off a party member's.
+          onStatusEffectsChange={isMe || isDM ? onStatusEffectsChange : undefined}
+        />
 
         {/* Mobile Settings Menu Overlay */}
         <PlayerSettingsMenu
-          isOpen={settingsOpen}
+          isOpen={mayEdit && settingsOpen}
           onClose={() => setSettingsOpen(false)}
           tokenVisionRadius={token?.visionRadius}
           tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
+          tokenSize={tokenSize}
+          onTokenSizeChange={onTokenSizeChange}
+          owner={owner}
+          onAddCharacter={onAddCharacter}
+          isCreatingCharacter={isCreatingCharacter}
+          tokenLocked={tokenLocked}
+          onToggleTokenLock={onToggleTokenLock}
+          onDeleteToken={onDeleteToken}
           characterSpeed={characterSpeed}
           onCharacterSpeedChange={onCharacterSpeedChange}
           characterBudget={characterBudget}
           compactControls
           nameInput={localNameInput}
-          onNameInputChange={setLocalNameInput}
+          onNameInputChange={characterless ? undefined : setLocalNameInput}
           onNameSubmit={() => {
-            if (localNameInput.trim()) {
-              onCharacterNameUpdate(player.characterId, localNameInput.trim());
+            // Leaving the field is a submit; an unchanged name is not a rename.
+            const next = localNameInput.trim();
+            if (next && next !== player.name) {
+              onCharacterNameUpdate(player.characterId, next);
             }
           }}
-          portraitImageInput={portraitImageInput}
+          portraitImageInput={characterless ? undefined : portraitImageInput}
           onPortraitInputChange={setPortraitImageInput}
           onPortraitApply={(url) => {
             onCharacterPortraitUpdate(player.characterId, url);
           }}
-          // Token-image and save/load are deliberately OMITTED rather than
-          // stubbed: they are not wired on mobile, and a control that silently
-          // does nothing is worse than one that isn't there. PlayerSettingsMenu
-          // hides those sections when the handlers are absent.
+          // The token image is deliberately OMITTED rather than stubbed: it is not
+          // wired on mobile, and a control that silently does nothing is worse
+          // than one that isn't there. PlayerSettingsMenu hides a section whose
+          // handlers are absent. Save / Load character are wired (U9).
+          onSavePlayerState={characterFile?.save}
+          onLoadPlayerState={
+            characterFile
+              ? async (file) => {
+                  const state = await characterFile.load(file);
+                  // The portrait field mirrors what the file just set.
+                  setPortraitImageInput(state.portrait ?? "");
+                }
+              : undefined
+          }
+          initiative={initiative?.value}
+          onClearInitiative={initiative?.onClear}
           selectedEffects={activeEffects}
-          onStatusEffectsChange={onStatusEffectsChange ?? (() => {})}
+          onStatusEffectsChange={characterless ? undefined : (onStatusEffectsChange ?? (() => {}))}
           isDM={isDM}
-          // The viewer's own row is the only place DM Mode belongs, and this is
-          // the only DM-elevation control that exists on a phone.
           viewerIsDM={isDM}
-          canToggleDM={isMe}
-          onToggleDMMode={onToggleDMMode}
           characterId={player.characterId}
           onDeleteCharacter={onDeleteCharacter}
         />

@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { partyHeading, showPartyCards } from "./party.helpers";
 import { joinDefaultRoomAsDM } from "./helpers";
 
 test.describe("Turn Navigation UI", () => {
@@ -13,16 +14,10 @@ test.describe("Turn Navigation UI", () => {
     expect(myUid).not.toBeNull();
     console.log(`✅ DM joined with UID: ${myUid}`);
 
-    // Step 2: Verify entities panel is visible (not collapsed)
-    console.log("✅ Step 2: Checking entities panel visibility");
-    const entitiesHeading = page.getByRole("heading", { name: "ENTITIES" });
-    const entitiesPanelVisible = await entitiesHeading.isVisible().catch(() => false);
-    if (!entitiesPanelVisible) {
-      console.log("  Entities panel is collapsed, expanding it...");
-      await page.getByRole("button", { name: /show entities/i }).click();
-      await page.waitForTimeout(500);
-    }
-    await expect(entitiesHeading).toBeVisible();
+    // Step 2: Verify the Party panel is visible (not hidden), with its cards
+    console.log("✅ Step 2: Checking Party panel visibility");
+    await showPartyCards(page);
+    await expect(partyHeading(page)).toBeVisible();
 
     // Step 3: Add a couple NPCs for testing
     console.log("✅ Step 3: Adding 2 NPCs");
@@ -105,7 +100,7 @@ test.describe("Turn Navigation UI", () => {
               t: "set-initiative",
               characterId: charId,
               initiative: init,
-              modifier: mod,
+              initiativeModifier: mod,
             });
           }
         },

@@ -252,7 +252,7 @@ describe("useStageEventRouter", () => {
         }),
       );
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
 
       expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(
@@ -270,7 +270,7 @@ describe("useStageEventRouter", () => {
         }),
       );
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
 
       expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(
@@ -288,7 +288,7 @@ describe("useStageEventRouter", () => {
         }),
       );
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
 
       expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(mockEvent, mockStageRef, false);
@@ -302,7 +302,7 @@ describe("useStageEventRouter", () => {
         }),
       );
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
 
       expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(mockEvent, mockStageRef, false);
@@ -316,7 +316,7 @@ describe("useStageEventRouter", () => {
         }),
       );
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
 
       expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(mockEvent, mockStageRef, false);
@@ -330,7 +330,7 @@ describe("useStageEventRouter", () => {
         }),
       );
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
 
       expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(mockEvent, mockStageRef, false);
@@ -344,7 +344,7 @@ describe("useStageEventRouter", () => {
       mockHandleDrawMouseDown.mockImplementation(() => callOrder.push("draw"));
       mockHandleMarqueePointerDown.mockImplementation(() => callOrder.push("marquee"));
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
 
       expect(callOrder).toEqual(["camera", "draw", "marquee"]);
@@ -364,7 +364,7 @@ describe("useStageEventRouter", () => {
         }),
       );
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
 
       expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(mockEvent, mockStageRef, false);
@@ -377,7 +377,7 @@ describe("useStageEventRouter", () => {
         useStageEventRouter({ ...defaultProps, mapEditMode: true }),
       );
 
-      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      const mockEvent = { evt: { button: 0 } } as KonvaEventObject<PointerEvent>;
       result.current.onMouseDown(mockEvent);
       result.current.onMouseMove();
       result.current.onMouseUp();

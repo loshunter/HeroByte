@@ -1,3 +1,4 @@
+import { createMapOperation } from "../../map-studio/mapOperation";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { MapDocument } from "@herobyte/shared";
@@ -30,13 +31,17 @@ function doc(grid: Partial<MapDocument["grid"]> = {}): MapDocument {
   };
 }
 
+const completions = new WeakMap<MapStudioController, ReturnType<typeof createMapOperation>>();
 function controller(overrides: Partial<MapStudioController> = {}): MapStudioController {
-  return {
+  const operation = createMapOperation("live");
+  const result = {
     activeDocument: doc(),
     saving: false,
-    generate: vi.fn(),
+    generate: vi.fn(() => operation.handle),
     ...overrides,
   } as unknown as MapStudioController;
+  completions.set(result, operation);
+  return result;
 }
 
 /** A 24x20-cell region at cell (2,2), in document pixels (grid 50, offset 0). */
@@ -214,7 +219,7 @@ describe("useGenerate", () => {
     // the same dungeon", which pinned the behaviour below as desirable. It is
     // not: the recipe is pure, so a repeat with nothing changed does not
     // rebuild, it stacks an identical copy and one undo removes only the copy.
-    it("refuses an unchanged repeat, and the reroll is what re-arms it", () => {
+    it("refuses an acknowledged unchanged repeat, and the reroll is what re-arms it", async () => {
       const notify = vi.fn();
       const ctrl = controller();
       const { result } = renderHook(() => useGenerate(ctrl, true, "generate", true, notify));
@@ -223,6 +228,14 @@ describe("useGenerate", () => {
       act(() => result.current.onGenerate());
       expect(ctrl.generate).toHaveBeenCalledTimes(1);
       const firstSeed = (ctrl.generate as ReturnType<typeof vi.fn>).mock.calls[0]![0].seed;
+
+      // Only the matching operation completion makes this region Built.
+      // The first call above is still pending: it must not already claim success.
+      expect(result.current.hint).not.toMatch(/already/i);
+      // Resolve the exact operation returned by that first submission.
+      await act(async () => {
+        completions.get(ctrl)?.settle({ status: "succeeded" });
+      });
 
       // Same region, same dials, same seed — nothing to build that is not there.
       act(() => result.current.onGenerate());

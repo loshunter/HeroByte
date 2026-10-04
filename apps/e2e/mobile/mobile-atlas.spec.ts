@@ -19,10 +19,10 @@ async function openAtlasChip(page: Page): Promise<void> {
     .click();
   const dialog = page.getByRole("dialog", { name: "DM Menu" });
   await expect(dialog).toBeVisible();
-  const atlasChip = dialog.getByRole("button", { name: "Atlas" });
+  const atlasChip = dialog.getByRole("button", { name: "World", exact: true });
   await atlasChip.scrollIntoViewIfNeeded();
   await atlasChip.click();
-  await expect(dialog.getByLabel("New node name")).toBeVisible({ timeout: 15_000 });
+  await expect(dialog.getByLabel("New location name")).toBeVisible({ timeout: 15_000 });
 }
 
 test.describe("mobile — the atlas", () => {
@@ -44,15 +44,15 @@ test.describe("mobile — the atlas", () => {
       const dialog = dm.getByRole("dialog", { name: "DM Menu" });
 
       // Create the promise and cash it through the generate panel, by finger.
-      await dialog.getByLabel("New node name").fill("Waystone");
-      await dialog.getByRole("button", { name: "+ CREATE NODE" }).click();
-      const generateOpen = dialog.getByRole("button", { name: "🎲 Generate…" });
+      await dialog.getByLabel("New location name").fill("Waystone");
+      await dialog.getByRole("button", { name: "+ Create location" }).click();
+      const generateOpen = dialog.getByRole("button", { name: "🎲 Generate map for location…" });
       await generateOpen.scrollIntoViewIfNeeded();
       await generateOpen.click();
       await dialog.getByLabel("Size for Waystone").selectOption("small");
       await dialog
         .getByTestId("atlas-generate-panel")
-        .getByRole("button", { name: "🎲 GENERATE" })
+        .getByRole("button", { name: /^🎲 Generate map for / })
         .click();
       await dm.waitForFunction(
         () =>
@@ -67,7 +67,7 @@ test.describe("mobile — the atlas", () => {
       );
 
       // TRAVEL from the same sheet; the confirm is a native dialog.
-      const travel = dialog.getByRole("button", { name: "🚩 TRAVEL" });
+      const travel = dialog.getByRole("button", { name: "🚩 Travel here" });
       await travel.scrollIntoViewIfNeeded();
       await travel.click();
       await dm.waitForFunction(

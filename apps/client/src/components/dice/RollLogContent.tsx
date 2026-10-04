@@ -7,15 +7,16 @@
 // its own because the mobile dock is a hardcoded 5-column grid — a sixth
 // button would overflow it, whereas a tab reaches mobile for free.
 //
-// ROLLS IS THE DEFAULT TAB ON PURPOSE: apps/e2e/dice.spec.ts asserts on
-// data-testid="roll-log-entry" being present when the panel opens.
+// First entry opens Chat; an explicit tab choice survives closing the panel
+// and moving between the desktop window and phone screen for this player.
 
-import React, { useState } from "react";
+import React, { useId, useRef } from "react";
 import type { ChatMessage, Player } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { RollEntry } from "./RollEntry";
 import { ChatTab } from "./ChatTab";
 import type { RollLogEntry } from "./rollLogTypes";
+import { useLogTab, type LogTab } from "./useLogTab";
 
 export interface RollLogContentProps {
   rolls: RollLogEntry[];
@@ -37,8 +38,6 @@ export interface RollLogContentProps {
   canClearLog?: boolean;
 }
 
-type LogTab = "rolls" | "chat";
-
 export const RollLogContent: React.FC<RollLogContentProps> = ({
   rolls,
   onClearLog,
@@ -49,11 +48,38 @@ export const RollLogContent: React.FC<RollLogContentProps> = ({
   onSendChat,
   canClearLog = true,
 }) => {
-  const [tab, setTab] = useState<LogTab>("rolls");
+  const [tab, setTab] = useLogTab(currentUid);
+  const tabsId = useId();
+  const tabListRef = useRef<HTMLDivElement>(null);
   const chatEnabled = Boolean(onSendChat);
   // Guard the render too: a caller that passes onSendChat but no arrays
   // should get an empty chat, not a crash.
   const activeTab: LogTab = chatEnabled ? tab : "rolls";
+
+  const handleTabKey = (event: React.KeyboardEvent<HTMLButtonElement>, focusedTab: LogTab) => {
+    let nextTab: LogTab;
+    switch (event.key) {
+      case "ArrowLeft":
+      case "ArrowRight":
+        nextTab = focusedTab === "chat" ? "rolls" : "chat";
+        break;
+      case "Home":
+        nextTab = "chat";
+        break;
+      case "End":
+        nextTab = "rolls";
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    // These keys belong to the tabs, not the table's movement shortcuts.
+    event.stopPropagation();
+    setTab(nextTab);
+    tabListRef.current
+      ?.querySelectorAll<HTMLButtonElement>("button")
+      [nextTab === "chat" ? 0 : 1]?.focus();
+  };
 
   return (
     <JRPGPanel
@@ -80,80 +106,119 @@ export const RollLogContent: React.FC<RollLogContentProps> = ({
         flexDirection: "column",
       }}
     >
-      {/* Tab strip — matches the DMMenuTabs idiom (JRPGButton variant swap).
-          Hidden entirely when chat is not wired, so nothing changes for a
-          caller that has not adopted it. */}
+      {/* Both panel containers stay linked; only the active content is mounted. */}
       {chatEnabled && (
-        <div style={{ display: "flex", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
-          <JRPGButton
-            onClick={() => setTab("rolls")}
-            variant={activeTab === "rolls" ? "primary" : "default"}
-            style={{ fontSize: "8px", padding: "6px 12px" }}
-          >
-            ROLLS
-          </JRPGButton>
-          <JRPGButton
-            onClick={() => setTab("chat")}
-            variant={activeTab === "chat" ? "primary" : "default"}
-            style={{ fontSize: "8px", padding: "6px 12px" }}
-          >
-            CHAT
-          </JRPGButton>
+        <div
+          ref={tabListRef}
+          role="tablist"
+          aria-label="Chat & Rolls"
+          aria-orientation="horizontal"
+          style={{ display: "flex", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}
+        >
+          {(["chat", "rolls"] as const).map((name) => (
+            <JRPGButton
+              key={name}
+              role="tab"
+              id={`${tabsId}-${name}-tab`}
+              aria-controls={`${tabsId}-${name}-panel`}
+              aria-selected={activeTab === name}
+              tabIndex={activeTab === name ? 0 : -1}
+              onClick={(event) => {
+                setTab(name);
+                event.currentTarget.focus();
+              }}
+              onKeyDown={(event) => handleTabKey(event, name)}
+              variant={activeTab === name ? "primary" : "default"}
+              style={{ fontSize: "8px", padding: "6px 12px" }}
+            >
+              {name.toUpperCase()}
+            </JRPGButton>
+          ))}
         </div>
       )}
 
-      {/* Clear button — roll-specific, so it must not offer to clear rolls
-          while the chat tab is showing. */}
-      {activeTab === "rolls" && canClearLog && rolls.length > 0 && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
-          <JRPGButton
-            onClick={onClearLog}
-            variant="danger"
-            style={{ fontSize: "8px", padding: "6px 12px" }}
-          >
-            CLEAR
-          </JRPGButton>
+      {chatEnabled && (
+        <div
+          role="tabpanel"
+          id={`${tabsId}-chat-panel`}
+          aria-labelledby={`${tabsId}-chat-tab`}
+          tabIndex={0}
+          hidden={activeTab !== "chat"}
+          style={{
+            display: activeTab === "chat" ? "flex" : "none",
+            flex: 1,
+            minHeight: 0,
+            flexDirection: "column",
+          }}
+        >
+          {activeTab === "chat" && (
+            <ChatTab
+              messages={chatMessages ?? []}
+              players={players ?? []}
+              currentUid={currentUid}
+              onSendChat={onSendChat as (text: string, to?: string) => void}
+            />
+          )}
         </div>
       )}
 
-      {activeTab === "chat" ? (
-        <ChatTab
-          messages={chatMessages ?? []}
-          players={players ?? []}
-          currentUid={currentUid}
-          onSendChat={onSendChat as (text: string, to?: string) => void}
-        />
-      ) : (
-        /* Roll entries */
-        <JRPGPanel variant="simple" style={{ flex: 1, overflow: "auto", padding: "8px" }}>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-            }}
-          >
-            {rolls.length === 0 ? (
+      <div
+        role={chatEnabled ? "tabpanel" : undefined}
+        id={chatEnabled ? `${tabsId}-rolls-panel` : undefined}
+        aria-labelledby={chatEnabled ? `${tabsId}-rolls-tab` : undefined}
+        tabIndex={chatEnabled ? 0 : undefined}
+        hidden={activeTab !== "rolls"}
+        style={{
+          display: activeTab === "rolls" ? "flex" : "none",
+          flex: 1,
+          minHeight: 0,
+          flexDirection: "column",
+        }}
+      >
+        {activeTab === "rolls" && (
+          <>
+            {canClearLog && rolls.length > 0 && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                <JRPGButton
+                  onClick={onClearLog}
+                  variant="danger"
+                  style={{ fontSize: "8px", padding: "6px 12px" }}
+                >
+                  CLEAR
+                </JRPGButton>
+              </div>
+            )}
+            <JRPGPanel variant="simple" style={{ flex: 1, overflow: "auto", padding: "8px" }}>
               <div
-                className="jrpg-text-small"
                 style={{
-                  textAlign: "center",
-                  color: "var(--jrpg-white)",
-                  opacity: 0.5,
-                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
                 }}
               >
-                No rolls yet...
+                {rolls.length === 0 ? (
+                  <div
+                    className="jrpg-text-small"
+                    style={{
+                      textAlign: "center",
+                      color: "var(--jrpg-white)",
+                      opacity: 0.5,
+                      padding: "20px",
+                    }}
+                  >
+                    No rolls yet...
+                  </div>
+                ) : (
+                  rolls
+                    .slice()
+                    .reverse()
+                    .map((roll) => <RollEntry key={roll.id} roll={roll} onViewRoll={onViewRoll} />)
+                )}
               </div>
-            ) : (
-              rolls
-                .slice()
-                .reverse()
-                .map((roll) => <RollEntry key={roll.id} roll={roll} onViewRoll={onViewRoll} />)
-            )}
-          </div>
-        </JRPGPanel>
-      )}
+            </JRPGPanel>
+          </>
+        )}
+      </div>
     </JRPGPanel>
   );
 };

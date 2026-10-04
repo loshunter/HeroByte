@@ -22,6 +22,7 @@ vi.mock("../../../../utils/playerPersistence", () => ({
 
 // Import component
 import { PlayerCard } from "../PlayerCard";
+import { RoleKnownContext } from "../../../table/roleKnown";
 // Import mocked functions
 import { savePlayerState, loadPlayerState } from "../../../../utils/playerPersistence";
 
@@ -182,12 +183,14 @@ vi.mock("../HPBar", () => ({
 
 vi.mock("../CardControls", () => ({
   CardControls: ({
+    controlId,
     canControlMic,
     canOpenSettings,
     micEnabled,
     onToggleMic,
     onOpenSettings,
   }: {
+    controlId: string;
     canControlMic: boolean;
     canOpenSettings: boolean;
     micEnabled: boolean;
@@ -195,6 +198,7 @@ vi.mock("../CardControls", () => ({
     onOpenSettings: () => void;
   }) => (
     <div data-testid="card-controls">
+      <span data-testid="card-controls-id">{controlId}</span>
       <span data-testid="card-controls-can-control-mic">{String(canControlMic)}</span>
       <span data-testid="card-controls-can-open-settings">{String(canOpenSettings)}</span>
       <span data-testid="card-controls-mic-enabled">{String(micEnabled)}</span>
@@ -223,7 +227,6 @@ vi.mock("../PlayerSettingsMenu", () => ({
     selectedEffects,
     onStatusEffectsChange,
     isDM,
-    onToggleDMMode,
     tokenLocked,
     onToggleTokenLock,
     tokenSize,
@@ -245,7 +248,6 @@ vi.mock("../PlayerSettingsMenu", () => ({
     selectedEffects: string[];
     onStatusEffectsChange: (effects: string[]) => void;
     isDM: boolean;
-    onToggleDMMode: (next: boolean) => void;
     onDeleteToken?: () => void;
     tokenLocked?: boolean;
     onToggleTokenLock?: (locked: boolean) => void;
@@ -306,9 +308,6 @@ vi.mock("../PlayerSettingsMenu", () => ({
         onClick={() => onStatusEffectsChange(["poisoned", "burning"])}
       >
         Change Effects
-      </button>
-      <button data-testid="settings-toggle-dm" onClick={() => onToggleDMMode(!isDM)}>
-        Toggle DM
       </button>
       {onToggleTokenLock && (
         <button data-testid="settings-toggle-lock" onClick={() => onToggleTokenLock(!tokenLocked)}>
@@ -445,7 +444,6 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Play
   onStatusEffectsChange: vi.fn(),
   isDM: false,
   viewerIsDM: false,
-  onToggleDMMode: vi.fn(),
   tokenLocked: false,
   onToggleTokenLock: vi.fn(),
   tokenSize: "medium" as TokenSize,
@@ -983,7 +981,7 @@ describe("PlayerCard", () => {
   // TESTS - SAVE PLAYER STATE
   // ============================================================================
 
-  describe("Save Player State", () => {
+  describe("Save character", () => {
     it("only works when isMe is true", () => {
       const props = createDefaultProps({
         isMe: false,
@@ -1019,7 +1017,7 @@ describe("PlayerCard", () => {
 
       expect(savePlayerState).toHaveBeenCalledTimes(1);
       expect(savePlayerState).toHaveBeenCalledWith({
-        player,
+        player: { ...player, statusEffects: [] },
         token: expect.objectContaining({
           id: token.id,
           color: token.color,
@@ -1029,6 +1027,26 @@ describe("PlayerCard", () => {
         drawings,
         initiativeModifier,
       });
+    });
+
+    it("saves the conditions this card shows, not the seat's shared list", () => {
+      // The seat's list is legacy: with two characters it holds whichever one
+      // was edited last, and a DM's edits never reach it. The card's own
+      // `statusEffects` is the character's.
+      const props = createDefaultProps({
+        isMe: true,
+        player: createMockPlayer({ statusEffects: ["poisoned"] }),
+        statusEffects: ["prone"],
+      });
+      render(<PlayerCard {...props} />);
+
+      fireEvent.click(screen.getByTestId("settings-save-state"));
+
+      expect(savePlayerState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          player: expect.objectContaining({ statusEffects: ["prone"] }),
+        }),
+      );
     });
 
     it("uses tokenImageInput if available, falls back to tokenImageUrl", () => {
@@ -1184,7 +1202,7 @@ describe("PlayerCard", () => {
   // TESTS - LOAD PLAYER STATE
   // ============================================================================
 
-  describe("Load Player State", () => {
+  describe("Load character", () => {
     beforeEach(() => {
       // Reset the mock before each test
       mockedLoadPlayerState.mockReset();
@@ -1785,6 +1803,15 @@ describe("PlayerCard", () => {
     });
 
     describe("CardControls props", () => {
+      it("receives the character's id as controlId (so each of a player's cards is its own mic control), else the player's uid", () => {
+        render(<PlayerCard {...createDefaultProps({ characterId: "char-9" })} />);
+        expect(screen.getByTestId("card-controls-id")).toHaveTextContent("char-9");
+        cleanup();
+        const bare = createDefaultProps({ characterId: undefined });
+        render(<PlayerCard {...bare} />);
+        expect(screen.getByTestId("card-controls-id")).toHaveTextContent(bare.player.uid);
+      });
+
       it("receives canControlMic as isMe", () => {
         const props = createDefaultProps({ isMe: true });
         render(<PlayerCard {...props} />);
@@ -1888,7 +1915,6 @@ describe("PlayerCard", () => {
       });
 
       it("receives all callbacks", () => {
-        const onToggleDMMode = vi.fn();
         const onToggleTokenLock = vi.fn();
         const onTokenSizeChange = vi.fn();
         const onAddCharacter = vi.fn().mockReturnValue(true);
@@ -1897,16 +1923,12 @@ describe("PlayerCard", () => {
           isMe: true,
           tokenId: "token-1",
           characterId: "char-1",
-          onToggleDMMode,
           onToggleTokenLock,
           onTokenSizeChange,
           onAddCharacter,
           onDeleteCharacter,
         });
         render(<PlayerCard {...props} />);
-
-        fireEvent.click(screen.getByTestId("settings-toggle-dm"));
-        expect(onToggleDMMode).toHaveBeenCalledWith(true);
 
         fireEvent.click(screen.getByTestId("settings-toggle-lock"));
         expect(onToggleTokenLock).toHaveBeenCalledWith(true);
@@ -2489,5 +2511,55 @@ describe("PlayerCard", () => {
     it("has displayName 'PlayerCard'", () => {
       expect(PlayerCard.displayName).toBe("PlayerCard");
     });
+  });
+});
+
+// A DM who loses DM rights (a deploy, a restart) sees another player's settings
+// window hidden; it must also stay closed when they get DM back, rather than
+// reappearing unasked (209b603d's rule for the phone sheet).
+describe("PlayerCard settings after losing DM rights", () => {
+  it("closes another player's window, and does not reopen it on re-elevation", () => {
+    const props = createDefaultProps({ isMe: false, viewerIsDM: true });
+    const { rerender } = render(<PlayerCard {...props} />);
+    fireEvent.click(screen.getByTestId("card-controls-open-settings"));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+
+    rerender(<PlayerCard {...props} viewerIsDM={false} />);
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
+
+    rerender(<PlayerCard {...props} viewerIsDM={true} />);
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
+  });
+
+  it("keeps the owner's own window open when they give up DM", () => {
+    // Leave DM mode used to sit in this very window (a Table role section; U9 moved it to
+    // the Table menu). Giving up DM, from wherever, must still not close a window the
+    // owner has open under their own click.
+    const props = createDefaultProps({ isMe: true, viewerIsDM: true });
+    const { rerender } = render(<PlayerCard {...props} />);
+    fireEvent.click(screen.getByTestId("card-controls-open-settings"));
+
+    rerender(<PlayerCard {...props} viewerIsDM={false} />);
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+  });
+});
+
+// A reconnect blip reads not-DM beside the DM's cached roster: it is not a demotion.
+describe("PlayerCard settings through a reconnect blip", () => {
+  it("keeps another player's window open until the roster confirms the demotion", () => {
+    const props = createDefaultProps({ isMe: false, viewerIsDM: true });
+    const view = (known: boolean, viewerIsDM: boolean) => (
+      <RoleKnownContext.Provider value={known}>
+        <PlayerCard {...props} viewerIsDM={viewerIsDM} />
+      </RoleKnownContext.Provider>
+    );
+    const { rerender } = render(view(true, true));
+    fireEvent.click(screen.getByTestId("card-controls-open-settings"));
+
+    rerender(view(false, false));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+
+    rerender(view(true, false));
+    expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
   });
 });

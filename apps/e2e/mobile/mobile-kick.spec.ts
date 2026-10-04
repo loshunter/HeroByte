@@ -1,6 +1,6 @@
 /**
  * The kicked-in door on a phone (K3): dock DM → 🚪 Kick in a door → the screen's
- * controls clear the 44px floor in both orientations → ROLL → the table stands
+ * controls clear the 44px floor in both orientations → Generate & enter → the table stands
  * in the new node, and a phone player's world map says so.
  *
  * The physics are atlasKick.contract.test.ts's job; what only THIS spec proves
@@ -57,7 +57,7 @@ test.describe("mobile — the kicked-in door", () => {
       // EXIT the mode, not just its sheet: map-edit REPLACES the player dock,
       // and the kick screen is reached from the player dock's DM button. (The
       // sheet's own ✕ says "Close tools" and leaves the mode armed.)
-      await editDock.getByRole("button", { name: /^Exit$/i }).click();
+      await editDock.getByRole("button", { name: /^Done building$/i }).click();
       await expect(dm.getByRole("navigation", { name: /Mobile actions/i })).toBeVisible();
 
       // The screen's controls clear the touch floor in BOTH orientations.
@@ -77,8 +77,8 @@ test.describe("mobile — the kicked-in door", () => {
       await expect(screen.getByLabel("Name")).toHaveValue("Shop");
       await screen.getByLabel("Name").fill("Cellar");
       await screen.getByLabel("Size").selectOption("small");
-      await screen.getByRole("button", { name: "🚪 ROLL" }).click();
-      // ROLL left the surface.
+      await screen.getByRole("button", { name: "🚪 Generate & enter" }).click();
+      // Generate & enter left the surface.
       await expect(screen).toBeHidden();
 
       await dm.waitForFunction(

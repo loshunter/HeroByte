@@ -25,7 +25,7 @@ describe("AtlasGeneratePanel", () => {
     fireEvent.change(screen.getByLabelText("Density for The Docks"), { target: { value: "high" } });
     fireEvent.change(screen.getByLabelText("Size for The Docks"), { target: { value: "large" } });
     fireEvent.change(screen.getByLabelText("Seed for The Docks"), { target: { value: "1234567" } });
-    fireEvent.click(screen.getByRole("button", { name: "🎲 GENERATE" }));
+    fireEvent.click(screen.getByRole("button", { name: "🎲 Generate map for The Docks" }));
 
     expect(actions.generateNode).toHaveBeenCalledWith("n1", 1234567, {
       recipeId: "dungeon",
@@ -55,7 +55,7 @@ describe("AtlasGeneratePanel", () => {
     });
     fireEvent.change(screen.getByLabelText("Size for The Docks"), { target: { value: "medium" } });
     fireEvent.change(screen.getByLabelText("Seed for The Docks"), { target: { value: "77" } });
-    fireEvent.click(screen.getByRole("button", { name: "🎲 GENERATE" }));
+    fireEvent.click(screen.getByRole("button", { name: "🎲 Generate map for The Docks" }));
 
     expect(actions.generateNode).toHaveBeenCalledWith("n1", 77, {
       recipeId: "building",

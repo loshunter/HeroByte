@@ -1,12 +1,14 @@
 /**
  * The public-table chip must not swallow the header's clicks.
  *
- * It is position:fixed at z-index 199 with pointer-events on, centred in the
- * same band as the header — so its WIDTH decides which header buttons can
+ * It was position:fixed at z-index 199 with pointer-events on, centred in the
+ * same band as the header — so its WIDTH decided which header buttons could
  * still be reached. Raising it from 7px to 11px for readability took it to
  * 682px and straight across "Draw Tools": elementFromPoint at that button's
  * centre returned the chip, and six specs in ui-state.spec.ts each sat out a
- * full timeout waiting to click something that was covered.
+ * full timeout waiting to click something that was covered. (U9 made it a row
+ * of the header's own flow, which cannot lie over its siblings; this test is
+ * what keeps that true.)
  *
  * That failure presents as a hang, not as a diff — the suite went from 3.5
  * minutes to over 25 with no assertion mentioning the chip. Hence a test that

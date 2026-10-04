@@ -67,7 +67,7 @@ describe("HelpMenuButton", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("detaches its document listeners once closed", () => {
+  it("detaches its outside-click listener once closed", () => {
     const removeSpy = vi.spyOn(document, "removeEventListener");
     render(<HelpMenuButton />);
 
@@ -76,7 +76,6 @@ describe("HelpMenuButton", () => {
 
     const removed = removeSpy.mock.calls.map((call) => call[0]);
     expect(removed).toContain("mousedown");
-    expect(removed).toContain("keydown");
     removeSpy.mockRestore();
   });
 

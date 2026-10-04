@@ -24,7 +24,7 @@ test.describe("Mobile Layout", () => {
     // Check for mobile-specific dock buttons
     await expect(page.getByRole("button", { name: /Party/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /Dice/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Log/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Chat/i })).toBeVisible();
 
     // Open the tool sheet
     await toolsButton.click();

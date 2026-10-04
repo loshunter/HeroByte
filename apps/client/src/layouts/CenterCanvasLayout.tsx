@@ -106,9 +106,10 @@ export interface CenterCanvasLayoutProps {
   mapEditPlacementDials?: import("../features/map-edit/usePlacementDials").PlacementModifiers;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  mapEditTerrainBrushSize: import("../features/map-studio/terrainBrushGeometry").TerrainBrushSize;
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind;
-  mapEditPopulateGhosts?:
-    | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
+  mapEditPersistentPreview?:
+    | import("../features/map-edit/MapEditPersistentPreview").MapEditPersistentPreview
     | null;
   mapEditWheelActions?: import("../features/map-edit/mapEditTypes").MapEditWheelActions;
   /** Player lens (P4): render the DM's view as players receive it. */
@@ -122,7 +123,7 @@ export interface CenterCanvasLayoutProps {
   /** Called when a finished gesture's commit was skipped (command in flight) */
   onMapEditGestureDropped: () => void;
   /** Called when a room/hallway lands — records the POPULATE target */
-  onMapEditRegionPlaced: (bounds: RoomBounds) => void;
+  onMapEditRegionPlaced: import("../features/map-edit/populateTarget").OnPopulateRegionPlaced;
   onMapEditRegionDragged: (bounds: RoomBounds) => void;
   /** Called when the select tool picks an element (or clears) */
   onMapEditSelectElement: (elementId: string | null) => void;
@@ -211,8 +212,9 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditSelectedAssetId,
     mapEditPlacementDials,
     mapEditHallwayWidth,
+    mapEditTerrainBrushSize,
     mapEditSplineKind,
-    mapEditPopulateGhosts,
+    mapEditPersistentPreview,
     mapEditWheelActions,
     playerLens,
     mapEditSelectedElementId,
@@ -270,8 +272,9 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditPlacementDials={mapEditPlacementDials}
             mapEditHallwayWidth={mapEditHallwayWidth}
+            mapEditTerrainBrushSize={mapEditTerrainBrushSize}
             mapEditSplineKind={mapEditSplineKind}
-            mapEditPopulateGhosts={mapEditPopulateGhosts}
+            mapEditPersistentPreview={mapEditPersistentPreview}
             mapEditWheelActions={mapEditWheelActions}
             mapEditSelectedElementId={mapEditSelectedElementId}
             mapEditController={mapStudio}

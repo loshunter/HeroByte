@@ -128,6 +128,34 @@ describe("useCamera — a gesture absorbs an outside camera change", () => {
     expect(under.x).toBeCloseTo(grabbed.x, 6);
     expect(under.y).toBeCloseTo(grabbed.y, 6);
   });
+
+  it("an outside change in the MIDDLE of a zoomed pinch stands: still fingers hold it, and the zoom goes on from it", () => {
+    const { result } = renderHook(() => useCamera());
+    act(() =>
+      result.current.onTouchStart(touches({ x: 150, y: 400 }, { x: 250, y: 400 }), stageRef, false),
+    );
+    // Spread 100 -> 200 about a still centre (200,400): scale 2.
+    act(() =>
+      result.current.onTouchMove(touches({ x: 100, y: 400 }, { x: 300, y: 400 }), stageRef),
+    );
+    expect(result.current.cam).toEqual({ x: -200, y: -400, scale: 2 });
+    // A follow glide frame moves the camera while the fingers rest.
+    act(() => result.current.setCam((prev) => ({ ...prev, y: prev.y - 100 })));
+    const moved = result.current.cam;
+    act(() =>
+      result.current.onTouchMove(touches({ x: 100, y: 400 }, { x: 300, y: 400 }), stageRef),
+    );
+    expect(result.current.cam).toEqual(moved);
+    // Spread 200 -> 400: twice the zoom it had, about the world point that is
+    // under the centre NOW.
+    const centre = { x: 200, y: 400 };
+    const grabbed = toWorld(moved, centre);
+    act(() => result.current.onTouchMove(touches({ x: 0, y: 400 }, { x: 400, y: 400 }), stageRef));
+    const under = toWorld(result.current.cam, centre);
+    expect(result.current.cam.scale).toBeCloseTo(4, 10);
+    expect(under.x).toBeCloseTo(grabbed.x, 10);
+    expect(under.y).toBeCloseTo(grabbed.y, 10);
+  });
 });
 
 describe("useCamera — pinch anchor", () => {

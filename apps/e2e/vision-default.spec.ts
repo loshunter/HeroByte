@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { showPartyCards } from "./party.helpers";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 
 // The table-level default sight radius, end to end. Three things only a real
@@ -53,7 +54,7 @@ async function setDefaultFromMapTab(page: Page, feet: string) {
     await page.getByRole("button", { name: /DM MENU/i }).click();
     await expect(heading).toBeVisible();
   }
-  await page.getByRole("button", { name: "Map Setup" }).click();
+  await page.getByRole("button", { name: "Maps", exact: true }).click();
   const input = page.getByLabel("Default sight radius in feet");
   await input.fill(feet);
   await input.press("Enter");
@@ -221,6 +222,7 @@ test.describe("Table default sight radius", () => {
 
     // The settings window opens from the PORTRAIT, not from a gear — the gear
     // in the header is the app's own settings.
+    await showPartyCards(page);
     const settings = page.getByRole("button", { name: "Change portrait" }).first();
     await settings.click();
     const radius = page.getByPlaceholder(/Table default/i);

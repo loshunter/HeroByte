@@ -10,9 +10,12 @@
  * @module hooks/useToolMode
  */
 
-import { useState, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
+import type { RoomSnapshot } from "@herobyte/shared";
+import { escapeRegistry, useEscapeOwner } from "../features/interaction/useEscapeOwner";
+import { useToolContextTransitions } from "../features/interaction/useToolContextTransitions";
+import { dismissalFocus } from "../features/interaction/dismissalFocus";
 import type { ToolMode } from "../components/layout/Header";
-import { isEditableTarget } from "../utils/isEditableTarget";
 
 /**
  * Return value from useToolMode hook
@@ -108,8 +111,39 @@ export interface UseToolModeReturn {
  *
  * @see {@link ToolMode} for available tool types
  */
-export function useToolMode(): UseToolModeReturn {
-  const [activeTool, setActiveTool] = useState<ToolMode>(null);
+export interface ToolContext {
+  snapshot: RoomSnapshot | null;
+  uid: string;
+  isDM: boolean;
+}
+
+export function useToolMode(context?: ToolContext): UseToolModeReturn {
+  const [activeTool, commitTool] = useState<ToolMode>(null);
+  const currentTool = useRef<ToolMode>(null);
+  const changingTool = useRef(false);
+  const setActiveTool = useCallback((next: ToolMode) => {
+    if (changingTool.current || next === currentTool.current) return;
+    dismissalFocus.invalidate();
+    currentTool.current = next;
+    changingTool.current = true;
+    try {
+      // Cancel unsent work before changing modes. Atlas cancellation can call
+      // this setter recursively; the outer explicit choice remains authoritative.
+      escapeRegistry.cancelForTransition();
+    } finally {
+      changingTool.current = false;
+      commitTool(next);
+      escapeRegistry.refresh();
+    }
+  }, []);
+  useToolContextTransitions(context, setActiveTool);
+  useEscapeOwner(() => ({
+    kind: "tool",
+    name: "active play tool",
+    order: 0,
+    active: currentTool.current !== null,
+    handle: () => setActiveTool(null),
+  }));
 
   // Derived boolean flags for each tool mode
   const pointerMode = activeTool === "pointer";
@@ -119,25 +153,6 @@ export function useToolMode(): UseToolModeReturn {
   const selectMode = activeTool === "select";
   const alignmentMode = activeTool === "align";
   const mapEditMode = activeTool === "map-edit";
-
-  // Handle Escape key to clear active tool
-  useEffect(() => {
-    if (!activeTool) {
-      return;
-    }
-
-    const handleToolEscape = (event: KeyboardEvent) => {
-      // Escape inside a typing surface (chat box, brush-deck search,
-      // inspector field) belongs to that field — it must not tear down the
-      // whole tool the user is in the middle of using.
-      if (event.key === "Escape" && !isEditableTarget(event.target)) {
-        setActiveTool(null);
-      }
-    };
-
-    window.addEventListener("keydown", handleToolEscape);
-    return () => window.removeEventListener("keydown", handleToolEscape);
-  }, [activeTool]);
 
   return {
     activeTool,

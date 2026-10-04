@@ -1,0 +1,87 @@
+// ============================================================================
+// NPC UPDATE — the one merge behind every `update-npc`
+// ============================================================================
+// `update-npc` carries the NPC's WHOLE editable record, so a caller that
+// changes one field (the Party card's HP bar, say) must fill the rest from what
+// the snapshot holds. The DM menu's editor and the Party's NPC card both send
+// through this merge, so they cannot disagree about what "unchanged" means.
+// Data-only on purpose: the Party lives in the entry bundle and the DM menu's
+// hooks do not.
+
+import type { ClientMessage, NpcDisposition, SnapshotCharacter } from "@herobyte/shared";
+
+export interface NpcUpdateFields {
+  name?: string;
+  hp?: number;
+  maxHp?: number;
+  tempHp?: number;
+  portrait?: string | null;
+  tokenImage?: string | null;
+  initiativeModifier?: number | null;
+  /** Where the NPC stands with the party; absent keeps what it has. */
+  disposition?: NpcDisposition;
+}
+
+export type NpcUpdateMessage = Extract<ClientMessage, { t: "update-npc" }>;
+
+/** The server's `update-npc` name limit (a player character's allows 100). */
+export const NPC_NAME_MAX = 50;
+
+/**
+ * What an edit sends for temp HP. 0 is SENT when the NPC has temp HP to clear
+ * (the merge refills an undefined field); an NPC with none keeps sending none,
+ * so an unrelated edit never stamps `tempHp: 0` on it.
+ */
+export function tempHpEdit(next: number, current: number | undefined): number | undefined {
+  return next > 0 || current !== undefined ? next : undefined;
+}
+
+/**
+ * What an edit sends for token art. "" CLEARS art on file (the server stores
+ * `trim() || null`); an NPC with none keeps sending none.
+ */
+export function tokenImageEdit(
+  next: string,
+  current: string | null | undefined,
+): string | undefined {
+  const trimmed = next.trim();
+  return trimmed.length > 0 ? trimmed : current ? "" : undefined;
+}
+
+/**
+ * The full record an update sends: the edits, over what the NPC holds now. An
+ * undefined field KEEPS its value, so a clear must be explicit: 0 for temp HP,
+ * "" for token art (the server stores `trim() || null`).
+ */
+export function mergeNpcUpdate(existing: SnapshotCharacter, updates: NpcUpdateFields) {
+  return {
+    name: updates.name ?? existing.name,
+    // A DM's snapshot always carries exact numbers (the redaction is for
+    // players), so the trailing fallbacks are type honesty, not a path.
+    hp: updates.hp ?? existing.hp ?? 0,
+    maxHp: updates.maxHp ?? existing.maxHp ?? 1,
+    tempHp: updates.tempHp ?? existing.tempHp,
+    portrait: updates.portrait ?? existing.portrait,
+    tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
+    initiativeModifier: updates.initiativeModifier ?? existing.initiativeModifier,
+    // ?? not ||: the merge has to keep a stance the DM set earlier when the
+    // edit that triggered this send was about something else entirely.
+    // Conditional, like every other writer in this arc: `disposition:
+    // undefined` is a KEY, and it is only inert because JSON.stringify
+    // happens to drop it. It should not depend on the transport.
+    ...((updates.disposition ?? existing.disposition)
+      ? { disposition: updates.disposition ?? existing.disposition }
+      : {}),
+  };
+}
+
+export function npcUpdateMessage(
+  existing: SnapshotCharacter,
+  updates: NpcUpdateFields,
+): NpcUpdateMessage {
+  return {
+    t: "update-npc",
+    id: existing.id,
+    ...mergeNpcUpdate(existing, updates),
+  } as NpcUpdateMessage;
+}

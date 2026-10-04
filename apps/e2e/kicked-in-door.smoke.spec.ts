@@ -47,8 +47,8 @@ test.describe("Kicked-In Door smoke", () => {
       // box still spans the full board — so a click aimed at the canvas centre
       // can land on the panel instead of the map. Collapse it before anything
       // in this journey clicks the map.
-      await dm.getByRole("button", { name: /HIDE ENTITIES/i }).click();
-      await expect(dm.getByRole("button", { name: /SHOW ENTITIES/i })).toBeVisible();
+      await dm.getByRole("button", { name: "▼ Hide party" }).click();
+      await expect(dm.getByRole("button", { name: "▲ Show party" })).toBeVisible();
       await startLiveMap(dm, "kick-journey-origin", "The Harbour Road");
       await joinDefaultRoom(player);
       await waitForSnap(player, () =>
@@ -78,7 +78,7 @@ test.describe("Kicked-In Door smoke", () => {
         ),
       );
 
-      // ---- The kick: one keystroke, the panel, ROLL ----
+      // ---- The kick: one keystroke, the panel, Generate & enter ----
       await openKickByKeystroke(dm);
       const panel = dm.getByRole("dialog", { name: "Kick in a door" });
       await panel.getByLabel("Name").fill("Cellar");
@@ -86,8 +86,8 @@ test.describe("Kicked-In Door smoke", () => {
       await panel.getByLabel("Kind").selectOption("tavern");
       await panel.getByLabel("Size").selectOption("small");
       await panel.getByLabel("Seed").fill(String(SENTINEL_SEED));
-      await panel.getByRole("button", { name: "🚪 ROLL" }).click();
-      // The panel closes on ROLL; the table arrives moments later.
+      await panel.getByRole("button", { name: "🚪 Generate & enter" }).click();
+      // The panel closes on Generate & enter; the table arrives moments later.
       await expect(panel).toBeHidden();
 
       await waitForSnap(dm, () => {
@@ -282,7 +282,7 @@ test.describe("Kicked-In Door smoke", () => {
       await second.getByLabel("Name").fill("Undervault");
       await second.getByLabel("Recipe").selectOption("dungeon");
       await second.getByLabel("Size").selectOption("small");
-      await second.getByRole("button", { name: "🚪 ROLL" }).click();
+      await second.getByRole("button", { name: "🚪 Generate & enter" }).click();
       await waitForSnap(dm, () => {
         const data = window.__HERO_BYTE_E2E__;
         const here = data?.snapshot?.atlasNodes?.find(

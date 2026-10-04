@@ -48,10 +48,8 @@ pnpm dev:client  # Terminal 2
 
 **To Change Passwords:**
 
-1. Connect as DM
-2. Open DM Menu
-3. Update Room Password and/or DM Password
-4. Share new room password with players
+- **The default table (Main Hall):** its passwords come from the server's `HEROBYTE_ROOM_SECRET` and `HEROBYTE_DM_PASSWORD` settings, read at every start (see [`DEPLOYMENT.md`](../DEPLOYMENT.md)), and cannot be changed from inside the app.
+- **A private table:** DM Menu → Table → Security → change the table password, then share the new one with your players. A private table's DM password is the one chosen when the table is made, or set by the first person to enter DM mode on a table made without one (so set it yourself straight away); no screen changes it after that.
 
 ## DM Prep Steps (30 minutes before game)
 
@@ -59,12 +57,12 @@ pnpm dev:client  # Terminal 2
 
 1. Navigate to http://localhost:5174
 2. Enter room password: `Fun1`
-3. Click "ENTER ROOM"
-4. Open your player settings, choose "Make myself DM", and enter DM password: `FunDM`
+3. Click "ENTER TABLE"
+4. Open the Table button at the left of the header (on a phone: Tools → Table), choose "Enter DM mode", and enter DM password: `FunDM`
 
 ### Step 2: Upload Map
 
-1. Open DM Menu → "Map Setup" tab
+1. Open DM Menu → "Maps" tab
 2. In the "Map Background" panel, paste an image URL
 3. Click "Apply Background"
 4. Adjust map position/scale in the "Map Transform" panel if needed
@@ -72,7 +70,7 @@ pnpm dev:client  # Terminal 2
 
 ### Step 3: Set Up Player Staging Zone
 
-1. Open DM Menu → "Map Setup" tab
+1. Open DM Menu → "Maps" tab
 2. Scroll to the "Player Staging Zone" panel (unlock it with the 🔓 ZONE UNLOCKED toggle if it is locked)
 3. Set Center X/Y, Width, and Height in grid tiles to define the spawn area
 4. Players will spawn randomly within this zone when they join
@@ -88,15 +86,15 @@ pnpm dev:client  # Terminal 2
 
 1. Select "Draw" tool
 2. Draw a few test marks
-3. Test "Erase" tool (including partial erase)
+3. Test "Erase drawings" tool (including partial erase)
 4. Clear test drawings
 5. Verify undo/redo works
 
 ### Step 6: Save Initial State
 
-1. Open DM Menu → "Session" tab
-2. In the "Session Save/Load" panel, click "Save Game State"
-3. Save file as `session-start.json`
+1. Open DM Menu → "Table" tab
+2. In the "Backups" section, click "Download table backup"
+3. Save the file as `session-start.json`
 4. This is your backup if anything goes wrong
 
 ## Player Onboarding (First-Time Players)
@@ -113,11 +111,11 @@ Welcome to HeroByte!
 
 2. Enter the room password: Fun1
 
-3. Click ENTER ROOM
+3. Click ENTER TABLE
 
 4. You'll see your token appear on the map!
 
-5. Click your player card (right side) to:
+5. Click your row in the Party bar (bottom of the screen) to:
    - Set your character name
    - Upload a portrait
    - Set your HP
@@ -134,7 +132,7 @@ Need help? Ask the DM!
 
 **HP Tracking:**
 
-- Click your player card (right panel)
+- Click your row in the Party bar (bottom of the screen)
 - Update HP in the input field
 - Press Enter to save
 
@@ -149,7 +147,7 @@ Need help? Ask the DM!
 
 - Click "Draw" tool
 - Draw on map (your drawings only)
-- Use "Erase" to remove mistakes
+- Use "Erase drawings" to remove mistakes
 
 **Voice Chat:**
 
@@ -171,19 +169,19 @@ Need help? Ask the DM!
 
 **Drawing Tools:**
 
-- Draw: Freehand drawing
+- Freehand: Freehand drawing
 - Line: Straight lines
 - Rectangle: Boxes
 - Circle: Circles
-- Erase: Remove drawings (supports partial erase)
-- Clear All: Removes all drawings
+- Erase drawings: Remove drawings (supports partial erase)
+- Clear all drawings: Removes all drawings
 
 **Session Management:**
 
-- Save: DM Menu → "Session" tab → "Save Game State"
-- Load: DM Menu → "Session" tab → "Load Game State"
-- Room passwords: DM Menu → "Session" tab → "Room Security"
-- Clear drawings: DM Menu → "Map Setup" tab → "Clear All Drawings"
+- Save: DM Menu → "Table" tab → Backups → "Download table backup"
+- Load: DM Menu → "Table" tab → Backups → "Restore table backup…"
+- Table password: DM Menu → "Table" tab → Security
+- Clear drawings: DM Menu → "Maps" tab → "Clear All Drawings"
 
 **Map Controls:**
 
@@ -201,7 +199,7 @@ Need help? Ask the DM!
 
 **Stats:**
 
-- HP: Edit in player card
+- HP: your row in the Party bar
 - Name: Click name to edit
 - Portrait: Click portrait to upload
 
@@ -275,7 +273,7 @@ Need help? Ask the DM!
 
 ### Session Won't Load
 
-**Issue**: "Failed to load session" error
+**Issue**: "Restore failed: …" toast when restoring a table backup
 
 **Solutions:**
 
@@ -288,7 +286,7 @@ Need help? Ask the DM!
 
 ### Save Final State
 
-1. DM: Open DM Menu → "Save Session"
+1. DM: Open DM Menu → "Table" tab → Backups → "Download table backup"
 2. Name file with date: `session-2025-10-19.json`
 3. Keep for next game
 

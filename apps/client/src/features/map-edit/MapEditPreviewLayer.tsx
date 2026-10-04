@@ -1,3 +1,6 @@
+import { GenerateRegionPreview } from "./GenerateRegionPreview";
+import { PopulateTargetPreview } from "./PopulateTargetPreview";
+import type { MapEditPersistentPreview } from "./MapEditPersistentPreview";
 // ============================================================================
 // MAP-EDIT PREVIEW LAYER
 // ============================================================================
@@ -51,10 +54,13 @@ interface MapEditPreviewLayerProps {
   hallwayWidth?: number;
   /** In-progress terrain/erase brush cells (real family-chip tint). */
   strokeCells?: TerrainPaintCell[];
+  /** Exact current Paint/Erase footprint before press and during a stroke. */
+  brushPreviewCells?: TerrainPaintCell[];
   /** Translucent footprint preview for the place/scatter tools. */
   placementGhost?: PlacementGhost | null;
   /** True-result draft footprints (scatter cluster, populate preview). */
   draftGhosts?: PlacementGhost[];
+  persistentPreview?: MapEditPersistentPreview | null;
   /** Highlight footprint around the selected element (select sub-tool). */
   selectionShape?: SelectionShape | null;
   /** Armed spline curve kind — the drag paints the REAL splineDetail art. */
@@ -73,8 +79,10 @@ export function MapEditPreviewLayer({
   gridSize,
   hallwayWidth = 2,
   strokeCells = [],
+  brushPreviewCells = [],
   placementGhost = null,
   draftGhosts = [],
+  persistentPreview,
   selectionShape = null,
   splineKind = "rope",
   floorFamily,
@@ -98,8 +106,12 @@ export function MapEditPreviewLayer({
   if (
     !previewDrag &&
     strokeCells.length === 0 &&
+    brushPreviewCells.length === 0 &&
     !placementGhost &&
     draftGhosts.length === 0 &&
+    !persistentPreview?.generateRegion &&
+    !persistentPreview?.populateGhosts?.length &&
+    !persistentPreview?.populateTarget &&
     !selectionShape
   ) {
     return null;
@@ -113,7 +125,13 @@ export function MapEditPreviewLayer({
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
         {placementGhost && renderGhost(placementGhost, cam.scale)}
-        {draftGhosts.map((ghost, index) => (
+        {!previewDrag && persistentPreview?.populateTarget && (
+          <PopulateTargetPreview target={persistentPreview.populateTarget} scale={cam.scale} />
+        )}
+        {!previewDrag && activeSubTool === "generate" && persistentPreview?.generateRegion && (
+          <GenerateRegionPreview region={persistentPreview.generateRegion} scale={cam.scale} />
+        )}
+        {[...draftGhosts, ...(persistentPreview?.populateGhosts ?? [])].map((ghost, index) => (
           <Group key={index} listening={false}>
             {renderGhost(ghost, cam.scale)}
           </Group>
@@ -211,6 +229,21 @@ export function MapEditPreviewLayer({
             )
           ))}
         {strokeCells.map((cell) => renderStrokeCell(cell, gridSize, gridOffsetX, gridOffsetY))}
+        {brushPreviewCells.map((cell) => (
+          <Rect
+            key={`brush:${cell.x},${cell.y}`}
+            x={cell.x * gridSize + gridOffsetX}
+            y={cell.y * gridSize + gridOffsetY}
+            width={gridSize}
+            height={gridSize}
+            stroke={PREVIEW_COLOR}
+            strokeWidth={2 / cam.scale}
+            strokeScaleEnabled={false}
+            fill={cell.assetId === null ? "rgba(255,90,90,0.18)" : "rgba(255,215,0,0.1)"}
+            listening={false}
+            name="map-edit-preview:brush-footprint"
+          />
+        ))}
       </Group>
     </Group>
   );

@@ -49,8 +49,8 @@ test.describe("docs screenshots: the Atlas and the Kicked-In Door", () => {
       );
 
       await step("the Atlas tab", async () => {
-        await selectDMTab(dm, "Atlas");
-        await expect(dm.getByLabel("New node name")).toBeVisible({ timeout: 15_000 });
+        await selectDMTab(dm, "World");
+        await expect(dm.getByLabel("New location name")).toBeVisible({ timeout: 15_000 });
         await shotPage(dm, "dm-atlas-tab");
         await closeTopWindow(dm);
       });
@@ -72,9 +72,9 @@ test.describe("docs screenshots: the Atlas and the Kicked-In Door", () => {
       );
 
       await step(
-        "the table, a second after ROLL",
+        "the table, a second after Generate & enter",
         async () => {
-          await dm.getByRole("button", { name: "🚪 ROLL" }).click();
+          await dm.getByRole("button", { name: "🚪 Generate & enter" }).click();
           await waitSnap(
             dm,
             () => {

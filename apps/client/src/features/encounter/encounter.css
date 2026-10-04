@@ -1,0 +1,116 @@
+/* DM tools → Encounter (U8). Three sections in the DM menu's 400px window and
+   on the phone's DM screen; rows wrap rather than clip a control. The 44px
+   touch floor comes from herobyte.css (.jrpg-button and the mobile-surface
+   container rule), not from here. */
+
+.encounter {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.encounter-section__title {
+  margin: 0 0 8px;
+}
+
+.encounter-section__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.encounter-subtitle {
+  margin: 8px 0 0;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--jrpg-gold);
+}
+
+/* Body type: these lines say what a press will do before it is pressed. */
+.encounter-note,
+.encounter-status {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--jrpg-white);
+}
+
+.encounter-status {
+  font-weight: bold;
+  color: var(--jrpg-gold);
+}
+
+.encounter-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--jrpg-gold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.encounter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.encounter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--jrpg-border-gold);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.encounter-row--turn {
+  border-color: var(--jrpg-gold);
+  box-shadow: 0 0 6px var(--jrpg-gold);
+}
+
+.encounter-row__who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--jrpg-white);
+}
+
+.encounter-row__turn {
+  color: var(--jrpg-gold);
+}
+
+.encounter-row__name {
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.encounter-row__tag {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.encounter-row__tag--hidden {
+  color: var(--jrpg-red);
+  opacity: 1;
+}
+
+.encounter-row__actions,
+.encounter-row-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

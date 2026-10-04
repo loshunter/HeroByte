@@ -5,6 +5,56 @@
 
 import React from "react";
 
+// Dressed as the underlined number it always was, over the global chunky
+// button rule (inline, so button:hover's gradient cannot win either).
+const VALUE_BUTTON_STYLE: React.CSSProperties = {
+  background: "none",
+  border: "none",
+  boxShadow: "none",
+  padding: 0,
+  color: "inherit",
+  font: "inherit",
+  textTransform: "none",
+  cursor: "pointer",
+  textDecoration: "underline",
+};
+
+/**
+ * One HP number. Its viewer's to edit, it is a real button: a keyboard reaches
+ * it, and on a touch screen herobyte.css gives it a 44px box of its own
+ * (`.hp-bar__value`) — boxes side by side, so current and max, about 30px
+ * apart, cannot steal each other's taps. Anyone else's is plain text.
+ */
+function HpValue({
+  label,
+  value,
+  editable,
+  onEdit,
+  title,
+}: {
+  label: string;
+  value: string | number;
+  editable: boolean;
+  onEdit: () => void;
+  title?: string;
+}): JSX.Element {
+  if (!editable) {
+    return <span style={{ cursor: "default", textDecoration: "none" }}>{value}</span>;
+  }
+  return (
+    <button
+      type="button"
+      className="hp-bar__value"
+      aria-label={`Set ${label}: ${value}`}
+      title={title}
+      onClick={onEdit}
+      style={VALUE_BUTTON_STYLE}
+    >
+      {value}
+    </button>
+  );
+}
+
 interface HPBarProps {
   hp: number;
   maxHp: number;
@@ -121,6 +171,8 @@ export const HPBar: React.FC<HPBarProps> = ({
         {isEditingHp ? (
           <input
             type="number"
+            className="hp-bar__input"
+            aria-label="Current HP"
             value={hpInput}
             onChange={(e) => onHpInputChange(e.target.value)}
             onBlur={() => onHpSubmit(hpInput)}
@@ -141,24 +193,19 @@ export const HPBar: React.FC<HPBarProps> = ({
             }}
           />
         ) : (
-          <span
-            onClick={() => {
-              if (isMe) {
-                onHpEdit(playerUid, hp);
-              }
-            }}
-            style={{
-              cursor: isMe ? "pointer" : "default",
-              textDecoration: isMe ? "underline" : "none",
-            }}
-          >
-            {displayHp}
-          </span>
+          <HpValue
+            label="current HP"
+            value={displayHp}
+            editable={isMe}
+            onEdit={() => onHpEdit(playerUid, hp)}
+          />
         )}
         {" / "}
         {isEditingMaxHp ? (
           <input
             type="number"
+            className="hp-bar__input"
+            aria-label="Max HP"
             value={maxHpInput}
             onChange={(e) => onMaxHpInputChange(e.target.value)}
             onBlur={() => onMaxHpSubmit(maxHpInput)}
@@ -179,19 +226,12 @@ export const HPBar: React.FC<HPBarProps> = ({
             }}
           />
         ) : (
-          <span
-            onClick={() => {
-              if (isMe) {
-                onMaxHpEdit(playerUid, maxHp);
-              }
-            }}
-            style={{
-              cursor: isMe ? "pointer" : "default",
-              textDecoration: isMe ? "underline" : "none",
-            }}
-          >
-            {maxHp}
-          </span>
+          <HpValue
+            label="max HP"
+            value={maxHp}
+            editable={isMe}
+            onEdit={() => onMaxHpEdit(playerUid, maxHp)}
+          />
         )}
       </div>
       {isMe && onTempHpEdit && onTempHpSubmit && onTempHpInputChange && (
@@ -200,6 +240,8 @@ export const HPBar: React.FC<HPBarProps> = ({
           {isEditingTempHp ? (
             <input
               type="number"
+              className="hp-bar__input"
+              aria-label="Temp HP"
               value={tempHpInput}
               onChange={(e) => onTempHpInputChange(e.target.value)}
               onBlur={() => onTempHpSubmit(tempHpInput)}
@@ -220,16 +262,13 @@ export const HPBar: React.FC<HPBarProps> = ({
               }}
             />
           ) : (
-            <span
-              onClick={onTempHpEdit}
-              style={{
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
+            <HpValue
+              label="temp HP"
+              value={tempHp ?? 0}
+              editable
+              onEdit={onTempHpEdit}
               title="Temporary HP absorbed before regular HP"
-            >
-              {tempHp ?? 0}
-            </span>
+            />
           )}
         </div>
       )}

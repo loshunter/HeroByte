@@ -162,3 +162,78 @@ describe("playerPersistence — area templates survive Save/Load Character", () 
     expect(restored.template).toBeUndefined();
   });
 });
+
+describe("playerPersistence — Load character refuses the other two files by name", () => {
+  // The same fake readable file the round trip above uses: this jsdom's File has no text().
+  const fileOf = (value: unknown) =>
+    ({ text: async () => JSON.stringify(value) }) as unknown as File;
+
+  it("says a table backup is a table backup, and where it is restored", async () => {
+    // It used to say "Player state is missing a valid name": true, and useless.
+    const table = { schemaVersion: 1, savedAt: 1, snapshot: { tokens: [], players: [] } };
+    await expect(loadPlayerState(fileOf(table))).rejects.toThrow(/table backup/i);
+    await expect(loadPlayerState(fileOf(table))).rejects.toThrow(/DM Menu → Table → Backups/);
+    await expect(loadPlayerState(fileOf(table))).rejects.not.toThrow(/missing a valid name/);
+  });
+
+  it("says an editable map is an editable map, and where it is imported", async () => {
+    const map = { schemaVersion: 1, id: "doc-A", name: "Dungeon", layers: [], elements: [] };
+    await expect(loadPlayerState(fileOf(map))).rejects.toThrow(/editable map/i);
+    await expect(loadPlayerState(fileOf(map))).rejects.toThrow(/Map library/);
+    await expect(loadPlayerState(fileOf(map))).rejects.not.toThrow(/missing a valid name/);
+  });
+
+  it("still loads a real character file, and still refuses one that is merely broken", async () => {
+    const real = { name: "Aria", hp: 30, maxHp: 40 };
+    await expect(loadPlayerState(fileOf(real))).resolves.toMatchObject({ name: "Aria", hp: 30 });
+    await expect(loadPlayerState(fileOf({ hp: 30, maxHp: 40 }))).rejects.toThrow(
+      /missing a valid name/,
+    );
+  });
+
+  it("calls every refusal a character file, never 'player state' (the old name)", async () => {
+    // These reach the person through an alert, in the words of the buttons they pressed.
+    const refusals = [
+      { text: async () => "not json" } as unknown as File,
+      fileOf(["not", "an", "object"]),
+      fileOf({ hp: 30, maxHp: 40 }),
+      fileOf({ name: "Aria", maxHp: 40 }),
+      fileOf({ name: "Aria", hp: 30 }),
+      fileOf({ name: "Aria", hp: -1, maxHp: 40 }),
+      fileOf({ name: "Aria", hp: 30, maxHp: 40, portrait: 7 }),
+      fileOf({ name: "Aria", hp: 30, maxHp: 40, tokenImage: 7 }),
+    ];
+    for (const file of refusals) {
+      const error = await loadPlayerState(file).then(
+        () => null,
+        (caught: Error) => caught,
+      );
+      expect(error, "refused").not.toBeNull();
+      expect(error!.message).toMatch(/character file/i);
+      expect(error!.message).not.toMatch(/player state/i);
+    }
+  });
+});
+
+describe("playerPersistence — a character file is named for what it is", () => {
+  it("downloads as <name>-character-<time>.json, not -state-", () => {
+    let downloaded = "";
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => "blob:captured");
+    URL.revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      downloaded = this.download;
+    });
+    try {
+      savePlayerState({ player });
+    } finally {
+      click.mockRestore();
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+    expect(downloaded).toMatch(/^Aria-character-\d{8}T\d{6}Z\.json$/);
+  });
+});

@@ -50,10 +50,13 @@ test.describe("HeroByte dice", () => {
       await page.mouse.up();
     }
 
-    const logToggle = page.getByRole("button", { name: "📜 Log" });
+    const logToggle = page.getByRole("button", { name: "📜 Chat & Rolls" });
     await expect(logToggle).toBeVisible();
     await logToggle.click();
-    await expect(page.getByText("⚂ ROLL LOG")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Close Chat & Rolls", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("tab", { name: "ROLLS", exact: true }).click();
 
     const logEntry = page.getByTestId("roll-log-entry").first();
     await expect(logEntry).toBeVisible({ timeout: 10_000 });

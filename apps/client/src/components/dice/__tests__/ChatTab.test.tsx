@@ -87,34 +87,11 @@ describe("ChatTab", () => {
     expect(screen.queryByText("Whisper to Alice")).not.toBeInTheDocument();
     expect(screen.getByText("Whisper to Bob")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Send to"), { target: { value: BOB } });
+    fireEvent.change(screen.getByLabelText("Send to"), { target: { value: `recipient:${BOB}` } });
     fireEvent.change(screen.getByLabelText("Chat message"), { target: { value: "psst" } });
     fireEvent.click(screen.getByText("SEND"));
 
     expect(onSendChat).toHaveBeenCalledWith("psst", BOB);
-  });
-
-  it("falls back to the whole table when the selected target leaves", () => {
-    // Otherwise the composer silently stays aimed at someone who is gone and
-    // every subsequent message vanishes into a whisper nobody receives.
-    const onSendChat = vi.fn();
-    const { rerender } = render(
-      <ChatTab messages={[]} players={players} currentUid={ALICE} onSendChat={onSendChat} />,
-    );
-    fireEvent.change(screen.getByLabelText("Send to"), { target: { value: BOB } });
-
-    rerender(
-      <ChatTab
-        messages={[]}
-        players={[{ uid: ALICE, name: "Alice", isDM: false }]}
-        currentUid={ALICE}
-        onSendChat={onSendChat}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText("Chat message"), { target: { value: "still here?" } });
-    fireEvent.click(screen.getByText("SEND"));
-
-    expect(onSendChat).toHaveBeenCalledWith("still here?", undefined);
   });
 
   it("renders punctuation literally instead of HTML-entity-escaping it", () => {
@@ -199,10 +176,10 @@ describe("RollLog tab strip", () => {
     onViewRoll: vi.fn(),
   };
 
-  it("shows rolls by default — the e2e dice spec depends on it", () => {
+  it("shows chat by default", () => {
     render(<RollLog {...rollProps} chatMessages={[]} players={players} onSendChat={vi.fn()} />);
-    expect(screen.getByText(/No rolls yet/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText("Chat message")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Chat message")).toBeInTheDocument();
+    expect(screen.queryByText(/No rolls yet/i)).not.toBeInTheDocument();
   });
 
   it("switches to chat and back", () => {
@@ -234,6 +211,7 @@ describe("RollLog tab strip", () => {
         onSendChat={vi.fn()}
       />,
     );
+    fireEvent.click(screen.getByText("ROLLS"));
     expect(screen.getByText("CLEAR")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("CHAT"));

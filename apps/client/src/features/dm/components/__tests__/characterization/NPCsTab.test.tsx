@@ -72,6 +72,7 @@ function NPCsTab({ npcs, onCreateNPC, onUpdateNPC, onPlaceNPCToken, onDeleteNPC 
               npc={npc}
               onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
               onPlace={() => onPlaceNPCToken(npc.id)}
+              onStatusEffectsChange={() => {}}
               onDuplicate={() => {}}
               onDelete={() => onDeleteNPC(npc.id)}
             />
@@ -87,6 +88,10 @@ function NPCsTab({ npcs, onCreateNPC, onUpdateNPC, onPlaceNPCToken, onDeleteNPC 
 // ============================================================================
 
 describe("NPCsTab - Characterization Tests", () => {
+  // Each editor carries a conditions picker and Focus (U7), so twenty of them
+  // took ~1.2s idle and timed out at 6.8s when the whole client suite ran at
+  // once — the 5000ms default with no margin (see NPCsTab.library.test.tsx).
+  vi.setConfig({ testTimeout: 30_000 });
   // This renders the REAL NPCEditor, whose Delete is now guarded. These tests
   // are about which NPC id the callback carries, so they take the happy path;
   // the guard itself is covered in NPCEditor.test.tsx.
@@ -115,6 +120,9 @@ describe("NPCsTab - Characterization Tests", () => {
     onCreateNPC: vi.fn(),
     onUpdateNPC: vi.fn(),
     onPlaceNPCToken: vi.fn(),
+    onSetNPCStatusEffects: vi.fn(),
+    onFocusNPCToken: vi.fn(),
+    mapTokenIds: new Set<string>(),
     onDeleteNPC: vi.fn(),
   });
 
@@ -614,6 +622,9 @@ describe("NPCsTab - Characterization Tests", () => {
         onCreateNPC: undefined as unknown as () => void,
         onUpdateNPC: vi.fn(),
         onPlaceNPCToken: vi.fn(),
+        onSetNPCStatusEffects: vi.fn(),
+        onFocusNPCToken: vi.fn(),
+        mapTokenIds: new Set<string>(),
         onDeleteNPC: vi.fn(),
       };
 

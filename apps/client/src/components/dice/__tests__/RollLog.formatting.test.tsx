@@ -84,6 +84,7 @@ describe("RollLog - Long Formula Formatting", () => {
 
     // Should show expand button (⋯)
     expect(screen.getByTitle("Expand formula")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show the whole formula" })).toBeInTheDocument();
   });
 
   it("should show hint text for long formulas", () => {
@@ -215,8 +216,8 @@ describe("RollLog - Long Formula Formatting", () => {
     it.each([
       [{ mode: "advantage" as const }, "ADV"],
       [{ mode: "disadvantage" as const }, "DIS"],
-      [{ visibility: "dm" as const }, "DM ONLY"],
-      [{ visibility: "self" as const }, "PRIVATE"],
+      [{ visibility: "dm" as const }, "TO DM"],
+      [{ visibility: "self" as const }, "ME ONLY"],
     ])("badges %o as %s", (flags, label) => {
       renderLog(withFlags(flags));
       expect(screen.getByTestId("roll-badge")).toHaveTextContent(label);
@@ -226,7 +227,7 @@ describe("RollLog - Long Formula Formatting", () => {
       renderLog(withFlags({ mode: "advantage", visibility: "self" }));
       expect(screen.getAllByTestId("roll-badge").map((n) => n.textContent)).toEqual([
         "ADV",
-        "PRIVATE",
+        "ME ONLY",
       ]);
     });
   });

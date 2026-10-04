@@ -19,13 +19,22 @@ export interface LoadedSecrets {
   rooms: Record<string, RoomSecretRecord>;
 }
 
-/** The default-room record + per-room overrides, from disk or freshly seeded. */
+/**
+ * The default-room record + per-room overrides.
+ *
+ * The default table's passwords ALWAYS come from the server settings
+ * (HEROBYTE_ROOM_SECRET / HEROBYTE_DM_PASSWORD, else the documented defaults), re-derived on every
+ * start: nothing in the app can change them (the server refuses both password messages for the
+ * default table), so a saved copy can only ever be stale. It used to win once the file existed —
+ * and creating any private table writes the file — so a host who changed a setting after a leak
+ * and restarted found the old password still working. Private tables' passwords live under
+ * `rooms` and are loaded exactly as saved.
+ */
 export function loadSecretRecords(storagePath: string): LoadedSecrets {
-  const persisted = loadPersistedSecret(storagePath);
-  if (persisted) {
-    return persisted;
-  }
+  return { rooms: loadPersistedRooms(storagePath), secret: seedDefaultRecord() };
+}
 
+function seedDefaultRecord(): StoredSecret {
   const envSecret = process.env.HEROBYTE_ROOM_SECRET?.trim();
   const roomSecret = envSecret || getRoomSecret();
   const { hash, salt } = hashSecret(roomSecret);
@@ -34,41 +43,33 @@ export function loadSecretRecords(storagePath: string): LoadedSecrets {
   const dmHashData = hashSecret(dmPassword);
 
   return {
-    rooms: {},
-    secret: {
-      hash,
-      salt,
-      updatedAt: Date.now(),
-      source: envSecret ? "env" : "fallback",
-      dmHash: dmHashData.hash,
-      dmSalt: dmHashData.salt,
-      dmUpdatedAt: Date.now(),
-      dmSource: "fallback",
-    },
+    hash,
+    salt,
+    updatedAt: Date.now(),
+    source: envSecret ? "env" : "fallback",
+    dmHash: dmHashData.hash,
+    dmSalt: dmHashData.salt,
+    dmUpdatedAt: Date.now(),
+    dmSource: process.env.HEROBYTE_DM_PASSWORD?.trim() ? "env" : "fallback",
   };
 }
 
-function loadPersistedSecret(storagePath: string): LoadedSecrets | null {
+/**
+ * The private tables' records from the file. Only `rooms` is read: the file's top-level
+ * record is the default table's, re-derived from the settings on every start, so it is
+ * never needed — and a file missing it (hand-edited, or older) must not take every
+ * private table's password with it, which would leave their codes claimable again. (A file
+ * that is not JSON at all still loads as no records, as it always has.)
+ */
+function loadPersistedRooms(storagePath: string): Record<string, RoomSecretRecord> {
   if (!existsSync(storagePath)) {
-    return null;
+    return {};
   }
 
   try {
-    const raw = readFileSync(storagePath, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<StoredSecret> & {
+    const parsed = JSON.parse(readFileSync(storagePath, "utf-8")) as {
       rooms?: Record<string, RoomSecretRecord>;
     };
-    if (
-      typeof parsed.hash !== "string" ||
-      typeof parsed.salt !== "string" ||
-      typeof parsed.updatedAt !== "number"
-    ) {
-      console.warn("[Auth] Secret file was invalid; ignoring persisted password.");
-      return null;
-    }
-
-    // Per-room overrides ride alongside the legacy default-room record, so
-    // pre-multi-room files load unchanged.
     const rooms: Record<string, RoomSecretRecord> = {};
     if (parsed.rooms && typeof parsed.rooms === "object") {
       for (const [roomId, record] of Object.entries(parsed.rooms)) {
@@ -77,31 +78,10 @@ function loadPersistedSecret(storagePath: string): LoadedSecrets | null {
         }
       }
     }
-
-    return {
-      rooms,
-      secret: {
-        hash: parsed.hash,
-        salt: parsed.salt,
-        updatedAt: parsed.updatedAt,
-        // Preserve the persisted source when it's a known value; default to
-        // "user" otherwise. (A previous version collapsed every value to
-        // "user", which made the landing page report the wrong hint state.)
-        source: parsed.source === "env" || parsed.source === "fallback" ? parsed.source : "user",
-        dmHash: parsed.dmHash,
-        dmSalt: parsed.dmSalt,
-        dmUpdatedAt: parsed.dmUpdatedAt,
-        // Validate to a known source (mirrors `source` above); drop any other
-        // value rather than the old no-op that passed garbage straight through.
-        dmSource:
-          parsed.dmSource === "env" || parsed.dmSource === "fallback" || parsed.dmSource === "user"
-            ? parsed.dmSource
-            : undefined,
-      },
-    };
+    return rooms;
   } catch (error) {
     console.error("[Auth] Failed to read room secret file:", error);
-    return null;
+    return {};
   }
 }
 

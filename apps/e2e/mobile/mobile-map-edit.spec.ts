@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * Live map authoring BY FINGER (M4c).
  *
@@ -13,9 +14,11 @@
  * the map store before each test, so no live map exists at the start and
  * nothing authored here leaks into another spec.
  */
-import { expect, test, type Browser, type Page } from "../fixtures";
+import { expect, test, type Page } from "../fixtures";
+import type { Browser } from "@playwright/test";
 import { elevateToDM } from "../helpers";
 import { joinMobileTable } from "./mobile.helpers";
+import { uncoveredRow } from "../u2-cancel.helpers";
 import { openTouch, touchDrag, touchDragThenSecondFinger } from "./touch.helpers";
 
 const ROOM_PASSWORD = process.env.E2E_ROOM_PASSWORD ?? "Fun1";
@@ -77,14 +80,17 @@ test.describe("live map authoring by finger", () => {
 
     expect(await wallCount(page)).toBe(0);
 
-    // Wall is the default sub-tool.
-    await touchDrag(cdp, at(0.3, 0.4), [at(0.6, 0.4)]);
+    // Wall is the default sub-tool. Assert the whole path hits the canvas:
+    // the former x=30% started on the wider build palette's right border.
+    const [start, end] = await uncoveredRow(page, 0.4);
+    await touchDrag(cdp, start, [end]);
     await expect.poll(() => wallCount(page), { timeout: 20_000 }).toBe(1);
 
     // Now the gesture that must NOT commit: the same drag, but a second finger
     // lands before the lift. "I want to zoom", not "stamp what I have".
-    await touchDragThenSecondFinger(cdp, at(0.3, 0.65), at(0.6, 0.65), at(0.8, 0.75), [
-      at(0.2, 0.55),
+    const [cancelStart, cancelEnd] = await uncoveredRow(page, 0.65);
+    await touchDragThenSecondFinger(cdp, cancelStart, cancelEnd, at(0.8, 0.75), [
+      at(0.42, 0.55),
       at(0.9, 0.85),
     ]);
 
@@ -148,8 +154,8 @@ test.describe("the mobile map-edit mode", () => {
       // derives those labels by stripping a " Wall" suffix, so a family that does
       // not end in it keeps the word). An unscoped match becomes a strict-mode
       // violation the moment that happens, and the failure reads as a UI bug.
-      const toolGrid = page.locator(".mobile-tool-sheet__grid");
-      const roomTool = toolGrid.getByRole("button", { name: /Room/ });
+      const toolGrid = page.getByRole("dialog", { name: "Map tools", exact: true });
+      const roomTool = toolGrid.getByRole("button", { name: "Room" });
       await expect(roomTool).toBeVisible({ timeout: 30_000 });
 
       const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
@@ -186,7 +192,7 @@ test.describe("the mobile map-edit mode", () => {
       // smoke spec takes for the same reason.
       await page.waitForTimeout(800);
       await dock.getByRole("button", { name: /Tool/ }).click();
-      await toolGrid.getByRole("button", { name: /Wall/ }).click();
+      await chooseBuildTool(toolGrid, "wall");
       // Wall has NO dials, so it closes the sheet on its own — the other half
       // of the same rule, and the half that would pass vacuously if the sheet
       // simply never closed.

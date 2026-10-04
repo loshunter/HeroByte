@@ -54,22 +54,25 @@ const createProps = (overrides: Record<string, unknown> = {}) => ({
   isDM: false,
   mode: false,
   mapEditToolbarProps: createToolbarProps(),
-  onCancelMapEditDrag: vi.fn(),
   ...overrides,
 });
 
 describe("MobileFloatingControls", () => {
-  it.each([false, true])("the CRT tile reports the inverse preference (enabled: %s)", (enabled) => {
-    const onCrtFilterChange = vi.fn();
-    const props = createProps({ surface: "tools", crtFilter: enabled, onCrtFilterChange });
-    render(<MobileFloatingControls {...props} />);
+  it.each([false, true])(
+    "the Table tile opens the Table surface, and is there for a DM and a player alike (isDM: %s)",
+    (isDM) => {
+      const props = createProps({ surface: "tools", isDM });
+      render(<MobileFloatingControls {...props} />);
 
-    const tile = screen.getByRole("button", { name: "CRT" });
-    expect(tile).toHaveAttribute("aria-pressed", String(enabled));
-    fireEvent.click(tile);
-    expect(onCrtFilterChange).toHaveBeenCalledExactlyOnceWith(!enabled);
-    expect(props.onToggleSurface).not.toHaveBeenCalled();
-    expect(props.onToolSelect).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Table" }));
+      expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("table");
+      expect(props.onToolSelect).not.toHaveBeenCalled();
+    },
+  );
+
+  it("has no CRT tile: it is a preference, and lives in the Table screen's Display group", () => {
+    render(<MobileFloatingControls {...createProps({ surface: "tools" })} />);
+    expect(screen.queryByRole("button", { name: "CRT" })).toBeNull();
   });
 
   it.each([[false], [true]])("keeps the action dock at exactly five buttons (isDM: %s)", (isDM) => {
@@ -96,7 +99,7 @@ describe("MobileFloatingControls", () => {
       ["Party", /party/i, "party"],
       ["Tools", /tools/i, "tools"],
       ["Dice", /dice/i, "dice"],
-      ["Log", /log/i, "log"],
+      ["Chat", /chat/i, "log"],
     ])("%s toggles its surface", (_label, pattern, surface) => {
       const props = createProps();
       render(<MobileFloatingControls {...props} />);
@@ -163,11 +166,11 @@ describe("MobileFloatingControls", () => {
       expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("dm");
     });
 
-    it("a DM keeps reset-camera: Recenter sits in the tool sheet and closes it", () => {
+    it("a DM keeps reset-camera: Reset view sits in the tool sheet and closes it", () => {
       const props = createProps({ isDM: true, surface: "tools" });
       render(<MobileFloatingControls {...props} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /recenter/i }));
+      fireEvent.click(screen.getByRole("button", { name: /reset view/i }));
 
       expect(props.onResetCamera).toHaveBeenCalledTimes(1);
       expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("tools");

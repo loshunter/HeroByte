@@ -1,22 +1,20 @@
 // ============================================================================
-// MAP TAB COMPONENT
+// MAPS TAB COMPONENT
 // ============================================================================
-// Composition component for the Map Setup tab in the DM Menu.
+// The DM Menu's Maps tab (U6). Maps are three different things, and this tab
+// names two of them apart (World is its own tab):
 //
-// This component orchestrates the map configuration workflow by arranging
-// specialized control components in a vertical layout. It handles:
+// 1. On table / Viewing in library — always shown, so a DM never mistakes the
+//    saved map they are inspecting for the one the party is on.
+// 2. Current table map — the settings of what the party sees now: background,
+//    grid, fog, vision, staging zone and drawings, with map position and grid
+//    alignment collapsed under Advanced.
+// 3. Map library — saved maps; viewing one never moves the party.
 //
-// 1. Map Background - Upload/set the background image
-// 2. Map Transform - Adjust position, scale, and rotation (conditional)
-// 3. Grid Control - Configure grid size and square dimensions
-// 4. Grid Alignment - Align grid to map features using visual wizard
-// 5. Staging Zone - Define player spawn area
-// 6. Drawing Controls - Clear session drawings
-//
-// This is purely a composition component - it does not contain business logic,
-// only arranges child components and passes through their props.
+// Composition only: it arranges child controls and passes their props through.
 
-import type { DiagonalRule, PlayerStagingZone } from "@herobyte/shared";
+import { useEffect, useId, useState } from "react";
+import type { AtlasNodeSnapshot, DiagonalRule, PlayerStagingZone } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../../types/alignment";
 import type { Camera } from "../../../../hooks/useCamera";
 import { MapBackgroundControl } from "../map-controls/MapBackgroundControl";
@@ -29,6 +27,7 @@ import { StagingZoneControl } from "../map-controls/StagingZoneControl";
 import { DrawingControls } from "../map-controls/DrawingControls";
 import { MapStudioControl } from "../map-controls/MapStudioControl";
 import type { MapStudioController } from "../../../map-studio";
+import { describeOnTable, displayName } from "../../../map-studio/tableMapIdentity";
 
 /**
  * Props for the MapTab component.
@@ -90,18 +89,15 @@ export interface MapTabProps {
   mapStudio?: MapStudioController;
   /** What "the live map" means to PUBLISH: the compiled scene's source document. */
   liveSceneDocumentId?: string;
+  /** The room's live binding: the saved map the party is on, and Build edits. */
+  tableMapDocumentId?: string;
+  /** Binds a library map to the table through the existing set-live transition. */
+  onUseMapAtTable?: (documentId: string) => void;
+  /** World locations, so a location's map can warn before Use at table or DELETE. */
+  atlasNodes?: ReadonlyArray<Pick<AtlasNodeSnapshot, "name" | "mapDocumentId">>;
 }
 
-/**
- * MapTab - Map Setup tab view for DM Menu.
- *
- * Renders a vertical stack of map configuration controls with consistent
- * spacing. The MapTransformControl is conditionally rendered only when
- * the necessary props and handlers are provided.
- *
- * @param props - All props required by child control components
- * @returns A flexbox column layout containing all map controls
- */
+/** The Maps tab: what the party sees, its settings, and the saved-map library. */
 export default function MapTab({
   mapBackground,
   onSetMapBackground,
@@ -140,95 +136,145 @@ export default function MapTab({
   onClearDrawings,
   mapStudio,
   liveSceneDocumentId,
+  tableMapDocumentId,
+  onUseMapAtTable,
+  atlasNodes,
 }: MapTabProps) {
+  const headingId = useId();
+  // Stays open once opened; also opens itself while an alignment is running,
+  // so the wizard it holds is never hidden mid-alignment.
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Latch, don't just mirror: cancelling an alignment must not collapse the
+  // wizard out from under the DM who pressed Cancel.
+  useEffect(() => {
+    if (alignmentModeActive) setAdvancedOpen(true);
+  }, [alignmentModeActive]);
+  const onTableName = describeOnTable({
+    liveMapDocumentId: tableMapDocumentId,
+    missingDocumentId: mapStudio?.missingDocumentId,
+    sceneSourceDocumentId: liveSceneDocumentId,
+    documents: mapStudio?.documents ?? [],
+    hasCompiledScene: hasCompiledScene ?? false,
+    hasBackground: Boolean(mapBackground),
+  });
+  const viewing = mapStudio?.activeDocument;
+  // Unbound (an older save), the scene's own map is the one on the table.
+  const viewingName =
+    viewing && viewing.id !== (tableMapDocumentId ?? liveSceneDocumentId)
+      ? (displayName(viewing.id, mapStudio?.documents ?? []) ?? viewing.name)
+      : null;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      <MapBackgroundControl
-        mapBackground={mapBackground}
-        onSetMapBackground={onSetMapBackground}
-        onSuccess={onMapBackgroundSuccess}
-        onError={onMapBackgroundError}
-      />
+      <div className="jrpg-text-small" data-testid="table-map-identity">
+        <p style={{ margin: 0 }}>
+          On table: <strong>{onTableName}</strong>
+        </p>
+        {viewingName && (
+          <p style={{ margin: "2px 0 0" }}>
+            Viewing in library: <strong>{viewingName}</strong>
+          </p>
+        )}
+      </div>
+
+      <section
+        aria-labelledby={headingId}
+        style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+      >
+        <h3 id={headingId} style={{ margin: 0, fontSize: "12px", color: "var(--jrpg-gold)" }}>
+          Current table map
+        </h3>
+        <MapBackgroundControl
+          mapBackground={mapBackground}
+          onSetMapBackground={onSetMapBackground}
+          onSuccess={onMapBackgroundSuccess}
+          onError={onMapBackgroundError}
+        />
+        <GridControl
+          gridSize={gridSize}
+          gridSquareSize={gridSquareSize}
+          gridLocked={gridLocked}
+          onGridSizeChange={onGridSizeChange}
+          onGridSquareSizeChange={onGridSquareSizeChange}
+          onGridLockToggle={onGridLockToggle}
+          diagonalRule={diagonalRule}
+          onDiagonalRuleChange={onDiagonalRuleChange}
+        />
+        {onFogEnabledChange && (
+          <FogControl
+            fogEnabled={fogEnabled ?? false}
+            hasCompiledScene={hasCompiledScene ?? false}
+            onFogEnabledChange={onFogEnabledChange}
+          />
+        )}
+        {onDefaultVisionRadiusChange && (
+          <DefaultVisionControl
+            defaultVisionRadius={defaultVisionRadius}
+            onDefaultVisionRadiusChange={onDefaultVisionRadiusChange}
+            fogEnabled={fogEnabled ?? false}
+          />
+        )}
+        <StagingZoneControl
+          playerStagingZone={playerStagingZone}
+          camera={camera}
+          gridSize={gridSize}
+          stagingZoneLocked={stagingZoneLocked ?? false}
+          onStagingZoneLockToggle={onStagingZoneLockToggle}
+          onSetPlayerStagingZone={onSetPlayerStagingZone}
+        />
+        <DrawingControls onClearDrawings={onClearDrawings} />
+        <details
+          open={advancedOpen || alignmentModeActive}
+          onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+        >
+          <summary className="jrpg-text-small">Advanced: map position and grid alignment</summary>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "8px" }}>
+            {onMapLockToggle && onMapTransformChange && mapTransform && (
+              <MapTransformControl
+                mapTransform={mapTransform}
+                mapLocked={mapLocked ?? false}
+                onMapTransformChange={onMapTransformChange}
+                onMapLockToggle={onMapLockToggle}
+              />
+            )}
+            <GridAlignmentWizard
+              alignmentModeActive={alignmentModeActive}
+              alignmentPoints={alignmentPoints}
+              alignmentSuggestion={alignmentSuggestion}
+              alignmentError={alignmentError}
+              gridLocked={gridLocked}
+              mapLocked={mapLocked}
+              onAlignmentStart={onAlignmentStart}
+              onAlignmentReset={onAlignmentReset}
+              onAlignmentCancel={onAlignmentCancel}
+              onAlignmentApply={onAlignmentApply}
+            />
+          </div>
+        </details>
+      </section>
 
       {mapStudio && (
         <MapStudioControl
           controller={mapStudio}
           liveSceneDocumentId={liveSceneDocumentId}
+          tableMapDocumentId={tableMapDocumentId}
+          hasBackground={Boolean(mapBackground)}
+          fogEnabled={fogEnabled ?? false}
+          atlasNodes={atlasNodes}
+          onUseAtTable={onUseMapAtTable}
           onPublishToLiveMap={({ backgroundUrl, documentId, documentName, backgroundMode }) => {
             // Server-authoritative publish: compiles walls/doors/lights and
             // syncs background + grid in one atomic message. Passing the id +
             // elements-only mode makes the server attach painted terrain as data
             // (R5) so live terrain also appears when publishing from the DM menu.
-            if (mapStudio.publishDocument(backgroundUrl, documentId, backgroundMode)) {
-              onMapBackgroundSuccess?.(`Published "${documentName}" to the live map.`);
-            }
+            // False when nothing was sent (another map opened mid-bake).
+            if (!mapStudio.publishDocument(backgroundUrl, documentId, backgroundMode)) return false;
+            const name = displayName(documentId, mapStudio.documents) ?? documentName;
+            onMapBackgroundSuccess?.(`Published "${name}" as the table's map background.`);
+            return true;
           }}
         />
       )}
-
-      {/* Step 2: Adjust Map Transform (scale, position, rotation) */}
-      {onMapLockToggle && onMapTransformChange && mapTransform && (
-        <MapTransformControl
-          mapTransform={mapTransform}
-          mapLocked={mapLocked ?? false}
-          onMapTransformChange={onMapTransformChange}
-          onMapLockToggle={onMapLockToggle}
-        />
-      )}
-
-      <GridControl
-        gridSize={gridSize}
-        gridSquareSize={gridSquareSize}
-        gridLocked={gridLocked}
-        onGridSizeChange={onGridSizeChange}
-        onGridSquareSizeChange={onGridSquareSizeChange}
-        onGridLockToggle={onGridLockToggle}
-        diagonalRule={diagonalRule}
-        onDiagonalRuleChange={onDiagonalRuleChange}
-      />
-
-      {onFogEnabledChange && (
-        <FogControl
-          fogEnabled={fogEnabled ?? false}
-          hasCompiledScene={hasCompiledScene ?? false}
-          onFogEnabledChange={onFogEnabledChange}
-        />
-      )}
-
-      {onDefaultVisionRadiusChange && (
-        <DefaultVisionControl
-          defaultVisionRadius={defaultVisionRadius}
-          onDefaultVisionRadiusChange={onDefaultVisionRadiusChange}
-          fogEnabled={fogEnabled ?? false}
-        />
-      )}
-
-      {/* Step 4: Align Grid to Map (optional) */}
-      <GridAlignmentWizard
-        alignmentModeActive={alignmentModeActive}
-        alignmentPoints={alignmentPoints}
-        alignmentSuggestion={alignmentSuggestion}
-        alignmentError={alignmentError}
-        gridLocked={gridLocked}
-        mapLocked={mapLocked}
-        onAlignmentStart={onAlignmentStart}
-        onAlignmentReset={onAlignmentReset}
-        onAlignmentCancel={onAlignmentCancel}
-        onAlignmentApply={onAlignmentApply}
-      />
-
-      {/* Step 5: Define Player Spawn Area */}
-      <StagingZoneControl
-        playerStagingZone={playerStagingZone}
-        camera={camera}
-        gridSize={gridSize}
-        stagingZoneLocked={stagingZoneLocked ?? false}
-        onStagingZoneLockToggle={onStagingZoneLockToggle}
-        onSetPlayerStagingZone={onSetPlayerStagingZone}
-      />
-
-      {/* Step 6: Session Cleanup */}
-      <DrawingControls onClearDrawings={onClearDrawings} />
     </div>
   );
 }

@@ -19,6 +19,7 @@ import {
   coerceCustomTokens,
   coerceNpcDisposition,
   coerceTokenSize,
+  settleLegacyConditionLists,
 } from "../persistence/loadCoercions.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
 
@@ -63,6 +64,11 @@ export class SnapshotLoader {
         // Merge: Keep current connection data (lastHeartbeat, micLevel), restore saved data
         return {
           ...savedPlayer,
+          // Authority is the room's own, never the file's. DM status is earned at
+          // the table with the DM password, and a file can be hand-edited or come
+          // from another night's table where someone else held the seat — so a
+          // restore must neither crown a seated player nor demote the DM who ran it.
+          isDM: currentPlayer.isDM ?? false,
           lastHeartbeat: currentPlayer.lastHeartbeat, // Keep current heartbeat
           micLevel: currentPlayer.micLevel, // Keep current mic level
         };
@@ -76,7 +82,7 @@ export class SnapshotLoader {
     // wire-only field that must never enter room state. Room state requires
     // real numbers — normalizeHPValues turns absence into 0/1, visibly wrong
     // rather than silently NaN.
-    const loadedCharacters = (snapshot.characters ?? []).map(
+    const normalizedCharacters = (snapshot.characters ?? []).map(
       ({ hpBadge: _wireOnly, tokenSize, disposition, ...character }) => {
         const { hp, maxHp } = normalizeHPValues(character.hp ?? 0, character.maxHp ?? 1);
         // A size off the ladder is dropped, like the state file's (loadCoercions).
@@ -98,6 +104,11 @@ export class SnapshotLoader {
         });
       },
     );
+    // Legacy condition lists settle against the FILE's own seats, before the
+    // merge: seated players keep their live characters, so a file's sole
+    // character could otherwise count as one of two and lose its seat's list.
+    // The live characters were settled when their room loaded.
+    const loadedCharacters = settleLegacyConditionLists(normalizedCharacters, loadedPlayers);
 
     // Get UIDs of currently connected players
     const currentPlayerUIDs = new Set(currentState.players.map((p) => p.uid));
@@ -116,13 +127,39 @@ export class SnapshotLoader {
       ...loadedCharacters.filter((char) => !preservedCharacterIds.has(char.id)),
     ];
 
+    // A token follows its character. The merge carries a seated player's
+    // characters and the file's, and drops the rest of the room's — an NPC is the
+    // file's, not a seat's. Its token must go with it: the DM owns the token of
+    // every NPC they placed, so keeping "the seated uids' tokens" would leave one
+    // on the map with no record behind it, and no hidden flag to hold it back —
+    // the players are sent it, image and all, however secret the monster was.
+    const carriedTokenIds = new Set<string>();
+    for (const character of mergedCharacters) {
+      if (character.tokenId) carriedTokenIds.add(character.tokenId);
+    }
+    const strandedTokenIds = new Set<string>();
+    for (const character of currentState.characters) {
+      if (character.tokenId && !carriedTokenIds.has(character.tokenId)) {
+        strandedTokenIds.add(character.tokenId);
+      }
+    }
+
     // Preserve tokens belonging to currently connected players
-    const currentPlayerTokens = currentState.tokens.filter((token) =>
-      currentPlayerUIDs.has(token.owner),
+    const currentPlayerTokens = currentState.tokens.filter(
+      (token) => currentPlayerUIDs.has(token.owner) && !strandedTokenIds.has(token.id),
     );
 
     // Get IDs of preserved tokens to avoid duplicates
     const preservedTokenIds = new Set(currentPlayerTokens.map((t) => t.id));
+
+    // The file's side of the same rule: a file token that one of the FILE's characters
+    // points at stays only if a merged character still does. A seated player's live
+    // character wins over the file's, and points at the live token — the file's token for
+    // it would be a second one, with no character behind it, that the player controls.
+    const fileCharacterTokenIds = new Set<string>();
+    for (const character of normalizedCharacters) {
+      if (character.tokenId) fileCharacterTokenIds.add(character.tokenId);
+    }
 
     // Add loaded tokens that don't conflict with preserved ones. The uploaded
     // half is whitelist-coerced (S7) — tokens are otherwise copied verbatim
@@ -131,8 +168,23 @@ export class SnapshotLoader {
     const mergedTokens = [
       ...currentPlayerTokens,
       ...coerceTokenVisionRadii(
-        (snapshot.tokens ?? []).filter((token) => !preservedTokenIds.has(token.id)),
+        (snapshot.tokens ?? []).filter(
+          (token) =>
+            !preservedTokenIds.has(token.id) &&
+            (!fileCharacterTokenIds.has(token.id) || carriedTokenIds.has(token.id)),
+        ),
       ),
+    ];
+
+    // A kept token's lock, scale and rotation live in its scene object, and the scene graph
+    // is rebuilt from the list the merge hands it: the file's would replace the live one,
+    // and a player's token would come back unlocked, unrotated, as the file had it.
+    const keptSceneIds = new Set([...preservedTokenIds].map((id) => `token:${id}`));
+    const sceneObjects = [
+      ...(snapshot.sceneObjects ?? currentState.sceneObjects).filter(
+        (object) => !keptSceneIds.has(object.id),
+      ),
+      ...currentState.sceneObjects.filter((object) => keptSceneIds.has(object.id)),
     ];
 
     const currentGridSquareSize = currentState.gridSquareSize ?? 5;
@@ -172,7 +224,7 @@ export class SnapshotLoader {
       chatLog: Array.isArray(snapshot.chatLog) ? snapshot.chatLog : [],
       drawingUndoStacks: {},
       drawingRedoStacks: {},
-      sceneObjects: snapshot.sceneObjects ?? currentState.sceneObjects,
+      sceneObjects,
       selectionState: createSelectionMap(),
       playerStagingZone: stagingManager.sanitize(snapshot.playerStagingZone),
       combatActive: snapshot.combatActive ?? false,

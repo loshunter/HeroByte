@@ -88,20 +88,20 @@ export function useSessionManagement({
   const handleSaveSession = useCallback(
     (name: string) => {
       if (!hasSnapshot) {
-        toast.warning("No session data available to save yet.");
+        toast.warning("The table has not loaded yet, so there is nothing to back up.");
         return;
       }
       if (pendingName.current !== null) {
-        toast.info("A session export is already in progress...");
+        toast.info("A table backup is already being prepared…");
         return;
       }
       pendingName.current = name;
-      toast.info("Preparing session file...");
+      toast.info("Preparing your table backup…");
       // Say so rather than hang: without this the DM watches a toast that never
       // resolves and has no idea whether to click again.
       timeoutId.current = setTimeout(() => {
         clearPending();
-        toast.error("Save failed: the server did not return a session file.", 5000);
+        toast.error("Backup failed: the server did not return the table.", 5000);
       }, EXPORT_TIMEOUT_MS);
 
       sendMessage({ t: "session-export" });
@@ -140,15 +140,15 @@ export function useSessionManagement({
           const frameBytes = loadSessionFrameBytes(file);
           if (frameBytes > WS_MAX_MESSAGE_BYTES) {
             toast.warning(
-              `Session "${name}" saved (${parts.join(", ")}; ${megabytes(diskBytes)} on disk) — but at ` +
-                `${megabytes(frameBytes)} on the wire it will NOT load back: the server accepts ` +
-                `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. Delete some maps and save again.`,
+              `Table backup "${name}" downloaded (${parts.join(", ")}; ${megabytes(diskBytes)} on disk) — but at ` +
+                `${megabytes(frameBytes)} on the wire it will NOT restore: the server accepts ` +
+                `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. Delete some maps and download again.`,
               9000,
             );
           } else {
             toast.success(
-              `Session "${name}" saved — ${parts.join(", ")} included; ${megabytes(frameBytes)} of ` +
-                `the ${megabytes(WS_MAX_MESSAGE_BYTES)} a load accepts (${megabytes(diskBytes)} on disk with images).`,
+              `Table backup "${name}" downloaded — ${parts.join(", ")} included; ${megabytes(frameBytes)} of ` +
+                `the ${megabytes(WS_MAX_MESSAGE_BYTES)} a restore accepts (${megabytes(diskBytes)} on disk with images).`,
               4000,
             );
           }
@@ -164,8 +164,8 @@ export function useSessionManagement({
           console.error("Failed to save session", err);
           toast.error(
             err instanceof Error
-              ? `Save failed: ${err.message}`
-              : "Failed to save session. Check console for details.",
+              ? `Backup failed: ${err.message}`
+              : "Failed to download the table backup. Check the console for details.",
             5000,
           );
         }
@@ -177,7 +177,7 @@ export function useSessionManagement({
   const handleLoadSession = useCallback(
     async (file: File) => {
       try {
-        toast.info(`Loading session from ${file.name}...`);
+        toast.info(`Reading ${file.name}…`);
         const session = await loadSession(file);
 
         const warnings: string[] = [];
@@ -193,10 +193,11 @@ export function useSessionManagement({
           warnings.push("no map documents — the map will load read-only");
         }
 
-        // Last exit before anything is written. Loading replaces the live table
-        // for EVERY connected player — tokens, characters, props, drawings, maps
-        // and the live binding — and it persists, so there is nothing to undo to.
-        // The far smaller "Clear All Drawings" two tabs away already confirms.
+        // Last exit before anything is written. Loading replaces the live table for
+        // EVERY connected player — the map and its live binding, NPCs with their
+        // tokens, props, drawings — except what every roster seat keeps (its
+        // characters and tokens as they stand; nobody's DM status moves), and it
+        // persists, so there is nothing to undo to. The far smaller "Clear All Drawings" already confirms.
         // Placed after the parse so the prompt can describe what is in the file,
         // and before restoreSessionAssets, which is the first server write.
         const counts = [
@@ -204,12 +205,13 @@ export function useSessionManagement({
           `${session.mapDocuments.length} map document(s)`,
         ].join(", ");
         const proceed = window.confirm(
-          `Load "${file.name}" (${counts})?\n\n` +
-            `This REPLACES the current table for everyone connected — tokens, ` +
-            `characters, props, drawings and maps. It cannot be undone.`,
+          `Restore table backup "${file.name}" (${counts})?\n\n` +
+            `This REPLACES the map, NPCs, props and drawings for everyone connected. ` +
+            `Everyone with a seat here keeps their own characters and tokens as they are now, ` +
+            `and nobody's DM status changes. It cannot be undone.`,
         );
         if (!proceed) {
-          toast.info("Session load cancelled.");
+          toast.info("Restore cancelled. The table has not changed.");
           return;
         }
 
@@ -232,9 +234,9 @@ export function useSessionManagement({
         const frameBytes = loadSessionFrameBytes(session);
         if (frameBytes > WS_MAX_MESSAGE_BYTES) {
           toast.error(
-            `"${file.name}" is too large to load: ${megabytes(frameBytes)}, and the server accepts ` +
+            `"${file.name}" is too large to restore: ${megabytes(frameBytes)}, and the server accepts ` +
               `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. The table has NOT been changed. ` +
-              `Delete some maps from the campaign and export again.`,
+              `Delete some maps from the campaign and download the backup again.`,
             9000,
           );
           return;
@@ -255,16 +257,16 @@ export function useSessionManagement({
         sendMessage(frame);
 
         if (warnings.length > 0) {
-          toast.warning(`Session loaded with warnings: ${warnings.join(", ")}`, 5000);
+          toast.warning(`Table backup restored with warnings: ${warnings.join(", ")}`, 5000);
         } else {
-          toast.success(`Session "${file.name}" loaded successfully!`, 4000);
+          toast.success(`Table backup "${file.name}" restored.`, 4000);
         }
       } catch (err) {
         console.error("Failed to load session", err);
         toast.error(
           err instanceof Error
-            ? `Load failed: ${err.message}`
-            : "Failed to load session. File may be corrupted.",
+            ? `Restore failed: ${err.message}`
+            : "Failed to restore the table backup. The file may be corrupted.",
           5000,
         );
       }

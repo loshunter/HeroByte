@@ -9,9 +9,17 @@
 // like any other, and this is the only lever that clears that spend.
 
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen } from "@testing-library/react";
 import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
 import { EntitiesPanel } from "../EntitiesPanel";
+import { showCards } from "./entitiesPanel.fixtures";
+
+// U7: the Party opens as the compact roster; these suites pin the full cards.
+const render = (...args: Parameters<typeof rtlRender>) => {
+  const result = rtlRender(...args);
+  showCards();
+  return result;
+};
 
 const DM = "dm-uid";
 const ALICE = "alice-uid";
@@ -66,18 +74,19 @@ function panelProps(overrides: Partial<React.ComponentProps<typeof EntitiesPanel
     onTempHpEdit: vi.fn(),
     onTempHpSubmit: vi.fn(),
     currentIsDM: true,
-    onToggleDMMode: vi.fn(),
     onTokenImageChange: vi.fn(),
     onApplyPlayerState: vi.fn(),
     _onStatusEffectsChange: vi.fn(),
     onCharacterStatusEffectsChange: vi.fn(),
     onToggleTokenLock: vi.fn(),
     onTokenSizeChange: vi.fn(),
+    onCharacterOwnerChange: vi.fn(),
     onCharacterSpeedChange: vi.fn(),
     onCharacterBudgetReset: vi.fn(),
     onAddCharacter: vi.fn(),
     onDeleteCharacter: vi.fn(),
     onFocusToken: vi.fn(),
+    launcherDockRef: vi.fn(),
     combatActive: true,
     onSetInitiative: vi.fn(),
     onRollInitiative: vi.fn(),
@@ -165,11 +174,11 @@ describe("EntitiesPanel — the DM's own character: the bench and the order (F3)
     expect(screen.getByText("Sidekick").closest(".entities-panel-dm-group")).toBeNull();
     expect(screen.getByText("Sidekick").closest(".entities-panel-card-grid")).not.toBeNull();
     openSettingsOf("Sidekick");
-    // The DM's own card's affordances travel with it into the order: the
-    // DM-mode section (gated on ownership, isMe) and the token controls the
-    // menu once hid for any DM's card — it no longer does (own commit), so
-    // this card, like the bench card, can size its own token.
-    expect(screen.getByText("Dungeon Master Mode")).toBeInTheDocument();
+    // The DM's own card's affordances travel with it into the order: the token
+    // controls the menu once hid for any DM's card — it no longer does (own
+    // commit), so this card, like the bench card, can size its own token. (Its
+    // DM-mode section went to the Table menu in U9: role is not a character's.)
+    expect(screen.queryByText("Dungeon Master Mode")).toBeNull();
     expect(screen.getByText(/Token Size/i)).toBeInTheDocument();
     // And "+ Add Character" — the DM\'s card offers it now (own commit), on the
     // bench and in the order alike.
@@ -193,9 +202,9 @@ describe("EntitiesPanel — the DM's own character: the bench and the order (F3)
     expect(card.closest(".entities-panel-card-grid")).not.toBeNull();
     expect(card.querySelector(".player-card--dm")).not.toBeNull();
     // Not the player's to edit: no settings entry at all (the portrait is a
-    // plain "Player portrait"), so no speed field and no reset can exist.
+    // plain "Portrait"), so no speed field and no reset can exist.
     expect(card.querySelector('button[aria-label="Change portrait"]')).toBeNull();
-    expect(card.querySelector('button[aria-label="Player portrait"]')).not.toBeNull();
+    expect(card.querySelector('button[aria-label="Portrait"]')).not.toBeNull();
   });
 
   it("after END COMBAT (initiative kept) the DM's character is home on the bench", () => {

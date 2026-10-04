@@ -9,9 +9,17 @@
 // already uses in useCombatOrdering, for the same reason.
 
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render as rtlRender, screen, within } from "@testing-library/react";
 import type { Player, SnapshotCharacter } from "@herobyte/shared";
 import { EntitiesPanel } from "../EntitiesPanel";
+import { showCards } from "./entitiesPanel.fixtures";
+
+// U7: the Party opens as the compact roster; these suites pin the full cards.
+const render = (...args: Parameters<typeof rtlRender>) => {
+  const result = rtlRender(...args);
+  showCards();
+  return result;
+};
 
 const DM = "dm-uid";
 const ALICE = "alice-uid";
@@ -75,18 +83,19 @@ function panelProps(
     onTempHpEdit: vi.fn(),
     onTempHpSubmit: vi.fn(),
     currentIsDM: false,
-    onToggleDMMode: vi.fn(),
     onTokenImageChange: vi.fn(),
     onApplyPlayerState: vi.fn(),
     _onStatusEffectsChange: vi.fn(),
     onCharacterStatusEffectsChange: vi.fn(),
     onToggleTokenLock: vi.fn(),
     onTokenSizeChange: vi.fn(),
+    onCharacterOwnerChange: vi.fn(),
     onCharacterSpeedChange: vi.fn(),
     onCharacterBudgetReset: vi.fn(),
     onAddCharacter: vi.fn(),
     onDeleteCharacter: vi.fn(),
     onFocusToken: vi.fn(),
+    launcherDockRef: vi.fn(),
     combatActive: false,
     onSetInitiative: vi.fn(),
     onRollInitiative: vi.fn(),

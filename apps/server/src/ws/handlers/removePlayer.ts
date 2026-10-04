@@ -2,7 +2,7 @@
 // REMOVE PLAYER — the DM clears an absent player's seat
 // ============================================================================
 // A player row outlives everything that made it: a character delete leaves
-// the roster entry (the DM menu's Players tab lists it with no tokens), only
+// the roster entry (the DM menu's Table tab lists it with no tokens), only
 // a Main Hall idle clear wipes players, and a private table keeps every seat
 // anyone ever took — SNAPSHOT_LIMITS.players (100) is the load ceiling a
 // long campaign would walk into. This is the DM-side remove: the row, every
@@ -44,7 +44,8 @@ import { deleteCharacterKeepingTurn } from "./deleteCharacter.js";
  * client heartbeats every 25 s, so a connected player is never further behind
  * than that; a minute past the last one is a player who has actually gone.
  * The client mirrors this figure for its "dropped just now" label
- * (PlayersTab.tsx) and reads this source in a test so the two cannot drift.
+ * (features/table/tab/TablePlayersSection.tsx) and reads this source in a test so the
+ * two cannot drift.
  */
 export const REMOVE_PLAYER_GRACE_MS = 60_000;
 

@@ -19,12 +19,16 @@ import { render, screen, fireEvent, cleanup, within } from "@testing-library/rea
 import { MobileMapEditToolPanels, PANEL_TOOLS } from "../MobileMapEditToolPanels";
 import { isTouchTool } from "../../mapEditToolKinds";
 import type { MapEditToolbarProps } from "../../mapEditTypes";
+import { createMapDocument } from "@herobyte/shared";
 
 afterEach(() => cleanup());
 
 const bag = (overrides: Record<string, unknown> = {}) =>
   ({
     isLive: true,
+    layers: createMapDocument({ id: "panels", name: "Panels" }).layers,
+    onUpdateLayer: vi.fn(),
+    saving: false,
     busy: false,
     activeSubTool: "room",
     onSelectSubTool: vi.fn(),
@@ -34,6 +38,8 @@ const bag = (overrides: Record<string, unknown> = {}) =>
     onSelectRoomWallFamily: vi.fn(),
     hallwayWidth: 1,
     onSelectHallwayWidth: vi.fn(),
+    terrainBrushSize: 1 as const,
+    onSelectTerrainBrushSize: vi.fn(),
     splineKind: "rope",
     onSelectSplineKind: vi.fn(),
     selectedAssetId: "objects:crate",

@@ -1,0 +1,14 @@
+/* The phone Party screen's seats (U7): each player seat is a heading with its
+   characters listed beneath it. */
+
+.mobile-party-seat__heading {
+  margin: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(240, 226, 195, 0.35);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--hero-gold-light, #f0e2c3);
+  text-transform: none;
+}

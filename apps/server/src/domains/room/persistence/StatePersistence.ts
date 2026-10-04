@@ -13,9 +13,9 @@
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import { renameWithRetry } from "./atomicRename.js";
-import { coerceCombatRound, coerceCustomTokens, coerceLoadedCharacters } from "./loadCoercions.js";
+import { coerceCombatRound, coerceCustomTokens, coerceLoadedSeats } from "./loadCoercions.js";
 import { SAVE_DEBOUNCE_MS, TrailingDebounce, flushAllPending } from "./saveDebounce.js";
-import type { Player, SceneObject } from "@herobyte/shared";
+import type { SceneObject } from "@herobyte/shared";
 import {
   coerceDefaultVisionRadius,
   coerceDiagonalRule,
@@ -129,12 +129,7 @@ export class StatePersistence {
           // different things (a crash, and a poisoned field), and either could
           // be moved or dropped by a later refactor of the other.
           tokens: coerceTokenVisionRadii(Array.isArray(data.tokens) ? data.tokens : []),
-          players: (data.players || []).map((player: Player) => ({
-            ...player,
-            isDM: player.isDM ?? false,
-            statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
-          })),
-          characters: coerceLoadedCharacters(data.characters, data.combatActive === true),
+          ...coerceLoadedSeats(data.players, data.characters, data.combatActive === true),
           props: data.props || [],
           customTokens: coerceCustomTokens(data.customTokens),
           mapBackground: data.mapBackground,

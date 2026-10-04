@@ -4,7 +4,6 @@
 // Extracted from DMMenu.tsx as part of Phase 2: Entity Editors refactoring.
 // Provides editing interface for NPC properties including name, HP, and images.
 
-import { useState, useEffect } from "react";
 import type { NpcDisposition, SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { JRPGPanel } from "../../../components/ui/JRPGPanel";
@@ -14,7 +13,10 @@ import { MovementSpeedField } from "../../players/components/MovementSpeedField"
 import { NpcPortraitField } from "./NpcPortraitField";
 import { NpcTokenImageField } from "./NpcTokenImageField";
 import { NpcStanceSelect } from "./NpcStanceSelect";
+import { NpcConditionsField } from "./NpcConditionsField";
 import { useNpcAssetPick } from "../hooks/useNpcAssetPick";
+import { useNpcEditorFields } from "../hooks/useNpcEditorFields";
+import { NPC_NAME_MAX, tempHpEdit, tokenImageEdit } from "../../players/npcUpdate";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -31,6 +33,10 @@ interface NPCEditorProps {
   onPlace: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** The NPC's conditions (the phone's only route to them). */
+  onStatusEffectsChange: (effects: string[]) => void;
+  /** Present only while its token is on the map. */
+  onFocus?: () => void;
   isUpdating?: boolean;
   updateError?: string | null;
   isPlacingToken?: boolean;
@@ -66,41 +72,32 @@ export function NPCEditor({
   onPlace,
   onDuplicate,
   onDelete,
+  onStatusEffectsChange,
+  onFocus,
   isDuplicating = false,
   isUpdating = false,
   updateError = null,
   isPlacingToken = false,
   tokenPlacementError = null,
 }: NPCEditorProps) {
-  const [name, setName] = useState(npc.name);
-  const [hpInput, setHpInput] = useState(String(npc.hp));
-  const [maxHpInput, setMaxHpInput] = useState(String(npc.maxHp));
-  const [tempHpInput, setTempHpInput] = useState(String(npc.tempHp ?? 0));
-  const [initiativeModifierInput, setInitiativeModifierInput] = useState(
-    String(npc.initiativeModifier ?? 0),
-  );
-  const [portrait, setPortrait] = useState(npc.portrait ?? "");
-  const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
-  const [stance, setStance] = useState(npc.disposition ?? "hostile");
-
-  // Resync — but NOT while this NPC's update is in flight. `npc` is a fresh
-  // object per broadcast, so this fires on a player moving a token or a die
-  // being rolled, not only on the reply we await: unrelated activity put the
-  // optimistic Stance back to the old word, greyed out — the "my click did
-  // not take" the optimism removes — and a half-typed name with it.
-  // useNpcUpdate holds isUpdating (scoped to this NPC by NPCsTab) until the
-  // snapshot MATCHES, so this re-runs on fresh data.
-  useEffect(() => {
-    if (isUpdating) return;
-    setName(npc.name);
-    setHpInput(String(npc.hp));
-    setMaxHpInput(String(npc.maxHp));
-    setTempHpInput(String(npc.tempHp ?? 0));
-    setInitiativeModifierInput(String(npc.initiativeModifier ?? 0));
-    setPortrait(npc.portrait ?? "");
-    setTokenImage(npc.tokenImage ?? "");
-    setStance(npc.disposition ?? "hostile");
-  }, [npc, isUpdating]);
+  const {
+    name,
+    setName,
+    hpInput,
+    setHpInput,
+    maxHpInput,
+    setMaxHpInput,
+    tempHpInput,
+    setTempHpInput,
+    initiativeModifierInput,
+    setInitiativeModifierInput,
+    portrait,
+    setPortrait,
+    tokenImage,
+    setTokenImage,
+    stance,
+    setStance,
+  } = useNpcEditorFields(npc, isUpdating);
 
   const commitUpdate = (
     overrides?: Partial<{
@@ -147,11 +144,11 @@ export function NPCEditor({
       name: trimmedName.length > 0 ? trimmedName : "NPC",
       hp: normalized.hp,
       maxHp: normalized.maxHp,
-      // 0 is SENT when there is a value to clear (omitted, the merge refilled it);
-      // still omitted for an NPC with none, or every edit would stamp tempHp: 0.
-      tempHp: parsedTempHp > 0 || npc.tempHp !== undefined ? parsedTempHp : undefined,
+      // A clear is explicit, and an NPC with nothing to clear sends nothing
+      // (npcUpdate.ts): the merge refills an undefined field.
+      tempHp: tempHpEdit(parsedTempHp, npc.tempHp),
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
-      tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
+      tokenImage: tokenImageEdit(tokenImageValue, npc.tokenImage),
       initiativeModifier: clampedInitMod,
       // Only when this edit set one. Three things downstream would each
       // survive a bare `disposition: undefined` anyway — useNpcUpdate merges
@@ -194,6 +191,7 @@ export function NPCEditor({
           <input
             type="text"
             value={name}
+            maxLength={NPC_NAME_MAX}
             onChange={(e) => setName(e.target.value)}
             onBlur={handleNameBlur}
             onKeyDown={(e) => {
@@ -326,8 +324,11 @@ export function NPCEditor({
         }}
       />
 
+      <NpcConditionsField effects={npc.statusEffects ?? []} onChange={onStatusEffectsChange} />
+
       <NPCEditorActions
         npcName={npc.name}
+        onFocus={onFocus}
         onPlace={() => {
           commitUpdate();
           onPlace();

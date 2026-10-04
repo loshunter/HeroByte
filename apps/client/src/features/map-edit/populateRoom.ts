@@ -46,10 +46,8 @@ interface Segment {
 }
 
 /**
- * True when the region still has painted floor terrain — the POPULATE target's
- * proof-of-life. A room/hallway paints floor when placed, so if the DM undoes it
- * the terrain vanishes and this returns false; callers then refuse to scatter
- * set dressing into now-empty space (the recorded bounds went stale).
+ * Legacy any-terrain query. This does not prove a placement still exists after
+ * Undo over existing paint; decoration readiness uses populateTargetIsLive.
  */
 export function regionHasFloor(document: MapDocument, bounds: RoomBounds): boolean {
   if (!document.terrain) return false;

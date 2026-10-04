@@ -26,7 +26,9 @@ export class PlayerService {
       return existingPlayer;
     }
 
-    const playerNumber = state.players.length + 1;
+    const usedNames = new Set(state.players.map((player) => player.name));
+    let playerNumber = state.players.length + 1;
+    while (usedNames.has(`Player ${playerNumber}`)) playerNumber++;
     const newPlayer: Player = {
       uid,
       name: `Player ${playerNumber}`,

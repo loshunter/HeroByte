@@ -21,17 +21,18 @@
  * ensure proper spacing.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import type { MainLayoutProps, RollLogEntry } from "./props/MainLayoutProps";
 import { TopPanelLayout } from "./TopPanelLayout";
 import { CenterCanvasLayout } from "./CenterCanvasLayout";
 import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
 import { BottomPanelLayout } from "./BottomPanelLayout";
+import { usePartyNpcActions } from "../components/layout/party/usePartyNpcActions";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
 import { useNpcVisibility } from "../hooks/useNpcVisibility";
-import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 import { buildDMMenuProps } from "../features/dm/buildDMMenuProps";
+import { useTableMenuProps } from "../features/table/tableMenuProps";
 import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
 
 // Re-export for backward compatibility
@@ -47,6 +48,8 @@ export type { MainLayoutProps, RollLogEntry };
  * unnecessary re-renders during drag operations.
  */
 export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps): JSX.Element {
+  // The Table menu's facts, held through a reconnect's empty snapshot (see the hook).
+  const tableMenu = useTableMenuProps(props);
   const {
     // Layout state
     topHeight,
@@ -55,9 +58,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     bottomPanelRef,
     contextMenu,
     setContextMenu,
-
-    // Connection state
-    isConnected,
 
     // Tool state
     activeTool,
@@ -78,8 +78,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     mapEditRoomWallFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
+    mapEditTerrainBrushSize,
     mapEditSplineKind,
-    mapEditPopulateGhosts,
+    mapEditPersistentPreview,
     mapEditWheelActions,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
@@ -95,7 +96,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     snapToGrid,
     setSnapToGrid,
     crtFilter,
-    setCrtFilter,
     playerLens,
     onTogglePlayerLens,
     diceRollerOpen,
@@ -182,10 +182,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleClearLog,
     handleViewRoll,
 
-    // DM management (hooks now in DMMenuContainer; the rename/derive wiring
-    // now lives in buildDMMenuProps)
-    handleToggleDM,
-
     // Toast
     toast,
 
@@ -212,31 +208,36 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     playerActions,
   });
 
-  // Initiative setting hook for server-confirmed updates
+  // Initiative setting hook for server-confirmed updates: ONE instance, shared
+  // by the Party and the DM menu's Encounter (one pending state, U8).
+  const initiativeSetting = useInitiativeSetting({ snapshot, sendMessage });
   const {
     isSetting: isSettingInitiative,
     setInitiative,
     clearInitiative,
     rollInitiative,
-    rollAllInitiative,
     error: initiativeError,
-  } = useInitiativeSetting({
-    snapshot,
-    sendMessage,
-  });
+  } = initiativeSetting;
 
   // DM-only NPC visibility toggles
   const { toggleNpcVisibility } = useNpcVisibility({ sendMessage });
 
   // The one mapping from the props bag onto DMMenuContainer's shape — shared
   // with the mobile shell, so a DM feature is wired once, not per layout.
-  // rollAllInitiative rides as an extra because it is a hook result, not bag state.
-  const dmMenuProps = buildDMMenuProps(props, { rollAllInitiative });
+  // The initiative actions ride as an extra: a hook result, not bag state.
+  const dmMenuProps = buildDMMenuProps(props, { initiative: initiativeSetting });
 
   // Turn navigation handlers for combat controls
   const handleNextTurn = useCallback(() => {
     sendMessage({ t: "next-turn" });
   }, [sendMessage]);
+
+  // The Party bar's launcher dock (U7): the bar reports its slot, and the
+  // floating layer's launchers render into it instead of over the cards.
+  const [launcherDock, setLauncherDock] = useState<HTMLDivElement | null>(null);
+
+  // The Party's NPC cards act for the DM (they were wired to undefined).
+  const partyNpcActions = usePartyNpcActions(snapshot?.characters, sendMessage, isDM);
 
   const handlePreviousTurn = useCallback(() => {
     sendMessage({ t: "previous-turn" });
@@ -244,26 +245,19 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
-      {/* Marks the shared default table for anyone who bookmarked its URL and
-          never saw the join screen. Driven by the live snapshot flag, not the
-          room id: setting a password claims the table and this goes away.
-          Rendered here rather than in TopPanelLayout because the snapshot is
-          already in scope — no new prop to thread through the layout fixtures. */}
-      {snapshot?.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
-      {/* Top Panel - Server status, drawing toolbar, header, and multi-select toolbar */}
+      {/* Top Panel - drawing toolbar, header (the Table button carries the
+          connection; the public-table warning is a row of the header), and
+          multi-select toolbar */}
       <TopPanelLayout
-        isConnected={isConnected}
+        tableMenu={tableMenu}
         drawMode={drawMode}
         drawingToolbarProps={drawingToolbarProps}
         mapEditMode={mapEditMode}
         mapEditToolbarProps={mapEditToolbarProps}
-        uid={uid}
         activeTool={activeTool}
         setActiveTool={setActiveTool}
         snapToGrid={snapToGrid}
         setSnapToGrid={setSnapToGrid}
-        crtFilter={crtFilter}
-        setCrtFilter={setCrtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
         playerLens={playerLens}
@@ -305,8 +299,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapEditSelectedAssetId={mapEditSelectedAssetId}
         mapEditPlacementDials={mapEditToolbarProps}
         mapEditHallwayWidth={mapEditHallwayWidth}
+        mapEditTerrainBrushSize={mapEditTerrainBrushSize}
         mapEditSplineKind={mapEditSplineKind}
-        mapEditPopulateGhosts={mapEditPopulateGhosts}
+        mapEditPersistentPreview={mapEditPersistentPreview}
         mapEditWheelActions={mapEditWheelActions}
         mapEditSelectedElementId={mapEditSelectedElementId}
         mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
@@ -336,6 +331,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
       {/* Bottom Panel - Entities HUD with player/character/NPC management */}
       <BottomPanelLayout
         bottomPanelRef={bottomPanelRef}
+        launcherDockRef={setLauncherDock}
         players={snapshot?.players || []}
         characters={snapshot?.characters || []}
         tokens={snapshot?.tokens || []}
@@ -367,14 +363,13 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onTempHpSubmit={handleCharacterTempHpSubmit}
         onCharacterPortraitUpdate={onCharacterPortraitUpdate}
         onToggleMic={toggleMic}
-        onToggleDMMode={handleToggleDM}
         onApplyPlayerState={playerActions.applyPlayerState}
         onStatusEffectsChange={playerActions.setStatusEffects}
         onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
         onCharacterNameUpdate={playerActions.updateCharacterName}
-        onNpcUpdate={undefined}
-        onNpcDelete={undefined}
-        onNpcPlaceToken={undefined}
+        onNpcUpdate={partyNpcActions.onNpcUpdate}
+        onNpcDelete={partyNpcActions.onNpcDelete}
+        onNpcPlaceToken={partyNpcActions.onNpcPlaceToken}
         onNpcToggleVisibility={isDM ? toggleNpcVisibility : undefined}
         // Was hardcoded undefined, which (together with an impossible isDM gate
         // in PlayerSettingsMenu) meant a DM had no way to remove a player's
@@ -384,6 +379,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         npcDeletionError={undefined}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
+        onCharacterOwnerChange={(characterId, ownerUid) =>
+          sendMessage({ t: "set-character-owner", characterId, ownerUid })
+        }
         onTokenVisionRadiusChange={updateTokenVisionRadius}
         onCharacterSpeedChange={updateCharacterSpeed}
         onCharacterBudgetReset={resetCharacterBudget}
@@ -412,6 +410,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         setContextMenu={setContextMenu}
         onStartLiveMap={mapEditToolbarProps.onStartLiveMap}
         dmMenuProps={dmMenuProps}
+        launcherDock={launcherDock}
         snapshot={snapshot}
         kick={kick}
         diceRollerOpen={diceRollerOpen}

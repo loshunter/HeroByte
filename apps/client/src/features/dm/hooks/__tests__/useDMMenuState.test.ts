@@ -1,7 +1,20 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Character } from "@herobyte/shared";
 import { useDMMenuState } from "../useDMMenuState";
+import {
+  __resetDMMenuRequestsForTests,
+  requestDMMenuTab,
+  takeDMMenuTabRequest,
+} from "../../../table/menuRequest";
+
+// Every test starts with no request and no subscriber. Without this a menu a test left
+// subscribed would take the next test's request first, and the tests below that prove a
+// request is taken, taken once and never heard after unmount could pass on that accident.
+afterEach(() => {
+  __resetDMMenuRequestsForTests();
+  vi.useRealTimers();
+});
 
 // ============================================================================
 // TESTS FOR useDMMenuState HOOK
@@ -49,10 +62,10 @@ describe("useDMMenuState - Initial State", () => {
     expect(result.current.activeTab).toBe("map");
   });
 
-  it("initializes with sessionName: 'session'", () => {
+  it("initializes with the backup file name 'table-backup'", () => {
     const { result } = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
 
-    expect(result.current.sessionName).toBe("session");
+    expect(result.current.sessionName).toBe("table-backup");
   });
 
   it("initializes with empty npcs array when no characters provided", () => {
@@ -223,14 +236,14 @@ describe("useDMMenuState - setActiveTab", () => {
     expect(result.current.activeTab).toBe("props");
   });
 
-  it("updates activeTab to 'session'", () => {
+  it("updates activeTab to 'table'", () => {
     const { result } = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
 
     act(() => {
-      result.current.setActiveTab("session");
+      result.current.setActiveTab("table");
     });
 
-    expect(result.current.activeTab).toBe("session");
+    expect(result.current.activeTab).toBe("table");
   });
 
   it("updates activeTab back to 'map'", () => {
@@ -252,7 +265,7 @@ describe("useDMMenuState - setActiveTab", () => {
   it("can cycle through all tabs", () => {
     const { result } = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
 
-    const tabs: Array<"map" | "npcs" | "props" | "session"> = ["map", "npcs", "props", "session"];
+    const tabs: Array<"map" | "npcs" | "props" | "table"> = ["map", "npcs", "props", "table"];
 
     tabs.forEach((tab) => {
       act(() => {
@@ -277,7 +290,7 @@ describe("useDMMenuState - setSessionName", () => {
   it("updates sessionName to a new value", () => {
     const { result } = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
 
-    expect(result.current.sessionName).toBe("session");
+    expect(result.current.sessionName).toBe("table-backup");
 
     act(() => {
       result.current.setSessionName("my-adventure");
@@ -569,7 +582,7 @@ describe("useDMMenuState - State Independence", () => {
 
     act(() => {
       result.current.setOpen(true);
-      result.current.setActiveTab("session");
+      result.current.setActiveTab("table");
     });
 
     const openBefore = result.current.open;
@@ -666,5 +679,87 @@ describe("useDMMenuState - Complex State Transitions", () => {
 
     rerender({ chars: [pc] });
     expect(result.current.npcs).toEqual([]);
+  });
+});
+
+describe("useDMMenuState - a request for a tab (the Table menu's 'Table settings…')", () => {
+  it("opens the menu on the requested tab when one is already waiting at mount", () => {
+    // The phone's DM screen mounts AFTER the tap that made the request.
+    requestDMMenuTab("table");
+    const { result } = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
+
+    expect(result.current.activeTab).toBe("table");
+    expect(result.current.open).toBe(true);
+  });
+
+  it("takes a request made while it is mounted, whatever tab it was on and even if closed", () => {
+    const { result } = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
+    act(() => result.current.setActiveTab("npcs"));
+    expect(result.current.open).toBe(false);
+
+    act(() => requestDMMenuTab("table"));
+
+    expect(result.current.activeTab).toBe("table");
+    expect(result.current.open).toBe(true);
+  });
+
+  it("ignores a request that nobody took in time, so a later mount does not open itself", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    requestDMMenuTab("table");
+    vi.setSystemTime(10_000 + 10_001);
+
+    const { result } = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
+
+    expect(result.current.activeTab).toBe("map");
+    expect(result.current.open).toBe(false);
+  });
+
+  it("takes each request once: a menu that mounts again (every reconnect) does not reopen itself", () => {
+    // The effect runs on mount, so only a REMOUNT can take a request twice.
+    const first = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
+    act(() => requestDMMenuTab("table"));
+    expect(first.result.current.open).toBe(true);
+    first.unmount();
+
+    const second = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
+
+    expect(second.result.current.open).toBe(false);
+    expect(second.result.current.activeTab).toBe("map");
+  });
+
+  it("stops listening once unmounted: a request made after it is left for whoever mounts next", () => {
+    const { unmount } = renderHook(() => useDMMenuState({ isDM: true, characters: [] }));
+    unmount();
+
+    act(() => requestDMMenuTab("table"));
+
+    // A subscription that outlived the menu would have taken (and spent) it.
+    expect(takeDMMenuTabRequest()).toBe("table");
+  });
+
+  it("ignores a request made while the viewer is not a DM — and it does not wait for the role to arrive", () => {
+    // Today nothing reaches this state (the menu mounts for a DM only, and Table settings…
+    // is offered to one), but the seam must not hold a role-derived decision of its own:
+    // a request taken for a non-DM would otherwise open the menu by itself at the next
+    // elevation.
+    const { result, rerender } = renderHook((props) => useDMMenuState(props), {
+      initialProps: { isDM: false, characters: [] as Character[] },
+    });
+    act(() => requestDMMenuTab("table"));
+    expect(result.current.open).toBe(false);
+    rerender({ isDM: true, characters: [] });
+    expect(result.current.open).toBe(false);
+    expect(result.current.activeTab).toBe("map");
+  });
+
+  it("discards a request that was waiting at mount for a viewer who is not a DM", () => {
+    requestDMMenuTab("table");
+    const { result, rerender } = renderHook((props) => useDMMenuState(props), {
+      initialProps: { isDM: false, characters: [] as Character[] },
+    });
+    rerender({ isDM: true, characters: [] });
+    expect(result.current.open).toBe(false);
+    expect(result.current.activeTab).toBe("map");
   });
 });

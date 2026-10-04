@@ -18,6 +18,7 @@
  */
 import { expect, test, type Page } from "../fixtures";
 import { elevateToDM } from "../helpers";
+import { DM_PASSWORD, createTable, enterDMMode } from "../table-role.helpers";
 import { joinMobileTable, undersizedControls } from "./mobile.helpers";
 import { openTouch, touchTap } from "./touch.helpers";
 
@@ -28,9 +29,14 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     await page.setViewportSize(PHONE);
     await joinMobileTable(page);
 
-    // Chat is a TAB inside the roll-log screen on a phone, not a dock slot.
-    await page.getByRole("button", { name: /^Log$/ }).click();
-    await page.getByRole("button", { name: "CHAT" }).click();
+    await page
+      .getByRole("navigation", { name: /Mobile actions/i })
+      .getByRole("button", { name: "Chat", exact: true })
+      .click();
+    await expect(page.getByRole("tab", { name: "CHAT", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     const send = page.getByRole("button", { name: "SEND" });
     await expect(send).toBeVisible();
 
@@ -59,12 +65,17 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     await page.setViewportSize(PHONE);
     await joinMobileTable(page);
 
-    await page.getByRole("button", { name: /^Log$/ }).click();
-    // The ROLLS tab first: the tab strip, CLEAR, and every roll row's controls.
+    await page
+      .getByRole("navigation", { name: /Mobile actions/i })
+      .getByRole("button", { name: "Chat", exact: true })
+      .click();
+    // Sweep the available controls on each tab, starting with Rolls.
+    await page.getByRole("tab", { name: "ROLLS", exact: true }).click();
+    await expect(page.getByText("No rolls yet...", { exact: true })).toBeVisible();
     const rolls = await undersizedControls(page, "[data-mobile-surface]");
     expect(rolls, `roll-log controls under 44px: ${rolls.join(", ")}`).toEqual([]);
 
-    await page.getByRole("button", { name: "CHAT" }).click();
+    await page.getByRole("tab", { name: "CHAT", exact: true }).click();
     const chat = await undersizedControls(page, "[data-mobile-surface]");
     expect(chat, `chat controls under 44px: ${chat.join(", ")}`).toEqual([]);
   });
@@ -84,24 +95,30 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
     const dialog = page.getByRole("dialog", { name: "DM Menu" });
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
-    // "Atlas" joined in K3: the generate panel's dials and the 🚪 button are now swept too.
+    // "World" (then "Atlas") joined in K3: the generate panel's dials and the 🚪 button are now swept too.
+    // Encounter joined in U8: its participant rows, dial links and turn buttons too.
     for (const tab of [
-      "Map Setup",
+      "Maps",
+      "Encounter",
       "NPCs & Monsters",
       "Props & Objects",
-      "Players",
-      "Session",
-      "Atlas",
+      "Table",
+      "World",
     ]) {
       await dialog.getByRole("button", { name: tab, exact: true }).click();
-      if (tab === "Atlas") {
+      if (tab === "Maps") {
+        // U6 moved map position and grid alignment under Advanced; open it so
+        // those controls are still swept, and the summary itself is measured.
+        await dialog.getByText("Advanced: map position and grid alignment").click();
+      }
+      if (tab === "World") {
         // The Atlas tab's dials only EXIST once a node does: an empty atlas
         // shows the create row and nothing else, so sweeping the tab as-is
         // would measure a panel the DM never uses. Mint a promise and open
         // its generate panel, which is where the small controls live.
-        await dialog.getByLabel("New node name").fill("Floor Sweep");
-        await dialog.getByRole("button", { name: "+ CREATE NODE" }).click();
-        const generate = dialog.getByRole("button", { name: "🎲 Generate…" });
+        await dialog.getByLabel("New location name").fill("Floor Sweep");
+        await dialog.getByRole("button", { name: "+ Create location" }).click();
+        const generate = dialog.getByRole("button", { name: "🎲 Generate map for location…" });
         await generate.scrollIntoViewIfNeeded();
         await generate.click();
         await expect(dialog.getByTestId("atlas-generate-panel")).toBeVisible();
@@ -118,6 +135,29 @@ test.describe("the panels a phone hosts clear the touch floor", () => {
         data?.sendMessage?.({ t: "atlas-delete-node", nodeId: node.id });
       }
     });
+  });
+
+  test("the Table tab of a PRIVATE table — password fields, Change and Reset — clears the floor too", async ({
+    page,
+  }) => {
+    // The sweep above runs on the public test table, whose Table tab offers Save as a Private
+    // Table where a private one has its password controls: the ones measured here are not on it.
+    test.setTimeout(120_000);
+    await page.setViewportSize(PHONE);
+    await createTable(page, "u9-floor-private", true);
+    await enterDMMode(page, DM_PASSWORD, true);
+    await page.getByRole("button", { name: /^DM$/i }).click();
+
+    const dialog = page.getByRole("dialog", { name: "DM Menu" });
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await dialog.getByRole("button", { name: "Table", exact: true }).click();
+    // Present, so that what is swept is the private table's tab and not the public one's.
+    await expect(dialog.getByPlaceholder("New table password")).toBeVisible();
+    for (const name of ["Change table password", "Reset to default"]) {
+      await expect(dialog.getByRole("button", { name })).toBeVisible();
+    }
+    const small = await undersizedControls(page, "[data-mobile-surface='dm']");
+    expect(small, `Table (private): controls under 44px — ${small.join(", ")}`).toEqual([]);
   });
 
   test("the player settings window joins the touch floor", async ({ page }) => {

@@ -1,5 +1,5 @@
 // ============================================================================
-// MESSAGE ROUTER — Save Game State's reply is a control message this build knows
+// MESSAGE ROUTER — Download table backup's reply is a control message this build knows
 // ============================================================================
 // `session-file` was never on the router's runtime control list. It rode the
 // old fallthrough, and the forward-compat guard that stopped unknown types
@@ -12,7 +12,7 @@
 // Two pins. The first routes the frame. The second reads the SOURCE and
 // demands that the three hand-lists — the router's `ControlMessage` union,
 // its runtime `isControlMessage` guard, and the config's own copy of the
-// union in websocket.ts — name the same types. The comment beside the guard
+// union in serviceTypes.ts — name the same types. The comment beside the guard
 // says "both lists change together", and prose did not make it so.
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -23,7 +23,7 @@ import { MessageRouter } from "../MessageRouter";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROUTER_SOURCE = path.join(HERE, "..", "MessageRouter.ts");
-const CONFIG_SOURCE = path.join(HERE, "..", "..", "websocket.ts");
+const CONFIG_SOURCE = path.join(HERE, "..", "serviceTypes.ts");
 // Every subscriber of registerServerEventHandler (three today, in three files):
 // each type they switch on must be a type the router admits, or the handler is
 // dead code and the feature behind it is silently broken — session-file for
@@ -65,7 +65,7 @@ function unionEndFrom(text: string, start: number): number {
 }
 
 describe("MessageRouter — session-file", () => {
-  it("delivers the Save Game State reply to the control handler", () => {
+  it("delivers the table backup's reply to the control handler", () => {
     const onControlMessage = vi.fn();
     const router = new MessageRouter({ onMessage: vi.fn(), onControlMessage });
     const frame = {

@@ -22,7 +22,11 @@ function renderTab(overrides: Partial<React.ComponentProps<typeof NPCsTab>> = {}
     onSetNPCSpeed: vi.fn(),
     onResetNPCBudget: vi.fn(),
     onPlaceNPCToken: vi.fn(),
+    onSetNPCStatusEffects: vi.fn(),
+    onFocusNPCToken: vi.fn(),
+    mapTokenIds: new Set<string>(),
     onDeleteNPC: vi.fn(),
+    onOpenEncounter: vi.fn(),
     ...overrides,
   };
   render(<NPCsTab {...props} />);

@@ -18,9 +18,11 @@ import type {
 } from "@herobyte/shared";
 import { JRPGButton } from "../../components/ui/JRPGPanel";
 import type { MapStudioController } from "../map-studio";
+import { tableSceneFate } from "../map-studio/tableMapIdentity";
 import { atlasTreeRows } from "./atlasTree";
 import { AtlasLinkPlacer } from "./AtlasLinkPlacer";
 import { AtlasNodeRow } from "./AtlasNodeRow";
+import { travelPrompt } from "./travelPrompt";
 import { useAtlasActions } from "./useAtlasActions";
 import type { PendingLink } from "./useAtlasLinkAim";
 
@@ -44,6 +46,10 @@ export interface AtlasTabProps {
   onArmLinkAim?: (pending: PendingLink) => void;
   /** The kicked-in door (K2): opens the kick panel — discoverability for a DM who does not know G. */
   onOpenKick?: () => void;
+  /** The table now, so Travel here can say what becomes of its scene. */
+  liveSceneDocumentId?: string;
+  hasCompiledScene?: boolean;
+  hasBackground?: boolean;
 }
 
 export function AtlasTab({
@@ -55,6 +61,9 @@ export function AtlasTab({
   linkAimActive,
   onArmLinkAim,
   onOpenKick,
+  liveSceneDocumentId,
+  hasCompiledScene = false,
+  hasBackground = false,
 }: AtlasTabProps) {
   const actions = useAtlasActions(onAtlasMessage);
   const [newName, setNewName] = useState("");
@@ -72,20 +81,43 @@ export function AtlasTab({
   const rows = atlasTreeRows(atlasNodes);
   // Placement starts from the CURRENT node — the map the DM can see and click.
   const currentNode = atlasNodes.find((node) => node.id === currentAtlasNodeId);
+  const documents = mapStudio?.documents ?? [];
+  const fate = tableSceneFate({
+    sceneDocumentId: liveSceneDocumentId,
+    missingDocumentId: mapStudio?.missingDocumentId,
+    documents,
+    listed: mapStudio?.listed,
+  });
+  const partyAt =
+    currentNode?.name ??
+    (!atlasNodes.length
+      ? "no location yet"
+      : hasCompiledScene
+        ? "a map that is not a World location"
+        : hasBackground
+          ? "a background image (not a World location)"
+          : "no map on the table yet");
 
   return (
     <div>
+      <p className="jrpg-text-small" style={{ margin: "0 0 4px" }}>
+        Campaign locations and their linked maps. Players see only discovered locations; Travel here
+        moves the whole table.
+      </p>
+      <p className="jrpg-text-small" style={{ margin: "0 0 10px" }}>
+        Party is at: <strong>{partyAt}</strong>
+      </p>
       <div style={{ display: "flex", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
         <input
-          aria-label="New node name"
-          placeholder="New node name"
+          aria-label="New location name"
+          placeholder="New location name"
           value={newName}
           maxLength={64}
           onChange={(event) => setNewName(event.target.value)}
           style={{ fontSize: "11px", width: "150px" }}
         />
         <select
-          aria-label="New node kind"
+          aria-label="New location kind"
           value={newKind}
           onChange={(event) => setNewKind(event.target.value as AtlasNodeKind)}
           style={{ fontSize: "10px" }}
@@ -105,7 +137,7 @@ export function AtlasTab({
           }}
           style={{ fontSize: "10px" }}
         >
-          + CREATE NODE
+          + Create location
         </JRPGButton>
         {onOpenKick && (
           <JRPGButton onClick={onOpenKick} title="Kick in a door (G)" style={{ fontSize: "10px" }}>
@@ -127,18 +159,19 @@ export function AtlasTab({
 
       {rows.length === 0 ? (
         <p style={{ fontSize: "11px", opacity: 0.8 }}>
-          Nothing lies within… yet. Create a node, or link one of your maps — the campaign becomes a
-          tree the party can travel.
+          Nothing lies within… yet. Create a location, then link a saved map to it or generate one —
+          the campaign becomes a tree the party can travel.
         </p>
       ) : (
-        <ul aria-label="Campaign atlas" style={{ margin: 0, padding: 0 }}>
+        <ul aria-label="Campaign locations" style={{ margin: 0, padding: 0 }}>
           {rows.map(({ node, depth }) => (
             <AtlasNodeRow
               key={node.id}
               node={node}
               depth={depth}
               isCurrent={node.id === currentAtlasNodeId}
-              documents={mapStudio?.documents ?? []}
+              documents={documents}
+              travelPrompt={(name) => travelPrompt(name, fate, hasBackground)}
               actions={actions}
             />
           ))}

@@ -28,42 +28,9 @@
  * - messageQueue property (line 77)
  */
 
+import type { MessageQueueManagerConfig } from "./MessageQueueManagerConfig";
+export type { MessageQueueManagerConfig } from "./MessageQueueManagerConfig";
 import type { ClientMessage } from "@herobyte/shared";
-
-/**
- * Configuration for MessageQueueManager
- */
-export interface MessageQueueManagerConfig {
-  /**
-   * Maximum number of messages to queue before dropping oldest
-   * Default: 200
-   */
-  maxQueueSize?: number;
-  /**
-   * Optional hook invoked when the queue overflows and a message is dropped
-   */
-  onQueueOverflow?: (message: ClientMessage, queueLength: number) => void;
-
-  /**
-   * Maximum number of resend attempts before giving up (default: 3)
-   */
-  maxRetries?: number;
-
-  /**
-   * Base delay in milliseconds for retry backoff (default: 500ms)
-   */
-  retryBackoffMs?: number;
-
-  /**
-   * Callback invoked when a retry should be dispatched
-   */
-  onRetryDispatch?: (message: ClientMessage) => void;
-
-  /**
-   * Callback invoked when a command exceeds retry attempts
-   */
-  onRetryExhausted?: (message: ClientMessage) => void;
-}
 
 /**
  * MessageQueueManager
@@ -93,6 +60,7 @@ export interface MessageQueueManagerConfig {
  */
 export class MessageQueueManager {
   private messageQueue: ClientMessage[] = [];
+  private onBeforeSend?: (message: ClientMessage) => void;
   private readonly maxQueueSize: number;
   private readonly onQueueOverflow?: (message: ClientMessage, queueLength: number) => void;
   private readonly maxRetries: number;
@@ -142,6 +110,7 @@ export class MessageQueueManager {
   >();
 
   constructor(config: MessageQueueManagerConfig = {}) {
+    this.onBeforeSend = config.onBeforeSend;
     this.maxQueueSize = config.maxQueueSize ?? 200;
     this.onQueueOverflow = config.onQueueOverflow;
     this.maxRetries = config.maxRetries ?? 3;
@@ -284,7 +253,17 @@ export class MessageQueueManager {
         console.warn(
           `[WebSocket] Queue overflow (max=${this.maxQueueSize}) dropping oldest message type=${dropped.t}`,
         );
+        if (dropped.t === "map-studio-generate") {
+          this.retireGeneration(dropped.documentId, dropped.commandId);
+        }
         this.onQueueOverflow?.(dropped, this.messageQueue.length);
+        if (
+          dropped.t === "map-studio-generate" &&
+          message.t === "map-studio-generate" &&
+          message.commandId === dropped.commandId &&
+          message.documentId === dropped.documentId
+        )
+          return;
       }
     }
     this.messageQueue.push(message);
@@ -315,6 +294,7 @@ export class MessageQueueManager {
 
     try {
       console.log(`[WebSocket] sendRaw() - Sending message type=${message.t} over wire`);
+      this.onBeforeSend?.(message);
       ws.send(JSON.stringify(message));
       this.registerInFlight(message);
     } catch (error) {
@@ -337,8 +317,10 @@ export class MessageQueueManager {
     this.pendingRetries.clear();
   }
 
-  handleCommandResult(commandId: string): void {
+  handleCommandResult(commandId: string, receiptOnly = false): ClientMessage | undefined {
     const entry = this.pendingRetries.get(commandId);
+    // Receipt alone cannot resolve Generate; keep its bounded same-ID replay alive.
+    if (receiptOnly && entry?.message.t === "map-studio-generate") return;
     if (!entry) {
       return;
     }
@@ -346,6 +328,24 @@ export class MessageQueueManager {
       clearTimeout(entry.timerId);
     }
     this.pendingRetries.delete(commandId);
+    return entry.message;
+  }
+
+  /** Stop only this Generate's existing retries before exposing its terminal reply. */
+  retireGeneration(documentId: string, commandId: string): ClientMessage | undefined {
+    const matches = (message: ClientMessage) =>
+      message.t === "map-studio-generate" &&
+      message.documentId === documentId &&
+      message.commandId === commandId;
+    const pending = this.pendingRetries.get(commandId)?.message;
+    let retired = pending && matches(pending) ? pending : undefined;
+    if (retired) this.handleCommandResult(commandId);
+    this.messageQueue = this.messageQueue.filter((message) => {
+      if (!matches(message)) return true;
+      retired = message;
+      return false;
+    });
+    return retired;
   }
 
   private registerInFlight(message: ClientMessage): void {

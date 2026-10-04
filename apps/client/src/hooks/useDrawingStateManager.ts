@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-import type { ClientMessage, DrawTool } from "@herobyte/shared";
+import type { ClientMessage, DrawTool, DrawingHistoryCapabilities } from "@herobyte/shared";
 import type { ToolMode } from "../components/layout/Header";
 import { useDrawingState } from "./useDrawingState";
 
@@ -28,10 +28,12 @@ export interface UseDrawingStateManagerOptions {
   sendMessage: (message: ClientMessage) => void;
 
   /**
-   * Whether draw mode is currently active
-   * Controls toolbar visibility and keyboard shortcut availability
+   * Retained for existing callers; the layout owns draw-mode visibility.
    */
-  drawMode: boolean;
+  drawMode?: boolean;
+
+  /** Last server-projected capabilities for this connection's own UID. */
+  drawingHistory?: DrawingHistoryCapabilities;
 
   /**
    * Function to change the active tool mode
@@ -42,10 +44,8 @@ export interface UseDrawingStateManagerOptions {
   /**
    * Whether this client may clear all drawings — i.e. whether it is the DM.
    *
-   * `clear-drawings` is DM-only server-side (DrawingMessageHandler rejects
-   * non-DMs), so without this the Clear All button was a control that did
-   * nothing visible while still destroying the clicking player's own local
-   * undo history. Defaults to false: no capability unless proven.
+   * The server rejects `clear-drawings` from non-DMs. Defaults to false:
+   * only a confirmed capability exposes and dispatches table-wide clearing.
    */
   canClearDrawings?: boolean;
 }
@@ -71,6 +71,7 @@ export interface UseDrawingStateManagerReturn {
     drawFilled: boolean;
     canUndo: boolean;
     canRedo: boolean;
+    canClearAll?: boolean;
     onToolChange: (tool: DrawTool) => void;
     onColorChange: (color: string) => void;
     onWidthChange: (width: number) => void;
@@ -96,29 +97,29 @@ export interface UseDrawingStateManagerReturn {
 
   /**
    * Handle undo operation (keyboard shortcut or toolbar button)
-   * Sends network message and updates local history
+   * Sends only when the last server snapshot confirms availability
    */
   handleUndo: () => void;
 
   /**
    * Handle redo operation (keyboard shortcut or toolbar button)
-   * Sends network message and updates local history
+   * Sends only when the last server snapshot confirms availability
    */
   handleRedo: () => void;
 
   /**
    * Clear all drawings
-   * Sends network message and clears local history
+   * Sends a confirmed DM request; availability changes with the server snapshot
    */
   handleClearDrawings: () => void;
 
   /**
-   * Whether undo is available (history has items)
+   * Whether the last server snapshot confirms an applicable undo
    */
   canUndo: boolean;
 
   /**
-   * Whether redo is available (redo history has items)
+   * Whether the last server snapshot confirms an applicable redo
    */
   canRedo: boolean;
 }
@@ -128,7 +129,7 @@ export interface UseDrawingStateManagerReturn {
  *
  * This hook coordinates:
  * - Drawing tool state (tool type, color, width, opacity, fill)
- * - Drawing history (undo/redo stacks)
+ * - Per-recipient drawing history availability from the server
  * - Toolbar rendering (conditionally based on drawMode)
  * - Keyboard shortcuts (undo/redo)
  * - Network synchronization (sending drawing commands to server)
@@ -137,7 +138,7 @@ export interface UseDrawingStateManagerReturn {
  * ```tsx
  * const drawingManager = useDrawingStateManager({
  *   sendMessage,
- *   drawMode: activeTool === 'draw',
+ *   drawingHistory: snapshot?.drawingHistory,
  *   setActiveTool,
  * });
  *
@@ -155,7 +156,7 @@ export interface UseDrawingStateManagerReturn {
  */
 export function useDrawingStateManager({
   sendMessage,
-  drawMode: _drawMode,
+  drawingHistory,
   setActiveTool,
   canClearDrawings = false,
 }: UseDrawingStateManagerOptions): UseDrawingStateManagerReturn {
@@ -166,42 +167,44 @@ export function useDrawingStateManager({
     drawWidth,
     drawOpacity,
     drawFilled,
-    canUndo,
-    canRedo,
     setDrawTool,
     setDrawColor,
     setDrawWidth,
     setDrawOpacity,
     setDrawFilled,
-    addToHistory,
-    popFromHistory,
-    popFromRedoHistory,
-    clearHistory,
   } = useDrawingState();
+  const canUndo = drawingHistory?.canUndo ?? false;
+  const canRedo = drawingHistory?.canRedo ?? false;
+
+  // Preserve the MapBoard callback contract. A completed local send is not a
+  // server acknowledgment and cannot enable Undo or discard confirmed Redo.
+  const onDrawingComplete = useCallback((_id: string): void => {
+    // Availability comes only from the next authoritative snapshot.
+  }, []);
 
   /**
    * Handle undo operation
-   * Pops from history and sends network message
+   * Uses confirmed capability without an optimistic pop or pending latch
    * Called by keyboard shortcut (Ctrl+Z) or toolbar button
    */
   const handleUndo = useCallback(() => {
-    popFromHistory();
+    if (!canUndo) return;
     sendMessage({ t: "undo-drawing" });
-  }, [popFromHistory, sendMessage]);
+  }, [canUndo, sendMessage]);
 
   /**
    * Handle redo operation
-   * Pops from redo history and sends network message
+   * Uses confirmed capability even when no drawing is currently visible
    * Called by keyboard shortcut (Ctrl+Y) or toolbar button
    */
   const handleRedo = useCallback(() => {
-    popFromRedoHistory();
+    if (!canRedo) return;
     sendMessage({ t: "redo-drawing" });
-  }, [popFromRedoHistory, sendMessage]);
+  }, [canRedo, sendMessage]);
 
   /**
    * Clear all drawings
-   * Clears local history and sends network message
+   * Sends network message; the server snapshot supplies the resulting availability
    * Called by toolbar "Clear All" button or DM menu
    */
   /**
@@ -216,14 +219,12 @@ export function useDrawingStateManager({
    * left to undo from. Hence a confirm rather than a trust-the-undo-stack.
    */
   const handleClearDrawings = useCallback(() => {
-    // A non-DM's clear is rejected server-side; don't destroy their local
-    // history for a call that will not apply.
+    // A non-DM's clear is rejected server-side; require the existing capability.
     if (!canClearDrawings) return;
     if (!window.confirm("Clear all drawings from the map? This cannot be undone.")) return;
 
-    clearHistory();
     sendMessage({ t: "clear-drawings" });
-  }, [canClearDrawings, clearHistory, sendMessage]);
+  }, [canClearDrawings, sendMessage]);
 
   /**
    * Callback to close the toolbar
@@ -246,6 +247,7 @@ export function useDrawingStateManager({
       drawFilled,
       canUndo,
       canRedo,
+      canClearAll: canClearDrawings,
       onToolChange: setDrawTool,
       onColorChange: setDrawColor,
       onWidthChange: setDrawWidth,
@@ -264,6 +266,7 @@ export function useDrawingStateManager({
       drawFilled,
       canUndo,
       canRedo,
+      canClearDrawings,
       setDrawTool,
       setDrawColor,
       setDrawWidth,
@@ -287,9 +290,9 @@ export function useDrawingStateManager({
       drawWidth,
       drawOpacity,
       drawFilled,
-      onDrawingComplete: addToHistory,
+      onDrawingComplete,
     }),
-    [drawTool, drawColor, drawWidth, drawOpacity, drawFilled, addToHistory],
+    [drawTool, drawColor, drawWidth, drawOpacity, drawFilled, onDrawingComplete],
   );
 
   return {

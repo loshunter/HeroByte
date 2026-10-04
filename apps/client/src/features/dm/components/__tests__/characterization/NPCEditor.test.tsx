@@ -29,6 +29,7 @@ describe("NPCEditor - Characterization Tests", () => {
     onPlace: vi.fn(),
     onDuplicate: vi.fn(),
     onDelete: vi.fn(),
+    onStatusEffectsChange: vi.fn(),
   });
 
   describe("Initial Rendering", () => {
@@ -414,7 +415,10 @@ describe("NPCEditor - Characterization Tests", () => {
       });
     });
 
-    it("should set token image to undefined when URL is empty or whitespace", async () => {
+    it('should CLEAR the token image (send "") when URL is emptied to whitespace', async () => {
+      // It sent undefined, which useNpcUpdate's merge refilled with the art on
+      // file: the clear silently kept the old image. "" is what the server
+      // stores as no art (NPCEditor.tokenImageClear.test.tsx).
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
@@ -428,7 +432,7 @@ describe("NPCEditor - Characterization Tests", () => {
           hp: 10,
           maxHp: 15,
           portrait: "https://example.com/goblin-portrait.jpg",
-          tokenImage: undefined,
+          tokenImage: "",
           initiativeModifier: 0,
         });
       });

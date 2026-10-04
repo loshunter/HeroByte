@@ -5,12 +5,15 @@
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { KICK_NEEDS_LIVE_MAP, KickPanel } from "../KickPanel";
+import { KICK_NEEDS_LIVE_MAP } from "../KickPanel";
+import { ControlledKickPanel as KickPanel } from "./controlledKickPanel.fixtures";
 import type { KickControls } from "../useKickedInDoor";
 
 function controls(overrides: Partial<KickControls> = {}): KickControls {
   return {
     open: true,
+    draft: null,
+    updateDraft: vi.fn(),
     openKick: vi.fn(),
     closeKick: vi.fn(),
     kick: vi.fn(),
@@ -53,7 +56,9 @@ describe("KickPanel", () => {
   it("says what the feature DOES under the name that says what it is", () => {
     // The name is the identity; the subtitle is for a DM meeting it cold.
     render(<KickPanel kick={controls()} atlasNodes={[]} />);
-    expect(screen.getByText("Generate a connected location")).toBeInTheDocument();
+    expect(
+      screen.getByText("Creates a connected location and moves the whole table there."),
+    ).toBeInTheDocument();
   });
 
   it("offers a phone a numeric keypad for the seed", () => {
@@ -74,7 +79,7 @@ describe("KickPanel", () => {
     expect(screen.getByLabelText("Size")).toHaveValue("large");
     expect(screen.getByLabelText("Door type")).toHaveValue("stair");
     expect(screen.getByLabelText("Seed")).toHaveAttribute("inputmode", "numeric");
-    expect(screen.getByRole("button", { name: "🚪 ROLL" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "🚪 Generate & enter" })).toBeEnabled();
   });
 
   it("Enter rolls ONCE with the name as typed (the hook trims), the dials and the seed", () => {
@@ -122,7 +127,7 @@ describe("KickPanel", () => {
     // turns into a replay with the same ids.
     const expired = controls({ pending: { ...pending, expired: true } });
     rerender(<KickPanel kick={expired} atlasNodes={[]} />);
-    const roll = screen.getByRole("button", { name: "🚪 ROLL" });
+    const roll = screen.getByRole("button", { name: "🚪 Generate & enter" });
     expect(roll).toBeEnabled();
     fireEvent.click(roll);
     expect(expired.kick).toHaveBeenCalledTimes(1);
@@ -131,7 +136,7 @@ describe("KickPanel", () => {
   it("with nothing compiled on the table, ROLL is disabled and the panel says why", () => {
     const kick = controls({ canKick: false });
     render(<KickPanel kick={kick} atlasNodes={[]} />);
-    expect(screen.getByRole("button", { name: "🚪 ROLL" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "🚪 Generate & enter" })).toBeDisabled();
     expect(screen.getByTestId("kick-needs-live-map")).toHaveTextContent(KICK_NEEDS_LIVE_MAP);
     fireEvent.submit(screen.getByRole("dialog", { name: "Kick in a door" }));
     expect(kick.kick).not.toHaveBeenCalled();
@@ -141,7 +146,7 @@ describe("KickPanel", () => {
     const kick = controls();
     render(<KickPanel kick={kick} atlasNodes={[]} />);
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "   " } });
-    expect(screen.getByRole("button", { name: "🚪 ROLL" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "🚪 Generate & enter" })).toBeDisabled();
   });
 
   it("the bare presentation drops the frame AND the dialog role — its host is already one", () => {

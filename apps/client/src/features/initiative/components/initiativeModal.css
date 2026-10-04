@@ -1,0 +1,10 @@
+/* The initiative dialog's explanatory lines (U8): readable body type, not the
+   pixel font — they say what a press will do before it is pressed. */
+.initiative-modal__note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--jrpg-white);
+  opacity: 0.85;
+}

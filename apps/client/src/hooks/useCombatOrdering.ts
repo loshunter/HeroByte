@@ -118,6 +118,9 @@ export function useCombatOrdering({
         kind: "npc" as const,
         id: character.id,
         character,
+        // Only while it is on the map: NPC tokens are scene-local, and on
+        // another scene the link survives while the token waits with it.
+        token: character.tokenId ? tokens.find((t) => t.id === character.tokenId) : undefined,
         isMe: false,
         isFirstDM: false,
         isCurrentTurn: combatActive && currentTurnCharacterId === character.id,

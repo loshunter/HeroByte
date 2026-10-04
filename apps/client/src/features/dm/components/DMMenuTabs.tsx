@@ -1,13 +1,17 @@
+import { useEffect, useRef } from "react";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { DMMenuTab } from "../hooks/useDMMenuState";
 
 const DM_MENU_TABS: Array<{ tab: DMMenuTab; label: string }> = [
-  { tab: "map", label: "Map Setup" },
-  { tab: "atlas", label: "Atlas" },
+  { tab: "map", label: "Maps" },
+  { tab: "atlas", label: "World" },
+  // U8: the one combat home (plan §2.1 — DM tools → Encounter).
+  { tab: "encounter", label: "Encounter" },
   { tab: "npcs", label: "NPCs & Monsters" },
   { tab: "props", label: "Props & Objects" },
-  { tab: "players", label: "Players" },
-  { tab: "session", label: "Session" },
+  // U9: invites, the roster, permissions, backups and security — what the
+  // Players and Session tabs held, under the word the plan gives the table.
+  { tab: "table", label: "Table" },
 ];
 
 interface DMMenuTabsProps {
@@ -19,11 +23,29 @@ interface DMMenuTabsProps {
    * Desktop keeps the wrap — a 400px window fits it and always has.
    */
   scrollable?: boolean;
+  /**
+   * Changes to a nonzero value when something ("Table settings…") sent the person
+   * here: the active tab takes focus, on mount and again on each later request.
+   */
+  focusRequest?: number;
 }
 
-export function DMMenuTabs({ activeTab, onTabChange, scrollable = false }: DMMenuTabsProps) {
+export function DMMenuTabs({
+  activeTab,
+  onTabChange,
+  scrollable = false,
+  focusRequest = 0,
+}: DMMenuTabsProps) {
+  const stripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusRequest > 0) {
+      stripRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+    }
+  }, [focusRequest]);
+
   return (
     <div
+      ref={stripRef}
       style={
         scrollable
           ? {
@@ -42,6 +64,7 @@ export function DMMenuTabs({ activeTab, onTabChange, scrollable = false }: DMMen
           key={tab}
           onClick={() => onTabChange(tab)}
           variant={activeTab === tab ? "primary" : "default"}
+          aria-pressed={activeTab === tab}
           style={
             scrollable ? { minHeight: "44px", whiteSpace: "nowrap", flex: "0 0 auto" } : undefined
           }

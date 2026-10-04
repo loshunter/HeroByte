@@ -16,6 +16,8 @@
 // entry chunk and is free to use.
 
 import React from "react";
+import { TerrainBrushSizeControl } from "../TerrainBrushSizeControl";
+import { AmbientLightControl } from "../AmbientLightControl";
 import { MAP_STUDIO_TILE_ASSETS } from "../../map-studio/starterTiles";
 import { PAINT_FAMILIES, WALL_FAMILIES } from "../mapEditFamilies";
 import type { TouchTool } from "../mapEditToolKinds";
@@ -41,22 +43,8 @@ export type SheetPanelTool = TouchTool | "select" | "eyedropper";
  *
  * The pattern across all of them: a tool that takes an ARGUMENT keeps the sheet
  * open so the DM can set it, and a tool that takes none closes it and puts them
- * on the map. Paint needs a family, Place and Scatter need an asset; Erase and
- * Light need nothing, which is the whole difference. */
-export const PANEL_TOOLS: ReadonlySet<SheetPanelTool> = new Set<SheetPanelTool>([
-  "terrain",
-  "room",
-  "hallway",
-  "place",
-  "scatter",
-  "row",
-  "spline",
-  "generate",
-  "select",
-  // "eyedropper" is deliberately absent: it takes no argument, so the sheet
-  // closes and puts the DM on the map — and it hands over to Place after one
-  // sample, so a panel would be showing for a tool already gone.
-]);
+ * on the map. Paint and Erase need a size; Paint also needs a material. */
+export { MOBILE_PANEL_TOOLS as PANEL_TOOLS } from "../mapEditToolDescriptors";
 
 const HALLWAY_WIDTHS = [1, 2, 3, 4] as const;
 
@@ -98,6 +86,8 @@ const ROW_ASSETS = MAP_STUDIO_TILE_ASSETS.filter((asset) => asset.category === "
 );
 
 export function MobileMapEditToolPanels(props: MapEditToolbarProps): JSX.Element | null {
+  if (props.activeSubTool === "light")
+    return <AmbientLightControl key={props.documentId} {...props} />;
   // Generate takes the whole bag: it reads eight fields, and listing them here
   // to forward them one by one is how a forwarding prop goes missing.
   if (props.activeSubTool === "generate") return <MobileGeneratePanel {...props} />;
@@ -154,6 +144,8 @@ function ToolDials({
   onSelectRoomWallFamily,
   hallwayWidth,
   onSelectHallwayWidth,
+  terrainBrushSize,
+  onSelectTerrainBrushSize,
   splineKind,
   onSelectSplineKind,
   selectedAssetId,
@@ -169,9 +161,16 @@ function ToolDials({
   // A separate mobile-only brush family would be a second source of truth for
   // "what colour am I painting", and the two would disagree the first time a
   // DM armed Room after painting.
-  if (activeSubTool === "terrain") {
+  if (activeSubTool === "terrain" || activeSubTool === "erase") {
     return (
-      <MobileFloorPicker label="Paint" selected={floorFamily} onSelect={onSelectFloorFamily} />
+      <>
+        <div className="mobile-tool-sheet__section">
+          <TerrainBrushSizeControl size={terrainBrushSize} onChange={onSelectTerrainBrushSize} />
+        </div>
+        {activeSubTool === "terrain" && (
+          <MobileFloorPicker label="Paint" selected={floorFamily} onSelect={onSelectFloorFamily} />
+        )}
+      </>
     );
   }
 
@@ -200,7 +199,7 @@ function ToolDials({
   if (activeSubTool === "spline") {
     return (
       <MobileSwatchRow
-        label="Curve"
+        label="Rope / curve style"
         options={SPLINE_KINDS}
         selected={splineKind}
         onSelect={onSelectSplineKind}

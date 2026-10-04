@@ -7,11 +7,8 @@
  * routing mouse/pointer events to the appropriate handlers based on active
  * tool modes (alignment, selection, pointer, measure, draw, transform).
  *
- * Event Routing Strategy:
- * - onStageClick: Routes to alignment → select → pointer/measure/draw → default
- * - onMouseDown: Enables/disables camera panning, delegates to all handlers
- * - onMouseMove: Always delegates to all movement handlers
- * - onMouseUp: Delegates to camera/draw, conditionally to marquee
+ * Clicks route by tool priority; movement fans out to self-gated handlers.
+ * Mouse authoring starts/ends on primary only; the camera receives all buttons.
  *
  * Extracted from: MapBoard.tsx lines 268-391
  *
@@ -145,8 +142,8 @@ export function useStageEventRouter({
         return;
       }
 
-      // Priority 1.5: One-shot atlas-link aim — the capture disarms it, so a
-      // tap's duplicate compat click falls through to the priorities below.
+      // Priority 1.5: One-shot atlas-link aim. Touch start claims the native
+      // mouse stream so disarming cannot hand the same gesture to scenery.
       if (linkAimMode) {
         handleLinkAimClick();
         return;
@@ -210,8 +207,9 @@ export function useStageEventRouter({
   /** Unified mouse down handler (delegates to camera/draw/marquee) */
   const onMouseDown = useCallback(
     (event: KonvaEventObject<PointerEvent>) => {
-      // Delegate to all handlers (each self-gates on its own mode)
+      // Preserve middle-button panning, but secondary buttons never author.
       handleCameraMouseDown(event, stageRef, shouldPan);
+      if (event.evt.button !== 0) return;
       handleDrawMouseDown(stageRef);
       handleMapEditMouseDown(stageRef);
       handleMarqueePointerDown(event);
@@ -243,21 +241,25 @@ export function useStageEventRouter({
   ]);
 
   /** Unified mouse up handler (finalizes operations) */
-  const onMouseUp = useCallback(() => {
-    handleCameraMouseUp();
-    handleDrawMouseUp();
-    handleMapEditMouseUp();
+  const onMouseUp = useCallback(
+    (event?: KonvaEventObject<MouseEvent | PointerEvent>) => {
+      handleCameraMouseUp();
+      if (event && event.evt.button !== 0) return;
+      handleDrawMouseUp();
+      handleMapEditMouseUp();
 
-    if (isMarqueeActive) {
-      handleMarqueePointerUp();
-    }
-  }, [
-    handleCameraMouseUp,
-    handleDrawMouseUp,
-    handleMapEditMouseUp,
-    handleMarqueePointerUp,
-    isMarqueeActive,
-  ]);
+      if (isMarqueeActive) {
+        handleMarqueePointerUp();
+      }
+    },
+    [
+      handleCameraMouseUp,
+      handleDrawMouseUp,
+      handleMapEditMouseUp,
+      handleMarqueePointerUp,
+      isMarqueeActive,
+    ],
+  );
 
   /**
    * Touch does NOT fan out to every tool the way the mouse path above does —
@@ -293,7 +295,11 @@ export function useStageEventRouter({
   // lift is guarded (useAimTouchGuard in MapBoard) — the mobile lens's L3.
   const touchShouldPan = shouldPan || linkAimMode;
 
-  const { onTouchStart, onTouchMove, onTouchEnd } = useTouchGestureRouter({
+  const {
+    onTouchStart: routeTouchStart,
+    onTouchMove,
+    onTouchEnd,
+  } = useTouchGestureRouter({
     tool: armedTouchTool,
     shouldPan: touchShouldPan,
     stageRef,
@@ -301,6 +307,17 @@ export function useStageEventRouter({
     onCameraMove: handleTouchMove,
     onCameraEnd: handleTouchEnd,
   });
+
+  const onTouchStart = useCallback(
+    (event: KonvaEventObject<TouchEvent>) => {
+      // Aim has no drag tool to claim this touch. Suppress its compatibility
+      // mouse pair before capture disarms and makes the underlying door listen.
+      // Camera gestures still receive every event through the existing router.
+      if (linkAimMode && event.evt.cancelable) event.evt.preventDefault();
+      routeTouchStart(event);
+    },
+    [linkAimMode, routeTouchStart],
+  );
 
   return {
     onStageClick,

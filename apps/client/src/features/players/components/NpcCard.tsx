@@ -16,6 +16,9 @@ import { NpcNameEditor } from "./NpcNameEditor";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import { npcDispositionLook } from "./npcDisposition";
+import { tempHpEdit, tokenImageEdit } from "../npcUpdate";
+import { npcSettingsProps, npcVisibilityProps } from "./npcButtonNames";
+import { useRoleKnown } from "../../table/roleKnown";
 
 interface NpcCardProps {
   character: SnapshotCharacter;
@@ -49,6 +52,8 @@ interface NpcCardProps {
   onToggleVisibility?: (id: string, visible: boolean) => void;
   onClearInitiative?: () => void;
   isCurrentTurn?: boolean;
+  /** DM-only: set THIS NPC's conditions (the settings window's picker). */
+  onStatusEffectsChange?: (effects: string[]) => void;
 }
 
 export function NpcCard({
@@ -70,6 +75,7 @@ export function NpcCard({
   onToggleVisibility,
   onClearInitiative,
   isCurrentTurn = false,
+  onStatusEffectsChange,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));
@@ -78,15 +84,24 @@ export function NpcCard({
   const [editingTempHp, setEditingTempHp] = useState(false);
   const [tempHpInput, setTempHpInput] = useState(String(character.tempHp ?? 0));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // The DM's editors close on losing DM rights and stay closed when it returns.
+  // A reconnect blip reads not-DM too; it waits for the roster to say so.
+  const roleKnown = useRoleKnown();
+  useEffect(() => {
+    if (isDM || !roleKnown) return;
+    for (const close of [setSettingsOpen, setEditingHp, setEditingMaxHp, setEditingTempHp]) {
+      close(false);
+    }
+  }, [isDM, roleKnown]);
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
   const [portraitInput, setPortraitInput] = useState(character.portrait ?? "");
   const { feedback, flashClass } = useHpFeedback(character.hp);
   // Absent = hostile: an NPC made before stances existed looks exactly as it did.
   const look = npcDispositionLook(character.disposition);
 
-  useEffect(() => {
-    setTokenImageInput(character.tokenImage ?? "");
-  }, [character.tokenImage]);
+  // Art buffers re-fill on the server's VALUE; seeded once, a blur re-sent a stale URL.
+  useEffect(() => setTokenImageInput(character.tokenImage ?? ""), [character.tokenImage]);
+  useEffect(() => setPortraitInput(character.portrait ?? ""), [character.portrait]);
 
   const handleHpChange = useCallback(
     (nextHp: number) => {
@@ -101,7 +116,6 @@ export function NpcCard({
       // DM cards always carry exact numbers (redaction is player-only).
       const parsedHp = parseHPInput(value, 0);
       const parsedMaxHp = character.maxHp ?? 1;
-
       // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
       const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
 
@@ -116,7 +130,6 @@ export function NpcCard({
       if (!isDM) return;
       const parsedMaxHp = parseMaxHPInput(value, 1);
       const parsedHp = character.hp ?? 0;
-
       // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
       const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
 
@@ -129,11 +142,10 @@ export function NpcCard({
   const handleTempHpSubmit = useCallback(
     (value: string) => {
       if (!isDM) return;
-      const parsedTempHp = parseHPInput(value, 0);
-      onUpdate?.(character.id, { tempHp: parsedTempHp > 0 ? parsedTempHp : undefined });
+      onUpdate?.(character.id, { tempHp: tempHpEdit(parseHPInput(value, 0), character.tempHp) });
       setEditingTempHp(false);
     },
-    [isDM, character.id, onUpdate],
+    [isDM, character.id, character.tempHp, onUpdate],
   );
 
   const handlePortraitApply = useCallback(
@@ -149,10 +161,9 @@ export function NpcCard({
   const handleTokenImageApply = useCallback(
     (value: string) => {
       if (!isDM) return;
-      const trimmed = value.trim();
-      onUpdate?.(character.id, { tokenImage: trimmed.length > 0 ? trimmed : undefined });
+      onUpdate?.(character.id, { tokenImage: tokenImageEdit(value, character.tokenImage) });
     },
-    [isDM, character.id, onUpdate],
+    [isDM, character.id, character.tokenImage, onUpdate],
   );
 
   const handleSettingsToggle = () => {
@@ -284,31 +295,28 @@ export function NpcCard({
               const newVisibility = character.visibleToPlayers === false;
               onToggleVisibility(character.id, newVisibility);
             }}
-            title={
-              character.visibleToPlayers === false
-                ? "Hidden from players (click to show)"
-                : "Visible to players (click to hide)"
-            }
+            {...npcVisibilityProps(character)}
           >
             {character.visibleToPlayers === false ? "👁️‍🗨️" : "👁️"}
           </button>
         )}
-        <button
-          className="btn btn-secondary"
-          style={{
-            fontSize: "var(--player-card-control-font-size, 0.7rem)",
-            padding: "var(--player-card-control-padding, 4px 8px)",
-          }}
-          onClick={handleSettingsToggle}
-          disabled={!canEdit}
-          title="NPC settings"
-        >
-          ⚙️
-        </button>
+        {canEdit && (
+          <button
+            className="btn btn-secondary"
+            style={{
+              fontSize: "var(--player-card-control-font-size, 0.7rem)",
+              padding: "var(--player-card-control-padding, 4px 8px)",
+            }}
+            onClick={handleSettingsToggle}
+            {...npcSettingsProps(character)}
+          >
+            ⚙️
+          </button>
+        )}
       </div>
 
       <NpcSettingsMenu
-        isOpen={canEdit && settingsOpen}
+        isOpen={(canEdit || !roleKnown) && settingsOpen}
         onClose={() => setSettingsOpen(false)}
         tokenImageInput={tokenImageInput}
         tokenImageUrl={character.tokenImage ?? undefined}
@@ -331,6 +339,8 @@ export function NpcCard({
         deletionError={deletionError}
         onClearInitiative={onClearInitiative}
         hasInitiative={character.initiative !== undefined}
+        selectedEffects={character.statusEffects ?? []}
+        onStatusEffectsChange={canEdit ? onStatusEffectsChange : undefined}
       />
     </div>
   );

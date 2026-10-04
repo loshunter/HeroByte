@@ -36,7 +36,7 @@ pnpm dev
 
 Then open http://localhost:5174, enter the development table password `Fun1`, and you're at the table. To unlock DM tools, use the DM password `FunDM` — the [Getting Started guide](docs/user-guide/getting-started.md) walks through it.
 
-> The default **Main Hall** is the public test table: both its passwords are these documented ones and **cannot be changed**, and the server wipes it once it has sat empty for an hour. Build there freely — to keep any of it, use DM Menu → Session → **Save as a Private Table**, or create a private table from the join screen.
+> The default **Main Hall** is the public test table: both its passwords are these documented ones and **cannot be changed**, and the server wipes it once it has sat empty for an hour. Build there freely — to keep any of it, use DM Menu → Table → Security → **Save as a Private Table**, or create a private table from the join screen.
 
 <details>
 <summary>📦 Full Installation & Setup Guide</summary>
@@ -112,12 +112,12 @@ To use on your local network:
 
 - Find your IP address (e.g. `192.168.x.x`)
 - Access at: `http://YOUR_IP:5174`
-- Add that origin to `HEROBYTE_ALLOWED_ORIGINS`, for example `http://YOUR_IP:5174`
+- Under `pnpm dev`, LAN origins are allowed automatically. For a production build, list every origin you need in `HEROBYTE_ALLOWED_ORIGINS` (setting it replaces the default list), and build the client with `VITE_WS_URL=ws://YOUR_IP:8787`: without it a production client connects to the hosted server. Serve the build on the LAN (e.g. `pnpm --filter herobyte-client preview --host`, port 4173) and allow that origin (`http://YOUR_IP:4173`)
 - The server automatically listens on all interfaces
 
 ### Security Configuration
 
-Set environment variables in `.env`:
+Set these as environment variables in the shell or service that starts the server (on Render: the service's **Environment** page). The server does not read a `.env` file:
 
 ```bash
 HEROBYTE_ROOM_SECRET="your-secure-room-password"
@@ -155,7 +155,7 @@ The server reads more variables than these (storage paths, table limits, feature
 - **WebSocket refuses connections** – Confirm backend is running on `http://localhost:8787`
 - **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or hosted demo)
 - **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` and re-run `pnpm test`
-- **"Room secret not set" warning** – Set `HEROBYTE_ROOM_SECRET` in `.env`
+- **"Room secret not set" warning** – Set `HEROBYTE_ROOM_SECRET` as an environment variable where the server starts (no `.env` file is read)
 - **Map images don't load (CORS errors)** – Use the **⬆ Upload image** button instead of pasting a URL; uploads are stored on your own table's server and always load. A pasted URL only works if its host allows cross-origin loading
 
 </details>
@@ -166,13 +166,13 @@ The server reads more variables than these (storage paths, table limits, feature
 
 **The [User Guide](docs/user-guide/README.md) is the front door** — a full walkthrough of everything a player or DM can do, with screenshots captured from the real app:
 
-| Guide                                                       | What it covers                                                                                                                     |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **[Getting Started](docs/user-guide/getting-started.md)**   | Joining a table, private tables & invite links, becoming the DM                                                                    |
-| **[Running a Game](docs/user-guide/running-a-game.md)**     | The three ways to run a map — your own art, build it, or generate it mid-session — and how to mix them                             |
-| **[Player Guide](docs/user-guide/player-guide.md)**         | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, the world map, mobile play                      |
-| **[DM Guide](docs/user-guide/dm-guide.md)**                 | The DM Menu: map setup, NPCs & props, combat, session save/load, table security, the Atlas and the Kicked-In Door, the player lens |
-| **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator                           |
+| Guide                                                       | What it covers                                                                                                                                          |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Getting Started](docs/user-guide/getting-started.md)**   | Joining a table, private tables & invite links, becoming the DM                                                                                         |
+| **[Running a Game](docs/user-guide/running-a-game.md)**     | The three ways to run a map — your own art, build it, or generate it mid-session — and how to mix them                                                  |
+| **[Player Guide](docs/user-guide/player-guide.md)**         | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, the world map, mobile play                                           |
+| **[DM Guide](docs/user-guide/dm-guide.md)**                 | The DM Menu: the Maps tab, NPCs & props, combat, the Table tab (invites, permissions, backups, security), World and the Kicked-In Door, the player lens |
+| **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator                                                |
 
 Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwright harness that drives real player and DM sessions — so the docs can't quietly drift from the app.
 
@@ -210,7 +210,7 @@ Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwr
 - **In-Table Map Editor** – Rooms, hallways, walls, doors (locked & secret), and lights authored on the live table — players watch it appear
 - **Procedural Terrain** – 34 paintable terrain families (grass, water, lava, stone, canopy, crystal…) baked in a background worker
 - **Quick Wheel & Brush Deck** – Right-click radial tool picker; searchable, pinnable brush palette
-- **Set Dressing** – Place/scatter/row tools, one-click room population, custom image uploads
+- **Set Dressing** – Place / scatter / repeat-along-line tools, one-click room population, custom image uploads
 - **Dungeon Generator** – Seeded server-side generation: rooms, corridors, doors, and dressing in one undo step
 
 ### 🔦 Lighting, Fog & Visibility
@@ -221,26 +221,26 @@ Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwr
 
 ### 🎲 Dice & Combat
 
-- **Visual Dice Roller** – d4–d100 with modifiers, animated rolls, crit/fumble banners, and a shared roll log
+- **Visual Dice Roller** – d4–d100 with modifiers, animated rolls, crit/fumble banners, and a roll log with table, DM-only and private rolls
 - **Initiative & Turn Order** – Roll or type initiative, auto-starting combat, turn banners, and NPC batch rolls
 - **HP Tracking** – Click-to-edit or drag-to-scrub HP with temp HP and floating damage numbers
 
 ### 🎨 Drawing & Visual Tools
 
-- **Advanced Drawing** – Freehand, line, rect, circle with color/width/opacity/fill; partial erase on freehand strokes
-- **Measure & Pointer** – Grid-aware distance readouts (squares + feet) and broadcast pings
+- **Advanced Drawing** – Freehand, line, rectangle, circle with color/width/opacity/fill; partial erase on freehand strokes
+- **Measure & Ping** – Grid-aware distance readouts (squares + feet) and pings (a player's hidden by fog, a DM's seen by all)
 - **CRT Filter** – Optional retro scanline effect with bloom and chromatic aberration
 
 ### 🎧 Voice & Characters
 
 - **WebRTC Voice Chat** – Peer-to-peer voice with speaking-glow portraits
 - **Character System** – Portraits, token art, multi-character support, per-player state export/import
-- **NPCs & Props** – DM-managed monsters with visibility toggles and an Enemy/Neutral/Ally stance; a bundled 244-token art pack (184 monsters, 60 townsfolk) plus each table's own custom-token shelf; ownable map objects
+- **NPCs & Props** – DM-managed monsters with visibility toggles and an Enemy/Neutral/Ally stance; a bundled 244-token art pack (184 monsters, 60 townsfolk) plus each table's own DM-only token shelf; ownable map objects
 
 ### 📱 Presentation & Feel
 
 - **Mobile Layout** – Touch-first dock, party drawer, dice roller, and pinch-zoom for phones and tablets
-- **SNES-Style SFX** – Sample-based sound effects, dice rattle, door creaks, and a game-feel panel (motion/sound controls)
+- **SNES-Style SFX** – Sample-based sound effects, dice rattle, door creaks, and Sound & motion preferences (Table → Preferences)
 
 ---
 

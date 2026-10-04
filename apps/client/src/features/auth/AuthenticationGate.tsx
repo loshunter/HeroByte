@@ -25,6 +25,7 @@ import {
 } from "../rooms/roomDirectory";
 import type { CreateRoomInput } from "../rooms/useCreateRoom";
 import { useConflictEscape } from "./useConflictEscape";
+import { ReconnectPhaseContext, type ReconnectPhase } from "../table/reconnectPhase";
 
 // ============================================================================
 // TYPES
@@ -222,7 +223,7 @@ export function AuthenticationGate({
     (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const trimmed = passwordInput.trim();
-      if (!trimmed) {
+      if (!trimmed || authState === AuthState.FAILED) {
         return;
       }
 
@@ -236,7 +237,7 @@ export function AuthenticationGate({
       activeAuthAttemptRef.current = trimmed;
       onAuthenticate(trimmed);
     },
-    [onAuthenticate, onConnect, isConnected, passwordInput],
+    [onAuthenticate, onConnect, isConnected, passwordInput, authState],
   );
 
   /**
@@ -273,6 +274,8 @@ export function AuthenticationGate({
   const canSubmit =
     passwordInput.trim().length > 0 &&
     authState !== AuthState.PENDING &&
+    // A rejected socket is closing; retry only after its replacement connects.
+    authState !== AuthState.FAILED &&
     connectionState !== ConnectionState.CONNECTING &&
     connectionState !== ConnectionState.RECONNECTING;
 
@@ -308,32 +311,19 @@ export function AuthenticationGate({
     );
   }
 
-  return (
-    <>
-      {/* Re-authentication banner - shown when user was authenticated but connection dropped */}
-      {hasAuthenticated && authState !== AuthState.AUTHENTICATED && (
-        <div
-          className="jrpg-text-small"
-          style={{
-            position: "fixed",
-            top: "12px",
-            right: "16px",
-            padding: "6px 10px",
-            background: "rgba(12, 19, 38, 0.9)",
-            border: "1px solid var(--jrpg-gold)",
-            borderRadius: "6px",
-            color: "var(--jrpg-white)",
-            zIndex: 2000,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
-        >
-          {authState === AuthState.PENDING ? "Re-authenticating…" : "Reconnecting…"}
-        </div>
-      )}
+  // The user was authenticated but the connection dropped: the app stays mounted, and says
+  // why it is waiting. The words are not painted here — a fixed banner over the top right sat
+  // on whatever the header or the phone put there — each host places them in its own layout.
+  const reconnectPhase: ReconnectPhase =
+    hasAuthenticated && authState !== AuthState.AUTHENTICATED
+      ? authState === AuthState.PENDING
+        ? "reauthenticating"
+        : "reconnecting"
+      : null;
 
-      {/* Authenticated content */}
+  return (
+    <ReconnectPhaseContext.Provider value={reconnectPhase}>
       {children}
-    </>
+    </ReconnectPhaseContext.Provider>
   );
 }

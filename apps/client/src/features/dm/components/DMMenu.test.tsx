@@ -1,8 +1,14 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import React from "react";
 import { DMMenu } from "./DMMenu";
 import type { Character } from "@herobyte/shared";
+import { encounterControls, npc } from "../../encounter/__tests__/encounterFixtures";
+import { tableControls } from "../../table/tab/__tests__/tableFixtures";
+import { __resetDMMenuRequestsForTests, requestDMMenuTab } from "../../table/menuRequest";
+
+// No test inherits a request or a subscriber from the one before it.
+afterEach(() => __resetDMMenuRequestsForTests());
 
 vi.mock("../../../components/ui/JRPGPanel", () => {
   const JRPGPanel = ({
@@ -23,13 +29,15 @@ vi.mock("../../../components/ui/JRPGPanel", () => {
   const JRPGButton = ({
     children,
     onClick,
+    "aria-pressed": ariaPressed,
   }: {
     children: React.ReactNode;
     onClick?: () => void;
     variant?: string;
     style?: React.CSSProperties;
+    "aria-pressed"?: boolean;
   }) => (
-    <button type="button" onClick={onClick}>
+    <button type="button" onClick={onClick} aria-pressed={ariaPressed}>
       {children}
     </button>
   );
@@ -47,8 +55,9 @@ vi.mock("../../../components/dice/DraggableWindow", () => ({
 }));
 
 const createProps = () => ({
+  // U7: a window-presentation menu renders its launcher into the Party dock.
+  launcherDock: document.body,
   isDM: true,
-  onToggleDM: vi.fn(),
   gridSize: 50,
   gridSquareSize: 5,
   gridLocked: false,
@@ -58,7 +67,6 @@ const createProps = () => ({
   onClearDrawings: vi.fn(),
   onSetMapBackground: vi.fn(),
   mapBackground: undefined as string | undefined,
-  playerCount: 2,
   camera: { x: 0, y: 0, scale: 1 },
   characters: [] as Character[],
   atlasNodes: [],
@@ -69,8 +77,6 @@ const createProps = () => ({
   onCreateProp: vi.fn(),
   onUpdateProp: vi.fn(),
   onDeleteProp: vi.fn(),
-  onRequestSaveSession: undefined as ((name: string) => void) | undefined,
-  onRequestLoadSession: vi.fn(),
   onCreateNPC: vi.fn(),
   onDuplicateNPC: vi.fn(),
   onUpdateNPC: vi.fn(),
@@ -78,6 +84,9 @@ const createProps = () => ({
   onResetNPCBudget: vi.fn(),
   onDeleteNPC: vi.fn(),
   onPlaceNPCToken: vi.fn(),
+  onSetNPCStatusEffects: vi.fn(),
+  onFocusNPCToken: vi.fn(),
+  mapTokenIds: new Set<string>(),
   mapLocked: false,
   onMapLockToggle: vi.fn(),
   mapTransform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
@@ -90,8 +99,8 @@ const createProps = () => ({
   onAlignmentReset: vi.fn(),
   onAlignmentCancel: vi.fn(),
   onAlignmentApply: vi.fn(),
-  sceneObjects: [],
-  onSelectPlayerTokens: vi.fn(),
+  encounter: encounterControls(),
+  table: tableControls(),
 });
 
 describe("DMMenu", () => {
@@ -119,7 +128,7 @@ describe("DMMenu", () => {
     // found nothing asserted the window actually WRAPS in window mode (the
     // content renders identically bare, so the old tests passed either way).
     expect(screen.getByTestId("draggable-window")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Map Setup" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Maps" })).toBeInTheDocument();
     const input = screen.getByPlaceholderText("Paste image URL");
     fireEvent.change(input, { target: { value: "https://example.com/map.png" } });
     fireEvent.click(screen.getByRole("button", { name: "Apply Background" }));
@@ -209,24 +218,155 @@ describe("DMMenu", () => {
     expect(screen.queryByRole("button", { name: /^Reset$/ })).toBeNull();
   });
 
-  it("forwards the connected roster and the remove handler onto the Players tab — REMOVE renders and fires through the menu", () => {
-    // Both props are optional all the way down, so tsc cannot see a dropped
-    // forwarding line; only rendering the tab through the menu can.
+  it("forwards the connected roster and the remove handler onto the Table tab — REMOVE renders and fires through the menu", () => {
+    // Both are optional all the way down, so tsc cannot see a dropped forwarding
+    // line; only rendering the tab through the menu can.
     const onRemovePlayer = vi.fn();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const props = {
       ...createProps(),
-      players: [{ uid: "ghost", name: "Ghost", isDM: false }],
-      connectedUids: [] as string[],
-      onRemovePlayer,
+      table: tableControls({
+        players: [{ uid: "ghost", name: "Ghost", isDM: false }],
+        connectedUids: [] as string[],
+        onRemovePlayer,
+      }),
     };
     render(<DMMenu {...props} />);
 
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Players" }));
+    fireEvent.click(screen.getByRole("button", { name: "Table" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
     expect(onRemovePlayer).toHaveBeenCalledWith("ghost");
     vi.restoreAllMocks();
+  });
+
+  it("mounts Encounter after World, and its Roll missing NPC initiative sends through the controls' ONE initiative instance", () => {
+    const encounter = encounterControls({ characters: [npc("gob", "Goblin")] });
+    render(<DMMenu {...createProps()} encounter={encounter} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+
+    const tabs = ["Maps", "World", "Encounter", "NPCs & Monsters"];
+    const found = tabs.map((name) => screen.getByRole("button", { name }));
+    // In that order: Encounter sits after World (plan §2.1's DM tools order).
+    for (let i = 1; i < found.length; i++) {
+      expect(found[i - 1].compareDocumentPosition(found[i])).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Encounter" }));
+    fireEvent.click(screen.getByRole("button", { name: /Roll missing NPC initiative/ }));
+    expect(encounter.initiative.rollAllInitiative).toHaveBeenCalledTimes(1);
+  });
+
+  it("Table and NPCs carry no combat: NPCs forwards to Encounter, Table has no second home for it", () => {
+    const props = { ...createProps(), characters: [npc("gob", "Goblin")] as Character[] };
+    render(<DMMenu {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Table" }));
+    expect(screen.queryByRole("button", { name: /Start Combat|End Combat/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Clear All Initiative/i })).toBeNull();
+    expect(screen.queryByText("Monster HP Display")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Open Encounter/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "NPCs & Monsters" }));
+    expect(screen.queryByRole("button", { name: /Roll Missing/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "⚔️ Encounter" }));
+    expect(screen.getByRole("heading", { name: "Run encounter" })).toBeTruthy();
+  });
+
+  it("has Table where Players and Session were, and neither of the old tabs", () => {
+    render(<DMMenu {...createProps()} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+
+    const chips = screen
+      .getAllByRole("button")
+      .map((button) => button.textContent?.trim() ?? "")
+      .filter((label) =>
+        ["Maps", "World", "Encounter", "NPCs & Monsters", "Props & Objects", "Table"].includes(
+          label,
+        ),
+      );
+    expect(chips).toEqual([
+      "Maps",
+      "World",
+      "Encounter",
+      "NPCs & Monsters",
+      "Props & Objects",
+      "Table",
+    ]);
+    expect(screen.queryByRole("button", { name: "Players" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Session" })).toBeNull();
+  });
+
+  it("has no EXIT DM MODE above the tabs: leaving DM mode is Table's (Your role)", () => {
+    const props = createProps();
+    render(<DMMenu {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    expect(screen.queryByRole("button", { name: /EXIT DM MODE/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Table" }));
+    fireEvent.click(screen.getByRole("button", { name: "Leave DM mode" }));
+    expect(props.table.onToggleDM).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("mounts the Table tab's five sections through the menu (a dropped mount compiles clean)", () => {
+    render(<DMMenu {...createProps()} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Table" }));
+
+    for (const name of ["Invite", "Players at this table", "Permissions", "Backups", "Security"]) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("Encounter's 'Change in Table' link opens the Table tab, where the permission it names lives", () => {
+    render(<DMMenu {...createProps()} />);
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Encounter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change in Table" }));
+    expect(screen.getByRole("heading", { name: "Permissions" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Players can enter rolls by hand")).toBeInTheDocument();
+  });
+
+  describe("'Table settings…' (from the Table menu) asks this menu for its Table tab", () => {
+    it("opens an already-mounted window on Table, even if it was closed on another tab", () => {
+      render(<DMMenu {...createProps()} />);
+      expect(screen.queryByTestId("draggable-window")).toBeNull();
+
+      act(() => requestDMMenuTab("table"));
+
+      expect(screen.getByTestId("draggable-window")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Permissions" })).toBeInTheDocument();
+    });
+
+    it("hands focus to the Table tab it opened on (and not for the launcher's own open)", () => {
+      render(<DMMenu {...createProps()} />);
+      fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: /DM MENU/i }));
+
+      act(() => requestDMMenuTab("table"));
+
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "Table" }));
+    });
+
+    it("is taken on mount by the phone's DM screen, which mounts after the tap", () => {
+      requestDMMenuTab("table");
+      render(<DMMenu {...createProps()} presentation="content" />);
+      expect(screen.getByRole("heading", { name: "Permissions" })).toBeInTheDocument();
+      // ...and hands focus to the tab it opened on, as the desktop window does.
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "Table" }));
+    });
+
+    it("drops a request made while the viewer was no DM, so it cannot open the menu at the next elevation", () => {
+      // A menu that renders nothing for a non-DM proves nothing about the request: what has to
+      // hold is that it was TAKEN and not honoured, so it is gone when the viewer becomes a DM.
+      const { rerender } = render(<DMMenu {...{ ...createProps(), isDM: false }} />);
+      act(() => requestDMMenuTab("table"));
+
+      rerender(<DMMenu {...createProps()} />);
+
+      expect(screen.queryByTestId("draggable-window")).toBeNull();
+    });
   });
 
   it("switches to the Atlas tab and actually MOUNTS the tree (a dropped mount compiles clean)", () => {
@@ -237,11 +377,13 @@ describe("DMMenu", () => {
     render(<DMMenu {...props} />);
 
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Atlas" }));
+    fireEvent.click(screen.getByRole("button", { name: "World" }));
     expect(screen.getByText(/Nothing lies within/)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("New node name"), { target: { value: "The Docks" } });
-    fireEvent.click(screen.getByRole("button", { name: "+ CREATE NODE" }));
+    fireEvent.change(screen.getByLabelText("New location name"), {
+      target: { value: "The Docks" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "+ Create location" }));
     expect(props.onAtlasMessage).toHaveBeenCalledWith(
       expect.objectContaining({ t: "atlas-create-node" }),
     );
@@ -256,11 +398,11 @@ describe("DMMenu", () => {
       expect(screen.queryByRole("button", { name: /DM MENU/i })).not.toBeInTheDocument();
       expect(screen.queryByTestId("draggable-window")).not.toBeInTheDocument();
 
-      // The content is there without any launcher click: all five tabs, the
-      // exit row, and the default Map tab's controls.
-      expect(screen.getByRole("button", { name: "Map Setup" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Session" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /EXIT DM MODE/i })).toBeInTheDocument();
+      // The content is there without any launcher click: the tabs, and the default
+      // Map tab's controls.
+      expect(screen.getByRole("button", { name: "Maps" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Table" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /EXIT DM MODE/i })).toBeNull();
       expect(screen.getByPlaceholderText("Paste image URL")).toBeInTheDocument();
 
       // And the tabs still switch.
@@ -268,13 +410,14 @@ describe("DMMenu", () => {
       expect(screen.getByText(/No NPCs yet/i)).toBeInTheDocument();
     });
 
-    it("EXIT DM MODE still demotes from the content presentation", () => {
+    it("Leave DM mode (Table → Your role) still demotes from the content presentation", () => {
       const props = createProps();
       render(<DMMenu {...props} presentation="content" />);
 
-      fireEvent.click(screen.getByRole("button", { name: /EXIT DM MODE/i }));
+      fireEvent.click(screen.getByRole("button", { name: "Table" }));
+      fireEvent.click(screen.getByRole("button", { name: "Leave DM mode" }));
 
-      expect(props.onToggleDM).toHaveBeenCalledExactlyOnceWith(false);
+      expect(props.table.onToggleDM).toHaveBeenCalledExactlyOnceWith(false);
     });
 
     it("still renders nothing for a non-DM, whatever the presentation", () => {

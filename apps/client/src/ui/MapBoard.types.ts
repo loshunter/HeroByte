@@ -62,11 +62,12 @@ export interface MapBoardProps {
    * not the tool.
    */
   mapEditPlacementDials?: import("../features/map-edit/usePlacementDials").PlacementModifiers;
+  mapEditTerrainBrushSize?: import("../features/map-studio/terrainBrushGeometry").TerrainBrushSize;
   mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind; // Spline tool curve kind
-  mapEditPopulateGhosts?:
-    | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
-    | null; // POPULATE's true draft footprints (P2 ghosts)
+  mapEditPersistentPreview?:
+    | import("../features/map-edit/MapEditPersistentPreview").MapEditPersistentPreview
+    | null; // POPULATE footprints and Generate's normalized target
   playerLens?: boolean; // P4: render the DM's view exactly as players receive it
   mapEditWheelActions?: import("../features/map-edit/mapEditTypes").MapEditWheelActions; // P5 quick wheel
   mapEditSelectedElementId?: string | null; // Selected element (select tool) → highlight
@@ -74,7 +75,7 @@ export interface MapBoardProps {
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit
   onMapEditRoomRejected?: (message: string) => void; // Room drag refused (too large / no layer)
   onMapEditGestureDropped?: () => void; // Gesture's commit skipped — a command was in flight
-  onMapEditRegionPlaced?: (bounds: RoomBounds) => void; // Room/hallway placed → POPULATE target
+  onMapEditRegionPlaced?: import("../features/map-edit/populateTarget").OnPopulateRegionPlaced;
   onMapEditRegionDragged?: (bounds: RoomBounds) => void; // Generate region swept → recipe target
   onMapEditSelectElement?: (elementId: string | null) => void; // Select tool picked an element
   onMapEditSampleAsset?: (assetId: string, source: "tool" | "shortcut") => void; // sampled an asset

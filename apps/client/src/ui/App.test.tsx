@@ -8,8 +8,14 @@ import { useDMRole } from "../hooks/useDMRole";
 
 const mockUseWebSocket = vi.fn();
 const mockUseObjectSelection = vi.fn();
-let latestHeaderProps: { onToolSelect: (mode: string | null) => void } | null = null;
+let latestHeaderProps: {
+  onToolSelect: (mode: string | null) => void;
+  table?: { isDM: boolean; onToggleDM: (next: boolean) => void };
+  playerLens?: boolean;
+  onPlayerLensChange?: (enabled: boolean) => void;
+} | null = null;
 let latestMapBoardProps: Record<string, unknown> | null = null;
+let latestPanelRoleKnown: boolean | null = null;
 let selectionMock: {
   selectedObjectId: string | null;
   selectedObjectIds: string[];
@@ -79,9 +85,12 @@ vi.mock("../hooks/useHeartbeat", () => ({
   useHeartbeat: vi.fn(),
 }));
 
-vi.mock("../hooks/useDMRole", () => ({
+vi.mock("../hooks/useDMRole", async (importActual) => ({
+  // The real useClearOnDemotion stays: it is the App's wiring under test below.
+  ...(await importActual<typeof import("../hooks/useDMRole")>()),
   useDMRole: vi.fn(() => ({
     isDM: true,
+    roleKnown: true,
     toggleDM: vi.fn(),
   })),
 }));
@@ -100,19 +109,21 @@ vi.mock("../features/drawing/components", () => ({
 }));
 
 vi.mock("../components/layout/Header", () => ({
-  Header: (props: { onToolSelect: (mode: string | null) => void }) => {
+  Header: (props: NonNullable<typeof latestHeaderProps>) => {
     latestHeaderProps = props;
     return <div data-testid="header">Header</div>;
   },
 }));
 
-vi.mock("../components/layout/EntitiesPanel", () => ({
-  EntitiesPanel: () => <div data-testid="entities-panel">Entities</div>,
-}));
-
-vi.mock("../components/layout/ServerStatus", () => ({
-  ServerStatus: () => <div data-testid="server-status">Status</div>,
-}));
+vi.mock("../components/layout/EntitiesPanel", async () => {
+  const { useRoleKnown } = await import("../features/table/roleKnown");
+  return {
+    EntitiesPanel: () => {
+      latestPanelRoleKnown = useRoleKnown();
+      return <div data-testid="entities-panel">Entities</div>;
+    },
+  };
+});
 
 vi.mock("../components/dice/DiceRoller", () => ({
   DiceRoller: () => <div data-testid="dice-roller">Dice Roller</div>,
@@ -122,7 +133,8 @@ vi.mock("../components/dice/RollLog", () => ({
   RollLog: () => <div data-testid="roll-log">Roll Log</div>,
 }));
 
-vi.mock("../utils/session", () => ({
+vi.mock("../utils/session", async (importActual) => ({
+  ...(await importActual<typeof import("../utils/session")>()),
   getSessionUID: vi.fn(() => "test-uid"),
 }));
 
@@ -211,6 +223,7 @@ const buildSnapshot = () => ({
 
 describe("App", () => {
   beforeEach(() => {
+    latestPanelRoleKnown = null;
     mockUseWebSocket.mockReset();
     mockUseObjectSelection.mockReset();
     selectionMock = {
@@ -302,7 +315,6 @@ describe("App", () => {
     expect(screen.getByTestId("map-board")).toBeInTheDocument();
     expect(screen.getByTestId("header")).toBeInTheDocument();
     expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
-    expect(screen.getByTestId("server-status")).toBeInTheDocument();
   });
 
   it("appends selection when MapBoard requests append mode", async () => {
@@ -514,7 +526,7 @@ describe("App", () => {
     }
   });
 
-  it("clears selection when transform mode is toggled off", async () => {
+  it("preserves selection from Transform to Move and clears it for Draw", async () => {
     const deselect = vi.fn();
     selectionMock = {
       selectedObjectId: "token:token-1",
@@ -526,32 +538,10 @@ describe("App", () => {
     };
     mockUseObjectSelection.mockImplementation(() => selectionMock);
 
-    const snapshot = {
-      users: [],
-      tokens: [],
-      drawings: [],
-      pointers: [],
-      players: [
-        {
-          uid: "player-1",
-          name: "Player One",
-          hp: 10,
-          maxHp: 12,
-        },
-      ],
-      characters: [],
-      sceneObjects: [],
-      gridSize: 50,
-      gridSquareSize: 5,
-      mapBackground: null,
-      selectionState: {},
-      diceRolls: [],
-    };
-
     mockUseWebSocket.mockReturnValue({
       ...baseWebSocketState,
       authState: AuthState.AUTHENTICATED,
-      snapshot,
+      snapshot: buildSnapshot(),
     });
 
     render(<App />);
@@ -559,19 +549,28 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByTestId("dm-menu")).toBeInTheDocument());
     await waitFor(() => expect(latestHeaderProps).not.toBeNull());
 
-    deselect.mockClear(); // Ignore initial clear on mount
+    expect(deselect).not.toHaveBeenCalled();
 
     await act(async () => {
       latestHeaderProps!.onToolSelect("transform");
     });
 
     expect(deselect).not.toHaveBeenCalled();
+    expect(latestMapBoardProps?.transformMode).toBe(true);
 
     await act(async () => {
       latestHeaderProps!.onToolSelect(null);
     });
 
-    await waitFor(() => expect(deselect).toHaveBeenCalledTimes(1));
+    expect(latestMapBoardProps?.transformMode).toBe(false);
+    expect(deselect).not.toHaveBeenCalled();
+
+    await act(async () => {
+      latestHeaderProps!.onToolSelect("draw");
+    });
+
+    expect(latestMapBoardProps?.drawMode).toBe(true);
+    expect(deselect).toHaveBeenCalledTimes(1);
   });
 
   it("allows DM to update the room password", async () => {
@@ -630,7 +629,11 @@ describe("App", () => {
     // which is DERIVED from it — reads false. The app stays MOUNTED behind
     // AuthenticationGate's Reconnecting banner, which is what makes this
     // reachable at all.
-    vi.mocked(useDMRole).mockReturnValue({ isDM: false, elevateToDM: vi.fn() });
+    vi.mocked(useDMRole).mockReturnValue({
+      isDM: false,
+      roleKnown: false,
+      elevateToDM: vi.fn(),
+    });
     mockUseWebSocket.mockReturnValue({
       ...baseWebSocketState,
       authState: AuthState.AUTHENTICATED,
@@ -643,7 +646,7 @@ describe("App", () => {
     expect(latestMapBoardProps?.mapEditMode).toBe(true);
 
     // ...and it is still armed once the table comes back.
-    vi.mocked(useDMRole).mockReturnValue({ isDM: true, elevateToDM: vi.fn() });
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
     mockUseWebSocket.mockReturnValue({
       ...baseWebSocketState,
       authState: AuthState.AUTHENTICATED,
@@ -656,7 +659,229 @@ describe("App", () => {
     expect(latestMapBoardProps?.mapEditMode).toBe(true);
   });
 
+  // The DM's snapshot cache keeps a DM's NPCs and tokens on screen through a reconnect
+  // (every socket close nulls the snapshot). It must end with the role.
+  const asDMThenBlip = async () => {
+    // Explicitly a DM: mockReturnValue outlives the test that set it, and a neighbour that
+    // left the role at "not a DM" made this suite pass with the cache never filled.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+    const view = render(<App />);
+    await waitFor(() => expect(latestMapBoardProps?.snapshot).toBeTruthy());
+    return view;
+  };
+  const blip = async (rerender: (ui: React.ReactElement) => void) => {
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, roleKnown: false, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: null,
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+  };
+
+  it("keeps a DM's own snapshot on screen through a reconnect blip", async () => {
+    const { rerender } = await asDMThenBlip();
+    await blip(rerender);
+    expect(latestMapBoardProps?.snapshot).toBeTruthy();
+  });
+
+  // Editors that close on losing DM rights read this, so the blip above (cached roster,
+  // DM flag false) is not taken for a demotion (features/table/roleKnown).
+  it("tells the layouts the role is unknown through the blip, and known again after", async () => {
+    const { rerender } = await asDMThenBlip();
+    expect(latestPanelRoleKnown).toBe(true);
+    await blip(rerender);
+    expect(latestPanelRoleKnown).toBe(false);
+
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+    expect(latestPanelRoleKnown).toBe(true);
+  });
+
+  it("does NOT keep a demoted DM's snapshot to paint over a later reconnect", async () => {
+    const { rerender } = await asDMThenBlip();
+    // A restart cleared the elevation: the roster is back, it lists this seat, it is no DM.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, roleKnown: true, elevateToDM: vi.fn() });
+    await act(async () => {
+      rerender(<App />);
+    });
+    // The next blip must show what a player's blip shows — nothing of the DM's table.
+    await blip(rerender);
+    expect(latestMapBoardProps?.snapshot ?? null).toBeNull();
+  });
+
+  it("ends Player View when the server says you are no longer a DM, and not for a blip", async () => {
+    // Player View is the DM's lens. Left on through a Leave it came back pressed at the next
+    // elevation, and for the player in between it chose the party's tokens for the fog.
+    const { rerender } = await asDMThenBlip();
+    await waitFor(() => expect(latestHeaderProps).not.toBeNull());
+    await act(async () => {
+      latestHeaderProps!.onPlayerLensChange?.(true);
+    });
+    await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(true));
+
+    await blip(rerender);
+    expect(latestHeaderProps?.playerLens).toBe(true);
+
+    // The roster is back, it lists this seat, it is no DM.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+    await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(false));
+  });
+
+  // The phone layout has no Player View control and its map ignores the lens, yet the lens
+  // still nulled map edit's previews there, with nothing on the phone to turn it off.
+  it("ends Player View when the layout becomes the phone's", async () => {
+    const size = [window.innerWidth, window.innerHeight];
+    const resize = async (width: number, height: number) => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
+      await act(async () => {
+        window.dispatchEvent(new Event("resize"));
+      });
+    };
+    try {
+      await asDMThenBlip();
+      await waitFor(() => expect(latestHeaderProps).not.toBeNull());
+      await act(async () => {
+        latestHeaderProps!.onPlayerLensChange?.(true);
+      });
+      await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(true));
+
+      await resize(375, 450); // a tablet rotated into the phone layout
+      await resize(1366, 768); // and back: the desktop header shows the lens state
+      await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(false));
+    } finally {
+      await resize(size[0]!, size[1]!);
+    }
+  });
+
+  // Leaving DM mode is optimistic: the moment it is confirmed the app stops acting as the
+  // DM, and waits for the server to agree.
+  const dmSnapshot = () => ({
+    ...buildSnapshot(),
+    players: [{ uid: "test-uid", name: "Hero", isDM: true }],
+  });
+  const asTheDM = () => {
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: dmSnapshot(),
+    });
+  };
+  const confirmLeave = async () => {
+    await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(true));
+    await act(async () => {
+      latestHeaderProps!.table!.onToggleDM(false);
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Leave DM mode" }));
+  };
+
+  it("stops acting as the DM the moment the leave is confirmed", async () => {
+    asTheDM();
+    render(<App />);
+    await confirmLeave();
+    await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(false));
+  });
+
+  it("is the DM again when the server never answers the leave", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      asTheDM();
+      render(<App />);
+      await confirmLeave();
+      await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(false));
+
+      // No answer for the length of the request (the leave was dropped, or the server is slow):
+      // the roster still lists this seat as the DM, so it is one. Left latched, the Table menu
+      // read "Player", offered no Leave, and Enter DM mode did nothing until a reload.
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(true));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("is the DM again at the next elevation once the server has confirmed the leave", async () => {
+    // The wait ends when the roster says the seat is no DM; left standing it would keep the next
+    // elevation's tools away.
+    asTheDM();
+    const { rerender } = render(<App />);
+    await confirmLeave();
+
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: { ...buildSnapshot(), players: [{ uid: "test-uid", name: "Hero", isDM: false }] },
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+    await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(false));
+
+    asTheDM();
+    await act(async () => {
+      rerender(<App />);
+    });
+    await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(true));
+  });
+
+  it("keeps waiting for the leave through a reconnect blip, and does not flash the DM back", async () => {
+    // The socket dies under the confirm: the snapshot goes, and the DM flag with it, though nobody
+    // has stopped being a DM. The wait has to outlive that, or the roster that comes back (it
+    // lists the DM until the queued leave is heard) shows the DM's tools for a moment.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      asTheDM();
+      const { rerender } = render(<App />);
+      await confirmLeave();
+      await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(false));
+
+      await blip(rerender);
+      asTheDM();
+      await act(async () => {
+        rerender(<App />);
+      });
+      expect(latestHeaderProps?.table?.isDM).toBe(false);
+
+      // The leave is never heard: it is given up on, and the seat is the DM again.
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      await waitFor(() => expect(latestHeaderProps?.table?.isDM).toBe(true));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("still drops map-edit when the server says you are no longer a DM", async () => {
+    // Start as a DM on purpose: the role mock outlives the test that set it.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
     mockUseWebSocket.mockReturnValue({
       ...baseWebSocketState,
       authState: AuthState.AUTHENTICATED,
@@ -669,7 +894,11 @@ describe("App", () => {
     // A real revocation: the snapshot is PRESENT and no longer lists this
     // client as a DM. Without this half the guard would be a no-op and the
     // soft-lock it exists for would be back.
-    vi.mocked(useDMRole).mockReturnValue({ isDM: false, elevateToDM: vi.fn() });
+    vi.mocked(useDMRole).mockReturnValue({
+      isDM: false,
+      roleKnown: true,
+      elevateToDM: vi.fn(),
+    });
     await act(async () => {
       rerender(<App />);
     });

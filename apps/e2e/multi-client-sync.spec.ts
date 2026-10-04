@@ -102,7 +102,7 @@ test.describe("HeroByte multi-client synchronization", () => {
       });
 
       // Client 1 draws
-      await page1.getByRole("button", { name: /Draw Tools/i }).click();
+      await page1.getByRole("button", { name: /✏️ Draw/i }).click();
       await expect(page1.locator("text=DRAWING TOOLS")).toBeVisible();
 
       const canvas1 = page1.getByTestId("map-board").locator("canvas").first();
@@ -291,7 +291,7 @@ test.describe("HeroByte multi-client synchronization", () => {
       ]);
 
       // Client 1 draws
-      await page1.getByRole("button", { name: /Draw Tools/i }).click();
+      await page1.getByRole("button", { name: /✏️ Draw/i }).click();
       const canvas1 = page1.getByTestId("map-board").locator("canvas").first();
       const box1 = await canvas1.boundingBox();
       expect(box1).not.toBeNull();
@@ -326,7 +326,7 @@ test.describe("HeroByte multi-client synchronization", () => {
       );
 
       // Client 1 partially erases
-      await page1.getByRole("button", { name: /Eraser/i }).click();
+      await page1.getByRole("button", { name: /Erase drawings/i }).click();
 
       const eraseX = startX + 100;
       await page1.mouse.move(eraseX, startY - 30);

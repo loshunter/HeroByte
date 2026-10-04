@@ -20,6 +20,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AuthenticationGate } from "../AuthenticationGate";
 import { AuthState, ConnectionState } from "../../../services/websocket";
 import { startFreshSession } from "../freshSession";
+import { ReconnectNotice } from "../../table/ReconnectNotice";
 
 vi.mock("../freshSession", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../freshSession")>()),
@@ -420,47 +421,64 @@ describe("AuthenticationGate - Characterization", () => {
       expect(screen.queryByText("Join Your Table")).not.toBeInTheDocument();
     });
 
-    it("should show re-authentication banner when disconnected after authentication", () => {
-      const mockAuthenticate = vi.fn();
-      const mockConnect = vi.fn();
+    const gate = (
+      connectionState: ConnectionState,
+      authState: AuthState,
+      children: React.ReactNode,
+    ) => (
+      <AuthenticationGate
+        url="ws://test"
+        uid="test-uid"
+        onAuthenticate={vi.fn()}
+        onConnect={vi.fn()}
+        isConnected={connectionState === ConnectionState.CONNECTED}
+        connectionState={connectionState}
+        authState={authState}
+        authError={null}
+      >
+        {children}
+      </AuthenticationGate>
+    );
 
-      const { rerender } = render(
-        <AuthenticationGate
-          url="ws://test"
-          uid="test-uid"
-          onAuthenticate={mockAuthenticate}
-          onConnect={mockConnect}
-          isConnected={true}
-          connectionState={ConnectionState.CONNECTED}
-          authState={AuthState.AUTHENTICATED}
-          authError={null}
-        >
+    it("tells the app why it is waiting when disconnected after authentication", () => {
+      // The words are the hosts' to place (ReconnectNotice, in the header and the phone's top
+      // stack); the gate only says whether the table is away or the seat is being proven again.
+      const app = (
+        <>
           <div>Protected Content</div>
-        </AuthenticationGate>,
+          <ReconnectNotice />
+        </>
       );
+      const { rerender } = render(gate(ConnectionState.CONNECTED, AuthState.AUTHENTICATED, app));
 
-      // Initially authenticated - no banner
+      // Initially authenticated - nothing to say
       expect(screen.queryByText(/re-authenticating/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/reconnecting/i)).not.toBeInTheDocument();
 
-      // Simulate disconnection
-      rerender(
-        <AuthenticationGate
-          url="ws://test"
-          uid="test-uid"
-          onAuthenticate={mockAuthenticate}
-          onConnect={mockConnect}
-          isConnected={false}
-          connectionState={ConnectionState.RECONNECTING}
-          authState={AuthState.PENDING}
-          authError={null}
-        >
-          <div>Protected Content</div>
-        </AuthenticationGate>,
-      );
+      // The socket drops
+      rerender(gate(ConnectionState.RECONNECTING, AuthState.UNAUTHENTICATED, app));
+      expect(screen.getByText("Protected Content")).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("Reconnecting…");
 
-      // Should show re-authentication banner
-      expect(screen.getByText(/re-authenticating/i)).toBeInTheDocument();
+      // It is back, and the seat is being proven again
+      rerender(gate(ConnectionState.RECONNECTING, AuthState.PENDING, app));
+      expect(screen.getByRole("status")).toHaveTextContent("Re-authenticating…");
+
+      // And all is well again
+      rerender(gate(ConnectionState.CONNECTED, AuthState.AUTHENTICATED, app));
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+
+    it("paints no banner of its own: with no host to place the words, a lost connection says nothing here", () => {
+      // It used to draw a fixed "Reconnecting…" at the top right, over the header's controls
+      // and the phone's connection chip. If the gate draws anything again this sees it.
+      const app = <div>Protected Content</div>;
+      const { rerender } = render(gate(ConnectionState.CONNECTED, AuthState.AUTHENTICATED, app));
+      rerender(gate(ConnectionState.RECONNECTING, AuthState.PENDING, app));
+
+      expect(screen.getByText("Protected Content")).toBeInTheDocument();
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(screen.queryByText(/re-authenticating|reconnecting/i)).not.toBeInTheDocument();
     });
   });
 

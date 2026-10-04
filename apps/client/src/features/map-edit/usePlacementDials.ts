@@ -34,7 +34,7 @@ const DEFAULT_ASSET_ID = "objects:crate";
 interface UsePlacementDialsOptions {
   /** Sampling a terrain family re-arms the floor picker too. */
   setFloorFamily: (family: MapEditFloorFamily) => void;
-  /** The eyedropper hands the place tool over, so the next drop uses it. */
+  /** Explicit Sample chooses Paint or Place for the sampled asset. */
   setActiveSubTool: (tool: MapEditSubTool) => void;
 }
 
@@ -64,7 +64,7 @@ export interface PlacementDials extends PlacementModifiers {
   onSelectAsset: (assetId: string) => void;
   assetPickerOpen: boolean;
   onToggleAssetPicker: () => void;
-  /** Eyedropper re-arm: sample an asset and hand over to the place tool. */
+  /** Explicit Sample arms Paint for a material, Place otherwise; shortcuts keep the tool. */
   onSampleAsset: (assetId: string, source: "tool" | "shortcut") => void;
 }
 
@@ -87,17 +87,14 @@ export function usePlacementDials({
   }, []);
 
   // Sampling re-arms the asset (and the floor picker for a terrain family).
-  // What happens to the TOOL depends on who sampled: the eyedropper TOOL hands
-  // over to Place — a phone samples in order to drop — while the desktop Ctrl
-  // shortcut keeps the tool in hand, which is its whole point at a mouse
-  // (useMapEditSelection's header says so). This callback used to re-arm
-  // Place unconditionally, so Ctrl-sampling mid-paint stole the brush.
+  // Explicit Sample follows the asset's validated capabilities. Ctrl/Cmd keeps
+  // the current tool so sampling mid-stroke preparation cannot steal the brush.
   const onSampleAsset = useCallback(
     (assetId: string, source: "tool" | "shortcut") => {
       setSelectedAssetId(assetId);
       const family = floorFamilyFromAssetId(assetId);
       if (family) setFloorFamily(family);
-      if (source === "tool") setActiveSubTool("place");
+      if (source === "tool") setActiveSubTool(family ? "terrain" : "place");
     },
     [setFloorFamily, setActiveSubTool],
   );

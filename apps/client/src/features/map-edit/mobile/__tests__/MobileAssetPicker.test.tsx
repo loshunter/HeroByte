@@ -1,5 +1,5 @@
 /**
- * My Stuff on the phone.
+ * My uploads on the phone.
  *
  * The desktop has had an upload tab in its asset popover since S3; the phone
  * shipped every BUNDLED asset and nothing of the DM's own, so their art needed
@@ -7,10 +7,10 @@
  * phone already uses everywhere else — rather than a port of the popover.
  *
  * Four things here are load-bearing rather than cosmetic:
- *   - the My Stuff CHIP is offered even when the shelf is empty, because
+ *   - the My uploads CHIP is offered even when the shelf is empty, because
  *     hiding it until it has something makes the only way to put something in
  *     it unreachable;
- *   - an empty My Stuff must NOT fall through to the Objects swatches, which
+ *   - an empty My uploads must NOT fall through to the Objects swatches, which
  *     is what the bundled-category fallback would otherwise do — a heading
  *     over someone else's assets;
  *   - a successful upload ARMS what was uploaded (a DM uploads in order to
@@ -24,14 +24,17 @@
 import React from "react";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
-import { MobileAssetPicker } from "../MobileAssetPicker";
+let MobileAssetPicker: typeof import("../MobileAssetPicker").MobileAssetPicker;
 
 afterEach(() => cleanup());
 
 /** This jsdom's window.localStorage is an inert stub with no methods at all —
- * the brushDeck.test.ts pattern. The My Stuff shelf IS localStorage, so these
+ * the brushDeck.test.ts pattern. The My uploads shelf IS localStorage, so these
  * tests need a functional one. */
-beforeEach(() => {
+beforeEach(async () => {
+  // Each case starts a new browser session, including the in-memory upload shelf.
+  vi.resetModules();
+  ({ MobileAssetPicker } = await import("../MobileAssetPicker"));
   const store = new Map<string, string>();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -74,10 +77,10 @@ function renderPicker(overrides: { selected?: string; onSelect?: (id: string) =>
   return { onSelect };
 }
 
-const myStuffChip = () => screen.getByRole("button", { name: /my stuff/i });
+const myStuffChip = () => screen.getByRole("button", { name: /my uploads/i });
 
-describe("MobileAssetPicker — My Stuff", () => {
-  it("offers the My Stuff shelf even while it is empty", () => {
+describe("MobileAssetPicker — My uploads", () => {
+  it("offers the My uploads shelf even while it is empty", () => {
     renderPicker();
     expect(myStuffChip()).toBeInTheDocument();
   });
@@ -89,7 +92,7 @@ describe("MobileAssetPicker — My Stuff", () => {
     expect(screen.getByLabelText("Upload art")).toBeInTheDocument();
     expect(screen.getByText(/Upload an image to place it/i)).toBeInTheDocument();
     // The empty-category fallback is for BUNDLED shelves. Falling through here
-    // would put the Objects swatches under a My Stuff heading.
+    // would put the Objects swatches under a My uploads heading.
     expect(screen.queryByRole("button", { name: "Crate" })).toBeNull();
   });
 

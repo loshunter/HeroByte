@@ -131,12 +131,13 @@ export interface MainLayoutProps {
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  mapEditTerrainBrushSize: import("../../features/map-studio/terrainBrushGeometry").TerrainBrushSize;
   /** Curve kind the spline tool authors (optional: defaults to rope). */
   mapEditSplineKind?: import("../../features/map-edit/mapEditTypes").MapEditSplineKind;
-  /** POPULATE's true draft footprints while a region is armed (P2 ghosts;
+  /** POPULATE footprints and Generate's normalized target while a region is armed;
    * optional so the layout fixtures stay untouched). */
-  mapEditPopulateGhosts?:
-    | import("../../features/map-edit/useMapEditPlacement").PlacementGhost[]
+  mapEditPersistentPreview?:
+    | import("../../features/map-edit/MapEditPersistentPreview").MapEditPersistentPreview
     | null;
   /** Quick-wheel dispatch pair (P5; optional — fixtures untouched). */
   mapEditWheelActions?: import("../../features/map-edit/mapEditTypes").MapEditWheelActions;
@@ -152,7 +153,7 @@ export interface MainLayoutProps {
    * lesson two fields down), and this one's whole job is breaking a silence. */
   onMapEditGestureDropped: () => void;
   /** Called when a room/hallway lands — records the POPULATE target */
-  onMapEditRegionPlaced: (bounds: RoomBounds) => void;
+  onMapEditRegionPlaced: import("../../features/map-edit/populateTarget").OnPopulateRegionPlaced;
   onMapEditRegionDragged: (bounds: RoomBounds) => void;
   /** Called when the select tool picks an element (or clears) */
   onMapEditSelectElement: (elementId: string | null) => void;
@@ -207,6 +208,14 @@ export interface MainLayoutProps {
   gridSquareSize: number;
   /** Whether current user is DM */
   isDM: boolean;
+  /**
+   * The viewer's seat is in the roster: the app's own test that the snapshot has
+   * arrived. REQUIRED, like the one rule it serves — every socket close nulls
+   * the snapshot while the app stays mounted, and for that blip `isDM` reads
+   * false. A control that judges the role (Enter or Leave DM mode) waits for
+   * this rather than offering a DM the wrong button.
+   */
+  roleKnown: boolean;
 
   // -------------------------------------------------------------------------
   // Camera

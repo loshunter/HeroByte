@@ -15,9 +15,9 @@ import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
 import type { TerrainMap } from "./terrain.js";
 import type { DiceRollMode, DiceVisibility } from "./dice.js";
 import type { DiagonalRule, MeasurePoint } from "./measurement.js";
-import type { AreaTemplate, AreaTemplateTool } from "./areaTemplates.js";
-// Imported as well as re-exported below: the barrel's own declarations use it.
-import type { DrawingType } from "./drawingTypes.js";
+import type { AreaTemplateTool } from "./areaTemplates.js";
+// Imported as well as re-exported below: the barrel's own declarations use them.
+import type { Drawing, DrawingSegmentPayload, DrawingHistoryCapabilities } from "./drawing.js";
 // Imported as well as re-exported below: RoomSnapshot/SessionFile/ClientMessage use them.
 import type {
   AtlasNodeKind,
@@ -27,6 +27,7 @@ import type {
   SceneState,
 } from "./atlas.js";
 import type { GenerateRequest } from "./recipes.js";
+import type { ChatMessage } from "./chat.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
@@ -323,37 +324,7 @@ export interface DiceRoll {
   timestamp: number; // When the roll occurred
 }
 
-/**
- * ChatMessage: one line of table talk.
- *
- * `authorUid` and `authorName` are stamped by the SERVER from the sending
- * connection. Nothing a client sends can set them — the same rule DiceRoll
- * above now follows. (Dice did not, until S5: a client-supplied playerUid was
- * stored verbatim, which was arc defect D2.)
- *
- * `authorName` is a snapshot of the name at send time rather than a join
- * against `players`, so renaming yourself does not rewrite your history.
- */
-export interface ChatMessage {
-  id: string; // Unique message identifier
-  authorUid: string; // Who sent it — bound from the connection, never the client
-  authorName: string; // Author's display name at send time
-  text: string; // Message body (plain text; never rendered as HTML)
-  /**
-   * Whisper target's uid. Absent means the whole table.
-   *
-   * SECRECY: the server filters this per recipient in the snapshot, so a
-   * whisper is never serialized to anyone but its author and its target.
-   * Do not rely on the client to hide it.
-   *
-   * Bounded by the identity model, though: `uid` is client-asserted (signed
-   * session tokens are deferred — see session-one-arc.md §7), so a whisper is
-   * private from the other people at the table, NOT from someone willing to
-   * reconnect under their uid. See visibleChatFor for the full note.
-   */
-  to?: string;
-  timestamp: number; // When the message was sent
-}
+export type { ChatMessage } from "./chat.js";
 
 /**
  * Player: Represents a connected player in the session
@@ -482,33 +453,7 @@ export { isCustomTokenImageUrl } from "./customTokenUrl.js";
  */
 export type DrawTool = "freehand" | "line" | "rect" | "circle" | "eraser" | AreaTemplateTool;
 
-/**
- * Drawing: Represents any drawing on the map canvas
- * Supports multiple tool types: freehand, line, rectangle, circle, etc.
- */
-export interface Drawing {
-  id: string; // Unique identifier
-  owner?: string; // UID of player who created this drawing
-  type: DrawingType; // Drawing tool type
-  points: { x: number; y: number }[]; // Path points or shape bounds
-  color: string; // Line/fill color
-  width: number; // Line thickness
-  opacity: number; // Opacity (0-1)
-  filled?: boolean; // For shapes: filled vs outline only
-  selectedBy?: string; // UID of player who has this drawing selected (for editing)
-  /**
-   * Present only on `type: "template"`. Describes the area — "20 ft cone" —
-   * for the readout; `points` remains the authority on where it sits, so
-   * dragging a placed template never makes this stale.
-   */
-  template?: AreaTemplate;
-}
-
-/**
- * DrawingSegmentPayload: Data required to create a new drawing segment generated
- * after a partial erase operation. Server will assign a fresh id and owner.
- */
-export type DrawingSegmentPayload = Omit<Drawing, "id">;
+export type { Drawing, DrawingSegmentPayload, DrawingHistoryCapabilities } from "./drawing.js";
 
 /**
  * Where an NPC stands with the party — the DM's call, and theirs alone. A
@@ -683,6 +628,8 @@ export interface MapTerrainSnapshot {
 }
 
 export interface RoomSnapshot {
+  /** This recipient's last confirmed drawing history; absent on older servers and in session files. */
+  drawingHistory?: DrawingHistoryCapabilities;
   users: string[]; // Legacy array of UIDs (deprecated, use players)
   tokens: Token[]; // All tokens on the map
   players: Player[]; // All connected players
@@ -994,6 +941,13 @@ type ClientMessagePayload =
       initiative?: number;
       initiativeModifier?: number;
     }
+  // The modifier ALONE, for a restored character file: `set-initiative` with
+  // no value clears initiative and with one enters the order (and, after END
+  // COMBAT, starts combat again), so neither can restore just the bonus.
+  | { t: "set-initiative-modifier"; characterId: string; initiativeModifier: number }
+  // The DM moves a player character — and its token — to another player's
+  // seat (U7's Token settings, "ownership where allowed").
+  | { t: "set-character-owner"; characterId: string; ownerUid: string }
   // Rolling. Carries a TARGET and no result: the server rolls d20 on
   // cryptoDiceRng — the same generator dice use — and appends the roll to the
   // log so the table witnesses it. Strictly less for a tampered client to lie
@@ -1074,7 +1028,7 @@ type ClientMessagePayload =
   // Map Studio authoring (DM-only; kept separate from live RoomSnapshot)
   | { t: "map-studio-list" }
   | { t: "map-studio-create"; document: CreateMapDocumentInput }
-  | { t: "map-studio-get"; documentId: string }
+  | { t: "map-studio-get"; documentId: string; requestId?: string }
   | { t: "map-studio-command"; command: MapStudioCommand }
   | { t: "map-studio-delete"; documentId: string }
   | { t: "map-studio-import"; document: MapDocument } // Restore a serialized JSON backup as a new document
@@ -1319,6 +1273,8 @@ export type ServerMessage =
   | {
       t: "map-studio-document";
       document: MapDocument;
+      /** Echoed only on the requesting DM's correlated GET reply, never a broadcast. */
+      requestId?: string;
       appliedCommandId?: string;
       history?: { canUndo: boolean; canRedo: boolean };
       /**
@@ -1341,11 +1297,12 @@ export type ServerMessage =
       t: "map-studio-error";
       commandId: string;
       documentId: string;
+      requestId?: string;
       // "not-found": a get/open targeted a document the server no longer has
       // (e.g. an ephemeral maps store reset under a room that kept its live
       // binding) — the client clears the load and offers a fresh start
       // instead of re-fetching the dangling id forever.
-      code: "revision-conflict" | "command-rejected" | "not-found";
+      code: "revision-conflict" | "command-rejected" | "command-not-applied" | "not-found";
       reason: string;
       actualRevision?: number;
     }

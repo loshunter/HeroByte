@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AssetUploadError, type UploadedAssetInfo } from "../assetUpload";
-import { useMyStuffAssets } from "../useMyStuffAssets";
+let useMyStuffAssets: typeof import("../useMyStuffAssets").useMyStuffAssets;
 
 const HASH = "b".repeat(64);
 
@@ -17,7 +17,10 @@ function info(overrides: Partial<UploadedAssetInfo> = {}): UploadedAssetInfo {
 }
 
 let backing: Map<string, string>;
-beforeEach(() => {
+beforeEach(async () => {
+  // Separate browser sessions between cases, while preserving remount state within each case.
+  vi.resetModules();
+  ({ useMyStuffAssets } = await import("../useMyStuffAssets"));
   backing = new Map();
   Object.defineProperty(globalThis, "localStorage", {
     value: {

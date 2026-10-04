@@ -93,7 +93,7 @@ export interface UseStageEventRouterReturn {
   onTap: (event: KonvaEventObject<TouchEvent>) => void;
   onMouseDown: (event: KonvaEventObject<PointerEvent>) => void;
   onMouseMove: () => void;
-  onMouseUp: () => void;
+  onMouseUp: (event?: KonvaEventObject<MouseEvent | PointerEvent>) => void;
   onTouchStart: (event: KonvaEventObject<TouchEvent>) => void;
   onTouchMove: (event: KonvaEventObject<TouchEvent>) => void;
   onTouchEnd: () => void;

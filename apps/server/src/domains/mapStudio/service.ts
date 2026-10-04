@@ -19,6 +19,10 @@ interface DocumentHistory {
   redo: MapDocument[];
 }
 
+// Local completion metadata shares the existing bounded command-cache lifetime.
+// It is never part of a map document or a wire reply.
+type CachedCommand = AppliedMapDocumentCommand & { generationCompleted?: true };
+
 export class MapDocumentNotFoundError extends Error {
   constructor(documentId: string) {
     super(`Map document not found: ${documentId}`);
@@ -34,7 +38,7 @@ export class MapDocumentAlreadyExistsError extends Error {
 }
 
 export class MapStudioService {
-  private readonly commandResults = new Map<string, AppliedMapDocumentCommand>();
+  private readonly commandResults = new Map<string, CachedCommand>();
   private readonly histories = new Map<string, DocumentHistory>();
 
   constructor(private readonly store: MapDocumentStore = new InMemoryMapDocumentStore()) {}
@@ -118,11 +122,7 @@ export class MapStudioService {
    * document would reject a command that already landed — the document may have
    * legitimately changed since (a layer locked, the grid moved).
    */
-  cachedResult(
-    roomId: string,
-    documentId: string,
-    commandId: string,
-  ): AppliedMapDocumentCommand | undefined {
+  cachedResult(roomId: string, documentId: string, commandId: string): CachedCommand | undefined {
     requireRoomId(roomId);
     const cached = this.commandResults.get(`${roomId}:${documentId}:${commandId.trim()}`);
     if (!cached) return undefined;
@@ -130,6 +130,13 @@ export class MapStudioService {
     return latest
       ? { ...cloneAppliedCommand(cached), revision: latest.revision, document: latest }
       : cloneAppliedCommand(cached);
+  }
+
+  /** Mark only after Generate's required post-apply work has finished. */
+  completeGeneration(roomId: string, documentId: string, commandId: string): void {
+    requireRoomId(roomId);
+    const cached = this.commandResults.get(`${roomId}:${documentId}:${commandId.trim()}`);
+    if (cached) cached.generationCompleted = true;
   }
 
   apply(
@@ -273,7 +280,7 @@ function trimHistory(history: MapDocument[]): void {
   if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT);
 }
 
-function cloneAppliedCommand(result: AppliedMapDocumentCommand): AppliedMapDocumentCommand {
+function cloneAppliedCommand<T extends AppliedMapDocumentCommand>(result: T): T {
   return { ...result, document: cloneMapDocument(result.document) };
 }
 

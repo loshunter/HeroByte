@@ -65,7 +65,7 @@ test.describe("map-edit across the layout boundary", () => {
     await expect(palette).toBeVisible({ timeout: 10_000 });
     // Still the MODE, not the ordinary dock: the crossing kept the tool.
     await expect(page.getByRole("navigation", { name: /Mobile actions/i })).toHaveCount(0);
-    await expect(palette.getByRole("button", { name: /Exit/ })).toBeVisible();
+    await expect(palette.getByRole("button", { name: /Done building/ })).toBeVisible();
 
     // ---- and back ----
     await page.setViewportSize(DESKTOP);
@@ -84,7 +84,7 @@ test.describe("map-edit across the layout boundary", () => {
     await page.setViewportSize(PHONE);
     const palette = page.getByRole("navigation", { name: /Map edit actions/i });
     await expect(palette).toBeVisible({ timeout: 10_000 });
-    await palette.getByRole("button", { name: /Exit/ }).click();
+    await palette.getByRole("button", { name: /Done building/ }).click();
 
     // The ordinary DM dock returns — slot five is DM, not View.
     const dock = page.getByRole("navigation", { name: /Mobile actions/i });

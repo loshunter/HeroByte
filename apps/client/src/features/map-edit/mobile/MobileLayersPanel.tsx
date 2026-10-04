@@ -1,9 +1,7 @@
 // The layer stack, with a finger.
 //
-// This is not a nice-to-have on a phone. The **Lighting layer's opacity IS the
-// ambient light** — 1 is day, lower is night, and the torch pools only glow
-// once it drops. Without this panel a DM authoring on a tablet can place lights
-// and never turn the lights down, which is most of what lighting is for.
+// Lighting exposes Ambient light directly. This panel retains the same value
+// alongside visibility, locking and opacity for the full layer stack.
 //
 // The desktop MapEditLayersPopover is reused in SHAPE (visible / lock / name /
 // reorder / opacity) but not in code: its buttons are 10px type at 2px padding,
@@ -18,7 +16,7 @@
 // Which is why the TOGGLE is a cell in the tool grid and only the BODY is a
 // footer. As a full-width row it cost 16px of map on a tablet and the floor
 // caught it; in the grid it costs nothing, because 14 buttons across five
-// columns already leave a slot empty. It sits with Select, Sample and Recenter
+// columns already leave a slot empty. It sits with Select, Sample and Reset view
 // — the things in that grid that are not drag tools.
 //
 // Open state rides the SAME `layersOpen` the desktop popover uses, so a tablet
@@ -73,16 +71,20 @@ export function MobileLayersPanel({
           </button>
           <label className="mobile-layer-row__slider">
             <span className="mobile-tool-sheet__label">
-              {layer.name} — {Math.round(layer.opacity * 100)}%
+              {layer.kind === "lighting" ? "Ambient light" : `${layer.name} Opacity`} —{" "}
+              {Math.round(layer.opacity * 100)}%
             </span>
             <input
-              aria-label={`${layer.name} opacity`}
+              aria-label={layer.kind === "lighting" ? "Ambient light" : `${layer.name} opacity`}
+              aria-valuetext={`${Math.round(layer.opacity * 100)}%`}
               type="range"
               min={0}
               max={1}
               step={0.05}
               value={layer.opacity}
-              disabled={saving}
+              // aria-disabled, not `disabled`: a disabled slider drops keyboard focus (see
+              // AmbientLightControl).
+              aria-disabled={saving || undefined}
               onChange={(event) => {
                 if (saving) return;
                 onUpdateLayer(layer.id, { opacity: Number(event.target.value) });

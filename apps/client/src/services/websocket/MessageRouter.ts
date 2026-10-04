@@ -69,13 +69,13 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "map-studio-deleted" }>
   | Extract<ServerMessage, { t: "map-studio-error" }>
   | Extract<ServerMessage, { t: "atlas-error" }>
-  // The Players tab's REMOVE, refused: the DM's only failure surface for it.
+  // The Table tab's REMOVE, refused: the DM's only failure surface for it.
   // Found live 2026-09-21 the same way session-file was — the frame arrived
   // and the guard below warn-dropped it.
   | Extract<ServerMessage, { t: "remove-player-refused" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
-  // Save Game State's reply. It was never on this list: it rode the router's
+  // Download table backup's reply. It was never on this list: it rode the router's
   // old fallthrough, and the forward-compat guard (a6890e19) that stopped
   // unknown types blanking the table silently dropped it instead — every save
   // ended in "the server did not return a session file". Found live 2026-09-14.

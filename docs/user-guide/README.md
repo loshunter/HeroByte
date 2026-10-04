@@ -8,8 +8,8 @@ This guide walks through everything a player or a DM needs, with screenshots fro
 | --------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | [Getting Started](getting-started.md)   | Everyone        | Joining a table, private tables and invite links, becoming the DM                                                                         |
 | [Running a Game](running-a-game.md)     | Dungeon Masters | **Start here.** The three ways to get a map on the table — bring your own art, build it, or generate it mid-session — and how to mix them |
-| [Player Guide](player-guide.md)         | Players         | The table UI, your character card, tokens, dice, drawing, voice, doors and fog, the world map, mobile                                     |
-| [DM Guide](dm-guide.md)                 | Dungeon Masters | The DM Menu, map setup, NPCs and props, initiative and combat, session save/load, table security, the Atlas and the Kicked-In Door        |
+| [Player Guide](player-guide.md)         | Players         | The table UI, the Party and your character card, tokens, dice, drawing, voice, doors and fog, the world map, mobile                       |
+| [DM Guide](dm-guide.md)                 | Dungeon Masters | The DM Menu, the Maps tab, NPCs and props, initiative and combat, the Table tab (invite, permissions, backups, security), World and the Kicked-In Door |
 | [Map Editor Guide](map-editor-guide.md) | Dungeon Masters | The live map editor: rooms, halls, doors, terrain painting, props, lighting, the dungeon generator                                        |
 
 **Self-hosting or deploying?** See the repo-level [README](../../README.md) for the quick start and [DEPLOYMENT.md](../../DEPLOYMENT.md) for production hosting (Render + Cloudflare Pages, persistent-disk setup, and every environment variable).
@@ -18,7 +18,7 @@ This guide walks through everything a player or a DM needs, with screenshots fro
 
 - A **table** is one shared game space — everyone at the same table sees the same map, tokens, and dice rolls. (The code and server APIs call tables "rooms"; the UI always says table.)
 - The **Main Hall** is the default table every server starts with, and it is permanently a **public test table**: its passwords are the documented defaults and cannot be changed, and it wipes itself once it has sat empty for an hour. To keep something built there, [save it as a private table](getting-started.md#keeping-what-you-built-there); for a planned game, [create one](getting-started.md#creating-a-private-table).
-- The **DM** (Dungeon Master) is a player who has elevated with the DM password. The DM gets extra tools: the DM Menu, the live map editor, fog of war, and the player-view lens.
+- The **DM** (Dungeon Master) is a player who has entered DM mode with the DM password. The DM gets extra tools: the DM Menu, the live map editor, fog of war, and the player-view lens.
 
 ## Screenshots
 

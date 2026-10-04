@@ -6,10 +6,8 @@ import type {
   PlayerStagingZone,
   Prop,
   Player,
-  SceneObject,
   SnapshotCharacter,
   DiagonalRule,
-  MonsterHpDisplay,
 } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import type { Camera } from "../../../hooks/useCamera";
@@ -18,10 +16,12 @@ import type { CreateNpcRequest } from "../hooks/useNpcCreation";
 import type { CustomTokensApi } from "../token-library/customTokensContext";
 import type { MapStudioController } from "../../map-studio";
 import type { PendingLink } from "../../atlas/useAtlasLinkAim";
+import type { LauncherPresentation } from "../../../components/layout/party/LauncherDock";
+import type { EncounterControls } from "../../encounter/encounterControls";
+import type { TableControls } from "../../table/tab/tableControls";
 
-export interface DMMenuProps {
+export interface DMMenuBaseProps {
   isDM: boolean;
-  onToggleDM: (next: boolean) => void;
   gridSize: number;
   gridSquareSize?: number;
   gridLocked: boolean;
@@ -34,6 +34,10 @@ export interface DMMenuProps {
   hasCompiledScene?: boolean;
   /** The compiled scene's source document — what PUBLISH would replace. */
   liveSceneDocumentId?: string;
+  /** The room's live binding: the saved map the party is on (Maps → On table). */
+  liveMapDocumentId?: string;
+  /** Binds a library map to the table through the existing set-live message. */
+  onUseMapAtTable?: (documentId: string) => void;
   onFogEnabledChange?: (enabled: boolean) => void;
   defaultVisionRadius?: number;
   onDefaultVisionRadiusChange?: (radiusFeet: number | null) => void;
@@ -47,7 +51,6 @@ export interface DMMenuProps {
   stagingZoneLocked?: boolean;
   onStagingZoneLockToggle?: () => void;
   camera: Camera;
-  playerCount: number;
   characters: SnapshotCharacter[];
   // The Atlas tab (A2). REQUIRED on purpose — required options over optional
   // ones for wiring that must not silently unwire (arc rule §6): an optional
@@ -64,8 +67,6 @@ export interface DMMenuProps {
   onArmLinkAim?: (pending: PendingLink) => void;
   /** The kicked-in door (K2): the Atlas tab's 🚪 button. */
   onOpenKick?: () => void;
-  onRequestSaveSession?: (sessionName: string) => void;
-  onRequestLoadSession?: (file: File) => void;
   onCreateNPC: (request?: CreateNpcRequest) => void;
   /** The table's own Library tokens; absent means the shelf is read-only. */
   customTokens?: readonly CustomToken[];
@@ -79,6 +80,9 @@ export interface DMMenuProps {
   onDuplicateNPC: (id: string) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;
+  onSetNPCStatusEffects: (id: string, effects: string[]) => void;
+  onFocusNPCToken: (tokenId: string) => void;
+  mapTokenIds: ReadonlySet<string>;
   isCreatingNpc?: boolean;
   npcCreationError?: string | null;
   isUpdatingNpc?: boolean;
@@ -115,50 +119,30 @@ export interface DMMenuProps {
   onAlignmentReset: () => void;
   onAlignmentCancel: () => void;
   onAlignmentApply: () => void;
-  onSetRoomPassword?: (secret?: string) => void;
-  roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
-  roomPasswordPending?: boolean;
-  onDismissRoomPasswordStatus?: () => void;
-  /** Test table only: copy this table into a new private one. */
-  onSaveAsPrivateTable?: (input: {
-    name: string;
-    roomPassword: string;
-    dmPassword?: string;
-  }) => Promise<void>;
-  sceneObjects: SceneObject[];
-  onSelectPlayerTokens: (playerUid: string) => void;
-  /** The connected roster; a player outside it is shown as not connected and can be removed. */
-  connectedUids?: readonly string[];
-  onRemovePlayer?: (playerUid: string) => void;
   combatActive?: boolean;
-  monsterHpDisplay?: MonsterHpDisplay;
-  onMonsterHpDisplayChange?: (mode: MonsterHpDisplay) => void;
-  onStartCombat?: () => void;
-  onEndCombat?: () => void;
-  onClearAllInitiative?: () => void;
-  onNextTurn?: () => void;
-  onPreviousTurn?: () => void;
+  /**
+   * The Encounter tab's reads and sends (U8), one REQUIRED object: combat,
+   * turns, initiative and Monster HP moved there from Players and NPCs.
+   */
+  encounter: EncounterControls;
+  /**
+   * The Table tab's reads and sends (U9), one REQUIRED object: invites, the
+   * roster, permissions, backups and security moved there from Session and
+   * Players, and so did leaving DM mode.
+   */
+  table: TableControls;
   toast?: {
     success: (message: string) => void;
     error: (message: string) => void;
   };
-  onRollAllInitiative?: () => void;
-  /** Player-props toggle (Session tab): players may manage their OWN props. */
-  playerPropsEnabled?: boolean;
-  onPlayerPropsEnabledChange?: (enabled: boolean) => void;
-  /**
-   * Initiative manual-override toggle (Session tab): players may enter a
-   * number by hand instead of rolling. Unlike the flag above this one is ON by
-   * default, so the caller derives it with `!== false`.
-   */
-  initiativeManualOverride?: boolean;
-  onInitiativeManualOverrideChange?: (enabled: boolean) => void;
   mapStudio?: MapStudioController;
-  /**
-   * How the menu presents (M4b). "window" is the desktop shape: the floating
-   * 🛠️ DM MENU launcher plus a DraggableWindow. "content" renders ONLY the
-   * inner content — exit row, tabs (as a scrollable chip row), active tab —
-   * for a host that already provides the surface, like the mobile DM screen.
-   */
-  presentation?: "window" | "content";
 }
+
+/**
+ * How the menu presents (M4b). "window" is the desktop shape: the 🛠️ DM MENU
+ * launcher in the Party bar's dock (U7) plus a DraggableWindow; the dock is
+ * required there. "content" renders ONLY the inner content — tabs (as a
+ * scrollable chip row) and the active tab — for a host that already provides
+ * the surface, like the mobile DM screen.
+ */
+export type DMMenuProps = DMMenuBaseProps & LauncherPresentation;

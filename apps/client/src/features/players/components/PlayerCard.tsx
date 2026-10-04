@@ -12,8 +12,11 @@ import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
 import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
-import { loadPlayerState, savePlayerState } from "../../../utils/playerPersistence";
+import { loadPlayerState } from "../../../utils/playerPersistence";
+import { saveCharacterFile } from "../characterFile";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
+import type { OwnerControl } from "./TokenSettingsSection";
+import { useRoleKnown } from "../../table/roleKnown";
 
 export interface PlayerCardProps {
   player: Player;
@@ -63,11 +66,12 @@ export interface PlayerCardProps {
   onStatusEffectsChange?: (effects: string[]) => void;
   isDM: boolean;
   viewerIsDM: boolean;
-  onToggleDMMode: (next: boolean) => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  /** DM-only: this character's owner (the settings window's Token settings). */
+  owner?: OwnerControl;
   /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
   tokenVisionRadius?: number;
   /** The table's default sight radius in feet, so a token that INHERITS it can
@@ -133,11 +137,11 @@ export const PlayerCard = memo<PlayerCardProps>(
     onDeleteToken,
     isDM,
     viewerIsDM,
-    onToggleDMMode,
     tokenLocked,
     onToggleTokenLock,
     tokenSize,
     onTokenSizeChange,
+    owner,
     tokenVisionRadius,
     tableVisionDefault,
     onTokenVisionRadiusChange,
@@ -164,6 +168,12 @@ export const PlayerCard = memo<PlayerCardProps>(
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
+    // Another player's window is the DM's to hold: on losing DM rights it closes (a
+    // reconnect blip waits for the roster), and does not reopen when DM comes back.
+    const roleKnown = useRoleKnown();
+    useEffect(() => {
+      if (!isMe && !viewerIsDM && roleKnown) setSettingsOpen(false);
+    }, [isMe, viewerIsDM, roleKnown]);
 
     /*
      * The settings window's "Character Name" field gets its OWN buffer, seeded
@@ -202,18 +212,14 @@ export const PlayerCard = memo<PlayerCardProps>(
 
     const handleSavePlayerState = () => {
       if (!isMe && !viewerIsDM) return;
-      const imageRef = tokenImageInput.trim() || tokenImageUrl || undefined;
-      const tokenForExport: Token | undefined = token
-        ? {
-            ...token,
-            imageUrl: imageRef ?? token.imageUrl ?? undefined,
-          }
-        : undefined;
-      savePlayerState({
+      // The conditions this card shows are the character's own (see characterFile).
+      saveCharacterFile({
         player,
-        token: tokenForExport,
-        tokenScene: tokenSceneObject ?? null,
-        drawings: playerDrawings ?? [],
+        statusEffects: statusEffects ?? [],
+        token: token ?? undefined,
+        tokenImage: tokenImageInput.trim() || tokenImageUrl || undefined,
+        tokenScene: tokenSceneObject,
+        drawings: playerDrawings,
         initiativeModifier,
       });
     };
@@ -335,7 +341,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           hp={player.hp ?? 100}
           maxHp={player.maxHp ?? 100}
           tempHp={player.tempHp}
-          isMe={isMe}
+          // Its editors: the owner's, and the DM's (the server allows both).
+          isMe={isMe || viewerIsDM}
           isEditingHp={editingHp}
           hpInput={hpInput}
           isEditingMaxHp={editingMaxHp}
@@ -356,6 +363,7 @@ export const PlayerCard = memo<PlayerCardProps>(
         />
 
         <CardControls
+          controlId={characterId ?? player.uid}
           canControlMic={isMe}
           canOpenSettings={isMe || viewerIsDM}
           micEnabled={micEnabled}
@@ -364,7 +372,7 @@ export const PlayerCard = memo<PlayerCardProps>(
         />
 
         <PlayerSettingsMenu
-          isOpen={(isMe || viewerIsDM) && settingsOpen}
+          isOpen={(isMe || viewerIsDM || !roleKnown) && settingsOpen}
           onClose={() => setSettingsOpen(false)}
           tokenImageInput={tokenImageInput}
           tokenImageUrl={tokenImageUrl}
@@ -394,13 +402,11 @@ export const PlayerCard = memo<PlayerCardProps>(
           onStatusEffectsChange={handleStatusEffectsChange}
           isDM={isDM}
           viewerIsDM={viewerIsDM}
-          // Only on your own card: the toggle grants/revokes the VIEWER's DM.
-          canToggleDM={isMe}
-          onToggleDMMode={onToggleDMMode}
           tokenLocked={tokenLocked}
           onToggleTokenLock={onToggleTokenLock}
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
+          owner={owner}
           tokenVisionRadius={tokenVisionRadius}
           tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}
@@ -473,7 +479,15 @@ export const PlayerCard = memo<PlayerCardProps>(
     // every render (it closes over the character id and a stable handler),
     // so comparing it would defeat the memo for every card in a fight.
     !!prevProps.characterBudget === !!nextProps.characterBudget &&
-    prevProps.characterBudget?.used === nextProps.characterBudget?.used,
+    prevProps.characterBudget?.used === nextProps.characterBudget?.used &&
+    // The owner control's SHAPE too (its onChange is minted every render):
+    // the current seat and the seats offered.
+    prevProps.owner?.uid === nextProps.owner?.uid &&
+    ownerSeats(prevProps.owner) === ownerSeats(nextProps.owner),
 );
 
 PlayerCard.displayName = "PlayerCard";
+
+function ownerSeats(owner?: OwnerControl): string | undefined {
+  return owner?.options.map((option) => `${option.uid}:${option.name}`).join("|");
+}

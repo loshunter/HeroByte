@@ -1,3 +1,4 @@
+import { chooseBuildTool } from "../build-palette.helpers";
 /**
  * The ARGUMENTS a click tool takes, on a phone.
  *
@@ -38,7 +39,7 @@ test.describe("M7 — the dials a phone has no key for", () => {
       y: box.y + box.height * fy,
     });
 
-    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+    await chooseBuildTool(toolGrid, "place");
     const dropRow = page.locator(".mobile-tool-sheet__section", { hasText: "Drop as" });
     await expect(dropRow).toBeVisible();
 
@@ -87,9 +88,10 @@ test.describe("M7 — the dials a phone has no key for", () => {
 
     // Put something on the map that is NOT the default crate, so "the sample
     // worked" cannot be satisfied by the tool simply having stayed as it was.
-    await toolGrid.getByRole("button", { name: /^Place$/ }).click();
+    await chooseBuildTool(toolGrid, "place");
     const picker = page.locator(".mobile-tool-sheet__section", { hasText: "Place" }).first();
-    const swatches = picker.locator(".mobile-tool-sheet__grid").getByRole("button");
+    const objects = picker.getByRole("group", { name: "Objects", exact: true });
+    const swatches = objects.getByRole("button");
     const otherName = (await swatches.nth(1).textContent())!.trim();
     await swatches.nth(1).click();
     await page.getByRole("button", { name: /To the map/i }).click();
@@ -113,14 +115,15 @@ test.describe("M7 — the dials a phone has no key for", () => {
 
     await dock.getByRole("button", { name: /Tool/ }).click();
     // Handed over to Place...
-    await expect(toolGrid.getByRole("button", { name: /^Place$/ })).toHaveAttribute(
+    await expect(toolGrid.getByRole("button", { name: "Place object" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
     // ...armed with what was under the finger, not what was armed before.
-    await expect(
-      picker.locator(".mobile-tool-sheet__grid").getByRole("button", { name: otherName }),
-    ).toHaveAttribute("aria-pressed", "true");
+    await expect(objects.getByRole("button", { name: otherName, exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
     // And a sample places NOTHING. A miss that fell through to the place tool
     // would drop a crate where the DM was pointing at empty floor.

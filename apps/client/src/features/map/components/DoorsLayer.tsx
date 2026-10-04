@@ -6,7 +6,7 @@
 // transform groups as MapImageLayer (camera, then map transform) to stay
 // pixel-aligned with the published background.
 
-import { Fragment } from "react";
+import { Fragment, useRef } from "react";
 import { Group, Line, Rect } from "react-konva";
 import type Konva from "konva";
 import type { CompiledDoor, CompiledDoorState, SceneObjectTransform } from "@herobyte/shared";
@@ -44,6 +44,19 @@ const FRAME_COLOR = "#4a3b28";
 const DOOR_COLOR = "#c99b55";
 const LOCK_COLOR = "#ffd75e";
 const SECRET_COLOR = "#7ce0d3";
+
+/** Press-to-release movement past this many CSS px is a pan, not a door click. */
+const DOOR_TAP_SLOP_PX = 8;
+
+type ScreenPoint = { x: number; y: number };
+
+/** Where a press or release happened on screen, or null if the event says nothing. */
+function screenPoint(evt: Event): ScreenPoint | null {
+  const touch = "changedTouches" in evt ? (evt as TouchEvent).changedTouches[0] : undefined;
+  if (touch) return { x: touch.clientX, y: touch.clientY };
+  if ("clientX" in evt) return { x: (evt as MouseEvent).clientX, y: (evt as MouseEvent).clientY };
+  return null;
+}
 
 export function DoorsLayer({
   cam,
@@ -97,9 +110,24 @@ function DoorSprite({
 }: DoorSpriteProps) {
   const midX = (door.x1 + door.x2) / 2;
   const midY = (door.y1 + door.y2) / 2;
+  // Konva fires click/tap whenever press and release land on the same shape —
+  // any mouse button, no movement slop — and a pan carries the door along under
+  // the pointer. So a pan that STARTED on a door also ended on it and swung it
+  // for the whole table. Remember the press to tell a click from a pan.
+  const press = useRef<ScreenPoint | null>(null);
+
+  const handlePress = (event: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    press.current = screenPoint(event.evt);
+  };
 
   const handleActivate = (event: Konva.KonvaEventObject<MouseEvent | Event>) => {
     event.cancelBubble = true;
+    const from = press.current;
+    press.current = null;
+    // Middle pans and right opens the tool wheel; neither is a door click.
+    if ("button" in event.evt && event.evt.button !== 0) return;
+    const to = screenPoint(event.evt);
+    if (from && to && Math.hypot(to.x - from.x, to.y - from.y) > DOOR_TAP_SLOP_PX) return;
     const altPressed = "altKey" in event.evt && Boolean(event.evt.altKey);
     if (isDM && altPressed) {
       onSetDoorState(door.id, lockCycle(door.state));
@@ -172,6 +200,8 @@ function DoorSprite({
         strokeWidth={18}
         hitStrokeWidth={18}
         listening={!selectArmed && !linkAimArmed}
+        onMouseDown={handlePress}
+        onTouchStart={handlePress}
         onClick={handleActivate}
         onTap={handleActivate}
       />

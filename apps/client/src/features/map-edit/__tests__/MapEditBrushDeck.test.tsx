@@ -36,7 +36,7 @@ describe("MapEditBrushDeck", () => {
   it("renders every material shelf with its tiles", () => {
     render(<MapEditBrushDeck selected="grass" onSelect={vi.fn()} />);
     for (const shelf of ["Ground", "Water", "Stone", "Wood", "Roofs", "Canopy"]) {
-      expect(screen.getByText(shelf)).toBeTruthy();
+      expect(screen.getByRole("region", { name: `${shelf} brushes` })).toBeTruthy();
     }
     expect(screen.getByTitle("Grass")).toBeTruthy();
     expect(screen.getByTitle("Stone Wall")).toBeTruthy();
@@ -48,7 +48,7 @@ describe("MapEditBrushDeck", () => {
     expect(screen.getByTitle("Dirt").getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByTitle("Grass").getAttribute("aria-pressed")).toBe("false");
     // The armed family stays readable even when search/scroll hides its tile.
-    expect(screen.getByText("Dirt", { selector: "span" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Selected material" })).toHaveTextContent("Dirt");
   });
 
   it("arms the clicked family and records it as a recent", () => {
@@ -66,7 +66,7 @@ describe("MapEditBrushDeck", () => {
     fireEvent.change(screen.getByLabelText("Search brushes"), { target: { value: "oak" } });
     expect(screen.getByTitle("Oak Floor")).toBeTruthy();
     expect(screen.queryByTitle("Grass")).toBeNull();
-    expect(screen.queryByText("Ground")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Ground brushes" })).toBeNull();
     fireEvent.change(screen.getByLabelText("Search brushes"), { target: { value: "zzz" } });
     expect(screen.getByText(/No brush matches/)).toBeTruthy();
   });
@@ -79,6 +79,22 @@ describe("MapEditBrushDeck", () => {
     expect(screen.getAllByTitle("Grass")).toHaveLength(2);
     fireEvent.contextMenu(screen.getAllByTitle("Grass")[0]!);
     expect(screen.queryByText("★ Pinned")).toBeNull();
+  });
+
+  it("offers a named Pin action for the armed material even when search hides its tile", () => {
+    const onSelect = vi.fn();
+    render(<MapEditBrushDeck selected="grass" onSelect={onSelect} />);
+    fireEvent.change(screen.getByLabelText("Search brushes"), { target: { value: "oak" } });
+    fireEvent.click(screen.getByRole("button", { name: "Pin Grass" }));
+    expect(JSON.parse(window.localStorage.getItem("herobyte:brush-deck:pins")!)).toEqual(["grass"]);
+    expect(screen.getByRole("button", { name: "Unpin Grass" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("herobyte:brush-deck:recents")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Unpin Grass" }));
+    expect(JSON.parse(window.localStorage.getItem("herobyte:brush-deck:pins")!)).toEqual([]);
   });
 
   it("hover reveals the family's grammar note", () => {

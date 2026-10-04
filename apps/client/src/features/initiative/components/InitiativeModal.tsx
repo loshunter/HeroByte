@@ -4,20 +4,28 @@
 // Modal for setting character initiative with roll or manual entry options
 
 import React, { useState, useCallback, useEffect } from "react";
+import "./initiativeModal.css";
+import {
+  EscapeRootProvider,
+  useEscapeRoot,
+  useEscapeOwner,
+} from "../../interaction/useEscapeOwner";
 import { createPortal } from "react-dom";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import { useFollowedModifier, useInertPage, useOwnSave } from "./dialogGuards";
 import type { SnapshotCharacter } from "@herobyte/shared";
+import { InitiativeModifierDial } from "./InitiativeModifierDial";
 
 interface InitiativeModalProps {
   character: SnapshotCharacter;
   onClose: () => void;
   onSetInitiative: (initiative: number, modifier: number) => void;
   /**
-   * Ask the SERVER to roll. Carries the dial's current modifier, which the
-   * server persists and rolls with — without it the roll would silently apply
-   * whatever modifier was last stored and the dial would stop mattering.
+   * Ask the SERVER to roll. Carries the dial's modifier once the viewer has
+   * touched it (the server persists and rolls with it); untouched, none, and the
+   * server rolls with the stored one — never an old value written back over it.
    */
-  onRollInitiative: (modifier: number) => void;
+  onRollInitiative: (modifier?: number) => void;
   /**
    * Whether entering a number by hand is offered at all.
    *
@@ -31,6 +39,12 @@ interface InitiativeModalProps {
    * be told the update timed out.
    */
   manualEntryAllowed?: boolean;
+  /**
+   * Whether a fight is running. Required: with none running, the server starts
+   * one on any initiative saved — on THIS character's turn — and the
+   * dialog says so before the press, rather than the table finding out after.
+   */
+  combatActive: boolean;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -41,67 +55,61 @@ export function InitiativeModal({
   onSetInitiative,
   onRollInitiative,
   manualEntryAllowed = true,
+  combatActive,
   isLoading = false,
   error = null,
 }: InitiativeModalProps) {
-  // State for initiative modifier and rolled value
-  const [modifier, setModifier] = useState(character.initiativeModifier ?? 0);
+  const modalRef = React.useRef<HTMLDivElement>(null);
+  const escapeRoot = useEscapeRoot(modalRef, 10000);
+  // This dialog's OWN save: `isLoading` / `error` are the layout's one hook's,
+  // which another character's save or clear drives too (dialogGuards.ts).
+  const own = useOwnSave(isLoading, error);
+  useInertPage(modalRef);
+  useEscapeOwner(() => ({
+    kind: "modal",
+    name: "InitiativeModal",
+    active: true,
+    root: escapeRoot,
+    anchor: modalRef.current,
+    handle: own.saving ? undefined : onClose,
+  }));
+
+  const [modifier, setModifier, modifierTouched] = useFollowedModifier(
+    character.initiativeModifier ?? 0,
+  );
   const [rolledValue, setRolledValue] = useState<number | null>(null);
   const [manualMode, setManualMode] = useState(false);
   const [manualValue, setManualValue] = useState<string>("");
   const [wasLoading, setWasLoading] = useState(false);
+  // The table can turn hand entry off while this is open (or a DM leave DM
+  // mode over their own character): the server then refuses a typed value
+  // without a word, so the field goes rather than time out.
+  useEffect(() => {
+    if (manualEntryAllowed) return;
+    setManualMode(false);
+    setManualValue("");
+    setRolledValue(null);
+  }, [manualEntryAllowed]);
 
-  // Calculate final initiative
   const finalInitiative = rolledValue !== null ? rolledValue + modifier : null;
 
-  // Handle modifier drag
-  const handleModifierDrag = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const element = e.currentTarget;
-      const startX = e.clientX;
-      const startModifier = modifier;
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        const deltaX = moveEvent.clientX - startX;
-        const change = Math.floor(deltaX / 10); // 10px = 1 point
-        setModifier(Math.max(-20, Math.min(20, startModifier + change)));
-      };
-
-      const handlePointerUp = () => {
-        document.removeEventListener("pointermove", handlePointerMove);
-        document.removeEventListener("pointerup", handlePointerUp);
-        element.releasePointerCapture(e.pointerId);
-      };
-
-      element.setPointerCapture(e.pointerId);
-      document.addEventListener("pointermove", handlePointerMove);
-      document.addEventListener("pointerup", handlePointerUp);
-    },
-    [modifier],
-  );
-
-  // Roll: the SERVER throws the die, on the same generator dice use, and the
-  // result lands in the public roll log labelled with this character's name.
-  //
-  // This sends and closes rather than showing the number here first. That is
-  // not a shortcut: the server APPLIES the value as it rolls, so there is
-  // nothing left for a confirm press to confirm — a second press could only
-  // re-send it down the manual path, which would log it a second time as
-  // "(entered)" and strike the server's own roll through. The number is not
-  // lost by closing; it appears in the roll log, which every seat can see.
+  // Roll: the SERVER throws the die and APPLIES the value as it rolls, so this
+  // sends and closes — a confirm press could only re-send it by hand, logging a
+  // BY HAND entry that strikes the server's own roll through. The number lands
+  // in the roll log (the DM's alone for a concealed NPC). An untouched dial sends
+  // no modifier: the server rolls with the stored one, even one changed elsewhere
+  // a moment ago.
   const handleRoll = useCallback(() => {
-    onRollInitiative(modifier);
+    onRollInitiative(modifierTouched ? modifier : undefined);
     onClose();
-  }, [onRollInitiative, modifier, onClose]);
+  }, [onRollInitiative, modifierTouched, modifier, onClose]);
 
-  // Switch to manual entry mode
   const enterManualMode = useCallback(() => {
     setManualMode(true);
     setRolledValue(null);
     setManualValue("");
   }, []);
 
-  // Handle manual value change
   const handleManualValueChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setManualValue(value);
@@ -113,42 +121,20 @@ export function InitiativeModal({
     }
   }, []);
 
-  // Handle save
   const handleSave = useCallback(() => {
     if (finalInitiative !== null) {
-      console.log("[InitiativeModal] Saving initiative:", {
-        finalInitiative,
-        modifier,
-        character: character.name,
-      });
+      own.start();
       onSetInitiative(finalInitiative, modifier);
       // Don't call onClose here - let the parent handle closing after the message is sent
     }
-  }, [finalInitiative, modifier, onSetInitiative, character.name]);
+  }, [finalInitiative, modifier, onSetInitiative, own]);
 
-  // Auto-close when loading completes
   useEffect(() => {
-    if (wasLoading && !isLoading && !error) {
-      // Initiative set successfully
-      console.log("[InitiativeModal] Initiative set successfully, closing modal");
+    if (own.awaiting && wasLoading && !isLoading && !error) {
       onClose();
     }
     setWasLoading(isLoading);
-  }, [isLoading, wasLoading, error, onClose]);
-
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isLoading) {
-        onClose();
-      } else if (e.key === "Enter" && finalInitiative !== null && !isLoading) {
-        handleSave();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, finalInitiative, handleSave, isLoading]);
+  }, [own.awaiting, isLoading, wasLoading, error, onClose]);
 
   // PORTALLED for the same reason CharacterCreationModal is: this renders from
   // EntitiesPanel, whose root is a `position: fixed; zIndex: 100` STACKING
@@ -157,8 +143,8 @@ export function InitiativeModal({
   // caught the sibling modal; this one is the same defect one file over.
   //
   // The [data-mobile-surface] wrapper carries the 44px touch floor across the
-  // portal, which lands outside every mobile surface. This modal is desktop-only
-  // today — EntitiesPanel is not on the phone — so it is insurance.
+  // portal, which lands outside every mobile surface: since U8 the phone's
+  // Party INIT and Encounter open this dialog too, so the floor depends on it.
   //
   // It is not quite free, and the effect is the one we want: the floor rules are
   // `(pointer: coarse)`-scoped, so a mouse desktop is untouched, but a coarse
@@ -166,162 +152,165 @@ export function InitiativeModal({
   // and does pick them up — growing this modal's number input from 37px to 44px
   // on a touch monitor or a tablet in landscape.
   return createPortal(
-    <div style={{ display: "contents" }} data-mobile-surface="modal">
-      <div
-        data-modal-overlay=""
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0, 0, 0, 0.8)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 10000,
-        }}
-        onClick={onClose}
-      >
-        <div onClick={(e) => e.stopPropagation()}>
-          <JRPGPanel
-            title={`Initiative: ${character.name}`}
-            style={{ width: "400px", maxWidth: "90vw" }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Initiative Modifier */}
-              <div>
-                <label
-                  className="jrpg-text-small"
-                  style={{ display: "block", marginBottom: "8px" }}
-                >
-                  Initiative Modifier
-                </label>
-                <div
-                  data-testid="initiative-modifier-dial"
-                  onPointerDown={handleModifierDrag}
-                  style={{
-                    padding: "12px",
-                    background: "#111",
-                    border: "2px solid var(--jrpg-border-gold)",
-                    textAlign: "center",
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                    cursor: "ew-resize",
-                    userSelect: "none",
-                    color: modifier >= 0 ? "var(--jrpg-green)" : "var(--jrpg-red)",
-                  }}
-                >
-                  {modifier >= 0 ? "+" : ""}
-                  {modifier}
-                </div>
-                <div
-                  className="jrpg-text-small"
-                  style={{ marginTop: "4px", textAlign: "center", opacity: 0.7 }}
-                >
-                  Click and drag left/right to adjust
-                </div>
-              </div>
+    <EscapeRootProvider value={escapeRoot}>
+      <div style={{ display: "contents" }} data-mobile-surface="modal">
+        <div
+          ref={modalRef}
+          data-modal-overlay=""
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+          }}
+          onClick={own.saving ? undefined : onClose}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <JRPGPanel
+              title={`Initiative: ${character.name}`}
+              style={{ width: "400px", maxWidth: "90vw" }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <InitiativeModifierDial
+                  modifier={modifier}
+                  onChange={setModifier}
+                  disabled={own.saving}
+                />
 
-              {/* Roll Options */}
-              <div style={{ display: "flex", gap: "8px" }}>
-                <JRPGButton variant="primary" onClick={handleRoll} style={{ flex: 1 }}>
-                  Roll Initiative
-                </JRPGButton>
-                {manualEntryAllowed && (
-                  <JRPGButton onClick={enterManualMode} style={{ flex: 1 }}>
-                    Use Physical Dice
-                  </JRPGButton>
-                )}
-              </div>
-
-              {/* Manual Entry */}
-              {manualMode && (
-                <div>
-                  <label
-                    className="jrpg-text-small"
-                    style={{ display: "block", marginBottom: "8px" }}
+                {/* Roll Options */}
+                {/* The commit vocabulary (U8, §3.4): "now" rolls at once; a
+                    hand entry waits for Save initiative. */}
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <JRPGButton
+                    variant="primary"
+                    onClick={handleRoll}
+                    disabled={own.saving}
+                    style={{ flex: 1 }}
                   >
-                    Enter d20 Roll (1-20)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={manualValue}
-                    onChange={handleManualValueChange}
-                    placeholder="Enter roll..."
-                    autoFocus
+                    Roll d20 now
+                  </JRPGButton>
+                  {manualEntryAllowed && (
+                    <JRPGButton onClick={enterManualMode} disabled={own.saving} style={{ flex: 1 }}>
+                      Enter a roll by hand
+                    </JRPGButton>
+                  )}
+                </div>
+                {!manualEntryAllowed && (
+                  <p className="initiative-modal__note">
+                    Entering a roll by hand is off at this table. The DM can allow it in DM Menu →
+                    Table → Permissions.
+                  </p>
+                )}
+                {!combatActive && (
+                  <p className="initiative-modal__note">
+                    {`No fight is running: saving an initiative starts combat, on ${character.name}'s turn.`}
+                  </p>
+                )}
+
+                {/* Manual Entry */}
+                {manualMode && (
+                  <div>
+                    <label
+                      className="jrpg-text-small"
+                      style={{ display: "block", marginBottom: "8px" }}
+                    >
+                      Enter d20 Roll (1-20)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={manualValue}
+                      readOnly={own.saving}
+                      onChange={handleManualValueChange}
+                      // Enter saves from HERE only, never from a focused button.
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter" || finalInitiative === null || own.saving) return;
+                        e.preventDefault();
+                        handleSave();
+                      }}
+                      placeholder="Enter roll..."
+                      autoFocus
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "8px",
+                        background: "#111",
+                        color: "var(--jrpg-white)",
+                        border: "2px solid var(--jrpg-border-gold)",
+                        fontSize: "18px",
+                        textAlign: "center",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Result Display */}
+                {rolledValue !== null && (
+                  <div
                     style={{
-                      width: "100%",
-                      padding: "8px",
-                      background: "#111",
-                      color: "var(--jrpg-white)",
-                      border: "2px solid var(--jrpg-border-gold)",
-                      fontSize: "18px",
+                      padding: "16px",
+                      background: "rgba(255, 215, 0, 0.1)",
+                      border: "2px solid var(--jrpg-gold)",
+                      borderRadius: "4px",
                       textAlign: "center",
                     }}
-                  />
-                </div>
-              )}
-
-              {/* Result Display */}
-              {rolledValue !== null && (
-                <div
-                  style={{
-                    padding: "16px",
-                    background: "rgba(255, 215, 0, 0.1)",
-                    border: "2px solid var(--jrpg-gold)",
-                    borderRadius: "4px",
-                    textAlign: "center",
-                  }}
-                >
-                  <div className="jrpg-text-small" style={{ marginBottom: "8px", opacity: 0.8 }}>
-                    d20 Roll: {rolledValue} {modifier >= 0 ? "+" : ""} {modifier}
+                  >
+                    <div className="jrpg-text-small" style={{ marginBottom: "8px", opacity: 0.8 }}>
+                      d20 Roll: {rolledValue} {modifier >= 0 ? "+" : ""} {modifier}
+                    </div>
+                    <div
+                      style={{ fontSize: "32px", fontWeight: "bold", color: "var(--jrpg-gold)" }}
+                    >
+                      Initiative: {finalInitiative}
+                    </div>
                   </div>
-                  <div style={{ fontSize: "32px", fontWeight: "bold", color: "var(--jrpg-gold)" }}>
-                    Initiative: {finalInitiative}
+                )}
+
+                {/* Error Display */}
+                {own.error && (
+                  <div
+                    style={{
+                      padding: "12px",
+                      background: "rgba(232, 154, 156, 0.12)",
+                      border: "2px solid var(--jrpg-red)",
+                      borderRadius: "4px",
+                      color: "var(--jrpg-red)",
+                      fontFamily: "var(--font-body)",
+                      lineHeight: 1.45,
+                      textAlign: "center",
+                    }}
+                  >
+                    {own.error}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Error Display */}
-              {error && (
-                <div
-                  style={{
-                    padding: "12px",
-                    background: "rgba(232, 154, 156, 0.12)",
-                    border: "2px solid var(--jrpg-red)",
-                    borderRadius: "4px",
-                    color: "var(--jrpg-red)",
-                    fontFamily: "var(--font-body)",
-                    lineHeight: 1.45,
-                    textAlign: "center",
-                  }}
-                >
-                  {error}
+                {/* Action Buttons */}
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <JRPGButton onClick={onClose} disabled={own.saving} style={{ flex: 1 }}>
+                    Cancel
+                  </JRPGButton>
+                  <JRPGButton
+                    variant="success"
+                    onClick={handleSave}
+                    disabled={finalInitiative === null || own.saving}
+                    style={{ flex: 1 }}
+                  >
+                    {own.saving ? "Setting..." : "Save initiative"}
+                  </JRPGButton>
                 </div>
-              )}
-
-              {/* Action Buttons */}
-              <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                <JRPGButton onClick={onClose} disabled={isLoading} style={{ flex: 1 }}>
-                  Cancel
-                </JRPGButton>
-                <JRPGButton
-                  variant="success"
-                  onClick={handleSave}
-                  disabled={finalInitiative === null || isLoading}
-                  style={{ flex: 1 }}
-                >
-                  {isLoading ? "Setting..." : "Save"}
-                </JRPGButton>
               </div>
-            </div>
-          </JRPGPanel>
+            </JRPGPanel>
+          </div>
         </div>
       </div>
-    </div>,
+    </EscapeRootProvider>,
     document.body,
   );
 }

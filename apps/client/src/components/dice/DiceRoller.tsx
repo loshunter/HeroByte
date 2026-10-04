@@ -13,7 +13,7 @@ import type { DiceRollMode, DiceVisibility } from "./types";
 import { DiceBar } from "./DiceBar";
 import { BuildStrip } from "./BuildStrip";
 import { MacroBar } from "./MacroBar";
-import { ResultPanel } from "./ResultPanel";
+import { NestedDiceResult } from "./NestedDiceResult";
 import { RollOptions } from "./RollOptions";
 import { HandEntry } from "./HandEntry";
 import { DraggableWindow } from "./DraggableWindow";
@@ -68,6 +68,7 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({
     <DraggableWindow
       title="⚂ DICE ROLLER"
       onClose={onClose}
+      interaction={{ behavior: "block" }}
       initialX={100}
       initialY={100}
       width={600}
@@ -187,7 +188,7 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({
 
           {/* Result panel */}
           {result && (
-            <ResultPanel
+            <NestedDiceResult
               result={result}
               onClose={() => setResult(null)}
               onEnterRoll={

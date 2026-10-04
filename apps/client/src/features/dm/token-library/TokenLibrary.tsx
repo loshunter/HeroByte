@@ -2,7 +2,7 @@
 // TOKEN LIBRARY
 // ============================================================================
 // The bundled token pack, and the table's own tokens beside it, as a picker:
-// a Monsters/Townsfolk/Custom switch, a family select, a search box, and a
+// a Monsters/Townsfolk/This table switch, a family select, a search box, and a
 // grid of thumbnails. It knows nothing about NPCs — the NPCs tab adds a picked
 // token as a new NPC, the NPC editor swaps an existing one's art — so one
 // panel serves both, and the caller's `hint` says which it is doing. The
@@ -10,6 +10,7 @@
 // pack art by colour and a badge.
 
 import { useId, useMemo, useState } from "react";
+import { CollectionPreview, CollectionSearch } from "../../../components/ui/CollectionBrowser";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import { CustomTokenForm } from "./CustomTokenForm";
 import { useCustomTokensApi } from "./customTokensContext";
@@ -38,7 +39,7 @@ type CategoryChoice = LibraryCategory | "custom" | "";
 const CHOICES: readonly { id: CategoryChoice; label: string }[] = [
   { id: "", label: "All" },
   ...LIBRARY_CATEGORIES,
-  { id: "custom", label: "Custom" },
+  { id: "custom", label: "This table" },
 ];
 
 export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryProps) {
@@ -46,8 +47,17 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
   const [category, setCategory] = useState<CategoryChoice>("");
   const [family, setFamily] = useState("");
   const [query, setQuery] = useState("");
+  const [previewKey, setPreviewKey] = useState<{ id: string; custom: boolean } | null>(null);
   const familyId = useId();
-  const searchId = useId();
+  const previewItem = useMemo(() => {
+    if (!previewKey) return null;
+    if (previewKey.custom) {
+      const item = customTokens.find((token) => token.id === previewKey.id);
+      return item ? customItem(item) : null;
+    }
+    const item = LIBRARY_ASSETS.find((token) => token.id === previewKey.id);
+    return item ? packItem(item) : null;
+  }, [previewKey, customTokens]);
   const families = useMemo(
     () => LIBRARY_FAMILIES.filter((entry) => !category || entry.category === category),
     [category],
@@ -116,19 +126,25 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
           </div>
         )}
         <div style={fieldGroupStyle}>
-          <label htmlFor={searchId} className="jrpg-text-small">
-            Search
-          </label>
-          <input
-            id={searchId}
-            type="search"
+          <CollectionSearch
+            label="Search"
             value={query}
+            onChange={setQuery}
             placeholder="goblin archer, dice dwarf, kid…"
-            autoComplete="off"
-            onChange={(event) => setQuery(event.target.value)}
-            style={fieldStyle}
           />
         </div>
+      </div>
+      <div className="token-library-preview">
+        {previewItem ? (
+          <CollectionPreview
+            label="Token preview"
+            name={previewItem.name}
+            imageUrl={previewItem.portraitUrl}
+            detail={`${previewItem.size}${previewItem.custom ? " · From this table’s shelf (players never see the shelf)" : ""}`}
+          />
+        ) : (
+          <p className="collection-note">Focus or choose a token to preview its art.</p>
+        )}
       </div>
 
       <p className="jrpg-text-small" style={hintStyle} aria-live="polite">
@@ -138,8 +154,8 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
       {results.length === 0 ? (
         <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
           {category === "custom" && customTokens.length === 0
-            ? "Nothing of your own yet. Add an image below and it joins the shelf."
-            : "No tokens match. Try a shorter word, another family, or the other category."}
+            ? "Nothing on this table’s shelf yet. Add an image below and it joins the shelf."
+            : "No tokens match. Try a shorter word, another family, or another chip."}
         </p>
       ) : (
         <div data-testid="token-library-grid" style={gridStyle}>
@@ -147,9 +163,17 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
             <div key={`${item.category}:${item.id}`} style={cellWrapStyle}>
               <button
                 type="button"
-                title={[item.name, item.size, item.description].filter(Boolean).join(" · ")}
+                // The DM's own description, never the pack's: those are the generator's
+                // prompts and pipeline notes (still searchable, never shown as copy).
+                title={[item.name, item.size, item.custom ? item.description : undefined]
+                  .filter(Boolean)
+                  .join(" · ")}
                 disabled={disabled}
-                onClick={() => onPick(item)}
+                onFocus={() => setPreviewKey({ id: item.id, custom: item.custom })}
+                onClick={() => {
+                  setPreviewKey({ id: item.id, custom: item.custom });
+                  onPick(item);
+                }}
                 className="token-library-cell"
                 style={item.custom ? customCellStyle : cellStyle}
               >
@@ -166,7 +190,7 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
                 />
                 <span style={captionStyle}>{item.name}</span>
               </button>
-              {item.custom && <span style={badgeStyle}>MINE</span>}
+              {item.custom && <span style={badgeStyle}>ADDED</span>}
               {item.custom && removeToken && (
                 <button
                   type="button"
@@ -203,7 +227,7 @@ const panelStyle = {
 
 const chipRowStyle = { display: "flex", gap: "6px", flexWrap: "wrap" } as const;
 
-const chipStyle = { fontSize: "9px", padding: "5px 10px" } as const;
+const chipStyle = { fontSize: "9px", padding: "5px 10px", minHeight: 44 } as const;
 
 // The custom chip and the custom cells share one colour — cyan, the palette's
 // highlight — so "this is yours, not the pack's" reads the same everywhere.
@@ -219,7 +243,7 @@ const fieldGroupStyle = {
   fontSize: "10px",
 } as const;
 
-const fieldStyle = { fontSize: "11px", padding: "4px 6px", minWidth: 0 } as const;
+const fieldStyle = { fontSize: "11px", padding: "4px 6px", minWidth: 0, minHeight: 44 } as const;
 
 const hintStyle = { margin: 0, fontSize: "10px", color: "var(--jrpg-white)", opacity: 0.85 };
 

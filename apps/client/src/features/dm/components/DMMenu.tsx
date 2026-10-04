@@ -1,18 +1,19 @@
+import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { AtlasTab } from "../../atlas/AtlasTab";
+import { EncounterTab } from "../../encounter/EncounterTab";
 import MapTab from "./tab-views/MapTab";
 import NPCsTab from "./tab-views/NPCsTab";
 import PropsTab from "./tab-views/PropsTab";
-import PlayersTab from "./tab-views/PlayersTab";
-import SessionTab from "./tab-views/SessionTab";
+import TableTab from "../../table/tab/TableTab";
 import { useDMMenuState } from "../hooks/useDMMenuState";
 import { DMMenuTabs } from "./DMMenuTabs";
 import type { DMMenuProps } from "./DMMenu.types";
+import { DockedLauncher, LAUNCHER_ORDER } from "../../../components/layout/party/LauncherDock";
 
 export function DMMenu({
   isDM,
-  onToggleDM,
   gridSize,
   gridSquareSize = 5,
   gridLocked,
@@ -22,6 +23,8 @@ export function DMMenu({
   fogEnabled,
   hasCompiledScene,
   liveSceneDocumentId,
+  liveMapDocumentId,
+  onUseMapAtTable,
   onFogEnabledChange,
   defaultVisionRadius,
   onDefaultVisionRadiusChange,
@@ -35,7 +38,6 @@ export function DMMenu({
   stagingZoneLocked,
   onStagingZoneLockToggle,
   camera,
-  playerCount,
   characters,
   atlasNodes,
   atlasLinks,
@@ -44,8 +46,6 @@ export function DMMenu({
   linkAimActive,
   onArmLinkAim,
   onOpenKick,
-  onRequestSaveSession,
-  onRequestLoadSession,
   onCreateNPC,
   customTokens,
   onAddCustomToken,
@@ -56,6 +56,9 @@ export function DMMenu({
   onResetNPCBudget,
   onDeleteNPC,
   onPlaceNPCToken,
+  onSetNPCStatusEffects,
+  onFocusNPCToken,
+  mapTokenIds,
   isCreatingNpc,
   npcCreationError,
   isUpdatingNpc,
@@ -89,39 +92,27 @@ export function DMMenu({
   onAlignmentReset,
   onAlignmentCancel,
   onAlignmentApply,
-  onSetRoomPassword,
-  roomPasswordStatus = null,
-  roomPasswordPending = false,
-  onDismissRoomPasswordStatus,
-  onSaveAsPrivateTable,
-  sceneObjects,
-  onSelectPlayerTokens,
-  connectedUids,
-  onRemovePlayer,
   combatActive,
   diagonalRule,
   onDiagonalRuleChange,
-  monsterHpDisplay,
-  onMonsterHpDisplayChange,
-  onStartCombat,
-  onEndCombat,
-  onClearAllInitiative,
-  onNextTurn,
-  onPreviousTurn,
+  encounter,
+  table,
   toast,
-  onRollAllInitiative,
-  playerPropsEnabled,
-  onPlayerPropsEnabledChange,
-  initiativeManualOverride,
-  onInitiativeManualOverrideChange,
   mapStudio,
   presentation = "window",
+  launcherDock,
 }: DMMenuProps) {
-  const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
-    useDMMenuState({
-      isDM,
-      characters,
-    });
+  const {
+    open,
+    setOpen,
+    toggleOpen,
+    focusTabRequest,
+    activeTab,
+    setActiveTab,
+    sessionName,
+    setSessionName,
+    npcs,
+  } = useDMMenuState({ isDM, characters });
 
   if (!isDM) {
     return null;
@@ -131,26 +122,11 @@ export function DMMenu({
   // screen renders it bare (the screen already provides surface and exit).
   const content = (
     <div style={{ padding: "12px" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: "12px",
-        }}
-      >
-        <JRPGButton
-          onClick={() => onToggleDM(false)}
-          variant="danger"
-          style={{ fontSize: "10px", padding: "6px 12px" }}
-        >
-          🔓 EXIT DM MODE
-        </JRPGButton>
-      </div>
-
       <DMMenuTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
         scrollable={presentation === "content"}
+        focusRequest={focusTabRequest}
       />
       {activeTab === "map" && (
         <MapTab
@@ -173,6 +149,9 @@ export function DMMenu({
           fogEnabled={fogEnabled}
           hasCompiledScene={hasCompiledScene}
           liveSceneDocumentId={liveSceneDocumentId}
+          tableMapDocumentId={liveMapDocumentId}
+          onUseMapAtTable={onUseMapAtTable}
+          atlasNodes={atlasNodes}
           onFogEnabledChange={onFogEnabledChange}
           defaultVisionRadius={defaultVisionRadius}
           onDefaultVisionRadiusChange={onDefaultVisionRadiusChange}
@@ -203,7 +182,13 @@ export function DMMenu({
           linkAimActive={linkAimActive}
           onArmLinkAim={onArmLinkAim}
           onOpenKick={onOpenKick}
+          liveSceneDocumentId={liveSceneDocumentId}
+          hasCompiledScene={hasCompiledScene}
+          hasBackground={Boolean(mapBackground)}
         />
+      )}
+      {activeTab === "encounter" && (
+        <EncounterTab controls={encounter} isDM={isDM} onOpenTab={setActiveTab} toast={toast} />
       )}
       {activeTab === "npcs" && (
         <NPCsTab
@@ -218,6 +203,9 @@ export function DMMenu({
           onResetNPCBudget={onResetNPCBudget}
           combatActive={combatActive}
           onPlaceNPCToken={onPlaceNPCToken}
+          onSetNPCStatusEffects={onSetNPCStatusEffects}
+          onFocusNPCToken={onFocusNPCToken}
+          mapTokenIds={mapTokenIds}
           onDeleteNPC={onDeleteNPC}
           isCreatingNpc={isCreatingNpc}
           npcCreationError={npcCreationError}
@@ -227,8 +215,7 @@ export function DMMenu({
           isPlacingToken={isPlacingToken}
           tokenPlacementError={tokenPlacementError}
           placingTokenForNpcId={placingTokenForNpcId}
-          toast={toast}
-          onRollAllInitiative={onRollAllInitiative}
+          onOpenEncounter={() => setActiveTab("encounter")}
         />
       )}
       {activeTab === "props" && (
@@ -248,43 +235,8 @@ export function DMMenu({
           updatingPropId={updatingPropId}
         />
       )}
-      {activeTab === "players" && (
-        <PlayersTab
-          players={players}
-          sceneObjects={sceneObjects}
-          onSelectPlayerTokens={onSelectPlayerTokens}
-          characters={characters}
-          connectedUids={connectedUids}
-          onRemovePlayer={onRemovePlayer}
-          combatActive={combatActive}
-          monsterHpDisplay={monsterHpDisplay}
-          onMonsterHpDisplayChange={onMonsterHpDisplayChange}
-          onStartCombat={onStartCombat}
-          onEndCombat={onEndCombat}
-          onClearAllInitiative={onClearAllInitiative}
-          onNextTurn={onNextTurn}
-          onPreviousTurn={onPreviousTurn}
-        />
-      )}
-      {activeTab === "session" && (
-        <SessionTab
-          sessionName={sessionName}
-          setSessionName={setSessionName}
-          onRequestSaveSession={onRequestSaveSession}
-          onRequestLoadSession={onRequestLoadSession}
-          saveDisabled={!onRequestSaveSession}
-          loadDisabled={!onRequestLoadSession}
-          onSetRoomPassword={onSetRoomPassword}
-          roomPasswordStatus={roomPasswordStatus}
-          roomPasswordPending={roomPasswordPending}
-          onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
-          onSaveAsPrivateTable={onSaveAsPrivateTable}
-          playerCount={playerCount}
-          playerPropsEnabled={playerPropsEnabled}
-          onPlayerPropsEnabledChange={onPlayerPropsEnabledChange}
-          initiativeManualOverride={initiativeManualOverride}
-          onInitiativeManualOverrideChange={onInitiativeManualOverrideChange}
-        />
+      {activeTab === "table" && (
+        <TableTab controls={table} sessionName={sessionName} setSessionName={setSessionName} />
       )}
     </div>
   );
@@ -295,27 +247,21 @@ export function DMMenu({
 
   return (
     <>
-      <div
-        style={{
-          position: "fixed",
-          bottom: "32px",
-          right: "32px",
-          zIndex: 150,
-        }}
-      >
+      {/* In the Party bar's dock (U7, IA-15), never over the Party cards. */}
+      <DockedLauncher dock={launcherDock ?? null} order={LAUNCHER_ORDER.dm}>
         <JRPGButton
-          onClick={toggleOpen}
+          onClick={(event) => activatePanelLauncher(event, toggleOpen)}
           variant={open ? "primary" : "default"}
-          style={{ fontSize: "10px", padding: "10px 16px" }}
         >
           🛠️ DM MENU
         </JRPGButton>
-      </div>
+      </DockedLauncher>
 
       {open && (
         <DraggableWindow
           title="Dungeon Master Tools"
           onClose={() => setOpen(false)}
+          interaction={{ behavior: "close", panel: "dm" }}
           initialX={typeof window !== "undefined" ? window.innerWidth - 420 : 100}
           initialY={100}
           width={400}

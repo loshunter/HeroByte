@@ -69,6 +69,8 @@ import {
   validateSetInitiativeMessage,
   validateCombatControlMessage,
   validateRollInitiativeMessage,
+  validateSetInitiativeModifierMessage,
+  validateSetCharacterOwnerMessage,
   validateRollInitiativeAllMessage,
   validateSetInitiativeManualOverrideMessage,
 } from "./validators/index.js";
@@ -201,6 +203,8 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   // INITIATIVE / COMBAT MESSAGES
   // ==========================================================================
   "set-initiative": validateSetInitiativeMessage,
+  "set-initiative-modifier": validateSetInitiativeModifierMessage,
+  "set-character-owner": validateSetCharacterOwnerMessage,
   "start-combat": validateCombatControlMessage,
   "end-combat": validateCombatControlMessage,
   "next-turn": validateCombatControlMessage,

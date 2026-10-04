@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { MessageRouter } from "../MessageRouter";
 
-// The Players tab's REMOVE has exactly one failure surface: the server's
+// The Table tab's REMOVE has exactly one failure surface: the server's
 // remove-player-refused frame, sent to the DM alone. The first live pass of
 // the feature watched the server refuse and the router warn-drop the frame as
 // an "unknown message type" — the same road session-file shipped inert on.

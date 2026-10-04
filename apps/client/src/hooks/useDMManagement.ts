@@ -21,6 +21,12 @@ import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import { useDMElevation } from "./useDMElevation";
 
 /**
+ * Shown when DM mode ends with no leave asked. It names no cause: the client cannot tell a
+ * restart from an expired session, a Main Hall sweep, a seat a co-DM removed or a clear-all.
+ */
+export const DM_MODE_ENDED_MESSAGE = "DM mode ended. Enter DM mode again to run the game.";
+
+/**
  * Toast notification interface for displaying status messages.
  * Matches the return type of useToast hook.
  */
@@ -107,6 +113,8 @@ export interface UseDMManagementReturn {
     isLoading: boolean;
     error: string | null;
     currentIsDM: boolean;
+    /** The roster has this seat in it: until it does, `currentIsDM` is "not known", not "no". */
+    roleKnown: boolean;
   };
 
   /**
@@ -158,13 +166,29 @@ export function useDMManagement({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"elevate" | "revoke" | "bootstrap">("elevate");
 
-  // Use the new useDMElevation hook for state-aware DM management
-  const { isLoading, currentIsDM, elevate, bootstrap, notifyElevationFailed, revoke, error } =
-    useDMElevation({
-      snapshot,
-      uid,
-      send: sendMessage,
-    });
+  // Use the new useDMElevation hook for state-aware DM management. The toast waits for the
+  // server: a leave the dying socket never delivered must not have been announced.
+  const {
+    isLoading,
+    currentIsDM,
+    seatKnown,
+    elevate,
+    bootstrap,
+    notifyElevationFailed,
+    clearError,
+    revoke,
+    error,
+  } = useDMElevation({
+    snapshot,
+    uid,
+    send: sendMessage,
+    onRevoked: () => toast.success("You left DM mode. You are a player again.", 3000),
+    // Without a word the tools just vanished. The client cannot tell why: a restart (every
+    // deploy) clears every elevation, and so does a reconnect after the session token has
+    // run out (SESSION_TOKEN_GRACE_MS), after the Main Hall was swept, or to a seat that was
+    // removed meanwhile (REMOVE by a co-DM, a clear-all).
+    onDMModeEnded: () => toast.info(DM_MODE_ENDED_MESSAGE, 8000),
+  });
 
   /**
    * Open modal to toggle DM status
@@ -177,9 +201,11 @@ export function useDMManagement({
       }
 
       setModalMode(requestDM ? "elevate" : "revoke");
+      // Opens clean: an earlier request's error is not this dialog's.
+      clearError();
       setIsModalOpen(true);
     },
-    [currentIsDM],
+    [currentIsDM, clearError],
   );
 
   /**
@@ -231,10 +257,8 @@ export function useDMManagement({
    */
   const handleRevoke = useCallback(() => {
     revoke();
-    // Show success toast on revocation
-    toast.success("DM status revoked. You are now a player.", 3000);
-    // Modal will close automatically on success via useEffect in DMElevationModal
-  }, [revoke, toast]);
+    // The success toast and the modal's closing both follow the server's confirmation.
+  }, [revoke]);
 
   /**
    * Close modal
@@ -257,6 +281,7 @@ export function useDMManagement({
       isLoading,
       error,
       currentIsDM,
+      roleKnown: seatKnown,
     },
     modalActions: {
       onElevate: handleElevate,

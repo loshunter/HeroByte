@@ -147,7 +147,11 @@ export function validateMapStudioCreateMessage(message: MessageRecord): Validati
 
 export function validateMapStudioDocumentIdMessage(message: MessageRecord): ValidationResult {
   return validate(
-    z.object({ t: z.enum(["map-studio-get", "map-studio-delete"]), documentId: id }),
+    z.object({
+      t: z.enum(["map-studio-get", "map-studio-delete"]),
+      documentId: id,
+      requestId: id.optional(),
+    }),
     message,
   );
 }

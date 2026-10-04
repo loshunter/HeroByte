@@ -33,6 +33,14 @@ describe("PublicTableNotice", () => {
 
       expect(screen.getByText(/save the table as a private table/i)).toBeInTheDocument();
     });
+
+    it("names the control where it now lives: Table → Security, not the old Session tab", () => {
+      render(<PublicTableNotice variant="gate" />);
+
+      const notice = screen.getByTestId("public-table-notice");
+      expect(notice).toHaveTextContent("DM Menu → Table → Security → Save as a Private Table");
+      expect(notice).not.toHaveTextContent(/Session/);
+    });
   });
 
   describe("chip variant", () => {
@@ -44,6 +52,14 @@ describe("PublicTableNotice", () => {
       expect(chip.textContent).toMatch(/PUBLIC TEST TABLE/i);
       expect(chip.textContent).toMatch(/SAVE IT TO KEEP IT/i);
       expect(chip.getAttribute("title")).toMatch(/private table/i);
+    });
+
+    it("its tooltip gives the same path, to Table → Security", () => {
+      render(<PublicTableNotice variant="chip" />);
+
+      const title = screen.getByTestId("public-table-chip").getAttribute("title") ?? "";
+      expect(title).toContain("DM Menu → Table → Security → Save as a Private Table");
+      expect(title).not.toMatch(/Session/);
     });
   });
 

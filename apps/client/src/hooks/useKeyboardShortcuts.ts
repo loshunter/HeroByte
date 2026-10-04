@@ -7,7 +7,6 @@
  * - Delete/Backspace: Delete selected scene objects with permission checks
  * - Ctrl+Z/Cmd+Z: Undo drawing action (in draw mode) or undo player token selection (DM only)
  * - Ctrl+Y/Cmd+Y or Ctrl+Shift+Z: Redo drawing action
- * - Escape: Clear selection (when objects are selected)
  *
  * Extracted from: apps/client/src/ui/App.tsx (lines 389-516)
  * Extraction date: 2025-10-20
@@ -17,7 +16,7 @@
 
 import { useEffect } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
-import { isEditableTarget } from "../utils/isEditableTarget";
+import { mapShortcutAllowed } from "../features/interaction/mapShortcut";
 
 /**
  * Drawing manager interface for undo/redo operations
@@ -104,6 +103,13 @@ export interface UseKeyboardShortcutsOptions {
    * selection-undo branch below is skipped — exactly one handler acts.
    */
   mapEditMode?: boolean;
+
+  /**
+   * A short, non-blocking notice (the app's toast). Delete says through it that props are deleted in
+   * their own panel, and why a selection could not be deleted (locked, or not yours); these were
+   * blocking alert()s.
+   */
+  notify: (message: string) => void;
 }
 
 /**
@@ -144,6 +150,14 @@ export interface UseKeyboardShortcutsOptions {
  * @see {@link UseKeyboardShortcutsOptions} for all available options
  * @see {@link DrawingManager} for drawing manager interface
  */
+/** Said when Delete is pressed on a selection that holds props. */
+export const PROPS_NOT_HERE = "Props are deleted in the Props panel.";
+
+/** Said (a toast, not a blocking alert) when Delete is pressed on a selection that cannot be deleted. */
+export const LOCKED_CANNOT_DELETE = "Locked: only the DM can unlock it.";
+export const LOCKED_CANNOT_DELETE_DM = "Locked: select it and press 🔓 Unlock first.";
+export const NOT_YOURS_CANNOT_DELETE = "You can only delete objects you own.";
+
 export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void {
   const {
     selectedObjectIds,
@@ -157,14 +171,16 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     undoSelection,
     canUndoSelection,
     mapEditMode,
+    notify,
   } = options;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Typing surfaces own their keystrokes (chat box, brush/asset search,
       // inspector fields): Backspace there edits text — it must not delete
-      // the selected tokens — and Ctrl+Z is native text undo.
-      if (isEditableTarget(e.target)) return;
+      // the selected tokens — and Ctrl+Z is native text undo. The focused map
+      // keeps its keys beside an open floating window (see mapShortcut).
+      if (!mapShortcutAllowed(e)) return;
       // Delete or Backspace to delete selected object(s)
       if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectIds.length > 0) {
         console.log("[KeyDown] Delete/Backspace pressed:", {
@@ -203,9 +219,9 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
           });
 
           if (hasLocked) {
-            alert("Cannot delete locked objects. Unlock them first using the lock icon.");
+            notify(isDM ? LOCKED_CANNOT_DELETE_DM : LOCKED_CANNOT_DELETE);
           } else {
-            alert("You can only delete objects you own.");
+            notify(NOT_YOURS_CANNOT_DELETE);
           }
           return;
         }
@@ -238,7 +254,11 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
           .map((id) => id.split(":")[1]!)
           .filter(Boolean);
 
+        // Props are not deleted by this key (they have their own panel): say so, so a
+        // selection of only props is not a silent no-op.
+        const hasProps = objectsToDelete.some((id) => id.startsWith("prop:"));
         if (tokens.length === 0 && drawings.length === 0) {
+          if (hasProps) notify(PROPS_NOT_HERE);
           return;
         }
 
@@ -265,13 +285,14 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
             sendMessage({ t: "delete-drawing", id });
           }
 
+          if (hasProps) notify(PROPS_NOT_HERE);
           clearSelection();
         }
         return;
       }
 
       // Ctrl+Z or Cmd+Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
         // Priority 1: Undo drawing if draw mode is active and there's something to undo
         if (drawMode && drawingManager.canUndo) {
           e.preventDefault();
@@ -282,7 +303,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
         // Priority 2: Undo player token selection (DM only) if available.
         // Skipped in live map-edit mode — there Ctrl+Z undoes the map document
         // (useMapEditHotkeys), and this branch would otherwise double-fire.
-        if (isDM && canUndoSelection && undoSelection && !mapEditMode) {
+        if (isDM && canUndoSelection && undoSelection && !mapEditMode && !drawMode) {
           e.preventDefault();
           console.log("[KeyDown] Ctrl+Z: Undoing player token selection");
           undoSelection();
@@ -291,7 +312,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
       }
 
       // Ctrl+Y or Cmd+Y for redo
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))
+      ) {
         if (drawMode && drawingManager.canRedo) {
           e.preventDefault();
           drawingManager.handleRedo();
@@ -313,5 +337,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     undoSelection,
     canUndoSelection,
     mapEditMode,
+    notify,
   ]);
 }

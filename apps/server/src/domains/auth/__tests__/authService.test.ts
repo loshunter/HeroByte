@@ -27,17 +27,22 @@ describe("AuthService", () => {
     await expect(service.verify("wrong")).resolves.toBe(false);
   });
 
-  it("persists updated password", async () => {
+  it("persists an updated private table password", async () => {
+    // A private table's password is saved and survives a restart. (The default table's does not
+    // need to: its passwords are re-derived from the server settings on every start, and nothing
+    // in the app can change them. See defaultPasswordsFromSettings.test.ts.)
     const service = new AuthService({ storagePath: SECRET_PATH });
-    service.update("NewSecret!123");
+    service.update("NewSecret!123", "room-x1");
 
-    await expect(service.verify("NewSecret!123")).resolves.toBe(true);
-    await expect(service.verify("Fun1")).resolves.toBe(false);
+    await expect(service.verify("NewSecret!123", "room-x1")).resolves.toBe(true);
+    await expect(service.verify("Fun1", "room-x1")).resolves.toBe(false);
 
     // Reload from disk to ensure persistence
     const reloaded = new AuthService({ storagePath: SECRET_PATH });
-    await expect(reloaded.verify("NewSecret!123")).resolves.toBe(true);
-    expect(reloaded.getSummary().source).toBe("user");
+    await expect(reloaded.verify("NewSecret!123", "room-x1")).resolves.toBe(true);
+    // The default table is unaffected and follows the settings.
+    await expect(reloaded.verify("Fun1")).resolves.toBe(true);
+    expect(reloaded.getSummary().source).toBe("fallback");
   });
 
   it("preserves the env secret source when a per-room update persists the file", async () => {
@@ -81,23 +86,23 @@ describe("AuthService", () => {
     it("persists DM password separately from room password", async () => {
       const service = new AuthService({ storagePath: SECRET_PATH });
 
-      // Set both passwords
-      service.update("RoomPassword456");
-      service.updateDMPassword("DMPassword789");
+      // Set both passwords (on a private table: the default table's are not saved)
+      service.update("RoomPassword456", "room-x1");
+      service.updateDMPassword("DMPassword789", "room-x1");
 
       // Verify both work
-      await expect(service.verify("RoomPassword456")).resolves.toBe(true);
-      await expect(service.verifyDMPassword("DMPassword789")).resolves.toBe(true);
+      await expect(service.verify("RoomPassword456", "room-x1")).resolves.toBe(true);
+      await expect(service.verifyDMPassword("DMPassword789", "room-x1")).resolves.toBe(true);
 
       // Verify they're independent
-      await expect(service.verify("DMPassword789")).resolves.toBe(false);
-      await expect(service.verifyDMPassword("RoomPassword456")).resolves.toBe(false);
+      await expect(service.verify("DMPassword789", "room-x1")).resolves.toBe(false);
+      await expect(service.verifyDMPassword("RoomPassword456", "room-x1")).resolves.toBe(false);
 
       // Reload from disk
       const reloaded = new AuthService({ storagePath: SECRET_PATH });
-      await expect(reloaded.verify("RoomPassword456")).resolves.toBe(true);
-      await expect(reloaded.verifyDMPassword("DMPassword789")).resolves.toBe(true);
-      expect(reloaded.hasDMPassword()).toBe(true);
+      await expect(reloaded.verify("RoomPassword456", "room-x1")).resolves.toBe(true);
+      await expect(reloaded.verifyDMPassword("DMPassword789", "room-x1")).resolves.toBe(true);
+      expect(reloaded.hasDMPassword("room-x1")).toBe(true);
     });
 
     it("keeps the DM password when the ROOM password is changed afterwards", async () => {
@@ -107,20 +112,21 @@ describe("AuthService", () => {
       // a privilege escalation, not just data loss — hasDMPassword() then
       // reports false, and set-dm-password's bootstrap path auto-promotes
       // whoever calls it, so rotating the table password opened the DM seat to
-      // any player at the table.
+      // any player at the table. (Run on a private table now: the default table's
+      // passwords are not saved, the app cannot change them.)
       const service = new AuthService({ storagePath: SECRET_PATH });
-      service.updateDMPassword("DMPasswordFirst");
+      service.updateDMPassword("DMPasswordFirst", "room-x1");
 
-      service.update("RoomPasswordSecond");
+      service.update("RoomPasswordSecond", "room-x1");
 
-      expect(service.hasDMPassword()).toBe(true);
-      await expect(service.verifyDMPassword("DMPasswordFirst")).resolves.toBe(true);
-      await expect(service.verify("RoomPasswordSecond")).resolves.toBe(true);
+      expect(service.hasDMPassword("room-x1")).toBe(true);
+      await expect(service.verifyDMPassword("DMPasswordFirst", "room-x1")).resolves.toBe(true);
+      await expect(service.verify("RoomPasswordSecond", "room-x1")).resolves.toBe(true);
 
       // ...and it survives a restart, since the wipe was persisted too.
       const reloaded = new AuthService({ storagePath: SECRET_PATH });
-      expect(reloaded.hasDMPassword()).toBe(true);
-      await expect(reloaded.verifyDMPassword("DMPasswordFirst")).resolves.toBe(true);
+      expect(reloaded.hasDMPassword("room-x1")).toBe(true);
+      await expect(reloaded.verifyDMPassword("DMPasswordFirst", "room-x1")).resolves.toBe(true);
     });
 
     it("keeps the DM password when the room password is reset to the default", async () => {

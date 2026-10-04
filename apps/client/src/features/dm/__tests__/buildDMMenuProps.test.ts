@@ -12,6 +12,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { MainLayoutProps } from "../../../layouts/props/MainLayoutProps";
 import { buildDMMenuProps } from "../buildDMMenuProps";
+import type { InitiativeSetting } from "../../../hooks/useInitiativeSetting";
+
+/** The layout's one initiative instance: a sentinel, compared by identity. */
+const initiative = { marker: "initiative-setting" } as unknown as InitiativeSetting;
+const extras = { initiative };
 
 const createBag = (overrides: Partial<MainLayoutProps> = {}): MainLayoutProps =>
   ({
@@ -59,7 +64,7 @@ const createBag = (overrides: Partial<MainLayoutProps> = {}): MainLayoutProps =>
 describe("buildDMMenuProps", () => {
   it("keeps every rename an identity, not a wrapper", () => {
     const bag = createBag();
-    const built = buildDMMenuProps(bag, {});
+    const built = buildDMMenuProps(bag, extras);
 
     expect(built.onToggleDM).toBe(bag.handleToggleDM);
     expect(built.onGridSizeChange).toBe(bag.setGridSize);
@@ -83,12 +88,21 @@ describe("buildDMMenuProps", () => {
     expect(built.alignmentModeActive).toBe(bag.alignmentMode);
   });
 
+  it("hands the NPC editor's Focus the layout's own camera focus", () => {
+    const handleFocusToken = vi.fn();
+    const built = buildDMMenuProps(createBag({ handleFocusToken }), extras);
+
+    built.onFocusToken("t-goblin");
+
+    expect(handleFocusToken).toHaveBeenCalledWith("t-goblin");
+  });
+
   it("builds the COMPLETE prop surface — a dropped mapping is a missing key, not a quiet gap", () => {
     // The cast-shaped blindness the review confirmed: optional props make a
     // deleted mapping invisible to tsc, and a fixture only exercises fields
     // someone remembered to assert. Pinning the key set makes ANY dropped (or
     // sneaked-in) mapping red, whatever its optionality.
-    const built = buildDMMenuProps(createBag(), { rollAllInitiative: vi.fn() });
+    const built = buildDMMenuProps(createBag(), extras);
 
     expect(Object.keys(built).sort()).toEqual(
       [
@@ -130,6 +144,8 @@ describe("buildDMMenuProps", () => {
         "snapshot",
         "sendMessage",
         "camera",
+        // The NPC editor's 🎯 (a phone's DM screen overrides it to also close).
+        "onFocusToken",
         "toast",
         // Atlas-link aim (A6) — the arm callback and its armed flag.
         "linkAimActive",
@@ -137,17 +153,19 @@ describe("buildDMMenuProps", () => {
         // The kicked-in door (K2) — the Atlas tab's button, through the bag.
         "openKick",
         "onSelectPlayerTokens",
-        // The Players tab's REMOVE — the roster it compares against, and the send.
+        // The Table tab's REMOVE — the roster it compares against, and the send.
         "connectedUids",
         "onRemovePlayer",
-        "onRollAllInitiative",
+        // Encounter (U8): the viewer, and the layout's one initiative instance.
+        "uid",
+        "initiative",
         "mapStudio",
       ].sort(),
     );
   });
 
   it("derives the snapshot-backed fields with the wiring's exact defaults", () => {
-    const nullCase = buildDMMenuProps(createBag(), {});
+    const nullCase = buildDMMenuProps(createBag(), extras);
     expect(nullCase.fogEnabled).toBe(false);
     expect(nullCase.hasCompiledScene).toBe(false);
     expect(nullCase.mapBackground).toBeUndefined();
@@ -159,7 +177,7 @@ describe("buildDMMenuProps", () => {
       mapBackground: "https://example.com/map.jpg",
       playerStagingZone: { x: 0, y: 0, width: 4, height: 3 },
     } as unknown as MainLayoutProps["snapshot"];
-    const built = buildDMMenuProps(createBag({ snapshot }), {});
+    const built = buildDMMenuProps(createBag({ snapshot }), extras);
     expect(built.fogEnabled).toBe(true);
     expect(built.hasCompiledScene).toBe(true);
     expect(built.mapBackground).toBe("https://example.com/map.jpg");
@@ -168,7 +186,7 @@ describe("buildDMMenuProps", () => {
 
   it("onFogEnabledChange speaks the wire protocol directly", () => {
     const bag = createBag();
-    buildDMMenuProps(bag, {}).onFogEnabledChange!(true);
+    buildDMMenuProps(bag, extras).onFogEnabledChange!(true);
 
     expect(bag.sendMessage).toHaveBeenCalledExactlyOnceWith({
       t: "set-fog-enabled",
@@ -178,7 +196,7 @@ describe("buildDMMenuProps", () => {
 
   it("onGridLockToggle flips through the functional updater", () => {
     const bag = createBag();
-    buildDMMenuProps(bag, {}).onGridLockToggle();
+    buildDMMenuProps(bag, extras).onGridLockToggle();
 
     expect(bag.setGridLocked).toHaveBeenCalledTimes(1);
     const updater = vi.mocked(bag.setGridLocked).mock.calls[0][0] as (prev: boolean) => boolean;
@@ -188,7 +206,7 @@ describe("buildDMMenuProps", () => {
 
   it("map lock: locked-by-default without a scene object, and the toggle guards", () => {
     const nullBag = createBag();
-    const nullBuilt = buildDMMenuProps(nullBag, {});
+    const nullBuilt = buildDMMenuProps(nullBag, extras);
     expect(nullBuilt.mapLocked).toBe(true);
     nullBuilt.onMapLockToggle!();
     expect(nullBag.toggleSceneObjectLock).not.toHaveBeenCalled();
@@ -200,7 +218,7 @@ describe("buildDMMenuProps", () => {
         transform: { x: 9, y: 8, scaleX: 2, scaleY: 2, rotation: 45 },
       },
     });
-    const built = buildDMMenuProps(bag, {});
+    const built = buildDMMenuProps(bag, extras);
     expect(built.mapLocked).toBe(false);
     expect(built.mapTransform).toEqual({ x: 9, y: 8, scaleX: 2, scaleY: 2, rotation: 45 });
     built.onMapLockToggle!();
@@ -208,7 +226,7 @@ describe("buildDMMenuProps", () => {
   });
 
   it("mapTransform falls back to the identity transform", () => {
-    expect(buildDMMenuProps(createBag(), {}).mapTransform).toEqual({
+    expect(buildDMMenuProps(createBag(), extras).mapTransform).toEqual({
       x: 0,
       y: 0,
       scaleX: 1,
@@ -225,7 +243,7 @@ describe("buildDMMenuProps", () => {
         transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
       },
     });
-    const built = buildDMMenuProps(bag, {});
+    const built = buildDMMenuProps(bag, extras);
 
     built.onMapTransformChange!({ x: 10, y: 20, scaleX: 2, scaleY: 3, rotation: 90 });
     expect(bag.transformSceneObject).toHaveBeenLastCalledWith({
@@ -240,43 +258,44 @@ describe("buildDMMenuProps", () => {
     expect(bag.transformSceneObject).toHaveBeenLastCalledWith({ id: "map-1", rotation: 15 });
 
     const nullBag = createBag();
-    buildDMMenuProps(nullBag, {}).onMapTransformChange!({ rotation: 15 });
+    buildDMMenuProps(nullBag, extras).onMapTransformChange!({ rotation: 15 });
     expect(nullBag.transformSceneObject).not.toHaveBeenCalled();
   });
 
   it("staging zone lock: unlocked-by-default without an object, and the toggle guards", () => {
     const nullBag = createBag();
-    const nullBuilt = buildDMMenuProps(nullBag, {});
+    const nullBuilt = buildDMMenuProps(nullBag, extras);
     expect(nullBuilt.stagingZoneLocked).toBe(false);
     nullBuilt.onStagingZoneLockToggle!();
     expect(nullBag.toggleSceneObjectLock).not.toHaveBeenCalled();
 
     const bag = createBag({ stagingZoneSceneObject: { id: "staging-1", locked: true } });
-    const built = buildDMMenuProps(bag, {});
+    const built = buildDMMenuProps(bag, extras);
     expect(built.stagingZoneLocked).toBe(true);
     built.onStagingZoneLockToggle!();
     expect(bag.toggleSceneObjectLock).toHaveBeenCalledExactlyOnceWith("staging-1", false);
   });
 
-  it("onRollAllInitiative rides the extras, because it is a hook result", () => {
-    const rollAllInitiative = vi.fn();
-    expect(buildDMMenuProps(createBag(), { rollAllInitiative }).onRollAllInitiative).toBe(
-      rollAllInitiative,
-    );
-    expect(buildDMMenuProps(createBag(), {}).onRollAllInitiative).toBeUndefined();
+  it("the initiative actions ride the extras whole, because they are one hook's result", () => {
+    // Identity, not a copy: Encounter's dialog must share the Party's pending state.
+    expect(buildDMMenuProps(createBag(), extras).initiative).toBe(initiative);
+  });
+
+  it("hands Encounter the viewer's own uid from the bag", () => {
+    expect(buildDMMenuProps(createBag({ uid: "dm-7" }), extras).uid).toBe("dm-7");
   });
 });
 
-describe("buildDMMenuProps — the Players tab's REMOVE", () => {
+describe("buildDMMenuProps — the Table tab's REMOVE", () => {
   it("onRemovePlayer speaks the wire: remove-player with the uid", () => {
     const bag = createBag();
-    buildDMMenuProps(bag, {}).onRemovePlayer!("ghost");
+    buildDMMenuProps(bag, extras).onRemovePlayer!("ghost");
     expect(bag.sendMessage).toHaveBeenCalledWith({ t: "remove-player", uid: "ghost" });
   });
 
   it("connectedUids mirrors the snapshot's roster, and is empty (not undefined) without a snapshot", () => {
-    expect(buildDMMenuProps(createBag(), {}).connectedUids).toEqual([]);
+    expect(buildDMMenuProps(createBag(), extras).connectedUids).toEqual([]);
     const snapshot = { users: ["a", "b"] } as unknown as MainLayoutProps["snapshot"];
-    expect(buildDMMenuProps(createBag({ snapshot }), {}).connectedUids).toEqual(["a", "b"]);
+    expect(buildDMMenuProps(createBag({ snapshot }), extras).connectedUids).toEqual(["a", "b"]);
   });
 });

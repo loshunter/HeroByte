@@ -5,6 +5,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { registerOpenPanel } from "../effects/panelPresence";
 import { isMobileLayout } from "../../utils/mobileLayout";
+import { belowHeader, useFollowHeader } from "./headerPlacement";
+import { loadWindowPosition, saveWindowPosition } from "./windowPosition";
+import {
+  WindowInteraction,
+  type WindowInteractionOptions,
+} from "../../features/interaction/WindowInteraction";
 
 interface DraggableWindowProps {
   title: string;
@@ -18,9 +24,13 @@ interface DraggableWindowProps {
   height?: number;
   zIndex?: number;
   storageKey?: string; // Optional key for localStorage persistence
+  interaction?: WindowInteractionOptions;
+  scrollContent?: boolean;
 }
 
-const POSITION_KEY_PREFIX = "herobyte-window-position-";
+// A press on the title bar is how a drag starts, and also just a click. It has to travel this
+// far before the player has placed the window.
+const DRAG_SLOP_PX = 3;
 
 export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   title,
@@ -34,33 +44,29 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   height,
   zIndex = 1000,
   storageKey,
+  interaction,
+  scrollContent = true,
 }) => {
-  // Load position from localStorage if storageKey is provided
+  // True once the window has a place of its own (remembered, or dragged): it then stops
+  // following the header as that grows or shrinks (see headerPlacement).
+  const placedRef = useRef(false);
+  // Where the current press began, and whether it has travelled far enough to be a drag.
+  const pressOrigin = useRef({ x: 0, y: 0 });
+  const draggedRef = useRef(false);
+  // The remembered place, if the window has a storageKey and was left somewhere. One that lies
+  // over the header's controls is not kept: it covers the buttons that close the window, and it
+  // was often never chosen (until a click on a title bar stopped saving, any click saved the
+  // window's default y, which a taller header has since grown past). Such a window opens under
+  // the controls and goes on following the header like a fresh one.
   const getInitialPosition = () => {
-    if (storageKey) {
-      const storage = getWindowStorage();
-      if (!storage) return { x: initialX, y: initialY };
-
-      try {
-        const saved = storage.getItem(`${POSITION_KEY_PREFIX}${storageKey}`);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          // Validate the saved position
-          if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-            // Ensure position is within viewport bounds
-            const maxX = window.innerWidth - 200; // Leave at least 200px visible
-            const maxY = window.innerHeight - 100; // Leave at least 100px visible
-            return {
-              x: Math.max(0, Math.min(parsed.x, maxX)),
-              y: Math.max(0, Math.min(parsed.y, maxY)),
-            };
-          }
-        }
-      } catch (error) {
-        console.warn("Failed to load window position from localStorage:", error);
-      }
+    const remembered = storageKey ? loadWindowPosition(storageKey) : null;
+    if (remembered) {
+      const y = belowHeader(remembered.y);
+      if (y !== remembered.y) return { x: remembered.x, y };
+      placedRef.current = true;
+      return remembered;
     }
-    return { x: initialX, y: initialY };
+    return { x: initialX, y: belowHeader(initialY) };
   };
 
   const [position, setPosition] = useState(getInitialPosition);
@@ -71,6 +77,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   // in desktop dress inside the phone shell. See utils/mobileLayout.
   const [isMobile, setIsMobile] = useState(isMobileLayout);
   const windowRef = useRef<HTMLDivElement>(null);
+  // Down only: a header that shrinks (a reconnect takes a DM's tools out of it) must not lift
+  // the window, or it bobs with every blip.
+  useFollowHeader(!isMobile, initialY, placedRef, (y) =>
+    setPosition((current) => (current.y >= y ? current : { ...current, y })),
+  );
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // Don't start dragging if clicking on a button or on mobile
@@ -82,6 +93,8 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
 
     const rect = windowRef.current?.getBoundingClientRect();
     if (rect) {
+      pressOrigin.current = { x: e.clientX, y: e.clientY };
+      draggedRef.current = false;
       setDragOffset({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
@@ -98,6 +111,15 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging && !isMobile) {
+        if (!draggedRef.current) {
+          const travelled = Math.hypot(
+            e.clientX - pressOrigin.current.x,
+            e.clientY - pressOrigin.current.y,
+          );
+          if (travelled < DRAG_SLOP_PX) return;
+          draggedRef.current = true;
+          placedRef.current = true;
+        }
         const newPosition = {
           x: e.clientX - dragOffset.x,
           y: e.clientY - dragOffset.y,
@@ -108,18 +130,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      // A click is not a placement: nothing moved, so nothing is remembered.
+      if (!draggedRef.current) return;
 
       // Save position to localStorage when dragging ends
-      if (storageKey && !isMobile) {
-        const storage = getWindowStorage();
-        if (!storage) return;
-
-        try {
-          storage.setItem(`${POSITION_KEY_PREFIX}${storageKey}`, JSON.stringify(position));
-        } catch (error) {
-          console.warn("Failed to save window position to localStorage:", error);
-        }
-      }
+      if (storageKey && !isMobile) saveWindowPosition(storageKey, position);
     };
 
     if (isDragging) {
@@ -150,16 +165,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
           };
           setPosition(newPosition);
 
-          // Save adjusted position
-          if (storageKey) {
-            const storage = getWindowStorage();
-            if (!storage) return;
-
-            try {
-              storage.setItem(`${POSITION_KEY_PREFIX}${storageKey}`, JSON.stringify(newPosition));
-            } catch (error) {
-              console.warn("Failed to save adjusted window position:", error);
-            }
+          // Save adjusted position — of a window that HAS a place of its own. A saved place is read
+          // back as placed, so remembering the clamp of one nobody placed would stop it following
+          // the header for good.
+          if (storageKey && placedRef.current) {
+            saveWindowPosition(storageKey, newPosition, "Failed to save adjusted window position:");
           }
         }
       }
@@ -223,87 +233,83 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   };
 
   return (
-    <div ref={windowRef} style={isMobile ? mobileStyles : desktopStyles}>
-      {/* Title bar - draggable on desktop */}
-      <div
-        onMouseDown={handleMouseDown}
-        className="jrpg-text-command"
-        style={{
-          background: "var(--jrpg-gold)",
-          padding: isMobile ? "16px 20px" : "12px 20px",
-          color: "var(--jrpg-navy)",
-          fontSize: isMobile ? "16px" : "12px",
-          fontWeight: "bold",
-          textAlign: "center",
-          position: "relative",
-          boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)",
-          cursor: isMobile ? "default" : isDragging ? "grabbing" : "grab",
-          userSelect: "none",
-          border: isMobile ? "none" : "2px solid var(--jrpg-border-outer)",
-          borderBottom: isMobile
-            ? "2px solid var(--jrpg-border-gold)"
-            : "2px solid var(--jrpg-border-outer)",
-          textShadow: "none",
-        }}
-      >
-        {title}
-        {onClose && (
-          <button
-            onClick={onClose}
-            // "×" is not an accessible name, so this control had none at all —
-            // invisible to a screen reader and unfindable by getByRole.
-            aria-label={`Close ${title}`}
-            className="jrpg-button jrpg-button-danger"
+    <WindowInteraction
+      frameRef={windowRef}
+      band={zIndex + (isMobile ? 100 : 0)}
+      floating={!isMobile}
+      options={interaction}
+      onClose={onClose}
+    >
+      {(close) => (
+        <div ref={windowRef} style={isMobile ? mobileStyles : desktopStyles}>
+          {/* Title bar - draggable on desktop */}
+          <div
+            onMouseDown={handleMouseDown}
+            className="jrpg-text-command"
             style={{
-              position: "absolute",
-              right: isMobile ? "12px" : "8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              // On mobile this is a full-screen takeover and the ✕ is the only
-              // way out of it, so it holds the 44px floor the rest of the
-              // mobile UI honours. It was 32px, and 24px on any device wide
-              // enough to fool the old breakpoint.
-              width: isMobile ? "44px" : "24px",
-              height: isMobile ? "44px" : "24px",
-              padding: 0,
-              fontSize: isMobile ? "20px" : "14px",
-              lineHeight: "1",
+              background: "var(--jrpg-gold)",
+              padding: isMobile ? "16px 20px" : "12px 20px",
+              color: "var(--jrpg-navy)",
+              fontSize: isMobile ? "16px" : "12px",
+              fontWeight: "bold",
+              textAlign: "center",
+              position: "relative",
+              boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)",
+              cursor: isMobile ? "default" : isDragging ? "grabbing" : "grab",
+              userSelect: "none",
+              border: isMobile ? "none" : "2px solid var(--jrpg-border-outer)",
+              borderBottom: isMobile
+                ? "2px solid var(--jrpg-border-gold)"
+                : "2px solid var(--jrpg-border-outer)",
+              textShadow: "none",
             }}
           >
-            ×
-          </button>
-        )}
-      </div>
+            {title}
+            {close && (
+              <button
+                onClick={close}
+                // "×" is not an accessible name, so this control had none at all —
+                // invisible to a screen reader and unfindable by getByRole.
+                aria-label={`Close ${title}`}
+                className="jrpg-button jrpg-button-danger"
+                style={{
+                  position: "absolute",
+                  right: isMobile ? "12px" : "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  // On mobile this is a full-screen takeover and the ✕ is the only
+                  // way out of it, so it holds the 44px floor the rest of the
+                  // mobile UI honours. It was 32px, and 24px on any device wide
+                  // enough to fool the old breakpoint.
+                  width: isMobile ? "44px" : "24px",
+                  height: isMobile ? "44px" : "24px",
+                  padding: 0,
+                  fontSize: isMobile ? "20px" : "14px",
+                  lineHeight: "1",
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
 
-      {/* Content */}
-      <div
-        style={{
-          flex: 1,
-          overflow: "auto",
-          pointerEvents: "auto",
-          // The last band clears the home indicator, like every other phone surface.
-          padding: isMobile ? "16px" : "0",
-          paddingBottom: isMobile ? "calc(16px + env(safe-area-inset-bottom, 0px))" : "0", // Add padding on mobile content
-        }}
-      >
-        {children}
-      </div>
-    </div>
+          {/* Content */}
+          <div
+            style={{
+              flex: 1,
+              overflow: scrollContent ? "auto" : "hidden",
+              minHeight: 0,
+              display: scrollContent ? "block" : "flex",
+              pointerEvents: "auto",
+              // The last band clears the home indicator, like every other phone surface.
+              padding: isMobile ? "16px" : "0",
+              paddingBottom: isMobile ? "calc(16px + env(safe-area-inset-bottom, 0px))" : "0", // Add padding on mobile content
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      )}
+    </WindowInteraction>
   );
 };
-
-function getWindowStorage(): Storage | null {
-  try {
-    const storage = window.localStorage;
-    if (
-      !storage ||
-      typeof storage.getItem !== "function" ||
-      typeof storage.setItem !== "function"
-    ) {
-      return null;
-    }
-    return storage;
-  } catch {
-    return null;
-  }
-}

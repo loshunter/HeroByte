@@ -159,3 +159,183 @@ describe("applyPlayerState targeting", () => {
     });
   });
 });
+
+// The player-level conditions list is a legacy mirror, read back only for a
+// player's SOLE character. So it may only ever hold that character's list:
+// - not a sibling's: with two characters the mirror wrote whichever was edited
+//   last, and once the other was deleted the survivor showed (and on its next
+//   toggle saved) the deleted one's conditions;
+// - not an NPC's: an NPC the DM placed can carry the DM's uid as its owner,
+//   and since U7 the DM sets NPC conditions from the NPC's window.
+describe("setCharacterStatusEffects mirror", () => {
+  beforeEach(() => {
+    mockSendMessage.mockClear();
+  });
+
+  function actionsWith(characters: unknown[]) {
+    const withCharacters = { ...snapshot, characters } as unknown as RoomSnapshot;
+    return renderHook(() =>
+      usePlayerActions({
+        sendMessage: mockSendMessage,
+        snapshot: withCharacters,
+        uid: "dm-uid",
+      }),
+    );
+  }
+
+  it("mirrors the sender's own player character onto the player-level list", () => {
+    const { result } = actionsWith([
+      { id: "char-mine", name: "Mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.setCharacterStatusEffects("char-mine", ["prone"]));
+
+    expect(sentTypes()).toEqual(["set-character-status-effects", "set-status-effects"]);
+  });
+
+  it("never mirrors when the sender has two player characters", () => {
+    const { result } = actionsWith([
+      { id: "char-mine", name: "Mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+      { id: "char-also", name: "Also mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.setCharacterStatusEffects("char-also", ["poisoned"]));
+
+    expect(sentTypes()).toEqual(["set-character-status-effects"]);
+  });
+
+  it("an NPC the sender owns does not stop their sole character mirroring", () => {
+    const { result } = actionsWith([
+      { id: "char-mine", name: "Mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+      { id: "npc-goblin", name: "Goblin", type: "npc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.setCharacterStatusEffects("char-mine", ["prone"]));
+    expect(sentTypes()).toEqual(["set-character-status-effects", "set-status-effects"]);
+
+    // …and that sole character's mirror is not the NPC's to write.
+    mockSendMessage.mockClear();
+    act(() => result.current.setCharacterStatusEffects("npc-goblin", ["poisoned"]));
+    expect(sentTypes()).toEqual(["set-character-status-effects"]);
+  });
+
+  it("never mirrors an NPC, even one the sender owns", () => {
+    const { result } = actionsWith([
+      { id: "npc-goblin", name: "Goblin", type: "npc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.setCharacterStatusEffects("npc-goblin", ["poisoned"]));
+
+    expect(sentTypes()).toEqual(["set-character-status-effects"]);
+  });
+});
+
+// `sync-player-drawings` carries no owner: the server replaces the SENDER's
+// drawings with the file's. So a DM restoring a player's file onto the
+// player's card deleted the DM's own drawings and re-created the player's as
+// the DM's. Drawings are restored only onto the sender's own card.
+describe("applyPlayerState drawings", () => {
+  beforeEach(() => {
+    mockSendMessage.mockClear();
+  });
+
+  const withDrawings = { ...state, drawings: [] } as PlayerState;
+  function actionsWith(characters: unknown[]) {
+    const withCharacters = { ...snapshot, characters } as unknown as RoomSnapshot;
+    return renderHook(() =>
+      usePlayerActions({ sendMessage: mockSendMessage, snapshot: withCharacters, uid: "dm-uid" }),
+    );
+  }
+
+  it("a file loaded onto someone else's card leaves the loader's drawings alone", () => {
+    // The loader (the DM) owns a character too: the gate is about THIS card,
+    // not whether the loader owns any.
+    const { result } = actionsWith([
+      { id: "char-alice", name: "Alice", type: "pc", ownedByPlayerUID: "alice-uid" },
+      { id: "char-dm", name: "Sidekick", type: "pc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.applyPlayerState(withDrawings, undefined, "char-alice"));
+
+    expect(sentTypes()).not.toContain("sync-player-drawings");
+  });
+
+  it("a file loaded onto your own card restores your drawings", () => {
+    const { result } = actionsWith([
+      { id: "char-mine", name: "Mine", type: "pc", ownedByPlayerUID: "dm-uid" },
+    ]);
+    act(() => result.current.applyPlayerState(withDrawings, undefined, "char-mine"));
+
+    expect(sentTypes()).toContain("sync-player-drawings");
+  });
+
+  it("a legacy self-restore (no character) still restores drawings", () => {
+    const { result } = actionsWith([]);
+    act(() => result.current.applyPlayerState(withDrawings));
+
+    expect(sentTypes()).toContain("sync-player-drawings");
+  });
+});
+
+// A file's initiative modifier is restored ALONE (`set-initiative-modifier`).
+// It rode `set-initiative`, which enters the order: a character with no
+// initiative joined it at 0, a manual entry went to the public roll log, and
+// after END COMBAT (which keeps initiatives) combat started again on that
+// character's turn.
+describe("applyPlayerState initiative modifier", () => {
+  beforeEach(() => {
+    mockSendMessage.mockClear();
+  });
+
+  const withModifier = { ...state, initiativeModifier: 3 } as PlayerState;
+  function actionsAs(uid: string, character: Record<string, unknown>) {
+    const table = {
+      ...snapshot,
+      combatActive: false,
+      players: [
+        { uid: "dm-uid", name: "DM", isDM: true },
+        { uid: "alice-uid", name: "Alice", isDM: false },
+      ],
+      characters: [
+        {
+          id: "char-alice",
+          name: "Alice",
+          type: "pc",
+          ownedByPlayerUID: "alice-uid",
+          ...character,
+        },
+      ],
+    } as unknown as RoomSnapshot;
+    return renderHook(() =>
+      usePlayerActions({ sendMessage: mockSendMessage, snapshot: table, uid }),
+    );
+  }
+  const sent = (t: string) =>
+    mockSendMessage.mock.calls.map((c) => c[0] as ClientMessage).filter((m) => m.t === t);
+
+  it("restores the modifier alone and never enters the order", () => {
+    const { result } = actionsAs("alice-uid", {});
+    act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
+
+    expect(sent("set-initiative")).toEqual([]);
+    expect(sent("set-initiative-modifier")).toEqual([
+      { t: "set-initiative-modifier", characterId: "char-alice", initiativeModifier: 3 },
+    ]);
+  });
+
+  it("after END COMBAT (initiative kept), still only the modifier", () => {
+    const { result } = actionsAs("alice-uid", { initiative: 15 });
+    act(() => result.current.applyPlayerState(withModifier, undefined, "char-alice"));
+
+    expect(sent("set-initiative")).toEqual([]);
+    expect(sent("set-initiative-modifier")).toHaveLength(1);
+  });
+
+  it("clamps a file's out-of-range modifier to the stored range", () => {
+    const { result } = actionsAs("alice-uid", {});
+    act(() =>
+      result.current.applyPlayerState(
+        { ...state, initiativeModifier: 99 } as PlayerState,
+        undefined,
+        "char-alice",
+      ),
+    );
+
+    expect(sent("set-initiative-modifier")[0]).toMatchObject({ initiativeModifier: 20 });
+  });
+});

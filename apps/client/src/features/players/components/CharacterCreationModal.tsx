@@ -3,7 +3,12 @@
 // ============================================================================
 // Modal for creating a new player character with loading state feedback
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useId } from "react";
+import {
+  EscapeRootProvider,
+  useEscapeRoot,
+  useEscapeOwner,
+} from "../../interaction/useEscapeOwner";
 import { createPortal } from "react-dom";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
@@ -40,6 +45,7 @@ export function CharacterCreationModal({
   onClose,
 }: CharacterCreationModalProps): JSX.Element | null {
   const [characterName, setCharacterName] = useState("");
+  const nameFieldId = useId();
   const [wasCreating, setWasCreating] = useState(false);
 
   // Auto-close when creation completes
@@ -73,15 +79,24 @@ export function CharacterCreationModal({
     }
   }, [isCreating, onClose]);
 
+  const modalRef = React.useRef<HTMLDivElement>(null);
+  const escapeRoot = useEscapeRoot(modalRef, 10000);
+  useEscapeOwner(() => ({
+    kind: "modal",
+    name: "CharacterCreationModal",
+    active: isOpen,
+    root: escapeRoot,
+    anchor: modalRef.current,
+    handle: isCreating ? undefined : handleCancel,
+  }));
+
   const handleKeyPress = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" && !isCreating && characterName.trim()) {
         handleCreate();
-      } else if (e.key === "Escape" && !isCreating) {
-        handleCancel();
       }
     },
-    [handleCreate, handleCancel, isCreating, characterName],
+    [handleCreate, isCreating, characterName],
   );
 
   if (!isOpen) {
@@ -113,88 +128,98 @@ export function CharacterCreationModal({
   // reads it with document.querySelector to stop WASD while a modal is up, and
   // that query is document-wide, so the portal does not disturb it.
   return createPortal(
-    <div style={{ display: "contents" }} data-mobile-surface="modal">
-      <div
-        data-modal-overlay=""
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0, 0, 0, 0.8)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 10000,
-        }}
-        onClick={handleCancel}
-      >
-        <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-          <JRPGPanel title="Add Character" style={{ width: "400px", maxWidth: "90vw" }}>
-            <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Explanation */}
-              <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-text-dim)" }}>
-                Create a new character with its own HP, portrait, and token that you control.
-              </p>
+    <EscapeRootProvider value={escapeRoot}>
+      <div style={{ display: "contents" }} data-mobile-surface="modal">
+        <div
+          ref={modalRef}
+          data-modal-overlay=""
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+          }}
+          onClick={handleCancel}
+        >
+          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+            <JRPGPanel title="Add Character" style={{ width: "400px", maxWidth: "90vw" }}>
+              <div
+                style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}
+              >
+                {/* Explanation */}
+                <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-text-dim)" }}>
+                  Create a new character with its own HP, portrait, and token that you control.
+                </p>
 
-              {/* Name Input */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                  Character Name:
-                </label>
-                <input
-                  type="text"
-                  value={characterName}
-                  onChange={(e) => setCharacterName(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Enter character name..."
-                  disabled={isCreating}
-                  autoFocus
-                  style={{
-                    padding: "8px",
-                    fontSize: "14px",
-                    border: "2px solid var(--jrpg-border)",
-                    borderRadius: "4px",
-                    backgroundColor: isCreating ? "var(--jrpg-bg-dark)" : "var(--jrpg-bg)",
-                    color: "var(--jrpg-text)",
-                    fontFamily: "inherit",
-                  }}
-                />
-              </div>
-
-              {/* Loading/Status Message */}
-              {isCreating && (
-                <div
-                  className="jrpg-text-small"
-                  style={{
-                    color: "var(--jrpg-gold)",
-                    textAlign: "center",
-                    padding: "8px",
-                  }}
-                >
-                  Creating character...
+                {/* Name Input */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <label
+                    htmlFor={nameFieldId}
+                    className="jrpg-text-small"
+                    style={{ color: "var(--jrpg-gold)" }}
+                  >
+                    Character Name:
+                  </label>
+                  <input
+                    id={nameFieldId}
+                    type="text"
+                    value={characterName}
+                    onChange={(e) => setCharacterName(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="Enter character name..."
+                    disabled={isCreating}
+                    autoFocus
+                    style={{
+                      padding: "8px",
+                      fontSize: "14px",
+                      border: "2px solid var(--jrpg-border)",
+                      borderRadius: "4px",
+                      backgroundColor: isCreating ? "var(--jrpg-bg-dark)" : "var(--jrpg-bg)",
+                      color: "var(--jrpg-text)",
+                      fontFamily: "inherit",
+                    }}
+                  />
                 </div>
-              )}
 
-              {/* Buttons */}
-              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                <JRPGButton onClick={handleCancel} disabled={isCreating}>
-                  Cancel
-                </JRPGButton>
-                <JRPGButton
-                  onClick={handleCreate}
-                  variant="primary"
-                  disabled={isCreating || !characterName.trim()}
-                >
-                  {isCreating ? "Creating..." : "Create"}
-                </JRPGButton>
+                {/* Loading/Status Message */}
+                {isCreating && (
+                  <div
+                    className="jrpg-text-small"
+                    style={{
+                      color: "var(--jrpg-gold)",
+                      textAlign: "center",
+                      padding: "8px",
+                    }}
+                  >
+                    Creating character...
+                  </div>
+                )}
+
+                {/* Buttons */}
+                <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                  <JRPGButton onClick={handleCancel} disabled={isCreating}>
+                    Cancel
+                  </JRPGButton>
+                  <JRPGButton
+                    onClick={handleCreate}
+                    variant="primary"
+                    disabled={isCreating || !characterName.trim()}
+                  >
+                    {isCreating ? "Creating..." : "Create"}
+                  </JRPGButton>
+                </div>
               </div>
-            </div>
-          </JRPGPanel>
+            </JRPGPanel>
+          </div>
         </div>
       </div>
-    </div>,
+    </EscapeRootProvider>,
     document.body,
   );
 }

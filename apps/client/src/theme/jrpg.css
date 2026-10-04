@@ -129,8 +129,8 @@
  * Applied in three places and defined in none, so it did nothing at all — the
  * text simply inherited whatever surrounded it.
  *
- * Every site that uses it is HELP PROSE ("Click Apply Zone to create/update the
- * staging zone. Use the Transform tool to move and resize it..."), which is
+ * Every site that uses it is HELP PROSE ("Apply Zone creates or updates the
+ * staging zone at the numbers above... Use the Transform tool to move..."), which is
  * exactly what the body face exists for. So this resolves as prose rather than
  * as an even-smaller pixel size — the name is a size, but the intent was always
  * "the small explanatory text".

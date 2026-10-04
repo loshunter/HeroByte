@@ -37,7 +37,7 @@ interface CommitDragOptions {
   splineKind: MapEditSplineKind;
   onRoomRejected?: (message: string) => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
-  onRegionPlaced?: (bounds: RoomBounds) => void;
+  onRegionPlaced?: import("./populateTarget").OnPopulateRegionPlaced;
   /** A generate region was swept — the recipe's target, nothing placed yet. */
   onRegionDragged?: (bounds: RoomBounds) => void;
 }
@@ -103,7 +103,7 @@ export function commitDragTool({
     });
     if (command) {
       controller.placeRoom(command.cells, command.elements);
-      onRegionPlaced?.(bounds);
+      onRegionPlaced?.(bounds, "room", command.elements);
     } else if (error) {
       onRoomRejected?.(error);
     }
@@ -121,7 +121,7 @@ export function commitDragTool({
     );
     if (command && bounds) {
       controller.placeRoom(command.cells, command.elements);
-      onRegionPlaced?.(bounds);
+      onRegionPlaced?.(bounds, "hallway", command.elements);
     } else if (error) {
       onRoomRejected?.(error);
     }

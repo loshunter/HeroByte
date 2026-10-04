@@ -9,14 +9,17 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PARTY_PANEL_RESIZED } from "../components/layout/party/partyPanelSize";
+import type { AuthenticatedAppProps } from "./AuthenticatedApp.types";
 import type { Camera } from "../hooks/useCamera";
-import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ServerMessage } from "@herobyte/shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
-import { useDMRole } from "../hooks/useDMRole";
+import { useClearOnDemotion, useDMRole, useEndOnDemotion } from "../hooks/useDMRole";
+import { RoleKnownContext } from "../features/table/roleKnown";
 import { useToolMode } from "../hooks/useToolMode";
 import { useCameraCommands } from "../hooks/useCameraCommands";
 import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
@@ -94,6 +97,7 @@ export const App: React.FC = () => {
     registerRtcHandler,
     registerServerEventHandler,
     registerCommandDropHandler,
+    registerCommandDelivery,
   } = useWebSocket({
     url: WS_URL,
     uid,
@@ -127,26 +131,13 @@ export const App: React.FC = () => {
         registerRtcHandler={registerRtcHandler}
         registerServerEventHandler={registerServerEventHandler}
         registerCommandDropHandler={registerCommandDropHandler}
+        registerCommandDelivery={registerCommandDelivery}
         isConnected={isConnected}
         authState={authState}
       />
     </AuthenticationGate>
   );
 };
-
-interface AuthenticatedAppProps {
-  uid: string;
-  snapshot: RoomSnapshot | null;
-  /** Everyone else's live measurement (S6); relayed, never in the snapshot. */
-  remoteMeasurements: MeasureEvent[];
-  sendMessage: (message: ClientMessage) => void;
-  getAuthCredentials: () => { secret: string; roomId?: string } | null;
-  registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
-  registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
-  registerCommandDropHandler: (handler: (messageType: string, reason: string) => void) => void;
-  isConnected: boolean;
-  authState: AuthState;
-}
 
 function AuthenticatedApp({
   uid,
@@ -157,6 +148,7 @@ function AuthenticatedApp({
   registerRtcHandler,
   registerServerEventHandler,
   registerCommandDropHandler,
+  registerCommandDelivery,
   isConnected,
   authState,
 }: AuthenticatedAppProps): JSX.Element {
@@ -173,6 +165,12 @@ function AuthenticatedApp({
   // Creak and clunk when compiled doors change state, on every screen.
   useDoorSfx(snapshot?.compiledScene?.doors);
 
+  // Effective role gates table-wide clearing and confirmed tool transitions.
+  // The local override closes DM access immediately while revocation is pending.
+  const { isDM: serverIsDM, roleKnown } = useDMRole({ snapshot, uid, send: sendMessage });
+  const [dmRevocationPending, setDmRevocationPending] = useState(false);
+  const isDM = serverIsDM && !dmRevocationPending;
+
   // Tool modes
   const {
     activeTool,
@@ -184,7 +182,7 @@ function AuthenticatedApp({
     selectMode,
     alignmentMode,
     mapEditMode,
-  } = useToolMode();
+  } = useToolMode({ snapshot, uid, isDM });
 
   // Custom hooks for state management
   const { micEnabled, toggleMic } = useVoiceChatManager({
@@ -194,19 +192,10 @@ function AuthenticatedApp({
     registerRtcHandler,
   });
 
-  // DM role detection (client override allows immediate DM menu closing during
-  // revocation). Declared here rather than further down because the drawing
-  // manager needs it: clearing all drawings is a DM-only server operation, and
-  // a non-DM must not lose their local undo history to a call the server will
-  // reject.
-  const { isDM: serverIsDM } = useDMRole({ snapshot, uid, send: sendMessage });
-  const [dmRevocationPending, setDmRevocationPending] = useState(false);
-  const isDM = serverIsDM && !dmRevocationPending;
-
   // Drawing state manager
   const drawingManager = useDrawingStateManager({
     sendMessage,
-    drawMode,
+    drawingHistory: snapshot?.drawingHistory,
     setActiveTool,
     canClearDrawings: isDM,
   });
@@ -243,14 +232,13 @@ function AuthenticatedApp({
   const toast = useToast();
 
   // A reliable command was dropped for good (retries exhausted or the offline
-  // queue overflowed): the change never reached the server. Without this it
+  // queue overflowed): completion is unconfirmed. Without this it
   // only ever showed in the console, so the user kept playing on a silently
   // stale table.
   useEffect(() => {
-    registerCommandDropHandler((messageType, reason) => {
+    registerCommandDropHandler(() => {
       toast.error(
-        `A change (${messageType}) could not reach the server (${reason}). ` +
-          `The table may be out of date — reload if things look stale.`,
+        "A change could not be confirmed. Refresh and inspect the table before repeating it.",
       );
     });
   }, [registerCommandDropHandler, toast]);
@@ -284,8 +272,8 @@ function AuthenticatedApp({
     uid,
     snapshot,
     sendMessage,
-    transformMode,
-    selectMode,
+    activeTool,
+    isDM,
   });
 
   // Player token selection shortcuts for DM
@@ -320,6 +308,9 @@ function AuthenticatedApp({
   // Player lens (P4): render the DM's own table exactly as players receive
   // it. Pure view state — DM permissions stay live while it is on.
   const [playerLens, setPlayerLens] = useState(false);
+  // It is the DM's lens and ends with the role, or it returns pressed at the next elevation.
+  const endPlayerLens = useCallback(() => setPlayerLens(false), []);
+  useEndOnDemotion(serverIsDM, roleKnown, playerLens, endPlayerLens);
 
   // Camera commands
   const { cameraCommand, handleFocusToken, handleResetCamera, handleCameraCommandHandled } =
@@ -344,20 +335,26 @@ function AuthenticatedApp({
   } = useDiceRolling({ snapshot, sendMessage, uid, isDM });
 
   // Server event handlers (room password, DM elevation)
-  const mapStudio = useMapStudio(sendMessage, getAuthCredentials, isConnected);
-  // Live on-table map authoring: drives the ONE controller above (never a second
-  // useMapStudio — two queues would revision-conflict).
+  const mapStudio = useMapStudio(
+    sendMessage,
+    getAuthCredentials,
+    isConnected,
+    registerCommandDelivery,
+  );
+  // Live on-table map authoring: the ONE controller above, never a second queue.
   const mapEdit = useMapEditState({
     controller: mapStudio,
     sendMessage,
     mapEditMode,
     setActiveTool,
     isDM,
-    snapshotLoaded: Boolean(snapshot),
+    snapshotLoaded: roleKnown,
     liveMapDocumentId: snapshot?.liveMapDocumentId,
     roomGridSize: snapshot?.gridSize ?? 50,
+    sceneSourceDocumentId: snapshot?.compiledScene?.sourceDocumentId,
     hasRasterBackground: Boolean(snapshot?.mapBackground),
     notifyError: toast.error,
+    dismissError: toast.dismiss,
   });
   // A gesture whose commit was skipped mid-command. Same toast channel as a
   // rejected room, throttled — see useDroppedGestureNotice for why.
@@ -416,6 +413,10 @@ function AuthenticatedApp({
       window.removeEventListener("orientationchange", updateMobileLayout);
     };
   }, []);
+  // The phone layout has no Player View control and its map ignores the lens: end it there.
+  useEffect(() => {
+    if (isMobile) setPlayerLens(false);
+  }, [isMobile]);
 
   // -------------------------------------------------------------------------
   // EFFECTS
@@ -439,7 +440,13 @@ function AuthenticatedApp({
 
     measureHeights();
     window.addEventListener("resize", measureHeights);
-    return () => window.removeEventListener("resize", measureHeights);
+    // The Party panel resizes itself (U7) and says so with its own event —
+    // never a synthetic resize, which would cancel an in-flight map gesture.
+    window.addEventListener(PARTY_PANEL_RESIZED, measureHeights);
+    return () => {
+      window.removeEventListener("resize", measureHeights);
+      window.removeEventListener(PARTY_PANEL_RESIZED, measureHeights);
+    };
   }, [snapshot?.players]);
 
   /**
@@ -516,14 +523,9 @@ function AuthenticatedApp({
   // and are now instantiated only when isDM is true via DMMenuContainer
   // This reduces bundle size for non-DM players by ~12-18 KB
 
-  useEffect(() => {
-    if (!serverIsDM) {
-      setDmRevocationPending(false);
-    }
-  }, [serverIsDM]);
-
   // Cache the last DM-visible snapshot so NPCs/tokens don't disappear
   const [cachedDmSnapshot, setCachedDmSnapshot] = useState<RoomSnapshot | null>(null);
+  useClearOnDemotion(serverIsDM, roleKnown, cachedDmSnapshot, setCachedDmSnapshot);
   const [dmSnapshotPending, setDmSnapshotPending] = useState(false);
   const [dmSnapshotPendingSince, setDmSnapshotPendingSince] = useState<number | null>(null);
   const previousIsDMRef = useRef(isDM);
@@ -604,6 +606,17 @@ function AuthenticatedApp({
     sendMessage,
     toast,
   });
+  // The wait for a leave ends when the request does: the roster confirmed it (the seat is no
+  // DM), the server refused it, or its five seconds ran out. In that last case the roster still
+  // lists the seat as the DM, and it is one: left latched, the Table menu would read "Player"
+  // and offer no Leave. It does NOT end on a reconnect blip: the snapshot and the DM flag go with
+  // the socket though nobody has stopped being a DM, and ending it there would flash the DM's
+  // tools back when the roster returns, still listing the DM until the queued leave is heard.
+  useEffect(() => {
+    if (dmRevocationPending && !modalState.isLoading) {
+      setDmRevocationPending(false);
+    }
+  }, [dmRevocationPending, modalState.isLoading]);
   useEffect(() => {
     dmElevationFailedRef.current = onElevationFailed;
     return () => {
@@ -672,6 +685,7 @@ function AuthenticatedApp({
     undoSelection,
     canUndoSelection: canUndo,
     mapEditMode,
+    notify: toast.info,
   });
 
   // Keyboard movement: one cell per press for whatever is selected, App-level
@@ -731,12 +745,15 @@ function AuthenticatedApp({
     [snapshot?.characters, startMaxHpEdit],
   );
 
-  // Wrap startTempHpEdit to match MainLayout's signature (uid only)
+  // Wrap startTempHpEdit to match MainLayout's signature (uid only), and open the field on the
+  // CURRENT temp HP: it used to open at 0, so leaving it without typing (every way out of a
+  // field on a phone, which has no Escape) wrote 0 over whatever the character had.
   const handleStartTempHpEdit = useCallback(
     (uid: string) => {
       startTempHpEdit(uid);
+      updateTempHpInput(String(snapshot?.characters?.find((c) => c.id === uid)?.tempHp ?? 0));
     },
-    [startTempHpEdit],
+    [snapshot?.characters, startTempHpEdit, updateTempHpInput],
   );
 
   // Transform mapSceneObject to extract only needed properties
@@ -764,8 +781,6 @@ function AuthenticatedApp({
     },
     [playerActions],
   );
-
-  // Note: No wrapper needed - SessionPersistenceControl has its own file input
 
   // -------------------------------------------------------------------------
   // RENDER
@@ -797,8 +812,9 @@ function AuthenticatedApp({
     mapEditRoomWallFamily: mapEdit.roomWallFamily,
     mapEditSelectedAssetId: mapEdit.selectedAssetId,
     mapEditHallwayWidth: mapEdit.hallwayWidth,
+    mapEditTerrainBrushSize: mapEdit.terrainBrushSize,
     mapEditSplineKind: mapEdit.splineKind,
-    mapEditPopulateGhosts: mapEdit.populateGhosts,
+    mapEditPersistentPreview: playerLens ? null : mapEdit.persistentPreview,
     mapEditWheelActions: mapEdit.wheelActions,
     mapEditSelectedElementId: mapEdit.selectedElementId,
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
@@ -830,6 +846,7 @@ function AuthenticatedApp({
     gridSize,
     gridSquareSize,
     isDM,
+    roleKnown,
     // Camera
     cameraState,
     // `camera` previously came from a dead useState whose setter was never
@@ -938,11 +955,11 @@ function AuthenticatedApp({
   };
 
   return (
-    <>
+    <RoleKnownContext.Provider value={roleKnown}>
       {isMobile ? <MobileLayout {...layoutProps} /> : <MainLayout {...layoutProps} />}
 
       {/* DM Elevation Modal */}
       <DMElevationModal {...modalState} {...modalActionsWithSync} />
-    </>
+    </RoleKnownContext.Provider>
   );
 }

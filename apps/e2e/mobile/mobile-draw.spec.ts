@@ -113,7 +113,9 @@ test.describe("mobile touch — taps are not drawings", () => {
     test(`a tap with the ${tool} tool commits nothing`, async ({ page }) => {
       await joinMobileTable(page);
       await selectMobileTool(page, /^Draw$/i);
-      await page.getByRole("button", { name: new RegExp(`^${tool}$`, "i") }).click();
+      await page
+        .getByRole("button", { name: new RegExp(`^${tool === "rect" ? "Rectangle" : tool}$`, "i") })
+        .click();
 
       const before = await readDrawings(page);
       const box = await boardBox(page);
@@ -140,7 +142,7 @@ test.describe("mobile touch — drawing toolbar reach", () => {
     { width: 375, height: 812, label: "portrait" },
     { width: 812, height: 375, label: "landscape" },
   ]) {
-    test(`every control is on screen and >=44px (${viewport.label})`, async ({ page }) => {
+    test(`every control is on screen and >=44px (${viewport.label})`, async ({ page }, info) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await joinMobileTable(page);
       await selectMobileTool(page, /^Draw$/i);
@@ -149,11 +151,63 @@ test.describe("mobile touch — drawing toolbar reach", () => {
       const report = await page.evaluate(() => {
         const sheet = document.querySelector(".mobile-drawing-sheet");
         if (!sheet) return null;
+        const clips = (overflow: string) => /^(auto|scroll|hidden|clip|overlay)$/.test(overflow);
         const controls = [...sheet.querySelectorAll("button,input")].map((el) => {
           const r = el.getBoundingClientRect();
+          const visible = {
+            left: Math.max(0, r.left),
+            top: Math.max(0, r.top),
+            right: Math.min(window.innerWidth, r.right),
+            bottom: Math.min(window.innerHeight, r.bottom),
+          };
+          const clippingAncestors = [];
+          for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+            const style = getComputedStyle(parent);
+            const clipX = clips(style.overflowX);
+            const clipY = clips(style.overflowY);
+            if (!clipX && !clipY) continue;
+            const box = parent.getBoundingClientRect();
+            // Overflow clips to the client box, excluding borders and scrollbars.
+            const left = box.left + parent.clientLeft;
+            const top = box.top + parent.clientTop;
+            const right = left + parent.clientWidth;
+            const bottom = top + parent.clientHeight;
+            if (clipX) {
+              visible.left = Math.max(visible.left, left);
+              visible.right = Math.min(visible.right, right);
+            }
+            if (clipY) {
+              visible.top = Math.max(visible.top, top);
+              visible.bottom = Math.min(visible.bottom, bottom);
+            }
+            clippingAncestors.push({
+              element: parent.id || parent.className || parent.tagName,
+              clipX,
+              clipY,
+              left,
+              top,
+              right,
+              bottom,
+            });
+          }
+          const exposedWidth = Math.max(0, visible.right - visible.left);
+          const exposedHeight = Math.max(0, visible.bottom - visible.top);
           return {
-            label: (el.textContent || (el as HTMLInputElement).type || "").trim().slice(0, 8),
-            height: Math.round(r.height),
+            label: (
+              el.getAttribute("aria-label") ||
+              el.textContent ||
+              (el as HTMLInputElement).type ||
+              ""
+            ).trim(),
+            height: r.height,
+            width: r.width,
+            exposedWidth,
+            exposedHeight,
+            clippingAncestors,
+            fullyExposed: exposedWidth + 0.01 >= r.width && exposedHeight + 0.01 >= r.height,
+            reachable: el.contains(
+              document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2),
+            ),
             onScreen:
               r.top >= 0 &&
               r.bottom <= window.innerHeight &&
@@ -164,18 +218,33 @@ test.describe("mobile touch — drawing toolbar reach", () => {
         return {
           count: controls.length,
           offScreen: controls.filter((c) => !c.onScreen).map((c) => c.label),
-          under44: controls.filter((c) => c.height < 44).map((c) => `${c.label}:${c.height}`),
+          under44: controls.filter((c) => c.height < 44 || c.width < 44),
+          exposedUnder44: controls.filter((c) => c.exposedHeight < 44 || c.exposedWidth < 44),
+          clipped: controls.filter((c) => !c.fullyExposed).map((c) => c.label),
+          covered: controls.filter((c) => !c.reachable).map((c) => c.label),
+          controls,
         };
       });
 
+      await info.attach(`drawing-reach-${viewport.label}.json`, {
+        body: JSON.stringify(report, null, 2),
+        contentType: "application/json",
+      });
+      await info.attach(`drawing-reach-${viewport.label}.png`, {
+        body: await page.screenshot(),
+        contentType: "image/png",
+      });
       expect(report).not.toBeNull();
-      // 14 = five drawing tools + four area templates (S6) + colour + size
-      // + Undo + Redo + Done. Pinned deliberately: the point of this test is
+      // 17 = five drawing tools + four area templates + color + width + opacity
+      // + Hide controls + Undo + Redo + Cancel + Done. Pinned deliberately: this tests
       // that ADDING a control cannot quietly push another one off screen, so a
       // new count must be seen and re-measured, not auto-accepted.
-      expect(report!.count).toBe(14);
+      expect(report!.count).toBe(17);
       expect(report!.offScreen).toEqual([]);
       expect(report!.under44).toEqual([]);
+      expect(report!.exposedUnder44).toEqual([]);
+      expect(report!.clipped).toEqual([]);
+      expect(report!.covered).toEqual([]);
     });
   }
 });

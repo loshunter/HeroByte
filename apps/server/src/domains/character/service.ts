@@ -79,6 +79,10 @@ export class CharacterService {
       ...(options?.disposition ? { disposition: options.disposition } : {}),
       // Same rule again; 0 is a real value here, so the test is on undefined.
       ...(options?.tempHp !== undefined ? { tempHp: Math.max(0, options.tempHp) } : {}),
+      // A player character's conditions are its own from the start. Absent,
+      // the clients fall back to the seat's legacy list whenever it is its
+      // player's only character, and that list can hold a deleted sibling's.
+      ...(type === "pc" ? { statusEffects: [] } : {}),
     };
 
     state.characters.push(newCharacter);
@@ -101,6 +105,31 @@ export class CharacterService {
         `Cannot claim: Character ${characterId} already owned by ${character.ownedByPlayerUID}`,
       );
       return false;
+    }
+
+    // A player's sole character may still read its conditions, temp HP and
+    // portrait from the seat's legacy values (saved before characters had
+    // their own), and the clients honour that fallback only for a SOLE
+    // character (UX-02). Before a second character ends it, the values become
+    // the first one's own, or they vanish from its row, card and token.
+    if (character.type === "pc") {
+      const owned = state.characters.filter(
+        (c) => c.type === "pc" && c.ownedByPlayerUID === playerUID,
+      );
+      const first = owned.length === 1 ? owned[0]! : undefined;
+      const seat = first ? state.players.find((p) => p.uid === playerUID) : undefined;
+      if (first) {
+        if (first.statusEffects === undefined)
+          first.statusEffects = [...(seat?.statusEffects ?? [])];
+        if (first.tempHp === undefined && seat?.tempHp !== undefined) first.tempHp = seat.tempHp;
+        if (first.portrait === undefined && seat?.portrait) first.portrait = seat.portrait;
+        // MOVED, not copied: left on the seat they would resurface on whichever
+        // character is sole next (the first deleted, its sibling left).
+        if (seat) {
+          delete seat.tempHp;
+          delete seat.portrait;
+        }
+      }
     }
 
     character.ownedByPlayerUID = playerUID;

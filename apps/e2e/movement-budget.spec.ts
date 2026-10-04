@@ -12,6 +12,7 @@
  * advisory, and that is the DM's lever besides the turn.
  */
 import { expect, test, type Page } from "./fixtures";
+import { showPartyCards } from "./party.helpers";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 
 const selectTool = (page: Page) => page.locator('button[title="Select multiple objects"]');
@@ -74,6 +75,7 @@ const RED = "#d63c53";
 
 /** The DM sets a character's speed through the card's settings menu (the portrait opens it). */
 async function setSpeedFromCard(dm: Page, characterName: string, speed: string) {
+  await showPartyCards(dm);
   const card = dm.locator(".player-card-shell", { hasText: characterName }).first();
   await card.getByRole("button", { name: "Change portrait" }).click();
   const field = dm.getByLabel("Movement speed in feet per turn");
@@ -283,6 +285,7 @@ test.describe("movement budget", () => {
         (id) => window.__HERO_BYTE_E2E__!.snapshot!.characters.find((c) => c.id === id)!.name,
         me.id,
       );
+      await showPartyCards(dm);
       const card = dm.locator(".player-card-shell", { hasText: myName }).first();
       await card.getByRole("button", { name: "Change portrait" }).click();
       await expect(dm.getByText("Used 10 ft")).toBeVisible({ timeout: 5_000 });

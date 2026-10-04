@@ -8,9 +8,9 @@
  * Target: Future TopPanelLayout component
  *
  * Components tested:
- * - ServerStatus (always rendered)
  * - DrawingToolbar (conditional on drawMode)
- * - Header (always rendered)
+ * - Header (always rendered; U9: its Table button carries the connection that a fixed
+ *   ServerStatus badge used to)
  * - MultiSelectToolbar (always rendered)
  *
  * Part of: MainLayout decomposition project (795 LOC → <200 LOC)
@@ -21,6 +21,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import type { DrawingToolbarProps } from "../../features/drawing/components/DrawingToolbar";
 import type { ToolMode } from "../../components/layout/Header";
+import type { TableMenuProps } from "../../features/table/tableMenuProps";
+import { ReconnectPhaseContext } from "../../features/table/reconnectPhase";
 
 // The lazy map-edit palette, forced to fail the way a post-deploy 404 does.
 // Inert for every test above: the fixture ships mapEditMode: false, so nothing
@@ -32,14 +34,6 @@ vi.mock("../../features/map-edit/MapEditToolbar", () => ({
 }));
 
 // Mock all child components with prop tracking
-vi.mock("../../components/layout/ServerStatus", () => ({
-  ServerStatus: ({ isConnected }: { isConnected: boolean }) => (
-    <div data-testid="server-status" data-connected={isConnected}>
-      ServerStatus
-    </div>
-  ),
-}));
-
 vi.mock("../../features/drawing/components", () => ({
   DrawingToolbar: (props: DrawingToolbarProps) => (
     <div
@@ -57,15 +51,13 @@ vi.mock("../../features/drawing/components", () => ({
 
 vi.mock("../../components/layout/Header", () => ({
   Header: (props: {
-    uid: string;
+    table: TableMenuProps;
     snapToGrid: boolean;
     activeTool: ToolMode;
-    crtFilter: boolean;
     diceRollerOpen: boolean;
     rollLogOpen: boolean;
     onSnapToGridChange: (snap: boolean) => void;
     onToolSelect: (mode: ToolMode) => void;
-    onCrtFilterChange: (enabled: boolean) => void;
     onDiceRollerToggle: (open: boolean) => void;
     onRollLogToggle: (open: boolean) => void;
     topPanelRef?: React.RefObject<HTMLDivElement>;
@@ -74,10 +66,13 @@ vi.mock("../../components/layout/Header", () => ({
   }) => (
     <div
       data-testid="header"
-      data-uid={props.uid}
+      data-uid={props.table.uid}
+      data-connected={props.table.isConnected}
+      data-is-dm={props.table.isDM}
+      data-role-known={props.table.roleKnown}
       data-snap-to-grid={props.snapToGrid}
       data-active-tool={props.activeTool}
-      data-crt-filter={props.crtFilter}
+      data-crt-filter={props.table.crtFilter}
       data-dice-roller-open={props.diceRollerOpen}
       data-roll-log-open={props.rollLogOpen}
     >
@@ -171,6 +166,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     mapEditRoomWallFamily: "none" as const,
     mapEditSelectedAssetId: "objects:crate",
     mapEditHallwayWidth: 2,
+    mapEditTerrainBrushSize: 1 as const,
     mapEditSelectedElementId: null,
     mapEditWallsOverlayPinned: false,
     onMapEditRoomRejected: vi.fn(),
@@ -180,6 +176,11 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     onMapEditSelectElement: vi.fn(),
     onMapEditSampleAsset: vi.fn(),
     mapEditToolbarProps: {
+      mapName: "Fixture map",
+      activeGroup: "structures",
+      onSelectGroup: vi.fn(),
+      populateTarget: null,
+      populateHint: "Draw a room or hallway first.",
       isLive: false,
       busy: false,
       activeSubTool: "wall" as const,
@@ -193,6 +194,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       onUndo: vi.fn(),
       onRedo: vi.fn(),
       onStartLiveMap: vi.fn(),
+      buildEntry: { kind: "start" as const },
       onClose: vi.fn(),
       hasRasterBackground: false,
       error: null,
@@ -209,6 +211,8 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       onToggleAssetPicker: vi.fn(),
       hallwayWidth: 2,
       onSelectHallwayWidth: vi.fn(),
+      terrainBrushSize: 1 as const,
+      onSelectTerrainBrushSize: vi.fn(),
       splineKind: "rope" as const,
       onSelectSplineKind: vi.fn(),
       populateDensity: "medium" as const,
@@ -231,6 +235,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       saving: false,
       layers: [],
       selectedElement: null,
+      properties: null,
       onUpdateLayer: vi.fn(),
       onMoveLayer: vi.fn(),
       onUpdateElement: vi.fn(),
@@ -262,6 +267,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     gridSize: 50,
     gridSquareSize: 5,
     isDM: false,
+    roleKnown: true,
 
     // Camera
     cameraState: { x: 0, y: 0, scale: 1 },
@@ -410,36 +416,56 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
   });
 
   // ============================================================================
-  // ServerStatus Component Tests
+  // The connection (U9: it rides the Header's Table button, not a fixed badge)
   // ============================================================================
 
-  describe("ServerStatus rendering", () => {
-    it("should always render ServerStatus component", async () => {
-      const props = createDefaultProps();
-      render(<MainLayout {...props} />);
-      await act(async () => {});
-
-      expect(screen.getByTestId("server-status")).toBeInTheDocument();
-    });
-
-    it("should pass isConnected=true to ServerStatus when connected", () => {
+  describe("the connection state", () => {
+    it("hands the Header the connection, so the Table button can say it", () => {
       const props = createDefaultProps();
       props.isConnected = true;
+      const { unmount } = render(<MainLayout {...props} />);
+      expect(screen.getByTestId("header")).toHaveAttribute("data-connected", "true");
+      unmount();
 
-      render(<MainLayout {...props} />);
-
-      const serverStatus = screen.getByTestId("server-status");
-      expect(serverStatus).toHaveAttribute("data-connected", "true");
+      const lost = createDefaultProps();
+      lost.isConnected = false;
+      render(<MainLayout {...lost} />);
+      expect(screen.getByTestId("header")).toHaveAttribute("data-connected", "false");
     });
 
-    it("should pass isConnected=false to ServerStatus when disconnected", () => {
+    it("draws no chip of its own over the top of the layout", () => {
+      // The fixed ONLINE badge painted over whatever was at the top centre. The
+      // layout no longer mounts any connection element: the Header's Table button
+      // is its one home on desktop.
+      render(<MainLayout {...createDefaultProps()} />);
+      expect(screen.queryByTestId("connection-chip")).toBeNull();
+      expect(screen.queryByText(/ONLINE|OFFLINE/)).toBeNull();
+    });
+
+    it("hangs the gate's reconnect notice from the header's measured bottom edge, as a sibling of the header", () => {
+      // Inside the header it shares the header's layer and a floating window can paint over it.
       const props = createDefaultProps();
-      props.isConnected = false;
+      props.topHeight = 120;
+      render(
+        <ReconnectPhaseContext.Provider value="reconnecting">
+          <MainLayout {...props} />
+        </ReconnectPhaseContext.Provider>,
+      );
+      const dock = document.querySelector<HTMLElement>(".reconnect-notice-dock");
+      expect(dock).not.toBeNull();
+      expect(dock!.style.top).toBe("128px");
+      expect(dock).toContainElement(screen.getByTestId("reconnect-notice"));
+      expect(screen.getByTestId("header")).not.toContainElement(dock);
+    });
 
+    it("hands the Header the role AND whether it is known, from the passed-in flags", () => {
+      const props = createDefaultProps();
+      props.isDM = true;
+      props.roleKnown = false;
       render(<MainLayout {...props} />);
-
-      const serverStatus = screen.getByTestId("server-status");
-      expect(serverStatus).toHaveAttribute("data-connected", "false");
+      const header = screen.getByTestId("header");
+      expect(header).toHaveAttribute("data-is-dm", "true");
+      expect(header).toHaveAttribute("data-role-known", "false");
     });
   });
 
@@ -854,13 +880,11 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       const { container } = render(<MainLayout {...props} />);
 
       // Get all components
-      const serverStatus = screen.getByTestId("server-status");
       const drawingToolbar = screen.getByTestId("drawing-toolbar");
       const header = screen.getByTestId("header");
       const multiSelectToolbar = screen.getByTestId("multi-select-toolbar");
 
       // All should be present
-      expect(serverStatus).toBeInTheDocument();
       expect(drawingToolbar).toBeInTheDocument();
       expect(header).toBeInTheDocument();
       expect(multiSelectToolbar).toBeInTheDocument();
@@ -868,21 +892,15 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       // Verify they appear in the correct order in the DOM
       const allElements = Array.from(container.querySelectorAll("[data-testid]"));
       const topPanelComponents = allElements.filter((el) =>
-        ["server-status", "drawing-toolbar", "header", "multi-select-toolbar"].includes(
+        ["drawing-toolbar", "header", "multi-select-toolbar"].includes(
           el.getAttribute("data-testid") || "",
         ),
       );
 
       const order = topPanelComponents.map((el) => el.getAttribute("data-testid"));
-      const serverStatusIndex = order.indexOf("server-status");
       const drawingToolbarIndex = order.indexOf("drawing-toolbar");
       const headerIndex = order.indexOf("header");
       const multiSelectToolbarIndex = order.indexOf("multi-select-toolbar");
-
-      // ServerStatus should appear before all others
-      expect(serverStatusIndex).toBeLessThan(drawingToolbarIndex);
-      expect(serverStatusIndex).toBeLessThan(headerIndex);
-      expect(serverStatusIndex).toBeLessThan(multiSelectToolbarIndex);
 
       // DrawingToolbar should appear before Header
       expect(drawingToolbarIndex).toBeLessThan(headerIndex);
@@ -898,12 +916,10 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       const { container } = render(<MainLayout {...props} />);
 
       // Get all components
-      const serverStatus = screen.getByTestId("server-status");
       const header = screen.getByTestId("header");
       const multiSelectToolbar = screen.getByTestId("multi-select-toolbar");
 
       // These should be present
-      expect(serverStatus).toBeInTheDocument();
       expect(header).toBeInTheDocument();
       expect(multiSelectToolbar).toBeInTheDocument();
 
@@ -913,17 +929,13 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       // Verify order
       const allElements = Array.from(container.querySelectorAll("[data-testid]"));
       const topPanelComponents = allElements.filter((el) =>
-        ["server-status", "header", "multi-select-toolbar"].includes(
-          el.getAttribute("data-testid") || "",
-        ),
+        ["header", "multi-select-toolbar"].includes(el.getAttribute("data-testid") || ""),
       );
 
       const order = topPanelComponents.map((el) => el.getAttribute("data-testid"));
-      const serverStatusIndex = order.indexOf("server-status");
       const headerIndex = order.indexOf("header");
       const multiSelectToolbarIndex = order.indexOf("multi-select-toolbar");
 
-      expect(serverStatusIndex).toBeLessThan(headerIndex);
       expect(headerIndex).toBeLessThan(multiSelectToolbarIndex);
     });
   });
@@ -1006,7 +1018,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("server-status")).toHaveAttribute("data-connected", "true");
+      expect(screen.getByTestId("header")).toHaveAttribute("data-connected", "true");
       expect(screen.getByTestId("drawing-toolbar")).toBeInTheDocument();
       expect(screen.getByTestId("header")).toHaveAttribute("data-snap-to-grid", "true");
       expect(screen.getByTestId("header")).toHaveAttribute("data-crt-filter", "true");
@@ -1027,7 +1039,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("server-status")).toHaveAttribute("data-connected", "false");
+      expect(screen.getByTestId("header")).toHaveAttribute("data-connected", "false");
       expect(screen.queryByTestId("drawing-toolbar")).not.toBeInTheDocument();
       expect(screen.getByTestId("header")).toHaveAttribute("data-snap-to-grid", "false");
       expect(screen.getByTestId("header")).toHaveAttribute("data-crt-filter", "false");
@@ -1138,7 +1150,6 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       // The whole point: the rest of the layout is still standing. If the
       // boundary is removed, the throw reaches the app root and the header
       // goes with it — which is what makes this assertion the real pin.
-      expect(screen.getByTestId("server-status")).toBeInTheDocument();
       expect(screen.getByTestId("header")).toBeInTheDocument();
       expect(screen.queryByText(/Application Error/i)).toBeNull();
     });
