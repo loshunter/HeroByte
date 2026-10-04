@@ -2097,7 +2097,10 @@ button.token-library-remove:hover {
  */
 .mobile-selection-sheet {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  /* 128px, not 96: at 375px three chips a row left 105px each, under TRANSFORM's
+     width in the pixel font (it overflowed) and wrapping 🔓 UNLOCK's icon onto its
+     own line. Two a row fits every label; the DM's four still take two rows. */
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   align-items: center;
   gap: 7px;
   padding: 8px;

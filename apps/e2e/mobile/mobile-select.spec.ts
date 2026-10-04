@@ -98,6 +98,9 @@ test.describe("mobile touch — selection sheet reach", () => {
             return {
               label: (b.textContent || "").trim(),
               height: Math.round(r.height),
+              // A label wider than its chip is cut off by the border: TRANSFORM was,
+              // at 375px with three chips a row (fonts are wider still on Linux CI).
+              clipped: b.scrollWidth > b.clientWidth + 1,
               onScreen:
                 r.top >= 0 &&
                 r.bottom <= window.innerHeight &&
@@ -108,6 +111,7 @@ test.describe("mobile touch — selection sheet reach", () => {
         return {
           offScreen: controls.filter((c) => !c.onScreen).map((c) => c.label),
           under44: controls.filter((c) => c.height < 44).map((c) => `${c.label}:${c.height}`),
+          clipped: controls.filter((c) => c.clipped).map((c) => c.label),
           hasClear: controls.some((c) => /clear/i.test(c.label)),
         };
       });
@@ -117,6 +121,7 @@ test.describe("mobile touch — selection sheet reach", () => {
       expect(report!.hasClear).toBe(true);
       expect(report!.offScreen).toEqual([]);
       expect(report!.under44).toEqual([]);
+      expect(report!.clipped).toEqual([]);
     });
   }
 });
