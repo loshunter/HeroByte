@@ -244,10 +244,9 @@ export class Container {
    * the shared space usable without ever interrupting a session.
    *
    * Private tables are untouched: they unload (preserving durable state) via
-   * unloadIdleRooms instead. Only this table is ever wiped, and it is unless
-   * HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0 turns the sweep off (a private server's real
-   * table). Its password cannot be changed, so while it is swept it can never quietly
-   * become someone's real table. Anyone wanting to keep what they built forks it to a private
+   * unloadIdleRooms instead. Only this table is ever wiped (unless CLEAR_HOURS=0):
+   * its password cannot be changed, so while swept it never becomes someone's
+   * real table. Anyone wanting to keep what they built forks it to a private
    * table (fork-table), which copies it across before the next sweep.
    */
   async clearIdleDefaultRoom(idleMs: number): Promise<boolean> {

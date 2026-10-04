@@ -51,11 +51,11 @@ describe("help text, after the U10c review", () => {
     expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
     // Locked stops players moving it, not the DM: the server lets the DM transform it
     // (TransformHandler) and the key planner skips it for players only (keyboardMovement).
-    // And it stops only the Delete key (useKeyboardShortcuts): the server's delete-token
-    // never reads the lock, so a character or NPC delete, REMOVE, or the DM's
-    // 🗑️ Delete Token (TokenSettingsSection) still takes it.
+    // And it stops only the Delete key (useKeyboardShortcuts): the server's deletes never
+    // read the lock, so a character or NPC delete, REMOVE, 🗑️ Delete Token (DM)
+    // (TokenSettingsSection), the eraser (eraseStroke) and Clear all drawings still take it.
     expect(locked).toMatch(
-      /players cannot move it, and the Delete key will not remove it until it is unlocked \(deleting its character or NPC, or the DM's 🗑️ Delete Token, still does\); the DM can still step it with the keys \(on a phone, the d-pad\)/,
+      /players cannot move it, and the Delete key will not remove it until it is unlocked\. Every other delete still does: deleting its character or NPC, REMOVE, 🗑️ Delete Token \(DM\), the eraser, 🗑️ Clear all drawings\. The DM can still step it with the keys \(on a phone, the d-pad\)/,
     );
     expect(locked).not.toMatch(/cannot be moved or deleted|no one can delete it/);
   });

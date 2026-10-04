@@ -2,10 +2,10 @@
 
 ## Default Credentials (Development)
 
-| Password Type      | Default Value | Notes                                                                           |
-| ------------------ | ------------- | ------------------------------------------------------------------------------- |
-| **Table Password** | `Fun1`        | Fixed on the Main Hall. Private tables set their own (Session → Table Security) |
-| **DM Password**    | `FunDM`       | Fixed on the Main Hall. Private tables set their own at creation                |
+| Password Type      | Default Value | Notes                                                                             |
+| ------------------ | ------------- | --------------------------------------------------------------------------------- |
+| **Table Password** | `Fun1`        | Fixed on the Main Hall. Private tables set their own (DM Menu → Table → Security) |
+| **DM Password**    | `FunDM`       | Fixed on the Main Hall. Private tables set their own at creation                  |
 
 > The Main Hall is the **public test table**: both passwords are fixed (the server's settings), and
 > by default it is wiped after an hour empty. To keep work from it, use DM Menu → Table → Security →
@@ -30,26 +30,23 @@
 
 1. Become DM (see above)
 2. Open **DM Menu** (bottom-right corner)
-3. Go to **Session** tab
-4. Under "Table Security", enter new password
+3. Go to the **Table** tab
+4. Under **Security**, enter the new password
 5. Confirm password
-6. Click **"Update Password"**
+6. Click **"Change table password"**
 7. Share new password with your players
 
-### Save Your Session
+### Save Your Table
 
-1. Open **DM Menu** → **Session** tab
-2. Enter a session name (optional)
-3. Click **"Save Game State"**
-4. Download saves as JSON file
-5. Store somewhere safe
+1. Open **DM Menu** → **Table** tab → **Backups**
+2. Click **"Download table backup"**
+3. Store the file somewhere safe
 
-### Load a Session
+### Restore a Table
 
-1. Open **DM Menu** → **Session** tab
-2. Click **"Load Game State"**
-3. Select your saved JSON file
-4. Session restores with all maps, tokens, and drawings
+1. Open **DM Menu** → **Table** tab → **Backups**
+2. Click **"Restore table backup…"**
+3. Select your backup file; it replaces the map, NPCs, props and drawings for everyone
 
 ### Reset to Demo Defaults (Manual)
 
@@ -102,12 +99,12 @@ HEROBYTE_DEFAULT_ROOM_ID="default"
 1. 🎲 Use tools to draw, measure, place tokens
 2. 💬 Use voice chat to communicate
 3. 🎯 Roll dice via dice panel
-4. 💾 Save periodically (DM Menu → Session)
+4. 💾 Download a backup periodically (DM Menu → Table → Backups)
 
 ### After Your Game
 
 1. 💾 Save final state
-2. 🔄 On a private table, reset its password (DM Menu → Session → Table Security → "Reset to Default") (optional)
+2. 🔄 On a private table, reset its password (DM Menu → Table → Security → "Reset to default") (optional)
 3. 🧹 Clear drawings/tokens (optional)
 4. 👋 Disconnect
 

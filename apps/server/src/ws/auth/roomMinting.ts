@@ -47,7 +47,7 @@ export async function createRoomForUid(
 /**
  * Copy the sender's table into a new private one (DM-only, post-auth). This
  * is how work done on the test table is kept: that table's password is fixed
- * and it is wiped hourly, so a durable copy is the only way to hold on to it.
+ * and by default it is wiped after an hour empty, so a durable copy is the only way to hold on to it.
  */
 export async function forkTableForSender(
   deps: RoomMintingDeps,
