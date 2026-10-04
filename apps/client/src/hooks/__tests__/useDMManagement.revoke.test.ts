@@ -107,6 +107,19 @@ describe("useDMManagement — leaving DM mode", () => {
     expect(messages.success).not.toHaveBeenCalled();
   });
 
+  // The words are pinned on the constant (useDMElevation.modeEnded); this pins that the app
+  // really shows them, and only them, when DM mode ends with no leave asked.
+  it("tells the DM when DM mode ends unasked, naming no cause", () => {
+    const { rerender, messages } = mount();
+    rerender({ snapshot: null });
+    rerender({ snapshot: roster(false) });
+    expect(messages.info).toHaveBeenCalledExactlyOnceWith(
+      "DM mode ended. Enter DM mode again to run the game.",
+      8000,
+    );
+    expect(messages.success).not.toHaveBeenCalled();
+  });
+
   it("tells the dialog whether the roster has this seat, so it never reads a blip as a leave", () => {
     const { result, rerender } = mount();
     expect(result.current.modalState.roleKnown).toBe(true);

@@ -20,9 +20,11 @@ import { useCallback, useState } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import { useDMElevation } from "./useDMElevation";
 
-/** Shown when DM mode ends with no leave asked. It names both causes the client cannot tell apart. */
-export const DM_MODE_ENDED_MESSAGE =
-  "DM mode ended: the server restarted or your session expired. Enter DM mode again to run the game.";
+/**
+ * Shown when DM mode ends with no leave asked. It names no cause: the client cannot tell a
+ * restart from an expired session, a Main Hall sweep, a seat a co-DM removed or a clear-all.
+ */
+export const DM_MODE_ENDED_MESSAGE = "DM mode ended. Enter DM mode again to run the game.";
 
 /**
  * Toast notification interface for displaying status messages.
@@ -183,7 +185,8 @@ export function useDMManagement({
     onRevoked: () => toast.success("You left DM mode. You are a player again.", 3000),
     // Without a word the tools just vanished. The client cannot tell why: a restart (every
     // deploy) clears every elevation, and so does a reconnect after the session token has
-    // run out (SESSION_TOKEN_GRACE_MS) or after the Main Hall was swept.
+    // run out (SESSION_TOKEN_GRACE_MS), after the Main Hall was swept, or to a seat that was
+    // removed meanwhile (REMOVE by a co-DM, a clear-all).
     onDMModeEnded: () => toast.info(DM_MODE_ENDED_MESSAGE, 8000),
   });
 

@@ -2,8 +2,8 @@
 // elevation, and the roster comes back listing the seat as a player. The DM's tools simply
 // vanished, with no word of why (pre-merge live evaluation). The hook now says it once —
 // and only for that: a leave the DM asked for has its own message (onRevoked). The client
-// cannot tell a restart from a reconnect whose session token ran out (both demote), so the
-// words name both.
+// cannot tell a restart from an expired session, a sweep or a removed seat (all demote), so
+// the words name no cause.
 
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -80,9 +80,7 @@ describe("useDMElevation — DM mode ended without a request", () => {
     expect(onDMModeEnded).toHaveBeenCalledTimes(1);
   });
 
-  it("names both causes, never the restart alone", () => {
-    expect(DM_MODE_ENDED_MESSAGE).toBe(
-      "DM mode ended: the server restarted or your session expired. Enter DM mode again to run the game.",
-    );
+  it("names no cause it cannot know", () => {
+    expect(DM_MODE_ENDED_MESSAGE).toBe("DM mode ended. Enter DM mode again to run the game.");
   });
 });
