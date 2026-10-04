@@ -59,6 +59,8 @@ describe("TokenLibrary — the table's own tokens", () => {
     expect(names).toContain("Goblin club brute");
     const martaCell = screen.getByRole("button", { name: "Old Marta" });
     expect(martaCell.querySelector("img")).toHaveAttribute("src", marta.imageUrl);
+    // A DM's own token keeps the description they wrote.
+    expect(martaCell.getAttribute("title")).toContain("Runs the Gilded Tankard.");
     expect(martaCell.parentElement?.textContent).toContain("ADDED");
     expect(screen.getAllByText("ADDED")).toHaveLength(2);
   });

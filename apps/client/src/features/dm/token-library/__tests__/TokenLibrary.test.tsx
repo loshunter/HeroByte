@@ -39,6 +39,9 @@ describe("TokenLibrary", () => {
       "/tokens/Thumbs/NPC/Enemies/Goblins/goblinClub.png",
     );
     expect(club.getAttribute("title")).toContain("small");
+    // A pack description is the generator's prompt and pipeline notes ("Approved TopDown-v3
+    // skeleton… Pixel Size 15 export"), not copy: the tooltip is the name and size alone.
+    expect(club.getAttribute("title")).toBe("Goblin club brute · small");
   });
 
   it("the category switch narrows the grid AND the family select", () => {

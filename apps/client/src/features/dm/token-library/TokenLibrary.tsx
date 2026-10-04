@@ -163,7 +163,11 @@ export function TokenLibrary({ onPick, hint, disabled = false }: TokenLibraryPro
             <div key={`${item.category}:${item.id}`} style={cellWrapStyle}>
               <button
                 type="button"
-                title={[item.name, item.size, item.description].filter(Boolean).join(" · ")}
+                // The DM's own description, never the pack's: those are the generator's
+                // prompts and pipeline notes (still searchable, never shown as copy).
+                title={[item.name, item.size, item.custom ? item.description : undefined]
+                  .filter(Boolean)
+                  .join(" · ")}
                 disabled={disabled}
                 onFocus={() => setPreviewKey({ id: item.id, custom: item.custom })}
                 onClick={() => {
