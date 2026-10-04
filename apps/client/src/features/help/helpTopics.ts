@@ -185,7 +185,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🔒 Locked",
         detail:
-          "Pinned by the DM: players cannot move it, and no one can delete it until it is unlocked; the DM can still step it with the keys (on a phone, the d-pad). The DM selects it and presses 🔓 Unlock (on a phone: TOOLS → □ Select, tap it, then 🔓 Unlock). The DM can also unlock a player character's token from its ⚙️ settings → Token Lock (on a phone: ◉ PARTY → ⚙️ EDIT), and an NPC's from its settings' 🔒 Locked button.",
+          "Pinned by the DM: players cannot move it, and the Delete key will not remove it until it is unlocked (deleting its character or NPC, or the DM's 🗑️ Delete Token, still does); the DM can still step it with the keys (on a phone, the d-pad). The DM selects it and presses 🔓 Unlock (on a phone: TOOLS → □ Select, tap it, then 🔓 Unlock). The DM can also unlock a player character's token from its ⚙️ settings → Token Lock (on a phone: ◉ PARTY → ⚙️ EDIT), and an NPC's from its settings' 🔒 Locked button.",
       },
       { term: "Ping", detail: "Double-click (or double-tap) empty space in any tool mode." },
     ],
