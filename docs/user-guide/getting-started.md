@@ -28,7 +28,7 @@ A few useful details:
 
 Every server starts with one table, the **Main Hall**. It is permanently a scratch space:
 
-- **Its passwords are public and fixed.** Both the table password and the DM password are the ones printed in the setup docs, and **neither can be changed** — not by you, not by anyone. That's deliberate: if they could be changed, one visitor could padlock a public demo and its host would lose their own test bed with no way back in.
+- **Its passwords are public and fixed.** Both the table password and the DM password are the ones printed in the setup docs, and **neither can be changed** — not by you, not by anyone. That's deliberate: if they could be changed, one visitor could padlock a public demo and its host would lose their own test bed until the server restarted.
 - **It clears itself.** Once it has sat empty for an hour, the server wipes it: players, characters, tokens, maps, drawings, and uploaded images all go. That keeps the shared space usable instead of letting it silt up (and keeps its upload quota from filling).
 - You'll see this on the join screen, and a **⚠ PUBLIC TEST TABLE** marker sits at the top of the header while you're in it.
 
@@ -76,7 +76,7 @@ Share the invite link and the table password with your party (separately — the
 
 Good to know:
 
-- A private table's password is **its own** — the Main Hall password never unlocks a private table, and vice versa.
+- A private table's password is **its own** — the Main Hall password never unlocks it, and vice versa, **unless its DM presses Reset to default** (DM Menu → Table → Security), which gives it the Main Hall's password: anyone with the table's code could then join.
 - Each private table also gets its own DM password, separate from the Main Hall's.
 - Tables persist on the server between sessions (on hosted free tiers a long-idle server may reset — the DM should download a table backup; see [Backups](dm-guide.md#backups) in the DM Guide).
 

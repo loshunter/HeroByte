@@ -128,9 +128,9 @@ The server will recreate these files with default values.
 
 | Variable                   | Default                 | Purpose                                     |
 | -------------------------- | ----------------------- | ------------------------------------------- |
-| `HEROBYTE_ROOM_SECRET`     | `Fun1`                  | Room entry password (6-128 chars)           |
-| `HEROBYTE_DM_PASSWORD`     | `FunDM`                 | DM elevation password (8-128 chars)         |
-| `HEROBYTE_ALLOWED_ORIGINS` | `http://localhost:5174` | CORS whitelist (comma-separated)            |
+| `HEROBYTE_ROOM_SECRET`     | `Fun1`                  | Room entry password (use 6+; not length-checked) |
+| `HEROBYTE_DM_PASSWORD`     | `FunDM`                 | DM elevation password (use 8+; not length-checked) |
+| `HEROBYTE_ALLOWED_ORIGINS` | `localhost` / `127.0.0.1` on 5174 and 4173, and `https://herobyte.pages.dev` | CORS whitelist (comma-separated); setting it replaces the default list |
 | `HEROBYTE_DEFAULT_ROOM_ID` | `default`               | Room identifier (future multi-room support) |
 
 ## Troubleshooting
