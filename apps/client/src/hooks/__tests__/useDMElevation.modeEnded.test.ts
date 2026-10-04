@@ -1,12 +1,15 @@
 // DM mode can end without anyone asking: a server restart (every deploy) clears every
 // elevation, and the roster comes back listing the seat as a player. The DM's tools simply
 // vanished, with no word of why (pre-merge live evaluation). The hook now says it once —
-// and only for that: a leave the DM asked for has its own message (onRevoked).
+// and only for that: a leave the DM asked for has its own message (onRevoked). The client
+// cannot tell a restart from a reconnect whose session token ran out (both demote), so the
+// words name both.
 
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RoomSnapshot } from "@herobyte/shared";
 import { useDMElevation } from "../useDMElevation.js";
+import { DM_MODE_ENDED_MESSAGE } from "../useDMManagement.js";
 
 const roster = (isDM: boolean) =>
   ({ players: [{ uid: "uid-1", isDM }] }) as unknown as RoomSnapshot;
@@ -66,5 +69,20 @@ describe("useDMElevation — DM mode ended without a request", () => {
     dm.rerender({ snapshot: null });
     dm.rerender({ snapshot: roster(true) });
     expect(dm.onDMModeEnded).not.toHaveBeenCalled();
+  });
+
+  it("treats a leave answered more than a minute late as not asked", () => {
+    const { result, rerender, onRevoked, onDMModeEnded } = start(roster(true));
+    act(() => result.current.revoke());
+    act(() => vi.advanceTimersByTime(61_000)); // past LATE_ANSWER_MS
+    rerender({ snapshot: roster(false) });
+    expect(onRevoked).not.toHaveBeenCalled();
+    expect(onDMModeEnded).toHaveBeenCalledTimes(1);
+  });
+
+  it("names both causes, never the restart alone", () => {
+    expect(DM_MODE_ENDED_MESSAGE).toBe(
+      "DM mode ended: the server restarted or your session expired. Enter DM mode again to run the game.",
+    );
   });
 });

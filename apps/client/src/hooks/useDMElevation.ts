@@ -46,7 +46,7 @@ export function useDMElevation({
   send: (message: ClientMessage) => void;
   /** The server confirmed a revoke: the roster now lists this seat as no DM. */
   onRevoked?: () => void;
-  /** DM mode ended with no leave asked (a server restart clears every elevation). */
+  /** DM mode ended with no leave asked (a restart, or a reconnect without a live session token). */
   onDMModeEnded?: () => void;
 }) {
   const [isElevating, setIsElevating] = useState(false);
@@ -113,7 +113,7 @@ export function useDMElevation({
 
     // Detect successful revocation (true -> false): of the request in flight, or of one whose
     // five seconds ran out a little while ago and which the server has heard since. A demotion
-    // nobody asked for (a restart clears every elevation) is neither.
+    // nobody asked for (a restart, or a reconnect after the session token ran out) is neither.
     const askedAt = leaveAskedAtRef.current;
     const answeredLate = !isRevoking && askedAt !== null && Date.now() - askedAt <= LATE_ANSWER_MS;
     if ((isRevoking || answeredLate) && previousIsDM && !currentIsDM) {
