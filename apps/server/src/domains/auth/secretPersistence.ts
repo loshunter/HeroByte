@@ -31,8 +31,7 @@ export interface LoadedSecrets {
  * `rooms` and are loaded exactly as saved.
  */
 export function loadSecretRecords(storagePath: string): LoadedSecrets {
-  const persisted = loadPersistedSecret(storagePath);
-  return { rooms: persisted?.rooms ?? {}, secret: seedDefaultRecord() };
+  return { rooms: loadPersistedRooms(storagePath), secret: seedDefaultRecord() };
 }
 
 function seedDefaultRecord(): StoredSecret {
@@ -51,31 +50,25 @@ function seedDefaultRecord(): StoredSecret {
     dmHash: dmHashData.hash,
     dmSalt: dmHashData.salt,
     dmUpdatedAt: Date.now(),
-    dmSource: "fallback",
+    dmSource: process.env.HEROBYTE_DM_PASSWORD?.trim() ? "env" : "fallback",
   };
 }
 
-function loadPersistedSecret(storagePath: string): LoadedSecrets | null {
+/**
+ * The private tables' records from the file. Only `rooms` is read: the file's top-level
+ * record is the default table's, re-derived from the settings on every start, so it is
+ * never needed — and a file missing it (hand-edited, or older) must not take every
+ * private table's password with it, which would leave their codes claimable again.
+ */
+function loadPersistedRooms(storagePath: string): Record<string, RoomSecretRecord> {
   if (!existsSync(storagePath)) {
-    return null;
+    return {};
   }
 
   try {
-    const raw = readFileSync(storagePath, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<StoredSecret> & {
+    const parsed = JSON.parse(readFileSync(storagePath, "utf-8")) as {
       rooms?: Record<string, RoomSecretRecord>;
     };
-    if (
-      typeof parsed.hash !== "string" ||
-      typeof parsed.salt !== "string" ||
-      typeof parsed.updatedAt !== "number"
-    ) {
-      console.warn("[Auth] Secret file was invalid; ignoring persisted password.");
-      return null;
-    }
-
-    // Per-room overrides ride alongside the legacy default-room record, so
-    // pre-multi-room files load unchanged.
     const rooms: Record<string, RoomSecretRecord> = {};
     if (parsed.rooms && typeof parsed.rooms === "object") {
       for (const [roomId, record] of Object.entries(parsed.rooms)) {
@@ -84,31 +77,10 @@ function loadPersistedSecret(storagePath: string): LoadedSecrets | null {
         }
       }
     }
-
-    return {
-      rooms,
-      secret: {
-        hash: parsed.hash,
-        salt: parsed.salt,
-        updatedAt: parsed.updatedAt,
-        // Preserve the persisted source when it's a known value; default to
-        // "user" otherwise. (A previous version collapsed every value to
-        // "user", which made the landing page report the wrong hint state.)
-        source: parsed.source === "env" || parsed.source === "fallback" ? parsed.source : "user",
-        dmHash: parsed.dmHash,
-        dmSalt: parsed.dmSalt,
-        dmUpdatedAt: parsed.dmUpdatedAt,
-        // Validate to a known source (mirrors `source` above); drop any other
-        // value rather than the old no-op that passed garbage straight through.
-        dmSource:
-          parsed.dmSource === "env" || parsed.dmSource === "fallback" || parsed.dmSource === "user"
-            ? parsed.dmSource
-            : undefined,
-      },
-    };
+    return rooms;
   } catch (error) {
     console.error("[Auth] Failed to read room secret file:", error);
-    return null;
+    return {};
   }
 }
 

@@ -8,10 +8,11 @@
 // must be left exactly as saved.
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdirSync, rmSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import path from "path";
 import { getRoomSecret } from "../../../config/auth.js";
 import { AuthService } from "../service.js";
+import { loadSecretRecords } from "../secretPersistence.js";
 
 const TMP_DIR = path.join(process.cwd(), ".tmp");
 const SECRET_PATH = path.join(TMP_DIR, "default-passwords-from-settings.json");
@@ -114,5 +115,26 @@ describe("the default table's passwords follow the server settings on every star
     await expect(again.verify("NewRoomSecret2")).resolves.toBe(true);
     await expect(again.verify("SecondRoomPw!!", "table-priv02")).resolves.toBe(true);
     await expect(again.verify("PrivateRoomPw!", "table-priv01")).resolves.toBe(true);
+  });
+
+  // The file's top-level record is the default table's, and it is now always re-derived
+  // from the settings — dead weight. An operator who deletes it by hand (or a file written
+  // with it missing) must not lose every private table's password: the old loader dropped
+  // `rooms` with it, so each private code became claimable again.
+  it("keeps private tables' passwords when the file's default-table record is gone", async () => {
+    await bootWithAPrivateTable();
+    const saved = JSON.parse(readFileSync(SECRET_PATH, "utf-8")) as Record<string, unknown>;
+    writeFileSync(SECRET_PATH, JSON.stringify({ rooms: saved.rooms }, null, 2));
+
+    const restarted = new AuthService({ storagePath: SECRET_PATH });
+    await expect(restarted.verify("PrivateRoomPw!", "table-priv01")).resolves.toBe(true);
+    expect(restarted.isRoomInitialized("table-priv01")).toBe(true);
+    await expect(restarted.verify("OldRoomSecret1")).resolves.toBe(true);
+  });
+
+  it("records where the DM password came from: the setting, or the default", () => {
+    expect(loadSecretRecords(SECRET_PATH).secret.dmSource).toBe("env");
+    vi.stubEnv("HEROBYTE_DM_PASSWORD", "");
+    expect(loadSecretRecords(SECRET_PATH).secret.dmSource).toBe("fallback");
   });
 });
