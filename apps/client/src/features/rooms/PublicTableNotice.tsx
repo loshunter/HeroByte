@@ -5,7 +5,8 @@
 // one published in the setup docs unless the host set its own, so out of the box
 // anyone who has read the README is already in it. The client cannot see which,
 // so the copy names neither as fact. The server wipes it once it has sat empty
-// (an hour by default; Container.clearIdleDefaultRoom), which
+// (by default after an hour; HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0 turns it off;
+// Container.clearIdleDefaultRoom), which
 // keeps its asset quota from filling — but none of that is visible from the
 // table, so it looked like a fine place to keep a campaign.
 //
@@ -37,7 +38,7 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
         // a row of the header's own flow on a desktop and a member of the top stack on a
         // phone, so its width no longer decides which buttons can be clicked.
         className="public-table-chip"
-        title={`Anyone with the Main Hall password can join this table, and it is wiped once it has sat empty (an hour by default). To keep what you build here, copy it to a private table of your own: ${KEEP_PATH}.`}
+        title={`Anyone with the Main Hall password can join this table, and by default it is wiped once it has sat empty for an hour. To keep what you build here, copy it to a private table of your own: ${KEEP_PATH}.`}
       >
         ⚠ PUBLIC TEST TABLE — CLEARS WHEN EMPTY · SAVE IT TO KEEP IT
       </div>
@@ -77,8 +78,8 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
         }}
       >
         The Main Hall is everyone&apos;s scratch space. Its password is the server&apos;s setting —
-        the one in the setup docs unless the host changed it — and cannot be changed here, and the
-        server wipes the table once it has sat empty (an hour by default). Build here freely; to
+        the one in the setup docs unless the host changed it — and cannot be changed here, and by
+        default the server wipes the table once it has sat empty for an hour. Build here freely; to
         keep any of it, save the table as a private table of your own ({KEEP_PATH}), or start one
         below.
       </p>

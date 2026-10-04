@@ -116,7 +116,7 @@ export function TableBackupControl({
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <p className="jrpg-text-small" style={noteStyle}>
           {isPublicTable
-            ? "This public test table clears once it has sat empty (an hour by default). A backup is a file you keep yourself; to keep the table on the server, save it as a private table (Security)."
+            ? "By default this public test table clears once it has sat empty for an hour. A backup is a file you keep yourself; to keep the table on the server, save it as a private table (Security)."
             : "The server keeps this table saved between visits on its own. A backup is a file you keep yourself, to move the table or to bring an earlier version of its map back."}
         </p>
 

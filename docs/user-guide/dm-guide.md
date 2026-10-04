@@ -187,7 +187,7 @@ Habits that save campaigns:
 
 #### Save as a Private Table (the test table)
 
-On the **Main Hall** this panel appears instead, because that table's passwords are fixed — both the table password and the DM password come from the server's settings (the published defaults when none are set) and cannot be changed in the app, so anyone with the server's Main Hall password can use the test table, and it is wiped once it has sat empty (an hour by default).
+On the **Main Hall** this panel appears instead, because that table's passwords are fixed — both the table password and the DM password come from the server's settings (the published defaults when none are set) and cannot be changed in the app, so anyone with the server's Main Hall password can use the test table, and by default it is wiped once it has sat empty for an hour.
 
 So if something you built there is worth keeping, copy it out: give it a **name**, a **table password** (6+ characters) and optionally a **DM password** (8+), then **SAVE & GO THERE**.
 

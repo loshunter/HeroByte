@@ -30,7 +30,8 @@ export function setDMPasswordForUid(
   }
 
   // The test table's DM password is fixed for the same reason its entry
-  // password is: it is the published one, and a visitor who changed it would
+  // password is: it is the server's setting (the published one unless the host set its own),
+  // and a visitor who changed it would
   // lock the host out of DM on their own demo permanently.
   if (roomId === defaultRoomId) {
     ws.send(

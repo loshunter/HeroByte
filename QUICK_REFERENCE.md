@@ -7,8 +7,8 @@
 | **Table Password** | `Fun1`        | Fixed on the Main Hall. Private tables set their own (Session → Table Security) |
 | **DM Password**    | `FunDM`       | Fixed on the Main Hall. Private tables set their own at creation                |
 
-> The Main Hall is the **public test table**: both passwords are fixed so it always stays open, and
-> it is wiped after an hour empty. To keep work from it, use DM Menu → Session →
+> The Main Hall is the **public test table**: both passwords are fixed (the server's settings), and
+> by default it is wiped after an hour empty. To keep work from it, use DM Menu → Table → Security →
 > **Save as a Private Table**.
 
 ## Quick Actions
