@@ -618,6 +618,17 @@ describe("MapBoard", () => {
       expect(pressDefaultPrevented(false, false)).toBe(false);
     });
 
+    // Canvas presses only: a control inside the wrapper must still take focus when pressed.
+    it("phone layout, outside map edit: a press on a control inside the map keeps its default", () => {
+      window.history.replaceState({}, "", "/?mobile=true");
+      render(<MapBoard {...getDefaultProps({ mapEditMode: false })} />);
+      const button = document.createElement("button");
+      screen.getByTestId("map-board").append(button);
+      const event = createEvent.mouseDown(button);
+      fireEvent(button, event);
+      expect(event.defaultPrevented).toBe(false);
+    });
+
     it("phone layout, in map edit: a tap gives the map its history keys", () => {
       window.history.replaceState({}, "", "/?mobile=true");
       const { board } = pressedBoard(true, "touch");
