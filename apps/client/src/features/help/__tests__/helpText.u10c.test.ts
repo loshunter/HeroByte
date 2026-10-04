@@ -43,7 +43,7 @@ describe("help text, after the U10c review", () => {
     const tokens = HELP_TOPICS.find((t) => t.id === "tokens")!;
     const locked = entry(tokens, /Locked/);
     expect(locked).toMatch(
-      /The DM selects it and presses 🔓 Unlock \(on a phone: TOOLS → □ Select, tap it, then Unlock\)/,
+      /The DM selects it and presses 🔓 Unlock \(on a phone: TOOLS → □ Select, tap it, then 🔓 Unlock\)/,
     );
     expect(locked).toMatch(
       /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\), and an NPC's from its settings' 🔒 Locked button/,

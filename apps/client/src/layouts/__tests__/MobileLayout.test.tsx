@@ -779,7 +779,7 @@ describe("MobileLayout", () => {
     render(<MobileLayout {...props} />);
 
     expect(screen.getByText("1 selected")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /^lock$/i }));
+    fireEvent.click(screen.getByRole("button", { name: "🔒 Lock" }));
     expect(props.lockSelected).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: /clear/i }));

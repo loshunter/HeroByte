@@ -43,11 +43,13 @@ export function MobileSelectionSheet({
       </button>
       {isDM && (
         <>
+          {/* The desktop toolbar's own labels: the DM's locked-Delete toast and Help
+              name "🔓 Unlock", and the phone must show the same button. */}
           <button type="button" className="mobile-chip" onClick={onLock}>
-            Lock
+            🔒 Lock
           </button>
           <button type="button" className="mobile-chip" onClick={onUnlock}>
-            Unlock
+            🔓 Unlock
           </button>
         </>
       )}
