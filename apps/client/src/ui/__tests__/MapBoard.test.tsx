@@ -598,6 +598,26 @@ describe("MapBoard", () => {
       }
     });
 
+    // jsdom never moves focus on a press, so the test above cannot see a browser's
+    // mousedown blurring the field (focus falls to the body even off an unfocusable
+    // element). What stops that is the cancelled default, pinned here — and kept off
+    // wherever the map takes keys, where the press must focus it.
+    it("phone layout, outside map edit: the press's mousedown cannot take focus", () => {
+      const pressDefaultPrevented = (mobile: boolean, mapEditMode: boolean) => {
+        window.history.replaceState({}, "", `/?mobile=${mobile}`);
+        render(<MapBoard {...getDefaultProps({ mapEditMode })} />);
+        const canvas = document.createElement("canvas");
+        screen.getByTestId("map-board").append(canvas);
+        const event = createEvent.mouseDown(canvas);
+        fireEvent(canvas, event);
+        cleanup();
+        return event.defaultPrevented;
+      };
+      expect(pressDefaultPrevented(true, false)).toBe(true);
+      expect(pressDefaultPrevented(true, true)).toBe(false);
+      expect(pressDefaultPrevented(false, false)).toBe(false);
+    });
+
     it("phone layout, in map edit: a tap gives the map its history keys", () => {
       window.history.replaceState({}, "", "/?mobile=true");
       const { board } = pressedBoard(true, "touch");

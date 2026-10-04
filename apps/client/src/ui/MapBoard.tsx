@@ -663,11 +663,19 @@ export default function MapBoard({
       // map-edit history) still reach it beside an open floating window like Chat & Rolls
       // (features/interaction/mapShortcut). The phone layout has none to give it outside
       // map edit, and a tap (or its compat mousedown) would blur and submit an open field.
+      // Not being focusable is not enough there: a mousedown on an unfocusable element
+      // still blurs the field (focus falls to the body), so its default is cancelled too.
+      // That does not stop propagation: Konva still gets the press.
       data-map-history-surface="true"
       tabIndex={mapTakesKeys ? -1 : undefined}
       onPointerDownCapture={(event) => {
         if (mapTakesKeys && event.target instanceof HTMLCanvasElement) {
           event.currentTarget.focus({ preventScroll: true });
+        }
+      }}
+      onMouseDownCapture={(event) => {
+        if (!mapTakesKeys && event.target instanceof HTMLCanvasElement) {
+          event.preventDefault();
         }
       }}
       style={{
