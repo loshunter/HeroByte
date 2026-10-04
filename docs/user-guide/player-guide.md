@@ -76,7 +76,7 @@ Your token is your presence on the map:
 - **Select** — click it. **Shift-click** adds to a selection, **Ctrl/Cmd-click** toggles. With the **🖱️ SELECT** tool you can drag a marquee to grab several tokens and drawings at once, then drag any one of them to move the whole group.
 - **Resize / rotate** — with the **🔄 TRANSFORM** tool, click a token for Photoshop-style handles: 8 scale handles plus a rotation handle above (rotation snaps to 45°; hold **Ctrl/Cmd** to rotate freely). The center crosshair drags the object.
 - **Delete** — select and press **Delete** (you can only delete what you own; a confirm dialog lists the exact casualties). Props are deleted in the **Props** panel. A phone has no Delete key: **Tools → Draw → Erase drawings** or **Undo drawing** for your drawings; your own token cannot be deleted on a phone (ask the DM to remove it, or use a computer).
-- **Locked** tokens (🔒 badge) can't be moved or deleted until unlocked — DMs use this to pin scenery and important pieces.
+- **Locked** tokens (🔒 badge) were locked by the DM — DMs use this to pin scenery and important pieces — and only the DM can unlock them.
 - **Ping** — double-click (or double-tap) empty map space to drop a quick ping, in any tool mode. A player's ping reaches the DM and the players who can see that spot; a DM's ping reaches everyone.
 
 You can only move **your own** tokens. The DM can move everyone's.

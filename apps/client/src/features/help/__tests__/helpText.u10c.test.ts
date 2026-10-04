@@ -49,16 +49,16 @@ describe("help text, after the U10c review", () => {
       /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\), and an NPC's from its settings' 🔒 Locked button/,
     );
     expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
-    // Only what the lock reliably does today, for every kind of piece and every role: no
-    // drag (TokensLayer / PropsLayer / DrawingsLayer refuse a locked one), no transform
-    // handles (TransformGizmo), no Delete key (useKeyboardShortcuts refuses it for everyone).
-    // Other deletes, and undo/redo or a partial erase of a drawing, still ignore the lock,
-    // so the entry claims no more.
+    // What a lock IS, never what it stops: today the lock is not enforced on every route
+    // (a piece locked under the transform handles stays draggable, a group drag of
+    // drawings carries a locked one, undo/redo and partial erase drop a drawing's lock,
+    // and most deletes ignore it). The badge (LockIndicator on tokens and props) and the
+    // DM-only unlock (LockingHandler) do hold.
     expect(locked).toMatch(
-      /Pinned by the DM: no one can drag it or put the transform handles on it, and the Delete key will not remove it, until it is unlocked\./,
+      /Set by the DM \(a locked token or prop shows a 🔒 badge\); only the DM can unlock it\./,
     );
     expect(locked).not.toMatch(
-      /players cannot move it|cannot be moved or deleted|no one can delete it|Every other delete|step it with the keys/,
+      /players cannot move it|cannot be moved|no one can (drag|delete)|Every other delete|step it with the keys|Pinned/,
     );
   });
 
