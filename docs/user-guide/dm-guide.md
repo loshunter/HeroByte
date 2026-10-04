@@ -183,11 +183,11 @@ Habits that save campaigns:
 
 ### Security
 
-**Change table password** changes this table's password live: everyone already connected stays, new joiners need the new password. **Reset to default** asks first, then gives the table the password the setup docs publish — the same one the public Main Hall uses — so anyone who has the table's code could join with it: use it on purpose, never as a tidy-up on a table you keep. Change the password when a table code leaks, or after a public one-shot. The DM password is not changed here: it is set when the table is created, or by the first person who enters DM mode on a table made without one — which is why the next-steps card holds **Invite players** until you are the DM.
+**Change table password** changes this table's password live: everyone already connected stays, new joiners need the new password. **Reset to default** asks first, then gives the table the Main Hall's password, so anyone who has the table's code and that password could join with it: use it on purpose, never as a tidy-up on a table you keep. Change the password when a table code leaks, or after a public one-shot. The DM password is not changed here: it is set when the table is created, or by the first person who enters DM mode on a table made without one — which is why the next-steps card holds **Invite players** until you are the DM.
 
 #### Save as a Private Table (the test table)
 
-On the **Main Hall** this panel appears instead, because that table's passwords are fixed — both the table password and the DM password are the published defaults and cannot be changed, so the test table always stays open for everyone and is wiped once it has sat empty for an hour.
+On the **Main Hall** this panel appears instead, because that table's passwords are fixed — both the table password and the DM password come from the server's settings (the published defaults when none are set) and cannot be changed in the app, so the test table always stays open for everyone and is wiped once it has sat empty for an hour.
 
 So if something you built there is worth keeping, copy it out: give it a **name**, a **table password** (6+ characters) and optionally a **DM password** (8+), then **SAVE & GO THERE**.
 

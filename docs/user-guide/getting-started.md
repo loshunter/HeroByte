@@ -28,7 +28,7 @@ A few useful details:
 
 Every server starts with one table, the **Main Hall**. It is permanently a scratch space:
 
-- **Its passwords are public and fixed.** Both the table password and the DM password are the ones printed in the setup docs, and **neither can be changed** — not by you, not by anyone. That's deliberate: if they could be changed, one visitor could padlock a public demo and its host would lose their own test bed until the server restarted.
+- **Its passwords are public and fixed.** Both the table password and the DM password are the server's settings (on a server that sets none, the ones printed in the setup docs), and **neither can be changed** from the app — not by you, not by anyone. That's deliberate: if they could be changed, one visitor could padlock a public demo and its host would lose their own test bed until the server restarted.
 - **It clears itself.** Once it has sat empty for an hour, the server wipes it: players, characters, tokens, maps, drawings, and uploaded images all go. That keeps the shared space usable instead of letting it silt up (and keeps its upload quota from filling).
 - You'll see this on the join screen, and a **⚠ PUBLIC TEST TABLE** marker sits at the top of the header while you're in it.
 

@@ -43,16 +43,16 @@ This guide covers deploying HeroByte to production using:
 
 ### B. Configure Service
 
-| Setting            | Value                                                                                                 |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| **Name**           | `herobyte-server` (or your choice)                                                                    |
-| **Root Directory** | `apps/server`                                                                                         |
-| **Environment**    | `Node`                                                                                                |
-| **Region**         | `US East (Ohio)` (lowest average US latency)                                                          |
-| **Branch**         | `main`                                                                                                |
-| **Build Command**  | `pnpm install --frozen-lockfile && pnpm build`                                                        |
-| **Start Command**  | `pnpm start`                                                                                          |
-| **Instance Type**  | Paid instance + persistent disk (what HeroByte runs — see §1E/§1F). `Free` works for a personal copy. |
+| Setting            | Value                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Name**           | `herobyte-server` (or your choice)                                                                                                                                                               |
+| **Root Directory** | `apps/server`                                                                                                                                                                                    |
+| **Environment**    | `Node`                                                                                                                                                                                           |
+| **Region**         | `US East (Ohio)` (lowest average US latency)                                                                                                                                                     |
+| **Branch**         | `main`                                                                                                                                                                                           |
+| **Build Command**  | `pnpm install --frozen-lockfile && pnpm build`                                                                                                                                                   |
+| **Start Command**  | `pnpm start`                                                                                                                                                                                     |
+| **Instance Type**  | Paid instance + persistent disk (what HeroByte runs — see §1E/§1F). `Free` works for a personal copy, with `HEROBYTE_ALLOW_EPHEMERAL_DATA=true` (no disk: everything is wiped on each redeploy). |
 
 ### C. Environment Variables
 
@@ -256,7 +256,7 @@ work there. That is deliberate: they are the credentials every deployment publis
 password means one visitor can padlock a public demo and its host loses their own test bed until the
 server restarts (the settings are re-read on every start).
 
-It follows that the table can never quietly become someone's real table, so it is **always** swept.
+It follows that the table can never quietly become someone's real table, so it is swept unless `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0`.
 The server empties it in place once it has sat **empty of authenticated clients for 1 hour** — room
 state, map documents, and its claim on uploaded images. Specifics worth knowing:
 

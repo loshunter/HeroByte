@@ -112,7 +112,7 @@ To use on your local network:
 
 - Find your IP address (e.g. `192.168.x.x`)
 - Access at: `http://YOUR_IP:5174`
-- Add that origin to `HEROBYTE_ALLOWED_ORIGINS`, for example `http://YOUR_IP:5174`
+- Under `pnpm dev`, LAN origins are allowed automatically. For a production build, list every origin you need in `HEROBYTE_ALLOWED_ORIGINS` (setting it replaces the default list)
 - The server automatically listens on all interfaces
 
 ### Security Configuration
