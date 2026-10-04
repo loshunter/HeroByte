@@ -131,6 +131,11 @@ describe("helpTopics stays in step with the Table (U9)", () => {
     expect(entry("dm", "Invite players").detail).toMatch(/never carries the table password/);
     expect(entry("dm", "Permissions").detail).toMatch(/BY HAND/);
     expect(entry("dm", "Table password & private copy").detail).toMatch(/Main Hall/);
+    // Fixed, not "open": an operator can set the Main Hall's passwords to anything.
+    expect(entry("dm", "Table password & private copy").detail).toMatch(
+      /The Main Hall's passwords are fixed \(the server's settings\)/,
+    );
+    expect(entry("dm", "Table password & private copy").detail).not.toMatch(/stays open|public/);
   });
 
   it("the byte ceilings are in help, where the audit put them, not in the ordinary panel", () => {

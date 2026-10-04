@@ -37,7 +37,8 @@ describe("help text, after the U10c review", () => {
   // The routes that exist: the selection's Unlock, DM only — the desktop toolbar's
   // 🔓 Unlock (MultiSelectToolbar) and the phone's selection sheet (MobileSelectionSheet,
   // reached with TOOLS → □ Select) — and Token Lock in a player character's settings,
-  // which the phone's ◉ PARTY → ⚙️ EDIT sheet also gets (MobileEntitiesList).
+  // which the phone's ◉ PARTY → ⚙️ EDIT sheet also gets (MobileEntitiesList), and an NPC's
+  // settings' 🔒 Locked button (NpcSettingsMenu, DM only).
   it("names the real unlock routes, the phone's included", () => {
     const tokens = HELP_TOPICS.find((t) => t.id === "tokens")!;
     const locked = entry(tokens, /Locked/);
@@ -45,7 +46,7 @@ describe("help text, after the U10c review", () => {
       /The DM selects it and presses 🔓 Unlock \(on a phone: TOOLS → □ Select, tap it, then Unlock\)/,
     );
     expect(locked).toMatch(
-      /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\)/,
+      /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\), and an NPC's from its settings' 🔒 Locked button/,
     );
     expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
   });

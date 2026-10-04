@@ -330,10 +330,10 @@ describe("TablePasswordControl - Characterization Tests", () => {
   });
 
   describe("Reset to default", () => {
-    // The table goes back to the public Main Hall's password, which the setup docs publish. The
-    // client names no value: it sends the change with no secret and the server substitutes its own
-    // default, so this works with a custom HEROBYTE_ROOM_SECRET too. It asks first: that password
-    // is published, so anyone who has the table's code could then join with it.
+    // The table goes back to the Main Hall's password (the server's setting; the published one
+    // only when it is unset). The client names no value: it sends the change with no secret and
+    // the server substitutes its own default, so this works with a custom HEROBYTE_ROOM_SECRET
+    // too. It asks first: anyone who has the table's code and that password could then join.
     let confirm: MockInstance<typeof window.confirm>;
     beforeEach(() => {
       confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
