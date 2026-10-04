@@ -259,6 +259,15 @@ describe("MobilePlayerRow through a reconnect blip", () => {
     rerender(view(true, false));
     expect(screen.queryByRole("button", { name: "Done Editing" })).toBeNull();
   });
+
+  it("offers no Manage Status on a row whose grid was never open, while the role is unknown", () => {
+    render(
+      <RoleKnownContext.Provider value={false}>
+        <MobilePlayerRow {...props({ isMe: false, isDM: false })} />
+      </RoleKnownContext.Provider>,
+    );
+    expect(screen.queryByRole("button", { name: "⚡ Manage Status" })).toBeNull();
+  });
 });
 
 describe("MobilePlayerRow EDIT sheet through a reconnect blip", () => {

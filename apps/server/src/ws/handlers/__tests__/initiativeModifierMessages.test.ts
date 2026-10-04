@@ -94,4 +94,20 @@ describe("handleSetInitiativeModifier", () => {
     expect(dispatcher.dispatch(message, context, "bob")?.broadcast).toBe(false);
     expect(state.characters[0]?.initiativeModifier).toBe(1);
   });
+
+  // ...and the DM's own flag must reach it: a route passing `false` would silently take
+  // the DM's right to set any character's modifier (restoring a player's character file).
+  it("lets the DM set another's modifier through the dispatcher", () => {
+    const state = table();
+    const dispatcher = new CharacterDispatcher({} as never, {} as never, {} as never);
+    const context = { getState: () => state, isDM: () => true } as unknown as RoutingContext;
+    const message: ClientMessage = {
+      t: "set-initiative-modifier",
+      characterId: "c-alice",
+      initiativeModifier: 4,
+    };
+
+    expect(dispatcher.dispatch(message, context, "dm")?.broadcast).toBe(true);
+    expect(state.characters[0]?.initiativeModifier).toBe(4);
+  });
 });
