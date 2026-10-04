@@ -49,6 +49,12 @@ describe("help text, after the U10c review", () => {
       /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\), and an NPC's from its settings' 🔒 Locked button/,
     );
     expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
+    // Locked stops players moving it, not the DM: the server lets the DM transform it
+    // (TransformHandler) and the key planner skips it for players only (keyboardMovement).
+    expect(locked).toMatch(
+      /players cannot move it, and no one can delete it until it is unlocked; the DM can still step it with the keys \(on a phone, the d-pad\)/,
+    );
+    expect(locked).not.toMatch(/cannot be moved or deleted/);
   });
 
   it("tells a phone player how to do what a desktop key or log does (U10d)", () => {
