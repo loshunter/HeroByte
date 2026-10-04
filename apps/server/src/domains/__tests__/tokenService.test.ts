@@ -66,6 +66,33 @@ describe("TokenService", () => {
     expect(state.tokens).toHaveLength(0);
   });
 
+  // Lock lives on the token's scene object. The transform road (drag, keys,
+  // d-pad) refused a player's locked token, but the legacy `move` frame did not.
+  it("refuses a player's move of their own locked token; the DM still moves it", () => {
+    const state = createEmptyRoomState();
+    const token = service.createToken(state, "owner-1", 0, 0);
+    state.sceneObjects = [
+      {
+        id: `token:${token.id}`,
+        type: "token",
+        locked: true,
+      } as unknown as (typeof state.sceneObjects)[number],
+    ];
+
+    expect(service.moveToken(state, token.id, "owner-1", 3, 3)).toBe(false);
+    expect(state.tokens[0]).toMatchObject({ x: 0, y: 0 });
+    expect(service.moveToken(state, token.id, "dm", 3, 3, true)).toBe(true);
+
+    state.sceneObjects = [
+      {
+        id: `token:${token.id}`,
+        type: "token",
+        locked: false,
+      } as unknown as (typeof state.sceneObjects)[number],
+    ];
+    expect(service.moveToken(state, token.id, "owner-1", 4, 4)).toBe(true);
+  });
+
   describe("movement blocking against the compiled scene", () => {
     // Tokens are in GRID CELLS (default gridSize 50): cell (0,0) is world
     // pixel (25,25). The test wall stands at pixel x=50, so moving from cell

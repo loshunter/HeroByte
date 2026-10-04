@@ -132,8 +132,9 @@ export class TokenService {
    * Move a token (with ownership validation or DM override).
    *
    * Compiled walls and shut doors are physically real for players: a move
-   * whose straight path crosses a blocking segment is refused. The DM moves
-   * anything anywhere.
+   * whose straight path crosses a blocking segment is refused, and so is a
+   * move of a token the DM locked (the transform road refuses it too). The DM
+   * moves anything anywhere.
    */
   moveToken(
     state: RoomState,
@@ -145,6 +146,9 @@ export class TokenService {
   ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (!token || (token.owner !== ownerUid && !isDM)) {
+      return false;
+    }
+    if (!isDM && state.sceneObjects.some((o) => o.id === `token:${tokenId}` && o.locked)) {
       return false;
     }
     if (!isDM && isTokenMoveBlocked(state, { x: token.x, y: token.y }, { x, y })) {
