@@ -12,19 +12,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { currentRoomId, roomUrl } from "../rooms/roomDirectory";
-import { SESSION_UID_OVERRIDE_PARAM } from "../../utils/session";
 
 const COPIED_MS = 2000;
 
+/** The only query parameters an invitee needs: the table, and the server a LAN table is on. */
+const INVITE_PARAMS = ["room", "ws"] as const;
+
 /**
- * The page URL pointed at this table, minus everything that is this tab's own: `roomUrl`
- * keeps every query parameter (the server address a LAN table needs among them), and a
- * pinned `?sessionUid=` would hand every invitee the host's identity.
+ * The page URL pointed at this table, carrying only what an invitee needs. Everything else on
+ * the host's URL is the host's own: a pinned `?sessionUid=` would hand every invitee the host's
+ * identity, `?mobile=true` would push them all into the phone layout, a #fragment is this tab's.
  */
 function inviteUrl(roomId: string | undefined): string {
-  const url = new URL(roomUrl(roomId));
-  url.searchParams.delete(SESSION_UID_OVERRIDE_PARAM);
-  return url.toString();
+  const page = new URL(roomUrl(roomId));
+  const invite = new URL(page.origin + page.pathname);
+  for (const name of INVITE_PARAMS) {
+    const value = page.searchParams.get(name);
+    if (value !== null) invite.searchParams.set(name, value);
+  }
+  return invite.toString();
 }
 
 export interface InviteLink {

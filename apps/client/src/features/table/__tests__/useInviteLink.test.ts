@@ -35,4 +35,18 @@ describe("useInviteLink — what the link to this table carries", () => {
     const { result } = renderHook(() => useInviteLink());
     expect(new URL(result.current.link).searchParams.get("ws")).toBe("ws://192.168.1.5:8787");
   });
+
+  // Everything else on the host's URL is the host's own: `?mobile=true` would push every
+  // invitee into the phone layout, and a #fragment is this tab's. Only room and ws travel.
+  it("carries only the table and its server, never the host's own switches", () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/?room=table-abc123&mobile=true&ws=ws%3A%2F%2F192.168.1.5%3A8787&extra=1#host-only",
+    );
+    const { result } = renderHook(() => useInviteLink());
+    const url = new URL(result.current.link);
+    expect([...url.searchParams.keys()].sort()).toEqual(["room", "ws"]);
+    expect(url.hash).toBe("");
+  });
 });
