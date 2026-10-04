@@ -58,7 +58,8 @@ function seedDefaultRecord(): StoredSecret {
  * The private tables' records from the file. Only `rooms` is read: the file's top-level
  * record is the default table's, re-derived from the settings on every start, so it is
  * never needed — and a file missing it (hand-edited, or older) must not take every
- * private table's password with it, which would leave their codes claimable again.
+ * private table's password with it, which would leave their codes claimable again. (A file
+ * that is not JSON at all still loads as no records, as it always has.)
  */
 function loadPersistedRooms(storagePath: string): Record<string, RoomSecretRecord> {
   if (!existsSync(storagePath)) {
