@@ -235,8 +235,8 @@ export function useDMManagement({
    * end — it flips the modal into bootstrap mode so the user can mint the
    * password on the spot. Every other reason surfaces inline in the modal.
    *
-   * EXCEPT on the public test table, whose DM password is fixed so it stays
-   * open for everyone: the server refuses set-dm-password there, so offering
+   * EXCEPT on the public test table, whose DM password is fixed (the server's
+   * setting): the server refuses set-dm-password there, so offering
    * the bootstrap form would be a dead end. Show the reason instead.
    */
   const handleElevationFailed = useCallback(

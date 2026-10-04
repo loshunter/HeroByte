@@ -122,8 +122,8 @@ export class Container {
     // been loaded from disk.
     this.touchRoomActivity(this.defaultRoomId);
     // Label the default table public for the UI. Public because it IS the
-    // default table (its credentials are published and immutable — see
-    // RoomMessageHandler), not because of what its password happens to be.
+    // default table (its credentials are the server's settings and immutable —
+    // see RoomMessageHandler), not because of what its password happens to be.
     if (this.roomService.getState().isPublicTable !== true) {
       this.roomService.setState({ isPublicTable: true });
     }
@@ -244,8 +244,8 @@ export class Container {
    * the shared space usable without ever interrupting a session.
    *
    * Private tables are untouched: they unload (preserving durable state) via
-   * unloadIdleRooms instead. Only this table is ever wiped, and it always is —
-   * its password cannot be changed, so it can never quietly become someone's
+   * unloadIdleRooms instead. Only this table is ever wiped, and it is unless
+   * HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0 turns the sweep off — its password cannot be changed, so it can never quietly become someone's
    * real table. Anyone wanting to keep what they built forks it to a private
    * table (fork-table), which copies it across before the next sweep.
    */

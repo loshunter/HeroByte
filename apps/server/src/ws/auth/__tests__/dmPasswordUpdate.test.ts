@@ -5,7 +5,7 @@ import type { Container } from "../../../container.js";
 
 /**
  * The test table's DM password is fixed for the same reason its entry password
- * is: both are published, so a changeable one lets a single visitor lock the
+ * is: both are the server's settings (the published ones unless the host set its own), so a changeable one lets a single visitor lock the
  * host out of their own public demo — permanently, since it persists.
  */
 function setup(roomId: string, opts: { isDM?: boolean; hasDMPassword?: boolean } = {}) {
@@ -43,7 +43,9 @@ describe("setDMPasswordForUid", () => {
 
     expect(updateDMPassword).not.toHaveBeenCalled();
     expect(sent[0]).toMatchObject({ t: "dm-password-update-failed" });
-    expect(sent[0].reason).toMatch(/fixed so it stays open/i);
+    expect(sent[0].reason).toBe(
+      "The test table's DM password is fixed (the server's setting). Save it as a private table to get one of your own.",
+    );
     // Names the operation that IS available there.
     expect(sent[0].reason).toMatch(/private table/i);
   });

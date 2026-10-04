@@ -149,7 +149,9 @@ describe("startFreshSession", () => {
     expect(FRESH_SESSION_CONFIRM).toMatch(/cannot be undone/);
     expect(FRESH_SESSION_CONFIRM).toMatch(/current character/);
     expect(FRESH_SESSION_CONFIRM).toMatch(/until the DM deletes them/);
-    expect(FRESH_SESSION_CONFIRM).toMatch(/Main Hall also clears itself/);
+    expect(FRESH_SESSION_CONFIRM).toMatch(
+      /Main Hall also clears itself once empty, after an hour by default/,
+    );
     expect(FRESH_SESSION_CONFIRM).toMatch(/DM powers on this browser are gone/);
     expect(FRESH_SESSION_CONFIRM).toMatch(/table password again/);
   });

@@ -12,8 +12,8 @@
 // What it does NOT do, on purpose: touch the old seat, or the server at all.
 // The old character and token stay at the table until the DM deletes them
 // (the entities panel lets a DM delete any character; the linked token goes
-// with it) or the table clears itself (the Main Hall wipes after an hour
-// empty; a private table never does). The old player's bare roster row
+// with it) or the table clears itself (the Main Hall wipes once empty, after an
+// hour by default; a private table never does). The old player's bare roster row
 // outlives a character delete — the DM menu's Table tab lists it with no
 // tokens — but not a Main Hall clear, which wipes players too; on a private
 // table nothing removes it. The old uid's DM flag stays dormant on
@@ -39,7 +39,7 @@ import { clearSessionTokens } from "../rooms/roomDirectory";
 export const FRESH_SESSION_CONFIRM =
   "Start a fresh session? This cannot be undone: this browser becomes a new player and you will " +
   "not get back into your current character. It and its token stay at the table until the DM " +
-  "deletes them or removes the seat (the Main Hall also clears itself after an hour empty). Any DM powers on this " +
+  "deletes them or removes the seat (the Main Hall also clears itself once empty, after an hour by default). Any DM powers on this " +
   "browser are gone; the DM password is needed again. You may need to enter the table password " +
   "again.";
 

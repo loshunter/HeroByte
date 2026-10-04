@@ -230,7 +230,7 @@ export class RoomMessageHandler {
       this.sendControlMessage(senderUid, {
         t: "room-password-update-failed",
         reason:
-          "The test table's password is fixed so it stays open for everyone. Save it as a private table instead — you keep everything on it.",
+          "The test table's password is fixed (the server's setting), so no one can padlock it. Save it as a private table instead — you keep everything on it.",
       });
       return { broadcast: false, save: false };
     }

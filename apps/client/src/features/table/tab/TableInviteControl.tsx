@@ -76,7 +76,7 @@ export function TableInviteControl({ tableName }: { tableName?: string }) {
       >
         {roomId
           ? "Players open the link and enter the table password. The link never carries the password, so send it separately."
-          : "Anyone can reach this table: its password is the one published in the setup docs."}
+          : "Anyone with the Main Hall password can reach this table: the one in the setup docs, unless the host changed it."}
       </p>
     </JRPGPanel>
   );

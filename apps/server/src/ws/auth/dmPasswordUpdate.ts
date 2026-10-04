@@ -37,7 +37,7 @@ export function setDMPasswordForUid(
       JSON.stringify({
         t: "dm-password-update-failed",
         reason:
-          "The test table's DM password is fixed so it stays open for everyone. Save it as a private table to get one of your own.",
+          "The test table's DM password is fixed (the server's setting). Save it as a private table to get one of your own.",
       }),
     );
     return;

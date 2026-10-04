@@ -20,12 +20,18 @@ describe("PublicTableNotice", () => {
   });
 
   describe("gate variant", () => {
-    it("says the password is fixed — that is what keeps the table open", () => {
+    // The client cannot see the server's settings, so the notice states neither the
+    // published password nor a fixed hour as fact: the guides' wording, word for word.
+    it("says the password is the server's fixed setting and the wipe an hour by default", () => {
       render(<PublicTableNotice variant="gate" />);
 
-      expect(screen.getByTestId("public-table-notice")).toBeInTheDocument();
-      expect(screen.getByText(/cannot be changed/i)).toBeInTheDocument();
-      expect(screen.getByText(/sat empty\s+for an hour/i)).toBeInTheDocument();
+      const notice = screen.getByTestId("public-table-notice");
+      expect(notice).toHaveTextContent(
+        "Its password is the server's setting — the one in the setup docs unless the host changed it — and cannot be changed here, and the server wipes the table once it has sat empty (an hour by default).",
+      );
+      expect(notice).not.toHaveTextContent(
+        /published in the setup docs|always stays open|for an hour/,
+      );
     });
 
     it("names the way to keep your work, not just the warning", () => {
@@ -60,6 +66,10 @@ describe("PublicTableNotice", () => {
       const title = screen.getByTestId("public-table-chip").getAttribute("title") ?? "";
       expect(title).toContain("DM Menu → Table → Security → Save as a Private Table");
       expect(title).not.toMatch(/Session/);
+      expect(title).toContain(
+        "Anyone with the Main Hall password can join this table, and it is wiped once it has sat empty (an hour by default).",
+      );
+      expect(title).not.toMatch(/published|for an hour/);
     });
   });
 
