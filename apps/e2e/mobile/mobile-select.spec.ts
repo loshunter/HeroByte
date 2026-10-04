@@ -124,6 +124,14 @@ test.describe("mobile touch — selection sheet reach", () => {
             // Every control without scrolling the sheet: on a 568x320 phone the DM's four
             // chips on two rows overflow the height the sheet may take there.
             sheetScrolls: el.scrollHeight > el.clientHeight + 1,
+            // A row wider than the sheet scrolls sideways instead of clipping a chip.
+            hOverflow: (() => {
+              const actions = el.querySelector(".mobile-selection-sheet__actions");
+              return (
+                el.scrollWidth > el.clientWidth + 1 ||
+                (actions !== null && actions.scrollWidth > actions.clientWidth + 1)
+              );
+            })(),
             // A label that wraps inside its chip (🔓 UNLOCK's icon on a line of its own)
             // makes that chip taller than the one-line Clear.
             wrapped: (() => {
@@ -144,5 +152,6 @@ test.describe("mobile touch — selection sheet reach", () => {
         expect(report!.wrapped).toEqual([]);
         expect(report!.hasUnlock).toBe(role === "DM");
         expect(report!.sheetScrolls).toBe(false);
+        expect(report!.hOverflow).toBe(false);
       });
 });
