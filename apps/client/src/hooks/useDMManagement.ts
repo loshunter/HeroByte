@@ -177,6 +177,9 @@ export function useDMManagement({
     uid,
     send: sendMessage,
     onRevoked: () => toast.success("You left DM mode. You are a player again.", 3000),
+    // A restart (every deploy) clears every elevation: without a word the tools just vanished.
+    onDMModeEnded: () =>
+      toast.info("DM mode ended: the server restarted. Enter DM mode again to run the game.", 8000),
   });
 
   /**

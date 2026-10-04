@@ -39,12 +39,15 @@ export function useDMElevation({
   uid,
   send,
   onRevoked,
+  onDMModeEnded,
 }: {
   snapshot: RoomSnapshot | null;
   uid: string;
   send: (message: ClientMessage) => void;
   /** The server confirmed a revoke: the roster now lists this seat as no DM. */
   onRevoked?: () => void;
+  /** DM mode ended with no leave asked (a server restart clears every elevation). */
+  onDMModeEnded?: () => void;
 }) {
   const [isElevating, setIsElevating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
@@ -61,6 +64,8 @@ export function useDMElevation({
   const currentIsDM = seat?.isDM ?? false;
   const onRevokedRef = useRef(onRevoked);
   onRevokedRef.current = onRevoked;
+  const onDMModeEndedRef = useRef(onDMModeEnded);
+  onDMModeEndedRef.current = onDMModeEnded;
   // When a leave was last asked, until it is answered or another request withdraws it.
   const leaveAskedAtRef = useRef<number | null>(null);
 
@@ -119,6 +124,8 @@ export function useDMElevation({
       }
       setError(null);
       onRevokedRef.current?.();
+    } else if (previousIsDM && !currentIsDM) {
+      onDMModeEndedRef.current?.();
     }
 
     // Update previous state
