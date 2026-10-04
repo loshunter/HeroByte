@@ -70,6 +70,9 @@ export interface MultiSelectToolbarProps {
  * @param props - Component props
  * @returns The multi-select toolbar JSX element, or null if not visible
  */
+/** The selection bar's layer: above the floating windows (999–1002). */
+export const MULTI_SELECT_TOOLBAR_Z = 1004;
+
 export function MultiSelectToolbar({
   selectedObjectIds,
   isDM,
@@ -89,7 +92,10 @@ export function MultiSelectToolbar({
         top: `${topHeight + 20}px`,
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 1000,
+        // Above every floating window (Chat & Rolls 1000, NPC settings 1001, DM menu
+        // 1002): at equal z the later window covered 🔓 Unlock, the button the DM's
+        // locked-Delete toast names. Below the map-edit wheel (1190+) and phone layers.
+        zIndex: MULTI_SELECT_TOOLBAR_Z,
         display: "flex",
         gap: "8px",
         padding: "8px 16px",
