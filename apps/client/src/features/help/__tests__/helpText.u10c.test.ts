@@ -49,18 +49,16 @@ describe("help text, after the U10c review", () => {
       /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\), and an NPC's from its settings' 🔒 Locked button/,
     );
     expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
-    // Locked stops players moving it, not the DM: the server lets the DM transform it
-    // (TransformHandler) and the key planner skips it for players only (keyboardMovement).
-    // And it stops only the Delete key (useKeyboardShortcuts): the server's deletes never
-    // read the lock, and there are many (character or NPC delete, REMOVE, 🗑️ Delete Token
-    // (DM), the eraser, undo, Clear all drawings, a prop's Delete, a backup restore), so the
-    // entry names examples and never claims a complete list. The Delete key never removes a
-    // prop at all, so the claim is about tokens and drawings.
+    // Only what the lock reliably does today, for every kind of piece and every role: no
+    // drag (TokensLayer / PropsLayer / DrawingsLayer refuse a locked one), no transform
+    // handles (TransformGizmo), no Delete key (useKeyboardShortcuts refuses it for everyone).
+    // Other deletes, and undo/redo or a partial erase of a drawing, still ignore the lock,
+    // so the entry claims no more.
     expect(locked).toMatch(
-      /players cannot move it, and the Delete key will not remove a locked token or drawing; other deletes still can \(for example deleting its character, 🗑️ Delete Token \(DM\), or the eraser\)\. The DM can still step it with the keys \(on a phone, the d-pad\)/,
+      /Pinned by the DM: no one can drag it or put the transform handles on it, and the Delete key will not remove it, until it is unlocked\./,
     );
     expect(locked).not.toMatch(
-      /cannot be moved or deleted|no one can delete it|Every other delete/,
+      /players cannot move it|cannot be moved or deleted|no one can delete it|Every other delete|step it with the keys/,
     );
   });
 
