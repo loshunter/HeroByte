@@ -75,6 +75,7 @@ import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import { MapTransitionOverlay } from "../features/map/MapTransitionOverlay";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 import { conditionsByTokenId } from "../features/map/tokenConditions";
+import { isMobileLayout } from "../utils/mobileLayout";
 
 // Re-export types for backward compatibility
 export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
@@ -652,21 +653,20 @@ export default function MapBoard({
     viewport: { width: w, height: h },
   });
 
+  const mapTakesKeys = mapEditMode || !isMobileLayout();
   return (
     <div
       ref={ref}
       className="map-canvas-wrapper"
       data-testid="map-board"
-      // Pressing the map gives it keyboard focus in every mode, so its keys
-      // (Delete, undo/redo, G, map-edit history) still reach it beside an open
-      // floating window like Chat & Rolls — see features/interaction/mapShortcut.
-      // A touch tap only in map edit, as before: elsewhere a phone has no keys to
-      // give the map, and the tap would blur (and submit) an open field.
+      // Pressing the map gives it keyboard focus, so its keys (Delete, undo/redo, G,
+      // map-edit history) still reach it beside an open floating window like Chat & Rolls
+      // (features/interaction/mapShortcut). The phone layout has none to give it outside
+      // map edit, and a tap (or its compat mousedown) would blur and submit an open field.
       data-map-history-surface="true"
-      tabIndex={-1}
+      tabIndex={mapTakesKeys ? -1 : undefined}
       onPointerDownCapture={(event) => {
-        const keysWanted = mapEditMode || event.pointerType !== "touch";
-        if (keysWanted && event.target instanceof HTMLCanvasElement) {
+        if (mapTakesKeys && event.target instanceof HTMLCanvasElement) {
           event.currentTarget.focus({ preventScroll: true });
         }
       }}
