@@ -177,4 +177,11 @@ describe("useKeyboardShortcuts — Delete that cannot proceed", () => {
     expect(alertSpy).not.toHaveBeenCalled();
     expect(sendMessage).not.toHaveBeenCalled();
   });
+
+  // The table above takes its expectations from the code under test, so the words
+  // themselves are pinned here: a route that exists for each role, never the canvas icon.
+  it("words the locked toasts with routes that exist", () => {
+    expect(LOCKED_CANNOT_DELETE).toBe("Locked: only the DM can unlock it.");
+    expect(LOCKED_CANNOT_DELETE_DM).toBe("Locked: select it and press 🔓 Unlock first.");
+  });
 });

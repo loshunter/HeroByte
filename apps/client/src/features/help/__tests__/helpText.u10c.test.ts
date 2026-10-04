@@ -34,18 +34,20 @@ describe("help text, after the U10c review", () => {
     expect(entry(drawing, /Undo/)).toMatch(/Erasing a whole line or shape cannot be undone/);
   });
 
-  // The routes that exist: the desktop selection toolbar's 🔓 Unlock
-  // (MultiSelectToolbar, DM only), and Token Lock in a player character's settings,
-  // which the phone's ◉ PARTY → ⚙️ EDIT sheet also gets (MobileEntitiesList). The
-  // phone Party lists player characters only, so an NPC's token has no phone route.
-  it("names the real unlock routes, and the phone one for player characters only", () => {
+  // The routes that exist: the selection's Unlock, DM only — the desktop toolbar's
+  // 🔓 Unlock (MultiSelectToolbar) and the phone's selection sheet (MobileSelectionSheet,
+  // reached with TOOLS → □ Select) — and Token Lock in a player character's settings,
+  // which the phone's ◉ PARTY → ⚙️ EDIT sheet also gets (MobileEntitiesList).
+  it("names the real unlock routes, the phone's included", () => {
     const tokens = HELP_TOPICS.find((t) => t.id === "tokens")!;
     const locked = entry(tokens, /Locked/);
-    expect(locked).toMatch(/selects it and presses 🔓 Unlock/);
     expect(locked).toMatch(
-      /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock, on a phone too \(◉ PARTY → ⚙️ EDIT\)/,
+      /The DM selects it and presses 🔓 Unlock \(on a phone: TOOLS → □ Select, tap it, then Unlock\)/,
     );
-    expect(locked).not.toMatch(/Unlocking is desktop only|map element/);
+    expect(locked).toMatch(
+      /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\)/,
+    );
+    expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
   });
 
   it("tells a phone player how to do what a desktop key or log does (U10d)", () => {
