@@ -660,10 +660,13 @@ export default function MapBoard({
       // Pressing the map gives it keyboard focus in every mode, so its keys
       // (Delete, undo/redo, G, map-edit history) still reach it beside an open
       // floating window like Chat & Rolls — see features/interaction/mapShortcut.
+      // A touch tap only in map edit, as before: elsewhere a phone has no keys to
+      // give the map, and the tap would blur (and submit) an open field.
       data-map-history-surface="true"
       tabIndex={-1}
       onPointerDownCapture={(event) => {
-        if (event.target instanceof HTMLCanvasElement) {
+        const keysWanted = mapEditMode || event.pointerType !== "touch";
+        if (keysWanted && event.target instanceof HTMLCanvasElement) {
           event.currentTarget.focus({ preventScroll: true });
         }
       }}

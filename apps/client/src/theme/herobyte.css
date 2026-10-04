@@ -1068,6 +1068,13 @@ input[type="range"]:focus-visible {
   position: relative;
 }
 
+/* The map takes focus when pressed so its keys reach it beside an open window
+   (features/interaction/mapShortcut). It is never reached by Tab (tabIndex -1), so a
+   ring around the whole map would only ever be noise. */
+.map-canvas-wrapper:focus {
+  outline: none;
+}
+
 /* ----------------------------------------------------------------------------
    DRAWING TOOLBAR PIXEL STYLE
    ---------------------------------------------------------------------------- */

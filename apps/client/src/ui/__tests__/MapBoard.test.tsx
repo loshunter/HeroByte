@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { forwardRef } from "react";
 import type { ReactNode, Ref } from "react";
 import MapBoard from "../MapBoard";
@@ -560,5 +560,22 @@ describe("MapBoard", () => {
     board.append(canvas);
     fireEvent.pointerDown(canvas);
     expect(document.activeElement).toBe(board);
+  });
+
+  // A phone has no keyboard shortcuts to give the map, and a tap that took focus would
+  // blur (and so submit) whatever field was open: touch keeps the old map-edit-only rule.
+  it("does not take focus from a field on a touch tap, outside map edit", () => {
+    render(<MapBoard {...getDefaultProps({ mapEditMode: false })} />);
+    const board = screen.getByTestId("map-board");
+    const field = document.createElement("input");
+    document.body.append(field);
+    field.focus();
+    const canvas = document.createElement("canvas");
+    board.append(canvas);
+    const tap = createEvent.pointerDown(canvas);
+    Object.defineProperty(tap, "pointerType", { value: "touch" });
+    fireEvent(canvas, tap);
+    expect(document.activeElement).toBe(field);
+    field.remove();
   });
 });
