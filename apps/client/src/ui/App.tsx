@@ -413,6 +413,10 @@ function AuthenticatedApp({
       window.removeEventListener("orientationchange", updateMobileLayout);
     };
   }, []);
+  // The phone layout has no Player View control and its map ignores the lens: end it there.
+  useEffect(() => {
+    if (isMobile) setPlayerLens(false);
+  }, [isMobile]);
 
   // -------------------------------------------------------------------------
   // EFFECTS

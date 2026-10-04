@@ -750,6 +750,33 @@ describe("App", () => {
     await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(false));
   });
 
+  // The phone layout has no Player View control and its map ignores the lens, yet the lens
+  // still nulled map edit's previews there, with nothing on the phone to turn it off.
+  it("ends Player View when the layout becomes the phone's", async () => {
+    const size = [window.innerWidth, window.innerHeight];
+    const resize = async (width: number, height: number) => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
+      await act(async () => {
+        window.dispatchEvent(new Event("resize"));
+      });
+    };
+    try {
+      await asDMThenBlip();
+      await waitFor(() => expect(latestHeaderProps).not.toBeNull());
+      await act(async () => {
+        latestHeaderProps!.onPlayerLensChange?.(true);
+      });
+      await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(true));
+
+      await resize(375, 450); // a tablet rotated into the phone layout
+      await resize(1366, 768); // and back: the desktop header shows the lens state
+      await waitFor(() => expect(latestHeaderProps?.playerLens).toBe(false));
+    } finally {
+      await resize(size[0]!, size[1]!);
+    }
+  });
+
   // Leaving DM mode is optimistic: the moment it is confirmed the app stops acting as the
   // DM, and waits for the server to agree.
   const dmSnapshot = () => ({
