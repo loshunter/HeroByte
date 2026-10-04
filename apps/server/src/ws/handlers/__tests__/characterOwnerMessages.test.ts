@@ -81,9 +81,9 @@ describe("handleSetCharacterOwner", () => {
     expect(state.tokens[0]?.owner).toBe("bob");
   });
 
-  // The route must hand the handler the SENDER's DM flag: a literal `true` (or the
-  // wrong uid's flag) would let any player take any character, its token, its sight
-  // and its Party row — and every direct-handler test above would still pass.
+  // The route must hand the handler the routing context's DM flag, not a literal
+  // `true`: that would let any player take any character, its token, its sight and
+  // its Party row — and every direct-handler test above would still pass.
   it.each([
     ["the owner giving it away", "alice", "bob"],
     ["another player taking it", "bob", "bob"],
@@ -94,7 +94,7 @@ describe("handleSetCharacterOwner", () => {
     const context = { getState: () => state, isDM: () => false } as unknown as RoutingContext;
     const message: ClientMessage = { t: "set-character-owner", characterId: "c-wolf", ownerUid };
 
-    expect(dispatcher.dispatch(message, context, sender).broadcast).toBe(false);
+    expect(dispatcher.dispatch(message, context, sender)?.broadcast).toBe(false);
     expect(state.characters[0]?.ownedByPlayerUID).toBe("alice");
     expect(state.tokens[0]?.owner).toBe("alice");
   });

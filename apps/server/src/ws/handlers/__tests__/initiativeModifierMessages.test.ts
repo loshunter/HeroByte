@@ -77,4 +77,21 @@ describe("handleSetInitiativeModifier", () => {
     });
     expect(state.characters[0]?.initiativeModifier).toBe(-2);
   });
+
+  // As for set-character-owner: the route must pass the context's DM flag, not a
+  // literal `true`, or any player could set any character's modifier — and the
+  // direct-handler refusal above would still pass.
+  it("refuses another player's modifier through the dispatcher", () => {
+    const state = table();
+    const dispatcher = new CharacterDispatcher({} as never, {} as never, {} as never);
+    const context = { getState: () => state, isDM: () => false } as unknown as RoutingContext;
+    const message: ClientMessage = {
+      t: "set-initiative-modifier",
+      characterId: "c-alice",
+      initiativeModifier: 5,
+    };
+
+    expect(dispatcher.dispatch(message, context, "bob")?.broadcast).toBe(false);
+    expect(state.characters[0]?.initiativeModifier).toBe(1);
+  });
 });
