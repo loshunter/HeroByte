@@ -334,6 +334,8 @@ describe("MobileLayout", () => {
   it("renders the MapBoard", async () => {
     render(<MobileLayout {...createDefaultProps()} />);
     expect(await screen.findByTestId("map-board")).toBeInTheDocument();
+    // The phone layout tells the map so: it takes keys only in map edit there.
+    expect(mapBoardProps.current?.phoneLayout).toBe(true);
   });
 
   it("mounts a single mobile CRT overlay without a bezel and removes it when disabled", () => {

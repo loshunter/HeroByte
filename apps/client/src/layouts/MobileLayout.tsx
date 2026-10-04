@@ -192,6 +192,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       <div className="mobile-map-surface">
         <Suspense fallback={<MapLoading />}>
           <MapBoard
+            phoneLayout
             snapshot={snapshot}
             sendMessage={sendMessage}
             uid={uid}

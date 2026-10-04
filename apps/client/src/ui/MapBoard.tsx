@@ -75,7 +75,6 @@ import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import { MapTransitionOverlay } from "../features/map/MapTransitionOverlay";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 import { conditionsByTokenId } from "../features/map/tokenConditions";
-import { isMobileLayout } from "../utils/mobileLayout";
 
 // Re-export types for backward compatibility
 export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
@@ -106,6 +105,7 @@ export default function MapBoard({
   transformMode,
   selectMode,
   mapEditMode = false,
+  phoneLayout = false,
   mapEditActiveSubTool = "wall",
   mapEditFloorFamily = "grass",
   mapEditRoomWallFamily = "none",
@@ -653,7 +653,9 @@ export default function MapBoard({
     viewport: { width: w, height: h },
   });
 
-  const mapTakesKeys = mapEditMode || !isMobileLayout();
+  // The layout that hosts the map says which it is (a prop, not the window: the window can
+  // read phone a render before App swaps the layout, and pans re-render every frame).
+  const mapTakesKeys = mapEditMode || !phoneLayout;
   return (
     <div
       ref={ref}

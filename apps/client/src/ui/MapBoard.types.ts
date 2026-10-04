@@ -49,6 +49,7 @@ export interface MapBoardProps {
   transformMode: boolean; // Transform tool active (gizmo mode)
   selectMode: boolean; // Selection tool active
   mapEditMode?: boolean; // Live on-table map authoring active (DM-only)
+  phoneLayout?: boolean; // Hosted by the phone layout (MobileLayout): the map takes keys only in map edit
   mapEditActiveSubTool?: MapEditSubTool; // Selected map-edit sub-tool (wall, …)
   mapEditFloorFamily?: MapEditFloorFamily; // Floor terrain family the room tool paints
   mapEditRoomWallFamily?: MapEditWallFamily | "none"; // Room tool's painted wall-ring material
