@@ -50,6 +50,13 @@ export interface MultiSelectToolbarProps {
 }
 
 /**
+ * The selection bar's layer: above Chat & Rolls (1000), NPC settings (1001) and the DM
+ * menu, props and world map windows (1002). A character's ⚙️ settings (2500), the Kick
+ * panel (1100), the map-edit wheel (1190+), menus, modals and toasts stay above it.
+ */
+export const MULTI_SELECT_TOOLBAR_Z = 1004;
+
+/**
  * MultiSelectToolbar Component
  *
  * Displays a floating toolbar with object count and lock/unlock actions
@@ -70,9 +77,6 @@ export interface MultiSelectToolbarProps {
  * @param props - Component props
  * @returns The multi-select toolbar JSX element, or null if not visible
  */
-/** The selection bar's layer: above the floating windows (999–1002). */
-export const MULTI_SELECT_TOOLBAR_Z = 1004;
-
 export function MultiSelectToolbar({
   selectedObjectIds,
   isDM,
@@ -92,9 +96,8 @@ export function MultiSelectToolbar({
         top: `${topHeight + 20}px`,
         left: "50%",
         transform: "translateX(-50%)",
-        // Above every floating window (Chat & Rolls 1000, NPC settings 1001, DM menu
-        // 1002): at equal z the later window covered 🔓 Unlock, the button the DM's
-        // locked-Delete toast names. Below the map-edit wheel (1190+) and phone layers.
+        // Above Chat & Rolls and the other 1000–1002 windows: at equal z the later
+        // window covered 🔓 Unlock, the button the DM's locked-Delete toast names.
         zIndex: MULTI_SELECT_TOOLBAR_Z,
         display: "flex",
         gap: "8px",
