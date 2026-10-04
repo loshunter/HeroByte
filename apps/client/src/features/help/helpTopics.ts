@@ -185,7 +185,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🔒 Locked",
         detail:
-          "Pinned by the DM; it cannot be moved or deleted until unlocked. On a computer the DM selects it and presses 🔓 Unlock. A player character's token can also be unlocked from its ⚙️ settings → Token Lock, on a phone too (◉ PARTY → ⚙️ EDIT).",
+          "Pinned by the DM; it cannot be moved or deleted until unlocked. On a computer the DM selects it and presses 🔓 Unlock. The DM can also unlock a player character's token from its ⚙️ settings → Token Lock, on a phone too (◉ PARTY → ⚙️ EDIT).",
       },
       { term: "Ping", detail: "Double-click (or double-tap) empty space in any tool mode." },
     ],

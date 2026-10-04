@@ -8,6 +8,7 @@ import { renderHook, act } from "@testing-library/react";
 import type { RoomSnapshot } from "@herobyte/shared";
 import {
   LOCKED_CANNOT_DELETE,
+  LOCKED_CANNOT_DELETE_DM,
   NOT_YOURS_CANNOT_DELETE,
   PROPS_NOT_HERE,
   useKeyboardShortcuts,
@@ -150,7 +151,10 @@ describe("useKeyboardShortcuts — Delete that cannot proceed", () => {
   } as unknown as RoomSnapshot;
 
   it.each([
-    ["a locked token", "token:locked", true, LOCKED_CANNOT_DELETE],
+    // The toast names the next step each role really has: the DM's 🔓 Unlock in the
+    // selection toolbar; a player has none (the canvas lock icon is not a button).
+    ["a locked token, as the DM", "token:locked", true, LOCKED_CANNOT_DELETE_DM],
+    ["a locked token, as a player", "token:locked", false, LOCKED_CANNOT_DELETE],
     ["a token someone else owns", "token:theirs", false, NOT_YOURS_CANNOT_DELETE],
   ])("says so with the toast, not an alert, for %s", (_name, id, isDM, message) => {
     const notify = vi.fn();

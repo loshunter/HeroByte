@@ -9,12 +9,13 @@ import { useState, useEffect } from "react";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useResetRoomPassword } from "../../dm/hooks/useResetRoomPassword";
 
-// Reset to default hands the table the public Main Hall's password, which the setup docs
-// publish: anyone who has this table's code could then join with it. One tap beside "Change
-// table password" is not enough for that, and a restore-minded host reads it as tidying up.
+// Reset to default hands the table the Main Hall's password (the server's setting, so the
+// published default only when it is unset): anyone who has this table's code and that password
+// could then join. One tap beside "Change table password" is not enough for that, and a
+// restore-minded host reads it as tidying up.
 export const RESET_CONFIRM =
-  "Reset this table's password to the public default?\n\n" +
-  "Anyone who has this table's code can then join with the password the setup docs publish.";
+  "Reset this table's password to the Main Hall's?\n\n" +
+  "Anyone who has this table's code and the Main Hall password can then join.";
 
 /**
  * Props for the TablePasswordControl component.
@@ -185,8 +186,8 @@ export function TablePasswordControl({
           className="jrpg-text-small"
           style={{ margin: 0, color: "var(--jrpg-white)", opacity: 0.8 }}
         >
-          Reset to default gives this table the public Main Hall&rsquo;s password, which the setup
-          docs publish.
+          Reset to default gives this table the Main Hall&rsquo;s password: anyone with its code and
+          that password can join.
         </p>
       </div>
     </JRPGPanel>

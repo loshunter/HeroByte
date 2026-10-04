@@ -98,6 +98,8 @@ describe("MobileSelectPanel", () => {
     render(<MobileSelectPanel {...props} />);
 
     expect(status()).toMatch(/locked/i);
+    // No screen clears an element's lock, so the message names no route to one.
+    expect(status()).not.toMatch(/desktop|unlock/i);
     expect(deleteButton()).toBeDisabled();
 
     fireEvent.click(deleteButton());

@@ -154,8 +154,8 @@ export interface UseKeyboardShortcutsOptions {
 export const PROPS_NOT_HERE = "Props are deleted in the Props panel.";
 
 /** Said (a toast, not a blocking alert) when Delete is pressed on a selection that cannot be deleted. */
-export const LOCKED_CANNOT_DELETE =
-  "Cannot delete locked objects. Unlock them first using the lock icon.";
+export const LOCKED_CANNOT_DELETE = "Locked: only the DM can unlock it.";
+export const LOCKED_CANNOT_DELETE_DM = "Locked: select it and press 🔓 Unlock first.";
 export const NOT_YOURS_CANNOT_DELETE = "You can only delete objects you own.";
 
 export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void {
@@ -219,7 +219,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
           });
 
           if (hasLocked) {
-            notify(LOCKED_CANNOT_DELETE);
+            notify(isDM ? LOCKED_CANNOT_DELETE_DM : LOCKED_CANNOT_DELETE);
           } else {
             notify(NOT_YOURS_CANNOT_DELETE);
           }

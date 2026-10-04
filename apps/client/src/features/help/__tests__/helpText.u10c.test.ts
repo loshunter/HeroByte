@@ -43,7 +43,7 @@ describe("help text, after the U10c review", () => {
     const locked = entry(tokens, /Locked/);
     expect(locked).toMatch(/selects it and presses 🔓 Unlock/);
     expect(locked).toMatch(
-      /player character's token can also be unlocked from its ⚙️ settings → Token Lock, on a phone too \(◉ PARTY → ⚙️ EDIT\)/,
+      /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock, on a phone too \(◉ PARTY → ⚙️ EDIT\)/,
     );
     expect(locked).not.toMatch(/Unlocking is desktop only|map element/);
   });

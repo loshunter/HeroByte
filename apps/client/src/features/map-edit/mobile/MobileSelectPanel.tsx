@@ -64,7 +64,7 @@ export function MobileSelectPanel({
         {!element
           ? "Tap an element on the map to pick it."
           : locked
-            ? `${ELEMENT_LABELS[element.type]} — locked, unlock it on a desktop to delete.`
+            ? `${ELEMENT_LABELS[element.type]} — locked; it cannot be deleted.`
             : `${ELEMENT_LABELS[element.type]} picked.`}
       </p>
 

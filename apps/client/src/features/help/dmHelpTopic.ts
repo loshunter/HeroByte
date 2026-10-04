@@ -107,7 +107,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "Table password & private copy",
       detail:
-        "DM Menu → Table → Security (on a phone: ♛ DM → Table). Change table password: players already here stay connected, anyone joining afterwards needs the new one. Reset to default gives the table the public Main Hall's password, which the setup docs publish. The public test table's password is fixed so it stays open — there, Save as a Private Table copies the whole table to one of your own.",
+        "DM Menu → Table → Security (on a phone: ♛ DM → Table). Change table password: players already here stay connected, anyone joining afterwards needs the new one. Reset to default gives the table the Main Hall's password, so anyone with its code and that password can join. The public test table's password is fixed so it stays open — there, Save as a Private Table copies the whole table to one of your own.",
     },
     {
       term: "REMOVE (a player)",

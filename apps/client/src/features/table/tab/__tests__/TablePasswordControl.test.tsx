@@ -349,8 +349,9 @@ describe("TablePasswordControl - Characterization Tests", () => {
       fireEvent.click(screen.getByRole("button", { name: "Reset to default" }));
 
       expect(confirm).toHaveBeenCalledExactlyOnceWith(RESET_CONFIRM);
-      expect(RESET_CONFIRM).toMatch(/anyone who has this table's code can then join/i);
-      expect(RESET_CONFIRM).toMatch(/setup docs publish/i);
+      expect(RESET_CONFIRM).toMatch(/anyone who has this table's code and the Main Hall password/i);
+      // The Main Hall's password is the server's setting, published only when it is unset.
+      expect(RESET_CONFIRM).not.toMatch(/publish/i);
     });
 
     it("changes nothing when the confirmation is declined", () => {

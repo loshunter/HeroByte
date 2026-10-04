@@ -323,7 +323,7 @@ describe("TableTab — Security", () => {
     renderTab();
     expect(
       within(section("Security")).getByText(
-        /public Main Hall.s password, which the setup docs publish/i,
+        /Main Hall.s password: anyone with its code and that password can join/i,
       ),
     ).toBeInTheDocument();
   });
