@@ -19,11 +19,13 @@ import { useKeyboardShortcuts, type UseKeyboardShortcutsOptions } from "../useKe
 
 const releases: (() => void)[] = [];
 let map: HTMLDivElement;
+let chatWindow: ReturnType<typeof layerAt>;
 
 function openChatWindow() {
   const chat = layerAt("panel", 50, "chat");
   chat.owner.allowFocusedCanvasHistory = true;
   releases.push(escapeRegistry.register(chat.read));
+  return chat;
 }
 
 function press(target: HTMLElement, init: KeyboardEventInit) {
@@ -40,7 +42,7 @@ beforeEach(() => {
   map.dataset.mapHistorySurface = "true";
   map.tabIndex = -1;
   document.body.append(map);
-  openChatWindow();
+  chatWindow = openChatWindow();
   map.focus();
 });
 
@@ -149,7 +151,7 @@ describe("what still owns the key", () => {
 
   it("the Chat window itself, when focus is in it rather than on the map", () => {
     const button = document.createElement("button");
-    document.body.append(button);
+    chatWindow.node.append(button);
     button.focus();
     const { sendMessage } = shortcuts();
     expect(press(button, { key: "Delete" }).defaultPrevented).toBe(false);

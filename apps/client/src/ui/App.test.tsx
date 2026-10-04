@@ -223,6 +223,7 @@ const buildSnapshot = () => ({
 
 describe("App", () => {
   beforeEach(() => {
+    latestPanelRoleKnown = null;
     mockUseWebSocket.mockReset();
     mockUseObjectSelection.mockReset();
     selectionMock = {
@@ -698,6 +699,17 @@ describe("App", () => {
     expect(latestPanelRoleKnown).toBe(true);
     await blip(rerender);
     expect(latestPanelRoleKnown).toBe(false);
+
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, roleKnown: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+    expect(latestPanelRoleKnown).toBe(true);
   });
 
   it("does NOT keep a demoted DM's snapshot to paint over a later reconnect", async () => {
