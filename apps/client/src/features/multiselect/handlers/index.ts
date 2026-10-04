@@ -14,6 +14,5 @@ export {
   shouldBlockDelete,
   buildDeleteConfirmationMessage,
   buildPartialDeleteWarning,
-  buildDeleteBlockedMessage,
   separateObjectsByType,
 } from "./multiSelectActions.js";
