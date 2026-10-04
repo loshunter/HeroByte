@@ -103,10 +103,12 @@ HEROBYTE_DEFAULT_ROOM_ID="default"
 
 ### After Your Game
 
-1. 💾 Save final state
-2. 🔄 On a private table, reset its password (DM Menu → Table → Security → "Reset to default") (optional)
-3. 🧹 Clear drawings/tokens (optional)
-4. 👋 Disconnect
+1. 💾 Download a final backup (DM Menu → Table → Backups → "Download table backup")
+2. 🧹 Clear drawings if you like (✏️ Draw → "🗑️ Clear all drawings")
+3. 👋 Disconnect
+
+> Never use **Reset to default** as a tidy-up on a table you keep: it gives the table the
+> Main Hall's password, so anyone with its code and that password can join.
 
 ## Troubleshooting
 
