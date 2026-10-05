@@ -4,11 +4,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { NPCEditorActions } from "../NPCEditorActions";
+import { onLockNotice } from "../../../locking/lockNotice";
+/** What a press told the viewer through lockNotice (App toasts it). */
+function listenForLockNotices(): { heard: (string | undefined)[]; off: () => void } {
+  const heard: (string | undefined)[] = [];
+  return { heard, off: onLockNotice((message) => heard.push(message)) };
+}
 
 describe("NPCEditorActions and a locked token", () => {
   it("turns Place on Map and Delete off, and names where to unlock", () => {
     const onPlace = vi.fn();
     const onDelete = vi.fn();
+    const notices = listenForLockNotices();
     render(
       <NPCEditorActions
         npcName="Goblin"
@@ -18,17 +25,18 @@ describe("NPCEditorActions and a locked token", () => {
         tokenLocked
       />,
     );
+    const why = "Locked: unlock its token first (🔒 Locked in its ⚙️ settings).";
     for (const name of ["Place on Map", "Delete"]) {
       const button = screen.getByRole("button", { name });
-      expect(button).toBeDisabled();
-      expect(button).toHaveAttribute(
-        "title",
-        "Locked: unlock its token first (🔒 Locked in its ⚙️ settings).",
-      );
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      expect(button).toHaveAttribute("title", why);
       fireEvent.click(button);
     }
+    notices.off();
     expect(onPlace).not.toHaveBeenCalled();
     expect(onDelete).not.toHaveBeenCalled();
+    // Each press says why (a `disabled` button said nothing, and a phone shows no tooltip).
+    expect(notices.heard).toEqual([why, why]);
     // Duplicate copies stats and art and touches no token: it stays on.
     expect(screen.getByRole("button", { name: /Duplicate/ })).toBeEnabled();
   });

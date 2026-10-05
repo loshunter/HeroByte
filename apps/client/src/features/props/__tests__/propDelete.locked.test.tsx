@@ -7,6 +7,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { Prop } from "@herobyte/shared";
 import { PropEditor } from "../../dm/components/PropEditor";
 import { PlayerPropEditor } from "../PlayerPropEditor";
+import { onLockNotice } from "../../locking/lockNotice";
+/** What a press told the viewer through lockNotice (App toasts it). */
+function listenForLockNotices(): { heard: (string | undefined)[]; off: () => void } {
+  const heard: (string | undefined)[] = [];
+  return { heard, off: onLockNotice((message) => heard.push(message)) };
+}
 
 const crate = {
   id: "p-1",
@@ -22,25 +28,31 @@ const crate = {
 } as unknown as Prop;
 
 describe("prop Delete and the lock", () => {
-  it("the DM's prop editor: Delete is off while locked, and names 🔓 Unlock", () => {
+  it("the DM's prop editor: Delete is stopped while locked, and a press names 🔓 Unlock", () => {
     const onDelete = vi.fn();
+    const notices = listenForLockNotices();
     render(<PropEditor prop={crate} players={[]} onUpdate={vi.fn()} onDelete={onDelete} locked />);
     const button = screen.getByRole("button", { name: "Delete" });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute(
-      "title",
-      "Locked: select it on the map and press 🔓 Unlock first.",
-    );
+    const why = "Locked: select it on the map and press 🔓 Unlock first, then delete it.";
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAttribute("title", why);
     fireEvent.click(button);
+    notices.off();
     expect(onDelete).not.toHaveBeenCalled();
+    expect(notices.heard).toEqual([why]);
   });
 
-  it("a player's prop editor: Delete is off while locked, and says only the DM can unlock it", () => {
+  it("a player's prop editor: Delete is stopped while locked, and says only the DM can unlock it", () => {
     const onDelete = vi.fn();
+    const notices = listenForLockNotices();
     render(<PlayerPropEditor prop={crate} onUpdate={vi.fn()} onDelete={onDelete} locked />);
     const button = screen.getByRole("button", { name: "Delete" });
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
     expect(button).toHaveAttribute("title", "Locked: only the DM can unlock it.");
+    fireEvent.click(button);
+    notices.off();
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(notices.heard).toEqual(["Locked: only the DM can unlock it."]);
   });
 
   // A resize of a locked prop is refused like a token's: the size picker is off too.

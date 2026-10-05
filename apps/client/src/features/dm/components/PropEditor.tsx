@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import type { Prop, Player, TokenSize } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
+import { lockGuard } from "../../locking/lockNotice";
 
 interface PropEditorProps {
   prop: Prop;
@@ -256,9 +257,13 @@ export function PropEditor({
               onDelete();
             }
           }}
-          disabled={isDeleting || isUpdating || locked}
-          title={locked ? "Locked: select it on the map and press 🔓 Unlock first." : undefined}
+          disabled={isDeleting || isUpdating}
           style={{ fontSize: "10px", flex: 1 }}
+          {...lockGuard(
+            locked && !isDeleting && !isUpdating,
+            "Locked: select it on the map and press 🔓 Unlock first, then delete it.",
+            { fontSize: "10px", flex: 1 },
+          )}
         >
           {isDeleting ? "Deleting..." : "Delete"}
         </JRPGButton>

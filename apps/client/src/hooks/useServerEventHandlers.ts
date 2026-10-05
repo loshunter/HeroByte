@@ -16,6 +16,7 @@ import { lockRefusalMessage } from "../features/locking/lockRefusalCopy";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 import { deliverSessionFile } from "../features/session/sessionBridge";
+import { onLockNotice } from "../features/locking/lockNotice";
 
 /**
  * Status of a room password update operation
@@ -314,6 +315,15 @@ export function useServerEventHandlers({
     onMapStudioMessage,
     onAtlasError,
   ]);
+
+  // A control the lock stopped on this client (lockNotice) gets the same toast.
+  useEffect(
+    () =>
+      onLockNotice((message) =>
+        toastError(message ?? lockRefusalMessage(1, false, viewerIsDMRef.current), 4000),
+      ),
+    [toastError],
+  );
 
   return {
     roomPasswordStatus,

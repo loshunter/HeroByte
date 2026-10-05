@@ -73,6 +73,7 @@ import {
   ownTokenFallback,
   type CellDelta,
 } from "./keyboardMovement";
+import { announceLocked } from "../locking/lockNotice";
 
 /** Minimum gap between steps while a key is HELD (a hold walks ~6 cells/s). */
 export const HOLD_STEP_INTERVAL_MS = 150;
@@ -127,15 +128,31 @@ export function useKeyboardMovement({
   // token, which then takes the same road (lock, ownership) as a clicked one
   // — unless Select or Transform is armed, where empty means empty.
   const viaFallback = !mapEditMode && !composingTool && selectedObjectIds.length === 0;
-  const movable = useMemo(() => {
+  const candidates = useMemo((): readonly string[] => {
     if (mapEditMode || composingTool) return [];
     if (selectedObjectIds.length === 0) {
       if (selectionTool) return [];
       const own = ownTokenFallback({ snapshot, uid });
-      return own ? movableSelection({ selectedObjectIds: [own], snapshot, uid, isDM }) : [];
+      return own ? [own] : [];
     }
-    return movableSelection({ selectedObjectIds, snapshot, uid, isDM });
-  }, [mapEditMode, composingTool, selectionTool, selectedObjectIds, snapshot, uid, isDM]);
+    return selectedObjectIds;
+  }, [mapEditMode, composingTool, selectionTool, selectedObjectIds, snapshot, uid]);
+  const movable = useMemo(
+    () => movableSelection({ selectedObjectIds: candidates, snapshot, uid, isDM }),
+    [candidates, snapshot, uid, isDM],
+  );
+  // What the lock alone stops: a press with nothing else to move says so (lockNotice)
+  // instead of doing nothing at all.
+  const lockedOnly = useMemo(
+    () =>
+      movable.length > 0
+        ? []
+        : movableSelection(
+            { selectedObjectIds: candidates, snapshot, uid, isDM },
+            { locked: true },
+          ),
+    [movable.length, candidates, snapshot, uid, isDM],
+  );
   const viaFallbackRef = useRef(viaFallback);
   viaFallbackRef.current = viaFallback;
   // The scroller witness: the scrolling panel the player last clicked INTO or
@@ -167,7 +184,12 @@ export function useKeyboardMovement({
   // a walk, plus every heartbeat).
   const movableRef = useRef(movable);
   movableRef.current = movable;
-  const movableKey = useMemo(() => movable.join("|"), [movable]);
+  const movableKey = useMemo(
+    () => `${movable.join("|")}#${lockedOnly.join("|")}`,
+    [movable, lockedOnly],
+  );
+  const stoppedByLockRef = useRef(false);
+  stoppedByLockRef.current = lockedOnly.length > 0;
   const lastStepAtRef = useRef(0);
 
   const move = useCallback(
@@ -182,7 +204,7 @@ export function useKeyboardMovement({
   );
 
   useEffect(() => {
-    if (movableKey === "") return;
+    if (movableKey === "#") return;
     const onKeyDown = (event: KeyboardEvent) => {
       const delta = deltaForKey(event);
       if (!delta) return;
@@ -191,12 +213,18 @@ export function useKeyboardMovement({
       if (document.querySelector("[data-modal-overlay]")) return;
       // The listener can outlive an emptied set by one paint (the ref is
       // written in render, the cleanup runs in the effect): swallow nothing.
-      if (movableRef.current.length === 0) return;
+      const stopped = movableRef.current.length === 0;
+      if (stopped && !stoppedByLockRef.current) return;
       if (viaFallbackRef.current) {
         if (keptByWidget(event.target)) return;
         if (pageScroller(event, scrollerRef.current)) return;
       }
       event.preventDefault();
+      // Only the lock holds it: say so once per press, not once per key repeat.
+      if (stopped) {
+        if (!event.repeat) announceLocked();
+        return;
+      }
       if (event.repeat && Date.now() - lastStepAtRef.current < HOLD_STEP_INTERVAL_MS) return;
       move(delta);
     };

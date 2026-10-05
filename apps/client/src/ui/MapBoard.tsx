@@ -334,6 +334,8 @@ export default function MapBoard({
     sendMessage,
     onDrawingComplete,
     drawingObjects,
+    // The server's rule (MapService.deleteDrawing): the DM, the owner, or anyone for an owner-less one.
+    mayErase: (owner) => isDM || !owner || owner === uid,
   });
 
   // Live map-edit tool (wall/door/room drag + terrain brush). Self-gates on mode.

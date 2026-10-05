@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import type { Prop, TokenSize } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
 import { ImageField } from "../../components/ui/ImageField";
+import { lockGuard } from "../locking/lockNotice";
 
 interface PlayerPropEditorProps {
   prop: Prop;
@@ -139,9 +140,11 @@ export function PlayerPropEditor({
               onDelete();
             }
           }}
-          disabled={locked}
-          title={locked ? "Locked: only the DM can unlock it." : undefined}
           style={{ fontSize: "10px", padding: "6px 12px" }}
+          {...lockGuard(locked === true, "Locked: only the DM can unlock it.", {
+            fontSize: "10px",
+            padding: "6px 12px",
+          })}
         >
           Delete
         </JRPGButton>

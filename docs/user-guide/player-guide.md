@@ -190,8 +190,10 @@ exits drawing mode. Starting Draw again opens the settings sheet.
 - **Erase drawings** affects annotations, with **Eraser width (px)** as its only setting.
   Crossing a freehand stroke removes that section; other drawing shapes are removed
   whole. Partial freehand erasing supports Undo; whole-shape deletion currently does not.
-- You can erase, move and delete only your own drawings; the DM can remove anyone's.
-  **Clear all drawings** removes all annotations, with confirmation, and is DM-only.
+- You can erase, move and delete your own drawings, and any older drawing that has no owner;
+  the DM can remove anyone's. A drawing the DM has locked stays as it is for everyone until
+  the DM unlocks it — the eraser and Delete say so instead of removing it.
+  **Clear all drawings** removes every unlocked annotation, with confirmation, and is DM-only.
   Terrain painting and **Erase terrain** are separate Build map tools.
 
 ### Area templates

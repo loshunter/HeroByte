@@ -4,10 +4,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { TokenSettingsSection } from "../TokenSettingsSection";
+import { onLockNotice } from "../../../locking/lockNotice";
+/** What a press told the viewer through lockNotice (App toasts it). */
+function listenForLockNotices(): { heard: (string | undefined)[]; off: () => void } {
+  const heard: (string | undefined)[] = [];
+  return { heard, off: onLockNotice((message) => heard.push(message)) };
+}
 
 describe("TokenSettingsSection — Delete Token (DM) and the lock", () => {
-  it("is disabled while the token is locked, and points at Token Lock", () => {
+  it("is stopped while the token is locked, and a press says to unlock it first", () => {
     const onDeleteToken = vi.fn();
+    const notices = listenForLockNotices();
     render(
       <TokenSettingsSection
         tokenLocked
@@ -16,10 +23,13 @@ describe("TokenSettingsSection — Delete Token (DM) and the lock", () => {
       />,
     );
     const button = screen.getByRole("button", { name: "🗑️ Delete Token (DM)" });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("title", "Locked: unlock it first (Token Lock).");
+    const why = "Locked: unlock it first (Token Lock), then delete it.";
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAttribute("title", why);
     fireEvent.click(button);
+    notices.off();
     expect(onDeleteToken).not.toHaveBeenCalled();
+    expect(notices.heard).toEqual([why]);
   });
 
   it("control: unlocked, it deletes after the confirm", () => {

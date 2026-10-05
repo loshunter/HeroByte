@@ -25,6 +25,7 @@ import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import { CharacterNameField, useCharacterEscapeGuard } from "./CharacterNameField";
 import { CharacterCreationModal } from "./CharacterCreationModal";
 import "./characterSettings.css";
+import { lockGuard } from "../../locking/lockNotice";
 
 const NO_EFFECTS_CHANGE = () => {};
 
@@ -402,8 +403,13 @@ export function PlayerSettingsMenu({
                     variant="danger"
                     style={{ fontSize: "10px" }}
                     // Its token is locked: nothing deletes it until the DM unlocks it.
-                    disabled={tokenLocked === true}
-                    title={tokenLocked ? "Locked: its token must be unlocked first." : undefined}
+                    {...lockGuard(
+                      tokenLocked === true,
+                      viewerIsDM
+                        ? "Locked: unlock its token first (Token Lock, below), then delete it."
+                        : "Locked: only the DM can unlock its token.",
+                      { fontSize: "10px" },
+                    )}
                   >
                     🗑️ Delete this character
                   </JRPGButton>

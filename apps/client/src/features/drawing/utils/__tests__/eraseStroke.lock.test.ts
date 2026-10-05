@@ -4,6 +4,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SceneObject } from "@herobyte/shared";
 import { commitEraseStroke } from "../eraseStroke";
+import { onLockNotice } from "../../../locking/lockNotice";
 
 const drawingObject = (id: string, locked: boolean) =>
   ({
@@ -45,5 +46,48 @@ describe("commitEraseStroke and the lock", () => {
     const ids = sendMessage.mock.calls.map(([m]) => m.id ?? m.deleteId);
     expect(ids).toContain("free");
     expect(ids).not.toContain("locked");
+  });
+
+  const across = [
+    { x: 50, y: -10 },
+    { x: 50, y: 10 },
+  ];
+  const noticesDuring = (run: () => void) => {
+    const heard: (string | undefined)[] = [];
+    const off = onLockNotice((message) => heard.push(message));
+    run();
+    off();
+    return heard;
+  };
+
+  it("says the lock stopped it, once per stroke, when it crossed a locked drawing it could erase", () => {
+    const heard = noticesDuring(() =>
+      commitEraseStroke(
+        [drawingObject("a", true), drawingObject("b", true)],
+        across,
+        20,
+        vi.fn(),
+        () => true,
+      ),
+    );
+    // No message: the viewer's role picks the words (the DM is told to unlock it first).
+    expect(heard).toEqual([undefined]);
+  });
+
+  it("says nothing for a locked drawing that is not the eraser's to erase, or one it missed", () => {
+    expect(
+      noticesDuring(() =>
+        commitEraseStroke([drawingObject("a", true)], across, 20, vi.fn(), () => false),
+      ),
+    ).toEqual([]);
+    const far = [
+      { x: 500, y: 500 },
+      { x: 510, y: 510 },
+    ];
+    expect(
+      noticesDuring(() =>
+        commitEraseStroke([drawingObject("a", true)], far, 20, vi.fn(), () => true),
+      ),
+    ).toEqual([]);
   });
 });

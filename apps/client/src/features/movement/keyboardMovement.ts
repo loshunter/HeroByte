@@ -91,8 +91,8 @@ export interface MovableSelectionInput {
  * DM who placed it and is linked to its NPC character (placeNPCToken), so
  * the by-owner road considers only tokens no character claims — and exactly
  * one of them, because two is a guess. The id still goes through
- * `movableSelection`, so a locked own token stays a DM's to move, exactly as
- * if it had been clicked.
+ * `movableSelection`, so a locked own token moves for no one, exactly as if it
+ * had been clicked.
  */
 export function ownTokenFallback({
   snapshot,
@@ -121,19 +121,18 @@ export function ownTokenFallback({
  * owner's, or everyone's (`owner: "*"`) — and, for a player, only while the
  * table's player-props switch is on; a locked object moves for no one, the DM
  * included, until it is unlocked (pieceLock). The server remains the guard —
- * this only avoids dead round trips.
+ * this only avoids dead round trips. `{ locked: true }` asks the other way: the
+ * pieces the actor WOULD move but for the lock (so a press can say why).
  */
-export function movableSelection({
-  selectedObjectIds,
-  snapshot,
-  uid,
-  isDM,
-}: MovableSelectionInput): MovableSelection[] {
+export function movableSelection(
+  { selectedObjectIds, snapshot, uid, isDM }: MovableSelectionInput,
+  { locked: wantLocked = false }: { locked?: boolean } = {},
+): MovableSelection[] {
   if (!snapshot) return [];
   const out: MovableSelection[] = [];
   for (const id of selectedObjectIds) {
     const locked = snapshot.sceneObjects?.find((object) => object.id === id)?.locked === true;
-    if (locked) continue;
+    if (locked !== wantLocked) continue;
     if (id.startsWith("token:")) {
       const token = snapshot.tokens?.find((candidate) => candidate.id === id.slice(6));
       if (!token || (!isDM && token.owner !== uid)) continue;

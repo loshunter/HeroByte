@@ -15,6 +15,7 @@
  */
 
 import { onLockRefusal } from "../../features/locking/lockRefusalBridge";
+import { announceLocked } from "../../features/locking/lockNotice";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ServerMessage } from "@herobyte/shared";
@@ -915,6 +916,26 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
       return { handler, toast };
     };
+
+    it("toasts a control the lock stopped on this client (lockNotice), in the viewer's words", () => {
+      const dm = mount(true);
+      const player = mount(false);
+      act(() => announceLocked());
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "Locked: select it and press 🔓 Unlock first.",
+        4000,
+      );
+      expect(player.toast.error).toHaveBeenLastCalledWith(
+        "Locked: only the DM can unlock it.",
+        4000,
+      );
+      // A control that knows its own route says it in its own words.
+      act(() => announceLocked("Locked: unlock it first (Token Lock), then delete it."));
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "Locked: unlock it first (Token Lock), then delete it.",
+        4000,
+      );
+    });
 
     it("tells the DM to unlock first, and a player that only the DM can", () => {
       const dm = mount(true);
