@@ -114,7 +114,7 @@ export class MapService {
       const sanitizedDrawing: Drawing = {
         ...drawing,
         id,
-        owner: original.owner || ownerUid,
+        owner: ownerUid,
         selectedBy: undefined,
       };
       return cloneDrawing(sanitizedDrawing);
