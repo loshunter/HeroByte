@@ -17,11 +17,11 @@ import type { RoomService } from "../../domains/room/service.js";
 
 type SceneTransformPayload = Parameters<RoomService["applySceneObjectTransform"]>[2];
 
+import { isLockedPiece, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
+
 /**
  * Result of handling a transform message
  */
-import { isLockedPiece, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
-
 export interface TransformMessageResult {
   /** Whether a broadcast is needed */
   broadcast: boolean;
@@ -62,7 +62,12 @@ export class TransformMessageHandler {
     // toggle itself rides this message (`locked`), so it is let through to apply.
     // The refusal still broadcasts: a client that dragged it drops its local copy.
     if (typeof transform.locked !== "boolean" && isLockedPiece(state, objectId)) {
-      return { broadcast: true, save: false, lockRefusal: { ids: [objectId] } };
+      const owner = state.sceneObjects.find((o) => o.id === objectId)?.owner;
+      const isDM = state.players.some((p) => p.uid === senderUid && p.isDM);
+      const mayAct = isDM || owner === senderUid || owner === "*";
+      return mayAct
+        ? { broadcast: true, save: false, lockRefusal: { ids: [objectId] } }
+        : { broadcast: false, save: false };
     }
     if (this.roomService.applySceneObjectTransform(objectId, senderUid, transform)) {
       return { broadcast: true, save: true };

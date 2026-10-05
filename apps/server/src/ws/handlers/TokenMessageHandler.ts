@@ -41,11 +41,13 @@ export interface TokenMessageResult {
   save: boolean;
   /** Optional delta payload describing targeted updates */
   delta?: PendingDelta;
-  /** The piece lock stopped this action: the router tells the sender. */
+  /** The piece lock stopped this action: the router tells the sender (the DM or owner only). */
   lockRefusal?: LockRefusal;
 }
 
 const lockedToken = (tokenId: string): LockRefusal => ({ ids: [`token:${tokenId}`] });
+const mayActOn = (state: RoomState, tokenId: string, senderUid: string, isDM: boolean) =>
+  isDM || state.tokens.find((t) => t.id === tokenId)?.owner === senderUid;
 
 /**
  * Handler for token-related messages
@@ -105,8 +107,8 @@ export class TokenMessageHandler {
       delta = { t: "token-updated", token, previousCell };
     }
     const result = { broadcast: deltasEnabled ? charged : moved, save: charged, delta };
-    return isTokenLocked(state, tokenId)
-      ? { ...result, lockRefusal: lockedToken(tokenId) }
+    return isTokenLocked(state, tokenId) && mayActOn(state, tokenId, senderUid, isDM)
+      ? { ...result, broadcast: true, lockRefusal: lockedToken(tokenId) }
       : result;
   }
 
@@ -158,7 +160,9 @@ export class TokenMessageHandler {
   ): TokenMessageResult {
     // A locked token is deleted by no one, the DM included, until it is unlocked.
     if (isTokenLocked(state, tokenId)) {
-      return { broadcast: false, save: false, lockRefusal: lockedToken(tokenId) };
+      return mayActOn(state, tokenId, senderUid, isDM)
+        ? { broadcast: false, save: false, lockRefusal: lockedToken(tokenId) }
+        : { broadcast: false, save: false };
     }
     const success = isDM
       ? this.tokenService.forceDeleteToken(state, tokenId)
@@ -213,7 +217,9 @@ export class TokenMessageHandler {
     if (isTokenLocked(state, tokenId)) {
       // A resize is a change to the piece: refused like a move. The broadcast puts the
       // size back on a client that already showed the new one.
-      return { broadcast: true, save: false, lockRefusal: lockedToken(tokenId) };
+      return mayActOn(state, tokenId, senderUid, isDM)
+        ? { broadcast: true, save: false, lockRefusal: lockedToken(tokenId) }
+        : { broadcast: false, save: false };
     }
     const updated = isDM
       ? this.tokenService.setTokenSizeByDM(state, tokenId, size)

@@ -43,6 +43,19 @@ export interface DrawingMessageResult {
 }
 
 const lockedDrawing = (id: string): LockRefusal => ({ ids: [`drawing:${id}`] });
+/** A refusal for the owner or the DM; anyone else is refused without a word (pieceLock). */
+const refuseLockedDrawing = (
+  state: RoomState,
+  id: string,
+  senderUid: string | undefined,
+  broadcast: boolean,
+) => {
+  const isDM = state.players.some((p) => p.uid === senderUid && p.isDM);
+  const owner = state.drawings.find((d) => d.id === id)?.owner;
+  return isDM || owner === senderUid
+    ? { broadcast, save: false, lockRefusal: lockedDrawing(id) }
+    : { broadcast: false, save: false };
+};
 
 /**
  * Handler for drawing-related messages
@@ -222,7 +235,7 @@ export class DrawingMessageHandler {
     isDM = false,
   ): DrawingMessageResult {
     if (isDrawingLocked(state, id)) {
-      return { broadcast: true, save: false, lockRefusal: lockedDrawing(id) };
+      return refuseLockedDrawing(state, id, senderUid, true);
     }
     if (this.mapService.moveDrawing(state, id, dx, dy, senderUid, isDM)) {
       return { broadcast: true, save: false };
@@ -246,7 +259,7 @@ export class DrawingMessageHandler {
     isDM = false,
   ): DrawingMessageResult {
     if (isDrawingLocked(state, id)) {
-      return { broadcast: false, save: false, lockRefusal: lockedDrawing(id) };
+      return refuseLockedDrawing(state, id, senderUid, false);
     }
     if (this.mapService.deleteDrawing(state, id, senderUid, isDM)) {
       this.selectionService.removeObject(state, id);
@@ -273,7 +286,7 @@ export class DrawingMessageHandler {
     senderUid: string,
   ): DrawingMessageResult {
     if (isDrawingLocked(state, deleteId)) {
-      return { broadcast: false, save: false, lockRefusal: lockedDrawing(deleteId) };
+      return refuseLockedDrawing(state, deleteId, senderUid, false);
     }
     if (this.mapService.handlePartialErase(state, deleteId, segments, senderUid)) {
       this.selectionService.removeObject(state, deleteId);

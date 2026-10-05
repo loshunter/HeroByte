@@ -125,9 +125,15 @@ function nextApplicable(
 /** A read only projection: no stack creation, pruning, cloning or transfer. */
 export function drawingHistoryFor(state: RoomState, ownerUid: string): DrawingHistoryCapabilities {
   const index = indexDrawings(state);
+  // A step that would remove a locked drawing is refused, so it is not offered either:
+  // the button reads off until the DM unlocks it.
   return {
-    canUndo: nextApplicable(index, state.drawingUndoStacks[ownerUid], "undo") !== -1,
-    canRedo: nextApplicable(index, state.drawingRedoStacks[ownerUid], "redo") !== -1,
+    canUndo:
+      nextApplicable(index, state.drawingUndoStacks[ownerUid], "undo") !== -1 &&
+      lockedDrawingsBlocking(state, ownerUid, "undo").length === 0,
+    canRedo:
+      nextApplicable(index, state.drawingRedoStacks[ownerUid], "redo") !== -1 &&
+      lockedDrawingsBlocking(state, ownerUid, "redo").length === 0,
   };
 }
 

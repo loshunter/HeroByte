@@ -4,11 +4,21 @@
 // A locked token, prop or drawing cannot be moved or deleted by ANYONE, the DM
 // included, until the DM unlocks it (owner, 2026-10-04). The lock lives on the
 // piece's scene object (`token:<id>`, `prop:<id>`, `drawing:<id>`), set by
-// LockingHandler and carried across rebuilds by id (SceneGraphBuilder).
+// LockingHandler (lock-selected / unlock-selected) or the `locked` toggle on
+// transform-object (TransformHandler), and carried across rebuilds by id.
 //
 // Only those three kinds: the map's scene object is locked by default and
 // pointers are locked on every rebuild, and neither is a piece — a blanket rule
 // would stop the DM aligning the map.
+//
+// Table-wide changes are not single moves and still win, by design: Restore
+// table backup replaces the table (seated players keep their tokens as they
+// stand), the Main Hall's idle wipe empties it, and travelling to another map
+// carries the party's tokens, locked or not, to the arrival point.
+//
+// A refusal is said only to someone who could otherwise have done it (the DM or
+// the piece's owner): telling anyone else would confirm that a piece they cannot
+// see still exists, and a refused move broadcasts.
 
 import type { RoomState } from "../model.js";
 

@@ -19,6 +19,8 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
+import { buildTokenDragPreview } from "../handlers/tokenDragPreview.js";
+import { drawingHistoryFor } from "../../domains/map/drawingHistory.js";
 
 const STATE_FILE = path.join(process.cwd(), ".tmp", "pieceLock-state.json");
 const DM = "dm-1";
@@ -134,7 +136,7 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       expect(refusalsTo(DM).at(-1)?.ids).toEqual([`token:${locked.id}`]);
     });
 
-    it("the legacy move frame, a resize and a drag preview are refused for a locked token", () => {
+    it("the legacy move frame and a resize are refused for a locked token", () => {
       const token = tokens.createToken(state(), PLAYER, 1, 1);
       lock(`token:${token.id}`);
       send({ t: "move", id: token.id, x: 6, y: 6 }, DM);
@@ -143,6 +145,66 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       expect(state().tokens[0]).toMatchObject({ x: 1, y: 1, size: "medium" });
       expect(refusalsTo(DM)).toHaveLength(2);
       expect(refusalsTo(PLAYER)).toHaveLength(1);
+    });
+
+    it("no drag preview of a locked token is built, for the DM or the owner", () => {
+      const token = tokens.createToken(state(), PLAYER, 1, 1);
+      const free = tokens.createToken(state(), PLAYER, 3, 3);
+      const update = (id: string) => ({ id: `token:${id}`, x: 9, y: 9 });
+      lock(`token:${token.id}`);
+      expect(buildTokenDragPreview(state(), DM, [update(token.id)], true)).toBeNull();
+      expect(buildTokenDragPreview(state(), PLAYER, [update(token.id)], false)).toBeNull();
+      // Control: the unlocked one still previews.
+      expect(
+        buildTokenDragPreview(state(), PLAYER, [update(free.id)], false)?.objects,
+      ).toHaveLength(1);
+    });
+
+    // Control for the next case: the spy does see a broadcast — the owner's refused drag
+    // refreshes the table, so their client drops the local drop position.
+    it("the owner's refused drag broadcasts, so their client snaps back", () => {
+      const token = tokens.createToken(state(), PLAYER, 1, 1);
+      lock(`token:${token.id}`);
+      vi.useFakeTimers();
+      const broadcast = vi.spyOn(room, "broadcast");
+      send({ t: "transform-object", id: `token:${token.id}`, position: { x: 5, y: 5 } }, PLAYER);
+      vi.runAllTimers();
+      vi.useRealTimers();
+      expect(broadcast).toHaveBeenCalled();
+    });
+
+    it("someone who could not move the piece anyway is refused without a word or a broadcast", () => {
+      const token = tokens.createToken(state(), DM, 1, 1); // the DM's, not the player's
+      lock(`token:${token.id}`);
+      vi.useFakeTimers(); // broadcasts are debounced: flush them before judging
+      const broadcast = vi.spyOn(room, "broadcast");
+      send({ t: "transform-object", id: `token:${token.id}`, position: { x: 5, y: 5 } }, PLAYER);
+      send({ t: "delete-token", id: token.id }, PLAYER);
+      send({ t: "set-token-size", tokenId: token.id, size: "huge" }, PLAYER);
+      vi.runAllTimers();
+      vi.useRealTimers();
+      expect(refusalsTo(PLAYER)).toHaveLength(0);
+      expect(broadcast).not.toHaveBeenCalled();
+      expect(state().tokens[0]).toMatchObject({ x: 1, y: 1, size: "medium" });
+    });
+
+    it("a locked prop's resize is refused; the rest of the edit stands", () => {
+      const prop = props.createProp(
+        state(),
+        "Crate",
+        "",
+        DM,
+        "medium",
+        { x: 0, y: 0, scale: 1 },
+        50,
+      );
+      lock(`prop:${prop.id}`);
+      send(
+        { t: "update-prop", id: prop.id, label: "Barrel", imageUrl: "", owner: DM, size: "huge" },
+        DM,
+      );
+      expect(state().props[0]).toMatchObject({ label: "Barrel", size: "medium" });
+      expect(refusalsTo(DM).at(-1)?.ids).toEqual([`prop:${prop.id}`]);
     });
 
     it("a locked prop and a locked drawing are refused a drag too, for the DM", () => {
@@ -162,6 +224,8 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       send({ t: "transform-object", id: "drawing:d-1", position: { x: 9, y: 9 } }, DM);
       expect(refusalsTo(DM).map((f) => f.ids)).toEqual([[`prop:${prop.id}`], ["drawing:d-1"]]);
       expect(state().props[0]).toMatchObject(start);
+      const drawingObject = state().sceneObjects.find((o) => o.id === "drawing:d-1");
+      expect(drawingObject?.transform).toMatchObject({ x: 0, y: 0 });
     });
 
     it("move-drawing: refused while locked, and never for someone else's drawing", () => {
@@ -250,6 +314,13 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       expect(refusalsTo(PLAYER).at(-1)?.ids).toEqual(["drawing:second"]);
     });
 
+    it("the Undo button reads off while its next step would remove a locked drawing", () => {
+      send({ t: "draw", drawing: line("only", PLAYER) }, PLAYER);
+      expect(drawingHistoryFor(state(), PLAYER).canUndo).toBe(true);
+      lock("drawing:only");
+      expect(drawingHistoryFor(state(), PLAYER).canUndo).toBe(false);
+    });
+
     it("redo that would remove a locked drawing (a partial erase's original) is refused", () => {
       send({ t: "draw", drawing: line("d-1", PLAYER) }, PLAYER);
       send(
@@ -315,6 +386,39 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       expect(refusal?.ids?.sort()).toEqual(
         [`token:${pcToken.id}`, `token:${strayLocked.id}`].sort(),
       );
+    });
+
+    it("clear-all-tokens keeps locked tokens and says so", () => {
+      const locked = tokens.createToken(state(), PLAYER, 1, 1);
+      const free = tokens.createToken(state(), PLAYER, 2, 2);
+      const mine = tokens.createToken(state(), DM, 3, 3);
+      lock(`token:${locked.id}`);
+      send({ t: "clear-all-tokens" }, DM);
+      expect(
+        state()
+          .tokens.map((t) => t.id)
+          .sort(),
+      ).toEqual([locked.id, mine.id].sort());
+      expect(state().tokens.some((t) => t.id === free.id)).toBe(false);
+      expect(refusalsTo(DM).at(-1)).toEqual({
+        t: "locked-refused",
+        ids: [`token:${locked.id}`],
+        kept: true,
+      });
+    });
+
+    it("a character file carrying a locked drawing's own copy does not duplicate it", () => {
+      state().drawings.push(line("locked", PLAYER));
+      lock("drawing:locked");
+      send(
+        { t: "sync-player-drawings", drawings: [line("locked", PLAYER), line("new", PLAYER)] },
+        PLAYER,
+      );
+      expect(
+        state()
+          .drawings.map((d) => d.id)
+          .sort(),
+      ).toEqual(["locked", "new"]);
     });
 
     it("a character file's drawings (sync-player-drawings) keep the player's locked ones", () => {

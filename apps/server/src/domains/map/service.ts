@@ -88,13 +88,23 @@ export class MapService {
    * Replace all drawings owned by a player (used for imports)
    */
   replacePlayerDrawings(state: RoomState, ownerUid: string, drawings: Drawing[]): void {
-    // The player's locked drawings stay as they are; the imported set joins them.
+    // The player's locked drawings stay as they are; the imported set joins them, minus
+    // the file's own copy of a locked one (character files keep drawing ids, and that
+    // copy would otherwise land beside it, unlocked, under a fresh id).
+    const keptLocked = new Set(
+      state.drawings
+        .filter((drawing) => drawing.owner === ownerUid && isDrawingLocked(state, drawing.id))
+        .map((drawing) => drawing.id),
+    );
     state.drawings = state.drawings.filter(
-      (drawing) => drawing.owner !== ownerUid || isDrawingLocked(state, drawing.id),
+      (drawing) => drawing.owner !== ownerUid || keptLocked.has(drawing.id),
     );
     const ids = new Set(state.drawings.map((drawing) => drawing.id));
+    const incoming = drawings.filter(
+      (drawing) => !(typeof drawing.id === "string" && keptLocked.has(drawing.id.trim())),
+    );
 
-    const sanitized: Drawing[] = drawings.map((drawing) => {
+    const sanitized: Drawing[] = incoming.map((drawing) => {
       let id = typeof drawing.id === "string" ? drawing.id.trim() : "";
       // Preserve imported geometry while keeping IDs unique across owners and
       // within this batch. Existing IDs owned by this importer remain reusable.
