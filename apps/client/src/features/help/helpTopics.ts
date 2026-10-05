@@ -185,7 +185,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🔒 Locked",
         detail:
-          "Set by the DM (a locked token or prop shows a 🔒 badge); only the DM can unlock it. The DM selects it and presses 🔓 Unlock (on a phone: TOOLS → □ Select, tap it, then 🔓 Unlock). The DM can also unlock a player character's token from its ⚙️ settings → Token Lock (on a phone: ◉ PARTY → ⚙️ EDIT), and an NPC's from its settings' 🔒 Locked button.",
+          "Set by the DM (a locked token or prop shows a 🔒 badge): no one can move or delete it, the DM included, until the DM unlocks it. A bulk delete (🗑️ Clear all drawings, REMOVE) leaves it in place; Restore table backup… still replaces the whole table. The DM selects it and presses 🔓 Unlock (on a phone: TOOLS → □ Select, tap it, then 🔓 Unlock). The DM can also unlock a player character's token from its ⚙️ settings → Token Lock (on a phone: ◉ PARTY → ⚙️ EDIT), and an NPC's from its settings' 🔒 Locked button.",
       },
       { term: "Ping", detail: "Double-click (or double-tap) empty space in any tool mode." },
     ],

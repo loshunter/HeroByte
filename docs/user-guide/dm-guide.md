@@ -258,7 +258,7 @@ Use it constantly while prepping: it's the difference between "I think that corr
 
 ### Everything else you now own
 
-- **Move and transform anyone's tokens**, and lock/unlock objects (select several and use the Lock/Unlock bar).
+- **Move and transform anyone's tokens**, and lock/unlock objects (select them and use the Lock/Unlock bar). A locked token, prop or drawing can't be moved or deleted by anyone — you included — until you unlock it; Clear all drawings and REMOVE leave locked pieces in place and say how many they kept.
 - **Delete a player's token** from their card settings (select their row in the Party, ⚙️ on their card → **Token settings** → **🗑️ DELETE TOKEN**; on a phone, **PARTY** → **⚙ EDIT** on their row). The same **Token settings** resize it and lock it.
 - **Move a player character to another seat** from its **Token settings** → **Owner** (on a phone, **PARTY** → **⚙ EDIT** on its row). The character and its token go to that player together: they move it, their fog is lit by it, and it joins their own rows in the Party. Player characters only — an NPC stays yours, because handing one over would change what fog and hidden monster HP show that player.
 - **Edit any player's name, HP, portrait, and status effects** from their card. Click an HP number to type it, or drag along the bar, as the player would; on a phone, the HP on their row in **PARTY** works the same way.

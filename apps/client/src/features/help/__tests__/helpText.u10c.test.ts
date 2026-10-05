@@ -49,16 +49,14 @@ describe("help text, after the U10c review", () => {
       /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\), and an NPC's from its settings' 🔒 Locked button/,
     );
     expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
-    // What a lock IS, never what it stops: today the lock is not enforced on every route
-    // (a piece locked under the transform handles stays draggable, a group drag of
-    // drawings carries a locked one, undo/redo and partial erase drop a drawing's lock,
-    // and most deletes ignore it). The badge (LockIndicator on tokens and props) and the
-    // DM-only unlock (LockingHandler) do hold.
+    // The lock is enforced on every road now (pieceLock, server; the gizmo, group drag,
+    // keys and eraser, client): no move, no delete, for anyone, until the DM unlocks it.
+    // Bulk deletes keep locked pieces (and say so); a restore still replaces the table.
     expect(locked).toMatch(
-      /Set by the DM \(a locked token or prop shows a 🔒 badge\); only the DM can unlock it\./,
+      /Set by the DM \(a locked token or prop shows a 🔒 badge\): no one can move or delete it, the DM included, until the DM unlocks it\. A bulk delete \(🗑️ Clear all drawings, REMOVE\) leaves it in place; Restore table backup… still replaces the whole table\./,
     );
     expect(locked).not.toMatch(
-      /players cannot move it|cannot be moved|no one can (drag|delete)|Every other delete|step it with the keys|Pinned/,
+      /players cannot move it|Every other delete|step it with the keys|Pinned/,
     );
   });
 
