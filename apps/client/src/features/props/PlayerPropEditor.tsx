@@ -16,7 +16,7 @@ interface PlayerPropEditorProps {
   prop: Prop;
   onUpdate: (updates: { label: string; imageUrl: string; size: TokenSize }) => void;
   onDelete: () => void;
-  /** Locked by the DM: nothing deletes it until the DM unlocks it. */
+  /** Locked by the DM: nothing resizes or deletes it until the DM unlocks it. */
   locked?: boolean;
 }
 

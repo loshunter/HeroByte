@@ -135,7 +135,13 @@ export function TokenSettingsSection({
                 onClick={() => onTokenSizeChange(size)}
                 variant={tokenSize === size ? "primary" : "default"}
                 style={{ fontSize: "10px", padding: "6px 4px" }}
-                title={size.charAt(0).toUpperCase() + size.slice(1)}
+                // A locked token is resized by no one until it is unlocked (Token Lock).
+                disabled={tokenLocked === true}
+                title={
+                  tokenLocked
+                    ? "Locked: unlock it first (Token Lock)."
+                    : size.charAt(0).toUpperCase() + size.slice(1)
+                }
               >
                 {SIZE_LABELS[size]}
               </JRPGButton>

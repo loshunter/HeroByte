@@ -23,7 +23,7 @@ interface PropEditorProps {
   deletionError?: string | null;
   isUpdating?: boolean;
   updateError?: string | null;
-  /** Locked by the DM: nothing deletes it until it is unlocked (🔓 Unlock). */
+  /** Locked by the DM: nothing resizes or deletes it until it is unlocked (🔓 Unlock). */
   locked?: boolean;
 }
 

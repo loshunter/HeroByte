@@ -35,4 +35,20 @@ describe("TokenSettingsSection — Delete Token (DM) and the lock", () => {
     fireEvent.click(screen.getByRole("button", { name: "🗑️ Delete Token (DM)" }));
     expect(onDeleteToken).toHaveBeenCalledOnce();
   });
+
+  it("turns the Token Size buttons off while locked: a locked token is resized by no one", () => {
+    const onTokenSizeChange = vi.fn();
+    render(
+      <TokenSettingsSection
+        tokenLocked
+        onToggleTokenLock={vi.fn()}
+        onTokenSizeChange={onTokenSizeChange}
+      />,
+    );
+    const sizes = screen.getAllByTitle("Locked: unlock it first (Token Lock).");
+    expect(sizes).toHaveLength(6);
+    for (const size of sizes) expect(size).toBeDisabled();
+    fireEvent.click(sizes[4]!);
+    expect(onTokenSizeChange).not.toHaveBeenCalled();
+  });
 });

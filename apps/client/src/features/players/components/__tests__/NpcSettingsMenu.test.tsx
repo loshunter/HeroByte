@@ -869,6 +869,24 @@ describe("NpcSettingsMenu", () => {
       expect(onDelete).not.toHaveBeenCalled();
     });
 
+    it("turns Place Token and the size buttons off while its token is locked", () => {
+      const onPlaceToken = vi.fn();
+      const onTokenSizeChange = vi.fn();
+      render(
+        <NpcSettingsMenu
+          {...createProps({ onPlaceToken, onTokenSizeChange, tokenLocked: true })}
+        />,
+      );
+      const place = screen.getByRole("button", { name: "Place Token" });
+      expect(place).toBeDisabled();
+      fireEvent.click(place);
+      expect(onPlaceToken).not.toHaveBeenCalled();
+      const sizes = screen.getAllByTitle("Locked: unlock its token first (🔒 Locked below).");
+      // Place Token, the six sizes, and Delete NPC carry it.
+      expect(sizes.length).toBeGreaterThanOrEqual(7);
+      expect(screen.getByRole("button", { name: "Garg" })).toBeDisabled();
+    });
+
     it("renders Delete NPC button", () => {
       const props = createProps();
       render(<NpcSettingsMenu {...props} />);

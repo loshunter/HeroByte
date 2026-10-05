@@ -241,6 +241,9 @@ export function NpcSettingsMenu({
             className="btn btn-secondary"
             style={{ fontSize: "0.65rem" }}
             onClick={onPlaceToken}
+            // Placing again replaces (deletes) its token: off while that token is locked.
+            disabled={tokenLocked === true}
+            title={tokenLocked ? "Locked: unlock its token first (🔒 Locked below)." : undefined}
           >
             Place Token
           </button>
@@ -270,7 +273,12 @@ export function NpcSettingsMenu({
                           className={tokenSize === size ? "btn btn-primary" : "btn btn-secondary"}
                           style={{ fontSize: "0.6rem", padding: "4px 2px" }}
                           onClick={() => onTokenSizeChange(size)}
-                          title={size.charAt(0).toUpperCase() + size.slice(1)}
+                          disabled={tokenLocked === true}
+                          title={
+                            tokenLocked
+                              ? "Locked: unlock its token first (🔒 Locked below)."
+                              : size.charAt(0).toUpperCase() + size.slice(1)
+                          }
                         >
                           {sizeLabels[size]}
                         </button>
