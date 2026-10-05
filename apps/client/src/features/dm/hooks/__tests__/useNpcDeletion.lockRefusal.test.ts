@@ -44,4 +44,23 @@ describe("NPC actions stop waiting when the lock refuses them", () => {
     act(() => vi.advanceTimersByTime(6000));
     expect(result.current.error).toBeNull();
   });
+
+  it("a refusal of some other piece does not end the wait", () => {
+    const { result } = renderHook(() => useNpcDeletion({ snapshot, sendMessage: vi.fn() }));
+    act(() => result.current.deleteNpc("npc-1"));
+    act(() => deliverLockRefusal({ t: "locked-refused", ids: ["token:someone-else"] }));
+    expect(result.current.isDeleting).toBe(true);
+  });
+
+  it("a refused attempt's timer does not time out the retry", () => {
+    const sendMessage = vi.fn();
+    const { result } = renderHook(() => useNpcTokenPlacement({ snapshot, sendMessage }));
+    act(() => result.current.placeToken("npc-1"));
+    act(() => vi.advanceTimersByTime(3000));
+    act(() => deliverLockRefusal({ t: "locked-refused", ids: ["token:t-1"] }));
+    act(() => result.current.placeToken("npc-1"));
+    act(() => vi.advanceTimersByTime(3000)); // 6 s after the first attempt, 3 s into the retry
+    expect(result.current.isPlacing).toBe(true);
+    expect(result.current.error).toBeNull();
+  });
 });

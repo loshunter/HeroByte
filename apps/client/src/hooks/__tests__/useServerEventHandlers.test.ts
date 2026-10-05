@@ -14,6 +14,7 @@
  * - Toast notifications
  */
 
+import { onLockRefusal } from "../../features/locking/lockRefusalBridge";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ServerMessage } from "@herobyte/shared";
@@ -937,6 +938,25 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         "Locked on another map: travel back to it and 🔓 Unlock its token first.",
         4000,
       );
+      const player = mount(false);
+      act(() => player.handler({ t: "locked-refused", ids: ["token:t-1"], elsewhere: true }));
+      expect(player.toast.error).toHaveBeenLastCalledWith(
+        "Locked on another map: only the DM can unlock it.",
+        4000,
+      );
+    });
+
+    it("hands the refusal on to the actions waiting on it (the lock refusal bridge)", () => {
+      const heard: unknown[] = [];
+      const off = onLockRefusal((refusal) => heard.push(refusal));
+      try {
+        const dm = mount(true);
+        const frame: ServerMessage = { t: "locked-refused", ids: ["token:t-1"] };
+        act(() => dm.handler(frame));
+        expect(heard).toEqual([frame]);
+      } finally {
+        off();
+      }
     });
 
     it("says how many locked pieces a bulk action kept", () => {
