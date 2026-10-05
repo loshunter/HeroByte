@@ -128,6 +128,7 @@ export class InitiativeRollHandler {
         // recipient filter is actively concealing.
         visibility: concealed ? "dm" : "public",
         label: `${character.name} — initiative`,
+        subjectCharacterId: character.id,
       },
       rng,
     );

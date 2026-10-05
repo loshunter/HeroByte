@@ -139,7 +139,7 @@ export class InitiativeMessageHandler {
       this.logManualEntry(
         state,
         senderUid,
-        character.name,
+        character,
         initiative,
         modifier,
         supersededTotal,
@@ -163,7 +163,7 @@ export class InitiativeMessageHandler {
   private logManualEntry(
     state: RoomState,
     senderUid: string,
-    characterName: string,
+    subject: { id: string; name: string },
     initiative: number,
     modifier: number,
     supersededTotal?: number,
@@ -187,7 +187,8 @@ export class InitiativeMessageHandler {
       // the log says it in colour, in a badge, and in the struck-through value
       // beside the total. A parenthetical in a free-text label was the weakest
       // of the four and the only one a renderer could not act on.
-      label: `${characterName} — initiative`,
+      label: `${subject.name} — initiative`,
+      subjectCharacterId: subject.id,
       // A hidden creature's name must not reach the table by this path either.
       // Fixing only the ROLLED path would have moved the leak here rather than
       // closed it — hand entry is the ordinary physical-dice workflow.
