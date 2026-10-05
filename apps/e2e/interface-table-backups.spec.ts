@@ -26,6 +26,8 @@ const npcCount = (page: Page) =>
     () =>
       (window.__HERO_BYTE_E2E__?.snapshot?.characters ?? []).filter((c) => c.type === "npc").length,
   );
+const drawingIds = (page: Page) =>
+  page.evaluate(() => (window.__HERO_BYTE_E2E__?.snapshot?.drawings ?? []).map((d) => d.id).sort());
 const seatIds = (page: Page) =>
   page.evaluate(() => (window.__HERO_BYTE_E2E__?.snapshot?.players ?? []).map((p) => p.uid).sort());
 
@@ -63,6 +65,24 @@ test.describe("U9 — table backup (the whole table)", () => {
       await joinWithLink(player, roomUrl);
       const kinds = await writeKinds(testInfo.outputPath("kinds"));
       const loads = () => wire.sent.filter((frame) => frame.t === "load-session").length;
+
+      // A drawing on the table when the backup is taken: a restore must bring it back
+      // (the loader once dropped every drawing whenever the file had scene objects).
+      await send(dm, {
+        t: "draw",
+        drawing: {
+          id: "u9-line",
+          type: "freehand",
+          points: [
+            { x: 40, y: 40 },
+            { x: 140, y: 90 },
+          ],
+          color: "#ff0000",
+          width: 3,
+          opacity: 1,
+        },
+      });
+      await expect.poll(() => drawingIds(player)).toEqual(["u9-line"]);
 
       await selectDMTab(dm, "Table");
       const backups = dm.getByRole("region", { name: "Backups" });
@@ -119,6 +139,8 @@ test.describe("U9 — table backup (the whole table)", () => {
       await expect(dm.getByText(/Table backup ".*" restored\./)).toBeVisible();
       await expect.poll(() => npcCount(dm)).toBe(0);
       await expect.poll(() => npcCount(player)).toBe(0);
+      await expect.poll(() => drawingIds(dm)).toEqual(["u9-line"]);
+      await expect.poll(() => drawingIds(player)).toEqual(["u9-line"]);
       expect(loads()).toBe(1);
       expect(await seatIds(dm)).toEqual(seats);
       expect(await viewerIsDM(dm)).toBe(true);

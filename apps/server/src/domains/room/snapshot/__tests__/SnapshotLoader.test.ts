@@ -1016,7 +1016,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
     });
 
     it("should handle sceneObjects vs drawings logic", () => {
-      // Case 1: sceneObjects present - drawings should be empty (even if provided)
+      // Case 1: sceneObjects present - drawings still load (the scene graph needs them)
       // Need to have tokens in snapshot so rebuildSceneGraph creates scene objects
       const snapshotWithSceneObjects: RoomSnapshot = {
         users: [],
@@ -1064,8 +1064,9 @@ describe("SnapshotLoader - Characterization Tests", () => {
       };
 
       roomService.loadSnapshot(snapshotWithSceneObjects);
-      // Drawings array should be empty when sceneObjects is present
-      expect(roomService.getState().drawings).toEqual([]);
+      // Drawings load even with sceneObjects present: the scene graph builds drawing objects
+      // only from `drawings`, so dropping them here emptied every restored table's drawings.
+      expect(roomService.getState().drawings.map((d) => d.id)).toEqual(["drawing-1"]);
       // SceneObjects rebuilt from tokens (rebuildSceneGraph called at end)
       expect(roomService.getState().sceneObjects.length).toBeGreaterThan(0);
 
