@@ -189,12 +189,13 @@ export class SnapshotLoader {
 
     const currentGridSquareSize = currentState.gridSquareSize ?? 5;
 
-    // If snapshot has sceneObjects, don't load legacy drawings array
-    // (rebuildSceneGraph will recreate drawings from sceneObjects if needed)
-    const hasSceneObjects = snapshot.sceneObjects && snapshot.sceneObjects.length > 0;
+    // The drawings ALWAYS load. The scene graph builds drawing objects only FROM
+    // `drawings` (SceneGraphBuilder), carrying each one's lock and offset over by id from
+    // the scene objects above — so skipping them when the file had scene objects (every
+    // backup and fork does) emptied the table's drawings on Restore table backup.
     const assetMap = buildAssetMap(snapshot);
     const mapBackground = resolveMapBackground(snapshot, assetMap);
-    const drawings = hasSceneObjects ? [] : resolveDrawings(snapshot, assetMap);
+    const drawings = resolveDrawings(snapshot, assetMap);
 
     return {
       users: currentState.users, // Keep current WebSocket connections
