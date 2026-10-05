@@ -21,6 +21,7 @@ import { mobilePartyRows } from "./mobilePartyRows";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 import { MobilePlayerRow, type TempHpEditing } from "./MobilePlayerRow";
 import "./mobileParty.css";
+import { useDMThroughBlip } from "../../features/table/roleKnown";
 
 interface MobileEntitiesListProps {
   players: Player[];
@@ -101,7 +102,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   players,
   characters,
   uid,
-  isDM,
+  isDM: viewerIsDM,
   editingHpUID,
   hpInput,
   onHpInputChange,
@@ -137,6 +138,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onOpenInitiative,
   onClearInitiative,
 }) => {
+  // Held through a reconnect blip, so the DM-only fields stay mounted.
+  const isDM = useDMThroughBlip(viewerIsDM);
   // The desktop panel's creation state, for the viewer's own rows: the
   // settings window asks for the name and waits on this until it lands.
   const characterCreation = useCharacterCreation({ addCharacter: onAddCharacter, characters, uid });

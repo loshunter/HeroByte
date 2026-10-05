@@ -10,6 +10,7 @@ import { isInInitiativeOrder } from "@herobyte/shared";
 import type { EntityInfo } from "../../../hooks/useCombatOrdering";
 import { PlayerCard } from "../../../features/players/components";
 import type { PartyCardContext } from "./partyTypes";
+import { useDMThroughBlip } from "../../../features/table/roleKnown";
 
 interface PartyCharacterCardProps {
   /** A character entity (kind "character" or "dm"); it always has a player. */
@@ -29,10 +30,12 @@ export function PartyCharacterCard({
 }: PartyCharacterCardProps): JSX.Element | null {
   const { panel, tokenSceneMap, drawingsByOwner, nameEdit } = context;
   const { player, character, token, isMe, ownsSoleCharacter } = entity;
+  // Held through a reconnect blip, so the DM-only fields below stay mounted.
+  const currentIsDM = useDMThroughBlip(panel.currentIsDM);
   // Type guard: player is always defined for character entities
   if (!player) return null;
 
-  const { currentIsDM, combatActive = false } = panel;
+  const { combatActive = false } = panel;
   const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
   const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
 

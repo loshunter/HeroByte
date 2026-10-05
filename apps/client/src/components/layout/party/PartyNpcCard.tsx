@@ -8,6 +8,7 @@ import type { SceneObject, TokenSize } from "@herobyte/shared";
 import type { EntityInfo } from "../../../hooks/useCombatOrdering";
 import { NpcCard } from "../../../features/players/components/NpcCard";
 import type { PartyCardContext } from "./partyTypes";
+import { useDMThroughBlip } from "../../../features/table/roleKnown";
 
 interface PartyNpcCardProps {
   /** An NPC entity (kind "npc"). */
@@ -17,7 +18,8 @@ interface PartyNpcCardProps {
 
 export function PartyNpcCard({ entity, context }: PartyNpcCardProps): JSX.Element {
   const { panel } = context;
-  const { currentIsDM } = panel;
+  // Held through a reconnect blip, so the DM-only fields stay mounted.
+  const currentIsDM = useDMThroughBlip(panel.currentIsDM);
   const { character } = entity;
   // The token on the map: one waiting on another scene takes no Lock, Size or
   // Focus — the server looks for it in the current scene only.
