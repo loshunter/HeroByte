@@ -229,13 +229,19 @@ describe("the bundled token catalog", () => {
     expect(searchLibrary({ query: "zzzz" })).toEqual([]);
   });
 
-  // The pack's descriptions are art-pipeline notes ("Not goblin faces.", "Pixel15
-  // processing applied"): searching them found orcs and kobolds for "goblin".
-  it("search reads what the DM sees, not the pack's pipeline notes", () => {
+  // A description's first sentence is the token's look (real search words); the
+  // rest is the family's art guidance ("Not goblin faces.", "Pixel15 processing
+  // applied"), whose negations found orcs and kobolds for "goblin".
+  it("search reads a token's look, not the pack's art guidance", () => {
     const goblins = searchLibrary({ query: "goblin" });
     expect(goblins.length).toBeGreaterThan(0);
     expect(goblins.every((a) => a.family === "Goblins" || /goblin/i.test(a.name))).toBe(true);
     expect(searchLibrary({ query: "pixel15" })).toEqual([]);
+    // What the art shows is still found: a shaman's staff, a crown, horns.
+    expect(searchLibrary({ query: "shaman staff" }).length).toBeGreaterThan(0);
+    for (const word of ["staff", "robe", "crown", "horns", "wings"]) {
+      expect(searchLibrary({ query: word }).length, word).toBeGreaterThan(0);
+    }
   });
 });
 
