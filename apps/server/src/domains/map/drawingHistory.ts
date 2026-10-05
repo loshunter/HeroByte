@@ -1,3 +1,4 @@
+import { isDrawingLocked } from "../room/locking/pieceLock.js";
 import { coerceAreaTemplate } from "@herobyte/shared";
 import type { Drawing, DrawingHistoryCapabilities } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
@@ -69,7 +70,7 @@ export function recordUserOperation(
   clearRedoStack(state, ownerUid);
 }
 
-type Direction = "undo" | "redo";
+export type Direction = "undo" | "redo";
 type DrawingIndex = ReadonlyMap<string, ReadonlySet<Drawing["owner"]>>;
 
 function indexDrawings(state: RoomState): DrawingIndex {
@@ -130,12 +131,46 @@ export function drawingHistoryFor(state: RoomState, ownerUid: string): DrawingHi
   };
 }
 
+/** The drawings an operation would REMOVE, in this direction. */
+function removedBy(operation: DrawingOperation, direction: Direction): Drawing[] {
+  switch (operation.type) {
+    case "add":
+      return direction === "undo" ? [operation.drawing] : [];
+    case "erase":
+      return direction === "undo" ? [] : [operation.drawing];
+    case "partial-erase":
+      return direction === "undo" ? operation.segments : [operation.original];
+  }
+}
+
+/**
+ * The locked drawings (scene ids) the next undo / redo would remove — a locked drawing
+ * is deleted by no one, so that step is refused rather than skipped (skipping would
+ * silently undo an older step instead). Empty when the step may run.
+ */
+export function lockedDrawingsBlocking(
+  state: RoomState,
+  ownerUid: string,
+  direction: Direction,
+): string[] {
+  const stack =
+    direction === "undo" ? state.drawingUndoStacks[ownerUid] : state.drawingRedoStacks[ownerUid];
+  const index = nextApplicable(indexDrawings(state), stack, direction);
+  if (index === -1) return [];
+  return removedBy(stack![index]!, direction)
+    .filter((drawing) => isDrawingLocked(state, drawing.id))
+    .map((drawing) => `drawing:${drawing.id}`);
+}
+
 function execute(state: RoomState, ownerUid: string, direction: Direction): boolean {
   const stack =
     direction === "undo" ? state.drawingUndoStacks[ownerUid] : state.drawingRedoStacks[ownerUid];
   const index = nextApplicable(indexDrawings(state), stack, direction);
   if (index === -1) return false;
   const operation = stack![index]!;
+  if (removedBy(operation, direction).some((drawing) => isDrawingLocked(state, drawing.id))) {
+    return false;
+  }
   const changed =
     direction === "undo"
       ? applyUndoOperation(state, operation)

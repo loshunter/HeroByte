@@ -3,6 +3,7 @@
 // ============================================================================
 // Handles map-related features: background, grid, drawings, pointers
 
+import { isDrawingLocked } from "../room/locking/pieceLock.js";
 import { randomUUID } from "crypto";
 import type { Drawing, DrawingSegmentPayload, Pointer } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
@@ -74,10 +75,11 @@ export class MapService {
   }
 
   /**
-   * Clear all drawings
+   * Clear all drawings except locked ones (a lock is lifted before anything removes
+   * the piece)
    */
   clearDrawings(state: RoomState): void {
-    state.drawings = [];
+    state.drawings = state.drawings.filter((drawing) => isDrawingLocked(state, drawing.id));
     state.drawingUndoStacks = {};
     state.drawingRedoStacks = {};
   }
@@ -86,7 +88,10 @@ export class MapService {
    * Replace all drawings owned by a player (used for imports)
    */
   replacePlayerDrawings(state: RoomState, ownerUid: string, drawings: Drawing[]): void {
-    state.drawings = state.drawings.filter((drawing) => drawing.owner !== ownerUid);
+    // The player's locked drawings stay as they are; the imported set joins them.
+    state.drawings = state.drawings.filter(
+      (drawing) => drawing.owner !== ownerUid || isDrawingLocked(state, drawing.id),
+    );
     const ids = new Set(state.drawings.map((drawing) => drawing.id));
 
     const sanitized: Drawing[] = drawings.map((drawing) => {
@@ -151,9 +156,13 @@ export class MapService {
     dx: number,
     dy: number,
     playerUid: string,
+    isDM = false,
   ): boolean {
     const drawing = state.drawings.find((d) => d.id === drawingId);
-    if (drawing && drawing.selectedBy === playerUid) {
+    // Selecting a drawing claims nothing: only its owner (or the DM) moves it, and a
+    // locked one moves for no one.
+    if (!drawing || isDrawingLocked(state, drawingId)) return false;
+    if (drawing.selectedBy === playerUid && (isDM || drawing.owner === playerUid)) {
       // Move all points by the delta
       drawing.points = drawing.points.map((p) => ({
         x: p.x + dx,

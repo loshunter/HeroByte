@@ -53,6 +53,7 @@
  * ```
  */
 import type { PendingDelta } from "../types.js";
+import type { LockRefusal } from "../../domains/room/locking/pieceLock.js";
 
 export interface RouteHandlerResult {
   broadcast?: unknown;
@@ -60,6 +61,8 @@ export interface RouteHandlerResult {
   reason?: string;
   delta?: PendingDelta;
   skipBroadcast?: boolean;
+  /** The piece lock stopped (part of) this action: the router tells the sender. */
+  lockRefusal?: LockRefusal;
 }
 
 export class RouteResultHandler {

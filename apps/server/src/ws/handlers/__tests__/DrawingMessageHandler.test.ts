@@ -211,7 +211,14 @@ describe("DrawingMessageHandler", () => {
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(false);
-      expect(mockMapService.moveDrawing).toHaveBeenCalledWith(state, "draw1", 10, 20, "player1");
+      expect(mockMapService.moveDrawing).toHaveBeenCalledWith(
+        state,
+        "draw1",
+        10,
+        20,
+        "player1",
+        false,
+      );
     });
 
     it("should not broadcast on failure", () => {

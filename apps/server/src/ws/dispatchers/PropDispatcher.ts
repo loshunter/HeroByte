@@ -1,3 +1,4 @@
+import { isPropLocked } from "../../domains/room/locking/pieceLock.js";
 import type { ClientMessage } from "@herobyte/shared";
 import type { PropMessageHandler } from "../handlers/PropMessageHandler.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
@@ -65,6 +66,10 @@ export class PropDispatcher {
 
       case "delete-prop": {
         const prop = state.props.find((candidate) => candidate.id === message.id);
+        // A locked prop is deleted by no one, the DM included, until it is unlocked.
+        if (prop && isPropLocked(state, prop.id)) {
+          return { broadcast: false, save: false, lockRefusal: { ids: [`prop:${prop.id}`] } };
+        }
         const authorized =
           isDM || (state.playerPropsEnabled && prop !== undefined && prop.owner === senderUid);
         return (

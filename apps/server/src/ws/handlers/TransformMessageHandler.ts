@@ -20,11 +20,15 @@ type SceneTransformPayload = Parameters<RoomService["applySceneObjectTransform"]
 /**
  * Result of handling a transform message
  */
+import { isLockedPiece, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
+
 export interface TransformMessageResult {
   /** Whether a broadcast is needed */
   broadcast: boolean;
   /** Whether state should be saved */
   save: boolean;
+  /** The piece lock stopped these objects: the router tells the sender. */
+  lockRefusal?: LockRefusal;
 }
 
 /**
@@ -54,6 +58,12 @@ export class TransformMessageHandler {
     objectId: string,
     transform: SceneTransformPayload,
   ): TransformMessageResult {
+    // A locked token, prop or drawing moves for no one, the DM included. The lock
+    // toggle itself rides this message (`locked`), so it is let through to apply.
+    // The refusal still broadcasts: a client that dragged it drops its local copy.
+    if (typeof transform.locked !== "boolean" && isLockedPiece(state, objectId)) {
+      return { broadcast: true, save: false, lockRefusal: { ids: [objectId] } };
+    }
     if (this.roomService.applySceneObjectTransform(objectId, senderUid, transform)) {
       return { broadcast: true, save: true };
     }
@@ -79,12 +89,16 @@ export class TransformMessageHandler {
   ): TransformMessageResult {
     let broadcast = false;
     let save = false;
+    const refused: string[] = [];
     for (const objectId of objectIds) {
       const result = this.stepObject(state, senderUid, objectId, dx, dy);
       broadcast ||= result.broadcast;
       save ||= result.save;
+      if (result.lockRefusal) refused.push(...result.lockRefusal.ids);
     }
-    return { broadcast, save };
+    return refused.length > 0
+      ? { broadcast, save, lockRefusal: { ids: refused } }
+      : { broadcast, save };
   }
 
   private stepObject(

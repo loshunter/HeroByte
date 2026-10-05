@@ -17,6 +17,7 @@ import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import { leaveOrderBudget } from "../../domains/room/transform/movementBudgetReset.js";
+import { isTokenLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
 
 export interface DeleteCharacterDeps {
   characterService: CharacterService;
@@ -25,20 +26,35 @@ export interface DeleteCharacterDeps {
 }
 
 /**
+ * A character whose token is locked is deleted by no one, the DM included, until the
+ * token is unlocked: the delete would take the locked token with it. The refusal the
+ * delete handlers return, or undefined when the character may go.
+ */
+export function lockedTokenRefusal(state: RoomState, characterId: string): LockRefusal | undefined {
+  const tokenId = state.characters.find((c) => c.id === characterId)?.tokenId;
+  return tokenId && isTokenLocked(state, tokenId) ? { ids: [`token:${tokenId}`] } : undefined;
+}
+
+/**
  * Remove a character with its linked token and any selection of that token,
- * passing the turn to its successor if it held one.
+ * passing the turn to its successor if it held one. A locked token is never
+ * deleted: by default the whole delete is refused (callers check
+ * lockedTokenRefusal first); `keepLockedToken` (REMOVE's sweep) removes the
+ * character and leaves its locked token on the map.
  *
- * @returns the removed character, or undefined when there was none
+ * @returns the removed character, or undefined when there was none (or it was refused)
  */
 export function deleteCharacterKeepingTurn(
   deps: DeleteCharacterDeps,
   state: RoomState,
   characterId: string,
+  options: { keepLockedToken?: boolean } = {},
 ): Character | undefined {
+  if (!options.keepLockedToken && lockedTokenRefusal(state, characterId)) return undefined;
   const orderBefore = deps.characterService.getCharactersInInitiativeOrder(state);
   const removed = deps.characterService.deleteCharacter(state, characterId);
   if (!removed) return undefined;
-  if (removed.tokenId) {
+  if (removed.tokenId && !isTokenLocked(state, removed.tokenId)) {
     deps.tokenService.forceDeleteToken(state, removed.tokenId);
     deps.selectionService.removeObject(state, removed.tokenId);
   }

@@ -7,6 +7,16 @@ import { createEmptyRoomState } from "../room/model.js";
  * These tests define the expected behavior for token size variants.
  * Tests are written FIRST, then implementation follows.
  */
+const lockSceneObject = (state: ReturnType<typeof createEmptyRoomState>, tokenId: string) => {
+  state.sceneObjects = [
+    {
+      id: `token:${tokenId}`,
+      type: "token",
+      locked: true,
+    } as unknown as (typeof state.sceneObjects)[number],
+  ];
+};
+
 describe("TokenService - Size System", () => {
   const service = new TokenService();
 
@@ -87,9 +97,8 @@ describe("TokenService - Size System", () => {
       const state = createEmptyRoomState();
       const token = service.createToken(state, "owner-1", 0, 0);
 
-      // Lock the token (this will be implemented via scene object transform)
-      // For now, we'll add a locked property to the token for testing
-      state.tokens[0]!.locked = true;
+      // The lock lives on the token's scene object (LockingHandler), not the record.
+      lockSceneObject(state, token.id);
 
       const result = service.setTokenSize(state, token.id, "owner-1", "large");
 
@@ -98,16 +107,17 @@ describe("TokenService - Size System", () => {
     });
   });
 
-  describe("DM Override for Locked Tokens", () => {
-    it("allows DM to resize locked tokens", () => {
+  describe("Locked tokens refuse the DM too", () => {
+    it("refuses the DM a resize of a locked token until it is unlocked", () => {
       const state = createEmptyRoomState();
       const token = service.createToken(state, "owner-1", 0, 0);
-      state.tokens[0]!.locked = true;
+      lockSceneObject(state, token.id);
 
-      // DM should be able to override locked state
-      const result = service.setTokenSizeByDM(state, token.id, "huge");
+      expect(service.setTokenSizeByDM(state, token.id, "huge")).toBe(false);
+      expect(state.tokens[0]?.size).toBe("medium");
 
-      expect(result).toBe(true);
+      state.sceneObjects = [];
+      expect(service.setTokenSizeByDM(state, token.id, "huge")).toBe(true);
       expect(state.tokens[0]?.size).toBe("huge");
     });
 

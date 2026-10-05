@@ -9,6 +9,7 @@
  * @module ws/handlers/tokenDragPreview
  */
 
+import { isTokenLocked } from "../../domains/room/locking/pieceLock.js";
 import type { DragPreviewEvent, DragPreviewUpdate } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 
@@ -68,6 +69,11 @@ function toPreviewObject(
   }
 
   if (!isDM && token.owner !== senderUid) {
+    return null;
+  }
+
+  // A locked token moves for no one, so no one may show it moving either.
+  if (isTokenLocked(state, tokenId)) {
     return null;
   }
 

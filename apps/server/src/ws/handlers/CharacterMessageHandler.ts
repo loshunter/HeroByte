@@ -13,7 +13,8 @@
 import type {} from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import { replaceIfSeatedPlayerLostLastCharacter } from "./seatReplacement.js";
-import { deleteCharacterKeepingTurn } from "./deleteCharacter.js";
+import { deleteCharacterKeepingTurn, lockedTokenRefusal } from "./deleteCharacter.js";
+import type { LockRefusal } from "../../domains/room/locking/pieceLock.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
@@ -27,6 +28,8 @@ export interface CharacterMessageResult {
   broadcast: boolean;
   /** Whether state should be saved */
   save: boolean;
+  /** The piece lock stopped this action: the router tells the sender. */
+  lockRefusal?: LockRefusal;
 }
 
 /**
@@ -57,7 +60,6 @@ export class CharacterMessageHandler {
    * @param name - Character name
    * @param maxHp - Max HP
    * @param portrait - Portrait URL
-   * @returns Result indicating broadcast/save needs
    */
   handleCreateCharacter(
     state: RoomState,
@@ -75,7 +77,6 @@ export class CharacterMessageHandler {
    * @param state - Room state
    * @param characterId - ID of character to claim
    * @param senderUid - UID of player claiming the character
-   * @returns Result indicating broadcast/save needs
    */
   handleClaimCharacter(
     state: RoomState,
@@ -96,7 +97,6 @@ export class CharacterMessageHandler {
    * @param senderUid - UID of player creating the character
    * @param name - Character name
    * @param maxHp - Max HP (defaults to 100)
-   * @returns Result indicating broadcast/save needs
    */
   handleAddPlayerCharacter(
     state: RoomState,
@@ -146,7 +146,6 @@ export class CharacterMessageHandler {
    * @param characterId - ID of character to delete
    * @param senderUid - UID of player deleting the character
    * @param isDM - Whether sender is a DM
-   * @returns Result indicating broadcast/save needs
    */
   handleDeletePlayerCharacter(
     state: RoomState,
@@ -162,6 +161,8 @@ export class CharacterMessageHandler {
       console.warn(`Player ${senderUid} tried to delete character they don't own`);
       return { broadcast: false, save: false };
     }
+    const lockRefusal = lockedTokenRefusal(state, characterId);
+    if (lockRefusal) return { broadcast: false, save: false, lockRefusal };
 
     // The character, its token, any selection of it — and the turn, if it held one
     const deleted = deleteCharacterKeepingTurn(
@@ -199,7 +200,6 @@ export class CharacterMessageHandler {
    * @param senderUid - UID of player renaming the character
    * @param name - New name
    * @param isDM - Whether sender is a DM
-   * @returns Result indicating broadcast/save needs
    */
   handleUpdateCharacterName(
     state: RoomState,
@@ -241,7 +241,6 @@ export class CharacterMessageHandler {
    * @param maxHp - New max HP
    * @param senderUid - Author, bound from the connection
    * @param isDM - Whether the sender holds the DM seat
-   * @returns Result indicating broadcast/save needs
    */
   handleUpdateCharacterHP(
     state: RoomState,
@@ -294,7 +293,6 @@ export class CharacterMessageHandler {
    * @param senderUid - UID of player setting effects
    * @param effects - Status effects array
    * @param isDM - Whether sender is a DM
-   * @returns Result indicating broadcast/save needs
    */
   handleSetCharacterStatusEffects(
     state: RoomState,

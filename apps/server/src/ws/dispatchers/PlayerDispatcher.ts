@@ -64,7 +64,11 @@ export class PlayerDispatcher {
             reason: result.refused,
           });
         }
-        return { broadcast: result.broadcast, save: result.save };
+        return {
+          broadcast: result.broadcast,
+          save: result.save,
+          ...(result.lockRefusal ? { lockRefusal: result.lockRefusal } : {}),
+        };
       }
 
       default:

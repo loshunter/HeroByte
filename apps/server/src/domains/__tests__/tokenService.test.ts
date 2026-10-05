@@ -66,9 +66,9 @@ describe("TokenService", () => {
     expect(state.tokens).toHaveLength(0);
   });
 
-  // Lock lives on the token's scene object. The transform road (drag, keys,
-  // d-pad) refused a player's locked token, but the legacy `move` frame did not.
-  it("refuses a player's move of their own locked token; the DM still moves it", () => {
+  // Lock lives on the token's scene object, and a locked token moves for no one, the
+  // DM included, by the legacy `move` frame as by the transform road.
+  it("refuses any move of a locked token, the DM's too, until it is unlocked", () => {
     const state = createEmptyRoomState();
     const token = service.createToken(state, "owner-1", 0, 0);
     state.sceneObjects = [
@@ -81,7 +81,8 @@ describe("TokenService", () => {
 
     expect(service.moveToken(state, token.id, "owner-1", 3, 3)).toBe(false);
     expect(state.tokens[0]).toMatchObject({ x: 0, y: 0 });
-    expect(service.moveToken(state, token.id, "dm", 3, 3, true)).toBe(true);
+    expect(service.moveToken(state, token.id, "dm", 3, 3, true)).toBe(false);
+    expect(state.tokens[0]).toMatchObject({ x: 0, y: 0 });
 
     state.sceneObjects = [
       {

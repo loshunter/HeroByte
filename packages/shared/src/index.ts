@@ -1292,6 +1292,15 @@ export type ServerMessage =
       uid: string;
       reason: "self" | "connected" | "recent" | "nothing";
     }
+  | {
+      t: "locked-refused";
+      // Sent to the SENDER only (sendControlMessage). A locked token, prop or drawing
+      // cannot be moved or deleted by anyone, the DM included, until it is unlocked;
+      // `ids` are the scene-object ids the lock stopped. `kept`: a bulk action went
+      // ahead and left these locked pieces in place.
+      ids: string[];
+      kept?: boolean;
+    }
   | { t: "map-studio-deleted"; documentId: string }
   | {
       t: "map-studio-error";

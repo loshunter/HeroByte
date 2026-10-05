@@ -22,6 +22,8 @@
  * @module ws/handlers/DrawingMessageHandler
  */
 
+import { isDrawingLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
+import { lockedDrawingsBlocking } from "../../domains/map/drawingHistory.js";
 import type { Drawing, DrawingSegmentPayload } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
@@ -36,7 +38,11 @@ export interface DrawingMessageResult {
   broadcast: boolean;
   /** Whether state should be saved */
   save: boolean;
+  /** The piece lock stopped (part of) this action: the router tells the sender. */
+  lockRefusal?: LockRefusal;
 }
+
+const lockedDrawing = (id: string): LockRefusal => ({ ids: [`drawing:${id}`] });
 
 /**
  * Handler for drawing-related messages
@@ -87,14 +93,16 @@ export class DrawingMessageHandler {
     senderUid: string,
     drawings: Drawing[],
   ): DrawingMessageResult {
-    const removedIds = state.drawings
-      .filter((drawing) => drawing.owner === senderUid)
-      .map((drawing) => drawing.id);
+    const own = state.drawings.filter((drawing) => drawing.owner === senderUid);
+    const kept = own.filter((d) => isDrawingLocked(state, d.id)).map((d) => `drawing:${d.id}`);
+    const removedIds = own.filter((d) => !isDrawingLocked(state, d.id)).map((d) => d.id);
     this.mapService.replacePlayerDrawings(state, senderUid, drawings);
     for (const id of removedIds) {
       this.selectionService.removeObject(state, id);
     }
-    return { broadcast: true, save: true };
+    return kept.length > 0
+      ? { broadcast: true, save: true, lockRefusal: { ids: kept, kept: true } }
+      : { broadcast: true, save: true };
   }
 
   /**
@@ -107,6 +115,8 @@ export class DrawingMessageHandler {
    * @returns Result indicating if broadcast/save is needed
    */
   handleUndoDrawing(state: RoomState, senderUid: string): DrawingMessageResult {
+    const blocked = lockedDrawingsBlocking(state, senderUid, "undo");
+    if (blocked.length > 0) return { broadcast: false, save: false, lockRefusal: { ids: blocked } };
     if (this.mapService.undoDrawing(state, senderUid)) {
       return { broadcast: true, save: false };
     }
@@ -123,6 +133,8 @@ export class DrawingMessageHandler {
    * @returns Result indicating if broadcast/save is needed
    */
   handleRedoDrawing(state: RoomState, senderUid: string): DrawingMessageResult {
+    const blocked = lockedDrawingsBlocking(state, senderUid, "redo");
+    if (blocked.length > 0) return { broadcast: false, save: false, lockRefusal: { ids: blocked } };
     if (this.mapService.redoDrawing(state, senderUid)) {
       return { broadcast: true, save: false };
     }
@@ -145,11 +157,17 @@ export class DrawingMessageHandler {
       console.warn(`Non-DM ${senderUid} attempted to clear all drawings`);
       return { broadcast: false, save: false };
     }
+    const kept = state.drawings
+      .filter((drawing) => isDrawingLocked(state, drawing.id))
+      .map((drawing) => `drawing:${drawing.id}`);
     for (const drawing of state.drawings) {
-      this.selectionService.removeObject(state, drawing.id);
+      if (!isDrawingLocked(state, drawing.id))
+        this.selectionService.removeObject(state, drawing.id);
     }
     this.mapService.clearDrawings(state);
-    return { broadcast: true, save: false };
+    return kept.length > 0
+      ? { broadcast: true, save: false, lockRefusal: { ids: kept, kept: true } }
+      : { broadcast: true, save: false };
   }
 
   /**
@@ -201,8 +219,12 @@ export class DrawingMessageHandler {
     dx: number,
     dy: number,
     senderUid: string,
+    isDM = false,
   ): DrawingMessageResult {
-    if (this.mapService.moveDrawing(state, id, dx, dy, senderUid)) {
+    if (isDrawingLocked(state, id)) {
+      return { broadcast: true, save: false, lockRefusal: lockedDrawing(id) };
+    }
+    if (this.mapService.moveDrawing(state, id, dx, dy, senderUid, isDM)) {
       return { broadcast: true, save: false };
     }
     return { broadcast: false, save: false };
@@ -223,6 +245,9 @@ export class DrawingMessageHandler {
     senderUid?: string,
     isDM = false,
   ): DrawingMessageResult {
+    if (isDrawingLocked(state, id)) {
+      return { broadcast: false, save: false, lockRefusal: lockedDrawing(id) };
+    }
     if (this.mapService.deleteDrawing(state, id, senderUid, isDM)) {
       this.selectionService.removeObject(state, id);
       return { broadcast: true, save: false };
@@ -247,6 +272,9 @@ export class DrawingMessageHandler {
     segments: DrawingSegmentPayload[],
     senderUid: string,
   ): DrawingMessageResult {
+    if (isDrawingLocked(state, deleteId)) {
+      return { broadcast: false, save: false, lockRefusal: lockedDrawing(deleteId) };
+    }
     if (this.mapService.handlePartialErase(state, deleteId, segments, senderUid)) {
       this.selectionService.removeObject(state, deleteId);
       return { broadcast: true, save: false };
