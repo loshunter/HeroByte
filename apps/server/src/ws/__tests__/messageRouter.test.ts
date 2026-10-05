@@ -686,6 +686,7 @@ describe("MessageRouter", () => {
         "draw-1",
         segments,
         "player-1",
+        false, // not a DM: the owner rule applies
       );
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();

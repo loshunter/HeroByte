@@ -309,6 +309,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     sendMessage,
     onDrawingComplete,
     drawingObjects,
+    mayErase,
   ]);
 
   return {

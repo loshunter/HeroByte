@@ -114,7 +114,7 @@ export class MapService {
       const sanitizedDrawing: Drawing = {
         ...drawing,
         id,
-        owner: ownerUid,
+        owner: original.owner || ownerUid,
         selectedBy: undefined,
       };
       return cloneDrawing(sanitizedDrawing);
@@ -216,13 +216,17 @@ export class MapService {
 
   /**
    * Handle partial erase operations for freehand drawings
-   * Removes the original drawing and replaces it with sanitized segments
+   * Removes the original drawing and replaces it with sanitized segments.
+   * Gated like `deleteDrawing`: the owner, anyone for an owner-less line, or a
+   * DM (who erased a whole shape of anyone's but was silently refused a cut
+   * through a player's freehand line). The pieces stay the original owner's.
    */
   handlePartialErase(
     state: RoomState,
     deleteId: string,
     segments: DrawingSegmentPayload[],
     ownerUid: string,
+    isDM = false,
   ): boolean {
     const index = state.drawings.findIndex((drawing) => drawing.id === deleteId);
     if (index === -1) {
@@ -230,7 +234,7 @@ export class MapService {
     }
 
     const original = state.drawings[index];
-    if (original.owner && original.owner !== ownerUid) {
+    if (!isDM && original.owner && original.owner !== ownerUid) {
       return false;
     }
 
@@ -257,7 +261,7 @@ export class MapService {
         width: segment.width,
         opacity: segment.opacity,
         filled: segment.filled,
-        owner: ownerUid,
+        owner: original.owner || ownerUid,
       };
       state.drawings.push(newDrawing);
       createdSegments.push(cloneDrawing(newDrawing));

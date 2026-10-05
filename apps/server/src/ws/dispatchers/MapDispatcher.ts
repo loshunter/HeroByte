@@ -94,6 +94,7 @@ export class MapDispatcher {
           message.deleteId,
           message.segments,
           senderUid,
+          isDM,
         );
 
       default:

@@ -286,6 +286,7 @@ describe("DrawingMessageHandler", () => {
         "draw1",
         segments,
         "player1",
+        false,
       );
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(state, "draw1");
     });

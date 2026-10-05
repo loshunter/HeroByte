@@ -291,11 +291,12 @@ export class DrawingMessageHandler {
     deleteId: string,
     segments: DrawingSegmentPayload[],
     senderUid: string,
+    isDM = false,
   ): DrawingMessageResult {
     if (isDrawingLocked(state, deleteId)) {
       return refuseLockedDrawing(state, deleteId, senderUid, false);
     }
-    if (this.mapService.handlePartialErase(state, deleteId, segments, senderUid)) {
+    if (this.mapService.handlePartialErase(state, deleteId, segments, senderUid, isDM)) {
       this.selectionService.removeObject(state, deleteId);
       return { broadcast: true, save: false };
     }
