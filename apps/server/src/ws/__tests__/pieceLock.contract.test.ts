@@ -399,6 +399,8 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
           .tokens.map((t) => t.id)
           .sort(),
       ).toEqual([locked.id, mine.id].sort());
+      // A kept locked token passes to the DM, as REMOVE's do: its player is gone.
+      expect(state().tokens.find((t) => t.id === locked.id)?.owner).toBe(DM);
       expect(state().tokens.some((t) => t.id === free.id)).toBe(false);
       expect(refusalsTo(DM).at(-1)).toEqual({
         t: "locked-refused",
@@ -431,6 +433,84 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
           .sort(),
       ).toEqual(["imported", "locked"]);
       expect(refusalsTo(PLAYER).at(-1)).toMatchObject({ ids: ["drawing:locked"], kept: true });
+    });
+  });
+
+  describe("round-2 edges", () => {
+    it("an NPC whose locked token is parked with another map is neither deleted nor re-placed", () => {
+      const npc = characters.createCharacter(state(), "Goblin", 7, "", "npc");
+      const npcToken = tokens.createToken(state(), DM, 2, 2);
+      characters.linkToken(state(), npc.id, npcToken.id);
+      // The party travelled away: the goblin's token waits with its map, lock and all.
+      state().tokens = state().tokens.filter((t) => t.id !== npcToken.id);
+      state().sceneStates = {
+        "map-1": {
+          mapDocumentId: "map-1",
+          suspendedAt: Date.now(),
+          tokens: [{ ...npcToken }],
+          props: [],
+          drawings: [],
+          sceneObjects: [{ id: `token:${npcToken.id}`, type: "token", locked: true }],
+          characterLinks: { [npcToken.id]: npc.id },
+          doorStates: {},
+          combatActive: false,
+        } as never,
+      };
+      send({ t: "delete-npc", id: npc.id }, DM);
+      send({ t: "place-npc-token", id: npc.id }, DM);
+      expect(state().characters.some((c) => c.id === npc.id)).toBe(true);
+      expect(state().characters.find((c) => c.id === npc.id)?.tokenId).toBe(npcToken.id);
+      expect(refusalsTo(DM).map((f) => f.ids)).toEqual([
+        [`token:${npcToken.id}`],
+        [`token:${npcToken.id}`],
+      ]);
+    });
+
+    it("editing a locked prop's label (same size) applies, with no refusal", () => {
+      const prop = props.createProp(
+        state(),
+        "Crate",
+        "",
+        DM,
+        "medium",
+        { x: 0, y: 0, scale: 1 },
+        50,
+      );
+      lock(`prop:${prop.id}`);
+      send(
+        { t: "update-prop", id: prop.id, label: "Barrel", imageUrl: "", owner: DM, size: "medium" },
+        DM,
+      );
+      expect(state().props[0]).toMatchObject({ label: "Barrel", size: "medium" });
+      expect(refusalsTo(DM)).toHaveLength(0);
+    });
+
+    it("a shared (*) prop is not the player's: a refused drag says nothing to them", () => {
+      const prop = props.createProp(
+        state(),
+        "Statue",
+        "",
+        "*",
+        "medium",
+        { x: 0, y: 0, scale: 1 },
+        50,
+      );
+      lock(`prop:${prop.id}`);
+      send({ t: "transform-object", id: `prop:${prop.id}`, position: { x: 9, y: 9 } }, PLAYER);
+      expect(refusalsTo(PLAYER)).toHaveLength(0);
+    });
+
+    it("a locked drawing: an owner-less one is refused aloud, someone else's in silence", () => {
+      state().drawings.push({ ...line("nobodys", PLAYER), owner: undefined }, line("dms", DM));
+      lock("drawing:nobodys", "drawing:dms");
+      send({ t: "delete-drawing", id: "nobodys" }, PLAYER);
+      send({ t: "delete-drawing", id: "dms" }, PLAYER);
+      expect(
+        state()
+          .drawings.map((d) => d.id)
+          .sort(),
+      ).toEqual(["dms", "nobodys"]);
+      expect(refusalsTo(PLAYER).map((f) => f.ids)).toEqual([["drawing:nobodys"]]);
     });
   });
 

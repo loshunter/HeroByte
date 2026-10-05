@@ -3,7 +3,7 @@
 // ============================================================================
 // Handles map-related features: background, grid, drawings, pointers
 
-import { isDrawingLocked } from "../room/locking/pieceLock.js";
+import { isDrawingLocked, lockedPieceIds } from "../room/locking/pieceLock.js";
 import { randomUUID } from "crypto";
 import type { Drawing, DrawingSegmentPayload, Pointer } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
@@ -79,7 +79,8 @@ export class MapService {
    * the piece)
    */
   clearDrawings(state: RoomState): void {
-    state.drawings = state.drawings.filter((drawing) => isDrawingLocked(state, drawing.id));
+    const locked = lockedPieceIds(state);
+    state.drawings = state.drawings.filter((drawing) => locked.has(`drawing:${drawing.id}`));
     state.drawingUndoStacks = {};
     state.drawingRedoStacks = {};
   }

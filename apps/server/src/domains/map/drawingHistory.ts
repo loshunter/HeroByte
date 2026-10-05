@@ -130,10 +130,10 @@ export function drawingHistoryFor(state: RoomState, ownerUid: string): DrawingHi
   return {
     canUndo:
       nextApplicable(index, state.drawingUndoStacks[ownerUid], "undo") !== -1 &&
-      lockedDrawingsBlocking(state, ownerUid, "undo").length === 0,
+      lockedDrawingsBlocking(state, ownerUid, "undo", index).length === 0,
     canRedo:
       nextApplicable(index, state.drawingRedoStacks[ownerUid], "redo") !== -1 &&
-      lockedDrawingsBlocking(state, ownerUid, "redo").length === 0,
+      lockedDrawingsBlocking(state, ownerUid, "redo", index).length === 0,
   };
 }
 
@@ -158,10 +158,11 @@ export function lockedDrawingsBlocking(
   state: RoomState,
   ownerUid: string,
   direction: Direction,
+  drawingIndex: DrawingIndex = indexDrawings(state),
 ): string[] {
   const stack =
     direction === "undo" ? state.drawingUndoStacks[ownerUid] : state.drawingRedoStacks[ownerUid];
-  const index = nextApplicable(indexDrawings(state), stack, direction);
+  const index = nextApplicable(drawingIndex, stack, direction);
   if (index === -1) return [];
   return removedBy(stack![index]!, direction)
     .filter((drawing) => isDrawingLocked(state, drawing.id))

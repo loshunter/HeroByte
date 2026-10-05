@@ -303,10 +303,9 @@ export class TokenMessageHandler {
   }
 
   /**
-   * Handle clear all tokens message (DM only)
-   *
-   * Removes all tokens except DM's tokens and all players except the DM.
-   * Cleans up selections for removed players.
+   * Handle clear all tokens message (DM only): removes every token but the DM's
+   * (a locked one stays, passed to the DM) and every player but the DM, with
+   * their selections.
    *
    * @param state - Room state
    * @param senderUid - UID of DM clearing tokens
@@ -333,7 +332,8 @@ export class TokenMessageHandler {
       .filter((player) => player.uid !== senderUid)
       .map((player) => player.uid);
 
-    // Remove all players except sender (DM)
+    // Remove all players except sender (DM); a kept locked token passes to the DM.
+    for (const token of state.tokens) if (token.owner !== senderUid) token.owner = senderUid;
     state.players = state.players.filter((p) => p.uid === senderUid);
 
     // Deselect for removed players

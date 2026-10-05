@@ -17,7 +17,11 @@ import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import { leaveOrderBudget } from "../../domains/room/transform/movementBudgetReset.js";
-import { isTokenLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
+import {
+  isTokenLocked,
+  isTokenLockedAnywhere,
+  type LockRefusal,
+} from "../../domains/room/locking/pieceLock.js";
 
 export interface DeleteCharacterDeps {
   characterService: CharacterService;
@@ -27,12 +31,15 @@ export interface DeleteCharacterDeps {
 
 /**
  * A character whose token is locked is deleted by no one, the DM included, until the
- * token is unlocked: the delete would take the locked token with it. The refusal the
- * delete handlers return, or undefined when the character may go.
+ * token is unlocked: the delete would take the locked token with it — on the table, or
+ * parked with another map, where it would be dropped when the party came back. The
+ * refusal the delete handlers return, or undefined when the character may go.
  */
 export function lockedTokenRefusal(state: RoomState, characterId: string): LockRefusal | undefined {
   const tokenId = state.characters.find((c) => c.id === characterId)?.tokenId;
-  return tokenId && isTokenLocked(state, tokenId) ? { ids: [`token:${tokenId}`] } : undefined;
+  return tokenId && isTokenLockedAnywhere(state, tokenId)
+    ? { ids: [`token:${tokenId}`] }
+    : undefined;
 }
 
 /**

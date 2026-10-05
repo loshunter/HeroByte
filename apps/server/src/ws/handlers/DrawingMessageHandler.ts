@@ -22,7 +22,11 @@
  * @module ws/handlers/DrawingMessageHandler
  */
 
-import { isDrawingLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
+import {
+  isDrawingLocked,
+  lockedPieceIds,
+  type LockRefusal,
+} from "../../domains/room/locking/pieceLock.js";
 import { lockedDrawingsBlocking } from "../../domains/map/drawingHistory.js";
 import type { Drawing, DrawingSegmentPayload } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
@@ -52,7 +56,8 @@ const refuseLockedDrawing = (
 ) => {
   const isDM = state.players.some((p) => p.uid === senderUid && p.isDM);
   const owner = state.drawings.find((d) => d.id === id)?.owner;
-  return isDM || owner === senderUid
+  // An owner-less drawing is anyone's to delete (MapService.deleteDrawing), so anyone hears.
+  return isDM || !owner || owner === senderUid
     ? { broadcast, save: false, lockRefusal: lockedDrawing(id) }
     : { broadcast: false, save: false };
 };
@@ -170,12 +175,14 @@ export class DrawingMessageHandler {
       console.warn(`Non-DM ${senderUid} attempted to clear all drawings`);
       return { broadcast: false, save: false };
     }
+    const locked = lockedPieceIds(state);
     const kept = state.drawings
-      .filter((drawing) => isDrawingLocked(state, drawing.id))
-      .map((drawing) => `drawing:${drawing.id}`);
+      .map((drawing) => `drawing:${drawing.id}`)
+      .filter((id) => locked.has(id));
     for (const drawing of state.drawings) {
-      if (!isDrawingLocked(state, drawing.id))
+      if (!locked.has(`drawing:${drawing.id}`)) {
         this.selectionService.removeObject(state, drawing.id);
+      }
     }
     this.mapService.clearDrawings(state);
     return kept.length > 0

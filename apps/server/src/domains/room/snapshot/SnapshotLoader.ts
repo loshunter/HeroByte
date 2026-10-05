@@ -31,7 +31,7 @@ import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
  * - Merge characters: Preserve characters owned by connected players
  * - Merge tokens: Preserve tokens owned by connected players
  * - Load other state fields (props, drawings, grid settings, combat state)
- * - Handle legacy drawings vs sceneObjects
+ * - Load drawings (always; the scene graph rebuilds their objects from them)
  * - Sanitize staging zone data
  *
  * Extracted from: apps/server/src/domains/room/service.ts:70-161

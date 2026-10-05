@@ -64,7 +64,8 @@ export class TransformMessageHandler {
     if (typeof transform.locked !== "boolean" && isLockedPiece(state, objectId)) {
       const owner = state.sceneObjects.find((o) => o.id === objectId)?.owner;
       const isDM = state.players.some((p) => p.uid === senderUid && p.isDM);
-      const mayAct = isDM || owner === senderUid || owner === "*";
+      // Owner "*" (a shared prop) is not ownership: a fogged one stays unconfirmed.
+      const mayAct = isDM || owner === senderUid;
       return mayAct
         ? { broadcast: true, save: false, lockRefusal: { ids: [objectId] } }
         : { broadcast: false, save: false };
