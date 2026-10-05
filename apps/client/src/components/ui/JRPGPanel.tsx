@@ -70,7 +70,10 @@ export function JRPGButton({
   }[variant];
 
   const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
-    play("buttonBlip");
+    // An aria-disabled button (lockGuard) still takes the press so it can say why;
+    // it must not also sound like it worked.
+    const inert = buttonProps["aria-disabled"] === true || buttonProps["aria-disabled"] === "true";
+    if (!inert) play("buttonBlip");
     onClick?.(event);
   };
 
