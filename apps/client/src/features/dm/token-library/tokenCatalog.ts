@@ -189,6 +189,10 @@ export interface LibrarySearch {
   query?: string;
 }
 
+// A pack asset's `description` is the art pipeline's note ("not goblin faces",
+// "Pixel15 processing applied"), never shown since the tooltip stopped quoting it:
+// searching it found orcs for "goblin". Search what the DM sees. (A custom token's
+// description is the DM's own words, and still searched below.)
 const searchText = new Map(
   LIBRARY_ASSETS.map((asset) => [
     asset.id,
@@ -201,7 +205,6 @@ const searchText = new Map(
       asset.size,
       asset.creatureType ?? "",
       asset.role ?? "",
-      asset.description ?? "",
       asset.race ?? "",
       asset.gender ?? "",
       asset.age ?? "",
