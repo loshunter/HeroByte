@@ -63,7 +63,7 @@ One draggable window per character, in two halves — what the character is, and
 
 **Token settings**
 
-- **Token Size** — Tiny, Small, Medium, Large, Huge, or Gargantuan (half a cell up to 3 cells). Your DM can resize it too. Sight radius, movement speed and the token lock are the DM's to set, so they appear only in the DM's window.
+- **Token Size** — Tiny, Small, Medium, Large, Huge, or Gargantuan (half a cell up to 3 cells). Your DM can resize it too (not while it is locked). Sight radius, movement speed and the token lock are the DM's to set, so they appear only in the DM's window.
 
 ## Tokens
 

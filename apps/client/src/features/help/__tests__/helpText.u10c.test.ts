@@ -49,14 +49,19 @@ describe("help text, after the U10c review", () => {
       /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\), and an NPC's from its settings' 🔒 Locked button/,
     );
     expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
-    // The lock is enforced on every road now (pieceLock, server; the gizmo, group drag,
-    // keys and eraser, client): no move, no delete, for anyone, until the DM unlocks it.
-    // Bulk deletes keep locked pieces (and say so); a restore still replaces the table.
+    // The lock is enforced on every move and delete message (pieceLock, server; the
+    // gizmo, group drag, keys and eraser, client): no move, resize or delete, for anyone,
+    // until the DM unlocks it. Bulk deletes keep locked pieces; table-wide changes (a
+    // restore, travel) still win, and a locked drawing has no badge (LockIndicator is on
+    // tokens and props only).
     expect(locked).toMatch(
-      /Set by the DM \(a locked token or prop shows a 🔒 badge\): no one can move or delete it, the DM included, until the DM unlocks it\. A bulk delete \(🗑️ Clear all drawings, REMOVE\) leaves it in place; Restore table backup… still replaces the whole table\./,
+      /Set by the DM\. A locked token or prop shows a 🔒 badge; a locked drawing shows none\. No one can move, resize or delete a locked piece, the DM included, until the DM unlocks it\./,
+    );
+    expect(locked).toMatch(
+      /🗑️ Clear all drawings keeps locked drawings, and REMOVE keeps locked tokens \(they pass to the DM\)\. Table-wide changes still win: Restore table backup… puts back the file's props, drawings and NPCs, locked or not \(seated players keep their tokens as they are\), and travelling to another map takes the party's tokens along\./,
     );
     expect(locked).not.toMatch(
-      /players cannot move it|Every other delete|step it with the keys|Pinned/,
+      /players cannot move it|Every other delete|replaces the whole table|Pinned/,
     );
   });
 
