@@ -240,7 +240,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
   const [launcherDock, setLauncherDock] = useState<HTMLDivElement | null>(null);
 
   // The Party's NPC cards act for the DM (they were wired to undefined).
-  const partyNpcActions = usePartyNpcActions(snapshot?.characters, sendMessage, isDM);
+  const partyNpcActions = usePartyNpcActions(snapshot?.characters, sendMessage, partyIsDM);
 
   const handlePreviousTurn = useCallback(() => {
     sendMessage({ t: "previous-turn" });

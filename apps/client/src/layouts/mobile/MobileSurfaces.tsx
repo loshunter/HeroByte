@@ -31,6 +31,7 @@ import { requestDMMenuTab } from "../../features/table/menuRequest";
 import { useTableMenuProps } from "../../features/table/tableMenuProps";
 import { MobileScreen } from "./MobileScreen";
 import { MobileSheet } from "./MobileSheet";
+import { useDMThroughBlip } from "../../features/table/roleKnown";
 
 // The same lazy split the desktop uses: DM-only code stays out of the entry
 // bundle until someone actually elevates (FloatingPanelsLayout does this too).
@@ -45,6 +46,8 @@ interface MobileSurfacesProps {
 
 export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Element {
   const { surface, closeSurface } = machine;
+  // The party list's DM-only handlers hold through a reconnect blip (roleKnown).
+  const partyIsDM = useDMThroughBlip(props.isDM);
   const showParty = surface === "party";
 
   const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit, handleCharacterTempHpSubmit } =
@@ -138,7 +141,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             drawings={props.snapshot?.drawings ?? []}
             onApplyPlayerState={props.playerActions.applyPlayerState}
             onToggleTokenLock={props.toggleSceneObjectLock}
-            onPlayerTokenDelete={props.isDM ? props.deleteToken : undefined}
+            onPlayerTokenDelete={partyIsDM ? props.deleteToken : undefined}
             onCharacterOwnerChange={(characterId, ownerUid) =>
               props.sendMessage({ t: "set-character-owner", characterId, ownerUid })
             }
