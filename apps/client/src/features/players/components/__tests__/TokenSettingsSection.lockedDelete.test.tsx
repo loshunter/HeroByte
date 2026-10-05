@@ -51,4 +51,12 @@ describe("TokenSettingsSection — Delete Token (DM) and the lock", () => {
     fireEvent.click(sizes[4]!);
     expect(onTokenSizeChange).not.toHaveBeenCalled();
   });
+
+  // A player's own card has the size buttons but not Token Lock (the DM's alone).
+  it("tells a player only the DM can unlock it, not to use a control they lack", () => {
+    render(<TokenSettingsSection tokenLocked onTokenSizeChange={vi.fn()} />);
+    const sizes = screen.getAllByTitle("Locked: only the DM can unlock it.");
+    expect(sizes).toHaveLength(6);
+    expect(screen.queryAllByTitle("Locked: unlock it first (Token Lock).")).toHaveLength(0);
+  });
 });

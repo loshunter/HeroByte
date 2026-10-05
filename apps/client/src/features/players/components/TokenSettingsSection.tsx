@@ -139,7 +139,9 @@ export function TokenSettingsSection({
                 disabled={tokenLocked === true}
                 title={
                   tokenLocked
-                    ? "Locked: unlock it first (Token Lock)."
+                    ? onToggleTokenLock
+                      ? "Locked: unlock it first (Token Lock)."
+                      : "Locked: only the DM can unlock it."
                     : size.charAt(0).toUpperCase() + size.slice(1)
                 }
               >

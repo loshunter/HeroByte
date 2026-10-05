@@ -11,6 +11,7 @@
  * @module hooks/useNpcTokenPlacement
  */
 
+import { onLockRefusal } from "../../locking/lockRefusalBridge";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 
@@ -75,6 +76,18 @@ export function useNpcTokenPlacement(
   const [isPlacing, setIsPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [placingTokenForNpcId, setPlacingTokenForNpcId] = useState<string | null>(null);
+
+  // The lock refused it (the server says so with a toast): stop waiting, or the 5 s
+  // timeout below would add a false "timed out" to a refusal that already said why.
+  useEffect(
+    () =>
+      onLockRefusal(() => {
+        setIsPlacing(false);
+        setPlacingTokenForNpcId(null);
+        setError(null);
+      }),
+    [],
+  );
 
   // Track previous token IDs to detect new tokens
   const prevTokenIdsRef = useRef<Set<string>>(new Set());

@@ -930,11 +930,20 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       );
     });
 
+    it("says the lock is on another map when the token waits with one", () => {
+      const dm = mount(true);
+      act(() => dm.handler({ t: "locked-refused", ids: ["token:t-1"], elsewhere: true }));
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "Locked on another map: travel back to it and 🔓 Unlock its token first.",
+        4000,
+      );
+    });
+
     it("says how many locked pieces a bulk action kept", () => {
       const dm = mount(true);
       act(() => dm.handler({ t: "locked-refused", ids: ["drawing:a", "drawing:b"], kept: true }));
       expect(dm.toast.error).toHaveBeenLastCalledWith(
-        "2 locked pieces kept as they were: 🔓 Unlock them to change them.",
+        "2 locked pieces kept: 🔓 Unlock them to change them.",
         4000,
       );
       const player = mount(false);

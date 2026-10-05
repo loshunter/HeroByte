@@ -11,6 +11,7 @@
  * @module hooks/useServerEventHandlers
  */
 
+import { deliverLockRefusal } from "../features/locking/lockRefusalBridge";
 import { lockRefusalMessage } from "../features/locking/lockRefusalCopy";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
@@ -293,9 +294,15 @@ export function useServerEventHandlers({
         // The lock stopped a move or a delete (or a bulk action kept these pieces): the
         // server sends it to the one who tried, and nothing else on the table says why.
         toastError(
-          lockRefusalMessage(message.ids.length, message.kept === true, viewerIsDMRef.current),
+          lockRefusalMessage(
+            message.ids.length,
+            message.kept === true,
+            viewerIsDMRef.current,
+            message.elsewhere === true,
+          ),
           4000,
         );
+        deliverLockRefusal(message);
       }
     });
   }, [

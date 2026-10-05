@@ -11,11 +11,22 @@
 
 import { LOCKED_CANNOT_DELETE, LOCKED_CANNOT_DELETE_DM } from "../../hooks/useKeyboardShortcuts";
 
-export function lockRefusalMessage(count: number, kept: boolean, isDM: boolean): string {
+export function lockRefusalMessage(
+  count: number,
+  kept: boolean,
+  isDM: boolean,
+  elsewhere = false,
+): string {
+  // The locked token waits with another map (travel left it there): nothing here to select.
+  if (elsewhere) {
+    return isDM
+      ? "Locked on another map: travel back to it and 🔓 Unlock its token first."
+      : "Locked on another map: only the DM can unlock it.";
+  }
   if (!kept) return isDM ? LOCKED_CANNOT_DELETE_DM : LOCKED_CANNOT_DELETE;
   const pieces = count === 1 ? "1 locked piece" : `${count} locked pieces`;
   const them = count === 1 ? "it" : "them";
   return isDM
-    ? `${pieces} kept as ${count === 1 ? "it was" : "they were"}: 🔓 Unlock ${them} to change ${them}.`
+    ? `${pieces} kept: 🔓 Unlock ${them} to change ${them}.`
     : `${pieces} kept: only the DM can unlock ${them}.`;
 }

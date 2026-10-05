@@ -11,6 +11,7 @@
  * @module hooks/useNpcDeletion
  */
 
+import { onLockRefusal } from "../../locking/lockRefusalBridge";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 
@@ -68,6 +69,18 @@ export function useNpcDeletion(options: UseNpcDeletionOptions): UseNpcDeletionRe
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [targetNpcId, setTargetNpcId] = useState<string | null>(null);
+
+  // The lock refused it (the server says so with a toast): stop waiting, or the 5 s
+  // timeout below would add a false "timed out" to a refusal that already said why.
+  useEffect(
+    () =>
+      onLockRefusal(() => {
+        setIsDeleting(false);
+        setTargetNpcId(null);
+        setError(null);
+      }),
+    [],
+  );
 
   // Track previous NPC IDs to detect deletion
   const prevNpcIdsRef = useRef<Set<string>>(new Set());
