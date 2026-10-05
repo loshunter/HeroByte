@@ -549,6 +549,13 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
           .sort(),
       ).toEqual(["dms", "nobodys"]);
       expect(refusalsTo(PLAYER).map((f) => f.ids)).toEqual([["drawing:nobodys"]]);
+      // A drag, too: the player may move an owner-less drawing, so a lock says so.
+      send({ t: "transform-object", id: "drawing:nobodys", position: { x: 9, y: 9 } }, PLAYER);
+      send({ t: "transform-object", id: "drawing:dms", position: { x: 9, y: 9 } }, PLAYER);
+      expect(refusalsTo(PLAYER).map((f) => f.ids)).toEqual([
+        ["drawing:nobodys"],
+        ["drawing:nobodys"],
+      ]);
     });
   });
 

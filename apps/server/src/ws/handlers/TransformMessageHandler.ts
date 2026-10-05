@@ -65,7 +65,8 @@ export class TransformMessageHandler {
       const owner = state.sceneObjects.find((o) => o.id === objectId)?.owner;
       const isDM = state.players.some((p) => p.uid === senderUid && p.isDM);
       // Owner "*" (a shared prop) is not ownership: a fogged one stays unconfirmed.
-      const mayAct = isDM || owner === senderUid;
+      // An owner-less drawing is anyone's to move (TransformHandler), so anyone hears.
+      const mayAct = isDM || owner === senderUid || (objectId.startsWith("drawing:") && !owner);
       return mayAct
         ? { broadcast: true, save: false, lockRefusal: { ids: [objectId] } }
         : { broadcast: false, save: false };
