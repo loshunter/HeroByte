@@ -12,7 +12,7 @@ describe("Clear All retains its DM confirmation and server history authority", (
     const manager = mountManager(frame({ canUndo: true, canRedo: true }), true);
     act(() => manager.result.current.handleClearDrawings());
     expect(confirm).toHaveBeenCalledExactlyOnceWith(
-      "Clear all drawings from the map? This cannot be undone.",
+      "Clear all drawings from the map? Locked drawings stay. This cannot be undone.",
     );
     expect(manager.sendMessage.mock.calls).toEqual([[{ t: "clear-drawings" }]]);
     expectCapabilities(manager.result.current, true, true);

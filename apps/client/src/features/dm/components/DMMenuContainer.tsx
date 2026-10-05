@@ -198,11 +198,14 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
   // Extract data from snapshot
   const characters = snapshot?.characters || [];
   const props = snapshot?.props || [];
-  const lockedPropIds = new Set(
-    (snapshot?.sceneObjects ?? [])
-      .filter((o) => o.locked && o.id.startsWith("prop:"))
-      .map((o) => o.id.slice(5)),
-  );
+  const lockedIds = (kind: "prop" | "token") =>
+    new Set(
+      (snapshot?.sceneObjects ?? [])
+        .filter((o) => o.locked && o.id.startsWith(`${kind}:`))
+        .map((o) => o.id.slice(kind.length + 1)),
+    );
+  const lockedPropIds = lockedIds("prop");
+  const lockedTokenIds = lockedIds("token");
   const players = snapshot?.players || [];
   // What PUBLISH TO LIVE MAP would replace: derived here, beside hasCompiledScene.
   const liveSceneDocumentId = snapshot?.compiledScene?.sourceDocumentId;
@@ -262,6 +265,7 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
       }
       onFocusNPCToken={onFocusToken}
       mapTokenIds={mapTokenIds}
+      lockedTokenIds={lockedTokenIds}
       isCreatingNpc={dmContext.npcManagement.isCreating}
       npcCreationError={dmContext.npcManagement.creationError}
       isUpdatingNpc={dmContext.npcManagement.isUpdating}

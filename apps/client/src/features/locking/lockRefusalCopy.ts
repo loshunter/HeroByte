@@ -15,6 +15,6 @@ export function lockRefusalMessage(count: number, kept: boolean, isDM: boolean):
   const pieces = count === 1 ? "1 locked piece" : `${count} locked pieces`;
   const them = count === 1 ? "it" : "them";
   return isDM
-    ? `${pieces} kept: press 🔓 Unlock to remove ${them}.`
+    ? `${pieces} kept: 🔓 Unlock ${them}, then delete ${them}.`
     : `${pieces} kept: only the DM can unlock ${them}.`;
 }

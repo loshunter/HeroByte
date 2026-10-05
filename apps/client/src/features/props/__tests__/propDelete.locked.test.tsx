@@ -43,6 +43,17 @@ describe("prop Delete and the lock", () => {
     expect(button).toHaveAttribute("title", "Locked: only the DM can unlock it.");
   });
 
+  // A resize of a locked prop is refused like a token's: the size picker is off too.
+  it("both editors turn the size picker off while locked", () => {
+    const { unmount } = render(
+      <PropEditor prop={crate} players={[]} onUpdate={vi.fn()} onDelete={vi.fn()} locked />,
+    );
+    expect(screen.getByRole("combobox", { name: /Size/ })).toBeDisabled();
+    unmount();
+    render(<PlayerPropEditor prop={crate} onUpdate={vi.fn()} onDelete={vi.fn()} locked />);
+    expect(screen.getByRole("combobox", { name: /Size/ })).toBeDisabled();
+  });
+
   it("control: unlocked, both delete after the confirm", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const dm = vi.fn();

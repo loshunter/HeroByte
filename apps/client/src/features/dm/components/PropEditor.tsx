@@ -208,7 +208,9 @@ export function PropEditor({
         <select
           value={size}
           onChange={handleSizeChange}
-          disabled={isUpdating}
+          // A locked prop is resized by no one until it is unlocked (the server refuses it).
+          disabled={isUpdating || locked}
+          title={locked ? "Locked: select it on the map and press 🔓 Unlock first." : undefined}
           style={{
             width: "100%",
             padding: "4px",

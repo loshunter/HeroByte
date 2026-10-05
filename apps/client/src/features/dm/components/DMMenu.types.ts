@@ -83,6 +83,8 @@ export interface DMMenuBaseProps {
   onSetNPCStatusEffects: (id: string, effects: string[]) => void;
   onFocusNPCToken: (tokenId: string) => void;
   mapTokenIds: ReadonlySet<string>;
+  /** Tokens the DM locked: an NPC with one is neither deleted nor re-placed until unlocked. */
+  lockedTokenIds?: ReadonlySet<string>;
   isCreatingNpc?: boolean;
   npcCreationError?: string | null;
   isUpdatingNpc?: boolean;

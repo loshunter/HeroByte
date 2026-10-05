@@ -46,7 +46,9 @@ describe("drawing toolbar clear permission", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /clear all/i }));
 
-    expect(confirm).toHaveBeenCalledWith("Clear all drawings from the map? This cannot be undone.");
+    expect(confirm).toHaveBeenCalledWith(
+      "Clear all drawings from the map? Locked drawings stay. This cannot be undone.",
+    );
     expect(sendMessage).not.toHaveBeenCalled();
     expect(result.current.canUndo).toBe(true);
   });

@@ -435,6 +435,10 @@ export function usePlayerActions({
 
       // Apply token-specific state if tokenId provided
       if (tokenId) {
+        // A locked token is moved and resized by no one: the file's size and place would
+        // only be refused (a toast each), so they are not sent; the rest of it applies.
+        const tokenLocked =
+          snapshot?.sceneObjects?.some((o) => o.id === `token:${tokenId}` && o.locked) === true;
         // Token color (prefer token.color, fallback to legacy color field)
         const color =
           state.token?.color ?? (typeof state.color === "string" ? state.color : undefined);
@@ -454,7 +458,7 @@ export function usePlayerActions({
         }
 
         // Token size
-        if (state.token?.size) {
+        if (state.token?.size && !tokenLocked) {
           sendMessage({ t: "set-token-size", tokenId, size: state.token.size });
         }
 
@@ -484,7 +488,10 @@ export function usePlayerActions({
         }
 
         // Send transform message if any transform properties present
-        if (transform.position || transform.scale || transform.rotation !== undefined) {
+        if (
+          !tokenLocked &&
+          (transform.position || transform.scale || transform.rotation !== undefined)
+        ) {
           sendMessage({
             t: "transform-object",
             id: `token:${tokenId}`,
@@ -516,7 +523,7 @@ export function usePlayerActions({
         sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
       }
     },
-    [sendMessage, snapshot?.characters, uid],
+    [sendMessage, snapshot?.characters, snapshot?.sceneObjects, uid],
   );
 
   /**

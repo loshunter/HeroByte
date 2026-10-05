@@ -58,6 +58,8 @@ interface NPCsTabProps {
   onFocusNPCToken: (tokenId: string) => void;
   /** The tokens on the current map: an NPC's Focus needs its token here. */
   mapTokenIds: ReadonlySet<string>;
+  /** Locked tokens: an NPC standing on one keeps Delete and Place off until unlocked. */
+  lockedTokenIds?: ReadonlySet<string>;
   /** Callback to delete an NPC */
   onDeleteNPC: (id: string) => void;
   /** Whether NPC creation is in progress */
@@ -109,6 +111,7 @@ export default function NPCsTab({
   onSetNPCStatusEffects,
   onFocusNPCToken,
   mapTokenIds,
+  lockedTokenIds,
   onDeleteNPC,
   customTokens = NO_CUSTOM_TOKENS,
   onAddCustomToken,
@@ -279,6 +282,7 @@ export default function NPCsTab({
                     : undefined
                 }
                 onPlace={() => onPlaceNPCToken(npc.id)}
+                tokenLocked={Boolean(npc.tokenId && lockedTokenIds?.has(npc.tokenId))}
                 onStatusEffectsChange={(effects) => onSetNPCStatusEffects(npc.id, effects)}
                 onFocus={
                   npc.tokenId && mapTokenIds.has(npc.tokenId)

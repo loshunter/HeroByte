@@ -214,14 +214,20 @@ export function useDrawingStateManager({
    * it — the drawing toolbar's "Clear All" used to fire instantly while the
    * DM menu's "Clear All Drawings" confirmed, for the identical operation.
    *
-   * It is also unrecoverable by construction: the server drops `drawings`,
+   * It is also unrecoverable by construction: the server drops every unlocked drawing,
    * `drawingUndoStacks` and `drawingRedoStacks` together, so there is nothing
    * left to undo from. Hence a confirm rather than a trust-the-undo-stack.
    */
   const handleClearDrawings = useCallback(() => {
     // A non-DM's clear is rejected server-side; require the existing capability.
     if (!canClearDrawings) return;
-    if (!window.confirm("Clear all drawings from the map? This cannot be undone.")) return;
+    if (
+      !window.confirm(
+        "Clear all drawings from the map? Locked drawings stay. This cannot be undone.",
+      )
+    ) {
+      return;
+    }
 
     sendMessage({ t: "clear-drawings" });
   }, [canClearDrawings, sendMessage]);

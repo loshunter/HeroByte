@@ -934,7 +934,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       const dm = mount(true);
       act(() => dm.handler({ t: "locked-refused", ids: ["drawing:a", "drawing:b"], kept: true }));
       expect(dm.toast.error).toHaveBeenLastCalledWith(
-        "2 locked pieces kept: press 🔓 Unlock to remove them.",
+        "2 locked pieces kept: 🔓 Unlock them, then delete them.",
         4000,
       );
       const player = mount(false);

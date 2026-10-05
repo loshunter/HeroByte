@@ -59,6 +59,7 @@ export function DMMenu({
   onSetNPCStatusEffects,
   onFocusNPCToken,
   mapTokenIds,
+  lockedTokenIds,
   isCreatingNpc,
   npcCreationError,
   isUpdatingNpc,
@@ -207,6 +208,7 @@ export function DMMenu({
           onSetNPCStatusEffects={onSetNPCStatusEffects}
           onFocusNPCToken={onFocusNPCToken}
           mapTokenIds={mapTokenIds}
+          lockedTokenIds={lockedTokenIds}
           onDeleteNPC={onDeleteNPC}
           isCreatingNpc={isCreatingNpc}
           npcCreationError={npcCreationError}

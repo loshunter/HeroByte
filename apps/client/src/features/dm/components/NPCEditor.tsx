@@ -37,6 +37,8 @@ interface NPCEditorProps {
   onStatusEffectsChange: (effects: string[]) => void;
   /** Present only while its token is on the map. */
   onFocus?: () => void;
+  /** Its token is locked: Delete and Place stay off until the DM unlocks it. */
+  tokenLocked?: boolean;
   isUpdating?: boolean;
   updateError?: string | null;
   isPlacingToken?: boolean;
@@ -74,6 +76,7 @@ export function NPCEditor({
   onDelete,
   onStatusEffectsChange,
   onFocus,
+  tokenLocked = false,
   isDuplicating = false,
   isUpdating = false,
   updateError = null,
@@ -340,6 +343,7 @@ export function NPCEditor({
           onDuplicate();
         }}
         onDelete={onDelete}
+        tokenLocked={tokenLocked}
         isUpdating={isUpdating}
         isPlacingToken={isPlacingToken}
         isDuplicating={isDuplicating}

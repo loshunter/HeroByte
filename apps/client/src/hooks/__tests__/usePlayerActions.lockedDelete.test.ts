@@ -45,4 +45,27 @@ describe("usePlayerActions.deleteCharacter and a locked token", () => {
     expect(confirm).toHaveBeenCalledTimes(1);
     expect(sentTypes(sendMessage)).toEqual(["delete-player-character", "add-player-character"]);
   });
+
+  // Loading a character file onto a locked token: its size and place would only be
+  // refused (a toast each), so they are not sent; the rest of the file still applies.
+  it("a character file sends no size or place for a locked token", () => {
+    const sendMessage = vi.fn();
+    const { result } = renderHook(() =>
+      usePlayerActions({ sendMessage, snapshot: snapshotWith(true), uid: "me" }),
+    );
+    result.current.applyPlayerState(
+      {
+        name: "Aria",
+        hp: 5,
+        maxHp: 10,
+        token: { size: "huge", position: { x: 4, y: 4 }, color: "#123456" },
+      } as never,
+      "t-1",
+      "c-1",
+    );
+    const types = sentTypes(sendMessage);
+    expect(types).not.toContain("set-token-size");
+    expect(types).not.toContain("transform-object");
+    expect(types).toContain("set-token-color");
+  });
 });

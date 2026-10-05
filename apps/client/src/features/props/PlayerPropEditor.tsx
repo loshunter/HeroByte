@@ -112,6 +112,8 @@ export function PlayerPropEditor({
               setSize(newSize);
               commitUpdate({ size: newSize });
             }}
+            disabled={locked}
+            title={locked ? "Locked: only the DM can unlock it." : undefined}
             style={{
               width: "100%",
               padding: "4px",

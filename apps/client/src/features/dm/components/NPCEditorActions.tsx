@@ -16,6 +16,8 @@ interface NPCEditorActionsProps {
   onFocus?: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** Its token is locked: deleting the NPC or placing it again would remove that token. */
+  tokenLocked?: boolean;
   isUpdating?: boolean;
   isPlacingToken?: boolean;
   isDuplicating?: boolean;
@@ -27,11 +29,15 @@ export function NPCEditorActions({
   onFocus,
   onDuplicate,
   onDelete,
+  tokenLocked = false,
   isUpdating = false,
   isPlacingToken = false,
   isDuplicating = false,
 }: NPCEditorActionsProps) {
   const busy = isUpdating || isPlacingToken;
+  const lockedTitle = tokenLocked
+    ? "Locked: unlock its token first (🔒 Locked in its ⚙️ settings)."
+    : undefined;
 
   return (
     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -47,7 +53,8 @@ export function NPCEditorActions({
       <JRPGButton
         variant="primary"
         onClick={onPlace}
-        disabled={busy}
+        disabled={busy || tokenLocked}
+        title={lockedTitle}
         style={{ fontSize: "10px", flex: 1 }}
       >
         {isPlacingToken ? "Placing..." : "Place on Map"}
@@ -71,7 +78,8 @@ export function NPCEditorActions({
             onDelete();
           }
         }}
-        disabled={busy}
+        disabled={busy || tokenLocked}
+        title={lockedTitle}
         style={{ fontSize: "10px", flex: 1 }}
       >
         Delete
