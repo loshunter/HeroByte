@@ -460,9 +460,9 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       send({ t: "place-npc-token", id: npc.id }, DM);
       expect(state().characters.some((c) => c.id === npc.id)).toBe(true);
       expect(state().characters.find((c) => c.id === npc.id)?.tokenId).toBe(npcToken.id);
-      expect(refusalsTo(DM).map((f) => f.ids)).toEqual([
-        [`token:${npcToken.id}`],
-        [`token:${npcToken.id}`],
+      expect(refusalsTo(DM)).toEqual([
+        { t: "locked-refused", ids: [`token:${npcToken.id}`], elsewhere: true },
+        { t: "locked-refused", ids: [`token:${npcToken.id}`], elsewhere: true },
       ]);
     });
 
@@ -498,6 +498,24 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       lock(`prop:${prop.id}`);
       send({ t: "transform-object", id: `prop:${prop.id}`, position: { x: 9, y: 9 } }, PLAYER);
       expect(refusalsTo(PLAYER)).toHaveLength(0);
+    });
+
+    it("clear-all-tokens leaves a kept token standing under a character with its owner", () => {
+      const pc = characters.createCharacter(state(), "Aria", 10, "", "pc");
+      pc.ownedByPlayerUID = PLAYER;
+      const pcToken = tokens.createToken(state(), PLAYER, 1, 1);
+      characters.linkToken(state(), pc.id, pcToken.id);
+      lock(`token:${pcToken.id}`);
+      send({ t: "clear-all-tokens" }, DM);
+      // The character survives a clear, so its locked token stays the player's.
+      expect(state().tokens.find((t) => t.id === pcToken.id)?.owner).toBe(PLAYER);
+    });
+
+    it("an owner-less drawing moves for whoever selected it, as it deletes for anyone", () => {
+      state().drawings.push({ ...line("nobodys", PLAYER), owner: undefined });
+      send({ t: "select-drawing", id: "nobodys" }, PLAYER);
+      send({ t: "move-drawing", id: "nobodys", dx: 10, dy: 0 }, PLAYER);
+      expect(state().drawings[0]!.points[0]).toEqual({ x: 10, y: 0 });
     });
 
     it("a locked drawing: an owner-less one is refused aloud, someone else's in silence", () => {

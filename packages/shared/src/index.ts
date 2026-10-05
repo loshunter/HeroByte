@@ -1300,6 +1300,9 @@ export type ServerMessage =
       // ahead and left these locked pieces in place.
       ids: string[];
       kept?: boolean;
+      // The lock is on a token parked with another map (travel left it there): the
+      // client cannot see it, so it says where to go to unlock it.
+      elsewhere?: boolean;
     }
   | { t: "map-studio-deleted"; documentId: string }
   | {

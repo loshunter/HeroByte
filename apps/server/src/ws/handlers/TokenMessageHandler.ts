@@ -24,6 +24,7 @@ import { isDeltaChannelEnabled } from "../../config/featureFlags.js";
 import { buildTokenDragPreview } from "./tokenDragPreview.js";
 import { chargeTokenMove } from "../../domains/room/transform/movementCharge.js";
 import { isTokenLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
+import { handKeptTokensTo } from "../../domains/room/locking/pieceLock.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { CharacterService } from "../../domains/character/service.js";
@@ -332,8 +333,7 @@ export class TokenMessageHandler {
       .filter((player) => player.uid !== senderUid)
       .map((player) => player.uid);
 
-    // Remove all players except sender (DM); a kept locked token passes to the DM.
-    for (const token of state.tokens) if (token.owner !== senderUid) token.owner = senderUid;
+    handKeptTokensTo(state, senderUid);
     state.players = state.players.filter((p) => p.uid === senderUid);
 
     // Deselect for removed players

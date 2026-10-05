@@ -173,7 +173,10 @@ export class MapService {
     // Selecting a drawing claims nothing: only its owner (or the DM) moves it, and a
     // locked one moves for no one.
     if (!drawing || isDrawingLocked(state, drawingId)) return false;
-    if (drawing.selectedBy === playerUid && (isDM || drawing.owner === playerUid)) {
+    if (
+      drawing.selectedBy === playerUid &&
+      (isDM || !drawing.owner || drawing.owner === playerUid)
+    ) {
       // Move all points by the delta
       drawing.points = drawing.points.map((p) => ({
         x: p.x + dx,

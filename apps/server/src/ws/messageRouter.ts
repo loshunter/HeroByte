@@ -476,6 +476,7 @@ export class MessageRouter {
         t: "locked-refused",
         ids: result.lockRefusal.ids,
         ...(result.lockRefusal.kept ? { kept: true } : {}),
+        ...(result.lockRefusal.elsewhere ? { elsewhere: true } : {}),
       });
     }
 

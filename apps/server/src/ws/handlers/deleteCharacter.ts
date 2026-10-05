@@ -37,9 +37,10 @@ export interface DeleteCharacterDeps {
  */
 export function lockedTokenRefusal(state: RoomState, characterId: string): LockRefusal | undefined {
   const tokenId = state.characters.find((c) => c.id === characterId)?.tokenId;
-  return tokenId && isTokenLockedAnywhere(state, tokenId)
+  if (!tokenId || !isTokenLockedAnywhere(state, tokenId)) return undefined;
+  return isTokenLocked(state, tokenId)
     ? { ids: [`token:${tokenId}`] }
-    : undefined;
+    : { ids: [`token:${tokenId}`], elsewhere: true };
 }
 
 /**
