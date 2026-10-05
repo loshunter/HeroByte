@@ -890,4 +890,59 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       expect(REMOVE_PLAYER_REFUSAL_COPY.connected).toMatch(/another table/);
     });
   });
+
+  // The piece lock: the one who tried is told why, in the words for their role.
+  describe("locked-refused events", () => {
+    const mount = (viewerIsDM: boolean) => {
+      const registerServerEventHandler = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+      renderHook(() =>
+        useServerEventHandlers({
+          registerServerEventHandler,
+          toast,
+          sendMessage: vi.fn(),
+          viewerIsDM,
+        }),
+      );
+      const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
+      return { handler, toast };
+    };
+
+    it("tells the DM to unlock first, and a player that only the DM can", () => {
+      const dm = mount(true);
+      act(() => dm.handler({ t: "locked-refused", ids: ["token:t-1"] }));
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "Locked: select it and press 🔓 Unlock first.",
+        4000,
+      );
+      const player = mount(false);
+      act(() => player.handler({ t: "locked-refused", ids: ["drawing:d-1"] }));
+      expect(player.toast.error).toHaveBeenLastCalledWith(
+        "Locked: only the DM can unlock it.",
+        4000,
+      );
+    });
+
+    it("says how many locked pieces a bulk action kept", () => {
+      const dm = mount(true);
+      act(() => dm.handler({ t: "locked-refused", ids: ["drawing:a", "drawing:b"], kept: true }));
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "2 locked pieces kept: press 🔓 Unlock to remove them.",
+        4000,
+      );
+      const player = mount(false);
+      act(() => player.handler({ t: "locked-refused", ids: ["drawing:a"], kept: true }));
+      expect(player.toast.error).toHaveBeenLastCalledWith(
+        "1 locked piece kept: only the DM can unlock it.",
+        4000,
+      );
+    });
+  });
 });

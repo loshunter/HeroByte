@@ -105,6 +105,8 @@ export interface DMMenuBaseProps {
   isUpdatingProp?: boolean;
   propUpdateError?: string | null;
   updatingPropId?: string | null;
+  /** Props the DM locked: nothing deletes them until they are unlocked. */
+  lockedPropIds?: ReadonlySet<string>;
   mapLocked?: boolean;
   onMapLockToggle?: () => void;
   mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };

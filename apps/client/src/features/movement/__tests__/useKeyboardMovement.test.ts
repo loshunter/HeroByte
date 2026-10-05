@@ -352,7 +352,7 @@ describe("useKeyboardMovement", () => {
       expect(event.defaultPrevented).toBe(false);
     });
 
-    it("the fallback takes a click's road: a locked own token is the DM's alone", () => {
+    it("the fallback takes a click's road: a locked own token steps for no one, the DM included", () => {
       const locked = {
         ...oneHero(),
         sceneObjects: [{ id: "token:mine", locked: true }],
@@ -363,11 +363,9 @@ describe("useKeyboardMovement", () => {
       expect(player.sendMessage).not.toHaveBeenCalled();
       player.unmount();
       const dm = setup({ selectedObjectIds: [], snapshot: locked, isDM: true });
-      expect(dm.result.current.movableCount).toBe(1);
+      expect(dm.result.current.movableCount).toBe(0);
       press("d");
-      expect(sent(dm.sendMessage)).toEqual([
-        { t: "step-object", ids: ["token:mine"], dx: 1, dy: 0 },
-      ]);
+      expect(dm.sendMessage).not.toHaveBeenCalled();
     });
 
     it("map-edit mode is inert with the fallback too", () => {

@@ -80,6 +80,7 @@ export function DMMenu({
   isUpdatingProp,
   propUpdateError,
   updatingPropId,
+  lockedPropIds,
   mapLocked,
   onMapLockToggle,
   mapTransform,
@@ -233,6 +234,7 @@ export function DMMenu({
           isUpdatingProp={isUpdatingProp}
           propUpdateError={propUpdateError}
           updatingPropId={updatingPropId}
+          lockedPropIds={lockedPropIds}
         />
       )}
       {activeTab === "table" && (

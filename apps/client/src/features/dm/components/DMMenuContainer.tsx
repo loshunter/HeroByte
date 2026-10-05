@@ -198,6 +198,11 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
   // Extract data from snapshot
   const characters = snapshot?.characters || [];
   const props = snapshot?.props || [];
+  const lockedPropIds = new Set(
+    (snapshot?.sceneObjects ?? [])
+      .filter((o) => o.locked && o.id.startsWith("prop:"))
+      .map((o) => o.id.slice(5)),
+  );
   const players = snapshot?.players || [];
   // What PUBLISH TO LIVE MAP would replace: derived here, beside hasCompiledScene.
   const liveSceneDocumentId = snapshot?.compiledScene?.sourceDocumentId;
@@ -277,6 +282,7 @@ export function DMMenuContainer(containerProps: DMMenuContainerProps) {
       propDeletionError={dmContext.propManagement.deletionError}
       isUpdatingProp={dmContext.propManagement.isUpdating}
       propUpdateError={dmContext.propManagement.updateError}
+      lockedPropIds={lockedPropIds}
       updatingPropId={dmContext.propManagement.updatingPropId}
       mapLocked={mapLocked}
       onMapLockToggle={onMapLockToggle}

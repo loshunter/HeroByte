@@ -119,8 +119,9 @@ export function ownTokenFallback({
  * TransformHandler rules so a press that the server would refuse sends
  * nothing: a token is the owner's or the DM's; a prop is the DM's, its
  * owner's, or everyone's (`owner: "*"`) — and, for a player, only while the
- * table's player-props switch is on; a locked object is the DM's only. The
- * server remains the guard — this only avoids dead round trips.
+ * table's player-props switch is on; a locked object moves for no one, the DM
+ * included, until it is unlocked (pieceLock). The server remains the guard —
+ * this only avoids dead round trips.
  */
 export function movableSelection({
   selectedObjectIds,
@@ -132,7 +133,7 @@ export function movableSelection({
   const out: MovableSelection[] = [];
   for (const id of selectedObjectIds) {
     const locked = snapshot.sceneObjects?.find((object) => object.id === id)?.locked === true;
-    if (locked && !isDM) continue;
+    if (locked) continue;
     if (id.startsWith("token:")) {
       const token = snapshot.tokens?.find((candidate) => candidate.id === id.slice(6));
       if (!token || (!isDM && token.owner !== uid)) continue;

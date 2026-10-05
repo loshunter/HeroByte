@@ -66,6 +66,9 @@ export function PlayerPropsPanel(props: PlayerPropsPanelProps) {
               prop={prop}
               onUpdate={(updates) => updateProp(prop, updates)}
               onDelete={() => deleteProp(prop.id)}
+              locked={
+                snapshot?.sceneObjects?.some((o) => o.id === `prop:${prop.id}` && o.locked) === true
+              }
             />
           ))}
         </div>

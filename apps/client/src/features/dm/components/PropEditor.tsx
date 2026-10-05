@@ -23,6 +23,8 @@ interface PropEditorProps {
   deletionError?: string | null;
   isUpdating?: boolean;
   updateError?: string | null;
+  /** Locked by the DM: nothing deletes it until it is unlocked (🔓 Unlock). */
+  locked?: boolean;
 }
 
 export function PropEditor({
@@ -34,6 +36,7 @@ export function PropEditor({
   deletionError = null,
   isUpdating = false,
   updateError = null,
+  locked = false,
 }: PropEditorProps) {
   const [label, setLabel] = useState(prop.label);
   const [imageUrl, setImageUrl] = useState(prop.imageUrl);
@@ -251,7 +254,8 @@ export function PropEditor({
               onDelete();
             }
           }}
-          disabled={isDeleting || isUpdating}
+          disabled={isDeleting || isUpdating || locked}
+          title={locked ? "Locked: select it on the map and press 🔓 Unlock first." : undefined}
           style={{ fontSize: "10px", flex: 1 }}
         >
           {isDeleting ? "Deleting..." : "Delete"}

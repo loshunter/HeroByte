@@ -130,6 +130,7 @@ describe("MessageRouter — session-file", () => {
       "dm-password-update-failed",
       "dm-password-updated",
       "dm-status",
+      "locked-refused",
       "map-studio-deleted",
       "map-studio-document",
       "map-studio-documents",

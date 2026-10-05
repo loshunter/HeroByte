@@ -401,6 +401,9 @@ export function PlayerSettingsMenu({
                     onClick={() => onDeleteCharacter(characterId)}
                     variant="danger"
                     style={{ fontSize: "10px" }}
+                    // Its token is locked: nothing deletes it until the DM unlocks it.
+                    disabled={tokenLocked === true}
+                    title={tokenLocked ? "Locked: its token must be unlocked first." : undefined}
                   >
                     🗑️ Delete this character
                   </JRPGButton>

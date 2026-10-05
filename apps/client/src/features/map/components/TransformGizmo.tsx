@@ -21,6 +21,8 @@ interface TransformGizmoProps {
 }
 
 const ORIGINAL_DRAG_KEY = "__herobyte_original_draggable";
+/** The scene id the handles were put on, so a restore can ask whether THAT piece is now locked. */
+const GIZMO_SCENE_ID_KEY = "__herobyte_gizmo_scene_id";
 const HANDLE_SIZE = 18;
 
 /**
@@ -41,12 +43,20 @@ export function TransformGizmo({
   const isCtrlPressed = useRef<boolean>(false);
   const currentNodeRef = useRef<Konva.Node | null>(null);
   const [handlePosition, setHandlePosition] = useState<{ x: number; y: number } | null>(null);
+  // The selection as of THIS render, read by the cleanup below (whose closure holds the
+  // previous one): locking a piece under the handles unmounts the transformer after the
+  // layer has already set the node undraggable, and restoring the saved `true` then left
+  // a locked piece draggable for the rest of the session.
+  const latestSelectionRef = useRef<SceneObject | null>(selectedObject);
+  latestSelectionRef.current = selectedObject;
 
   const restoreNodeDraggable = (node: Konva.Node | null) => {
     if (!node) return;
     const original = node.getAttr(ORIGINAL_DRAG_KEY);
     if (typeof original === "boolean") {
-      node.draggable(original);
+      const latest = latestSelectionRef.current;
+      const nowLocked = latest?.locked === true && latest.id === node.getAttr(GIZMO_SCENE_ID_KEY);
+      node.draggable(nowLocked ? false : original);
     }
     node.setAttr(ORIGINAL_DRAG_KEY, undefined);
   };
@@ -112,6 +122,7 @@ export function TransformGizmo({
       if (typeof node.getAttr(ORIGINAL_DRAG_KEY) !== "boolean") {
         node.setAttr(ORIGINAL_DRAG_KEY, node.draggable());
       }
+      node.setAttr(GIZMO_SCENE_ID_KEY, selectedObject.id);
       node.draggable(true);
 
       try {

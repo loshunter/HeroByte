@@ -224,7 +224,9 @@ export function NpcSettingsMenu({
               className="btn btn-danger"
               style={{ fontSize: "0.65rem" }}
               onClick={onDelete}
-              disabled={isDeleting}
+              // Its token is locked: nothing deletes the NPC until it is unlocked.
+              disabled={isDeleting || tokenLocked === true}
+              title={tokenLocked ? "Locked: unlock its token first (🔒 Locked below)." : undefined}
             >
               {isDeleting ? "Deleting..." : "Delete NPC"}
             </button>

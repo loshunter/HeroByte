@@ -857,6 +857,18 @@ describe("NpcSettingsMenu", () => {
   // ==========================================================================
 
   describe("Delete NPC Button", () => {
+    // A locked token is deleted by no one until it is unlocked, and deleting the NPC
+    // would take its token: the button says so instead of failing on the server.
+    it("is disabled while the NPC's token is locked, and says why", () => {
+      const onDelete = vi.fn();
+      render(<NpcSettingsMenu {...createProps({ onDelete, tokenLocked: true })} />);
+      const button = screen.getByRole("button", { name: "Delete NPC" });
+      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute("title", "Locked: unlock its token first (🔒 Locked below).");
+      fireEvent.click(button);
+      expect(onDelete).not.toHaveBeenCalled();
+    });
+
     it("renders Delete NPC button", () => {
       const props = createProps();
       render(<NpcSettingsMenu {...props} />);

@@ -22,6 +22,8 @@ export function commitEraseStroke(
   sendMessage: (message: ClientMessage) => void,
 ): void {
   for (const drawing of drawingObjects) {
+    // A locked drawing is deleted by no one until it is unlocked; the server would refuse.
+    if (drawing.locked) continue;
     const drawingId = drawing.data.drawing.id;
     const result = evaluatePartialErase(drawing, eraserPath, eraserWidth);
 

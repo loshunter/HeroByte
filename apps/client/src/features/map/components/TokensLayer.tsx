@@ -648,7 +648,8 @@ export const TokensLayer = memo(function TokensLayer({
       const matches =
         Math.abs(object.transform.x - override.x) < 0.001 &&
         Math.abs(object.transform.y - override.y) < 0.001;
-      if (matches) {
+      // A locked token's move was refused: drop the local copy, back to where it is.
+      if (matches || object.locked) {
         delete next[key];
         dirty = true;
       }

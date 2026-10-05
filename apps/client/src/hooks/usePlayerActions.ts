@@ -281,6 +281,18 @@ export function usePlayerActions({
       // Find this character
       const character = snapshot?.characters?.find((c) => c.id === characterId);
       if (!character) return;
+      // A character whose token is locked is deleted by no one until the DM unlocks it:
+      // no confirm for a delete that cannot happen, and no replacement for a character
+      // that stays. The server refuses it and says why (locked-refused).
+      const tokenLocked =
+        character.tokenId !== undefined &&
+        snapshot?.sceneObjects?.some(
+          (object) => object.id === `token:${character.tokenId}` && object.locked === true,
+        ) === true;
+      if (tokenLocked) {
+        sendMessage({ t: "delete-player-character", characterId });
+        return;
+      }
 
       // Count player's characters. A DM deleting SOMEONE ELSE's character (an
       // abandoned seat, say) is not deleting their own last one, and must not
@@ -319,7 +331,7 @@ export function usePlayerActions({
         sendMessage({ t: "add-player-character", name: "New Character", maxHp: 100 });
       }
     },
-    [sendMessage, snapshot?.characters, snapshot?.users, uid],
+    [sendMessage, snapshot?.characters, snapshot?.sceneObjects, snapshot?.users, uid],
   );
 
   /**

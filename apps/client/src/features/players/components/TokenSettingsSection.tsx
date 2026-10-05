@@ -201,6 +201,9 @@ export function TokenSettingsSection({
             }}
             variant="danger"
             style={{ width: "100%", fontSize: "10px" }}
+            // A locked token is deleted by no one until it is unlocked (Token Lock above).
+            disabled={tokenLocked === true}
+            title={tokenLocked ? "Locked: unlock it first (Token Lock)." : undefined}
           >
             🗑️ Delete Token (DM)
           </JRPGButton>

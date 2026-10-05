@@ -1526,6 +1526,37 @@ describe("TokensLayer", () => {
       expect(updatedRectProps.x).toBe(75);
     });
 
+    // The DM locked it mid-drag, so the server refused the move (and broadcast): the
+    // token goes back to where the server has it instead of sitting at the drop forever.
+    it("drops the local drop position when the token turns out to be locked", () => {
+      const onTransformToken = vi.fn();
+      const myToken = createTokenObject("token:1", "test-user", {
+        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      });
+      const props = createDefaultProps({
+        sceneObjects: [myToken],
+        onTransformToken,
+        snapToGrid: true,
+        gridSize: 50,
+        uid: "test-user",
+      });
+      const { container, rerender } = render(<TokensLayer {...props} />);
+      const rectProps = getProps(container.querySelector('[data-testid="konva-rect"]'));
+      invokeHandler(rectProps.onDragStart, {
+        evt: { shiftKey: false, ctrlKey: false, metaKey: false },
+      });
+      invokeHandler(rectProps.onDragEnd, { target: { position: () => ({ x: 75, y: 125 }) } });
+
+      // The server's word: still at (0, 0), and now locked.
+      const lockedToken = createTokenObject("token:1", "test-user", {
+        locked: true,
+        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      });
+      rerender(<TokensLayer {...props} sceneObjects={[lockedToken]} />);
+      const after = getProps(container.querySelector('[data-testid="konva-rect"]'));
+      expect(after.x).toBe(25); // 0 * 50 + 25: back where the server has it
+    });
+
     it("cleans up override when token no longer exists", () => {
       const onTransformToken = vi.fn();
       const myToken = createTokenObject("token:1", "test-user", {

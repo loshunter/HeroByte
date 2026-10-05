@@ -73,6 +73,8 @@ type ControlMessage =
   // Found live 2026-09-21 the same way session-file was — the frame arrived
   // and the guard below warn-dropped it.
   | Extract<ServerMessage, { t: "remove-player-refused" }>
+  // The piece lock stopped a move or a delete: the sender's only word of why.
+  | Extract<ServerMessage, { t: "locked-refused" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
   // Download table backup's reply. It was never on this list: it rode the router's
@@ -411,6 +413,7 @@ export class MessageRouter {
       // warn-dropped at the router's floor. Both lists change together.
       candidate.t === "atlas-error" ||
       candidate.t === "remove-player-refused" ||
+      candidate.t === "locked-refused" ||
       candidate.t === "room-created" ||
       candidate.t === "room-create-failed" ||
       candidate.t === "session-file" ||
