@@ -22,6 +22,7 @@
 import type { DragPreviewEvent, DragPreviewUpdate, Token, TokenSize } from "@herobyte/shared";
 import { isDeltaChannelEnabled } from "../../config/featureFlags.js";
 import { buildTokenDragPreview } from "./tokenDragPreview.js";
+import { lockedTokenRefusal } from "./deleteCharacter.js";
 import { chargeTokenMove } from "../../domains/room/transform/movementCharge.js";
 import { isTokenLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
 import { handKeptTokensTo } from "../../domains/room/locking/pieceLock.js";
@@ -269,15 +270,7 @@ export class TokenMessageHandler {
     return { broadcast: updated, save: updated };
   }
 
-  /**
-   * Handle link token to character message (owner of BOTH ends, or DM)
-   *
-   * @param state - Room state
-   * @param characterId - ID of character
-   * @param tokenId - ID of token to link
-   * @param senderUid - UID of the sender
-   * @param isDM - Whether sender is DM
-   */
+  /** Handle link token to character message (owner of BOTH ends, or DM). */
   handleLinkToken(
     state: RoomState,
     characterId: string,
@@ -299,6 +292,10 @@ export class TokenMessageHandler {
         return { broadcast: false, save: false };
       }
     }
+    // A character keeps its locked token, as Place again does: relinking would hide the
+    // lock, and a parked one would be dropped at the next travel back to its map.
+    const lockRefusal = lockedTokenRefusal(state, characterId);
+    if (lockRefusal) return { broadcast: false, save: false, lockRefusal };
     const linked = this.characterService.linkToken(state, characterId, tokenId);
     return { broadcast: linked, save: linked };
   }

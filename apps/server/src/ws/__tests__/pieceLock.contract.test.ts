@@ -460,12 +460,29 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       };
       send({ t: "delete-npc", id: npc.id }, DM);
       send({ t: "place-npc-token", id: npc.id }, DM);
+      // Relinking would hide the lock, and the parked token would be dropped on return.
+      send({ t: "link-token", characterId: npc.id, tokenId: "some-other-token" }, DM);
       expect(state().characters.some((c) => c.id === npc.id)).toBe(true);
       expect(state().characters.find((c) => c.id === npc.id)?.tokenId).toBe(npcToken.id);
       expect(refusalsTo(DM)).toEqual([
         { t: "locked-refused", ids: [`token:${npcToken.id}`], elsewhere: true },
         { t: "locked-refused", ids: [`token:${npcToken.id}`], elsewhere: true },
+        { t: "locked-refused", ids: [`token:${npcToken.id}`], elsewhere: true },
       ]);
+    });
+
+    it("link-token keeps a character on its locked token here too; unlocked, it relinks", () => {
+      const npc = characters.createCharacter(state(), "Goblin", 7, "", "npc");
+      const first = tokens.createToken(state(), DM, 2, 2);
+      const second = tokens.createToken(state(), DM, 3, 3);
+      characters.linkToken(state(), npc.id, first.id);
+      lock(`token:${first.id}`);
+      send({ t: "link-token", characterId: npc.id, tokenId: second.id }, DM);
+      expect(state().characters.find((c) => c.id === npc.id)?.tokenId).toBe(first.id);
+      expect(refusalsTo(DM).at(-1)).toEqual({ t: "locked-refused", ids: [`token:${first.id}`] });
+      send({ t: "transform-object", id: `token:${first.id}`, locked: false }, DM);
+      send({ t: "link-token", characterId: npc.id, tokenId: second.id }, DM);
+      expect(state().characters.find((c) => c.id === npc.id)?.tokenId).toBe(second.id);
     });
 
     it("editing a locked prop's label (same size) applies, with no refusal", () => {
