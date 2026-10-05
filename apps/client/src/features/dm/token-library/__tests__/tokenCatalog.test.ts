@@ -229,9 +229,9 @@ describe("the bundled token catalog", () => {
     expect(searchLibrary({ query: "zzzz" })).toEqual([]);
   });
 
-  // A description's first sentence is the token's look (real search words); the
-  // rest is the family's art guidance ("Not goblin faces.", "Pixel15 processing
-  // applied"), whose negations found orcs and kobolds for "goblin".
+  // A pack description mixes the token's look (real search words) with the family's
+  // art guidance ("Not goblin faces.", "Pixel15 processing applied"), whose negations
+  // found orcs and kobolds for "goblin" — often in the same sentence as the look.
   it("search reads a token's look, not the pack's art guidance", () => {
     const goblins = searchLibrary({ query: "goblin" });
     expect(goblins.length).toBeGreaterThan(0);
@@ -250,6 +250,18 @@ describe("the bundled token catalog", () => {
       const found = searchLibrary({ category: "civilian", query: word });
       expect(found.length, word).toBeGreaterThan(0);
     }
+    // A look clause that shares its sentence with a negation survives it: every orc
+    // is "tusked" ("…broad jaws; more massive than goblins, not green humans"), and
+    // every cultist wears robes ("…robes, no real-world religious symbols").
+    const orcs = LIBRARY_ASSETS.filter((a) => a.family === "Orcs");
+    expect(searchLibrary({ query: "tusked" }).filter((a) => a.family === "Orcs")).toHaveLength(
+      orcs.length,
+    );
+    const cultists = LIBRARY_ASSETS.filter((a) => a.family === "Cultists");
+    expect(cultists.length).toBeGreaterThan(1);
+    expect(searchLibrary({ query: "robes" }).filter((a) => a.family === "Cultists")).toHaveLength(
+      cultists.length,
+    );
   });
 });
 
