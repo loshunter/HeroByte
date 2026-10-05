@@ -15,6 +15,7 @@
  * @module domains/room/transform
  */
 
+import { isLockablePiece } from "../locking/pieceLock.js";
 import type { SceneObject } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { isTokenMoveBlocked } from "../scene/movementBlocking.js";
@@ -64,8 +65,10 @@ export class TransformHandler {
       return true;
     }
 
-    // Locked objects can only be transformed by DM
-    if (object.locked && !isDM) {
+    // A locked token, prop or drawing moves for no one until unlocked, the DM included;
+    // a locked map or staging zone still moves for the DM (the map is locked by default
+    // so it is not dragged by accident, and aligning it is the DM's job).
+    if (object.locked && (!isDM || isLockablePiece(object.id))) {
       return false;
     }
 
@@ -222,7 +225,8 @@ export class TransformHandler {
   ): boolean {
     const drawingId = object.id.replace(/^drawing:/, "");
     const drawing = state.drawings.find((candidate) => candidate.id === drawingId);
-    const canEdit = isDM || drawing?.owner === actorUid;
+    // An owner-less drawing is anyone's, as it is to delete (MapService.deleteDrawing).
+    const canEdit = isDM || !drawing?.owner || drawing.owner === actorUid;
     if (!drawing || !canEdit) return false;
 
     this.applyPosition(object, changes.position);

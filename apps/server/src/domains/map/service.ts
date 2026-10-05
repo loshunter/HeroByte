@@ -3,6 +3,7 @@
 // ============================================================================
 // Handles map-related features: background, grid, drawings, pointers
 
+import { isDrawingLocked, lockedPieceIds } from "../room/locking/pieceLock.js";
 import { randomUUID } from "crypto";
 import type { Drawing, DrawingSegmentPayload, Pointer } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
@@ -74,10 +75,12 @@ export class MapService {
   }
 
   /**
-   * Clear all drawings
+   * Clear all drawings except locked ones (a lock is lifted before anything removes
+   * the piece)
    */
   clearDrawings(state: RoomState): void {
-    state.drawings = [];
+    const locked = lockedPieceIds(state);
+    state.drawings = state.drawings.filter((drawing) => locked.has(`drawing:${drawing.id}`));
     state.drawingUndoStacks = {};
     state.drawingRedoStacks = {};
   }
@@ -86,10 +89,23 @@ export class MapService {
    * Replace all drawings owned by a player (used for imports)
    */
   replacePlayerDrawings(state: RoomState, ownerUid: string, drawings: Drawing[]): void {
-    state.drawings = state.drawings.filter((drawing) => drawing.owner !== ownerUid);
+    // The player's locked drawings stay as they are; the imported set joins them, minus
+    // the file's own copy of a locked one (character files keep drawing ids, and that
+    // copy would otherwise land beside it, unlocked, under a fresh id).
+    const keptLocked = new Set(
+      state.drawings
+        .filter((drawing) => drawing.owner === ownerUid && isDrawingLocked(state, drawing.id))
+        .map((drawing) => drawing.id),
+    );
+    state.drawings = state.drawings.filter(
+      (drawing) => drawing.owner !== ownerUid || keptLocked.has(drawing.id),
+    );
     const ids = new Set(state.drawings.map((drawing) => drawing.id));
+    const incoming = drawings.filter(
+      (drawing) => !(typeof drawing.id === "string" && keptLocked.has(drawing.id.trim())),
+    );
 
-    const sanitized: Drawing[] = drawings.map((drawing) => {
+    const sanitized: Drawing[] = incoming.map((drawing) => {
       let id = typeof drawing.id === "string" ? drawing.id.trim() : "";
       // Preserve imported geometry while keeping IDs unique across owners and
       // within this batch. Existing IDs owned by this importer remain reusable.
@@ -98,7 +114,7 @@ export class MapService {
       const sanitizedDrawing: Drawing = {
         ...drawing,
         id,
-        owner: ownerUid,
+        owner: original.owner || ownerUid,
         selectedBy: undefined,
       };
       return cloneDrawing(sanitizedDrawing);
@@ -151,9 +167,16 @@ export class MapService {
     dx: number,
     dy: number,
     playerUid: string,
+    isDM = false,
   ): boolean {
     const drawing = state.drawings.find((d) => d.id === drawingId);
-    if (drawing && drawing.selectedBy === playerUid) {
+    // Selecting a drawing claims nothing: only its owner, the DM, or anyone for an
+    // owner-less drawing moves it; a locked one moves for no one.
+    if (!drawing || isDrawingLocked(state, drawingId)) return false;
+    if (
+      drawing.selectedBy === playerUid &&
+      (isDM || !drawing.owner || drawing.owner === playerUid)
+    ) {
       // Move all points by the delta
       drawing.points = drawing.points.map((p) => ({
         x: p.x + dx,
@@ -193,13 +216,17 @@ export class MapService {
 
   /**
    * Handle partial erase operations for freehand drawings
-   * Removes the original drawing and replaces it with sanitized segments
+   * Removes the original drawing and replaces it with sanitized segments.
+   * Gated like `deleteDrawing`: the owner, anyone for an owner-less line, or a
+   * DM (who erased a whole shape of anyone's but was silently refused a cut
+   * through a player's freehand line). The pieces stay the original owner's.
    */
   handlePartialErase(
     state: RoomState,
     deleteId: string,
     segments: DrawingSegmentPayload[],
     ownerUid: string,
+    isDM = false,
   ): boolean {
     const index = state.drawings.findIndex((drawing) => drawing.id === deleteId);
     if (index === -1) {
@@ -207,7 +234,7 @@ export class MapService {
     }
 
     const original = state.drawings[index];
-    if (original.owner && original.owner !== ownerUid) {
+    if (!isDM && original.owner && original.owner !== ownerUid) {
       return false;
     }
 
@@ -234,7 +261,7 @@ export class MapService {
         width: segment.width,
         opacity: segment.opacity,
         filled: segment.filled,
-        owner: ownerUid,
+        owner: original.owner || ownerUid,
       };
       state.drawings.push(newDrawing);
       createdSegments.push(cloneDrawing(newDrawing));

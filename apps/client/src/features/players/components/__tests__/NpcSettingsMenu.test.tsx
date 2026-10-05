@@ -77,6 +77,12 @@ vi.mock("../../../../hooks/useImageUrlNormalization", () => ({
 
 // Import component after mocks
 import { NpcSettingsMenu } from "../NpcSettingsMenu";
+import { onLockNotice } from "../../../locking/lockNotice";
+/** What a press told the viewer through lockNotice (App toasts it). */
+function listenForLockNotices(): { heard: (string | undefined)[]; off: () => void } {
+  const heard: (string | undefined)[] = [];
+  return { heard, off: onLockNotice((message) => heard.push(message)) };
+}
 
 // ============================================================================
 // TEST UTILITIES
@@ -857,6 +863,39 @@ describe("NpcSettingsMenu", () => {
   // ==========================================================================
 
   describe("Delete NPC Button", () => {
+    // A locked token is deleted by no one until it is unlocked, and deleting the NPC
+    // would take its token: the button says so instead of failing on the server.
+    it("is stopped while the NPC's token is locked, and a press says to unlock it first", () => {
+      const onDelete = vi.fn();
+      const notices = listenForLockNotices();
+      render(<NpcSettingsMenu {...createProps({ onDelete, tokenLocked: true })} />);
+      const button = screen.getByRole("button", { name: "Delete NPC" });
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      expect(button).toHaveAttribute("title", "Locked: unlock its token first (🔒 Locked, below).");
+      fireEvent.click(button);
+      notices.off();
+      expect(onDelete).not.toHaveBeenCalled();
+      expect(notices.heard).toEqual(["Locked: unlock its token first (🔒 Locked, below)."]);
+    });
+
+    it("turns Place Token and the size buttons off while its token is locked", () => {
+      const onPlaceToken = vi.fn();
+      const onTokenSizeChange = vi.fn();
+      render(
+        <NpcSettingsMenu
+          {...createProps({ onPlaceToken, onTokenSizeChange, tokenLocked: true })}
+        />,
+      );
+      const place = screen.getByRole("button", { name: "Place Token" });
+      expect(place).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(place);
+      expect(onPlaceToken).not.toHaveBeenCalled();
+      const sizes = screen.getAllByTitle("Locked: unlock its token first (🔒 Locked, below).");
+      // Place Token, the six sizes, and Delete NPC carry it.
+      expect(sizes.length).toBeGreaterThanOrEqual(7);
+      expect(screen.getByRole("button", { name: "Garg" })).toBeDisabled();
+    });
+
     it("renders Delete NPC button", () => {
       const props = createProps();
       render(<NpcSettingsMenu {...props} />);

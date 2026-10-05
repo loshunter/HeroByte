@@ -47,6 +47,8 @@ interface PropsTabProps {
   propUpdateError?: string | null;
   /** ID of the prop currently being updated */
   updatingPropId?: string | null;
+  /** Props the DM locked: their Delete is off until they are unlocked. */
+  lockedPropIds?: ReadonlySet<string>;
 }
 
 /**
@@ -73,6 +75,7 @@ export default function PropsTab({
   isUpdatingProp = false,
   propUpdateError = null,
   updatingPropId = null,
+  lockedPropIds,
 }: PropsTabProps) {
   // Same shape as the NPC ×N control: string state so the field can sit
   // empty mid-edit, clamped here, reconciled on blur, button label honest.
@@ -167,6 +170,7 @@ export default function PropsTab({
                 deletionError={isThisPropDeleting ? propDeletionError : null}
                 isUpdating={isThisPropUpdating}
                 updateError={isThisPropUpdating ? propUpdateError : null}
+                locked={lockedPropIds?.has(prop.id) === true}
               />
             );
           })}

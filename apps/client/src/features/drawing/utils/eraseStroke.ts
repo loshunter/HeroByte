@@ -8,24 +8,34 @@
 
 import type { ClientMessage, SceneObject } from "@herobyte/shared";
 import { evaluatePartialErase } from "./partialErase";
+import { announceLocked } from "../../locking/lockNotice";
 
 /**
  * Emit the delete/partial-erase messages for one eraser stroke.
  *
  * Nothing is sent for a drawing the stroke missed, so a stray pass over empty
- * canvas costs no traffic.
+ * canvas costs no traffic. A locked drawing is erased by no one until it is
+ * unlocked: one the stroke touched, and the actor could otherwise erase
+ * (`mayErase`), gets one lockNotice per stroke, not a silent pass.
  */
 export function commitEraseStroke(
   drawingObjects: (SceneObject & { type: "drawing" })[],
   eraserPath: { x: number; y: number }[],
   eraserWidth: number,
   sendMessage: (message: ClientMessage) => void,
+  mayErase: (owner: string | null | undefined) => boolean = () => true,
 ): void {
+  let hitLocked = false;
   for (const drawing of drawingObjects) {
     const drawingId = drawing.data.drawing.id;
     const result = evaluatePartialErase(drawing, eraserPath, eraserWidth);
 
     if (result.kind === "none") continue;
+    // A locked drawing is deleted by no one until it is unlocked; the server would refuse.
+    if (drawing.locked) {
+      hitLocked ||= mayErase(drawing.owner);
+      continue;
+    }
 
     if (result.kind === "partial") {
       sendMessage({ t: "erase-partial", deleteId: drawingId, segments: result.segments });
@@ -34,4 +44,5 @@ export function commitEraseStroke(
 
     sendMessage({ t: "delete-drawing", id: drawingId });
   }
+  if (hitLocked) announceLocked();
 }

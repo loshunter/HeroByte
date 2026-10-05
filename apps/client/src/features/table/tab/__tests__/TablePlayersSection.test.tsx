@@ -107,7 +107,7 @@ describe("TablePlayersSection — removing a player who is not at the table", ()
     expect(onRemovePlayer).toHaveBeenCalledExactlyOnceWith("ghost");
   });
 
-  it("the count it names is what the server removes: locked tokens included, a token under someone else's character excluded", () => {
+  it("the count it names is what the server removes: a locked token stays (and is named), a token under someone else's character excluded", () => {
     const token = (id: string, owner: string, locked = false) =>
       ({ id: `token:${id}`, type: "token", owner, locked, zIndex: 10 }) as unknown as SceneObject;
     const sceneObjects = [
@@ -120,7 +120,8 @@ describe("TablePlayersSection — removing a player who is not at the table", ()
       { tokenId: "own", ownedByPlayerUID: "ghost", type: "pc" },
       { tokenId: "troll", ownedByPlayerUID: null, type: "npc" }, // an NPC: stays, with its token
     ];
-    expect(getSeatTokenCount("ghost", sceneObjects, characters)).toBe(2);
+    // own goes; padlocked is locked, so it stays and passes to the DM.
+    expect(getSeatTokenCount("ghost", sceneObjects, characters)).toBe(1);
 
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     renderTab({
@@ -130,11 +131,11 @@ describe("TablePlayersSection — removing a player who is not at the table", ()
       sceneObjects,
       characters,
     });
-    // Select All counts unlocked tokens only (own: 1); REMOVE's question counts what
-    // goes (own + padlocked: 2) — the two numbers differ on purpose.
     expect(within(rowOf("Ghost")).getByText(/^1 token/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
-    expect(confirm.mock.calls[0][0]).toMatch(/2 tokens on the map go with the seat/);
+    expect(confirm.mock.calls[0][0]).toMatch(
+      /1 token on the map go with the seat\. 1 locked token stays on the map and passes to you\./,
+    );
   });
 
   it("an NPC the departing player CLAIMED keeps its token too — only their own PCs go, whoever owns the token", () => {

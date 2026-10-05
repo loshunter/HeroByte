@@ -94,7 +94,8 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     dragStartPositions.current = {};
     for (const id of selectedObjectIds) {
       const obj = drawingObjects.find((d) => d.id === id);
-      if (obj) {
+      // A locked drawing moves for no one: a group drag leaves it where it is.
+      if (obj && !obj.locked) {
         const appliedObj = applyOverrides(obj);
         dragStartPositions.current[id] = {
           x: appliedObj.transform.x,
@@ -198,7 +199,8 @@ export const DrawingsLayer = memo(function DrawingsLayer({
         (override.x === undefined || Math.abs(sceneObject.transform.x - override.x) < 0.1) &&
         (override.y === undefined || Math.abs(sceneObject.transform.y - override.y) < 0.1);
 
-      if (matchesPosition) {
+      // A locked drawing's move was refused: drop the local copy, back to where it is.
+      if (matchesPosition || sceneObject.locked) {
         delete nextOverrides[key];
         changed = true;
       }

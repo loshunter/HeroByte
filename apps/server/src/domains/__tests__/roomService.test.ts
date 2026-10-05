@@ -588,7 +588,9 @@ describe("RoomService", () => {
       expect(result).toBe(false);
     });
 
-    it("allows DM to transform locked object", () => {
+    // A locked token, prop or drawing moves for no one, the DM included (pieceLock);
+    // the DM unlocks it first.
+    it("refuses the DM a transform of a locked token too", () => {
       const service = new RoomService();
       const state = service.getState();
 
@@ -613,7 +615,8 @@ describe("RoomService", () => {
         position: { x: 10, y: 20 },
       });
 
-      expect(result).toBe(true);
+      expect(result).toBe(false);
+      expect(service.getState().tokens[0]).toMatchObject({ x: 0, y: 0 });
     });
 
     it("returns false for nonexistent object", () => {

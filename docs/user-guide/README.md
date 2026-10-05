@@ -17,7 +17,7 @@ This guide walks through everything a player or a DM needs, with screenshots fro
 ## A note on words
 
 - A **table** is one shared game space — everyone at the same table sees the same map, tokens, and dice rolls. (The code and server APIs call tables "rooms"; the UI always says table.)
-- The **Main Hall** is the default table every server starts with, and it is permanently a **public test table**: its passwords are the documented defaults and cannot be changed, and it wipes itself once it has sat empty for an hour. To keep something built there, [save it as a private table](getting-started.md#keeping-what-you-built-there); for a planned game, [create one](getting-started.md#creating-a-private-table).
+- The **Main Hall** is the default table every server starts with, and it is permanently a **public test table**: its passwords are the server's settings (the documented defaults unless the host changed them) and cannot be changed, and by default it wipes itself once it has sat empty for an hour. To keep something built there, [save it as a private table](getting-started.md#keeping-what-you-built-there); for a planned game, [create one](getting-started.md#creating-a-private-table).
 - The **DM** (Dungeon Master) is a player who has entered DM mode with the DM password. The DM gets extra tools: the DM Menu, the live map editor, fog of war, and the player-view lens.
 
 ## Screenshots

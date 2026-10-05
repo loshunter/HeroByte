@@ -36,7 +36,7 @@ pnpm dev
 
 Then open http://localhost:5174, enter the development table password `Fun1`, and you're at the table. To unlock DM tools, use the DM password `FunDM` — the [Getting Started guide](docs/user-guide/getting-started.md) walks through it.
 
-> The default **Main Hall** is the public test table: both its passwords are these documented ones and **cannot be changed**, and the server wipes it once it has sat empty for an hour. Build there freely — to keep any of it, use DM Menu → Table → Security → **Save as a Private Table**, or create a private table from the join screen.
+> The default **Main Hall** is the public test table: both its passwords are these documented ones and **cannot be changed**, and by default the server wipes it once it has sat empty for an hour (`HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS`; `0` turns that off). Build there freely — to keep any of it, use DM Menu → Table → Security → **Save as a Private Table**, or create a private table from the join screen.
 
 <details>
 <summary>📦 Full Installation & Setup Guide</summary>

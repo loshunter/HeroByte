@@ -17,7 +17,7 @@
 import { useEffect, useState } from "react";
 import type { Player, SceneObject } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../components/ui/JRPGPanel";
-import { REMOVE_PLAYER_GRACE_MS, getSeatTokenCount, removePlayerConfirm } from "./seatRemoval";
+import { REMOVE_PLAYER_GRACE_MS, getSeatTokens, removePlayerConfirm } from "./seatRemoval";
 import type { SeatCharacter } from "./seatRemoval";
 
 // REMOVE's preview rules live in ./seatRemoval; re-exported so the section stays the one import.
@@ -114,7 +114,7 @@ export default function TablePlayersSection({
             const hasTokens = tokenCount > 0;
             const away = isAway(player);
             const recent = away && droppedJustNow(player);
-            const seatTokens = getSeatTokenCount(player.uid, sceneObjects, characters);
+            const seatTokens = getSeatTokens(player.uid, sceneObjects, characters);
 
             return (
               <JRPGPanel key={player.uid} variant="simple">
@@ -151,7 +151,11 @@ export default function TablePlayersSection({
                   {away && !recent && onRemovePlayer ? (
                     <JRPGButton
                       onClick={() => {
-                        if (window.confirm(removePlayerConfirm(player.name, seatTokens))) {
+                        if (
+                          window.confirm(
+                            removePlayerConfirm(player.name, seatTokens.going, seatTokens.kept),
+                          )
+                        ) {
                           onRemovePlayer(player.uid);
                         }
                       }}

@@ -83,6 +83,8 @@ export interface DMMenuBaseProps {
   onSetNPCStatusEffects: (id: string, effects: string[]) => void;
   onFocusNPCToken: (tokenId: string) => void;
   mapTokenIds: ReadonlySet<string>;
+  /** Tokens the DM locked: an NPC with one is neither deleted nor re-placed until unlocked. */
+  lockedTokenIds?: ReadonlySet<string>;
   isCreatingNpc?: boolean;
   npcCreationError?: string | null;
   isUpdatingNpc?: boolean;
@@ -105,6 +107,8 @@ export interface DMMenuBaseProps {
   isUpdatingProp?: boolean;
   propUpdateError?: string | null;
   updatingPropId?: string | null;
+  /** Props the DM locked: nothing deletes them until they are unlocked. */
+  lockedPropIds?: ReadonlySet<string>;
   mapLocked?: boolean;
   onMapLockToggle?: () => void;
   mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };

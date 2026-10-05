@@ -57,7 +57,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "PLACE ON MAP",
       detail:
-        "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again replaces the old token with a fresh one at the corner (its position, lock, size and sight radius reset) rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
+        "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again replaces the old token with a fresh one at the corner (its position, size and sight radius reset; not while its token is locked — Place is off, or refused if the lock is on a map you travelled from, until you unlock it) rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
     },
     {
       term: "⚔️ Encounter",
@@ -92,7 +92,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "Download table backup",
       detail:
-        "DM Menu → Table → Backups (on a phone: ♛ DM → Table). The whole table as one file — map, tokens, characters, props, drawings, images. The server also keeps the table saved between visits (the public test table is wiped once it has sat empty); a backup is what you keep yourself, to move the table or bring an earlier map back. Download before every risky experiment. Restore table backup… replaces the map, NPCs, props and drawings for everyone connected and cannot be undone. Everyone with a seat here keeps their characters and tokens as they are now (one the file has and they no longer do comes back), though each seat's own record — name, portrait, HP and conditions — comes back as the file had it; a monster that is in both stays where it stands; and nobody's DM status changes: that stays with the DM password. The toast says the table's wire weight (what a restore sends; images not counted) and the file's disk size: a restore must fit 1 MB, so mints are refused past 0.75 MB.",
+        "DM Menu → Table → Backups (on a phone: ♛ DM → Table). The whole table as one file — map, tokens, characters, props, drawings, images. The server also keeps the table saved between visits (by default the public test table is wiped once it has sat empty for an hour); a backup is what you keep yourself, to move the table or bring an earlier map back. Download before every risky experiment. Restore table backup… replaces the map, NPCs, props and drawings for everyone connected and cannot be undone. Everyone with a seat here keeps their characters and tokens as they are now (one the file has and they no longer do comes back), though each seat's own record — name, portrait, HP and conditions — comes back as the file had it; a monster that is in both stays where it stands; and nobody's DM status changes: that stays with the DM password. The toast says the table's wire weight (what a restore sends; images not counted) and the file's disk size: a restore must fit 1 MB, so mints are refused past 0.75 MB.",
     },
     {
       term: "Invite players",
@@ -107,12 +107,12 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "Table password & private copy",
       detail:
-        "DM Menu → Table → Security (on a phone: ♛ DM → Table). Change table password: players already here stay connected, anyone joining afterwards needs the new one. Reset to default gives the table the Main Hall's password, so anyone with its code and that password can join. The Main Hall's passwords are fixed (the server's settings) — there, Save as a Private Table copies the whole table to one of your own.",
+        "DM Menu → Table → Security (on a phone: ♛ DM → Table). Change table password: players already here stay connected, anyone joining afterwards needs the new one. Reset to default gives the table the Main Hall's password, so anyone with its code and that password can join. The Main Hall's passwords are fixed (the server's settings: the ones in the setup docs unless the host changed them) — there, Save as a Private Table copies the whole table to one of your own.",
     },
     {
       term: "REMOVE (a player)",
       detail:
-        "DM Menu → Table → Players at this table (on a phone: ♛ DM → Table). A player who is not at the table shows REMOVE (a browser still open on a login screen or at another table counts as here for five minutes; a seat dropped in the last minute reads 'dropped just now' and waits): their seat, character sheets and tokens go, and a fight in progress passes the turn on rather than skipping a round. Not a ban — the table password still lets them back in, as a new player.",
+        "DM Menu → Table → Players at this table (on a phone: ♛ DM → Table). A player who is not at the table shows REMOVE (a browser still open on a login screen or at another table counts as here for five minutes; a seat dropped in the last minute reads 'dropped just now' and waits): their seat, character sheets and tokens go (a locked token stays on the map and passes to you), and a fight in progress passes the turn on rather than skipping a round. Not a ban — the table password still lets them back in, as a new player.",
     },
   ],
 };

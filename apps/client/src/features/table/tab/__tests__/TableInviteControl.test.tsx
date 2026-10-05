@@ -77,11 +77,16 @@ describe("TableInviteControl — Invite", () => {
     ).toBeInTheDocument();
   });
 
-  it("on the default table says the password is the published one, not a secret to send", () => {
+  // The client cannot tell whether the host changed the Main Hall password, so it
+  // names the setup docs' one only as the default.
+  it("on the default table names the Main Hall password, the setup docs' one by default", () => {
     render(<TableInviteControl />);
     expect(screen.getByText("Main Hall — public test table")).toBeInTheDocument();
     expect(
-      screen.getByText(/password is the one published in the setup docs/i),
+      screen.getByText(
+        "Anyone with the Main Hall password can reach this table: the one in the setup docs, unless the host changed it.",
+      ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/password is the one published/i)).toBeNull();
   });
 });

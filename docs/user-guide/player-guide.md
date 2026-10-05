@@ -63,7 +63,7 @@ One draggable window per character, in two halves — what the character is, and
 
 **Token settings**
 
-- **Token Size** — Tiny, Small, Medium, Large, Huge, or Gargantuan (half a cell up to 3 cells). Your DM can resize it too. Sight radius, movement speed and the token lock are the DM's to set, so they appear only in the DM's window.
+- **Token Size** — Tiny, Small, Medium, Large, Huge, or Gargantuan (half a cell up to 3 cells). Your DM can resize it too. While it is locked, no one can resize it. Sight radius, movement speed and the token lock are the DM's to set, so they appear only in the DM's window.
 
 ## Tokens
 
@@ -76,7 +76,7 @@ Your token is your presence on the map:
 - **Select** — click it. **Shift-click** adds to a selection, **Ctrl/Cmd-click** toggles. With the **🖱️ SELECT** tool you can drag a marquee to grab several tokens and drawings at once, then drag any one of them to move the whole group.
 - **Resize / rotate** — with the **🔄 TRANSFORM** tool, click a token for Photoshop-style handles: 8 scale handles plus a rotation handle above (rotation snaps to 45°; hold **Ctrl/Cmd** to rotate freely). The center crosshair drags the object.
 - **Delete** — select and press **Delete** (you can only delete what you own; a confirm dialog lists the exact casualties). Props are deleted in the **Props** panel. A phone has no Delete key: **Tools → Draw → Erase drawings** or **Undo drawing** for your drawings; your own token cannot be deleted on a phone (ask the DM to remove it, or use a computer).
-- **Locked** tokens (🔒 badge) can't be moved or deleted until unlocked — DMs use this to pin scenery and important pieces.
+- **Locked** tokens (🔒 badge) were locked by the DM — DMs use this to pin scenery and important pieces. No one can move or delete them, the DM included, until the DM unlocks them.
 - **Ping** — double-click (or double-tap) empty map space to drop a quick ping, in any tool mode. A player's ping reaches the DM and the players who can see that spot; a DM's ping reaches everyone.
 
 You can only move **your own** tokens. The DM can move everyone's.
@@ -190,8 +190,10 @@ exits drawing mode. Starting Draw again opens the settings sheet.
 - **Erase drawings** affects annotations, with **Eraser width (px)** as its only setting.
   Crossing a freehand stroke removes that section; other drawing shapes are removed
   whole. Partial freehand erasing supports Undo; whole-shape deletion currently does not.
-- You can erase, move and delete only your own drawings; the DM can remove anyone's.
-  **Clear all drawings** removes all annotations, with confirmation, and is DM-only.
+- You can erase, move and delete your own drawings, and any older drawing that has no owner;
+  the DM can remove anyone's. A drawing the DM has locked stays as it is for everyone until
+  the DM unlocks it — the eraser and Delete say so instead of removing it.
+  **Clear all drawings** removes every unlocked annotation, with confirmation, and is DM-only.
   Terrain painting and **Erase terrain** are separate Build map tools.
 
 ### Area templates

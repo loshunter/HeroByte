@@ -14,6 +14,9 @@ import { ImageField } from "../../../components/ui/ImageField";
 import { StatusEffectsPicker } from "./StatusEffectsPicker";
 import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import "./characterSettings.css";
+import { lockGuard } from "../../locking/lockNotice";
+
+const NPC_LOCKED = "Locked: unlock its token first (🔒 Locked, below).";
 
 const NO_EFFECTS: string[] = [];
 const IGNORE_EFFECTS = () => {};
@@ -225,6 +228,8 @@ export function NpcSettingsMenu({
               style={{ fontSize: "0.65rem" }}
               onClick={onDelete}
               disabled={isDeleting}
+              // Its token is locked: nothing deletes the NPC until it is unlocked.
+              {...lockGuard(tokenLocked === true, NPC_LOCKED, { fontSize: "0.65rem" })}
             >
               {isDeleting ? "Deleting..." : "Delete NPC"}
             </button>
@@ -239,6 +244,8 @@ export function NpcSettingsMenu({
             className="btn btn-secondary"
             style={{ fontSize: "0.65rem" }}
             onClick={onPlaceToken}
+            // Placing again replaces (deletes) its token: off while that token is locked.
+            {...lockGuard(tokenLocked === true, NPC_LOCKED, { fontSize: "0.65rem" })}
           >
             Place Token
           </button>
@@ -268,7 +275,10 @@ export function NpcSettingsMenu({
                           className={tokenSize === size ? "btn btn-primary" : "btn btn-secondary"}
                           style={{ fontSize: "0.6rem", padding: "4px 2px" }}
                           onClick={() => onTokenSizeChange(size)}
-                          title={size.charAt(0).toUpperCase() + size.slice(1)}
+                          disabled={tokenLocked === true}
+                          title={
+                            tokenLocked ? NPC_LOCKED : size.charAt(0).toUpperCase() + size.slice(1)
+                          }
                         >
                           {sizeLabels[size]}
                         </button>

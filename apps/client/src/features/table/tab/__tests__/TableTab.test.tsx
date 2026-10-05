@@ -210,7 +210,11 @@ describe("TableTab — Backups", () => {
     renderTab({ isPublicTable: true });
     const publicBackups = within(section("Backups"));
     expect(publicBackups.queryByText(/saved between visits on its own/i)).toBeNull();
-    expect(publicBackups.getByText(/clears once it has sat empty/i)).toBeInTheDocument();
+    expect(
+      publicBackups.getByText(
+        /By default this public test table clears once it has sat empty for an hour/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("says what restoring replaces and what it keeps, and that it cannot be undone", () => {
@@ -317,6 +321,13 @@ describe("TableTab — Security", () => {
     const security = within(section("Security"));
     expect(security.getByText("Save as a Private Table")).toBeInTheDocument();
     expect(security.queryByRole("button", { name: "Change table password" })).toBeNull();
+    // Fixed, not "open for everyone": the host can set the Main Hall's passwords.
+    expect(
+      security.getByText(
+        /its passwords are fixed \(the server's settings\), and by default it is wiped once it has sat empty for an hour/,
+      ),
+    ).toBeInTheDocument();
+    expect(security.queryByText(/stays open for everyone|an hour by default/)).toBeNull();
   });
 
   it("names what Reset to default does", () => {

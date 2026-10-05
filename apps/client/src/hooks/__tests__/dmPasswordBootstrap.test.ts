@@ -62,7 +62,7 @@ describe("useDMManagement — DM password bootstrap", () => {
   });
 
   it("does NOT offer bootstrap on the public test table — the server refuses it there", () => {
-    // Its DM password is fixed so it stays open for everyone, so offering the
+    // Its DM password is fixed (the server's setting), so offering the
     // set-a-password form would walk the user into a guaranteed refusal.
     const { result } = renderHook(() =>
       useDMManagement({

@@ -29,15 +29,16 @@ export function setDMPasswordForUid(
     return;
   }
 
-  // The test table's DM password is fixed for the same reason its entry
-  // password is: it is the published one, and a visitor who changed it would
-  // lock the host out of DM on their own demo permanently.
+  // The test table's DM password is fixed for the same reason its entry password
+  // is: it is the server's setting (the published one unless the host set its own),
+  // and a visitor who changed it would lock the host out of DM on their own demo
+  // until the server restarts.
   if (roomId === defaultRoomId) {
     ws.send(
       JSON.stringify({
         t: "dm-password-update-failed",
         reason:
-          "The test table's DM password is fixed so it stays open for everyone. Save it as a private table to get one of your own.",
+          "The test table's DM password is fixed (the server's setting). Save it as a private table to get one of your own.",
       }),
     );
     return;

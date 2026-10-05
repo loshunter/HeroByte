@@ -11,14 +11,22 @@ import { useState, useEffect } from "react";
 import type { Prop, TokenSize } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
 import { ImageField } from "../../components/ui/ImageField";
+import { lockGuard } from "../locking/lockNotice";
 
 interface PlayerPropEditorProps {
   prop: Prop;
   onUpdate: (updates: { label: string; imageUrl: string; size: TokenSize }) => void;
   onDelete: () => void;
+  /** Locked by the DM: nothing resizes or deletes it until the DM unlocks it. */
+  locked?: boolean;
 }
 
-export function PlayerPropEditor({ prop, onUpdate, onDelete }: PlayerPropEditorProps) {
+export function PlayerPropEditor({
+  prop,
+  onUpdate,
+  onDelete,
+  locked = false,
+}: PlayerPropEditorProps) {
   const [label, setLabel] = useState(prop.label);
   const [imageUrl, setImageUrl] = useState(prop.imageUrl);
   const [size, setSize] = useState<TokenSize>(prop.size);
@@ -105,6 +113,8 @@ export function PlayerPropEditor({ prop, onUpdate, onDelete }: PlayerPropEditorP
               setSize(newSize);
               commitUpdate({ size: newSize });
             }}
+            disabled={locked}
+            title={locked ? "Locked: only the DM can unlock it." : undefined}
             style={{
               width: "100%",
               padding: "4px",
@@ -131,6 +141,10 @@ export function PlayerPropEditor({ prop, onUpdate, onDelete }: PlayerPropEditorP
             }
           }}
           style={{ fontSize: "10px", padding: "6px 12px" }}
+          {...lockGuard(locked === true, "Locked: only the DM can unlock it.", {
+            fontSize: "10px",
+            padding: "6px 12px",
+          })}
         >
           Delete
         </JRPGButton>

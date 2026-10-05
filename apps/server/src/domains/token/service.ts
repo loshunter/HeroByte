@@ -3,6 +3,7 @@
 // ============================================================================
 // Handles token-related business logic
 
+import { isTokenLocked } from "../room/locking/pieceLock.js";
 import { randomUUID } from "crypto";
 import type { Token, TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
@@ -132,7 +133,8 @@ export class TokenService {
    * Move a token (with ownership validation or DM override).
    *
    * Compiled walls and shut doors are physically real for players: a move
-   * whose straight path crosses a blocking segment is refused. The DM moves
+   * whose straight path crosses a blocking segment is refused. A locked token
+   * moves for no one, the DM included (pieceLock); otherwise the DM moves
    * anything anywhere.
    */
   moveToken(
@@ -145,6 +147,9 @@ export class TokenService {
   ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (!token || (token.owner !== ownerUid && !isDM)) {
+      return false;
+    }
+    if (isTokenLocked(state, tokenId)) {
       return false;
     }
     if (!isDM && isTokenMoveBlocked(state, { x: token.x, y: token.y }, { x, y })) {
@@ -294,10 +299,13 @@ export class TokenService {
   }
 
   /**
-   * Remove all tokens except those owned by specified UID
+   * Remove all tokens except those owned by specified UID, and any locked token
+   * (a lock is lifted before anything removes the piece).
    */
   clearAllTokensExcept(state: RoomState, keepOwnerUid: string): void {
-    state.tokens = state.tokens.filter((t) => t.owner === keepOwnerUid);
+    state.tokens = state.tokens.filter(
+      (t) => t.owner === keepOwnerUid || isTokenLocked(state, t.id),
+    );
   }
 
   /**
@@ -305,7 +313,7 @@ export class TokenService {
    */
   setTokenSize(state: RoomState, tokenId: string, ownerUid: string, size: TokenSize): boolean {
     const token = state.tokens.find((t) => t.id === tokenId && t.owner === ownerUid);
-    if (token && !token.locked) {
+    if (token && !isTokenLocked(state, tokenId)) {
       token.size = size;
       return true;
     }
@@ -317,7 +325,7 @@ export class TokenService {
    */
   setTokenSizeByDM(state: RoomState, tokenId: string, size: TokenSize): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
-    if (token) {
+    if (token && !isTokenLocked(state, tokenId)) {
       token.size = size;
       return true;
     }

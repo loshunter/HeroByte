@@ -38,6 +38,7 @@ import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import { deleteCharacterKeepingTurn } from "./deleteCharacter.js";
+import { isTokenLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
 
 /**
  * A seat whose last heartbeat is this recent cannot be removed yet. The
@@ -86,6 +87,8 @@ export interface RemovePlayerResult {
   save: boolean;
   /** Set when nothing was removed, so the dispatcher can tell the DM why. */
   refused?: RemovePlayerRefusal;
+  /** Locked tokens the sweep left on the map (passed to the DM): the DM is told. */
+  lockRefusal?: LockRefusal;
 }
 
 const refuse = (why: RemovePlayerRefusal): RemovePlayerResult => ({
@@ -147,7 +150,17 @@ export function removePlayer(
     return refuse("nothing");
   }
 
-  for (const pc of ownedPcs) deleteCharacterKeepingTurn(deps, state, pc.id);
+  // A locked token is deleted by no one: REMOVE (a bulk sweep) removes the seat and its
+  // characters but leaves each locked token on the map, passed to the DM like the rest.
+  const keptLocked = [...pcTokens, ...stray.map((t) => t.id)].filter(
+    (id): id is string => typeof id === "string" && isTokenLocked(state, id),
+  );
+  for (const pc of ownedPcs) {
+    deleteCharacterKeepingTurn(deps, state, pc.id, { keepLockedToken: true });
+  }
+  for (const token of state.tokens) {
+    if (token.owner === uid && keptLocked.includes(token.id)) token.owner = senderUid;
+  }
   // Every token the seat OWNED that a surviving character stands on passes to
   // the DM who cleared the seat — placed or claimed alike. `token.owner` is a
   // move authority (TokenMessageHandler, tokenDragPreview), and every monster
@@ -158,13 +171,20 @@ export function removePlayer(
   }
   for (const npc of claimedNpcs) npc.ownedByPlayerUID = undefined;
   for (const token of stray) {
+    if (keptLocked.includes(token.id)) continue;
     deps.tokenService.forceDeleteToken(state, token.id);
     deps.selectionService.removeObject(state, token.id);
   }
   deps.selectionService.deselect(state, uid);
   deps.playerService.removePlayer(state, uid);
   console.log(
-    `[RemovePlayer] ${senderUid} cleared ${uid}'s seat: ${ownedPcs.length} PC(s), ${stray.length} stray token(s)`,
+    `[RemovePlayer] ${senderUid} cleared ${uid}'s seat: ${ownedPcs.length} PC(s), ${stray.length} stray token(s), ${keptLocked.length} locked kept`,
   );
-  return { broadcast: true, save: true };
+  return keptLocked.length > 0
+    ? {
+        broadcast: true,
+        save: true,
+        lockRefusal: { ids: keptLocked.map((id) => `token:${id}`), kept: true },
+      }
+    : { broadcast: true, save: true };
 }

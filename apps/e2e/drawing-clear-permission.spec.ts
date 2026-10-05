@@ -70,7 +70,9 @@ test("only the DM can clear drawings, and cancelling preserves drawings and undo
     const cancelClick = clearAll.click();
     const cancelPrompt = await cancelledDialog;
     expect(cancelPrompt.type()).toBe("confirm");
-    expect(cancelPrompt.message()).toBe("Clear all drawings from the map? This cannot be undone.");
+    expect(cancelPrompt.message()).toBe(
+      "Clear all drawings from the map? Locked drawings stay. This cannot be undone.",
+    );
     await cancelPrompt.dismiss();
     await cancelClick;
 

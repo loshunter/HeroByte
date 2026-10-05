@@ -1088,6 +1088,37 @@ describe("DrawingsLayer", () => {
         position: { x: 150, y: 150 },
       });
     });
+
+    // A locked drawing moves for no one: dragging another selected drawing leaves it be.
+    it("a group drag carries the unlocked drawings and leaves a locked one where it is", () => {
+      const free = createDrawingObject({
+        id: "drawing-1",
+        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      });
+      const locked = createDrawingObject({
+        id: "drawing-2",
+        locked: true,
+        transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+      });
+      render(
+        <DrawingsLayer
+          {...defaultProps}
+          drawingObjects={[free, locked]}
+          selectMode={true}
+          selectedObjectIds={["drawing-1", "drawing-2"]}
+        />,
+      );
+      const draggable = screen
+        .getAllByTestId("konva-group")
+        .filter((g) => g.getAttribute("data-draggable") === "true");
+      expect(draggable).toHaveLength(1); // the locked one cannot be grabbed either
+      fireEvent.dragStart(draggable[0]);
+      fireEvent.dragEnd(draggable[0], { target: { position: () => ({ x: 50, y: 50 }) } });
+      expect(mockOnTransformDrawing).toHaveBeenCalledTimes(1);
+      expect(mockOnTransformDrawing).toHaveBeenCalledWith("drawing-1", {
+        position: { x: 50, y: 50 },
+      });
+    });
   });
 
   describe("Transform Overrides", () => {

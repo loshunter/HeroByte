@@ -43,12 +43,29 @@ describe("help text, after the U10c review", () => {
     const tokens = HELP_TOPICS.find((t) => t.id === "tokens")!;
     const locked = entry(tokens, /Locked/);
     expect(locked).toMatch(
-      /The DM selects it and presses 🔓 Unlock \(on a phone: TOOLS → □ Select, tap it, then Unlock\)/,
+      /To unlock a piece, the DM selects it and presses 🔓 Unlock \(on a phone: TOOLS → □ Select, tap it, then 🔓 Unlock\)/,
     );
     expect(locked).toMatch(
       /The DM can also unlock a player character's token from its ⚙️ settings → Token Lock \(on a phone: ◉ PARTY → ⚙️ EDIT\), and an NPC's from its settings' 🔒 Locked button/,
     );
     expect(locked).not.toMatch(/On a computer|Unlocking is desktop only|map element/);
+    // The lock is enforced on every move and delete message (pieceLock, server; the
+    // gizmo, group drag, keys and eraser, client): no move, resize or delete, for anyone,
+    // until the DM unlocks it. Bulk deletes keep locked pieces; table-wide changes (a
+    // restore, travel) still win, and a locked drawing has no badge (LockIndicator is on
+    // tokens and props only).
+    expect(locked).toMatch(
+      /Set by the DM\. A locked token or prop shows a 🔒 badge; a locked drawing shows none\. No one can move, resize or delete a locked piece, the DM included, until the DM unlocks it\./,
+    );
+    expect(locked).toMatch(
+      /🗑️ Clear all drawings keeps locked drawings, and REMOVE keeps locked tokens \(they pass to the DM\)\. Undo stops at a locked drawing until it is unlocked, and the eraser leaves one alone\./,
+    );
+    expect(locked).toMatch(
+      /Table-wide changes still win: Restore table backup… puts back the file's props, drawings and NPCs, locked or not \(seated players keep their tokens as they are, and a monster on both the table and the file keeps its token where it stands\); travelling to another map takes the party's tokens along, and everything else waits with its map, locks and all; deleting a map in the map library deletes the pieces left on it; and the public Main Hall is wiped when it has sat empty\./,
+    );
+    expect(locked).not.toMatch(
+      /players cannot move it|Every other delete|replaces the whole table|Pinned/,
+    );
   });
 
   it("tells a phone player how to do what a desktop key or log does (U10d)", () => {

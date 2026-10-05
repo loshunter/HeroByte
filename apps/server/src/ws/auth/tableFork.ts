@@ -2,7 +2,7 @@
 // TABLE FORK — copy this table into a new private one
 // ============================================================================
 // The "keep what I built" move. The test table's password can never change and
-// it is wiped hourly, so the only way to hold on to work done there is to take
+// by default it is wiped after an hour empty, so the only way to hold on to work done there is to take
 // a copy somewhere durable. That copy is a normal private table: its own
 // password, never auto-cleared, and the test table carries on untouched.
 //

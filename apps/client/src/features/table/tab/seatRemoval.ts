@@ -26,27 +26,52 @@ export interface SeatCharacter {
 }
 
 /** The question REMOVE asks — exported so the test pins the words a DM agrees to. */
-export function removePlayerConfirm(name: string, tokenCount: number): string {
+export function removePlayerConfirm(name: string, tokenCount: number, lockedCount = 0): string {
+  // A locked token is deleted by no one: the sweep leaves it on the map and passes it to the DM.
+  const kept =
+    lockedCount > 0
+      ? ` ${lockedCount} locked token${lockedCount === 1 ? " stays" : "s stay"} on the map and ` +
+        `pass${lockedCount === 1 ? "es" : ""} to you.`
+      : "";
   return (
     `Remove ${name} from the table? They are not at the table. Their character sheets and ` +
-    `${tokenCount} token${tokenCount === 1 ? "" : "s"} on the map go with the seat. There is ` +
+    `${tokenCount} token${tokenCount === 1 ? "" : "s"} on the map go with the seat.${kept} There is ` +
     "no undo, though restoring an older table backup brings the character and its token back " +
     "(not the seat). The table password still lets them back in, as a new player."
   );
 }
 
 /**
- * The tokens that go with the seat, counted the way the server removes them
- * (removePlayer.ts): every token the uid owns — locked or not — except one
- * still standing under a character that SURVIVES the sweep. Only the uid's
- * own PCs go; an NPC keeps its token whoever placed it or claimed it, and so
- * does another player's PC. Not the Select All count, which is unlocked-only.
+ * The seat's tokens, counted the way the server sweeps them (removePlayer.ts):
+ * every token the uid owns, except one still standing under a character that
+ * SURVIVES the sweep. Only the uid's own PCs go; an NPC keeps its token whoever
+ * placed it or claimed it, and so does another player's PC. A LOCKED one stays
+ * (it passes to the DM), so `going` counts the unlocked and `kept` the locked.
  */
+export function getSeatTokens(
+  playerUid: string,
+  sceneObjects: SceneObject[],
+  characters: readonly SeatCharacter[],
+): { going: number; kept: number } {
+  const seat = seatTokenObjects(playerUid, sceneObjects, characters);
+  const kept = seat.filter((obj) => obj.locked).length;
+  return { going: seat.length - kept, kept };
+}
+
+/** The tokens that go with the seat: the unlocked ones (getSeatTokens). */
 export function getSeatTokenCount(
   playerUid: string,
   sceneObjects: SceneObject[],
   characters: readonly SeatCharacter[],
 ): number {
+  return getSeatTokens(playerUid, sceneObjects, characters).going;
+}
+
+function seatTokenObjects(
+  playerUid: string,
+  sceneObjects: SceneObject[],
+  characters: readonly SeatCharacter[],
+): SceneObject[] {
   const survives = (c: SeatCharacter) => !(c.ownedByPlayerUID === playerUid && c.type === "pc");
   // Scene ids carry the kind prefix.
   const keptBySurvivors = new Set(
@@ -61,5 +86,5 @@ export function getSeatTokenCount(
       obj.type === "token" &&
       (obj.owner === playerUid || ownPcTokens.has(obj.id)) &&
       !keptBySurvivors.has(obj.id),
-  ).length;
+  );
 }

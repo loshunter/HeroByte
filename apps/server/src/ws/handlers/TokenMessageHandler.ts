@@ -23,6 +23,8 @@ import type { DragPreviewEvent, DragPreviewUpdate, Token, TokenSize } from "@her
 import { isDeltaChannelEnabled } from "../../config/featureFlags.js";
 import { buildTokenDragPreview } from "./tokenDragPreview.js";
 import { chargeTokenMove } from "../../domains/room/transform/movementCharge.js";
+import { isTokenLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
+import { handKeptTokensTo } from "../../domains/room/locking/pieceLock.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { CharacterService } from "../../domains/character/service.js";
@@ -40,7 +42,13 @@ export interface TokenMessageResult {
   save: boolean;
   /** Optional delta payload describing targeted updates */
   delta?: PendingDelta;
+  /** The piece lock stopped this action: the router tells the sender (the DM or owner only). */
+  lockRefusal?: LockRefusal;
 }
+
+const lockedToken = (tokenId: string): LockRefusal => ({ ids: [`token:${tokenId}`] });
+const mayActOn = (state: RoomState, tokenId: string, senderUid: string, isDM: boolean) =>
+  isDM || state.tokens.find((t) => t.id === tokenId)?.owner === senderUid;
 
 /**
  * Handler for token-related messages
@@ -72,7 +80,6 @@ export class TokenMessageHandler {
    * @param x - New X coordinate
    * @param y - New Y coordinate
    * @param isDM - Whether sender is a DM
-   * @returns Result indicating broadcast/save needs
    */
   handleMove(
     state: RoomState,
@@ -100,7 +107,10 @@ export class TokenMessageHandler {
       // the token's authoritative position so optimistic clients snap back.
       delta = { t: "token-updated", token, previousCell };
     }
-    return { broadcast: deltasEnabled ? charged : moved, save: charged, delta };
+    const result = { broadcast: deltasEnabled ? charged : moved, save: charged, delta };
+    return isTokenLocked(state, tokenId) && mayActOn(state, tokenId, senderUid, isDM)
+      ? { ...result, broadcast: true, lockRefusal: lockedToken(tokenId) }
+      : result;
   }
 
   /**
@@ -124,7 +134,6 @@ export class TokenMessageHandler {
    * @param tokenId - ID of token to recolor
    * @param senderUid - UID of player recoloring the token
    * @param isDM - Whether sender is a DM
-   * @returns Result indicating broadcast/save needs
    */
   handleRecolor(
     state: RoomState,
@@ -143,7 +152,6 @@ export class TokenMessageHandler {
    * @param tokenId - ID of token to delete
    * @param senderUid - UID of player deleting the token
    * @param isDM - Whether sender is a DM
-   * @returns Result indicating broadcast/save needs
    */
   handleDelete(
     state: RoomState,
@@ -151,6 +159,12 @@ export class TokenMessageHandler {
     senderUid: string,
     isDM: boolean,
   ): TokenMessageResult {
+    // A locked token is deleted by no one, the DM included, until it is unlocked.
+    if (isTokenLocked(state, tokenId)) {
+      return mayActOn(state, tokenId, senderUid, isDM)
+        ? { broadcast: false, save: false, lockRefusal: lockedToken(tokenId) }
+        : { broadcast: false, save: false };
+    }
     const success = isDM
       ? this.tokenService.forceDeleteToken(state, tokenId)
       : this.tokenService.deleteToken(state, tokenId, senderUid);
@@ -170,7 +184,6 @@ export class TokenMessageHandler {
    * @param senderUid - UID of player updating the token
    * @param imageUrl - New image URL
    * @param isDM - Whether sender is a DM
-   * @returns Result indicating broadcast/save needs
    */
   handleUpdateImage(
     state: RoomState,
@@ -191,7 +204,6 @@ export class TokenMessageHandler {
    * @param senderUid - UID of player resizing the token
    * @param size - New size
    * @param isDM - Whether sender is DM
-   * @returns Result indicating broadcast/save needs
    */
   handleSetSize(
     state: RoomState,
@@ -203,6 +215,13 @@ export class TokenMessageHandler {
     // The DM path existed as TokenService.setTokenSizeByDM and was never
     // wired, leaving size the ONE token mutation a DM could not override
     // while move/recolor/delete/image/color all took owner-or-DM.
+    if (isTokenLocked(state, tokenId)) {
+      // A resize is a change to the piece: refused like a move. The broadcast puts the
+      // size back on a client that already showed the new one.
+      return mayActOn(state, tokenId, senderUid, isDM)
+        ? { broadcast: true, save: false, lockRefusal: lockedToken(tokenId) }
+        : { broadcast: false, save: false };
+    }
     const updated = isDM
       ? this.tokenService.setTokenSizeByDM(state, tokenId, size)
       : this.tokenService.setTokenSize(state, tokenId, senderUid, size);
@@ -217,7 +236,6 @@ export class TokenMessageHandler {
    * @param senderUid - UID of player recoloring the token
    * @param color - New color (HSL format)
    * @param isDM - Whether sender is a DM
-   * @returns Result indicating broadcast/save needs
    */
   handleSetColor(
     state: RoomState,
@@ -237,7 +255,6 @@ export class TokenMessageHandler {
    * Handle set token vision radius message (DM only — see TokenService).
    *
    * @param isDM - Whether sender is a DM; a non-DM change is refused outright
-   * @returns Result indicating broadcast/save needs
    */
   handleSetVisionRadius(
     state: RoomState,
@@ -260,7 +277,6 @@ export class TokenMessageHandler {
    * @param tokenId - ID of token to link
    * @param senderUid - UID of the sender
    * @param isDM - Whether sender is DM
-   * @returns Result indicating broadcast/save needs
    */
   handleLinkToken(
     state: RoomState,
@@ -288,20 +304,21 @@ export class TokenMessageHandler {
   }
 
   /**
-   * Handle clear all tokens message (DM only)
-   *
-   * Removes all tokens except DM's tokens and all players except the DM.
-   * Cleans up selections for removed players.
+   * Handle clear all tokens message (DM only): removes every token but the DM's
+   * (a locked one stays, passed to the DM) and every player but the DM, with
+   * their selections.
    *
    * @param state - Room state
    * @param senderUid - UID of DM clearing tokens
-   * @returns Result indicating broadcast/save needs
    */
   handleClearAll(state: RoomState, senderUid: string): TokenMessageResult {
-    // Get IDs of tokens to be removed (all except sender's)
+    // Get IDs of tokens to be removed (all except sender's); a locked one stays.
     const removedIds = state.tokens
-      .filter((token) => token.owner !== senderUid)
+      .filter((token) => token.owner !== senderUid && !isTokenLocked(state, token.id))
       .map((token) => token.id);
+    const keptLocked = state.tokens
+      .filter((token) => token.owner !== senderUid && isTokenLocked(state, token.id))
+      .map((token) => `token:${token.id}`);
 
     // Clear tokens except sender's
     this.tokenService.clearAllTokensExcept(state, senderUid);
@@ -316,7 +333,7 @@ export class TokenMessageHandler {
       .filter((player) => player.uid !== senderUid)
       .map((player) => player.uid);
 
-    // Remove all players except sender (DM)
+    handKeptTokensTo(state, senderUid);
     state.players = state.players.filter((p) => p.uid === senderUid);
 
     // Deselect for removed players
@@ -324,6 +341,8 @@ export class TokenMessageHandler {
       this.selectionService.deselect(state, uid);
     }
 
-    return { broadcast: true, save: true };
+    return keptLocked.length > 0
+      ? { broadcast: true, save: true, lockRefusal: { ids: keptLocked, kept: true } }
+      : { broadcast: true, save: true };
   }
 }

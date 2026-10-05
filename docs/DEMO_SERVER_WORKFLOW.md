@@ -30,7 +30,7 @@ HEROBYTE_DM_PASSWORD="your-secure-dm-password"
    - Enter DM password: `FunDM` (or your custom password)
 
 2. **Make It Private** (Optional but recommended)
-   - The public test table's password is fixed (the server's configured default: `Fun1` unless `HEROBYTE_ROOM_SECRET` sets another) so the table stays open for everyone; it cannot be changed there
+   - The public test table's password is fixed (the server's configured default: `Fun1` unless `HEROBYTE_ROOM_SECRET` sets another) so no one can padlock the table; it cannot be changed there
    - Open DM Menu (bottom-right corner) and go to the **Table** tab
    - Under **Save as a Private Table**, give it a name, a table password (e.g., `MyPrivateGame123`) and a DM password, then press **Save & Go There**
    - Everything on the table is copied to your own private table and you arrive there as a player: choose **Enter DM mode** again, with the DM password you just set

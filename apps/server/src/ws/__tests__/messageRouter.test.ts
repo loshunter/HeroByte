@@ -686,6 +686,7 @@ describe("MessageRouter", () => {
         "draw-1",
         segments,
         "player-1",
+        false, // not a DM: the owner rule applies
       );
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -1179,7 +1180,8 @@ describe("MessageRouter", () => {
       expect(mockAuthService.update).not.toHaveBeenCalled();
       const sent = JSON.parse((ws.send as unknown as Mock).mock.calls[0][0] as string);
       expect(sent.t).toBe("room-password-update-failed");
-      expect(sent.reason).toMatch(/fixed so it stays open/i);
+      expect(sent.reason).toMatch(/is fixed \(the server's setting\), so no one can padlock it/);
+      expect(sent.reason).not.toMatch(/stays open/);
     });
 
     it("rejects room password updates from non-DM", () => {

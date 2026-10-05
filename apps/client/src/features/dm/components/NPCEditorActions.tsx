@@ -7,6 +7,7 @@
 // ceiling — adding a third action inline would have made it a new violator.
 
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
+import { lockGuard } from "../../locking/lockNotice";
 
 interface NPCEditorActionsProps {
   /** Used only in the delete confirmation copy. */
@@ -16,6 +17,8 @@ interface NPCEditorActionsProps {
   onFocus?: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** Its token is locked: deleting the NPC or placing it again would remove that token. */
+  tokenLocked?: boolean;
   isUpdating?: boolean;
   isPlacingToken?: boolean;
   isDuplicating?: boolean;
@@ -27,11 +30,13 @@ export function NPCEditorActions({
   onFocus,
   onDuplicate,
   onDelete,
+  tokenLocked = false,
   isUpdating = false,
   isPlacingToken = false,
   isDuplicating = false,
 }: NPCEditorActionsProps) {
   const busy = isUpdating || isPlacingToken;
+  const lockedWhy = "Locked: unlock its token first (🔒 Locked in its ⚙️ settings).";
 
   return (
     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -49,6 +54,7 @@ export function NPCEditorActions({
         onClick={onPlace}
         disabled={busy}
         style={{ fontSize: "10px", flex: 1 }}
+        {...lockGuard(tokenLocked && !busy, lockedWhy, { fontSize: "10px", flex: 1 })}
       >
         {isPlacingToken ? "Placing..." : "Place on Map"}
       </JRPGButton>
@@ -73,6 +79,7 @@ export function NPCEditorActions({
         }}
         disabled={busy}
         style={{ fontSize: "10px", flex: 1 }}
+        {...lockGuard(tokenLocked && !busy, lockedWhy, { fontSize: "10px", flex: 1 })}
       >
         Delete
       </JRPGButton>

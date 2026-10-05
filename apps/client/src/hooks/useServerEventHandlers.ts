@@ -11,9 +11,12 @@
  * @module hooks/useServerEventHandlers
  */
 
+import { deliverLockRefusal } from "../features/locking/lockRefusalBridge";
+import { lockRefusalMessage } from "../features/locking/lockRefusalCopy";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 import { deliverSessionFile } from "../features/session/sessionBridge";
+import { onLockNotice } from "../features/locking/lockNotice";
 
 /**
  * Status of a room password update operation
@@ -61,6 +64,9 @@ export interface UseServerEventHandlersOptions {
    * elevation modal to display or redirect) instead of raising an error toast.
    */
   onDMElevationFailed?: (reason: string) => void;
+
+  /** Whether the viewer is the DM now: a lock refusal names the DM's way out (🔓 Unlock). */
+  viewerIsDM?: boolean;
 
   /**
    * Replies to fork-table. Routed here rather than via
@@ -171,7 +177,11 @@ export function useServerEventHandlers({
   onTableForkMessage,
   onMapStudioMessage,
   onAtlasError,
+  viewerIsDM = false,
 }: UseServerEventHandlersOptions): UseServerEventHandlersReturn {
+  // Read when a refusal arrives, so the handler is not re-registered on every role change.
+  const viewerIsDMRef = useRef(viewerIsDM);
+  viewerIsDMRef.current = viewerIsDM;
   // State for room password operations
   const [roomPasswordStatus, setRoomPasswordStatus] = useState<RoomPasswordStatus | null>(null);
   const [roomPasswordPending, setRoomPasswordPending] = useState(false);
@@ -281,6 +291,19 @@ export function useServerEventHandlers({
         // The Table tab's REMOVE is fire-and-forget too, and a refused one
         // changes nothing on the table: this is the DM's only failure surface.
         toastError(REMOVE_PLAYER_REFUSAL_COPY[message.reason], 5000);
+      } else if ("t" in message && message.t === "locked-refused") {
+        // The lock stopped a move or a delete (or a bulk action kept these pieces): the
+        // server sends it to the one who tried, and nothing else on the table says why.
+        toastError(
+          lockRefusalMessage(
+            message.ids.length,
+            message.kept === true,
+            viewerIsDMRef.current,
+            message.elsewhere === true,
+          ),
+          4000,
+        );
+        deliverLockRefusal(message);
       }
     });
   }, [
@@ -292,6 +315,15 @@ export function useServerEventHandlers({
     onMapStudioMessage,
     onAtlasError,
   ]);
+
+  // A control the lock stopped on this client (lockNotice) gets the same toast.
+  useEffect(
+    () =>
+      onLockNotice((message) =>
+        toastError(message ?? lockRefusalMessage(1, false, viewerIsDMRef.current), 4000),
+      ),
+    [toastError],
+  );
 
   return {
     roomPasswordStatus,

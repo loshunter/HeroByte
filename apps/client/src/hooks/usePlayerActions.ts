@@ -281,6 +281,18 @@ export function usePlayerActions({
       // Find this character
       const character = snapshot?.characters?.find((c) => c.id === characterId);
       if (!character) return;
+      // A character whose token is locked is deleted by no one until the DM unlocks it:
+      // no confirm for a delete that cannot happen, and no replacement for a character
+      // that stays. The server refuses it and says why (locked-refused).
+      const tokenLocked =
+        character.tokenId !== undefined &&
+        snapshot?.sceneObjects?.some(
+          (object) => object.id === `token:${character.tokenId}` && object.locked === true,
+        ) === true;
+      if (tokenLocked) {
+        sendMessage({ t: "delete-player-character", characterId });
+        return;
+      }
 
       // Count player's characters. A DM deleting SOMEONE ELSE's character (an
       // abandoned seat, say) is not deleting their own last one, and must not
@@ -319,7 +331,7 @@ export function usePlayerActions({
         sendMessage({ t: "add-player-character", name: "New Character", maxHp: 100 });
       }
     },
-    [sendMessage, snapshot?.characters, snapshot?.users, uid],
+    [sendMessage, snapshot?.characters, snapshot?.sceneObjects, snapshot?.users, uid],
   );
 
   /**
@@ -423,6 +435,10 @@ export function usePlayerActions({
 
       // Apply token-specific state if tokenId provided
       if (tokenId) {
+        // A locked token is moved and resized by no one: the file's size and place would
+        // only be refused (a toast each), so they are not sent; the rest of it applies.
+        const tokenLocked =
+          snapshot?.sceneObjects?.some((o) => o.id === `token:${tokenId}` && o.locked) === true;
         // Token color (prefer token.color, fallback to legacy color field)
         const color =
           state.token?.color ?? (typeof state.color === "string" ? state.color : undefined);
@@ -442,7 +458,7 @@ export function usePlayerActions({
         }
 
         // Token size
-        if (state.token?.size) {
+        if (state.token?.size && !tokenLocked) {
           sendMessage({ t: "set-token-size", tokenId, size: state.token.size });
         }
 
@@ -472,7 +488,10 @@ export function usePlayerActions({
         }
 
         // Send transform message if any transform properties present
-        if (transform.position || transform.scale || transform.rotation !== undefined) {
+        if (
+          !tokenLocked &&
+          (transform.position || transform.scale || transform.rotation !== undefined)
+        ) {
           sendMessage({
             t: "transform-object",
             id: `token:${tokenId}`,
@@ -504,7 +523,7 @@ export function usePlayerActions({
         sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
       }
     },
-    [sendMessage, snapshot?.characters, uid],
+    [sendMessage, snapshot?.characters, snapshot?.sceneObjects, uid],
   );
 
   /**

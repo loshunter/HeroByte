@@ -73,9 +73,9 @@ export default function TableTab({ controls, sessionName, setSessionName }: Tabl
       </TableSection>
 
       <TableSection id="table-tab-security" title="Security">
-        {/* The test table has no password to manage — it is fixed so the table
-            stays open for everyone — so it offers the operation that IS available
-            there instead: take a durable copy before the hourly wipe. */}
+        {/* The test table has no password to manage — it is fixed (the server's
+            setting) so no one can padlock it — so it offers the operation that IS
+            available there instead: take a durable copy before the idle wipe. */}
         {controls.onSaveAsPrivateTable ? (
           <SaveAsPrivateTableControl onSave={controls.onSaveAsPrivateTable} />
         ) : (

@@ -106,7 +106,8 @@ describe("movableSelection", () => {
     expect(out).toEqual(ids);
   });
 
-  it("a locked object is the DM's only", () => {
+  // A lock means locked: no one steps it, the DM included, until it is unlocked.
+  it("a locked object moves for no one, the DM included", () => {
     const locked = snapshot({
       sceneObjects: [{ id: "token:mine", locked: true }] as unknown as RoomSnapshot["sceneObjects"],
     });
@@ -125,7 +126,7 @@ describe("movableSelection", () => {
         uid: "dm",
         isDM: true,
       }),
-    ).toEqual(["token:mine"]);
+    ).toEqual([]);
   });
 
   it("ignores ids that are not tokens or props, unknown ids, and a null snapshot", () => {

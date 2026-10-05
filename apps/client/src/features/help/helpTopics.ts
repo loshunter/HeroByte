@@ -185,7 +185,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🔒 Locked",
         detail:
-          "Pinned by the DM; it cannot be moved or deleted until unlocked. The DM selects it and presses 🔓 Unlock (on a phone: TOOLS → □ Select, tap it, then Unlock). The DM can also unlock a player character's token from its ⚙️ settings → Token Lock (on a phone: ◉ PARTY → ⚙️ EDIT), and an NPC's from its settings' 🔒 Locked button.",
+          "Set by the DM. A locked token or prop shows a 🔒 badge; a locked drawing shows none. No one can move, resize or delete a locked piece, the DM included, until the DM unlocks it. 🗑️ Clear all drawings keeps locked drawings, and REMOVE keeps locked tokens (they pass to the DM). Undo stops at a locked drawing until it is unlocked, and the eraser leaves one alone. Table-wide changes still win: Restore table backup… puts back the file's props, drawings and NPCs, locked or not (seated players keep their tokens as they are, and a monster on both the table and the file keeps its token where it stands); travelling to another map takes the party's tokens along, and everything else waits with its map, locks and all; deleting a map in the map library deletes the pieces left on it; and the public Main Hall is wiped when it has sat empty. To unlock a piece, the DM selects it and presses 🔓 Unlock (on a phone: TOOLS → □ Select, tap it, then 🔓 Unlock). The DM can also unlock a player character's token from its ⚙️ settings → Token Lock (on a phone: ◉ PARTY → ⚙️ EDIT), and an NPC's from its settings' 🔒 Locked button.",
       },
       { term: "Ping", detail: "Double-click (or double-tap) empty space in any tool mode." },
     ],

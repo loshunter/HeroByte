@@ -28,8 +28,8 @@
 // WHAT A RUN LEAVES BEHIND — read before pointing it at a real table:
 //   - A joined seat. Authenticating provisions a player, a character and a
 //     token for the uid, and a plain disconnect removes none of them. They
-//     stay in the table until its idle clear (the public Main Hall wipes
-//     itself after an hour empty) or a DM deletes them, and everyone seated
+//     stay in the table until its idle clear (by default the public Main Hall
+//     wipes itself after an hour empty) or a DM deletes them, and everyone seated
 //     sees the token appear. Prefer a scratch private table you own:
 //     `--room <id>` with THAT table's password (a custom table opens only
 //     with its own password; an id that was never created is not joinable).

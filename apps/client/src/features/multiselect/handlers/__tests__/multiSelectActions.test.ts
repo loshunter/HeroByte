@@ -5,7 +5,6 @@ import {
   shouldBlockDelete,
   buildDeleteConfirmationMessage,
   buildPartialDeleteWarning,
-  buildDeleteBlockedMessage,
   separateObjectsByType,
 } from "../multiSelectActions.js";
 
@@ -145,18 +144,6 @@ describe("multiSelectActions handlers", () => {
       const msg = buildPartialDeleteWarning(1, 1, 1);
       expect(msg).toContain("1 locked object");
       expect(msg).toContain("1 unlocked object");
-    });
-  });
-
-  describe("buildDeleteBlockedMessage", () => {
-    it("builds message for locked objects", () => {
-      const msg = buildDeleteBlockedMessage(true);
-      expect(msg).toBe("Cannot delete locked objects. Unlock them first using the lock icon.");
-    });
-
-    it("builds message for ownership", () => {
-      const msg = buildDeleteBlockedMessage(false);
-      expect(msg).toBe("You can only delete objects you own.");
     });
   });
 

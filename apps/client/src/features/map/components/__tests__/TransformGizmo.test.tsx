@@ -468,6 +468,43 @@ describe("TransformGizmo", () => {
   // ============================================================================
 
   describe("Draggable Restoration", () => {
+    // A node with real attribute storage: what the gizmo saves, it reads back.
+    const statefulNode = (draggable: boolean) => {
+      const attrs = new Map<string, unknown>();
+      let canDrag = draggable;
+      return {
+        node: createMockNode({
+          draggable: vi.fn((value?: boolean) => {
+            if (value !== undefined) canDrag = value;
+            return canDrag;
+          }),
+          getAttr: vi.fn((key: string) => attrs.get(key)),
+          setAttr: vi.fn((key: string, value: unknown) => attrs.set(key, value)),
+        }),
+        canDrag: () => canDrag,
+      };
+    };
+
+    it("locking a piece under the handles leaves it undraggable, not the saved true", () => {
+      const { node, canDrag } = statefulNode(true); // a DM's token: draggable until locked
+      mockNodeRef = node;
+      const props = createDefaultProps();
+      const { rerender } = render(<TransformGizmo {...props} />);
+      expect(canDrag()).toBe(true);
+
+      rerender(<TransformGizmo {...props} selectedObject={createSceneObject({ locked: true })} />);
+      expect(canDrag()).toBe(false);
+    });
+
+    it("deselecting an unlocked piece still restores what it was", () => {
+      const { node, canDrag } = statefulNode(true);
+      mockNodeRef = node;
+      const props = createDefaultProps();
+      const { rerender } = render(<TransformGizmo {...props} />);
+      rerender(<TransformGizmo {...props} selectedObject={null} />);
+      expect(canDrag()).toBe(true);
+    });
+
     it("should not restore draggable if ORIGINAL_DRAG_KEY is not a boolean", () => {
       const mockNode = createMockNode({
         getAttr: vi.fn(() => "invalid"),

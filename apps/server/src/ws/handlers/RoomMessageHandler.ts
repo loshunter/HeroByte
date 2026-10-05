@@ -220,17 +220,18 @@ export class RoomMessageHandler {
       return { broadcast: false, save: false };
     }
 
-    // The test table's password is FIXED. It is the one table whose credentials
-    // every server publishes, so letting anyone change it means a single visitor
-    // can padlock the public demo and the host loses their own test bed with no
-    // way back in. Keeping a real game here was never the right shape anyway —
-    // the table is wiped hourly — so this points at the operation that is.
+    // The test table's password is FIXED: it is the server's setting (the published
+    // one unless the host set its own), so letting anyone change it means a single
+    // visitor can padlock the public demo and the host loses their own test bed
+    // until the server restarts. Keeping a real game here was never the right shape
+    // anyway — by default it is wiped after an hour empty — so this points at the
+    // operation that is.
     const senderRoomId = this.getRoomIdForUid?.(senderUid);
     if ((senderRoomId ?? getDefaultRoomId()) === getDefaultRoomId()) {
       this.sendControlMessage(senderUid, {
         t: "room-password-update-failed",
         reason:
-          "The test table's password is fixed so it stays open for everyone. Save it as a private table instead — you keep everything on it.",
+          "The test table's password is fixed (the server's setting), so no one can padlock it. Save it as a private table instead — you keep everything on it.",
       });
       return { broadcast: false, save: false };
     }

@@ -99,16 +99,6 @@ export function buildPartialDeleteWarning(
 }
 
 /**
- * Build error message when no objects can be deleted
- */
-export function buildDeleteBlockedMessage(hasLocked: boolean): string {
-  if (hasLocked) {
-    return "Cannot delete locked objects. Unlock them first using the lock icon.";
-  }
-  return "You can only delete objects you own.";
-}
-
-/**
  * Separate scene object IDs by type (token vs drawing)
  */
 export function separateObjectsByType(objectIds: string[]): {

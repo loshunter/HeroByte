@@ -89,6 +89,10 @@ export function MultiSelectToolbar({
         top: `${topHeight + 20}px`,
         left: "50%",
         transform: "translateX(-50%)",
+        // Not raised above the floating windows: Chat & Rolls (1000) can cover 🔓 Unlock
+        // at narrow widths, but the windows that open under the header (NPC settings,
+        // ROLL RESULT, the dice roller) put their ✕ where this bar sits, and a bar over
+        // them turns a close into a lock or an unlock.
         zIndex: 1000,
         display: "flex",
         gap: "8px",

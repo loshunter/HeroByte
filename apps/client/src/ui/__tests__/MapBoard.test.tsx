@@ -572,8 +572,8 @@ describe("MapBoard", () => {
       Object.defineProperty(event, "pointerType", { value: pointerType });
       fireEvent(target, event);
     };
-    const pressedBoard = (mapEditMode: boolean, pointerType: string) => {
-      render(<MapBoard {...getDefaultProps({ mapEditMode })} />);
+    const pressedBoard = (phoneLayout: boolean, mapEditMode: boolean, pointerType: string) => {
+      render(<MapBoard {...getDefaultProps({ mapEditMode, phoneLayout })} />);
       const board = screen.getByTestId("map-board");
       const field = document.createElement("input");
       document.body.append(field);
@@ -584,14 +584,12 @@ describe("MapBoard", () => {
       return { board, field };
     };
     afterEach(() => {
-      window.history.replaceState({}, "", "/");
       document.querySelectorAll("body > input").forEach((input) => input.remove());
     });
 
     it("phone layout, outside map edit: not focusable, and a tap leaves the field focused", () => {
-      window.history.replaceState({}, "", "/?mobile=true");
       for (const pointerType of ["touch", "pen", "mouse"]) {
-        const { board, field } = pressedBoard(false, pointerType);
+        const { board, field } = pressedBoard(true, false, pointerType);
         expect(board).not.toHaveAttribute("tabindex");
         expect(document.activeElement).toBe(field);
         cleanup();
@@ -603,9 +601,8 @@ describe("MapBoard", () => {
     // element). What stops that is the cancelled default, pinned here — and kept off
     // wherever the map takes keys, where the press must focus it.
     it("phone layout, outside map edit: the press's mousedown cannot take focus", () => {
-      const pressDefaultPrevented = (mobile: boolean, mapEditMode: boolean) => {
-        window.history.replaceState({}, "", `/?mobile=${mobile}`);
-        render(<MapBoard {...getDefaultProps({ mapEditMode })} />);
+      const pressDefaultPrevented = (phoneLayout: boolean, mapEditMode: boolean) => {
+        render(<MapBoard {...getDefaultProps({ mapEditMode, phoneLayout })} />);
         const canvas = document.createElement("canvas");
         screen.getByTestId("map-board").append(canvas);
         const event = createEvent.mouseDown(canvas);
@@ -620,8 +617,7 @@ describe("MapBoard", () => {
 
     // Canvas presses only: a control inside the wrapper must still take focus when pressed.
     it("phone layout, outside map edit: a press on a control inside the map keeps its default", () => {
-      window.history.replaceState({}, "", "/?mobile=true");
-      render(<MapBoard {...getDefaultProps({ mapEditMode: false })} />);
+      render(<MapBoard {...getDefaultProps({ mapEditMode: false, phoneLayout: true })} />);
       const button = document.createElement("button");
       screen.getByTestId("map-board").append(button);
       const event = createEvent.mouseDown(button);
@@ -630,15 +626,26 @@ describe("MapBoard", () => {
     });
 
     it("phone layout, in map edit: a tap gives the map its history keys", () => {
-      window.history.replaceState({}, "", "/?mobile=true");
-      const { board } = pressedBoard(true, "touch");
+      const { board } = pressedBoard(true, true, "touch");
       expect(document.activeElement).toBe(board);
     });
 
     it("desktop layout: a finger on a touchscreen laptop gives the map focus too", () => {
-      window.history.replaceState({}, "", "/?mobile=false");
-      const { board } = pressedBoard(false, "touch");
+      const { board } = pressedBoard(false, false, "touch");
       expect(document.activeElement).toBe(board);
+    });
+
+    // The layout says which it is, not the window: a phone-sized window hosting the
+    // desktop layout (a render before App swaps it) still gets a focusable map.
+    it("follows the layout prop, not the window's size or ?mobile=", () => {
+      window.history.replaceState({}, "", "/?mobile=true");
+      try {
+        const { board } = pressedBoard(false, false, "touch");
+        expect(board).toHaveAttribute("tabindex", "-1");
+        expect(document.activeElement).toBe(board);
+      } finally {
+        window.history.replaceState({}, "", "/");
+      }
     });
   });
 });

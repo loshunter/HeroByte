@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import type { Prop, Player, TokenSize } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
+import { lockGuard } from "../../locking/lockNotice";
 
 interface PropEditorProps {
   prop: Prop;
@@ -23,6 +24,8 @@ interface PropEditorProps {
   deletionError?: string | null;
   isUpdating?: boolean;
   updateError?: string | null;
+  /** Locked by the DM: nothing resizes or deletes it until it is unlocked (🔓 Unlock). */
+  locked?: boolean;
 }
 
 export function PropEditor({
@@ -34,6 +37,7 @@ export function PropEditor({
   deletionError = null,
   isUpdating = false,
   updateError = null,
+  locked = false,
 }: PropEditorProps) {
   const [label, setLabel] = useState(prop.label);
   const [imageUrl, setImageUrl] = useState(prop.imageUrl);
@@ -205,7 +209,9 @@ export function PropEditor({
         <select
           value={size}
           onChange={handleSizeChange}
-          disabled={isUpdating}
+          // A locked prop is resized by no one until it is unlocked (the server refuses it).
+          disabled={isUpdating || locked}
+          title={locked ? "Locked: select it on the map and press 🔓 Unlock first." : undefined}
           style={{
             width: "100%",
             padding: "4px",
@@ -253,6 +259,11 @@ export function PropEditor({
           }}
           disabled={isDeleting || isUpdating}
           style={{ fontSize: "10px", flex: 1 }}
+          {...lockGuard(
+            locked && !isDeleting && !isUpdating,
+            "Locked: select it on the map and press 🔓 Unlock first, then delete it.",
+            { fontSize: "10px", flex: 1 },
+          )}
         >
           {isDeleting ? "Deleting..." : "Delete"}
         </JRPGButton>

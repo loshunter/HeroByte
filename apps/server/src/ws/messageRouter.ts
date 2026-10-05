@@ -332,7 +332,7 @@ export class MessageRouter {
         if (tokenResult.dragPreview) {
           this.broadcastDragPreview(tokenResult.dragPreview, message.t);
         }
-        this.handleRouteResult(tokenResult, message.t);
+        this.handleRouteResult(tokenResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -340,7 +340,7 @@ export class MessageRouter {
       // Delegate to CharacterDispatcher
       const characterResult = this.characterDispatcher.dispatch(message, context, senderUid);
       if (characterResult) {
-        this.handleRouteResult(characterResult, message.t);
+        this.handleRouteResult(characterResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -348,7 +348,7 @@ export class MessageRouter {
       // Delegate to PlayerDispatcher
       const playerResult = this.playerDispatcher.dispatch(message, context, senderUid);
       if (playerResult) {
-        this.handleRouteResult(playerResult, message.t);
+        this.handleRouteResult(playerResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -360,7 +360,7 @@ export class MessageRouter {
         context.isDM(),
       );
       if (mapStudioResult) {
-        this.handleRouteResult(mapStudioResult, message.t);
+        this.handleRouteResult(mapStudioResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -372,7 +372,7 @@ export class MessageRouter {
         context.isDM(),
       );
       if (atlasResult) {
-        this.handleRouteResult(atlasResult, message.t);
+        this.handleRouteResult(atlasResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -383,7 +383,7 @@ export class MessageRouter {
         context.isDM(),
       );
       if (sceneResult) {
-        this.handleRouteResult(sceneResult, message.t);
+        this.handleRouteResult(sceneResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -391,7 +391,7 @@ export class MessageRouter {
       // Delegate to MapDispatcher
       const mapResult = this.mapDispatcher.dispatch(message, context, senderUid);
       if (mapResult) {
-        this.handleRouteResult(mapResult, message.t);
+        this.handleRouteResult(mapResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -399,7 +399,7 @@ export class MessageRouter {
       // Delegate to PropDispatcher
       const propResult = this.propDispatcher.dispatch(message, context, senderUid);
       if (propResult) {
-        this.handleRouteResult(propResult, message.t);
+        this.handleRouteResult(propResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -407,7 +407,7 @@ export class MessageRouter {
       // Delegate to CustomTokenDispatcher (the table's own Library tokens)
       const customTokenResult = this.customTokenDispatcher.dispatch(message, context, senderUid);
       if (customTokenResult) {
-        this.handleRouteResult(customTokenResult, message.t);
+        this.handleRouteResult(customTokenResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -415,7 +415,7 @@ export class MessageRouter {
       // Delegate to InitiativeDispatcher
       const initiativeResult = this.initiativeDispatcher.dispatch(message, context, senderUid);
       if (initiativeResult) {
-        this.handleRouteResult(initiativeResult, message.t);
+        this.handleRouteResult(initiativeResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -423,7 +423,7 @@ export class MessageRouter {
       // Delegate to SelectionDispatcher
       const selectionResult = this.selectionDispatcher.dispatch(message, context, senderUid);
       if (selectionResult) {
-        this.handleRouteResult(selectionResult, message.t);
+        this.handleRouteResult(selectionResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -431,7 +431,7 @@ export class MessageRouter {
       // Delegate to DiceDispatcher
       const diceResult = this.diceDispatcher.dispatch(message, context, senderUid);
       if (diceResult) {
-        this.handleRouteResult(diceResult, message.t);
+        this.handleRouteResult(diceResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -439,7 +439,7 @@ export class MessageRouter {
       // Delegate to ChatDispatcher
       const chatResult = this.chatDispatcher.dispatch(message, context, senderUid);
       if (chatResult) {
-        this.handleRouteResult(chatResult, message.t);
+        this.handleRouteResult(chatResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -447,7 +447,7 @@ export class MessageRouter {
       // Delegate to RoomDispatcher
       const roomResult = this.roomDispatcher.dispatch(message, context, senderUid);
       if (roomResult) {
-        this.handleRouteResult(roomResult, message.t);
+        this.handleRouteResult(roomResult, message.t, senderUid);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -460,9 +460,24 @@ export class MessageRouter {
     }
   }
 
-  private handleRouteResult(result: RouteHandlerResult | null | undefined, reason: string): void {
+  private handleRouteResult(
+    result: RouteHandlerResult | null | undefined,
+    reason: string,
+    senderUid: string,
+  ): void {
     if (!result) {
       return;
+    }
+
+    // The piece lock stopped some or all of it: say so to the one who tried. A refused
+    // move also broadcasts (its handler asks), so their client drops its local position.
+    if (result.lockRefusal && result.lockRefusal.ids.length > 0) {
+      this.sendControlMessage(senderUid, {
+        t: "locked-refused",
+        ids: result.lockRefusal.ids,
+        ...(result.lockRefusal.kept ? { kept: true } : {}),
+        ...(result.lockRefusal.elsewhere ? { elsewhere: true } : {}),
+      });
     }
 
     const shouldSkipBroadcastVersionBump = Boolean(result.delta && result.broadcast);

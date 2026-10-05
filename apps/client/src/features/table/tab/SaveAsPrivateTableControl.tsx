@@ -1,9 +1,9 @@
 // ============================================================================
 // SAVE AS A PRIVATE TABLE
 // ============================================================================
-// What the public test table offers instead of a password form. Its password is
-// fixed — that is what keeps it open for everyone and un-padlockable — and it is
-// wiped once it has sat empty, so the way to keep anything built here is to
+// What the public test table offers instead of a password form. Its passwords are
+// fixed (the server's settings) — that is what makes it un-padlockable — and it is
+// by default wiped once it has sat empty for an hour, so the way to keep anything built here is to
 // take a copy somewhere durable.
 //
 // The copy is a normal private table: its own password, its own DM password,
@@ -80,9 +80,9 @@ export function SaveAsPrivateTableControl({ onSave }: SaveAsPrivateTableControlP
           color: "#cbd5f5",
         }}
       >
-        This is the public test table: its password is fixed so it stays open for everyone, and it
-        is wiped once it has sat empty for an hour. Copy it to a private table of your own — the
-        map, tokens and everything else come with it, and this table carries on untouched.
+        This is the public test table: its passwords are fixed (the server&apos;s settings), and by
+        default it is wiped once it has sat empty for an hour. Copy it to a private table of your
+        own — the map, tokens and everything else come with it, and this table carries on untouched.
       </p>
 
       <label

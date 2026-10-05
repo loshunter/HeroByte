@@ -23,7 +23,8 @@ import type { SelectionService } from "../../domains/selection/service.js";
 import { allocateNpcNames } from "../../domains/character/npcNaming.js";
 import { SNAPSHOT_LIMITS } from "../../middleware/validators/sessionValidators.js";
 import { resetMovementBudget } from "../../domains/room/transform/movementBudgetReset.js";
-import { deleteCharacterKeepingTurn } from "./deleteCharacter.js";
+import { deleteCharacterKeepingTurn, lockedTokenRefusal } from "./deleteCharacter.js";
+import type { LockRefusal } from "../../domains/room/locking/pieceLock.js";
 
 /**
  * Result of handling an NPC message
@@ -33,6 +34,8 @@ export interface NPCMessageResult {
   broadcast: boolean;
   /** Whether state should be saved */
   save: boolean;
+  /** The piece lock stopped this action: the router tells the sender. */
+  lockRefusal?: LockRefusal;
 }
 
 /**
@@ -201,6 +204,8 @@ export class NPCMessageHandler {
       console.warn(`delete-npc refused: ${npcId} is not an NPC`);
       return { broadcast: false, save: false };
     }
+    const lockRefusal = lockedTokenRefusal(state, npcId);
+    if (lockRefusal) return { broadcast: false, save: false, lockRefusal };
     // The NPC, its token, any selection of it — and the turn, if it held one
     const removed = deleteCharacterKeepingTurn(
       {
@@ -225,6 +230,9 @@ export class NPCMessageHandler {
    * @returns Result indicating broadcast/save needs
    */
   handlePlaceNPCToken(state: RoomState, npcId: string, senderUid: string): NPCMessageResult {
+    // Placing again replaces (deletes) the NPC's token: refused while that token is locked.
+    const lockRefusal = lockedTokenRefusal(state, npcId);
+    if (lockRefusal) return { broadcast: false, save: false, lockRefusal };
     const placed = !!this.characterService.placeNPCToken(
       state,
       this.tokenService,

@@ -14,6 +14,8 @@
  * - Toast notifications
  */
 
+import { onLockRefusal } from "../../features/locking/lockRefusalBridge";
+import { announceLocked } from "../../features/locking/lockNotice";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ServerMessage } from "@herobyte/shared";
@@ -888,6 +890,109 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       expect(toast.error).toHaveBeenCalledTimes(4);
       expect(REMOVE_PLAYER_REFUSAL_COPY.recent).toMatch(/less than a minute/);
       expect(REMOVE_PLAYER_REFUSAL_COPY.connected).toMatch(/another table/);
+    });
+  });
+
+  // The piece lock: the one who tried is told why, in the words for their role.
+  describe("locked-refused events", () => {
+    const mount = (viewerIsDM: boolean) => {
+      const registerServerEventHandler = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+      renderHook(() =>
+        useServerEventHandlers({
+          registerServerEventHandler,
+          toast,
+          sendMessage: vi.fn(),
+          viewerIsDM,
+        }),
+      );
+      const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
+      return { handler, toast };
+    };
+
+    it("toasts a control the lock stopped on this client (lockNotice), in the viewer's words", () => {
+      const dm = mount(true);
+      const player = mount(false);
+      act(() => announceLocked());
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "Locked: select it and press 🔓 Unlock first.",
+        4000,
+      );
+      expect(player.toast.error).toHaveBeenLastCalledWith(
+        "Locked: only the DM can unlock it.",
+        4000,
+      );
+      // A control that knows its own route says it in its own words.
+      act(() => announceLocked("Locked: unlock it first (Token Lock), then delete it."));
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "Locked: unlock it first (Token Lock), then delete it.",
+        4000,
+      );
+    });
+
+    it("tells the DM to unlock first, and a player that only the DM can", () => {
+      const dm = mount(true);
+      act(() => dm.handler({ t: "locked-refused", ids: ["token:t-1"] }));
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "Locked: select it and press 🔓 Unlock first.",
+        4000,
+      );
+      const player = mount(false);
+      act(() => player.handler({ t: "locked-refused", ids: ["drawing:d-1"] }));
+      expect(player.toast.error).toHaveBeenLastCalledWith(
+        "Locked: only the DM can unlock it.",
+        4000,
+      );
+    });
+
+    it("says the lock is on another map when the token waits with one", () => {
+      const dm = mount(true);
+      act(() => dm.handler({ t: "locked-refused", ids: ["token:t-1"], elsewhere: true }));
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "Locked on another map: travel back to it and 🔓 Unlock its token first.",
+        4000,
+      );
+      const player = mount(false);
+      act(() => player.handler({ t: "locked-refused", ids: ["token:t-1"], elsewhere: true }));
+      expect(player.toast.error).toHaveBeenLastCalledWith(
+        "Locked on another map: only the DM can unlock it.",
+        4000,
+      );
+    });
+
+    it("hands the refusal on to the actions waiting on it (the lock refusal bridge)", () => {
+      const heard: unknown[] = [];
+      const off = onLockRefusal((refusal) => heard.push(refusal));
+      try {
+        const dm = mount(true);
+        const frame: ServerMessage = { t: "locked-refused", ids: ["token:t-1"] };
+        act(() => dm.handler(frame));
+        expect(heard).toEqual([frame]);
+      } finally {
+        off();
+      }
+    });
+
+    it("says how many locked pieces a bulk action kept", () => {
+      const dm = mount(true);
+      act(() => dm.handler({ t: "locked-refused", ids: ["drawing:a", "drawing:b"], kept: true }));
+      expect(dm.toast.error).toHaveBeenLastCalledWith(
+        "2 locked pieces kept: 🔓 Unlock them to change them.",
+        4000,
+      );
+      const player = mount(false);
+      act(() => player.handler({ t: "locked-refused", ids: ["drawing:a"], kept: true }));
+      expect(player.toast.error).toHaveBeenLastCalledWith(
+        "1 locked piece kept: only the DM can unlock it.",
+        4000,
+      );
     });
   });
 });

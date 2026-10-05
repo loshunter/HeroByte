@@ -82,6 +82,7 @@ export class MapDispatcher {
           message.dx,
           message.dy,
           senderUid,
+          isDM,
         );
 
       case "delete-drawing":
@@ -93,6 +94,7 @@ export class MapDispatcher {
           message.deleteId,
           message.segments,
           senderUid,
+          isDM,
         );
 
       default:

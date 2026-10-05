@@ -33,6 +33,8 @@ interface UseDrawingToolOptions {
   sendMessage: (msg: ClientMessage) => void;
   onDrawingComplete?: (drawingId: string) => void;
   drawingObjects: (SceneObject & { type: "drawing" })[];
+  /** Whether this actor could erase a drawing of this owner (a locked one then says so). */
+  mayErase?: (owner: string | null | undefined) => boolean;
 }
 
 interface UseDrawingToolReturn {
@@ -69,6 +71,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     sendMessage,
     onDrawingComplete,
     drawingObjects,
+    mayErase,
   } = options;
 
   // Drawing tool state
@@ -225,7 +228,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
 
     // Handle eraser tool differently - delete intersecting drawings
     if (drawTool === "eraser" && finalDrawing.length > 1) {
-      commitEraseStroke(drawingObjects, finalDrawing, drawWidth, sendMessage);
+      commitEraseStroke(drawingObjects, finalDrawing, drawWidth, sendMessage, mayErase);
 
       return;
     }
@@ -306,6 +309,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     sendMessage,
     onDrawingComplete,
     drawingObjects,
+    mayErase,
   ]);
 
   return {

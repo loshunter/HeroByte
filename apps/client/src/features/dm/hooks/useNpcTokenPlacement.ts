@@ -11,6 +11,7 @@
  * @module hooks/useNpcTokenPlacement
  */
 
+import { onLockRefusal } from "../../locking/lockRefusalBridge";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 
@@ -75,6 +76,29 @@ export function useNpcTokenPlacement(
   const [isPlacing, setIsPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [placingTokenForNpcId, setPlacingTokenForNpcId] = useState<string | null>(null);
+
+  // The lock refused THIS action (the server says so with a toast): stop waiting
+  // rather than spin for 5 s and then time out. Only a refusal naming this NPC's token
+  // counts — a refused drag elsewhere must not end the wait — and the pending timer goes
+  // with it, so a retry is not timed out by the first attempt's timer.
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const targetRef = useRef<string | null>(null);
+  targetRef.current = placingTokenForNpcId;
+  const charactersRef = useRef(snapshot?.characters);
+  charactersRef.current = snapshot?.characters;
+  useEffect(
+    () =>
+      onLockRefusal((refusal) => {
+        const tokenId = charactersRef.current?.find((c) => c.id === targetRef.current)?.tokenId;
+        if (!tokenId || !refusal.ids.includes(`token:${tokenId}`)) return;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = null;
+        setIsPlacing(false);
+        setPlacingTokenForNpcId(null);
+        setError(null);
+      }),
+    [],
+  );
 
   // Track previous token IDs to detect new tokens
   const prevTokenIdsRef = useRef<Set<string>>(new Set());
@@ -147,7 +171,9 @@ export function useNpcTokenPlacement(
       sendMessage({ t: "place-npc-token", id: npcId });
 
       // Set a timeout in case server doesn't respond
-      setTimeout(() => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
         setIsPlacing((prev) => {
           if (prev) {
             // Only set error if STILL placing

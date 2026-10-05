@@ -335,7 +335,8 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       const sent = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sent.t).toBe("room-password-update-failed");
-      expect(sent.reason).toMatch(/fixed so it stays open/i);
+      expect(sent.reason).toMatch(/is fixed \(the server's setting\), so no one can padlock it/);
+      expect(sent.reason).not.toMatch(/stays open/);
       expect(sent.reason).toMatch(/private table/i);
       // Still public, so still labelled and still swept.
       expect(roomService.getState().isPublicTable).toBe(true);
@@ -349,7 +350,8 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       const sent = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sent.t).toBe("room-password-update-failed");
-      expect(sent.reason).toMatch(/fixed so it stays open/i);
+      expect(sent.reason).toMatch(/is fixed \(the server's setting\), so no one can padlock it/);
+      expect(sent.reason).not.toMatch(/stays open/);
     });
 
     it("should treat an explicitly undefined secret as a reset to the default", () => {

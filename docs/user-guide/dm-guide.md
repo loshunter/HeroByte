@@ -59,7 +59,7 @@ To edit the table's map, use **🏗️ Build map** in the header. If you have a 
 - **Status Effects** and **🎯 FOCUS** — the same conditions picker as the NPC's window in the Party, and a button that centres your view on its token while that token is on the current map. On a phone this tab is where both live (**♛ DM** → **NPCs & Monsters**; the phone's Party lists seats, not NPCs), and Focus closes the DM screen so you see the token.
 - **PLACE ON MAP** drops its token at the map's top-left corner cell — not at the center of your
   view — so reset the view or drag it across from there. Pressing it again replaces the old token with a fresh
-  one at the corner (its position, lock, size and sight radius reset) rather than adding a second one.
+  one at the corner (its position, size and sight radius reset; not while its token is locked — Place is off, or refused if the lock is on a map you travelled from, until you unlock it) rather than adding a second one.
 - **⚔️ ENCOUNTER** opens [Encounter](#encounter), where initiative and the fight itself live (rolling the NPCs' missing initiative moved there).
 - NPCs appear in the Party as rows wearing their **Stance** — **Enemy**, **Neutral** or **Ally** (see [The Library](#the-library-monsters-and-townsfolk) below) — with HP, conditions and, once its token is placed, **🎯**; a hidden one reads **Hidden** on your screen. Select an NPC's row for its card: the **👁️ eye button** there toggles whether players can see it at all — prep an ambush hidden, reveal it on the pounce. (Hidden NPCs stay visible to you.) Its **⚙️** window has the same two halves as a player's: **Character** (portrait, token art, **Status Effects**, initiative, **Delete NPC**) and **Token settings** (place, size, lock). Conditions you set there show on the NPC's row, card and token for everyone who can see it.
 - **DELETE** removes the NPC and its token.
@@ -142,7 +142,7 @@ A new table's next-steps card has the same copy as **Invite players**, and it is
 Everyone who has joined, one row per player with a token count. Combat, turns and Monster HP are in [Encounter](#encounter); this is the list of people.
 
 - **SELECT ALL** grabs every token a player owns; useful for moving a whole party or checking what someone's left scattered around.
-- **REMOVE** — shown on a player who is **not at the table** (the row says so). It clears their seat: the roster row, their character sheets and their tokens on the map (a token still standing under an NPC is the NPC's, and stays), after a confirm that names the cost. There is no undo, though restoring an older table backup brings the character and its token back (not the seat). A seat dropped in the last minute reads **dropped just now** and waits, so a network blip cannot cost a player their characters; a browser left open on a login screen — even a second tab, even at another table — counts as here for five minutes, and the row cannot tell, so REMOVE then answers with a toast saying so. If one of those characters was taking its turn, the turn passes to the next in order instead of skipping a round. It is not a ban — the table password still lets them back in, as a new player. Players at the table cannot be removed; delete their characters instead.
+- **REMOVE** — shown on a player who is **not at the table** (the row says so). It clears their seat: the roster row, their character sheets and their tokens on the map (a token still standing under an NPC is the NPC's, and stays; a locked token stays too, and passes to you), after a confirm that names the cost. There is no undo, though restoring an older table backup brings the character and its token back (not the seat). A seat dropped in the last minute reads **dropped just now** and waits, so a network blip cannot cost a player their characters; a browser left open on a login screen — even a second tab, even at another table — counts as here for five minutes, and the row cannot tell, so REMOVE then answers with a toast saying so. If one of those characters was taking its turn, the turn passes to the next in order instead of skipping a round. It is not a ban — the table password still lets them back in, as a new player. Players at the table cannot be removed; delete their characters instead.
 
 ### Permissions
 
@@ -187,7 +187,7 @@ Habits that save campaigns:
 
 #### Save as a Private Table (the test table)
 
-On the **Main Hall** this panel appears instead, because that table's passwords are fixed — both the table password and the DM password come from the server's settings (the published defaults when none are set) and cannot be changed in the app, so anyone with the server's Main Hall password can use the test table, and it is wiped once it has sat empty (an hour by default).
+On the **Main Hall** this panel appears instead, because that table's passwords are fixed — both the table password and the DM password come from the server's settings (the published defaults when none are set) and cannot be changed in the app, so anyone with the server's Main Hall password can use the test table, and by default it is wiped once it has sat empty for an hour.
 
 So if something you built there is worth keeping, copy it out: give it a **name**, a **table password** (6+ characters) and optionally a **DM password** (8+), then **SAVE & GO THERE**.
 
@@ -258,7 +258,7 @@ Use it constantly while prepping: it's the difference between "I think that corr
 
 ### Everything else you now own
 
-- **Move and transform anyone's tokens**, and lock/unlock objects (select several and use the Lock/Unlock bar).
+- **Move and transform anyone's tokens**, and lock/unlock objects (select them and use the Lock/Unlock bar). A locked token, prop or drawing can't be moved, resized or deleted by anyone — you included — until you unlock it; Clear all drawings and REMOVE leave locked pieces in place and say how many they kept. Table-wide changes still win: a restore puts back the file's pieces, and travelling to another map takes the party's tokens along.
 - **Delete a player's token** from their card settings (select their row in the Party, ⚙️ on their card → **Token settings** → **🗑️ DELETE TOKEN**; on a phone, **PARTY** → **⚙ EDIT** on their row). The same **Token settings** resize it and lock it.
 - **Move a player character to another seat** from its **Token settings** → **Owner** (on a phone, **PARTY** → **⚙ EDIT** on its row). The character and its token go to that player together: they move it, their fog is lit by it, and it joins their own rows in the Party. Player characters only — an NPC stays yours, because handing one over would change what fog and hidden monster HP show that player.
 - **Edit any player's name, HP, portrait, and status effects** from their card. Click an HP number to type it, or drag along the bar, as the player would; on a phone, the HP on their row in **PARTY** works the same way.

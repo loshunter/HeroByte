@@ -390,6 +390,7 @@ function AuthenticatedApp({
     onTableForkMessage: routeTableForkMessage,
     onMapStudioMessage: mapStudio.handleServerMessage,
     onAtlasError: (message) => atlasErrorRef.current?.(message),
+    viewerIsDM: isDM,
   });
 
   // Mobile detection. The rule itself lives in utils/mobileLayout so that

@@ -12,6 +12,7 @@ import type { TokenSize } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { VisionRadiusField } from "./VisionRadiusField";
 import { MovementSpeedField, type MovementBudgetControl } from "./MovementSpeedField";
+import { lockGuard } from "../../locking/lockNotice";
 
 const TOKEN_SIZES: TokenSize[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const SIZE_LABELS: Record<TokenSize, string> = {
@@ -135,7 +136,15 @@ export function TokenSettingsSection({
                 onClick={() => onTokenSizeChange(size)}
                 variant={tokenSize === size ? "primary" : "default"}
                 style={{ fontSize: "10px", padding: "6px 4px" }}
-                title={size.charAt(0).toUpperCase() + size.slice(1)}
+                // A locked token is resized by no one until it is unlocked (Token Lock).
+                disabled={tokenLocked === true}
+                title={
+                  tokenLocked
+                    ? onToggleTokenLock
+                      ? "Locked: unlock it first (Token Lock)."
+                      : "Locked: only the DM can unlock it."
+                    : size.charAt(0).toUpperCase() + size.slice(1)
+                }
               >
                 {SIZE_LABELS[size]}
               </JRPGButton>
@@ -201,6 +210,16 @@ export function TokenSettingsSection({
             }}
             variant="danger"
             style={{ width: "100%", fontSize: "10px" }}
+            // A locked token is deleted by no one until it is unlocked (Token Lock above);
+            // a press says so rather than nothing.
+            {...lockGuard(
+              tokenLocked === true,
+              "Locked: unlock it first (Token Lock), then delete it.",
+              {
+                width: "100%",
+                fontSize: "10px",
+              },
+            )}
           >
             🗑️ Delete Token (DM)
           </JRPGButton>
