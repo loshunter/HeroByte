@@ -189,13 +189,18 @@ export interface LibrarySearch {
   query?: string;
 }
 
-// A pack asset's `description` opens with what its art shows ("Older adult female,
-// bone hair pins, crooked staff") — real search words — and then carries the
-// family's art guidance ("Not goblin faces.", "Pixel15 processing applied"),
-// whose negations found orcs for "goblin". Only that first sentence is searched.
-// (A custom token's description is the DM's own words, and searched whole below.)
-const lookSentence = (description: string | undefined): string =>
-  (description ?? "").split(/\.(?:\s|$)/, 1)[0] ?? "";
+// A pack asset's `description` mixes what its art shows ("Older adult female, bone
+// hair pins, crooked staff"; a townsfolk's look comes after a "Human woman · adult."
+// line) with the family's art guidance and pipeline notes ("Not goblin faces.",
+// "Pixel15 processing applied", "Approved TopDown-v3 skeleton") — whose negations
+// found orcs for "goblin". Every sentence is searched except those. (A custom
+// token's description is the DM's own words, and searched whole below.)
+const NOT_A_LOOK = /\b(?:not|no)\b|pixel|approved|user-filtered|baseline|prompt|export|processing/i;
+const lookText = (description: string | undefined): string =>
+  (description ?? "")
+    .split(/\.(?:\s|$)/)
+    .filter((sentence) => !NOT_A_LOOK.test(sentence))
+    .join(" ");
 
 const searchText = new Map(
   LIBRARY_ASSETS.map((asset) => [
@@ -209,7 +214,7 @@ const searchText = new Map(
       asset.size,
       asset.creatureType ?? "",
       asset.role ?? "",
-      lookSentence(asset.description),
+      lookText(asset.description),
       asset.race ?? "",
       asset.gender ?? "",
       asset.age ?? "",

@@ -237,10 +237,18 @@ describe("the bundled token catalog", () => {
     expect(goblins.length).toBeGreaterThan(0);
     expect(goblins.every((a) => a.family === "Goblins" || /goblin/i.test(a.name))).toBe(true);
     expect(searchLibrary({ query: "pixel15" })).toEqual([]);
-    // What the art shows is still found: a shaman's staff, a crown, horns.
+    for (const pipeline of ["approved", "prompt", "user-filtered"]) {
+      expect(searchLibrary({ query: pipeline }), pipeline).toEqual([]);
+    }
+    // What the art shows is still found: a shaman's staff, a crown, horns —
     expect(searchLibrary({ query: "shaman staff" }).length).toBeGreaterThan(0);
-    for (const word of ["staff", "robe", "crown", "horns", "wings"]) {
+    for (const word of ["staff", "robe", "crown", "horns", "wings", "skull"]) {
       expect(searchLibrary({ query: word }).length, word).toBeGreaterThan(0);
+    }
+    // — and a townsfolk's look, which follows a "Human woman · adult." line.
+    for (const word of ["apron", "beard", "basket"]) {
+      const found = searchLibrary({ category: "civilian", query: word });
+      expect(found.length, word).toBeGreaterThan(0);
     }
   });
 });
