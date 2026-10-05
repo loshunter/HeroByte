@@ -170,8 +170,8 @@ export class MapService {
     isDM = false,
   ): boolean {
     const drawing = state.drawings.find((d) => d.id === drawingId);
-    // Selecting a drawing claims nothing: only its owner (or the DM) moves it, and a
-    // locked one moves for no one.
+    // Selecting a drawing claims nothing: only its owner, the DM, or anyone for an
+    // owner-less drawing moves it; a locked one moves for no one.
     if (!drawing || isDrawingLocked(state, drawingId)) return false;
     if (
       drawing.selectedBy === playerUid &&

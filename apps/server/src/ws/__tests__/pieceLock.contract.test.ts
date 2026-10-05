@@ -278,6 +278,8 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       ).toEqual([npcToken.id, pcToken.id].sort());
       expect(refusalsTo(PLAYER)).toHaveLength(1);
       expect(refusalsTo(DM)).toHaveLength(3);
+      // The lock is on this map, in sight: no "on another map" flag.
+      expect(refusalsTo(DM)[0]).toEqual({ t: "locked-refused", ids: [`token:${pcToken.id}`] });
     });
 
     it("the eraser (delete-drawing and erase-partial) and a prop's Delete", () => {
@@ -511,8 +513,26 @@ describe("the piece lock — no move, no delete, for anyone, until unlocked", ()
       expect(state().tokens.find((t) => t.id === pcToken.id)?.owner).toBe(PLAYER);
     });
 
-    it("an owner-less drawing moves for whoever selected it, as it deletes for anyone", () => {
-      state().drawings.push({ ...line("nobodys", PLAYER), owner: undefined });
+    it("clear-all-tokens hands the DM a kept NPC token another uid placed", () => {
+      const npc = characters.createCharacter(state(), "Goblin", 7, "", "npc");
+      const npcToken = tokens.createToken(state(), GHOST, 2, 2);
+      characters.linkToken(state(), npc.id, npcToken.id);
+      lock(`token:${npcToken.id}`);
+      send({ t: "clear-all-tokens" }, DM);
+      // Linked to a character, but not one GHOST owns: GHOST must not keep driving it.
+      expect(state().tokens.find((t) => t.id === npcToken.id)?.owner).toBe(DM);
+    });
+
+    it("an owner-less drawing moves for anyone, as it deletes for anyone", () => {
+      state().drawings.push({ ...line("nobodys", PLAYER), owner: undefined }, line("dms", DM));
+      room.createSnapshot();
+      // The client drags a drawing with transform-object (DrawingsLayer).
+      send({ t: "transform-object", id: "drawing:nobodys", position: { x: 10, y: 0 } }, PLAYER);
+      send({ t: "transform-object", id: "drawing:dms", position: { x: 10, y: 0 } }, PLAYER);
+      const at = (id: string) => state().sceneObjects.find((o) => o.id === id)?.transform;
+      expect(at("drawing:nobodys")).toMatchObject({ x: 10, y: 0 });
+      expect(at("drawing:dms")).toMatchObject({ x: 0, y: 0 });
+      // The legacy move-drawing frame agrees.
       send({ t: "select-drawing", id: "nobodys" }, PLAYER);
       send({ t: "move-drawing", id: "nobodys", dx: 10, dy: 0 }, PLAYER);
       expect(state().drawings[0]!.points[0]).toEqual({ x: 10, y: 0 });

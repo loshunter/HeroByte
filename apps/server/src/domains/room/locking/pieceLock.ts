@@ -83,15 +83,21 @@ export interface LockRefusal {
 
 /**
  * After a clear that removed every other player, the locked tokens it kept pass to the
- * DM who cleared (as REMOVE's do) — except one a character still stands on, which
- * survives a clear and stays its player's.
+ * DM who cleared — except a player character's token its own player still owns (the
+ * character survives a clear, so the token stays theirs). An NPC's token a departed
+ * co-DM placed passes to the DM, as REMOVE's do: the uid must not keep driving it.
  */
 export function handKeptTokensTo(
   state: Pick<RoomState, "tokens" | "characters">,
   dmUid: string,
 ): void {
-  const linked = new Set(state.characters.flatMap((c) => (c.tokenId ? [c.tokenId] : [])));
+  const ownCharacterToken = new Set(
+    state.characters
+      .filter((c) => c.tokenId && c.ownedByPlayerUID)
+      .map((c) => `${c.tokenId}|${c.ownedByPlayerUID}`),
+  );
   for (const token of state.tokens) {
-    if (token.owner !== dmUid && !linked.has(token.id)) token.owner = dmUid;
+    if (token.owner === dmUid || ownCharacterToken.has(`${token.id}|${token.owner}`)) continue;
+    token.owner = dmUid;
   }
 }

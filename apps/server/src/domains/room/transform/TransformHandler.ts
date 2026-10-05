@@ -225,7 +225,8 @@ export class TransformHandler {
   ): boolean {
     const drawingId = object.id.replace(/^drawing:/, "");
     const drawing = state.drawings.find((candidate) => candidate.id === drawingId);
-    const canEdit = isDM || drawing?.owner === actorUid;
+    // An owner-less drawing is anyone's, as it is to delete (MapService.deleteDrawing).
+    const canEdit = isDM || !drawing?.owner || drawing.owner === actorUid;
     if (!drawing || !canEdit) return false;
 
     this.applyPosition(object, changes.position);
