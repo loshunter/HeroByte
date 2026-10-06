@@ -19,6 +19,7 @@ import {
   coerceCustomTokens,
   coerceNpcDisposition,
   coerceTokenSize,
+  withoutNpcClaim,
   settleLegacyConditionLists,
 } from "../persistence/loadCoercions.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
@@ -93,7 +94,7 @@ export class SnapshotLoader {
         // and the throw takes the whole table down for every client on it.
         const stance = coerceNpcDisposition(disposition);
         return coerceMovementBudgetFields({
-          ...character,
+          ...withoutNpcClaim(character),
           hp,
           maxHp,
           type: character.type === "npc" ? ("npc" as const) : ("pc" as const),

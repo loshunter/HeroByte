@@ -124,6 +124,20 @@ export function coerceTokenSize(value: unknown): TokenSize | undefined {
 }
 
 /**
+ * An NPC is the DM's: no road claims one any more (claim-character takes PCs only
+ * since 2026-09-22), but a file saved before that can still carry a player's claim,
+ * and every owner-or-DM check (HP, initiative, its modifier, rename, delete) would
+ * honour it. Dropped at every load door: this file's two and SnapshotLoader's.
+ */
+export function withoutNpcClaim<T extends Pick<Character, "type" | "ownedByPlayerUID">>(
+  character: T,
+): T {
+  if (character.type !== "npc" || character.ownedByPlayerUID == null) return character;
+  const { ownedByPlayerUID: _legacyClaim, ...rest } = character;
+  return rest as T;
+}
+
+/**
  * @param combatActive - a fight that survives the restart: every character
  *   in it carries a budget record (the DM's monster plates read from it),
  *   so a file written before the budget existed is back-filled with zero.
@@ -134,7 +148,7 @@ export function coerceLoadedCharacters(raw: unknown, combatActive = false): Char
     const size = coerceTokenSize(tokenSize);
     const stance = coerceNpcDisposition(disposition);
     const coerced = coerceMovementBudgetFields({
-      ...character,
+      ...withoutNpcClaim(character),
       type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
       tokenImage: character.tokenImage ?? undefined,
       tokenId: character.tokenId ?? undefined,

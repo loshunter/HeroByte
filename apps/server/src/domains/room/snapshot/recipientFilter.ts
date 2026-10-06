@@ -29,6 +29,7 @@ import { selectionMapToRecord } from "../selectionSerialization.js";
 import { createVisionContext, isWorldPointVisible } from "../scene/visionFilter.js";
 import { projectAtlasFor, type AtlasView } from "./atlasProjection.js";
 import { redactNpcMovement } from "./movementRedaction.js";
+import { rollsAboutSeen } from "./rollSubjects.js";
 
 /** The per-recipient view of every position-sensitive collection. */
 export interface RecipientView extends AtlasView {
@@ -334,7 +335,12 @@ export function buildRecipientView(
     selectionState: visibleSelection,
     currentTurnCharacterId: visibleTurnCharacterId,
     chatLog: visibleChatFor(state.chatLog, recipientUid),
-    diceRolls: visibleRollsFor(state.diceRolls, isDM, recipientUid),
+    diceRolls: rollsAboutSeen(
+      visibleRollsFor(state.diceRolls, isDM, recipientUid),
+      state.characters,
+      fogFilteredCharacters,
+      recipientUid,
+    ),
     // The campaign graph — discovered-only whitelist for players (its own
     // module: this file has no LOC headroom, and the rules deserve a name).
     ...projectAtlasFor(state, isDM),

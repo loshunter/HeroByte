@@ -10,10 +10,24 @@
 // the DM was typing. App provides it from useDMRole; outside the app (a test, a
 // storybook) the default treats the role as known, which is the old behaviour.
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useRef } from "react";
 
 export const RoleKnownContext = createContext(true);
 
 export function useRoleKnown(): boolean {
   return useContext(RoleKnownContext);
+}
+
+/**
+ * The viewer's DM flag as the roster last confirmed it. Through a blip (the role
+ * not known) it holds what it was, so the DM-only fields inside an open window
+ * (sight, speed, owner, Token Lock, Delete Token) do not unmount and drop what the
+ * DM was typing — and a player's window does not flash them either, as a bare
+ * "DM or role unknown" gate would. The server still decides every send.
+ */
+export function useDMThroughBlip(isDM: boolean): boolean {
+  const roleKnown = useRoleKnown();
+  const confirmed = useRef(isDM);
+  if (roleKnown) confirmed.current = isDM;
+  return roleKnown ? isDM : confirmed.current;
 }

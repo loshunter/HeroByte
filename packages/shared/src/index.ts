@@ -286,6 +286,13 @@ export interface DiceRoll {
    */
   label?: string;
   /**
+   * The character an initiative line names (server-set). A public line was
+   * decided once, at roll time; the recipient filter re-checks this on every
+   * broadcast and drops the line for a player whose view no longer holds the
+   * character (hidden with the 👁 eye, or fogged since).
+   */
+  subjectCharacterId?: string;
+  /**
    * Who may see this roll. Absent means public.
    *
    * SECRECY: filtered per recipient in the snapshot, so a `self` or `dm` roll

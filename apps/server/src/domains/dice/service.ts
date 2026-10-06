@@ -37,6 +37,8 @@ export interface DiceRollRequest {
    * its own roll.
    */
   label?: string;
+  /** The character the line names (initiative) — see DiceRoll.subjectCharacterId. */
+  subjectCharacterId?: string;
 }
 
 /**
@@ -74,6 +76,7 @@ export class DiceService {
     if (rolled.mode !== "normal") roll.mode = rolled.mode;
     if (request.visibility !== "public") roll.visibility = request.visibility;
     if (request.label !== undefined) roll.label = request.label;
+    if (request.subjectCharacterId) roll.subjectCharacterId = request.subjectCharacterId;
 
     this.addRoll(state, roll);
     return roll;
@@ -134,6 +137,8 @@ export class DiceService {
        * to say that `playerName` does not already say.
        */
       label?: string;
+      /** The character the line names — see DiceRoll.subjectCharacterId. */
+      subjectCharacterId?: string;
       /**
        * Absent means public, the same rule `rollFor` follows. Supplied when the
        * SUBJECT of the entry is concealed: a hidden NPC's name must not travel
@@ -167,6 +172,7 @@ export class DiceService {
     if (request.label !== undefined) {
       roll.label = request.label;
     }
+    if (request.subjectCharacterId) roll.subjectCharacterId = request.subjectCharacterId;
     if (request.supersededTotal !== undefined) {
       roll.supersededTotal = request.supersededTotal;
     }

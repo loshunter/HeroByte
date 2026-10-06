@@ -34,6 +34,7 @@ import { useNpcVisibility } from "../hooks/useNpcVisibility";
 import { buildDMMenuProps } from "../features/dm/buildDMMenuProps";
 import { useTableMenuProps } from "../features/table/tableMenuProps";
 import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
+import { useDMThroughBlip } from "../features/table/roleKnown";
 
 // Re-export for backward compatibility
 export type { MainLayoutProps, RollLogEntry };
@@ -221,6 +222,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
   // DM-only NPC visibility toggles
   const { toggleNpcVisibility } = useNpcVisibility({ sendMessage });
+  // The party cards' DM-only handlers hold through a reconnect blip (roleKnown).
+  const partyIsDM = useDMThroughBlip(isDM);
 
   // The one mapping from the props bag onto DMMenuContainer's shape — shared
   // with the mobile shell, so a DM feature is wired once, not per layout.
@@ -237,7 +240,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
   const [launcherDock, setLauncherDock] = useState<HTMLDivElement | null>(null);
 
   // The Party's NPC cards act for the DM (they were wired to undefined).
-  const partyNpcActions = usePartyNpcActions(snapshot?.characters, sendMessage, isDM);
+  const partyNpcActions = usePartyNpcActions(snapshot?.characters, sendMessage, partyIsDM);
 
   const handlePreviousTurn = useCallback(() => {
     sendMessage({ t: "previous-turn" });
@@ -370,11 +373,11 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onNpcUpdate={partyNpcActions.onNpcUpdate}
         onNpcDelete={partyNpcActions.onNpcDelete}
         onNpcPlaceToken={partyNpcActions.onNpcPlaceToken}
-        onNpcToggleVisibility={isDM ? toggleNpcVisibility : undefined}
+        onNpcToggleVisibility={partyIsDM ? toggleNpcVisibility : undefined}
         // Was hardcoded undefined, which (together with an impossible isDM gate
         // in PlayerSettingsMenu) meant a DM had no way to remove a player's
         // token and the confirm string written for it was unreachable code.
-        onPlayerTokenDelete={isDM ? deleteToken : undefined}
+        onPlayerTokenDelete={partyIsDM ? deleteToken : undefined}
         isDeletingNpc={undefined}
         npcDeletionError={undefined}
         onToggleTokenLock={toggleSceneObjectLock}

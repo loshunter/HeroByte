@@ -228,6 +228,41 @@ describe("the bundled token catalog", () => {
     expect(searchLibrary({ category: "monster", query: "villager" })).toEqual([]);
     expect(searchLibrary({ query: "zzzz" })).toEqual([]);
   });
+
+  // A pack description mixes the token's look (real search words) with the family's
+  // art guidance ("Not goblin faces.", "Pixel15 processing applied"), whose negations
+  // found orcs and kobolds for "goblin" — often in the same sentence as the look.
+  it("search reads a token's look, not the pack's art guidance", () => {
+    const goblins = searchLibrary({ query: "goblin" });
+    expect(goblins.length).toBeGreaterThan(0);
+    expect(goblins.every((a) => a.family === "Goblins" || /goblin/i.test(a.name))).toBe(true);
+    expect(searchLibrary({ query: "pixel15" })).toEqual([]);
+    for (const pipeline of ["approved", "prompt", "user-filtered"]) {
+      expect(searchLibrary({ query: pipeline }), pipeline).toEqual([]);
+    }
+    // What the art shows is still found: a shaman's staff, a crown, horns —
+    expect(searchLibrary({ query: "shaman staff" }).length).toBeGreaterThan(0);
+    for (const word of ["staff", "robe", "crown", "horns", "wings", "skull"]) {
+      expect(searchLibrary({ query: word }).length, word).toBeGreaterThan(0);
+    }
+    // — and a townsfolk's look, which follows a "Human woman · adult." line.
+    for (const word of ["apron", "beard", "basket"]) {
+      const found = searchLibrary({ category: "civilian", query: word });
+      expect(found.length, word).toBeGreaterThan(0);
+    }
+    // A look clause that shares its sentence with a negation survives it: every orc
+    // is "tusked" ("…broad jaws; more massive than goblins, not green humans"), and
+    // every cultist wears robes ("…robes, no real-world religious symbols").
+    const orcs = LIBRARY_ASSETS.filter((a) => a.family === "Orcs");
+    expect(searchLibrary({ query: "tusked" }).filter((a) => a.family === "Orcs")).toHaveLength(
+      orcs.length,
+    );
+    const cultists = LIBRARY_ASSETS.filter((a) => a.family === "Cultists");
+    expect(cultists.length).toBeGreaterThan(1);
+    expect(searchLibrary({ query: "robes" }).filter((a) => a.family === "Cultists")).toHaveLength(
+      cultists.length,
+    );
+  });
 });
 
 describe("customItem", () => {

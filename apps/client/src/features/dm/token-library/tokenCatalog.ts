@@ -189,6 +189,22 @@ export interface LibrarySearch {
   query?: string;
 }
 
+// A pack asset's `description` mixes what its art shows ("Older adult female, bone
+// hair pins, crooked staff"; a townsfolk's look comes after a "Human woman · adult."
+// line) with the family's art guidance and pipeline notes ("Not goblin faces.",
+// "Pixel15 processing applied", "Approved TopDown-v3 skeleton") — whose negations
+// found orcs for "goblin". Every CLAUSE is searched except those: the guidance
+// often shares a sentence with the look ("tusked stocky orcs, gray/olive skin;
+// more massive than goblins, not green humans"), and dropping the sentence lost
+// "tusked". (A custom token's description is the DM's own words, searched whole.)
+const NOT_A_LOOK =
+  /\b(?:not|no|than|never|keep|without)\b|pixel|approved|user-filtered|baseline|prompt|export|processing/i;
+const lookText = (description: string | undefined): string =>
+  (description ?? "")
+    .split(/[.;,](?:\s|$)/)
+    .filter((clause) => !NOT_A_LOOK.test(clause))
+    .join(" ");
+
 const searchText = new Map(
   LIBRARY_ASSETS.map((asset) => [
     asset.id,
@@ -201,7 +217,7 @@ const searchText = new Map(
       asset.size,
       asset.creatureType ?? "",
       asset.role ?? "",
-      asset.description ?? "",
+      lookText(asset.description),
       asset.race ?? "",
       asset.gender ?? "",
       asset.age ?? "",
