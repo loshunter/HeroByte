@@ -1,8 +1,8 @@
 // ============================================================================
 // USE VOICE
 // ============================================================================
-// The table's voice call, as simple as a Discord call: Join once (the browser
-// asks for the mic the first time), then Mute / Unmute and Leave. Muting
+// The table's voice call, as simple as a Discord call: Join once (allow the mic
+// when the browser asks), then Mute / Unmute and Leave. Muting
 // silences the outgoing mic and keeps every connection, so you still hear
 // everyone. The server keeps who is in the call (Player.voice), which is what
 // shows a call before you join and tells each browser whom to connect to.

@@ -71,8 +71,8 @@ export const CardControls: React.FC<CardControlsProps> = ({
       )}
       {/* Mounted before it has anything to say: a live region added already filled is not
           reliably announced. The card's button only mutes, which cannot fail; a mic that will
-          not start is told beside Join voice (VoiceControl). This region shows a notice only
-          while this card holds the claim. */}
+          not start is told beside Join voice (VoiceControl). This region shows a notice while
+          this card holds the claim, or while no control does. */}
       {canControlMic && (
         <p id={noticeId} role="status" className="player-card-mic-notice jrpg-text-tiny">
           {micNotice}

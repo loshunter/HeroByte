@@ -87,7 +87,7 @@ export function VoiceControl({ variant }: { variant: Variant }): JSX.Element | n
             claimMicNotice(voiceNoticeOwner(variant));
             void voice.join();
           }}
-          title="Join the table's voice call (your browser asks for the mic the first time)"
+          title="Join the table's voice call (allow the microphone when your browser asks)"
         >
           {state === "joining" ? "Joining…" : "🎤 Join voice"}
         </JRPGButton>
