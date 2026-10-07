@@ -1095,18 +1095,16 @@ describe("MessageRouter", () => {
       controlSpy.mockRestore();
     });
 
-    it("never acks a mic-level meter frame, but does ack a voice-state command", () => {
+    it("acks a mic-level that carries a commandId, and a voice-state command", () => {
       const controlSpy = vi.spyOn(
         router as unknown as { sendControlMessage: (uid: string, message: ServerMessage) => void },
         "sendControlMessage",
       );
 
-      // A live meter: the next frame supersedes it, so an ack would only be noise.
+      // Only a tab from before voice-everywhere tags meter frames; unanswered,
+      // it would retry every one of them against the rate limit.
       routeAndFlush({ t: "mic-level", level: 0.4, commandId: "cmd-meter" }, "player-1");
-      expect(controlSpy).not.toHaveBeenCalledWith(
-        "player-1",
-        expect.objectContaining({ commandId: "cmd-meter" }),
-      );
+      expect(controlSpy).toHaveBeenCalledWith("player-1", { t: "ack", commandId: "cmd-meter" });
 
       routeAndFlush({ t: "voice-state", state: "live", commandId: "cmd-voice" }, "player-1");
       expect(mockPlayerService.setVoiceState).toHaveBeenCalledWith(mockState, "player-1", "live");

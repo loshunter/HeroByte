@@ -123,4 +123,44 @@ describe("command replay contract — the same commandId is applied once", () =>
 
     expect(state().chatLog.filter((m) => m.text === "untracked")).toHaveLength(2);
   });
+
+  it("a malformed commandId is dropped: not applied, not acked, not nacked", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const malformed: unknown[] = ["x".repeat(121), "", 42, ["cmd-array"]];
+    malformed.forEach((commandId, index) => {
+      harness.route({ t: "chat", text: `malformed ${index}`, commandId } as ClientMessage, ALICE);
+    });
+
+    expect(state().chatLog.filter((m) => m.text.startsWith("malformed"))).toHaveLength(0);
+    expect(messagesOf(harness.sockets[ALICE]!, "ack")).toHaveLength(0);
+    expect(messagesOf(harness.sockets[ALICE]!, "nack")).toHaveLength(0);
+    expect(warn).toHaveBeenCalledTimes(malformed.length);
+    warn.mockRestore();
+  });
+
+  it("a commandId of exactly 120 characters is applied and acked", () => {
+    const commandId = "c".repeat(120);
+    harness.route({ t: "chat", text: "longest id", commandId }, ALICE);
+
+    expect(state().chatLog.filter((m) => m.text === "longest id")).toHaveLength(1);
+    expect(acksTo(ALICE, commandId)).toHaveLength(1);
+  });
+
+  it("a mic-level carrying a commandId (a pre-voice tab) is acked", () => {
+    harness.route({ t: "mic-level", level: 0.4, commandId: "cmd-meter" }, ALICE);
+
+    expect(acksTo(ALICE, "cmd-meter")).toHaveLength(1);
+  });
+
+  it("a flood of meter frames never pushes a real command out of the ledger", () => {
+    const line: ClientMessage = { t: "chat", text: "keep me", commandId: "cmd-keep" };
+    harness.route(line, ALICE);
+    for (let i = 0; i < 300; i += 1) {
+      harness.route({ t: "mic-level", level: 0.1, commandId: `cmd-meter-${i}` }, ALICE);
+    }
+    harness.route(line, ALICE); // the late retry
+
+    expect(state().chatLog.filter((m) => m.text === "keep me")).toHaveLength(1);
+    expect(acksTo(ALICE, "cmd-keep")).toHaveLength(2);
+  });
 });

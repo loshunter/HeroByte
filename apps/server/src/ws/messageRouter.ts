@@ -75,7 +75,7 @@ import { DMAuthorizationEnforcer } from "./services/DMAuthorizationEnforcer.js";
 import { AuthorizationCheckWrapper } from "./services/AuthorizationCheckWrapper.js";
 import { MessageLogger } from "./services/MessageLogger.js";
 import { MessageRoutingContext } from "./services/MessageRoutingContext.js";
-import { CommandReplayLedger } from "./services/CommandReplayLedger.js";
+import { CommandReplayLedger, isLedgerCommandId } from "./services/CommandReplayLedger.js";
 import type { PendingDelta } from "./types.js";
 
 /**
@@ -336,6 +336,12 @@ export class MessageRouter {
    */
   route(message: ClientMessage, senderUid: string): void {
     this.messageLogger.logMessageRouting(message.t, senderUid);
+    // The client mints commandIds (a UUID, or a short fallback); anything else
+    // is refused before it can be acked, echoed or held by the ledger.
+    if (message.commandId !== undefined && !isLedgerCommandId(message.commandId)) {
+      console.warn(`[MessageRouter] dropped ${message.t} from ${senderUid}: malformed commandId`);
+      return;
+    }
     // A retry of a command already applied (its ack was late, not lost): answer
     // it again, apply it never. See CommandReplayLedger.
     const replayed = this.isReplayGuarded(message)
@@ -854,10 +860,13 @@ export class MessageRouter {
    * replay-idempotent by their own commandId contract, and their replay must
    * reach the handler — a retried Generate is how the client gets its
    * document back after the bare receipt ack (MessageQueueManager keeps it).
+   * And except meter frames: only a tab from before voice-everywhere sends
+   * them with a commandId (60/s), and they would flush real commands out.
    */
   private isReplayGuarded(message: ClientMessage): boolean {
     return (
       this.shouldAcknowledge(message) &&
+      message.t !== "mic-level" &&
       !message.t.startsWith("map-studio-") &&
       !message.t.startsWith("atlas-")
     );
@@ -871,8 +880,10 @@ export class MessageRouter {
       case "authenticate":
       case "heartbeat":
       case "rtc-signal":
-      case "mic-level": // a live meter: its next frame supersedes it, no retry needed
         return false;
+      // mic-level is acked when it carries a commandId: today's client never
+      // gives it one, but a tab still open from before voice-everywhere does,
+      // and retries every unanswered frame — 60 a second against the rate limit.
       default:
         return true;
     }
