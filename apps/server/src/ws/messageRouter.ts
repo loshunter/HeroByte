@@ -75,6 +75,7 @@ import { DMAuthorizationEnforcer } from "./services/DMAuthorizationEnforcer.js";
 import { AuthorizationCheckWrapper } from "./services/AuthorizationCheckWrapper.js";
 import { MessageLogger } from "./services/MessageLogger.js";
 import { MessageRoutingContext } from "./services/MessageRoutingContext.js";
+import { CommandReplayLedger } from "./services/CommandReplayLedger.js";
 import type { PendingDelta } from "./types.js";
 
 /**
@@ -138,6 +139,8 @@ export class MessageRouter {
   private getAuthorizedClients: () => Set<WebSocket>;
   private getRoomIdForUid: (uid: string) => string;
   private skipNextBroadcastVersionBump: boolean = false;
+  /** The ack/nack each sender's recent commands got — a client retry is answered from it. */
+  private replayLedger = new CommandReplayLedger();
   // Per-recipient vision, memoized on a signature of its actual inputs (own
   // token cells, door states, map transform, grid, scene identity). Other
   // players' moves and drag previews leave the signature untouched, so a
@@ -323,6 +326,15 @@ export class MessageRouter {
    */
   route(message: ClientMessage, senderUid: string): void {
     this.messageLogger.logMessageRouting(message.t, senderUid);
+    // A retry of a command already applied (its ack was late, not lost): answer
+    // it again, apply it never. See CommandReplayLedger.
+    const replayed = this.isReplayGuarded(message)
+      ? this.replayLedger.recall(senderUid, message.commandId!)
+      : undefined;
+    if (replayed) {
+      this.sendControlMessage(senderUid, replayed);
+      return;
+    }
     const context = this.messageRoutingContext.create(senderUid);
 
     try {
@@ -804,18 +816,41 @@ export class MessageRouter {
     if (!this.shouldAcknowledge(message)) {
       return;
     }
-    this.sendControlMessage(senderUid, { t: "ack", commandId: message.commandId! });
+    this.answer(message, senderUid, { t: "ack", commandId: message.commandId! });
   }
 
   private acknowledgeFailure(message: ClientMessage, senderUid: string, error: unknown): void {
     if (!this.shouldAcknowledge(message)) {
       return;
     }
-    this.sendControlMessage(senderUid, {
+    this.answer(message, senderUid, {
       t: "nack",
       commandId: message.commandId!,
       reason: error instanceof Error ? error.message : undefined,
     });
+  }
+
+  private answer(
+    message: ClientMessage,
+    senderUid: string,
+    outcome: Extract<ServerMessage, { t: "ack" } | { t: "nack" }>,
+  ): void {
+    if (this.isReplayGuarded(message)) this.replayLedger.remember(senderUid, outcome);
+    this.sendControlMessage(senderUid, outcome);
+  }
+
+  /**
+   * Every acked command, except the Map Studio and Atlas families: they are
+   * replay-idempotent by their own commandId contract, and their replay must
+   * reach the handler — a retried Generate is how the client gets its
+   * document back after the bare receipt ack (MessageQueueManager keeps it).
+   */
+  private isReplayGuarded(message: ClientMessage): boolean {
+    return (
+      this.shouldAcknowledge(message) &&
+      !message.t.startsWith("map-studio-") &&
+      !message.t.startsWith("atlas-")
+    );
   }
 
   private shouldAcknowledge(message: ClientMessage): boolean {

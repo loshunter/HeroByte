@@ -33,10 +33,14 @@ export class CommandAckManager {
   private readonly nonTracked = new Set<AckEligibleType>(NON_TRACKED_TYPES);
   private pending = new Map<string, PendingCommand>();
   private counter = 0;
+  // The fallback's ids must never repeat for this player: the server answers a
+  // repeated commandId from its replay ledger instead of applying it. So the
+  // counter survives reset() (a reconnect), and the prefix tells this page load
+  // apart from the last one (a reload keeps the uid).
+  private readonly fallbackPrefix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
   reset(): void {
     this.pending.clear();
-    this.counter = 0;
   }
 
   attachCommandId<T extends ClientMessage>(message: T): T {
@@ -95,6 +99,6 @@ export class CommandAckManager {
       return globalThis.crypto.randomUUID();
     }
     this.counter += 1;
-    return `cmd-${this.counter}`;
+    return `cmd-${this.fallbackPrefix}-${this.counter}`;
   }
 }
