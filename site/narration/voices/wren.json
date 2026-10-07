@@ -1,0 +1,16 @@
+{
+  "name": "Wren",
+  "about": "HeroByte's narrator: a tabletop Game Master's voice. Redesigned 2026-10-07 from the 'Female narrator' prompt, following ElevenLabs' Voice Design guide (language and dialect first, age, quality, persona, emotion, then timbre and pacing; no FX words; 'accent' only for the regional dialect).",
+  "model_id": "eleven_ttv_v3",
+  "variants": [
+    {
+      "key": "american",
+      "voice_description": "Native English, General American. Female, mid-30s to early 40s. Studio quality. Persona: seasoned tabletop game master and storyteller. Emotion: warm, wry, quietly dramatic. Rich, warm mid-pitched timbre with smooth, close-mic presence. Relaxed, conversational pacing for clear explanations, slowing and dropping lower for dramatic moments, with a subtle cheeky lift in her intonation, as if guiding a chaotic party and enjoying every minute of it."
+    },
+    {
+      "key": "british",
+      "voice_description": "Native English, Southern British English. Female, mid-30s to early 40s. Studio quality. Persona: seasoned tabletop game master and storyteller. Emotion: warm, wry, quietly dramatic. Rich, warm mid-pitched timbre with smooth, close-mic presence. Relaxed, conversational pacing for clear explanations, slowing and dropping lower for dramatic moments, with a subtle cheeky lift in her intonation, as if guiding a chaotic party and enjoying every minute of it."
+    }
+  ],
+  "text": "[warm, storytelling] Pull up a chair. The candles are lit, the dice are warm, and somewhere beyond that door, something is waiting for you. [wry] No, I won't tell you what. That would spoil the fun. [clear, friendly] When you're ready, roll a d twenty and tell me what you do. Take your time. I'll wait... [quietly amused] and please, this time, nobody lick the glowing mushroom."
+}

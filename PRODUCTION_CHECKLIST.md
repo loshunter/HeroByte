@@ -80,7 +80,7 @@ git push origin main
 
 ### 4. Production Smoke Test
 
-- [ ] Open https://herobyte.pages.dev
+- [ ] Open https://herobyte.pages.dev/play/ (the app; https://herobyte.pages.dev is the website)
 - [ ] Check browser console shows: `[Config] WebSocket URL: wss://herobyte-server.onrender.com`
 - [ ] Verify WebSocket connects (Network tab should show wss:// connection)
 - [ ] Test from multiple devices/browsers:
@@ -190,7 +190,7 @@ Deployment is successful when:
 
 ✅ Server shows "Live" on Render
 ✅ Client shows "Success" on Cloudflare Pages
-✅ Production site loads at herobyte.pages.dev
+✅ Production website loads at herobyte.pages.dev and the app at herobyte.pages.dev/play/
 ✅ WebSocket connects (wss://)
 ✅ All core features work
 ✅ No console errors

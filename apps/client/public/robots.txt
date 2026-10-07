@@ -1,4 +1,4 @@
-# Allow all crawlers to index the app
+# Allow all crawlers. On Cloudflare the website is at / and the app's page at /play/; elsewhere the app is at /.
 User-agent: *
 Allow: /
 
