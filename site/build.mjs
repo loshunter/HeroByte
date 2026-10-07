@@ -17,7 +17,8 @@ const guideDir = path.join(repo, "docs", "user-guide");
 
 // Links to fill in before going public. A null link is left out of the page entirely.
 export const SITE = {
-  appUrl: "https://herobyte.pages.dev",
+  // The app is served from the same Cloudflare Pages project, under /play/ (the site is at /).
+  appUrl: "/play/",
   sourceUrl: null,
   bugUrl: null,
   contactUrl: null,
@@ -26,6 +27,22 @@ export const SITE = {
   mainHall: { password: "Fun1", dmPassword: "FunDM" },
   year: 2026,
 };
+
+// The query parameters the app reads (apps/client/src: room, SESSION_UID_OVERRIDE_PARAM, mobile,
+// ws). A link to / that carries one is an invite or bookmark from before the app moved to /play/,
+// so the landing page forwards it there. Other queries (?fbclid= on a shared post, ?utm_*) stay.
+export const APP_PARAMS = ["room", "sessionUid", "mobile", "ws"];
+
+/** Where the landing page sends a visitor: the app with the same query and hash, or null to stay. */
+export function appForwardTarget(search, hash, appUrl, params) {
+  const query = new URLSearchParams(search);
+  return params.some((name) => query.has(name)) ? appUrl + search + hash : null;
+}
+
+// Runs before anything on the landing page renders, so an old invite never flashes the site.
+const forwarder = `<script>(function(){var t=(${appForwardTarget})(location.search,location.hash,${JSON.stringify(
+  SITE.appUrl,
+)},${JSON.stringify(APP_PARAMS)});if(t)location.replace(t);})();</script>`;
 
 const GUIDES = [
   { file: "getting-started.md", title: "Getting started", aud: "everyone" },
@@ -275,26 +292,26 @@ ${project.length ? `<div class="footer-col"><span class="eyebrow muted">Project<
 </footer>`;
 }
 
-function layout({ title, description, body, root, current, scripts = [] }) {
+function layout({ title, description, body, root, current, scripts = [], head = "" }) {
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)}</title>
+${head}<title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="${root}assets/site.css">
-<link rel="icon" href="${root}assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="${root}site-assets/site.css">
+<link rel="icon" href="${root}site-assets/favicon.svg" type="image/svg+xml">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 ${header(root, current)}
 ${body}
 ${footer(root)}
-${scripts.map((s) => `<script src="${root}assets/${s}" defer></script>`).join("\n")}
+${scripts.map((s) => `<script src="${root}site-assets/${s}" defer></script>`).join("\n")}
 </body>
 </html>
 `;
@@ -318,7 +335,8 @@ async function build() {
   await mkdir(out, { recursive: true });
   for (const e of await readdir(out)) await rm(path.join(out, e), { recursive: true, force: true });
   await mkdir(path.join(out, "help", "guide"), { recursive: true });
-  await cp(path.join(here, "assets"), path.join(out, "assets"), { recursive: true });
+  // Not "assets/": that is the app's content-hashed bundle folder, cached for a year (_headers).
+  await cp(path.join(here, "assets"), path.join(out, "site-assets"), { recursive: true });
   await cp(path.join(guideDir, "img"), path.join(out, "img"), { recursive: true });
 
   const guideFiles = new Set(GUIDES.map((g) => g.file));
@@ -373,7 +391,8 @@ async function build() {
     const root = "../".repeat(depth);
     const body = fill(src.slice(m[0].length), root);
     await mkdir(path.dirname(path.join(out, rel)), { recursive: true });
-    await writeFile(path.join(out, rel), layout({ ...meta, body, root }));
+    const head = rel === "index.html" ? `${forwarder}\n` : "";
+    await writeFile(path.join(out, rel), layout({ ...meta, body, root, head }));
     if (meta.search) {
       const words = body
         .replace(/<(script|style|nav|aside)[\s\S]*?<\/>/g, " ")

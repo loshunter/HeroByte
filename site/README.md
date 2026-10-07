@@ -14,7 +14,8 @@ node site/build.mjs
 
 That writes `site/dist/` (git-ignored, like every `dist/`). To look at it, serve that folder,
 for example with `python -m http.server 4321 --directory site/dist`, and open
-http://localhost:4321/.
+http://localhost:4321/. Its **Open HeroByte** links go to `/play/`, where the app lives once
+deployed; to try them locally, build the whole Cloudflare layout instead (below).
 
 ## What is where
 
@@ -22,7 +23,7 @@ http://localhost:4321/.
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | `build.mjs`         | The build, plus `SITE`: the app link, the Main Hall passwords, and the links still to fill in.          |
 | `pages/`            | Hand-written page bodies. The first line is `<!--meta {...}-->` (title, description, scripts, search). |
-| `assets/`           | `site.css`, `help.js` (topic filter and search), `lesson.js` (chapter stills), the favicon.             |
+| `assets/`           | `site.css`, `help.js` (topic filter and search), `lesson.js` (chapter stills), the favicon. Served at `/site-assets/`, because `/assets/` is the app's bundle, cached for a year. |
 | `docs/user-guide/*` | Not copied by hand: the build renders the guides and copies `docs/user-guide/img/`.                     |
 | `narration/`        | Lesson narration with ElevenLabs (see below). Audio output and the API key are git-ignored.             |
 
@@ -54,11 +55,18 @@ voice could misread); the audition that picked her is `docs/website/narration-au
 reads the key from `site/narration/.env.local` (git-ignored) and never spends past the plan's included credits: it
 refuses a run that does not fit and re-checks before every file. Audio goes to `site/narration/out/` (git-ignored).
 
-## Deploying (not set up)
+## Deploying
 
-The app already lives at `herobyte.pages.dev`, so the website needs its own Cloudflare Pages
-project (or its own domain). Settings for one: root directory `/` (the repo), build command
-`node site/build.mjs`, output directory `site/dist`. No environment variables.
+The website and the app are ONE Cloudflare Pages project (`herobyte.pages.dev`): the website at
+`/`, the app at `/play/`. Nothing is set up separately: on Cloudflare the app's own build runs
+`apps/client/scripts/assemble-pages.mjs`, which runs this build and copies `site/dist/` around
+the app. `CLOUDFLARE_PAGES_DEPLOYMENT.md` explains the layout and how to build it locally
+(`pnpm --filter herobyte-client build:pages`).
+
+The landing page forwards old links that carry one of the app's query parameters
+(`APP_PARAMS` in `build.mjs`: `room`, `sessionUid`, `mobile`, `ws`) to `/play/`, so invites sent
+as `herobyte.pages.dev/?room=...` still reach the table. If the app starts reading a new query
+parameter, add it there. Any other query (`?fbclid=` on a shared post) stays on the landing page.
 
 ## Checks used while building it
 

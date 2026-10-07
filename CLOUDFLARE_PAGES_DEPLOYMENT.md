@@ -56,6 +56,23 @@ Add the following environment variable to **both Production and Preview**:
 - Use `wss://` (WebSocket Secure) not `ws://` for production
 - Set this for both Production and Preview environments so preview deployments also work
 
+### What the build serves: the website at `/`, the app at `/play/`
+
+One Pages project serves both. On Cloudflare (which sets `CF_PAGES=1` in every build), `pnpm build`
+ends with `apps/client/scripts/assemble-pages.mjs`, which builds the website (`site/build.mjs`) and lays
+out `dist/` as:
+
+- `/` and `/help/...`: the website (its own files under `/site-assets/` and `/img/`).
+- `/play/`: the app's page. Its bundle stays at `/assets/` and its public files (`/tokens/`, `/tiles/`,
+  `/sfx/`, `/manifest.json`, `/sw.js`) stay at the root, because saved tables and backups hold those URLs.
+- Old links such as `/?room=<code>` still reach the table: the landing page forwards any link carrying
+  one of the app's query parameters (`room`, `sessionUid`, `mobile`, `ws`) to `/play/` with the same query.
+
+Everywhere else (dev, CI, e2e) the step does nothing and the app stays at `/`. To see the Cloudflare
+layout locally, run `pnpm --filter herobyte-client build:pages` (set `VITE_WS_URL=ws://localhost:8787`
+first to use a local server) and serve `apps/client/dist` with any static server. A file that both the
+site and the app have stops the build rather than overwriting one with the other.
+
 ## Step 3: Deploy
 
 1. Click **Save and Deploy**
@@ -70,7 +87,7 @@ The initial deployment takes 2-5 minutes.
 ## Step 4: Test Your Deployment
 
 1. Once deployed, Cloudflare will provide a URL like: `https://herobyte.pages.dev`
-2. Open the URL in your browser
+2. Open the URL in your browser: the website. **Open HeroByte** (or `/play/`) is the app
 3. The client should connect to your Render server via WebSocket
 4. Test basic functionality:
    - Add tokens to the map
