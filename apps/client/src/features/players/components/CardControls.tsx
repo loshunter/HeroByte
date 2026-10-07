@@ -10,7 +10,7 @@ import { claimMicNotice, useMicNotice } from "../../../hooks/micNotice";
 interface CardControlsProps {
   /**
    * Which of the player's cards this is (the character's id). REQUIRED: a player with several
-   * characters has several mic controls, and the failure notice is shown beside the pressed one.
+   * characters has several mic controls, and a notice claimed by one is shown beside it.
    */
   controlId: string;
   canControlMic: boolean;
@@ -47,8 +47,8 @@ export const CardControls: React.FC<CardControlsProps> = ({
             claimMicNotice(controlId);
             onToggleMic();
           }}
-          title={micEnabled ? "Mute mic" : "Enable mic"}
-          aria-label={micEnabled ? "Mute mic" : "Enable mic"}
+          title={micEnabled ? "Mute mic" : "Unmute mic"}
+          aria-label={micEnabled ? "Mute mic" : "Unmute mic"}
           aria-describedby={micNotice ? noticeId : undefined}
         >
           {micEnabled ? "🔇" : "🎤"}
@@ -69,7 +69,9 @@ export const CardControls: React.FC<CardControlsProps> = ({
         </button>
       )}
       {/* Mounted before it has anything to say: a live region added already filled is not
-          reliably announced, and this is the only place the failure is told. */}
+          reliably announced. The card's button only mutes, which cannot fail; a mic that will
+          not start is told beside Join voice (VoiceControl). This region shows a notice only
+          while this card holds the claim. */}
       {canControlMic && (
         <p id={noticeId} role="status" className="player-card-mic-notice jrpg-text-tiny">
           {micNotice}

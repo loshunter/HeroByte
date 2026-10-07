@@ -92,6 +92,28 @@ export class PlayerMessageHandler {
   }
 
   /**
+   * Handle voice-state message
+   *
+   * Records whether the player is in the voice call and muted, so every
+   * client can show who is in it. Connection data like mic-level: not saved by
+   * this handler, but RoomService.broadcast saves after every broadcast, so
+   * `voice` and `micLevel` do reach disk/Redis. Both load paths strip them.
+   *
+   * @param state - Room state
+   * @param senderUid - UID of player joining, muting, unmuting or leaving voice
+   * @param voiceState - "off" (left), "live" or "muted"
+   * @returns Result indicating broadcast/save needs
+   */
+  handleVoiceState(
+    state: RoomState,
+    senderUid: string,
+    voiceState: "off" | "live" | "muted",
+  ): PlayerMessageResult {
+    const updated = this.playerService.setVoiceState(state, senderUid, voiceState);
+    return { broadcast: updated, save: false };
+  }
+
+  /**
    * Handle set-hp message
    *
    * Sets the player's HP and max HP.

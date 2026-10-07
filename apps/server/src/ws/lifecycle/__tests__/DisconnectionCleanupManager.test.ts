@@ -243,6 +243,42 @@ describe("DisconnectionCleanupManager - Characterization Tests", () => {
     });
   });
 
+  describe("Voice presence on cleanup", () => {
+    it("a closed socket leaves the voice call and stops speaking, before the farewell broadcast", () => {
+      const uid = "user1";
+      const ws = new FakeWebSocket() as unknown as WebSocket;
+      uidToWs.set(uid, ws);
+      roomState.players[0] = { ...roomState.players[0], voice: "live", micLevel: 0.7 };
+      roomState.players[1] = { ...roomState.players[1], voice: "muted", micLevel: 0 };
+
+      let seenAtBroadcast: unknown;
+      broadcastSpy.mockImplementation(() => {
+        seenAtBroadcast = structuredClone(roomState.players[0]);
+      });
+
+      cleanupManager.cleanupPlayer(uid, { ws });
+
+      expect(roomState.players[0]).not.toHaveProperty("voice");
+      expect(roomState.players[0].micLevel).toBe(0);
+      expect(seenAtBroadcast).not.toHaveProperty("voice");
+      expect(seenAtBroadcast).toMatchObject({ micLevel: 0 });
+      // The seat stays, and nobody else leaves the call.
+      expect(roomState.players[0].uid).toBe(uid);
+      expect(roomState.players[1].voice).toBe("muted");
+    });
+
+    it("a replaced socket closing late does not knock the live connection out of voice", () => {
+      const uid = "user1";
+      uidToWs.set(uid, new FakeWebSocket() as unknown as WebSocket);
+      roomState.players[0] = { ...roomState.players[0], voice: "live", micLevel: 0.7 };
+
+      cleanupManager.cleanupPlayer(uid, { ws: new FakeWebSocket() as unknown as WebSocket });
+
+      expect(roomState.players[0].voice).toBe("live");
+      expect(roomState.players[0].micLevel).toBe(0.7);
+    });
+  });
+
   describe("Timeout cleanup - close WebSocket", () => {
     it("closes WebSocket when closeWebSocket option is true", () => {
       // Setup: WebSocket is open (readyState = 1)

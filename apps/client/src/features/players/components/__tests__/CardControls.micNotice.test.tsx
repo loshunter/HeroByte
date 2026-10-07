@@ -29,7 +29,7 @@ it("keeps an empty status region mounted from the start (a live region added alr
   controls();
   const status = screen.getByRole("status");
   expect(status).toHaveTextContent("");
-  expect(screen.getByRole("button", { name: "Enable mic" })).not.toHaveAttribute(
+  expect(screen.getByRole("button", { name: "Unmute mic" })).not.toHaveAttribute(
     "aria-describedby",
   );
 });
@@ -41,7 +41,7 @@ it("fills the same status region when the mic fails and ties it to the button", 
   const status = screen.getByRole("status");
   expect(status).toBe(before);
   expect(status).toHaveTextContent("Mic blocked. Allow it, then try again.");
-  expect(screen.getByRole("button", { name: "Enable mic" })).toHaveAttribute(
+  expect(screen.getByRole("button", { name: "Unmute mic" })).toHaveAttribute(
     "aria-describedby",
     status.id,
   );
@@ -86,7 +86,7 @@ it("shows the notice beside the control that was pressed, once, when a player ha
       </div>
     </>,
   );
-  const [firstMic, secondMic] = screen.getAllByRole("button", { name: "Enable mic" });
+  const [firstMic, secondMic] = screen.getAllByRole("button", { name: "Unmute mic" });
   fireEvent.click(secondMic);
   act(() => setMicNotice("Mic blocked. Allow it, then try again."));
   const texts = screen.getAllByRole("status").map((el) => el.textContent);
@@ -98,7 +98,7 @@ it("shows the notice beside the control that was pressed, once, when a player ha
 it("is still there a minute later and after the card is mounted again (it is not a toast)", () => {
   vi.useFakeTimers();
   const view = controls();
-  fireEvent.click(screen.getByRole("button", { name: "Enable mic" }));
+  fireEvent.click(screen.getByRole("button", { name: "Unmute mic" }));
   act(() => setMicNotice("Mic blocked. Allow it, then try again."));
   act(() => {
     vi.advanceTimersByTime(60_000);

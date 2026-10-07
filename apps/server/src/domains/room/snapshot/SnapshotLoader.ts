@@ -72,6 +72,7 @@ export class SnapshotLoader {
           isDM: currentPlayer.isDM ?? false,
           lastHeartbeat: currentPlayer.lastHeartbeat, // Keep current heartbeat
           micLevel: currentPlayer.micLevel, // Keep current mic level
+          voice: currentPlayer.voice, // Keep who is in the call: a file never changes it
         };
       }
       // Player is currently connected but wasn't in saved session - keep them

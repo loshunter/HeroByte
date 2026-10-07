@@ -129,6 +129,26 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(mergedPlayer.micLevel).toBe(0.75);
     });
 
+    it("a restore never changes who is in the voice call, whatever the file says", () => {
+      roomService.setState({
+        players: [{ ...seat("in-call", false), voice: "muted" }, { ...seat("not-in-call", false) }],
+      });
+
+      roomService.loadSnapshot(
+        fileOf({
+          players: [
+            { ...seat("in-call", false), name: "Restored", voice: "live" },
+            { ...seat("not-in-call", false), voice: "live" },
+          ],
+        }),
+      );
+
+      const [inCall, notInCall] = roomService.getState().players;
+      expect(inCall.name).toBe("Restored");
+      expect(inCall.voice).toBe("muted");
+      expect(notInCall.voice).toBeUndefined();
+    });
+
     it("should keep currently connected players not in snapshot", () => {
       // Setup: Two connected players
       roomService.setState({

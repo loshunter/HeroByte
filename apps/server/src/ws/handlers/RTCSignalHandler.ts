@@ -57,7 +57,7 @@ export class RTCSignalHandler {
    */
   forwardSignal(targetUid: string, fromUid: string, signal: SignalData): void {
     if (this.canSignal && !this.canSignal(fromUid, targetUid)) {
-      return; // cross-room signaling is never forwarded
+      return; // only players in the same room AND both in the voice call may signal each other
     }
     const targetWs = this.uidToWs.get(targetUid);
 

@@ -16,6 +16,7 @@ interface Player {
   name: string;                   // Display name (required)
   portrait?: string;              // Base64 encoded image or URL
   micLevel?: number;              // Current microphone level (0-1) for visual feedback
+  voice?: "live" | "muted";       // In the table's voice call (absent: not in it)
   hp?: number;                    // Current hit points
   maxHp?: number;                 // Maximum hit points
   lastHeartbeat?: number;         // Timestamp of last heartbeat (for timeout detection)
@@ -40,8 +41,13 @@ interface Player {
 
 - **`micLevel`** (number | undefined): Current microphone activity level (0.0 to 1.0)
   - Used for real-time voice activity visualization
-  - **NOT persisted** to disk (in-memory only)
-  - Reset to undefined on server restart
+  - Written to disk with the rest of the state, but meaningless there: zeroed when a
+    table is loaded, and whenever the player leaves the call or disconnects
+
+- **`voice`** ("live" | "muted" | undefined): whether the player is in the table's voice
+  call, and whether their mic is muted
+  - Connection data like `micLevel`: cleared on disconnect, on a fresh authentication,
+    on leaving the table, and at load; kept as it is when a backup is restored
 
 - **`hp`** (number | undefined): Current hit points
   - Defaults to 100 on player creation
@@ -87,9 +93,10 @@ When a new player connects, the server creates a Player object with these defaul
 **Saved to `herobyte-state.json`:**
 - uid, name, portrait, hp, maxHp, isDM, statusEffects
 
-**NOT saved (reset on server restart):**
+**Cleared when a table loads (connection data):**
 - lastHeartbeat (reset to current time on reconnect)
-- micLevel (reset to undefined)
+- micLevel (zeroed)
+- voice (dropped)
 
 ### Load Sanitization
 
@@ -261,7 +268,7 @@ When loading a saved session (DM action):
 2. Server processes → RoomService.loadSnapshot(snapshot)
    - Merges incoming players with currently connected players
    - Matches by uid
-   - Preserves connection state: lastHeartbeat, micLevel
+   - Preserves connection state: lastHeartbeat, micLevel, voice
    - Updates all other fields from snapshot
 
 3. Server broadcasts updated state
@@ -358,7 +365,7 @@ This would allow safe schema evolution without breaking old save files.
 
 ## Notes
 
-1. **Connection State Not Persisted**: `lastHeartbeat` and `micLevel` are ephemeral and reset on server restart.
+1. **Connection State Not Persisted**: `lastHeartbeat`, `micLevel` and `voice` are connection data: written with the rest of the state, but zeroed or dropped at load.
 
 2. **Token Data Separation**: Token transforms are stored separately in `PlayerState` but not in server `Player`. The server manages tokens independently in the `tokens` array.
 

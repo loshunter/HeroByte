@@ -72,4 +72,14 @@ describe("CommandAckManager", () => {
     manager.handleAck("missing");
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("unknown commandId"));
   });
+
+  it("does not track the voice call's live messages (a retry would replay an older state or loudness)", () => {
+    const voiceMessages: ClientMessage[] = [
+      { t: "voice-state", state: "muted" },
+      { t: "mic-level", level: 0.5 },
+    ];
+    for (const message of voiceMessages) {
+      expect(manager.attachCommandId(message).commandId, message.t).toBeUndefined();
+    }
+  });
 });

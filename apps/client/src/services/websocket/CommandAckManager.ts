@@ -14,6 +14,13 @@ const NON_TRACKED_TYPES: AckEligibleType[] = [
   // would spend the per-uid rate budget replaying a line nobody is
   // looking at any more — the same reasoning as drag-preview above.
   "measure",
+  // The voice meter: a live level, superseded by its own next sample (sent only
+  // when it moves enough to show). Tracking or retrying one would replay a
+  // loudness nobody is hearing any more into the per-uid rate budget.
+  "mic-level",
+  // The voice call state: never retried (a retry would replay an older state
+  // over a newer one), so never tracked. See MessageQueueManager.
+  "voice-state",
   // The DM-auth plane is intercepted by MessageAuthenticator BEFORE the
   // server's message router — the only place ack/nack is emitted — and
   // answers with its own protocol (dm-status / dm-elevation-failed /

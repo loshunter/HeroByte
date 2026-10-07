@@ -269,6 +269,21 @@ describe("validateMessage", () => {
     expect(validateMessage(invalidMoveDrawing)).toMatchObject({ valid: false });
   });
 
+  it("accepts voice-state off, live and muted, and refuses anything else", () => {
+    for (const state of ["off", "live", "muted"] as const) {
+      expect(validateMessage({ t: "voice-state", state })).toEqual({ valid: true });
+    }
+    for (const state of ["on", "LIVE", "", 1, null, true]) {
+      const message = { t: "voice-state", state } as unknown as ClientMessage;
+      expect(validateMessage(message), String(state)).toMatchObject({ valid: false });
+    }
+    const missing = { t: "voice-state" } as unknown as ClientMessage;
+    expect(validateMessage(missing)).toMatchObject({
+      valid: false,
+      error: "voice-state: state must be off, live or muted",
+    });
+  });
+
   it("enforces payload size limits", () => {
     const largePortrait = "p".repeat(2 * 1024 * 1024 + 1);
     expect(validateMessage({ t: "portrait", data: largePortrait })).toMatchObject({

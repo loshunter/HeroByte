@@ -300,7 +300,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🎤 Voice",
         detail:
-          "Desktop only: press it on your own card and allow the microphone. Peer-to-peer; a speaker's portrait glows. Needs https:// or localhost.",
+          "Join voice (the header on a PC; Party, or the chip at the top while a call runs, on a phone) and allow the microphone the first time. Mute keeps you hearing everyone; Leave voice hangs up. On a PC a speaker's portrait glows on their card; on a phone, Party lists who is in the call.",
       },
       {
         term: "INIT",

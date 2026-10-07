@@ -65,7 +65,13 @@ describe("RTCSignalHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
+    // Every registered socket is authenticated, and both peers are in the
+    // voice call: the router's guard passes, so these pin the forwarding.
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>(mockUidToWs.values()));
+    for (const uid of [senderUid, targetUid]) {
+      playerService.createPlayer(roomService.getState(), uid);
+      playerService.setVoiceState(roomService.getState(), uid, "live");
+    }
 
     // Create MessageRouter instance
     messageRouter = new MessageRouter(
@@ -231,6 +237,8 @@ describe("RTCSignalHandler - Characterization Tests", () => {
       mockUidToWs.set(targetUid, mockTargetWs);
 
       const differentSender = "different-sender-uid";
+      playerService.createPlayer(roomService.getState(), differentSender);
+      playerService.setVoiceState(roomService.getState(), differentSender, "live");
       const rtcMessage: ClientMessage = {
         t: "rtc-signal",
         target: targetUid,

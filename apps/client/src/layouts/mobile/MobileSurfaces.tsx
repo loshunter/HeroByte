@@ -28,6 +28,7 @@ import { KickPanel } from "../../features/atlas/KickPanel";
 import { TableMenuContent } from "../../features/table/TableMenuContent";
 import { useTableLabel } from "../../features/table/TableMenu";
 import { requestDMMenuTab } from "../../features/table/menuRequest";
+import { VoiceControl } from "../../features/voice/VoiceControl";
 import { useTableMenuProps } from "../../features/table/tableMenuProps";
 import { MobileScreen } from "./MobileScreen";
 import { MobileSheet } from "./MobileSheet";
@@ -106,6 +107,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           isConnected={props.isConnected}
           onClose={closeSurface}
         >
+          <VoiceControl variant="panel" />
           <MobileEntitiesList
             players={props.snapshot?.players || []}
             characters={props.snapshot?.characters || []}

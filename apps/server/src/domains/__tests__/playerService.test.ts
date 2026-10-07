@@ -38,6 +38,7 @@ describe("PlayerService", () => {
   it("updates player portrait, name, mic level, and HP", () => {
     const state = createState();
     service.createPlayer(state, "uid-1");
+    service.setVoiceState(state, "uid-1", "live"); // only a live player has a meter
 
     expect(service.setPortrait(state, "uid-1", "portrait-data")).toBe(true);
     expect(service.rename(state, "uid-1", "Champion")).toBe(true);
@@ -50,6 +51,80 @@ describe("PlayerService", () => {
     expect(updated?.micLevel).toBe(0.5);
     expect(updated?.hp).toBe(5);
     expect(updated?.maxHp).toBe(10);
+  });
+
+  it("records voice presence: live and muted set it, off removes it", () => {
+    const state = createState();
+    service.createPlayer(state, "uid-1");
+
+    expect(service.setVoiceState(state, "uid-1", "live")).toBe(true);
+    expect(service.findPlayer(state, "uid-1")?.voice).toBe("live");
+    expect(service.setVoiceState(state, "uid-1", "muted")).toBe(true);
+    expect(service.findPlayer(state, "uid-1")?.voice).toBe("muted");
+    expect(service.setVoiceState(state, "uid-1", "off")).toBe(true);
+    expect(service.findPlayer(state, "uid-1")).not.toHaveProperty("voice");
+  });
+
+  it("a muted or departed player never shows as speaking; going live keeps the meter", () => {
+    const state = createState();
+    service.createPlayer(state, "uid-1");
+
+    service.setVoiceState(state, "uid-1", "live");
+    service.setMicLevel(state, "uid-1", 0.8);
+    service.setVoiceState(state, "uid-1", "live");
+    expect(service.findPlayer(state, "uid-1")?.micLevel).toBe(0.8);
+
+    service.setVoiceState(state, "uid-1", "muted");
+    expect(service.findPlayer(state, "uid-1")?.micLevel).toBe(0);
+
+    service.setVoiceState(state, "uid-1", "live");
+    service.setMicLevel(state, "uid-1", 0.6);
+    service.setVoiceState(state, "uid-1", "off");
+    expect(service.findPlayer(state, "uid-1")?.micLevel).toBe(0);
+  });
+
+  it("an unchanged voice-state asks for no broadcast", () => {
+    const state = createState();
+    service.createPlayer(state, "uid-1");
+
+    expect(service.setVoiceState(state, "uid-1", "off")).toBe(false);
+    expect(service.setVoiceState(state, "uid-1", "live")).toBe(true);
+    expect(service.setVoiceState(state, "uid-1", "live")).toBe(false);
+    expect(service.setVoiceState(state, "uid-1", "muted")).toBe(true);
+    expect(service.setVoiceState(state, "uid-1", "muted")).toBe(false);
+    expect(service.setVoiceState(state, "uid-1", "off")).toBe(true);
+    expect(service.setVoiceState(state, "uid-1", "off")).toBe(false);
+  });
+
+  it("a mic level lands only while live; otherwise it zeroes the meter", () => {
+    const state = createState();
+    const player = service.createPlayer(state, "uid-1");
+
+    // Not in the call: refused, nothing to clear, no broadcast.
+    expect(service.setMicLevel(state, "uid-1", 0.7)).toBe(false);
+    expect(player.micLevel ?? 0).toBe(0);
+
+    service.setVoiceState(state, "uid-1", "muted");
+    expect(service.setMicLevel(state, "uid-1", 0.7)).toBe(false);
+    expect(player.micLevel).toBe(0);
+
+    // A stale glow on a non-live seat is cleared, and that IS a change.
+    player.micLevel = 0.4;
+    expect(service.setMicLevel(state, "uid-1", 0.7)).toBe(true);
+    expect(player.micLevel).toBe(0);
+
+    service.setVoiceState(state, "uid-1", "live");
+    expect(service.setMicLevel(state, "uid-1", 0.7)).toBe(true);
+    expect(player.micLevel).toBe(0.7);
+    // The same level again changes nothing.
+    expect(service.setMicLevel(state, "uid-1", 0.7)).toBe(false);
+  });
+
+  it("voice-state for an unknown uid changes nothing and asks for no broadcast", () => {
+    const state = createState();
+    service.createPlayer(state, "uid-1");
+    expect(service.setVoiceState(state, "missing", "live")).toBe(false);
+    expect(service.findPlayer(state, "uid-1")).not.toHaveProperty("voice");
   });
 
   it("ignores updates for unknown players and supports removal", () => {
@@ -237,6 +312,7 @@ describe("PlayerService", () => {
     // Test initial mic level is undefined
     let player = service.findPlayer(state, "uid-1");
     expect(player?.micLevel).toBeUndefined();
+    service.setVoiceState(state, "uid-1", "live"); // only a live player has a meter
 
     // Test setting mic level to speaking state
     expect(service.setMicLevel(state, "uid-1", 0.8)).toBe(true);

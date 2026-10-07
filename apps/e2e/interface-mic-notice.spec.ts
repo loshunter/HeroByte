@@ -1,5 +1,6 @@
 // U10b — a failed microphone is told where the person is looking, in a live region that already
-// exists before it speaks. The mic control is on the desktop Party card (the phone has none).
+// exists before it speaks. Since voice everywhere, the mic starts at the voice control's Join
+// (the Party card's mic button is the call's Mute toggle, shown only once you are in it).
 // getUserMedia is stubbed to refuse (NotAllowedError), which is what a blocked permission does;
 // the stub is page-side only, so every other behaviour is the app's own.
 
@@ -7,7 +8,7 @@ import { expect, test } from "./fixtures";
 import { createTable, dismissNextSteps } from "./table-role.helpers";
 
 test.describe("U10b — the microphone's failure notice", () => {
-  test("the status region is in the accessibility tree before it speaks, then says what to do, on the card", async ({
+  test("the status region is in the accessibility tree before it speaks, then says what to do, at Join voice", async ({
     page,
   }) => {
     await page.addInitScript(() => {
@@ -23,11 +24,11 @@ test.describe("U10b — the microphone's failure notice", () => {
     });
     await createTable(page, "u10b-mic-notice");
     await dismissNextSteps(page);
-    await page.getByRole("button", { name: /^\W*Cards$/i }).click();
 
-    const mic = page.getByRole("button", { name: "Enable mic", exact: true });
+    const voice = page.getByRole("group", { name: "Voice chat" });
+    const mic = voice.getByRole("button", { name: /Join voice/ });
     await expect(mic).toBeVisible();
-    const region = page.locator(".player-card-mic-notice");
+    const region = voice.locator(".player-card-mic-notice");
 
     // Before any failure: attached, and NOT display:none (that would take it out of the
     // accessibility tree, and a region that joins the tree already filled is not reliably
@@ -43,13 +44,16 @@ test.describe("U10b — the microphone's failure notice", () => {
     await expect(region).toContainText(/Mic blocked/);
     await expect(region).toContainText(/privacy settings/);
     await expect(region).toBeInViewport({ ratio: 1 });
-    // A real box once it speaks: clipped to 1px it would be "in the viewport" and unseen.
+    // A real box once it speaks: clipped to 1px it would be "in the viewport" and unseen. At
+    // least one line of text tall (on the old 130 px card it wrapped to several; beside the
+    // header's Join voice it fits on one).
     const box = (await region.boundingBox())!;
     expect(box.width).toBeGreaterThan(60);
-    expect(box.height).toBeGreaterThanOrEqual(24);
+    expect(box.height).toBeGreaterThanOrEqual(12);
     await expect(mic).toHaveAttribute("aria-describedby", (await region.getAttribute("id"))!);
-    // The control reads off: the microphone did not start.
-    await expect(page.getByRole("button", { name: "Enable mic", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Mute mic", exact: true })).toHaveCount(0);
+    // The control reads off: the microphone did not start, so this player is not in the call.
+    await expect(voice).toHaveAttribute("data-voice-state", "off");
+    await expect(voice.getByRole("button", { name: /Join voice/ })).toBeVisible();
+    await expect(voice.getByRole("button", { name: /Mute/ })).toHaveCount(0);
   });
 });

@@ -194,10 +194,20 @@ export class MessageRouter {
       this.authorizationService,
     );
     this.heartbeatHandler = new HeartbeatHandler();
-    this.rtcSignalHandler = new RTCSignalHandler(
-      uidToWs,
-      (fromUid, targetUid) => this.getRoomIdForUid(fromUid) === this.getRoomIdForUid(targetUid),
-    );
+    // Signals pass only between two members of the same room's voice call: the
+    // target authenticated here (an unauthenticated uid falls back to the
+    // default room), and both with `voice` set. Not in the call: neither
+    // called nor calling. A client sends voice-state before its first signal.
+    // Never to yourself: the relay would only echo it back.
+    this.rtcSignalHandler = new RTCSignalHandler(uidToWs, (fromUid, targetUid) => {
+      if (fromUid === targetUid) return false;
+      if (this.getRoomIdForUid(fromUid) !== this.getRoomIdForUid(targetUid)) return false;
+      const targetWs = this.uidToWs.get(targetUid);
+      if (!targetWs || !this.getAuthorizedClients().has(targetWs)) return false;
+      const { players } = this.roomService.getState();
+      const inCall = (uid: string) => players.some((p) => p.uid === uid && p.voice !== undefined);
+      return inCall(fromUid) && inCall(targetUid);
+    });
     this.pointerHandler = new PointerHandler(mapService);
     this.tokenMessageHandler = new TokenMessageHandler(
       tokenService,
@@ -861,6 +871,7 @@ export class MessageRouter {
       case "authenticate":
       case "heartbeat":
       case "rtc-signal":
+      case "mic-level": // a live meter: its next frame supersedes it, no retry needed
         return false;
       default:
         return true;

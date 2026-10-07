@@ -223,6 +223,9 @@ export class AuthenticationHandler {
     const state = roomService.getState();
     const player = provisionJoin(this.container, roomService, state, uid);
     player.lastHeartbeat = now;
+    // A fresh socket is not in the voice call until it says so (it re-sends voice-state).
+    delete player.voice;
+    player.micLevel = 0;
 
     // A persisted DM flag is honoured only when the reconnect proves it is the
     // SAME session, by the token minted to it — for THIS table. The room

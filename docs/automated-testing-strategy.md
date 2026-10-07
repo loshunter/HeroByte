@@ -50,10 +50,8 @@ This document outlines our strategy for replacing manual two-browser testing wit
   - Validates real-time WebSocket sync
 
 ### 7. Voice Chat
-- **Manual Test**: Enable mic, verify indicator appears
-- **Automated**: `comprehensive-mvp.spec.ts` - Test 8
-  - Checks for mic controls presence
-  - Validates UI elements exist
+- **Manual Test**: Press Join voice, verify the call count appears on the other player's screen and the 🎧 badge on your card there (select your row, or ▦ Cards)
+- **Automated**: `voice-call.spec.ts` and `mobile/mobile-voice.spec.ts` (two real browsers with a fake microphone: join, late join, mute, leave)
 
 ### 8. Reconnection Handling
 - **Manual Test**: Disconnect and reconnect
