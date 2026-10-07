@@ -20,7 +20,8 @@ const guideDir = path.join(repo, "docs", "user-guide");
 export const SITE = {
   // The app is served from the same Cloudflare Pages project, under /play/ (the site is at /).
   appUrl: "/play/",
-  // For link previews (Discord, Slack): their crawlers want an absolute image URL.
+  // For link previews (Discord, Slack): their crawlers want an absolute image URL. Change it if the
+  // Pages project is served at another address.
   origin: "https://herobyte.pages.dev",
   sourceUrl: null,
   bugUrl: null,
@@ -32,8 +33,8 @@ export const SITE = {
 };
 
 // The query parameters the app reads (apps/client/src: room, SESSION_UID_OVERRIDE_PARAM, mobile,
-// ws). Add a new one here yourself: pagesLayout.test.ts only sees reads written with a literal
-// name, as .get("name") or .has("name"), in files that use URLSearchParams or searchParams. A link
+// ws). Add a new one here yourself: pagesLayout.test.ts only sees .get/.getAll/.has("name") with a
+// double-quoted name, in .ts/.tsx files that mention URLSearchParams or searchParams. A link
 // to / that carries one is an invite or bookmark from before the app moved to /play/, so the
 // landing page forwards it there. Other queries (?fbclid= on a shared post, ?utm_*) stay. A bare /
 // stays too: the owner chose the landing page for it, and that includes the default table's old
@@ -44,8 +45,9 @@ export const APP_PARAMS = ["room", "sessionUid", "mobile", "ws"];
  * Where the landing page sends a visitor: the app with the same query and hash, or null to stay.
  * An installed app (standalone display) that arrives from outside the site goes to the app: iOS
  * home-screen icons can keep the address they were added with (often /), and browsers re-read the
- * manifest on their own schedule. Arriving from another page of the site (fromSite) means the
- * person is reading the site, so it stays. Never forwards from the app's own address, so a landing
+ * manifest on their own schedule. Arriving from a same-origin page (fromSite: the site's own Home,
+ * Features and FAQ links) means the person is reading the site, so it stays; a link carrying an
+ * app parameter still forwards. Never forwards from the app's own address, so a landing
  * page served there by mistake does not forward to itself.
  */
 export function appForwardTarget(search, hash, pathname, standalone, fromSite, appUrl, params) {

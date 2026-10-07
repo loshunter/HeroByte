@@ -21,7 +21,7 @@ deployed; to try them locally, build the whole Cloudflare layout instead (below)
 
 | Path                | What it is                                                                                              |
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `build.mjs`         | The build, plus `SITE`: the app link, the Main Hall passwords, and the links still to fill in.          |
+| `build.mjs`         | The build, plus `SITE`: the app link, the site's public address (`origin`, for link previews), the Main Hall passwords, and the links still to fill in. |
 | `pages/`            | Hand-written page bodies. The first line is `<!--meta {...}-->` (title, description, scripts, search). |
 | `assets/`           | `site.css`, `help.js` (topic filter and search), `lesson.js` (chapter stills), the favicon. Served at `/site-assets/`, because `/assets/` is the app's bundle, cached for a year. |
 | `docs/user-guide/*` | Not copied by hand: the build renders the guides and copies `docs/user-guide/img/`.                     |
@@ -68,12 +68,12 @@ The landing page forwards old links that carry one of the app's query parameters
 (`APP_PARAMS` in `build.mjs`: `room`, `sessionUid`, `mobile`, `ws`) to `/play/`, so invites sent
 as `herobyte.pages.dev/?room=...` still reach the table (when JavaScript is on). If the app starts
 reading a new query parameter, add it there yourself: the test in
-`apps/client/src/__tests__/pagesLayout.test.ts` only sees reads written with a literal name
-(`.get("name")`, `.has("name")`) in files that use `URLSearchParams` or `searchParams`, not a name
-held in a variable or constant. Any other query (`?fbclid=` on a shared post) stays on the landing
+`apps/client/src/__tests__/pagesLayout.test.ts` only sees `.get("name")`, `.getAll("name")` or `.has("name")` with a double-quoted name, in `.ts`/`.tsx` files that mention `URLSearchParams` or `searchParams`; not a
+name in a variable or constant, another quote style, or iteration. Any other query (`?fbclid=` on a shared post) stays on the landing
 page, and so does a bare `/`, including the Main Hall's old invite link (the bare address). An
 installed app (standalone display) that opens the landing page from outside the site is forwarded
-to `/play/`; from another page of the site it stays, so the site can still be read there.
+to `/play/`; from a same-origin page (the site's own Home, Features and FAQ links) it stays, so the
+site can still be read there. A link carrying an app parameter forwards either way.
 
 `pages/404.html` is built with root-absolute links, because Pages serves it at whatever address
 was not found.

@@ -72,13 +72,16 @@ out `dist/` as:
 - Old links such as `/?room=<code>` still reach the table (when JavaScript is on): the landing page
   forwards any link carrying one of the app's query parameters (`room`, `sessionUid`, `mobile`, `ws`)
   to `/play/` with the same query.
-- A bare `/` opens the website, not a table. That includes the default table's (Main Hall's) invite
+- In a browser tab, a bare `/` opens the website, not a table. That includes the default table's (Main Hall's) invite
   link from before this layout, which was the bare address; its **Open HeroByte** button goes to the app.
 - An installed HeroByte app (running in standalone display mode) that opens the landing page from
   outside the site is forwarded to `/play/`. The manifest's `start_url` is `/play/`, with `id` kept
   and `scope` set to `/`, but browsers re-read the manifest on their own schedule and iOS home-screen
   icons can keep the address they were added with, so the forward covers installs that still open
-  `/`. Reaching the landing page from another page of the site does not forward.
+  `/`. An installed app that reaches the landing page from a same-origin page (the site's own Home,
+  Features and FAQ links) stays there; a link carrying an app parameter still forwards.
+- Link previews use `SITE.origin` in `site/build.mjs` (`https://herobyte.pages.dev`) for `og:image`.
+  If the project is served at another address, change it there.
 
 In CI and Lighthouse the step runs but only logs that it skipped; dev and e2e never run it. Either
 way the app stays at `/` there. To see the Cloudflare

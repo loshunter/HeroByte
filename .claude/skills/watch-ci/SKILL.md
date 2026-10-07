@@ -17,6 +17,6 @@ prompt: "Watch the latest run on <branch> for <head-sha>."
 
 ## Acting on the report
 
-- `CI: success` → done. For main pushes with player-visible changes, follow with the production probes: fetch `https://herobyte.pages.dev/play/` (the app's page; `/` is the website), take the `assets/index-*.js` name, and grep the bundle for a marker string that lives in the **eager** bundle (e.g. a snapshot field name) — DM-only strings live in the lazy chunk and a wrong probe reads as a stale deploy. Server: expect HTTP 200 from `https://herobyte-server.onrender.com/`.
+- `CI: success` → done. For main pushes with player-visible changes, follow with the production probes: fetch `https://herobyte.pages.dev/play/` (the app's page; `/` is the website), take the `assets/index-*.js` name (fetch it from `/assets/`, not `/play/assets/`), and grep the bundle for a marker string that lives in the **eager** bundle (e.g. a snapshot field name) — DM-only strings live in the lazy chunk and a wrong probe reads as a stale deploy. Server: expect HTTP 200 from `https://herobyte-server.onrender.com/`.
 - `CI: failure` → reproduce the named step locally before pushing a fix. The two steps `pnpm lint` does not cover are `pnpm format:check` and `pnpm lint:structure:enforce`; the /verify-gates skill runs the full list.
 - Remind the user that already-open player tabs must reload after any main deploy — stale clients silently blank.

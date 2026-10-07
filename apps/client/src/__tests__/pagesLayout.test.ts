@@ -159,7 +159,11 @@ describe("the landing page's forwarder (the script text that ships)", () => {
     expect(await visit("/play/", { standalone: true })).toBeNull();
   });
 
-  it("knows every query parameter the app reads with a literal name", async () => {
+  // Sees .get/.getAll/.has("name") with a double-quoted name in .ts/.tsx files that mention
+  // URLSearchParams or searchParams. Not a name in a variable or constant, another quote style, or
+  // iteration. Any such call in those files counts, so a header or Map .get("x") there would fail
+  // it: none does today.
+  it("knows every query parameter the app reads as a double-quoted literal", async () => {
     const { APP_PARAMS } = await load(join(repo, "site", "build.mjs"));
     expect(APP_PARAMS).toContain(SESSION_UID_OVERRIDE_PARAM);
     const read = new Set<string>();
@@ -175,7 +179,8 @@ describe("the landing page's forwarder (the script text that ships)", () => {
       }
     };
     walk(join(client, "src"));
-    // The scan finds what it is meant to find, including a read through a variable (config.ts).
+    // The scan finds what it is meant to find, including a literal read on a stored URLSearchParams
+    // (config.ts: urlParams.get("ws")).
     for (const name of ["room", "mobile", "ws"]) expect(read.has(name)).toBe(true);
     for (const name of read) expect(APP_PARAMS).toContain(name);
   });
@@ -183,13 +188,22 @@ describe("the landing page's forwarder (the script text that ships)", () => {
 
 describe("the built website", () => {
   it("ships the forwarder on the landing page only, and a 404 page with no relative links", async () => {
+    const htmlFiles = (dir: string, prefix = ""): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory()
+          ? htmlFiles(join(dir, e.name), `${prefix}${e.name}/`)
+          : e.name.endsWith(".html")
+            ? [`${prefix}${e.name}`]
+            : [],
+      );
     const { build, forwarderScript } = await load(join(repo, "site", "build.mjs"));
     scratch = mkdtempSync(join(tmpdir(), "hb-site-"));
     await build(scratch);
     const page = (rel: string) => readFileSync(join(scratch!, rel), "utf8");
     expect(page("index.html")).toContain(`<script>${forwarderScript}</script>`);
-    expect(page("help/index.html")).not.toContain("appForwardTarget");
-    expect(page("404.html")).not.toContain("appForwardTarget");
+    const others = htmlFiles(scratch).filter((rel) => rel !== "index.html");
+    expect(others).toContain("help/guide/player-guide.html"); // the walk reaches the guides
+    for (const rel of others) expect(page(rel)).not.toContain("appForwardTarget");
     const relative = [...page("404.html").matchAll(/\s(?:src|href)="(?![a-z]+:|\/|#)([^"]+)"/g)];
     expect(relative.map((m) => m[1])).toEqual([]);
     expect(page("index.html")).toContain(
@@ -197,11 +211,11 @@ describe("the built website", () => {
     );
     expect(existsSync(join(scratch!, "site-assets", "site.css"))).toBe(true);
     expect(existsSync(join(scratch!, "assets"))).toBe(false);
-  });
+  }, 30_000); // builds the whole site, guide images included
 });
 
 describe("the installed app and its service worker", () => {
-  it("declares /play/ as the start page, keeps the app's id, and keeps its scope at /", () => {
+  it("declares /play/ as the start page, keeps the app's id, and sets its scope to /", () => {
     const manifest = JSON.parse(readFileSync(join(client, "public", "manifest.json"), "utf8"));
     expect(manifest.start_url).toBe("/play/");
     expect(manifest.id).toBe("/");
