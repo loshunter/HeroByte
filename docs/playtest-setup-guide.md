@@ -236,7 +236,7 @@ Need help? Ask the DM!
 1. Grant browser microphone permissions
 2. Check system mic settings
 3. Try headphones to prevent echo
-4. Press **🎤 Join voice** again (or **🔊 Tap to hear voice** if it appears); if someone shows **Can't reach**, try Wi-Fi rather than mobile data
+4. Press **🔊 Tap to hear voice** if it appears; otherwise press **Leave voice**, then **🎤 Join voice**. If someone shows **Can't reach**, try Wi-Fi rather than mobile data
 
 ### Lag or Slow Performance
 

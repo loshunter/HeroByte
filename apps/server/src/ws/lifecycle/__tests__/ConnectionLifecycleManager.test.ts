@@ -896,14 +896,19 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       old.readyState = 3;
       liveAuthenticated("player1", old);
       roomState.players.push({ uid: "player1", voice: "live", micLevel: 0.7 });
+      // Capture what the broadcast saw; asserting inside the mock would be
+      // swallowed by the production try/catch around the broadcast.
+      let seen: Record<string, unknown> | undefined;
       broadcast.mockImplementation(() => {
-        // The broadcast must see the CLEARED player, not the ghost.
-        expect(roomState.players[0]).not.toHaveProperty("voice");
-        expect(roomState.players[0]?.micLevel).toBe(0);
+        seen = structuredClone(roomState.players[0]) as Record<string, unknown>;
       });
 
       connect(new FakeWebSocket());
 
+      // The broadcast must see the CLEARED player, not the ghost.
+      expect(seen).toBeDefined();
+      expect(seen).not.toHaveProperty("voice");
+      expect(seen?.micLevel).toBe(0);
       expect(broadcast).toHaveBeenCalledOnce();
       expect(broadcast).toHaveBeenCalledWith(roomClients, uidToWs, {
         reason: "connection-replaced",

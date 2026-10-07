@@ -51,7 +51,7 @@ This document outlines our strategy for replacing manual two-browser testing wit
 
 ### 7. Voice Chat
 - **Manual Test**: Press Join voice, verify the call count appears on the other player's screen and the 🎧 badge on your card there (select your row, or ▦ Cards)
-- **Automated**: `voice-call.spec.ts` and `mobile/mobile-voice.spec.ts` (two real browsers with a fake microphone: join, late join, mute, leave)
+- **Automated**: `voice-call.spec.ts` and `mobile/mobile-voice.spec.ts` (two or three separate browser profiles in Chromium with a fake microphone: join together, late join, mute, leave; whether sound actually plays is not measured)
 
 ### 8. Reconnection Handling
 - **Manual Test**: Disconnect and reconnect

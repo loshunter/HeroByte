@@ -1,5 +1,6 @@
-// voiceMemory: whether this tab was in the call, honoured only for a minute after it was
-// last true (a reload), per table (?room=), and never from an old or malformed value.
+// voiceMemory: whether this tab was in the call, honoured only when this page load IS a
+// reload and within a minute of when it was last true, per table (?room=), and never from
+// an old, future or malformed value. jsdom's page load is no reload: each test stubs one.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RELOAD_WINDOW_MS, forgetVoice, recallVoice, rememberVoice } from "../voiceMemory";
 
@@ -9,14 +10,23 @@ function openTable(search: string) {
   window.history.replaceState(null, "", `/${search}`);
 }
 
+// What the browser says this page load was ("navigate", "reload", "back_forward").
+function loadedBy(...types: string[]) {
+  return vi
+    .spyOn(window.performance, "getEntriesByType")
+    .mockReturnValue(types.map((type) => ({ type })) as never);
+}
+
 beforeEach(() => {
-  vi.useFakeTimers();
+  vi.useFakeTimers(); // fakes window.performance too: stub the load type after it
   vi.setSystemTime(1_000_000);
+  loadedBy("reload");
   window.sessionStorage.clear();
   openTable("");
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   window.sessionStorage.clear();
   openTable("");
@@ -90,6 +100,32 @@ describe("recallVoice", () => {
     expect(recallVoice()).toBe("live");
     openTable("");
     expect(recallVoice()).toBeNull();
+  });
+});
+
+describe("only a reload is honoured", () => {
+  it("the stub is what recalls: a fresh memory on a reload is recalled", () => {
+    rememberVoice("live");
+    expect(window.performance.getEntriesByType("navigation")).toEqual([{ type: "reload" }]);
+    expect(recallVoice()).toBe("live");
+  });
+
+  it.each([
+    ["a new page load (a reopened or restored tab)", ["navigate"]],
+    ["Back or Forward into the tab", ["back_forward"]],
+    ["a browser that reports no navigation entry", []],
+  ])("%s: a fresh, valid memory is not recalled", (_label, types) => {
+    rememberVoice("live");
+    loadedBy(...types);
+    expect(recallVoice()).toBeNull();
+    expect(window.sessionStorage.getItem(KEY)).not.toBeNull(); // still there, just not honoured
+  });
+
+  it("a memory dated in the future (a clock set back) is not recalled", () => {
+    window.sessionStorage.setItem(KEY, JSON.stringify({ state: "live", at: 1_000_001 }));
+    expect(recallVoice()).toBeNull();
+    window.sessionStorage.setItem(KEY, JSON.stringify({ state: "live", at: 1_000_000 }));
+    expect(recallVoice()).toBe("live");
   });
 });
 

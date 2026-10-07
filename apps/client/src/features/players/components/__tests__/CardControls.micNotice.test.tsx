@@ -1,6 +1,6 @@
 // The mic control's failure notice (U10b): beside the control, announced as a status, tied
 // to the button, shown ONCE (beside the control that was pressed) however many characters
-// the player has, and kept until the next try.
+// the player has, and kept until the next try. Also the button's face: the mic's state.
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { CardControls } from "../CardControls";
@@ -108,3 +108,27 @@ it("is still there a minute later and after the card is mounted again (it is not
   controls();
   expect(screen.getByRole("status")).toHaveTextContent("Mic blocked");
 });
+
+it.each([
+  [true, "Mute mic", "🎤", "btn-success", "btn-danger"],
+  [false, "Unmute mic", "🔇", "btn-danger", "btn-success"],
+])(
+  "micEnabled %s: the button shows the mic's state (green 🎤 live, red 🔇 muted)",
+  (micEnabled, name, icon, shown, absent) => {
+    render(
+      <CardControls
+        controlId="card-a"
+        canControlMic
+        canOpenSettings={false}
+        micEnabled={micEnabled}
+        onToggleMic={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+    const button = screen.getByRole("button", { name });
+    expect(button).toHaveTextContent(icon);
+    expect(button).toHaveAttribute("title", name);
+    expect(button).toHaveClass("btn", shown);
+    expect(button).not.toHaveClass(absent);
+  },
+);

@@ -300,12 +300,15 @@ export function useVoice({
   }, [listed, authenticated]);
 
   // Leaving the table (unmount) hangs up and releases the mic, including a join
-  // still waiting on the mic prompt (it must not start a call nothing shows).
+  // still waiting on the mic prompt (it must not start a call nothing shows), and
+  // forgets the call: the gate that unmounted it (another tab, a conflict) must
+  // not rejoin it unasked. A reload never unmounts, so its memory survives.
   useEffect(
     () => () => {
       attemptRef.current += 1;
       stateRef.current = "off";
       teardown();
+      forgetVoice();
     },
     [teardown],
   );

@@ -49,9 +49,9 @@ export class MicMeter {
       throw error;
     }
     // A context made without a tap (a reload rejoining by itself) starts
-    // suspended and reads silence: the next press or key anywhere wakes it.
+    // suspended and reads silence: the next click, tap or key anywhere wakes it.
     if (context.state === "suspended") {
-      document.addEventListener("pointerdown", this.onGesture, true);
+      document.addEventListener("click", this.onGesture, true);
       document.addEventListener("keydown", this.onGesture, true);
     }
     const data = new Uint8Array(analyser.frequencyBinCount);
@@ -78,7 +78,7 @@ export class MicMeter {
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
-    document.removeEventListener("pointerdown", this.onGesture, true);
+    document.removeEventListener("click", this.onGesture, true);
     document.removeEventListener("keydown", this.onGesture, true);
     void this.context?.close().catch(() => {});
     this.context = null;

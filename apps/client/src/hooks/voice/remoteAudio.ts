@@ -9,8 +9,10 @@
 // and Safari also relaxes the rule while a page captures the microphone, so it
 // normally plays; but this is per browser and not something to rely on. When a
 // play() is refused — a reload that rejoined by itself, a stricter browser —
-// `blocked` turns on and the next press or key anywhere on the page (or the
-// "tap to hear" control) starts every voice again.
+// `blocked` turns on and the next tap, click or key anywhere on the page (or the
+// "tap to hear" control) starts every voice again. A click, not a pointerdown: a
+// touch's pointerdown does not count as a tap that may start sound (touch counts
+// on release), so on a phone only the click would work.
 
 export class RemoteAudio {
   private holder: HTMLElement | null = null;
@@ -45,8 +47,12 @@ export class RemoteAudio {
   /** Start every voice again; call it inside a tap or click. */
   resume(): void {
     if (!this.blocked) return;
-    this.setBlocked(false);
-    this.elements.forEach((audio) => this.play(audio));
+    const started = [...this.elements.values()].map((audio) => audio.play());
+    // Stay blocked (the control stays up) until every voice has really started.
+    void Promise.all(started).then(
+      () => this.setBlocked(false),
+      () => {},
+    );
   }
 
   clear(): void {
@@ -72,10 +78,10 @@ export class RemoteAudio {
     if (this.blocked === blocked) return;
     this.blocked = blocked;
     if (blocked) {
-      document.addEventListener("pointerdown", this.onGesture, true);
+      document.addEventListener("click", this.onGesture, true);
       document.addEventListener("keydown", this.onGesture, true);
     } else {
-      document.removeEventListener("pointerdown", this.onGesture, true);
+      document.removeEventListener("click", this.onGesture, true);
       document.removeEventListener("keydown", this.onGesture, true);
     }
     this.onBlockedChange(blocked);

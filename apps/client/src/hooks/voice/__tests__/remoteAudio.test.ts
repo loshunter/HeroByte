@@ -1,6 +1,7 @@
 // The other players' voices: one <audio data-voice-peer> per person in a hidden
 // holder; a play() the browser refuses (NotAllowedError) turns `blocked` on and the
-// next press or key anywhere starts every voice again; detach and clear let go.
+// next click (a tap counts on release) or key anywhere starts every voice again,
+// clearing `blocked` only once every voice has really started; detach and clear let go.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RemoteAudio } from "../remoteAudio";
 
@@ -32,7 +33,8 @@ afterEach(() => {
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 const audioFor = (uid: string) =>
   document.querySelectorAll<HTMLAudioElement>(`audio[data-voice-peer="${uid}"]`);
-const press = () => document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+const click = () => document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+const pointerdown = () => document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
 const key = () =>
   document.body.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "a" }));
 
@@ -105,7 +107,7 @@ describe("blocked playback", () => {
     expect(onBlocked).not.toHaveBeenCalled();
   });
 
-  it("the next press anywhere unblocks and plays every voice again", async () => {
+  it("the next click anywhere unblocks and plays every voice again", async () => {
     play.mockImplementation(() => Promise.reject(notAllowed()));
     const onBlocked = vi.fn();
     const remote = make(onBlocked);
@@ -114,12 +116,65 @@ describe("blocked playback", () => {
     await flush();
     play.mockClear();
     play.mockImplementation(() => Promise.resolve());
-    press();
+    click();
+    expect(play).toHaveBeenCalledTimes(2);
+    await flush();
     expect(onBlocked.mock.calls).toEqual([[true], [false]]);
+    // The listener is gone once resumed: another click plays nothing.
+    click();
     expect(play).toHaveBeenCalledTimes(2);
-    // The listener is gone once resumed: another press plays nothing.
-    press();
+  });
+
+  it("a pointerdown alone does not resume (a touch's press may not start sound)", async () => {
+    play.mockImplementation(() => Promise.reject(notAllowed()));
+    const onBlocked = vi.fn();
+    const remote = make(onBlocked);
+    remote.attach("p1", stream("s1"));
+    await flush();
+    play.mockClear();
+    play.mockImplementation(() => Promise.resolve());
+    pointerdown();
+    await flush();
+    expect(play).not.toHaveBeenCalled();
+    expect(onBlocked.mock.calls).toEqual([[true]]);
+  });
+
+  it("stays blocked until every voice has started, then reports unblocked once", async () => {
+    play.mockImplementation(() => Promise.reject(notAllowed()));
+    const onBlocked = vi.fn();
+    const remote = make(onBlocked);
+    remote.attach("p1", stream("s1"));
+    remote.attach("p2", stream("s2"));
+    await flush();
+    const starts: (() => void)[] = [];
+    play.mockImplementation(() => new Promise<void>((resolve) => starts.push(resolve)));
+    click();
+    expect(starts).toHaveLength(2);
+    starts[0]!();
+    await flush();
+    expect(onBlocked.mock.calls).toEqual([[true]]);
+    starts[1]!();
+    await flush();
+    expect(onBlocked.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it("a resume the browser refuses again stays blocked, never flickering to unblocked", async () => {
+    play.mockImplementation(() => Promise.reject(notAllowed()));
+    const onBlocked = vi.fn();
+    const remote = make(onBlocked);
+    remote.attach("p1", stream("s1"));
+    await flush();
+    play.mockClear();
+    click(); // still refused
+    await flush();
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(onBlocked.mock.calls).toEqual([[true]]);
+    // Still listening: the next click tries again, and this one is allowed.
+    play.mockImplementation(() => Promise.resolve());
+    click();
+    await flush();
     expect(play).toHaveBeenCalledTimes(2);
+    expect(onBlocked.mock.calls).toEqual([[true], [false]]);
   });
 
   it("a key press unblocks too", async () => {
@@ -130,6 +185,7 @@ describe("blocked playback", () => {
     await flush();
     play.mockImplementation(() => Promise.resolve());
     key();
+    await flush();
     expect(onBlocked.mock.calls).toEqual([[true], [false]]);
   });
 
@@ -148,6 +204,7 @@ describe("blocked playback", () => {
     play.mockImplementation(() => Promise.resolve());
     remote.resume();
     expect(play).toHaveBeenCalledTimes(2);
+    await flush();
     expect(onBlocked.mock.calls).toEqual([[true], [false]]);
   });
 
@@ -169,7 +226,10 @@ describe("blocked playback", () => {
     await flush();
     remote.clear();
     expect(onBlocked.mock.calls).toEqual([[true], [false]]);
-    press();
+    play.mockClear();
+    click();
+    await flush();
+    expect(play).not.toHaveBeenCalled();
     expect(onBlocked.mock.calls).toEqual([[true], [false]]);
   });
 });

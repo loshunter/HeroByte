@@ -38,7 +38,7 @@ export const CardControls: React.FC<CardControlsProps> = ({
     <div className="player-card-controls">
       {canControlMic && (
         <button
-          className={micEnabled ? "btn btn-danger" : "btn btn-success"}
+          className={micEnabled ? "btn btn-success" : "btn btn-danger"}
           style={{
             fontSize: "var(--player-card-control-font-size, 0.7rem)",
             padding: "var(--player-card-control-padding, 4px 8px)",
@@ -51,7 +51,8 @@ export const CardControls: React.FC<CardControlsProps> = ({
           aria-label={micEnabled ? "Mute mic" : "Unmute mic"}
           aria-describedby={micNotice ? noticeId : undefined}
         >
-          {micEnabled ? "🔇" : "🎤"}
+          {/* The mic's state, like the header's control: 🎤 live, red 🔇 muted. */}
+          {micEnabled ? "🎤" : "🔇"}
         </button>
       )}
       {canOpenSettings && (

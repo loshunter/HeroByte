@@ -206,6 +206,12 @@ const memory = () =>
   } | null;
 const remember = (state: "live" | "muted", at = Date.now()) =>
   window.sessionStorage.setItem(KEY, JSON.stringify({ state, at }));
+// What the browser says this page load was. jsdom's is no reload, so a test of the reload
+// memory stubs one (after any vi.useFakeTimers(), which replaces window.performance).
+const loadedBy = (...types: string[]) =>
+  vi
+    .spyOn(window.performance, "getEntriesByType")
+    .mockReturnValue(types.map((type) => ({ type })) as never);
 
 // Every peer that was ever created is hung up (and at least one was created).
 const expectAllPeersDestroyed = () => {
@@ -397,6 +403,7 @@ describe("coming back", () => {
   });
 
   it("a remembered 'muted' rejoins muted on first authentication", async () => {
+    loadedBy("reload");
     remember("muted");
     const { result, rerender, voiceStates } = setup({ authenticated: false });
     expect(getUserMedia).not.toHaveBeenCalled();
@@ -648,6 +655,19 @@ describe("a mic that stops by itself", () => {
   });
 });
 
+describe("unmounting in the call", () => {
+  it("forgets the call: whatever unmounted the table must not rejoin it unasked", async () => {
+    const { result, unmount } = setup({ snapshot: SELF_ONLY() });
+    await act(async () => {
+      await result.current.join();
+    });
+    expect(memory()?.state).toBe("live");
+    unmount();
+    expect(window.sessionStorage.getItem(KEY)).toBeNull();
+    expect(current.tracks[0].stop).toHaveBeenCalled();
+  });
+});
+
 describe("unmounting while the mic prompt is open", () => {
   it("releases the stream when the prompt resolves and sends nothing at all", async () => {
     let grant: (stream: MediaStream) => void = () => {};
@@ -876,7 +896,37 @@ describe("the list of who is in the call", () => {
 });
 
 describe("the reload memory is only for a reload", () => {
+  // Each of these is a fresh, valid memory but for the one thing under test.
+  const authenticateAfterLoad = async () => {
+    const { result, rerender } = setup({ authenticated: false });
+    await act(async () => {
+      rerender({ snapshot: snapshot([], []), authenticated: true });
+    });
+    return result;
+  };
+
+  it.each([
+    ["a new page load", ["navigate"]],
+    ["Back or Forward", ["back_forward"]],
+    ["no navigation entry", []],
+  ])("%s (no reload) does not rejoin, even with a fresh memory", async (_label, types) => {
+    loadedBy(...types);
+    remember("live");
+    const result = await authenticateAfterLoad();
+    expect(getUserMedia).not.toHaveBeenCalled();
+    expect(result.current.state).toBe("off");
+  });
+
+  it("a memory dated in the future does not rejoin", async () => {
+    loadedBy("reload");
+    remember("live", Date.now() + 5_000);
+    const result = await authenticateAfterLoad();
+    expect(getUserMedia).not.toHaveBeenCalled();
+    expect(result.current.state).toBe("off");
+  });
+
   it("a remembered state older than the window does not rejoin on authentication", async () => {
+    loadedBy("reload");
     remember("live", Date.now() - (RELOAD_WINDOW_MS + 1));
     const { result, rerender } = setup({ authenticated: false });
     await act(async () => {
@@ -887,6 +937,7 @@ describe("the reload memory is only for a reload", () => {
   });
 
   it("an old plain-string memory does not rejoin either", async () => {
+    loadedBy("reload");
     window.sessionStorage.setItem(KEY, "live");
     const { result, rerender } = setup({ authenticated: false });
     await act(async () => {

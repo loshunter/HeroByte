@@ -6,9 +6,10 @@
 // (the ?room= link), so opening another table never joins its call by itself.
 //
 // Only a reload: browsers restore sessionStorage with restored tabs (reopening a
-// closed tab, "continue where you left off"), and a mic that switched itself on
-// hours later, unasked, would be a privacy failure. So the memory carries when it
-// was last true (refreshed as the page goes away) and is honoured for a minute.
+// closed tab, Back into it, "continue where you left off"), and a mic that
+// switched itself on after the player closed the tab to leave would be a privacy
+// failure. So the memory is honoured only when this page load IS a reload, and
+// within a minute of when it was last true (refreshed as the page goes away).
 // Storage can be missing or refuse (private windows): voice then simply does not
 // come back after a reload.
 
@@ -30,13 +31,22 @@ export function rememberVoice(state: Remembered): void {
   }
 }
 
+/** True only when this page load is a reload (not a reopened, restored or new tab). */
+function isReload(): boolean {
+  const entry = window.performance?.getEntriesByType?.("navigation")[0];
+  return (entry as PerformanceNavigationTiming | undefined)?.type === "reload";
+}
+
 export function recallVoice(): Remembered | null {
   try {
+    if (!isReload()) return null;
     const value: unknown = JSON.parse(window.sessionStorage.getItem(key()) ?? "null");
     if (!value || typeof value !== "object") return null;
     const { state, at } = value as { state?: unknown; at?: unknown };
     if (state !== "live" && state !== "muted") return null;
-    if (typeof at !== "number" || Date.now() - at > RELOAD_WINDOW_MS) return null;
+    if (typeof at !== "number") return null;
+    const age = Date.now() - at;
+    if (age < 0 || age > RELOAD_WINDOW_MS) return null;
     return state;
   } catch {
     return null;

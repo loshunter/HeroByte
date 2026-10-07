@@ -157,18 +157,29 @@ describe("MicMeter", () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it("a suspended context is resumed by the next press anywhere", () => {
+  it("a suspended context is resumed by the next click or key anywhere, not a pointerdown", () => {
     class Suspended extends FakeContext {
       state = "suspended";
     }
     (window as { AudioContext?: unknown }).AudioContext = Suspended;
     const meter = new MicMeter(vi.fn());
     meter.start(STREAM);
+    // A touch's press may not start audio (it counts on release): only the click wakes it.
     document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(contexts[0].resume).not.toHaveBeenCalled();
+    document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(contexts[0].resume).toHaveBeenCalledTimes(1);
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "a" }));
+    expect(contexts[0].resume).toHaveBeenCalledTimes(2);
+    // After stop there is no context left to resume, so only the removal itself shows a leak.
+    const removed = vi.spyOn(document, "removeEventListener");
     meter.stop();
-    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
-    expect(contexts[0].resume).toHaveBeenCalledTimes(1);
+    expect(removed).toHaveBeenCalledWith("click", expect.any(Function), true);
+    expect(removed).toHaveBeenCalledWith("keydown", expect.any(Function), true);
+    removed.mockRestore();
+    document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "a" }));
+    expect(contexts[0].resume).toHaveBeenCalledTimes(2);
   });
 
   it.each(["createAnalyser", "createMediaStreamSource"] as const)(
