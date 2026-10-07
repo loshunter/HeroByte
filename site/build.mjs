@@ -6,6 +6,7 @@
 //   the help center links to the same text the app's docs maintain. Headings get GitHub-style
 //   ids, so the guides' own cross-links (getting-started.md#becoming-the-dm) keep working.
 // - site/dist/help/search-index.json holds every guide section for the help search.
+import { realpathSync } from "node:fs";
 import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +20,8 @@ const guideDir = path.join(repo, "docs", "user-guide");
 export const SITE = {
   // The app is served from the same Cloudflare Pages project, under /play/ (the site is at /).
   appUrl: "/play/",
+  // For link previews (Discord, Slack): their crawlers want an absolute image URL.
+  origin: "https://herobyte.pages.dev",
   sourceUrl: null,
   bugUrl: null,
   contactUrl: null,
@@ -29,20 +32,30 @@ export const SITE = {
 };
 
 // The query parameters the app reads (apps/client/src: room, SESSION_UID_OVERRIDE_PARAM, mobile,
-// ws). A link to / that carries one is an invite or bookmark from before the app moved to /play/,
-// so the landing page forwards it there. Other queries (?fbclid= on a shared post, ?utm_*) stay.
+// ws; pagesLayout.test.ts fails if the app reads a literal one not listed). A link to / that
+// carries one is an invite or bookmark from before the app moved to /play/, so the landing page
+// forwards it there. Other queries (?fbclid= on a shared post, ?utm_*) stay. A bare / stays too:
+// the owner chose the landing page for it, and that includes the default table's old invite link.
 export const APP_PARAMS = ["room", "sessionUid", "mobile", "ws"];
 
-/** Where the landing page sends a visitor: the app with the same query and hash, or null to stay. */
-export function appForwardTarget(search, hash, appUrl, params) {
+/**
+ * Where the landing page sends a visitor: the app with the same query and hash, or null to stay.
+ * An installed app always goes to the app: iOS home-screen icons keep the address they were added
+ * with (often /), and other installs open / until they re-read the manifest. Never forwards from
+ * the app's own address, so a landing page served there by mistake cannot loop.
+ */
+export function appForwardTarget(search, hash, pathname, standalone, appUrl, params) {
+  if (pathname.indexOf(appUrl) === 0) return null;
   const query = new URLSearchParams(search);
-  return params.some((name) => query.has(name)) ? appUrl + search + hash : null;
+  return standalone || params.some((name) => query.has(name)) ? appUrl + search + hash : null;
 }
 
-// Runs before anything on the landing page renders, so an old invite never flashes the site.
-const forwarder = `<script>(function(){var t=(${appForwardTarget})(location.search,location.hash,${JSON.stringify(
+// The landing page's first script. It hides the page while it forwards, so an old invite does not
+// flash the website while /play/ loads. Exported for the test, which runs this exact text.
+export const forwarderScript = `(function(){var s=navigator.standalone===true||!!(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);var t=(${appForwardTarget})(location.search,location.hash,location.pathname,s,${JSON.stringify(
   SITE.appUrl,
-)},${JSON.stringify(APP_PARAMS)});if(t)location.replace(t);})();</script>`;
+)},${JSON.stringify(APP_PARAMS)});if(t){document.documentElement.style.visibility="hidden";location.replace(t);}})();`;
+const forwarder = `<script>${forwarderScript}</script>`;
 
 const GUIDES = [
   { file: "getting-started.md", title: "Getting started", aud: "everyone" },
@@ -300,6 +313,11 @@ function layout({ title, description, body, root, current, scripts = [], head = 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${head}<title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:image" content="${SITE.origin}/logo-wide.webp">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -388,7 +406,8 @@ async function build() {
     if (!m) throw new Error(`${rel}: missing <!--meta {...}--> line`);
     const meta = JSON.parse(m[1]);
     const depth = rel.split("/").length - 1;
-    const root = "../".repeat(depth);
+    // 404.html is served at whatever address was not found, so its links must not be relative.
+    const root = rel === "404.html" ? "/" : "../".repeat(depth);
     const body = fill(src.slice(m[0].length), root);
     await mkdir(path.dirname(path.join(out, rel)), { recursive: true });
     const head = rel === "index.html" ? `${forwarder}\n` : "";
@@ -417,6 +436,7 @@ async function listHtml(dir, prefix = "") {
   return found;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// realpath both sides: Node resolves symlinks in import.meta.url but not in argv[1].
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   await build();
 }

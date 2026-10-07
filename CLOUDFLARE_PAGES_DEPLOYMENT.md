@@ -38,7 +38,8 @@ Click **Show advanced** and configure:
 
   - `corepack enable` ensures pnpm is available in the build environment
   - `--frozen-lockfile` ensures exact dependency versions from pnpm-lock.yaml
-  - `pnpm build` builds the client (which also builds the shared package)
+  - `pnpm build` builds the shared package and the client, then (on Cloudflare only) the website
+    and the `/play/` layout (see below)
 
 - **Build output directory**: `dist`
   - Vite outputs the built files to the `dist` directory
@@ -58,7 +59,8 @@ Add the following environment variable to **both Production and Preview**:
 
 ### What the build serves: the website at `/`, the app at `/play/`
 
-One Pages project serves both. On Cloudflare (which sets `CF_PAGES=1` in every build), `pnpm build`
+One Pages project serves both. On Cloudflare (Pages sets `CF_PAGES=1` in its build environment,
+production and preview builds alike), `pnpm build`
 ends with `apps/client/scripts/assemble-pages.mjs`, which builds the website (`site/build.mjs`) and lays
 out `dist/` as:
 
@@ -67,11 +69,20 @@ out `dist/` as:
   `/sfx/`, `/manifest.json`, `/sw.js`) stay at the root, because saved tables and backups hold those URLs.
 - Old links such as `/?room=<code>` still reach the table: the landing page forwards any link carrying
   one of the app's query parameters (`room`, `sessionUid`, `mobile`, `ws`) to `/play/` with the same query.
+- A bare `/` opens the website, not a table. That includes the default table's (Main Hall's) invite
+  link from before this layout, which was the bare address; its **Open HeroByte** button goes to the app.
+- An installed HeroByte app (home screen or desktop) is always forwarded to `/play/`. The manifest's
+  `start_url` is `/play/` with `id` and `scope` kept at `/`, but browsers re-read it on their own
+  schedule and iOS keeps the address an icon was added with, so the forward covers installs that
+  still open `/`.
 
-Everywhere else (dev, CI, e2e) the step does nothing and the app stays at `/`. To see the Cloudflare
+In CI and Lighthouse the step runs but only logs that it skipped; dev and e2e never run it. Either
+way the app stays at `/` there. To see the Cloudflare
 layout locally, run `pnpm --filter herobyte-client build:pages` (set `VITE_WS_URL=ws://localhost:8787`
-first to use a local server) and serve `apps/client/dist` with any static server. A file that both the
-site and the app have stops the build rather than overwriting one with the other.
+first to use a local server) and serve `apps/client/dist` with any static server. A top-level name
+that both the site and the app have (other than `index.html`), or a site entry named `play`, stops
+the build rather than overwriting one with the other. The site's `404.html` turns off Pages'
+single-page-app fallback, so an unknown address gets a real "Page not found" page.
 
 ## Step 3: Deploy
 
@@ -88,7 +99,7 @@ The initial deployment takes 2-5 minutes.
 
 1. Once deployed, Cloudflare will provide a URL like: `https://herobyte.pages.dev`
 2. Open the URL in your browser: the website. **Open HeroByte** (or `/play/`) is the app
-3. The client should connect to your Render server via WebSocket
+3. In the app, the client should connect to your Render server via WebSocket
 4. Test basic functionality:
    - Add tokens to the map
    - Move tokens around

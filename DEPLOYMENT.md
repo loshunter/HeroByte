@@ -163,7 +163,8 @@ Replace `herobyte-server.onrender.com` with your actual Render service URL from 
 
 1. Click **Save and Deploy**
 2. Wait for build to complete (~1-2 minutes)
-3. Your app will be available at: `https://herobyte.pages.dev` (or your chosen name)
+3. The website will be at `https://herobyte.pages.dev` (or your chosen name) and the app at
+   `https://herobyte.pages.dev/play/`
 
 ### E. Test Deployment
 

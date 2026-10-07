@@ -3,6 +3,7 @@
   "short_name": "HeroByte",
   "id": "/",
   "start_url": "/play/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0b0d12",

@@ -57,8 +57,9 @@ refuses a run that does not fit and re-checks before every file. Audio goes to `
 
 ## Deploying
 
-The website and the app are ONE Cloudflare Pages project (`herobyte.pages.dev`): the website at
-`/`, the app at `/play/`. Nothing is set up separately: on Cloudflare the app's own build runs
+From the first `main` deploy that includes `apps/client/scripts/assemble-pages.mjs`, the website
+and the app are ONE Cloudflare Pages project (`herobyte.pages.dev`): the website at `/`, the app
+at `/play/`. Nothing is set up separately: on Cloudflare the app's own build runs
 `apps/client/scripts/assemble-pages.mjs`, which runs this build and copies `site/dist/` around
 the app. `CLOUDFLARE_PAGES_DEPLOYMENT.md` explains the layout and how to build it locally
 (`pnpm --filter herobyte-client build:pages`).
@@ -66,12 +67,19 @@ the app. `CLOUDFLARE_PAGES_DEPLOYMENT.md` explains the layout and how to build i
 The landing page forwards old links that carry one of the app's query parameters
 (`APP_PARAMS` in `build.mjs`: `room`, `sessionUid`, `mobile`, `ws`) to `/play/`, so invites sent
 as `herobyte.pages.dev/?room=...` still reach the table. If the app starts reading a new query
-parameter, add it there. Any other query (`?fbclid=` on a shared post) stays on the landing page.
+parameter, add it there (a test in `apps/client/src/__tests__/pagesLayout.test.ts` fails on a
+parameter the app reads by a literal name that is not listed). Any other query (`?fbclid=` on a
+shared post) stays on the landing page, and so does a bare `/`, including the Main Hall's old
+invite link (the bare address). An installed app is always forwarded to `/play/`.
+
+`pages/404.html` is built with root-absolute links, because Pages serves it at whatever address
+was not found.
 
 ## Checks used while building it
 
-- Every `href`/`src` in `site/dist` and every `#anchor` resolves (488 references, 0 broken),
-  and every search entry points at a real anchor.
+- Every `href`/`src` in `site/dist` and every `#anchor` resolved (488 references, 0 broken, before
+  the `/play/` move), and every search entry points at a real anchor. The `/play/` app links and
+  `404.html`'s root-absolute links resolve only in the assembled layout; re-run the count there.
 - No page scrolls sideways at 375 px or 1280 px wide; the guides' wide tables scroll inside their
   own box.
 - Search, the Player/DM filter and the chapter buttons work in a browser.
