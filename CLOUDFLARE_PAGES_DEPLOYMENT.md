@@ -1,6 +1,7 @@
 # Cloudflare Pages Deployment Guide
 
-This guide walks you through deploying the HeroByte client to Cloudflare Pages.
+This guide walks you through deploying the HeroByte client (and, from the same build, the HeroByte
+website) to Cloudflare Pages.
 
 ## Prerequisites
 
@@ -66,23 +67,28 @@ out `dist/` as:
 
 - `/` and `/help/...`: the website (its own files under `/site-assets/` and `/img/`).
 - `/play/`: the app's page. Its bundle stays at `/assets/` and its public files (`/tokens/`, `/tiles/`,
-  `/sfx/`, `/manifest.json`, `/sw.js`) stay at the root, because saved tables and backups hold those URLs.
-- Old links such as `/?room=<code>` still reach the table: the landing page forwards any link carrying
-  one of the app's query parameters (`room`, `sessionUid`, `mobile`, `ws`) to `/play/` with the same query.
+  `/sfx/`, `/manifest.json`, `/sw.js`) stay at the root: the app is built with Vite base `/` and refers
+  to them by those URLs, and saved tables and backups hold `/tokens/` URLs.
+- Old links such as `/?room=<code>` still reach the table (when JavaScript is on): the landing page
+  forwards any link carrying one of the app's query parameters (`room`, `sessionUid`, `mobile`, `ws`)
+  to `/play/` with the same query.
 - A bare `/` opens the website, not a table. That includes the default table's (Main Hall's) invite
   link from before this layout, which was the bare address; its **Open HeroByte** button goes to the app.
-- An installed HeroByte app (home screen or desktop) is always forwarded to `/play/`. The manifest's
-  `start_url` is `/play/` with `id` and `scope` kept at `/`, but browsers re-read it on their own
-  schedule and iOS keeps the address an icon was added with, so the forward covers installs that
-  still open `/`.
+- An installed HeroByte app (running in standalone display mode) that opens the landing page from
+  outside the site is forwarded to `/play/`. The manifest's `start_url` is `/play/`, with `id` kept
+  and `scope` set to `/`, but browsers re-read the manifest on their own schedule and iOS home-screen
+  icons can keep the address they were added with, so the forward covers installs that still open
+  `/`. Reaching the landing page from another page of the site does not forward.
 
 In CI and Lighthouse the step runs but only logs that it skipped; dev and e2e never run it. Either
 way the app stays at `/` there. To see the Cloudflare
 layout locally, run `pnpm --filter herobyte-client build:pages` (set `VITE_WS_URL=ws://localhost:8787`
-first to use a local server) and serve `apps/client/dist` with any static server. A top-level name
+first to use a local server) and serve `apps/client/dist` with a static server that serves a
+folder's `index.html` (for example `python -m http.server`). A top-level name
 that both the site and the app have (other than `index.html`), or a site entry named `play`, stops
 the build rather than overwriting one with the other. The site's `404.html` turns off Pages'
-single-page-app fallback, so an unknown address gets a real "Page not found" page.
+single-page-app fallback, so on Cloudflare an unknown address gets a real "Page not found" page
+(a local static server shows its own).
 
 ## Step 3: Deploy
 
@@ -90,7 +96,7 @@ single-page-app fallback, so an unknown address gets a real "Page not found" pag
 2. Cloudflare Pages will:
    - Clone your repository
    - Install dependencies with pnpm
-   - Build the client application
+   - Build the client application and the website
    - Deploy to a global CDN
 
 The initial deployment takes 2-5 minutes.

@@ -6,9 +6,11 @@
 // app stays at /.
 //
 // The app is built exactly as before (Vite base "/"), so its bundle stays at /assets/ and its
-// public files at /tokens/, /tiles/, /sfx/, /manifest.json... Saved tables and backups hold those
-// root URLs, so they must not move. Only the app's page moves: dist/index.html -> dist/play/index.html.
-// Every src and href in it is root-absolute (checked below), so it loads the same bundle from there.
+// public files at /tokens/, /tiles/, /sfx/, /manifest.json... The code refers to them by those root
+// URLs, and saved tables and backups hold /tokens/ URLs, so they must not move. Only the app's page
+// moves: dist/index.html -> dist/play/index.html. Every double-quoted src and href in it must be
+// absolute or root-absolute (checked below; other forms are not checked), so it loads the same
+// bundle from there.
 // Then the website (site/build.mjs -> site/dist) is copied in around it. A top-level name the site
 // and the app both have (other than index.html), or a site entry named "play", stops the build
 // before anything moves.

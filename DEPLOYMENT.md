@@ -168,8 +168,9 @@ Replace `herobyte-server.onrender.com` with your actual Render service URL from 
 
 ### E. Test Deployment
 
-1. Open your Pages URL in a browser
-2. The client should automatically connect to the Render WebSocket server
+1. Open your Pages URL with `/play/` added (for example `https://herobyte.pages.dev/play/`); the
+   bare URL is the website
+2. The app should automatically connect to the Render WebSocket server
 3. Test by:
    - Creating a token (should appear on map)
    - Opening dice roller

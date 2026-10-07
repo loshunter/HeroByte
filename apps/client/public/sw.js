@@ -2,8 +2,8 @@
 // delete v2, which held the app's page under "/" and the old manifest. Only the canonical page URL
 // is cached: Cloudflare Pages redirects /play/index.html to /play/, and the Fetch spec refuses a
 // redirected response for a navigation. /play/ exists on Cloudflare, and the Vite dev and preview
-// servers answer it with the app's page; a static host without it fails the install (main.tsx
-// ignores that, and the app works without a worker). The manifest is not cached, so a change to it
+// servers answer it with the app's page; on a static host without it the install fails, nothing
+// reports it, and the app works without a worker. The manifest is not cached, so a change to it
 // reaches installed apps without a cache bump.
 const CACHE_NAME = "herobyte-cache-v3";
 const urlsToCache = ["/play/", "/favicon-32x32.png", "/logo-wide.webp"];

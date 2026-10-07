@@ -66,11 +66,14 @@ the app. `CLOUDFLARE_PAGES_DEPLOYMENT.md` explains the layout and how to build i
 
 The landing page forwards old links that carry one of the app's query parameters
 (`APP_PARAMS` in `build.mjs`: `room`, `sessionUid`, `mobile`, `ws`) to `/play/`, so invites sent
-as `herobyte.pages.dev/?room=...` still reach the table. If the app starts reading a new query
-parameter, add it there (a test in `apps/client/src/__tests__/pagesLayout.test.ts` fails on a
-parameter the app reads by a literal name that is not listed). Any other query (`?fbclid=` on a
-shared post) stays on the landing page, and so does a bare `/`, including the Main Hall's old
-invite link (the bare address). An installed app is always forwarded to `/play/`.
+as `herobyte.pages.dev/?room=...` still reach the table (when JavaScript is on). If the app starts
+reading a new query parameter, add it there yourself: the test in
+`apps/client/src/__tests__/pagesLayout.test.ts` only sees reads written with a literal name
+(`.get("name")`, `.has("name")`) in files that use `URLSearchParams` or `searchParams`, not a name
+held in a variable or constant. Any other query (`?fbclid=` on a shared post) stays on the landing
+page, and so does a bare `/`, including the Main Hall's old invite link (the bare address). An
+installed app (standalone display) that opens the landing page from outside the site is forwarded
+to `/play/`; from another page of the site it stays, so the site can still be read there.
 
 `pages/404.html` is built with root-absolute links, because Pages serves it at whatever address
 was not found.

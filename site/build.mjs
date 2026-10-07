@@ -32,27 +32,33 @@ export const SITE = {
 };
 
 // The query parameters the app reads (apps/client/src: room, SESSION_UID_OVERRIDE_PARAM, mobile,
-// ws; pagesLayout.test.ts fails if the app reads a literal one not listed). A link to / that
-// carries one is an invite or bookmark from before the app moved to /play/, so the landing page
-// forwards it there. Other queries (?fbclid= on a shared post, ?utm_*) stay. A bare / stays too:
-// the owner chose the landing page for it, and that includes the default table's old invite link.
+// ws). Add a new one here yourself: pagesLayout.test.ts only sees reads written with a literal
+// name, as .get("name") or .has("name"), in files that use URLSearchParams or searchParams. A link
+// to / that carries one is an invite or bookmark from before the app moved to /play/, so the
+// landing page forwards it there. Other queries (?fbclid= on a shared post, ?utm_*) stay. A bare /
+// stays too: the owner chose the landing page for it, and that includes the default table's old
+// invite link.
 export const APP_PARAMS = ["room", "sessionUid", "mobile", "ws"];
 
 /**
  * Where the landing page sends a visitor: the app with the same query and hash, or null to stay.
- * An installed app always goes to the app: iOS home-screen icons keep the address they were added
- * with (often /), and other installs open / until they re-read the manifest. Never forwards from
- * the app's own address, so a landing page served there by mistake cannot loop.
+ * An installed app (standalone display) that arrives from outside the site goes to the app: iOS
+ * home-screen icons can keep the address they were added with (often /), and browsers re-read the
+ * manifest on their own schedule. Arriving from another page of the site (fromSite) means the
+ * person is reading the site, so it stays. Never forwards from the app's own address, so a landing
+ * page served there by mistake does not forward to itself.
  */
-export function appForwardTarget(search, hash, pathname, standalone, appUrl, params) {
+export function appForwardTarget(search, hash, pathname, standalone, fromSite, appUrl, params) {
   if (pathname.indexOf(appUrl) === 0) return null;
   const query = new URLSearchParams(search);
-  return standalone || params.some((name) => query.has(name)) ? appUrl + search + hash : null;
+  const forward = (standalone && !fromSite) || params.some((name) => query.has(name));
+  return forward ? appUrl + search + hash : null;
 }
 
-// The landing page's first script. It hides the page while it forwards, so an old invite does not
-// flash the website while /play/ loads. Exported for the test, which runs this exact text.
-export const forwarderScript = `(function(){var s=navigator.standalone===true||!!(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);var t=(${appForwardTarget})(location.search,location.hash,location.pathname,s,${JSON.stringify(
+// The landing page's first script (it needs JavaScript). It hides the page while it forwards, so
+// an old invite does not flash the website while /play/ loads. Exported for the test, which runs
+// this exact text.
+export const forwarderScript = `(function(){var s=navigator.standalone===true||!!(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);var f=false;try{f=!!document.referrer&&new URL(document.referrer).origin===location.origin}catch(e){}var t=(${appForwardTarget})(location.search,location.hash,location.pathname,s,f,${JSON.stringify(
   SITE.appUrl,
 )},${JSON.stringify(APP_PARAMS)});if(t){document.documentElement.style.visibility="hidden";location.replace(t);}})();`;
 const forwarder = `<script>${forwarderScript}</script>`;
@@ -348,14 +354,14 @@ const fill = (s, root) =>
 
 // ---------- build ----------
 
-async function build() {
+export async function build(dest = out) {
   // Empty dist rather than removing it: on Windows a server serving from it holds the folder.
-  await mkdir(out, { recursive: true });
-  for (const e of await readdir(out)) await rm(path.join(out, e), { recursive: true, force: true });
-  await mkdir(path.join(out, "help", "guide"), { recursive: true });
+  await mkdir(dest, { recursive: true });
+  for (const e of await readdir(dest)) await rm(path.join(dest, e), { recursive: true, force: true });
+  await mkdir(path.join(dest, "help", "guide"), { recursive: true });
   // Not "assets/": that is the app's content-hashed bundle folder, cached for a year (_headers).
-  await cp(path.join(here, "assets"), path.join(out, "site-assets"), { recursive: true });
-  await cp(path.join(guideDir, "img"), path.join(out, "img"), { recursive: true });
+  await cp(path.join(here, "assets"), path.join(dest, "site-assets"), { recursive: true });
+  await cp(path.join(guideDir, "img"), path.join(dest, "img"), { recursive: true });
 
   const guideFiles = new Set(GUIDES.map((g) => g.file));
   const index = [];
@@ -382,7 +388,7 @@ async function build() {
 </div>
 </main>`;
     await writeFile(
-      path.join(out, "help", "guide", href),
+      path.join(dest, "help", "guide", href),
       layout({ title: `${g.title} · HeroByte help`, description: `The HeroByte ${g.title.toLowerCase()}.`, body, root: "../../", current: "help" }),
     );
     // one search entry per section, text up to the next heading of the same or higher level
@@ -409,9 +415,9 @@ async function build() {
     // 404.html is served at whatever address was not found, so its links must not be relative.
     const root = rel === "404.html" ? "/" : "../".repeat(depth);
     const body = fill(src.slice(m[0].length), root);
-    await mkdir(path.dirname(path.join(out, rel)), { recursive: true });
+    await mkdir(path.dirname(path.join(dest, rel)), { recursive: true });
     const head = rel === "index.html" ? `${forwarder}\n` : "";
-    await writeFile(path.join(out, rel), layout({ ...meta, body, root, head }));
+    await writeFile(path.join(dest, rel), layout({ ...meta, body, root, head }));
     if (meta.search) {
       const words = body
         .replace(/<(script|style|nav|aside)[\s\S]*?<\/>/g, " ")
@@ -423,8 +429,8 @@ async function build() {
     }
   }
 
-  await writeFile(path.join(out, "help", "search-index.json"), JSON.stringify(index));
-  console.log(`built ${out}: ${index.length} search entries`);
+  await writeFile(path.join(dest, "help", "search-index.json"), JSON.stringify(index));
+  console.log(`built ${dest}: ${index.length} search entries`);
 }
 
 async function listHtml(dir, prefix = "") {

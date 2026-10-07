@@ -102,18 +102,23 @@ describe("assemblePages", () => {
 
 describe("the landing page's forwarder (the script text that ships)", () => {
   /** Runs the shipped forwarder against a fake page; returns where it sent the visitor, or null. */
-  async function visit(href: string, standalone = false) {
+  async function visit(
+    href: string,
+    { standalone = false, iosStandalone = false, referrer = "" } = {},
+  ) {
     const { forwarderScript } = await load(join(repo, "site", "build.mjs"));
     const url = new URL(href, "https://herobyte.pages.dev");
     let target: string | null = null;
     const style: { visibility?: string } = {};
     runInNewContext(forwarderScript, {
       URLSearchParams,
-      navigator: {},
+      URL,
+      navigator: iosStandalone ? { standalone: true } : {},
       window: { matchMedia: true },
       matchMedia: (q: string) => ({ matches: standalone && q === "(display-mode: standalone)" }),
-      document: { documentElement: { style } },
+      document: { documentElement: { style }, referrer },
       location: {
+        origin: url.origin,
         search: url.search,
         hash: url.hash,
         pathname: url.pathname,
@@ -136,16 +141,25 @@ describe("the landing page's forwarder (the script text that ships)", () => {
     expect(await visit("/?fbclid=abc")).toBeNull();
   });
 
-  it("always sends an installed app to /play/, whatever address it opened", async () => {
-    expect(await visit("/", true)).toBe("/play/");
+  it("sends an installed app arriving from outside the site to /play/", async () => {
+    expect(await visit("/", { standalone: true })).toBe("/play/");
+    expect(await visit("/", { iosStandalone: true })).toBe("/play/");
+    expect(await visit("/", { standalone: true, referrer: "https://discord.com/" })).toBe("/play/");
   });
 
-  it("never forwards from the app's own address, so it cannot loop", async () => {
+  it("lets an installed app read the landing page when it came from another site page", async () => {
+    const fromHelp = "https://herobyte.pages.dev/help/index.html";
+    expect(await visit("/", { standalone: true, referrer: fromHelp })).toBeNull();
+    // An old invite still forwards, wherever it came from.
+    expect(await visit("/?room=x", { standalone: true, referrer: fromHelp })).toBe("/play/?room=x");
+  });
+
+  it("never forwards from the app's own address, so it does not forward to itself", async () => {
     expect(await visit("/play/?room=x")).toBeNull();
-    expect(await visit("/play/", true)).toBeNull();
+    expect(await visit("/play/", { standalone: true })).toBeNull();
   });
 
-  it("knows every query parameter the app reads by name", async () => {
+  it("knows every query parameter the app reads with a literal name", async () => {
     const { APP_PARAMS } = await load(join(repo, "site", "build.mjs"));
     expect(APP_PARAMS).toContain(SESSION_UID_OVERRIDE_PARAM);
     const read = new Set<string>();
@@ -154,16 +168,35 @@ describe("the landing page's forwarder (the script text that ships)", () => {
         const full = join(dir, e.name);
         if (e.isDirectory()) walk(full);
         else if (/\.tsx?$/.test(e.name) && !/\.test\./.test(e.name)) {
-          for (const line of readFileSync(full, "utf8").split("\n")) {
-            if (!/URLSearchParams|searchParams/.test(line)) continue;
-            for (const m of line.matchAll(/\.(?:get|has)\("([^"]+)"\)/g)) read.add(m[1]);
-          }
+          const text = readFileSync(full, "utf8");
+          if (!/URLSearchParams|searchParams/.test(text)) continue;
+          for (const m of text.matchAll(/\.(?:get|getAll|has)\(\s*"([^"]+)"\s*\)/g)) read.add(m[1]);
         }
       }
     };
     walk(join(client, "src"));
-    expect(read.has("room")).toBe(true); // the scan finds what it is meant to find
+    // The scan finds what it is meant to find, including a read through a variable (config.ts).
+    for (const name of ["room", "mobile", "ws"]) expect(read.has(name)).toBe(true);
     for (const name of read) expect(APP_PARAMS).toContain(name);
+  });
+});
+
+describe("the built website", () => {
+  it("ships the forwarder on the landing page only, and a 404 page with no relative links", async () => {
+    const { build, forwarderScript } = await load(join(repo, "site", "build.mjs"));
+    scratch = mkdtempSync(join(tmpdir(), "hb-site-"));
+    await build(scratch);
+    const page = (rel: string) => readFileSync(join(scratch!, rel), "utf8");
+    expect(page("index.html")).toContain(`<script>${forwarderScript}</script>`);
+    expect(page("help/index.html")).not.toContain("appForwardTarget");
+    expect(page("404.html")).not.toContain("appForwardTarget");
+    const relative = [...page("404.html").matchAll(/\s(?:src|href)="(?![a-z]+:|\/|#)([^"]+)"/g)];
+    expect(relative.map((m) => m[1])).toEqual([]);
+    expect(page("index.html")).toContain(
+      '<meta property="og:image" content="https://herobyte.pages.dev/logo-wide.webp">',
+    );
+    expect(existsSync(join(scratch!, "site-assets", "site.css"))).toBe(true);
+    expect(existsSync(join(scratch!, "assets"))).toBe(false);
   });
 });
 
@@ -184,6 +217,9 @@ describe("the installed app and its service worker", () => {
     expect(list).not.toContain("/index.html");
     // Not cached, so a manifest change reaches installed apps without a cache bump.
     expect(list).not.toContain("/manifest.json");
+    // A new cache name makes activate delete v2; skipWaiting replaces v2 without waiting for tabs.
+    expect(sw).toMatch(/const CACHE_NAME = "herobyte-cache-v3";/);
+    expect(sw).toMatch(/self\.skipWaiting\(\)/);
     // cache.addAll fails the whole install on one missing file.
     for (const url of list.filter((u) => u !== "/play/")) {
       expect(existsSync(join(client, "public", url))).toBe(true);
