@@ -5,6 +5,10 @@ type AckEligibleType = ClientMessage["t"];
 const NON_TRACKED_TYPES: AckEligibleType[] = [
   "authenticate",
   "create-room",
+  // Answered by fork-table-result, never acked (the server handles it before
+  // routing, like create-room): a tracked fork was retried three times, each
+  // copy carrying both passwords and minting the table again.
+  "fork-table",
   "heartbeat",
   "rtc-signal",
   "request-room-resync",

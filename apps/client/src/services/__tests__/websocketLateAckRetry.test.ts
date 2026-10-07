@@ -10,12 +10,21 @@
  *
  * Pins the client half of that contract: a retry carries the original
  * commandId (a fresh id would defeat the ledger), and an ack ends the retries.
+ * And the one the server answers without an ack (fork-table) is never retried.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { WebSocketService } from "../websocket";
 
 let sockets: MockWebSocket[] = [];
+
+const FORK = {
+  t: "fork-table",
+  roomId: "new-table",
+  name: "New Table",
+  roomPassword: "room-pass",
+  dmPassword: "dm-pass",
+} as const;
 
 class MockWebSocket {
   static CONNECTING = 0;
@@ -120,5 +129,21 @@ describe("WebSocketService late-ack retry", () => {
     vi.advanceTimersByTime(10_000);
 
     expect(socket.framesOfType("chat")).toHaveLength(1);
+  });
+
+  it("a fork-table is sent once, with no commandId, and never retried (it is never acked)", () => {
+    // The server answers it with fork-table-result, not an ack: tracked, it was sent
+    // three more times, each copy carrying both passwords and minting the table again.
+    const { service, socket } = authenticatedSocket();
+
+    service.send(FORK);
+    const forks = () => socket.framesOfType("fork-table");
+    expect(forks()).toHaveLength(1);
+    expect(forks()[0]).not.toHaveProperty("commandId");
+
+    for (const step of [500, 1000, 2000, 10_000]) {
+      vi.advanceTimersByTime(step);
+      expect(forks(), `after another ${step} ms`).toHaveLength(1);
+    }
   });
 });

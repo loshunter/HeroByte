@@ -277,6 +277,29 @@ describe("MessageQueueManager - Characterization Tests", () => {
       expect(exhaustionSpy).toHaveBeenCalledWith(message);
     });
 
+    it("never retries a fork-table, even one carrying a commandId (it is never acked)", () => {
+      queueManager = new MessageQueueManager({ maxQueueSize: 200, onRetryDispatch: resendSpy });
+      const fork: ClientMessage = {
+        t: "fork-table",
+        roomId: "new-table",
+        name: "New Table",
+        roomPassword: "room-pass",
+        dmPassword: "dm-pass",
+        commandId: "cmd-fork",
+      };
+      const move: ClientMessage = { t: "move", id: "token-9", x: 1, y: 1, commandId: "cmd-move" };
+      queueManager.send(fork, mockWebSocket, canSendFn);
+      queueManager.send(move, mockWebSocket, canSendFn);
+
+      // The default backoff: 500, then 1000, then 2000 ms.
+      for (const step of [500, 1000, 2000, 10_000]) {
+        vi.advanceTimersByTime(step);
+        expect(resendSpy.mock.calls.filter(([message]) => message.t === "fork-table")).toEqual([]);
+      }
+      // Guards the guard: the move beside it was retried.
+      expect(resendSpy).toHaveBeenCalledWith(move);
+    });
+
     it("does not register retries for drag-preview commands", () => {
       const message = {
         t: "drag-preview",

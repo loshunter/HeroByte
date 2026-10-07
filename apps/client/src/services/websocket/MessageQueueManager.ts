@@ -123,6 +123,8 @@ export class MessageQueueManager {
     "elevate-to-dm",
     "revoke-dm",
     "set-dm-password",
+    // Never acked either (answered by fork-table-result); see CommandAckManager.
+    "fork-table",
   ]);
   private pendingRetries = new Map<
     string,
