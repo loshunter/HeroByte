@@ -233,6 +233,75 @@ describe("BroadcastService", () => {
     });
   });
 
+  describe("Max wait (a stream of calls cannot starve the room)", () => {
+    // Drive the clock 1 ms at a time so each flush is stamped to the ms.
+    async function runStream(intervalMs: number, durationMs: number, tailMs: number) {
+      const calls: number[] = [];
+      const flushes: number[] = [];
+      let now = 0;
+      const callback = () => flushes.push(now);
+      for (let t = 0; t < durationMs + tailMs; t++) {
+        if (t < durationMs && t % intervalMs === 0) {
+          calls.push(t);
+          service.broadcast(callback);
+        }
+        now = t + 1;
+        await vi.advanceTimersByTimeAsync(1);
+      }
+      return { calls, flushes };
+    }
+
+    it("flushes every call within 50 ms while calls keep arriving 8 ms apart", async () => {
+      // One client's mic meter at 120 Hz, or two speakers at 60 Hz: each call
+      // lands inside the last one's 16 ms window. A debounce with no cap reset
+      // its timer forever and nobody received a state update until it stopped.
+      const { calls, flushes } = await runStream(8, 500, 200);
+
+      for (const call of calls) {
+        const flushed = flushes.find((flush) => flush > call);
+        expect(flushed, `call at ${call} ms`).toBeDefined();
+        expect(flushed! - call, `call at ${call} ms`).toBeLessThanOrEqual(50);
+      }
+      // Batched, still: nowhere near one flush per call.
+      expect(flushes.length).toBeLessThanOrEqual(Math.ceil(500 / 50) + 1);
+    });
+
+    it("sends exactly one broadcast after the last call of a stream, and then stops", async () => {
+      const { calls, flushes } = await runStream(8, 500, 200);
+      const last = calls[calls.length - 1];
+
+      const after = flushes.filter((flush) => flush > last);
+      expect(after).toHaveLength(1);
+      expect(after[0] - last).toBeLessThanOrEqual(16);
+    });
+
+    it("a single call still broadcasts once, 16 ms later, and the cap adds no second one", async () => {
+      service.broadcast(broadcastCallback);
+
+      await vi.advanceTimersByTimeAsync(15);
+      expect(broadcastCallback).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(broadcastCallback).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(broadcastCallback).toHaveBeenCalledTimes(1);
+    });
+
+    it("runs the latest callback when the cap fires", async () => {
+      const first = vi.fn();
+      const latest = vi.fn();
+      service.broadcast(first);
+      for (let t = 8; t <= 48; t += 8) {
+        await vi.advanceTimersByTimeAsync(8);
+        service.broadcast(latest);
+      }
+      await vi.advanceTimersByTimeAsync(2); // 50 ms after the first call
+
+      expect(first).not.toHaveBeenCalled();
+      expect(latest).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("Callback Execution", () => {
     it("should execute different callbacks independently", async () => {
       const callback1 = vi.fn();

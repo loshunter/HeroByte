@@ -4,6 +4,17 @@
 // Manages debounced broadcasting to WebSocket clients
 // Extracted from: apps/server/src/ws/messageRouter.ts
 
+/** Trailing debounce: one frame at 60fps. */
+const DEBOUNCE_MS = 16;
+
+/**
+ * The longest a pending broadcast may wait, counted from its first call. The
+ * trailing debounce alone resets on every call, so calls arriving under 16 ms
+ * apart (one mic meter at 120 Hz, two at 60 Hz) postponed the room's broadcast
+ * for as long as they kept coming, and nobody received any state meanwhile.
+ */
+const MAX_WAIT_MS = 50;
+
 /**
  * Service responsible for managing debounced broadcasting to WebSocket clients.
  *
@@ -42,6 +53,15 @@ export class BroadcastService {
   private broadcastDebounceTimer: NodeJS.Timeout | null = null;
 
   /**
+   * Timer capping how long a pending broadcast may wait (MAX_WAIT_MS)
+   * Set by the first call of a batch and never reset by later ones
+   */
+  private broadcastMaxWaitTimer: NodeJS.Timeout | null = null;
+
+  /** The latest callback of the pending batch: the one a flush runs */
+  private pendingCallback: (() => void) | null = null;
+
+  /**
    * Broadcast immediately without debouncing.
    *
    * Use this when you need to send state updates immediately,
@@ -70,9 +90,9 @@ export class BroadcastService {
    * like token dragging or rapid drawing.
    *
    * **Behavior:**
-   * - First call: Starts a 16ms timer
-   * - Subsequent calls within 16ms: Reset the timer
-   * - After 16ms of no new calls: Execute the broadcast
+   * - First call: Starts a 16ms timer, and a 50ms cap that later calls never reset
+   * - Subsequent calls within 16ms: Reset the 16ms timer
+   * - After 16ms of no new calls, or 50ms after the first: Execute the latest callback
    *
    * @param callback - Function to execute the actual broadcast operation
    *
@@ -87,16 +107,30 @@ export class BroadcastService {
    * ```
    */
   broadcast(callback: () => void): void {
+    this.pendingCallback = callback;
+
     // Clear any existing timer to reset the debounce window
     if (this.broadcastDebounceTimer) {
       clearTimeout(this.broadcastDebounceTimer);
     }
 
     // Set a new timer that will execute the broadcast after 16ms
-    this.broadcastDebounceTimer = setTimeout(() => {
-      this.broadcastDebounceTimer = null;
+    this.broadcastDebounceTimer = setTimeout(() => this.flush(), DEBOUNCE_MS);
+
+    // The cap starts with the batch and is not reset, so a steady stream of
+    // calls still flushes at least every MAX_WAIT_MS
+    if (!this.broadcastMaxWaitTimer) {
+      this.broadcastMaxWaitTimer = setTimeout(() => this.flush(), MAX_WAIT_MS);
+    }
+  }
+
+  /** Run the pending batch's latest callback once, whichever timer fired */
+  private flush(): void {
+    const callback = this.pendingCallback;
+    this.cleanup();
+    if (callback) {
       this.broadcastImmediate(callback);
-    }, 16);
+    }
   }
 
   /**
@@ -116,5 +150,10 @@ export class BroadcastService {
       clearTimeout(this.broadcastDebounceTimer);
       this.broadcastDebounceTimer = null;
     }
+    if (this.broadcastMaxWaitTimer) {
+      clearTimeout(this.broadcastMaxWaitTimer);
+      this.broadcastMaxWaitTimer = null;
+    }
+    this.pendingCallback = null;
   }
 }
