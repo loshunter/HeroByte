@@ -1,0 +1,4 @@
+# Generated audio and the API key never go in the repo.
+out/
+.env
+.env.*
