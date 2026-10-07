@@ -56,6 +56,17 @@ describe("CommandAckManager", () => {
     }
   });
 
+  it("does not track fork-table (answered by fork-table-result, never acked)", () => {
+    const fork: ClientMessage = {
+      t: "fork-table",
+      roomId: "new-table",
+      name: "New Table",
+      roomPassword: "room-pass",
+      dmPassword: "dm-pass",
+    };
+    expect(manager.attachCommandId(fork).commandId).toBeUndefined();
+  });
+
   it("logs nack reasons and clears pending entries", () => {
     const decorated = manager.attachCommandId(baseMessage);
     manager.handleNack(decorated.commandId!, "invalid");
@@ -71,5 +82,15 @@ describe("CommandAckManager", () => {
   it("warns when ack received for unknown command", () => {
     manager.handleAck("missing");
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("unknown commandId"));
+  });
+
+  it("does not track the voice call's live messages (a retry would replay an older state or loudness)", () => {
+    const voiceMessages: ClientMessage[] = [
+      { t: "voice-state", state: "muted" },
+      { t: "mic-level", level: 0.5 },
+    ];
+    for (const message of voiceMessages) {
+      expect(manager.attachCommandId(message).commandId, message.t).toBeUndefined();
+    }
   });
 });

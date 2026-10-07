@@ -68,6 +68,7 @@ export interface CleanupOptions {
  * - Clear authenticatedSessions
  * - Clear uidToWs
  * - Deselect player selections
+ * - Clear the player's voice presence and mic level
  * - Broadcast updated state
  *
  * Optional cleanup (based on options):
@@ -185,6 +186,15 @@ export class DisconnectionCleanupManager {
 
     // Deselect any objects the player had selected
     this.config.selectionService.deselect(state, uid);
+
+    // A closed socket has left the voice call: its audio is gone with it, so
+    // nobody may keep seeing it in the call or speaking. The seat itself stays
+    // (reconnection), and a reconnecting client re-sends its own voice-state.
+    const player = state.players.find((p) => p.uid === uid);
+    if (player) {
+      delete player.voice;
+      player.micLevel = 0;
+    }
 
     // Broadcast updated state to the room's remaining clients.
     //

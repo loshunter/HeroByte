@@ -277,6 +277,29 @@ describe("MessageQueueManager - Characterization Tests", () => {
       expect(exhaustionSpy).toHaveBeenCalledWith(message);
     });
 
+    it("never retries a fork-table, even one carrying a commandId (it is never acked)", () => {
+      queueManager = new MessageQueueManager({ maxQueueSize: 200, onRetryDispatch: resendSpy });
+      const fork: ClientMessage = {
+        t: "fork-table",
+        roomId: "new-table",
+        name: "New Table",
+        roomPassword: "room-pass",
+        dmPassword: "dm-pass",
+        commandId: "cmd-fork",
+      };
+      const move: ClientMessage = { t: "move", id: "token-9", x: 1, y: 1, commandId: "cmd-move" };
+      queueManager.send(fork, mockWebSocket, canSendFn);
+      queueManager.send(move, mockWebSocket, canSendFn);
+
+      // The default backoff: 500, then 1000, then 2000 ms.
+      for (const step of [500, 1000, 2000, 10_000]) {
+        vi.advanceTimersByTime(step);
+        expect(resendSpy.mock.calls.filter(([message]) => message.t === "fork-table")).toEqual([]);
+      }
+      // Guards the guard: the move beside it was retried.
+      expect(resendSpy).toHaveBeenCalledWith(move);
+    });
+
     it("does not register retries for drag-preview commands", () => {
       const message = {
         t: "drag-preview",
@@ -683,6 +706,64 @@ describe("MessageQueueManager - Characterization Tests", () => {
       );
 
       expect(mockWebSocket.send).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("voice call messages (live, never replayed)", () => {
+    // A loudness, a connection offer or candidate, and the call state are true only
+    // now: the voice hook re-sends its state on every re-authentication, so a queued
+    // one replayed after a blip could only contradict it.
+    const voiceMessages: ClientMessage[] = [
+      { t: "mic-level", level: 0.4 },
+      { t: "rtc-signal", target: "someone", signal: { type: "offer", sdp: "x" } },
+      { t: "voice-state", state: "muted" },
+    ];
+
+    it.each(voiceMessages)("drops $t instead of queueing it when the socket is down", (message) => {
+      const closed = { readyState: 3, send: vi.fn() } as unknown as WebSocket;
+      for (let i = 0; i < 50; i += 1) queueManager.send(message, closed, () => true);
+      expect(queueManager.getQueueLength()).toBe(0);
+      expect(closed.send).not.toHaveBeenCalled();
+    });
+
+    it.each(voiceMessages)("drops $t while the socket is open but not authenticated", (message) => {
+      queueManager.send(message, mockWebSocket, () => false);
+      expect(queueManager.getQueueLength()).toBe(0);
+      expect(mockWebSocket.send).not.toHaveBeenCalled();
+    });
+
+    it.each(voiceMessages)("drops $t when the send itself throws", (message) => {
+      const failing = {
+        readyState: WebSocket.OPEN,
+        send: vi.fn(() => {
+          throw new Error("Network error");
+        }),
+      } as unknown as WebSocket;
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      queueManager.send(message, failing, () => true);
+      expect(failing.send).toHaveBeenCalledOnce();
+      expect(queueManager.getQueueLength()).toBe(0);
+    });
+
+    it.each(voiceMessages)("sends $t normally while the socket is open", (message) => {
+      queueManager.send(message, mockWebSocket, () => true);
+      expect(mockWebSocket.send).toHaveBeenCalledWith(JSON.stringify(message));
+      expect(queueManager.getQueueLength()).toBe(0);
+    });
+
+    it("still queues a normal command through the same closed socket, and a later flush replays only that", () => {
+      // Guards the guard: a send path that dropped everything would satisfy the drops above.
+      const closed = { readyState: 3, send: vi.fn() } as unknown as WebSocket;
+      const move: ClientMessage = { t: "move", id: "token-1", x: 1, y: 1 };
+      queueManager.send(voiceMessages[2], closed, () => true);
+      queueManager.send(move, closed, () => true);
+      queueManager.send(voiceMessages[0], closed, () => true);
+      queueManager.send(voiceMessages[1], closed, () => true);
+      expect(queueManager.getQueueLength()).toBe(1);
+
+      queueManager.flush(mockWebSocket, () => true);
+      expect(mockWebSocket.send).toHaveBeenCalledTimes(1);
+      expect(mockWebSocket.send).toHaveBeenCalledWith(JSON.stringify(move));
     });
   });
 });

@@ -33,18 +33,6 @@ vi.mock("../hooks/useObjectSelection", () => ({
   useObjectSelection: (options: unknown) => mockUseObjectSelection(options),
 }));
 
-vi.mock("./useVoiceChat", () => ({
-  useVoiceChat: vi.fn(),
-}));
-
-vi.mock("../hooks/useMicrophone", () => ({
-  useMicrophone: vi.fn(() => ({
-    micEnabled: false,
-    micStream: null,
-    toggleMic: vi.fn(),
-  })),
-}));
-
 vi.mock("../hooks/useDrawingState", () => ({
   useDrawingState: vi.fn(() => ({
     drawTool: "pencil",

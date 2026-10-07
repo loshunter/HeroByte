@@ -83,8 +83,20 @@ export class MessageQueueManager {
    * widening the change was not S6's to make — not because it differed.
    * It is already in nonRetriableTypes below, which is the same judgement
    * applied to a different concern.
+   *
+   * The voice call's three are true only now, too: a loudness, a connection
+   * offer or candidate, and the call state. The voice hook re-sends its state
+   * and asks to be called again on every re-authentication, so a queued one
+   * replayed after a blip could only contradict it (a stale offer opens a
+   * connection nobody wants; a stale "muted" overrides the live mic).
    */
-  private readonly ephemeralTypes = new Set<ClientMessage["t"]>(["measure", "drag-preview"]);
+  private readonly ephemeralTypes = new Set<ClientMessage["t"]>([
+    "measure",
+    "drag-preview",
+    "mic-level",
+    "rtc-signal",
+    "voice-state",
+  ]);
 
   private readonly nonRetriableTypes = new Set<ClientMessage["t"]>([
     "authenticate",
@@ -97,12 +109,22 @@ export class MessageQueueManager {
     // would spend the per-uid rate budget replaying a line nobody is
     // looking at any more — the same reasoning as drag-preview above.
     "measure",
+    // The voice meter: a live level, superseded by its own next sample (sent only
+    // when it moves enough to show). Tracking or retrying one would replay a
+    // loudness nobody is hearing any more into the per-uid rate budget.
+    "mic-level",
+    // The call state: a retry is the OLD state sent again after a newer one
+    // (Mute, Unmute, then the retried "muted" lands last). Each press sends the
+    // current state, and every re-authentication sends it again.
+    "voice-state",
     // DM-auth plane: never acked by the router (see CommandAckManager's
     // NON_TRACKED_TYPES — these normally carry no commandId at all); a retry
     // would replay a password attempt into the brute-force throttle.
     "elevate-to-dm",
     "revoke-dm",
     "set-dm-password",
+    // Never acked either (answered by fork-table-result); see CommandAckManager.
+    "fork-table",
   ]);
   private pendingRetries = new Map<
     string,

@@ -584,6 +584,25 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(state.players[1].statusEffects).toEqual([]);
     });
 
+    it("a restart drops every saved voice presence: nobody is connected at boot", () => {
+      writeFileSync(
+        PROD_STATE_FILE,
+        JSON.stringify({
+          tokens: [],
+          players: [{ uid: "player-1", name: "Talker", voice: "live", micLevel: 0.8 }],
+          characters: [],
+        }),
+        "utf-8",
+      );
+
+      roomService.loadState();
+      const [player] = roomService.getState().players;
+
+      expect(player.name).toBe("Talker");
+      expect(player).not.toHaveProperty("voice");
+      expect(player.micLevel).toBe(0);
+    });
+
     it("should normalize character data (type, tokenImage, tokenId)", () => {
       const stateWithCharacters = {
         tokens: [],

@@ -30,6 +30,9 @@ export class PlayerDispatcher {
       case "mic-level":
         return this.handler.handleMicLevel(state, senderUid, message.level);
 
+      case "voice-state":
+        return this.handler.handleVoiceState(state, senderUid, message.state);
+
       case "set-hp":
         return this.handler.handleSetHP(
           state,

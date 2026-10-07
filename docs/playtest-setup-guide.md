@@ -151,9 +151,9 @@ Need help? Ask the DM!
 
 **Voice Chat:**
 
-- Click microphone icon to enable/disable
-- Grant browser permissions when prompted
-- Green glow = you're speaking
+- Press **🎤 Join voice** (the header on a PC; **Party** on a phone), then **Mute** / **Leave voice**
+- Grant the browser's microphone permission when prompted
+- On a PC, a speaker's portrait glows on their character card
 
 ## During the Game
 
@@ -236,7 +236,7 @@ Need help? Ask the DM!
 1. Grant browser microphone permissions
 2. Check system mic settings
 3. Try headphones to prevent echo
-4. Refresh page and reconnect
+4. Press **🔊 Tap to hear voice** if it appears; otherwise press **Leave voice**, then **🎤 Join voice**. If someone shows **Can't reach**, try Wi-Fi rather than mobile data
 
 ### Lag or Slow Performance
 

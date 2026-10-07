@@ -75,6 +75,7 @@ import { DMAuthorizationEnforcer } from "./services/DMAuthorizationEnforcer.js";
 import { AuthorizationCheckWrapper } from "./services/AuthorizationCheckWrapper.js";
 import { MessageLogger } from "./services/MessageLogger.js";
 import { MessageRoutingContext } from "./services/MessageRoutingContext.js";
+import { CommandReplayLedger, isLedgerCommandId } from "./services/CommandReplayLedger.js";
 import type { PendingDelta } from "./types.js";
 
 /**
@@ -138,6 +139,8 @@ export class MessageRouter {
   private getAuthorizedClients: () => Set<WebSocket>;
   private getRoomIdForUid: (uid: string) => string;
   private skipNextBroadcastVersionBump: boolean = false;
+  /** The ack/nack each sender's recent commands got — a client retry is answered from it. */
+  private replayLedger = new CommandReplayLedger();
   // Per-recipient vision, memoized on a signature of its actual inputs (own
   // token cells, door states, map transform, grid, scene identity). Other
   // players' moves and drag previews leave the signature untouched, so a
@@ -191,10 +194,20 @@ export class MessageRouter {
       this.authorizationService,
     );
     this.heartbeatHandler = new HeartbeatHandler();
-    this.rtcSignalHandler = new RTCSignalHandler(
-      uidToWs,
-      (fromUid, targetUid) => this.getRoomIdForUid(fromUid) === this.getRoomIdForUid(targetUid),
-    );
+    // Signals pass only between two members of the same room's voice call: the
+    // target authenticated here (an unauthenticated uid falls back to the
+    // default room), and both with `voice` set. Not in the call: neither
+    // called nor calling. A client sends voice-state before its first signal.
+    // Never to yourself: the relay would only echo it back.
+    this.rtcSignalHandler = new RTCSignalHandler(uidToWs, (fromUid, targetUid) => {
+      if (fromUid === targetUid) return false;
+      if (this.getRoomIdForUid(fromUid) !== this.getRoomIdForUid(targetUid)) return false;
+      const targetWs = this.uidToWs.get(targetUid);
+      if (!targetWs || !this.getAuthorizedClients().has(targetWs)) return false;
+      const { players } = this.roomService.getState();
+      const inCall = (uid: string) => players.some((p) => p.uid === uid && p.voice !== undefined);
+      return inCall(fromUid) && inCall(targetUid);
+    });
     this.pointerHandler = new PointerHandler(mapService);
     this.tokenMessageHandler = new TokenMessageHandler(
       tokenService,
@@ -323,6 +336,21 @@ export class MessageRouter {
    */
   route(message: ClientMessage, senderUid: string): void {
     this.messageLogger.logMessageRouting(message.t, senderUid);
+    // The client mints commandIds (a UUID, or a short fallback); anything else
+    // is refused before it can be acked, echoed or held by the ledger.
+    if (message.commandId !== undefined && !isLedgerCommandId(message.commandId)) {
+      console.warn(`[MessageRouter] dropped ${message.t} from ${senderUid}: malformed commandId`);
+      return;
+    }
+    // A retry of a command already applied (its ack was late, not lost): answer
+    // it again, apply it never. See CommandReplayLedger.
+    const replayed = this.isReplayGuarded(message)
+      ? this.replayLedger.recall(senderUid, message.commandId!)
+      : undefined;
+    if (replayed) {
+      this.sendControlMessage(senderUid, replayed);
+      return;
+    }
     const context = this.messageRoutingContext.create(senderUid);
 
     try {
@@ -804,18 +832,49 @@ export class MessageRouter {
     if (!this.shouldAcknowledge(message)) {
       return;
     }
-    this.sendControlMessage(senderUid, { t: "ack", commandId: message.commandId! });
+    this.answer(message, senderUid, { t: "ack", commandId: message.commandId! });
   }
 
   private acknowledgeFailure(message: ClientMessage, senderUid: string, error: unknown): void {
     if (!this.shouldAcknowledge(message)) {
       return;
     }
-    this.sendControlMessage(senderUid, {
+    this.answer(message, senderUid, {
       t: "nack",
       commandId: message.commandId!,
       reason: error instanceof Error ? error.message : undefined,
     });
+  }
+
+  private answer(
+    message: ClientMessage,
+    senderUid: string,
+    outcome: Extract<ServerMessage, { t: "ack" } | { t: "nack" }>,
+  ): void {
+    if (this.isReplayGuarded(message)) this.replayLedger.remember(senderUid, outcome);
+    this.sendControlMessage(senderUid, outcome);
+  }
+
+  /**
+   * Every acked command, except the Map Studio and Atlas families: they are
+   * replay-idempotent by their own commandId contract, and their replay must
+   * reach the handler — a retried Generate is how the client gets its
+   * document back after the bare receipt ack (MessageQueueManager keeps it).
+   * And except meter frames: only a tab from before voice-everywhere sends
+   * them with a commandId (60/s), and they would flush real commands out. And
+   * except the two whose answer is a reply, not the ack: a retry flushed after
+   * a reconnect must run again to get the backup file or the password
+   * confirmation the dead socket lost (both are safe to repeat).
+   */
+  private isReplayGuarded(message: ClientMessage): boolean {
+    return (
+      this.shouldAcknowledge(message) &&
+      message.t !== "mic-level" &&
+      message.t !== "session-export" &&
+      message.t !== "set-room-password" &&
+      !message.t.startsWith("map-studio-") &&
+      !message.t.startsWith("atlas-")
+    );
   }
 
   private shouldAcknowledge(message: ClientMessage): boolean {
@@ -827,6 +886,9 @@ export class MessageRouter {
       case "heartbeat":
       case "rtc-signal":
         return false;
+      // mic-level is acked when it carries a commandId: today's client never
+      // gives it one, but a tab still open from before voice-everywhere does,
+      // and retries every unanswered frame — 60 a second against the rate limit.
       default:
         return true;
     }

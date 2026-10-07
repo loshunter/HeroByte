@@ -5,8 +5,9 @@
 // what to do about it, never the raw browser error (that stays in the console).
 // Safari gets its own settings route INSTEAD of the address-bar wording (it has no site icon
 // there), so `readMicEnvironment`'s guess decides which instruction is shown: keep that check
-// strict. Lines are kept to about 100 characters: each is shown under the mic button of a Party
-// card about 130 px wide (five or six lines), and a longer one runs below the panel's fold.
+// strict. Lines are kept to about 100 characters: each is shown beside the Join voice that was
+// pressed, which on a phone's Party screen or the map's top chip is narrow (several lines), and a
+// longer one runs below the fold.
 
 export interface MicEnvironment {
   /** `navigator.mediaDevices` exists. It does not on a plain http:// page (a LAN address). */

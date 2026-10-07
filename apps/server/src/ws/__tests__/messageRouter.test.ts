@@ -128,6 +128,7 @@ describe("MessageRouter", () => {
       setPortrait: vi.fn(() => true),
       rename: vi.fn(() => true),
       setMicLevel: vi.fn(() => true),
+      setVoiceState: vi.fn(() => true),
       setHP: vi.fn(() => true),
       setDMMode: vi.fn(() => true),
       setStatusEffects: vi.fn(() => true),
@@ -1094,6 +1095,23 @@ describe("MessageRouter", () => {
       controlSpy.mockRestore();
     });
 
+    it("acks a mic-level that carries a commandId, and a voice-state command", () => {
+      const controlSpy = vi.spyOn(
+        router as unknown as { sendControlMessage: (uid: string, message: ServerMessage) => void },
+        "sendControlMessage",
+      );
+
+      // Only a tab from before voice-everywhere tags meter frames; unanswered,
+      // it would retry every one of them against the rate limit.
+      routeAndFlush({ t: "mic-level", level: 0.4, commandId: "cmd-meter" }, "player-1");
+      expect(controlSpy).toHaveBeenCalledWith("player-1", { t: "ack", commandId: "cmd-meter" });
+
+      routeAndFlush({ t: "voice-state", state: "live", commandId: "cmd-voice" }, "player-1");
+      expect(mockPlayerService.setVoiceState).toHaveBeenCalledWith(mockState, "player-1", "live");
+      expect(controlSpy).toHaveBeenCalledWith("player-1", { t: "ack", commandId: "cmd-voice" });
+      controlSpy.mockRestore();
+    });
+
     it("skips ack control messages when feature flag disabled", () => {
       const original = process.env.FEATURE_FLAG_ACKS;
       process.env.FEATURE_FLAG_ACKS = "false";
@@ -1210,6 +1228,10 @@ describe("MessageRouter", () => {
       } as unknown as WebSocket;
 
       mockUidToWs.set("player-2", mockTargetWs);
+      // Both ends in the call, the target authenticated in this room.
+      mockGetAuthorizedClients.mockReturnValue(new Set([mockTargetWs]));
+      mockState.players[0].voice = "live";
+      mockState.players.push({ ...mockState.players[0], uid: "player-2", voice: "muted" });
 
       const signal = { type: "offer", sdp: "test-sdp" };
       const msg: ClientMessage = { t: "rtc-signal", target: "player-2", signal };

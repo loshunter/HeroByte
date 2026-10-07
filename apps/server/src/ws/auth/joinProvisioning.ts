@@ -27,6 +27,12 @@ export function leaveRoomRoster(
   const roomService = container.getRoomServiceForRoom(roomId);
   const state = roomService.getState();
   if (!state.users.includes(uid)) return;
+  // Its call stays behind with its socket: no ghost in the old room's voice.
+  const player = container.playerService.findPlayer(state, uid);
+  if (player) {
+    delete player.voice;
+    player.micLevel = 0;
+  }
   state.users = state.users.filter((u) => u !== uid);
   roomService.broadcast(container.getAuthenticatedClientsForRoom(roomId), uidToWs, {
     reason: "room-switch",

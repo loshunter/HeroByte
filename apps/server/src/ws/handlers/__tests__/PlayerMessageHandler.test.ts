@@ -18,6 +18,7 @@
 import path from "node:path";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
+import { PlayerMessageHandler } from "../PlayerMessageHandler.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { PlayerService } from "../../../domains/player/service.js";
 import { TokenService } from "../../../domains/token/service.js";
@@ -174,6 +175,35 @@ describe("PlayerMessageHandler - Characterization Tests", () => {
   });
 
   describe("mic-level message", () => {
+    // Only a live player has a meter: these all start in the call.
+    beforeEach(() => {
+      messageRouter.route({ t: "voice-state", state: "live" }, playerUid);
+    });
+
+    it("refuses a level from a seat that is not live, and broadcasts only a cleared glow", () => {
+      const handler = new PlayerMessageHandler(playerService, roomService);
+      const state = roomService.getState();
+      const player = () => state.players.find((p) => p.uid === playerUid);
+
+      messageRouter.route({ t: "voice-state", state: "muted" }, playerUid);
+      expect(handler.handleMicLevel(state, playerUid, 0.6)).toEqual({
+        broadcast: false,
+        save: false,
+      });
+      expect(player()?.micLevel).toBe(0);
+
+      player()!.micLevel = 0.3; // a stale glow
+      expect(handler.handleMicLevel(state, playerUid, 0.6)).toEqual({
+        broadcast: true,
+        save: false,
+      });
+      expect(player()?.micLevel).toBe(0);
+
+      messageRouter.route({ t: "voice-state", state: "live" }, playerUid);
+      expect(handler.handleMicLevel(state, playerUid, 0.6).broadcast).toBe(true);
+      expect(handler.handleMicLevel(state, playerUid, 0.6).broadcast).toBe(false);
+    });
+
     it("should set microphone level", () => {
       const micLevelMessage: ClientMessage = {
         t: "mic-level",
@@ -218,6 +248,46 @@ describe("PlayerMessageHandler - Characterization Tests", () => {
       const state = roomService.getState();
       const player = state.players.find((p) => p.uid === playerUid);
       expect(player?.micLevel).toBe(100);
+    });
+  });
+
+  describe("voice-state message", () => {
+    it("routes to the sender's seat: live, then muted (meter zeroed), then off", () => {
+      const player = () => roomService.getState().players.find((p) => p.uid === playerUid);
+
+      messageRouter.route({ t: "voice-state", state: "live" }, playerUid);
+      expect(player()?.voice).toBe("live");
+      messageRouter.route({ t: "mic-level", level: 0.9 }, playerUid);
+
+      messageRouter.route({ t: "voice-state", state: "muted" }, playerUid);
+      expect(player()?.voice).toBe("muted");
+      expect(player()?.micLevel).toBe(0);
+
+      messageRouter.route({ t: "voice-state", state: "off" }, playerUid);
+      expect(player()).not.toHaveProperty("voice");
+      // Only the sender's own seat moved.
+      expect(roomService.getState().players.find((p) => p.uid === dmUid)).not.toHaveProperty(
+        "voice",
+      );
+    });
+
+    it("broadcasts but never saves (connection data, like mic-level); unknown uid does neither", () => {
+      const handler = new PlayerMessageHandler(playerService, roomService);
+      const state = roomService.getState();
+
+      expect(handler.handleVoiceState(state, playerUid, "live")).toEqual({
+        broadcast: true,
+        save: false,
+      });
+      // Already live: nothing changed, nothing to broadcast.
+      expect(handler.handleVoiceState(state, playerUid, "live")).toEqual({
+        broadcast: false,
+        save: false,
+      });
+      expect(handler.handleVoiceState(state, "nobody", "live")).toEqual({
+        broadcast: false,
+        save: false,
+      });
     });
   });
 

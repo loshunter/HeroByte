@@ -1,7 +1,7 @@
 // ============================================================================
 // PLAYER VALIDATION
 // ============================================================================
-// Validates player-related messages: portrait, rename, mic-level, set-hp,
+// Validates player-related messages: portrait, rename, mic-level, voice-state, set-hp,
 // set-status-effects, toggle-dm, remove-player
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
@@ -50,6 +50,18 @@ export function validateMicLevelMessage(message: MessageRecord): ValidationResul
     level > RANGE_LIMITS.MIC_LEVEL_MAX
   ) {
     return { valid: false, error: "mic-level: level must be between 0 and 1" };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate voice-state message (join, mute, unmute or leave the voice call)
+ * Required: state (exactly "off", "live" or "muted")
+ */
+export function validateVoiceStateMessage(message: MessageRecord): ValidationResult {
+  const { state } = message;
+  if (state !== "off" && state !== "live" && state !== "muted") {
+    return { valid: false, error: "voice-state: state must be off, live or muted" };
   }
   return { valid: true };
 }

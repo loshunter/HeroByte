@@ -39,7 +39,8 @@ import { useMapAlignment } from "../features/map";
 import { useAtlasLinkAim } from "../features/atlas/useAtlasLinkAim";
 import { useKickedInDoor, type AtlasErrorMessage } from "../features/atlas/useKickedInDoor";
 import { usePlayerActions } from "../hooks/usePlayerActions";
-import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
+import { useVoice } from "../hooks/voice/useVoice";
+import { VoiceContext } from "../features/voice/VoiceContext";
 import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
@@ -185,12 +186,18 @@ function AuthenticatedApp({
   } = useToolMode({ snapshot, uid, isDM });
 
   // Custom hooks for state management
-  const { micEnabled, toggleMic } = useVoiceChatManager({
+  // The table's voice call. The Party card's mic button is its Mute toggle
+  // (shown once you are in the call); joining is the voice control's.
+  const voice = useVoice({
     uid,
     snapshot,
     sendMessage,
     registerRtcHandler,
+    authenticated: authState === AuthState.AUTHENTICATED,
   });
+  const voiceContext = useMemo(() => ({ ...voice, selfUid: uid }), [voice, uid]);
+  const micEnabled = voice.state === "live";
+  const toggleMic = voice.toggleMute;
 
   // Drawing state manager
   const drawingManager = useDrawingStateManager({
@@ -957,7 +964,9 @@ function AuthenticatedApp({
 
   return (
     <RoleKnownContext.Provider value={roleKnown}>
-      {isMobile ? <MobileLayout {...layoutProps} /> : <MainLayout {...layoutProps} />}
+      <VoiceContext.Provider value={voiceContext}>
+        {isMobile ? <MobileLayout {...layoutProps} /> : <MainLayout {...layoutProps} />}
+      </VoiceContext.Provider>
 
       {/* DM Elevation Modal */}
       <DMElevationModal {...modalState} {...modalActionsWithSync} />

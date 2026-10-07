@@ -14,6 +14,7 @@ import { MapLoading } from "../components/ui/MapLoading";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
 import { ToastContainer } from "../components/ui/Toast";
 import { ConnectionChip } from "../features/table/ConnectionChip";
+import { VoiceControl } from "../features/voice/VoiceControl";
 import { ReconnectNotice } from "../features/table/ReconnectNotice";
 import { HostNextSteps } from "../features/table/HostNextSteps";
 import { useTableMenuProps } from "../features/table/tableMenuProps";
@@ -251,6 +252,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
           chip in its header: it is an opaque cover.) */}
       <div className="mobile-top-stack">
         <ConnectionChip isConnected={props.isConnected} />
+        {/* Only while a call is running or you are in it: Join, or Mute / Leave. */}
+        <VoiceControl variant="chip" />
         <ReconnectNotice />
         {tableMenu.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
         <HostNextSteps menu={tableMenu} />

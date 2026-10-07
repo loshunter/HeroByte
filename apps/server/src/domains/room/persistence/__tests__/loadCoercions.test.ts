@@ -234,6 +234,24 @@ describe("settleLegacyConditionLists counts player characters only", () => {
 });
 
 describe("coerceLoadedSeats", () => {
+  it("nobody is connected to a loading room: saved voice presence is dropped, the meter zeroed", () => {
+    const { players } = coerceLoadedSeats(
+      [
+        { uid: "a", name: "A", voice: "live", micLevel: 0.9 },
+        { uid: "b", name: "B", voice: "muted" },
+        { uid: "c", name: "C" },
+      ],
+      [],
+      false,
+    );
+
+    for (const player of players) {
+      expect(player, player.uid).not.toHaveProperty("voice");
+      expect(player.micLevel, player.uid).toBe(0);
+    }
+    expect(players.map((p) => p.name)).toEqual(["A", "B", "C"]);
+  });
+
   it("a players field that is not an array loads as none, rather than throwing", () => {
     expect(coerceLoadedSeats({ poisoned: true }, [], false)).toEqual({
       players: [],

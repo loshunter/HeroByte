@@ -710,17 +710,25 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   describe("real class: who holds a uid's slot", () => {
     let manager: ConnectionLifecycleManager;
     let tokens: SessionTokenService;
-    let roomState: { users: string[] };
+    let roomState: {
+      users: string[];
+      players: Array<{ uid: string; voice?: string; micLevel?: number }>;
+    };
     const roomIds = new Map<string, string>();
+    const broadcast = vi.fn();
+    const roomClients = new Set<WebSocket>();
 
     beforeEach(() => {
-      roomState = { users: [] };
+      broadcast.mockClear();
+      roomState = { users: [], players: [] };
       roomIds.clear();
       tokens = new SessionTokenService();
       manager = new ConnectionLifecycleManager(
         {
           getRoomIdForUid: (uid) => roomIds.get(uid) ?? "default",
-          getRoomServiceForRoom: () => ({ getState: () => roomState }) as unknown as RoomService,
+          getRoomServiceForRoom: () =>
+            ({ getState: () => roomState, broadcast }) as unknown as RoomService,
+          getAuthenticatedClientsForRoom: () => roomClients,
         },
         uidToWs,
         authenticatedUids,
@@ -881,6 +889,100 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       connect(newcomer);
 
       expect(registeredAtClose).toBe(newcomer as unknown as WebSocket);
+    });
+
+    it("a replaced occupant's cleared voice is BROADCAST to the room, tagged connection-replaced", () => {
+      const old = new FakeWebSocket();
+      old.readyState = 3;
+      liveAuthenticated("player1", old);
+      roomState.players.push({ uid: "player1", voice: "live", micLevel: 0.7 });
+      // Capture what the broadcast saw; asserting inside the mock would be
+      // swallowed by the production try/catch around the broadcast.
+      let seen: Record<string, unknown> | undefined;
+      broadcast.mockImplementation(() => {
+        seen = structuredClone(roomState.players[0]) as Record<string, unknown>;
+      });
+
+      connect(new FakeWebSocket());
+
+      // The broadcast must see the CLEARED player, not the ghost.
+      expect(seen).toBeDefined();
+      expect(seen).not.toHaveProperty("voice");
+      expect(seen?.micLevel).toBe(0);
+      expect(broadcast).toHaveBeenCalledOnce();
+      expect(broadcast).toHaveBeenCalledWith(roomClients, uidToWs, {
+        reason: "connection-replaced",
+      });
+    });
+
+    it("a broadcast that throws is logged, does not escape handleConnection, and the keepalive still starts", () => {
+      const old = new FakeWebSocket();
+      old.readyState = 3;
+      liveAuthenticated("player1", old);
+      roomState.players.push({ uid: "player1", voice: "live", micLevel: 0.7 });
+      const failure = new Error("broadcast exploded");
+      broadcast.mockImplementation(() => {
+        throw failure;
+      });
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const newcomer = new FakeWebSocket();
+
+      let result: ReturnType<typeof connect> | undefined;
+      expect(() => {
+        result = connect(newcomer);
+      }).not.toThrow();
+
+      expect(result).toEqual({ uid: "player1", held: false });
+      expect(errorSpy).toHaveBeenCalledWith(
+        "[WebSocket] connection-replaced broadcast failed",
+        failure,
+      );
+      // The newcomer is registered and pinged: nothing was left half-set-up.
+      expect(uidToWs.get("player1")).toBe(newcomer as unknown as WebSocket);
+      vi.advanceTimersByTime(25000);
+      expect(newcomer.ping).toHaveBeenCalledOnce();
+    });
+
+    it("a replaced occupant who was only in the roster (no voice) is broadcast too", () => {
+      const old = new FakeWebSocket();
+      old.readyState = 3;
+      liveAuthenticated("player1", old);
+
+      connect(new FakeWebSocket());
+
+      expect(broadcast).toHaveBeenCalledOnce();
+    });
+
+    it("a replaced occupant still in the call but already off the roster is broadcast too", () => {
+      const old = new FakeWebSocket();
+      old.readyState = 3;
+      uidToWs.set("player1", old as unknown as WebSocket);
+      roomState.players.push({ uid: "player1", voice: "muted", micLevel: 0.2 });
+
+      connect(new FakeWebSocket());
+
+      expect(broadcast).toHaveBeenCalledOnce();
+      expect(roomState.players[0]).not.toHaveProperty("voice");
+    });
+
+    it("a replaced occupant with nothing to clear broadcasts nothing", () => {
+      const old = new FakeWebSocket();
+      old.readyState = 3;
+      uidToWs.set("player1", old as unknown as WebSocket); // dead, never listed, no voice
+
+      connect(new FakeWebSocket());
+
+      expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    it("a fresh uid and a held newcomer broadcast nothing", () => {
+      connect(new FakeWebSocket(), "newbie");
+      liveAuthenticated("player2", new FakeWebSocket());
+      roomState.players.push({ uid: "player2", voice: "live" });
+      connect(new FakeWebSocket(), "player2");
+
+      expect(broadcast).not.toHaveBeenCalled();
+      expect(roomState.players[0]?.voice).toBe("live");
     });
 
     it("a fresh uid is registered, unauthenticated, with a keepalive", () => {

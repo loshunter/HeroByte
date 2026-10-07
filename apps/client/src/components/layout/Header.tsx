@@ -10,6 +10,7 @@ import "./Header.css";
 import { PING_TITLE, RESET_VIEW_TITLE } from "./viewWords";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { HelpMenuButton } from "../../features/help/HelpMenuButton";
+import { VoiceControl } from "../../features/voice/VoiceControl";
 import { TableMenu } from "../../features/table/TableMenu";
 import type { TableMenuProps } from "../../features/table/tableMenuProps";
 import { PublicTableNotice } from "../../features/rooms/PublicTableNotice";
@@ -273,6 +274,9 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   📜 Chat &amp; Rolls
                 </JRPGButton>
+
+                {/* The table's voice call: Join, then Mute / Leave. */}
+                <VoiceControl variant="header" />
 
                 {/* The manual. Last in the row so it reads as "and if you're
                   stuck, here" rather than competing with the tools. */}

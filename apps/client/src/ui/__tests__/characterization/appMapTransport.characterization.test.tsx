@@ -29,11 +29,7 @@ vi.mock("../../../layouts/MobileLayout", () => ({
   },
 }));
 vi.mock("../../../utils/session", () => ({ getSessionUID: () => "transport-dm" }));
-vi.mock("../../useVoiceChat", () => ({ useVoiceChat: vi.fn() }));
 vi.mock("../../../hooks/useHeartbeat", () => ({ useHeartbeat: vi.fn() }));
-vi.mock("../../../hooks/useMicrophone", () => ({
-  useMicrophone: () => ({ micEnabled: false, micStream: null, toggleMic: vi.fn() }),
-}));
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();

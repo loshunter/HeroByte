@@ -40,11 +40,11 @@ The Party lists characters, not players: if you run two, you have two rows, and 
 ![Your row selected in the Party: your character card open beside the rows](img/party-details.jpg)
 
 - **Name** — click it to edit inline.
-- **Portrait** — open **⚙️** settings and **⬆ UPLOAD IMAGE** a portrait straight from your device — on a phone, that's your camera roll. (Clicking the **+ Add portrait** square opens the same settings, where a pasted image URL also works.) When you talk on voice, your portrait glows and swells.
+- **Portrait** — open **⚙️** settings and **⬆ UPLOAD IMAGE** a portrait straight from your device — on a phone, that's your camera roll. (Clicking the **+ Add portrait** square opens the same settings, where a pasted image URL also works.) On a PC, when you talk on voice, your portrait glows and swells.
 - **HP** — click either number in `HP: 100 / 100` to type a new value (Enter or click away to save), or **drag along the HP bar** to scrub it. The bar shifts color as you drop: green, amber, red.
 - **Temp HP** — a separate pool absorbed before regular HP; click to edit (on a phone, tap the number on your row in **◉ PARTY**).
 - **⚔️** — centres the map on this character's token; it also wears up to three condition medallions (covered below). **INIT** — initiative (covered below).
-- **🎤** — voice chat (covered below).
+- **🎤 / 🔇** — once you are in the voice call, your mic button: **🎤** while you are live (press to mute), red **🔇** while you are muted (press to unmute) (covered below).
 - **⚙️** — opens your full settings window.
 
 ### The settings window (⚙️)
@@ -239,11 +239,18 @@ If the button isn't there, the table has props switched off — ask your DM.
 
 ## Voice chat
 
-On desktop, press the **🎤** on your own card (select your row in the Party) and grant the browser's microphone permission; a phone has no mic button. That's the whole setup:
+Voice works like joining a Discord call: one press to join, and you hear everyone in it.
 
-- Voice is **peer-to-peer** (WebRTC) between everyone at the table.
-- When someone talks, their **portrait glows green and scales up** — an at-a-glance "who's speaking".
-- Press the button again (now **🔇**, red) to switch the mic fully off.
+- **Join:** press **🎤 Join voice** — in the header's **Panels & settings** row on a PC; on a phone, at the top of **Party**, or on the voice chip at the top of the map while a call is running. Your browser asks for the microphone (some ask on every visit).
+- **Before you join** you can see whether a call is running and how many are in it (for example **2 in call**).
+- **Mute / Unmute** silences your mic and keeps you in the call: you still hear everyone. On a PC your card's mic button does the same once you are in.
+- **Leave voice** hangs up.
+- On a PC, a **🎧** on a character's card (select a row in the Party, or show every card with **▦ CARDS**) marks someone in the call and **🔇** someone muted, and when someone talks their **portrait glows green and scales up**. On a phone, the top of **Party** lists who is in the call by name, with **(muted)** beside anyone muted.
+- **It comes back by itself.** After a network blip, however long, you are back in the call in the same muted or unmuted state. After a reload you are too (some browsers ask for the microphone again first; if the table takes more than a minute to let you back in, press **Join voice**). Closing the tab and opening it again, or a browser restoring it, does not rejoin: press **Join voice**. If your browser blocks the sound until you tap, a **🔊 Tap to hear voice** button appears.
+- If someone shows as **Can't reach _name_**, your two browsers could not connect directly; HeroByte keeps trying. Voice goes straight between players' browsers, with no relay server, so a phone on mobile data behind some carriers may not connect: Wi-Fi works best. Someone whose connection dropped without leaving can also show this, and stay listed in the call, for a few minutes.
+- Because voice connects browsers directly, everyone in the call with you can find your internet (IP) address with their browser's developer tools (HeroByte never shows it), and while you are in a call with anyone else, your browser asks a Google server and a Twilio server to look your address up. If you don't join voice, nothing is shared.
+- If your mic stops (for example it is unplugged), HeroByte takes you out of the call and says so beside **Join voice**; press it to come back. If others stop hearing you while you still look live, press **Leave voice**, then **Join voice**.
+- On a phone, locking the screen or switching apps can cut the mic (a browser rule no web page can change). If the others stop hearing you, press **Leave voice**, then **Join voice**.
 - Headphones are strongly recommended to avoid echo. Microphone access requires `https://` or `localhost`.
 
 ## Initiative and combat
@@ -302,7 +309,7 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ---------------------------------------------------------------------------- | ----------------------------------------------- |
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
-- **◉ PARTY** — the party screen: each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚔️ INIT** (your character's initiative) and **⚙️ EDIT** for name, portrait, token size, **➕ Add Character**, and **Save character / Load character…**.
+- **◉ PARTY** — the party screen: the voice call at the top (**🎤 Join voice**, or **Mute** / **Leave voice** and who is in the call), then each player's seat as a heading with their characters listed under it — portraits, HP (tap or drag your own to edit), status effects, **🎯 FOCUS** (closes the screen and centres the map on that character's token), and — on your own rows — **⚔️ INIT** (your character's initiative) and **⚙️ EDIT** for name, portrait, token size, **➕ Add Character**, and **Save character / Load character…**.
 - **⚒ TOOLS** — Move, Ping, Measure, Draw (opens the drawing sheet; Hide controls makes room on the map), Transform, Select, Snap, Reset view (moves the view back to the map's top-left corner at 100% zoom), **Table** (your role and Preferences), and Help. Players also have World, plus Props when the DM allows players to add them.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
 - **≡ Chat** — opens **Chat & Rolls** full screen for table messages, whispers, and dice history. **◇ RESET** does the same reset (back to the map's top-left corner, 100% zoom); if you're the DM, that slot reads **♛ DM** and opens the full DM menu — the same six tabs as the desktop window (Maps, World, Encounter, NPCs & Monsters, Props & Objects, Table) behind a swipeable chip row. Reset view in TOOLS covers the camera for a DM.

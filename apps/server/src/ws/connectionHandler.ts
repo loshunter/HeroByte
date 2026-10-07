@@ -64,6 +64,8 @@ export class ConnectionHandler {
       {
         getRoomIdForUid: (uid) => container.roomIdForUid(uid),
         getRoomServiceForRoom: (roomId) => container.getRoomServiceForRoom(roomId),
+        getAuthenticatedClientsForRoom: (roomId) =>
+          container.getAuthenticatedClientsForRoom(roomId),
       },
       container.uidToWs,
       container.authenticatedUids,

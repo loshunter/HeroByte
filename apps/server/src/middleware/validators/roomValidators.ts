@@ -226,9 +226,12 @@ export function validateRequestRoomResyncMessage(message: MessageRecord): Valida
   return { valid: true };
 }
 
+/** Largest accepted `signal`, as JSON characters. */
+const RTC_SIGNAL_MAX_CHARS = 16384;
+
 /**
  * Validate rtc-signal message
- * Required: target (string), signal (any)
+ * Required: target (string), signal (object, at most 16384 JSON characters)
  */
 export function validateRtcSignalMessage(message: MessageRecord): ValidationResult {
   if (typeof message.target !== "string") {
@@ -236,6 +239,15 @@ export function validateRtcSignalMessage(message: MessageRecord): ValidationResu
   }
   if (!("signal" in message)) {
     return { valid: false, error: "rtc-signal: missing signal data" };
+  }
+  const { signal } = message;
+  if (typeof signal !== "object" || signal === null) {
+    return { valid: false, error: "rtc-signal: signal must be an object" };
+  }
+  // Real offers, answers and candidates are a few KB; the socket limit alone
+  // would let a call member relay 1 MiB frames at every other member.
+  if (JSON.stringify(signal).length > RTC_SIGNAL_MAX_CHARS) {
+    return { valid: false, error: "rtc-signal: signal too large" };
   }
   return { valid: true };
 }

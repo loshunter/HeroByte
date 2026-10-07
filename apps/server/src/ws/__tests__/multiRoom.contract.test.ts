@@ -134,7 +134,23 @@ describe("multi-room isolation contracts", () => {
     expect(bella.send).not.toHaveBeenCalled();
   });
 
+  function setVoice(uid: string, roomId: string, voice: "live" | "muted" | undefined): void {
+    const player = container
+      .getRoomServiceForRoom(roomId)
+      .getState()
+      .players.find((p) => p.uid === uid)!;
+    if (voice) player.voice = voice;
+    else delete player.voice;
+  }
+
+  function signal(from: string, target: string): void {
+    route({ t: "rtc-signal", target, signal: { type: "offer" } } as unknown as ClientMessage, from);
+  }
+
   it("forwards RTC signals within a room and never across rooms", () => {
+    setVoice("alice", "room-a", "live");
+    setVoice("adam", "room-a", "muted");
+    setVoice("bella", "room-b", "live");
     route(
       { t: "rtc-signal", target: "adam", signal: { type: "offer" } } as unknown as ClientMessage,
       "alice",
@@ -146,6 +162,47 @@ describe("multi-room isolation contracts", () => {
       "alice",
     );
     expect(bella.send).not.toHaveBeenCalled();
+  });
+
+  it("delivers a signal when sender and target are both in the call in one room", () => {
+    setVoice("alice", "room-a", "live");
+    setVoice("adam", "room-a", "muted");
+    signal("alice", "adam");
+    expect(frameTypes(adam)).toEqual(["rtc-signal"]);
+  });
+
+  it("drops a signal from a sender who is not in the voice call", () => {
+    setVoice("adam", "room-a", "live");
+    signal("alice", "adam");
+    expect(adam.send).not.toHaveBeenCalled();
+  });
+
+  it("drops a signal a player addresses to themselves instead of echoing it back", () => {
+    setVoice("alice", "room-a", "live");
+    signal("alice", "alice");
+    expect(alice.send).not.toHaveBeenCalled();
+  });
+
+  it("drops a signal to a target who is not in the voice call", () => {
+    setVoice("alice", "room-a", "live");
+    signal("alice", "adam");
+    expect(adam.send).not.toHaveBeenCalled();
+  });
+
+  it("drops a signal to an unauthenticated socket, even one sharing the default room", () => {
+    // Two uids in the DEFAULT room: an unauthenticated uid falls back to it,
+    // so the room check alone would let this signal through.
+    const homer = fakeSocket();
+    join("homer", homer, "default");
+    setVoice("homer", "default", "live");
+    const lurker = fakeSocket();
+    join("lurker", lurker, "default");
+    setVoice("lurker", "default", "live");
+    container.authenticatedUids.delete("lurker");
+    container.authenticatedSessions.delete("lurker");
+
+    signal("homer", "lurker");
+    expect(lurker.send).not.toHaveBeenCalled();
   });
 
   it("cleans up a disconnecting player inside their own room only", () => {

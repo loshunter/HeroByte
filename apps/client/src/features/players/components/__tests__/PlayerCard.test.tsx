@@ -1812,11 +1812,25 @@ describe("PlayerCard", () => {
         expect(screen.getByTestId("card-controls-id")).toHaveTextContent(bare.player.uid);
       });
 
-      it("receives canControlMic as isMe", () => {
-        const props = createDefaultProps({ isMe: true });
-        render(<PlayerCard {...props} />);
-
+      it("receives canControlMic as isMe AND in the voice call (it is the call's Mute toggle)", () => {
+        render(
+          <PlayerCard
+            {...createDefaultProps({ isMe: true, player: createMockPlayer({ voice: "live" }) })}
+          />,
+        );
         expect(screen.getByTestId("card-controls-can-control-mic")).toHaveTextContent("true");
+
+        cleanup();
+        render(<PlayerCard {...createDefaultProps({ isMe: true, player: createMockPlayer() })} />);
+        expect(screen.getByTestId("card-controls-can-control-mic")).toHaveTextContent("false");
+
+        cleanup();
+        render(
+          <PlayerCard
+            {...createDefaultProps({ isMe: false, player: createMockPlayer({ voice: "muted" }) })}
+          />,
+        );
+        expect(screen.getByTestId("card-controls-can-control-mic")).toHaveTextContent("false");
       });
 
       it("receives canOpenSettings as isMe || viewerIsDM", () => {

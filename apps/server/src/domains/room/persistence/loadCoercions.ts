@@ -198,17 +198,22 @@ export function settleLegacyConditionLists(
  * file's door and at Redis's. The players rule is the same at both, and the
  * legacy condition-list migration needs both arrays (settleLegacyConditionLists).
  * A players field that is not an array loads as none rather than throwing.
+ * Nobody is connected to a room that is loading, so nobody is in its voice
+ * call or speaking: the saved voice presence is dropped and the meter zeroed.
  */
 export function coerceLoadedSeats(
   rawPlayers: unknown,
   rawCharacters: unknown,
   combatActive: boolean,
 ): { players: Player[]; characters: Character[] } {
-  const players = (Array.isArray(rawPlayers) ? (rawPlayers as Player[]) : []).map((player) => ({
-    ...player,
-    isDM: player.isDM ?? false,
-    statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
-  }));
+  const players = (Array.isArray(rawPlayers) ? (rawPlayers as Player[]) : []).map(
+    ({ voice: _connectionOnly, ...player }) => ({
+      ...player,
+      micLevel: 0,
+      isDM: player.isDM ?? false,
+      statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
+    }),
+  );
   const characters = coerceLoadedCharacters(rawCharacters, combatActive);
   return { players, characters: settleLegacyConditionLists(characters, players) };
 }

@@ -20,6 +20,8 @@ export interface ConnectionLifecycleConfig {
   getRoomIdForUid: (uid: string) => string;
   /** RoomService for a room, so a replaced uid leaves the roster of ITS room. */
   getRoomServiceForRoom: (roomId: string) => RoomService;
+  /** The room's authenticated sockets: who hears the broadcast after a replaced occupant is cleared. */
+  getAuthenticatedClientsForRoom: (roomId: string) => Set<WebSocket>;
 
   /**
    * Optional callback invoked when a connection is replaced
@@ -173,8 +175,33 @@ export class ConnectionLifecycleManager {
     // newcomer that never authenticates would otherwise keep a dead session's
     // token valid forever. Within the grace window it still proves a reconnect.
     this.sessionTokens.detach(uid);
-    const state = this.config.getRoomServiceForRoom(roomId).getState();
+    const roomService = this.config.getRoomServiceForRoom(roomId);
+    const state = roomService.getState();
+    const wasListed = state.users.includes(uid);
     state.users = state.users.filter((u: string) => u !== uid);
+    // The dead socket's close is stale (skips cleanup), so its voice presence
+    // goes here: the newcomer is not in the call until it says so.
+    const player = state.players.find((p) => p.uid === uid);
+    const hadVoice = player?.voice !== undefined;
+    if (player) {
+      delete player.voice;
+      player.micLevel = 0;
+    }
+    // Only a REPLACED occupant is stale. Without a broadcast the others keep
+    // showing the ghost in the call (and in the roster) until some unrelated
+    // broadcast; uidToWs is required so per-recipient filtering resolves each
+    // socket (see DisconnectionCleanupManager.cleanupPlayer).
+    if (existingWs && existingWs !== ws && (wasListed || hadVoice)) {
+      // Guarded: this runs before the new socket's listeners and keepalive are
+      // attached, and a throw here would escape the connection handler.
+      try {
+        roomService.broadcast(this.config.getAuthenticatedClientsForRoom(roomId), this.uidToWs, {
+          reason: "connection-replaced",
+        });
+      } catch (error) {
+        console.error("[WebSocket] connection-replaced broadcast failed", error);
+      }
+    }
 
     // Last, after everything that can throw: an interval started before the
     // caller has attached its close listener would leak if any of the above

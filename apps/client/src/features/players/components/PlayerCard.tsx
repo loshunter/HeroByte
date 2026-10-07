@@ -17,6 +17,7 @@ import { saveCharacterFile } from "../characterFile";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import type { OwnerControl } from "./TokenSettingsSection";
 import { useRoleKnown } from "../../table/roleKnown";
+import { useVoiceContext } from "../../voice/VoiceContext";
 
 export interface PlayerCardProps {
   player: Player;
@@ -171,6 +172,10 @@ export const PlayerCard = memo<PlayerCardProps>(
     // Another player's window is the DM's to hold: on losing DM rights it closes (a
     // reconnect blip waits for the roster), and does not reopen when DM comes back.
     const roleKnown = useRoleKnown();
+    const voice = useVoiceContext();
+    const inVoice = voice
+      ? voice.state === "live" || voice.state === "muted"
+      : Boolean(player.voice);
     useEffect(() => {
       if (!isMe && !viewerIsDM && roleKnown) setSettingsOpen(false);
     }, [isMe, viewerIsDM, roleKnown]);
@@ -321,6 +326,16 @@ export const PlayerCard = memo<PlayerCardProps>(
             }}
           >
             {isMe ? "You" : player.isDM ? "Dungeon Master" : "Adventurer"}
+            {player.voice ? (
+              <span
+                className="player-card-voice"
+                role="img"
+                aria-label={player.voice === "muted" ? "In voice, muted" : "In voice"}
+                title={player.voice === "muted" ? "In voice, muted" : "In voice"}
+              >
+                {player.voice === "muted" ? " 🔇" : " 🎧"}
+              </span>
+            ) : null}
           </span>
         </div>
 
@@ -364,7 +379,11 @@ export const PlayerCard = memo<PlayerCardProps>(
 
         <CardControls
           controlId={characterId ?? player.uid}
-          canControlMic={isMe}
+          // The mic button is the call's Mute toggle: it shows while this player
+          // is in voice (joining is the voice control's job). This browser's own
+          // call state when there is one (the server's copy is cleared during a
+          // reconnect, and the button would vanish mid-call); else the server's.
+          canControlMic={isMe && inVoice}
           canOpenSettings={isMe || viewerIsDM}
           micEnabled={micEnabled}
           onToggleMic={onToggleMic}
@@ -443,6 +462,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     prevProps.player.name === nextProps.player.name &&
     prevProps.player.portrait === nextProps.player.portrait &&
     prevProps.player.micLevel === nextProps.player.micLevel &&
+    prevProps.player.voice === nextProps.player.voice &&
     prevProps.player.hp === nextProps.player.hp &&
     prevProps.player.maxHp === nextProps.player.maxHp &&
     prevProps.player.tempHp === nextProps.player.tempHp &&

@@ -341,6 +341,10 @@ export interface Player {
   name: string; // Display name
   portrait?: string; // Base64 encoded image or URL
   micLevel?: number; // Current microphone level (0-1) for visual feedback
+  // Whether this player is in the table's voice call, and whether their mic is
+  // muted; absent = not in voice. Connection data like micLevel: the server
+  // clears it when the player's socket closes, and never restores it from a file.
+  voice?: "live" | "muted";
   hp?: number; // Current hit points
   maxHp?: number; // Maximum hit points
   tempHp?: number; // Temporary hit points (absorbed before regular HP)
@@ -876,6 +880,7 @@ type ClientMessagePayload =
   | { t: "portrait"; data: string } // Update player portrait
   | { t: "rename"; name: string } // Change player name
   | { t: "mic-level"; level: number } // Update mic level for visual feedback
+  | { t: "voice-state"; state: "off" | "live" | "muted" } // Join/mute/unmute/leave voice; the server keeps presence so everyone sees who is in the call
   | { t: "set-hp"; hp: number; maxHp: number; tempHp?: number } // Update player HP
   | { t: "toggle-dm"; isDM: boolean } // Toggle DM role flag
   | { t: "set-status-effects"; effects: string[] } // Replace active status effects for the player

@@ -1,0 +1,55 @@
+/* ============================================================================
+   VOICE CONTROL
+   ============================================================================
+   Join / Mute / Leave, wherever it sits. The notice line takes its own row
+   (player-card-mic-notice clips itself away while empty). */
+
+.voice-control {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.voice-control__count,
+.voice-control__trouble,
+.voice-control__names {
+  font-family: "Press Start 2P", monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--jrpg-white, #f0e2c3);
+}
+
+.voice-control__trouble {
+  color: var(--jrpg-gold);
+}
+
+.voice-control--header .voice-control__count {
+  font-size: 8px;
+}
+
+.voice-control--chip {
+  /* The phone's top stack hands taps through to the map (pointer-events: none);
+     the chip is a painted box of controls, so it takes its own. */
+  pointer-events: auto;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 2px solid var(--jrpg-gold);
+  border-radius: 8px;
+  background: var(--jrpg-navy);
+}
+
+.voice-control--panel {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 0;
+}
+
+.voice-control--panel .voice-control__names {
+  flex: 1 1 100%;
+  font-family: inherit;
+  font-size: 13px;
+}

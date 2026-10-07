@@ -11,8 +11,7 @@
 // production because the validator switch didn't know about them.)
 
 import type { ClientMessage } from "@herobyte/shared";
-import type { ValidationResult, MessageRecord } from "./validators/index.js";
-import { isRecord } from "./validators/index.js";
+import { isRecord, type ValidationResult, type MessageRecord } from "./validators/index.js";
 
 // Token validators
 import { validateForkTableMessage } from "./validators/forkValidators.js";
@@ -44,6 +43,7 @@ import {
   validatePortraitMessage,
   validateRenameMessage,
   validateMicLevelMessage,
+  validateVoiceStateMessage,
   validateSetHpMessage,
   validateSetStatusEffectsMessage,
   validateToggleDmMessage,
@@ -176,6 +176,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   portrait: validatePortraitMessage,
   rename: validateRenameMessage,
   "mic-level": validateMicLevelMessage,
+  "voice-state": validateVoiceStateMessage,
   "set-hp": validateSetHpMessage,
   "set-status-effects": validateSetStatusEffectsMessage,
   "toggle-dm": validateToggleDmMessage,

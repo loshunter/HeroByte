@@ -72,15 +72,37 @@ export class PlayerService {
   }
 
   /**
-   * Update player microphone level
+   * Update player microphone level. Only a LIVE player has one: a muted or
+   * absent player's frame zeroes the meter instead (true only if that clears
+   * a glow). False when nothing changed, so no broadcast goes out.
    */
   setMicLevel(state: RoomState, uid: string, level: number): boolean {
     const player = this.findPlayer(state, uid);
-    if (player) {
-      player.micLevel = level;
-      return true;
+    if (!player) return false;
+    if (player.voice !== "live") {
+      const changed = (player.micLevel ?? 0) !== 0;
+      player.micLevel = 0;
+      return changed;
     }
-    return false;
+    if (player.micLevel === level) return false;
+    player.micLevel = level;
+    return true;
+  }
+
+  /**
+   * Record the player's voice-call presence. "off" removes it. Leaving and
+   * muting also zero the mic level: a muted or departed player must never
+   * show as speaking, whatever their last meter frame said. False (no
+   * broadcast) when the state is already the one asked for.
+   */
+  setVoiceState(state: RoomState, uid: string, voiceState: "off" | "live" | "muted"): boolean {
+    const player = this.findPlayer(state, uid);
+    if (!player) return false;
+    if ((player.voice ?? "off") === voiceState) return false;
+    if (voiceState === "off") delete player.voice;
+    else player.voice = voiceState;
+    if (voiceState !== "live") player.micLevel = 0;
+    return true;
   }
 
   /**
