@@ -261,8 +261,10 @@ export class VoiceMesh {
   private lost(uid: string, entry: PeerEntry): void {
     if (this.peers.get(uid) !== entry) return;
     this.drop(uid);
-    // A drop restarts the clock: a link that heals within seconds never reads as failing.
-    if (this.roster.has(uid)) this.seenAt.set(uid, this.now());
+    // A drop of a WORKING link restarts the clock, so one that heals within
+    // seconds never reads as failing. A link that never connected keeps its
+    // clock: retrying it must not hide "Can't reach" every few seconds.
+    if (entry.connected && this.roster.has(uid)) this.seenAt.set(uid, this.now());
     if (this.stream && this.isCaller(uid) && this.roster.has(uid) && !this.retries.has(uid)) {
       this.retries.set(
         uid,

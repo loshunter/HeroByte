@@ -1,9 +1,11 @@
 // VoiceMesh: who this browser holds a voice connection with. The pair rule (only the
 // LOWER uid places the call), answering any offer, calling again after a lost
 // connection, keeping an early answer, hanging up on leave and stop, ignoring a
-// replaced connection, the per-person link states, the hello that asks a caller to call
-// again, a browser that cannot create a connection, the grace before someone who left
-// the roster is dropped, and resync after a reconnect. No WebRTC: fake peers.
+// replaced connection, the per-person link states (a never-connected link that keeps
+// timing out stays failing; a drop of a connected one restarts the clock), the hello
+// that asks a caller to call again, a browser that cannot create a connection, the grace
+// before someone who left the roster is dropped, and resync after a reconnect. No WebRTC:
+// fake peers.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Instance as Peer, SignalData } from "simple-peer";
 import { VoiceMesh, type VoiceLink, type VoiceMeshOptions } from "../VoiceMesh";
@@ -569,6 +571,50 @@ describe("link states", () => {
     expect(h.links()).toEqual({ b: "connecting" });
     vi.advanceTimersByTime(1000);
     expect(h.links()).toEqual({ b: "failing" });
+  });
+
+  it("a link that never connects stays failing through every timeout and call-again", () => {
+    const h = harness("a");
+    h.mesh.start(STREAM);
+    h.mesh.setRoster(["b"]);
+    vi.advanceTimersByTime(10000);
+    expect(h.links()).toEqual({ b: "failing" });
+    const from = h.onLinksChange.mock.calls.length;
+    // Timeouts at 15 s and 31 s, calls again at 16 s and 32 s: read it every 250 ms to 40 s.
+    for (let at = 10250; at <= 40000; at += 250) {
+      vi.advanceTimersByTime(250);
+      expect(h.links(), `at ${at} ms`).toEqual({ b: "failing" });
+    }
+    // It really did give up and call again (more than once), and never read anything else.
+    expect(h.peers.length).toBeGreaterThanOrEqual(3);
+    expect(h.peers.slice(0, -1).every((peer) => peer.destroyed)).toBe(true);
+    const since = h.onLinksChange.mock.calls.slice(from).map(([links]) => links);
+    expect(since.filter((links) => links.b !== "failing")).toEqual([]);
+  });
+
+  it("a never-connected link reads failing just after each call-again", () => {
+    const h = harness("a");
+    h.mesh.start(STREAM);
+    h.mesh.setRoster(["b"]);
+    vi.advanceTimersByTime(15000); // the first call times out
+    expect(h.peers[0].destroyed).toBe(true);
+    expect(h.links()).toEqual({ b: "failing" });
+    vi.advanceTimersByTime(1000); // called again
+    expect(h.peers).toHaveLength(2);
+    expect(h.links()).toEqual({ b: "failing" });
+    vi.advanceTimersByTime(1);
+    expect(h.links()).toEqual({ b: "failing" });
+    vi.advanceTimersByTime(14999); // the second call times out
+    expect(h.peers[1].destroyed).toBe(true);
+    expect(h.links()).toEqual({ b: "failing" });
+    vi.advanceTimersByTime(1000); // called again
+    expect(h.peers).toHaveLength(3);
+    expect(h.links()).toEqual({ b: "failing" });
+    // Connecting at last reads connected; a later drop of THAT link restarts the clock.
+    h.peers[2].emit("connect");
+    expect(h.links()).toEqual({ b: "connected" });
+    h.peers[2].emit("close");
+    expect(h.links()).toEqual({ b: "connecting" });
   });
 
   it("reports only when the map changes", () => {

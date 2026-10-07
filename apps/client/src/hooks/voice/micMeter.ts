@@ -8,6 +8,8 @@
 // sends only when the level moves enough to show: silence and a steady level
 // cost nothing, and speech at most ten messages a second.
 
+import { WAKE_EVENTS } from "./remoteAudio";
+
 /** Below this the portrait does not glow (PortraitSection's threshold). */
 const SPEAKING = 0.1;
 /** A change smaller than this would not visibly change the glow. */
@@ -51,8 +53,7 @@ export class MicMeter {
     // A context made without a tap (a reload rejoining by itself) starts
     // suspended and reads silence: the next click, tap or key anywhere wakes it.
     if (context.state === "suspended") {
-      document.addEventListener("click", this.onGesture, true);
-      document.addEventListener("keydown", this.onGesture, true);
+      for (const type of WAKE_EVENTS) document.addEventListener(type, this.onGesture, true);
     }
     const data = new Uint8Array(analyser.frequencyBinCount);
     this.timer = setInterval(() => {
@@ -78,8 +79,7 @@ export class MicMeter {
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
-    document.removeEventListener("click", this.onGesture, true);
-    document.removeEventListener("keydown", this.onGesture, true);
+    for (const type of WAKE_EVENTS) document.removeEventListener(type, this.onGesture, true);
     void this.context?.close().catch(() => {});
     this.context = null;
     if (this.lastSent !== 0) this.send(0);

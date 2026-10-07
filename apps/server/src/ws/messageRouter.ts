@@ -861,12 +861,17 @@ export class MessageRouter {
    * reach the handler — a retried Generate is how the client gets its
    * document back after the bare receipt ack (MessageQueueManager keeps it).
    * And except meter frames: only a tab from before voice-everywhere sends
-   * them with a commandId (60/s), and they would flush real commands out.
+   * them with a commandId (60/s), and they would flush real commands out. And
+   * except the two whose answer is a reply, not the ack: a retry flushed after
+   * a reconnect must run again to get the backup file or the password
+   * confirmation the dead socket lost (both are safe to repeat).
    */
   private isReplayGuarded(message: ClientMessage): boolean {
     return (
       this.shouldAcknowledge(message) &&
       message.t !== "mic-level" &&
+      message.t !== "session-export" &&
+      message.t !== "set-room-password" &&
       !message.t.startsWith("map-studio-") &&
       !message.t.startsWith("atlas-")
     );

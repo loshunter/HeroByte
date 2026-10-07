@@ -81,10 +81,18 @@ export interface RouterHarness {
   route(message: ClientMessage, senderUid: string): void;
 }
 
+export interface RouterHarnessOptions {
+  /** The auth service (an empty stand-in by default: nothing here touches passwords). */
+  authService?: AuthService;
+  /** The table every member sits at (the router's own default when omitted). */
+  roomId?: string;
+}
+
 /** A router over a fresh room holding `roster`, one fake socket per member. */
 export function createRouterHarness(
   stateFileName: string,
   roster: { uid: string; isDM: boolean }[],
+  options: RouterHarnessOptions = {},
 ): RouterHarness {
   const roomService = new RoomService({
     stateFile: path.join(process.cwd(), ".tmp", stateFileName),
@@ -115,11 +123,13 @@ export function createRouterHarness(
     new CharacterService(),
     new PropService(),
     new SelectionService(),
-    {} as unknown as AuthService,
+    options.authService ?? ({} as unknown as AuthService),
     {} as unknown as WebSocketServer,
     uidToWs,
     () => clients,
     mapStudioService,
+    // undefined keeps the router's own default room.
+    options.roomId === undefined ? undefined : () => options.roomId!,
   );
   return {
     router,

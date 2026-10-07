@@ -1,9 +1,10 @@
 // The other players' voices: one <audio data-voice-peer> per person in a hidden
 // holder; a play() the browser refuses (NotAllowedError) turns `blocked` on and the
-// next click (a tap counts on release) or key anywhere starts every voice again,
-// clearing `blocked` only once every voice has really started; detach and clear let go.
+// next click, pointerup, touchend (a tap counts on release) or key anywhere starts every
+// voice again, clearing `blocked` once no voice is still refused (another failure, such as a
+// voice replaced mid-resume, does not keep it blocked); detach and clear let go.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RemoteAudio } from "../remoteAudio";
+import { RemoteAudio, WAKE_EVENTS } from "../remoteAudio";
 
 const stream = (id: string) => ({ id }) as unknown as MediaStream;
 const notAllowed = () => new DOMException("play() needs a gesture", "NotAllowedError");
@@ -35,6 +36,17 @@ const audioFor = (uid: string) =>
   document.querySelectorAll<HTMLAudioElement>(`audio[data-voice-peer="${uid}"]`);
 const click = () => document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 const pointerdown = () => document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+const fire = (type: string) => document.body.dispatchEvent(new Event(type, { bubbles: true }));
+// Blocked with one voice ("p1"), and play() allowed from here on.
+const blockedOne = async (onBlocked: (blocked: boolean) => void) => {
+  play.mockImplementation(() => Promise.reject(notAllowed()));
+  const remote = make(onBlocked);
+  remote.attach("p1", stream("s1"));
+  await flush();
+  play.mockClear();
+  play.mockImplementation(() => Promise.resolve());
+  return remote;
+};
 const key = () =>
   document.body.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "a" }));
 
@@ -123,6 +135,56 @@ describe("blocked playback", () => {
     // The listener is gone once resumed: another click plays nothing.
     click();
     expect(play).toHaveBeenCalledTimes(2);
+  });
+
+  it("the wake events are a click, a release (pointerup, touchend) and a key", () => {
+    expect([...WAKE_EVENTS]).toEqual(["click", "pointerup", "touchend", "keydown"]);
+  });
+
+  it.each(["pointerup", "touchend"])(
+    "a %s alone (a tap on the map that never becomes a click) resumes",
+    async (type) => {
+      const onBlocked = vi.fn();
+      await blockedOne(onBlocked);
+      fire(type);
+      expect(play).toHaveBeenCalledTimes(1);
+      await flush();
+      expect(onBlocked.mock.calls).toEqual([[true], [false]]);
+    },
+  );
+
+  it("a play that fails for another reason (a plain Error) does not keep it blocked", async () => {
+    play.mockImplementation(() => Promise.reject(notAllowed()));
+    const onBlocked = vi.fn();
+    const remote = make(onBlocked);
+    remote.attach("p1", stream("s1"));
+    remote.attach("p2", stream("s2"));
+    await flush();
+    play.mockReset();
+    play
+      .mockImplementationOnce(() => Promise.reject(new Error("the element was replaced")))
+      .mockImplementationOnce(() => Promise.resolve());
+    click();
+    expect(play).toHaveBeenCalledTimes(2);
+    await flush();
+    expect(onBlocked.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it("one voice still refused (NotAllowedError) keeps it blocked while another starts", async () => {
+    play.mockImplementation(() => Promise.reject(notAllowed()));
+    const onBlocked = vi.fn();
+    const remote = make(onBlocked);
+    remote.attach("p1", stream("s1"));
+    remote.attach("p2", stream("s2"));
+    await flush();
+    play.mockReset();
+    play
+      .mockImplementationOnce(() => Promise.resolve())
+      .mockImplementationOnce(() => Promise.reject(notAllowed()));
+    click();
+    expect(play).toHaveBeenCalledTimes(2);
+    await flush();
+    expect(onBlocked.mock.calls).toEqual([[true]]);
   });
 
   it("a pointerdown alone does not resume (a touch's press may not start sound)", async () => {
@@ -218,7 +280,7 @@ describe("blocked playback", () => {
     expect(onBlocked.mock.calls).toEqual([[true], [false]]);
   });
 
-  it("clear clears blocked and removes the gesture listener", async () => {
+  it("clear clears blocked and removes every gesture listener", async () => {
     play.mockImplementation(() => Promise.reject(notAllowed()));
     const onBlocked = vi.fn();
     const remote = make(onBlocked);
@@ -226,8 +288,12 @@ describe("blocked playback", () => {
     await flush();
     remote.clear();
     expect(onBlocked.mock.calls).toEqual([[true], [false]]);
+    // Re-attach (allowed this time) so a stale listener would have something to play.
+    play.mockImplementation(() => Promise.resolve());
+    remote.attach("p2", stream("s2"));
+    await flush();
     play.mockClear();
-    click();
+    for (const type of WAKE_EVENTS) fire(type);
     await flush();
     expect(play).not.toHaveBeenCalled();
     expect(onBlocked.mock.calls).toEqual([[true], [false]]);

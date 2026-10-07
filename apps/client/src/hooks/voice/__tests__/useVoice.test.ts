@@ -212,6 +212,10 @@ const loadedBy = (...types: string[]) =>
   vi
     .spyOn(window.performance, "getEntriesByType")
     .mockReturnValue(types.map((type) => ({ type })) as never);
+// When this page load began (performance.timeOrigin). A reload begins as the old page goes
+// away, so a test that expects a rejoin starts the page when the memory was written.
+const startedAt = (ms: number) =>
+  vi.spyOn(window.performance, "timeOrigin", "get").mockReturnValue(ms);
 
 // Every peer that was ever created is hung up (and at least one was created).
 const expectAllPeersDestroyed = () => {
@@ -404,7 +408,9 @@ describe("coming back", () => {
 
   it("a remembered 'muted' rejoins muted on first authentication", async () => {
     loadedBy("reload");
-    remember("muted");
+    const at = Date.now();
+    remember("muted", at);
+    startedAt(at);
     const { result, rerender, voiceStates } = setup({ authenticated: false });
     expect(getUserMedia).not.toHaveBeenCalled();
     await act(async () => {
@@ -414,6 +420,8 @@ describe("coming back", () => {
     await waitFor(() => expect(result.current.state).toBe("muted"));
     expect(current.tracks[0].enabled).toBe(false);
     expect(voiceStates()).toEqual(["muted"]);
+    // Spent by the read, then written again by the rejoin itself.
+    expect(memory()?.state).toBe("muted");
   });
 
   it("nothing remembered: authentication joins nothing", async () => {
@@ -625,6 +633,8 @@ describe("a mic that stops by itself", () => {
     expect(result.current.state).toBe("off");
     expect(voiceStates()).toEqual(["live", "off"]);
     expect(getMicNotice()).toMatch(/^Your mic stopped/);
+    // Not only unplugged or taken: a browser or the OS can turn the mic off too.
+    expect(getMicNotice()).toMatch(/the browser or another app turned it off/);
     expect(current.tracks[0].stop).toHaveBeenCalled();
     expectAllPeersDestroyed();
     expect(window.sessionStorage.getItem(KEY)).toBeNull();
@@ -945,6 +955,48 @@ describe("the reload memory is only for a reload", () => {
     });
     expect(getUserMedia).not.toHaveBeenCalled();
     expect(result.current.state).toBe("off");
+  });
+
+  it("a tab reopened by Back, then reloaded within the minute, does not rejoin", async () => {
+    // The first page was in the call; its pagehide wrote the memory as the tab went away.
+    const first = setup({ snapshot: SELF_ONLY() });
+    await act(async () => {
+      await first.result.current.join();
+    });
+    window.dispatchEvent(new Event("pagehide"));
+    const written = window.sessionStorage.getItem(KEY);
+    expect(JSON.parse(written ?? "null")?.state).toBe("live");
+    // A closed tab never unmounts; the browser restores its storage as pagehide left it.
+    first.unmount();
+    window.sessionStorage.setItem(KEY, written!);
+    const at = memory()!.at;
+    getUserMedia.mockClear();
+
+    // Back or Forward into the tab: no rejoin.
+    loadedBy("back_forward");
+    startedAt(at + 10_000);
+    const reopened = setup({ authenticated: false });
+    await act(async () => {
+      reopened.rerender({ snapshot: snapshot([], []), authenticated: true });
+    });
+    expect(reopened.result.current.state).toBe("off");
+
+    // The player presses reload a moment later (still inside the minute). The page start is
+    // stubbed as if this reload began with the memory, so only its having been spent stops it.
+    // (The reopened page went off, so its pagehide wrote nothing; a reload never unmounts it.)
+    window.dispatchEvent(new Event("pagehide"));
+    loadedBy("reload");
+    startedAt(at);
+    const reloaded = setup({ authenticated: false });
+    await act(async () => {
+      reloaded.rerender({ snapshot: snapshot([], []), authenticated: true });
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(getUserMedia).not.toHaveBeenCalled();
+    expect(reloaded.result.current.state).toBe("off");
+    expect(reloaded.voiceStates()).toEqual([]);
   });
 
   it("pagehide while in the call refreshes the time, keeping the state", async () => {

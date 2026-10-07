@@ -11,11 +11,14 @@
 //
 // Drives the REAL MessageRouter with real services: the duplicate must not
 // reach any handler, and the sender must still be told the outcome (the
-// retry exists because the first ack never arrived in time).
+// retry exists because the first ack never arrived in time). Except the two
+// commands answered by a reply (session-export, set-room-password): those
+// run again.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ClientMessage } from "@herobyte/shared";
 import { ChatService } from "../../domains/chat/service.js";
+import type { AuthService } from "../../domains/auth/service.js";
 import { createRouterHarness, messagesOf, type RouterHarness } from "./routerHarness.js";
 
 const ALICE = "player-alice";
@@ -162,5 +165,52 @@ describe("command replay contract — the same commandId is applied once", () =>
 
     expect(state().chatLog.filter((m) => m.text === "keep me")).toHaveLength(1);
     expect(acksTo(ALICE, "cmd-keep")).toHaveLength(2);
+  });
+
+  // Two commands whose answer is a reply, not the ack: a retry flushed after a reconnect
+  // must run again, or the backup file or the password confirmation the dead socket lost
+  // never arrives (both are safe to repeat). Every other command is still answered from
+  // the ledger.
+  describe("commands answered by a reply run again on a retry", () => {
+    it("a retried session-export sends the session file again", () => {
+      const exportIt: ClientMessage = { t: "session-export", commandId: "cmd-export-1" };
+      harness.route(exportIt, DM);
+      harness.route(exportIt, DM);
+
+      expect(messagesOf(harness.sockets[DM]!, "session-file")).toHaveLength(2);
+      expect(acksTo(DM, "cmd-export-1")).toHaveLength(2);
+    });
+
+    it("a retried set-room-password runs again and confirms again", () => {
+      const update = vi.fn(() => ({ updatedAt: 1234, source: "user" }));
+      harness = createRouterHarness("command-replay-password.json", [{ uid: DM, isDM: true }], {
+        authService: { update } as unknown as AuthService,
+        roomId: "private-table",
+      });
+      const setIt: ClientMessage = {
+        t: "set-room-password",
+        secret: "Secret123",
+        commandId: "cmd-password-1",
+      };
+      harness.route(setIt, DM);
+      harness.route(setIt, DM);
+
+      expect(update).toHaveBeenCalledTimes(2);
+      expect(update).toHaveBeenCalledWith("Secret123", "private-table");
+      expect(messagesOf(harness.sockets[DM]!, "room-password-updated")).toHaveLength(2);
+      expect(messagesOf(harness.sockets[DM]!, "room-password-update-failed")).toHaveLength(0);
+    });
+
+    it("beside them, a retried chat line is still answered from the ledger", () => {
+      harness.route({ t: "session-export", commandId: "cmd-export-2" }, DM);
+      const line: ClientMessage = { t: "chat", text: "once only", commandId: "cmd-chat-2" };
+      harness.route(line, DM);
+      harness.route({ t: "session-export", commandId: "cmd-export-2" }, DM);
+      harness.route(line, DM);
+
+      expect(state().chatLog.filter((m) => m.text === "once only")).toHaveLength(1);
+      expect(acksTo(DM, "cmd-chat-2")).toHaveLength(2);
+      expect(messagesOf(harness.sockets[DM]!, "session-file")).toHaveLength(2);
+    });
   });
 });

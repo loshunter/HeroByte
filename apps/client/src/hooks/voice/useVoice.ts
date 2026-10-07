@@ -57,7 +57,7 @@ const NO_WEBRTC =
 const NOT_LOADED = "Voice could not load. Reload the page, then press Join voice again.";
 const NOT_LISTED = "The table no longer lists you, so you left the voice call.";
 const MIC_STOPPED =
-  "Your mic stopped (unplugged, or another app took it), so you left the call. Press Join voice to come back.";
+  "Your mic stopped (unplugged, or the browser or another app turned it off), so you left the call. Press Join voice to come back.";
 
 class VoiceUnavailable extends Error {}
 

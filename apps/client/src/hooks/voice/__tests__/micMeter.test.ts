@@ -1,6 +1,7 @@
 // The speaking-glow meter: samples ten times a second and sends a level only when
 // it crosses the glow threshold (0.1) or moves by 0.05; muting sends one zero and
-// then only silence; stopping sends a closing zero if the last level was not zero.
+// then only silence; stopping sends a closing zero if the last level was not zero. A context
+// made without a tap starts suspended: a click, pointerup, touchend or key wakes it.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MicMeter, shouldSendLevel } from "../micMeter";
 
@@ -157,29 +158,32 @@ describe("MicMeter", () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it("a suspended context is resumed by the next click or key anywhere, not a pointerdown", () => {
+  it("a suspended context is resumed by the next click, release or key anywhere, not a pointerdown", () => {
     class Suspended extends FakeContext {
       state = "suspended";
     }
     (window as { AudioContext?: unknown }).AudioContext = Suspended;
     const meter = new MicMeter(vi.fn());
     meter.start(STREAM);
-    // A touch's press may not start audio (it counts on release): only the click wakes it.
-    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    const fire = (type: string) => document.body.dispatchEvent(new Event(type, { bubbles: true }));
+    // A touch's press may not start audio (it counts on release): the press does not wake it.
+    fire("pointerdown");
     expect(contexts[0].resume).not.toHaveBeenCalled();
-    document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(contexts[0].resume).toHaveBeenCalledTimes(1);
-    document.body.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "a" }));
-    expect(contexts[0].resume).toHaveBeenCalledTimes(2);
+    // A click, a release (a tap on the map lifts without becoming a click) or a key does.
+    const wakers = ["click", "pointerup", "touchend", "keydown"];
+    wakers.forEach((type, index) => {
+      fire(type);
+      expect(contexts[0].resume, type).toHaveBeenCalledTimes(index + 1);
+    });
     // After stop there is no context left to resume, so only the removal itself shows a leak.
     const removed = vi.spyOn(document, "removeEventListener");
     meter.stop();
-    expect(removed).toHaveBeenCalledWith("click", expect.any(Function), true);
-    expect(removed).toHaveBeenCalledWith("keydown", expect.any(Function), true);
+    for (const type of wakers) {
+      expect(removed).toHaveBeenCalledWith(type, expect.any(Function), true);
+    }
     removed.mockRestore();
-    document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    document.body.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "a" }));
-    expect(contexts[0].resume).toHaveBeenCalledTimes(2);
+    wakers.forEach(fire);
+    expect(contexts[0].resume).toHaveBeenCalledTimes(wakers.length);
   });
 
   it.each(["createAnalyser", "createMediaStreamSource"] as const)(

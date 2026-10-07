@@ -7,12 +7,13 @@
 // sound actually flows is not measured. The first journey is the one the old voice code
 // lost: two people pressing Join at the same moment; the one-caller rule that fixes it is
 // pinned in VoiceMesh.test.ts (this journey cannot tell one caller from two, see below).
+// The last: a reload comes back into the call by itself, in the state it left.
 
 import { expect, test, type Page } from "./fixtures";
 import type { Browser, BrowserContext } from "@playwright/test";
-import { createTable, dismissNextSteps, joinWithLink } from "./table-role.helpers";
+import { createTable, dismissNextSteps, joinWithLink, seated } from "./table-role.helpers";
 import { showPartyCards } from "./party.helpers";
-import { expectHearing, expectHearingHolds } from "./voice.helpers";
+import { expectHearing, expectHearingHolds, hearing } from "./voice.helpers";
 
 test.use({
   launchOptions: {
@@ -115,6 +116,56 @@ test.describe("Voice everywhere — join, mute, leave", () => {
       await expectHearing(host, 1);
       await expectHearing(third, 1);
       await expect(voiceGroup(page)).toContainText("2 in call");
+    } finally {
+      await Promise.all(contexts.map((context) => context.close()));
+    }
+  });
+
+  test("a reload rejoins the call by itself, in the same state, and both hear each other again", async ({
+    page,
+    browser,
+  }) => {
+    const contexts: BrowserContext[] = [];
+    try {
+      const host = await newPlayer(browser, contexts);
+      const link = await createTable(host, "voice-reload");
+      await dismissNextSteps(host);
+      await joinWithLink(page, link);
+      await dismissNextSteps(page);
+
+      await pressJoin(host);
+      await pressJoin(page);
+      await inCallState(host, "live");
+      await inCallState(page, "live");
+      // Muted before the reload, so coming back "in the same state" is something to check.
+      await voiceGroup(page).getByRole("button", { name: /Mute/ }).click();
+      await inCallState(page, "muted");
+      await expectHearing(host, 1);
+      await expectHearing(page, 1);
+
+      // Reload: the tab's table password lets it back in, and the call memory (written as
+      // the old page went away) rejoins it with no press of Join voice.
+      await page.reload();
+      await seated(page);
+      await inCallState(page, "muted");
+      await expect(voiceGroup(page).getByRole("button", { name: /Unmute/ })).toBeVisible();
+      await expect(voiceGroup(page)).toContainText("2 in call");
+      await showPartyCards(host);
+      await expect(host.getByRole("img", { name: "In voice, muted" })).toHaveCount(1);
+
+      // A call rejoined without a tap may have its voices paused by the browser's autoplay
+      // rule; then the person taps "Tap to hear voice", as the control asks.
+      const tapToHear = voiceGroup(page).getByRole("button", { name: /Tap to hear voice/ });
+      await expect
+        .poll(async () => (await hearing(page)) === 1 || (await tapToHear.isVisible()), {
+          timeout: 20_000,
+        })
+        .toBe(true);
+      if (await tapToHear.isVisible()) await tapToHear.click();
+
+      await expectHearing(page, 1);
+      await expectHearing(host, 1);
+      await Promise.all([expectHearingHolds(host, 1), expectHearingHolds(page, 1)]);
     } finally {
       await Promise.all(contexts.map((context) => context.close()));
     }

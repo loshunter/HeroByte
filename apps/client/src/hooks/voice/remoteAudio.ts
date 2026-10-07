@@ -10,9 +10,12 @@
 // normally plays; but this is per browser and not something to rely on. When a
 // play() is refused — a reload that rejoined by itself, a stricter browser —
 // `blocked` turns on and the next tap, click or key anywhere on the page (or the
-// "tap to hear" control) starts every voice again. A click, not a pointerdown: a
-// touch's pointerdown does not count as a tap that may start sound (touch counts
-// on release), so on a phone only the click would work.
+// "tap to hear" control) starts every voice again. On release, not on press: a
+// touch counts as a tap that may start sound when it lifts (pointerup, touchend),
+// and a tap on the map lifts without ever becoming a click.
+
+/** Events that count as a tap or key which may start sound (on release, for touch). */
+export const WAKE_EVENTS = ["click", "pointerup", "touchend", "keydown"] as const;
 
 export class RemoteAudio {
   private holder: HTMLElement | null = null;
@@ -48,11 +51,17 @@ export class RemoteAudio {
   resume(): void {
     if (!this.blocked) return;
     const started = [...this.elements.values()].map((audio) => audio.play());
-    // Stay blocked (the control stays up) until every voice has really started.
-    void Promise.all(started).then(
-      () => this.setBlocked(false),
-      () => {},
-    );
+    // Stay blocked (the control stays up) while any voice is still refused; a
+    // play that failed for another reason (a voice replaced mid-resume) is not.
+    void Promise.allSettled(started).then((results) => {
+      const refused = results.some(
+        (result) =>
+          result.status === "rejected" &&
+          result.reason instanceof DOMException &&
+          result.reason.name === "NotAllowedError",
+      );
+      if (!refused) this.setBlocked(false);
+    });
   }
 
   clear(): void {
@@ -78,11 +87,9 @@ export class RemoteAudio {
     if (this.blocked === blocked) return;
     this.blocked = blocked;
     if (blocked) {
-      document.addEventListener("click", this.onGesture, true);
-      document.addEventListener("keydown", this.onGesture, true);
+      for (const type of WAKE_EVENTS) document.addEventListener(type, this.onGesture, true);
     } else {
-      document.removeEventListener("click", this.onGesture, true);
-      document.removeEventListener("keydown", this.onGesture, true);
+      for (const type of WAKE_EVENTS) document.removeEventListener(type, this.onGesture, true);
     }
     this.onBlockedChange(blocked);
   }
