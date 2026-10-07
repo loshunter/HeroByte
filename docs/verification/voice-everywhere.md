@@ -10,7 +10,8 @@ fixes (see "Pre-merge review" and "Commits" below).
 1. Everyone can mute their own mic and keep listening, phone or PC.
 2. No TURN server ("Don't want to pay for a feature nobody uses").
 3. Fix iPhone audio. Built: playback relies on Safari allowing it while the mic is in use, with a visible
-   "Tap to hear voice" fallback (and any tap outside the map, or any key). Untested on an iPhone.
+   "Tap to hear voice" fallback (and any tap or key on the page; whether a tap on the map counts is the browser's
+   call). Untested on an iPhone.
 4. Accepted: phone browsers cut the mic on screen lock / app switch.
 5. Joining asks for the mic; muting after connecting is enough (no listen-only).
 6. "It HAS to be as easy as joining a Discord call for it to be at all useful."
@@ -104,7 +105,7 @@ it got its own bounded review (review-convergence): fresh read-only reviewers ev
 | --- | --- | --- | --- |
 | 1 | ledger, wire/deploy/privacy, voice round-3 fixes, docs | 4 × FAIL | 4: an unbounded commandId held 5 min (one player could exhaust server memory); a closed tab reopened within a minute rejoined with the mic live; old tabs' unacked meter frames would storm the rate limit after the deploy; docs (card 🔇 meaning, a troubleshooting step naming a missing button, an iPhone claim) |
 | 2 | ledger+wire, voice client, docs | PASS, FAIL, FAIL | 3: a reopened tab kept the memory, so a reload within the minute rejoined unasked; "Can't reach" blinked off every few seconds for an unreachable player; the IP sentence named the wrong people |
-| 3 | voice client, server+wire, docs | PASS, PASS, FAIL | 3, all wording: the Join tooltip's "first time"; the IP sentence's lookup servers and timing; blip vs reload rules in the guide. Fixed as specified and checked by one narrow fresh reviewer |
+| 3 | voice client, server+wire, docs | PASS, PASS, FAIL | 3, all wording: the Join tooltip's "first time"; the IP sentence's lookup servers and timing; blip vs reload rules in the guide. Fixed as specified; one narrow fresh reviewer then checked that commit and found one overstatement it added (a phone e2e journey it does not have) plus two record wordings, all fixed |
 
 Every fix has a test that was seen to fail under a mutant (sha256-restored). Fixes: `e03abd33`, `6f6ad944`,
 `30185f6b`, `cf00b540` and the round-3 wording commit.
@@ -114,6 +115,14 @@ server 2,901, client 8,166 (+4 skipped); dev boot clean; e2e 368 passed / 2 fail
 character-file download specs that fail only on this machine. `interface-marquee-cancel` passed (the ledger's target),
 and the new reload e2e passed in real Chromium. The round-3 wording commit changed one tooltip string, two comments
 and docs; its touched files were re-checked (prettier, eslint, 86 tests).
+
+**Live, pre-merge** (`live-two-client` on `7866170b`: headless Chromium with a fake mic against the dev server; DM on
+a 1280×720 desktop elevated through the UI, a player on a Pixel 7 with touch): the phone sees "1 in call" before
+joining; a rapid double tap joins once; both live, connected and hearing; the DM's card shows 🎤 live and a red 🔇
+muted, and muting keeps the connection; the phone mutes, waits 3 s and reloads, and is back in the call muted, heard
+by the DM; Back (`back_forward`) does not rejoin, nor does a reload straight after it; a 4 s network drop keeps the
+call; a chat line lands exactly once on both clients; both leave and the phone's map is clear again. Zero console
+errors. Score 8.6 (functionality 9, multiplayer 9, craft 8, reach 8: no iPhone).
 
 **Left open from the review (minor, recorded rather than fixed):**
 
