@@ -5,6 +5,13 @@ import { AuthService } from "../service.js";
 
 // verify/verifyDMPassword/createRoom are async (scrypt runs off the event
 // loop — S1), hence the awaits; update/updateDMPassword stay sync on purpose.
+//
+// Every test here runs real production-cost scrypt (~50ms a derivation alone):
+// each `new AuthService()` derives three at boot, and every verify/create/update
+// one more — up to ~15 a test, ~1s at worst unloaded. A loaded gate run slowed
+// one ~12x, past vitest's 5s default, so the file gets 30s: headroom for that
+// slowdown on the heaviest test, still short enough to catch a hang.
+vi.setConfig({ testTimeout: 30_000 });
 
 const TMP_DIR = path.join(process.cwd(), ".tmp");
 const SECRET_PATH = path.join(TMP_DIR, "auth-service-test-secret.json");
