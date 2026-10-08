@@ -27,6 +27,12 @@ const load = (file: string) => import(/* @vite-ignore */ pathToFileURL(file).hre
 
 const APP_PAGE =
   '<!doctype html><link rel="manifest" href="/manifest.json"><script type="module" src="/assets/index-abc.js"></script>';
+// The real sources, so the tests see the build change what actually ships.
+const MANIFEST = readFileSync(join(client, "public", "manifest.json"), "utf8");
+const SW = readFileSync(join(client, "public", "sw.js"), "utf8");
+const APP_FILES = { "index.html": APP_PAGE, "manifest.json": MANIFEST, "sw.js": SW };
+const cacheList = (sw: string) =>
+  JSON.parse(sw.match(/urlsToCache = (\[[^\]]*\])/)![1]) as string[];
 
 let scratch: string | undefined;
 function layout(app: Record<string, string>, site: Record<string, string>) {
@@ -50,7 +56,7 @@ describe("assemblePages", () => {
   it("moves only the app page to /play/ and puts the website around it", async () => {
     const { assemblePages } = await load(join(client, "scripts", "assemble-pages.mjs"));
     const dirs = layout(
-      { "index.html": APP_PAGE, "assets/index-abc.js": "app", "tokens/goblin.png": "art" },
+      { ...APP_FILES, "assets/index-abc.js": "app", "tokens/goblin.png": "art" },
       { "index.html": "landing", "help/index.html": "help", "site-assets/site.css": "css" },
     );
     await assemblePages(dirs);
@@ -62,10 +68,44 @@ describe("assemblePages", () => {
     expect(read("tokens/goblin.png")).toBe("art");
   });
 
+  it("moves the installed app's start page and the pre-cached page to /play/, nothing else", async () => {
+    const { assemblePages } = await load(join(client, "scripts", "assemble-pages.mjs"));
+    const dirs = layout(APP_FILES, { "index.html": "landing" });
+    await assemblePages(dirs);
+    const read = (rel: string) => readFileSync(join(dirs.appDist, rel), "utf8");
+    // Without scope "/" the scope would shrink to /play/, and old /?room= links would leave the app.
+    expect(JSON.parse(read("manifest.json"))).toEqual({
+      ...JSON.parse(MANIFEST),
+      start_url: "/play/",
+    });
+    const sw = read("sw.js");
+    expect(cacheList(sw)).toEqual(cacheList(SW).map((u) => (u === "/" ? "/play/" : u)));
+    expect(sw.replace(/urlsToCache = \[[^\]]*\]/, "")).toBe(
+      SW.replace(/urlsToCache = \[[^\]]*\]/, ""),
+    );
+  });
+
+  it("refuses a manifest or service worker it does not recognise, before writing anything", async () => {
+    const { assemblePages } = await load(join(client, "scripts", "assemble-pages.mjs"));
+    const already = layout(
+      { ...APP_FILES, "manifest.json": MANIFEST.replace('"start_url": "/"', '"start_url": "/x/"') },
+      { "index.html": "landing" },
+    );
+    await expect(assemblePages(already)).rejects.toThrow(/start_url is \/x\//);
+    rmSync(scratch!, { recursive: true, force: true });
+    const noRoot = layout(
+      { ...APP_FILES, "sw.js": SW.replace('urlsToCache = ["/",', 'urlsToCache = ["/play/",') },
+      { "index.html": "landing" },
+    );
+    await expect(assemblePages(noRoot)).rejects.toThrow(/urlsToCache list holding "\/"/);
+    expect(readFileSync(join(noRoot.appDist, "manifest.json"), "utf8")).toBe(MANIFEST);
+    expect(existsSync(join(noRoot.appDist, "play"))).toBe(false);
+  });
+
   it("refuses a file the site and the app both have, before moving anything", async () => {
     const { assemblePages } = await load(join(client, "scripts", "assemble-pages.mjs"));
     const dirs = layout(
-      { "index.html": APP_PAGE, "assets/index-abc.js": "app" },
+      { ...APP_FILES, "assets/index-abc.js": "app" },
       { "index.html": "landing", "assets/site.css": "css" },
     );
     await expect(assemblePages(dirs)).rejects.toThrow(/both have: assets/);
@@ -75,10 +115,7 @@ describe("assemblePages", () => {
 
   it("refuses a site entry named play, which would land inside the app's page folder", async () => {
     const { assemblePages } = await load(join(client, "scripts", "assemble-pages.mjs"));
-    const dirs = layout(
-      { "index.html": APP_PAGE },
-      { "index.html": "landing", "play/x.html": "x" },
-    );
+    const dirs = layout(APP_FILES, { "index.html": "landing", "play/x.html": "x" });
     await expect(assemblePages(dirs)).rejects.toThrow(/both have: play/);
   });
 
@@ -214,28 +251,28 @@ describe("the built website", () => {
   }, 30_000); // builds the whole site, guide images included
 });
 
+// The sources describe the app served at / (dev, e2e, a self-hosted dist/); the Cloudflare build
+// moves both to /play/ (tested above).
 describe("the installed app and its service worker", () => {
-  it("declares /play/ as the start page, keeps the app's id, and sets its scope to /", () => {
-    const manifest = JSON.parse(readFileSync(join(client, "public", "manifest.json"), "utf8"));
-    expect(manifest.start_url).toBe("/play/");
+  it("declares / as the start page, keeps the app's id, and sets its scope to /", () => {
+    const manifest = JSON.parse(MANIFEST);
+    expect(manifest.start_url).toBe("/");
     expect(manifest.id).toBe("/");
-    // Without it the scope would shrink to /play/, and old /?room= links would leave the app.
     expect(manifest.scope).toBe("/");
   });
 
-  it("pre-caches the app's page, not the landing page that now lives at /", () => {
-    const sw = readFileSync(join(client, "public", "sw.js"), "utf8");
-    const list = JSON.parse(sw.match(/urlsToCache = (\[[^\]]*\])/)![1]) as string[];
-    expect(list).toContain("/play/");
-    expect(list).not.toContain("/");
+  it("pre-caches the app's page by its canonical URL only", () => {
+    const list = cacheList(SW);
+    expect(list).toContain("/");
+    expect(list).not.toContain("/play/");
     expect(list).not.toContain("/index.html");
     // Not cached, so a manifest change reaches installed apps without a cache bump.
     expect(list).not.toContain("/manifest.json");
     // A new cache name makes activate delete v2; skipWaiting replaces v2 without waiting for tabs.
-    expect(sw).toMatch(/const CACHE_NAME = "herobyte-cache-v3";/);
-    expect(sw).toMatch(/self\.skipWaiting\(\)/);
+    expect(SW).toMatch(/const CACHE_NAME = "herobyte-cache-v3";/);
+    expect(SW).toMatch(/self\.skipWaiting\(\)/);
     // cache.addAll fails the whole install on one missing file.
-    for (const url of list.filter((u) => u !== "/play/")) {
+    for (const url of list.filter((u) => u !== "/")) {
       expect(existsSync(join(client, "public", url))).toBe(true);
     }
   });

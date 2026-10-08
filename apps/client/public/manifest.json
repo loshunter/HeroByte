@@ -2,7 +2,7 @@
   "name": "HeroByte",
   "short_name": "HeroByte",
   "id": "/",
-  "start_url": "/play/",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
