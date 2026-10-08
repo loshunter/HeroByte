@@ -5,7 +5,7 @@ import { makeResolver } from "./data";
 import { clamp01, easeInOut, lerp, popState } from "./motion";
 import { BigTitle, Chips, KeyCap, Popup, Ring, Spam, Sparkles, Spotlight, Sticker } from "./overlays";
 import type { ChapterScript } from "./script";
-import { Backdrop, FootagePanel, type Panel, StageProvider } from "./stage";
+import { Backdrop, FootagePanel, type Panel, StageProvider, frameOf } from "./stage";
 import { C, H, PIXEL, SANS, W } from "./theme";
 
 export const LEAD = 0.7; // seconds of banner before the narration starts
@@ -49,10 +49,12 @@ const FULL = { x: 0, y: 0, w: W, h: H };
 const LEFT = { x: 28, y: 196, w: 924, h: 520 };
 const RIGHT = { x: 968, y: 196, w: 924, h: 520 };
 const OFF_RIGHT = { x: W + 40, y: 196, w: 924, h: 520 };
+const PHONE_DESK = { x: 60, y: 150, w: 1180, h: 664 };
+const PHONE = { x: 1350, y: 0, w: 400, h: 0 };
 const lerpRect = (a: typeof FULL, b: typeof FULL, u: number) => ({ x: lerp(a.x, b.x, u), y: lerp(a.y, b.y, u), w: lerp(a.w, b.w, u), h: lerp(a.h, b.h, u) });
 
 /** Karaoke captions: the current phrase, each word lighting up as Wren says it. */
-const Captions: React.FC<{ words: { w: string; s: number; e: number }[] }> = ({ words: raw }) => {
+const Captions: React.FC<{ words: { w: string; s: number; e: number }[]; fixes?: Record<string, string> }> = ({ words: raw, fixes = {} }) => {
   const frame = useCurrentFrame();
   // Whisper splits some words: "Hero" "Byte", "kicked" "-in". Join them back for reading.
   const words: typeof raw = [];
@@ -62,6 +64,7 @@ const Captions: React.FC<{ words: { w: string; s: number; e: number }[] }> = ({ 
       words[words.length - 1] = { w: prev.w + w.w, s: prev.s, e: w.e };
     } else words.push(w);
   }
+  for (const w of words) if (fixes[w.w]) w.w = fixes[w.w];
   const { fps } = useVideoConfig();
   const t = frame / fps;
   const chunks: { s: number; e: number; words: typeof words }[] = [];
@@ -234,16 +237,25 @@ const sfxDefault: Record<string, string> = {
   key: "ui-open.wav",
 };
 
-export const Chapter: React.FC<{ n: number; total: number; data: LessonData; script: ChapterScript; slug: string }> = ({ n, total, data, script, slug }) => {
+export const Chapter: React.FC<{ n: number; total: number; data: LessonData; script: ChapterScript; slug: string; captionFixes?: Record<string, string> }> = ({
+  n,
+  total,
+  data,
+  script,
+  slug,
+  captionFixes,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const lead = Math.round(LEAD * fps);
   const R = makeResolver(data, n);
   const t = (frame - lead) / fps;
   const F = (cue: Parameters<typeof R.time>[0]) => Math.round(R.time(cue) * fps);
-  const recs: Record<string, ReturnType<typeof R.rec>> = { dm: R.rec("dm") };
-  if (R.rec("player")) recs.player = R.rec("player");
-  const k = W / recs.dm.view.width;
+  // The main view: the DM's screen in a DM lesson, the player's computer in a player lesson.
+  const main = R.rec("dm") ? "dm" : "player";
+  const recs: Record<string, ReturnType<typeof R.rec>> = { [main]: R.rec(main) };
+  for (const who of ["player", "phone"]) if (who !== main && R.rec(who)) recs[who] = R.rec(who);
+  const k = W / recs[main].view.width;
 
   const zooms = (script.zooms ?? []).map((z) => ({
     f0: R.time(z.from),
@@ -252,12 +264,27 @@ export const Chapter: React.FC<{ n: number; total: number; data: LessonData; scr
   }));
   const splitAt = script.split ? R.time(script.split.from) : Infinity;
   const u = script.split ? spring({ frame: frame - lead - Math.round(splitAt * fps), fps, config: { damping: 16, stiffness: 110 } }) : 0;
-  const dmCam = lerpCam(camAt(t, zooms), BASE, u);
-  const dmRect = lerpRect(FULL, LEFT, u);
+  // The phone shot: the desktop shrinks left, a phone slides in on the right, then back.
+  let v = 0;
+  if (script.phone) {
+    const pf = lead + F(script.phone.from);
+    const pin = spring({ frame: frame - pf, fps, config: { damping: 15, stiffness: 120 } });
+    const pout =
+      script.phone.to === undefined ? 0 : spring({ frame: frame - lead - F(script.phone.to), fps, config: { damping: 15, stiffness: 120 } });
+    v = clamp01(pin - pout);
+  }
+  const dmCam = lerpCam(camAt(t, zooms), BASE, Math.max(u, v));
+  const dmRect = v > 0 ? lerpRect(FULL, PHONE_DESK, v) : lerpRect(FULL, LEFT, u);
   const panels: Record<string, Panel> = {
-    dm: { ...dmRect, ...dmCam, label: script.split?.labels[0], opacity: 1 },
+    [main]: { ...dmRect, ...dmCam, label: v > 0.5 ? "COMPUTER" : script.split?.labels[0], opacity: 1 },
   };
-  if (recs.player) panels.player = { ...lerpRect(OFF_RIGHT, RIGHT, u), ...BASE, label: script.split?.labels[1], opacity: u > 0.01 ? 1 : 0 };
+  if (recs.player && main !== "player") panels.player = { ...lerpRect(OFF_RIGHT, RIGHT, u), ...BASE, label: script.split?.labels[1], opacity: u > 0.01 ? 1 : 0 };
+  if (recs.phone) {
+    const { VW, VH } = frameOf(recs.phone);
+    const h = (PHONE.w * VH) / VW;
+    const at = { ...PHONE, h, y: (H - h) / 2 - 20 };
+    panels.phone = { ...lerpRect({ ...at, x: W + 60 }, at, v), s: 1, cx: VW / 2, cy: VH / 2, label: script.phone?.label ?? "PHONE", opacity: v > 0.01 ? 1 : 0, phone: true };
+  }
 
   // Screen shake for the big keys.
   let shake = { x: 0, y: 0 };
@@ -296,13 +323,13 @@ export const Chapter: React.FC<{ n: number; total: number; data: LessonData; scr
     switch (b.kind) {
       case "popup": {
         addSfx(F(b.from), b.sfx === undefined ? sfxDefault.popup : b.sfx);
-        const target = b.target ? { who: b.target.who ?? "dm", box: R.box(b.target) } : undefined;
+        const target = b.target ? { who: b.target.who ?? main, box: R.box(b.target) } : undefined;
         return (
           <Popup key={i} seed={seed} start={F(b.from)} end={F(b.to)} title={b.title} lines={b.lines} lineAt={b.lineAt?.map(F)} icon={b.icon} tone={b.tone} target={target} side={b.side} pos={b.pos} width={b.width} />
         );
       }
       case "ring":
-        return <Ring key={i} start={F(b.from)} end={F(b.to)} target={{ who: b.target.who ?? "dm", box: R.box(b.target) }} />;
+        return <Ring key={i} start={F(b.from)} end={F(b.to)} target={{ who: b.target.who ?? main, box: R.box(b.target) }} />;
       case "key":
         addSfx(F(b.from), b.sfx ?? sfxDefault.key, b.shake ? 0.6 : 0.4);
         return <KeyCap key={i} seed={seed} start={F(b.from)} end={F(b.to)} label={b.label} pos={b.pos} />;
@@ -319,7 +346,7 @@ export const Chapter: React.FC<{ n: number; total: number; data: LessonData; scr
         addSfx(F(b.from), b.sfx === undefined ? sfxDefault.sticker : b.sfx, 0.35);
         return <Sticker key={i} seed={seed} start={F(b.from)} end={F(b.to)} text={b.text} pos={b.pos} tone={b.tone} tilt={b.tilt} />;
       case "spot":
-        return <Spotlight key={i} start={F(b.from)} end={F(b.to)} radius={b.radius} target={b.target ? { who: b.target.who ?? "dm", box: R.box(b.target) } : undefined} />;
+        return <Spotlight key={i} start={F(b.from)} end={F(b.to)} radius={b.radius} target={b.target ? { who: b.target.who ?? main, box: R.box(b.target) } : undefined} />;
       case "sfx":
         addSfx(F(b.at), b.src, b.volume ?? 0.4);
         return null;
@@ -334,15 +361,16 @@ export const Chapter: React.FC<{ n: number; total: number; data: LessonData; scr
       <Backdrop />
       <StageProvider value={{ panels, recs }}>
         <AbsoluteFill style={{ transform: `translate(${shake.x}px, ${shake.y}px)` }}>
-          {footage("dm")}
-          {recs.player && u > 0.01 ? footage("player") : null}
+          {footage(main)}
+          {recs.player && main !== "player" && u > 0.01 ? footage("player") : null}
+          {recs.phone && v > 0.01 ? footage("phone") : null}
           <Sequence from={lead} layout="none">
             {overlays}
           </Sequence>
         </AbsoluteFill>
       </StageProvider>
       <Sequence from={lead} layout="none">
-        <Captions words={R.words} />
+        <Captions words={R.words} fixes={captionFixes} />
         {ff ? <FastForward speed={ff.speed} /> : null}
         <Audio src={staticFile(`audio/${slug}/${data.chapters[n - 1].file}`)} />
         {sfx.map((s, i) => (

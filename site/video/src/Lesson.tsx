@@ -34,7 +34,7 @@ export const Lesson: React.FC<LessonProps> = (props) => {
       </Sequence>
       {chapters.map((c, i) => (
         <Sequence key={i} from={c.from} durationInFrames={c.frames}>
-          <Chapter n={i + 1} total={chapters.length} data={data} script={script.chapters[i]} slug={script.slug} />
+          <Chapter n={i + 1} total={chapters.length} data={data} script={script.chapters[i]} slug={script.slug} captionFixes={script.captionFixes} />
         </Sequence>
       ))}
       <Sequence from={outroAt} durationInFrames={OUTRO * FPS}>

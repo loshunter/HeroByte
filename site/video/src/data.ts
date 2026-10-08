@@ -21,7 +21,8 @@ export function findMark(rec: Rec | undefined, label: string, nth = 1): Mark | u
 export function makeResolver(data: LessonData, chapter: number) {
   const ch = data.chapters[chapter - 1];
   const words = ch.words.map((w) => ({ ...w, n: norm(w.w) }));
-  const rec = (who = "dm") => data.recordings[`ch${chapter}-${who}`];
+  const main = data.recordings[`ch${chapter}-dm`] ? "dm" : "player";
+  const rec = (who?: string) => data.recordings[`ch${chapter}-${who ?? main}`];
   const say = (phrase: string, nth = 1, end = false) => {
     const want = phrase.split(/\s+/).map(norm).filter(Boolean);
     let seen = 0;

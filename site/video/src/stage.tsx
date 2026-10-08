@@ -4,7 +4,10 @@ import type { Box, Rec } from "./data";
 import { C, H, PIXEL, W } from "./theme";
 
 /** Where a recording sits on screen right now, and how its camera is zoomed. */
-export type Panel = { x: number; y: number; w: number; h: number; s: number; cx: number; cy: number; label?: string; opacity: number };
+export type Panel = { x: number; y: number; w: number; h: number; s: number; cx: number; cy: number; label?: string; opacity: number; phone?: boolean };
+
+/** A recording's frame at output scale: 1920 wide, as tall as its aspect needs (a phone is tall). */
+export const frameOf = (rec: Rec) => ({ VW: W, VH: (W * rec.view.height) / rec.view.width });
 
 export type StageGeom = {
   panels: Record<string, Panel>;
@@ -18,10 +21,11 @@ export const StageProvider = Ctx.Provider;
 export function toScreen(geom: StageGeom, who: string, box: Box): Box {
   const panel = geom.panels[who];
   const rec = geom.recs[who];
-  const k = W / rec.view.width; // recorded CSS px -> unzoomed 1920 frame
-  const vx = (box.x * k - panel.cx) * panel.s + W / 2;
-  const vy = (box.y * k - panel.cy) * panel.s + H / 2;
-  const f = panel.w / W;
+  const { VW, VH } = frameOf(rec);
+  const k = VW / rec.view.width; // recorded CSS px -> unzoomed frame
+  const vx = (box.x * k - panel.cx) * panel.s + VW / 2;
+  const vy = (box.y * k - panel.cy) * panel.s + VH / 2;
+  const f = panel.w / VW;
   return { x: panel.x + vx * f, y: panel.y + vy * f, width: box.width * k * panel.s * f, height: box.height * k * panel.s * f };
 }
 
@@ -32,8 +36,9 @@ export function useStage() {
 }
 
 /** One recording, framed by its panel and camera. */
-export const FootagePanel: React.FC<{ who: string; panel: Panel; rec: Rec; startFrom?: number }> = ({ panel, rec, startFrom }) => {
-  const f = panel.w / W;
+export const FootagePanel: React.FC<{ who: string; panel: Panel; rec: Rec }> = ({ panel, rec }) => {
+  const { VW, VH } = frameOf(rec);
+  const f = panel.w / VW;
   const inset = panel.w < W;
   return (
     <div
@@ -45,27 +50,33 @@ export const FootagePanel: React.FC<{ who: string; panel: Panel; rec: Rec; start
         height: panel.h,
         overflow: "hidden",
         opacity: panel.opacity,
-        borderRadius: inset ? 14 : 0,
-        boxShadow: inset ? `0 0 0 4px ${C.gold}, 10px 12px 0 4px ${C.shadow}` : undefined,
+        borderRadius: panel.phone ? 40 : inset ? 14 : 0,
+        boxShadow: panel.phone
+          ? `0 0 0 14px #050608, 0 0 0 19px ${C.gold}, 14px 16px 0 19px ${C.shadow}`
+          : inset
+            ? `0 0 0 4px ${C.gold}, 10px 12px 0 4px ${C.shadow}`
+            : undefined,
       }}
     >
       <div
         style={{
           position: "absolute",
-          width: W,
-          height: H,
+          width: VW,
+          height: VH,
           transformOrigin: "0 0",
-          transform: `scale(${f}) translate(${W / 2}px, ${H / 2}px) scale(${panel.s}) translate(${-panel.cx}px, ${-panel.cy}px)`,
+          transform: `scale(${f}) translate(${VW / 2}px, ${VH / 2}px) scale(${panel.s}) translate(${-panel.cx}px, ${-panel.cy}px)`,
         }}
       >
-        <OffthreadVideo src={staticFile(rec.src)} trimBefore={startFrom} muted style={{ width: W, height: H }} />
+        <OffthreadVideo src={staticFile(rec.src)} muted style={{ width: VW, height: VH }} />
       </div>
       {panel.label && inset ? (
         <div
           style={{
             position: "absolute",
-            left: 18,
-            top: 16,
+            left: panel.phone ? "50%" : 18,
+            top: panel.phone ? 26 : 16,
+            transform: panel.phone ? "translateX(-50%)" : undefined,
+            whiteSpace: "nowrap",
             padding: "10px 16px 9px",
             background: C.gold,
             color: C.goldInk,

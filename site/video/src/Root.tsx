@@ -35,5 +35,20 @@ export const Root: React.FC = () => (
         at: 34,
       }}
     />
+    <Composition
+      id="ThumbPlayerQuickStart"
+      component={Thumbnail}
+      width={1280}
+      height={720}
+      fps={FPS}
+      durationInFrames={1}
+      defaultProps={{
+        kicker: "PLAYER QUICK START",
+        title: ["YOUR FIRST", "SESSION"],
+        footage: "footage/player-quick-start-your-first-session-as-a-player/ch4-player.mp4",
+        at: 21,
+        tone: "blue",
+      }}
+    />
   </>
 );

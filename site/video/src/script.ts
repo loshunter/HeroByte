@@ -7,6 +7,8 @@ export type LessonScript = {
   subtitle: string;
   chapters: ChapterScript[];
   outro: { headline: string; next: string };
+  /** Whisper's mishearings in the captions, word for word: { "sell.": "cell." }. */
+  captionFixes?: Record<string, string>;
 };
 
 export type ChapterScript = {
@@ -15,6 +17,8 @@ export type ChapterScript = {
   end?: Cue;
   zooms?: Zoom[];
   split?: { from: Cue; labels: [string, string] };
+  /** A phone recording slides in on the right while the desktop shrinks to the left. */
+  phone?: { from: Cue; to?: Cue; label?: string };
   beats: Beat[];
 };
 

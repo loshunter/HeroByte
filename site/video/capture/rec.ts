@@ -58,8 +58,8 @@ export class Recording {
     await cdp.send("Page.startScreencast", {
       format: "jpeg",
       quality: 92,
-      maxWidth: VIEW.width * DSF,
-      maxHeight: VIEW.height * DSF,
+      maxWidth: (this.page.viewportSize() ?? VIEW).width * DSF,
+      maxHeight: (this.page.viewportSize() ?? VIEW).height * DSF,
       everyNthFrame: 1,
     });
   }
@@ -73,14 +73,14 @@ export class Recording {
   async stop(endAt: number) {
     await this.cdp?.send("Page.stopScreencast").catch(() => {});
     await this.writing;
-    const meta = { view: VIEW, dsf: DSF, end: endAt, frames: this.frames, marks: this.marks };
+    const meta = { view: this.page.viewportSize() ?? VIEW, dsf: DSF, end: endAt, frames: this.frames, marks: this.marks };
     fs.writeFileSync(path.join(this.dir, "recording.json"), JSON.stringify(meta, null, 1));
   }
 }
 
 /** A cursor the screencast can see (headless Chrome draws none), with a ripple on every press. */
-export async function addCursor(context: BrowserContext) {
-  await context.addInitScript(() => {
+export async function addCursor(context: BrowserContext, touch = false) {
+  await context.addInitScript((touch) => {
     const install = () => {
       if (document.getElementById("__rec_cursor")) return;
       const style = document.createElement("style");
@@ -118,9 +118,35 @@ export async function addCursor(context: BrowserContext) {
       );
       addEventListener("mouseup", () => cursor.classList.remove("down"), true);
     };
-    if (document.documentElement) install();
-    else addEventListener("DOMContentLoaded", install);
-  });
+    const installTouch = () => {
+      if (document.getElementById("__rec_touch")) return;
+      const style = document.createElement("style");
+      style.id = "__rec_touch";
+      style.textContent = `
+        .__rec_finger{position:fixed;z-index:2147483647;pointer-events:none;width:46px;height:46px;
+          margin:-23px 0 0 -23px;border-radius:50%;background:rgba(255,255,255,.55);
+          border:3px solid #ffd447;animation:__rec_f .6s ease-out forwards}
+        @keyframes __rec_f{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.5);opacity:0}}`;
+      document.documentElement.appendChild(style);
+      addEventListener(
+        "touchstart",
+        (e) => {
+          for (const t of Array.from(e.touches)) {
+            const dot = document.createElement("div");
+            dot.className = "__rec_finger";
+            dot.style.left = `${t.clientX}px`;
+            dot.style.top = `${t.clientY}px`;
+            document.documentElement.appendChild(dot);
+            setTimeout(() => dot.remove(), 700);
+          }
+        },
+        true,
+      );
+    };
+    const go = touch ? installTouch : install;
+    if (document.documentElement) go();
+    else addEventListener("DOMContentLoaded", go);
+  }, touch);
 }
 
 const mouseAt = new WeakMap<Page, { x: number; y: number }>();
@@ -228,4 +254,48 @@ export async function focus(rec: Recording, target: Locator, label: string, when
 /** Park the mouse off the controls while the narration talks. */
 export async function rest(page: Page, at = { x: VIEW.width * 0.62, y: VIEW.height * 0.58 }) {
   await glide(page, at, 450);
+}
+
+/** Drag from one point to another (real mouse input, which Konva hears), landing the release at `at`. */
+export async function drag(
+  rec: Recording,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  label: string,
+  when: When & { hold?: number } = {},
+) {
+  const ms = when.ms ?? 700;
+  if (when.at !== undefined) await rec.clock.at(when.at - ms / 1000 - 0.45, rec.page);
+  await glide(rec.page, from, 400);
+  rec.mark("drag", label, { box: { x: from.x - 30, y: from.y - 30, width: 60, height: 60 } });
+  await rec.page.mouse.down();
+  await rec.page.waitForTimeout(when.hold ?? 120);
+  await glide(rec.page, to, ms);
+  await rec.page.waitForTimeout(80);
+  await rec.page.mouse.up();
+  rec.mark("drop", label, { box: { x: to.x - 30, y: to.y - 30, width: 60, height: 60 }, at: when.at });
+}
+
+/** A finger tap (touch input), landing at `at`. */
+export async function tap(rec: Recording, target: Locator | { x: number; y: number }, label: string, when: When = {}) {
+  if (when.at !== undefined) await rec.clock.at(when.at, rec.page);
+  const box = "x" in target ? { x: target.x - 22, y: target.y - 22, width: 44, height: 44 } : await boxOf(target);
+  rec.mark("tap", label, { box, at: when.at });
+  await rec.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+/** Centre the map on the viewer's own token and return its on-screen centre (CSS px). */
+export async function centreOwnToken(page: Page, scale?: number) {
+  return page.evaluate((want) => {
+    const data = window.__HERO_BYTE_E2E__!;
+    const token = data.snapshot!.tokens.find((t) => t.owner === data.uid)!;
+    // The canvas, not the board div: on the phone layout the div is wider than the screen.
+    const board = document.querySelector('[data-testid="map-board"] canvas')!.getBoundingClientRect();
+    const g = data.gridSize;
+    const s = want ?? data.cam?.scale ?? 1;
+    const wx = (token.x + 0.5) * g;
+    const wy = (token.y + 0.5) * g;
+    data.setCam!({ x: board.width / 2 - wx * s, y: board.height * 0.45 - wy * s, scale: s });
+    return { x: board.left + board.width / 2, y: board.top + board.height * 0.45, cell: g * s };
+  }, scale);
 }
