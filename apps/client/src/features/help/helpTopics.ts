@@ -172,7 +172,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         detail:
           "Drag it, or step it with WASD / arrows (QEZC diagonal; hold to walk). With nothing selected the keys move your own token if you run just one character — except while typing, and ↑/↓ page a panel you last clicked into or scrolled (WASD and ←/→ still walk). 🖱️ SELECT and 🔄 TRANSFORM move only the piece you picked (nothing picked, nothing moves); ✏️ Draw, the grid-alignment wizard and World link placement (⚓ AIM ON MAP) take the keys. Phone: TOOLS → □ Select, tap the piece, use the d-pad.",
       },
-      { term: "Recolor", detail: "Double-click your own token for a new random colour." },
+      { term: "Recolor", detail: "Double-click or double-tap your token for a new random colour." },
       {
         term: "Select several",
         detail: "🖱️ Select drags a marquee; Shift-click adds, Ctrl/Cmd-click toggles.",

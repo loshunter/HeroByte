@@ -571,7 +571,7 @@ How it signs in:
 **Common mistake:** loading a character file that holds drawings. Caption over the **Load character…** button: `A file with drawings replaces the drawings you have on the map.` (Say it; no need to perform it.)
 
 **Unverified, check before recording:**
-- Whether double-click recolour works on a token that has a custom image. The guide says only "double-click your token for a new random color".
+- Whether double-click recolour works on a token that has a custom image. The guide says only "double-click (or double-tap) your token for a new random color".
 
 ---
 
