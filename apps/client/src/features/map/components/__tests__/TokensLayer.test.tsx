@@ -560,6 +560,25 @@ describe("TokensLayer", () => {
       expect(statusText).toBeInTheDocument();
     });
 
+    it("rings every medallion in a colour the canvas can draw (a var() stroke is dropped)", () => {
+      const token = createTokenObject("token:1", "test-user");
+      const effect = (emoji: string) => ({ value: emoji, emoji, label: emoji });
+      const props = createDefaultProps({
+        sceneObjects: [token],
+        statusEffectsByTokenId: {
+          "token:1": ["🔥", "💀", "✨", "⭐"].map(effect),
+        },
+      });
+
+      const { container } = render(<TokensLayer {...props} />);
+
+      const rings = Array.from(container.querySelectorAll('[data-testid="konva-circle"]'))
+        .map((circle) => getProps(circle).stroke)
+        .filter((stroke) => stroke !== undefined);
+      expect(rings.length).toBeGreaterThanOrEqual(4);
+      for (const stroke of rings) expect(String(stroke)).not.toMatch(/var\(/);
+    });
+
     it("does not render status effect badge when token has no status effect", () => {
       const token = createTokenObject("token:1", "test-user");
       const props = createDefaultProps({

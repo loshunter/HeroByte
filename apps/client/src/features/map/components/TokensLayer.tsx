@@ -49,6 +49,8 @@ function isKonvaNode(node: Konva.Node | null): node is Konva.Node {
 // Size multiplier per token size category — ONE ladder with the props (and
 // the move-pad follow, which sizes what it keeps on screen from it).
 const SIZE_MULTIPLIERS = PROP_SIZE_MULTIPLIERS;
+// --jrpg-border-gold as a literal: Konva cannot resolve var(), and the canvas drops it silently.
+const MEDALLION_RING = "#e2b75c";
 
 const TokenSprite = memo(function TokenSprite({
   object,
@@ -254,7 +256,7 @@ const StatusEffectBadge = memo(function StatusEffectBadge({
       <Circle
         radius={bgRadius}
         fill="rgba(0, 0, 0, 0.7)"
-        stroke="var(--jrpg-border-gold)"
+        stroke={MEDALLION_RING}
         strokeWidth={1.5}
       />
       <Text
@@ -305,7 +307,7 @@ const StatusEffectOverflowBadge = memo(function StatusEffectOverflowBadge({
       <Circle
         radius={bgRadius}
         fill="rgba(0, 0, 0, 0.7)"
-        stroke="var(--jrpg-border-gold)"
+        stroke={MEDALLION_RING}
         strokeWidth={1.5}
       />
       <Text
