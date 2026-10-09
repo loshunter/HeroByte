@@ -80,6 +80,20 @@ function inputsFor(state: RoomState, ownerUid: string) {
 }
 
 /**
+ * Whose colour a token wears: its PC's player when it is a PC's token (that is
+ * whose zone the colour holds, pcColorHolders), else the token's owner. They
+ * differ when "clear all" leaves a locked PC's token with the DM: its player's
+ * colour still keeps out of the other zones.
+ */
+function colorOwner(state: RoomState, token: Token): string {
+  const pc = state.characters.find(
+    (character) =>
+      character.type === "pc" && character.tokenId === token.id && character.ownedByPlayerUID,
+  );
+  return pc?.ownedByPlayerUID ?? token.owner;
+}
+
+/**
  * A new token's colour. An NPC's is any window colour (NPCs hold no zone, and
  * steering them would put them on the colour the next player gets). A player's
  * further character starts in that player's colour (their characters may share,
@@ -105,14 +119,15 @@ export function automaticColor(
 
 /**
  * The double-click recolour: a random allowed colour, visibly away from the
- * current one, so "recolour" always recolours. The exemption follows the
- * TOKEN's owner: the DM's own tokens (their PC, the NPCs they placed) take any
- * colour, but a player's token stays out of other players' zones even when the
- * DM is the one recolouring it (nobody chose that colour).
+ * current one, so "recolour" always recolours. The exemption follows whose
+ * colour it is (colorOwner): the DM's own tokens (their PC, the NPCs they
+ * placed) take any colour, but a player's token stays out of other players'
+ * zones even when the DM is the one recolouring it (nobody chose that colour).
  */
 export function recolorChoice(state: RoomState, token: Token, rng: () => number): string {
-  const { others, radius } = inputsFor(state, token.owner);
-  const ownerIsDM = dmCheck(state)(token.owner);
+  const owner = colorOwner(state, token);
+  const { others, radius } = inputsFor(state, owner);
+  const ownerIsDM = dmCheck(state)(owner);
   return randomAllowedColor(ownerIsDM ? [] : others, radius, rng, token.color);
 }
 
@@ -135,7 +150,7 @@ export function decideChosenColor(
   if (normalized && normalized === normalizeColor(token.color)) {
     return { color: token.color, adjusted: false };
   }
-  const { others, radius } = inputsFor(state, token.owner);
+  const { others, radius } = inputsFor(state, colorOwner(state, token));
   if (normalized && isColorAllowed(normalized, others, radius)) {
     return { color: normalized, adjusted: false };
   }

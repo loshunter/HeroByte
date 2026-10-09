@@ -26,6 +26,11 @@ describe("parseColor", () => {
     expect(parseColor("#f80")).toEqual({ r: 1, g: 136 / 255, b: 0 });
   });
 
+  it("reads the alpha hex forms as their colour, dropping the alpha", () => {
+    expect(parseColor("#ff800080")).toEqual(parseColor("#ff8000"));
+    expect(parseColor("#F80C")).toEqual(parseColor("#f80"));
+  });
+
   it("reads the token service's legacy hsl strings", () => {
     const green = parseColor("hsl(120, 70%, 50%)")!;
     expect(rgbToHex(green)).toBe("#26d926");
@@ -63,6 +68,7 @@ describe("parseColor", () => {
       "red",
       "var(--hero-gold)",
       "#12345",
+      "#1234567",
       "#gggggg",
       "rgb(1,2,3)",
       "hsl(x)",

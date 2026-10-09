@@ -10,10 +10,21 @@ export interface TokenDispatcherResult extends RouteHandlerResult {
   dragPreview?: DragPreviewEvent;
 }
 
-/** An over-budget colour write: nothing changes, and the sender is told so. */
-function throttled(state: { tokens: { id: string; color: string }[] }, tokenId: string) {
-  const color = state.tokens.find((token) => token.id === tokenId)?.color ?? "";
-  return { colorNotice: { tokenId, color, throttled: true } };
+/**
+ * An over-budget colour write: nothing changes. Only a token the sender may colour
+ * (its owner, or the DM) is answered, with the colour it keeps; any other id gets
+ * the same silence as a refused write, so the throttle never says whether a token
+ * exists or what colour a hidden or fogged one is.
+ */
+function throttled(
+  state: { tokens: { id: string; owner: string; color: string }[] },
+  tokenId: string,
+  senderUid: string,
+  isDM: boolean,
+): TokenDispatcherResult {
+  const token = state.tokens.find((candidate) => candidate.id === tokenId);
+  if (!token || (token.owner !== senderUid && !isDM)) return { broadcast: false, save: false };
+  return { colorNotice: { tokenId, color: token.color, throttled: true } };
 }
 
 export class TokenDispatcher {
@@ -45,7 +56,7 @@ export class TokenDispatcher {
       }
 
       case "recolor":
-        if (!this.colorBudget.take(senderUid)) return throttled(state, message.id);
+        if (!this.colorBudget.take(senderUid)) return throttled(state, message.id, senderUid, isDM);
         return this.handler.handleRecolor(state, message.id, senderUid, isDM);
 
       case "delete-token":
@@ -64,7 +75,7 @@ export class TokenDispatcher {
         return this.handler.handleSetSize(state, message.tokenId, senderUid, message.size, isDM);
 
       case "set-token-color":
-        if (!this.colorBudget.take(senderUid)) return throttled(state, message.tokenId);
+        if (!this.colorBudget.take(senderUid)) return throttled(state, message.tokenId, senderUid, isDM);
         return this.handler.handleSetColor(state, message.tokenId, senderUid, message.color, isDM);
 
       case "set-token-vision-radius":

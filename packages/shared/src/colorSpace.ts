@@ -106,6 +106,9 @@ export function hslToRgb(hue: number, saturation: number, lightness: number): Rg
 
 const HEX_6 = /^#([0-9a-f]{6})$/i;
 const HEX_3 = /^#([0-9a-f]{3})$/i;
+/** The alpha forms, `#rrggbbaa` and `#rgba`: read as their colour, the alpha dropped. */
+const HEX_8 = /^#([0-9a-f]{6})[0-9a-f]{2}$/i;
+const HEX_4 = /^#([0-9a-f]{3})[0-9a-f]$/i;
 // Each separator is ONE alternation, a comma (with optional spaces) or spaces,
 // never `\s*[, ]\s*`, which backtracks super-linearly on long runs of spaces.
 const HSL =
@@ -116,7 +119,7 @@ const MAX_COLOR_LENGTH = 64;
 /**
  * Any colour string HeroByte has ever stored, or null.
  *
- * Accepts `#rrggbb`, `#rgb` and `hsl(h, s%, l%)` (the token service's own
+ * Accepts `#rrggbb`, `#rgb`, `#rrggbbaa`, `#rgba` and `hsl(h, s%, l%)` (the token service's own
  * format before personal colours; `hsla`, `deg` and space-separated forms too,
  * since character files are hand-editable). Alpha is ignored: a token colour
  * is opaque. Anything else — named colours, `var(...)`, junk — is null, and
@@ -130,7 +133,7 @@ export function parseColor(input: string): Rgb | null {
     .trim()
     .replace(/^hsl(a?)\(\s+/i, "hsl$1(")
     .replace(/\s+\)$/, ")");
-  const six = HEX_6.exec(text);
+  const six = HEX_6.exec(text) ?? HEX_8.exec(text);
   if (six) {
     const value = parseInt(six[1]!, 16);
     return {
@@ -139,7 +142,7 @@ export function parseColor(input: string): Rgb | null {
       b: (value & 255) / 255,
     };
   }
-  const three = HEX_3.exec(text);
+  const three = HEX_3.exec(text) ?? HEX_4.exec(text);
   if (three) {
     const [r, g, b] = three[1]!.split("").map((digit) => parseInt(digit + digit, 16) / 255);
     return { r: r!, g: g!, b: b! };

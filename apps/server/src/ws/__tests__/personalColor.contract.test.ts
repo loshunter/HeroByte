@@ -81,6 +81,8 @@ describe("personal colours — the server is the authority", () => {
 
     expect(bo.color).not.toBe(annColor);
     expect(distance(bo.color, annColor)).toBeGreaterThanOrEqual(ruleRadius(2));
+    // The NEAREST free colour: just outside the zone, not anywhere allowed.
+    expect(distance(bo.color, annColor)).toBeLessThan(ruleRadius(2) + 0.03);
     expect(ann.color).toBe(annColor);
     expect(notices(BO)).toEqual([
       { t: "color-adjusted", tokenId: bo.id, color: bo.color, near: "Annika", name: "Bors" },
@@ -257,6 +259,36 @@ describe("personal colours — the server is the authority", () => {
     }
   });
 
+  it("answers a throttled write only for the sender's own token, so it reveals no other", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const ann = seat(ANN, "Annika");
+      const bo = seat(BO, "Bors");
+      // A hidden NPC the DM placed: whether it exists, and its colour, are the DM's.
+      const lurker = characters.createCharacter(state(), "Lurker", 30, undefined, "npc");
+      lurker.visibleToPlayers = false;
+      const lurkerToken = tokens.createToken(state(), DM, 9, 9, undefined, "medium", "npc");
+      characters.linkToken(state(), lurker.id, lurkerToken.id);
+      for (let press = 0; press < 10; press += 1) harness.route({ t: "recolor", id: bo.id }, BO);
+      const toldBefore = notices(BO).length;
+
+      const pick = windowColorAt({ u: 0.37, v: 0.42 }).hex;
+      for (const tokenId of [lurkerToken.id, ann.id, "no-such-token"]) {
+        harness.route({ t: "set-token-color", tokenId, color: pick }, BO);
+        harness.route({ t: "recolor", id: tokenId }, BO);
+      }
+      expect(notices(BO)).toHaveLength(toldBefore);
+
+      // Still over budget: the sender's own token is answered, with the colour it keeps.
+      harness.route({ t: "set-token-color", tokenId: bo.id, color: pick }, BO);
+      expect(notices(BO).slice(toldBefore)).toEqual([
+        { t: "color-adjusted", tokenId: bo.id, color: bo.color, throttled: true },
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps a player's token out of other zones when the DM recolours it", () => {
     const ann = seat(ANN, "Annika");
     const bo = seat(BO, "Bors");
@@ -270,6 +302,34 @@ describe("personal colours — the server is the authority", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("keeps a PC's colour out of other zones when the DM holds its token (after clear all)", () => {
+    const ann = seat(ANN, "Annika");
+    const bo = seat(BO, "Bors");
+    bo.owner = DM;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      for (let press = 0; press < 30; press += 1) {
+        if (press % 10 === 0) vi.setSystemTime(Date.now() + 5000);
+        harness.route({ t: "recolor", id: bo.id }, DM);
+        expect(distance(bo.color, ann.color)).toBeGreaterThanOrEqual(ruleRadius(2));
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never names the sender's own PC in a notice when that PC is hidden", () => {
+    const ann = seat(ANN, "Annika");
+    const bo = seat(BO, "Bors");
+    state().characters.find((character) => character.name === "Bors")!.visibleToPlayers = false;
+
+    harness.route({ t: "set-token-color", tokenId: bo.id, color: ann.color }, BO);
+
+    expect(notices(BO)).toHaveLength(1);
+    expect(notices(BO)[0]).toMatchObject({ near: "Annika" });
+    expect(notices(BO)[0]).not.toHaveProperty("name");
   });
 
   it("never names a hidden NPC in a notice, even to the player whose token it is", () => {
