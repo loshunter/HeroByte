@@ -42,7 +42,7 @@ describe("windowColorAt", () => {
 
   it("puts light at the top and dark at the bottom", () => {
     expect(windowLightness(0)).toBe(COLOR_WINDOW.lightMax);
-    expect(windowLightness(1)).toBe(COLOR_WINDOW.lightMin);
+    expect(windowLightness(1)).toBeCloseTo(COLOR_WINDOW.lightMin, 12);
     expect(windowLightness(-3)).toBe(COLOR_WINDOW.lightMax);
   });
 

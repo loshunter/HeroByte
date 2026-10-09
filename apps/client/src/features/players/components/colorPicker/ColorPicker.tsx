@@ -2,7 +2,7 @@
 // COLOUR PICKER — choose your character's colour (personal colour, C1)
 // ============================================================================
 // A hue × lightness window (hue wraps left to right, light at the top). Other
-// players' colours hold zones, drawn darkened; dragging into one stops the
+// players' colours hold zones, drawn striped; dragging into one stops the
 // handle at its edge, and a tap in one names whose it is. Three suggested spots mark the most open colours: one
 // tap lands there, which is the whole job on a phone. A drag commits on
 // release (one message), arrow keys commit once the keys go quiet, the preview

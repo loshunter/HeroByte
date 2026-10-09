@@ -48,9 +48,10 @@
   box-shadow: 0 0 0 1px var(--hero-white);
 }
 
+/* Your other characters: a white dashed ring, so a dark colour still shows on the dark half. */
 .color-picker__own {
-  border-style: dashed;
-  box-shadow: none;
+  border: 2px dashed var(--hero-white);
+  box-shadow: 0 0 0 1px var(--jrpg-navy);
 }
 
 .color-picker__spot {
@@ -75,6 +76,8 @@
   transform: translate(-50%, -50%);
   border: 2px dashed var(--hero-white);
   border-radius: 50%;
+  /* A navy edge keeps the white ring visible on the pastels at the top. */
+  box-shadow: 0 0 0 1px var(--jrpg-navy);
   opacity: 0.85;
 }
 

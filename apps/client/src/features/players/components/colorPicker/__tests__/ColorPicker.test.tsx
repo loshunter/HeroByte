@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import {
+  COLOR_WINDOW,
   cellIndexAt,
   colorToOkLab,
   deltaE,
@@ -107,8 +108,9 @@ describe("ColorPicker", () => {
     renderPicker();
     const text = screen.getByRole("slider").getAttribute("aria-valuetext")!;
     const lightness = Number(/lightness (\d+)%/.exec(text)![1]);
-    expect(lightness).toBeGreaterThanOrEqual(64);
-    expect(lightness).toBeLessThanOrEqual(88);
+    expect(lightness).toBe(Math.round(colorToOkLab(BLUE)!.L * 100));
+    expect(lightness).toBeGreaterThanOrEqual(COLOR_WINDOW.lightMin * 100);
+    expect(lightness).toBeLessThanOrEqual(COLOR_WINDOW.lightMax * 100);
   });
 
   it("lands on a suggested spot in one tap and commits exactly that colour", () => {
@@ -420,9 +422,10 @@ describe("ColorPicker", () => {
   });
 
   it("tells a screen reader an older colour's real lightness, not the band's edge", () => {
-    renderPicker({ color: "hsl(240, 70%, 50%)" });
+    // #0b0b41, OKLab L 0.20: darker than the window's band goes.
+    renderPicker({ color: "hsl(240, 70%, 15%)" });
     const text = screen.getByRole("slider").getAttribute("aria-valuetext")!;
-    expect(Number(/lightness (\d+)%/.exec(text)![1])).toBeLessThan(50);
+    expect(Number(/lightness (\d+)%/.exec(text)![1])).toBe(20);
   });
 
   it("sends the keyed colour when focus leaves, and when the window closes", () => {

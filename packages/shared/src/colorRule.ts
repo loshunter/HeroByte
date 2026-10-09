@@ -30,10 +30,10 @@ export const COLOR_RULE = {
   fill: 0.5,
   /**
    * ΔE bounds on the zone radius (ΔE 0.02 is about a just-noticeable step). The
-   * cap sits above r(2) = 0.143, so zones shrink from the second player on.
+   * cap sits above r(2) = 0.222, so zones shrink from the second player on.
    */
   radiusMin: 0.03,
-  radiusMax: 0.15,
+  radiusMax: 0.25,
   /** A recolour lands at least this far from where it started. */
   recolorStepMin: 0.05,
 } as const;

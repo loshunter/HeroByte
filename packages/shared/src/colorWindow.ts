@@ -6,8 +6,11 @@
 // window is laid out in OKLCH: x is HUE (0..360°, and it WRAPS — the left and
 // right edges are one colour), y is LIGHTNESS (light at the top), and every
 // point shows one target chroma, or the most sRGB can show there when the
-// gamut runs out first. Greys, near-black and near-white are not on the window
-// at all: they vanish on dark maps, in fog, and on the navy cards.
+// gamut runs out first. The band runs from deep shades (L 0.30: dark navy,
+// maroon, purple, the owner's choice) to pastels. Its dark half does not read
+// on dark maps or the navy cards by itself: C3 lifts the colour for text, and
+// frames (C5a) light their facets. Below L 0.30 sRGB cannot keep hues apart,
+// and greys and near-white are left off: they carry no hue to tell players by.
 //
 // The window is a VIEW. The rule itself is measured in OKLab (colorRule.ts),
 // on the colours each cell actually displays, so where the gamut clips a zone
@@ -28,11 +31,11 @@ export const COLOR_WINDOW = {
   /** Target chroma; a point shows min(this, the most sRGB allows there). */
   chroma: 0.17,
   /** Lightness band (OKLab L): the bottom and top edges. */
-  lightMin: 0.64,
+  lightMin: 0.3,
   lightMax: 0.88,
-  /** Raster resolution for zones, snapping and suggestions (2° × ~0.004 L). */
+  /** Raster resolution for zones, snapping and suggestions (2° × ~0.006 L, about square). */
   columns: 180,
-  rows: 60,
+  rows: 100,
 } as const;
 
 /** u: hue as 0..1 (wraps); v: 0 at the top (lightest) to 1 at the bottom. */
