@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CompiledScene } from "@herobyte/shared";
+import {
+  COLOR_RULE,
+  colorToOkLab,
+  deltaE,
+  windowCells,
+  windowColorAt,
+  type CompiledScene,
+} from "@herobyte/shared";
 import { TokenService } from "../token/service.js";
 import { createEmptyRoomState } from "../room/model.js";
 
@@ -40,7 +47,9 @@ describe("TokenService", () => {
 
     const token = service.createToken(state, "owner-1", 5, 6, "https://example.com/token.png");
 
-    expect(token.color).toBe("hsl(90, 70%, 50%)");
+    // An empty table: the farthest-point choice is a free draw over the window.
+    const cells = windowCells();
+    expect(token.color).toBe(cells[Math.floor(0.25 * cells.length)]!.hex);
     expect(state.tokens).toHaveLength(1);
     expect(state.tokens[0]?.owner).toBe("owner-1");
     expect(state.tokens[0]?.imageUrl).toBe("https://example.com/token.png");
@@ -258,7 +267,8 @@ describe("TokenService recolouring", () => {
   // in 360 redrew the hue it already had and the button visibly did nothing.
   // TokenMessageHandler.test.ts asserts "the colour CHANGED", so that 1-in-360
   // was a real flake in CI (observed 2026-08-27) — but the flake was the
-  // messenger. The contract is that a recolour recolours.
+  // messenger. The contract is that a recolour recolours — since personal
+  // colours (C1), by at least COLOR_RULE.recolorStepMin, to a window colour.
 
   function stateWithToken(color: string) {
     const state = createEmptyRoomState();
@@ -271,7 +281,7 @@ describe("TokenService recolouring", () => {
   it("NEVER returns the colour it started from, for any draw", () => {
     // Exhaustive over the generator's range rather than sampled: the old bug
     // lived at exactly one input value, which sampling can miss.
-    const current = "hsl(200, 70%, 50%)";
+    const current = windowColorAt({ u: 0.55, v: 0.5 }).hex;
     for (let i = 0; i < 359; i += 1) {
       const rng = () => (i + 0.5) / 359;
       const state = createEmptyRoomState();
@@ -281,11 +291,16 @@ describe("TokenService recolouring", () => {
 
       expect(service.recolorToken(state, token.id, "owner-1")).toBe(true);
       expect(token.color, `draw ${i} reproduced the current colour`).not.toBe(current);
-      expect(token.color).toMatch(/^hsl\(\d{1,3}, 70%, 50%\)$/);
+      expect(token.color).toMatch(/^#[0-9a-f]{6}$/);
+      expect(deltaE(colorToOkLab(token.color)!, colorToOkLab(current)!)).toBeGreaterThanOrEqual(
+        COLOR_RULE.recolorStepMin,
+      );
     }
   });
 
-  it("covers every OTHER hue across the draw range — it is not a fixed step", () => {
+  const START = windowColorAt({ u: 0, v: 0.5 }).hex;
+
+  it("covers a different colour for every draw across the range — it is not a fixed step", () => {
     // The cheap "always +1 hue" fix would pass the test above and make every
     // recolour predictable. This is what rules that out.
     const seen = new Set<string>();
@@ -293,19 +308,19 @@ describe("TokenService recolouring", () => {
       const state = createEmptyRoomState();
       const service = new TokenService(() => (i + 0.5) / 359);
       const token = service.createToken(state, "owner-1");
-      token.color = "hsl(0, 70%, 50%)";
+      token.color = START;
       service.recolorToken(state, token.id, "owner-1");
       seen.add(token.color);
     }
     expect(seen.size).toBe(359);
-    expect(seen.has("hsl(0, 70%, 50%)")).toBe(false);
+    expect(seen.has(START)).toBe(false);
   });
 
-  it("falls back to a free draw for a colour it did not author", () => {
+  it("still recolours a colour it cannot read", () => {
     const { state, token } = stateWithToken("rebeccapurple");
     const service = new TokenService(() => 0.5);
     expect(service.recolorToken(state, token.id, "owner-1")).toBe(true);
-    expect(token.color).toBe("hsl(180, 70%, 50%)");
+    expect(token.color).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   it("still refuses a recolour from someone who owns nothing", () => {

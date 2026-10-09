@@ -30,7 +30,7 @@ import { CharacterService } from "../../../domains/character/service.js";
 import { PropService } from "../../../domains/prop/service.js";
 import { SelectionService } from "../../../domains/selection/service.js";
 import { AuthService } from "../../../domains/auth/service.js";
-import type { ClientMessage, Token } from "@herobyte/shared";
+import { normalizeColor, type ClientMessage, type Token } from "@herobyte/shared";
 import type { WebSocketServer, WebSocket } from "ws";
 
 // Isolated state file. A bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
@@ -467,7 +467,8 @@ describe("TokenMessageHandler - Characterization Tests", () => {
 
       const state = roomService.getState();
       const token = state.tokens.find((t) => t.id === tokenId);
-      expect(token?.color).toBe("hsl(120, 70%, 50%)");
+      // Stored in the canonical form; nobody else's zone is near it (C1).
+      expect(token?.color).toBe(normalizeColor("hsl(120, 70%, 50%)"));
     });
 
     it("should set token color when DM updates it", () => {
@@ -481,7 +482,7 @@ describe("TokenMessageHandler - Characterization Tests", () => {
 
       const state = roomService.getState();
       const token = state.tokens.find((t) => t.id === tokenId);
-      expect(token?.color).toBe("hsl(240, 70%, 50%)");
+      expect(token?.color).toBe(normalizeColor("hsl(240, 70%, 50%)"));
     });
 
     it("should not set token color when non-owner tries", () => {

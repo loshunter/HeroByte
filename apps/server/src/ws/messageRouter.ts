@@ -508,6 +508,11 @@ export class MessageRouter {
       });
     }
 
+    // The colour rule moved what they chose: say where it went, to them alone.
+    if (result.colorNotice) {
+      this.sendControlMessage(senderUid, { t: "color-adjusted", ...result.colorNotice });
+    }
+
     const shouldSkipBroadcastVersionBump = Boolean(result.delta && result.broadcast);
 
     if (result.delta) {

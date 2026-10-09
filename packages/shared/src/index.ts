@@ -548,6 +548,13 @@ export interface SnapshotCharacter extends Omit<Character, "hp" | "maxHp" | "tem
   maxHp?: number;
   tempHp?: number;
   hpBadge?: HpBadge;
+  /**
+   * A PC's token colour, wire-only and derived at send time (never stored): fog
+   * can drop another player's TOKEN from a recipient's payload, but party records
+   * always ride along, so every screen still knows every player's colour (the
+   * picker's zones, pings, names).
+   */
+  color?: string;
 }
 
 /**
@@ -1321,6 +1328,15 @@ export type ServerMessage =
       // The lock is on a token parked with another map (travel left it there): the
       // client cannot see it, so it says where to go to unlock it.
       elsewhere?: boolean;
+    }
+  | {
+      t: "color-adjusted";
+      // Sent to the SENDER only (sendControlMessage). A player's chosen colour fell inside
+      // another player's zone (or could not be read), so the server moved it to the
+      // nearest free colour (colorRule.ts). `near`: the character whose zone it was in.
+      tokenId: string;
+      color: string;
+      near?: string;
     }
   | { t: "map-studio-deleted"; documentId: string }
   | {

@@ -8,6 +8,12 @@ import { randomUUID } from "crypto";
 import type { Token, TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import { isTokenMoveBlocked } from "../room/scene/movementBlocking.js";
+import {
+  automaticColor,
+  decideChosenColor,
+  recolorChoice,
+  type ColorDecision,
+} from "./colorPolicy.js";
 
 /**
  * Token service - manages tokens on the map
@@ -37,30 +43,6 @@ export class TokenService {
    * it, silently breaking every existing test that mocks it that way.
    */
   constructor(private readonly rng: () => number = () => Math.random()) {}
-
-  /**
-   * Generate a random HSL color for tokens
-   */
-  private randomColor(): string {
-    return colorForHue(Math.floor(this.rng() * 360));
-  }
-
-  /**
-   * A colour that is never the one already showing.
-   *
-   * The old version drew freely from 360 hues, so one recolour in 360 landed
-   * on the hue it started from and the button visibly did nothing. Drawing an
-   * OFFSET of 1..359 instead is uniform over every hue EXCEPT the current one,
-   * so "recolour" always recolours — no re-roll loop, which could repeat.
-   *
-   * A colour we cannot parse (not one of ours) has no hue to avoid, so it
-   * falls back to a free draw.
-   */
-  private recolorFrom(current: string): string {
-    const hue = hueOf(current);
-    if (hue === null) return this.randomColor();
-    return colorForHue((hue + 1 + Math.floor(this.rng() * 359)) % 360);
-  }
 
   /**
    * Find token by ID
@@ -101,7 +83,7 @@ export class TokenService {
       owner: ownerUid,
       x,
       y,
-      color: this.randomColor(),
+      color: automaticColor(state, ownerUid, this.rng),
       imageUrl,
       size,
     };
@@ -161,7 +143,8 @@ export class TokenService {
   }
 
   /**
-   * Change token color (with ownership validation or DM override)
+   * The double-click recolour (owner or DM): a random colour the rule allows,
+   * visibly away from the current one (colorPolicy.recolorChoice).
    */
   recolorToken(
     state: RoomState,
@@ -171,7 +154,7 @@ export class TokenService {
   ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (token && (token.owner === ownerUid || isDM)) {
-      token.color = this.recolorFrom(token.color);
+      token.color = recolorChoice(state, token, isDM, this.rng);
       return true;
     }
     return false;
@@ -236,7 +219,9 @@ export class TokenService {
   }
 
   /**
-   * Update token color explicitly (with ownership validation or DM override)
+   * A chosen colour (picker, character file) from the owner: the rule keeps
+   * it, or snaps it to the nearest allowed colour (colorPolicy). Null when
+   * nothing changed (not theirs, or unreadable from the DM).
    */
   setColor(
     state: RoomState,
@@ -244,33 +229,27 @@ export class TokenService {
     ownerUid: string,
     color: string,
     isDM: boolean = false,
-  ): boolean {
+  ): ColorDecision | null {
     const token = state.tokens.find((t) => t.id === tokenId);
-    if (token && (token.owner === ownerUid || isDM)) {
-      const trimmed = color.trim();
-      if (trimmed.length === 0) {
-        return false;
-      }
-      token.color = trimmed;
-      return true;
-    }
-    return false;
+    if (!token || (token.owner !== ownerUid && !isDM)) return null;
+    return this.applyChosenColor(state, token, color, isDM);
   }
 
-  /**
-   * Update token color without ownership checks (DM/admin actions)
-   */
-  setColorForToken(state: RoomState, tokenId: string, color: string): boolean {
+  /** The DM's chosen colour for any token: never checked (the DM is exempt). */
+  setColorForToken(state: RoomState, tokenId: string, color: string): ColorDecision | null {
     const token = state.tokens.find((t) => t.id === tokenId);
-    if (token) {
-      const trimmed = color.trim();
-      if (trimmed.length === 0) {
-        return false;
-      }
-      token.color = trimmed;
-      return true;
-    }
-    return false;
+    return token ? this.applyChosenColor(state, token, color, true) : null;
+  }
+
+  private applyChosenColor(
+    state: RoomState,
+    token: Token,
+    color: string,
+    isDM: boolean,
+  ): ColorDecision | null {
+    const decision = decideChosenColor(state, token, color, isDM);
+    if (decision) token.color = decision.color;
+    return decision;
   }
 
   /**
@@ -331,17 +310,4 @@ export class TokenService {
     }
     return false;
   }
-}
-
-/** The one place a token colour string is built, so parsing can mirror it. */
-function colorForHue(hue: number): string {
-  return `hsl(${hue}, 70%, 50%)`;
-}
-
-/** The hue of a colour this service produced, or null for anything else. */
-function hueOf(color: string): number | null {
-  const match = /^hsl\((\d{1,3}), 70%, 50%\)$/.exec(color);
-  if (!match) return null;
-  const hue = Number(match[1]);
-  return Number.isInteger(hue) && hue >= 0 && hue < 360 ? hue : null;
 }

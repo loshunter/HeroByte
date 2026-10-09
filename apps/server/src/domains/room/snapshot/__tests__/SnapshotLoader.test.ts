@@ -749,6 +749,15 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(characters[0].tokenId).toBeNull();
       expect(characters[0].tokenImage).toBeNull();
     });
+
+    it("never stores a PC's wire-only colour (it is derived from the token at send time)", () => {
+      roomService.loadSnapshot(
+        fileOf({
+          characters: [{ id: "pc-1", name: "Hero", type: "pc", hp: 5, maxHp: 5, color: "#123456" }],
+        }),
+      );
+      expect(roomService.getState().characters[0]).not.toHaveProperty("color");
+    });
   });
 
   describe("Token merging", () => {
