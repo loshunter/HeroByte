@@ -23,13 +23,33 @@ test.describe("mobile colour picker", () => {
     await page.getByRole("button", { name: /EDIT/i }).click();
     await expect(page.getByRole("slider", { name: /'s colour$/ })).toBeVisible();
 
-    const spots = page.getByRole("button", { name: /^Suggested colour \d$/ });
+    const spots = page.getByRole("button", { name: /^Suggested colour \d, #[0-9a-f]{6}$/ });
     await expect(spots).toHaveCount(3);
     for (const spot of await spots.all()) {
       const box = (await spot.boundingBox())!;
       expect(box.width).toBeGreaterThanOrEqual(44);
       expect(box.height).toBeGreaterThanOrEqual(44);
     }
+
+    // The handle's touch target reaches 22 px past its 28 px dot on every side (50 px).
+    const handle = page.getByRole("slider", { name: /'s colour$/ });
+    const reach = await handle.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const x = box.left + box.width / 2 + 24;
+      const y = box.top + box.height / 2;
+      return document.elementFromPoint(x, y) === element;
+    });
+    expect(reach).toBe(true);
+
+    // The sheet fits the phone: the window and the preview stay inside the screen.
+    const fits = await page.evaluate(() => {
+      const width = document.documentElement.clientWidth;
+      return [".color-picker__window", ".color-picker__preview"].every((selector) => {
+        const box = document.querySelector(selector)!.getBoundingClientRect();
+        return box.left >= 0 && box.right <= width;
+      });
+    });
+    expect(fits).toBe(true);
 
     await spots.first().tap();
     await expect.poll(colour).not.toBe(before);

@@ -69,7 +69,9 @@ export function pickerField(control: ColorPickerControl): PickerField {
 /** A key that changes only when the field would (holders arrive as new arrays). */
 export function pickerFieldKey(control: ColorPickerControl): string {
   const holders = control.holders
-    .map((holder) => `${holder.ownerUid}:${holder.characterId}:${holder.color}`)
+    .map(
+      (holder) => `${holder.ownerUid}:${holder.characterId}:${holder.color}:${holder.name ?? ""}`,
+    )
     .join("|");
   return [
     control.exempt,
@@ -103,13 +105,20 @@ export function placeHandle(
   point: WindowPoint,
   field: PickerField,
   exempt: boolean,
+  aspect?: number,
 ): { cell: WindowCell; blockedBy?: string } {
   const index = cellIndexAt(point);
   const own = windowCells()[index]!;
   const owner = field.zones[index] ?? -1;
   if (exempt || owner === -1) return { cell: own };
-  const free = nearestFreeCell(point, field.zones);
+  const free = nearestFreeCell(point, field.zones, aspect);
   return { cell: free ?? own, blockedBy: field.others[owner]?.name };
+}
+
+/** Whose zone covers a point, by character name, or null (free, or the DM's view). */
+export function zoneOwnerAt(point: WindowPoint, field: PickerField): string | null {
+  const owner = field.zones[cellIndexAt(point)] ?? -1;
+  return owner === -1 ? null : (field.others[owner]?.name ?? "another player");
 }
 
 /** One keyboard step from a cell: hue wraps, lightness stops at the edges. */

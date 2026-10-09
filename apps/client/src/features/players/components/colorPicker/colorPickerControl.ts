@@ -90,8 +90,9 @@ export function colorPickerForRows(list: {
 }
 
 /** The toast for the server's `color-adjusted`: where the colour went, and why. */
-export function colorAdjustedMessage(near?: string): string {
+export function colorAdjustedMessage(near?: string, name?: string): string {
+  const whose = name ? `${name}'s colour` : "Your colour";
   return near
-    ? `Moved to the nearest free colour: too close to ${near}'s.`
-    : "That colour could not be used, so you got the nearest free one.";
+    ? `${whose} was too close to ${near}'s, so it moved to the nearest free one.`
+    : `${whose} could not be read, so it was given a free one.`;
 }

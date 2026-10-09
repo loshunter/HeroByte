@@ -18,8 +18,8 @@ export function LazyColorPicker(control: ColorPickerControl): JSX.Element {
     <ErrorBoundary
       fallback={
         <p role="alert" className="color-picker__failed">
-          The colour picker could not be loaded. Reload the page to pick up the new version; your
-          colour is unchanged.
+          The colour picker could not be loaded. Reload the page to try again; your colour is
+          unchanged.
         </p>
       }
     >

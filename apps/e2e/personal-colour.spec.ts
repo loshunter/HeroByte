@@ -41,11 +41,15 @@ test.describe("personal colour across two clients", () => {
 
       const settings = await openOwnCharacterSettings(bob);
       await expect(settings.getByRole("slider", { name: /'s colour$/ })).toBeVisible();
-      await settings.getByRole("button", { name: "Suggested colour 1" }).click();
+      const spot = settings.getByRole("button", { name: /^Suggested colour 1, #[0-9a-f]{6}$/ });
+      const spotHex = (await spot.getAttribute("aria-label"))!.split(", ")[1]!;
+      await spot.click();
 
-      await expect.poll(async () => (await pcOf(alice, bobUid))?.color).not.toBe(before);
-      const after = (await pcOf(alice, bobUid))!.color!;
+      // The spot lands as offered (a free colour: kept exactly, no notice).
+      await expect.poll(async () => (await pcOf(alice, bobUid))?.color).toBe(spotHex);
+      const after = spotHex;
       await expect(settings.getByLabel("Colour code")).toHaveText(after);
+      expect(await bob.getByText(/so it moved to the nearest free one/).count()).toBe(0);
 
       const bobName = (await pcOf(alice, bobUid))!.name;
       const aliceSettings = await openOwnCharacterSettings(alice);
@@ -82,12 +86,21 @@ test.describe("personal colour across two clients", () => {
         { tokenId: bobToken, color: aliceBefore.color! },
       );
 
+      const bobName = (await pcOf(bob, bobUid))!.name;
       await expect(
-        bob.getByText(`Moved to the nearest free colour: too close to ${aliceBefore.name}'s.`),
+        bob.getByText(
+          `${bobName}'s colour was too close to ${aliceBefore.name}'s, so it moved to the nearest free one.`,
+        ),
       ).toBeVisible();
       await expect.poll(async () => (await pcOf(bob, bobUid))?.color).not.toBe(aliceBefore.color);
+      const bobAfter = (await pcOf(bob, bobUid))!.color;
+      // Alice has the broadcast that carried Bob's move, and her own colour is untouched...
+      await expect.poll(async () => (await pcOf(alice, bobUid))?.color).toBe(bobAfter);
       expect((await pcOf(alice, aliceUid))?.color).toBe(aliceBefore.color);
-      await expect(alice.getByText(/Moved to the nearest free colour/)).toHaveCount(0);
+      // ...and, checked once while Bob's toast is still up (a retrying check would
+      // outlast the toast and pass on a notice wrongly sent to her), no notice.
+      await expect(bob.getByText(/so it moved to the nearest free one/)).toBeVisible();
+      expect(await alice.getByText(/so it moved to the nearest free one/).count()).toBe(0);
     } finally {
       await aliceContext.close();
       await bobContext.close();

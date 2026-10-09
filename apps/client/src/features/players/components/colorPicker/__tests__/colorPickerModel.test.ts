@@ -22,6 +22,7 @@ import {
   pickerField,
   pickerFieldKey,
   placeHandle,
+  zoneOwnerAt,
   pointAt,
   sameColor,
   stepPoint,
@@ -142,6 +143,12 @@ describe("pickerField", () => {
       holders: [{ ownerUid: "sam", characterId: "bors", color: BLUE }],
     };
     expect(pickerFieldKey(moved)).not.toBe(pickerFieldKey(control()));
+    // A rename must reach an open picker's labels.
+    const renamed = {
+      ...control(),
+      holders: control().holders.map((holder) => ({ ...holder, name: `${holder.name}!` })),
+    };
+    expect(pickerFieldKey(renamed)).not.toBe(pickerFieldKey(control()));
   });
 });
 
@@ -190,7 +197,8 @@ describe("geometry helpers", () => {
 
   it("finds a stored colour's cell, and compares colours as stored", () => {
     expect(cellOf("junk")).toBeNull();
-    expect(cellOf(BLUE)!.hex).toBeDefined();
+    // BLUE is not a cell centre: its cell is the one a hair away.
+    expect(deltaE(cellOf(BLUE)!.lab, colorToOkLab(BLUE)!)).toBeLessThan(0.01);
     expect(sameColor(BLUE.toUpperCase(), BLUE)).toBe(true);
     expect(sameColor("junk", "junk")).toBe(true);
     expect(sameColor(RED, BLUE)).toBe(false);
@@ -216,11 +224,24 @@ describe("colorPickerForRows (the phone list)", () => {
   });
 });
 
+describe("zoneOwnerAt", () => {
+  it("names the character whose zone covers a point, and nobody on free ground", () => {
+    const field = pickerField(control());
+    expect(zoneOwnerAt(windowPointOf(RED)!, field)).toBe("bors");
+    expect(zoneOwnerAt(windowPointOf(BLUE)!, field)).toBeNull();
+  });
+});
+
 describe("colorAdjustedMessage", () => {
-  it("names whose zone it was, or says it could not be used", () => {
-    expect(colorAdjustedMessage("Bors")).toBe(
-      "Moved to the nearest free colour: too close to Bors's.",
+  it("says which character moved, whose zone it was in, or that it could not be read", () => {
+    expect(colorAdjustedMessage("Bors", "Annika")).toBe(
+      "Annika's colour was too close to Bors's, so it moved to the nearest free one.",
     );
-    expect(colorAdjustedMessage()).toMatch(/could not be used/);
+    expect(colorAdjustedMessage("Bors")).toBe(
+      "Your colour was too close to Bors's, so it moved to the nearest free one.",
+    );
+    expect(colorAdjustedMessage(undefined, "Annika")).toBe(
+      "Annika's colour could not be read, so it was given a free one.",
+    );
   });
 });

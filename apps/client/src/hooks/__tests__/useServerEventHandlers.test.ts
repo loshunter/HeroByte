@@ -909,14 +909,22 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
       const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
-      act(() => handler({ t: "color-adjusted", tokenId: "t-1", color: "#aabbcc", near: "Bors" }));
+      act(() =>
+        handler({
+          t: "color-adjusted",
+          tokenId: "t-1",
+          color: "#aabbcc",
+          near: "Bors",
+          name: "Ann",
+        }),
+      );
       expect(toast.info).toHaveBeenLastCalledWith(
-        "Moved to the nearest free colour: too close to Bors's.",
+        "Ann's colour was too close to Bors's, so it moved to the nearest free one.",
         5000,
       );
       act(() => handler({ t: "color-adjusted", tokenId: "t-1", color: "#aabbcc" }));
       expect(toast.info).toHaveBeenLastCalledWith(
-        "That colour could not be used, so you got the nearest free one.",
+        "Your colour could not be read, so it was given a free one.",
         5000,
       );
     });
