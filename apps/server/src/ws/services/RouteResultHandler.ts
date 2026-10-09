@@ -64,7 +64,13 @@ export interface RouteHandlerResult {
   /** The piece lock stopped (part of) this action: the router tells the sender. */
   lockRefusal?: LockRefusal;
   /** The colour rule moved a chosen colour: the router tells the sender where and why. */
-  colorNotice?: { tokenId: string; color: string; near?: string; name?: string };
+  colorNotice?: {
+    tokenId: string;
+    color: string;
+    near?: string;
+    name?: string;
+    throttled?: boolean;
+  };
 }
 
 export class RouteResultHandler {

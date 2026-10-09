@@ -8,7 +8,7 @@
  */
 
 import path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   colorToOkLab,
   createSeededRng,
@@ -16,6 +16,7 @@ import {
   farthestColor,
   normalizeColor,
   ruleRadius,
+  windowCells,
   windowColorAt,
   type CompiledScene,
   type SceneState,
@@ -100,14 +101,20 @@ describe("personal colours — the server is the authority", () => {
     expect(notices(BO)).toEqual([]);
   });
 
-  it("lets a player's own characters share a colour", () => {
+  it("lets a player's own characters share a colour (the rule runs, and lets it)", () => {
     seat(BO, "Bors");
     const first = seat(ANN, "Annika");
     const second = seat(ANN, "Annika's twin");
+    // Not the colour it already has (that would skip the rule): a far colour first,
+    // then a request right next to the sibling's, inside its zone.
+    second.color = farthestColor([{ lab: colorToOkLab(first.color)! }]);
+    const besideSibling = nearbyColor(first.color);
+    expect(besideSibling).not.toBe(first.color);
+    expect(distance(besideSibling, first.color)).toBeLessThan(ruleRadius(2));
 
-    harness.route({ t: "set-token-color", tokenId: second.id, color: first.color }, ANN);
+    harness.route({ t: "set-token-color", tokenId: second.id, color: besideSibling }, ANN);
 
-    expect(second.color).toBe(first.color);
+    expect(second.color).toBe(besideSibling);
     expect(notices(ANN)).toEqual([]);
   });
 
@@ -140,6 +147,7 @@ describe("personal colours — the server is the authority", () => {
     const bo = seat(BO, "Bors");
     // A claimed NPC: its token belongs to a player, so only the NPC rule keeps it out.
     const goblin = characters.createCharacter(state(), "Goblin", 7, undefined, "npc");
+    goblin.ownedByPlayerUID = "cy";
     const npcToken = tokens.createToken(state(), "cy", 3, 3, undefined, "medium", "npc");
     characters.linkToken(state(), goblin.id, npcToken.id);
     // Free of Annika's zone, so only the goblin could stand in Bors's way.
@@ -218,17 +226,76 @@ describe("personal colours — the server is the authority", () => {
     expect(annika?.color).toBe(ann.color);
   });
 
-  it("lets one player make a burst of 10 colour writes, then only a few more a second", () => {
-    const bo = seat(BO, "Bors");
-    let changes = 0;
-    for (let press = 0; press < 30; press += 1) {
-      const before = bo.color;
-      harness.route({ t: "recolor", id: bo.id }, BO);
-      if (bo.color !== before) changes += 1;
+  it("lets one player make a burst of 10 colour writes, then tells them to wait", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const bo = seat(BO, "Bors");
+      let changes = 0;
+      for (let press = 0; press < 15; press += 1) {
+        const before = bo.color;
+        harness.route({ t: "recolor", id: bo.id }, BO);
+        if (bo.color !== before) changes += 1;
+      }
+      expect(changes).toBe(10);
+      // Picks share the same budget, and a dropped one is told, not silently acked.
+      const pick = windowColorAt({ u: 0.37, v: 0.42 }).hex;
+      const toldBefore = notices(BO).length;
+      harness.route({ t: "set-token-color", tokenId: bo.id, color: pick }, BO);
+      expect(bo.color).not.toBe(pick);
+      expect(notices(BO)).toHaveLength(toldBefore + 1);
+      expect(notices(BO).at(-1)).toEqual({
+        t: "color-adjusted",
+        tokenId: bo.id,
+        color: bo.color,
+        throttled: true,
+      });
+      vi.setSystemTime(Date.now() + 1000);
+      harness.route({ t: "set-token-color", tokenId: bo.id, color: pick }, BO);
+      expect(bo.color).toBe(pick);
+    } finally {
+      vi.useRealTimers();
     }
-    // 10 at once, plus whatever 5 a second refills while the loop runs.
-    expect(changes).toBeGreaterThanOrEqual(10);
-    expect(changes).toBeLessThan(16);
+  });
+
+  it("keeps a player's token out of other zones when the DM recolours it", () => {
+    const ann = seat(ANN, "Annika");
+    const bo = seat(BO, "Bors");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      for (let press = 0; press < 30; press += 1) {
+        if (press % 10 === 0) vi.setSystemTime(Date.now() + 5000);
+        harness.route({ t: "recolor", id: bo.id }, DM);
+        expect(distance(bo.color, ann.color)).toBeGreaterThanOrEqual(ruleRadius(2));
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never names a hidden NPC in a notice, even to the player whose token it is", () => {
+    const ann = seat(ANN, "Annika");
+    // An ex-DM: the NPC token they placed while DM is still theirs.
+    const king = characters.createCharacter(state(), "Goblin King", 30, undefined, "npc");
+    king.visibleToPlayers = false;
+    const kingToken = tokens.createToken(state(), BO, 4, 4, undefined, "medium", "npc");
+    characters.linkToken(state(), king.id, kingToken.id);
+
+    harness.route({ t: "set-token-color", tokenId: kingToken.id, color: ann.color }, BO);
+
+    expect(notices(BO)).toHaveLength(1);
+    expect(notices(BO)[0]).toMatchObject({ near: "Annika" });
+    expect(notices(BO)[0]).not.toHaveProperty("name");
+  });
+
+  it("never lets a non-string colour on a PC's token break a join or a recolour", () => {
+    const ann = seat(ANN, "Annika");
+    (ann as unknown as { color: unknown }).color = 7;
+    const bo = seat(BO, "Bors");
+    expect(bo.color).toMatch(/^#[0-9a-f]{6}$/);
+    harness.route({ t: "recolor", id: bo.id }, BO);
+    expect(bo.color).toMatch(/^#[0-9a-f]{6}$/);
+    const annika = toSnapshot(state(), false, BO).characters.find((c) => c.name === "Annika");
+    expect(annika).not.toHaveProperty("color");
   });
 
   it("keeps a chosen colour across a server restart", async () => {
@@ -363,4 +430,16 @@ function toSnapshotWith(
       tokenId: pc.id,
     })),
   };
+}
+
+/** A window colour right next to `color` (two cells over), inside its zone. */
+function nearbyColor(color: string): string {
+  const cells = windowCells();
+  const here = cells.reduce((best, cell) =>
+    deltaE(cell.lab, colorToOkLab(color)!) < deltaE(best.lab, colorToOkLab(color)!) ? cell : best,
+  );
+  const next = cells.find(
+    (cell) => cell.row === here.row && cell.column === (here.column + 2) % 180,
+  )!;
+  return next.hex;
 }

@@ -106,8 +106,12 @@ export function hslToRgb(hue: number, saturation: number, lightness: number): Rg
 
 const HEX_6 = /^#([0-9a-f]{6})$/i;
 const HEX_3 = /^#([0-9a-f]{3})$/i;
+// Each separator is ONE alternation, a comma (with optional spaces) or spaces,
+// never `\s*[, ]\s*`, which backtracks super-linearly on long runs of spaces.
 const HSL =
-  /^hsla?\(\s*(-?\d+(?:\.\d+)?)(?:deg)?\s*[, ]\s*(\d+(?:\.\d+)?)%\s*[, ]\s*(\d+(?:\.\d+)?)%\s*(?:[,/]\s*[\d.]+%?\s*)?\)$/i;
+  /^hsla?\((-?\d+(?:\.\d+)?)(?:deg)?(?:\s*,\s*|\s+)(\d+(?:\.\d+)?)%(?:\s*,\s*|\s+)(\d+(?:\.\d+)?)%(?:\s*[,/]\s*[\d.]+%?)?\)$/i;
+/** No colour HeroByte writes is longer; anything longer is junk, and is not parsed at all. */
+const MAX_COLOR_LENGTH = 64;
 
 /**
  * Any colour string HeroByte has ever stored, or null.
@@ -119,7 +123,13 @@ const HSL =
  * the caller decides what null means (the server reassigns).
  */
 export function parseColor(input: string): Rgb | null {
-  const text = input.trim();
+  // Colours arrive from files and restored tables unchecked: a non-string or an
+  // overlong one is junk, and must never reach a regex (or crash the rule).
+  if (typeof input !== "string" || input.length > MAX_COLOR_LENGTH) return null;
+  const text = input
+    .trim()
+    .replace(/^hsl(a?)\(\s+/i, "hsl$1(")
+    .replace(/\s+\)$/, ")");
   const six = HEX_6.exec(text);
   if (six) {
     const value = parseInt(six[1]!, 16);

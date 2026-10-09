@@ -156,7 +156,7 @@ export class TokenService {
   ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (token && (token.owner === ownerUid || isDM)) {
-      token.color = recolorChoice(state, token, isDM, this.rng);
+      token.color = recolorChoice(state, token, this.rng);
       return true;
     }
     return false;

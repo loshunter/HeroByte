@@ -25,7 +25,7 @@ describe("pcColorHolders", () => {
     state.characters = [
       character({ id: "pc", ownedByPlayerUID: "ann", tokenId: "t-pc" }),
       // A claimed NPC: its token belongs to a player, and it still holds nothing.
-      character({ id: "npc", type: "npc", ownedByPlayerUID: undefined, tokenId: "t-npc" }),
+      character({ id: "npc", type: "npc", ownedByPlayerUID: "cy", tokenId: "t-npc" }),
       character({ id: "orphan", ownedByPlayerUID: undefined, tokenId: "t-orphan" }),
       character({
         id: "hidden",
@@ -51,5 +51,23 @@ describe("ColorWriteBudget", () => {
     expect(budget.take("a")).toBe(true);
     now = 10_000;
     expect([1, 2, 3, 4].map(() => budget.take("a"))).toEqual([true, true, true, false]);
+  });
+
+  it("never refuses because the clock stepped backwards", () => {
+    let now = 50_000;
+    const budget = new ColorWriteBudget(2, 1, () => now);
+    budget.take("a");
+    now = 40_000;
+    expect(budget.take("a")).toBe(true);
+  });
+
+  it("forgets players who are back at a full budget once it holds many", () => {
+    let now = 0;
+    const budget = new ColorWriteBudget(1, 1, () => now);
+    for (let player = 0; player < 300; player += 1) budget.take(`p${player}`);
+    expect(budget.size).toBe(300);
+    now = 5_000;
+    budget.take("late");
+    expect(budget.size).toBeLessThan(10);
   });
 });

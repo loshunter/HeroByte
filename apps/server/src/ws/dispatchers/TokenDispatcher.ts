@@ -10,6 +10,12 @@ export interface TokenDispatcherResult extends RouteHandlerResult {
   dragPreview?: DragPreviewEvent;
 }
 
+/** An over-budget colour write: nothing changes, and the sender is told so. */
+function throttled(state: { tokens: { id: string; color: string }[] }, tokenId: string) {
+  const color = state.tokens.find((token) => token.id === tokenId)?.color ?? "";
+  return { colorNotice: { tokenId, color, throttled: true } };
+}
+
 export class TokenDispatcher {
   constructor(
     private handler: TokenMessageHandler,
@@ -39,7 +45,7 @@ export class TokenDispatcher {
       }
 
       case "recolor":
-        if (!this.colorBudget.take(senderUid)) return {};
+        if (!this.colorBudget.take(senderUid)) return throttled(state, message.id);
         return this.handler.handleRecolor(state, message.id, senderUid, isDM);
 
       case "delete-token":
@@ -58,7 +64,7 @@ export class TokenDispatcher {
         return this.handler.handleSetSize(state, message.tokenId, senderUid, message.size, isDM);
 
       case "set-token-color":
-        if (!this.colorBudget.take(senderUid)) return {};
+        if (!this.colorBudget.take(senderUid)) return throttled(state, message.tokenId);
         return this.handler.handleSetColor(state, message.tokenId, senderUid, message.color, isDM);
 
       case "set-token-vision-radius":

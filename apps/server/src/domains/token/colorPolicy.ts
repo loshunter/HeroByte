@@ -10,8 +10,8 @@
 // The server is the authority: the picker bumps a handle at a zone's edge,
 // but a crafted message, a stale picker (someone joined meanwhile) or a loaded
 // file can still ask for a taken colour. Those are SNAPPED to the nearest
-// allowed colour, never refused, and the sender is told (personal-colour-arc
-// -plan §3.3). Messages are handled in order, so two players choosing the
+// allowed colour, never refused by the rule (an over-budget write is dropped,
+// and the sender told), and the sender is told (personal-colour-arc-plan §3.3). Messages are handled in order, so two players choosing the
 // same spot at once cannot both get it: the second is checked against the
 // first.
 
@@ -27,7 +27,7 @@ import {
   type Token,
 } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
-import { colourTokens } from "../room/snapshot/pcColors.js";
+import { pcTokenColours } from "../room/snapshot/pcColors.js";
 
 /** What a chosen colour became, and whether the sender must be told. */
 export interface ColorDecision {
@@ -50,23 +50,23 @@ const dmCheck =
 
 /**
  * Every PC colour at the table that holds a zone: one per PC character with an
- * owner and a token, the token found on the current map or waiting with
- * another one (a locked token can stay behind when the party travels). A fogged
- * token still counts: this reads the room, not a view. Not counted: a PC with
- * no owner (no player to hold the colour), and a PC hidden from players (only a
- * restored file can make one, and naming it in a notice would reveal it).
+ * owner and a token with a usable colour, on this map or (from a restored file)
+ * waiting with another one. A fogged token still counts: this reads the room,
+ * not a view. Not counted: a PC with no owner (no player to hold the colour),
+ * and a PC hidden from players (only a restored file can make one, and naming it
+ * in a notice would reveal it).
  */
 export function pcColorHolders(state: RoomState): ColorHolder[] {
-  const tokens = new Map(colourTokens(state).map((token) => [token.id, token]));
+  const colours = pcTokenColours(state);
   const holders: ColorHolder[] = [];
   for (const character of state.characters) {
     if (character.type !== "pc" || !character.tokenId || !character.ownedByPlayerUID) continue;
     if (character.visibleToPlayers === false) continue;
-    const token = tokens.get(character.tokenId);
-    if (!token) continue;
+    const color = colours.get(character.tokenId);
+    if (color === undefined) continue;
     holders.push({
       ownerUid: character.ownedByPlayerUID,
-      color: token.color,
+      color,
       name: character.name,
       characterId: character.id,
     });
@@ -105,16 +105,15 @@ export function automaticColor(
 
 /**
  * The double-click recolour: a random allowed colour, visibly away from the
- * current one, so "recolour" always recolours. The DM's is free (exempt).
+ * current one, so "recolour" always recolours. The exemption follows the
+ * TOKEN's owner: the DM's own tokens (their PC, the NPCs they placed) take any
+ * colour, but a player's token stays out of other players' zones even when the
+ * DM is the one recolouring it (nobody chose that colour).
  */
-export function recolorChoice(
-  state: RoomState,
-  token: Token,
-  senderIsDM: boolean,
-  rng: () => number,
-): string {
+export function recolorChoice(state: RoomState, token: Token, rng: () => number): string {
   const { others, radius } = inputsFor(state, token.owner);
-  return randomAllowedColor(senderIsDM ? [] : others, radius, rng, token.color);
+  const ownerIsDM = dmCheck(state)(token.owner);
+  return randomAllowedColor(ownerIsDM ? [] : others, radius, rng, token.color);
 }
 
 /**
@@ -141,7 +140,14 @@ export function decideChosenColor(
     return { color: normalized, adjusted: false };
   }
   const near = normalized ? closestBlocker(normalized, others)?.holder.name : undefined;
-  const name = state.characters.find((character) => character.tokenId === token.id)?.name;
+  // Named only when it is a PC players can see: a hidden NPC's token can still be
+  // its placer's (an ex-DM's), and its name must not reach their socket.
+  const name = state.characters.find(
+    (character) =>
+      character.tokenId === token.id &&
+      character.type === "pc" &&
+      character.visibleToPlayers !== false,
+  )?.name;
   return {
     color: nearestAllowedColor(normalized ?? requested, others, radius),
     adjusted: true,
@@ -168,15 +174,30 @@ export class ColorWriteBudget {
   take(uid: string): boolean {
     const time = this.now();
     const bucket = this.buckets.get(uid) ?? { tokens: this.capacity, at: time };
+    // max(0, …): a clock stepping backwards must not refuse anyone.
     const refilled = Math.min(
       this.capacity,
-      bucket.tokens + ((time - bucket.at) / 1000) * this.perSecond,
+      bucket.tokens + (Math.max(0, time - bucket.at) / 1000) * this.perSecond,
     );
+    if (this.buckets.size > 256) this.prune(time);
     if (refilled < 1) {
       this.buckets.set(uid, { tokens: refilled, at: time });
       return false;
     }
     this.buckets.set(uid, { tokens: refilled - 1, at: time });
     return true;
+  }
+
+  /** Drop the players who are back at a full budget: they need no entry. */
+  private prune(time: number): void {
+    for (const [uid, bucket] of this.buckets) {
+      const refilled = bucket.tokens + (Math.max(0, time - bucket.at) / 1000) * this.perSecond;
+      if (refilled >= this.capacity) this.buckets.delete(uid);
+    }
+  }
+
+  /** How many players hold an entry (tests). */
+  get size(): number {
+    return this.buckets.size;
   }
 }

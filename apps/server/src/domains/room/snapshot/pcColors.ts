@@ -11,33 +11,55 @@
 // replaced or removed. Shallow clones only: the view's records alias live
 // RoomState.
 
-import type { SnapshotCharacter, Token } from "@herobyte/shared";
+import type { SnapshotCharacter } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 
+/** A colour a PC can hold: a string with something in it (a restored file can carry anything). */
+export function holdableColor(color: unknown): color is string {
+  return typeof color === "string" && color.length > 0;
+}
+
 /**
- * Every token whose colour a PC can hold: the current map's, and those waiting
- * with another map (a locked token stays behind when the party travels). Without
- * the waiting ones, a PC record would carry a colour only while its token was on
- * this map, a one-bit hint fog otherwise hides.
+ * Each PC's token colour, by token id: the token on this map, or, only when a
+ * PC's token is not on this map, a copy waiting with another one (party tokens
+ * always travel, so only a restored file leaves one there). The live copy always
+ * wins, waiting scenes are scanned only when some PC's token is missing (a
+ * broadcast normally pays nothing for them), and malformed entries and colours
+ * that are not strings are skipped: they must never reach the colour rule.
  */
-export function colourTokens(state: RoomState): Token[] {
-  // A suspended scene can be malformed (a hand-edited or old file): skip what is not a token.
-  const waiting = Object.values(state.sceneStates ?? {}).flatMap((scene) =>
-    Array.isArray(scene?.tokens)
-      ? scene.tokens.filter((token) => typeof token?.id === "string")
-      : [],
-  );
-  return waiting.length > 0 ? [...state.tokens, ...waiting] : state.tokens;
+export function pcTokenColours(state: RoomState): Map<string, string> {
+  const wanted = new Set<string>();
+  for (const character of state.characters) {
+    if (character.type === "pc" && character.tokenId) wanted.add(character.tokenId);
+  }
+  const colours = new Map<string, string>();
+  const live = new Set<string>();
+  for (const token of state.tokens) {
+    live.add(token.id);
+    if (wanted.has(token.id) && holdableColor(token.color)) colours.set(token.id, token.color);
+  }
+  const missing = [...wanted].filter((id) => !live.has(id));
+  if (missing.length === 0) return colours;
+  const waitingFor = new Set(missing);
+  for (const scene of Object.values(state.sceneStates ?? {})) {
+    if (!Array.isArray(scene?.tokens)) continue;
+    for (const token of scene.tokens) {
+      if (typeof token?.id !== "string" || !waitingFor.has(token.id) || colours.has(token.id)) {
+        continue;
+      }
+      if (holdableColor(token.color)) colours.set(token.id, token.color);
+    }
+  }
+  return colours;
 }
 
 export function withPcColors(
   characters: SnapshotCharacter[],
-  tokens: readonly Token[],
+  colours: ReadonlyMap<string, string>,
 ): SnapshotCharacter[] {
-  const colors = new Map(tokens.map((token) => [token.id, token.color]));
   return characters.map((character) => {
     const color =
-      character.type === "pc" && character.tokenId ? colors.get(character.tokenId) : undefined;
+      character.type === "pc" && character.tokenId ? colours.get(character.tokenId) : undefined;
     if (color !== undefined) return { ...character, color };
     if (!("color" in character)) return character;
     const { color: _stale, ...rest } = character;

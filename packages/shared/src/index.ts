@@ -226,7 +226,7 @@ export interface Token {
   owner: string; // UID of the player who owns this token
   x: number; // Grid X position
   y: number; // Grid Y position
-  color: string; // Color of the token (HSL format)
+  color: string; // #rrggbb; older tables may hold hsl(...) until it changes
   imageUrl?: string; // Optional image to render instead of colored circle
   size?: TokenSize; // Token size (defaults to medium)
   locked?: boolean; // Whether the token is locked (Phase 10/11)
@@ -1336,10 +1336,12 @@ export type ServerMessage =
       // another player's zone (or could not be read), so the server moved it to the
       // nearest free colour, or a free one when it could not be read (colorRule.ts).
       // `near`: the character whose zone it was in; `name`: the character moved.
+      // `throttled`: too many colour writes at once; nothing changed.
       tokenId: string;
       color: string;
       near?: string;
       name?: string;
+      throttled?: boolean;
     }
   | { t: "map-studio-deleted"; documentId: string }
   | {

@@ -38,6 +38,25 @@ describe("parseColor", () => {
     expect(rgbToHex(parseColor("  hsl(200.0, 50.0%, 40.0%)  ")!)).toBe(base);
   });
 
+  it("reads spaces inside the brackets", () => {
+    expect(rgbToHex(parseColor("hsl( 120 , 70% , 50% )")!)).toBe("#26d926");
+  });
+
+  it("refuses what is not a colour string without throwing: numbers, undefined, overlong text", () => {
+    expect(parseColor(undefined as unknown as string)).toBeNull();
+    expect(parseColor(7 as unknown as string)).toBeNull();
+    expect(parseColor(`#ff0000${" ".repeat(64)}`)).toBeNull();
+  });
+
+  it("stays fast on a long run of spaces (no catastrophic backtracking)", () => {
+    // A restored table can carry any string as a colour; this one took 22 s before.
+    const hostile = `hsl(1${" ".repeat(128_000)}x`;
+    const started = performance.now();
+    expect(parseColor(hostile)).toBeNull();
+    expect(parseColor(`hsl(1${" ".repeat(50)}x`)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+
   it("returns null for anything else", () => {
     for (const junk of [
       "",
