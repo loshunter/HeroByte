@@ -9,6 +9,7 @@
 import {
   cellIndexAt,
   colorRuleInputs,
+  colorToOkLab,
   nearestFreeCell,
   normalizeColor,
   suggestedColors,
@@ -18,6 +19,7 @@ import {
   COLOR_WINDOW,
   type BlockingColor,
   type ColorHolder,
+  type OkLab,
   type Player,
   type SnapshotCharacter,
   type Token,
@@ -128,14 +130,20 @@ export function pickerField(control: ColorPickerControl): PickerField {
     (uid) => control.dmUids.includes(uid),
     control.ownerUid,
   );
+  const ownDots = control.holders.filter(
+    (holder) => holder.ownerUid === control.ownerUid && holder.characterId !== control.characterId,
+  );
+  // A spot is a NEW place to go: the colour this character already has (where an
+  // automatic colour sits, being the most open spot) and its siblings' count as taken.
+  const mine = [control.color, ...ownDots.map((dot) => dot.color)]
+    .map((color) => colorToOkLab(color))
+    .filter((lab): lab is OkLab => lab !== null)
+    .map((lab) => ({ lab }));
   return {
     others,
     zones: zoneMap(others, radius),
-    ownDots: control.holders.filter(
-      (holder) =>
-        holder.ownerUid === control.ownerUid && holder.characterId !== control.characterId,
-    ),
-    suggestions: suggestedColors(others),
+    ownDots,
+    suggestions: suggestedColors([...others, ...mine]),
   };
 }
 
@@ -148,6 +156,7 @@ export function pickerFieldKey(control: ColorPickerControl): string {
     control.exempt,
     control.ownerUid,
     control.characterId,
+    control.color,
     control.dmUids.join(","),
     holders,
   ].join("/");

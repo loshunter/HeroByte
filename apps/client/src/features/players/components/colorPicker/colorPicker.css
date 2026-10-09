@@ -95,8 +95,12 @@
   outline-offset: 3px;
 }
 
+/* One line, always reserved, so a notice never shifts the preview below it. */
 .color-picker__status {
-  min-height: 1.1em;
+  min-height: 1.3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--hero-white);
   font-size: 0.75rem;
   opacity: 0.85;

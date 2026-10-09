@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   COLOR_WINDOW,
   colorToOkLab,
+  farthestColor,
   deltaE,
   ruleRadius,
   windowCells,
@@ -113,6 +114,15 @@ describe("pickerField", () => {
     expect(field.ownDots.map((dot) => dot.characterId)).toEqual(["twin"]);
     expect(field.suggestions).toHaveLength(3);
     expect(field.zones.some((zone) => zone === 0)).toBe(true);
+  });
+
+  it("never suggests the spot the character already has (an automatic colour is the most open one)", () => {
+    const others = pickerField(control()).others;
+    const automatic = farthestColor(others);
+    const field = pickerField({ ...control(), color: automatic });
+    for (const spot of field.suggestions) {
+      expect(deltaE(spot.lab, colorToOkLab(automatic)!)).toBeGreaterThan(ruleRadius(2));
+    }
   });
 
   it("gives the DM no zones, no dots and no spots", () => {

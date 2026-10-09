@@ -71,8 +71,12 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   const dragging = useRef(false);
 
   useEffect(() => drawWindow(canvasRef.current, field), [field]);
-  // The server's answer (or anyone's recolour) replaces whatever was pending.
-  useEffect(() => setPending(null), [control.color]);
+  // The server's answer (or anyone's recolour) replaces whatever was pending, and
+  // retires the bump notice that belonged to it.
+  useEffect(() => {
+    setPending(null);
+    setBlockedBy(null);
+  }, [control.color]);
 
   const committedCell = cellOf(control.color);
   const shown = pending ?? committedCell;
@@ -189,7 +193,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
         )}
       </div>
       <div className="color-picker__status" aria-live="polite">
-        {blockedBy ? `Too close to ${blockedBy}'s colour` : null}
+        {blockedBy ? `Too close to ${blockedBy}` : null}
       </div>
       <div className="color-picker__preview" aria-hidden="true">
         <span className="color-picker__name" style={{ color: shownHex }}>

@@ -76,7 +76,7 @@ describe("ColorPicker", () => {
   it("stops a drag at the edge of another player's zone and says whose it is", () => {
     const { onCommit, surface } = renderPicker();
     fireEvent.pointerDown(surface, { pointerId: 1, ...pixelOf(RED_CELL) });
-    expect(screen.getByText("Too close to Bors's colour")).toBeTruthy();
+    expect(screen.getByText("Too close to Bors")).toBeTruthy();
     fireEvent.pointerUp(surface, { pointerId: 1, ...pixelOf(RED_CELL) });
     expect(onCommit).toHaveBeenCalledTimes(1);
     expect(onCommit.mock.calls[0]![0]).not.toBe(RED);
@@ -129,6 +129,17 @@ describe("ColorPicker", () => {
       rerender(<ColorPicker {...props} color={snapped} />);
     });
     expect(screen.getByLabelText("Colour code").textContent).toBe(snapped);
+  });
+
+  it("retires the bump notice once the colour has changed", () => {
+    const { surface, rerender, props } = renderPicker();
+    fireEvent.pointerDown(surface, { pointerId: 1, ...pixelOf(RED_CELL) });
+    fireEvent.pointerUp(surface, { pointerId: 1, ...pixelOf(RED_CELL) });
+    expect(screen.getByText("Too close to Bors")).toBeTruthy();
+    act(() => {
+      rerender(<ColorPicker {...props} color={cellAt(0.45, 0.4).hex} />);
+    });
+    expect(screen.queryByText(/Too close/)).toBeNull();
   });
 
   it("forgets a cancelled drag", () => {
