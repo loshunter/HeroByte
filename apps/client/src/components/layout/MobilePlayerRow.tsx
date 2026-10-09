@@ -13,6 +13,7 @@ import { HPBar } from "../../features/players/components/HPBar";
 import { PlayerSettingsMenu } from "../../features/players/components/PlayerSettingsMenu";
 import type { OwnerControl } from "../../features/players/components/TokenSettingsSection";
 import type { CharacterFileActions } from "../../features/players/characterFile";
+import type { ColorPickerControl } from "../../features/players/components/colorPicker/colorPickerModel";
 import { useRoleKnown } from "../../features/table/roleKnown";
 
 /** The temp HP editor's state and handlers (the same ones the desktop card gets). */
@@ -62,6 +63,8 @@ interface MobilePlayerRowProps {
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   /** This player's token, for the DM-only sight controls (S7). */
   token?: Token;
+  /** The sheet's colour picker (C1): the owner's and the DM's. */
+  colorPicker?: ColorPickerControl;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   tokenSize?: TokenSize;
   /** Present when this viewer may resize this row's token (its owner, or a DM). */
@@ -118,6 +121,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     tableVisionDefault,
     onCharacterPortraitUpdate,
     token,
+    colorPicker,
     onTokenVisionRadiusChange,
     tokenSize,
     onTokenSizeChange,
@@ -228,6 +232,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
         <PlayerSettingsMenu
           isOpen={mayEdit && settingsOpen}
           onClose={() => setSettingsOpen(false)}
+          colorPicker={colorPicker}
           tokenVisionRadius={token?.visionRadius}
           tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}

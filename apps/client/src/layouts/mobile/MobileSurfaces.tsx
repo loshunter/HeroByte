@@ -138,6 +138,9 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             tokens={props.snapshot?.tokens || []}
             onTokenVisionRadiusChange={props.updateTokenVisionRadius}
             onTokenSizeChange={props.updateTokenSize}
+            onTokenColorChange={(tokenId, color) =>
+              props.sendMessage({ t: "set-token-color", tokenId, color })
+            }
             onAddCharacter={props.playerActions.addCharacter}
             sceneObjects={props.snapshot?.sceneObjects ?? []}
             drawings={props.snapshot?.drawings ?? []}

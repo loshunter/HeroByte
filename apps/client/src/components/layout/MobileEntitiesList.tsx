@@ -22,6 +22,7 @@ import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 import { MobilePlayerRow, type TempHpEditing } from "./MobilePlayerRow";
 import "./mobileParty.css";
 import { useDMThroughBlip } from "../../features/table/roleKnown";
+import { colorPickerForRows } from "../../features/players/components/colorPicker/colorPickerModel";
 
 interface MobileEntitiesListProps {
   players: Player[];
@@ -60,6 +61,8 @@ interface MobileEntitiesListProps {
    * so a phone cannot silently lose the control again.
    */
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  /** A chosen token colour (the settings sheet's picker, C1). */
+  onTokenColorChange?: (tokenId: string, color: string) => void;
   /** The viewer's own rows add a character, as the desktop window does. */
   onAddCharacter: (name: string) => void;
   /** Scene objects, for each token's lock state and a character file's token transform. */
@@ -123,6 +126,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   tokens,
   onTokenVisionRadiusChange,
   onTokenSizeChange,
+  onTokenColorChange,
   onAddCharacter,
   sceneObjects,
   drawings,
@@ -145,6 +149,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   const characterCreation = useCharacterCreation({ addCharacter: onAddCharacter, characters, uid });
 
   const entities = mobilePartyRows(players, characters, uid, combatActive);
+  const colorPickerFor = colorPickerForRows({ characters, players, uid, isDM, onTokenColorChange });
   // A row's initiative and turn; its INIT for the viewer's own and a DM's rows.
   // INIT follows the server's rule: the character's owner, or the DM.
   const rowInitiative = (entity: { characterId: string; hasCharacter: boolean }) => {
@@ -258,6 +263,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
                     ? () => onPlayerTokenDelete(entityToken.id)
                     : undefined
                 }
+                colorPicker={colorPickerFor(entity, entityToken)}
                 tokenSize={entityToken?.size}
                 onTokenSizeChange={
                   (entity.uid === uid || isDM) && entityToken

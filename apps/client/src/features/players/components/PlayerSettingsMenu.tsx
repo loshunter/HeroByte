@@ -24,6 +24,8 @@ import { StatusEffectsPicker } from "./StatusEffectsPicker";
 import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import { CharacterNameField, useCharacterEscapeGuard } from "./CharacterNameField";
 import { CharacterCreationModal } from "./CharacterCreationModal";
+import { ColorPicker } from "./colorPicker/ColorPicker";
+import type { ColorPickerControl } from "./colorPicker/colorPickerModel";
 import "./characterSettings.css";
 import { lockGuard } from "../../locking/lockNotice";
 
@@ -42,6 +44,8 @@ interface PlayerSettingsMenuProps {
    * that opened a real OS file picker and discarded the chosen file. Omitting
    * a capability is honest; faking it is not.
    */
+  /** This character's colour picker (C1): the owner's and the DM's. */
+  colorPicker?: ColorPickerControl;
   tokenImageInput?: string;
   tokenImageUrl?: string;
   onTokenImageInputChange?: (value: string) => void;
@@ -109,6 +113,7 @@ export function PlayerSettingsMenu({
   owner,
   isOpen,
   onClose,
+  colorPicker,
   tokenImageInput,
   tokenImageUrl,
   onTokenImageInputChange,
@@ -223,6 +228,8 @@ export function PlayerSettingsMenu({
                 suppressBlur={suppressBlur}
               />
             )}
+
+            {colorPicker && <ColorPicker {...colorPicker} />}
 
             {/* Portrait: upload from disk/camera roll, or paste a URL (S3) */}
             {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (

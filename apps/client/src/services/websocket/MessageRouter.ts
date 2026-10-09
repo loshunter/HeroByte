@@ -75,6 +75,8 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "remove-player-refused" }>
   // The piece lock stopped a move or a delete: the sender's only word of why.
   | Extract<ServerMessage, { t: "locked-refused" }>
+  // The colour rule moved a colour the viewer chose (personal colour, C1).
+  | Extract<ServerMessage, { t: "color-adjusted" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
   // Download table backup's reply. It was never on this list: it rode the router's
@@ -414,6 +416,7 @@ export class MessageRouter {
       candidate.t === "atlas-error" ||
       candidate.t === "remove-player-refused" ||
       candidate.t === "locked-refused" ||
+      candidate.t === "color-adjusted" ||
       candidate.t === "room-created" ||
       candidate.t === "room-create-failed" ||
       candidate.t === "session-file" ||

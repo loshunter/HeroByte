@@ -70,6 +70,8 @@ export interface EntitiesPanelProps {
   npcDeletionError?: string | null;
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  /** A chosen token colour (personal colour, C1); absent = no picker. */
+  onTokenColorChange?: (tokenId: string, color: string) => void;
   /** DM-only: move a player character and its token to another seat. */
   onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
   /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
