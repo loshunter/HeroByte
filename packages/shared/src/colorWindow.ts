@@ -120,6 +120,22 @@ export function windowCells(): readonly WindowCell[] {
   return cells;
 }
 
+let labCache: Float64Array | null = null;
+
+/** Every cell's OKLab packed as [L, a, b, …] in windowCells order, for the rule's loops. */
+export function windowCellLabs(): Float64Array {
+  if (labCache) return labCache;
+  const cells = windowCells();
+  const labs = new Float64Array(cells.length * 3);
+  cells.forEach((cell, index) => {
+    labs[index * 3] = cell.lab.L;
+    labs[index * 3 + 1] = cell.lab.a;
+    labs[index * 3 + 2] = cell.lab.b;
+  });
+  labCache = labs;
+  return labs;
+}
+
 /** The index (into windowCells) of the cell containing a point. */
 export function cellIndexAt(point: WindowPoint): number {
   const { columns, rows } = COLOR_WINDOW;
@@ -131,7 +147,8 @@ export function cellIndexAt(point: WindowPoint): number {
 /**
  * The window's size in ΔE units at the target chroma: a hue step of Δh radians
  * is about C·Δh, a lightness step ΔL is ΔL. Width ≈ 2πC, height = the band.
- * The picker draws at this aspect so window distance ≈ perceptual distance.
+ * The rule's distances use this aspect (about 4.45 : 1). The picker draws at
+ * 2.6 : 1 so the window is tall enough to use, and bumps in its own aspect.
  */
 export function windowSize(): { width: number; height: number } {
   const { chroma, lightMax, lightMin } = COLOR_WINDOW;

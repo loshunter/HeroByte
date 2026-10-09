@@ -17,6 +17,7 @@
 import { colorToOkLab, deltaE, normalizeColor, type OkLab } from "./colorSpace.js";
 import {
   cellIndexAt,
+  windowCellLabs,
   windowCells,
   windowDistance,
   windowSize,
@@ -27,9 +28,12 @@ import {
 export const COLOR_RULE = {
   /** Share of the window the zones may fill between them, leaving room to move. */
   fill: 0.5,
-  /** ΔE bounds on the zone radius (ΔE 0.02 is about a just-noticeable step). */
+  /**
+   * ΔE bounds on the zone radius (ΔE 0.02 is about a just-noticeable step). The
+   * cap sits above r(2) = 0.143, so zones shrink from the second player on.
+   */
   radiusMin: 0.03,
-  radiusMax: 0.1,
+  radiusMax: 0.15,
   /** A recolour lands at least this far from where it started. */
   recolorStepMin: 0.05,
 } as const;
@@ -85,10 +89,55 @@ export function colorRuleInputs(
   return { others, playerCount: owners.size, radius: ruleRadius(owners.size) };
 }
 
-function minDistance(lab: OkLab, others: readonly { lab: OkLab }[]): number {
+/** The stored form's OKLab: a colour is judged as the #rrggbb it will be saved as. */
+function storedLab(color: string): OkLab | null {
+  const normalized = normalizeColor(color);
+  return normalized ? colorToOkLab(normalized) : null;
+}
+
+/** Blocking colours packed as [L, a, b, L, a, b, …] for the per-cell loops. */
+function packed(others: readonly { lab: OkLab }[]): Float64Array {
+  const values = new Float64Array(others.length * 3);
+  others.forEach((other, index) => {
+    values[index * 3] = other.lab.L;
+    values[index * 3 + 1] = other.lab.a;
+    values[index * 3 + 2] = other.lab.b;
+  });
+  return values;
+}
+
+/** Squared ΔE from one OKLab point to the nearest packed blocker (Infinity if none). */
+function nearestSquared(L: number, a: number, b: number, blockers: Float64Array): number {
   let nearest = Infinity;
-  for (const other of others) nearest = Math.min(nearest, deltaE(lab, other.lab));
+  for (let index = 0; index < blockers.length; index += 3) {
+    const dL = L - blockers[index]!;
+    const da = a - blockers[index + 1]!;
+    const db = b - blockers[index + 2]!;
+    const squared = dL * dL + da * da + db * db;
+    if (squared < nearest) nearest = squared;
+  }
   return nearest;
+}
+
+function minDistance(lab: OkLab, others: readonly { lab: OkLab }[]): number {
+  return Math.sqrt(nearestSquared(lab.L, lab.a, lab.b, packed(others)));
+}
+
+/**
+ * Every cell's room: its distance to the nearest blocking colour. One pass over
+ * packed arrays with squared distances: the rule runs on every colour write, so
+ * it costs cells × blockers and must stay cheap at a full table.
+ */
+function cellScores(others: readonly { lab: OkLab }[]): Float64Array {
+  const cells = windowCellLabs();
+  const blockers = packed(others);
+  const scores = new Float64Array(cells.length / 3);
+  for (let cell = 0; cell < scores.length; cell += 1) {
+    scores[cell] = Math.sqrt(
+      nearestSquared(cells[cell * 3]!, cells[cell * 3 + 1]!, cells[cell * 3 + 2]!, blockers),
+    );
+  }
+  return scores;
 }
 
 /** The blocking colour nearest to `color`, with its distance, or null. */
@@ -96,7 +145,7 @@ export function closestBlocker<T extends { lab: OkLab }>(
   color: string,
   others: readonly T[],
 ): { holder: T; distance: number } | null {
-  const lab = colorToOkLab(color);
+  const lab = storedLab(color);
   if (!lab || others.length === 0) return null;
   let best: { holder: T; distance: number } | null = null;
   for (const holder of others) {
@@ -106,56 +155,75 @@ export function closestBlocker<T extends { lab: OkLab }>(
   return best;
 }
 
-/** At least r(N) from every blocking colour. Unparseable colours are not allowed. */
+/**
+ * At least r(N) from every blocking colour, measured on the #rrggbb it would be
+ * stored as. Unparseable colours are not allowed.
+ */
 export function isColorAllowed(
   color: string,
   others: readonly { lab: OkLab }[],
   radius: number,
 ): boolean {
-  const lab = colorToOkLab(color);
+  const lab = storedLab(color);
   return lab !== null && minDistance(lab, others) >= radius;
-}
-
-function scoredCells(others: readonly { lab: OkLab }[]): { cell: WindowCell; score: number }[] {
-  return windowCells().map((cell) => ({ cell, score: minDistance(cell.lab, others) }));
 }
 
 /**
  * Farthest-point choice: the window colour with the most room around it. With
  * an `rng`, a draw among the cells within 8% of the best keeps two joins at an
- * empty table from landing on the same spot; without one, the best cell.
- * Never fails — the "never block a join" fallback is this same function.
+ * empty table from landing on the same spot; without one, the best cell. Given
+ * a `radius`, the draw stays among allowed cells whenever any exist. Never
+ * fails: the "never block a join" fallback is this same function.
  */
-export function farthestColor(others: readonly { lab: OkLab }[], rng?: () => number): string {
-  const scored = scoredCells(others);
+export function farthestColor(
+  others: readonly { lab: OkLab }[],
+  rng?: () => number,
+  radius = 0,
+): string {
+  const cells = windowCells();
   if (others.length === 0) {
-    const cells = windowCells();
     return cells[rng ? Math.floor(rng() * cells.length) : Math.floor(cells.length / 2)]!.hex;
   }
-  const best = scored.reduce((top, entry) => (entry.score > top.score ? entry : top));
-  if (!rng) return best.cell.hex;
-  const near = scored.filter((entry) => entry.score >= best.score * 0.92);
-  return near[Math.floor(rng() * near.length)]!.cell.hex;
+  const scores = cellScores(others);
+  let bestIndex = 0;
+  for (let index = 1; index < scores.length; index += 1) {
+    if (scores[index]! > scores[bestIndex]!) bestIndex = index;
+  }
+  if (!rng) return cells[bestIndex]!.hex;
+  const best = scores[bestIndex]!;
+  const floor = best >= radius ? Math.max(radius, best * 0.92) : best * 0.92;
+  const near: number[] = [];
+  scores.forEach((score, index) => {
+    if (score >= floor) near.push(index);
+  });
+  return cells[near[Math.floor(rng() * near.length)]!]!.hex;
 }
 
 /**
  * The colour a requested one becomes: itself (normalised) when allowed, else
- * the allowed window colour nearest to it, else the farthest point.
+ * the allowed window colour nearest to it; an unreadable request gets the most
+ * open allowed colour; with no allowed colour anywhere, the farthest point.
  */
 export function nearestAllowedColor(
   color: string,
   others: readonly { lab: OkLab }[],
   radius: number,
 ): string {
-  const lab = colorToOkLab(color);
+  const lab = storedLab(color);
   if (lab && minDistance(lab, others) >= radius) return normalizeColor(color)!;
-  let best: { hex: string; distance: number } | null = null;
-  for (const { cell, score } of scoredCells(others)) {
-    if (score < radius) continue;
-    const distance = lab ? deltaE(lab, cell.lab) : -score;
-    if (!best || distance < best.distance) best = { hex: cell.hex, distance };
-  }
-  return best ? best.hex : farthestColor(others);
+  const cells = windowCells();
+  const scores = cellScores(others);
+  let bestIndex = -1;
+  let bestDistance = Infinity;
+  scores.forEach((score, index) => {
+    if (score < radius) return;
+    const distance = lab ? deltaE(lab, cells[index]!.lab) : -score;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+  return bestIndex >= 0 ? cells[bestIndex]!.hex : farthestColor(others);
 }
 
 /**
@@ -168,13 +236,18 @@ export function randomAllowedColor(
   rng: () => number,
   current?: string,
 ): string {
-  const from = current ? colorToOkLab(current) : null;
+  const cells = windowCells();
+  const from = current ? storedLab(current) : null;
   const step = Math.max(radius, COLOR_RULE.recolorStepMin);
-  const allowed = scoredCells(others).filter((entry) => entry.score >= radius);
-  const moved = from ? allowed.filter((entry) => deltaE(entry.cell.lab, from) >= step) : allowed;
+  const scores = cellScores(others);
+  const allowed: number[] = [];
+  scores.forEach((score, index) => {
+    if (score >= radius) allowed.push(index);
+  });
+  const moved = from ? allowed.filter((index) => deltaE(cells[index]!.lab, from) >= step) : allowed;
   const pool = moved.length > 0 ? moved : allowed;
   if (pool.length === 0) return farthestColor(others, rng);
-  return pool[Math.floor(rng() * pool.length)]!.cell.hex;
+  return cells[pool[Math.floor(rng() * pool.length)]!]!.hex;
 }
 
 /**
@@ -182,13 +255,20 @@ export function randomAllowedColor(
  * blockers, so three suggestions never bunch in the same gap. Deterministic.
  */
 export function suggestedColors(others: readonly { lab: OkLab }[], count = 3): WindowCell[] {
+  const cells = windowCells();
+  const scores = cellScores(others);
   const picks: WindowCell[] = [];
-  const blockers: { lab: OkLab }[] = [...others];
-  for (let index = 0; index < count; index += 1) {
-    const scored = scoredCells(blockers);
-    const best = scored.reduce((top, entry) => (entry.score > top.score ? entry : top));
-    picks.push(best.cell);
-    blockers.push({ lab: best.cell.lab });
+  for (let pick = 0; pick < count; pick += 1) {
+    let bestIndex = 0;
+    for (let index = 1; index < scores.length; index += 1) {
+      if (scores[index]! > scores[bestIndex]!) bestIndex = index;
+    }
+    const chosen = cells[bestIndex]!;
+    picks.push(chosen);
+    // The pick becomes a blocker: each cell's room is now at most its distance to it.
+    scores.forEach((score, index) => {
+      scores[index] = Math.min(score, deltaE(cells[index]!.lab, chosen.lab));
+    });
   }
   return picks;
 }
@@ -199,35 +279,56 @@ export function suggestedColors(others: readonly { lab: OkLab }[], count = 3): W
  * and labels from this, and bumps the handle against it.
  */
 export function zoneMap(others: readonly { lab: OkLab }[], radius: number): Int16Array {
-  const cells = windowCells();
-  const zones = new Int16Array(cells.length).fill(-1);
-  cells.forEach((cell, index) => {
-    let nearest = radius;
-    others.forEach((other, owner) => {
-      const distance = deltaE(cell.lab, other.lab);
-      if (distance < nearest) {
-        nearest = distance;
-        zones[index] = owner;
+  const cells = windowCellLabs();
+  const blockers = packed(others);
+  const zones = new Int16Array(cells.length / 3).fill(-1);
+  const limit = radius * radius;
+  for (let cell = 0; cell < zones.length; cell += 1) {
+    let nearest = limit;
+    for (let index = 0; index < blockers.length; index += 3) {
+      const dL = cells[cell * 3]! - blockers[index]!;
+      const da = cells[cell * 3 + 1]! - blockers[index + 1]!;
+      const db = cells[cell * 3 + 2]! - blockers[index + 2]!;
+      const squared = dL * dL + da * da + db * db;
+      if (squared < nearest) {
+        nearest = squared;
+        zones[cell] = index / 3;
       }
-    });
-  });
+    }
+  }
   return zones;
 }
 
 /**
- * Bump-at-the-edge: the free cell nearest (in window distance, hue wrapping)
- * to where the pointer is, or the pointer's own cell when it is free. Null
- * when the whole window is covered (the server will choose).
+ * Bump-at-the-edge: the free cell nearest to where the pointer is (hue
+ * wrapping), or the pointer's own cell when it is free; null when the whole
+ * window is covered (the server will choose). Distance is in ΔE units by
+ * default; a picker drawn at another aspect passes its width / height so the
+ * handle stops at the edge that LOOKS nearest.
  */
-export function nearestFreeCell(point: WindowPoint, zones: Int16Array): WindowCell | null {
+export function nearestFreeCell(
+  point: WindowPoint,
+  zones: Int16Array,
+  aspect?: number,
+): WindowCell | null {
   const cells = windowCells();
   const own = cells[cellIndexAt(point)]!;
   if (zones[cellIndexAt(point)] === -1) return own;
-  let best: { cell: WindowCell; distance: number } | null = null;
+  const u = ((point.u % 1) + 1) % 1;
+  const distance = (cell: WindowCell): number => {
+    if (aspect === undefined) return windowDistance(point, cell);
+    const across = Math.abs(u - cell.u);
+    return Math.hypot(Math.min(across, 1 - across) * aspect, point.v - cell.v);
+  };
+  let best: WindowCell | null = null;
+  let bestDistance = Infinity;
   cells.forEach((cell, index) => {
     if (zones[index] !== -1) return;
-    const distance = windowDistance(point, cell);
-    if (!best || distance < best.distance) best = { cell, distance };
+    const away = distance(cell);
+    if (away < bestDistance) {
+      bestDistance = away;
+      best = cell;
+    }
   });
-  return best ? (best as { cell: WindowCell }).cell : null;
+  return best;
 }

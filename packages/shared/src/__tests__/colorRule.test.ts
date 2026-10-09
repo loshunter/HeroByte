@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colorToOkLab, deltaE, type OkLab } from "../colorSpace.js";
+import { colorToOkLab, deltaE, normalizeColor, type OkLab } from "../colorSpace.js";
 import {
   COLOR_RULE,
   closestBlocker,
@@ -13,7 +13,7 @@ import {
   suggestedColors,
   zoneMap,
 } from "../colorRule.js";
-import { windowCells, windowColorAt, windowPointOf } from "../colorWindow.js";
+import { cellIndexAt, windowCells, windowColorAt, windowPointOf } from "../colorWindow.js";
 import { createSeededRng } from "../rng.js";
 
 const blocker = (color: string) => ({ lab: colorToOkLab(color)! });
@@ -22,10 +22,15 @@ const RED = windowColorAt({ u: 0.08, v: 0.5 }).hex;
 const BLUE = windowColorAt({ u: 0.7, v: 0.5 }).hex;
 
 describe("ruleRadius", () => {
-  it("is capped for small tables and floored for huge ones", () => {
+  it("is capped for one player and floored for huge tables", () => {
     expect(ruleRadius(1)).toBe(COLOR_RULE.radiusMax);
-    expect(ruleRadius(2)).toBe(COLOR_RULE.radiusMax);
     expect(ruleRadius(10_000)).toBe(COLOR_RULE.radiusMin);
+  });
+
+  it("shrinks the zones from the second player on (the owner's model)", () => {
+    expect(ruleRadius(2)).toBeLessThan(ruleRadius(1));
+    expect(ruleRadius(3)).toBeLessThan(ruleRadius(2));
+    expect(ruleRadius(4)).toBeLessThan(ruleRadius(3));
   });
 
   it("never grows as players join", () => {
@@ -93,6 +98,20 @@ describe("isColorAllowed / closestBlocker", () => {
 });
 
 describe("nearestAllowedColor", () => {
+  it("judges a colour as the hex it will be stored as, not the unrounded request", () => {
+    // hsl(16.56, 70%, 50%) is a hair over r from Annika's colour before rounding
+    // and a hair under it as the #rrggbb it would be stored as.
+    const annika = [blocker("#e0864a")];
+    const request = "hsl(16.56, 70%, 50%)";
+    const unrounded = colorToOkLab(request)!;
+    const stored = colorToOkLab(normalizeColor(request)!)!;
+    expect(deltaE(unrounded, annika[0]!.lab)).toBeGreaterThanOrEqual(0.1);
+    expect(deltaE(stored, annika[0]!.lab)).toBeLessThan(0.1);
+    expect(isColorAllowed(request, annika, 0.1)).toBe(false);
+    const snapped = nearestAllowedColor(request, annika, 0.1);
+    expect(deltaE(labOf(snapped), annika[0]!.lab)).toBeGreaterThanOrEqual(0.1);
+  });
+
   it("keeps an allowed colour exactly (normalised)", () => {
     expect(nearestAllowedColor(BLUE.toUpperCase(), [blocker(RED)], 0.1)).toBe(BLUE);
   });
@@ -132,6 +151,20 @@ describe("farthestColor", () => {
     expect(room(first)).toBeGreaterThanOrEqual(room(best) * 0.92 - 1e-9);
   });
 
+  it("draws only among allowed colours when any exist, even inside the 8% spread", () => {
+    // One player's twenty colours on a sparse lattice: the best open spot is just
+    // over r, and cells within 8% of it would fall inside zones.
+    const lattice = windowCells()
+      .filter((cell) => cell.column % 19 === 0 && cell.row % 40 === 10)
+      .map((cell) => ({ lab: cell.lab }));
+    const radius = 0.1;
+    expect(windowCells().some((cell) => isColorAllowed(cell.hex, lattice, radius))).toBe(true);
+    for (let draw = 0; draw < 60; draw += 1) {
+      const chosen = farthestColor(lattice, () => (draw + 0.5) / 60, radius);
+      expect(isColorAllowed(chosen, lattice, radius)).toBe(true);
+    }
+  });
+
   it("picks any window colour at an empty table", () => {
     const cells = windowCells();
     expect(farthestColor([])).toBe(cells[Math.floor(cells.length / 2)]!.hex);
@@ -150,9 +183,13 @@ describe("randomAllowedColor", () => {
     }
   });
 
-  it("uses the recolour step when the radius is smaller", () => {
-    const next = randomAllowedColor([], 0.01, createSeededRng(2), BLUE);
-    expect(deltaE(labOf(next), labOf(BLUE))).toBeGreaterThanOrEqual(COLOR_RULE.recolorStepMin);
+  it("uses the recolour step when the radius is smaller, for every draw", () => {
+    // Exhaustive over the generator's range: a sampled seed missed a filter that
+    // used the radius instead of the step.
+    for (let draw = 0; draw < 500; draw += 1) {
+      const next = randomAllowedColor([], 0.01, () => (draw + 0.5) / 500, BLUE);
+      expect(deltaE(labOf(next), labOf(BLUE))).toBeGreaterThanOrEqual(COLOR_RULE.recolorStepMin);
+    }
   });
 
   it("falls back to the farthest point when nothing is allowed", () => {
@@ -162,16 +199,26 @@ describe("randomAllowedColor", () => {
   });
 
   it("keeps any allowed colour when every allowed one is near the current", () => {
-    const rng = createSeededRng(9);
-    const next = randomAllowedColor([], 0.03, rng, BLUE);
-    expect(next).toMatch(/^#[0-9a-f]{6}$/);
-    // A radius so large around everything but the current colour's own area:
-    const crowded = windowCells()
-      .filter((cell) => deltaE(cell.lab, labOf(BLUE)) > 0.06)
-      .filter((_, index) => index % 40 === 0)
-      .map((cell) => ({ lab: cell.lab }));
-    const result = randomAllowedColor(crowded, 0.05, createSeededRng(4), BLUE);
-    expect(isColorAllowed(result, crowded, 0.05)).toBe(true);
+    // Two colours taken and a radius just under the most open spot's room: the
+    // allowed colours are a small patch around that spot, all within one recolour
+    // step of it, so a recolour from there must fall back to any allowed colour.
+    const others = [blocker(RED), blocker(BLUE)];
+    const current = farthestColor(others);
+    const room = Math.min(
+      deltaE(labOf(current), others[0]!.lab),
+      deltaE(labOf(current), others[1]!.lab),
+    );
+    const radius = room * 0.97;
+    const allowed = windowCells().filter((cell) => isColorAllowed(cell.hex, others, radius));
+    expect(allowed.length).toBeGreaterThan(5);
+    expect(allowed.every((cell) => deltaE(cell.lab, labOf(current)) < radius)).toBe(true);
+    const drawn = new Set<string>();
+    for (let draw = 0; draw < 40; draw += 1) {
+      const result = randomAllowedColor(others, radius, () => (draw + 0.5) / 40, current);
+      expect(isColorAllowed(result, others, radius)).toBe(true);
+      drawn.add(result);
+    }
+    expect(drawn.size).toBeGreaterThan(1);
   });
 });
 
@@ -203,9 +250,26 @@ describe("zoneMap and nearestFreeCell", () => {
     });
   });
 
-  it("leaves a free point where it is", () => {
+  it("leaves a free point in its own cell", () => {
     const point = windowPointOf(farthestColor(others))!;
-    expect(zones[cells.indexOf(nearestFreeCell(point, zones)!)]).toBe(-1);
+    expect(nearestFreeCell(point, zones)).toBe(cells[cellIndexAt(point)]);
+  });
+
+  it("stops at the edge that looks nearest in the picker's own aspect", () => {
+    // A tall-drawn window (aspect 1) makes the side edge nearer than in ΔE units.
+    const inside = windowPointOf(RED)!;
+    const deltaEdge = nearestFreeCell(inside, zones)!;
+    const drawnEdge = nearestFreeCell(inside, zones, 1)!;
+    expect(zones[cells.indexOf(drawnEdge)]).toBe(-1);
+    const screen = (cell: { u: number; v: number }) => {
+      const across = Math.abs(inside.u - cell.u);
+      return Math.hypot(Math.min(across, 1 - across), inside.v - cell.v);
+    };
+    const nearestOnScreen = Math.min(
+      ...cells.filter((_, index) => zones[index] === -1).map((cell) => screen(cell)),
+    );
+    expect(screen(drawnEdge)).toBeCloseTo(nearestOnScreen, 12);
+    expect(screen(deltaEdge)).toBeGreaterThan(nearestOnScreen);
   });
 
   it("bumps a point inside a zone to the zone's edge", () => {
