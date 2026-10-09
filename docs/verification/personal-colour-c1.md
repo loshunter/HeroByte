@@ -3,8 +3,9 @@
 **Status: on local `dev`, not pushed (2026-10-09).** Built from
 [`PROMPT-personal-colour-c1.md`](../planning/PROMPT-personal-colour-c1.md) and against
 [`personal-colour-arc-plan.md`](../planning/personal-colour-arc-plan.md) §3 and its §8 revisions (both untracked:
-the links work on this machine only). The commits on top of `91c69b63` are listed at the end, including two rounds
-of a pre-merge review's fixes. Pushing and merging are the owner's word.
+the links work on this machine only). The commits on top of `91c69b63` are listed at the end, including three
+rounds of a pre-merge review's fixes. **Round 3's fixes have not been reviewed**: round 3 is the review's cap, so it
+goes to the owner instead of a fourth round. Pushing and merging are the owner's word.
 
 ## The owner's decisions it builds
 
@@ -21,13 +22,15 @@ of a pre-merge review's fixes. Pushing and merging are the owner's word.
   characters start in that player's colour. NPC tokens get any window colour. Stored as `#rrggbb`. The choice never
   fails, so it can never block a join.
 - **⚙️ settings → Character → Colour** (desktop) and the row's **⚙️ EDIT** sheet (phone): a hue × lightness window,
-  loaded on demand. Other players' colours hold darkened zones; a mouse hovering one names whose it is, and on a
-  phone a tap names it for three seconds. Dragging into a zone stops the handle at the edge that looks nearest and
+  loaded on demand. Other players' colours hold darkened zones; a mouse hovering one names whose it is, and a tap
+  or click in one names it for three seconds and picks nothing. Dragging into a zone stops the handle at the edge that looks nearest and
   the line under the window reads `Too close to <name>`. Hue wraps left to right. A drag commits once, on release;
   a tap on the handle itself picks nothing; on a phone a vertical swipe on the window scrolls the sheet (only a drag
-  from the handle, a tap or a sideways drag picks). Arrow keys step a cell (Shift: five) and commit once the keys go
-  quiet (and when focus leaves or the window closes); every pick leaves the keyboard on the handle, so arrows never
-  reach the table's own keys. Three dashed rings mark the most open colours (never the one you already have): one
+  from the handle, a tap on a free colour or a sideways drag picks); a tap commits the colour its press showed. Arrow
+  keys step a cell (Shift: five) and commit once the keys go quiet (and when focus leaves or the window closes), even
+  when a tap or a press interrupts them; every pick leaves the keyboard on the handle, so arrows never reach the
+  table's own keys. The server's answer to an earlier pick never pulls the handle back from keys or a drag still
+  choosing. Three dashed rings mark the most open colours (never the one you already have): one
   tap lands there. A preview row shows the name on navy, the portrait ring, and the token on a dark map floor and
   under fog; a hex readout below. The player's own other characters show as dashed dots. The DM's picker has no
   zones, rings or bump.
@@ -36,16 +39,22 @@ of a pre-merge review's fixes. Pushing and merging are the owner's word.
   kept when allowed, moved to the nearest allowed colour when it falls in another player's zone, and given the most
   open allowed colour when it cannot be read. The sender alone is told, with the character's name when it is a PC
   players can see (`color-adjusted` → toast, e.g. `Bors's colour was too close to Annika's, so it moved to the
-  nearest free one.`). Other colours from files are stored as `#rrggbb`. The DM's picks and table restores are not
-  checked. Colour writes are budgeted per player (a burst of 10, then 5 a second); an over-budget write changes
-  nothing and toasts `Too many colour changes at once: wait a moment and try again.`
+  nearest free one.`). Other readable colours from files (`#rgb`, `hsl()`, and `#rrggbbaa` / `#rgba` with the
+  alpha dropped) are stored as `#rrggbb`; `rgb()` and named colours are unreadable. The DM's picks and table restores
+  are not checked (a DM's unreadable colour is ignored: the token keeps its colour, with no notice). Colour writes are
+  budgeted per player (a burst of 10, then 5 a second); an over-budget write changes nothing and toasts `Too many
+  colour changes at once: wait a moment and try again.` That reply goes only to someone who may colour the token (its
+  owner, or the DM): a write naming any other token gets no reply at all, so the budget says nothing about tokens the
+  sender cannot see.
 - **Who holds a zone:** every owned PC visible to players whose token has a usable colour, on this map or (only
   from a restored file) waiting with another one. A PC with no owner, a PC hidden from players, NPCs and the DM's
-  characters hold none. Colours that are not strings, empty, or longer than 64 characters never reach the rule.
+  characters hold none. Colours that are not strings or are empty never reach the rule; one it cannot read
+  (anything over 64 characters is never parsed) holds no zone but still counts its player in N.
 - **Recolour** (double-click) picks a random colour no other player is using, at least max(r(N), ΔE 0.05) from the
-  current one when a free colour that far exists (otherwise any free colour). The exemption follows the token's
-  owner: the DM's own tokens take any colour, a player's token stays out of other players' zones even when the DM
-  recolours it. It returns `save: true`; it was already saved, because every broadcast requests a save
+  current one when a free colour that far exists (otherwise any free colour). The exemption follows whose
+  colour it is: a PC's player for a PC's token (even when the DM holds that token after "clear all"), else the token's
+  owner. The DM's own tokens take any colour; a player's stays out of other players' zones even when the DM recolours
+  it. It returns `save: true`; it was already saved, because every broadcast requests a save
   (`RoomService.broadcast`).
 - **Every PC's colour rides its character record on the wire** (`SnapshotCharacter.color`, derived at send time and
   never stored in room state; an exported session file carries it and the loader strips it). Fog drops another
@@ -64,12 +73,12 @@ colour sRGB has there. The band was raised from the plan's 0.45–0.85 for contr
 | Surface | Worst window colour | |
 | --- | --- | --- |
 | Navy `#0f0e1e` | 5.21:1 | text-readable |
-| Indigo panels `#1c1734` (settings window, phone rows) | 4.70:1 | text-readable |
+| Indigo `#1c1734` (`--jrpg-indigo`) | 4.70:1 | text-readable |
 | Fog `#0b0b16` | 5.34:1 | |
 | `--hero-navy` `#202020` | 4.45:1 | just under 4.5 |
 | Preview's map floor `#2a2622` | 4.10:1 | |
 | `--jrpg-panel` `#232638` | 4.08:1 | |
-| Desktop party card name (card gradient `#3a3860` → `#2a2845`) | 3.00–3.86:1 | **not text-readable** |
+| Desktop party card name (card gradient `#3a3860` → `#2a2845`) | about 2.9–3.9:1 (3.00–3.86 on the gradient; its 1.5% white noise takes the lighter pixels to 2.87) | **not text-readable** |
 | The DM's gold-brown card and roster row (`rgba(60,48,10,.9)`) | about 3.5–3.8:1 | depends on what shows through |
 
 So the card names C1 colours on the desktop party card are not text-readable for the worst window colours; C3's
@@ -82,7 +91,8 @@ colour.
 
 **Rule.** `r(N) = clamp(sqrt(A · 0.5 / (π · N)), 0.03, 0.15)` in ΔE, with A = 2π·0.17 × 0.24 = 0.256 (the window in
 ΔE units). The cap was 0.10 at first; at 0.15 the zones shrink from the second player on (0.143, 0.117, 0.101 for
-N = 2, 3, 4), as the owner described. N counts the newcomer; the newcomer sees N−1 zones of radius r(N). Simulated
+N = 2, 3, 4), as the owner described. N counts the newcomer; the newcomer sees one zone of radius r(N) per other player's PC (N−1 when each has one, as
+simulated). Simulated
 over 10 seeds each (worst shown): the k-th earlier player either picked a random colour allowed at r(k), the radius
 in force when they picked, or joined automatically (the server's draw among colours allowed at r(k)):
 
@@ -118,7 +128,7 @@ in force when they picked, or joined automatically (the server's draw among colo
 | 29 | 0.038 | 53% | 55% |
 | 30 | 0.037 | 53% | 54% |
 
-In these simulations a newcomer kept at least 52% of the window (51.8% at N = 16). A reviewer's greedy adversary
+In these simulations a newcomer kept at least 51.8% of the window (at N = 16). A reviewer's greedy adversary
 (each pick allowed when made, chosen to cover the most window) left about 45% at N = 30 with these constants; the
 true worst may be lower. Zones never go below ΔE 0.037 (about twice a just-noticeable difference) up to 30 players.
 
@@ -127,9 +137,10 @@ true worst may be lower. Zones never go below ΔE 0.037 (about twice a just-noti
 token for a player's first character still runs the rule once per creation (about 3 ms at 100 PCs, 12 ms at 500,
 reviewer measurement), and such a message also broadcasts; a per-player character cap would bound that (open below).
 
-**Bundle.** The picker is a lazy chunk (`ColorPicker-*.js`, 4.75 KB gzip plus 0.8 KB CSS after the review's fixes,
-reviewer measurement). The entry bundle was 166.71 KB of the 175 KB budget after the lazy split (`d60d25d3`; it was
-170.37 KB with the picker eager) and 166.84 KB on `b98e4645`; the final figure is in the gates section.
+**Bundle.** The picker is a lazy chunk: `ColorPicker-*.js` was 4.75 KB gzip after round 1's fixes and 5.14 KB gzip
+plus 0.81 KB CSS on `29d09a99` (reviewer measurements on the e2e harness's build). The entry bundle was 166.71 KB of
+the 175 KB budget after the lazy split (`d60d25d3`; it was 170.37 KB with the picker eager) and 166.84 KB on
+`b98e4645`, both from the production `pnpm build`; the figures on the final tree are in the gates section.
 
 ## Evaluation (evaluate-live)
 
@@ -158,8 +169,17 @@ answer; the notice wrapped to two lines and pushed the preview down.
 **The score was given before the review, and was too high.** The review then found, among others, two majors that
 were live at the time (arrow keys on the colour handle walked a selected token; loading your own file moved your
 colour), and later a phone swipe that recoloured you. Functionality should have been about 6, not 8. The live pass
-was not repeated for every later fix; the e2e specs cover only the spot tap, the sender-only notice, the phone's
-reach, fit and touch actions, and the rest is unit and contract tests.
+was not repeated for every later fix; the e2e specs cover the wire colour reaching the other client (and its taken
+mark in their picker), the spot tap, the sender-only notice, and the phone's reach, fit (both sides and the sheet's
+foot) and touch actions; the rest is unit and contract tests. After round 2 (`326e27de`), a desktop live check: a
+real click in the window focused the handle, and three real ArrowRight presses sent one `set-token-color` and no
+`step-object`. After round 3 (`fea03f5d`), desktop only (`live-single`, Player 20 with 16 other players' zones):
+a real click inside Player 18's zone showed `Player 18's colour` in the live region, kept the colour, sent nothing and
+left focus on the handle; after the 3 s label, hovering Player 19's zone showed `Player 19's colour` unannounced;
+three real ArrowRight presses sent one `set-token-color` (`#ffc3ce`), which the server stored; a real drag from the
+handle into Player 19's zone (`#00a7da`) stopped at its edge with `Too close to Player 19` and sent one message
+(`#00a4f9`), stored as sent. The phone was not driven live after round 3: the touch-tap focus fix is pinned
+only by a unit test that the window's mousedown default is prevented.
 
 | Criterion | Weight | Score (before review) | Why |
 | --- | --- | --- | --- |
@@ -182,7 +202,8 @@ four returned FAIL.** The union was fixed in `f2e6ddba`, `3f65acd8`, `51dbd41f`,
   picks; the aspect; tooltip-only labels; the memo key; toast copy; lazy-chunk styles; weak tests; doc numbers.
 
 Round 2: four fresh reviewers. **All four returned FAIL**, with new defects (several introduced by round 1's
-fixes). The union was fixed in `79cd57ac`, `53e7ed4c`, `326e27de` and the docs commit after them:
+fixes). The union was fixed in `53e7ed4c`, `326e27de` and `29d09a99` (`79cd57ac`, between the rounds, fixed the e2e
+race the ladder found after round 1):
 
 - **Major:** the hsl parser backtracked super-linearly (22.7 s on 128k characters) and a restored table's colours
   are unchecked; a non-string token colour crashed every rule caller, blocking every join; the DM's recolour of a
@@ -197,7 +218,30 @@ fixes). The union was fixed in `79cd57ac`, `53e7ed4c`, `326e27de` and the docs c
   through a file or a crafted message. Snapping such colours onto the band would also move legacy hsl colours on
   every file load; see "Open for the owner".
 
-Round 3 (the last before escalation) follows.
+Round 3 (the cap): four fresh reviewers. **Server: PASS** (3 minors). **Privacy and tests: FAIL** (1 critical, 1
+major, 5 minors). **Docs: FAIL** (3 majors, 15 minors). **Client: FAIL** (3 majors, 10 minors). Two findings were
+reported twice, so about 39 distinct, against about 54 in round 1 and 53 in round 2. The union was fixed in
+`d8c7ae37`, `54a3df1b`, `38af0710` and the docs commit after them, each code fix sabotaged red; **none of it has been
+reviewed**:
+
+- **Critical:** an over-budget colour write was answered with the colour of whatever token id it named, before any
+  ownership check, and an empty colour for an id that no longer existed. A player holding an old token id could tell
+  whether a hidden or fogged token was still on the map, and its colour. Only a token the sender may colour is
+  answered now; every other id gets silence. Introduced by round 2's throttle notice; local only, never pushed.
+- **Major:** the server's answer to an earlier pick pulled the handle back from keys or a drag still choosing (every
+  other key press was lost with a real round trip); hover labels never came back after the first pick; the help said
+  a tap shows whose a zone is, but the tap recoloured you to the zone's edge (a tap there now names it and picks
+  nothing); the zone-shrink test passed with a frozen radius; the record lacked the final gates and had a stale chunk
+  size.
+- **Minor, fixed:** a PC's colour followed the token's owner instead of its player (the DM's recolour of a PC token it
+  held ignored zones); `#rrggbbaa` and `#rgba` were unreadable; the nearest snap, a hidden own PC's name and the
+  throttled toast were unpinned; keys were dropped by a tap or a cancelled press; a tap on the handle threw back an
+  in-flight pick; a jittery tap committed where the finger lifted; going back to the old colour mid-flight was not
+  sent; a touch tap or a spot click moved focus off the handle; the live region only became live with its text; the
+  phone spec never checked the sheet's foot; doc and comment wording.
+- **Not fixed:** a scroll that starts on a free colour flashes the handle and preview before the browser cancels it;
+  a drag that starts on a dashed ring does nothing; the loading placeholder is about 30 px shorter than the picker;
+  no e2e drives a touch drag (live checks only). `rgb()` and the DM's silent unreadable colour are owner questions.
 
 ## Gates
 
@@ -208,7 +252,19 @@ in the next full run.
 
 Full ladder on `b98e4645` (after round 1): every gate passed except one e2e test, the new
 `personal-colour.spec.ts` snap test, which raced the broadcast (it read Bob's colour before the change arrived);
-fixed in `79cd57ac` and 10/10 on `--repeat-each=5`. The ladder is re-run on the final tree before round 3.
+fixed in `79cd57ac` and 10/10 on `--repeat-each=5`.
+
+Full ladder on `29d09a99` (after round 2): **GATES: PASS** — shared 518, server 2937, client 8235 (4 skipped); e2e
+373 passed, 3 skipped; dev boot clean. Entry bundle 167.02 KB gzip of 175 KB and `ColorPicker-*.js` 5.14 KB gzip plus
+0.81 KB CSS, measured on the e2e harness's `vite build --mode development` build, not the production `pnpm build`
+that gave 166.71 and 166.84 above.
+
+Full ladder on `38af0710` (after round 3): every gate passed except lint and format:check, both on one line of
+`TokenDispatcher.ts` that prettier wraps; fixed in `fea03f5d` (formatting only), after which `pnpm lint` and
+`pnpm format:check` pass. Shared 519, server 2940, client 8247 (4 skipped); e2e 373 passed, 3 skipped (the three
+baseline skips), 0 flaky; dev boot clean. Entry bundle 166.98 KB gzip of 175 KB on the production
+`pnpm build:check` of `fea03f5d` (167.06 KB on the e2e harness's development-mode build); `ColorPicker-*.js` 5.26 KB
+gzip plus 0.81 KB CSS.
 
 ## Found on the way
 
@@ -219,14 +275,14 @@ fixed in `79cd57ac` and 10/10 on `--repeat-each=5`. The ladder is re-run on the 
   `f2e6ddba` for that reason.
 - **Not fixed, reported:** `.player-portrait` (with the shimmer that ignores `data-motion`) is dead CSS — no
   component uses the class (`theme/herobyte.css` ~644-723). `TokenModel.randomColor` (`packages/shared/src/models.ts`)
-  still makes hsl colours and has no callers.
+  still makes hsl colours and has no callers outside its own test.
 - **Not touched:** a double-tap recolour on phones (plan §5 says another task is checking it).
 - **Not touched:** `add-player-character` has no per-player cap (characters are capped only on session load, at 500).
 
 ## Corrections to commit messages (unpushed; not rewritten)
 
 - `4e012cad`: ">= 53%" holds only when every earlier pick is checked at the newcomer's radius; checked at the radius
-  in force when each picked, the worst was 51%. "So names stay readable" is false on the desktop party card (3.00:1).
+  in force when each picked, the worst was 51% (at that commit's 0.10 cap; 51.8% at the 0.15 cap, table above). "So names stay readable" is false on the desktop party card (3.00:1).
 - `a436bb73`: "a recolour was lost if the server died" is false (every broadcast saves); an unreadable colour's
   replacement is the most open allowed colour, not "the nearest"; "existing colours are kept until changed" was false
   at that commit (the rule re-ran on an unchanged colour, fixed in `51dbd41f`).
@@ -234,8 +290,13 @@ fixed in `79cd57ac` and 10/10 on `--repeat-each=5`. The ladder is re-run on the 
 - `51dbd41f`: "38% of 3-player tables" was measured with the 0.10 cap; with the 0.15 cap in force at that commit it
   is about 44% (77% for 5 players holds). Its "this bounds what a spamming client can spend" covers picks and
   recolours, not new tokens.
-- `5b2cc0ad`: "the screen-reader lightness is the real OKLab lightness" was false for older hsl colours until
-  `326e27de`.
+- `5b2cc0ad`: "the screen-reader lightness is the real OKLab lightness" was false for any colour outside the
+  window's band (most older hsl colours, off-band file colours) until `326e27de`.
+- `d60d25d3`: "the colour e2e specs pass against the production build" is false: they ran against the e2e harness's
+  development-mode build (the seam the specs use is compiled out of production).
+- `53e7ed4c`: "sabotaged and red: … the parser cap and separators": only the cap can turn that test red. With the
+  64-character cap in place the old separators cost about 0.16 ms at that length, so the separator change is
+  harmless but unpinned.
 
 ## Open for the owner
 
@@ -251,6 +312,11 @@ fixed in `79cd57ac` and 10/10 on `--repeat-each=5`. The ladder is re-run on the 
 - **Crowded legacy tables** push newcomers' automatic colours into the light pastels. Anyone can move with the
   picker.
 - **A per-player character cap** for `add-player-character` would bound new-token cost and the table further.
+- **A tap in another player's zone** now names it and picks nothing (round 3, so the help's "tap to see whose" is
+  true); a drag still stops at the edge. If you would rather a tap pick the nearest free colour there, it is a small
+  change, and the help and guide change with it.
+- **`rgb()` and named colours** in a character file are unreadable: a player's gets a free colour with a toast; a
+  DM's is ignored without a word. Say if either should be read or reported.
 
 ## Commits (on `91c69b63`)
 
@@ -260,4 +326,6 @@ help · `2e956229` medallion rings · `ec31b4f3` e2e specs · `d60d25d3` lazy pi
 `3f65acd8` rule: cost, stored-hex judging, allowed draws, r cap 0.15 · `51dbd41f` server: unchanged colours, NPCs,
 inheritance, write budget, holders · `5b2cc0ad` picker: keys, taps, batching, notices, a11y · `b98e4645` record, help,
 schema · `79cd57ac` snap spec race · `53e7ed4c` parser bound, non-strings, DM recolour, hidden names, budget · `326e27de`
-picker: phone swipe, focus, timeouts, labels, memo · then the docs commit for round 2.
+picker: phone swipe, focus, timeouts, labels, memo · `29d09a99` round-2 docs · `d8c7ae37` throttle privacy, colour
+owner, alpha hex · `54a3df1b` picker: a tap names a zone, answers, labels, keys · `38af0710` phone sheet foot · `fea03f5d`
+prettier wrap · then the docs commit for round 3.

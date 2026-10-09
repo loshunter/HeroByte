@@ -178,7 +178,7 @@ interface PlayerStateTokenSnapshot {
 All fields in `PlayerStateTokenSnapshot` are optional:
 
 - **`id`** (string): Token database ID
-- **`color`** (string): `#rrggbb` (e.g., "#3fa7d6"). Older files may carry `hsl(...)`. On load, a colour equal to the token's current one is kept as it is; any other is stored as `#rrggbb`, a player's inside another player's zone is moved to the nearest free one, and an unreadable one gets a free colour (the DM's is not checked).
+- **`color`** (string): `#rrggbb` (e.g., "#3fa7d6"). Older files may carry `hsl(...)`. On load, a colour equal to the token's current one is kept as it is; any other is stored as `#rrggbb`, a player's inside another player's zone is moved to the nearest free one, and a player's unreadable one gets a free colour. A DM's readable colour is never moved, and a DM's unreadable one is ignored (the token keeps its colour).
 - **`imageUrl`** (string | null): Token image (URL or Base64 data URI)
 - **`position`** ({ x: number, y: number }): Grid coordinates
   - Must be finite numbers
