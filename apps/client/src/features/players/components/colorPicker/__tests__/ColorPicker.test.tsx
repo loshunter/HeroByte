@@ -68,6 +68,19 @@ const press = (surface: HTMLElement, at: { clientX: number; clientY: number }, i
   fireEvent.pointerDown(surface, { pointerId: id, button: 0, ...at });
   fireEvent.pointerUp(surface, { pointerId: id, button: 0, ...at });
 };
+/** A press that travels well past the tap slop before it lifts. */
+const dragTo = (
+  surface: HTMLElement,
+  from: { clientX: number; clientY: number },
+  to: { clientX: number; clientY: number },
+  lift = true,
+) => {
+  fireEvent.pointerDown(surface, { pointerId: 1, button: 0, ...from });
+  fireEvent.pointerMove(surface, { pointerId: 1, button: 0, ...to });
+  if (lift) fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...to });
+};
+/** Inside Bors's zone, a little way from his colour itself (well past a tap's slop). */
+const NEAR_RED_CELL = cellAt(0.11, 0.55);
 
 describe("ColorPicker", () => {
   // jsdom has no 2D canvas either; the window's pixels are the one part not drawn here.
@@ -108,7 +121,7 @@ describe("ColorPicker", () => {
 
   it("stops a drag at the edge of another player's zone and says whose it is", () => {
     const { onCommit, surface } = renderPicker();
-    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, ...pixelOf(RED_CELL) });
+    dragTo(surface, pixelOf(NEAR_RED_CELL), pixelOf(RED_CELL), false);
     expect(screen.getByText("Too close to Bors")).toBeTruthy();
     fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(RED_CELL) });
     expect(onCommit).toHaveBeenCalledTimes(1);
@@ -121,24 +134,47 @@ describe("ColorPicker", () => {
     fireEvent.pointerMove(surface, { pointerId: 1, ...pixelOf(RED_CELL) });
     expect(screen.getByText("Bors's colour")).toBeTruthy();
     // A hover label is not announced; a bump is.
-    expect(container.querySelector(".color-picker__status")!.getAttribute("aria-live")).toBe("off");
+    expect(container.querySelector(".color-picker__status [aria-live]")!.textContent).toBe("");
     fireEvent.pointerLeave(surface, { pointerType: "mouse" });
     expect(screen.queryByText("Bors's colour")).toBeNull();
   });
 
-  it("labels a zone tapped on a phone for a few seconds after the finger lifts", () => {
+  it("names a zone tapped on a phone for a few seconds, and picks nothing", () => {
     vi.useFakeTimers();
-    const { surface, container } = renderPicker();
-    const touch = { pointerId: 1, button: 0, pointerType: "touch", ...pixelOf(RED_CELL) };
+    const { surface, container, onCommit } = renderPicker();
+    const touch = { pointerId: 1, button: 0, pointerType: "touch", ...pixelOf(NEAR_RED_CELL) };
     fireEvent.pointerDown(surface, touch);
     fireEvent.pointerUp(surface, touch);
     fireEvent.pointerLeave(surface, { pointerType: "touch" });
-    expect(screen.getByText("Too close to Bors")).toBeTruthy();
-    expect(container.querySelector(".color-picker__status")!.getAttribute("aria-live")).toBe(
-      "polite",
+    expect(screen.getByText("Bors's colour")).toBeTruthy();
+    expect(container.querySelector(".color-picker__status [aria-live='polite']")!.textContent).toBe(
+      "Bors's colour",
     );
+    expect(screen.getByLabelText("Colour code").textContent).toBe(BLUE);
     act(() => vi.advanceTimersByTime(NOTICE_HOLD_MS));
-    expect(screen.queryByText("Too close to Bors")).toBeNull();
+    expect(screen.queryByText("Bors's colour")).toBeNull();
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("names a zone under the mouse again once a tap's label has gone", () => {
+    vi.useFakeTimers();
+    const { surface } = renderPicker();
+    press(surface, pixelOf(NEAR_RED_CELL));
+    act(() => vi.advanceTimersByTime(NOTICE_HOLD_MS));
+    expect(screen.queryByText("Bors's colour")).toBeNull();
+    fireEvent.pointerMove(surface, { pointerId: 1, pointerType: "mouse", ...pixelOf(RED_CELL) });
+    expect(screen.getByText("Bors's colour")).toBeTruthy();
+  });
+
+  it("still sends the keys' colour when a tap in a zone comes before they go quiet", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    press(surface, pixelOf(NEAR_RED_CELL));
+    expect(screen.getByLabelText("Colour code").textContent).toBe(keyed);
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS));
+    expect(onCommit.mock.calls).toEqual([[keyed]]);
   });
 
   it("keeps the arrow keys on the handle after a press in the window or on a spot", () => {
@@ -205,14 +241,14 @@ describe("ColorPicker", () => {
 
   it("ignores a right-click and a second finger", () => {
     const { onCommit, surface } = renderPicker();
-    fireEvent.pointerDown(surface, { pointerId: 1, button: 2, clientX: 30, clientY: 30 });
-    fireEvent.pointerUp(surface, { pointerId: 1, button: 2, clientX: 30, clientY: 30 });
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 2, clientX: 108, clientY: 24 });
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 2, clientX: 108, clientY: 24 });
     expect(onCommit).not.toHaveBeenCalled();
-    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 30, clientY: 30 });
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, clientX: 108, clientY: 24 });
     fireEvent.pointerDown(surface, { pointerId: 2, button: 0, clientX: 200, clientY: 90 });
     fireEvent.pointerUp(surface, { pointerId: 2, button: 0, clientX: 200, clientY: 90 });
     expect(onCommit).not.toHaveBeenCalled();
-    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, clientX: 30, clientY: 30 });
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, clientX: 108, clientY: 24 });
     expect(onCommit).toHaveBeenCalledTimes(1);
   });
 
@@ -277,6 +313,58 @@ describe("ColorPicker", () => {
     expect(onCommit.mock.calls[0]![0]).toBe(cellAt(0.3, 0.2).hex);
   });
 
+  it("never pulls the handle back from keys still choosing when an earlier answer arrives", () => {
+    vi.useFakeTimers();
+    const { surface, rerender, props } = renderPicker();
+    const first = cellAt(0.3, 0.2);
+    press(surface, pixelOf(first));
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowRight", shiftKey: true });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    expect(keyed).not.toBe(first.hex);
+    act(() => {
+      rerender(<ColorPicker {...props} color={first.hex} />);
+    });
+    expect(screen.getByLabelText("Colour code").textContent).toBe(keyed);
+  });
+
+  it("never pulls the handle back from a drag when an earlier answer arrives", () => {
+    const { surface, rerender, props } = renderPicker();
+    const first = cellAt(0.3, 0.2);
+    const dragged = cellAt(0.4, 0.3);
+    press(surface, pixelOf(first));
+    dragTo(surface, pixelOf(cellAt(0.35, 0.25)), pixelOf(dragged), false);
+    act(() => {
+      rerender(<ColorPicker {...props} color={first.hex} />);
+    });
+    expect(screen.getByLabelText("Colour code").textContent).toBe(dragged.hex);
+  });
+
+  it("commits the colour a tap showed, not where a jittery finger lifted", () => {
+    const { surface, onCommit } = renderPicker();
+    const shown = cellAt(0.3, 0.2);
+    const touch = { pointerId: 1, button: 0, pointerType: "touch" };
+    fireEvent.pointerDown(surface, { ...touch, ...pixelOf(shown) });
+    const lifted = { clientX: pixelOf(shown).clientX + 6, clientY: pixelOf(shown).clientY + 5 };
+    expect(cellAt(lifted.clientX / RECT.width, lifted.clientY / RECT.height).hex).not.toBe(
+      shown.hex,
+    );
+    fireEvent.pointerUp(surface, { ...touch, ...lifted });
+    expect(onCommit.mock.calls).toEqual([[shown.hex]]);
+  });
+
+  it("sends a return to the old colour made while the first pick is still in flight", () => {
+    const { surface, onCommit } = renderPicker();
+    press(surface, pixelOf(cellAt(0.3, 0.2)));
+    press(surface, pixelOf(BLUE_CELL));
+    expect(onCommit.mock.calls).toEqual([[cellAt(0.3, 0.2).hex], [BLUE]]);
+  });
+
+  it("keeps focus where it is when the window is pressed (the handle takes it on release)", () => {
+    renderPicker();
+    const pressed = fireEvent.mouseDown(screen.getByTestId("color-picker-window"));
+    expect(pressed).toBe(false);
+  });
+
   it("keeps a later pick showing when the answer to an earlier one arrives", () => {
     const { surface, rerender, props } = renderPicker();
     const first = cellAt(0.3, 0.2);
@@ -298,10 +386,21 @@ describe("ColorPicker", () => {
   });
 
   it("shrinks and moves zones live when someone joins or recolours", () => {
-    const { surface, rerender, props } = renderPicker();
+    const { surface, rerender, props, onCommit } = renderPicker();
     const newcomer = cellAt(0.45, 0.4);
+    // Inside Bors's zone while two players share the window, free once a third
+    // joins (zones shrink as players arrive), and nowhere near the newcomer.
+    const shrunk = windowCells().find((cell) => {
+      const fromBors = deltaE(colorToOkLab(cell.hex)!, colorToOkLab(RED)!);
+      const fromCyra = deltaE(colorToOkLab(cell.hex)!, colorToOkLab(newcomer.hex)!);
+      return fromBors > ruleRadius(3) + 0.01 && fromBors < ruleRadius(2) - 0.01 && fromCyra > 0.2;
+    })!;
+    expect(shrunk).toBeTruthy();
+    press(surface, pixelOf(shrunk));
+    expect(screen.getByText("Bors's colour")).toBeTruthy();
+    expect(onCommit).not.toHaveBeenCalled();
     press(surface, pixelOf(newcomer));
-    expect(screen.queryByText(/Too close/)).toBeNull();
+    expect(screen.queryByText(/Too close|'s colour/)).toBeNull();
     act(() => {
       rerender(
         <ColorPicker
@@ -315,7 +414,9 @@ describe("ColorPicker", () => {
     });
     expect(screen.getByRole("img", { name: "Cyra's colour" })).toBeTruthy();
     press(surface, pixelOf(newcomer));
-    expect(screen.getByText("Too close to Cyra")).toBeTruthy();
+    expect(screen.getByText("Cyra's colour")).toBeTruthy();
+    press(surface, pixelOf(shrunk));
+    expect(onCommit.mock.calls.at(-1)).toEqual([shrunk.hex]);
   });
 
   it("tells a screen reader an older colour's real lightness, not the band's edge", () => {
@@ -368,15 +469,33 @@ describe("ColorPicker", () => {
   it("retires the bump notice a few seconds after the pick", () => {
     vi.useFakeTimers();
     const { surface } = renderPicker();
-    press(surface, pixelOf(RED_CELL));
+    dragTo(surface, pixelOf(NEAR_RED_CELL), pixelOf(RED_CELL));
     expect(screen.getByText("Too close to Bors")).toBeTruthy();
     act(() => vi.advanceTimersByTime(NOTICE_HOLD_MS));
     expect(screen.queryByText(/Too close/)).toBeNull();
   });
 
+  it("still sends the keys' colour when a press that never moved is cancelled", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    fireEvent.pointerDown(screen.getByRole("slider"), {
+      pointerId: 1,
+      button: 0,
+      clientX: 252,
+      clientY: 60,
+    });
+    fireEvent.pointerCancel(surface, { pointerId: 1 });
+    expect(screen.getByLabelText("Colour code").textContent).toBe(keyed);
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS));
+    expect(onCommit.mock.calls).toEqual([[keyed]]);
+  });
+
   it("forgets a cancelled drag and its notice", () => {
     const { surface } = renderPicker();
-    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, ...pixelOf(RED_CELL) });
+    dragTo(surface, pixelOf(NEAR_RED_CELL), pixelOf(RED_CELL), false);
+    expect(screen.getByText("Too close to Bors")).toBeTruthy();
     fireEvent.pointerCancel(surface, { pointerId: 1 });
     expect(screen.getByLabelText("Colour code").textContent).toBe(BLUE);
     expect(screen.queryByText(/Too close/)).toBeNull();

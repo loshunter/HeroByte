@@ -1,8 +1,9 @@
 /* ==========================================================================
    COLOUR PICKER (personal colour, C1)
    The window keeps a fixed aspect so a zone reads the same at any width; the
-   handle and suggested spots sit on it by percentage. Literal colours only
-   come from the colour itself (inline styles); the frame uses theme tokens.
+   handle and suggested spots sit on it by percentage. The colour itself comes
+   in as inline styles; the frame uses theme tokens, and the preview's two
+   backdrops are literal (a dark map floor and fog, not theme colours).
    ========================================================================== */
 
 .color-picker {
@@ -155,7 +156,7 @@
   opacity: 0.8;
 }
 
-/* Touch: the spots and the handle are 44px targets around the same marks, and a
+/* Touch: the spots are 44px targets and the handle a 50px one, around the same marks, and a
    vertical swipe on the window scrolls the sheet (the browser cancels the pick)
    instead of dragging the colour; a drag from the handle still moves it anywhere. */
 @media (pointer: coarse) {

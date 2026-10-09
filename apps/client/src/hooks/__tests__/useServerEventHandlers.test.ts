@@ -927,6 +927,13 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         "Your colour could not be read, so it was given a free one.",
         5000,
       );
+      act(() =>
+        handler({ t: "color-adjusted", tokenId: "t-1", color: "#aabbcc", throttled: true }),
+      );
+      expect(toast.info).toHaveBeenLastCalledWith(
+        "Too many colour changes at once: wait a moment and try again.",
+        5000,
+      );
     });
   });
 

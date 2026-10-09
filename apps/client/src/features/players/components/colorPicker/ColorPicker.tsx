@@ -3,7 +3,7 @@
 // ============================================================================
 // A hue × lightness window (hue wraps left to right, light at the top). Other
 // players' colours hold zones, drawn darkened; dragging into one stops the
-// handle at its edge. Three suggested spots mark the most open colours: one
+// handle at its edge, and a tap in one names whose it is. Three suggested spots mark the most open colours: one
 // tap lands there, which is the whole job on a phone. A drag commits on
 // release (one message), arrow keys commit once the keys go quiet, the preview
 // follows the handle, and the server has the last word: a stale picker
@@ -65,6 +65,10 @@ interface Drag {
   slop: number;
   /** Pressed on the handle itself: moves keep the grab offset, and a tap is no pick. */
   onHandle: boolean;
+  /** Pressed inside another player's zone (whose): a tap there names it, a drag bumps. */
+  zoneOwner: string | null;
+  /** The cell a press on a free spot showed: a tap commits it, wherever the finger lifts. */
+  pressed: WindowCell | null;
   offsetX: number;
   offsetY: number;
   moved: boolean;
@@ -95,14 +99,15 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
 
   useEffect(() => drawColorWindow(canvasRef.current, field), [field]);
   // The server's answer to OUR pick (the colour we sent arrived) retires the
-  // pending one; so does anyone else's change while nothing of ours is in flight
-  // and no drag or keystroke is going on. A snapped answer differs from what we
-  // sent: the pending timer retires it a moment later, beside the toast.
+  // pending one; so does anyone else's change while nothing of ours is in flight.
+  // Never under a drag or keys still choosing: an answer must not pull the handle
+  // back from them. A snapped answer differs from what we sent: the pending timer
+  // retires it a moment later, beside the toast.
   useEffect(() => {
-    const ours = lastSent.current !== null && sameColor(control.color, lastSent.current);
-    const idle = lastSent.current === null && !drag.current && !keyed.current;
-    if (!ours && !idle) return;
-    lastSent.current = null;
+    if (lastSent.current !== null && sameColor(control.color, lastSent.current)) {
+      lastSent.current = null;
+    }
+    if (lastSent.current !== null || drag.current || keyed.current) return;
     stopTimer(pendingTimer);
     setPending(null);
   }, [control.color]);
@@ -125,7 +130,10 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   /** A notice that stays a few seconds after the pointer lifts (a tap shows it on a phone). */
   const holdNotice = () => {
     stopTimer(noticeTimer);
-    noticeTimer.current = setTimeout(() => setNotice(null), NOTICE_HOLD_MS);
+    noticeTimer.current = setTimeout(() => {
+      noticeTimer.current = null; // A mouse's hover labels come back.
+      setNotice(null);
+    }, NOTICE_HOLD_MS);
   };
   const moveTo = (point: { u: number; v: number }) => {
     // The person is choosing again: an earlier pick's timeout must not erase this one.
@@ -139,8 +147,9 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   const commit = (cell: WindowCell | null) => {
     stopTimer(keyTimer);
     keyed.current = false;
-    if (!cell || sameColor(cell.hex, control.color)) {
-      setPending(null);
+    // Judged against a pick still in flight: going back to the old colour is a pick too.
+    if (!cell || sameColor(cell.hex, lastSent.current ?? control.color)) {
+      if (lastSent.current === null) setPending(null);
       return;
     }
     lastSent.current = cell.hex;
@@ -166,9 +175,14 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   };
   const isOwn = (event: PointerEvent<HTMLDivElement>) =>
     drag.current?.pointerId === event.pointerId;
+  /** A pointer that moves the handle takes over from keys still waiting (one message, not two). */
+  const supersedeKeys = () => {
+    stopTimer(keyTimer);
+    keyed.current = false;
+  };
   const cancelDrag = () => {
     drag.current = null;
-    setPending(null);
+    if (!keyed.current) setPending(null); // Keys still waiting commit on their own.
     setNotice(null);
   };
 
@@ -178,26 +192,34 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
       <div
         className="color-picker__window"
         data-testid="color-picker-window"
+        // A mousedown here would move focus to the page (a touch tap's compatibility
+        // one too), letting the arrows reach the table, or onto a spot, whose blur
+        // would send waiting keys as a second message. The handle is focused on release.
+        onMouseDown={(event) => event.preventDefault()}
         onPointerDown={(event) => {
           // The primary button of one pointer: a right-click or a second finger is not a pick.
           if (event.button !== 0 || drag.current) return;
-          // A pointer supersedes keys still waiting to commit (one message, not two).
-          stopTimer(keyTimer);
-          keyed.current = false;
           const onHandle = event.target === handleRef.current;
           const handle = handleRef.current?.getBoundingClientRect();
+          const point = pointFor(event.clientX, event.clientY);
+          const zoneOwner = onHandle ? null : zoneOwnerAt(point, field);
           drag.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
             slop: TAP_SLOP_PX[event.pointerType] ?? TAP_SLOP_PX.mouse!,
             onHandle,
+            zoneOwner,
             offsetX: onHandle && handle ? handle.left + handle.width / 2 - event.clientX : 0,
             offsetY: onHandle && handle ? handle.top + handle.height / 2 - event.clientY : 0,
             moved: false,
+            pressed: null,
           };
           event.currentTarget.setPointerCapture?.(event.pointerId);
-          if (!onHandle) moveTo(pointFor(event.clientX, event.clientY));
+          // On the handle, or in a zone, nothing moves until the pointer does.
+          if (onHandle || zoneOwner) return;
+          supersedeKeys();
+          drag.current.pressed = moveTo(point);
         }}
         onPointerMove={(event) => {
           const active = drag.current;
@@ -212,6 +234,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
           const far =
             Math.hypot(event.clientX - active.startX, event.clientY - active.startY) >= active.slop;
           if (!active.moved && !far) return;
+          if (!active.moved) supersedeKeys();
           active.moved = true;
           moveTo(pointFor(event.clientX + active.offsetX, event.clientY + active.offsetY));
         }}
@@ -220,11 +243,17 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
           if (!active || !isOwn(event)) return;
           drag.current = null;
           focusHandle();
-          if (active.onHandle && !active.moved) {
-            setPending(null); // A tap on your own handle picks nothing.
-            return;
+          if (active.onHandle && !active.moved) return; // A tap on your own handle picks nothing.
+          if (active.zoneOwner && !active.moved) {
+            // A tap in a zone names it (a phone has no hover) and picks nothing.
+            setNotice({ text: `${active.zoneOwner}'s colour`, live: true });
+          } else if (!active.moved) {
+            commit(active.pressed);
+          } else {
+            commit(
+              moveTo(pointFor(event.clientX + active.offsetX, event.clientY + active.offsetY)),
+            );
           }
-          commit(moveTo(pointFor(event.clientX + active.offsetX, event.clientY + active.offsetY)));
           holdNotice();
         }}
         onPointerCancel={(event) => {
@@ -305,8 +334,10 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
           />
         )}
       </div>
-      <div className="color-picker__status" aria-live={notice?.live ? "polite" : "off"}>
-        {notice?.text}
+      <div className="color-picker__status">
+        {/* Always live, so a bump or tap notice is announced; a hover label is not. */}
+        <span aria-live="polite">{notice?.live ? notice.text : null}</span>
+        <span>{notice && !notice.live ? notice.text : null}</span>
       </div>
       <ColorPickerPreview name={control.name} hex={shownHex} />
     </div>
