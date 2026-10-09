@@ -6,7 +6,7 @@ import type { HelpEntry } from "./helpTopics";
 export const COLOUR_ENTRY: HelpEntry = {
   term: "Colour",
   detail:
-    "⚙️ → Colour (phone: ◉ PARTY → ⚙️ EDIT): drag the handle and let go, or tap a dashed ring for a free colour in one go. No two players share a colour: darkened patches are other players' colours, and the handle stops at their edge (the patches shrink as players join). Your own characters may share one. Arrow keys step the handle (Shift for five). If someone took the colour a moment before you, the table moves yours to the nearest free one and says so. The DM's colour is free of patches and blocks no one.",
+    "⚙️ → Colour (phone: ◉ PARTY → ⚙️ EDIT): drag the handle and let go, or tap a dashed ring for a free colour in one go. No two players share a colour (checked whenever one changes): the darkened patches are the space around other players' colours, the handle stops at their edge, and the patches shrink as players join. Your own characters may share one, and a new one starts in your colour. Arrow keys step the handle (Shift for five). If someone took the colour a moment before you, the table moves yours to the nearest free one and says so. The DM's colour has no patches and blocks no one.",
 };
 
 export const RECOLOR_ENTRY: HelpEntry = {

@@ -549,10 +549,11 @@ export interface SnapshotCharacter extends Omit<Character, "hp" | "maxHp" | "tem
   tempHp?: number;
   hpBadge?: HpBadge;
   /**
-   * A PC's token colour, wire-only and derived at send time (never stored): fog
-   * can drop another player's TOKEN from a recipient's payload, but party records
-   * always ride along, so every screen still knows every player's colour (the
-   * picker's zones, pings, names).
+   * A PC's token colour, derived at send time and never stored in room state (an
+   * exported session file carries it; the loader strips it): fog can drop another
+   * player's TOKEN from a recipient's payload, but party records always ride
+   * along, so every screen still knows every player's colour (the picker's zones
+   * now; pings and names in C3).
    */
   color?: string;
 }
