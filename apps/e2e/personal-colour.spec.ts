@@ -82,7 +82,7 @@ test.describe("personal colour across two clients", () => {
       const bobToken = (await pcOf(bob, bobUid))!.tokenId!;
       const bobBefore = (await pcOf(bob, bobUid))!.color;
 
-      // A crafted frame: the picker would never send it, the server must still refuse it.
+      // A crafted frame: the picker would never send it, the server must still move it.
       await bob.evaluate(
         ({ tokenId, color }) =>
           window.__HERO_BYTE_E2E__!.sendMessage({ t: "set-token-color", tokenId, color }),

@@ -58,6 +58,22 @@ test.describe("mobile colour picker", () => {
       });
     });
     expect(fits).toBe(true);
+    // ...and its foot can be reached: scrolled as far as a finger can scroll it, the
+    // preview's bottom edge is on the screen, not clipped below it.
+    const reachable = await page.evaluate(() => {
+      const preview = document.querySelector(".color-picker__preview")!;
+      let scroller = preview.parentElement;
+      while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) {
+        scroller = scroller.parentElement;
+      }
+      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+      const floor = Math.min(
+        window.innerHeight,
+        scroller ? scroller.getBoundingClientRect().bottom : Infinity,
+      );
+      return preview.getBoundingClientRect().bottom <= floor + 1;
+    });
+    expect(reachable).toBe(true);
 
     await spots.first().tap();
     await expect.poll(colour).not.toBe(before);
