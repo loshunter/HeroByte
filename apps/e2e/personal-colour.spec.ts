@@ -78,6 +78,7 @@ test.describe("personal colour across two clients", () => {
       await expect.poll(async () => (await pcOf(bob, aliceUid))?.color).toMatch(/^#/);
       const aliceBefore = (await pcOf(bob, aliceUid))!;
       const bobToken = (await pcOf(bob, bobUid))!.tokenId!;
+      const bobBefore = (await pcOf(bob, bobUid))!.color;
 
       // A crafted frame: the picker would never send it, the server must still refuse it.
       await bob.evaluate(
@@ -92,8 +93,10 @@ test.describe("personal colour across two clients", () => {
           `${bobName}'s colour was too close to ${aliceBefore.name}'s, so it moved to the nearest free one.`,
         ),
       ).toBeVisible();
-      await expect.poll(async () => (await pcOf(bob, bobUid))?.color).not.toBe(aliceBefore.color);
+      // Wait for Bob's OWN colour to change (the toast arrives before the broadcast).
+      await expect.poll(async () => (await pcOf(bob, bobUid))?.color).not.toBe(bobBefore);
       const bobAfter = (await pcOf(bob, bobUid))!.color;
+      expect(bobAfter).not.toBe(aliceBefore.color);
       // Alice has the broadcast that carried Bob's move, and her own colour is untouched...
       await expect.poll(async () => (await pcOf(alice, bobUid))?.color).toBe(bobAfter);
       expect((await pcOf(alice, aliceUid))?.color).toBe(aliceBefore.color);
