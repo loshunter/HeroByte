@@ -14,9 +14,11 @@ import {
 } from "@herobyte/shared";
 import {
   buildColorPickerControl,
-  cellOf,
   colorAdjustedMessage,
   colorPickerForRows,
+} from "../colorPickerControl";
+import {
+  cellOf,
   pickerField,
   pickerFieldKey,
   placeHandle,

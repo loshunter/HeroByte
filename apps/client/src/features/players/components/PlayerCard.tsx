@@ -12,7 +12,7 @@ import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
 import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
-import type { ColorPickerControl } from "./colorPicker/colorPickerModel";
+import type { ColorPickerControl } from "./colorPicker/colorPickerControl";
 import { loadPlayerState } from "../../../utils/playerPersistence";
 import { saveCharacterFile } from "../characterFile";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";

@@ -13,7 +13,7 @@
 
 import { deliverLockRefusal } from "../features/locking/lockRefusalBridge";
 import { lockRefusalMessage } from "../features/locking/lockRefusalCopy";
-import { colorAdjustedMessage } from "../features/players/components/colorPicker/colorPickerModel";
+import { colorAdjustedMessage } from "../features/players/components/colorPicker/colorPickerControl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 import { deliverSessionFile } from "../features/session/sessionBridge";

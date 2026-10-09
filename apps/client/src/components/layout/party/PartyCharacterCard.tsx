@@ -11,7 +11,7 @@ import type { EntityInfo } from "../../../hooks/useCombatOrdering";
 import { PlayerCard } from "../../../features/players/components";
 import type { PartyCardContext } from "./partyTypes";
 import { useDMThroughBlip } from "../../../features/table/roleKnown";
-import { buildColorPickerControl } from "../../../features/players/components/colorPicker/colorPickerModel";
+import { buildColorPickerControl } from "../../../features/players/components/colorPicker/colorPickerControl";
 
 interface PartyCharacterCardProps {
   /** A character entity (kind "character" or "dm"); it always has a player. */

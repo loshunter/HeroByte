@@ -174,3 +174,12 @@
     border-radius: 50%;
   }
 }
+
+/* The lazy chunk's wait and its failure keep the picker's place in the window. */
+.color-picker__loading,
+.color-picker__failed {
+  min-height: 3em;
+  color: var(--hero-white);
+  font-size: 0.8rem;
+  opacity: 0.8;
+}

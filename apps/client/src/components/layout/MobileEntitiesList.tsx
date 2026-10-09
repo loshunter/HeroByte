@@ -22,7 +22,7 @@ import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 import { MobilePlayerRow, type TempHpEditing } from "./MobilePlayerRow";
 import "./mobileParty.css";
 import { useDMThroughBlip } from "../../features/table/roleKnown";
-import { colorPickerForRows } from "../../features/players/components/colorPicker/colorPickerModel";
+import { colorPickerForRows } from "../../features/players/components/colorPicker/colorPickerControl";
 
 interface MobileEntitiesListProps {
   players: Player[];

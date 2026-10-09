@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { cellIndexAt, windowCells, type ColorHolder, type WindowCell } from "@herobyte/shared";
 import { ColorPicker } from "../ColorPicker";
-import type { ColorPickerControl } from "../colorPickerModel";
+import type { ColorPickerControl } from "../colorPickerControl";
 
 // jsdom has no PointerEvent: without one, fireEvent sends a bare Event with no
 // coordinates. A MouseEvent carries clientX/clientY; pointerId rides along.

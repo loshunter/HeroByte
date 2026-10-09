@@ -24,8 +24,8 @@ import { StatusEffectsPicker } from "./StatusEffectsPicker";
 import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import { CharacterNameField, useCharacterEscapeGuard } from "./CharacterNameField";
 import { CharacterCreationModal } from "./CharacterCreationModal";
-import { ColorPicker } from "./colorPicker/ColorPicker";
-import type { ColorPickerControl } from "./colorPicker/colorPickerModel";
+import { LazyColorPicker } from "./colorPicker/LazyColorPicker";
+import type { ColorPickerControl } from "./colorPicker/colorPickerControl";
 import "./characterSettings.css";
 import { lockGuard } from "../../locking/lockNotice";
 
@@ -229,7 +229,7 @@ export function PlayerSettingsMenu({
               />
             )}
 
-            {colorPicker && <ColorPicker {...colorPicker} />}
+            {colorPicker && <LazyColorPicker {...colorPicker} />}
 
             {/* Portrait: upload from disk/camera roll, or paste a URL (S3) */}
             {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (

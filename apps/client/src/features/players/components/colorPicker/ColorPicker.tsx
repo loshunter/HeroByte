@@ -19,9 +19,9 @@ import {
   pointAt,
   sameColor,
   stepPoint,
-  type ColorPickerControl,
   type PickerField,
 } from "./colorPickerModel";
+import type { ColorPickerControl } from "./colorPickerControl";
 import "./colorPicker.css";
 
 const ARROWS: Record<string, [number, number]> = {

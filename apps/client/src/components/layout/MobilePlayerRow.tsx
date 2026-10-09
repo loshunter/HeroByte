@@ -13,7 +13,7 @@ import { HPBar } from "../../features/players/components/HPBar";
 import { PlayerSettingsMenu } from "../../features/players/components/PlayerSettingsMenu";
 import type { OwnerControl } from "../../features/players/components/TokenSettingsSection";
 import type { CharacterFileActions } from "../../features/players/characterFile";
-import type { ColorPickerControl } from "../../features/players/components/colorPicker/colorPickerModel";
+import type { ColorPickerControl } from "../../features/players/components/colorPicker/colorPickerControl";
 import { useRoleKnown } from "../../features/table/roleKnown";
 
 /** The temp HP editor's state and handlers (the same ones the desktop card gets). */
