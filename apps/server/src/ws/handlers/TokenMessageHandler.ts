@@ -168,7 +168,7 @@ export class TokenMessageHandler {
       this.selectionService.removeObject(state, tokenId);
     }
 
-    return { broadcast: success, save: false };
+    return { broadcast: success, save: success };
   }
 
   /**

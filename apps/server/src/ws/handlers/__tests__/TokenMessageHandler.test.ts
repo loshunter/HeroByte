@@ -320,6 +320,12 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       expect(state.tokens.find((t) => t.id === tokenId)).toBeUndefined();
     });
 
+    it("saves the deletion, so a restart cannot bring the token back", () => {
+      const save = vi.spyOn(roomService, "saveState");
+      messageRouter.route({ t: "delete-token", id: tokenId }, playerUid);
+      expect(save).toHaveBeenCalled();
+    });
+
     it("should delete any token when DM deletes it", () => {
       const deleteMessage: ClientMessage = {
         t: "delete-token",
