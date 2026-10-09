@@ -14,6 +14,12 @@
 import { DM_HELP_TOPIC } from "./dmHelpTopic";
 import { TABLE_MENU_HELP_TOPIC } from "./tableHelpTopic";
 import { CORRECT_A_ROLL_ENTRY, DELETE_ENTRY, HP_ENTRY } from "./phoneHelpEntries";
+import {
+  COLOUR_ENTRY,
+  RECOLOR_ENTRY,
+  SECOND_CHARACTER_ENTRY,
+  TOKEN_SIZE_ENTRY,
+} from "./characterHelpEntries";
 
 /** One "how do I…" line inside a topic. */
 export interface HelpEntry {
@@ -151,15 +157,9 @@ export const HELP_TOPICS: HelpTopic[] = [
         detail:
           "⚙️ → 38 conditions; up to three show as medallions, the rest roll into a +N bubble.",
       },
-      {
-        term: "Token size",
-        detail:
-          "⚙️ → Token settings → Tiny through Gargantuan (half a cell up to three cells). A DM can resize anyone's.",
-      },
-      {
-        term: "A second character",
-        detail: "⚙️ → ➕ ADD CHARACTER gives you another row, card, token, HP and initiative.",
-      },
+      TOKEN_SIZE_ENTRY,
+      COLOUR_ENTRY,
+      SECOND_CHARACTER_ENTRY,
     ],
   },
   {
@@ -172,7 +172,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         detail:
           "Drag it, or step it with WASD / arrows (QEZC diagonal; hold to walk). With nothing selected the keys move your own token if you run just one character — except while typing, and ↑/↓ page a panel you last clicked into or scrolled (WASD and ←/→ still walk). 🖱️ SELECT and 🔄 TRANSFORM move only the piece you picked (nothing picked, nothing moves); ✏️ Draw, the grid-alignment wizard and World link placement (⚓ AIM ON MAP) take the keys. Phone: TOOLS → □ Select, tap the piece, use the d-pad.",
       },
-      { term: "Recolor", detail: "Double-click your own token for a new random colour." },
+      RECOLOR_ENTRY,
       {
         term: "Select several",
         detail: "🖱️ Select drags a marquee; Shift-click adds, Ctrl/Cmd-click toggles.",
