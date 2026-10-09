@@ -75,7 +75,8 @@ export class TokenDispatcher {
         return this.handler.handleSetSize(state, message.tokenId, senderUid, message.size, isDM);
 
       case "set-token-color":
-        if (!this.colorBudget.take(senderUid)) return throttled(state, message.tokenId, senderUid, isDM);
+        if (!this.colorBudget.take(senderUid))
+          return throttled(state, message.tokenId, senderUid, isDM);
         return this.handler.handleSetColor(state, message.tokenId, senderUid, message.color, isDM);
 
       case "set-token-vision-radius":
