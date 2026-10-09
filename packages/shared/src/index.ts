@@ -120,6 +120,12 @@ export * from "./autotile.js";
 // recipes, and Cartridge Codes.
 export * from "./rng.js";
 
+// Personal colours: OKLab maths, the picker window, and the no-two-players rule
+// the server enforces and the picker draws (personal-colour-arc-plan.md §3).
+export * from "./colorSpace.js";
+export * from "./colorWindow.js";
+export * from "./colorRule.js";
+
 // Dice NOTATION only — what a formula means, and nothing that rolls one. The
 // roller is server-side on purpose (see dice.ts).
 export * from "./dice.js";
