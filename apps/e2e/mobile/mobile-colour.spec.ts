@@ -31,7 +31,8 @@ test.describe("mobile colour picker", () => {
       expect(box.height).toBeGreaterThanOrEqual(44);
     }
 
-    // The handle's touch target reaches 22 px past its 28 px dot on every side (50 px).
+    // The handle's touch target is 50 px across: 11 px past its 28 px content box on every
+    // side (8 px past its 3 px border).
     const handle = page.getByRole("slider", { name: /'s colour$/ });
     const reach = await handle.evaluate((element) => {
       const box = element.getBoundingClientRect();
@@ -40,6 +41,13 @@ test.describe("mobile colour picker", () => {
       return document.elementFromPoint(x, y) === element;
     });
     expect(reach).toBe(true);
+
+    // A vertical swipe on the window scrolls the sheet (no colour change); the handle drags.
+    const touchActions = await page.evaluate(() => [
+      getComputedStyle(document.querySelector(".color-picker__window")!).touchAction,
+      getComputedStyle(document.querySelector(".color-picker__handle")!).touchAction,
+    ]);
+    expect(touchActions).toEqual(["pan-y", "none"]);
 
     // The sheet fits the phone: the window and the preview stay inside the screen.
     const fits = await page.evaluate(() => {

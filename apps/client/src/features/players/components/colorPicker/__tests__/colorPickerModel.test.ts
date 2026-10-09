@@ -149,6 +149,8 @@ describe("pickerField", () => {
       holders: control().holders.map((holder) => ({ ...holder, name: `${holder.name}!` })),
     };
     expect(pickerFieldKey(renamed)).not.toBe(pickerFieldKey(control()));
+    // A card with no picker has a key too (PlayerCard's memo compares them).
+    expect(pickerFieldKey(undefined)).toBe("");
   });
 });
 
@@ -242,6 +244,9 @@ describe("colorAdjustedMessage", () => {
     );
     expect(colorAdjustedMessage(undefined, "Annika")).toBe(
       "Annika's colour could not be read, so it was given a free one.",
+    );
+    expect(colorAdjustedMessage(undefined, undefined, true)).toBe(
+      "Too many colour changes at once: wait a moment and try again.",
     );
   });
 });

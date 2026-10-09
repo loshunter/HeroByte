@@ -20,7 +20,7 @@ describe("LazyColorPicker", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("loads the picker on demand", async () => {
+  it("renders the picker once its chunk has loaded", async () => {
     render(<LazyColorPicker {...control} />);
     expect(await screen.findByRole("slider", { name: "Mine's colour" })).toBeTruthy();
   });

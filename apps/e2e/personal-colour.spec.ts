@@ -43,6 +43,8 @@ test.describe("personal colour across two clients", () => {
       await expect(settings.getByRole("slider", { name: /'s colour$/ })).toBeVisible();
       const spot = settings.getByRole("button", { name: /^Suggested colour 1, #[0-9a-f]{6}$/ });
       const spotHex = (await spot.getAttribute("aria-label"))!.split(", ")[1]!;
+      // A spot is always somewhere new, so the click must change the colour.
+      expect(spotHex).not.toBe(before);
       await spot.click();
 
       // The spot lands as offered (a free colour: kept exactly, no notice).

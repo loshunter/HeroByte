@@ -155,8 +155,18 @@
   opacity: 0.8;
 }
 
-/* Touch: the spots and the handle are 44px targets around the same marks. */
+/* Touch: the spots and the handle are 44px targets around the same marks, and a
+   vertical swipe on the window scrolls the sheet (the browser cancels the pick)
+   instead of dragging the colour; a drag from the handle still moves it anywhere. */
 @media (pointer: coarse) {
+  .color-picker__window {
+    touch-action: pan-y;
+  }
+
+  .color-picker__handle {
+    touch-action: none;
+  }
+
   .color-picker__spot {
     width: 44px;
     height: 44px;

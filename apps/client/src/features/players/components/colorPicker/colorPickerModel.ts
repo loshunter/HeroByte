@@ -26,6 +26,7 @@ import {
   type WindowPoint,
 } from "@herobyte/shared";
 import type { ColorPickerControl } from "./colorPickerControl";
+export { pickerFieldKey } from "./colorPickerControl";
 
 export interface PickerField {
   /** Other players' colours, each holding a zone. */
@@ -64,23 +65,6 @@ export function pickerField(control: ColorPickerControl): PickerField {
     ownDots,
     suggestions: suggestedColors([...others, ...mine]),
   };
-}
-
-/** A key that changes only when the field would (holders arrive as new arrays). */
-export function pickerFieldKey(control: ColorPickerControl): string {
-  const holders = control.holders
-    .map(
-      (holder) => `${holder.ownerUid}:${holder.characterId}:${holder.color}:${holder.name ?? ""}`,
-    )
-    .join("|");
-  return [
-    control.exempt,
-    control.ownerUid,
-    control.characterId,
-    control.color,
-    control.dmUids.join(","),
-    holders,
-  ].join("/");
 }
 
 /** Where on the window a pointer is, clamped to its edges. */

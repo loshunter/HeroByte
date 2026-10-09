@@ -89,8 +89,32 @@ export function colorPickerForRows(list: {
         });
 }
 
+/**
+ * A key that changes only when what the picker shows would (holders arrive as a
+ * new array every snapshot). Here, not in the lazy model, so a card's memo can
+ * compare pickers without loading the colour maths.
+ */
+export function pickerFieldKey(control: ColorPickerControl | undefined): string {
+  if (!control) return "";
+  const holders = control.holders
+    .map(
+      (holder) => `${holder.ownerUid}:${holder.characterId}:${holder.color}:${holder.name ?? ""}`,
+    )
+    .join("|");
+  return [
+    control.exempt,
+    control.ownerUid,
+    control.characterId,
+    control.color,
+    control.name,
+    control.dmUids.join(","),
+    holders,
+  ].join("/");
+}
+
 /** The toast for the server's `color-adjusted`: where the colour went, and why. */
-export function colorAdjustedMessage(near?: string, name?: string): string {
+export function colorAdjustedMessage(near?: string, name?: string, throttled?: boolean): string {
+  if (throttled) return "Too many colour changes at once: wait a moment and try again.";
   const whose = name ? `${name}'s colour` : "Your colour";
   return near
     ? `${whose} was too close to ${near}'s, so it moved to the nearest free one.`

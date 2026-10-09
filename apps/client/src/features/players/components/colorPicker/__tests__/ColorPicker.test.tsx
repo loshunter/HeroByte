@@ -9,7 +9,7 @@ import {
   type ColorHolder,
   type WindowCell,
 } from "@herobyte/shared";
-import { ColorPicker, KEY_COMMIT_MS, PENDING_TIMEOUT_MS } from "../ColorPicker";
+import { ColorPicker, KEY_COMMIT_MS, NOTICE_HOLD_MS, PENDING_TIMEOUT_MS } from "../ColorPicker";
 import type { ColorPickerControl } from "../colorPickerControl";
 
 // jsdom has no PointerEvent: without one, fireEvent sends a bare Event with no
@@ -17,9 +17,11 @@ import type { ColorPickerControl } from "../colorPickerControl";
 if (typeof PointerEvent === "undefined") {
   class TestPointerEvent extends MouseEvent {
     pointerId: number;
+    pointerType: string;
     constructor(type: string, init: PointerEventInit = {}) {
       super(type, init);
       this.pointerId = init.pointerId ?? 0;
+      this.pointerType = init.pointerType ?? "mouse";
     }
   }
   (globalThis as unknown as { PointerEvent: unknown }).PointerEvent = TestPointerEvent;
@@ -114,12 +116,63 @@ describe("ColorPicker", () => {
     expect(room).toBeGreaterThanOrEqual(ruleRadius(2));
   });
 
-  it("names whose zone the pointer is over before anything is pressed", () => {
-    const { surface } = renderPicker();
+  it("names whose zone the mouse is over before anything is pressed, quietly", () => {
+    const { surface, container } = renderPicker();
     fireEvent.pointerMove(surface, { pointerId: 1, ...pixelOf(RED_CELL) });
     expect(screen.getByText("Bors's colour")).toBeTruthy();
-    fireEvent.pointerLeave(surface);
+    // A hover label is not announced; a bump is.
+    expect(container.querySelector(".color-picker__status")!.getAttribute("aria-live")).toBe("off");
+    fireEvent.pointerLeave(surface, { pointerType: "mouse" });
     expect(screen.queryByText("Bors's colour")).toBeNull();
+  });
+
+  it("labels a zone tapped on a phone for a few seconds after the finger lifts", () => {
+    vi.useFakeTimers();
+    const { surface, container } = renderPicker();
+    const touch = { pointerId: 1, button: 0, pointerType: "touch", ...pixelOf(RED_CELL) };
+    fireEvent.pointerDown(surface, touch);
+    fireEvent.pointerUp(surface, touch);
+    fireEvent.pointerLeave(surface, { pointerType: "touch" });
+    expect(screen.getByText("Too close to Bors")).toBeTruthy();
+    expect(container.querySelector(".color-picker__status")!.getAttribute("aria-live")).toBe(
+      "polite",
+    );
+    act(() => vi.advanceTimersByTime(NOTICE_HOLD_MS));
+    expect(screen.queryByText("Too close to Bors")).toBeNull();
+  });
+
+  it("keeps the arrow keys on the handle after a press in the window or on a spot", () => {
+    const { surface } = renderPicker();
+    press(surface, pixelOf(cellAt(0.3, 0.2)));
+    expect(document.activeElement).toBe(screen.getByRole("slider"));
+    (document.activeElement as HTMLElement).blur();
+    fireEvent.click(screen.getByRole("button", { name: /^Suggested colour 1, / }));
+    expect(document.activeElement).toBe(screen.getByRole("slider"));
+  });
+
+  it("does not let an earlier pick's timeout erase arrow-key steps made after it", () => {
+    vi.useFakeTimers();
+    const { surface } = renderPicker();
+    press(surface, pixelOf(cellAt(0.3, 0.2)));
+    // Keys pressed at 1.3 s are still waiting (their commit is due at 1.7 s) when
+    // the first pick's 1.5 s timeout fires.
+    act(() => vi.advanceTimersByTime(1300));
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    act(() => vi.advanceTimersByTime(300));
+    expect(screen.getByLabelText("Colour code").textContent).toBe(keyed);
+  });
+
+  it("counts a finger's small jitter on the handle as a tap, not a pick", () => {
+    const { onCommit } = renderPicker();
+    const handle = screen.getByRole("slider");
+    handle.getBoundingClientRect = () =>
+      ({ left: 90, top: 20, width: 20, height: 20, right: 110, bottom: 40 }) as DOMRect;
+    const finger = { pointerId: 1, button: 0, pointerType: "touch" };
+    fireEvent.pointerDown(handle, { ...finger, clientX: 100, clientY: 30 });
+    fireEvent.pointerMove(handle, { ...finger, clientX: 107, clientY: 33 });
+    fireEvent.pointerUp(handle, { ...finger, clientX: 107, clientY: 33 });
+    expect(onCommit).not.toHaveBeenCalled();
   });
 
   it("commits once on release, not on every move", () => {
@@ -201,6 +254,76 @@ describe("ColorPicker", () => {
     expect(onCommit).toHaveBeenCalledTimes(1);
   });
 
+  it("sends a held key's colour when focus leaves before the key is released", () => {
+    vi.useFakeTimers();
+    const { onCommit } = renderPicker();
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    fireEvent.blur(screen.getByRole("slider"));
+    expect(onCommit).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends one message when a pointer takes over from keys still waiting", () => {
+    vi.useFakeTimers();
+    const { onCommit, surface } = renderPicker();
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    // A browser moves focus off the handle when the window is pressed: the blur
+    // lands between the press and the release.
+    const at = { pointerId: 1, button: 0, ...pixelOf(cellAt(0.3, 0.2)) };
+    fireEvent.pointerDown(surface, at);
+    fireEvent.blur(screen.getByRole("slider"));
+    fireEvent.pointerUp(surface, at);
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS + 50));
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit.mock.calls[0]![0]).toBe(cellAt(0.3, 0.2).hex);
+  });
+
+  it("keeps a later pick showing when the answer to an earlier one arrives", () => {
+    const { surface, rerender, props } = renderPicker();
+    const first = cellAt(0.3, 0.2);
+    const second = cellAt(0.4, 0.3);
+    press(surface, pixelOf(first));
+    press(surface, pixelOf(second));
+    act(() => {
+      rerender(<ColorPicker {...props} color={first.hex} />);
+    });
+    expect(screen.getByLabelText("Colour code").textContent).toBe(second.hex);
+  });
+
+  it("drops a drag whose pointer capture is lost", () => {
+    const { onCommit, surface } = renderPicker();
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, ...pixelOf(cellAt(0.3, 0.2)) });
+    fireEvent.lostPointerCapture(surface, { pointerId: 1 });
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(cellAt(0.3, 0.2)) });
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("shrinks and moves zones live when someone joins or recolours", () => {
+    const { surface, rerender, props } = renderPicker();
+    const newcomer = cellAt(0.45, 0.4);
+    press(surface, pixelOf(newcomer));
+    expect(screen.queryByText(/Too close/)).toBeNull();
+    act(() => {
+      rerender(
+        <ColorPicker
+          {...props}
+          holders={[
+            ...holders,
+            { ownerUid: "cy", characterId: "cyra", color: newcomer.hex, name: "Cyra" },
+          ]}
+        />,
+      );
+    });
+    expect(screen.getByRole("img", { name: "Cyra's colour" })).toBeTruthy();
+    press(surface, pixelOf(newcomer));
+    expect(screen.getByText("Too close to Cyra")).toBeTruthy();
+  });
+
+  it("tells a screen reader an older colour's real lightness, not the band's edge", () => {
+    renderPicker({ color: "hsl(240, 70%, 50%)" });
+    const text = screen.getByRole("slider").getAttribute("aria-valuetext")!;
+    expect(Number(/lightness (\d+)%/.exec(text)![1])).toBeLessThan(50);
+  });
+
   it("sends the keyed colour when focus leaves, and when the window closes", () => {
     vi.useFakeTimers();
     const first = renderPicker();
@@ -242,13 +365,12 @@ describe("ColorPicker", () => {
     expect(screen.getByLabelText("Colour code").textContent).toBe(BLUE);
   });
 
-  it("retires the bump notice once the colour has changed", () => {
-    const { surface, rerender, props } = renderPicker();
+  it("retires the bump notice a few seconds after the pick", () => {
+    vi.useFakeTimers();
+    const { surface } = renderPicker();
     press(surface, pixelOf(RED_CELL));
     expect(screen.getByText("Too close to Bors")).toBeTruthy();
-    act(() => {
-      rerender(<ColorPicker {...props} color={cellAt(0.45, 0.4).hex} />);
-    });
+    act(() => vi.advanceTimersByTime(NOTICE_HOLD_MS));
     expect(screen.queryByText(/Too close/)).toBeNull();
   });
 

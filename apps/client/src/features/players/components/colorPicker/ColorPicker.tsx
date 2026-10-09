@@ -13,24 +13,24 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import {
   COLOR_WINDOW,
+  colorToOkLab,
   normalizeColor,
-  windowCells,
   windowLightness,
-  windowPointOf,
   type WindowCell,
 } from "@herobyte/shared";
 import {
   cellOf,
   pickerField,
-  pickerFieldKey,
   placeHandle,
   pointAt,
   sameColor,
   stepPoint,
   zoneOwnerAt,
-  type PickerField,
 } from "./colorPickerModel";
-import type { ColorPickerControl } from "./colorPickerControl";
+import { pickerFieldKey, type ColorPickerControl } from "./colorPickerControl";
+import { drawColorWindow } from "./drawColorWindow";
+import { ColorPickerMarks, at } from "./ColorPickerMarks";
+import { ColorPickerPreview } from "./ColorPickerPreview";
 import "./colorPicker.css";
 
 const ARROWS: Record<string, [number, number]> = {
@@ -40,47 +40,29 @@ const ARROWS: Record<string, [number, number]> = {
   ArrowDown: [0, 1],
 };
 
-/** Zone cells are drawn this much darker, so the free colours stand out. */
-const ZONE_DIM = 0.35;
 /** Arrow-key steps commit once the keys have been quiet this long (one message, not ten). */
 export const KEY_COMMIT_MS = 400;
 /** A commit the server answers without changing the colour stops showing after this. */
 export const PENDING_TIMEOUT_MS = 1500;
-/** A press on the handle that moves less than this is a tap, not a pick. */
-const TAP_SLOP_PX = 3;
+/** A press that moves less than this is a tap, not a drag: a finger jitters more than a mouse. */
+const TAP_SLOP_PX: Record<string, number> = { mouse: 3, pen: 6, touch: 10 };
+/** A bump notice stays this long after the pointer lifts (on a phone, that is the label). */
+export const NOTICE_HOLD_MS = 3000;
 /** The window's drawn aspect (colorPicker.css), for the edge-stop before it is measured. */
 const DRAWN_ASPECT = 2.6;
 
-function drawWindow(canvas: HTMLCanvasElement | null, field: PickerField): void {
-  let context: CanvasRenderingContext2D | null = null;
-  try {
-    context = canvas?.getContext("2d") ?? null;
-  } catch {
-    context = null; // jsdom: no 2D canvas. The handle, spots and readout are DOM.
-  }
-  if (!context) return;
-  const { columns, rows } = COLOR_WINDOW;
-  const image = context.createImageData(columns, rows);
-  windowCells().forEach((cell, index) => {
-    const dim = field.zones[index] === -1 ? 1 : ZONE_DIM;
-    const offset = index * 4;
-    image.data[offset] = parseInt(cell.hex.slice(1, 3), 16) * dim;
-    image.data[offset + 1] = parseInt(cell.hex.slice(3, 5), 16) * dim;
-    image.data[offset + 2] = parseInt(cell.hex.slice(5, 7), 16) * dim;
-    image.data[offset + 3] = 255;
-  });
-  context.putImageData(image, 0, 0);
+/** The line under the window: a bump or tap notice is announced, a hover label is not. */
+interface Notice {
+  text: string;
+  live: boolean;
 }
-
-const at = (point: { u: number; v: number }) => ({
-  left: `${point.u * 100}%`,
-  top: `${point.v * 100}%`,
-});
 
 interface Drag {
   pointerId: number;
   startX: number;
   startY: number;
+  /** How far it must move to be a drag rather than a tap, for this kind of pointer. */
+  slop: number;
   /** Pressed on the handle itself: moves keep the grab offset, and a tap is no pick. */
   onHandle: boolean;
   offsetX: number;
@@ -95,27 +77,42 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const handleRef = useRef<HTMLDivElement | null>(null);
   const [pending, setPending] = useState<WindowCell | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const drag = useRef<Drag | null>(null);
   const keyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keyed = useRef(false);
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSent = useRef<string | null>(null);
   const aspect = useRef(DRAWN_ASPECT);
   const pendingRef = useRef<WindowCell | null>(null);
   pendingRef.current = pending;
 
-  useEffect(() => drawWindow(canvasRef.current, field), [field]);
-  // The server's answer (or anyone's recolour) replaces whatever was pending, and
-  // retires the bump notice that belonged to it.
+  const stopTimer = (timer: { current: ReturnType<typeof setTimeout> | null }) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+
+  useEffect(() => drawColorWindow(canvasRef.current, field), [field]);
+  // The server's answer to OUR pick (the colour we sent arrived) retires the
+  // pending one; so does anyone else's change while nothing of ours is in flight
+  // and no drag or keystroke is going on. A snapped answer differs from what we
+  // sent: the pending timer retires it a moment later, beside the toast.
   useEffect(() => {
+    const ours = lastSent.current !== null && sameColor(control.color, lastSent.current);
+    const idle = lastSent.current === null && !drag.current && !keyed.current;
+    if (!ours && !idle) return;
+    lastSent.current = null;
+    stopTimer(pendingTimer);
     setPending(null);
-    setNotice(null);
   }, [control.color]);
   // Closing the window mid-keystroke still sends the colour the keys chose.
   const commitRef = useRef<(cell: WindowCell | null) => void>(() => {});
   useEffect(
     () => () => {
-      if (pendingTimer.current) clearTimeout(pendingTimer.current);
-      if (keyTimer.current) commitRef.current(pendingRef.current);
+      stopTimer(pendingTimer);
+      stopTimer(noticeTimer);
+      if (keyed.current) commitRef.current(pendingRef.current);
     },
     [],
   );
@@ -123,30 +120,45 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   const committedCell = cellOf(control.color);
   const shown = pending ?? committedCell;
   const shownHex = pending?.hex ?? normalizeColor(control.color) ?? control.color;
+  const shownLightness = colorToOkLab(shownHex)?.L;
 
+  /** A notice that stays a few seconds after the pointer lifts (a tap shows it on a phone). */
+  const holdNotice = () => {
+    stopTimer(noticeTimer);
+    noticeTimer.current = setTimeout(() => setNotice(null), NOTICE_HOLD_MS);
+  };
   const moveTo = (point: { u: number; v: number }) => {
+    // The person is choosing again: an earlier pick's timeout must not erase this one.
+    stopTimer(pendingTimer);
+    stopTimer(noticeTimer);
     const placed = placeHandle(point, field, control.exempt, aspect.current);
     setPending(placed.cell);
-    setNotice(placed.blockedBy ? `Too close to ${placed.blockedBy}` : null);
+    setNotice(placed.blockedBy ? { text: `Too close to ${placed.blockedBy}`, live: true } : null);
     return placed.cell;
   };
   const commit = (cell: WindowCell | null) => {
-    if (keyTimer.current) clearTimeout(keyTimer.current);
-    keyTimer.current = null;
+    stopTimer(keyTimer);
+    keyed.current = false;
     if (!cell || sameColor(cell.hex, control.color)) {
       setPending(null);
       return;
     }
+    lastSent.current = cell.hex;
     control.onCommit(cell.hex);
     // An answer that leaves the colour as it was (a snap back) changes nothing to
     // clear the pending one on; it stops showing after a moment instead.
-    if (pendingTimer.current) clearTimeout(pendingTimer.current);
+    stopTimer(pendingTimer);
     pendingTimer.current = setTimeout(() => {
-      if (!drag.current) setPending(null);
+      pendingTimer.current = null;
+      if (drag.current || keyed.current) return;
+      lastSent.current = null;
+      setPending(null);
     }, PENDING_TIMEOUT_MS);
   };
-  /** The point under the pointer, measured on the canvas (inside the window's border). */
   commitRef.current = commit;
+  /** Keep the arrow keys on the handle after a pick, so they never reach the map. */
+  const focusHandle = () => handleRef.current?.focus({ preventScroll: true });
+  /** The point under the pointer, measured on the canvas (inside the window's border). */
   const pointFor = (clientX: number, clientY: number) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) aspect.current = rect.width / rect.height;
@@ -154,6 +166,11 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   };
   const isOwn = (event: PointerEvent<HTMLDivElement>) =>
     drag.current?.pointerId === event.pointerId;
+  const cancelDrag = () => {
+    drag.current = null;
+    setPending(null);
+    setNotice(null);
+  };
 
   return (
     <div className="color-picker">
@@ -164,12 +181,16 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
         onPointerDown={(event) => {
           // The primary button of one pointer: a right-click or a second finger is not a pick.
           if (event.button !== 0 || drag.current) return;
+          // A pointer supersedes keys still waiting to commit (one message, not two).
+          stopTimer(keyTimer);
+          keyed.current = false;
           const onHandle = event.target === handleRef.current;
           const handle = handleRef.current?.getBoundingClientRect();
           drag.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
+            slop: TAP_SLOP_PX[event.pointerType] ?? TAP_SLOP_PX.mouse!,
             onHandle,
             offsetX: onHandle && handle ? handle.left + handle.width / 2 - event.clientX : 0,
             offsetY: onHandle && handle ? handle.top + handle.height / 2 - event.clientY : 0,
@@ -181,14 +202,15 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
         onPointerMove={(event) => {
           const active = drag.current;
           if (!active) {
-            // Hovering names whose zone this is (a tooltip never shows on the window itself).
+            // A mouse hovering names whose zone this is (a tooltip never shows on the window).
+            if (event.pointerType !== "mouse" || noticeTimer.current) return;
             const owner = zoneOwnerAt(pointFor(event.clientX, event.clientY), field);
-            setNotice(owner ? `${owner}'s colour` : null);
+            setNotice(owner ? { text: `${owner}'s colour`, live: false } : null);
             return;
           }
           if (!isOwn(event)) return;
           const far =
-            Math.hypot(event.clientX - active.startX, event.clientY - active.startY) >= TAP_SLOP_PX;
+            Math.hypot(event.clientX - active.startX, event.clientY - active.startY) >= active.slop;
           if (!active.moved && !far) return;
           active.moved = true;
           moveTo(pointFor(event.clientX + active.offsetX, event.clientY + active.offsetY));
@@ -197,20 +219,25 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
           const active = drag.current;
           if (!active || !isOwn(event)) return;
           drag.current = null;
+          focusHandle();
           if (active.onHandle && !active.moved) {
             setPending(null); // A tap on your own handle picks nothing.
             return;
           }
           commit(moveTo(pointFor(event.clientX + active.offsetX, event.clientY + active.offsetY)));
+          holdNotice();
         }}
         onPointerCancel={(event) => {
-          if (!isOwn(event)) return;
-          drag.current = null;
-          setPending(null);
-          setNotice(null);
+          // A phone turning a vertical swipe into a scroll lands here: nothing is picked.
+          if (isOwn(event)) cancelDrag();
         }}
-        onPointerLeave={() => {
-          if (!drag.current) setNotice(null);
+        onLostPointerCapture={(event) => {
+          if (isOwn(event)) cancelDrag();
+        }}
+        onPointerLeave={(event) => {
+          if (!drag.current && event.pointerType === "mouse" && !noticeTimer.current) {
+            setNotice(null);
+          }
         }}
       >
         <canvas
@@ -220,32 +247,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
           height={COLOR_WINDOW.rows}
           aria-hidden="true"
         />
-        {field.others.map((other) => {
-          const point = windowPointOf(other.color);
-          return point ? (
-            <span
-              key={other.characterId ?? other.color}
-              role="img"
-              aria-label={`${other.name ?? "Another player"}'s colour`}
-              className="color-picker__taken"
-              style={{ ...at(point), background: other.color }}
-              title={`${other.name ?? "Another player"}'s colour`}
-            />
-          ) : null;
-        })}
-        {field.ownDots.map((dot) => {
-          const point = windowPointOf(dot.color);
-          return point ? (
-            <span
-              key={dot.characterId ?? dot.color}
-              role="img"
-              aria-label={`${dot.name ?? "Your other character"}'s colour (yours)`}
-              className="color-picker__own"
-              style={{ ...at(point), background: dot.color }}
-              title={`${dot.name ?? "Your other character"} (yours)`}
-            />
-          ) : null;
-        })}
+        <ColorPickerMarks field={field} />
         {field.suggestions.map((spot, index) => (
           <button
             key={spot.hex}
@@ -256,9 +258,11 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
             title={`A free colour: ${spot.hex}`}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => {
+              stopTimer(pendingTimer);
               setNotice(null);
               setPending(spot);
               commit(spot);
+              focusHandle();
             }}
           />
         ))}
@@ -271,7 +275,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
             aria-valuemin={0}
             aria-valuemax={359}
             aria-valuenow={Math.round(shown.u * 360) % 360}
-            aria-valuetext={`${shownHex}, hue ${Math.round(shown.u * 360) % 360}°, lightness ${Math.round(windowLightness(shown.v) * 100)}%`}
+            aria-valuetext={`${shownHex}, hue ${Math.round(shown.u * 360) % 360}°, lightness ${Math.round((shownLightness ?? windowLightness(shown.v)) * 100)}%`}
             className="color-picker__handle"
             style={{ ...at(shown), background: shownHex }}
             onKeyDown={(event) => {
@@ -283,39 +287,28 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
               event.stopPropagation();
               const size = event.shiftKey ? 5 : 1;
               moveTo(stepPoint(shown, step[0] * size, step[1] * size));
+              // Commits once the keys go quiet: armed on every press (a held key
+              // repeats keydown), so it never waits on a keyup that may not come.
+              keyed.current = true;
+              stopTimer(keyTimer);
+              keyTimer.current = setTimeout(
+                () => commitRef.current(pendingRef.current),
+                KEY_COMMIT_MS,
+              );
             }}
             onKeyUp={(event) => {
-              if (!ARROWS[event.key]) return;
-              event.stopPropagation();
-              if (keyTimer.current) clearTimeout(keyTimer.current);
-              keyTimer.current = setTimeout(() => commit(pendingRef.current), KEY_COMMIT_MS);
+              if (ARROWS[event.key]) event.stopPropagation();
             }}
             onBlur={() => {
-              if (keyTimer.current) commit(pendingRef.current);
+              if (keyed.current) commitRef.current(pendingRef.current);
             }}
           />
         )}
       </div>
-      <div className="color-picker__status" aria-live="polite">
-        {notice}
+      <div className="color-picker__status" aria-live={notice?.live ? "polite" : "off"}>
+        {notice?.text}
       </div>
-      <div className="color-picker__preview" aria-hidden="true">
-        <span className="color-picker__name" style={{ color: shownHex }}>
-          {control.name}
-        </span>
-        <span className="color-picker__ring" style={{ borderColor: shownHex }} />
-        <span
-          className="color-picker__token color-picker__token--map"
-          style={{ background: shownHex }}
-        />
-        <span
-          className="color-picker__token color-picker__token--fog"
-          style={{ background: shownHex }}
-        />
-      </div>
-      <output className="color-picker__hex" aria-label="Colour code">
-        {shownHex}
-      </output>
+      <ColorPickerPreview name={control.name} hex={shownHex} />
     </div>
   );
 }

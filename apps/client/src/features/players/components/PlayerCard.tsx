@@ -12,7 +12,7 @@ import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
 import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
-import type { ColorPickerControl } from "./colorPicker/colorPickerControl";
+import { pickerFieldKey, type ColorPickerControl } from "./colorPicker/colorPickerControl";
 import { loadPlayerState } from "../../../utils/playerPersistence";
 import { saveCharacterFile } from "../characterFile";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
@@ -508,7 +508,9 @@ export const PlayerCard = memo<PlayerCardProps>(
     // The owner control's SHAPE too (its onChange is minted every render):
     // the current seat and the seats offered.
     prevProps.owner?.uid === nextProps.owner?.uid &&
-    ownerSeats(prevProps.owner) === ownerSeats(nextProps.owner),
+    ownerSeats(prevProps.owner) === ownerSeats(nextProps.owner) &&
+    // The colour picker's SHAPE (its onCommit is minted every render).
+    pickerFieldKey(prevProps.colorPicker) === pickerFieldKey(nextProps.colorPicker),
 );
 
 PlayerCard.displayName = "PlayerCard";

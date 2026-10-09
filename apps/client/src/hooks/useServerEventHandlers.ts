@@ -294,7 +294,7 @@ export function useServerEventHandlers({
         toastError(REMOVE_PLAYER_REFUSAL_COPY[message.reason], 5000);
       } else if ("t" in message && message.t === "color-adjusted") {
         // The server moved a colour you chose out of another player's zone (C1).
-        toastInfo(colorAdjustedMessage(message.near, message.name), 5000);
+        toastInfo(colorAdjustedMessage(message.near, message.name, message.throttled), 5000);
       } else if ("t" in message && message.t === "locked-refused") {
         // The lock stopped a move or a delete (or a bulk action kept these pieces): the
         // server sends it to the one who tried, and nothing else on the table says why.
