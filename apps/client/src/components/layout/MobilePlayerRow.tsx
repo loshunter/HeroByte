@@ -6,6 +6,7 @@
 import React, { memo, useEffect, useState } from "react";
 import { MobileRowConditions } from "./MobileRowConditions";
 import { MobileRowActions, type MobileRowInitiative } from "./MobileRowActions";
+import { MobileRowHeader } from "./MobileRowHeader";
 import type { MovementBudgetControl } from "../../features/players/components/MovementSpeedField";
 import type { Player, Token, TokenSize } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
@@ -170,68 +171,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           borderRadius: "8px",
         }}
       >
-        {/* Header: Portrait + Name */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: "2px solid var(--hero-gold)",
-              flexShrink: 0,
-            }}
-          >
-            {player.portrait ? (
-              <img
-                src={player.portrait}
-                alt={player.name}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  background: "#333",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#aaa",
-                  fontSize: "20px",
-                }}
-              >
-                ?
-              </div>
-            )}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                color: "var(--hero-white)",
-                fontWeight: "bold",
-                fontSize: "1.1rem",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {player.name}
-            </div>
-            <div
-              style={{
-                color: player.isDM ? "var(--hero-gold)" : "rgba(255, 255, 255, 0.6)",
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              {player.isDM ? "Dungeon Master" : "Adventurer"}
-              {initiative?.value !== undefined ? ` · Init ${initiative.value}` : ""}
-              {initiative?.isTurn ? " · ▶ Turn" : ""}
-            </div>
-          </div>
-        </div>
+        <MobileRowHeader player={player} initiative={initiative} />
 
         {/* The row's actions on a line of their own (U7): beside the name,
             FOCUS and EDIT left a phone ~80px for it and cut "Player 1" to
