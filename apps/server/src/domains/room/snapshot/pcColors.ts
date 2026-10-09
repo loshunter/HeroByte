@@ -5,12 +5,30 @@
 // outside the recipient's sight (fog), but party records always ride along.
 // The colour picker's zones (and, later, pings and chat names) need every PC's
 // colour on every screen, so each PC record carries its token's colour.
-// Derived here at send time from the room's own tokens, never stored, so it
-// cannot drift from the token; a stale copy on a record (a hand-edited file)
-// is replaced or removed. Shallow clones only: the view's records alias live
+// Derived here at send time from the room's own tokens, never stored in room
+// state, so it cannot drift from the token (an exported session file carries
+// it; the loader strips it); a stale copy on a record (a hand-edited file) is
+// replaced or removed. Shallow clones only: the view's records alias live
 // RoomState.
 
 import type { SnapshotCharacter, Token } from "@herobyte/shared";
+import type { RoomState } from "../model.js";
+
+/**
+ * Every token whose colour a PC can hold: the current map's, and those waiting
+ * with another map (a locked token stays behind when the party travels). Without
+ * the waiting ones, a PC record would carry a colour only while its token was on
+ * this map, a one-bit hint fog otherwise hides.
+ */
+export function colourTokens(state: RoomState): Token[] {
+  // A suspended scene can be malformed (a hand-edited or old file): skip what is not a token.
+  const waiting = Object.values(state.sceneStates ?? {}).flatMap((scene) =>
+    Array.isArray(scene?.tokens)
+      ? scene.tokens.filter((token) => typeof token?.id === "string")
+      : [],
+  );
+  return waiting.length > 0 ? [...state.tokens, ...waiting] : state.tokens;
+}
 
 export function withPcColors(
   characters: SnapshotCharacter[],

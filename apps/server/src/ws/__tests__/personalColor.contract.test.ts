@@ -7,16 +7,22 @@
  * carries its colour on the wire even when fog drops the token.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import path from "node:path";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   colorToOkLab,
+  createSeededRng,
   deltaE,
+  farthestColor,
+  normalizeColor,
   ruleRadius,
   windowColorAt,
   type CompiledScene,
+  type SceneState,
 } from "@herobyte/shared";
 import { CharacterService } from "../../domains/character/service.js";
 import { TokenService } from "../../domains/token/service.js";
+import { RoomService } from "../../domains/room/service.js";
 import { toSnapshot } from "../../domains/room/model.js";
 import { createRouterHarness, flush, messagesOf, type RouterHarness } from "./routerHarness.js";
 
@@ -30,7 +36,8 @@ const distance = (first: string, second: string) =>
 describe("personal colours — the server is the authority", () => {
   let harness: RouterHarness;
   const characters = new CharacterService();
-  const tokens = new TokenService();
+  // Seeded, so the colours a test seats are the same on every run.
+  let tokens = new TokenService(createSeededRng(1));
   const state = () => harness.roomService.getState();
 
   /** A PC for `uid`, linked to a fresh token, as a join provisions one. */
@@ -50,6 +57,7 @@ describe("personal colours — the server is the authority", () => {
       { uid: BO, isDM: false },
     ]);
     state().characters = [];
+    tokens = new TokenService(createSeededRng(1));
   });
 
   it("gives each new player's token a colour well away from everyone else's", () => {
@@ -62,11 +70,10 @@ describe("personal colours — the server is the authority", () => {
     }
   });
 
-  it("snaps a choice inside another player's zone, saves it, and tells only the sender", async () => {
+  it("snaps a choice inside another player's zone and tells only the sender", async () => {
     const ann = seat(ANN, "Annika");
     const bo = seat(BO, "Bors");
     const annColor = ann.color;
-    const save = vi.spyOn(harness.roomService, "saveState");
 
     harness.route({ t: "set-token-color", tokenId: bo.id, color: annColor }, BO);
     await flush();
@@ -75,10 +82,9 @@ describe("personal colours — the server is the authority", () => {
     expect(distance(bo.color, annColor)).toBeGreaterThanOrEqual(ruleRadius(2));
     expect(ann.color).toBe(annColor);
     expect(notices(BO)).toEqual([
-      { t: "color-adjusted", tokenId: bo.id, color: bo.color, near: "Annika" },
+      { t: "color-adjusted", tokenId: bo.id, color: bo.color, near: "Annika", name: "Bors" },
     ]);
     expect(notices(ANN)).toEqual([]);
-    expect(save).toHaveBeenCalled();
   });
 
   it("keeps an allowed choice exactly, normalised, with no notice", () => {
@@ -129,34 +135,138 @@ describe("personal colours — the server is the authority", () => {
     expect(notices(BO)).toEqual([]);
   });
 
-  it("never counts NPC tokens", () => {
+  it("never counts NPC tokens, even one a player holds", () => {
     const ann = seat(ANN, "Annika");
     const bo = seat(BO, "Bors");
+    // A claimed NPC: its token belongs to a player, so only the NPC rule keeps it out.
     const goblin = characters.createCharacter(state(), "Goblin", 7, undefined, "npc");
-    const npcToken = tokens.createToken(state(), DM, 3, 3);
+    const npcToken = tokens.createToken(state(), "cy", 3, 3, undefined, "medium", "npc");
     characters.linkToken(state(), goblin.id, npcToken.id);
-    const npcColor =
-      distance(windowColorAt({ u: 0.4, v: 0.6 }).hex, ann.color) >= ruleRadius(2)
-        ? windowColorAt({ u: 0.4, v: 0.6 }).hex
-        : windowColorAt({ u: 0.9, v: 0.6 }).hex;
+    // Free of Annika's zone, so only the goblin could stand in Bors's way.
+    const npcColor = farthestColor([{ lab: colorToOkLab(ann.color)! }]);
     tokens.setColorForToken(state(), npcToken.id, npcColor);
 
     harness.route({ t: "set-token-color", tokenId: bo.id, color: npcColor }, BO);
 
     expect(bo.color).toBe(npcColor);
+    expect(notices(BO)).toEqual([]);
   });
 
-  it("recolours to an allowed colour away from the current one, and saves it", () => {
+  it("gives an NPC token a plain window colour, not the spot the next player would get", () => {
+    seat(ANN, "Annika");
+    const goblin = characters.createCharacter(state(), "Goblin", 7, undefined, "npc");
+    const expected = farthestColor([], createSeededRng(99));
+    characters.placeNPCToken(state(), new TokenService(createSeededRng(99)), goblin.id, DM);
+    expect(state().tokens.find((token) => token.id === goblin.tokenId)?.color).toBe(expected);
+  });
+
+  it("starts a player's second character in that player's colour", () => {
+    const ann = seat(ANN, "Annika");
+    harness.route({ t: "add-player-character", name: "Second" }, ANN);
+    const second = state().characters.find((character) => character.name === "Second")!;
+    expect(state().tokens.find((token) => token.id === second.tokenId)?.color).toBe(ann.color);
+  });
+
+  it("keeps a colour sent again unchanged, even one close to another player's", () => {
     const ann = seat(ANN, "Annika");
     const bo = seat(BO, "Bors");
-    const save = vi.spyOn(harness.roomService, "saveState");
+    ann.color = "hsl(200, 70%, 50%)";
+    bo.color = "hsl(206, 70%, 50%)";
+    expect(distance(ann.color, bo.color)).toBeLessThan(ruleRadius(2));
+
+    harness.route({ t: "set-token-color", tokenId: bo.id, color: "hsl(206, 70%, 50%)" }, BO);
+
+    expect(bo.color).toBe("hsl(206, 70%, 50%)");
+    expect(notices(BO)).toEqual([]);
+  });
+
+  it("neither names nor makes room for a PC hidden from players", () => {
+    const bo = seat(BO, "Bors");
+    const mole = seat("ghost", "Mole");
+    state().characters.find((character) => character.name === "Mole")!.visibleToPlayers = false;
+
+    harness.route({ t: "set-token-color", tokenId: bo.id, color: mole.color }, BO);
+
+    expect(bo.color).toBe(normalizeColor(mole.color));
+    expect(notices(BO)).toEqual([]);
+  });
+
+  it("does not let a PC with no owner hold a zone", () => {
+    const bo = seat(BO, "Bors");
+    const orphan = seat("lost", "Orphan");
+    state().characters.find((character) => character.name === "Orphan")!.ownedByPlayerUID =
+      undefined;
+
+    harness.route({ t: "set-token-color", tokenId: bo.id, color: orphan.color }, BO);
+
+    expect(bo.color).toBe(normalizeColor(orphan.color));
+  });
+
+  it("keeps the zone and the wire colour of a PC whose token waits with another map", () => {
+    const ann = seat(ANN, "Annika");
+    const bo = seat(BO, "Bors");
+    state().tokens = state().tokens.filter((token) => token.id !== ann.id);
+    state().sceneStates = {
+      elsewhere: { mapDocumentId: "m2", suspendedAt: 1, tokens: [ann] } as unknown as SceneState,
+    };
+
+    harness.route({ t: "set-token-color", tokenId: bo.id, color: ann.color }, BO);
+
+    expect(distance(bo.color, ann.color)).toBeGreaterThanOrEqual(ruleRadius(2));
+    expect(notices(BO)[0]).toMatchObject({ near: "Annika" });
+    const annika = toSnapshot(state(), false, BO).characters.find((c) => c.name === "Annika");
+    expect(annika?.color).toBe(ann.color);
+  });
+
+  it("lets one player make a burst of 10 colour writes, then only a few more a second", () => {
+    const bo = seat(BO, "Bors");
+    let changes = 0;
+    for (let press = 0; press < 30; press += 1) {
+      const before = bo.color;
+      harness.route({ t: "recolor", id: bo.id }, BO);
+      if (bo.color !== before) changes += 1;
+    }
+    // 10 at once, plus whatever 5 a second refills while the loop runs.
+    expect(changes).toBeGreaterThanOrEqual(10);
+    expect(changes).toBeLessThan(16);
+  });
+
+  it("keeps a chosen colour across a server restart", async () => {
+    const bo = seat(BO, "Bors");
+    const pick = windowColorAt({ u: 0.37, v: 0.42 }).hex;
+    harness.route({ t: "set-token-color", tokenId: bo.id, color: pick }, BO);
+    await flush();
+    await harness.roomService.awaitPendingWrites();
+
+    const restarted = new RoomService({
+      stateFile: path.join(process.cwd(), ".tmp", "personalColor-state.json"),
+    });
+    restarted.loadState();
+
+    expect(restarted.getState().tokens.find((token) => token.id === bo.id)?.color).toBe(pick);
+  });
+
+  it("restores a table backup's colours as saved, without the rule", () => {
+    const shared = "#3fa7d6";
+    harness.roomService.loadSnapshot(
+      toSnapshotWith(state(), [
+        { id: "pa", owner: "pa-owner", color: shared },
+        { id: "pb", owner: "pb-owner", color: shared },
+      ]),
+    );
+    const restored = harness.roomService.getState().tokens.filter((t) => t.color === shared);
+    expect(restored.map((token) => token.id).sort()).toEqual(["pa", "pb"]);
+  });
+
+  it("recolours to an allowed colour away from the current one", () => {
+    const ann = seat(ANN, "Annika");
+    const bo = seat(BO, "Bors");
     for (let press = 0; press < 10; press += 1) {
       const before = bo.color;
       harness.route({ t: "recolor", id: bo.id }, BO);
       expect(bo.color).not.toBe(before);
       expect(distance(bo.color, ann.color)).toBeGreaterThanOrEqual(ruleRadius(2));
     }
-    expect(save).toHaveBeenCalled();
   });
 
   it("reads a character file's legacy hsl colour, snapping it out of another's zone", () => {
@@ -231,5 +341,26 @@ function sceneSplitByWallAt(x: number): CompiledScene {
     ],
     doors: [],
     lights: [],
+  };
+}
+
+/** A table backup holding just these PCs and their tokens (two players' colours may clash). */
+function toSnapshotWith(
+  state: ReturnType<RouterHarness["roomService"]["getState"]>,
+  pcs: { id: string; owner: string; color: string }[],
+) {
+  const snapshot = toSnapshot(state, true);
+  return {
+    ...snapshot,
+    tokens: pcs.map((pc) => ({ id: pc.id, owner: pc.owner, x: 0, y: 0, color: pc.color })),
+    characters: pcs.map((pc) => ({
+      id: `c-${pc.id}`,
+      name: pc.id,
+      type: "pc" as const,
+      hp: 5,
+      maxHp: 5,
+      ownedByPlayerUID: pc.owner,
+      tokenId: pc.id,
+    })),
   };
 }

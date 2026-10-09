@@ -1333,10 +1333,12 @@ export type ServerMessage =
       t: "color-adjusted";
       // Sent to the SENDER only (sendControlMessage). A player's chosen colour fell inside
       // another player's zone (or could not be read), so the server moved it to the
-      // nearest free colour (colorRule.ts). `near`: the character whose zone it was in.
+      // nearest free colour, or a free one when it could not be read (colorRule.ts).
+      // `near`: the character whose zone it was in; `name`: the character moved.
       tokenId: string;
       color: string;
       near?: string;
+      name?: string;
     }
   | { t: "map-studio-deleted"; documentId: string }
   | {

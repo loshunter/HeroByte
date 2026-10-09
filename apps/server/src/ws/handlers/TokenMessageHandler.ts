@@ -135,7 +135,7 @@ export class TokenMessageHandler {
     senderUid: string,
     isDM: boolean,
   ): TokenMessageResult {
-    // Saved like any other colour change (it was broadcast-only since the first commit).
+    // save: true for consistency; the broadcast already requests the same debounced save.
     const recolored = this.tokenService.recolorToken(state, tokenId, senderUid, isDM);
     return { broadcast: recolored, save: recolored };
   }
@@ -245,7 +245,8 @@ export class TokenMessageHandler {
       : this.tokenService.setColor(state, tokenId, senderUid, color, isDM);
     if (!decision) return { broadcast: false, save: false };
     if (!decision.adjusted) return { broadcast: true, save: true };
-    const colorNotice = { tokenId, color: decision.color, near: decision.near };
+    const { color: moved, near, name } = decision;
+    const colorNotice = { tokenId, color: moved, near, name };
     return { broadcast: true, save: true, colorNotice };
   }
 

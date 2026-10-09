@@ -13,6 +13,7 @@ import {
   decideChosenColor,
   recolorChoice,
   type ColorDecision,
+  type TokenKind,
 } from "./colorPolicy.js";
 
 /**
@@ -77,13 +78,14 @@ export class TokenService {
     y: number = 0,
     imageUrl?: string,
     size: TokenSize = "medium",
+    kind: TokenKind = "pc",
   ): Token {
     const newToken: Token = {
       id: randomUUID(),
       owner: ownerUid,
       x,
       y,
-      color: automaticColor(state, ownerUid, this.rng),
+      color: automaticColor(state, ownerUid, this.rng, kind),
       imageUrl,
       size,
     };

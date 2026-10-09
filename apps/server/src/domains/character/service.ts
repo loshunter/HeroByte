@@ -374,6 +374,7 @@ export class CharacterService {
       0,
       character.tokenImage ?? undefined,
       character.tokenSize ?? "medium",
+      "npc",
     );
     character.tokenId = token.id;
     return character;

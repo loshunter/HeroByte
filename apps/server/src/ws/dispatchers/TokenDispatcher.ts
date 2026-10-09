@@ -1,6 +1,7 @@
 import type { ClientMessage, DragPreviewEvent } from "@herobyte/shared";
 import { isDragPreviewEnabled } from "../../config/featureFlags.js";
 import type { TokenMessageHandler } from "../handlers/TokenMessageHandler.js";
+import { ColorWriteBudget } from "../../domains/token/colorPolicy.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
 import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
@@ -13,6 +14,8 @@ export class TokenDispatcher {
   constructor(
     private handler: TokenMessageHandler,
     private authWrapper: AuthorizationCheckWrapper,
+    // Colour writes cost cells x PCs each: a burst of 10, then 5 a second per player.
+    private colorBudget: ColorWriteBudget = new ColorWriteBudget(),
   ) {}
 
   dispatch(
@@ -36,6 +39,7 @@ export class TokenDispatcher {
       }
 
       case "recolor":
+        if (!this.colorBudget.take(senderUid)) return {};
         return this.handler.handleRecolor(state, message.id, senderUid, isDM);
 
       case "delete-token":
@@ -54,6 +58,7 @@ export class TokenDispatcher {
         return this.handler.handleSetSize(state, message.tokenId, senderUid, message.size, isDM);
 
       case "set-token-color":
+        if (!this.colorBudget.take(senderUid)) return {};
         return this.handler.handleSetColor(state, message.tokenId, senderUid, message.color, isDM);
 
       case "set-token-vision-radius":
