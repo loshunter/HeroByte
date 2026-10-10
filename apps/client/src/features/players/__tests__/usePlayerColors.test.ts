@@ -30,6 +30,19 @@ describe("usePlayerColors", () => {
     expect(renderHook(() => usePlayerColors(null)).result.current.size).toBe(0);
   });
 
+  it("drops a player who leaves, though everyone else's colour is unchanged", () => {
+    const characters = [pc("ann", "#112233"), pc("bo", "#8a2be2")];
+    const tokens: [] = [];
+    const { result, rerender } = renderHook(
+      ({ players }) => usePlayerColors({ players, characters, tokens }),
+      {
+        initialProps: { players: [seated("ann"), seated("bo")] },
+      },
+    );
+    rerender({ players: [seated("bo")] });
+    expect([...result.current]).toEqual([["bo", "#8a2be2"]]);
+  });
+
   it("follows a recolour on the next snapshot", () => {
     // Only the party records change (the colour rides them); players and tokens stay put.
     const players = [seated("bo")];

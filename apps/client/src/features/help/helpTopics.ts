@@ -300,7 +300,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🎤 Voice",
         detail:
-          "Join voice (the header on a PC; Party, or the chip at the top while a call runs, on a phone) and allow the microphone when asked. Mute keeps you hearing everyone; Leave voice hangs up. On a PC a speaker's portrait glows in their colour on their card; on a phone, Party lists who is in the call.",
+          "Join voice (the header on a computer; Party, or the chip at the top while a call runs, on a phone) and allow the microphone when asked. Mute keeps you hearing everyone; Leave voice hangs up. On a computer a speaker's portrait glows in their colour on their card; on a phone, Party lists who is in the call.",
       },
       {
         term: "INIT",

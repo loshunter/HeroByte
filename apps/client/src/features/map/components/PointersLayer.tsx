@@ -57,7 +57,7 @@ interface PointersLayerProps {
 
 /**
  * PointersLayer: Renders temporary pointer indicators with pulse-fade animation
- * Shows player name and uses their token color
+ * Shows player name and uses their player's colour (first PC, from the party records)
  * Pointers automatically expire after 3 seconds
  *
  * Optimized with React.memo to prevent unnecessary re-renders

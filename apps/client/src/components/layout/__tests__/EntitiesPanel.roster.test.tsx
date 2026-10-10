@@ -173,6 +173,21 @@ describe("EntitiesPanel — the compact roster (U7)", () => {
     );
   });
 
+  it("colours an unlinked PC's row and card from the record only, never a loose token in view", () => {
+    const loose = [
+      ...tokens,
+      { id: "t-loose", owner: BOB_UID, x: 2, y: 0, color: "#cc3300" },
+    ] as Token[];
+    renderPanel({ tokens: loose });
+    // Bob's only PC has no tokenId and no record colour: the default green, not #cc3300.
+    expect(within(row("Bob")).getByText("B").style.backgroundColor).toBe("rgb(90, 255, 173)");
+    fireEvent.click(within(row("Bob")).getByRole("button", { name: /details$/ }));
+    const card = inspector()!.querySelector(".player-card") as HTMLElement;
+    expect(within(card).getByTestId("portrait-placeholder").style.backgroundColor).toBe(
+      "rgb(90, 255, 173)",
+    );
+  });
+
   it("deletes the character the inspector shows, not its sibling", () => {
     const props = renderPanel();
 

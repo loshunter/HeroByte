@@ -46,6 +46,10 @@ describe("selectionPalette", () => {
     expect(selectionPalette("hsl(120, 70%, 50%)").stroke).toBe("#26d926");
   });
 
+  it("numbers the badge white on #c64475, where keyline-based black would be 4.48:1", () => {
+    expect(selectionPalette("#c64475").badgeText).toBe("#ffffff");
+  });
+
   it("keeps the drag shade at least 6.7:1 from the keyline it is drawn over", () => {
     for (const cell of windowCells()) {
       const palette = selectionPalette(cell.hex);

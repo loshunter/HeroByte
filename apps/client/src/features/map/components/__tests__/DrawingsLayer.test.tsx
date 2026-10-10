@@ -321,17 +321,75 @@ describe("DrawingsLayer", () => {
       expect(stroked("#447DF7")).toHaveLength(0);
     });
 
-    const selectedIn = (color: string, drawing = createDrawingObject()) =>
-      render(
-        <SelectionPaletteContext.Provider value={selectionPalette(color)}>
-          <DrawingsLayer
-            {...defaultProps}
-            drawingObjects={[drawing]}
-            selectMode={true}
-            selectedObjectIds={["drawing-1"]}
-          />
-        </SelectionPaletteContext.Provider>,
+    const selectedIn = (color: string | null, drawing = createDrawingObject(), scale = 1) => {
+      const layer = (
+        <DrawingsLayer
+          {...defaultProps}
+          cam={{ ...mockCamera, scale }}
+          drawingObjects={[drawing]}
+          selectMode={true}
+          selectedObjectIds={["drawing-1"]}
+        />
       );
+      return render(
+        color ? (
+          <SelectionPaletteContext.Provider value={selectionPalette(color)}>
+            {layer}
+          </SelectionPaletteContext.Provider>
+        ) : (
+          layer
+        ),
+      );
+    };
+    const ofType = (type: string) => {
+      const base = createDrawingObject();
+      return createDrawingObject({
+        data: {
+          drawing: {
+            ...(base.data as unknown as { drawing: Record<string, unknown> }).drawing,
+            type,
+            points: [
+              { x: 0, y: 0 },
+              { x: 40, y: 30 },
+            ],
+          },
+        },
+      } as Partial<SceneObject & { type: "drawing" }>);
+    };
+    const KINDS = [
+      ["freehand", "konva-line"],
+      ["line", "konva-line"],
+      ["rect", "konva-rect"],
+      ["circle", "konva-circle"],
+    ] as const;
+
+    it.each(KINDS)(
+      "outlines a %s at zoom 2: a 2-unit keyline under a 1-unit colour",
+      (type, testId) => {
+        selectedIn("#390076", ofType(type), 2);
+        const shapes = screen.getAllByTestId(testId);
+        const widthOf = (stroke: string) =>
+          shapes
+            .find((shape) => shape.getAttribute("data-stroke") === stroke)
+            ?.getAttribute("data-stroke-width");
+        expect(widthOf("#f4f1e8")).toBe("2");
+        expect(widthOf("#390076")).toBe("1");
+      },
+    );
+
+    it.each(KINDS)(
+      "outlines a %s in today's one dashed blue line for a viewer with no colour",
+      (type, testId) => {
+        selectedIn(null, ofType(type));
+        const strokes = screen
+          .getAllByTestId(testId)
+          .map((shape) => shape.getAttribute("data-stroke"));
+        expect(strokes.filter((stroke) => stroke === "#447DF7")).toHaveLength(1);
+        expect(
+          strokes.filter((stroke) => stroke === "#0b0b16" || stroke === "#f4f1e8"),
+        ).toHaveLength(0);
+      },
+    );
 
     it("draws the solid keyline first, 4 px under the 2 px dashed colour", () => {
       selectedIn("#390076");

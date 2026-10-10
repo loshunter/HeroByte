@@ -18,6 +18,8 @@ import type { RoomSnapshot } from "@herobyte/shared";
 import type { MapBoardProps } from "../MapBoard.types";
 import { useSelectionPalette } from "../../features/map/selectionPalette";
 
+const palettesSeen: Array<{ stroke: string }> = [];
+
 interface MockComponentProps {
   children?: ReactNode;
   [key: string]: unknown;
@@ -62,9 +64,11 @@ vi.mock("../../features/map/components", () => ({
   MapImageLayer: () => <div data-testid="map-image-layer" />,
   TerrainLayer: () => <div data-testid="terrain-layer" />,
   // Surfaces the selection palette the stage supplies (C3: your selection, your colour).
-  TokensLayer: () => (
-    <div data-testid="tokens-layer" data-selection={useSelectionPalette().stroke} />
-  ),
+  TokensLayer: () => {
+    const palette = useSelectionPalette();
+    palettesSeen.push(palette);
+    return <div data-testid="tokens-layer" data-selection={palette.stroke} />;
+  },
   // Surfaces the party records it is given: pings take each player's colour from them.
   PointersLayer: (props: { characters?: { id: string }[] }) => (
     <div
@@ -308,6 +312,19 @@ describe("MapBoard", () => {
         />,
       );
       expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#00a4f9");
+
+      // New snapshots in the same colour keep the same palette object (memoised).
+      palettesSeen.length = 0;
+      for (let round = 0; round < 2; round += 1) {
+        rerender(
+          <MapBoard
+            {...getDefaultProps({ snapshot: snapshot([theirs, { ...mine, color: "#00a4f9" }]) })}
+          />,
+        );
+      }
+      expect(palettesSeen.length).toBeGreaterThan(1);
+      expect(new Set(palettesSeen).size).toBe(1);
+      expect(palettesSeen[0]!.stroke).toBe("#00a4f9");
     });
 
     it("should render with empty snapshot", () => {

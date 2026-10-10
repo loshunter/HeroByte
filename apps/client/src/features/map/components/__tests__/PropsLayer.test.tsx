@@ -16,10 +16,14 @@ type MockProps = Record<string, unknown> & { children?: ReactNode };
 
 const rectProps: MockProps[] = [];
 const imageProps: MockProps[] = [];
+const groupProps: MockProps[] = [];
 
 import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 vi.mock("react-konva", () => ({
-  Group: ({ children }: MockProps) => <div data-testid="konva-group">{children}</div>,
+  Group: (props: MockProps) => {
+    groupProps.push(props);
+    return <div data-testid="konva-group">{props.children}</div>;
+  },
   Rect: (props: MockProps) => {
     rectProps.push(props);
     return <div data-testid="konva-rect" />;
@@ -157,6 +161,7 @@ describe("PropsLayer drag round-trip", () => {
 describe("PropsLayer selection colour", () => {
   it("sizes the ring to the prop at any zoom: a 2 px band on a 10/3 px keyline at scale 2", () => {
     rectProps.length = 0;
+    groupProps.length = 0;
     render(
       <SelectionPaletteContext.Provider value={selectionPalette("#ffc2d3")}>
         <PropsLayer
@@ -183,6 +188,11 @@ describe("PropsLayer selection colour", () => {
         sprite.height,
         4,
       ]);
+    }
+    // The ring's group sits where the prop sits, turned and scaled as it is.
+    const group = groupProps.filter((props) => props.listening === false).at(-1)!;
+    for (const key of ["x", "y", "rotation", "scaleX", "scaleY"]) {
+      expect(group[key]).toBe(sprite[key]);
     }
   });
 

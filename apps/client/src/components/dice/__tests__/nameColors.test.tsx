@@ -95,18 +95,36 @@ describe("chat names", () => {
   });
 
   it("follows a recolour on the next render", () => {
+    // Only the colours change; the messages and the handler stay put, so a list of
+    // dependencies that missed the colours could not hide behind them.
+    const messages = [line(BOB, "Bob", "m1")];
+    const onSendChat = vi.fn();
     const view = (color: string) => (
       <ChatTab
-        messages={[line(BOB, "Bob", "m1")]}
+        messages={messages}
         players={players}
         currentUid={ALICE}
-        onSendChat={vi.fn()}
+        onSendChat={onSendChat}
         playerColors={new Map([[BOB, color]])}
       />
     );
     const { rerender } = render(view("#390076"));
     rerender(view("#ffc2d3"));
     expect(nameOf("Bob: ").style.color).toBe("rgb(255, 194, 211)");
+  });
+
+  it("keeps today's gold on your own whisper to someone with no colour", () => {
+    render(
+      <ChatTab
+        messages={[{ ...line(ALICE, "Alice", "w3"), to: BOB, text: "psst" }]}
+        players={players}
+        currentUid={ALICE}
+        onSendChat={vi.fn()}
+        playerColors={new Map([[ALICE, "#ffc2d3"]])}
+      />,
+    );
+    // The recipient has no colour: your line keeps today's gold, never your own colour.
+    expect(nameOf("▶ → Bob: ").style.color).toBe("var(--jrpg-gold)");
   });
 
   it("marks your own lines, and keeps today's gold and cyan without colours", () => {
@@ -145,18 +163,22 @@ describe("roll log names", () => {
       />,
     );
     const bob = screen.getByText("Bob");
-    // #2626d9 is 2.3:1 on the navy; lifted to #4d6eff.
+    // #2626d9 is 2.14:1 on the navy; lifted to #4d6eff.
     expect(bob.style.color).toBe("rgb(77, 110, 255)");
     expect(contrastOnNavy(bob.style.color)).toBeGreaterThanOrEqual(4.5);
     expect(screen.getByText("Gone").style.color).toBe("var(--jrpg-gold)");
   });
 
   it("follows a recolour on the next render", () => {
+    // Only the colours change; the rolls and the handlers stay put.
+    const rolls = [roll(BOB, "Bob")];
+    const onClearLog = vi.fn();
+    const onViewRoll = vi.fn();
     const view = (color: string) => (
       <RollLogContent
-        rolls={[roll(BOB, "Bob")]}
-        onClearLog={vi.fn()}
-        onViewRoll={vi.fn()}
+        rolls={rolls}
+        onClearLog={onClearLog}
+        onViewRoll={onViewRoll}
         playerColors={new Map([[BOB, color]])}
       />
     );
