@@ -15,25 +15,30 @@ import {
   type SnapshotCharacter,
   type Token,
 } from "@herobyte/shared";
-import { looseOwnToken } from "../../utils/looseOwnToken";
 
-/** A character's colour: its record's (fog-proof), else its token's while in view. `#rrggbb` or null. */
+/**
+ * A character's colour: its record's (fog-proof), else its own linked token's
+ * while in view. A token the character is not linked to never lends a colour: a
+ * PC that predates linking gets its colour only from the record, which the
+ * server fills from the whole room (loosePcColours), so every screen agrees.
+ * `#rrggbb` or null.
+ */
 export function characterColor(
   character: Pick<SnapshotCharacter, "color" | "tokenId">,
-  token?: Pick<Token, "color"> | null,
+  token?: Pick<Token, "id" | "color"> | null,
 ): string | null {
-  const raw = character.color ?? token?.color;
+  const linked = token && character.tokenId && token.id === character.tokenId ? token : null;
+  const raw = character.color ?? linked?.color;
   return raw ? normalizeColor(raw) : null;
 }
 
 /**
  * A player's colour: their first PC's, in character order (a later PC only when
  * the earlier ones have no colour yet). The DM's comes from the DM's own PC, never
- * from an NPC token the DM placed. A PC that predates linking, when it is its
- * player's only PC, falls back on the one loose token that player owns
- * (looseOwnToken); the server puts the same colour on its record
- * (loosePcColours), so the record normally carries it already. Null: no PC
- * with a colour, and each place keeps its own fallback.
+ * from an NPC token the DM placed. A PC that predates linking takes only its
+ * record's colour (characterColor): the server gives it its player's one loose
+ * token's colour, judged on the whole room, never on a viewer's fogged view.
+ * Null: no PC with a colour, and each place keeps its own fallback.
  */
 export function playerColor(
   uid: string | null | undefined,
@@ -43,11 +48,7 @@ export function playerColor(
   if (!uid || !characters) return null;
   const pcs = characters.filter((c) => c.type === "pc" && c.ownedByPlayerUID === uid);
   for (const pc of pcs) {
-    const token = pc.tokenId
-      ? tokens?.find((t) => t.id === pc.tokenId)
-      : pcs.length === 1
-        ? looseOwnToken(tokens, characters, uid)
-        : undefined;
+    const token = pc.tokenId ? tokens?.find((t) => t.id === pc.tokenId) : undefined;
     const color = characterColor(pc, token);
     if (color) return color;
   }

@@ -90,7 +90,9 @@ describe("rosterEntryView — a player character", () => {
 
   it("focuses its own token, and carries its turn and initiative", () => {
     const token = { id: "t-ranger", color: "#123456" } as Token;
-    const view = rosterEntryView(entity({ initiative: 14 }, { token, isCurrentTurn: true }));
+    const view = rosterEntryView(
+      entity({ initiative: 14, tokenId: "t-ranger" }, { token, isCurrentTurn: true }),
+    );
 
     expect(view).toMatchObject({
       focusTokenId: "t-ranger",
@@ -100,6 +102,13 @@ describe("rosterEntryView — a player character", () => {
       hiddenFromPlayers: false,
     });
     expect(rosterEntryView(entity({})).focusTokenId).toBeUndefined();
+  });
+
+  it("rings an unlinked PC from its record only, not from the loose token found for it", () => {
+    // A loose token in this viewer's (fogged) view is a guess the server may not share.
+    const loose = { id: "t-loose", color: "#123456" } as Token;
+    expect(rosterEntryView(entity({}, { token: loose })).ring).toBe("#5AFFAD");
+    expect(rosterEntryView(entity({ color: "#8a2be2" }, { token: loose })).ring).toBe("#8a2be2");
   });
 });
 

@@ -63,11 +63,13 @@ describe("playerColor", () => {
     expect(playerColor("ann", characters, [])).toBe("#445566");
   });
 
-  it("falls back on the one loose token a player with one unlinked PC owns", () => {
-    const characters = [pc("old", "ann", { tokenId: undefined })];
-    expect(playerColor("ann", characters, [token("loose", "ann", "hsl(120, 70%, 50%)")])).toBe(
-      "#26d926",
-    );
+  it("reads an unlinked PC's colour from its record only, never from a token in view", () => {
+    // A viewer's fogged view may show one loose token where the room has two: the
+    // server judges on the room and puts the colour (or none) on the record.
+    const loose = [token("loose", "ann", "hsl(120, 70%, 50%)")];
+    expect(playerColor("ann", [pc("old", "ann", { tokenId: undefined })], loose)).toBeNull();
+    const recorded = [pc("old", "ann", { tokenId: undefined, color: "hsl(120, 70%, 50%)" })];
+    expect(playerColor("ann", recorded, loose)).toBe("#26d926");
   });
 
   it("never guesses a loose token for a player with two PCs", () => {
@@ -87,11 +89,16 @@ describe("playerColor", () => {
 
 describe("characterColor and playerColorMap", () => {
   it("prefers the record's colour over the token's", () => {
-    expect(characterColor({ color: "#111111", tokenId: "t" }, { color: "#222222" })).toBe(
+    expect(characterColor({ color: "#111111", tokenId: "t" }, { id: "t", color: "#222222" })).toBe(
       "#111111",
     );
-    expect(characterColor({ tokenId: "t" }, { color: "#222222" })).toBe("#222222");
+    expect(characterColor({ tokenId: "t" }, { id: "t", color: "#222222" })).toBe("#222222");
     expect(characterColor({ tokenId: "t" }, undefined)).toBeNull();
+  });
+
+  it("never takes a colour from a token the character is not linked to", () => {
+    expect(characterColor({ tokenId: "t" }, { id: "other", color: "#222222" })).toBeNull();
+    expect(characterColor({ tokenId: null }, { id: "loose", color: "#222222" })).toBeNull();
   });
 
   it("maps every player with a colour and leaves the rest out", () => {

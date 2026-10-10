@@ -3,8 +3,10 @@
 // ============================================================================
 // The recipient filter drops another player's TOKEN from a payload when it is
 // outside the recipient's sight (fog), but party records always ride along.
-// The colour picker's zones (and, later, pings and chat names) need every PC's
-// colour on every screen, so each PC record carries its token's colour.
+// The colour picker's zones, pings, chat and roll names, the Party row and the
+// card need every PC's colour on every screen, so each PC record carries its
+// token's colour (an unlinked sole PC: its player's one loose token's,
+// loosePcColours).
 // Derived here at send time from the room's own tokens, never stored in room
 // state, so it cannot drift from the token (an exported session file carries
 // it; the loader strips it); a stale copy on a record (a hand-edited file) is
@@ -56,14 +58,17 @@ export function pcTokenColours(state: RoomState): Map<string, string> {
 /**
  * The colour of a PC that predates linking (no `tokenId`), by character id: the
  * one token its player owns that no character claims, and only while that PC is
- * its player's only one. The client's own-token fallback (looseOwnToken) reads
- * the same token, but from its fogged view; carried on the record, a player's
- * colour is the same on every screen. Read from the room, never from a view.
+ * its player's only one. Read from the room, never from a view, and carried on
+ * the record: the client takes an unlinked PC's colour from the record alone, so
+ * every screen agrees. Not for a DM: the tokens a DM holds unclaimed are what
+ * REMOVE handed over (a removed player's), and a colour taken from one would
+ * also tell every player that the DM holds exactly one, fog or not.
  */
 export function loosePcColours(state: RoomState): Map<string, string> {
   const colours = new Map<string, string>();
   const claimed = new Set<string>();
   const pcsByOwner = new Map<string, number>();
+  const dms = new Set(state.players.filter((player) => player.isDM).map((player) => player.uid));
   for (const character of state.characters) {
     if (character.tokenId) claimed.add(character.tokenId);
     if (character.type === "pc" && character.ownedByPlayerUID) {
@@ -73,7 +78,7 @@ export function loosePcColours(state: RoomState): Map<string, string> {
   }
   for (const character of state.characters) {
     const owner = character.ownedByPlayerUID;
-    if (character.type !== "pc" || character.tokenId || !owner) continue;
+    if (character.type !== "pc" || character.tokenId || !owner || dms.has(owner)) continue;
     if (pcsByOwner.get(owner) !== 1) continue;
     const loose = state.tokens.filter((token) => token.owner === owner && !claimed.has(token.id));
     const color = loose.length === 1 ? loose[0]!.color : undefined;

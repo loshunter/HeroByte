@@ -81,6 +81,17 @@ describe("loosePcColours", () => {
     expect(loosePcColours(ownerless).size).toBe(0);
   });
 
+  it("lends a DM nothing: the DM's unclaimed tokens are what REMOVE handed over", () => {
+    const state = roomWith(
+      [owned("t-removed", "dm", "#8a2be2")],
+      [{ id: "dm-pc", type: "pc", ownedByPlayerUID: "dm", tokenId: null }],
+    );
+    state.players = [{ uid: "dm", name: "DM", isDM: true }] as typeof state.players;
+    expect(loosePcColours(state).size).toBe(0);
+    state.players = [{ uid: "dm", name: "DM", isDM: false }] as typeof state.players;
+    expect([...loosePcColours(state)]).toEqual([["dm-pc", "#8a2be2"]]);
+  });
+
   it("is not used for a linked PC, whose own token's colour wins", () => {
     const [out] = withPcColors(
       [pc("hero", "t1")],
