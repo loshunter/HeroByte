@@ -10,11 +10,12 @@
 // First entry opens Chat; an explicit tab choice survives closing the panel
 // and moving between the desktop window and phone screen for this player.
 
-import React, { useId, useRef } from "react";
+import React, { useId, useMemo, useRef } from "react";
 import type { ChatMessage, Player } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { RollEntry } from "./RollEntry";
 import { ChatTab } from "./ChatTab";
+import { nameColors } from "../../features/players/playerColors";
 import type { RollLogEntry } from "./rollLogTypes";
 import { useLogTab, type LogTab } from "./useLogTab";
 
@@ -27,6 +28,8 @@ export interface RollLogContentProps {
   // them the panel is exactly what it was, minus the tab strip.
   chatMessages?: ChatMessage[];
   players?: Player[];
+  /** Each seated player's colour (C3), for chat and roll log names. */
+  playerColors?: ReadonlyMap<string, string>;
   currentUid?: string;
   onSendChat?: (text: string, to?: string) => void;
   /**
@@ -47,7 +50,9 @@ export const RollLogContent: React.FC<RollLogContentProps> = ({
   currentUid,
   onSendChat,
   canClearLog = true,
+  playerColors,
 }) => {
+  const rollNames = useMemo(() => nameColors(playerColors ?? new Map()), [playerColors]);
   const [tab, setTab] = useLogTab(currentUid);
   const tabsId = useId();
   const tabListRef = useRef<HTMLDivElement>(null);
@@ -157,6 +162,7 @@ export const RollLogContent: React.FC<RollLogContentProps> = ({
               players={players ?? []}
               currentUid={currentUid}
               onSendChat={onSendChat as (text: string, to?: string) => void}
+              playerColors={playerColors}
             />
           )}
         </div>
@@ -212,7 +218,14 @@ export const RollLogContent: React.FC<RollLogContentProps> = ({
                   rolls
                     .slice()
                     .reverse()
-                    .map((roll) => <RollEntry key={roll.id} roll={roll} onViewRoll={onViewRoll} />)
+                    .map((roll) => (
+                      <RollEntry
+                        key={roll.id}
+                        roll={roll}
+                        onViewRoll={onViewRoll}
+                        nameColor={roll.playerUid ? rollNames.get(roll.playerUid) : undefined}
+                      />
+                    ))
                 )}
               </div>
             </JRPGPanel>

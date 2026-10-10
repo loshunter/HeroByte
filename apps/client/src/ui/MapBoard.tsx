@@ -980,6 +980,7 @@ function MapBoardScene({
             pointers={snapshot?.pointers || []}
             players={snapshot?.players || []}
             tokens={snapshot?.tokens || []}
+            characters={snapshot?.characters}
             preview={pointerPreview}
             previewUid={uid}
             pointerMode={pointerMode}

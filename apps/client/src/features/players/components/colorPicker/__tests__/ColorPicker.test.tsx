@@ -93,6 +93,20 @@ describe("ColorPicker", () => {
     vi.restoreAllMocks();
   });
 
+  it("previews the name as names are drawn: a dark colour lifted to read on the navy", () => {
+    const { container } = renderPicker({ color: "#390076" });
+    const name = container.querySelector(".color-picker__name") as HTMLElement;
+    expect(name.style.color).not.toBe("rgb(57, 0, 118)");
+    const [r, g, b] = name.style.color.match(/\d+/g)!.map(Number);
+    const navy = { r: 15 / 255, g: 14 / 255, b: 30 / 255 };
+    const lum = (c: { r: number; g: number; b: number }) =>
+      [c.r, c.g, c.b]
+        .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i]!, 0);
+    const ratio = (lum({ r: r! / 255, g: g! / 255, b: b! / 255 }) + 0.05) / (lum(navy) + 0.05);
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("names the handle and reads out the colour", () => {
     renderPicker();
     expect(screen.getByRole("slider", { name: "Mine's colour" })).toBeTruthy();

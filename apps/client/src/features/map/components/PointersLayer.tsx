@@ -5,9 +5,16 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Group, Circle, Text } from "react-konva";
-import type { Pointer, Player, Token } from "@herobyte/shared";
+import {
+  keylineFor,
+  type Pointer,
+  type Player,
+  type SnapshotCharacter,
+  type Token,
+} from "@herobyte/shared";
 import type { Camera } from "../types";
 import { useSfx } from "../../juice";
+import { playerColorMap } from "../../players/playerColors";
 
 const POINTER_LIFESPAN_MS = 3000;
 const PULSE_DURATION_MS = 550;
@@ -23,6 +30,8 @@ interface PointersLayerProps {
   pointers: Pointer[];
   players: Player[];
   tokens: Token[];
+  /** Party records: a ping's colour is its player's (C3), fog-proof (playerColors). */
+  characters?: SnapshotCharacter[];
   preview?: { x: number; y: number } | null;
   previewUid?: string | null;
   pointerMode?: boolean;
@@ -40,6 +49,7 @@ export const PointersLayer = memo(function PointersLayer({
   pointers,
   players,
   tokens,
+  characters,
   preview = null,
   previewUid = null,
   pointerMode = false,
@@ -113,13 +123,17 @@ export const PointersLayer = memo(function PointersLayer({
     return () => cancelAnimationFrame(frameId);
   }, [visiblePointers.length]);
 
-  const pointerColors = useMemo(() => {
-    const map = new Map<string, string>();
-    tokens.forEach((token) => {
-      map.set(token.owner, token.color);
-    });
-    return map;
-  }, [tokens]);
+  // Each player's colour, from their first PC (never the DM's last NPC token), read
+  // off the party records so fog never turns a ping white on some screens.
+  const pointerColors = useMemo(
+    () =>
+      playerColorMap(
+        players.map((player) => player.uid),
+        characters,
+        tokens,
+      ),
+    [players, characters, tokens],
+  );
 
   const previewColor = useMemo(() => {
     if (!previewUid) {
@@ -241,19 +255,21 @@ export const PointersLayer = memo(function PointersLayer({
               shadowOffset={{ x: 0, y: 0 }}
             />
             <Circle x={0} y={0} radius={CORE_RADIUS} fill="#05060d" opacity={coreOpacity * 0.35} />
+            {/* The name in the ping's colour, outlined in its keyline (dark or light,
+                whichever contrasts more), so it reads on any map. */}
             <Text
               x={0}
               y={textYOffset}
               text={label}
-              fill="#0b0d1f"
+              fill={color}
+              stroke={keylineFor(color)}
+              strokeWidth={3}
+              fillAfterStrokeEnabled
               fontSize={14}
               fontStyle="bold"
               align="center"
               width={120}
               offsetX={60}
-              shadowColor="rgba(11,13,31,0.65)"
-              shadowBlur={1}
-              shadowOpacity={1}
               opacity={coreOpacity}
             />
           </Group>

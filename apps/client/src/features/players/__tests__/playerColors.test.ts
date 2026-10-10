@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { SnapshotCharacter, Token } from "@herobyte/shared";
-import { characterColor, playerColor, playerColorMap } from "../playerColors";
+import { contrastRatio, parseColor } from "@herobyte/shared";
+import {
+  NAME_GROUND,
+  characterColor,
+  nameColors,
+  playerColor,
+  playerColorMap,
+  speakingGlow,
+} from "../playerColors";
 
 const pc = (id: string, owner: string, extra: Partial<SnapshotCharacter> = {}): SnapshotCharacter =>
   ({
@@ -75,5 +83,26 @@ describe("characterColor and playerColorMap", () => {
       pc("ann", "ann", { tokenId: undefined }),
     ];
     expect([...playerColorMap(["bo", "ann", "cy"], characters, [])]).toEqual([["bo", "#8a2be2"]]);
+  });
+});
+
+describe("nameColors and speakingGlow", () => {
+  it("lifts every name to 4.5:1 on the panel and leaves a readable one alone", () => {
+    const names = nameColors(
+      new Map([
+        ["dark", "#390076"],
+        ["light", "#ffc2d3"],
+      ]),
+    );
+    expect(
+      contrastRatio(parseColor(names.get("dark")!)!, parseColor(NAME_GROUND)!),
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(names.get("light")).toBe("#ffc2d3");
+  });
+
+  it("glows in the card's colour, lifted for a dark one, and as today for the default green", () => {
+    expect(speakingGlow("#5AFFAD")).toBe("rgba(90, 255, 173, 0.35)");
+    expect(speakingGlow("#ffc2d3")).toBe("rgba(255, 194, 211, 0.35)");
+    expect(speakingGlow("#390076")).not.toBe("rgba(57, 0, 118, 0.35)");
   });
 });

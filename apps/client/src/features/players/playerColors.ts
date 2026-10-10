@@ -8,7 +8,13 @@
 // a ping, a chat name or a roster ring then shows the same colour on every
 // screen, in sight or not.
 
-import { normalizeColor, type SnapshotCharacter, type Token } from "@herobyte/shared";
+import {
+  normalizeColor,
+  parseColor,
+  readableOn,
+  type SnapshotCharacter,
+  type Token,
+} from "@herobyte/shared";
 import { looseOwnToken } from "../../utils/looseOwnToken";
 
 /** A character's colour: its record's (fog-proof), else its token's while in view. `#rrggbb` or null. */
@@ -58,4 +64,36 @@ export function playerColorMap(
     if (color) colors.set(uid, color);
   }
   return colors;
+}
+
+/**
+ * The panel chat and roll log names sit on: the theme's navy (`--jrpg-navy`),
+ * behind every roll entry and the chat list on desktop and phone. A name in a
+ * player's colour is lifted to read on it.
+ */
+export const NAME_GROUND = "#0f0e1e";
+
+/** Every player's colour as name text on `ground`: lightness lifted to 4.5:1, hue kept. */
+export function nameColors(
+  colors: ReadonlyMap<string, string>,
+  ground: string = NAME_GROUND,
+): Map<string, string> {
+  const names = new Map<string, string>();
+  for (const [uid, color] of colors) {
+    const text = readableOn(color, ground);
+    if (text) names.set(uid, text);
+  }
+  return names;
+}
+
+/**
+ * A card's speaking glow in the card's colour (a box-shadow colour): lifted to
+ * 3:1 on the navy so a dark colour still glows, at the old glow's 35% strength.
+ * The card's default colour is the old glow's green, so no colour looks as before.
+ */
+export function speakingGlow(color: string): string {
+  const rgb = parseColor(readableOn(color, NAME_GROUND, 3) ?? color);
+  if (!rgb) return "rgba(90, 255, 173, 0.35)";
+  const channel = (value: number) => Math.round(value * 255);
+  return `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, 0.35)`;
 }

@@ -4,6 +4,29 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { PortraitSection } from "../PortraitSection";
 
 describe("PortraitSection", () => {
+  it("glows in the card's colour while speaking (C3), and the turn's gold still wins", () => {
+    const { rerender } = render(
+      <PortraitSection
+        portrait={undefined}
+        statusEffects={[]}
+        tokenColor="#ffc2d3"
+        micLevel={0.5}
+      />,
+    );
+    const frame = () => screen.getByRole("button", { name: "Portrait" });
+    expect(frame().style.boxShadow).toBe("0 0 12px rgba(255, 194, 211, 0.35)");
+    rerender(
+      <PortraitSection
+        portrait={undefined}
+        statusEffects={[]}
+        tokenColor="#ffc2d3"
+        micLevel={0.5}
+        isCurrentTurn
+      />,
+    );
+    expect(frame().style.boxShadow).toContain("rgba(255, 215, 0, 0.85)");
+  });
+
   it("renders a token-colored call-to-action placeholder and triggers change callback", () => {
     const handleRequestChange = vi.fn();
     const tokenColor = "#336699";

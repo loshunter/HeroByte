@@ -48,7 +48,9 @@ const ENTERED_COLOR = "var(--hero-danger)";
 export const RollEntry: React.FC<{
   roll: RollLogEntry;
   onViewRoll: (roll: RollLogEntry) => void;
-}> = ({ roll, onViewRoll }) => {
+  /** The roller's colour as name text (C3); today's gold without one. */
+  nameColor?: string;
+}> = ({ roll, onViewRoll, nameColor }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   // The formula is the SERVER's canonical string now, and the breakdown
   // carries each term's die. Both used to be read off a `tokens` array that
@@ -91,7 +93,7 @@ export const RollEntry: React.FC<{
           className="jrpg-text-small"
           style={{
             fontWeight: "bold",
-            color: "var(--jrpg-gold)",
+            color: nameColor ?? "var(--jrpg-gold)",
           }}
         >
           {sanitizeText(roll.playerName)}

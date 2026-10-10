@@ -8,6 +8,7 @@ import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 import React, { useId } from "react";
 import "./portraitSection.css";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
+import { speakingGlow } from "../playerColors";
 
 interface PortraitSectionProps {
   portrait?: string;
@@ -65,7 +66,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   });
 
   const animatedBoxShadow =
-    micLevel > 0.1 ? "0 0 12px rgba(90, 255, 173, 0.35)" : "0 0 6px rgba(8, 12, 24, 0.6)";
+    micLevel > 0.1 ? `0 0 12px ${speakingGlow(tokenColor)}` : "0 0 6px rgba(8, 12, 24, 0.6)";
   const currentTurnGlow = "0 0 18px rgba(255, 215, 0, 0.85), 0 0 32px rgba(255, 215, 0, 0.35)";
 
   const frameStyles: React.CSSProperties = {

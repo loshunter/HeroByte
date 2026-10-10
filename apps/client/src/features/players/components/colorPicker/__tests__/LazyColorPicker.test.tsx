@@ -22,6 +22,9 @@ describe("LazyColorPicker", () => {
 
   it("renders the picker once its chunk has loaded", async () => {
     render(<LazyColorPicker {...control} />);
-    expect(await screen.findByRole("slider", { name: "Mine's colour" })).toBeTruthy();
+    // The chunk's import can take over a second while the full suite loads the machine.
+    expect(
+      await screen.findByRole("slider", { name: "Mine's colour" }, { timeout: 5000 }),
+    ).toBeTruthy();
   });
 });
