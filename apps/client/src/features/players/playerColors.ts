@@ -29,9 +29,11 @@ export function characterColor(
 /**
  * A player's colour: their first PC's, in character order (a later PC only when
  * the earlier ones have no colour yet). The DM's comes from the DM's own PC, never
- * from an NPC token the DM placed. A PC that predates linking falls back on the
- * one loose token its player owns (looseOwnToken). Null: no PC with a colour,
- * and each place keeps its own fallback.
+ * from an NPC token the DM placed. A PC that predates linking, when it is its
+ * player's only PC, falls back on the one loose token that player owns
+ * (looseOwnToken); the server puts the same colour on its record
+ * (loosePcColours), so the record normally carries it already. Null: no PC
+ * with a colour, and each place keeps its own fallback.
  */
 export function playerColor(
   uid: string | null | undefined,
