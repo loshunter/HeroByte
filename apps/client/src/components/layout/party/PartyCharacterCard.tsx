@@ -12,6 +12,7 @@ import { PlayerCard } from "../../../features/players/components";
 import type { PartyCardContext } from "./partyTypes";
 import { useDMThroughBlip } from "../../../features/table/roleKnown";
 import { buildColorPickerControl } from "../../../features/players/components/colorPicker/colorPickerControl";
+import { characterColor } from "../../../features/players/playerColors";
 
 interface PartyCharacterCardProps {
   /** A character entity (kind "character" or "dm"); it always has a player. */
@@ -64,7 +65,8 @@ export function PartyCharacterCard({
       <PlayerCard
         player={displayPlayer}
         isMe={isMe}
-        tokenColor={token?.color}
+        // The record's colour first: fog drops a party member's token out of sight, never the record.
+        tokenColor={characterColor(character, token) ?? undefined}
         token={token ?? undefined}
         tokenSceneObject={tokenSceneObject}
         playerDrawings={playerDrawings}

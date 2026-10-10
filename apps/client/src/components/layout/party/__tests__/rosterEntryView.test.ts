@@ -35,6 +35,17 @@ const legacySeat = seat({
 } as Partial<Player>);
 
 describe("rosterEntryView — a player character", () => {
+  it("rings a party member in their colour while fog keeps their token out of the payload", () => {
+    const view = rosterEntryView(entity({ tokenId: "t-far", color: "#8A2BE2" }));
+    expect(view.ring).toBe("#8a2be2");
+  });
+
+  it("falls back on the token's colour, then the default ring", () => {
+    const withToken = entity({ tokenId: "t" }, { token: { id: "t", color: "#123456" } as Token });
+    expect(rosterEntryView(withToken).ring).toBe("#123456");
+    expect(rosterEntryView(entity({})).ring).toBe("#5AFFAD");
+  });
+
   it("a sole character falls back to the seat's legacy conditions, temp HP and art", () => {
     const view = rosterEntryView(entity({}, { player: legacySeat }));
 

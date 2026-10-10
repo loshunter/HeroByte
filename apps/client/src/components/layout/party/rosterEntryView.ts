@@ -11,6 +11,7 @@ import type { HpBadge } from "@herobyte/shared";
 import type { EntityInfo } from "../../../hooks/useCombatOrdering";
 import { STATUS_OPTIONS } from "../../../features/players/constants/statusOptions";
 import { npcDispositionLook } from "../../../features/players/components/npcDisposition";
+import { characterColor } from "../../../features/players/playerColors";
 
 export interface RosterCondition {
   emoji: string;
@@ -27,7 +28,7 @@ export interface RosterEntryView {
   kind: EntityInfo["kind"];
   name: string;
   portrait?: string;
-  /** Portrait ring / placeholder colour: the token's, or the NPC's stance. */
+  /** Portrait ring / placeholder colour: the character's colour, or the NPC's stance. */
   ring: string;
   /**
    * "You", "DM", the NPC's stance ("Enemy", "Ally", "Neutral"), or — for another
@@ -92,7 +93,8 @@ export function rosterEntryView(entity: EntityInfo): RosterEntryView {
     kind: entity.kind,
     name: character.name,
     portrait: character.portrait ?? legacy?.portrait ?? undefined,
-    ring: token?.color ?? DEFAULT_RING,
+    // The record's colour first: fog drops a party member's token out of sight, never the record.
+    ring: characterColor(character, token) ?? DEFAULT_RING,
     tag: entity.isMe
       ? "You"
       : player?.isDM
