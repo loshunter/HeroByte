@@ -196,8 +196,35 @@ test("Atlas aimed touch owns its mouse stream and leaves the shared door closed"
         .getByRole("navigation", { name: "Mobile actions" })
         .getByRole("button", { name: "DM", exact: true }),
     ).toHaveAttribute("aria-pressed", "false");
-    const door = (await state(dm)).doors.find((d) => d.state === "closed");
-    expect(door, "generated scene supplies a normal closed door").toBeDefined();
+    // A closed door no token stands on: a token over the door takes the tap (the
+    // generated map and the party's arrival spots vary from run to run).
+    const clearDoorId = await dm.evaluate(() => {
+      const data = window.__HERO_BYTE_E2E__!;
+      const snapshot = data.snapshot!;
+      const grid = data.gridSize!;
+      const t = snapshot.sceneObjects?.find((o) => o.type === "map")?.transform;
+      const angle = ((t?.rotation ?? 0) * Math.PI) / 180;
+      const world = (d: { x1: number; y1: number; x2: number; y2: number }) => {
+        const x = ((d.x1 + d.x2) / 2) * (t?.scaleX ?? 1);
+        const y = ((d.y1 + d.y2) / 2) * (t?.scaleY ?? 1);
+        return {
+          x: (t?.x ?? 0) + x * Math.cos(angle) - y * Math.sin(angle),
+          y: (t?.y ?? 0) + x * Math.sin(angle) + y * Math.cos(angle),
+        };
+      };
+      const clear = (snapshot.compiledScene?.doors ?? [])
+        .filter((d) => d.state === "closed")
+        .find((d) => {
+          const p = world(d);
+          return snapshot.tokens.every(
+            (token) =>
+              Math.hypot(p.x - (token.x + 0.5) * grid, p.y - (token.y + 0.5) * grid) > grid,
+          );
+        });
+      return clear?.id ?? null;
+    });
+    const door = (await state(dm)).doors.find((d) => d.id === clearDoorId);
+    expect(door, "generated scene supplies a closed door no token stands on").toBeDefined();
     const id = door!.id,
       cdp = await openTouch(dm);
     await panToDoor(dm, cdp, id);
