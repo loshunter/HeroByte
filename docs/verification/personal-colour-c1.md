@@ -28,8 +28,8 @@ until C3's text rule lifts them, so **C1 goes to main together with C3**, not al
   characters start in that player's colour. NPC tokens get any window colour. Stored as `#rrggbb`. The choice never
   fails, so it can never block a join.
 - **⚙️ settings → Character → Colour** (desktop) and the row's **⚙️ EDIT** sheet (phone): a hue × lightness window,
-  loaded on demand. Other players' colours hold striped zones (a dark and a light stripe, so a zone shows at any lightness); a mouse hovering one names whose it is, and a tap
-  or click in one names it for three seconds and picks nothing. Dragging into a zone stops the handle at the edge that looks nearest and
+  loaded on demand. Other players' colours hold striped zones (a dark and a light stripe, so a zone shows at any lightness); a mouse hovering one names whose it is
+  without picking. A drag or a tap into a zone stops the handle at the edge that looks nearest and
   the line under the window reads `Too close to <name>`. Hue wraps left to right. A drag commits once, on release;
   a tap on the handle itself picks nothing; on a phone a vertical swipe on the window scrolls the sheet (only a drag
   from the handle, a tap on a free colour or a sideways drag picks); a tap commits the colour its press showed. Arrow
@@ -252,8 +252,8 @@ reviewed**:
   answered now; every other id gets silence. Introduced by round 2's throttle notice; local only, never pushed.
 - **Major:** the server's answer to an earlier pick pulled the handle back from keys or a drag still choosing (every
   other key press was lost with a real round trip); hover labels never came back after the first pick; the help said
-  a tap shows whose a zone is, but the tap recoloured you to the zone's edge (a tap there now names it and picks
-  nothing); the zone-shrink test passed with a frozen radius; the record lacked the final gates and had a stale chunk
+  a tap shows whose a zone is, but the tap recoloured you to the zone's edge (round 3 made a tap there name it and pick
+  nothing; the owner then chose pick-and-name, below); the zone-shrink test passed with a frozen radius; the record lacked the final gates and had a stale chunk
   size.
 - **Minor, fixed:** a PC's colour followed the token's owner instead of its player (the DM's recolour of a PC token it
   held ignored zones); `#rrggbbaa` and `#rgba` were unreadable; the nearest snap, a hidden own PC's name and the
@@ -348,25 +348,36 @@ on the production `pnpm build:check`; `ColorPicker-*.js` 5.31 KB gzip plus 0.81 
   64-character cap in place the old separators cost about 0.16 ms at that length, so the separator change is
   harmless but unpinned.
 
-## Open for the owner
+## Decided after the review (owner, 2026-10-09)
+
+- **Darker colours:** the window runs down to L 0.30 (above); C1 goes to main with C3.
+- **A tap in another player's zone picks the nearest free colour and names whose zone it was** (`Too close to
+  <name>`, held three seconds), like a drag into it. Round 3's "a tap names it and picks nothing" is reverted; keys
+  still waiting are superseded by such a tap (one message, the tap's), and a tap still commits the colour its press
+  showed. Hover still names a zone without picking.
+- **One more review round (round 4), then push to `dev`.** Main is the owner's word, after C3.
+
+## Judgement calls (made, not asked)
+
+- **Colours off the window stay as they are.** A player's allowed colour darker than 0.30, grey or near-white (only
+  a file or a crafted message can carry one) is kept: moving it would also move older colours on every file load,
+  against decision 1's "a placed colour is never moved". C3's text lift has to handle any colour anyway.
+- **`rgb()` and named colours stay unreadable.** HeroByte never writes them; only a hand-edited file carries one. A
+  player's gets a free colour with a toast; a DM's is ignored (the token keeps its colour) without a word, which is
+  rare enough to leave.
+- **No per-player character cap now.** Colour writes are budgeted, a new token's rule costs about 5 ms at 100 other
+  PCs, and a session load caps characters at 500. A cap is a table rule; it can wait for a table that needs one.
+- **Light maps and automatic colours on legacy tables** need nothing in C1: the dark half reads on parchment, C3's
+  text lift and keyline handle the rest, and on the local test table (mid-tone legacy colours) newcomers now get
+  deep shades automatically, which anyone can change.
+
+## Left for the owner
 
 - The **player guide** and the **character-card lesson script** (`docs/user-guide/player-guide.md`,
   `docs/website/video-scripts.md` Player path 3, chapters 5 and 7) are edited but **left uncommitted**: your own
   uncommitted edits sit in the same hunks. `docs/website/narration-wren.md` (also yours, uncommitted) still narrates
   "a new random colour" in chapter 5, lacks the script's picker lines there (the script films the picker), and lacks
   "your colour" in chapter 7; it was not touched.
-- **Colours off the window:** should the server move a player's allowed colour that is off the window (darker than
-  0.30, greys, near-white) onto it? It would move older colours on file loads.
-- **Light maps:** the dark half now reads on parchment; the light pastels at the top do not, and the dark half does
-  not read on dark maps without C3 and the frames. C3's text lift and selection keyline are where both are handled.
-- **Automatic colours go dark on crowded legacy tables.** On the local test table the 16 legacy colours are mid-tones,
-  so the most open space is now the dark half and newcomers get deep shades. Anyone can move with the picker.
-- **A per-player character cap** for `add-player-character` would bound new-token cost and the table further.
-- **A tap in another player's zone** now names it and picks nothing (round 3, so the help's "tap to see whose" is
-  true); a drag still stops at the edge. If you would rather a tap pick the nearest free colour there, it is a small
-  change, and the help and guide change with it.
-- **`rgb()` and named colours** in a character file are unreadable: a player's gets a free colour with a toast; a
-  DM's is ignored without a word. Say if either should be read or reported.
 
 ## Commits (on `91c69b63`)
 
