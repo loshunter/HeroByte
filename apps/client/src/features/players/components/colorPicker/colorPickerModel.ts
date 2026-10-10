@@ -105,10 +105,21 @@ export function zoneOwnerAt(point: WindowPoint, field: PickerField): string | nu
   return owner === -1 ? null : (field.others[owner]?.name ?? "another player");
 }
 
-/** One keyboard step from a cell: hue wraps, lightness stops at the edges. */
+/**
+ * One keyboard step from a cell: hue wraps, lightness stops at the edges. A few
+ * dark cells round to the same stored colour as their neighbour; a step that
+ * lands on one keeps going, so a key always reaches a new colour when one lies
+ * that way (otherwise the commit sees no change and the handle slips back).
+ */
 export function stepPoint(cell: WindowCell, columns: number, rows: number): WindowPoint {
-  const column = (cell.column + columns + COLOR_WINDOW.columns) % COLOR_WINDOW.columns;
-  const row = Math.min(COLOR_WINDOW.rows - 1, Math.max(0, cell.row + rows));
+  const cells = windowCells();
+  let column = cell.column;
+  let row = cell.row;
+  for (let tries = 0; tries < 4; tries += 1) {
+    column = (column + columns + COLOR_WINDOW.columns) % COLOR_WINDOW.columns;
+    row = Math.min(COLOR_WINDOW.rows - 1, Math.max(0, row + rows));
+    if (cells[row * COLOR_WINDOW.columns + column]!.hex !== cell.hex) break;
+  }
   return { u: (column + 0.5) / COLOR_WINDOW.columns, v: (row + 0.5) / COLOR_WINDOW.rows };
 }
 

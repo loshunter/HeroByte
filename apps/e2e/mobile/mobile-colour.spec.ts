@@ -58,6 +58,9 @@ test.describe("mobile colour picker", () => {
       });
     });
     expect(fits).toBe(true);
+    // The window keeps its 2.6:1 shape (a flex item's content minimum once stretched it).
+    const canvas = (await page.locator(".color-picker__canvas").boundingBox())!;
+    expect(canvas.width / canvas.height).toBeCloseTo(2.6, 1);
     // ...and its foot can be reached: scrolled as far as a finger can scroll it, the
     // preview's bottom edge is on the screen, not clipped below it.
     const reachable = await page.evaluate(() => {

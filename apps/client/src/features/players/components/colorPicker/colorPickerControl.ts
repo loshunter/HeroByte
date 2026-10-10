@@ -37,6 +37,9 @@ export function buildColorPickerControl(args: {
 }): ColorPickerControl | undefined {
   const { token, onTokenColorChange } = args;
   if (!token || !onTokenColorChange) return undefined;
+  // A player colours only a token they own (the server refuses the rest without a
+  // word): a PC linked to someone else's token offers no picker.
+  if (!args.viewerIsDM && token.owner !== args.ownerUid) return undefined;
   const holders: ColorHolder[] = [];
   for (const character of args.characters) {
     if (character.type !== "pc" || !character.color || !character.ownedByPlayerUID) continue;

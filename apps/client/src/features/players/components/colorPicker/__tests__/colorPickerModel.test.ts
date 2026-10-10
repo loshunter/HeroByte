@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   COLOR_WINDOW,
+  cellIndexAt,
   colorToOkLab,
   farthestColor,
   deltaE,
@@ -64,6 +65,22 @@ const control = (viewerIsDM = false, send = vi.fn()) =>
     onTokenColorChange: send,
   })!;
 
+describe("stepPoint over cells that round to one colour", () => {
+  it("always reaches a new colour with one step right, even in the dark rows", () => {
+    const cells = windowCells();
+    const { columns } = COLOR_WINDOW;
+    let pairs = 0;
+    cells.forEach((cell) => {
+      const right = cells[cell.row * columns + ((cell.column + 1) % columns)]!;
+      if (right.hex !== cell.hex) return;
+      pairs += 1;
+      const landed = cells[cellIndexAt(stepPoint(cell, 1, 0))]!;
+      expect(landed.hex).not.toBe(cell.hex);
+    });
+    expect(pairs).toBeGreaterThan(0);
+  });
+});
+
 describe("buildColorPickerControl", () => {
   it("collects every PC colour and who is DM, and sends to the token", () => {
     const send = vi.fn();
@@ -77,6 +94,21 @@ describe("buildColorPickerControl", () => {
     expect(built.dmUids).toEqual(["dm"]);
     built.onCommit("#123456");
     expect(send).toHaveBeenCalledWith("t-mine", "#123456");
+  });
+
+  it("offers a player no picker for a token someone else owns; the DM still gets one", () => {
+    const theirs = { ...myToken, owner: "sam" };
+    const base = {
+      characters,
+      players,
+      token: theirs,
+      characterId: "mine",
+      ownerUid: "me",
+      name: "Mine",
+      onTokenColorChange: vi.fn(),
+    };
+    expect(buildColorPickerControl({ ...base, viewerIsDM: false })).toBeUndefined();
+    expect(buildColorPickerControl({ ...base, viewerIsDM: true })).toBeDefined();
   });
 
   it("offers nothing without a token or without a way to send", () => {

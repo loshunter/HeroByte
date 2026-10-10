@@ -23,6 +23,9 @@
   position: relative;
   width: 100%;
   aspect-ratio: 2.6 / 1;
+  /* A flex item's automatic minimum is its content: the canvas raster (180 × 100)
+     would grow the window past 2.6:1 in Chromium. */
+  min-height: 0;
   border: 2px solid var(--jrpg-border-gold);
   border-radius: 4px;
   cursor: crosshair;
@@ -48,9 +51,11 @@
   box-shadow: 0 0 0 1px var(--hero-white);
 }
 
-/* Your other characters: a white dashed ring, so a dark colour still shows on the dark half. */
+/* Your other characters: small squares (the dashed rings are suggested spots), white
+   edged so a dark colour still shows on the dark half. */
 .color-picker__own {
-  border: 2px dashed var(--hero-white);
+  border: 2px solid var(--hero-white);
+  border-radius: 3px;
   box-shadow: 0 0 0 1px var(--jrpg-navy);
 }
 

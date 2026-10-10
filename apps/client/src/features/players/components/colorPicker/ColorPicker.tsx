@@ -32,46 +32,19 @@ import { pickerFieldKey, type ColorPickerControl } from "./colorPickerControl";
 import { drawColorWindow } from "./drawColorWindow";
 import { ColorPickerMarks, at } from "./ColorPickerMarks";
 import { ColorPickerPreview } from "./ColorPickerPreview";
+import {
+  ARROWS,
+  DRAWN_ASPECT,
+  KEY_COMMIT_MS,
+  NOTICE_HOLD_MS,
+  PENDING_TIMEOUT_MS,
+  TAP_SLOP_PX,
+  type Drag,
+  type Notice,
+} from "./pickerInput";
 import "./colorPicker.css";
 
-const ARROWS: Record<string, [number, number]> = {
-  ArrowLeft: [-1, 0],
-  ArrowRight: [1, 0],
-  ArrowUp: [0, -1],
-  ArrowDown: [0, 1],
-};
-
-/** Arrow-key steps commit once the keys have been quiet this long (one message, not ten). */
-export const KEY_COMMIT_MS = 400;
-/** A commit the server answers without changing the colour stops showing after this. */
-export const PENDING_TIMEOUT_MS = 1500;
-/** A press that moves less than this is a tap, not a drag: a finger jitters more than a mouse. */
-const TAP_SLOP_PX: Record<string, number> = { mouse: 3, pen: 6, touch: 10 };
-/** A bump notice stays this long after the pointer lifts (on a phone, that is the label). */
-export const NOTICE_HOLD_MS = 3000;
-/** The window's drawn aspect (colorPicker.css), for the edge-stop before it is measured. */
-const DRAWN_ASPECT = 2.6;
-
-/** The line under the window: a bump or tap notice is announced, a hover label is not. */
-interface Notice {
-  text: string;
-  live: boolean;
-}
-
-interface Drag {
-  pointerId: number;
-  startX: number;
-  startY: number;
-  /** How far it must move to be a drag rather than a tap, for this kind of pointer. */
-  slop: number;
-  /** Pressed on the handle itself: moves keep the grab offset, and a tap is no pick. */
-  onHandle: boolean;
-  /** The cell a press on a free spot showed: a tap commits it, wherever the finger lifts. */
-  pressed: WindowCell | null;
-  offsetX: number;
-  offsetY: number;
-  moved: boolean;
-}
+export { KEY_COMMIT_MS, NOTICE_HOLD_MS, PENDING_TIMEOUT_MS } from "./pickerInput";
 
 export function ColorPicker(control: ColorPickerControl): JSX.Element {
   const fieldKey = pickerFieldKey(control);
@@ -87,6 +60,8 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSent = useRef<string | null>(null);
+  /** The last placement stopped at a zone's edge: its notice is held a few seconds. */
+  const bumped = useRef(false);
   const aspect = useRef(DRAWN_ASPECT);
   const pendingRef = useRef<WindowCell | null>(null);
   pendingRef.current = pending;
@@ -135,13 +110,30 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
     }, NOTICE_HOLD_MS);
   };
   const moveTo = (point: { u: number; v: number }) => {
-    // The person is choosing again: an earlier pick's timeout must not erase this one.
-    stopTimer(pendingTimer);
     stopTimer(noticeTimer);
     const placed = placeHandle(point, field, control.exempt, aspect.current);
+    bumped.current = Boolean(placed.blockedBy);
     setPending(placed.cell);
     setNotice(placed.blockedBy ? { text: `Too close to ${placed.blockedBy}`, live: true } : null);
     return placed.cell;
+  };
+  /**
+   * An answer that leaves the colour as it was (a snap, a refusal) changes nothing
+   * to clear the pending pick on, so it stops showing after a moment instead; while
+   * keys or a drag are still choosing, it looks again later rather than give up.
+   */
+  const retireSoon = () => {
+    stopTimer(pendingTimer);
+    const retire = () => {
+      if (drag.current || keyed.current) {
+        pendingTimer.current = setTimeout(retire, PENDING_TIMEOUT_MS);
+        return;
+      }
+      pendingTimer.current = null;
+      lastSent.current = null;
+      setPending(null);
+    };
+    pendingTimer.current = setTimeout(retire, PENDING_TIMEOUT_MS);
   };
   const commit = (cell: WindowCell | null) => {
     stopTimer(keyTimer);
@@ -149,19 +141,12 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
     // Judged against a pick still in flight: going back to the old colour is a pick too.
     if (!cell || sameColor(cell.hex, lastSent.current ?? control.color)) {
       if (lastSent.current === null) setPending(null);
+      else if (!pendingTimer.current) retireSoon();
       return;
     }
     lastSent.current = cell.hex;
     control.onCommit(cell.hex);
-    // An answer that leaves the colour as it was (a snap back) changes nothing to
-    // clear the pending one on; it stops showing after a moment instead.
-    stopTimer(pendingTimer);
-    pendingTimer.current = setTimeout(() => {
-      pendingTimer.current = null;
-      if (drag.current || keyed.current) return;
-      lastSent.current = null;
-      setPending(null);
-    }, PENDING_TIMEOUT_MS);
+    retireSoon();
   };
   commitRef.current = commit;
   /** Keep the arrow keys on the handle after a pick, so they never reach the map. */
@@ -180,9 +165,13 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
     keyed.current = false;
   };
   const cancelDrag = () => {
+    const keys = drag.current?.keys ?? null;
     drag.current = null;
-    if (!keyed.current) setPending(null); // Keys still waiting commit on their own.
     setNotice(null);
+    if (keyed.current) return; // Keys still waiting commit on their own.
+    // A cancelled press (a phone scroll) picks nothing, but keys it interrupted still go.
+    setPending(keys);
+    if (keys) commit(keys);
   };
 
   return (
@@ -211,6 +200,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
             offsetY: onHandle && handle ? handle.top + handle.height / 2 - event.clientY : 0,
             moved: false,
             pressed: null,
+            keys: keyed.current ? pendingRef.current : null,
           };
           event.currentTarget.setPointerCapture?.(event.pointerId);
           // On the handle, nothing moves until the pointer does.
@@ -249,7 +239,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
               moveTo(pointFor(event.clientX + active.offsetX, event.clientY + active.offsetY)),
             );
           }
-          holdNotice();
+          if (bumped.current) holdNotice();
         }}
         onPointerCancel={(event) => {
           // A phone turning a vertical swipe into a scroll lands here: nothing is picked.
@@ -311,6 +301,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
               event.stopPropagation();
               const size = event.shiftKey ? 5 : 1;
               moveTo(stepPoint(shown, step[0] * size, step[1] * size));
+              if (bumped.current) holdNotice();
               // Commits once the keys go quiet: armed on every press (a held key
               // repeats keydown), so it never waits on a keyup that may not come.
               keyed.current = true;

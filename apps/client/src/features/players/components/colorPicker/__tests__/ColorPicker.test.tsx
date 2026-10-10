@@ -230,7 +230,17 @@ describe("ColorPicker", () => {
       clientX: spot.u * 360,
       clientY: spot.v * 120,
     });
+    // The colour where it was released, not where it was pressed.
+    expect(onCommit.mock.calls).toEqual([[cellAt(spot.u, spot.v).hex]]);
+  });
+
+  it("commits a drag from a free colour into a zone at that zone's nearest edge", () => {
+    const { onCommit, surface } = renderPicker();
+    dragTo(surface, pixelOf(cellAt(0.3, 0.2)), pixelOf(RED_CELL));
     expect(onCommit).toHaveBeenCalledTimes(1);
+    const room = deltaE(colorToOkLab(onCommit.mock.calls[0]![0])!, colorToOkLab(RED)!);
+    expect(room).toBeGreaterThanOrEqual(ruleRadius(2));
+    expect(room).toBeLessThan(ruleRadius(2) + 0.03);
   });
 
   it("picks nothing on a tap of the handle itself", () => {
@@ -497,6 +507,121 @@ describe("ColorPicker", () => {
     expect(screen.getByLabelText("Colour code").textContent).toBe(keyed);
     act(() => vi.advanceTimersByTime(KEY_COMMIT_MS));
     expect(onCommit.mock.calls).toEqual([[keyed]]);
+  });
+
+  it("stops showing a refused pick even when the handle was held while the answer came", () => {
+    vi.useFakeTimers();
+    const { surface, rerender, props } = renderPicker();
+    press(surface, pixelOf(cellAt(0.3, 0.2)));
+    fireEvent.pointerDown(screen.getByRole("slider"), {
+      pointerId: 1,
+      button: 0,
+      ...pixelOf(BLUE_CELL),
+    });
+    act(() => {
+      rerender(<ColorPicker {...props} color={BLUE} />); // the answer: nothing changed
+    });
+    act(() => vi.advanceTimersByTime(PENDING_TIMEOUT_MS + 200));
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    act(() => vi.advanceTimersByTime(PENDING_TIMEOUT_MS));
+    expect(screen.getByLabelText("Colour code").textContent).toBe(BLUE);
+    const recoloured = cellAt(0.45, 0.4).hex;
+    act(() => {
+      rerender(<ColorPicker {...props} color={recoloured} />);
+    });
+    expect(screen.getByLabelText("Colour code").textContent).toBe(recoloured);
+  });
+
+  it("stops showing a refused pick after a drag back to it while it was in flight", () => {
+    vi.useFakeTimers();
+    const { surface } = renderPicker();
+    const picked = cellAt(0.3, 0.2);
+    press(surface, pixelOf(picked));
+    dragTo(surface, pixelOf(cellAt(0.4, 0.3)), pixelOf(picked));
+    act(() => vi.advanceTimersByTime(PENDING_TIMEOUT_MS * 3));
+    expect(screen.getByLabelText("Colour code").textContent).toBe(BLUE);
+  });
+
+  it("sends keys still waiting when a press off the handle is cancelled (a phone scroll)", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    const touch = { pointerId: 1, button: 0, pointerType: "touch", ...pixelOf(cellAt(0.3, 0.2)) };
+    fireEvent.pointerDown(surface, touch);
+    fireEvent.pointerCancel(surface, { pointerId: 1 });
+    expect(onCommit.mock.calls).toEqual([[keyed]]);
+    expect(screen.getByLabelText("Colour code").textContent).toBe(keyed);
+  });
+
+  it("sends nothing while a press is down, even past the keys' quiet time", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, ...pixelOf(cellAt(0.3, 0.2)) });
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS + 50));
+    expect(onCommit).not.toHaveBeenCalled();
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(cellAt(0.3, 0.2)) });
+    expect(onCommit.mock.calls).toEqual([[cellAt(0.3, 0.2).hex]]);
+  });
+
+  it("sends nothing while a drag from the handle is under way, even past the keys' quiet time", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const handle = screen.getByRole("slider");
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    fireEvent.pointerDown(handle, { pointerId: 2, button: 0, ...pixelOf(BLUE_CELL) });
+    fireEvent.pointerMove(surface, { pointerId: 2, ...pixelOf(cellAt(0.6, 0.3)) });
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS + 50));
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("keeps an in-flight pick showing through a tap on the handle and a second press on it", () => {
+    const { surface } = renderPicker();
+    const picked = cellAt(0.3, 0.2);
+    press(surface, pixelOf(picked));
+    fireEvent.pointerDown(screen.getByRole("slider"), {
+      pointerId: 1,
+      button: 0,
+      ...pixelOf(picked),
+    });
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(picked) });
+    expect(screen.getByLabelText("Colour code").textContent).toBe(picked.hex);
+    press(surface, pixelOf(picked));
+    expect(screen.getByLabelText("Colour code").textContent).toBe(picked.hex);
+  });
+
+  it("keeps a tap's zone notice while the mouse passes over the zone", () => {
+    vi.useFakeTimers();
+    const { surface } = renderPicker();
+    press(surface, pixelOf(NEAR_RED_CELL));
+    fireEvent.pointerMove(surface, { pointerId: 1, pointerType: "mouse", ...pixelOf(RED_CELL) });
+    expect(screen.getByText("Too close to Bors")).toBeTruthy();
+  });
+
+  it("names a zone under the mouse right after a pick that was not bumped", () => {
+    vi.useFakeTimers();
+    const { surface } = renderPicker();
+    press(surface, pixelOf(cellAt(0.3, 0.2)));
+    act(() => vi.advanceTimersByTime(500));
+    fireEvent.pointerMove(surface, { pointerId: 1, pointerType: "mouse", ...pixelOf(RED_CELL) });
+    expect(screen.getByText("Bors's colour")).toBeTruthy();
+  });
+
+  it("clears a key step's bump notice a few seconds later", () => {
+    vi.useFakeTimers();
+    // The first free cell right of Bors's colour: one step left is inside his zone.
+    const edge = windowCells().find(
+      (cell) =>
+        cell.row === RED_CELL.row &&
+        cell.column > RED_CELL.column &&
+        deltaE(cell.lab, colorToOkLab(RED)!) >= ruleRadius(2),
+    )!;
+    renderPicker({ color: edge.hex });
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowLeft" });
+    expect(screen.getByText("Too close to Bors")).toBeTruthy();
+    act(() => vi.advanceTimersByTime(NOTICE_HOLD_MS));
+    expect(screen.queryByText(/Too close/)).toBeNull();
   });
 
   it("forgets a cancelled drag and its notice", () => {

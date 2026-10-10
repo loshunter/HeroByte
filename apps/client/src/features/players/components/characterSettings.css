@@ -34,7 +34,7 @@
    height so the window does not jump when it arrives. */
 .color-picker__loading,
 .color-picker__failed {
-  min-height: 170px;
+  min-height: 210px;
   color: var(--hero-white);
   font-size: 0.8rem;
   opacity: 0.8;

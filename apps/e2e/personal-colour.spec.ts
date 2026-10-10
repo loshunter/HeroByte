@@ -41,6 +41,9 @@ test.describe("personal colour across two clients", () => {
 
       const settings = await openOwnCharacterSettings(bob);
       await expect(settings.getByRole("slider", { name: /'s colour$/ })).toBeVisible();
+      // The window keeps its 2.6:1 shape (a flex item's content minimum once stretched it).
+      const box = (await settings.locator(".color-picker__canvas").boundingBox())!;
+      expect(box.width / box.height).toBeCloseTo(2.6, 1);
       const spot = settings.getByRole("button", { name: /^Suggested colour 1, #[0-9a-f]{6}$/ });
       const spotHex = (await spot.getAttribute("aria-label"))!.split(", ")[1]!;
       // A spot is always somewhere new, so the click must change the colour.
