@@ -16,6 +16,7 @@ import type { ReactNode, Ref } from "react";
 import MapBoard from "../MapBoard";
 import type { RoomSnapshot } from "@herobyte/shared";
 import type { MapBoardProps } from "../MapBoard.types";
+import { useSelectionPalette } from "../../features/map/selectionPalette";
 
 interface MockComponentProps {
   children?: ReactNode;
@@ -60,7 +61,10 @@ vi.mock("../../features/map/components", () => ({
   GridLayer: () => <div data-testid="grid-layer" />,
   MapImageLayer: () => <div data-testid="map-image-layer" />,
   TerrainLayer: () => <div data-testid="terrain-layer" />,
-  TokensLayer: () => <div data-testid="tokens-layer" />,
+  // Surfaces the selection palette the stage supplies (C3: your selection, your colour).
+  TokensLayer: () => (
+    <div data-testid="tokens-layer" data-selection={useSelectionPalette().stroke} />
+  ),
   PointersLayer: () => <div data-testid="pointers-layer" />,
   DrawingsLayer: () => <div data-testid="drawings-layer" />,
   // Surfaces the props MapBoard hands it, so the S6 wiring is assertable: the
@@ -244,6 +248,38 @@ describe("MapBoard", () => {
       const { container } = render(<MapBoard {...props} />);
 
       expect(container).toBeTruthy();
+    });
+
+    it("supplies the viewer's colour to the layers it draws, and today's blue without one", () => {
+      const snapshot = (characters: RoomSnapshot["characters"]): RoomSnapshot => ({
+        users: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        mapBackground: "",
+        players: [],
+        characters,
+        tokens: [],
+        drawings: [],
+        diceRolls: [],
+        pointers: [],
+        sceneObjects: [],
+        props: [],
+      });
+      const mine = {
+        id: "c1",
+        name: "Mine",
+        type: "pc",
+        ownedByPlayerUID: "test-user",
+        tokenId: "t1",
+        color: "#390076",
+      } as RoomSnapshot["characters"][number];
+
+      render(<MapBoard {...getDefaultProps({ snapshot: snapshot([mine]) })} />);
+      expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#390076");
+      cleanup();
+
+      render(<MapBoard {...getDefaultProps({ snapshot: snapshot([]) })} />);
+      expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#447DF7");
     });
 
     it("should render with empty snapshot", () => {

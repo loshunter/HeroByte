@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { Transformer, Group, Rect, Line } from "react-konva";
 import type Konva from "konva";
 import type { SceneObject } from "@herobyte/shared";
+import { useSelectionPalette } from "../selectionPalette";
 
 interface TransformGizmoProps {
   selectedObject: SceneObject | null;
@@ -41,6 +42,7 @@ export function TransformGizmo({
 }: TransformGizmoProps): JSX.Element | null {
   const transformerRef = useRef<Konva.Transformer>(null);
   const isCtrlPressed = useRef<boolean>(false);
+  const palette = useSelectionPalette();
   const currentNodeRef = useRef<Konva.Node | null>(null);
   const [handlePosition, setHandlePosition] = useState<{ x: number; y: number } | null>(null);
   // The selection as of THIS render, read by the cleanup below (whose closure holds the
@@ -261,11 +263,11 @@ export function TransformGizmo({
           "middle-left",
           "middle-right",
         ]}
-        borderStroke="#447DF7"
+        borderStroke={palette.stroke}
         borderStrokeWidth={2}
         borderDash={[5, 5]}
-        anchorFill="#447DF7"
-        anchorStroke="#FFFFFF"
+        anchorFill={palette.stroke}
+        anchorStroke={palette.keyline ?? "#FFFFFF"}
         anchorStrokeWidth={2}
         anchorSize={10}
         anchorCornerRadius={2}
@@ -300,8 +302,8 @@ export function TransformGizmo({
             width={HANDLE_SIZE}
             height={HANDLE_SIZE}
             cornerRadius={4}
-            fill="rgba(68, 125, 247, 0.25)"
-            stroke="#447DF7"
+            fill={palette.fill}
+            stroke={palette.stroke}
             strokeWidth={1.5}
           />
           <Line

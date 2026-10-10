@@ -157,6 +157,7 @@ function createMockComponent(
 }
 
 // Mock Konva components
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 vi.mock("react-konva", () => ({
   Transformer: createMockComponent("konva-transformer", {
     getRefValue: () => mockTransformerRef as unknown as Konva.Transformer,
@@ -296,6 +297,22 @@ describe("TransformGizmo", () => {
 
       const transformer = container.querySelector('[data-testid="konva-transformer"]');
       expect(transformer).toBeNull();
+    });
+
+    it("draws the handles in the viewer's colour, edged with its keyline", () => {
+      const props = createDefaultProps();
+      const { container } = render(
+        <SelectionPaletteContext.Provider value={selectionPalette("#390076")}>
+          <TransformGizmo {...props} />
+        </SelectionPaletteContext.Provider>,
+      );
+
+      const transformerProps = getProps(
+        container.querySelector('[data-testid="konva-transformer"]'),
+      );
+      expect(transformerProps.borderStroke).toBe("#390076");
+      expect(transformerProps.anchorFill).toBe("#390076");
+      expect(transformerProps.anchorStroke).toBe("#f4f1e8");
     });
 
     it("should render with correct Transformer props", () => {

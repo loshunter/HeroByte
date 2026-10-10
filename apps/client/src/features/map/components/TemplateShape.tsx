@@ -10,6 +10,7 @@
 // nothing here derives geometry.
 
 import { Line, Text } from "react-konva";
+import { keylineHalo, useSelectionPalette } from "../selectionPalette";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { formatAreaTemplate, type AreaTemplate } from "@herobyte/shared";
 
@@ -53,6 +54,7 @@ export function TemplateShape({
   selected = false,
   handlers,
 }: TemplateShapeProps) {
+  const palette = useSelectionPalette();
   if (points.length < 3) return null;
 
   const flat = points.flatMap((point) => [point.x, point.y]);
@@ -110,10 +112,11 @@ export function TemplateShape({
         <Line
           points={flat}
           closed
-          stroke="#447DF7"
+          stroke={palette.stroke}
           strokeWidth={2 / scale}
           dash={[8 / scale, 4 / scale]}
           listening={false}
+          {...keylineHalo(palette, scale)}
         />
       )}
     </>

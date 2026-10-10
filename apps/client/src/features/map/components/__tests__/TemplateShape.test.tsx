@@ -12,6 +12,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { TemplateShape } from "../TemplateShape";
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 
 vi.mock("react-konva", () => ({
   Line: (props: Record<string, unknown>) => (
@@ -90,6 +91,23 @@ describe("TemplateShape", () => {
   it("shows no label on a shape with no metadata", () => {
     renderShape();
     expect(screen.queryByTestId("konva-text")).toBeNull();
+  });
+
+  it("dashes a selected template's outline in the viewer's colour", () => {
+    render(
+      <SelectionPaletteContext.Provider value={selectionPalette("#ffc2d3")}>
+        <TemplateShape
+          points={TRIANGLE}
+          color="#ff8800"
+          width={3}
+          opacity={0.8}
+          scale={1}
+          selected
+        />
+      </SelectionPaletteContext.Provider>,
+    );
+    const dashed = lines().filter((line) => line.getAttribute("data-dash") !== "null");
+    expect(dashed.map((line) => line.getAttribute("data-stroke"))).toEqual(["#ffc2d3"]);
   });
 
   it("adds a dashed outline only when selected", () => {

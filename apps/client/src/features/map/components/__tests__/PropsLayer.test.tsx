@@ -17,6 +17,7 @@ type MockProps = Record<string, unknown> & { children?: ReactNode };
 const rectProps: MockProps[] = [];
 const imageProps: MockProps[] = [];
 
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 vi.mock("react-konva", () => ({
   Group: ({ children }: MockProps) => <div data-testid="konva-group">{children}</div>,
   Rect: (props: MockProps) => {
@@ -150,5 +151,33 @@ describe("PropsLayer drag round-trip", () => {
 
     expect(sceneObjects[0]!.transform.x).toBe(2);
     expect(sceneObjects[0]!.transform.y).toBe(3);
+  });
+});
+
+describe("PropsLayer selection colour", () => {
+  it("outlines a selected prop in the viewer's colour with a keyline halo; blue without one", () => {
+    const layer = (
+      <PropsLayer
+        cam={cam}
+        sceneObjects={[prop(2, 3)]}
+        gridSize={GRID}
+        interactive
+        selectedObjectIds={["prop-1"]}
+        onTransformProp={vi.fn()}
+      />
+    );
+    rectProps.length = 0;
+    render(
+      <SelectionPaletteContext.Provider value={selectionPalette("#ffc2d3")}>
+        {layer}
+      </SelectionPaletteContext.Provider>,
+    );
+    expect(spriteRect().stroke).toBe("#ffc2d3");
+    expect(spriteRect().shadowColor).toBe("#0b0b16");
+
+    rectProps.length = 0;
+    render(layer);
+    expect(spriteRect().stroke).toBe("#447DF7");
+    expect(spriteRect().shadowColor).toBeUndefined();
   });
 });

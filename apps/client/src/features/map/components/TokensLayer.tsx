@@ -14,6 +14,8 @@ import { LockIndicator } from "./LockIndicator";
 import type { StatusOption } from "../../players/constants/statusOptions";
 import { TokenHpFeedback } from "../../juice/TokenHpFeedback";
 import { TokenNameplate, type TokenPlateData } from "./TokenNameplate";
+import { SelectionRing } from "./SelectionRing";
+import { useSelectionPalette } from "../selectionPalette";
 import { decorativeMotionDisabled, motionDisabled, useSfx } from "../../juice";
 import { PROP_SIZE_MULTIPLIERS } from "../propSizing";
 
@@ -73,6 +75,9 @@ const TokenSprite = memo(function TokenSprite({
 }: TokenSpriteProps) {
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "");
+  const palette = useSelectionPalette();
+  // In a viewer's colour, the token's own stroke is the keyline and a ring carries the colour.
+  const ringed = selected && palette.keyline !== null;
 
   // Calculate size multiplier based on token size category
   const sizeMultiplier = SIZE_MULTIPLIERS[data.size ?? "medium"] ?? 1.0;
@@ -144,7 +149,7 @@ const TokenSprite = memo(function TokenSprite({
     const shape = node as Konva.Shape;
     const anim = new Konva.Animation((frame) => {
       const seconds = (frame?.time ?? 0) / 1000;
-      shape.shadowColor("#447DF7");
+      shape.shadowColor(palette.glow);
       shape.shadowBlur(9 + 6 * Math.sin(seconds * Math.PI * 2 * 1.1));
       shape.shadowOpacity(0.9);
     }, layer);
@@ -154,7 +159,7 @@ const TokenSprite = memo(function TokenSprite({
       shape.shadowBlur(0);
       shape.shadowOpacity(0);
     };
-  }, [selected]);
+  }, [selected, palette.glow]);
 
   const baseProps = {
     x: transform.x * gridSize + gridSize / 2,
@@ -167,8 +172,8 @@ const TokenSprite = memo(function TokenSprite({
     scaleX: transform.scaleX,
     scaleY: transform.scaleY,
     cornerRadius: gridSize / 8,
-    stroke,
-    strokeWidth,
+    stroke: ringed ? palette.keyline! : stroke,
+    strokeWidth: ringed ? strokeWidth * 2 : strokeWidth,
     draggable,
     onDragEnd,
     onDragStart,
@@ -187,12 +192,32 @@ const TokenSprite = memo(function TokenSprite({
     attrs: { "data-token-id": id },
   } as const;
   const shapeProps = { ...baseProps, ref: nodeRef };
+  const { x, y, offsetX, offsetY, width, height, rotation, scaleX, scaleY, cornerRadius } =
+    baseProps;
+  const ring = ringed ? (
+    <SelectionRing
+      follow={shapeRef}
+      {...{ x, y, offsetX, offsetY, width, height, rotation, scaleX, scaleY, cornerRadius }}
+      stroke={palette.stroke}
+      strokeWidth={strokeWidth}
+    />
+  ) : null;
 
   if (data.imageUrl && status === "loaded" && image) {
-    return <KonvaImage image={image} {...shapeProps} />;
+    return (
+      <>
+        <KonvaImage image={image} {...shapeProps} />
+        {ring}
+      </>
+    );
   }
 
-  return <Rect fill={data.color} {...shapeProps} />;
+  return (
+    <>
+      <Rect fill={data.color} {...shapeProps} />
+      {ring}
+    </>
+  );
 });
 
 interface MultiSelectBadgeProps {
@@ -210,16 +235,22 @@ const MultiSelectBadge = memo(function MultiSelectBadge({
 }: MultiSelectBadgeProps) {
   const radius = size / 2;
   const fontSize = size * 0.6;
+  const palette = useSelectionPalette();
 
   return (
     <Group x={x} y={y}>
-      <Circle radius={radius} fill="#447DF7" stroke="#FFFFFF" strokeWidth={2} />
+      <Circle
+        radius={radius}
+        fill={palette.stroke}
+        stroke={palette.keyline ?? "#FFFFFF"}
+        strokeWidth={2}
+      />
       <Text
         text={count.toString()}
         fontSize={fontSize}
         fontFamily="Arial"
         fontStyle="bold"
-        fill="#FFFFFF"
+        fill={palette.badgeText}
         align="center"
         verticalAlign="middle"
         offsetX={fontSize / 2.5}
@@ -383,6 +414,7 @@ export const TokensLayer = memo(function TokensLayer({
   const [, forceRerender] = useState(0);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const { play } = useSfx();
+  const palette = useSelectionPalette();
 
   const tokens = sceneObjects.filter((object): object is SceneObject & { type: "token" } => {
     return object.type === "token";
@@ -744,7 +776,7 @@ export const TokensLayer = memo(function TokensLayer({
               object={mapOverrides(object)}
               gridSize={gridSize}
               stroke={
-                isSelected ? "#447DF7" : hoveredTokenId === object.id ? "#aaa" : "transparent"
+                isSelected ? palette.stroke : hoveredTokenId === object.id ? "#aaa" : "transparent"
               }
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
               interactive={interactionsEnabled}
@@ -792,7 +824,9 @@ export const TokensLayer = memo(function TokensLayer({
             <TokenSprite
               object={mapOverrides(object)}
               gridSize={gridSize}
-              stroke={isSelected ? "#447DF7" : draggingId === object.id ? "#44f" : "#fff"}
+              stroke={
+                isSelected ? palette.stroke : draggingId === object.id ? palette.drag : "#fff"
+              }
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
               draggable={!object.locked && interactionsEnabled}
               interactive={interactionsEnabled}

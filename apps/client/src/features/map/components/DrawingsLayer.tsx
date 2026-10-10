@@ -16,6 +16,7 @@ import {
 } from "@herobyte/shared";
 import { TemplateShape } from "./TemplateShape";
 import type { Camera } from "../../../hooks/useCamera";
+import { keylineHalo, useSelectionPalette } from "../selectionPalette";
 
 interface DrawingsLayerProps {
   cam: Camera;
@@ -72,6 +73,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   const [, forceRerender] = useState(0);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dragStartPositions = useRef<Record<string, { x: number; y: number }>>({});
+  const palette = useSelectionPalette();
 
   const applyOverrides = (object: SceneObject & { type: "drawing" }) => {
     const override = localOverrides.current[object.id];
@@ -271,7 +273,8 @@ export const DrawingsLayer = memo(function DrawingsLayer({
         }
       : {};
 
-    const selectionStroke = isDragging ? "#44f" : "#447DF7";
+    const selectionStroke = isDragging ? palette.drag : palette.stroke;
+    const selectionHalo = keylineHalo(palette, cam.scale);
     const baseStrokeWidth = drawing.width / cam.scale;
     const highlightStrokeWidth = 2 / cam.scale;
 
@@ -315,6 +318,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
                 points={points.flatMap((p) => [p.x, p.y])}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
+                {...selectionHalo}
                 dash={[8 / cam.scale, 4 / cam.scale]}
                 lineCap="round"
                 lineJoin="round"
@@ -364,6 +368,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
                 points={[start.x, start.y, end.x, end.y]}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
+                {...selectionHalo}
                 dash={[8 / cam.scale, 4 / cam.scale]}
                 lineCap="round"
                 listening={false}
@@ -413,6 +418,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
                 height={y2 - y1}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
+                {...selectionHalo}
                 dash={[8 / cam.scale, 4 / cam.scale]}
                 listening={false}
               />
@@ -459,6 +465,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
                 radius={radius}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
+                {...selectionHalo}
                 dash={[8 / cam.scale, 4 / cam.scale]}
                 listening={false}
               />

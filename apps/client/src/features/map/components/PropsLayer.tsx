@@ -10,6 +10,7 @@ import type { SceneObject } from "@herobyte/shared";
 import useImage from "use-image";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Camera } from "../types";
+import { keylineHalo, useSelectionPalette } from "../selectionPalette";
 import { LockIndicator } from "./LockIndicator";
 import { propRenderSize } from "../propSizing";
 
@@ -41,6 +42,7 @@ const PropSprite = memo(function PropSprite({
 }: PropsSpriteProps) {
   const { data, transform, locked } = object;
   const [image, status] = useImage(data.imageUrl);
+  const palette = useSelectionPalette();
 
   const size = propRenderSize(gridSize, data.size);
   const offset = size / 2;
@@ -58,8 +60,9 @@ const PropSprite = memo(function PropSprite({
     // before this gate, ANY player could grab ANY prop and watch it rubber-
     // band back when the server refused the transform.
     draggable: !locked && interactive && canDrag,
-    stroke: isSelected ? "#447DF7" : "transparent",
+    stroke: isSelected ? palette.stroke : "transparent",
     strokeWidth: isSelected ? 4 / cam.scale : 0,
+    ...(isSelected ? keylineHalo(palette, cam.scale) : {}),
     onClick: onClick,
     onTap,
     onDragEnd: onDragEnd,

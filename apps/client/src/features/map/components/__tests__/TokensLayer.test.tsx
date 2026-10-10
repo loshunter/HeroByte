@@ -73,6 +73,7 @@ function createMockKonvaComponent(testId: string, options: { withChildren?: bool
 }
 
 // Mock Konva components
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 vi.mock("react-konva", () => ({
   Group: createMockKonvaComponent("konva-group", { withChildren: true }),
   Rect: createMockKonvaComponent("konva-rect"),
@@ -747,6 +748,69 @@ describe("TokensLayer", () => {
   // ============================================================================
   // TESTS - SELECTION
   // ============================================================================
+
+  describe("Selection in the viewer's colour", () => {
+    const inColour = (color: string, ui: JSX.Element) => (
+      <SelectionPaletteContext.Provider value={selectionPalette(color)}>
+        {ui}
+      </SelectionPaletteContext.Provider>
+    );
+
+    it("draws a selected token's keyline, and a ring in the viewer's colour over it", () => {
+      const token = createTokenObject("token:1", "user-1", { data: { color: "#ffc2d3" } as never });
+      const props = createDefaultProps({ sceneObjects: [token], selectedObjectIds: ["token:1"] });
+      const { container } = render(inColour("#ffc2d3", <TokensLayer {...props} />));
+
+      const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
+      expect(rects).toHaveLength(2);
+      // The token's own stroke is the keyline (dark on a pastel), twice the ring's width...
+      expect(rects[0]!.stroke).toBe("#0b0b16");
+      expect(rects[0]!.strokeWidth).toBe(6);
+      // ...and the ring on top carries the colour, so it never merges into the fill.
+      expect(rects[1]!.stroke).toBe("#ffc2d3");
+      expect(rects[1]!.strokeWidth).toBe(3);
+      expect(rects[1]!.listening).toBe(false);
+      expect(rects[1]!.x).toBe(rects[0]!.x);
+      expect(rects[1]!.width).toBe(rects[0]!.width);
+    });
+
+    it("edges a deep colour in light, and draws no ring for an unselected token", () => {
+      const selected = createTokenObject("token:1", "other-user");
+      const plain = createTokenObject("token:2", "other-user");
+      const props = createDefaultProps({
+        sceneObjects: [selected, plain],
+        selectedObjectIds: ["token:1"],
+      });
+      const { container } = render(inColour("#390076", <TokensLayer {...props} />));
+
+      const strokes = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(
+        (rect) => getProps(rect).stroke,
+      );
+      expect(strokes.filter((stroke) => stroke === "#f4f1e8")).toHaveLength(1);
+      expect(strokes.filter((stroke) => stroke === "#390076")).toHaveLength(1);
+    });
+
+    it("fills the multi-select count badge with the viewer's colour, its number readable", () => {
+      const tokens = [
+        createTokenObject("token:1", "user-1"),
+        createTokenObject("token:2", "user-1"),
+      ];
+      const props = createDefaultProps({
+        sceneObjects: tokens,
+        selectedObjectIds: ["token:1", "token:2"],
+      });
+      const { container } = render(inColour("#ffc2d3", <TokensLayer {...props} />));
+
+      const badge = [...container.querySelectorAll('[data-testid="konva-circle"]')]
+        .map(getProps)
+        .find((circle) => circle.fill === "#ffc2d3");
+      expect(badge?.stroke).toBe("#0b0b16");
+      const number = [...container.querySelectorAll('[data-testid="konva-text"]')]
+        .map(getProps)
+        .find((text) => text.text === "2");
+      expect(number?.fill).toBe("#0b0b16");
+    });
+  });
 
   describe("Selection", () => {
     it("applies selected stroke when token is selected", () => {

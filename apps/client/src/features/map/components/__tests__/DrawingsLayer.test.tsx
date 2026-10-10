@@ -159,6 +159,7 @@ function createCircleMock() {
   return Component;
 }
 
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 vi.mock("react-konva", () => ({
   Group: createGroupMock(),
   Line: createLineMock(),
@@ -294,6 +295,25 @@ describe("DrawingsLayer", () => {
 
       expect(visibleLine).toBeTruthy();
       expect(visibleLine).toHaveAttribute("data-opacity", "0.8");
+    });
+
+    it("draws a selected drawing's highlight in the viewer's colour", () => {
+      const drawing = createDrawingObject();
+
+      render(
+        <SelectionPaletteContext.Provider value={selectionPalette("#390076")}>
+          <DrawingsLayer
+            {...defaultProps}
+            drawingObjects={[drawing]}
+            selectMode={true}
+            selectedObjectIds={["drawing-1"]}
+          />
+        </SelectionPaletteContext.Provider>,
+      );
+
+      const lines = screen.getAllByTestId("konva-line");
+      expect(lines.some((line) => line.getAttribute("data-stroke") === "#390076")).toBe(true);
+      expect(lines.some((line) => line.getAttribute("data-stroke") === "#447DF7")).toBe(false);
     });
 
     it("should render selection highlight when drawing is selected", () => {
