@@ -1287,6 +1287,25 @@ describe("TokensLayer", () => {
       expect(onRecolorToken).toHaveBeenCalledWith("token:1", "test-user");
     });
 
+    it("calls onRecolorToken on double-tap for myToken (a phone fires no dblclick)", () => {
+      const onRecolorToken = vi.fn();
+      const myToken = createTokenObject("token:1", "test-user");
+      const props = createDefaultProps({
+        sceneObjects: [myToken],
+        onRecolorToken,
+        uid: "test-user",
+      });
+
+      const { container } = render(<TokensLayer {...props} />);
+
+      const rectProps = getProps(container.querySelector('[data-testid="konva-rect"]'));
+      const onDblTap = rectProps.onDblTap as ((event: TestEventPayload) => void) | undefined;
+      expect(onDblTap).toBeDefined();
+      onDblTap?.({});
+
+      expect(onRecolorToken).toHaveBeenCalledWith("token:1", "test-user");
+    });
+
     it("does not call onRecolorToken for otherTokens", () => {
       const onRecolorToken = vi.fn();
       const otherToken = createTokenObject("token:1", "other-user");
@@ -1300,8 +1319,9 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      // otherTokens don't have onDblClick
+      // otherTokens don't have onDblClick or onDblTap
       expect(rectProps.onDblClick).toBeUndefined();
+      expect(rectProps.onDblTap).toBeUndefined();
       expect(onRecolorToken).not.toHaveBeenCalled();
     });
   });

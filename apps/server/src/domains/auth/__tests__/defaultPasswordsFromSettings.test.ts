@@ -17,12 +17,21 @@ import { loadSecretRecords } from "../secretPersistence.js";
 const TMP_DIR = path.join(process.cwd(), ".tmp");
 const SECRET_PATH = path.join(TMP_DIR, "default-passwords-from-settings.json");
 
+// Real production-cost scrypt throughout (several boots per test, three
+// derivations each), so CPU contention on a loaded gate run slows these ~12x —
+// past vitest's 5s default. Same budget and reasoning as authService.test.ts.
+vi.setConfig({ testTimeout: 30_000 });
+
 describe("the default table's passwords follow the server settings on every start", () => {
   beforeAll(() => {
     mkdirSync(TMP_DIR, { recursive: true });
   });
 
   beforeEach(() => {
+    // Start clean too, not just end clean: a test that timed out keeps running
+    // past its afterEach and re-writes the file, and the next run's first test
+    // then finds table-priv01 "already taken".
+    if (existsSync(SECRET_PATH)) rmSync(SECRET_PATH);
     vi.stubEnv("HEROBYTE_ROOM_SECRET", "OldRoomSecret1");
     vi.stubEnv("HEROBYTE_DM_PASSWORD", "OldDmPassword1");
   });

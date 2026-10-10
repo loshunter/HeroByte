@@ -177,6 +177,9 @@ const TokenSprite = memo(function TokenSprite({
     onMouseLeave: () => onHover(null),
     listening: interactive,
     onDblClick: onDoubleClick,
+    // A phone fires no dblclick (Konva cancels a touchstart on a shape, so the
+    // browser never synthesises mouse events), so a double-tap needs its own wire.
+    onDblTap: onDoubleClick,
     onClick,
     onTap,
     id,

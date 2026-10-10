@@ -12,7 +12,7 @@ export const COLOUR_ENTRY: HelpEntry = {
 export const RECOLOR_ENTRY: HelpEntry = {
   term: "Recolor",
   detail:
-    "Double-click your own token for a random colour no other player is using (the DM's own tokens can take any colour), or pick one with ⚙️ → Colour.",
+    "Double-click (on a phone, double-tap) your own token for a random colour no other player is using (the DM's own tokens get any colour that reads on a dark map), or pick one with ⚙️ → Colour.",
 };
 
 export const TOKEN_SIZE_ENTRY: HelpEntry = {
