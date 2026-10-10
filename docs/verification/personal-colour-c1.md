@@ -7,6 +7,10 @@ the links work on this machine only). The commits on top of `91c69b63` are liste
 rounds of a pre-merge review's fixes. **Round 3's fixes have not been reviewed**: round 3 is the review's cap, so it
 goes to the owner instead of a fourth round. Pushing and merging are the owner's word.
 
+**Darker colours (owner, 2026-10-09, after the review):** the colour window now runs down to lightness 0.30 (dark
+navy, maroon, purple). That change is unreviewed too. Its darkest colours are unreadable as text on the dark panels
+until C3's text rule lifts them, so **C1 goes to main together with C3**, not alone.
+
 ## The owner's decisions it builds
 
 1. No two players share a colour. Each colour holds a zone; zones shrink as players join; a placed colour is never
@@ -14,6 +18,8 @@ goes to the owner instead of a fourth round. Pushing and merging are the owner's
 2. A player's own characters may share a colour or sit close to it.
 3. The DM is exempt both ways (their picks are not checked, their colours block no one). Finishes are C2's.
 4. A free picker (not a palette), on desktop and phone in the same slice.
+5. Darker colours (2026-10-09, after the review): the window runs down to L 0.30. Readability is C3's (text) and the
+   frames' (lit facets), never a fixed bright rim: frames are any material and palette.
 
 ## What it does
 
@@ -22,7 +28,7 @@ goes to the owner instead of a fourth round. Pushing and merging are the owner's
   characters start in that player's colour. NPC tokens get any window colour. Stored as `#rrggbb`. The choice never
   fails, so it can never block a join.
 - **⚙️ settings → Character → Colour** (desktop) and the row's **⚙️ EDIT** sheet (phone): a hue × lightness window,
-  loaded on demand. Other players' colours hold darkened zones; a mouse hovering one names whose it is, and a tap
+  loaded on demand. Other players' colours hold striped zones (a dark and a light stripe, so a zone shows at any lightness); a mouse hovering one names whose it is, and a tap
   or click in one names it for three seconds and picks nothing. Dragging into a zone stops the handle at the edge that looks nearest and
   the line under the window reads `Too close to <name>`. Hue wraps left to right. A drag commits once, on release;
   a tap on the handle itself picks nothing; on a phone a vertical swipe on the window scrolls the sheet (only a drag
@@ -65,10 +71,21 @@ goes to the owner instead of a fourth round. Pushing and merging are the owner's
 
 ## Chosen and stated (numbers)
 
-**Window.** OKLCH, target chroma **0.17**, lightness band **0.64–0.88** (light at the top), each point showing
-`min(0.17, sRGB gamut)`; raster 180 × 60 cells (2° of hue × 0.004 L). Measured with the gamut maximum below the
-target, about two-thirds of the cells clip at C 0.17 (58% at 0.16, 74% at 0.18); a clipped cell shows the most vivid
-colour sRGB has there. The band was raised from the plan's 0.45–0.85 for contrast. Worst window colour (`#d9588e`):
+**Window.** OKLCH, target chroma **0.17**, lightness band **0.30–0.88** (light at the top), each point showing
+`min(0.17, sRGB gamut)`; raster 180 × 100 cells (2° of hue × 0.0058 L, about square). 66% of the cells clip at
+C 0.17; a clipped cell shows the most vivid colour sRGB has there.
+
+**History.** The plan said 0.45–0.85. C1 was built and reviewed at 0.64–0.88, raised for contrast (the table below).
+On 2026-10-09 the owner chose darker colours and the band now runs to 0.30; below that sRGB cannot keep hues apart.
+The darkest window colour now, `#390076`, on each surface: navy `#0f0e1e` 1.30, indigo 1.18, fog 1.34,
+`--hero-navy` 1.11, the preview's map floor 1.03, `--jrpg-panel` 1.02, the desktop card gradient 1.00, the DM's card
+1.00 (`#3a3100`). So the dark half is not readable as text, or as a bare fill on a dark surface: C3's text lift and the
+frames' lit facets carry it, and C1 waits for C3. The picker's zones were drawn darkened; in the dark half that fell
+to 1.35:1 against the free colours beside them, so they are now diagonal stripes (the colour × 0.2, and the colour
+washed 75% toward white), at least 3.56:1 at every lightness. Your other characters' dots got a white dashed ring and
+the suggested spots a navy edge, so both show on the dark half and the pastels.
+
+The 0.64–0.88 band's worst colour (`#d9588e`), kept for comparison:
 
 | Surface | Worst window colour | |
 | --- | --- | --- |
@@ -84,13 +101,14 @@ colour sRGB has there. The band was raised from the plan's 0.45–0.85 for contr
 So the card names C1 colours on the desktop party card are not text-readable for the worst window colours; C3's
 text rule (lift the colour for text only) is where that is fixed. Bands measured at C 0.17: 0.55–0.86 gives 3.60 /
 3.25 / 3.69 on navy / indigo / fog, 0.60–0.86 gives 4.43 / 4.00 / 4.55, and the chosen 0.64–0.88 gives 5.21 / 4.70 /
-5.34. Light maps (parchment) are not served by any band: the top row is light pastel (chroma 0.06–0.17). Older
-`hsl` colours are kept as they are and can be much darker (the worst, `#2626d9`, is 2.14:1 on navy), and a player
-can still store an allowed colour off the band through a file or a crafted message; C3's text rule has to handle any
-colour.
+5.34. Light maps (parchment) were served by no band; the new dark half serves them (the top rows are light pastel,
+chroma 0.06–0.17). Older `hsl` colours are kept as they are (`#2626d9`, 2.14:1 on navy, now sits inside the band),
+and a player can still store an allowed colour off the window (darker than 0.30, grey) through a file or a crafted
+message; C3's text rule has to handle any colour.
 
-**Rule.** `r(N) = clamp(sqrt(A · 0.5 / (π · N)), 0.03, 0.15)` in ΔE, with A = 2π·0.17 × 0.24 = 0.256 (the window in
-ΔE units). The cap was 0.10 at first; at 0.15 the zones shrink from the second player on (0.143, 0.117, 0.101 for
+**Rule.** `r(N) = clamp(sqrt(A · 0.5 / (π · N)), 0.03, 0.25)` in ΔE, with A = 2π·0.17 × 0.58 = 0.620 (the window in
+ΔE units, nominal: it ignores the clipped dark corner). The cap was 0.10 at first and 0.15 on the 0.64–0.88 band; on
+the darker band it is 0.25, above r(2), so the zones still shrink from the second player on (0.222, 0.181, 0.157 for
 N = 2, 3, 4), as the owner described. N counts the newcomer; the newcomer sees one zone of radius r(N) per other player's PC (N−1 when each has one, as
 simulated). Simulated
 over 10 seeds each (worst shown): the k-th earlier player either picked a random colour allowed at r(k), the radius
@@ -98,44 +116,48 @@ in force when they picked, or joined automatically (the server's draw among colo
 
 | N | r(N) ΔE | free for the Nth player, random picks | free for the Nth player, automatic joins |
 | --- | --- | --- | --- |
-| 2 | 0.143 | 70% | 72% |
-| 3 | 0.117 | 67% | 67% |
-| 4 | 0.101 | 61% | 67% |
-| 5 | 0.090 | 59% | 62% |
-| 6 | 0.082 | 58% | 65% |
-| 7 | 0.076 | 55% | 62% |
-| 8 | 0.071 | 59% | 62% |
-| 9 | 0.067 | 55% | 59% |
-| 10 | 0.064 | 54% | 59% |
-| 11 | 0.061 | 54% | 59% |
-| 12 | 0.058 | 55% | 57% |
-| 13 | 0.056 | 52% | 58% |
-| 14 | 0.054 | 55% | 55% |
-| 15 | 0.052 | 54% | 57% |
-| 16 | 0.050 | 52% | 55% |
-| 17 | 0.049 | 56% | 56% |
-| 18 | 0.048 | 54% | 53% |
-| 19 | 0.046 | 53% | 55% |
-| 20 | 0.045 | 54% | 55% |
-| 21 | 0.044 | 54% | 56% |
-| 22 | 0.043 | 54% | 55% |
-| 23 | 0.042 | 52% | 55% |
-| 24 | 0.041 | 55% | 56% |
-| 25 | 0.040 | 54% | 56% |
-| 26 | 0.040 | 54% | 56% |
-| 27 | 0.039 | 53% | 54% |
-| 28 | 0.038 | 53% | 55% |
-| 29 | 0.038 | 53% | 55% |
-| 30 | 0.037 | 53% | 54% |
+| 2 | 0.222 | 60% | 59% |
+| 3 | 0.181 | 56% | 57% |
+| 4 | 0.157 | 53% | 59% |
+| 5 | 0.140 | 53% | 50% |
+| 6 | 0.128 | 53% | 55% |
+| 7 | 0.119 | 49% | 54% |
+| 8 | 0.111 | 50% | 51% |
+| 9 | 0.105 | 51% | 54% |
+| 10 | 0.099 | 50% | 53% |
+| 11 | 0.095 | 52% | 51% |
+| 12 | 0.091 | 50% | 52% |
+| 13 | 0.087 | 50% | 52% |
+| 14 | 0.084 | 49% | 52% |
+| 15 | 0.081 | 49% | 50% |
+| 16 | 0.079 | 49% | 49% |
+| 17 | 0.076 | 48% | 50% |
+| 18 | 0.074 | 50% | 49% |
+| 19 | 0.072 | 48% | 49% |
+| 20 | 0.070 | 47% | 50% |
+| 21 | 0.069 | 49% | 49% |
+| 22 | 0.067 | 49% | 49% |
+| 23 | 0.065 | 49% | 49% |
+| 24 | 0.064 | 49% | 49% |
+| 25 | 0.063 | 48% | 48% |
+| 26 | 0.062 | 49% | 47% |
+| 27 | 0.060 | 49% | 48% |
+| 28 | 0.059 | 49% | 48% |
+| 29 | 0.058 | 48% | 49% |
+| 30 | 0.057 | 50% | 47% |
 
-In these simulations a newcomer kept at least 51.8% of the window (at N = 16). A reviewer's greedy adversary
-(each pick allowed when made, chosen to cover the most window) left about 45% at N = 30 with these constants; the
-true worst may be lower. Zones never go below ΔE 0.037 (about twice a just-noticeable difference) up to 30 players.
+In these simulations (the 0.30–0.88 band) a newcomer kept at least 47% of the window; on the old band it was 51.8%.
+The nominal area overstates the clipped dark corner, and in exchange the zones are larger: they never go below
+ΔE 0.057 (about three just-noticeable steps) up to 30 players, against 0.037 before. A reviewer's greedy adversary
+(each pick allowed when made, chosen to cover the most window) left about 45% at N = 30 on the old band; it was not
+re-run on the new one.
 
 **Cost.** The rule's loops run over packed arrays with squared distances: about 8× faster than the first version at
 100 other PCs and about 48× at 500 (reviewer measurements). The write budget bounds picks and recolours. A new
 token for a player's first character still runs the rule once per creation (about 3 ms at 100 PCs, 12 ms at 500,
 reviewer measurement), and such a message also broadcasts; a per-player character cap would bound that (open below).
+The darker band has 18,000 cells instead of 10,800, so each figure is about 1.7× larger: a local bench gives about
+5 ms per automatic colour or recolour at 100 other PCs and 21 ms at 500.
 
 **Bundle.** The picker is a lazy chunk: `ColorPicker-*.js` was 4.75 KB gzip after round 1's fixes and 5.14 KB gzip
 plus 0.81 KB CSS on `29d09a99` (reviewer measurements on the e2e harness's build). The entry bundle was 166.71 KB of
@@ -243,6 +265,30 @@ reviewed**:
   a drag that starts on a dashed ring does nothing; the loading placeholder is about 30 px shorter than the picker;
   no e2e drives a touch drag (live checks only). `rgb()` and the DM's silent unreadable colour are owner questions.
 
+## After the review: darker colours (owner, 2026-10-09)
+
+Looking at the picker, the owner saw no dark shades ("I am a big fan of darker colors"). Asked whether frames should
+carry the contrast, the owner pointed out frames are any material and palette, so a fixed bright rim is no answer.
+Changed, and **not reviewed**:
+
+- `colorWindow.ts`: lightness band 0.64–0.88 → **0.30–0.88**, raster rows 60 → 100.
+- `colorRule.ts`: the zone cap 0.15 → **0.25**, so zones still shrink from the second player on (r(2), r(3) and
+  r(4) all sat at the 0.15 cap on the bigger window; the shared test caught it).
+- `drawColorWindow.ts`: zones drawn as stripes instead of darkened (darkening fell to 1.35:1 in the dark half);
+  a new test paints the window into a fake context and checks every zone edge is at least 3.5:1 (sabotaged red with
+  the old darkening).
+- `colorPicker.css`: your other characters' dots get a white dashed ring and a navy edge; the suggested spots a navy
+  edge.
+- Tests pinned to the old band now read `COLOR_WINDOW`; the "older colour's real lightness" test uses a colour
+  darker than the new band (`#0b0b41`, L 0.20).
+- Help and guide: "darkened patches" → "striped patches".
+- Planning (untracked): the arc plan's band rule, C3's prerequisite (the text lift is what makes dark names readable;
+  C1 and C3 go to main together), and a C5a acceptance check (the darkest colours as `plain.ring` and dark presets
+  must show lit facets on the dark map and in fog, measured).
+
+Seen live on desktop after the change: the window runs from pastels to deep violets, navies and crimsons; zones show
+as striped patches in both halves; the spots' dashed rings show on the dark half.
+
 ## Gates
 
 Full ladder on `d60d25d3` (before the review): **GATES: PASS** — shared 511, server 2918, client 8216 (4 skipped)
@@ -265,6 +311,10 @@ Full ladder on `38af0710` (after round 3): every gate passed except lint and for
 baseline skips), 0 flaky; dev boot clean. Entry bundle 166.98 KB gzip of 175 KB on the production
 `pnpm build:check` of `fea03f5d` (167.06 KB on the e2e harness's development-mode build); `ColorPicker-*.js` 5.26 KB
 gzip plus 0.81 KB CSS.
+
+Full ladder on `c324c29e` (after the darker band): **GATES: PASS** — shared 519, server 2940, client 8249 (4 skipped);
+e2e 373 passed, 3 skipped (the three baseline skips), 0 flaky; dev boot clean. Entry bundle 166.98 KB gzip of 175 KB
+on the production `pnpm build:check`; `ColorPicker-*.js` 5.31 KB gzip plus 0.81 KB CSS.
 
 ## Found on the way
 
@@ -305,12 +355,12 @@ gzip plus 0.81 KB CSS.
   uncommitted edits sit in the same hunks. `docs/website/narration-wren.md` (also yours, uncommitted) still narrates
   "a new random colour" in chapter 5, lacks the script's picker lines there (the script films the picker), and lacks
   "your colour" in chapter 7; it was not touched.
-- **Colours off the band:** should the server snap a player's allowed-but-off-band colour (black, greys, a legacy
-  dark hsl from a file) onto the window? It would make every colour readable, and move older colours on file loads.
-- **Light maps:** the band serves dark maps, fog and the panels; a light pastel colour on a parchment map is low
-  contrast. C3's selection keyline is the place to handle it if it matters.
-- **Crowded legacy tables** push newcomers' automatic colours into the light pastels. Anyone can move with the
-  picker.
+- **Colours off the window:** should the server move a player's allowed colour that is off the window (darker than
+  0.30, greys, near-white) onto it? It would move older colours on file loads.
+- **Light maps:** the dark half now reads on parchment; the light pastels at the top do not, and the dark half does
+  not read on dark maps without C3 and the frames. C3's text lift and selection keyline are where both are handled.
+- **Automatic colours go dark on crowded legacy tables.** On the local test table the 16 legacy colours are mid-tones,
+  so the most open space is now the dark half and newcomers get deep shades. Anyone can move with the picker.
 - **A per-player character cap** for `add-player-character` would bound new-token cost and the table further.
 - **A tap in another player's zone** now names it and picks nothing (round 3, so the help's "tap to see whose" is
   true); a drag still stops at the edge. If you would rather a tap pick the nearest free colour there, it is a small
@@ -328,4 +378,4 @@ inheritance, write budget, holders · `5b2cc0ad` picker: keys, taps, batching, n
 schema · `79cd57ac` snap spec race · `53e7ed4c` parser bound, non-strings, DM recolour, hidden names, budget · `326e27de`
 picker: phone swipe, focus, timeouts, labels, memo · `29d09a99` round-2 docs · `d8c7ae37` throttle privacy, colour
 owner, alpha hex · `54a3df1b` picker: a tap names a zone, answers, labels, keys · `38af0710` phone sheet foot · `fea03f5d`
-prettier wrap · then the docs commit for round 3.
+prettier wrap · `75d217e1` round-3 docs · then the darker-colours commits.
