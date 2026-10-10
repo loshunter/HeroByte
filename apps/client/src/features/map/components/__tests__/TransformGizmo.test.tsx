@@ -249,6 +249,10 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Tran
 // TESTS - RENDERING
 // ============================================================================
 
+/** The gizmo's own transformer: the last one, drawn over GizmoKeyline's hidden or shown keyline. */
+const gizmoTransformer = (root: Element | Document) =>
+  [...root.querySelectorAll('[data-testid="konva-transformer"]')].at(-1) ?? null;
+
 describe("TransformGizmo", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -277,7 +281,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       expect(transformer).toBeTruthy();
     });
 
@@ -285,7 +289,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ selectedObject: null });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       expect(transformer).toBeNull();
     });
 
@@ -295,7 +299,7 @@ describe("TransformGizmo", () => {
       });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       expect(transformer).toBeNull();
     });
 
@@ -326,10 +330,15 @@ describe("TransformGizmo", () => {
         borderStrokeWidth: 4,
         padding: 2,
         listening: false,
+        visible: true,
         resizeEnabled: false,
+        // Konva draws the rotate line with the border only while rotateEnabled is on.
+        rotateEnabled: true,
         rotateAnchorOffset: gizmo!.rotateAnchorOffset,
         anchorSize: 0,
       });
+      expect(keyline!.borderEnabled ?? true).toBe(true);
+      expect(gizmo!.borderEnabled ?? true).toBe(true);
       expect(keyline!.borderDash).toBeUndefined();
       // The centre move handle: a keyline edge, the colour inside, the cross in the keyline.
       const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
@@ -344,9 +353,10 @@ describe("TransformGizmo", () => {
     it("keeps today's blue handle and dashed border for a viewer with no colour", () => {
       const { container } = render(<TransformGizmo {...createDefaultProps()} />);
       const transformers = [...container.querySelectorAll('[data-testid="konva-transformer"]')];
-      // One transformer, no keyline, no padding: today's gizmo.
-      expect(transformers).toHaveLength(1);
-      const transformerProps = getProps(transformers[0]!);
+      // Today's gizmo, no padding; the keyline transformer is there but hidden.
+      expect(transformers).toHaveLength(2);
+      const [keyline, transformerProps] = transformers.map(getProps);
+      expect([keyline!.visible, keyline!.listening]).toEqual([false, false]);
       expect(transformerProps.borderStroke).toBe("#447DF7");
       expect(transformerProps.padding).toBe(0);
       const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
@@ -361,7 +371,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       expect(transformerProps.rotateEnabled).toBe(true);
@@ -381,7 +391,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       expect(transformerProps.enabledAnchors).toEqual([
@@ -400,7 +410,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       expect(transformerProps.rotationSnaps).toEqual([0, 45, 90, 135, 180, 225, 270, 315]);
@@ -410,7 +420,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       expect(transformerProps.borderDash).toEqual([5, 5]);
@@ -445,7 +455,7 @@ describe("TransformGizmo", () => {
       const { container } = render(<TransformGizmo {...props} />);
 
       // Component should render without errors
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       expect(transformer).toBeTruthy();
     });
   });
@@ -483,7 +493,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       expect(transformer).toBeTruthy();
     });
 
@@ -493,7 +503,7 @@ describe("TransformGizmo", () => {
       });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       expect(transformer).toBeNull();
     });
 
@@ -502,11 +512,11 @@ describe("TransformGizmo", () => {
       const { rerender, container } = render(<TransformGizmo {...props} />);
 
       // Initially should render
-      expect(container.querySelector('[data-testid="konva-transformer"]')).toBeTruthy();
+      expect(gizmoTransformer(container)).toBeTruthy();
 
       // Update to no selection - should not render
       rerender(<TransformGizmo {...props} selectedObject={null} />);
-      expect(container.querySelector('[data-testid="konva-transformer"]')).toBeNull();
+      expect(gizmoTransformer(container)).toBeNull();
     });
 
     it("should handle changing from unlocked to locked", () => {
@@ -514,11 +524,11 @@ describe("TransformGizmo", () => {
       const { rerender, container } = render(<TransformGizmo {...props} />);
 
       // Initially should render
-      expect(container.querySelector('[data-testid="konva-transformer"]')).toBeTruthy();
+      expect(gizmoTransformer(container)).toBeTruthy();
 
       // Update to locked - should not render
       rerender(<TransformGizmo {...props} selectedObject={createSceneObject({ locked: true })} />);
-      expect(container.querySelector('[data-testid="konva-transformer"]')).toBeNull();
+      expect(gizmoTransformer(container)).toBeNull();
     });
   });
 
@@ -679,7 +689,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container, rerender } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       // Deselect
@@ -705,7 +715,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ onTransform });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -729,7 +739,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ onTransform });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -753,7 +763,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ onTransform });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -779,7 +789,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -797,7 +807,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container, rerender } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       // Deselect
@@ -813,7 +823,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ getNodeRef: vi.fn(() => null) });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -832,7 +842,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -852,7 +862,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -872,7 +882,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -892,7 +902,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -912,7 +922,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -932,7 +942,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -952,7 +962,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -972,7 +982,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -992,7 +1002,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps();
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const boundBoxFunc = transformerProps.boundBoxFunc as (
@@ -1244,7 +1254,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ onTransform });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -1268,7 +1278,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ onTransform });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -1297,7 +1307,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ onTransform });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -1321,7 +1331,7 @@ describe("TransformGizmo", () => {
       const props = createDefaultProps({ onTransform });
       const { container } = render(<TransformGizmo {...props} />);
 
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       const transformerProps = getProps(transformer);
 
       const onTransformEnd = transformerProps.onTransformEnd as () => void;
@@ -1355,7 +1365,7 @@ describe("TransformGizmo", () => {
 
       // Handle and transformer should not be rendered
       const group = container.querySelector('[data-testid="konva-group"]');
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       expect(group).toBeNull();
       expect(transformer).toBeNull();
     });
@@ -1369,7 +1379,7 @@ describe("TransformGizmo", () => {
 
       // Handle and transformer should not be rendered
       const group = container.querySelector('[data-testid="konva-group"]');
-      const transformer = container.querySelector('[data-testid="konva-transformer"]');
+      const transformer = gizmoTransformer(container);
       expect(group).toBeNull();
       expect(transformer).toBeNull();
     });

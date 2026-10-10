@@ -11,6 +11,10 @@ import type { SceneObject } from "@herobyte/shared";
 import { useSelectionPalette } from "../selectionPalette";
 import { GIZMO_PADDING, GizmoKeyline } from "./GizmoKeyline";
 
+// One array for every render: a new one each render made react-konva re-apply the
+// snaps on every transform event, undoing Ctrl's free rotation mid-drag.
+const ROTATION_SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];
+
 interface TransformGizmoProps {
   selectedObject: SceneObject | null;
   onTransform: (updates: {
@@ -204,14 +208,8 @@ export function TransformGizmo({
     if (!node || !transformer) return;
 
     try {
-      // Override rotation snapping when Ctrl is pressed
-      if (isCtrlPressed.current) {
-        // Disable snapping by setting rotationSnaps to empty array
-        transformer.rotationSnaps([]);
-      } else {
-        // Re-enable 45° snap increments
-        transformer.rotationSnaps([0, 45, 90, 135, 180, 225, 270, 315]);
-      }
+      // Ctrl rotates freely; otherwise 45° snaps.
+      transformer.rotationSnaps(isCtrlPressed.current ? [] : ROTATION_SNAPS);
     } catch (error) {
       // Ignore errors during transform (node might be destroyed)
       console.warn("[TransformGizmo] Transform error:", error);
@@ -257,7 +255,7 @@ export function TransformGizmo({
 
   return (
     <>
-      {palette.keyline && <GizmoKeyline ref={keylineRef} keyline={palette.keyline} />}
+      <GizmoKeyline ref={keylineRef} keyline={palette.keyline} />
       <Transformer
         ref={transformerRef}
         rotateEnabled={true}
@@ -283,7 +281,7 @@ export function TransformGizmo({
         anchorSize={10}
         anchorCornerRadius={2}
         rotateAnchorOffset={30}
-        rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+        rotationSnaps={ROTATION_SNAPS}
         rotationSnapTolerance={10}
         keepRatio={false}
         boundBoxFunc={(oldBox, newBox) => {
