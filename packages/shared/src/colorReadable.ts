@@ -11,15 +11,18 @@ import { COLOR_RULE } from "./colorRule.js";
 import { windowCells } from "./colorWindow.js";
 
 /** A dark map floor (the picker preview's): a colour nobody picked must still read on it. */
-const DARK_FLOOR = parseColor("#2a2622")!;
+const DARK_FLOOR = "#2a2622";
 let readableIndices: number[] | null = null;
 
 /** Window cells at least 3:1 on a dark map floor (the window's lighter rows, about L 0.57 up). */
 function readableCells(): number[] {
   if (!readableIndices) {
+    // Parsed here, not at module load: a top-level call would keep this module (and the
+    // colour window) in every bundle that imports the shared barrel.
+    const floor = parseColor(DARK_FLOOR)!;
     readableIndices = [];
     windowCells().forEach((cell, index) => {
-      if (contrastRatio(parseColor(cell.hex)!, DARK_FLOOR) >= 3) readableIndices!.push(index);
+      if (contrastRatio(parseColor(cell.hex)!, floor) >= 3) readableIndices!.push(index);
     });
   }
   return readableIndices;
