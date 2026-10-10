@@ -1,6 +1,7 @@
-// Every seated player's colour (C3), built once per snapshot for the places
-// that show it: pings, chat names, roll log names. A player who has left the
-// table is not in `players`, so their old messages keep today's colours.
+// Every seated player's colour (C3), built once per snapshot for the chat and
+// roll log names, desktop and phone (pings build their own map in
+// PointersLayer, from the same resolver). A player who has left the table is
+// not in `players`, so their old messages keep today's colours.
 
 import { useMemo } from "react";
 import type { RoomSnapshot } from "@herobyte/shared";

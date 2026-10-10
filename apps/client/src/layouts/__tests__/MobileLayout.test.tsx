@@ -76,7 +76,11 @@ vi.mock("../../components/dice/DiceRoller", () => ({
 // The mobile shell renders the log's CONTENT inside a MobileScreen since M4a;
 // the RollLog window is desktop-only and never mounts here.
 vi.mock("../../components/dice/RollLogContent", () => ({
-  RollLogContent: () => <div data-testid="roll-log">RollLogContent</div>,
+  RollLogContent: ({ playerColors }: { playerColors?: ReadonlyMap<string, string> }) => (
+    <div data-testid="roll-log" data-colors={JSON.stringify([...(playerColors ?? [])])}>
+      RollLogContent
+    </div>
+  ),
 }));
 
 // The DM menu is lazy on mobile exactly as on desktop; the shell test mocks
@@ -1060,6 +1064,25 @@ describe("MobileLayout", () => {
     render(<MobileLayout {...props} />);
 
     expect(screen.getByTestId("roll-log")).toBeInTheDocument();
+  });
+
+  it("hands the phone's chat and roll log each seated player's colour (C3)", () => {
+    const props = {
+      ...createDefaultProps(),
+      rollLogOpen: true,
+      snapshot: {
+        combatActive: false,
+        players: [{ uid: "bo", name: "Bo", isDM: false }],
+        characters: [
+          { id: "bors", name: "Bors", type: "pc", ownedByPlayerUID: "bo", color: "#8A2BE2" },
+          { id: "ann", name: "Ann", type: "pc", ownedByPlayerUID: "ann", color: "#112233" },
+        ],
+        tokens: [],
+      } as unknown as MainLayoutProps["snapshot"],
+    };
+    render(<MobileLayout {...props} />);
+    // Ann is not seated, so only Bo's colour rides along.
+    expect(screen.getByTestId("roll-log").dataset.colors).toBe('[["bo","#8a2be2"]]');
   });
 
   it("renders MobileResultOverlay when viewingRoll is present", () => {

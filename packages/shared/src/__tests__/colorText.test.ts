@@ -14,23 +14,39 @@ const hueGap = (first: number, second: number) => {
 
 describe("readableOn", () => {
   it("lifts every window colour to 4.5:1 on the navy panel, keeping its hue", () => {
-    let worst = Infinity;
+    let lifted = 0;
     for (const cell of windowCells()) {
       const text = readableOn(cell.hex, NAVY)!;
       const reached = ratio(text, NAVY);
-      worst = Math.min(worst, reached);
       expect(reached).toBeGreaterThanOrEqual(4.5);
-      // Hue is only meaningful with some chroma left after the lift.
+      if (ratio(cell.hex, NAVY) < 4.5) {
+        lifted += 1;
+        // Each lift stops at the target, not past it.
+        expect(reached).toBeLessThan(4.6);
+      }
+      // A coloured cell stays coloured (never lifted to grey), with its hue.
+      const source = okLabToOkLch(colorToOkLab(cell.hex)!).C;
       const chroma = okLabToOkLch(colorToOkLab(text)!).C;
-      if (chroma > 0.04) expect(hueGap(hueOf(text), hueOf(cell.hex))).toBeLessThan(12);
+      if (source > 0.04) {
+        expect(chroma).toBeGreaterThan(0.04);
+        expect(hueGap(hueOf(text), hueOf(cell.hex))).toBeLessThan(12);
+      }
     }
-    expect(worst).toBeLessThan(4.6); // the lift stops at the target, not far past it
+    expect(lifted).toBeGreaterThan(0); // the window does reach below the target
   });
 
   it("lifts the darkest window colour and the worst older colour", () => {
     for (const dark of ["#390076", "#2626d9", "hsl(240, 70%, 50%)", "#0b0b41"]) {
       expect(ratio(readableOn(dark, NAVY)!, NAVY)).toBeGreaterThanOrEqual(4.5);
     }
+    // The values the record states.
+    expect(readableOn("#390076", NAVY)).toBe("#8867d7");
+    expect(readableOn("#2626d9", NAVY)).toBe("#4d6eff");
+  });
+
+  it("goes as far as it can when the target is out of reach", () => {
+    // Black is only 4.7:1 on mid grey: the darkest it can go, not null.
+    expect(readableOn("#ff0000", "#777777", 7)).toBe("#000000");
   });
 
   it("keeps a colour that already reads, as #rrggbb", () => {

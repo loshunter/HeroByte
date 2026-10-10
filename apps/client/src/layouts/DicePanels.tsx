@@ -34,8 +34,8 @@ export interface DicePanelsProps {
   handleViewRoll: (roll: RollLogEntry | null) => void;
   chatMessages: ChatMessage[];
   players: Player[];
-  /** Each seated player's colour (C3), for chat and roll log names. */
-  playerColors?: ReadonlyMap<string, string>;
+  /** Each seated player's colour (C3), for chat and roll log names. Required: a dropped line is a silent default. */
+  playerColors: ReadonlyMap<string, string>;
   uid: string;
   handleSendChat: (text: string, to?: string) => void;
   /** Clearing the shared roll log is DM-only, server-side. */

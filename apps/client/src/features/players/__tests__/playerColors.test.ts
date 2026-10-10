@@ -39,6 +39,14 @@ describe("playerColor", () => {
     expect(playerColor("dm", [npc("goblin")], tokens)).toBeNull();
   });
 
+  it("skips a coloured NPC the DM owns, even when it comes first", () => {
+    const characters = [
+      npc("goblin", { ownedByPlayerUID: "dm", color: "#ff0000" }),
+      pc("hero", "dm", { color: "#00aa55" }),
+    ];
+    expect(playerColor("dm", characters, [])).toBe("#00aa55");
+  });
+
   it("uses the first PC's colour for a player with two", () => {
     const characters = [
       pc("first", "ann", { color: "#112233" }),
@@ -60,6 +68,14 @@ describe("playerColor", () => {
     expect(playerColor("ann", characters, [token("loose", "ann", "hsl(120, 70%, 50%)")])).toBe(
       "#26d926",
     );
+  });
+
+  it("never guesses a loose token for a player with two PCs", () => {
+    const characters = [
+      pc("first", "ann", { tokenId: undefined }),
+      pc("second", "ann", { color: "#445566" }),
+    ];
+    expect(playerColor("ann", characters, [token("loose", "ann", "#ff0000")])).toBe("#445566");
   });
 
   it("has no colour for a spectator, an empty uid or an unreadable colour", () => {
