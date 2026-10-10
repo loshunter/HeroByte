@@ -18,14 +18,27 @@ describe("usePlayerColors", () => {
     expect([...result.current]).toEqual([["bo", "#8a2be2"]]);
   });
 
-  it("keeps the same map while the snapshot's lists are unchanged, and is empty without one", () => {
-    const snapshot = { players: [seated("bo")], characters: [pc("bo", "#8a2be2")], tokens: [] };
-    const { result, rerender } = renderHook(({ snap }) => usePlayerColors(snap), {
-      initialProps: { snap: snapshot },
+  it("keeps the same map across new snapshots while the colours are the same", () => {
+    // Every broadcast brings new arrays.
+    const snap = () => ({ players: [seated("bo")], characters: [pc("bo", "#8a2be2")], tokens: [] });
+    const { result, rerender } = renderHook(({ s }) => usePlayerColors(s), {
+      initialProps: { s: snap() },
     });
     const first = result.current;
-    rerender({ snap: { ...snapshot } });
+    rerender({ s: snap() });
     expect(result.current).toBe(first);
     expect(renderHook(() => usePlayerColors(null)).result.current.size).toBe(0);
+  });
+
+  it("follows a recolour on the next snapshot", () => {
+    // Only the party records change (the colour rides them); players and tokens stay put.
+    const players = [seated("bo")];
+    const tokens: [] = [];
+    const { result, rerender } = renderHook(
+      ({ color }) => usePlayerColors({ players, characters: [pc("bo", color)], tokens }),
+      { initialProps: { color: "#8a2be2" } },
+    );
+    rerender({ color: "#ffc2d3" });
+    expect([...result.current]).toEqual([["bo", "#ffc2d3"]]);
   });
 });

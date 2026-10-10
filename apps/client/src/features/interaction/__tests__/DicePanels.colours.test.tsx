@@ -37,4 +37,19 @@ describe("DicePanels colours", () => {
     fireEvent.click(screen.getByRole("tab", { name: "ROLLS" }));
     expect(screen.getByText("Me").style.color).toBe("rgb(136, 103, 215)");
   });
+
+  it("draws a chat line's name in its author's colour, through RollLogContent to ChatTab", () => {
+    render(
+      <DicePanels
+        {...dicePanelProps()}
+        chatMessages={[{ id: "m1", authorUid: "bo", authorName: "Bo", text: "hi", timestamp: 1 }]}
+        playerColors={new Map([["bo", "#390076"]])}
+      />,
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "CHAT" }));
+    const name = screen.getByText(
+      (_, element) => element?.tagName === "SPAN" && element.textContent === "Bo: ",
+    );
+    expect(name.style.color).toBe("rgb(136, 103, 215)");
+  });
 });

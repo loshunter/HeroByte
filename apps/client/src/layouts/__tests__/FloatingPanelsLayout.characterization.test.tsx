@@ -161,8 +161,13 @@ vi.mock("../../components/dice/RollLog", () => ({
     onClearLog: () => void;
     onViewRoll: (roll: RollLogEntry | null) => void;
     onClose: () => void;
+    playerColors?: ReadonlyMap<string, string>;
   }) => (
-    <div data-testid="roll-log" data-rolls-count={props.rolls.length}>
+    <div
+      data-testid="roll-log"
+      data-rolls-count={props.rolls.length}
+      data-colors={JSON.stringify([...(props.playerColors ?? [])])}
+    >
       RollLog
     </div>
   ),
@@ -1451,6 +1456,22 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       render(<MainLayout {...props} />);
 
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
+    });
+
+    it("hands the roll log each seated player's colour from the snapshot (C3)", () => {
+      const props = createDefaultProps();
+      props.rollLogOpen = true;
+      props.snapshot = {
+        players: [{ uid: "bo", name: "Bo", isDM: false }],
+        characters: [
+          { id: "bors", name: "Bors", type: "pc", ownedByPlayerUID: "bo", color: "#8A2BE2" },
+        ],
+        tokens: [],
+      } as unknown as MainLayoutProps["snapshot"];
+
+      render(<MainLayout {...props} />);
+
+      expect(screen.getByTestId("roll-log").dataset.colors).toBe('[["bo","#8a2be2"]]');
     });
 
     it("should NOT render RollLog when rollLogOpen is false", async () => {

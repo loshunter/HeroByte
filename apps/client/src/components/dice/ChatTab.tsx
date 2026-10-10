@@ -128,9 +128,11 @@ export const ChatTab: React.FC<ChatTabProps> = ({
                 >
                   <span
                     style={{
-                      // An author who left, or has no PC, keeps today's gold (you) and cyan.
+                      // The named player's colour: the author's, or on your own whisper
+                      // ("→ Bob") the recipient's. Someone who left, or has no PC, keeps
+                      // today's gold (you) and cyan.
                       color:
-                        names.get(message.authorUid) ??
+                        names.get(isMine && isWhisper ? (message.to ?? "") : message.authorUid) ??
                         (isMine ? "var(--jrpg-gold)" : "var(--jrpg-cyan)"),
                     }}
                   >

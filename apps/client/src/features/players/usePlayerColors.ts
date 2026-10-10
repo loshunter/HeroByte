@@ -3,7 +3,7 @@
 // PointersLayer, from the same resolver). A player who has left the table is
 // not in `players`, so their old messages keep today's colours.
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { RoomSnapshot } from "@herobyte/shared";
 import { playerColorMap } from "./playerColors";
 
@@ -13,13 +13,24 @@ export function usePlayerColors(
   const players = snapshot?.players;
   const characters = snapshot?.characters;
   const tokens = snapshot?.tokens;
-  return useMemo(
-    () =>
-      playerColorMap(
-        (players ?? []).map((player) => player.uid),
-        characters,
-        tokens,
-      ),
-    [players, characters, tokens],
-  );
+  // Every snapshot brings new arrays, so the map is rebuilt each time; while the
+  // colours are the same the previous map is kept, and the names built from it
+  // (chat, roll log) are not worked out again on every broadcast.
+  const previous = useRef<Map<string, string>>(new Map());
+  return useMemo(() => {
+    const next = playerColorMap(
+      (players ?? []).map((player) => player.uid),
+      characters,
+      tokens,
+    );
+    if (sameColors(next, previous.current)) return previous.current;
+    previous.current = next;
+    return next;
+  }, [players, characters, tokens]);
+}
+
+function sameColors(next: ReadonlyMap<string, string>, last: ReadonlyMap<string, string>) {
+  if (next.size !== last.size) return false;
+  for (const [uid, color] of next) if (last.get(uid) !== color) return false;
+  return true;
 }

@@ -74,6 +74,41 @@ describe("chat names", () => {
     expect(screen.getByText("psst").style.opacity).toBe("0.85");
   });
 
+  it("names your own whisper's recipient in their colour, and hides the ▶ mark from readers", () => {
+    render(
+      <ChatTab
+        messages={[{ ...line(ALICE, "Alice", "w2"), to: BOB, text: "psst" }]}
+        players={players}
+        currentUid={ALICE}
+        onSendChat={vi.fn()}
+        playerColors={
+          new Map([
+            [BOB, "#390076"],
+            [ALICE, "#ffc2d3"],
+          ])
+        }
+      />,
+    );
+    expect(nameOf("▶ → Bob: ").style.color).toBe("rgb(136, 103, 215)");
+    const mark = screen.getByTestId("chat-message").querySelector('[aria-hidden="true"]');
+    expect(mark?.textContent).toBe("▶ ");
+  });
+
+  it("follows a recolour on the next render", () => {
+    const view = (color: string) => (
+      <ChatTab
+        messages={[line(BOB, "Bob", "m1")]}
+        players={players}
+        currentUid={ALICE}
+        onSendChat={vi.fn()}
+        playerColors={new Map([[BOB, color]])}
+      />
+    );
+    const { rerender } = render(view("#390076"));
+    rerender(view("#ffc2d3"));
+    expect(nameOf("Bob: ").style.color).toBe("rgb(255, 194, 211)");
+  });
+
   it("marks your own lines, and keeps today's gold and cyan without colours", () => {
     render(
       <ChatTab
@@ -114,5 +149,19 @@ describe("roll log names", () => {
     expect(bob.style.color).toBe("rgb(77, 110, 255)");
     expect(contrastOnNavy(bob.style.color)).toBeGreaterThanOrEqual(4.5);
     expect(screen.getByText("Gone").style.color).toBe("var(--jrpg-gold)");
+  });
+
+  it("follows a recolour on the next render", () => {
+    const view = (color: string) => (
+      <RollLogContent
+        rolls={[roll(BOB, "Bob")]}
+        onClearLog={vi.fn()}
+        onViewRoll={vi.fn()}
+        playerColors={new Map([[BOB, color]])}
+      />
+    );
+    const { rerender } = render(view("#2626d9"));
+    rerender(view("#ffc2d3"));
+    expect(screen.getByText("Bob").style.color).toBe("rgb(255, 194, 211)");
   });
 });

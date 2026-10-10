@@ -26,6 +26,23 @@ const BASE_RADIUS = 28;
 const CORE_RADIUS = 12;
 const RING_RADIUS = BASE_RADIUS + 6;
 
+/**
+ * A ping colour's keyline and its label's fill (lifted to 4.5:1 on that keyline),
+ * worked out once per colour: pings redraw every animation frame, and the lift's
+ * search costs tens of microseconds. A table holds only a few colours.
+ */
+const inks = new Map<string, { keyline: string; label: string }>();
+function pingInk(color: string): { keyline: string; label: string } {
+  let ink = inks.get(color);
+  if (!ink) {
+    const keyline = keylineFor(color);
+    ink = { keyline, label: readableOn(color, keyline) ?? color };
+    if (inks.size > 64) inks.clear();
+    inks.set(color, ink);
+  }
+  return ink;
+}
+
 interface PointersLayerProps {
   cam: Camera;
   pointers: Pointer[];
@@ -204,7 +221,7 @@ export const PointersLayer = memo(function PointersLayer({
           {/* The aim's dashed ring over its keyline, so a deep colour shows on a dark map. */}
           <Circle
             radius={BASE_RADIUS + 4}
-            stroke={keylineFor(previewColor)}
+            stroke={pingInk(previewColor).keyline}
             strokeWidth={7}
             opacity={0.6}
             dash={[12, 10]}
@@ -248,7 +265,7 @@ export const PointersLayer = memo(function PointersLayer({
                   x={0}
                   y={0}
                   radius={RING_RADIUS}
-                  stroke={keylineFor(color)}
+                  stroke={pingInk(color).keyline}
                   strokeWidth={7}
                   opacity={ringOpacity}
                   scaleX={ringScale}
@@ -275,7 +292,7 @@ export const PointersLayer = memo(function PointersLayer({
               // The keyline edge keeps a deep colour's dot visible on a dark map. Fill,
               // stroke and opacity under 1 would send Konva through a stage-sized buffer
               // canvas every frame (and it throws on a zero-size stage): draw directly.
-              stroke={keylineFor(color)}
+              stroke={pingInk(color).keyline}
               strokeWidth={2}
               perfectDrawEnabled={false}
               opacity={coreOpacity * 0.75}
@@ -292,8 +309,8 @@ export const PointersLayer = memo(function PointersLayer({
               y={textYOffset}
               text={label}
               // The glyphs reach 4.5:1 against their own keyline outline.
-              fill={readableOn(color, keylineFor(color)) ?? color}
-              stroke={keylineFor(color)}
+              fill={pingInk(color).label}
+              stroke={pingInk(color).keyline}
               strokeWidth={3}
               lineJoin="round"
               fillAfterStrokeEnabled

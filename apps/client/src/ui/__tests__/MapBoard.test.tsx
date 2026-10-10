@@ -296,6 +296,18 @@ describe("MapBoard", () => {
 
       render(<MapBoard {...getDefaultProps({ snapshot: snapshot([]) })} />);
       expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#447DF7");
+      cleanup();
+
+      // A recolour reaches the palette on the next snapshot.
+      const { rerender } = render(
+        <MapBoard {...getDefaultProps({ snapshot: snapshot([theirs, mine]) })} />,
+      );
+      rerender(
+        <MapBoard
+          {...getDefaultProps({ snapshot: snapshot([theirs, { ...mine, color: "#00a4f9" }]) })}
+        />,
+      );
+      expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#00a4f9");
     });
 
     it("should render with empty snapshot", () => {

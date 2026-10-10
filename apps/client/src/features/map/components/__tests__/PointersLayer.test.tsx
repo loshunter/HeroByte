@@ -6,7 +6,14 @@
 import type { ReactNode } from "react";
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { Player, Pointer, SnapshotCharacter, Token } from "@herobyte/shared";
+import {
+  contrastRatio,
+  parseColor,
+  type Player,
+  type Pointer,
+  type SnapshotCharacter,
+  type Token,
+} from "@herobyte/shared";
 
 type Props = Record<string, unknown> & { children?: ReactNode };
 const circles: Props[] = [];
@@ -131,10 +138,9 @@ describe("PointersLayer colours", () => {
         />,
       );
       // The aim pulses (re-renders): its last two dashed circles are the current ones.
-      return circles
-        .filter((circle) => circle.dash)
-        .slice(-2)
-        .map((circle) => circle.stroke);
+      const dashed = circles.filter((circle) => circle.dash).slice(-2);
+      expect(dashed.map((circle) => circle.strokeWidth)).toEqual([7, 4]);
+      return dashed.map((circle) => circle.stroke);
     };
     expect(aim("bo", [pc("bors", "bo", "#390076")])).toEqual(["#f4f1e8", "#390076"]);
     expect(aim("dm", [])).toEqual(["#0b0b16", "#FFD700"]);
@@ -148,9 +154,44 @@ describe("PointersLayer colours", () => {
     expect(label.stroke).toBe("#f4f1e8");
     expect(label.fillAfterStrokeEnabled).toBe(true);
     expect(label.lineJoin).toBe("round");
-    // A colour that sits too close to its keyline is lifted away from it (glyphs >= 4.5:1).
+    expect(label.strokeWidth).toBe(3);
+    // A colour that sits too close to its keyline (4.16:1) is moved away from it, just
+    // far enough for the glyphs to reach 4.5:1.
     renderPing("bo", [pc("bors", "bo", "#008183")], []);
     const teal = texts.find((text) => text.text === "bo")!;
-    expect(teal.fill).not.toBe("#008183");
+    expect(teal.fill).toBe("#007b7d");
+    const ratio = contrastRatio(
+      parseColor(teal.fill as string)!,
+      parseColor(teal.stroke as string)!,
+    );
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("draws every keyline wide enough to show around its colour", () => {
+    renderPing("bo", [pc("bors", "bo", "#390076")], []);
+    const rings = circles.filter((circle) => circle.radius !== undefined && !circle.fill);
+    expect(rings.map((ring) => ring.strokeWidth)).toEqual([7, 4]);
+    const dot = circles.find((circle) => circle.fill === "#390076" && circle.shadowColor);
+    expect(dot?.strokeWidth).toBe(2);
+  });
+
+  it("follows a player's recolour on the next render", () => {
+    circles.length = 0;
+    // Only the party records change (the colour rides them); players and tokens stay put.
+    const noTokens: Token[] = [];
+    const pointers = [ping("bo")];
+    const view = (color: string) => (
+      <PointersLayer
+        cam={{ x: 0, y: 0, scale: 1 }}
+        pointers={pointers}
+        players={players}
+        tokens={noTokens}
+        characters={[pc("bors", "bo", color)]}
+      />
+    );
+    const { rerender } = render(view("#8a2be2"));
+    circles.length = 0;
+    rerender(view("#ffc2d3"));
+    expect(dotColor()).toBe("#ffc2d3");
   });
 });
