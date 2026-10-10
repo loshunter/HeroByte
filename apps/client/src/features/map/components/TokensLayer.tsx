@@ -181,9 +181,6 @@ const TokenSprite = memo(function TokenSprite({
     cornerRadius: gridSize / 8,
     stroke: ringed ? "transparent" : stroke,
     strokeWidth,
-    // Ringed, the stroke is invisible: drawing directly keeps a glowing token off
-    // Konva's stage-sized buffer canvas (fill + stroke + shadow) on every frame.
-    perfectDrawEnabled: !ringed,
     draggable,
     onDragEnd,
     onDragStart,
