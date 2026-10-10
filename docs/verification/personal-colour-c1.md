@@ -1,6 +1,6 @@
 # Personal colour, slice C1 — colour identity
 
-**Status: on local `dev`, not pushed (2026-10-09).** Built from
+**Status: pushed to `origin/dev` (2026-10-09), not on main.** Built from
 [`PROMPT-personal-colour-c1.md`](../planning/PROMPT-personal-colour-c1.md) and against
 [`personal-colour-arc-plan.md`](../planning/personal-colour-arc-plan.md) §3 and its §8 revisions (both untracked:
 the links work on this machine only). The commits on top of `91c69b63` are listed at the end, including four
@@ -369,6 +369,11 @@ tree-shake, so the colour window's code rode in the entry. Parsing it lazily (`2
 that commit shared 522 and the server colour suites passed, and lint, format, the structure guard, both typechecks
 and a dev boot were clean.
 
+Merge `cb7539c2` (origin/dev's phone double-tap recolour and auth test hardening, one help-text conflict): lint,
+format, the structure guard, both typechecks, client 806 and server 60 tests in the touched areas, and e2e for both
+colour specs, the phone colour spec and the new double-tap spec (4 passed). The full ladder on the merged tree is
+CI's run on the push.
+
 ## Found on the way
 
 - **Fixed:** condition medallions stroked `var(--jrpg-border-gold)`, which a canvas silently ignores (checked in the
@@ -379,7 +384,8 @@ and a dev boot were clean.
 - **Not fixed, reported:** `.player-portrait` (with the shimmer that ignores `data-motion`) is dead CSS — no
   component uses the class (`theme/herobyte.css` ~644-723). `TokenModel.randomColor` (`packages/shared/src/models.ts`)
   still makes hsl colours and has no callers outside its own test.
-- **Not touched:** a double-tap recolour on phones (plan §5 says another task is checking it).
+- **Landed elsewhere:** a double-tap recolour on phones (`9da4011b`, another session), merged in `cb7539c2` before
+  the push; its help line is folded into `RECOLOR_ENTRY`.
 - **Not touched:** `add-player-character` has no per-player cap (characters are capped only on session load, at 500).
 
 ## Corrections to commit messages (unpushed; not rewritten)
@@ -455,4 +461,5 @@ owner, alpha hex · `54a3df1b` picker: a tap names a zone, answers, labels, keys
 prettier wrap · `75d217e1` round-3 docs · `c324c29e` darker window, striped zones · `46f1a826` darker-window record ·
 `7cc07377` a tap in a zone picks and names · `8cbbff52` owner decisions, judgement calls · `f0448ce1` round 4: throttle
 without colour, readable drawn colours, one colour blocks once · `a1efc685` round 4: picker shape, refused picks,
-interrupted keys · `254b47e0` lazy floor parse (entry bundle) · then the round-4 docs commit.
+interrupted keys · `254b47e0` lazy floor parse (entry bundle) · `3b3e0402` round-4 docs · `cb7539c2` merge of
+origin/dev · then this status note.
