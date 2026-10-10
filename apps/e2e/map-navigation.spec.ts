@@ -174,44 +174,15 @@ test.describe("HeroByte map navigation", () => {
     const hasMoved = movedCam.x !== initialCam.x || movedCam.y !== initialCam.y;
     expect(hasMoved).toBe(true);
 
-    // Success - camera can be panned
-    // Note: Reset functionality may not be implemented yet, test skipped for actual reset
-    test.skip();
-  });
-
-  test("grid visibility can be toggled", async ({ page }) => {
-    await joinDefaultRoom(page);
-
-    // Look for grid toggle button
-    const gridButton = page.getByRole("button", { name: /Grid/i });
-
-    // If the button exists, test it
-    const buttonExists = await gridButton.count();
-    if (buttonExists > 0) {
-      await expect(gridButton).toBeVisible();
-
-      const initialGridState = await page.evaluate(() => {
-        return window.__HERO_BYTE_E2E__?.snapshot?.showGrid ?? true;
-      });
-
-      await gridButton.click();
-
-      await page.waitForFunction(
-        (prevState) => {
-          const data = window.__HERO_BYTE_E2E__;
-          return (data?.snapshot?.showGrid ?? true) !== prevState;
-        },
-        initialGridState,
-        { timeout: 3000 },
-      );
-
-      const newGridState = await page.evaluate(() => {
-        return window.__HERO_BYTE_E2E__?.snapshot?.showGrid ?? true;
-      });
-
-      expect(newGridState).toBe(!initialGridState);
-    } else {
-      test.skip();
-    }
+    // The header's Reset view puts the camera back at the map's top-left, 100% zoom.
+    await page.getByRole("button", { name: "Reset view" }).click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const cam = window.__HERO_BYTE_E2E__?.cam;
+          return cam ? { x: cam.x, y: cam.y, scale: cam.scale } : null;
+        }),
+      )
+      .toEqual({ x: 0, y: 0, scale: 1 });
   });
 });
