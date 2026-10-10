@@ -10,6 +10,7 @@
 
 import { createContext, useContext } from "react";
 import {
+  KEYLINE_DARK,
   colorToOkLab,
   keylineFor,
   normalizeColor,
@@ -19,6 +20,7 @@ import {
   parseColor,
   readableOn,
   rgbToHex,
+  textOn,
 } from "@herobyte/shared";
 
 export interface SelectionPalette {
@@ -26,8 +28,6 @@ export interface SelectionPalette {
   stroke: string;
   /** The outline while dragging: a shade of the stroke. */
   drag: string;
-  /** The move handle's translucent fill. */
-  fill: string;
   /** The centre move handle's fill: the colour at 85% (it carries the keyline cross), today's translucent blue without one. */
   handleFill: string;
   /** The pulsing glow (full motion only): lifted to 3:1 on a dark map, or a deep colour's glow vanishes. */
@@ -38,7 +38,7 @@ export interface SelectionPalette {
    * dark maps and fog. Null: today's plain blue outline.
    */
   keyline: string | null;
-  /** Text on the multi-select badge, which is filled with `stroke`. */
+  /** The number on the multi-select badge, which is filled with `stroke` (textOn: black or white). */
   badgeText: string;
 }
 
@@ -48,7 +48,6 @@ const DARK_MAP = "#2a2622";
 export const DEFAULT_SELECTION: SelectionPalette = {
   stroke: "#447DF7",
   drag: "#44f",
-  fill: "rgba(68, 125, 247, 0.25)",
   handleFill: "rgba(68, 125, 247, 0.25)",
   glow: "#447DF7",
   keyline: null,
@@ -61,21 +60,23 @@ export function selectionPalette(color: string | null): SelectionPalette {
   const rgb = hex ? parseColor(hex) : null;
   const lab = hex ? colorToOkLab(hex) : null;
   if (!hex || !rgb || !lab) return DEFAULT_SELECTION;
-  // The drag shade moves the lightness toward the middle, so it never vanishes.
+  const keyline = keylineFor(hex);
+  // The drag shade moves the lightness 0.12 AWAY from the keyline (lighter over a
+  // dark keyline, darker over a light one), so the dashed drag line drawn over the
+  // keyline contrasts with it at least as much as the colour does.
   const { L, C, h } = okLabToOkLch(lab);
-  const moved = okLabToRgb(okLchToOkLab({ L: L > 0.5 ? L - 0.12 : L + 0.12, C, h }));
   const clamp = (value: number) => Math.min(1, Math.max(0, value));
+  const dragL = clamp(keyline === KEYLINE_DARK ? L + 0.12 : L - 0.12);
+  const moved = okLabToRgb(okLchToOkLab({ L: dragL, C, h }));
   const drag = rgbToHex({ r: clamp(moved.r), g: clamp(moved.g), b: clamp(moved.b) });
   const channel = (value: number) => Math.round(value * 255);
-  const keyline = keylineFor(hex);
   return {
     stroke: hex,
     drag,
-    fill: `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, 0.25)`,
     handleFill: `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, 0.85)`,
     glow: readableOn(hex, DARK_MAP, 3) ?? hex,
     keyline,
-    badgeText: keyline,
+    badgeText: textOn(hex),
   };
 }
 

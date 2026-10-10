@@ -81,6 +81,19 @@ export function readableOn(color: string, background: string, target = 4.5): str
   return hexAt(far);
 }
 
+/**
+ * Text drawn ON `color` (a badge's number, an initial on a ring): black or white,
+ * whichever contrasts more. That is at least 4.58:1 for any colour, where the
+ * keyline pair below bottoms out at 4.16:1 (`#008183`), short of text's 4.5:1.
+ */
+export function textOn(color: string): string {
+  const rgb = parseColor(color);
+  if (!rgb) return "#ffffff";
+  const black = contrastRatio(rgb, { r: 0, g: 0, b: 0 });
+  const white = contrastRatio(rgb, { r: 1, g: 1, b: 1 });
+  return black >= white ? "#000000" : "#ffffff";
+}
+
 /** The keyline for an edge drawn in `color`: dark or light, whichever contrasts more. */
 export function keylineFor(color: string): string {
   const rgb = parseColor(color);

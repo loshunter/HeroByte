@@ -811,12 +811,13 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]')!;
       const onDragStart = getProps(rect).onDragStart as (event: unknown) => void;
       act(() => onDragStart({ target: { x: () => 0, y: () => 0 } }));
+      // Moved away from the light keyline: darker.
       expect(getProps(container.querySelector('[data-testid="konva-rect"]')!).stroke).toBe(
-        "#57309c",
+        "#1f0051",
       );
     });
 
-    it("fills the multi-select count badge with the viewer's colour, its number readable", () => {
+    it("fills the multi-select count badge with the viewer's colour, its number black or white", () => {
       const tokens = [
         createTokenObject("token:1", "user-1"),
         createTokenObject("token:2", "user-1"),
@@ -834,7 +835,7 @@ describe("TokensLayer", () => {
       const number = [...container.querySelectorAll('[data-testid="konva-text"]')]
         .map(getProps)
         .find((text) => text.text === "2");
-      expect(number?.fill).toBe("#0b0b16");
+      expect(number?.fill).toBe("#000000");
     });
 
     it("keeps today's white-edged blue badge with no colour", () => {

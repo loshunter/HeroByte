@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { colorToOkLab, contrastRatio, okLabToOkLch, parseColor } from "../colorSpace.js";
-import { KEYLINE_DARK, KEYLINE_LIGHT, keylineFor, readableOn } from "../colorText.js";
+import { KEYLINE_DARK, KEYLINE_LIGHT, keylineFor, readableOn, textOn } from "../colorText.js";
 import { windowCells } from "../colorWindow.js";
 
 const NAVY = "#0f0e1e";
@@ -71,9 +71,29 @@ describe("keylineFor", () => {
     expect(keylineFor("#390076")).toBe(KEYLINE_LIGHT);
   });
 
-  it("gives every window colour a keyline of at least 4:1", () => {
+  it("gives every window colour a keyline of at least 4.16:1, the record's figure", () => {
+    let worst = Infinity;
+    for (const cell of windowCells())
+      worst = Math.min(worst, ratio(cell.hex, keylineFor(cell.hex)));
+    expect(worst).toBeGreaterThanOrEqual(4.16);
+    expect(worst).toBeLessThan(4.5); // why text on a colour uses textOn, not the keyline
+  });
+});
+
+describe("textOn", () => {
+  it("puts black or white text on any colour at 4.5:1 or better", () => {
     for (const cell of windowCells()) {
-      expect(ratio(cell.hex, keylineFor(cell.hex))).toBeGreaterThanOrEqual(4);
+      expect(ratio(cell.hex, textOn(cell.hex))).toBeGreaterThanOrEqual(4.5);
     }
+    for (let hue = 0; hue < 360; hue += 1) {
+      const legacy = `hsl(${hue}, 70%, 50%)`;
+      expect(ratio(legacy, textOn(legacy))).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("picks white on a red ring the keyline pair leaves at 4.36:1, black on the default green", () => {
+    expect(textOn("#d9262c")).toBe("#ffffff");
+    expect(textOn("#5AFFAD")).toBe("#000000");
+    expect(textOn("#008183")).toBe("#ffffff");
   });
 });
