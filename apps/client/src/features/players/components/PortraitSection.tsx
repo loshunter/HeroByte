@@ -86,6 +86,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
     aspectRatio: "1 / 1",
     padding: 0,
     cursor: isEditable ? "pointer" : "default",
+    opacity: 1, // full strength when disabled: `button:disabled` halved others' portraits
     outline: "none",
     borderColor: isCurrentTurn ? "var(--jrpg-gold)" : "var(--jrpg-border-gold)",
   };

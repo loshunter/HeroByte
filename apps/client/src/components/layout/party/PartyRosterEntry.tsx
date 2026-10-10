@@ -7,7 +7,7 @@
 // carries no second copy of them.
 
 import type React from "react";
-import { textOn } from "@herobyte/shared";
+import { keylineFor, textOn } from "@herobyte/shared";
 import { sanitizeText } from "../../../utils/sanitize";
 import type { RosterEntryView } from "./rosterEntryView";
 
@@ -105,7 +105,11 @@ export function PartyRosterEntry({
         aria-label={`${label}: details`}
         onClick={(event) => onSelect(event, view.characterId)}
       >
-        <span className="party-roster__portrait" style={{ borderColor: view.ring }}>
+        <span
+          className="party-roster__portrait"
+          // A keyline edge outside the ring: a deep colour's ring vanished on the row.
+          style={{ borderColor: view.ring, boxShadow: `0 0 0 1px ${keylineFor(view.ring)}` }}
+        >
           {view.portrait ? (
             <img src={view.portrait} alt="" draggable={false} />
           ) : (

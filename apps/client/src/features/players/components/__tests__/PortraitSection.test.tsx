@@ -65,6 +65,14 @@ describe("PortraitSection", () => {
     expect(placeholder().style.color).toBe("rgb(255, 255, 255)");
   });
 
+  it("shows another player's portrait at full strength, though its frame is disabled", () => {
+    render(<PortraitSection portrait={undefined} statusEffects={[]} tokenColor="#c64475" />);
+    const frame = screen.getByRole("button", { name: "Portrait" });
+    expect(frame).toBeDisabled();
+    // Inline, so it beats the stylesheet's `button:disabled { opacity: 0.5 }`.
+    expect(frame.style.opacity).toBe("1");
+  });
+
   it("shows the empty portrait's hint at full strength (dimmed, it fell under 4.5:1)", () => {
     render(
       <PortraitSection isEditable portrait={undefined} statusEffects={[]} tokenColor="#d92685" />,

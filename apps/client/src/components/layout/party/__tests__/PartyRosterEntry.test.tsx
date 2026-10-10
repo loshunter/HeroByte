@@ -60,6 +60,20 @@ describe("PartyRosterEntry — what a row shows and says", () => {
     cleanup();
     const deep = renderRow({ ring: "#390076" });
     expect(within(deep).getByText("R").style.textShadow).toBe("");
+    cleanup();
+    // White letter, dark keyline: the shadow follows the letter, not the keyline.
+    const pink = renderRow({ ring: "#c64475" });
+    expect(within(pink).getByText("R").style.textShadow).toBe("");
+  });
+
+  it("edges the ring in its keyline, so a deep colour's ring shows against the row", () => {
+    const deep = renderRow({ ring: "#390076" });
+    const portrait = deep.querySelector(".party-roster__portrait") as HTMLElement;
+    expect(portrait.style.boxShadow).toBe("0 0 0 1px #f4f1e8");
+    cleanup();
+    const light = renderRow({});
+    const lightPortrait = light.querySelector(".party-roster__portrait") as HTMLElement;
+    expect(lightPortrait.style.boxShadow).toBe("0 0 0 1px #0b0b16");
   });
 
   it("marks the current turn, initiative, a hidden NPC and its tag, and reads them aloud", () => {
