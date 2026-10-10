@@ -5,7 +5,8 @@ import { activatePanelLauncher } from "../../interaction/useExplicitDismissal";
 // A character's portrait (a player's, the DM's or an NPC's) with class icon and
 // mic level animation
 
-import React, { useId } from "react";
+import React, { useId, useMemo } from "react";
+import { textOn } from "@herobyte/shared";
 import "./portraitSection.css";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
 import { speakingGlow } from "../playerColors";
@@ -65,8 +66,10 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
     return option?.label ?? effectValue;
   });
 
-  const animatedBoxShadow =
-    micLevel > 0.1 ? `0 0 12px ${speakingGlow(tokenColor)}` : "0 0 6px rgba(8, 12, 24, 0.6)";
+  // Memoised: the card re-renders with every mic level while someone speaks.
+  const glow = useMemo(() => speakingGlow(tokenColor), [tokenColor]);
+  const animatedBoxShadow = micLevel > 0.1 ? `0 0 12px ${glow}` : "0 0 6px rgba(8, 12, 24, 0.6)";
+  const placeholderText = textOn(tokenColor);
   const currentTurnGlow = "0 0 18px rgba(255, 215, 0, 0.85), 0 0 32px rgba(255, 215, 0, 0.35)";
 
   const frameStyles: React.CSSProperties = {
@@ -248,10 +251,11 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               justifyContent: "center",
               gap: "6px",
               backgroundColor: tokenColor,
-              color: "#fff",
+              // Black or white on the colour, whichever reads (white was 1.3:1 on the default green).
+              color: placeholderText,
               textAlign: "center",
               padding: "6px",
-              textShadow: "0 1px 3px rgba(0, 0, 0, 0.45)",
+              textShadow: placeholderText === "#000000" ? "none" : "0 1px 3px rgba(0, 0, 0, 0.45)",
               pointerEvents: "none",
               // The frame is a <button>, and the global button rule set this
               // in uppercase pixel type, which clipped the instruction in a

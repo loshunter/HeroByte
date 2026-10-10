@@ -29,6 +29,17 @@ describe("PortraitSection", () => {
     );
   });
 
+  it("letters the empty portrait in black or white, whichever reads on the colour", () => {
+    const { rerender } = render(<PortraitSection portrait={undefined} statusEffects={[]} />);
+    const placeholder = () => screen.getByTestId("portrait-placeholder");
+    // The default green: white was 1.29:1 there.
+    expect(placeholder().style.color).toBe("rgb(0, 0, 0)");
+    expect(placeholder().style.textShadow).toBe("none");
+    rerender(<PortraitSection portrait={undefined} statusEffects={[]} tokenColor="#390076" />);
+    expect(placeholder().style.color).toBe("rgb(255, 255, 255)");
+    expect(placeholder().style.textShadow).not.toBe("none");
+  });
+
   it("renders a token-colored call-to-action placeholder and triggers change callback", () => {
     const handleRequestChange = vi.fn();
     const tokenColor = "#336699";
