@@ -2,7 +2,7 @@
 // "full" motion. jsdom has no canvas, so the token's Konva node is a fake that
 // records shadow calls and the animation loop is captured and stepped by hand.
 
-import { forwardRef, useLayoutEffect, type ReactNode } from "react";
+import { forwardRef, useLayoutEffect, type ComponentProps, type ReactNode } from "react";
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SceneObject } from "@herobyte/shared";
@@ -88,12 +88,17 @@ function renderSelected() {
   return render(
     <SelectionPaletteContext.Provider value={selectionPalette("#390076")}>
       <TokensLayer
-        cam={{ x: 0, y: 0, scale: 1 }}
-        sceneObjects={[token]}
-        uid="user-1"
-        gridSize={50}
-        selectedObjectIds={["token:1"]}
-        {...({} as Record<string, never>)}
+        {...({
+          cam: { x: 0, y: 0, scale: 1 },
+          sceneObjects: [token],
+          uid: "user-1",
+          gridSize: 50,
+          selectedObjectIds: ["token:1"],
+          hoveredTokenId: null,
+          onHover: () => undefined,
+          onTransformToken: () => undefined,
+          onRecolorToken: () => undefined,
+        } as unknown as ComponentProps<typeof TokensLayer>)}
       />
     </SelectionPaletteContext.Provider>,
   );
