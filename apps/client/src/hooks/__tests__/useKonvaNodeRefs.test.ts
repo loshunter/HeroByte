@@ -42,6 +42,24 @@ function createMapSceneObject(id: string): SceneObject & { type: "map" } {
 }
 
 describe("useKonvaNodeRefs", () => {
+  it("hands the gizmo the new node when the selected token's node is swapped", () => {
+    // A picture loading replaces the placeholder Rect with an Image: React detaches
+    // the old node and attaches the new one under the same id.
+    const { result } = renderHook(() => useKonvaNodeRefs("token:1", undefined));
+    const placeholder = createMockNode({ id: "token:1" });
+    const picture = createMockNode({ id: "token:1" });
+    act(() => result.current.registerNode("token:1", placeholder));
+    const before = result.current.getSelectedNode;
+    expect(before()).toBe(placeholder);
+    act(() => {
+      result.current.registerNode("token:1", null);
+      result.current.registerNode("token:1", picture);
+    });
+    // A new getter (the gizmo's attach effect depends on it) that returns the picture.
+    expect(result.current.getSelectedNode).not.toBe(before);
+    expect(result.current.getSelectedNode()).toBe(picture);
+  });
+
   it("registerNode stores and retrieves a node reference", () => {
     const { result } = renderHook(() => useKonvaNodeRefs(null, undefined));
     const node = createMockNode({ id: "token:1" });
