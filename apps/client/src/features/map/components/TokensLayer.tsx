@@ -147,9 +147,17 @@ const TokenSprite = memo(function TokenSprite({
     };
   }, [popIn]);
 
+  // The node that glows. Konva draws an Image with a corner radius and a shadow
+  // through its stage-sized buffer canvas on every frame, a stroke-only rect never:
+  // so a ringed picture glows on its ring's colour band. Without a ring (no colour)
+  // a picture keeps today's glow.
+  const [ringBand, setRingBand] = useState<Konva.Node | null>(null);
+  const picture = Boolean(data.imageUrl && status === "loaded" && image);
+  const glowNode = ringed && picture ? ringBand : shapeNode;
+
   // Pulsing glow while selected. Decorative: "full" motion only.
   useEffect(() => {
-    const node = shapeNode;
+    const node = glowNode;
     if (!isKonvaNode(node) || !selected || decorativeMotionDisabled()) return;
     const layer = node.getLayer();
     if (!layer) return;
@@ -166,7 +174,7 @@ const TokenSprite = memo(function TokenSprite({
       shape.shadowBlur(0);
       shape.shadowOpacity(0);
     };
-  }, [selected, palette.glow, shapeNode]);
+  }, [selected, palette.glow, glowNode]);
 
   const baseProps = {
     x: transform.x * gridSize + gridSize / 2,
@@ -181,6 +189,9 @@ const TokenSprite = memo(function TokenSprite({
     cornerRadius: gridSize / 8,
     stroke: ringed ? "transparent" : stroke,
     strokeWidth,
+    // Ringed, the stroke is invisible: drawing directly keeps a glowing token off
+    // Konva's stage-sized buffer canvas (fill + stroke + shadow) on every frame.
+    perfectDrawEnabled: !ringed,
     draggable,
     onDragEnd,
     onDragStart,
@@ -208,6 +219,7 @@ const TokenSprite = memo(function TokenSprite({
       color={palette.stroke}
       keyline={palette.keyline!}
       strokeWidth={strokeWidth}
+      bandRef={setRingBand}
     />
   ) : null;
 

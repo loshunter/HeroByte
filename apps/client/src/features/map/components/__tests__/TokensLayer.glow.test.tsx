@@ -15,6 +15,8 @@ let decorativeOff = false;
 type FakeNode = ReturnType<typeof fakeNode>;
 const mounted: Array<{ kind: string; node: FakeNode }> = [];
 const ringProps: Array<{ follow: unknown }> = [];
+// The ring's colour band nodes, as the ring hands them over.
+const bands: FakeNode[] = [];
 let imageState: [unknown, string] = [undefined, "loading"];
 
 const fakeNode = () => {
@@ -84,8 +86,16 @@ vi.mock("react-konva", () => ({
 
 vi.mock("use-image", () => ({ default: () => imageState }));
 vi.mock("../SelectionRing", () => ({
-  SelectionRing: (props: { follow: unknown }) => {
+  SelectionRing: (props: { follow: unknown; bandRef?: (node: unknown) => void }) => {
     ringProps.push(props);
+    const { bandRef } = props;
+    useLayoutEffect(() => {
+      if (!bandRef) return;
+      const node = fakeNode();
+      bands.push(node);
+      bandRef(node);
+      return () => bandRef(null);
+    }, [bandRef]);
     return <div />;
   },
 }));
@@ -139,6 +149,7 @@ describe("selected token glow", () => {
     frames.length = 0;
     shadowColors.length = 0;
     mounted.length = 0;
+    bands.length = 0;
     ringProps.length = 0;
     imageState = [undefined, "loading"];
   });
@@ -182,8 +193,36 @@ describe("selected token glow", () => {
     expect(ringProps.at(-1)!.follow).toBe(image.node);
     // The placeholder's glow was put out; the next frame glows the picture.
     expect(placeholder.node.opacities.at(-1)).toBe(0);
+    // A ringed picture glows on its ring's colour band (a stroke-only rect), never on
+    // the Image, which Konva would draw through its stage-sized buffer canvas.
+    const band = { node: bands.at(-1)! };
     frames.at(-1)!({ time: 500 });
-    expect(image.node.colors).toEqual([selectionPalette("#390076").glow]);
+    expect(band.node.colors).toEqual([selectionPalette("#390076").glow]);
+    expect(image.node.colors).toEqual([]);
+  });
+
+  it("keeps today's glow on the picture itself for a viewer with no colour", () => {
+    decorativeOff = false;
+    imageState = [{}, "loaded"];
+    const picture = { ...token, data: { ...token.data, imageUrl: "a.png" } };
+    render(
+      <TokensLayer
+        {...({
+          cam: { x: 0, y: 0, scale: 1 },
+          sceneObjects: [picture],
+          uid: "user-1",
+          gridSize: 50,
+          selectedObjectIds: ["token:1"],
+          hoveredTokenId: null,
+          onHover: () => undefined,
+          onTransformToken: () => undefined,
+          onRecolorToken: () => undefined,
+        } as unknown as ComponentProps<typeof TokensLayer>)}
+      />,
+    );
+    const image = mounted.find((entry) => entry.kind === "image")!;
+    frames.at(-1)!({ time: 500 });
+    expect(image.node.colors).toEqual(["#447DF7"]);
   });
 
   it("hands each node over once, however often the layer re-renders", () => {
