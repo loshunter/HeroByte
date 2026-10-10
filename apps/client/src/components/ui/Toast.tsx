@@ -29,6 +29,7 @@ const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
   useEffect(() => {
     // Fire once per toast instance.
     play(message.type === "error" || message.type === "warning" ? "uiClose" : "uiOpen");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chirps once per toast, on mount; later prop changes must not chirp again
   }, []);
 
   useEffect(() => {

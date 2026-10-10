@@ -66,6 +66,7 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: Terrai
         mapTerrain.grid,
         buildTerrainOnlyOccupancy(mapTerrain.terrain),
       ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- value-keyed: the snapshot hands a new identity on every broadcast
     [terrainKey],
   );
 
@@ -200,6 +201,7 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: Terrai
     ];
     // bakeRevision: the baked CANVAS identity is stable while bands stream —
     // the revision is what says its pixels changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- value-keyed: the snapshot hands a new identity on every broadcast
   }, [
     coreLayers,
     shimmerLayers,

@@ -43,6 +43,8 @@ interface SelectionRingProps extends RingGeometry {
   keyline: string;
   /** The colour band's width (already divided by the camera scale). */
   strokeWidth: number;
+  /** Receives the colour band's node (a picture token's glow goes on it). */
+  bandRef?: (node: Konva.Rect | null) => void;
 }
 
 export function SelectionRing({
@@ -50,6 +52,7 @@ export function SelectionRing({
   color,
   keyline,
   strokeWidth,
+  bandRef,
   x,
   y,
   rotation,
@@ -94,6 +97,7 @@ export function SelectionRing({
         perfectDrawEnabled={false}
       />
       <Rect
+        ref={bandRef}
         {...box}
         stroke={color}
         strokeWidth={strokeWidth}

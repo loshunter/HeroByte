@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 import type Konva from "konva";
 import type { SceneObject } from "@herobyte/shared";
@@ -45,47 +45,57 @@ export function useKonvaNodeRefs(
   const nodeRefsMap = useRef<Map<string, Konva.Node>>(new Map());
   const selectedNodeRef = useRef<Konva.Node | null>(null);
   const selectedIdRef = useRef<string | null | undefined>(selectedObjectId);
+  // The selected node in state as well: a picture loading swaps a token's node for
+  // a new one, and the transform gizmo (which reads getSelectedNode) must re-attach
+  // to it instead of driving the destroyed placeholder.
+  const [selectedNode, setSelectedNode] = useState<Konva.Node | null>(null);
+  const select = useCallback((node: Konva.Node | null) => {
+    selectedNodeRef.current = node;
+    setSelectedNode(node);
+  }, []);
 
-  const registerNode = useCallback((id: string, node: Konva.Node | null) => {
-    if (!id) {
-      return;
-    }
-
-    if (node) {
-      nodeRefsMap.current.set(id, node);
-
-      if (selectedIdRef.current === id) {
-        selectedNodeRef.current = node;
+  const registerNode = useCallback(
+    (id: string, node: Konva.Node | null) => {
+      if (!id) {
+        return;
       }
 
-      return;
-    }
+      if (node) {
+        nodeRefsMap.current.set(id, node);
 
-    const existing = nodeRefsMap.current.get(id);
-    nodeRefsMap.current.delete(id);
+        if (selectedIdRef.current === id) {
+          select(node);
+        }
 
-    if (existing && existing === selectedNodeRef.current) {
-      selectedNodeRef.current = null;
-    }
-  }, []);
+        return;
+      }
+
+      const existing = nodeRefsMap.current.get(id);
+      nodeRefsMap.current.delete(id);
+
+      if (existing && existing === selectedNodeRef.current) {
+        select(null);
+      }
+    },
+    [select],
+  );
 
   const getNode = useCallback((id: string) => nodeRefsMap.current.get(id), []);
 
   const getAllNodes = useCallback(() => nodeRefsMap.current, []);
 
-  const getSelectedNode = useCallback(() => selectedNodeRef.current, []);
+  const getSelectedNode = useCallback(() => selectedNode, [selectedNode]);
 
   useEffect(() => {
     selectedIdRef.current = selectedObjectId;
 
     if (!selectedObjectId) {
-      selectedNodeRef.current = null;
+      select(null);
       return;
     }
 
-    const node = nodeRefsMap.current.get(selectedObjectId) ?? null;
-    selectedNodeRef.current = node;
-  }, [selectedObjectId]);
+    select(nodeRefsMap.current.get(selectedObjectId) ?? null);
+  }, [selectedObjectId, select]);
 
   useEffect(() => {
     if (!mapObject?.id) {

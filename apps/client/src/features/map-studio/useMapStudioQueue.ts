@@ -78,6 +78,7 @@ export function useMapStudioQueue({
       // React's immediate effect replay revives this same owner before this runs.
       // Old callbacks are inert immediately; real disposal still settles every entry.
       queueMicrotask(() => {
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the live lifetime counter on purpose: a replayed effect revives this owner
         if (lifetime.current !== instance || alive.current) return;
         const retired = entries.current;
         entries.current = [];

@@ -292,6 +292,38 @@ describe("useCameraControl", () => {
         }
       });
 
+      it("yields to a camera move made during the glide instead of pulling the camera back", async () => {
+        const glide: CameraCommand = {
+          type: "focus-point",
+          x: 525,
+          y: 1025,
+          at: { x: 150, y: 236 },
+        };
+        const { result } = renderHook(() =>
+          useCameraControl({
+            cameraCommand: glide,
+            onCameraCommandHandled: mockOnCameraCommandHandled,
+            snapshot: mockSnapshot as RoomSnapshot,
+            gridSize: 50,
+            w: 375,
+            h: 812,
+            onCameraChange: mockOnCameraChange,
+          }),
+        );
+        // Two frames in, someone else moves the camera (a pan, the e2e seam's setCam).
+        for (let i = 0; i < 2; i += 1) {
+          await act(async () => {
+            await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+          });
+        }
+        act(() => result.current.setCam({ x: 75, y: 343, scale: 1 }));
+        // Long after the glide would have finished, the camera is where they put it.
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        });
+        expect(result.current.cam).toEqual({ x: 75, y: 343, scale: 1 });
+      });
+
       it("unmounting mid-glide cancels the pending frame", async () => {
         const glide: CameraCommand = {
           type: "focus-point",

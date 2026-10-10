@@ -39,6 +39,7 @@ function setup() {
           )
             controller.handleServerMessage(message);
         }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the two bound methods the effect calls
       [network.registerServerEventHandler, controller.handleServerMessage],
     );
     return { network, controller, generate: useGenerate(controller, true, "generate", true) };

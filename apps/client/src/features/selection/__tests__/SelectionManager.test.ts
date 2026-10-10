@@ -23,7 +23,7 @@ import { renderHook } from "@testing-library/react";
  * Mock implementation of the SelectionManager
  * This simulates the CURRENT behavior in App.tsx before extraction
  */
-function createSelectionManager({
+function useSelectionManager({
   useObjectSelection,
   useToolMode,
   useSceneObjectSelectors,
@@ -129,7 +129,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -168,7 +168,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -207,7 +207,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -246,7 +246,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -287,7 +287,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -332,7 +332,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -375,7 +375,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -421,7 +421,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -459,7 +459,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -497,7 +497,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -535,7 +535,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -577,7 +577,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -627,7 +627,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -675,7 +675,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -715,7 +715,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: mockHandleObjectSelectionBatch,
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -764,7 +764,7 @@ describe("SelectionManager - Characterization", () => {
         };
       };
 
-      createSelectionManager({
+      useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -813,7 +813,7 @@ describe("SelectionManager - Characterization", () => {
         };
       };
 
-      createSelectionManager({
+      useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -862,7 +862,7 @@ describe("SelectionManager - Characterization", () => {
         };
       };
 
-      createSelectionManager({
+      useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -911,7 +911,7 @@ describe("SelectionManager - Characterization", () => {
         };
       };
 
-      createSelectionManager({
+      useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -952,7 +952,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -990,7 +990,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1028,7 +1028,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1067,7 +1067,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1106,7 +1106,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1145,7 +1145,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1189,7 +1189,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1235,7 +1235,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1279,7 +1279,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1323,7 +1323,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1367,7 +1367,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1413,7 +1413,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       expect(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1452,7 +1452,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1492,7 +1492,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1535,7 +1535,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1590,7 +1590,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: vi.fn(),
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1634,7 +1634,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1691,7 +1691,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1743,7 +1743,7 @@ describe("SelectionManager - Characterization", () => {
       });
 
       const { result, rerender } = renderHook(() =>
-        createSelectionManager({
+        useSelectionManager({
           useObjectSelection: mockUseObjectSelection,
           useToolMode: mockUseToolMode,
           useSceneObjectSelectors: mockUseSceneObjectSelectors,
@@ -1797,7 +1797,7 @@ describe("SelectionManager - Characterization", () => {
         handleObjectSelectionBatch: mockHandleObjectSelectionBatch,
       });
 
-      const manager = createSelectionManager({
+      const manager = useSelectionManager({
         useObjectSelection: mockUseObjectSelection,
         useToolMode: mockUseToolMode,
         useSceneObjectSelectors: mockUseSceneObjectSelectors,

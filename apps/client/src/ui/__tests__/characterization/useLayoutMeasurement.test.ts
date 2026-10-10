@@ -38,6 +38,7 @@ function useLayoutMeasurementCurrent(options: {
     measureHeights();
     window.addEventListener("resize", measureHeights);
     return () => window.removeEventListener("resize", measureHeights);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the hook under test takes its dependency list from the caller
   }, dependencies);
 
   return { topHeight, bottomHeight };

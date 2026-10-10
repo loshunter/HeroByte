@@ -131,7 +131,7 @@ export function useMapEditState({
   // one memo keeps the pair stable for MapBoard.
   const wheelActions = useMemo(
     () => ({ selectSubTool: setActiveSubTool, selectFloorFamily: setFloorFamily }),
-    [],
+    [setActiveSubTool, setFloorFamily],
   );
 
   // The selected element, resolved live from the active document so edits (and

@@ -79,6 +79,26 @@ const readCell = (page: Page, id: string) =>
     return { x: own.x, y: own.y };
   }, id);
 
+/**
+ * Waits until the camera has held still for 200 ms. Selecting the token mounts the
+ * pad, whose follow may glide the camera (120 ms); parking it mid-glide raced that
+ * glide, so a test parks only once the camera is settled.
+ */
+async function settledCam(page: Page) {
+  let last = JSON.stringify(await readCam(page));
+  let stillSince = Date.now();
+  const deadline = Date.now() + 5_000;
+  while (Date.now() - stillSince < 200) {
+    if (Date.now() > deadline) throw new Error("the camera never settled");
+    await page.waitForTimeout(50);
+    const now = JSON.stringify(await readCam(page));
+    if (now !== last) {
+      last = now;
+      stillSince = Date.now();
+    }
+  }
+}
+
 /** Waits for the follow to land: the camera's y left the parked value, then the glide ended. */
 async function followedFrom(page: Page, parkedY: number) {
   await expect.poll(async () => (await readCam(page))!.y, { timeout: 5_000 }).not.toBe(parkedY);
@@ -103,6 +123,7 @@ test.describe("mobile — move pad camera follow", () => {
     const parkedCellTop = sheetTop - 16 - 40 - 20 - g;
     expect(parkedCellTop).toBeGreaterThan(16); // the precondition is real, not assumed
     const parked = { x: 100 - (token.x + 0.5) * g, y: parkedCellTop - token.y * g, scale: 1 };
+    await settledCam(page);
     await page.evaluate((cam) => window.__HERO_BYTE_E2E__!.setCam!(cam), parked);
     await expect.poll(() => readCam(page)).toEqual(parked);
 
@@ -144,6 +165,7 @@ test.describe("mobile — move pad camera follow", () => {
     expect(sheetTop - 32).toBeGreaterThanOrEqual(g + 40);
     expect(sheetTop - 32).toBeLessThan(2 * g + 40);
     const parked = { x: 406 - (token.x + 0.5) * g, y: 16 - token.y * g, scale: 1 };
+    await settledCam(page);
     await page.evaluate((cam) => window.__HERO_BYTE_E2E__!.setCam!(cam), parked);
     await expect.poll(() => readCam(page)).toEqual(parked);
 
@@ -185,6 +207,7 @@ test.describe("mobile — move pad camera follow", () => {
         expect(sheetTop - 16 - (stripBottom + 16)).toBeLessThan(g);
 
         const parked = { x: 406 - (token.x + 0.5) * g, y: 16 - token.y * g, scale: 1 };
+        await settledCam(page);
         await page.evaluate((cam) => window.__HERO_BYTE_E2E__!.setCam!(cam), parked);
         await expect.poll(() => readCam(page)).toEqual(parked);
         await pad.getByRole("button", { name: "Move down", exact: true }).tap();

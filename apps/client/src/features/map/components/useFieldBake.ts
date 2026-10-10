@@ -34,6 +34,7 @@ export function useFieldBake(
       lighting,
     );
     // lightingKey stands in for `lighting` (value-keyed; identity churns).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lightingKey stands in for `lighting` (value-keyed; identity churns)
   }, [layers, gridSize, gridOffsetX, gridOffsetY, lightingKey]);
 
   return managerRef.current.state();

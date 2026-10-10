@@ -211,18 +211,33 @@ export function useCameraControl({
         // under jsdom) can precede or follow it by any amount.
         let start: number | null = null;
         let from: { x: number; y: number } | null = null;
+        // What this glide last wrote. Updaters run in order, so a camera that is not
+        // that value was moved by someone else in between (a pan, a pinch, another
+        // write): the glide yields to them rather than pulling the camera back.
+        let wrote: { x: number; y: number } | null = null;
+        let yielded = false;
         const frame = (now: number) => {
+          if (yielded) {
+            glideFrame.current = null;
+            return;
+          }
           start ??= now;
           const t = Math.max(0, Math.min(1, (now - start) / CAMERA_GLIDE_MS));
           const eased = 1 - (1 - t) ** 3;
+          const expected = wrote;
           setCam((prevCam) => {
+            if (expected && (prevCam.x !== expected.x || prevCam.y !== expected.y)) {
+              yielded = true;
+              return prevCam;
+            }
             from ??= { x: prevCam.x, y: prevCam.y };
             const target = targetFor(prevCam.scale);
-            return {
-              ...prevCam,
+            const next = {
               x: from.x + (target.x - from.x) * eased,
               y: from.y + (target.y - from.y) * eased,
             };
+            wrote = next;
+            return { ...prevCam, ...next };
           });
           glideFrame.current = t < 1 ? requestAnimationFrame(frame) : null;
         };
