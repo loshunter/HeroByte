@@ -758,7 +758,7 @@ describe("TokensLayer", () => {
     const rectsIn = (container: HTMLElement) =>
       [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
 
-    it("rings a selected token: keyline then colour over it, its own stroke left alone", () => {
+    it("rings a selected token: keyline then colour over it, its own stroke transparent at today's width", () => {
       const token = createTokenObject("token:1", "user-1", {
         transform: { x: 2, y: 3, scaleX: 1.5, scaleY: 1.5, rotation: 30 },
       });
@@ -773,6 +773,8 @@ describe("TokensLayer", () => {
       // The token keeps a transparent stroke of today's width: hit area unchanged.
       expect(shape!.stroke).toBe("transparent");
       expect(shape!.strokeWidth).toBe(1.5);
+      // Drawn directly: its glow never goes through Konva's stage-sized buffer canvas.
+      expect(shape!.perfectDrawEnabled).toBe(false);
       expect([keyline!.stroke, keyline!.strokeWidth]).toEqual(["#0b0b16", 2.5]);
       expect([colour!.stroke, colour!.strokeWidth]).toEqual(["#ffc2d3", 1.5]);
       // The ring's group carries the token's place, turn and scale; its rects the token's box.
@@ -869,6 +871,8 @@ describe("TokensLayer", () => {
       const rectProps = getProps(rect);
       expect(rectProps.stroke).toBe("#447DF7");
       expect(rectProps.strokeWidth).toBe(3);
+      // Today's drawing path, unchanged without a colour.
+      expect(rectProps.perfectDrawEnabled).toBe(true);
     });
 
     it("applies selected stroke when using selectedObjectId", () => {

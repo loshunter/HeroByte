@@ -95,6 +95,20 @@ export function TemplateShape({
         opacity={opacity}
         listening={false}
       />
+      {selected && (
+        <SelectionOutline
+          shape={Line}
+          keyline={palette.keyline}
+          scale={scale}
+          points={flat}
+          closed
+          stroke={palette.stroke}
+          strokeWidth={2 / scale}
+          dash={[8 / scale, 4 / scale]}
+          listening={false}
+        />
+      )}
+      {/* The label after the outline, so a selected small template's keyline never strikes it through. */}
       {template && (
         <Text
           x={centreX}
@@ -106,19 +120,6 @@ export function TemplateShape({
           align="center"
           width={LABEL_WIDTH / scale}
           offsetX={LABEL_WIDTH / scale / 2}
-          listening={false}
-        />
-      )}
-      {selected && (
-        <SelectionOutline
-          shape={Line}
-          keyline={palette.keyline}
-          scale={scale}
-          points={flat}
-          closed
-          stroke={palette.stroke}
-          strokeWidth={2 / scale}
-          dash={[8 / scale, 4 / scale]}
           listening={false}
         />
       )}

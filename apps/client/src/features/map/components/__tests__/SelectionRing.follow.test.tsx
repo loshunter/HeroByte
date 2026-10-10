@@ -53,15 +53,30 @@ describe("SelectionRing", () => {
     ]);
   });
 
-  it("copies the node's position, rotation and scale as they change", () => {
+  it("copies each of the node's position, rotation and scale as it changes", () => {
     const node = new Konva.Rect({ x: 10, y: 20 });
-    setAttrs.mockClear();
     render(ringFor(node));
-    node.x(140);
-    node.rotation(30);
-    node.scaleX(1.5);
-    const last = setAttrs.mock.calls.at(-1)![0];
-    expect(last).toEqual({ x: 140, y: 20, rotation: 30, scaleX: 1.5, scaleY: 1 });
+    const changes: Array<[string, number]> = [
+      ["x", 140],
+      ["y", 77],
+      ["rotation", 30],
+      ["scaleX", 1.5],
+      ["scaleY", 2],
+    ];
+    for (const [attribute, value] of changes) {
+      setAttrs.mockClear();
+      (node as unknown as Record<string, (next: number) => void>)[attribute]!(value);
+      // One copy per change, carrying the changed attribute.
+      expect(setAttrs).toHaveBeenCalledTimes(1);
+      expect(setAttrs.mock.calls[0]![0][attribute]).toBe(value);
+    }
+  });
+
+  it("lines up at once with a node that already sits elsewhere", () => {
+    const moved = new Konva.Rect({ x: 300, y: 200, rotation: 45 });
+    setAttrs.mockClear();
+    render(ringFor(moved));
+    expect(setAttrs).toHaveBeenCalledWith({ x: 300, y: 200, rotation: 45, scaleX: 1, scaleY: 1 });
   });
 
   it("follows a replacement node and lets go of the old one; nothing after unmount", () => {

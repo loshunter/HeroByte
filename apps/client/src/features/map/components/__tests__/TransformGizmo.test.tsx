@@ -312,12 +312,13 @@ describe("TransformGizmo", () => {
       );
       expect(transformerProps.anchorFill).toBe("#390076");
       expect(transformerProps.anchorStroke).toBe("#f4f1e8");
-      // Each selected piece carries its own edged outline, so the dashed border is off.
-      expect(transformerProps.borderEnabled).toBe(false);
+      // The dashed border, and the rotate handle's line Konva draws with it, in the keyline.
+      expect(transformerProps.borderEnabled).toBe(true);
+      expect(transformerProps.borderStroke).toBe("#f4f1e8");
       // The centre move handle: a keyline edge, the colour inside, the cross in the keyline.
       const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
       expect(rects.map((rect) => [rect.fill, rect.stroke, rect.strokeWidth])).toEqual([
-        ["rgba(57, 0, 118, 0.85)", "#f4f1e8", 3],
+        ["rgba(57, 0, 118, 0.85)", "#f4f1e8", 3.5],
         [undefined, "#390076", 1.5],
       ]);
       const crosses = [...container.querySelectorAll('[data-testid="konva-line"]')].map(getProps);

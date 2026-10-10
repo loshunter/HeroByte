@@ -89,14 +89,17 @@ const TokenSprite = memo(function TokenSprite({
   // The node in state too: a picture loading swaps the placeholder Rect for an Image,
   // and the glow and the selection ring must move to the new node.
   const [shapeNode, setShapeNode] = useState<Konva.Node | null>(null);
-  const nodeRef = useCallback(
-    (node: Konva.Node | null) => {
-      shapeRef.current = node;
-      setShapeNode(node);
-      onNodeReady?.(node);
-    },
-    [onNodeReady],
-  );
+  // A stable ref callback (the caller's onNodeReady is a new function every render,
+  // and a changing ref callback detached and re-attached the node on each one).
+  const onNodeReadyRef = useRef(onNodeReady);
+  useLayoutEffect(() => {
+    onNodeReadyRef.current = onNodeReady;
+  }, [onNodeReady]);
+  const nodeRef = useCallback((node: Konva.Node | null) => {
+    shapeRef.current = node;
+    setShapeNode(node);
+    onNodeReadyRef.current?.(node);
+  }, []);
 
   const posX = transform.x * gridSize + gridSize / 2;
   const posY = transform.y * gridSize + gridSize / 2;
@@ -178,6 +181,9 @@ const TokenSprite = memo(function TokenSprite({
     cornerRadius: gridSize / 8,
     stroke: ringed ? "transparent" : stroke,
     strokeWidth,
+    // Ringed, the stroke is invisible: drawing directly keeps a glowing token off
+    // Konva's stage-sized buffer canvas (fill + stroke + shadow) on every frame.
+    perfectDrawEnabled: !ringed,
     draggable,
     onDragEnd,
     onDragStart,

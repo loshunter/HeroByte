@@ -263,9 +263,11 @@ export function TransformGizmo({
           "middle-left",
           "middle-right",
         ]}
-        // In a viewer's colour every selected piece carries its own edged outline.
-        borderEnabled={palette.keyline === null}
-        borderStroke={palette.stroke}
+        // In a viewer's colour the dashed border (and the rotate handle's line, which
+        // Konva draws with it) is the keyline: a token, prop or drawing carries its own
+        // edged outline, and the map or staging zone still gets one.
+        borderEnabled={true}
+        borderStroke={palette.keyline ?? palette.stroke}
         borderStrokeWidth={2}
         borderDash={[5, 5]}
         anchorFill={palette.stroke}
@@ -307,7 +309,8 @@ export function TransformGizmo({
             cornerRadius={4}
             fill={palette.handleFill}
             stroke={palette.keyline ?? palette.stroke}
-            strokeWidth={palette.keyline ? 3 : 1.5}
+            // 3.5 under the 1.5 colour stroke: 1 px of keyline each side.
+            strokeWidth={palette.keyline ? 3.5 : 1.5}
           />
           {palette.keyline && (
             <Rect

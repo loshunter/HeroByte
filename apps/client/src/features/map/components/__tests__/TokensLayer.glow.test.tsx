@@ -11,24 +11,37 @@ import { SelectionPaletteContext, selectionPalette } from "../../selectionPalett
 const frames: Array<(frame: { time: number }) => void> = [];
 const shadowColors: string[] = [];
 let decorativeOff = false;
+// Every fake node the layer was handed, by the shape that mounted it.
+type FakeNode = ReturnType<typeof fakeNode>;
+const mounted: Array<{ kind: string; node: FakeNode }> = [];
+const ringProps: Array<{ follow: unknown }> = [];
+let imageState: [unknown, string] = [undefined, "loading"];
 
-const fakeNode = () => ({
-  getLayer: () => ({}),
-  to: () => undefined,
-  position: () => undefined,
-  scale: () => undefined,
-  shadowColor: (color: string) => shadowColors.push(color),
-  shadowBlur: () => undefined,
-  shadowOpacity: () => undefined,
-  on: () => undefined,
-  off: () => undefined,
-  x: () => 0,
-  y: () => 0,
-  rotation: () => 0,
-  scaleX: () => 1,
-  scaleY: () => 1,
-  setAttrs: () => undefined,
-});
+const fakeNode = () => {
+  const node = {
+    colors: [] as string[],
+    opacities: [] as number[],
+    getLayer: () => ({}),
+    to: () => undefined,
+    position: () => undefined,
+    scale: () => undefined,
+    shadowColor: (color: string) => {
+      node.colors.push(color);
+      shadowColors.push(color);
+    },
+    shadowBlur: () => undefined,
+    shadowOpacity: (value: number) => node.opacities.push(value),
+    on: () => undefined,
+    off: () => undefined,
+    x: () => 0,
+    y: () => 0,
+    rotation: () => 0,
+    scaleX: () => 1,
+    scaleY: () => 1,
+    setAttrs: () => undefined,
+  };
+  return node;
+};
 
 vi.mock("konva", () => ({
   default: {
@@ -47,23 +60,35 @@ vi.mock("konva", () => ({
   },
 }));
 
-const konvaShape = () =>
+// A shape hands its ref a fresh fake node whenever React gives it a new ref
+// callback, as react-konva re-attaches a changed ref.
+const konvaShape = (kind: string) =>
   forwardRef<unknown, { children?: ReactNode }>(function Shape({ children }, ref) {
     useLayoutEffect(() => {
-      if (typeof ref === "function") ref(fakeNode());
+      if (typeof ref !== "function") return;
+      const node = fakeNode();
+      mounted.push({ kind, node });
+      ref(node);
+      return () => ref(null);
     }, [ref]);
     return <div>{children}</div>;
   });
 
 vi.mock("react-konva", () => ({
   Group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  Rect: konvaShape(),
-  Image: konvaShape(),
+  Rect: konvaShape("rect"),
+  Image: konvaShape("image"),
   Circle: () => <div />,
   Text: () => <div />,
 }));
 
-vi.mock("use-image", () => ({ default: () => [undefined, "loading"] }));
+vi.mock("use-image", () => ({ default: () => imageState }));
+vi.mock("../SelectionRing", () => ({
+  SelectionRing: (props: { follow: unknown }) => {
+    ringProps.push(props);
+    return <div />;
+  },
+}));
 vi.mock("../LockIndicator", () => ({ LockIndicator: () => <div /> }));
 vi.mock("../../../juice", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -84,13 +109,13 @@ const token = {
   data: { color: "#ffc2d3", size: "medium" },
 } as unknown as SceneObject;
 
-function layer(color: string, selected = true) {
+function layer(color: string, selected = true, extra: Record<string, unknown> = {}) {
   return (
     <SelectionPaletteContext.Provider value={selectionPalette(color)}>
       <TokensLayer
         {...({
           cam: { x: 0, y: 0, scale: 1 },
-          sceneObjects: [token],
+          sceneObjects: [extra.object ?? token],
           uid: "user-1",
           gridSize: 50,
           selectedObjectIds: selected ? ["token:1"] : [],
@@ -98,6 +123,7 @@ function layer(color: string, selected = true) {
           onHover: () => undefined,
           onTransformToken: () => undefined,
           onRecolorToken: () => undefined,
+          ...extra,
         } as unknown as ComponentProps<typeof TokensLayer>)}
       />
     </SelectionPaletteContext.Provider>
@@ -112,6 +138,9 @@ describe("selected token glow", () => {
   beforeEach(() => {
     frames.length = 0;
     shadowColors.length = 0;
+    mounted.length = 0;
+    ringProps.length = 0;
+    imageState = [undefined, "loading"];
   });
 
   it("pulses in the viewer's colour at full motion", () => {
@@ -137,6 +166,34 @@ describe("selected token glow", () => {
     shadowColors.length = 0;
     frames.at(-1)!({ time: 500 });
     expect(shadowColors).toEqual(["#ffc2d3"]);
+  });
+
+  it("moves the glow and the ring to the picture when it loads, and lets the placeholder go", () => {
+    decorativeOff = false;
+    const picture = { ...token, data: { ...token.data, imageUrl: "a.png" } };
+    const { rerender } = render(layer("#390076", true, { object: picture }));
+    const placeholder = mounted.at(-1)!;
+    expect(placeholder.kind).toBe("rect");
+    expect(ringProps.at(-1)!.follow).toBe(placeholder.node);
+    imageState = [{}, "loaded"];
+    rerender(layer("#390076", true, { object: picture }));
+    const image = mounted.at(-1)!;
+    expect(image.kind).toBe("image");
+    expect(ringProps.at(-1)!.follow).toBe(image.node);
+    // The placeholder's glow was put out; the next frame glows the picture.
+    expect(placeholder.node.opacities.at(-1)).toBe(0);
+    frames.at(-1)!({ time: 500 });
+    expect(image.node.colors).toEqual([selectionPalette("#390076").glow]);
+  });
+
+  it("hands each node over once, however often the layer re-renders", () => {
+    decorativeOff = false;
+    const onTokenNodeReady = vi.fn();
+    const { rerender } = render(layer("#390076", true, { onTokenNodeReady }));
+    rerender(layer("#390076", true, { onTokenNodeReady }));
+    rerender(layer("#390076", true, { onTokenNodeReady }));
+    expect(mounted).toHaveLength(1);
+    expect(onTokenNodeReady.mock.calls.filter(([, node]) => node !== null)).toHaveLength(1);
   });
 
   it("does not glow at subtle or off motion (the outline stays)", () => {

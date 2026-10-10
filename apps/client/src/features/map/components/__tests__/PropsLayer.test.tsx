@@ -155,6 +155,37 @@ describe("PropsLayer drag round-trip", () => {
 });
 
 describe("PropsLayer selection colour", () => {
+  it("sizes the ring to the prop at any zoom: a 2 px band on a 10/3 px keyline at scale 2", () => {
+    rectProps.length = 0;
+    render(
+      <SelectionPaletteContext.Provider value={selectionPalette("#ffc2d3")}>
+        <PropsLayer
+          cam={{ x: 0, y: 0, scale: 2 }}
+          sceneObjects={[
+            { ...prop(2, 3), transform: { ...prop(2, 3).transform, rotation: 30, scaleY: 1.5 } },
+          ]}
+          gridSize={GRID}
+          interactive
+          selectedObjectIds={["prop-1"]}
+          onTransformProp={vi.fn()}
+        />
+      </SelectionPaletteContext.Provider>,
+    );
+    const sprite = spriteRect();
+    const ring = rectProps.filter((rect) => rect !== sprite && rect.listening === false);
+    expect(ring.map((rect) => [rect.stroke, rect.strokeWidth])).toEqual([
+      ["#0b0b16", 10 / 3],
+      ["#ffc2d3", 2],
+    ]);
+    for (const rect of ring) {
+      expect([rect.width, rect.height, rect.cornerRadius]).toEqual([
+        sprite.width,
+        sprite.height,
+        4,
+      ]);
+    }
+  });
+
   it("rings a selected prop in the viewer's colour over a keyline; today's blue stroke without one", () => {
     const layer = (
       <PropsLayer

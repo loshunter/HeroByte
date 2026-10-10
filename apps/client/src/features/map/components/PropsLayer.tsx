@@ -3,7 +3,7 @@
 // ============================================================================
 // Renders props from the unified scene graph.
 
-import { memo, useState } from "react";
+import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Group, Rect, Image as KonvaImage } from "react-konva";
 import type Konva from "konva";
 import type { SceneObject } from "@herobyte/shared";
@@ -48,6 +48,16 @@ const PropSprite = memo(function PropSprite({
   // following its node (a picture loading swaps the placeholder for the image).
   const ringed = isSelected && palette.keyline !== null;
   const [propNode, setPropNode] = useState<Konva.Node | null>(null);
+  // A stable ref callback: an inline one is a new function every render, so React
+  // detached and re-attached the node each time (a second render pass per prop).
+  const onNodeReadyRef = useRef(onNodeReady);
+  useLayoutEffect(() => {
+    onNodeReadyRef.current = onNodeReady;
+  }, [onNodeReady]);
+  const nodeRef = useCallback((node: Konva.Node | null) => {
+    setPropNode(node);
+    onNodeReadyRef.current?.(node);
+  }, []);
 
   const size = propRenderSize(gridSize, data.size);
   const offset = size / 2;
@@ -72,12 +82,7 @@ const PropSprite = memo(function PropSprite({
     onDragEnd: onDragEnd,
     id: object.id,
     name: object.id,
-    ref: (node: Konva.Node | null) => {
-      setPropNode(node);
-      if (onNodeReady) {
-        onNodeReady(node);
-      }
-    },
+    ref: nodeRef,
   };
   const loaded = status === "loaded" && image;
 

@@ -5,8 +5,8 @@
 // more with the colour) and the colour band on it, so the band has a
 // contrasting edge on both sides: it reads on the piece's own fill or picture
 // (your picture-less token is filled with your colour), on light and dark maps
-// and under fog. The piece stays the one draggable node, its own stroke
-// untouched; the ring follows its position, rotation and scale through drags,
+// and under fog. The piece stays the one draggable node; its own stroke keeps
+// today's width (so its hit area is unchanged) but turns transparent. The ring follows its position, rotation and scale through drags,
 // glides and the transform handles by listening for those attribute changes on
 // the node it is given. The node is passed by value, so when the piece's node
 // is replaced (a picture loading swaps the placeholder for the image) the ring
