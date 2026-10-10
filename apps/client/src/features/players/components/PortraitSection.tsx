@@ -275,7 +275,8 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               <span
                 id={hintId}
                 className="portrait-placeholder__hint"
-                style={{ fontSize: "0.68rem", fontWeight: 400, opacity: 0.9 }}
+                // Full strength: dimmed, black or white on the colour fell under 4.5:1.
+                style={{ fontSize: "0.68rem", fontWeight: 400 }}
               >
                 Upload or paste a link
               </span>

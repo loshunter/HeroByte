@@ -29,6 +29,28 @@ describe("PortraitSection", () => {
     );
   });
 
+  it("glows in the new colour after a recolour, without remounting", () => {
+    const { rerender } = render(
+      <PortraitSection
+        portrait={undefined}
+        statusEffects={[]}
+        tokenColor="#ffc2d3"
+        micLevel={0.5}
+      />,
+    );
+    rerender(
+      <PortraitSection
+        portrait={undefined}
+        statusEffects={[]}
+        tokenColor="#390076"
+        micLevel={0.5}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Portrait" }).style.boxShadow).toBe(
+      "0 0 12px rgba(221, 212, 255, 0.35)",
+    );
+  });
+
   it("letters the empty portrait in black or white, whichever reads on the colour", () => {
     const { rerender } = render(<PortraitSection portrait={undefined} statusEffects={[]} />);
     const placeholder = () => screen.getByTestId("portrait-placeholder");
@@ -38,6 +60,16 @@ describe("PortraitSection", () => {
     rerender(<PortraitSection portrait={undefined} statusEffects={[]} tokenColor="#390076" />);
     expect(placeholder().style.color).toBe("rgb(255, 255, 255)");
     expect(placeholder().style.textShadow).not.toBe("none");
+    // Where keyline-based black and white would disagree: textOn gives white (4.68:1).
+    rerender(<PortraitSection portrait={undefined} statusEffects={[]} tokenColor="#c64475" />);
+    expect(placeholder().style.color).toBe("rgb(255, 255, 255)");
+  });
+
+  it("shows the empty portrait's hint at full strength (dimmed, it fell under 4.5:1)", () => {
+    render(
+      <PortraitSection isEditable portrait={undefined} statusEffects={[]} tokenColor="#d92685" />,
+    );
+    expect(screen.getByText("Upload or paste a link").style.opacity).toBe("");
   });
 
   it("renders a token-colored call-to-action placeholder and triggers change callback", () => {

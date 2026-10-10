@@ -81,13 +81,15 @@ describe("loosePcColours", () => {
     expect(loosePcColours(ownerless).size).toBe(0);
   });
 
-  it("lends a DM nothing: the DM's unclaimed tokens are what REMOVE handed over", () => {
+  it("reads a DM's loose token as a player's, whether or not they are in DM mode", () => {
+    // ensureToken links that very token to the PC at the DM's next join, so a rule
+    // keyed on DM mode would only make the colour flicker on every screen.
     const state = roomWith(
-      [owned("t-removed", "dm", "#8a2be2")],
+      [owned("t-loose", "dm", "#8a2be2")],
       [{ id: "dm-pc", type: "pc", ownedByPlayerUID: "dm", tokenId: null }],
     );
     state.players = [{ uid: "dm", name: "DM", isDM: true }] as typeof state.players;
-    expect(loosePcColours(state).size).toBe(0);
+    expect([...loosePcColours(state)]).toEqual([["dm-pc", "#8a2be2"]]);
     state.players = [{ uid: "dm", name: "DM", isDM: false }] as typeof state.players;
     expect([...loosePcColours(state)]).toEqual([["dm-pc", "#8a2be2"]]);
   });

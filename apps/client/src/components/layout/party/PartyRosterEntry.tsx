@@ -112,7 +112,12 @@ export function PartyRosterEntry({
             <span
               className="party-roster__initial"
               // Black or white, whichever reads (textOn): white was 1.3:1 on the default green.
-              style={{ backgroundColor: view.ring, color: textOn(view.ring) }}
+              // The stylesheet's dark shadow only helps white letters.
+              style={{
+                backgroundColor: view.ring,
+                color: textOn(view.ring),
+                textShadow: textOn(view.ring) === "#000000" ? "none" : undefined,
+              }}
             >
               {name.trim().charAt(0).toUpperCase() || "?"}
             </span>

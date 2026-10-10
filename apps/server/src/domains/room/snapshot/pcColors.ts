@@ -60,15 +60,14 @@ export function pcTokenColours(state: RoomState): Map<string, string> {
  * one token its player owns that no character claims, and only while that PC is
  * its player's only one. Read from the room, never from a view, and carried on
  * the record: the client takes an unlinked PC's colour from the record alone, so
- * every screen agrees. Not for a DM: the tokens a DM holds unclaimed are what
- * REMOVE handed over (a removed player's), and a colour taken from one would
- * also tell every player that the DM holds exactly one, fog or not.
+ * every screen agrees. The same token for a DM as for a player: when the DM next
+ * joins, ensureToken links that very token to the PC anyway, so a rule that skipped
+ * DMs only made the colour flicker on every screen as the DM entered and left DM mode.
  */
 export function loosePcColours(state: RoomState): Map<string, string> {
   const colours = new Map<string, string>();
   const claimed = new Set<string>();
   const pcsByOwner = new Map<string, number>();
-  const dms = new Set(state.players.filter((player) => player.isDM).map((player) => player.uid));
   for (const character of state.characters) {
     if (character.tokenId) claimed.add(character.tokenId);
     if (character.type === "pc" && character.ownedByPlayerUID) {
@@ -78,7 +77,7 @@ export function loosePcColours(state: RoomState): Map<string, string> {
   }
   for (const character of state.characters) {
     const owner = character.ownedByPlayerUID;
-    if (character.type !== "pc" || character.tokenId || !owner || dms.has(owner)) continue;
+    if (character.type !== "pc" || character.tokenId || !owner) continue;
     if (pcsByOwner.get(owner) !== 1) continue;
     const loose = state.tokens.filter((token) => token.owner === owner && !claimed.has(token.id));
     const color = loose.length === 1 ? loose[0]!.color : undefined;

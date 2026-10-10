@@ -48,6 +48,18 @@ describe("PartyRosterEntry — what a row shows and says", () => {
     // The keyline pair would give this red 4.36:1; white gives 4.93:1.
     const red = renderRow({ ring: "#d9262c" });
     expect(within(red).getByText("R").style.color).toBe("rgb(255, 255, 255)");
+    cleanup();
+    // Here keyline-based black and white would pick black (4.48:1); textOn picks white (4.68:1).
+    const pink = renderRow({ ring: "#c64475" });
+    expect(within(pink).getByText("R").style.color).toBe("rgb(255, 255, 255)");
+  });
+
+  it("drops the dark shadow under a black letter, keeps it under a white one", () => {
+    const light = renderRow({});
+    expect(within(light).getByText("R").style.textShadow).toBe("none");
+    cleanup();
+    const deep = renderRow({ ring: "#390076" });
+    expect(within(deep).getByText("R").style.textShadow).toBe("");
   });
 
   it("marks the current turn, initiative, a hidden NPC and its tag, and reads them aloud", () => {
