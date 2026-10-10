@@ -1,13 +1,13 @@
 # Personal colour, slice C3 — your colour everywhere
 
-**Status: on local `dev`, not pushed (2026-10-09 to 10, overnight).** Built from
+**Status: going to `dev` and then main with C1, on the owner's word (2026-10-10: "push"), after a fourth review
+round the owner asked for.** Built overnight 2026-10-09 to 10 from
 [`PROMPT-colour-everywhere-c3.md`](../planning/PROMPT-colour-everywhere-c3.md) (untracked: the link works on this
 machine only) on top of C1 (`origin/dev` `f43368ab`). C1 goes to main only together with C3 (the owner's decision:
-C1's darkest colours are unreadable as text until C3's lift). Pushing and merging are the owner's word.
+C1's darkest colours are unreadable as text until C3's lift).
 
-The player guide's colour lines (`docs/user-guide/player-guide.md`: the Colour and Recolor bullets, the voice line) are
-**uncommitted**: that file also holds the owner's own unfinished edits, so committing it would sweep theirs in. They
-go in with the owner's next commit of that file.
+The player guide's colour lines are committed (`d4e39ce5`, `8579b812`) without the owner's own unfinished edit to the
+same file (the Character Name / Portrait / Token Image bullet), which stays in their working tree.
 
 ## The owner's decisions it builds
 
@@ -42,7 +42,7 @@ go in with the owner's next commit of that file.
 - **Names in each author's colour, lifted for text:** chat and roll log names, and the card's name (over a dark halo,
   round 2). Your own chat lines also carry a `▶` mark; your own whisper names its recipient in the recipient's colour
   (round 2). A whisper dims only its text, never its name.
-- **Voice glow** in the card's colour (on a PC). The phone shows no speaking glow today (Party lists who is in the
+- **Voice glow** in the card's colour (on a computer). The phone shows no speaking glow today (Party lists who is in the
   call), so there is nothing to recolour there.
 - **The picker's preview** shows the name as chat and roll names are drawn now (lifted on the navy; the card lifts its
   own name on the card's lighter ground).
@@ -64,9 +64,11 @@ go in with the owner's next commit of that file.
   template's label drawn last. The transform handles' anchors are the colour edged in the keyline; the centre move
   handle is a 1 px keyline edge each side with the colour inside and the cross in the keyline; the gizmo's dashed
   border and the rotate handle's line are the colour over a solid 4 px keyline, drawn by a second, border-only
-  Transformer on the same node (`GizmoKeyline.tsx`, round 3), 2 px out so the dashes sit just outside a piece's ring.
-  (Round 1 turned the border off, which hid the rotate line and left a map selection with no outline; round 2 drew it
-  in the keyline alone, which vanishes on a map of the keyline's own tone.) Measured over every window colour: the colour against its keyline (which is also what separates it
+  Transformer on the same node (`GizmoKeyline.tsx`, round 3; always mounted, hidden without a colour, round 4), 2 px
+  out so the dashes sit just outside a piece's ring; on a selected token that covers the top 1.5 px of its HP bar while
+  the gizmo is up (stated, not fixed). (Round 1 turned the border off, which hid the rotate line and left a map
+  selection with no outline; round 2 drew it in the keyline alone, which vanishes on a map of the keyline's own
+  tone.) Measured over every window colour: the colour against its keyline (which is also what separates it
   from your own picture-less token, filled with your colour) is at least **4.16:1**; against the background, the
   ring's better edge is at least **3.19:1** on the dark map floor `#2a2622`, **4.16:1** in fog `#0b0b16`, **3.45:1** on
   parchment `#e8dcc0` and **4.70:1** on white. The keyline pair is for edges, not text: it bottoms out at 4.16:1
@@ -74,9 +76,9 @@ go in with the owner's next commit of that file.
   strength (round 3: the empty portrait's hint was dimmed to 0.9), with no dark shadow under black letters.
 - **The drag shade** (round 2): the outline while dragging moves the colour's lightness 0.12 away from its keyline
   (lighter over a dark keyline, darker over a light one), so a drawing's dashed drag line over its keyline is at least
-  **6.71:1** from it over the window (6.38:1 over the legacy `hsl(h, 70%, 50%)` colours, 5.89:1 for any colour; round
+  **6.71:1** from it over the window (6.38:1 over the legacy `hsl(h, 70%, 50%)` colours, 5.87:1 for any colour, `#b700ff`; round
   1's "toward the middle" rule fell to 2.47:1 for `#825ed1`). Stated, not fixed: the shade is close to the colour
-  itself for some cells (worst 1.10:1, `#00facc` to `#5ffff3`; `#ffffff` and `#000000` do not move at all), and it
+  itself for some cells (worst 1.10:1, `#13fac7` to `#62ffee`; `#ffffff` and `#000000` do not move at all), and it
   does not cut chroma to gamut as `readableOn` does.
 - **The selection glow and the ping dot** (`2fd0cfeb`): the glow is lifted to 3:1 on `#2a2622`, the picker preview's
   stand-in for a dark map floor. Nothing lifts it on a light map, where a pale colour's glow is near 1:1 (for example
@@ -108,7 +110,7 @@ go in with the owner's next commit of that file.
   today's: a ping's dot, ring and aim gain keyline edges, and its label is the ping's colour with an outline instead of
   dark `#0b0d1f` text (dark text did not read on a dark map, and the handoff's suggestion, light or dark text by the
   colour's lightness, would leave the label without the colour); your own chat lines gain `▶`; a whisper's name is no
-  longer dimmed. **For the owner to confirm.**
+  longer dimmed. **The owner confirmed this (2026-10-10).**
 
 ## Evaluation (evaluate-live)
 
@@ -161,8 +163,8 @@ real clicks:
   Read in the pinging tab: a background tab pauses animation frames, so the other tab's ping was not readable.
 - **A drawing selected by the DM** (Select tool, real click): a solid 4 px `#f4f1e8` keyline under the 2 px dashed
   olive line, neither listening.
-- **The DM's own token in Transform:** the gizmo border off (round 2 put it back, in the keyline: not re-checked
-  live), anchors olive edged `#f4f1e8`, the ring a 5 px keyline
+- **The DM's own token in Transform:** the gizmo border off (since round 3, the colour over a keyline drawn by a
+  second transformer: seen live once, on the dev server, in round 3), anchors olive edged `#f4f1e8`, the ring a 5 px keyline
   under a 3 px olive band (both drawn directly), the token's own stroke transparent at width 3, the glow `#747240`
   (3.02:1 on `#2a2622`); the centre handle edged `#f4f1e8` (3 px then; 3.5 since round 2) with the olive inside at
   0.85 and the cross in `#f4f1e8`.
@@ -268,23 +270,46 @@ fogged teammate's card, the server's `loosePcColours` and its `toSnapshot` wirin
 drawings, templates, gizmo, badge, pings, chat); the text-lift rule (`colorText.test`, per cell, exact values,
 unreachable target).
 
-Round-by-round: 45 findings, then 45 (14 major), then 30 (8 major; two of four reviewers PASS). The cap is reached;
-a fourth round is the owner's call.
+**Round 4** (the owner asked for it after the cap; 4 fresh reviewers, opus, read-only, on `d4e39ce5`; the tree was
+unchanged after): all four **FAIL**, 19 findings, 6 major (3 distinct). Fixed:
+
+- **Another player's portrait** (`63ee1e76`, major, two reviewers): it is a disabled button, and the global
+  `button:disabled { opacity: 0.5 }` halved its picture, glow and empty-portrait words (to about 2:1). The frame sets
+  opacity 1 inline. Older than C3. The Party row's ring gets a 1 px keyline edge (a deep colour's ring was 1.27:1
+  against the row).
+- **The gizmo's keyline** (`92e01f46`, major): no test could see it (one shared mock ref); a new test gives each
+  transformer its own mock and pins the attach, the rotate line, the border and the visibility. It is always mounted
+  now (mounted with the colour, it held no node when a colour arrived mid-transform, and unmounting ended a drag).
+  Older bug fixed in the same commit: Ctrl never rotated freely (a new snaps array each render undid it).
+- **The initial's shadow** (`63ee1e76`, major by the round's rule): pinned on `#c64475`, where letter and keyline
+  disagree.
+- **One loose-token rule** (`6d3a053b`): `loosePcColours` and `ensureToken` share `looseTokenOf`; a test checks the
+  record's colour is the token `ensureToken` links, for a DM given a token by REMOVE; the DM's own snapshot is pinned.
+- **Slow sweeps** (`949831f7`): three per-cell tests asserted per cell and timed out under load; they assert once.
+- **Docs**: "on a computer" in the guide (`8579b812`); this record (the guide's status, the drag-shade figures, the
+  gizmo, the commit list).
+
+Sabotage, round 4: 14 targets, all red after one test was made to rerender with a new element (the same element let
+React skip the render). Still equivalent (named by round 3's and 4's test reviewers): the glow reading
+`shapeRef.current` with `shapeNode` in its dependencies; `playerColor` handing an unlinked PC a loose token that
+`characterColor` then ignores; `*2` for `+2/scale` (every caller passes `2/scale`); the ping-ink cache's clear; the
+keyline anchor's stroke width (the anchor is 0 by 0).
+
+Round-by-round: 45, 45 (14 major), 30 (8 major; two PASS), 19 (6 major, 3 distinct; all four FAIL, the fixes then
+sabotaged red). Round 4's fixes are unreviewed.
 
 Not fixed, stated: the selection glow on a light map (above); baseline files grew (`TokensLayer.tsx` 836 → 878,
 `MapBoard.tsx` 1020 → 1041, `DrawingsLayer.tsx` 621 → 636; all exempt from the 350-line rule, none split); a picture
 token's ring band sits half over its picture, and its outer edge is 1 px further out, closer to the HP bar; selection
 edges scale with a piece's own non-uniform transform (a token stretched 1.8 × 0.4 gets a thinner keyline top and
 bottom), as today's selection stroke already did; an unlinked PC still holds no zone in the picker (C1's rule,
-unchanged); the no-colour pinger's new look (above, for the owner). Older issues found, flagged as separate tasks
-rather than fixed here: the gizmo stays on a destroyed placeholder after a selected picture loads, until the next
-snapshot; a selected token's glow still goes through Konva's buffer canvas every frame, as before round 2 (a Rect with
-fill, stroke and shadow does, and an Image with a corner radius and a shadow always does); the camera glide overwrites
-any camera write made while it runs (the move-pad spec's race, above); the React hooks lint rules run nowhere
-(`eslint.config.js` spreads a flat-config array as rules); two guide screenshots predate C3 (`img/pointer-ping.jpg`
-shows no label though its alt text says it does; `img/party-details.jpg` shows white letters on the green ring). Older
-bugs went into their own commits except two: the Party row's initial (round 1) rode `6d2d07f6` with the names, and
-`b03436c5` also memoises the speaking glow.
+unchanged); the gizmo's keyline over the top 1.5 px of a selected token's HP bar (above); the no-colour pinger's new
+look (above: the owner confirmed it, 2026-10-10). Older issues found and fixed after C3, on their own branch, as
+housekeeping the owner asked for: the gizmo staying on a destroyed placeholder after a picture loads; a selected
+token's glow going through Konva's buffer canvas every frame; the camera glide overwriting other camera writes (the
+move-pad spec's race); the React hooks lint rules running nowhere; the two guide screenshots that predated C3. Older
+bugs went into their own commits except three: the Party row's initial (round 1) rode `6d2d07f6` with the names,
+`b03436c5` also memoises the speaking glow, and Ctrl's free rotation rode `92e01f46` with the gizmo.
 
 ## Gates
 
@@ -312,6 +337,10 @@ skipped (the baseline skips), 0 flaky; dev boot clean. No e2e spec asserts on th
 transform and selection specs that drive the gizmo all passed). Production entry **169.61 KB of 175** (5.39 KB left);
 `ColorPicker-*.js` 4.42 KB gzip.
 
+After round 4: full ladder on `949831f7`: **GATES: PASS** — shared 532, server 2949, client 8361 (4 skipped, the
+benchmark files); e2e 374 passed, 3 skipped (the baseline skips), 0 flaky; dev boot clean. Production entry
+**169.63 KB of 175** (5.37 KB left); `ColorPicker-*.js` 4.42 KB gzip.
+
 ## Commit-message corrections
 
 - `05e6a3a8` ("card name and portrait ring") and `8ed08dff` ("the card's colour (name, portrait ring)"): the card has
@@ -338,4 +367,6 @@ glow · `b8ddd050` the unlinked PC's colour on the record · `1d91f72e` and `747
 words (older bug) · `b3acad9f` the card name's halo · `afa49b7f` unlinked PCs and DMs · `1ab28121` selection ·
 `10d0981a` pings and chat · `b4f94094` help · `3a13483d` revert of the direct-draw line · `21067c5d` this record ·
 round 3: `37cf403a` the gizmo border · `131314e0` the portrait hint, black initials, the DM rule · `0798c939` tests and
-wording.
+wording · `c13ff065` this record · `d4e39ce5` the guide's colour lines · round 4: `8579b812` "on a computer" ·
+`63ee1e76` another player's portrait, the Party ring · `92e01f46` the gizmo's keyline, Ctrl rotation · `6d3a053b` one
+loose-token rule · `949831f7` the sweeps · then this record.
