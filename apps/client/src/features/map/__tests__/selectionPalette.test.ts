@@ -51,10 +51,11 @@ describe("selectionPalette", () => {
   });
 
   it("keeps the drag shade at least 6.7:1 from the keyline it is drawn over", () => {
-    for (const cell of windowCells()) {
+    // Every window cell; the short ones are collected and asserted once.
+    const short = windowCells().filter((cell) => {
       const palette = selectionPalette(cell.hex);
-      const ratio = contrastRatio(parseColor(palette.drag)!, parseColor(palette.keyline!)!);
-      expect(ratio).toBeGreaterThanOrEqual(6.7);
-    }
-  });
+      return contrastRatio(parseColor(palette.drag)!, parseColor(palette.keyline!)!) < 6.7;
+    });
+    expect(short.map((cell) => cell.hex)).toEqual([]);
+  }, 30_000);
 });

@@ -14,26 +14,29 @@ const hueGap = (first: number, second: number) => {
 
 describe("readableOn", () => {
   it("lifts every window colour to 4.5:1 on the navy panel, keeping its hue", () => {
+    // Every cell is checked; what is wrong is collected and asserted once.
     let lifted = 0;
+    const wrong: string[] = [];
     for (const cell of windowCells()) {
       const text = readableOn(cell.hex, NAVY)!;
       const reached = ratio(text, NAVY);
-      expect(reached).toBeGreaterThanOrEqual(4.5);
+      if (reached < 4.5) wrong.push(`${cell.hex} reaches ${reached}`);
       if (ratio(cell.hex, NAVY) < 4.5) {
         lifted += 1;
         // Each lift stops at the target, not past it.
-        expect(reached).toBeLessThan(4.6);
+        if (reached >= 4.6) wrong.push(`${cell.hex} overshoots to ${reached}`);
       }
       // A coloured cell stays coloured (never lifted to grey), with its hue.
       const source = okLabToOkLch(colorToOkLab(cell.hex)!).C;
       const chroma = okLabToOkLch(colorToOkLab(text)!).C;
       if (source > 0.04) {
-        expect(chroma).toBeGreaterThan(0.04);
-        expect(hueGap(hueOf(text), hueOf(cell.hex))).toBeLessThan(12);
+        if (chroma <= 0.04) wrong.push(`${cell.hex} greys to ${text}`);
+        if (hueGap(hueOf(text), hueOf(cell.hex)) >= 12) wrong.push(`${cell.hex} turns to ${text}`);
       }
     }
+    expect(wrong).toEqual([]);
     expect(lifted).toBeGreaterThan(0); // the window does reach below the target
-  });
+  }, 30_000);
 
   it("lifts the darkest window colour and the worst older colour", () => {
     for (const dark of ["#390076", "#2626d9", "hsl(240, 70%, 50%)", "#0b0b41"]) {
@@ -82,14 +85,12 @@ describe("keylineFor", () => {
 
 describe("textOn", () => {
   it("puts black or white text on any colour at 4.5:1 or better", () => {
-    for (const cell of windowCells()) {
-      expect(ratio(cell.hex, textOn(cell.hex))).toBeGreaterThanOrEqual(4.5);
-    }
-    for (let hue = 0; hue < 360; hue += 1) {
-      const legacy = `hsl(${hue}, 70%, 50%)`;
-      expect(ratio(legacy, textOn(legacy))).toBeGreaterThanOrEqual(4.5);
-    }
-  });
+    const colours = [
+      ...windowCells().map((cell) => cell.hex),
+      ...Array.from({ length: 360 }, (_, hue) => `hsl(${hue}, 70%, 50%)`),
+    ];
+    expect(colours.filter((colour) => ratio(colour, textOn(colour)) < 4.5)).toEqual([]);
+  }, 30_000);
 
   it("picks white on a red ring the keyline pair leaves at 4.36:1, black on the default green", () => {
     expect(textOn("#d9262c")).toBe("#ffffff");
