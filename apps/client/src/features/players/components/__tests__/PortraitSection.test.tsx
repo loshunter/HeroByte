@@ -14,7 +14,7 @@ describe("PortraitSection", () => {
       />,
     );
     const frame = () => screen.getByRole("button", { name: "Portrait" });
-    expect(frame().style.boxShadow).toBe("0 0 12px rgba(255, 194, 211, 0.35)");
+    expect(frame().style.boxShadow).toBe("0 0 12px rgba(255, 204, 218, 0.35)");
     rerender(
       <PortraitSection
         portrait={undefined}
@@ -24,7 +24,9 @@ describe("PortraitSection", () => {
         isCurrentTurn
       />,
     );
-    expect(frame().style.boxShadow).toContain("rgba(255, 215, 0, 0.85)");
+    expect(frame().style.boxShadow).toBe(
+      "0 0 18px rgba(255, 215, 0, 0.85), 0 0 32px rgba(255, 215, 0, 0.35)",
+    );
   });
 
   it("renders a token-colored call-to-action placeholder and triggers change callback", () => {

@@ -52,9 +52,26 @@ describe("chat names", () => {
       />,
     );
     const bob = nameOf("Bob: ");
+    // #390076 itself is 1.3:1 there; lifted, hue kept, to #8867d7.
+    expect(bob.style.color).toBe("rgb(136, 103, 215)");
     expect(contrastOnNavy(bob.style.color)).toBeGreaterThanOrEqual(4.5);
-    expect(bob.style.color).not.toBe("rgb(57, 0, 118)"); // #390076 itself is 1.3:1 there
     expect(nameOf("▶ Alice: ").style.color).toBe("rgb(255, 194, 211)");
+  });
+
+  it("dims a whisper's text, never its name, so the lifted colour still reads", () => {
+    render(
+      <ChatTab
+        messages={[{ ...line(BOB, "Bob", "w1"), to: ALICE, text: "psst" }]}
+        players={players}
+        currentUid={ALICE}
+        onSendChat={vi.fn()}
+        playerColors={new Map([[BOB, "#390076"]])}
+      />,
+    );
+    const entry = screen.getByTestId("chat-message");
+    expect(entry.style.opacity).toBe("");
+    expect(nameOf("Bob →: ").style.color).toBe("rgb(136, 103, 215)");
+    expect(screen.getByText("psst").style.opacity).toBe("0.85");
   });
 
   it("marks your own lines, and keeps today's gold and cyan without colours", () => {
@@ -93,6 +110,8 @@ describe("roll log names", () => {
       />,
     );
     const bob = screen.getByText("Bob");
+    // #2626d9 is 2.3:1 on the navy; lifted to #4d6eff.
+    expect(bob.style.color).toBe("rgb(77, 110, 255)");
     expect(contrastOnNavy(bob.style.color)).toBeGreaterThanOrEqual(4.5);
     expect(screen.getByText("Gone").style.color).toBe("var(--jrpg-gold)");
   });

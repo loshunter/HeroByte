@@ -7,6 +7,7 @@
 // carries no second copy of them.
 
 import type React from "react";
+import { keylineFor } from "@herobyte/shared";
 import { sanitizeText } from "../../../utils/sanitize";
 import type { RosterEntryView } from "./rosterEntryView";
 
@@ -108,7 +109,11 @@ export function PartyRosterEntry({
           {view.portrait ? (
             <img src={view.portrait} alt="" draggable={false} />
           ) : (
-            <span className="party-roster__initial" style={{ backgroundColor: view.ring }}>
+            <span
+              className="party-roster__initial"
+              // The letter in the ring's keyline: white was 1.3:1 on the default green.
+              style={{ backgroundColor: view.ring, color: keylineFor(view.ring) }}
+            >
               {name.trim().charAt(0).toUpperCase() || "?"}
             </span>
           )}

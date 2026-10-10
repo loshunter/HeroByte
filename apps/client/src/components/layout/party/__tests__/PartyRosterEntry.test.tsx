@@ -38,6 +38,14 @@ function renderRow(view: Partial<RosterEntryView>) {
 }
 
 describe("PartyRosterEntry — what a row shows and says", () => {
+  it("letters a portrait-less ring in its keyline: dark on the default green, light on a deep colour", () => {
+    const row = renderRow({});
+    expect(within(row).getByText("R").style.color).toBe("rgb(11, 11, 22)");
+    cleanup();
+    const deep = renderRow({ ring: "#390076" });
+    expect(within(deep).getByText("R").style.color).toBe("rgb(244, 241, 232)");
+  });
+
   it("marks the current turn, initiative, a hidden NPC and its tag, and reads them aloud", () => {
     const row = renderRow({
       kind: "npc",

@@ -87,12 +87,20 @@ export function nameColors(
 }
 
 /**
- * A card's speaking glow in the card's colour (a box-shadow colour): lifted to
- * 3:1 on the navy so a dark colour still glows, at the old glow's 35% strength.
- * The card's default colour is the old glow's green, so no colour looks as before.
+ * The player card's gradient (herobyte.css `.player-card`): lightest at the top,
+ * where the card's name sits, and this middle stop around the portrait.
+ */
+export const CARD_TOP = "#3a3860";
+export const CARD_MIDDLE = "#2a2845";
+
+/**
+ * A card's speaking glow in the card's colour (a box-shadow colour), at the old
+ * glow's 35% strength. A glow that faint needs a bright colour: the old green is
+ * 10.98:1 on the card around the portrait, so a colour is lifted to 10:1 there,
+ * hue kept. The card's default colour is that green, so no colour looks as before.
  */
 export function speakingGlow(color: string): string {
-  const rgb = parseColor(readableOn(color, NAME_GROUND, 3) ?? color);
+  const rgb = parseColor(readableOn(color, CARD_MIDDLE, 10) ?? color);
   if (!rgb) return "rgba(90, 255, 173, 0.35)";
   const channel = (value: number) => Math.round(value * 255);
   return `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, 0.35)`;

@@ -8,6 +8,7 @@ import {
   playerColor,
   playerColorMap,
   speakingGlow,
+  CARD_MIDDLE,
 } from "../playerColors";
 
 const pc = (id: string, owner: string, extra: Partial<SnapshotCharacter> = {}): SnapshotCharacter =>
@@ -100,9 +101,18 @@ describe("nameColors and speakingGlow", () => {
     expect(names.get("light")).toBe("#ffc2d3");
   });
 
-  it("glows in the card's colour, lifted for a dark one, and as today for the default green", () => {
+  it("glows in the card's colour, lifted to 10:1 on the card, and as today for the default green", () => {
     expect(speakingGlow("#5AFFAD")).toBe("rgba(90, 255, 173, 0.35)");
-    expect(speakingGlow("#ffc2d3")).toBe("rgba(255, 194, 211, 0.35)");
-    expect(speakingGlow("#390076")).not.toBe("rgba(57, 0, 118, 0.35)");
+    expect(speakingGlow("#ffc2d3")).toBe("rgba(255, 204, 218, 0.35)");
+    expect(speakingGlow("#390076")).toBe("rgba(221, 212, 255, 0.35)");
+    const glow = (color: string) => {
+      const [r, g, b] = speakingGlow(color)
+        .match(/[\d.]+/g)!
+        .map(Number);
+      return { r: r! / 255, g: g! / 255, b: b! / 255 };
+    };
+    for (const color of ["#390076", "#b1310c", "#0b0b41"]) {
+      expect(contrastRatio(glow(color), parseColor(CARD_MIDDLE)!)).toBeGreaterThanOrEqual(9.95);
+    }
   });
 });

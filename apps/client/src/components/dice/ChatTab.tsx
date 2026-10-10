@@ -123,7 +123,6 @@ export const ChatTab: React.FC<ChatTabProps> = ({
                     color: "var(--jrpg-white)",
                     // Whispers read as set apart without relying on colour alone.
                     fontStyle: isWhisper ? "italic" : "normal",
-                    opacity: isWhisper ? 0.85 : 1,
                     wordBreak: "break-word",
                   }}
                 >
@@ -152,7 +151,9 @@ export const ChatTab: React.FC<ChatTabProps> = ({
                       comes back entity-escaped, so "a < b" renders as
                       "a &lt; b". sanitizeText belongs on innerHTML paths;
                       this is not one. */}
-                  {message.text}
+                  {/* A whisper's text is dimmed; its name keeps full strength, so the
+                      lifted colour still reads. */}
+                  {isWhisper ? <span style={{ opacity: 0.85 }}>{message.text}</span> : message.text}
                 </div>
               );
             })
