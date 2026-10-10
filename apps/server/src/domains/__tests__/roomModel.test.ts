@@ -251,6 +251,9 @@ describe("Room Model - toSnapshot", () => {
       expect(snapshot.characters.find((character) => character.id === "old-pc")?.color).toBe(
         "blue",
       );
+      // The DM's screen carries it too.
+      const dmView = toSnapshot(state, true, "dm-uid");
+      expect(dmView.characters.find((character) => character.id === "old-pc")?.color).toBe("blue");
     });
 
     it("does not filter when fog is disabled or for the DM", () => {

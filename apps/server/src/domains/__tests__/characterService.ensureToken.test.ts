@@ -11,6 +11,8 @@ import type { RoomState } from "../room/model.js";
 import { CharacterService } from "../character/service.js";
 import { TokenService } from "../token/service.js";
 import { createEmptyRoomState } from "../room/model.js";
+import { loosePcColours } from "../room/snapshot/pcColors.js";
+import { looseTokenOf } from "../character/looseToken.js";
 
 const spawnAt = () => ({ x: 5, y: 5 });
 
@@ -155,5 +157,19 @@ describe("CharacterService.ensureToken", () => {
     const token = characters.ensureToken(state, tokens, pc.id, "dm-uid", spawnAt);
     expect(token).toMatchObject({ owner: "dm-uid", x: 5, y: 5 });
     expect(pc.tokenId).toBe(token?.id);
+  });
+});
+
+describe("the loose-token rule, shared by the colour and the link", () => {
+  it("colours an unlinked PC with the very token ensureToken then links, for a DM too", () => {
+    // A DM whose own token is gone holds one loose token (what REMOVE hands over).
+    const { characters, tokens, state, pc } = table();
+    state.players = [{ uid: "dm-uid", name: "DM", isDM: true }] as RoomState["players"];
+    const handed = tokens.createToken(state, "dm-uid", 3, 3);
+    handed.color = "#ffc6c3";
+    expect(loosePcColours(state).get(pc.id)).toBe("#ffc6c3");
+    const linked = characters.ensureToken(state, tokens, pc.id, "dm-uid", spawnAt);
+    expect(linked?.id).toBe(handed.id);
+    expect(looseTokenOf(state, "dm-uid")).toBeUndefined(); // now claimed
   });
 });

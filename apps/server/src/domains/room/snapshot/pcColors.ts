@@ -15,6 +15,7 @@
 
 import type { SnapshotCharacter } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
+import { looseTokenOf } from "../../character/looseToken.js";
 
 /** A colour a PC can hold: a string with something in it (a restored file can carry anything). */
 export function holdableColor(color: unknown): color is string {
@@ -57,30 +58,21 @@ export function pcTokenColours(state: RoomState): Map<string, string> {
 
 /**
  * The colour of a PC that predates linking (no `tokenId`), by character id: the
- * one token its player owns that no character claims, and only while that PC is
- * its player's only one. Read from the room, never from a view, and carried on
- * the record: the client takes an unlinked PC's colour from the record alone, so
- * every screen agrees. The same token for a DM as for a player: when the DM next
- * joins, ensureToken links that very token to the PC anyway, so a rule that skipped
- * DMs only made the colour flicker on every screen as the DM entered and left DM mode.
+ * colour of the token ensureToken will link it to (looseTokenOf, one rule for
+ * both): the one token its player owns that no character claims, while that PC
+ * is their only one. Read from the room, never from a view, and carried on the
+ * record: the client takes an unlinked PC's colour from the record alone, so
+ * every screen agrees. A DM's PC too: a token REMOVE handed the DM is the one
+ * ensureToken adopts at their next join, so its colour (and that the DM holds one
+ * such token) would show then anyway; skipping DMs keyed on DM mode and made the
+ * colour flicker on every screen as the DM entered and left it.
  */
 export function loosePcColours(state: RoomState): Map<string, string> {
   const colours = new Map<string, string>();
-  const claimed = new Set<string>();
-  const pcsByOwner = new Map<string, number>();
-  for (const character of state.characters) {
-    if (character.tokenId) claimed.add(character.tokenId);
-    if (character.type === "pc" && character.ownedByPlayerUID) {
-      const owner = character.ownedByPlayerUID;
-      pcsByOwner.set(owner, (pcsByOwner.get(owner) ?? 0) + 1);
-    }
-  }
   for (const character of state.characters) {
     const owner = character.ownedByPlayerUID;
     if (character.type !== "pc" || character.tokenId || !owner) continue;
-    if (pcsByOwner.get(owner) !== 1) continue;
-    const loose = state.tokens.filter((token) => token.owner === owner && !claimed.has(token.id));
-    const color = loose.length === 1 ? loose[0]!.color : undefined;
+    const color = looseTokenOf(state, owner)?.color;
     if (holdableColor(color)) colours.set(character.id, color);
   }
   return colours;
