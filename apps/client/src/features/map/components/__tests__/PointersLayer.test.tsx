@@ -102,11 +102,55 @@ describe("PointersLayer colours", () => {
     expect(dotColor()).toBe("#fff");
   });
 
+  it("draws the dot and label without Konva's stage-sized buffer canvas", () => {
+    renderPing("bo", [pc("bors", "bo", "#390076")], []);
+    const dot = circles.find((circle) => circle.fill === "#390076" && circle.shadowColor);
+    expect(dot?.perfectDrawEnabled).toBe(false);
+    expect(texts.find((text) => text.text === "bo")?.perfectDrawEnabled).toBe(false);
+  });
+
+  it("lays the expanding ring over its keyline", () => {
+    renderPing("bo", [pc("bors", "bo", "#390076")], []);
+    const rings = circles.filter((circle) => circle.radius !== undefined && !circle.fill);
+    expect(rings.map((ring) => ring.stroke)).toEqual(["#f4f1e8", "#390076"]);
+  });
+
+  it("aims in the viewer's colour over its keyline; gold for a DM and cyan without one", () => {
+    const aim = (uid: string, characters: SnapshotCharacter[]) => {
+      circles.length = 0;
+      render(
+        <PointersLayer
+          cam={{ x: 0, y: 0, scale: 1 }}
+          pointers={[]}
+          players={players}
+          tokens={[]}
+          characters={characters}
+          pointerMode
+          preview={{ x: 5, y: 5 }}
+          previewUid={uid}
+        />,
+      );
+      // The aim pulses (re-renders): its last two dashed circles are the current ones.
+      return circles
+        .filter((circle) => circle.dash)
+        .slice(-2)
+        .map((circle) => circle.stroke);
+    };
+    expect(aim("bo", [pc("bors", "bo", "#390076")])).toEqual(["#f4f1e8", "#390076"]);
+    expect(aim("dm", [])).toEqual(["#0b0b16", "#FFD700"]);
+    expect(aim("bo", [])).toEqual(["#0b0b16", "#61dafb"]);
+  });
+
   it("writes the name in the ping's colour, outlined in its keyline", () => {
     renderPing("bo", [pc("bors", "bo", "#390076")], []);
     const label = texts.find((text) => text.text === "bo")!;
     expect(label.fill).toBe("#390076");
     expect(label.stroke).toBe("#f4f1e8");
     expect(label.fillAfterStrokeEnabled).toBe(true);
+    expect(label.lineJoin).toBe("round");
+    // A colour that sits too close to its keyline is lifted away from it (glyphs >= 4.5:1).
+    renderPing("bo", [pc("bors", "bo", "#008183")], []);
+    const teal = texts.find((text) => text.text === "bo")!;
+    expect(teal.fill).not.toBe("#008183");
   });
 });

@@ -7,6 +7,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Group, Circle, Text } from "react-konva";
 import {
   keylineFor,
+  readableOn,
   type Pointer,
   type Player,
   type SnapshotCharacter,
@@ -31,7 +32,7 @@ interface PointersLayerProps {
   players: Player[];
   tokens: Token[];
   /** Party records: a ping's colour is its player's (C3), fog-proof (playerColors). */
-  characters?: SnapshotCharacter[];
+  characters: SnapshotCharacter[] | undefined;
   preview?: { x: number; y: number } | null;
   previewUid?: string | null;
   pointerMode?: boolean;
@@ -200,6 +201,15 @@ export const PointersLayer = memo(function PointersLayer({
           scaleX={inverseCamScale * previewPulse}
           scaleY={inverseCamScale * previewPulse}
         >
+          {/* The aim's dashed ring over its keyline, so a deep colour shows on a dark map. */}
+          <Circle
+            radius={BASE_RADIUS + 4}
+            stroke={keylineFor(previewColor)}
+            strokeWidth={7}
+            opacity={0.6}
+            dash={[12, 10]}
+            perfectDrawEnabled={false}
+          />
           <Circle
             radius={BASE_RADIUS + 4}
             stroke={previewColor}
@@ -232,25 +242,42 @@ export const PointersLayer = memo(function PointersLayer({
             scaleY={groupScale}
           >
             {ringOpacity > 0 ? (
-              <Circle
-                x={0}
-                y={0}
-                radius={RING_RADIUS}
-                stroke={color}
-                strokeWidth={4}
-                opacity={ringOpacity}
-                scaleX={ringScale}
-                scaleY={ringScale}
-              />
+              <>
+                {/* The expanding ring over its keyline, so a deep colour shows on a dark map. */}
+                <Circle
+                  x={0}
+                  y={0}
+                  radius={RING_RADIUS}
+                  stroke={keylineFor(color)}
+                  strokeWidth={7}
+                  opacity={ringOpacity}
+                  scaleX={ringScale}
+                  scaleY={ringScale}
+                  perfectDrawEnabled={false}
+                />
+                <Circle
+                  x={0}
+                  y={0}
+                  radius={RING_RADIUS}
+                  stroke={color}
+                  strokeWidth={4}
+                  opacity={ringOpacity}
+                  scaleX={ringScale}
+                  scaleY={ringScale}
+                />
+              </>
             ) : null}
             <Circle
               x={0}
               y={0}
               radius={BASE_RADIUS}
               fill={color}
-              // The keyline edge keeps a deep colour's dot visible on a dark map.
+              // The keyline edge keeps a deep colour's dot visible on a dark map. Fill,
+              // stroke and opacity under 1 would send Konva through a stage-sized buffer
+              // canvas every frame (and it throws on a zero-size stage): draw directly.
               stroke={keylineFor(color)}
               strokeWidth={2}
+              perfectDrawEnabled={false}
               opacity={coreOpacity * 0.75}
               shadowColor={color}
               shadowBlur={16}
@@ -264,10 +291,13 @@ export const PointersLayer = memo(function PointersLayer({
               x={0}
               y={textYOffset}
               text={label}
-              fill={color}
+              // The glyphs reach 4.5:1 against their own keyline outline.
+              fill={readableOn(color, keylineFor(color)) ?? color}
               stroke={keylineFor(color)}
               strokeWidth={3}
+              lineJoin="round"
               fillAfterStrokeEnabled
+              perfectDrawEnabled={false}
               fontSize={14}
               fontStyle="bold"
               align="center"
