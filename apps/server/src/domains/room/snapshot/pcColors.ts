@@ -53,13 +53,47 @@ export function pcTokenColours(state: RoomState): Map<string, string> {
   return colours;
 }
 
+/**
+ * The colour of a PC that predates linking (no `tokenId`), by character id: the
+ * one token its player owns that no character claims, and only while that PC is
+ * its player's only one. The client's own-token fallback (looseOwnToken) reads
+ * the same token, but from its fogged view; carried on the record, a player's
+ * colour is the same on every screen. Read from the room, never from a view.
+ */
+export function loosePcColours(state: RoomState): Map<string, string> {
+  const colours = new Map<string, string>();
+  const claimed = new Set<string>();
+  const pcsByOwner = new Map<string, number>();
+  for (const character of state.characters) {
+    if (character.tokenId) claimed.add(character.tokenId);
+    if (character.type === "pc" && character.ownedByPlayerUID) {
+      const owner = character.ownedByPlayerUID;
+      pcsByOwner.set(owner, (pcsByOwner.get(owner) ?? 0) + 1);
+    }
+  }
+  for (const character of state.characters) {
+    const owner = character.ownedByPlayerUID;
+    if (character.type !== "pc" || character.tokenId || !owner) continue;
+    if (pcsByOwner.get(owner) !== 1) continue;
+    const loose = state.tokens.filter((token) => token.owner === owner && !claimed.has(token.id));
+    const color = loose.length === 1 ? loose[0]!.color : undefined;
+    if (holdableColor(color)) colours.set(character.id, color);
+  }
+  return colours;
+}
+
 export function withPcColors(
   characters: SnapshotCharacter[],
   colours: ReadonlyMap<string, string>,
+  looseColours: ReadonlyMap<string, string> = new Map(),
 ): SnapshotCharacter[] {
   return characters.map((character) => {
     const color =
-      character.type === "pc" && character.tokenId ? colours.get(character.tokenId) : undefined;
+      character.type !== "pc"
+        ? undefined
+        : character.tokenId
+          ? colours.get(character.tokenId)
+          : looseColours.get(character.id);
     if (color !== undefined) return { ...character, color };
     if (!("color" in character)) return character;
     const { color: _stale, ...rest } = character;

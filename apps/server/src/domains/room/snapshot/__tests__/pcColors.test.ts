@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Character, SceneState, SnapshotCharacter, Token } from "@herobyte/shared";
 import { createEmptyRoomState } from "../../model.js";
-import { pcTokenColours, withPcColors } from "../pcColors.js";
+import { loosePcColours, pcTokenColours, withPcColors } from "../pcColors.js";
 
 const token = (id: string, color: unknown): Token =>
   ({ id, owner: "u", x: 0, y: 0, color }) as Token;
@@ -33,6 +33,61 @@ describe("withPcColors", () => {
     expect(out[0]!.color).toBe("#aabbcc");
     expect(out[1]).not.toHaveProperty("color");
     expect(orphan.color).toBe("#000000");
+  });
+});
+
+describe("loosePcColours", () => {
+  const owned = (id: string, owner: string, color: unknown): Token =>
+    ({ id, owner, x: 0, y: 0, color }) as Token;
+  const roomWith = (tokens: Token[], characters: Partial<Character>[]) => {
+    const state = createEmptyRoomState();
+    state.tokens = tokens;
+    state.characters = characters as Character[];
+    return state;
+  };
+
+  it("colours a player's only, unlinked PC from the one token they own that nobody claims", () => {
+    const state = roomWith(
+      [owned("t-loose", "bo", "#8a2be2"), owned("t-gob", "bo", "#ff0000")],
+      [
+        { id: "old", type: "pc", ownedByPlayerUID: "bo", tokenId: null },
+        { id: "gob", type: "npc", ownedByPlayerUID: "bo", tokenId: "t-gob" },
+      ],
+    );
+    expect([...loosePcColours(state)]).toEqual([["old", "#8a2be2"]]);
+    // On the record, so every screen gets it whatever its fog shows.
+    const [out] = withPcColors([pc("old", null)], pcTokenColours(state), loosePcColours(state));
+    expect(out!.color).toBe("#8a2be2");
+  });
+
+  it("guesses nothing: two loose tokens, a second PC, or no owner", () => {
+    const twoLoose = roomWith(
+      [owned("a", "bo", "#111111"), owned("b", "bo", "#222222")],
+      [{ id: "old", type: "pc", ownedByPlayerUID: "bo", tokenId: null }],
+    );
+    const twoPcs = roomWith(
+      [owned("a", "bo", "#111111"), owned("t2", "bo", "#445566")],
+      [
+        { id: "old", type: "pc", ownedByPlayerUID: "bo", tokenId: null },
+        { id: "new", type: "pc", ownedByPlayerUID: "bo", tokenId: "t2" },
+      ],
+    );
+    const ownerless = roomWith(
+      [owned("a", "bo", "#111111")],
+      [{ id: "old", type: "pc", tokenId: null }],
+    );
+    expect(loosePcColours(twoLoose).size).toBe(0);
+    expect(loosePcColours(twoPcs).size).toBe(0);
+    expect(loosePcColours(ownerless).size).toBe(0);
+  });
+
+  it("is not used for a linked PC, whose own token's colour wins", () => {
+    const [out] = withPcColors(
+      [pc("hero", "t1")],
+      new Map([["t1", "#aabbcc"]]),
+      new Map([["hero", "#000000"]]),
+    );
+    expect(out!.color).toBe("#aabbcc");
   });
 });
 

@@ -29,7 +29,7 @@ import type {
 import { buildSnapshotAssets } from "./assets/SnapshotAssetBuilder.js";
 import { compiledSceneFor } from "./compiledSceneView.js";
 import { buildRecipientView } from "./snapshot/recipientFilter.js";
-import { pcTokenColours, withPcColors } from "./snapshot/pcColors.js";
+import { loosePcColours, pcTokenColours, withPcColors } from "./snapshot/pcColors.js";
 import { createSelectionMap } from "./selectionSerialization.js";
 import type { DrawingOperation } from "../map/types.js";
 import { drawingHistoryFor } from "../map/drawingHistory.js";
@@ -163,7 +163,7 @@ export function toSnapshot(
     stateVersion: state.stateVersion,
     tokens: view.tokens,
     players: state.players,
-    characters: withPcColors(view.characters, pcTokenColours(state)),
+    characters: withPcColors(view.characters, pcTokenColours(state), loosePcColours(state)),
     props: view.props,
     pointers: view.pointers,
     gridSize: state.gridSize,
