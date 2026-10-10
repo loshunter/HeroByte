@@ -97,6 +97,8 @@ describe("ColorPicker", () => {
     const { container } = renderPicker({ color: "#390076" });
     const name = container.querySelector(".color-picker__name") as HTMLElement;
     expect(name.style.color).not.toBe("rgb(57, 0, 118)");
+    // Exactly the chat name's lift (#8867d7), never white or another hue.
+    expect(name.style.color).toBe("rgb(136, 103, 215)");
     const [r, g, b] = name.style.color.match(/\d+/g)!.map(Number);
     const navy = { r: 15 / 255, g: 14 / 255, b: 30 / 255 };
     const lum = (c: { r: number; g: number; b: number }) =>
