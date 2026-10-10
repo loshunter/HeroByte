@@ -1,6 +1,6 @@
 # Personal colour, slice C3 — your colour everywhere
 
-**Status: on local `dev`, not pushed (2026-10-09, overnight).** Built from
+**Status: on local `dev`, not pushed (2026-10-09 to 10, overnight).** Built from
 [`PROMPT-colour-everywhere-c3.md`](../planning/PROMPT-colour-everywhere-c3.md) (untracked: the link works on this
 machine only) on top of C1 (`origin/dev` `f43368ab`). C1 goes to main only together with C3 (the owner's decision:
 C1's darkest colours are unreadable as text until C3's lift). Pushing and merging are the owner's word.
@@ -23,10 +23,12 @@ go in with the owner's next commit of that file.
 - **One colour resolver, fog-proof** (`features/players/playerColors.ts`). A player's colour is their first PC's (a
   later PC only while the earlier ones have none), read from the character record first: C1 puts each PC's token
   colour on its record (`SnapshotCharacter.color`), and fog drops other players' tokens from a payload but never party
-  records. Then the token. A PC that predates linking, when it is its player's only PC, takes the colour of the one
-  token that player owns that no character claims: the server puts it on the record (`loosePcColours`, review round
-  1), and the client's `looseOwnToken` reads the same token. The DM's colour is the DM's own PC's, never an NPC
-  token. No PC with a colour: null, and every place keeps today's colour.
+  records. Then the character's own linked token, while in view. A PC that predates linking takes its colour from
+  the record alone: when it is its player's only PC, the server puts on the record the colour of the one token that
+  player owns that no character claims (`loosePcColours`, review round 1), judged on the whole room, never on a
+  viewer's fogged view (round 2), and never for a DM, whose unclaimed tokens are what REMOVE handed over. The DM's
+  colour is the DM's own PC's, never an NPC token. No PC with a colour: null, and each place keeps today's colour
+  (see "A viewer with no colour" below for what else changed for them).
 - **Found and fixed on the way (its own commit, `8ed08dff`):** the desktop roster ring and the card's colour read the
   token, so a party member who walked out of sight dropped to the default green ring and lost the card colour. Both
   read the record's colour first now.
@@ -35,14 +37,18 @@ go in with the owner's next commit of that file.
   MapBoard supplies the palette through React context (the stage bridges context): a thin wrapper does it, and the
   body, now `MapBoardScene`, gained only the pings' `characters` prop. No colour: `#447DF7`, exactly as before.
 - **Pings** in their player's colour, so the DM pings in the DM's own PC's colour. The name label is drawn in the
-  ping's colour, lifted to 4.5:1 against its own keyline outline (it was fixed dark text, unreadable on dark maps).
-- **Names in each author's colour, lifted for text:** chat and roll log names, and the card's name. Your own chat lines
-  also carry a `▶` mark. A whisper dims only its text, never its name.
+  ping's colour, lifted or darkened to 4.5:1 against its own keyline outline (it was fixed dark text, unreadable on
+  dark maps).
+- **Names in each author's colour, lifted for text:** chat and roll log names, and the card's name (over a dark halo,
+  round 2). Your own chat lines also carry a `▶` mark; your own whisper names its recipient in the recipient's colour
+  (round 2). A whisper dims only its text, never its name.
 - **Voice glow** in the card's colour (on a PC). The phone shows no speaking glow today (Party lists who is in the
   call), so there is nothing to recolour there.
-- **The picker's preview** shows the name as names are drawn now (lifted).
-- **Older bug, fixed regardless (review round 1):** the desktop Party row's initial letter was white on its ring,
-  1.3:1 on the default green; it is now the ring's keyline.
+- **The picker's preview** shows the name as chat and roll names are drawn now (lifted on the navy; the card lifts its
+  own name on the card's lighter ground).
+- **Text on a colour is black or white** (`textOn`, round 2): the Party row's initial, the selection badge's number and
+  the card's empty-portrait words. Older bugs, fixed regardless: the Party row's initial (review round 1) and the empty
+  portrait's words (round 2, `b03436c5`) were white on the colour, 1.3:1 on the default green.
 
 ## Chosen and stated
 
@@ -54,13 +60,19 @@ go in with the owner's next commit of that file.
   (5/3 of the ring's width) with the colour ring over it, so the colour has a keyline edge on both sides; it follows
   the token's node through drags, glides and the transform handles by listening to its attribute changes, and
   re-subscribes when the node is swapped (a picture loading after selection). Props use the same ring. Drawings and
-  templates draw a solid keyline copy of their outline under the dashed colour line. The transform handles' anchors
-  are the colour edged in the keyline; the centre move handle is a keyline edge with the colour inside and the cross
-  in the keyline; the gizmo's dashed border is off for a coloured viewer, since every selected piece carries its own
-  edged outline. Measured over every window colour: the colour against its keyline (which is also what separates it
+  templates draw a solid keyline copy of their outline (4/scale wide) under the dashed colour line (2/scale), with a
+  template's label drawn last. The transform handles' anchors are the colour edged in the keyline; the centre move
+  handle is a 1 px keyline edge each side with the colour inside and the cross in the keyline; the gizmo's dashed
+  border, and the rotate handle's line Konva draws with it, are the keyline for a coloured viewer (round 1 turned the
+  border off, which also hid the rotate line and left the map and the staging zone with no outline; round 2 put it
+  back). Measured over every window colour: the colour against its keyline (which is also what separates it
   from your own picture-less token, filled with your colour) is at least **4.16:1**; against the background, the
   ring's better edge is at least **3.19:1** on the dark map floor `#2a2622`, **4.16:1** in fog `#0b0b16`, **3.45:1** on
-  parchment `#e8dcc0` and **4.70:1** on white. The count badge's number is the keyline colour on the colour.
+  parchment `#e8dcc0` and **4.70:1** on white. The keyline pair is for edges, not text: it bottoms out at 4.16:1
+  (`#008183`), so text on a colour uses `textOn`, black or white, at least **4.58:1** for any colour.
+- **The drag shade** (round 2): the outline while dragging moves the colour's lightness 0.12 away from its keyline
+  (lighter over a dark keyline, darker over a light one), so the dashed drag line over the keyline is at least
+  **6.71:1** from it (round 1's "toward the middle" rule fell to 2.47:1 for `#825ed1`).
 - **The selection glow and the ping dot** (`2fd0cfeb`): the glow is lifted to 3:1 on `#2a2622`, the picker preview's
   stand-in for a dark map floor. Nothing lifts it on a light map, where a pale colour's glow is near 1:1 (for example
   `#68f7a4` on parchment); the keyline ring is what reads there. The ping dot has a 2 px keyline edge; the aim preview
@@ -71,7 +83,8 @@ go in with the owner's next commit of that file.
   its OKLCH lightness moves (up on a dark background, down on a light one) just far enough, hue kept, chroma cut to
   what sRGB shows there, judged on the stored `#rrggbb`. Chat and roll names sit on the theme's navy `#0f0e1e` (roll
   entries and the chat list, desktop and phone; see the live check); the card's name on the card's lightest stop
-  `#3a3860`; a ping label on its own keyline. Every window colour reaches at least **4.50:1** on the navy, and each
+  `#3a3860` (over a dark halo: the gold name's cream glow would lighten that ground to about 2.4:1, modelled); a ping
+  label on its own keyline (lifted or darkened, whichever way leaves it). Every window colour reaches at least **4.50:1** on the navy, and each
   lifted one stops under 4.6:1. Worst cases on the navy: C1's darkest `#390076` (1.30:1) becomes `#8867d7` (4.51:1);
   the worst legacy colour `#2626d9` (2.14:1) becomes `#4d6eff` (4.53:1); a near-black outside the window (a file's or
   the DM's colour), `#0b0b41` (1.03:1), becomes `#6978b6` (4.50:1). On the card, `#390076` becomes `#b295ff` (4.51:1).
@@ -81,6 +94,13 @@ go in with the owner's next commit of that file.
   (`#390076` to `#ddd4ff`). The turn's gold glow still wins.
 - **Your own chat lines:** your colour plus a `▶` cursor mark before your name (aria-hidden), a cue that does not rely
   on colour.
+- **A viewer with no colour** (a spectator, a DM with no PC): selection is exactly today's on every surface (`#447DF7`,
+  `#44f`, the white-edged badge, one dashed outline, the border, the old handle and cross, today's drawing path). Pings
+  and chat keep today's COLOURS (gold or white pings, gold and cyan names), as the handoff asks, but not every
+  detail: a ping's dot, ring and aim gain keyline edges, and its label is the ping's colour with an outline instead of
+  dark `#0b0d1f` text (dark text did not read on a dark map, and the handoff's suggestion, light or dark text by the
+  colour's lightness, would leave the label without the colour); your own chat lines gain `▶`; a whisper's name is no
+  longer dimmed. **For the owner to confirm.**
 
 ## Evaluation (evaluate-live)
 
@@ -98,7 +118,7 @@ selection was made with real clicks and taps; fog, vision and the DM token's mov
   keyline. (Seen with the first keyline build; round 1 changed how the band is drawn, see the re-check below.)
 - **The DM's ping** reached Player 20 in `#393600` (the DM's PC's colour). No NPC token was on the table during this
   check; an NPC placed before the DM's PC is unit-tested.
-- **Fog (the fog-proof source).** With fog on, a 30 ft default vision radius and the DM's token moved away, the DM's
+- **Fog (the fog-proof source)**, on two clients (the DM's token was the one fogged; no third client). With fog on, a 30 ft default vision radius and the DM's token moved away, the DM's
   token left Player 20's payload while the DM's PC record kept `#393600`. On Player 20's screen: the roster ring and
   initial stayed olive, the DM's ping was olive, and the DM's chat and roll log names were the olive lifted to
   `rgb(128, 126, 76)`. (That the ring used to fall back to green is read from the code `8ed08dff` replaced, not seen
@@ -106,7 +126,8 @@ selection was made with real clicks and taps; fog, vision and the DM token's mov
 - **Names.** The chat list and the roll entries both sit on `rgb(15, 14, 30)` (`#0f0e1e`), measured on desktop and
   phone, the background the text lift assumes. Player 20's own line read `▶ Player 20: …` in their colour.
 - **Recolour, live.** Player 20 recoloured: their selection ring changed to the new `#ffc6c3` at once, and on the DM's
-  screen their chat name and roster ring changed too, without a reload.
+  screen their chat name and roster ring changed too, without a reload. (Three places seen; whether the picker or a
+  double-click made the recolour is not recorded. Every place's live update is unit-tested since round 2.)
 - **Phone.** Chat and roll log names matched the desktop's; the chat tabs are 44 px; a tap with the Select tool showed
   the dark keyline and the pink ring, with the movement pad below.
 - **Found and fixed (`2fd0cfeb`):** a deep colour's selection glow and ping dot all but vanished on the dark map floor;
@@ -130,16 +151,17 @@ real clicks:
   Read in the pinging tab: a background tab pauses animation frames, so the other tab's ping was not readable.
 - **A drawing selected by the DM** (Select tool, real click): a solid 4 px `#f4f1e8` keyline under the 2 px dashed
   olive line, neither listening.
-- **The DM's own token in Transform:** the gizmo border off, anchors olive edged `#f4f1e8`, the ring a 5 px keyline
+- **The DM's own token in Transform:** the gizmo border off (round 2 put it back, in the keyline: not re-checked
+  live), anchors olive edged `#f4f1e8`, the ring a 5 px keyline
   under a 3 px olive band (both drawn directly), the token's own stroke transparent at width 3, the glow `#747240`
-  (3.02:1 on `#2a2622`); the centre handle edged `#f4f1e8` (3 px) with the olive inside at 0.85 and the cross in
-  `#f4f1e8`.
+  (3.02:1 on `#2a2622`); the centre handle edged `#f4f1e8` (3 px then; 3.5 since round 2) with the olive inside at
+  0.85 and the cross in `#f4f1e8`.
 - **Not re-checked live:** the phone, a prop or template selection, a picture token (the node-swap follow is
   unit-tested with real Konva nodes), the speaking glow.
 
 | Criterion | Weight | Score | Why |
 | --- | --- | --- | --- |
-| Functionality | 0.35 | 8 | Tokens, pings, roster, chat and roll names show the colour live; the DM ping quirk and the out-of-sight roster bug are gone; the rest is unit-tested only |
+| Functionality | 0.35 | 8 | Tokens, pings, roster, chat and roll names show the colour live; the out-of-sight roster bug is gone; the DM ping quirk is unit-tested (no NPC was on the table live); the rest is unit-tested only |
 | Multiplayer integrity | 0.30 | 8 | Selection per viewer; fog driven live with the colours intact on the other screen; recolour live on both |
 | Craft | 0.20 | 7 | Two dark-colour visibility gaps found and fixed; review round 1 then found more (card name, whisper names, pings' keylines) |
 | Reach | 0.15 | 8 | Phone selection, chat and roll names live; ping on the phone not driven |
@@ -167,14 +189,62 @@ Weighted: **7.8**, given before review round 1, which found real defects the liv
 - **Docs** (`47cdf285`, this record, the guide): the card has no colour portrait ring (the ring is on the Party row);
   the guide's voice line said green; "everywhere" and "other players see it too" said more than the code does.
 
-Every fix was sabotaged and its test went red: 14 on selection, 5 on pings, 9 on names, glow and the server rule, 8
-on the resolver, hook and lift, 1 on the desktop chain.
+Every fix was sabotaged with a mutant of the author's choosing, and each went red: 14 on selection, 5 on pings, 9 on
+names, glow and the server rule, 8 on the resolver, hook and lift, 1 on the desktop chain. That held for those
+mutants only: round 2's test reviewer ran 87 of its own and 34 survived (below).
 
-Not fixed, stated: the selection glow on a light map (above); baseline files grew (`TokensLayer.tsx` 836 → 875,
+**Round 2** (4 fresh reviewers, opus, read-only, on `e42e59d2`; the tree was unchanged after): all four **FAIL**, 45
+findings (14 major): resolver and names 4 major + 5 minor, docs 2 + 13, selection 1 + 11, tests 7 + 2. Fixed:
+
+- **Text on a colour** (`783b29be`, `b03436c5`): the Party row's initial and the badge's number used the keyline pair
+  (down to 4.16:1); the empty portrait's words were white on the colour (older bug). All three are `textOn` now. The
+  drag shade moves away from its keyline (it fell to 2.47:1). The palette's unused `fill` is gone.
+- **The card name** (`b3acad9f`): the gold name's cream halo lightened the ground the lift was measured on; a coloured
+  name has a dark halo.
+- **Unlinked PCs and DMs** (`afa49b7f`): with two loose tokens the server left the record uncoloured and each client
+  guessed from its own fogged view; the client now reads an unlinked PC's colour from the record only, and a token
+  lends colour only to the character linked to it. A DM's loose token (what REMOVE hands over) lends none.
+- **Selection** (`1ab28121`): the gizmo border back, in the keyline (round 1's "off" hid the rotate line and left the
+  map and staging zone bare); the centre handle's keyline 1 px each side; stable node ref callbacks (each piece
+  rendered twice per pass); a template's label drawn after its outline. It also drew a ringed token directly
+  (`perfectDrawEnabled` off, to keep its glow off Konva's buffer canvas); the full e2e run then failed two phone specs
+  (`mobile-move-pad-follow`: after a move-pad step the camera landed at (41, 41) instead of moving on one axis).
+  Bisected to that one line (spec 3/3 without it, 1/3 with it, deterministic), and reverted in `3a13483d`; the
+  mechanism was not found, and it goes with the buffer-canvas task below.
+- **Pings and chat** (`10d0981a`): your own whisper names its recipient in the recipient's colour; the colour map is
+  kept while colours are unchanged; each ping colour's ink is worked out once, not every frame.
+- **Tests**: the node swap at the layer level (TokensLayer and a new PropsLayer test), each followed attribute on its
+  own, a recolour on every surface (palette, hook, chat, roll log, ping), the chat chain end to end, the ping label's
+  exact lift and every keyline width, drawing and template keyline order and width for every drawing type, the drag
+  shade, the prop ring's geometry at zoom 2.
+- **Docs** (`b4f94094`, this record, the guide): "on a PC" (a computer), "lightened" (ping labels may darken), two
+  characters (each card keeps its own colour), the DM sees every ping, the Recolor line, the preview's wording, the
+  no-colour viewer (above).
+
+Sabotage, round 2: 18 on selection (17 red; the 18th was equivalent, and the reviewer's own form of it went red), 16 on
+pings and chat (all red after two tests were made to keep their other inputs stable), 9 on text, halo and resolver (8
+red; the 9th is equivalent, guarded by `characterColor`'s link check, whose own mutant went red).
+
+The handoff's five named sabotages, and where each is pinned: the resolver picking an NPC for the DM
+(`playerColors.test`, "skips a coloured NPC the DM owns"); the fog-proof source (the resolver's record-first tests, the
+fogged teammate's card, the server's `loosePcColours` and its `toSnapshot` wiring); the selection colour wiring
+(MapBoard's viewer-not-first-PC and live-recolour tests); the no-colour fallback (one test per surface: tokens, props,
+drawings, templates, gizmo, badge, pings, chat); the text-lift rule (`colorText.test`, per cell, exact values,
+unreachable target).
+
+Round-by-round: 45 findings, then 45 (14 major). Round 3 is the last; a fourth needs the owner.
+
+Not fixed, stated: the selection glow on a light map (above); baseline files grew (`TokensLayer.tsx` 836 → 881,
 `MapBoard.tsx` 1020 → 1041, `DrawingsLayer.tsx` 621 → 636; all exempt from the 350-line rule, none split); a picture
-token's ring band sits half over its picture, and its outer edge is 1 px further out, closer to the HP bar; a token
-that REMOVE hands to the DM can become the DM's one loose token (shared with every other `looseOwnToken` reading); an
-unlinked PC still holds no zone in the picker (C1's rule, unchanged).
+token's ring band sits half over its picture, and its outer edge is 1 px further out, closer to the HP bar; selection
+edges scale with a piece's own non-uniform transform (a token stretched 1.8 × 0.4 gets a thinner keyline top and
+bottom), as today's selection stroke already did; an unlinked PC still holds no zone in the picker (C1's rule,
+unchanged); the no-colour pinger's new look (above, for the owner). Older issues found, flagged as separate tasks
+rather than fixed here: the gizmo stays on a destroyed placeholder after a selected picture loads, until the next
+snapshot; a selected token's glow still goes through Konva's buffer canvas every frame, as before round 2 (a Rect with
+fill, stroke and shadow does, and an Image with a corner radius and a shadow always does; the one-line fix broke the
+phone move pad's camera, above); the guide's ping screenshot (`img/pointer-ping.jpg`) predates the keylines and shows no label,
+though its alt text says it does.
 
 ## Gates
 
@@ -192,6 +262,11 @@ After round 1: full ladder on `47cdf285`: **GATES: PASS** — shared 530, server
 skipped (the baseline skips), 0 flaky; dev boot clean. Production entry **169.39 KB of 175** (5.61 KB left, +0.09 KB
 for round 1's fixes); `ColorPicker-*.js` 4.41 KB gzip.
 
+After round 2: the ladder on `b4f94094` failed e2e only (`mobile-move-pad-follow`, 2 of 3; see the revert above).
+Full ladder on `3a13483d`: **GATES: PASS** — shared 532, server 2948, client 8340 (4 skipped); e2e 374 passed, 3
+skipped (the baseline skips), 0 flaky, the move-pad specs 3/3; dev boot clean. Production entry **169.60 KB of 175**
+(5.40 KB left, +0.21 KB for round 2's fixes); `ColorPicker-*.js` 4.42 KB gzip.
+
 ## Commit-message corrections
 
 - `05e6a3a8` ("card name and portrait ring") and `8ed08dff` ("the card's colour (name, portrait ring)"): the card has
@@ -201,6 +276,11 @@ for round 1's fixes); `ColorPicker-*.js` 4.41 KB gzip.
 - `66061c32` describes the loose-token fallback without its condition: it applies only when that PC is its player's
   only PC.
 - `2fd0cfeb` calls `#2a2622` "the map floor": it is the picker preview's stand-in for a dark map floor.
+- `6d2d07f6` "about 1.4:1 for `#390076`" on `#3a3860`: it is 1.33:1.
+- `a6f8d416` says the ring "follows a real Konva node through position, rotation and scale" and that the glow
+  "follows the live node too", as tested: the tests then pinned only x and scaleX, and nothing at the layer level
+  (pinned since `1ab28121`); its "drag shade pinned exactly" held for tokens only.
+- `b1a50719` lists the label lift as tested: the test was a `not.toBe` (exact since `10d0981a`).
 
 ## Commits (on `f43368ab`)
 
@@ -208,4 +288,7 @@ for round 1's fixes); `ColorPicker-*.js` 4.41 KB gzip.
 `9b118ca0` selection in your colour · `986f2ccd` pings, chat and roll names, voice glow, preview · `7529659b` glow test
 typing · `05e6a3a8` in-app help · `d595cbde` colour window out of the entry bundle · `2fd0cfeb` live-pass fixes (deep
 glow and ping dot) · `7aa5616c` this record · round 1: `a6f8d416` selection · `b1a50719` pings · `6d2d07f6` names and
-glow · `b8ddd050` the unlinked PC's colour on the record · `1d91f72e` and `747d832d` tests · `47cdf285` help.
+glow · `b8ddd050` the unlinked PC's colour on the record · `1d91f72e` and `747d832d` tests · `47cdf285` help ·
+`e42e59d2` this record · round 2: `783b29be` text on a colour and the drag shade · `b03436c5` the empty portrait's
+words (older bug) · `b3acad9f` the card name's halo · `afa49b7f` unlinked PCs and DMs · `1ab28121` selection ·
+`10d0981a` pings and chat · `b4f94094` help · `3a13483d` revert of the direct-draw line.
