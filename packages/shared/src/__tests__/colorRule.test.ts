@@ -224,12 +224,17 @@ describe("randomAllowedColor", () => {
 
   it("uses the recolour step when the radius is smaller, for every draw", () => {
     // Exhaustive over the generator's range: a sampled seed missed a filter that
-    // used the radius instead of the step.
+    // used the radius instead of the step. 500 draws over the whole window take
+    // about 5 s under CI's coverage instrumentation, so the short ones are collected
+    // and asserted once, with room to run.
+    const short: string[] = [];
     for (let draw = 0; draw < 500; draw += 1) {
       const next = randomAllowedColor([], 0.01, () => (draw + 0.5) / 500, BLUE);
-      expect(deltaE(labOf(next), labOf(BLUE))).toBeGreaterThanOrEqual(COLOR_RULE.recolorStepMin);
+      if (deltaE(labOf(next), labOf(BLUE)) < COLOR_RULE.recolorStepMin)
+        short.push(`${draw}: ${next}`);
     }
-  });
+    expect(short).toEqual([]);
+  }, 30_000);
 
   it("falls back to the farthest point when nothing is allowed", () => {
     const others = [blocker(RED)];
