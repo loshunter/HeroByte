@@ -2,9 +2,10 @@
 // COLOUR PICKER — choose your character's colour (personal colour, C1)
 // ============================================================================
 // A hue × lightness window (hue wraps left to right, light at the top). Other
-// players' colours hold zones, drawn striped; dragging into one stops the
-// handle at its edge, and a tap in one names whose it is. Three suggested spots mark the most open colours: one
-// tap lands there, which is the whole job on a phone. A drag commits on
+// players' colours hold zones, drawn striped; a drag or a tap into one stops
+// the handle at its nearest free edge and names whose zone it is. Three
+// suggested spots mark the most open colours: one tap lands there, which is
+// the whole job on a phone. A drag commits on
 // release (one message), arrow keys commit once the keys go quiet, the preview
 // follows the handle, and the server has the last word: a stale picker
 // (someone joined) is snapped, and the sender is told. The DM's picker has no
@@ -65,8 +66,6 @@ interface Drag {
   slop: number;
   /** Pressed on the handle itself: moves keep the grab offset, and a tap is no pick. */
   onHandle: boolean;
-  /** Pressed inside another player's zone (whose): a tap there names it, a drag bumps. */
-  zoneOwner: string | null;
   /** The cell a press on a free spot showed: a tap commits it, wherever the finger lifts. */
   pressed: WindowCell | null;
   offsetX: number;
@@ -202,22 +201,20 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
           const onHandle = event.target === handleRef.current;
           const handle = handleRef.current?.getBoundingClientRect();
           const point = pointFor(event.clientX, event.clientY);
-          const zoneOwner = onHandle ? null : zoneOwnerAt(point, field);
           drag.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
             slop: TAP_SLOP_PX[event.pointerType] ?? TAP_SLOP_PX.mouse!,
             onHandle,
-            zoneOwner,
             offsetX: onHandle && handle ? handle.left + handle.width / 2 - event.clientX : 0,
             offsetY: onHandle && handle ? handle.top + handle.height / 2 - event.clientY : 0,
             moved: false,
             pressed: null,
           };
           event.currentTarget.setPointerCapture?.(event.pointerId);
-          // On the handle, or in a zone, nothing moves until the pointer does.
-          if (onHandle || zoneOwner) return;
+          // On the handle, nothing moves until the pointer does.
+          if (onHandle) return;
           supersedeKeys();
           drag.current.pressed = moveTo(point);
         }}
@@ -244,10 +241,8 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
           drag.current = null;
           focusHandle();
           if (active.onHandle && !active.moved) return; // A tap on your own handle picks nothing.
-          if (active.zoneOwner && !active.moved) {
-            // A tap in a zone names it (a phone has no hover) and picks nothing.
-            setNotice({ text: `${active.zoneOwner}'s colour`, live: true });
-          } else if (!active.moved) {
+          if (!active.moved) {
+            // A tap in a zone lands on its nearest free edge; the notice names whose it is.
             commit(active.pressed);
           } else {
             commit(

@@ -141,21 +141,24 @@ describe("ColorPicker", () => {
     expect(screen.queryByText("Bors's colour")).toBeNull();
   });
 
-  it("names a zone tapped on a phone for a few seconds, and picks nothing", () => {
+  it("picks the nearest free colour for a zone tapped on a phone, and names whose it is", () => {
     vi.useFakeTimers();
     const { surface, container, onCommit } = renderPicker();
     const touch = { pointerId: 1, button: 0, pointerType: "touch", ...pixelOf(NEAR_RED_CELL) };
     fireEvent.pointerDown(surface, touch);
     fireEvent.pointerUp(surface, touch);
     fireEvent.pointerLeave(surface, { pointerType: "touch" });
-    expect(screen.getByText("Bors's colour")).toBeTruthy();
     expect(container.querySelector(".color-picker__status [aria-live='polite']")!.textContent).toBe(
-      "Bors's colour",
+      "Too close to Bors",
     );
-    expect(screen.getByLabelText("Colour code").textContent).toBe(BLUE);
+    // One pick: the nearest free colour, just outside Bors's zone.
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    const room = deltaE(colorToOkLab(onCommit.mock.calls[0]![0])!, colorToOkLab(RED)!);
+    expect(room).toBeGreaterThanOrEqual(ruleRadius(2));
+    expect(room).toBeLessThan(ruleRadius(2) + 0.03);
+    expect(screen.getByLabelText("Colour code").textContent).toBe(onCommit.mock.calls[0]![0]);
     act(() => vi.advanceTimersByTime(NOTICE_HOLD_MS));
-    expect(screen.queryByText("Bors's colour")).toBeNull();
-    expect(onCommit).not.toHaveBeenCalled();
+    expect(screen.queryByText("Too close to Bors")).toBeNull();
   });
 
   it("names a zone under the mouse again once a tap's label has gone", () => {
@@ -168,15 +171,16 @@ describe("ColorPicker", () => {
     expect(screen.getByText("Bors's colour")).toBeTruthy();
   });
 
-  it("still sends the keys' colour when a tap in a zone comes before they go quiet", () => {
+  it("lets a tap in a zone take over from keys still waiting: one message, the tap's", () => {
     vi.useFakeTimers();
     const { surface, onCommit } = renderPicker();
     fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
     const keyed = screen.getByLabelText("Colour code").textContent;
     press(surface, pixelOf(NEAR_RED_CELL));
-    expect(screen.getByLabelText("Colour code").textContent).toBe(keyed);
     act(() => vi.advanceTimersByTime(KEY_COMMIT_MS));
-    expect(onCommit.mock.calls).toEqual([[keyed]]);
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit.mock.calls[0]![0]).not.toBe(keyed);
+    expect(screen.getByText("Too close to Bors")).toBeTruthy();
   });
 
   it("keeps the arrow keys on the handle after a press in the window or on a spot", () => {
@@ -399,10 +403,10 @@ describe("ColorPicker", () => {
     })!;
     expect(shrunk).toBeTruthy();
     press(surface, pixelOf(shrunk));
-    expect(screen.getByText("Bors's colour")).toBeTruthy();
-    expect(onCommit).not.toHaveBeenCalled();
+    expect(screen.getByText("Too close to Bors")).toBeTruthy();
+    expect(onCommit.mock.calls.at(-1)).not.toEqual([shrunk.hex]);
     press(surface, pixelOf(newcomer));
-    expect(screen.queryByText(/Too close|'s colour/)).toBeNull();
+    expect(screen.queryByText(/Too close/)).toBeNull();
     act(() => {
       rerender(
         <ColorPicker
@@ -416,7 +420,7 @@ describe("ColorPicker", () => {
     });
     expect(screen.getByRole("img", { name: "Cyra's colour" })).toBeTruthy();
     press(surface, pixelOf(newcomer));
-    expect(screen.getByText("Cyra's colour")).toBeTruthy();
+    expect(screen.getByText("Too close to Cyra")).toBeTruthy();
     press(surface, pixelOf(shrunk));
     expect(onCommit.mock.calls.at(-1)).toEqual([shrunk.hex]);
   });
