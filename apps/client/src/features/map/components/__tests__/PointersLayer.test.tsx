@@ -89,6 +89,12 @@ describe("PointersLayer colours", () => {
     expect(dotColor()).toBe("#8a2be2");
   });
 
+  it("edges a deep colour's dot in its light keyline so it shows on a dark map", () => {
+    renderPing("bo", [pc("bors", "bo", "#390076")], []);
+    const dot = circles.find((circle) => circle.fill === "#390076" && circle.shadowColor);
+    expect(dot?.stroke).toBe("#f4f1e8");
+  });
+
   it("keeps today's gold for a DM and white for a player with no colour", () => {
     renderPing("dm", [], [token("t-gob", "dm", "#ff0000")]);
     expect(dotColor()).toBe("#FFD700");

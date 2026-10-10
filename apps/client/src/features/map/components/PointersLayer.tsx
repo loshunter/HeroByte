@@ -248,6 +248,9 @@ export const PointersLayer = memo(function PointersLayer({
               y={0}
               radius={BASE_RADIUS}
               fill={color}
+              // The keyline edge keeps a deep colour's dot visible on a dark map.
+              stroke={keylineFor(color)}
+              strokeWidth={2}
               opacity={coreOpacity * 0.75}
               shadowColor={color}
               shadowBlur={16}

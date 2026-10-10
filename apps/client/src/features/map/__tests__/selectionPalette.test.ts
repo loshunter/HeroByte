@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KEYLINE_DARK, KEYLINE_LIGHT } from "@herobyte/shared";
+import { KEYLINE_DARK, KEYLINE_LIGHT, contrastRatio, parseColor } from "@herobyte/shared";
 import { DEFAULT_SELECTION, keylineHalo, selectionPalette } from "../selectionPalette";
 
 describe("selectionPalette", () => {
@@ -26,8 +26,11 @@ describe("selectionPalette", () => {
     expect(palette.drag).not.toBe(palette.stroke);
   });
 
-  it("gives a deep shade a light keyline, and reads an older hsl colour", () => {
+  it("gives a deep shade a light keyline and a glow lifted to show on a dark map", () => {
     expect(selectionPalette("#390076").keyline).toBe(KEYLINE_LIGHT);
+    const glow = selectionPalette("#390076").glow;
+    expect(glow).not.toBe("#390076");
+    expect(contrastRatio(parseColor(glow)!, parseColor("#2a2622")!)).toBeGreaterThanOrEqual(3);
     expect(selectionPalette("hsl(120, 70%, 50%)").stroke).toBe("#26d926");
   });
 

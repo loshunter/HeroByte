@@ -17,6 +17,7 @@ import {
   okLabToRgb,
   okLchToOkLab,
   parseColor,
+  readableOn,
   rgbToHex,
 } from "@herobyte/shared";
 
@@ -27,7 +28,7 @@ export interface SelectionPalette {
   drag: string;
   /** The move handle's translucent fill. */
   fill: string;
-  /** The pulsing glow (full motion only). */
+  /** The pulsing glow (full motion only): lifted to 3:1 on a dark map, or a deep colour's glow vanishes. */
   glow: string;
   /**
    * The edge around the outline, dark or light (keylineFor), so it reads on its
@@ -38,6 +39,9 @@ export interface SelectionPalette {
   /** Text on the multi-select badge, which is filled with `stroke`. */
   badgeText: string;
 }
+
+/** A dark map floor (the picker preview's): the glow must show on it. */
+const DARK_MAP = "#2a2622";
 
 export const DEFAULT_SELECTION: SelectionPalette = {
   stroke: "#447DF7",
@@ -65,7 +69,7 @@ export function selectionPalette(color: string | null): SelectionPalette {
     stroke: hex,
     drag,
     fill: `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, 0.25)`,
-    glow: hex,
+    glow: readableOn(hex, DARK_MAP, 3) ?? hex,
     keyline,
     badgeText: keyline,
   };

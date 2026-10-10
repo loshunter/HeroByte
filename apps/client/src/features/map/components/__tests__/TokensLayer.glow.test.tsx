@@ -115,7 +115,8 @@ describe("selected token glow", () => {
     renderSelected();
     expect(frames.length).toBeGreaterThan(0);
     frames.forEach((step) => step({ time: 250 }));
-    expect(shadowColors).toContain("#390076");
+    // The viewer's colour, lifted so a deep shade still glows on a dark map.
+    expect(shadowColors).toContain(selectionPalette("#390076").glow);
     expect(shadowColors).not.toContain("#447DF7");
   });
 
