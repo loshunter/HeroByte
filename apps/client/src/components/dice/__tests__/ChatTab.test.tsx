@@ -157,7 +157,11 @@ describe("ChatTab", () => {
     // The security property is that NO element is constructed from the text.
     expect(entry.querySelector("img")).toBeNull();
     expect(entry.querySelector("script")).toBeNull();
-    expect(entry.querySelectorAll("*")).toHaveLength(1); // just the author <span>
+    // Just the author <span> and, on your own line, its cursor mark: nothing from the text.
+    expect([...entry.querySelectorAll("*")].map((element) => element.tagName)).toEqual([
+      "SPAN",
+      "SPAN",
+    ]);
     // ...and the property that "onerror" does not appear as an ATTRIBUTE.
     expect(entry.querySelector("[onerror]")).toBeNull();
 

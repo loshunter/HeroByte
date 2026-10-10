@@ -382,6 +382,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         npcDeletionError={undefined}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
+        onTokenColorChange={(tokenId, color) =>
+          sendMessage({ t: "set-token-color", tokenId, color })
+        }
         onCharacterOwnerChange={(characterId, ownerUid) =>
           sendMessage({ t: "set-character-owner", characterId, ownerUid })
         }

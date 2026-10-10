@@ -89,6 +89,24 @@ export async function touchTap(cdp: CDPSession, at: Pt): Promise<void> {
   await send(cdp, "touchEnd", []);
 }
 
+/**
+ * Two taps at one point, all four events queued at once.
+ *
+ * Konva's dbltap needs the second lift inside `Konva.dblClickWindow` (400ms)
+ * of the first. Two awaited `touchTap`s can miss it: each CDP send waits for
+ * the renderer's ack, and the first tap's re-render can stall that for 200ms+
+ * in the dev build. Sent without awaiting in between, the events reach the
+ * renderer back to back and keep their order on the one CDP socket.
+ */
+export async function touchDoubleTap(cdp: CDPSession, at: Pt): Promise<void> {
+  await Promise.all([
+    send(cdp, "touchStart", [at]),
+    send(cdp, "touchEnd", []),
+    send(cdp, "touchStart", [at]),
+    send(cdp, "touchEnd", []),
+  ]);
+}
+
 /** One finger held still for `ms`, then lifted — a press-and-hold, on a real touch pointer. */
 export async function touchHold(cdp: CDPSession, at: Pt, ms: number): Promise<void> {
   await send(cdp, "touchStart", [at]);

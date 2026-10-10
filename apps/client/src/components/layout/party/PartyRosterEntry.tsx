@@ -7,6 +7,7 @@
 // carries no second copy of them.
 
 import type React from "react";
+import { keylineFor, textOn } from "@herobyte/shared";
 import { sanitizeText } from "../../../utils/sanitize";
 import type { RosterEntryView } from "./rosterEntryView";
 
@@ -104,11 +105,24 @@ export function PartyRosterEntry({
         aria-label={`${label}: details`}
         onClick={(event) => onSelect(event, view.characterId)}
       >
-        <span className="party-roster__portrait" style={{ borderColor: view.ring }}>
+        <span
+          className="party-roster__portrait"
+          // A keyline edge outside the ring: a deep colour's ring vanished on the row.
+          style={{ borderColor: view.ring, boxShadow: `0 0 0 1px ${keylineFor(view.ring)}` }}
+        >
           {view.portrait ? (
             <img src={view.portrait} alt="" draggable={false} />
           ) : (
-            <span className="party-roster__initial" style={{ backgroundColor: view.ring }}>
+            <span
+              className="party-roster__initial"
+              // Black or white, whichever reads (textOn): white was 1.3:1 on the default green.
+              // The stylesheet's dark shadow only helps white letters.
+              style={{
+                backgroundColor: view.ring,
+                color: textOn(view.ring),
+                textShadow: textOn(view.ring) === "#000000" ? "none" : undefined,
+              }}
+            >
               {name.trim().charAt(0).toUpperCase() || "?"}
             </span>
           )}

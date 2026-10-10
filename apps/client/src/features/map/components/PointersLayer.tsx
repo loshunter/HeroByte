@@ -5,9 +5,17 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Group, Circle, Text } from "react-konva";
-import type { Pointer, Player, Token } from "@herobyte/shared";
+import {
+  keylineFor,
+  readableOn,
+  type Pointer,
+  type Player,
+  type SnapshotCharacter,
+  type Token,
+} from "@herobyte/shared";
 import type { Camera } from "../types";
 import { useSfx } from "../../juice";
+import { playerColorMap } from "../../players/playerColors";
 
 const POINTER_LIFESPAN_MS = 3000;
 const PULSE_DURATION_MS = 550;
@@ -18,11 +26,30 @@ const BASE_RADIUS = 28;
 const CORE_RADIUS = 12;
 const RING_RADIUS = BASE_RADIUS + 6;
 
+/**
+ * A ping colour's keyline and its label's fill (lifted to 4.5:1 on that keyline),
+ * worked out once per colour: pings redraw every animation frame, and the lift's
+ * search costs tens of microseconds. A table holds only a few colours.
+ */
+const inks = new Map<string, { keyline: string; label: string }>();
+function pingInk(color: string): { keyline: string; label: string } {
+  let ink = inks.get(color);
+  if (!ink) {
+    const keyline = keylineFor(color);
+    ink = { keyline, label: readableOn(color, keyline) ?? color };
+    if (inks.size > 64) inks.clear();
+    inks.set(color, ink);
+  }
+  return ink;
+}
+
 interface PointersLayerProps {
   cam: Camera;
   pointers: Pointer[];
   players: Player[];
   tokens: Token[];
+  /** Party records: a ping's colour is its player's (C3), fog-proof (playerColors). */
+  characters: SnapshotCharacter[] | undefined;
   preview?: { x: number; y: number } | null;
   previewUid?: string | null;
   pointerMode?: boolean;
@@ -30,7 +57,7 @@ interface PointersLayerProps {
 
 /**
  * PointersLayer: Renders temporary pointer indicators with pulse-fade animation
- * Shows player name and uses their token color
+ * Shows player name and uses their player's colour (first PC, from the party records)
  * Pointers automatically expire after 3 seconds
  *
  * Optimized with React.memo to prevent unnecessary re-renders
@@ -40,6 +67,7 @@ export const PointersLayer = memo(function PointersLayer({
   pointers,
   players,
   tokens,
+  characters,
   preview = null,
   previewUid = null,
   pointerMode = false,
@@ -113,13 +141,17 @@ export const PointersLayer = memo(function PointersLayer({
     return () => cancelAnimationFrame(frameId);
   }, [visiblePointers.length]);
 
-  const pointerColors = useMemo(() => {
-    const map = new Map<string, string>();
-    tokens.forEach((token) => {
-      map.set(token.owner, token.color);
-    });
-    return map;
-  }, [tokens]);
+  // Each player's colour, from their first PC (never the DM's last NPC token), read
+  // off the party records so fog never turns a ping white on some screens.
+  const pointerColors = useMemo(
+    () =>
+      playerColorMap(
+        players.map((player) => player.uid),
+        characters,
+        tokens,
+      ),
+    [players, characters, tokens],
+  );
 
   const previewColor = useMemo(() => {
     if (!previewUid) {
@@ -186,6 +218,15 @@ export const PointersLayer = memo(function PointersLayer({
           scaleX={inverseCamScale * previewPulse}
           scaleY={inverseCamScale * previewPulse}
         >
+          {/* The aim's dashed ring over its keyline, so a deep colour shows on a dark map. */}
+          <Circle
+            radius={BASE_RADIUS + 4}
+            stroke={pingInk(previewColor).keyline}
+            strokeWidth={7}
+            opacity={0.6}
+            dash={[12, 10]}
+            perfectDrawEnabled={false}
+          />
           <Circle
             radius={BASE_RADIUS + 4}
             stroke={previewColor}
@@ -218,22 +259,42 @@ export const PointersLayer = memo(function PointersLayer({
             scaleY={groupScale}
           >
             {ringOpacity > 0 ? (
-              <Circle
-                x={0}
-                y={0}
-                radius={RING_RADIUS}
-                stroke={color}
-                strokeWidth={4}
-                opacity={ringOpacity}
-                scaleX={ringScale}
-                scaleY={ringScale}
-              />
+              <>
+                {/* The expanding ring over its keyline, so a deep colour shows on a dark map. */}
+                <Circle
+                  x={0}
+                  y={0}
+                  radius={RING_RADIUS}
+                  stroke={pingInk(color).keyline}
+                  strokeWidth={7}
+                  opacity={ringOpacity}
+                  scaleX={ringScale}
+                  scaleY={ringScale}
+                  perfectDrawEnabled={false}
+                />
+                <Circle
+                  x={0}
+                  y={0}
+                  radius={RING_RADIUS}
+                  stroke={color}
+                  strokeWidth={4}
+                  opacity={ringOpacity}
+                  scaleX={ringScale}
+                  scaleY={ringScale}
+                />
+              </>
             ) : null}
             <Circle
               x={0}
               y={0}
               radius={BASE_RADIUS}
               fill={color}
+              // The keyline edge keeps a deep colour's dot visible on a dark map. Fill,
+              // stroke and opacity under 1 would send Konva through a stage-sized buffer
+              // canvas every frame (and it throws on a zero-size stage): draw directly.
+              stroke={pingInk(color).keyline}
+              strokeWidth={2}
+              perfectDrawEnabled={false}
               opacity={coreOpacity * 0.75}
               shadowColor={color}
               shadowBlur={16}
@@ -241,19 +302,24 @@ export const PointersLayer = memo(function PointersLayer({
               shadowOffset={{ x: 0, y: 0 }}
             />
             <Circle x={0} y={0} radius={CORE_RADIUS} fill="#05060d" opacity={coreOpacity * 0.35} />
+            {/* The name in the ping's colour, outlined in its keyline (dark or light,
+                whichever contrasts more), so it reads on any map. */}
             <Text
               x={0}
               y={textYOffset}
               text={label}
-              fill="#0b0d1f"
+              // The glyphs reach 4.5:1 against their own keyline outline.
+              fill={pingInk(color).label}
+              stroke={pingInk(color).keyline}
+              strokeWidth={3}
+              lineJoin="round"
+              fillAfterStrokeEnabled
+              perfectDrawEnabled={false}
               fontSize={14}
               fontStyle="bold"
               align="center"
               width={120}
               offsetX={60}
-              shadowColor="rgba(11,13,31,0.65)"
-              shadowBlur={1}
-              shadowOpacity={1}
               opacity={coreOpacity}
             />
           </Group>

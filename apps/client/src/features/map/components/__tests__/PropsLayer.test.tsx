@@ -16,9 +16,14 @@ type MockProps = Record<string, unknown> & { children?: ReactNode };
 
 const rectProps: MockProps[] = [];
 const imageProps: MockProps[] = [];
+const groupProps: MockProps[] = [];
 
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 vi.mock("react-konva", () => ({
-  Group: ({ children }: MockProps) => <div data-testid="konva-group">{children}</div>,
+  Group: (props: MockProps) => {
+    groupProps.push(props);
+    return <div data-testid="konva-group">{props.children}</div>;
+  },
   Rect: (props: MockProps) => {
     rectProps.push(props);
     return <div data-testid="konva-rect" />;
@@ -150,5 +155,76 @@ describe("PropsLayer drag round-trip", () => {
 
     expect(sceneObjects[0]!.transform.x).toBe(2);
     expect(sceneObjects[0]!.transform.y).toBe(3);
+  });
+});
+
+describe("PropsLayer selection colour", () => {
+  it("sizes the ring to the prop at any zoom: a 2 px band on a 10/3 px keyline at scale 2", () => {
+    rectProps.length = 0;
+    groupProps.length = 0;
+    render(
+      <SelectionPaletteContext.Provider value={selectionPalette("#ffc2d3")}>
+        <PropsLayer
+          cam={{ x: 0, y: 0, scale: 2 }}
+          sceneObjects={[
+            { ...prop(2, 3), transform: { ...prop(2, 3).transform, rotation: 30, scaleY: 1.5 } },
+          ]}
+          gridSize={GRID}
+          interactive
+          selectedObjectIds={["prop-1"]}
+          onTransformProp={vi.fn()}
+        />
+      </SelectionPaletteContext.Provider>,
+    );
+    const sprite = spriteRect();
+    const ring = rectProps.filter((rect) => rect !== sprite && rect.listening === false);
+    expect(ring.map((rect) => [rect.stroke, rect.strokeWidth])).toEqual([
+      ["#0b0b16", 10 / 3],
+      ["#ffc2d3", 2],
+    ]);
+    for (const rect of ring) {
+      expect([rect.width, rect.height, rect.cornerRadius]).toEqual([
+        sprite.width,
+        sprite.height,
+        4,
+      ]);
+    }
+    // The ring's group sits where the prop sits, turned and scaled as it is.
+    const group = groupProps.filter((props) => props.listening === false).at(-1)!;
+    for (const key of ["x", "y", "rotation", "scaleX", "scaleY"]) {
+      expect(group[key]).toBe(sprite[key]);
+    }
+  });
+
+  it("rings a selected prop in the viewer's colour over a keyline; today's blue stroke without one", () => {
+    const layer = (
+      <PropsLayer
+        cam={cam}
+        sceneObjects={[prop(2, 3)]}
+        gridSize={GRID}
+        interactive
+        selectedObjectIds={["prop-1"]}
+        onTransformProp={vi.fn()}
+      />
+    );
+    rectProps.length = 0;
+    render(
+      <SelectionPaletteContext.Provider value={selectionPalette("#ffc2d3")}>
+        {layer}
+      </SelectionPaletteContext.Provider>,
+    );
+    const sprite = spriteRect();
+    expect(sprite.stroke).toBe("transparent");
+    const ring = rectProps.filter((rect) => rect !== sprite && rect.listening === false);
+    expect(ring.map((rect) => [rect.stroke, rect.strokeWidth])).toEqual([
+      ["#0b0b16", (4 * 5) / 3],
+      ["#ffc2d3", 4],
+    ]);
+    expect(ring.every((rect) => rect.width === sprite.width)).toBe(true);
+
+    rectProps.length = 0;
+    render(layer);
+    expect(spriteRect().stroke).toBe("#447DF7");
+    expect(rectProps.filter((rect) => rect.listening === false)).toEqual([]);
   });
 });

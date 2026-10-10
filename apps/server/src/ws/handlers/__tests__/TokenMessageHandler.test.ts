@@ -467,7 +467,8 @@ describe("TokenMessageHandler - Characterization Tests", () => {
 
       const state = roomService.getState();
       const token = state.tokens.find((t) => t.id === tokenId);
-      expect(token?.color).toBe("hsl(120, 70%, 50%)");
+      // Stored in the canonical form; nobody else's zone is near it (C1).
+      expect(token?.color).toBe("#26d926");
     });
 
     it("should set token color when DM updates it", () => {
@@ -481,7 +482,7 @@ describe("TokenMessageHandler - Characterization Tests", () => {
 
       const state = roomService.getState();
       const token = state.tokens.find((t) => t.id === tokenId);
-      expect(token?.color).toBe("hsl(240, 70%, 50%)");
+      expect(token?.color).toBe("#2626d9");
     });
 
     it("should not set token color when non-owner tries", () => {

@@ -11,6 +11,7 @@ import React, { Suspense, lazy } from "react";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
 import type { MobileSurfaceMachine } from "../../hooks/useMobileSurface";
 import { RollLogContent } from "../../components/dice/RollLogContent";
+import { usePlayerColors } from "../../features/players/usePlayerColors";
 import { MobileDiceRoller } from "../../components/dice/MobileDiceRoller";
 import { MobileEntitiesList } from "../../components/layout/MobileEntitiesList";
 import { HelpPanel } from "../../features/help/HelpPanel";
@@ -49,6 +50,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
   const { surface, closeSurface } = machine;
   // The party list's DM-only handlers hold through a reconnect blip (roleKnown).
   const partyIsDM = useDMThroughBlip(props.isDM);
+  const playerColors = usePlayerColors(props.snapshot);
   const showParty = surface === "party";
 
   const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit, handleCharacterTempHpSubmit } =
@@ -138,6 +140,9 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             tokens={props.snapshot?.tokens || []}
             onTokenVisionRadiusChange={props.updateTokenVisionRadius}
             onTokenSizeChange={props.updateTokenSize}
+            onTokenColorChange={(tokenId, color) =>
+              props.sendMessage({ t: "set-token-color", tokenId, color })
+            }
             onAddCharacter={props.playerActions.addCharacter}
             sceneObjects={props.snapshot?.sceneObjects ?? []}
             drawings={props.snapshot?.drawings ?? []}
@@ -180,6 +185,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             onViewRoll={props.handleViewRoll}
             chatMessages={props.chatMessages}
             players={props.snapshot?.players ?? []}
+            playerColors={playerColors}
             currentUid={props.uid}
             onSendChat={props.handleSendChat}
           />

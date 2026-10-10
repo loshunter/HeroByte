@@ -14,6 +14,8 @@ import { LockIndicator } from "./LockIndicator";
 import type { StatusOption } from "../../players/constants/statusOptions";
 import { TokenHpFeedback } from "../../juice/TokenHpFeedback";
 import { TokenNameplate, type TokenPlateData } from "./TokenNameplate";
+import { SelectionRing } from "./SelectionRing";
+import { useSelectionPalette } from "../selectionPalette";
 import { decorativeMotionDisabled, motionDisabled, useSfx } from "../../juice";
 import { PROP_SIZE_MULTIPLIERS } from "../propSizing";
 
@@ -49,6 +51,8 @@ function isKonvaNode(node: Konva.Node | null): node is Konva.Node {
 // Size multiplier per token size category — ONE ladder with the props (and
 // the move-pad follow, which sizes what it keeps on screen from it).
 const SIZE_MULTIPLIERS = PROP_SIZE_MULTIPLIERS;
+// --jrpg-border-gold as a literal: Konva cannot resolve var(), and the canvas drops it silently.
+const MEDALLION_RING = "#e2b75c";
 
 const TokenSprite = memo(function TokenSprite({
   object,
@@ -71,6 +75,9 @@ const TokenSprite = memo(function TokenSprite({
 }: TokenSpriteProps) {
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "");
+  const palette = useSelectionPalette();
+  // In a viewer's colour a ring draws the selection (keyline and colour) over the token.
+  const ringed = selected && palette.keyline !== null;
 
   // Calculate size multiplier based on token size category
   const sizeMultiplier = SIZE_MULTIPLIERS[data.size ?? "medium"] ?? 1.0;
@@ -79,13 +86,20 @@ const TokenSprite = memo(function TokenSprite({
   const halfSize = size / 2;
 
   const shapeRef = useRef<Konva.Node | null>(null);
-  const nodeRef = useCallback(
-    (node: Konva.Node | null) => {
-      shapeRef.current = node;
-      onNodeReady?.(node);
-    },
-    [onNodeReady],
-  );
+  // The node in state too: a picture loading swaps the placeholder Rect for an Image,
+  // and the glow and the selection ring must move to the new node.
+  const [shapeNode, setShapeNode] = useState<Konva.Node | null>(null);
+  // A stable ref callback (the caller's onNodeReady is a new function every render,
+  // and a changing ref callback detached and re-attached the node on each one).
+  const onNodeReadyRef = useRef(onNodeReady);
+  useLayoutEffect(() => {
+    onNodeReadyRef.current = onNodeReady;
+  }, [onNodeReady]);
+  const nodeRef = useCallback((node: Konva.Node | null) => {
+    shapeRef.current = node;
+    setShapeNode(node);
+    onNodeReadyRef.current?.(node);
+  }, []);
 
   const posX = transform.x * gridSize + gridSize / 2;
   const posY = transform.y * gridSize + gridSize / 2;
@@ -135,14 +149,14 @@ const TokenSprite = memo(function TokenSprite({
 
   // Pulsing glow while selected. Decorative: "full" motion only.
   useEffect(() => {
-    const node = shapeRef.current;
+    const node = shapeNode;
     if (!isKonvaNode(node) || !selected || decorativeMotionDisabled()) return;
     const layer = node.getLayer();
     if (!layer) return;
     const shape = node as Konva.Shape;
     const anim = new Konva.Animation((frame) => {
       const seconds = (frame?.time ?? 0) / 1000;
-      shape.shadowColor("#447DF7");
+      shape.shadowColor(palette.glow);
       shape.shadowBlur(9 + 6 * Math.sin(seconds * Math.PI * 2 * 1.1));
       shape.shadowOpacity(0.9);
     }, layer);
@@ -152,7 +166,7 @@ const TokenSprite = memo(function TokenSprite({
       shape.shadowBlur(0);
       shape.shadowOpacity(0);
     };
-  }, [selected]);
+  }, [selected, palette.glow, shapeNode]);
 
   const baseProps = {
     x: transform.x * gridSize + gridSize / 2,
@@ -165,7 +179,7 @@ const TokenSprite = memo(function TokenSprite({
     scaleX: transform.scaleX,
     scaleY: transform.scaleY,
     cornerRadius: gridSize / 8,
-    stroke,
+    stroke: ringed ? "transparent" : stroke,
     strokeWidth,
     draggable,
     onDragEnd,
@@ -175,6 +189,9 @@ const TokenSprite = memo(function TokenSprite({
     onMouseLeave: () => onHover(null),
     listening: interactive,
     onDblClick: onDoubleClick,
+    // A phone fires no dblclick (Konva cancels a touchstart on a shape, so the
+    // browser never synthesises mouse events), so a double-tap needs its own wire.
+    onDblTap: onDoubleClick,
     onClick,
     onTap,
     id,
@@ -182,12 +199,33 @@ const TokenSprite = memo(function TokenSprite({
     attrs: { "data-token-id": id },
   } as const;
   const shapeProps = { ...baseProps, ref: nodeRef };
+  const { x, y, offsetX, offsetY, width, height, rotation, scaleX, scaleY, cornerRadius } =
+    baseProps;
+  const ring = ringed ? (
+    <SelectionRing
+      follow={shapeNode}
+      {...{ x, y, offsetX, offsetY, width, height, rotation, scaleX, scaleY, cornerRadius }}
+      color={palette.stroke}
+      keyline={palette.keyline!}
+      strokeWidth={strokeWidth}
+    />
+  ) : null;
 
   if (data.imageUrl && status === "loaded" && image) {
-    return <KonvaImage image={image} {...shapeProps} />;
+    return (
+      <>
+        <KonvaImage image={image} {...shapeProps} />
+        {ring}
+      </>
+    );
   }
 
-  return <Rect fill={data.color} {...shapeProps} />;
+  return (
+    <>
+      <Rect fill={data.color} {...shapeProps} />
+      {ring}
+    </>
+  );
 });
 
 interface MultiSelectBadgeProps {
@@ -205,16 +243,22 @@ const MultiSelectBadge = memo(function MultiSelectBadge({
 }: MultiSelectBadgeProps) {
   const radius = size / 2;
   const fontSize = size * 0.6;
+  const palette = useSelectionPalette();
 
   return (
     <Group x={x} y={y}>
-      <Circle radius={radius} fill="#447DF7" stroke="#FFFFFF" strokeWidth={2} />
+      <Circle
+        radius={radius}
+        fill={palette.stroke}
+        stroke={palette.keyline ?? "#FFFFFF"}
+        strokeWidth={2}
+      />
       <Text
         text={count.toString()}
         fontSize={fontSize}
         fontFamily="Arial"
         fontStyle="bold"
-        fill="#FFFFFF"
+        fill={palette.badgeText}
         align="center"
         verticalAlign="middle"
         offsetX={fontSize / 2.5}
@@ -254,7 +298,7 @@ const StatusEffectBadge = memo(function StatusEffectBadge({
       <Circle
         radius={bgRadius}
         fill="rgba(0, 0, 0, 0.7)"
-        stroke="var(--jrpg-border-gold)"
+        stroke={MEDALLION_RING}
         strokeWidth={1.5}
       />
       <Text
@@ -305,7 +349,7 @@ const StatusEffectOverflowBadge = memo(function StatusEffectOverflowBadge({
       <Circle
         radius={bgRadius}
         fill="rgba(0, 0, 0, 0.7)"
-        stroke="var(--jrpg-border-gold)"
+        stroke={MEDALLION_RING}
         strokeWidth={1.5}
       />
       <Text
@@ -378,6 +422,7 @@ export const TokensLayer = memo(function TokensLayer({
   const [, forceRerender] = useState(0);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const { play } = useSfx();
+  const palette = useSelectionPalette();
 
   const tokens = sceneObjects.filter((object): object is SceneObject & { type: "token" } => {
     return object.type === "token";
@@ -739,7 +784,7 @@ export const TokensLayer = memo(function TokensLayer({
               object={mapOverrides(object)}
               gridSize={gridSize}
               stroke={
-                isSelected ? "#447DF7" : hoveredTokenId === object.id ? "#aaa" : "transparent"
+                isSelected ? palette.stroke : hoveredTokenId === object.id ? "#aaa" : "transparent"
               }
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
               interactive={interactionsEnabled}
@@ -787,7 +832,9 @@ export const TokensLayer = memo(function TokensLayer({
             <TokenSprite
               object={mapOverrides(object)}
               gridSize={gridSize}
-              stroke={isSelected ? "#447DF7" : draggingId === object.id ? "#44f" : "#fff"}
+              stroke={
+                isSelected ? palette.stroke : draggingId === object.id ? palette.drag : "#fff"
+              }
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
               draggable={!object.locked && interactionsEnabled}
               interactive={interactionsEnabled}

@@ -130,7 +130,7 @@ interface PlayerState {
 
 interface PlayerStateTokenSnapshot {
   id?: string;                           // Token ID
-  color?: string;                        // Token color (HSL string)
+  color?: string;                        // #rrggbb (older files: hsl(...))
   imageUrl?: string | null;              // Token image URL or Base64
   position?: { x: number; y: number };   // Grid position
   size?: TokenSize;                      // Token size ("small" | "medium" | "large" | "huge")
@@ -178,7 +178,7 @@ interface PlayerStateTokenSnapshot {
 All fields in `PlayerStateTokenSnapshot` are optional:
 
 - **`id`** (string): Token database ID
-- **`color`** (string): HSL color string (e.g., "hsl(210, 70%, 50%)")
+- **`color`** (string): `#rrggbb` (e.g., "#3fa7d6"). Older files may carry `hsl(...)`. On load, a colour equal to the token's current one is kept as it is; any other is stored as `#rrggbb`, a player's inside another player's zone is moved to the nearest free one, and a player's unreadable one gets a free colour. A DM's readable colour is never moved, and a DM's unreadable one is ignored (the token keeps its colour).
 - **`imageUrl`** (string | null): Token image (URL or Base64 data URI)
 - **`position`** ({ x: number, y: number }): Grid coordinates
   - Must be finite numbers
@@ -350,7 +350,7 @@ This would allow safe schema evolution without breaking old save files.
   "statusEffects": ["Blessed", "Hasted"],
   "token": {
     "id": "token-123",
-    "color": "hsl(280, 60%, 50%)",
+    "color": "#9b59d0",
     "imageUrl": "https://example.com/gandalf-token.png",
     "position": { "x": 5, "y": 7 },
     "size": "medium",

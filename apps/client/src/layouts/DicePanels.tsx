@@ -34,6 +34,8 @@ export interface DicePanelsProps {
   handleViewRoll: (roll: RollLogEntry | null) => void;
   chatMessages: ChatMessage[];
   players: Player[];
+  /** Each seated player's colour (C3), for chat and roll log names. Required: a dropped line is a silent default. */
+  playerColors: ReadonlyMap<string, string>;
   uid: string;
   handleSendChat: (text: string, to?: string) => void;
   /** Clearing the shared roll log is DM-only, server-side. */
@@ -55,6 +57,7 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
   handleViewRoll,
   chatMessages,
   players,
+  playerColors,
   uid,
   handleSendChat,
   isDM,
@@ -93,6 +96,7 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
             onClose={() => toggleRollLog(false)}
             chatMessages={chatMessages}
             players={players}
+            playerColors={playerColors}
             currentUid={uid}
             onSendChat={handleSendChat}
             canClearLog={isDM}

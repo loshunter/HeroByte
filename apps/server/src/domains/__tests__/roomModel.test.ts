@@ -236,6 +236,26 @@ describe("Room Model - toSnapshot", () => {
       expect(snapshot.tokens.map((token) => token.id)).toContain("mine-far");
     });
 
+    it("carries an unlinked PC's colour on its record when its loose token is fogged (C3)", () => {
+      const state = stateWithFogAndWall();
+      // player-2 owns two tokens; one of them belongs to an NPC, so "hidden-enemy"
+      // (behind the wall) is the one loose token their only, unlinked PC wears.
+      state.characters = [
+        { id: "old-pc", name: "Old", type: "pc", ownedByPlayerUID: "player-2", tokenId: null },
+        { id: "npc", name: "Npc", type: "npc", ownedByPlayerUID: "player-2", tokenId: "off-map" },
+      ] as unknown as typeof state.characters;
+
+      const snapshot = toSnapshot(state, false, "player-1");
+
+      expect(snapshot.tokens.map((token) => token.id)).not.toContain("hidden-enemy");
+      expect(snapshot.characters.find((character) => character.id === "old-pc")?.color).toBe(
+        "blue",
+      );
+      // The DM's screen carries it too.
+      const dmView = toSnapshot(state, true, "dm-uid");
+      expect(dmView.characters.find((character) => character.id === "old-pc")?.color).toBe("blue");
+    });
+
     it("does not filter when fog is disabled or for the DM", () => {
       const state = stateWithFogAndWall();
 

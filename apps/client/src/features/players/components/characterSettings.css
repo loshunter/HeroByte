@@ -28,3 +28,14 @@
   color: var(--jrpg-white);
   text-transform: none;
 }
+
+/* The colour picker is a lazy chunk (LazyColorPicker): its wait and its failure are
+   styled here, in the window's own eager stylesheet, and hold about the picker's
+   height so the window does not jump when it arrives. */
+.color-picker__loading,
+.color-picker__failed {
+  min-height: 210px;
+  color: var(--hero-white);
+  font-size: 0.8rem;
+  opacity: 0.8;
+}

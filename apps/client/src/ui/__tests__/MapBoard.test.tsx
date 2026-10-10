@@ -16,6 +16,9 @@ import type { ReactNode, Ref } from "react";
 import MapBoard from "../MapBoard";
 import type { RoomSnapshot } from "@herobyte/shared";
 import type { MapBoardProps } from "../MapBoard.types";
+import { useSelectionPalette } from "../../features/map/selectionPalette";
+
+const palettesSeen: Array<{ stroke: string }> = [];
 
 interface MockComponentProps {
   children?: ReactNode;
@@ -60,8 +63,19 @@ vi.mock("../../features/map/components", () => ({
   GridLayer: () => <div data-testid="grid-layer" />,
   MapImageLayer: () => <div data-testid="map-image-layer" />,
   TerrainLayer: () => <div data-testid="terrain-layer" />,
-  TokensLayer: () => <div data-testid="tokens-layer" />,
-  PointersLayer: () => <div data-testid="pointers-layer" />,
+  // Surfaces the selection palette the stage supplies (C3: your selection, your colour).
+  TokensLayer: () => {
+    const palette = useSelectionPalette();
+    palettesSeen.push(palette);
+    return <div data-testid="tokens-layer" data-selection={palette.stroke} />;
+  },
+  // Surfaces the party records it is given: pings take each player's colour from them.
+  PointersLayer: (props: { characters?: { id: string }[] }) => (
+    <div
+      data-testid="pointers-layer"
+      data-characters={(props.characters ?? []).map((character) => character.id).join(",")}
+    />
+  ),
   DrawingsLayer: () => <div data-testid="drawings-layer" />,
   // Surfaces the props MapBoard hands it, so the S6 wiring is assertable: the
   // diagonal rule and the relayed measurements reach the overlay from the
@@ -244,6 +258,73 @@ describe("MapBoard", () => {
       const { container } = render(<MapBoard {...props} />);
 
       expect(container).toBeTruthy();
+    });
+
+    it("supplies the viewer's colour to the layers it draws, and today's blue without one", () => {
+      const snapshot = (characters: RoomSnapshot["characters"]): RoomSnapshot => ({
+        users: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        mapBackground: "",
+        players: [],
+        characters,
+        tokens: [],
+        drawings: [],
+        diceRolls: [],
+        pointers: [],
+        sceneObjects: [],
+        props: [],
+      });
+      const mine = {
+        id: "c1",
+        name: "Mine",
+        type: "pc",
+        ownedByPlayerUID: "test-user",
+        tokenId: "t1",
+        color: "#390076",
+      } as RoomSnapshot["characters"][number];
+
+      // Someone else's PC first: the palette must be the VIEWER's colour, not the first one.
+      const theirs = {
+        ...mine,
+        id: "c0",
+        ownedByPlayerUID: "other-user",
+        tokenId: "t0",
+        color: "#ffc2d3",
+      } as RoomSnapshot["characters"][number];
+      render(<MapBoard {...getDefaultProps({ snapshot: snapshot([theirs, mine]) })} />);
+      expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#390076");
+      // ...and the pings get the party records, which carry every colour through fog.
+      expect(screen.getByTestId("pointers-layer").getAttribute("data-characters")).toBe("c0,c1");
+      cleanup();
+
+      render(<MapBoard {...getDefaultProps({ snapshot: snapshot([]) })} />);
+      expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#447DF7");
+      cleanup();
+
+      // A recolour reaches the palette on the next snapshot.
+      const { rerender } = render(
+        <MapBoard {...getDefaultProps({ snapshot: snapshot([theirs, mine]) })} />,
+      );
+      rerender(
+        <MapBoard
+          {...getDefaultProps({ snapshot: snapshot([theirs, { ...mine, color: "#00a4f9" }]) })}
+        />,
+      );
+      expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#00a4f9");
+
+      // New snapshots in the same colour keep the same palette object (memoised).
+      palettesSeen.length = 0;
+      for (let round = 0; round < 2; round += 1) {
+        rerender(
+          <MapBoard
+            {...getDefaultProps({ snapshot: snapshot([theirs, { ...mine, color: "#00a4f9" }]) })}
+          />,
+        );
+      }
+      expect(palettesSeen.length).toBeGreaterThan(1);
+      expect(new Set(palettesSeen).size).toBe(1);
+      expect(palettesSeen[0]!.stroke).toBe("#00a4f9");
     });
 
     it("should render with empty snapshot", () => {

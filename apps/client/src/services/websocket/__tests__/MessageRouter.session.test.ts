@@ -126,6 +126,7 @@ describe("MessageRouter — session-file", () => {
     // switch, a const) must change this list on purpose, not slip past it.
     expect(handled).toEqual([
       "atlas-error",
+      "color-adjusted",
       "dm-elevation-failed",
       "dm-password-update-failed",
       "dm-password-updated",

@@ -75,16 +75,20 @@ out `dist/` as:
 - In a browser tab, a bare `/` opens the website, not a table. That includes the default table's (Main Hall's) invite
   link from before this layout, which was the bare address; its **Open HeroByte** button goes to the app.
 - An installed HeroByte app (running in standalone display mode) that opens the landing page from
-  outside the site is forwarded to `/play/`. The manifest's `start_url` is `/play/`, with `id` kept
-  and `scope` set to `/`, but browsers re-read the manifest on their own schedule and iOS home-screen
+  outside the site is forwarded to `/play/`. The built manifest's `start_url` is `/play/`, with `id`
+  kept and `scope` set to `/`, but browsers re-read the manifest on their own schedule and iOS home-screen
   icons can keep the address they were added with, so the forward covers installs that still open
   `/`. An installed app that reaches the landing page from a same-origin page (the site's own Home,
   Features and FAQ links) stays there; a link carrying an app parameter still forwards.
 - Link previews use `SITE.origin` in `site/build.mjs` (`https://herobyte.pages.dev`) for `og:image`.
   If the project is served at another address, change it there.
 
+- The app's sources (`public/manifest.json`, `public/sw.js`) name `/` as the app's page; this step
+  changes the manifest's `start_url` and the service worker's pre-cached page to `/play/` in `dist/`.
+
 In CI and Lighthouse the step runs but only logs that it skipped; dev and e2e never run it. Either
-way the app stays at `/` there. To see the Cloudflare
+way the app stays at `/` there, and so does a self-hosted `pnpm build`: its installed app opens `/`
+and its service worker caches `/`. To see the Cloudflare
 layout locally, run `pnpm --filter herobyte-client build:pages` (set `VITE_WS_URL=ws://localhost:8787`
 first to use a local server) and serve `apps/client/dist` with a static server that serves a
 folder's `index.html` (for example `python -m http.server`). A top-level name

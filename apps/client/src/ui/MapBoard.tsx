@@ -75,6 +75,8 @@ import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import { MapTransitionOverlay } from "../features/map/MapTransitionOverlay";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 import { conditionsByTokenId } from "../features/map/tokenConditions";
+import { SelectionPaletteContext, selectionPalette } from "../features/map/selectionPalette";
+import { playerColor } from "../features/players/playerColors";
 
 // Re-export types for backward compatibility
 export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
@@ -92,7 +94,25 @@ export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
  * - Token rendering and interaction
  * - Grid and map background
  */
-export default function MapBoard({
+/**
+ * The map, with this viewer's selection colours supplied to every layer the
+ * stage draws: everything you select shows in your colour (C3). The stage
+ * bridges React context, so the provider sits outside it.
+ */
+export default function MapBoard(props: MapBoardProps): JSX.Element {
+  const { uid, snapshot } = props;
+  // A new palette only when the viewer's colour changes: snapshots arrive with new
+  // arrays on every token move, and every layer reads the palette.
+  const viewerColor = playerColor(uid, snapshot?.characters, snapshot?.tokens);
+  const selection = useMemo(() => selectionPalette(viewerColor), [viewerColor]);
+  return (
+    <SelectionPaletteContext.Provider value={selection}>
+      <MapBoardScene {...props} />
+    </SelectionPaletteContext.Provider>
+  );
+}
+
+function MapBoardScene({
   snapshot,
   sendMessage,
   uid,
@@ -960,6 +980,7 @@ export default function MapBoard({
             pointers={snapshot?.pointers || []}
             players={snapshot?.players || []}
             tokens={snapshot?.tokens || []}
+            characters={snapshot?.characters}
             preview={pointerPreview}
             previewUid={uid}
             pointerMode={pointerMode}

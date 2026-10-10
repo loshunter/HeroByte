@@ -120,6 +120,14 @@ export * from "./autotile.js";
 // recipes, and Cartridge Codes.
 export * from "./rng.js";
 
+// Personal colours: OKLab maths, the picker window, and the no-two-players rule
+// the server enforces and the picker draws (personal-colour-arc-plan.md §3).
+export * from "./colorSpace.js";
+export * from "./colorWindow.js";
+export * from "./colorRule.js";
+export * from "./colorReadable.js";
+export * from "./colorText.js";
+
 // Dice NOTATION only — what a formula means, and nothing that rolls one. The
 // roller is server-side on purpose (see dice.ts).
 export * from "./dice.js";
@@ -220,7 +228,7 @@ export interface Token {
   owner: string; // UID of the player who owns this token
   x: number; // Grid X position
   y: number; // Grid Y position
-  color: string; // Color of the token (HSL format)
+  color: string; // #rrggbb; older tables may hold hsl(...) until it changes
   imageUrl?: string; // Optional image to render instead of colored circle
   size?: TokenSize; // Token size (defaults to medium)
   locked?: boolean; // Whether the token is locked (Phase 10/11)
@@ -542,6 +550,14 @@ export interface SnapshotCharacter extends Omit<Character, "hp" | "maxHp" | "tem
   maxHp?: number;
   tempHp?: number;
   hpBadge?: HpBadge;
+  /**
+   * A PC's token colour, derived at send time and never stored in room state (an
+   * exported session file carries it; the loader strips it): fog can drop another
+   * player's TOKEN from a recipient's payload, but party records always ride
+   * along, so every screen still knows every player's colour (the picker's zones
+   * now; pings and names in C3).
+   */
+  color?: string;
 }
 
 /**
@@ -1315,6 +1331,20 @@ export type ServerMessage =
       // The lock is on a token parked with another map (travel left it there): the
       // client cannot see it, so it says where to go to unlock it.
       elsewhere?: boolean;
+    }
+  | {
+      t: "color-adjusted";
+      // Sent to the SENDER only (sendControlMessage). A player's chosen colour fell inside
+      // another player's zone (or could not be read), so the server moved it to the
+      // nearest free colour, or a free one when it could not be read (colorRule.ts).
+      // `near`: the character whose zone it was in; `name`: the character moved.
+      // `throttled`: too many colour writes at once; nothing changed, and no colour is sent.
+      tokenId: string;
+      /** The colour it was moved to; absent on a throttled reply. */
+      color?: string;
+      near?: string;
+      name?: string;
+      throttled?: boolean;
     }
   | { t: "map-studio-deleted"; documentId: string }
   | {

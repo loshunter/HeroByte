@@ -157,6 +157,37 @@ describe("EntitiesPanel — the compact roster (U7)", () => {
     expect(inspector()).toBeNull();
   });
 
+  it("draws a teammate's colour from their record when fog dropped their token (C3)", () => {
+    const fogged = characters.map((character) =>
+      character.id === "char-bob"
+        ? { ...character, tokenId: "t-far", color: "#8a2be2" }
+        : character,
+    );
+    renderPanel({ characters: fogged });
+    // The row's ring (its initial's fill) and the card's empty portrait.
+    expect(within(row("Bob")).getByText("B").style.backgroundColor).toBe("rgb(138, 43, 226)");
+    fireEvent.click(within(row("Bob")).getByRole("button", { name: /details$/ }));
+    const card = inspector()!.querySelector(".player-card") as HTMLElement;
+    expect(within(card).getByTestId("portrait-placeholder").style.backgroundColor).toBe(
+      "rgb(138, 43, 226)",
+    );
+  });
+
+  it("colours an unlinked PC's row and card from the record only, never a loose token in view", () => {
+    const loose = [
+      ...tokens,
+      { id: "t-loose", owner: BOB_UID, x: 2, y: 0, color: "#cc3300" },
+    ] as Token[];
+    renderPanel({ tokens: loose });
+    // Bob's only PC has no tokenId and no record colour: the default green, not #cc3300.
+    expect(within(row("Bob")).getByText("B").style.backgroundColor).toBe("rgb(90, 255, 173)");
+    fireEvent.click(within(row("Bob")).getByRole("button", { name: /details$/ }));
+    const card = inspector()!.querySelector(".player-card") as HTMLElement;
+    expect(within(card).getByTestId("portrait-placeholder").style.backgroundColor).toBe(
+      "rgb(90, 255, 173)",
+    );
+  });
+
   it("deletes the character the inspector shows, not its sibling", () => {
     const props = renderPanel();
 

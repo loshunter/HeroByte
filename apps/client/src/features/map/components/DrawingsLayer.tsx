@@ -16,6 +16,8 @@ import {
 } from "@herobyte/shared";
 import { TemplateShape } from "./TemplateShape";
 import type { Camera } from "../../../hooks/useCamera";
+import { useSelectionPalette } from "../selectionPalette";
+import { SelectionOutline } from "./SelectionOutline";
 
 interface DrawingsLayerProps {
   cam: Camera;
@@ -72,6 +74,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   const [, forceRerender] = useState(0);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dragStartPositions = useRef<Record<string, { x: number; y: number }>>({});
+  const palette = useSelectionPalette();
 
   const applyOverrides = (object: SceneObject & { type: "drawing" }) => {
     const override = localOverrides.current[object.id];
@@ -271,7 +274,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
         }
       : {};
 
-    const selectionStroke = isDragging ? "#44f" : "#447DF7";
+    const selectionStroke = isDragging ? palette.drag : palette.stroke;
     const baseStrokeWidth = drawing.width / cam.scale;
     const highlightStrokeWidth = 2 / cam.scale;
 
@@ -311,7 +314,10 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               listening={false}
             />
             {isSelected && canShowSelection && (
-              <Line
+              <SelectionOutline
+                shape={Line}
+                keyline={palette.keyline}
+                scale={cam.scale}
                 points={points.flatMap((p) => [p.x, p.y])}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
@@ -360,7 +366,10 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               listening={false}
             />
             {isSelected && canShowSelection && (
-              <Line
+              <SelectionOutline
+                shape={Line}
+                keyline={palette.keyline}
+                scale={cam.scale}
                 points={[start.x, start.y, end.x, end.y]}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
@@ -406,7 +415,10 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               {...interactiveProps}
             />
             {isSelected && canShowSelection && (
-              <Rect
+              <SelectionOutline
+                shape={Rect}
+                keyline={palette.keyline}
+                scale={cam.scale}
                 x={x1}
                 y={y1}
                 width={x2 - x1}
@@ -453,7 +465,10 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               {...interactiveProps}
             />
             {isSelected && canShowSelection && (
-              <Circle
+              <SelectionOutline
+                shape={Circle}
+                keyline={palette.keyline}
+                scale={cam.scale}
                 x={cx}
                 y={cy}
                 radius={radius}

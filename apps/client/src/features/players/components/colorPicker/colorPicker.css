@@ -1,0 +1,195 @@
+/* ==========================================================================
+   COLOUR PICKER (personal colour, C1)
+   The window keeps a fixed aspect so a zone reads the same at any width; the
+   handle and suggested spots sit on it by percentage. The colour itself comes
+   in as inline styles; the frame uses theme tokens, and the preview's two
+   backdrops are literal (a dark map floor and fog, not theme colours).
+   ========================================================================== */
+
+.color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.color-picker__label {
+  color: var(--jrpg-gold);
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.color-picker__window {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.6 / 1;
+  /* A flex item's automatic minimum is its content: the canvas raster (180 × 100)
+     would grow the window past 2.6:1 in Chromium. */
+  min-height: 0;
+  border: 2px solid var(--jrpg-border-gold);
+  border-radius: 4px;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.color-picker__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.color-picker__taken,
+.color-picker__own {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--jrpg-navy);
+  box-shadow: 0 0 0 1px var(--hero-white);
+}
+
+/* Your other characters: small squares (the dashed rings are suggested spots), white
+   edged so a dark colour still shows on the dark half. */
+.color-picker__own {
+  border: 2px solid var(--hero-white);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--jrpg-navy);
+}
+
+.color-picker__spot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  min-width: 0;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.color-picker__spot::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 2px dashed var(--hero-white);
+  border-radius: 50%;
+  /* A navy edge keeps the white ring visible on the pastels at the top. */
+  box-shadow: 0 0 0 1px var(--jrpg-navy);
+  opacity: 0.85;
+}
+
+.color-picker__handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border: 3px solid var(--hero-white);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--jrpg-navy),
+    0 2px 6px rgba(0, 0, 0, 0.6);
+  cursor: grab;
+}
+
+.color-picker__handle:focus-visible {
+  outline: 2px solid var(--jrpg-cyan);
+  outline-offset: 3px;
+}
+
+/* One line, always reserved, so a notice never shifts the preview below it. */
+.color-picker__status {
+  min-height: 1.3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--hero-white);
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.color-picker__preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: var(--jrpg-navy);
+  border-radius: 4px;
+}
+
+.color-picker__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.color-picker__ring {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 3px solid;
+  border-radius: 50%;
+}
+
+.color-picker__token {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+/* The same token on a dark map floor and under fog, where it has to read. */
+.color-picker__token--map {
+  outline: 4px solid #2a2622;
+}
+
+.color-picker__token--fog {
+  outline: 4px solid #0b0b16;
+}
+
+.color-picker__hex {
+  color: var(--hero-white);
+  font-family: monospace;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Touch: the spots are 44px targets and the handle a 50px one, around the same marks, and a
+   vertical swipe on the window scrolls the sheet (the browser cancels the pick)
+   instead of dragging the colour; a drag from the handle still moves it anywhere. */
+@media (pointer: coarse) {
+  .color-picker__window {
+    touch-action: pan-y;
+  }
+
+  .color-picker__handle {
+    touch-action: none;
+  }
+
+  .color-picker__spot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .color-picker__handle {
+    width: 28px;
+    height: 28px;
+  }
+
+  .color-picker__handle::before {
+    content: "";
+    position: absolute;
+    inset: -11px;
+    border-radius: 50%;
+  }
+}

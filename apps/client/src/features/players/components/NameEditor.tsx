@@ -4,7 +4,9 @@
 // Inline name editing for player cards
 
 import React from "react";
+import { readableOn } from "@herobyte/shared";
 import { sanitizeText } from "../../../utils/sanitize";
+import { CARD_TOP } from "../playerColors";
 
 interface NameEditorProps {
   isEditing: boolean;
@@ -74,9 +76,17 @@ export const NameEditor: React.FC<NameEditorProps> = ({
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
         cursor: isMe ? "pointer" : "default",
-        color: tokenColor || "var(--hero-gold-light)",
+        // The card's colour, lifted to 4.5:1 on the card's lightest stop.
+        color: tokenColor
+          ? (readableOn(tokenColor, CARD_TOP) ?? tokenColor)
+          : "var(--hero-gold-light)",
         fontWeight: "bold",
-        textShadow: "0 0 6px rgba(240, 226, 195, 0.6), 1px 1px 2px rgba(0, 0, 0, 0.8)",
+        // The cream glow suits the gold name. Behind a lifted colour it lightens the
+        // very ground the lift was measured on (to about 2.4:1), so a coloured name
+        // gets a dark halo, which only adds contrast.
+        textShadow: tokenColor
+          ? "0 0 4px rgba(11, 11, 22, 0.9), 1px 1px 2px rgba(0, 0, 0, 0.8)"
+          : "0 0 6px rgba(240, 226, 195, 0.6), 1px 1px 2px rgba(0, 0, 0, 0.8)",
       }}
     >
       {sanitizeText(playerName)}

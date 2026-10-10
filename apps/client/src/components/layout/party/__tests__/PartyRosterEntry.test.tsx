@@ -38,6 +38,44 @@ function renderRow(view: Partial<RosterEntryView>) {
 }
 
 describe("PartyRosterEntry — what a row shows and says", () => {
+  it("letters a portrait-less ring in black or white, whichever reads", () => {
+    const row = renderRow({});
+    expect(within(row).getByText("R").style.color).toBe("rgb(0, 0, 0)");
+    cleanup();
+    const deep = renderRow({ ring: "#390076" });
+    expect(within(deep).getByText("R").style.color).toBe("rgb(255, 255, 255)");
+    cleanup();
+    // The keyline pair would give this red 4.36:1; white gives 4.93:1.
+    const red = renderRow({ ring: "#d9262c" });
+    expect(within(red).getByText("R").style.color).toBe("rgb(255, 255, 255)");
+    cleanup();
+    // Here keyline-based black and white would pick black (4.48:1); textOn picks white (4.68:1).
+    const pink = renderRow({ ring: "#c64475" });
+    expect(within(pink).getByText("R").style.color).toBe("rgb(255, 255, 255)");
+  });
+
+  it("drops the dark shadow under a black letter, keeps it under a white one", () => {
+    const light = renderRow({});
+    expect(within(light).getByText("R").style.textShadow).toBe("none");
+    cleanup();
+    const deep = renderRow({ ring: "#390076" });
+    expect(within(deep).getByText("R").style.textShadow).toBe("");
+    cleanup();
+    // White letter, dark keyline: the shadow follows the letter, not the keyline.
+    const pink = renderRow({ ring: "#c64475" });
+    expect(within(pink).getByText("R").style.textShadow).toBe("");
+  });
+
+  it("edges the ring in its keyline, so a deep colour's ring shows against the row", () => {
+    const deep = renderRow({ ring: "#390076" });
+    const portrait = deep.querySelector(".party-roster__portrait") as HTMLElement;
+    expect(portrait.style.boxShadow).toBe("0 0 0 1px #f4f1e8");
+    cleanup();
+    const light = renderRow({});
+    const lightPortrait = light.querySelector(".party-roster__portrait") as HTMLElement;
+    expect(lightPortrait.style.boxShadow).toBe("0 0 0 1px #0b0b16");
+  });
+
   it("marks the current turn, initiative, a hidden NPC and its tag, and reads them aloud", () => {
     const row = renderRow({
       kind: "npc",

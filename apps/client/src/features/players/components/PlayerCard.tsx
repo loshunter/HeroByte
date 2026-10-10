@@ -12,6 +12,7 @@ import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
 import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
+import { pickerFieldKey, type ColorPickerControl } from "./colorPicker/colorPickerControl";
 import { loadPlayerState } from "../../../utils/playerPersistence";
 import { saveCharacterFile } from "../characterFile";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
@@ -62,6 +63,8 @@ export interface PlayerCardProps {
   onTokenImageSubmit?: (url: string) => void;
   onPortraitSubmit?: (url: string) => void;
   tokenId?: string;
+  /** The settings window's colour picker (C1); absent = none. */
+  colorPicker?: ColorPickerControl;
   onApplyPlayerState?: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   onDeleteToken?: (tokenId: string) => void;
   onStatusEffectsChange?: (effects: string[]) => void;
@@ -134,6 +137,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onTokenImageSubmit,
     onPortraitSubmit,
     tokenId,
+    colorPicker,
     onApplyPlayerState,
     onDeleteToken,
     isDM,
@@ -393,6 +397,7 @@ export const PlayerCard = memo<PlayerCardProps>(
         <PlayerSettingsMenu
           isOpen={(isMe || viewerIsDM || !roleKnown) && settingsOpen}
           onClose={() => setSettingsOpen(false)}
+          colorPicker={colorPicker}
           tokenImageInput={tokenImageInput}
           tokenImageUrl={tokenImageUrl}
           // Only where the apply can ACT (a token to write to, a viewer who may):
@@ -503,7 +508,9 @@ export const PlayerCard = memo<PlayerCardProps>(
     // The owner control's SHAPE too (its onChange is minted every render):
     // the current seat and the seats offered.
     prevProps.owner?.uid === nextProps.owner?.uid &&
-    ownerSeats(prevProps.owner) === ownerSeats(nextProps.owner),
+    ownerSeats(prevProps.owner) === ownerSeats(nextProps.owner) &&
+    // The colour picker's SHAPE (its onCommit is minted every render).
+    pickerFieldKey(prevProps.colorPicker) === pickerFieldKey(nextProps.colorPicker),
 );
 
 PlayerCard.displayName = "PlayerCard";

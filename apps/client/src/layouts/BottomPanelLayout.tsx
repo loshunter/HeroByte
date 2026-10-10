@@ -176,6 +176,8 @@ export interface BottomPanelLayoutProps {
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   /** Handler to change token size */
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  /** A chosen token colour (the settings window's picker); the server applies the rule. */
+  onTokenColorChange?: (tokenId: string, color: string) => void;
   onCharacterOwnerChange: (characterId: string, ownerUid: string) => void;
   /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
    * optional so the layout fixtures stay untouched). */
@@ -323,6 +325,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     npcDeletionError,
     onToggleTokenLock,
     onTokenSizeChange,
+    onTokenColorChange,
     onCharacterOwnerChange,
     onTokenVisionRadiusChange,
     onCharacterSpeedChange,
@@ -389,6 +392,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         npcDeletionError={npcDeletionError}
         onToggleTokenLock={onToggleTokenLock}
         onTokenSizeChange={onTokenSizeChange}
+        onTokenColorChange={onTokenColorChange}
         onCharacterOwnerChange={onCharacterOwnerChange}
         onTokenVisionRadiusChange={onTokenVisionRadiusChange}
         onCharacterSpeedChange={onCharacterSpeedChange}

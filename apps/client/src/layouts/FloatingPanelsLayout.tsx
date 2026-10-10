@@ -27,6 +27,7 @@ import type { KickControls } from "../features/atlas/useKickedInDoor";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { DicePanels } from "./DicePanels";
+import { usePlayerColors } from "../features/players/usePlayerColors";
 import { ToastContainer } from "../components/ui/Toast";
 import { Spinner } from "../components/ui/Spinner";
 import { DockedLauncher, LAUNCHER_ORDER } from "../components/layout/party/LauncherDock";
@@ -136,6 +137,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     crtFilter,
     toast,
   }) => {
+    const playerColors = usePlayerColors(snapshot);
     return (
       <>
         {isDM && (
@@ -236,6 +238,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           handleViewRoll={handleViewRoll}
           chatMessages={chatMessages}
           players={snapshot?.players ?? []}
+          playerColors={playerColors}
           uid={uid}
           handleSendChat={handleSendChat}
           isDM={isDM}

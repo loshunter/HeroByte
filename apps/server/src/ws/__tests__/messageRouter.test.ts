@@ -1311,8 +1311,8 @@ describe("MessageRouter", () => {
           color: "#ffffff",
         },
       ];
-      mockTokenService.setColor = vi.fn(() => true);
-      mockTokenService.setColorForToken = vi.fn(() => true);
+      mockTokenService.setColor = vi.fn(() => ({ color: "#123456", adjusted: false }));
+      mockTokenService.setColorForToken = vi.fn(() => ({ color: "#abcdef", adjusted: false }));
     });
 
     it("routes set-token-color for the token owner", () => {

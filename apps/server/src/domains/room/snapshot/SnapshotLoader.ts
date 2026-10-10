@@ -80,12 +80,12 @@ export class SnapshotLoader {
     });
 
     // Normalize loaded characters. Snapshot characters are the WIRE shape:
-    // hp/maxHp may be absent (a redacted or hand-edited file) and hpBadge is a
-    // wire-only field that must never enter room state. Room state requires
+    // hp/maxHp may be absent (a redacted or hand-edited file) and hpBadge and
+    // color are wire-only fields that must never enter room state. Room state requires
     // real numbers — normalizeHPValues turns absence into 0/1, visibly wrong
     // rather than silently NaN.
     const normalizedCharacters = (snapshot.characters ?? []).map(
-      ({ hpBadge: _wireOnly, tokenSize, disposition, ...character }) => {
+      ({ hpBadge: _wireOnly, color: _derived, tokenSize, disposition, ...character }) => {
         const { hp, maxHp } = normalizeHPValues(character.hp ?? 0, character.maxHp ?? 1);
         // A size off the ladder is dropped, like the state file's (loadCoercions).
         const size = coerceTokenSize(tokenSize);

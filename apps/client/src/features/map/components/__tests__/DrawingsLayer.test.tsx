@@ -159,6 +159,7 @@ function createCircleMock() {
   return Component;
 }
 
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 vi.mock("react-konva", () => ({
   Group: createGroupMock(),
   Line: createLineMock(),
@@ -294,6 +295,155 @@ describe("DrawingsLayer", () => {
 
       expect(visibleLine).toBeTruthy();
       expect(visibleLine).toHaveAttribute("data-opacity", "0.8");
+    });
+
+    it("draws a selected drawing's highlight in the viewer's colour", () => {
+      const drawing = createDrawingObject();
+
+      render(
+        <SelectionPaletteContext.Provider value={selectionPalette("#390076")}>
+          <DrawingsLayer
+            {...defaultProps}
+            drawingObjects={[drawing]}
+            selectMode={true}
+            selectedObjectIds={["drawing-1"]}
+          />
+        </SelectionPaletteContext.Provider>,
+      );
+
+      const lines = screen.getAllByTestId("konva-line");
+      const stroked = (color: string) =>
+        lines.filter((line) => line.getAttribute("data-stroke") === color);
+      // The dashed colour over a solid keyline (light, for a deep colour).
+      expect(stroked("#390076").map((line) => line.getAttribute("data-dash"))).toEqual(["[8,4]"]);
+      expect(stroked("#f4f1e8")).toHaveLength(1);
+      expect(stroked("#f4f1e8")[0]!.getAttribute("data-dash")).not.toBe("[8,4]");
+      expect(stroked("#447DF7")).toHaveLength(0);
+    });
+
+    const selectedIn = (color: string | null, drawing = createDrawingObject(), scale = 1) => {
+      const layer = (
+        <DrawingsLayer
+          {...defaultProps}
+          cam={{ ...mockCamera, scale }}
+          drawingObjects={[drawing]}
+          selectMode={true}
+          selectedObjectIds={["drawing-1"]}
+        />
+      );
+      return render(
+        color ? (
+          <SelectionPaletteContext.Provider value={selectionPalette(color)}>
+            {layer}
+          </SelectionPaletteContext.Provider>
+        ) : (
+          layer
+        ),
+      );
+    };
+    const ofType = (type: string) => {
+      const base = createDrawingObject();
+      return createDrawingObject({
+        data: {
+          drawing: {
+            ...(base.data as unknown as { drawing: Record<string, unknown> }).drawing,
+            type,
+            points: [
+              { x: 0, y: 0 },
+              { x: 40, y: 30 },
+            ],
+          },
+        },
+      } as Partial<SceneObject & { type: "drawing" }>);
+    };
+    const KINDS = [
+      ["freehand", "konva-line"],
+      ["line", "konva-line"],
+      ["rect", "konva-rect"],
+      ["circle", "konva-circle"],
+    ] as const;
+
+    it.each(KINDS)(
+      "outlines a %s at zoom 2: a 2-unit keyline under a 1-unit colour",
+      (type, testId) => {
+        selectedIn("#390076", ofType(type), 2);
+        const shapes = screen.getAllByTestId(testId);
+        const widthOf = (stroke: string) =>
+          shapes
+            .find((shape) => shape.getAttribute("data-stroke") === stroke)
+            ?.getAttribute("data-stroke-width");
+        expect(widthOf("#f4f1e8")).toBe("2");
+        expect(widthOf("#390076")).toBe("1");
+      },
+    );
+
+    it.each(KINDS)(
+      "outlines a %s in today's one dashed blue line for a viewer with no colour",
+      (type, testId) => {
+        selectedIn(null, ofType(type));
+        const strokes = screen
+          .getAllByTestId(testId)
+          .map((shape) => shape.getAttribute("data-stroke"));
+        expect(strokes.filter((stroke) => stroke === "#447DF7")).toHaveLength(1);
+        expect(
+          strokes.filter((stroke) => stroke === "#0b0b16" || stroke === "#f4f1e8"),
+        ).toHaveLength(0);
+      },
+    );
+
+    it("draws the solid keyline first, 4 px under the 2 px dashed colour", () => {
+      selectedIn("#390076");
+      const lines = screen.getAllByTestId("konva-line");
+      const keyline = lines.find((line) => line.getAttribute("data-stroke") === "#f4f1e8")!;
+      const colour = lines.find((line) => line.getAttribute("data-stroke") === "#390076")!;
+      expect(lines.indexOf(keyline)).toBeLessThan(lines.indexOf(colour));
+      expect(keyline.getAttribute("data-stroke-width")).toBe("4");
+      expect(colour.getAttribute("data-stroke-width")).toBe("2");
+    });
+
+    it.each([
+      ["line", "konva-line"],
+      ["rect", "konva-rect"],
+      ["circle", "konva-circle"],
+    ])("outlines a selected %s in the keyline, then the dashed colour", (type, testId) => {
+      const base = createDrawingObject();
+      const drawing = createDrawingObject({
+        data: {
+          drawing: {
+            ...(base.data as unknown as { drawing: Record<string, unknown> }).drawing,
+            type,
+            points: [
+              { x: 0, y: 0 },
+              { x: 40, y: 30 },
+            ],
+          },
+        },
+      } as Partial<SceneObject & { type: "drawing" }>);
+      selectedIn("#390076", drawing);
+      const shapes = screen.getAllByTestId(testId);
+      const keyline = shapes.filter((shape) => shape.getAttribute("data-stroke") === "#f4f1e8");
+      const colour = shapes.filter((shape) => shape.getAttribute("data-stroke") === "#390076");
+      expect(keyline).toHaveLength(1);
+      expect(colour.map((shape) => shape.getAttribute("data-dash"))).toEqual(["[8,4]"]);
+      expect(shapes.indexOf(keyline[0]!)).toBeLessThan(shapes.indexOf(colour[0]!));
+    });
+
+    it("dashes a dragged drawing in the drag shade, still over its keyline", () => {
+      selectedIn("#390076");
+      const group = screen
+        .getAllByTestId("konva-group")
+        .find((element) => element.getAttribute("data-draggable") === "true")!;
+      fireEvent.dragStart(group);
+      const lines = screen.getAllByTestId("konva-line");
+      const dashedIn = (color: string) =>
+        lines
+          .filter((line) => line.getAttribute("data-stroke") === color)
+          .map((line) => line.getAttribute("data-dash"));
+      expect(dashedIn("#1f0051")).toEqual(["[8,4]"]);
+      expect(dashedIn("#390076")).toEqual([]);
+      expect(lines.filter((line) => line.getAttribute("data-stroke") === "#f4f1e8")).toHaveLength(
+        1,
+      );
     });
 
     it("should render selection highlight when drawing is selected", () => {

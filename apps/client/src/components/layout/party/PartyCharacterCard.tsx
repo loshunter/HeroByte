@@ -11,6 +11,8 @@ import type { EntityInfo } from "../../../hooks/useCombatOrdering";
 import { PlayerCard } from "../../../features/players/components";
 import type { PartyCardContext } from "./partyTypes";
 import { useDMThroughBlip } from "../../../features/table/roleKnown";
+import { buildColorPickerControl } from "../../../features/players/components/colorPicker/colorPickerControl";
+import { characterColor } from "../../../features/players/playerColors";
 
 interface PartyCharacterCardProps {
   /** A character entity (kind "character" or "dm"); it always has a player. */
@@ -63,7 +65,8 @@ export function PartyCharacterCard({
       <PlayerCard
         player={displayPlayer}
         isMe={isMe}
-        tokenColor={token?.color}
+        // The record's colour first: fog drops a party member's token out of sight, never the record.
+        tokenColor={characterColor(character, token) ?? undefined}
         token={token ?? undefined}
         tokenSceneObject={tokenSceneObject}
         playerDrawings={playerDrawings}
@@ -121,6 +124,17 @@ export function PartyCharacterCard({
             : undefined
         }
         tokenId={token?.id}
+        colorPicker={buildColorPickerControl({
+          characters: panel.characters,
+          players: panel.players,
+          token,
+          characterId: character.id,
+          ownerUid: character.ownedByPlayerUID ?? player.uid,
+          name: character.name,
+          viewerIsDM: currentIsDM,
+          // The owner's or the DM's, as with the token image (the server re-checks).
+          onTokenColorChange: isMe || currentIsDM ? panel.onTokenColorChange : undefined,
+        })}
         onApplyPlayerState={
           isMe || currentIsDM
             ? (state) => panel.onApplyPlayerState(state, token?.id, character.id)

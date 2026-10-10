@@ -73,6 +73,7 @@ function createMockKonvaComponent(testId: string, options: { withChildren?: bool
 }
 
 // Mock Konva components
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 vi.mock("react-konva", () => ({
   Group: createMockKonvaComponent("konva-group", { withChildren: true }),
   Rect: createMockKonvaComponent("konva-rect"),
@@ -560,6 +561,25 @@ describe("TokensLayer", () => {
       expect(statusText).toBeInTheDocument();
     });
 
+    it("rings every medallion in a colour the canvas can draw (a var() stroke is dropped)", () => {
+      const token = createTokenObject("token:1", "test-user");
+      const effect = (emoji: string) => ({ value: emoji, emoji, label: emoji });
+      const props = createDefaultProps({
+        sceneObjects: [token],
+        statusEffectsByTokenId: {
+          "token:1": ["🔥", "💀", "✨", "⭐"].map(effect),
+        },
+      });
+
+      const { container } = render(<TokensLayer {...props} />);
+
+      const rings = Array.from(container.querySelectorAll('[data-testid="konva-circle"]'))
+        .map((circle) => getProps(circle).stroke)
+        .filter((stroke) => stroke !== undefined);
+      expect(rings.length).toBeGreaterThanOrEqual(4);
+      for (const stroke of rings) expect(String(stroke)).not.toMatch(/var\(/);
+    });
+
     it("does not render status effect badge when token has no status effect", () => {
       const token = createTokenObject("token:1", "test-user");
       const props = createDefaultProps({
@@ -728,6 +748,112 @@ describe("TokensLayer", () => {
   // ============================================================================
   // TESTS - SELECTION
   // ============================================================================
+
+  describe("Selection in the viewer's colour", () => {
+    const inColour = (color: string, ui: JSX.Element) => (
+      <SelectionPaletteContext.Provider value={selectionPalette(color)}>
+        {ui}
+      </SelectionPaletteContext.Provider>
+    );
+    const rectsIn = (container: HTMLElement) =>
+      [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
+
+    it("rings a selected token: keyline then colour over it, its own stroke transparent at today's width", () => {
+      const token = createTokenObject("token:1", "user-1", {
+        transform: { x: 2, y: 3, scaleX: 1.5, scaleY: 1.5, rotation: 30 },
+      });
+      const props = createDefaultProps({
+        sceneObjects: [token],
+        selectedObjectIds: ["token:1"],
+        cam: createCamera({ scale: 2 }),
+      });
+      const { container } = render(inColour("#ffc2d3", <TokensLayer {...props} />));
+
+      const [shape, keyline, colour] = rectsIn(container);
+      // The token keeps a transparent stroke of today's width: hit area unchanged.
+      expect(shape!.stroke).toBe("transparent");
+      expect(shape!.strokeWidth).toBe(1.5);
+      expect([keyline!.stroke, keyline!.strokeWidth]).toEqual(["#0b0b16", 2.5]);
+      expect([colour!.stroke, colour!.strokeWidth]).toEqual(["#ffc2d3", 1.5]);
+      // The ring's group carries the token's place, turn and scale; its rects the token's box.
+      const group = getProps(
+        [...container.querySelectorAll('[data-testid="konva-group"]')].find(
+          (element) => getProps(element).listening === false,
+        )!,
+      );
+      for (const key of ["x", "y", "rotation", "scaleX", "scaleY"]) {
+        expect(group[key]).toBe(shape![key]);
+      }
+      for (const key of ["width", "height", "offsetX", "offsetY", "cornerRadius"]) {
+        expect(keyline![key]).toBe(shape![key]);
+        expect(colour![key]).toBe(shape![key]);
+      }
+    });
+
+    it("edges a deep colour in light, and rings only the selected token", () => {
+      const selected = createTokenObject("token:1", "other-user");
+      const plain = createTokenObject("token:2", "other-user");
+      const props = createDefaultProps({
+        sceneObjects: [selected, plain],
+        selectedObjectIds: ["token:1"],
+      });
+      const { container } = render(inColour("#390076", <TokensLayer {...props} />));
+
+      const strokes = rectsIn(container).map((rect) => rect.stroke);
+      expect(strokes.filter((stroke) => stroke === "#f4f1e8")).toHaveLength(1);
+      expect(strokes.filter((stroke) => stroke === "#390076")).toHaveLength(1);
+    });
+
+    it("strokes your own token in the drag shade while you drag it unselected", () => {
+      const token = createTokenObject("token:1", "test-user");
+      const props = createDefaultProps({ sceneObjects: [token] });
+      const { container } = render(inColour("#390076", <TokensLayer {...props} />));
+      const rect = container.querySelector('[data-testid="konva-rect"]')!;
+      const onDragStart = getProps(rect).onDragStart as (event: unknown) => void;
+      act(() => onDragStart({ target: { x: () => 0, y: () => 0 } }));
+      // Moved away from the light keyline: darker.
+      expect(getProps(container.querySelector('[data-testid="konva-rect"]')!).stroke).toBe(
+        "#1f0051",
+      );
+    });
+
+    it("fills the multi-select count badge with the viewer's colour, its number black or white", () => {
+      const tokens = [
+        createTokenObject("token:1", "user-1"),
+        createTokenObject("token:2", "user-1"),
+      ];
+      const props = createDefaultProps({
+        sceneObjects: tokens,
+        selectedObjectIds: ["token:1", "token:2"],
+      });
+      const { container } = render(inColour("#ffc2d3", <TokensLayer {...props} />));
+
+      const badge = [...container.querySelectorAll('[data-testid="konva-circle"]')]
+        .map(getProps)
+        .find((circle) => circle.fill === "#ffc2d3");
+      expect(badge?.stroke).toBe("#0b0b16");
+      const number = [...container.querySelectorAll('[data-testid="konva-text"]')]
+        .map(getProps)
+        .find((text) => text.text === "2");
+      expect(number?.fill).toBe("#000000");
+    });
+
+    it("keeps today's white-edged blue badge with no colour", () => {
+      const tokens = [
+        createTokenObject("token:1", "user-1"),
+        createTokenObject("token:2", "user-1"),
+      ];
+      const props = createDefaultProps({
+        sceneObjects: tokens,
+        selectedObjectIds: ["token:1", "token:2"],
+      });
+      const { container } = render(<TokensLayer {...props} />);
+      const badge = [...container.querySelectorAll('[data-testid="konva-circle"]')]
+        .map(getProps)
+        .find((circle) => circle.fill === "#447DF7");
+      expect(badge?.stroke).toBe("#FFFFFF");
+    });
+  });
 
   describe("Selection", () => {
     it("applies selected stroke when token is selected", () => {
@@ -1268,6 +1394,25 @@ describe("TokensLayer", () => {
       expect(onRecolorToken).toHaveBeenCalledWith("token:1", "test-user");
     });
 
+    it("calls onRecolorToken on double-tap for myToken (a phone fires no dblclick)", () => {
+      const onRecolorToken = vi.fn();
+      const myToken = createTokenObject("token:1", "test-user");
+      const props = createDefaultProps({
+        sceneObjects: [myToken],
+        onRecolorToken,
+        uid: "test-user",
+      });
+
+      const { container } = render(<TokensLayer {...props} />);
+
+      const rectProps = getProps(container.querySelector('[data-testid="konva-rect"]'));
+      const onDblTap = rectProps.onDblTap as ((event: TestEventPayload) => void) | undefined;
+      expect(onDblTap).toBeDefined();
+      onDblTap?.({});
+
+      expect(onRecolorToken).toHaveBeenCalledWith("token:1", "test-user");
+    });
+
     it("does not call onRecolorToken for otherTokens", () => {
       const onRecolorToken = vi.fn();
       const otherToken = createTokenObject("token:1", "other-user");
@@ -1281,8 +1426,9 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      // otherTokens don't have onDblClick
+      // otherTokens don't have onDblClick or onDblTap
       expect(rectProps.onDblClick).toBeUndefined();
+      expect(rectProps.onDblTap).toBeUndefined();
       expect(onRecolorToken).not.toHaveBeenCalled();
     });
   });

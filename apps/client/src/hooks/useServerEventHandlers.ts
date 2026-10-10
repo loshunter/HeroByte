@@ -13,6 +13,7 @@
 
 import { deliverLockRefusal } from "../features/locking/lockRefusalBridge";
 import { lockRefusalMessage } from "../features/locking/lockRefusalCopy";
+import { colorAdjustedMessage } from "../features/players/components/colorPicker/colorPickerControl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 import { deliverSessionFile } from "../features/session/sessionBridge";
@@ -220,7 +221,7 @@ export function useServerEventHandlers({
   );
 
   const lastDmStatusRef = useRef<boolean | null>(null);
-  const { success: toastSuccess, error: toastError } = toast;
+  const { success: toastSuccess, error: toastError, info: toastInfo } = toast;
 
   /**
    * Register handler for server events
@@ -291,6 +292,9 @@ export function useServerEventHandlers({
         // The Table tab's REMOVE is fire-and-forget too, and a refused one
         // changes nothing on the table: this is the DM's only failure surface.
         toastError(REMOVE_PLAYER_REFUSAL_COPY[message.reason], 5000);
+      } else if ("t" in message && message.t === "color-adjusted") {
+        // The server moved a colour you chose out of another player's zone (C1).
+        toastInfo(colorAdjustedMessage(message.near, message.name, message.throttled), 5000);
       } else if ("t" in message && message.t === "locked-refused") {
         // The lock stopped a move or a delete (or a bulk action kept these pieces): the
         // server sends it to the one who tried, and nothing else on the table says why.
@@ -310,6 +314,7 @@ export function useServerEventHandlers({
     registerServerEventHandler,
     toastSuccess,
     toastError,
+    toastInfo,
     onDMElevationFailed,
     onTableForkMessage,
     onMapStudioMessage,

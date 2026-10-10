@@ -18,6 +18,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, Player } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
+import { nameColors } from "../../features/players/playerColors";
 
 /** Matches the server's STRING_LIMITS.CHAT_TEXT_MAX; the server rejects past it. */
 const CHAT_TEXT_MAX = 2000;
@@ -32,9 +33,18 @@ export interface ChatTabProps {
   /** The local player, so their own lines can be styled as theirs. */
   currentUid?: string;
   onSendChat: (text: string, to?: string) => void;
+  /** Each seated player's colour (C3): a name is drawn in its author's colour, lifted to read. */
+  playerColors?: ReadonlyMap<string, string>;
 }
 
-export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid, onSendChat }) => {
+export const ChatTab: React.FC<ChatTabProps> = ({
+  messages,
+  players,
+  currentUid,
+  onSendChat,
+  playerColors,
+}) => {
+  const names = useMemo(() => nameColors(playerColors ?? new Map()), [playerColors]);
   const [draft, setDraft] = useState("");
   const [target, setTarget] = useState({ uid: WHOLE_TABLE, name: "Everyone", needsChoice: false });
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -113,11 +123,21 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
                     color: "var(--jrpg-white)",
                     // Whispers read as set apart without relying on colour alone.
                     fontStyle: isWhisper ? "italic" : "normal",
-                    opacity: isWhisper ? 0.85 : 1,
                     wordBreak: "break-word",
                   }}
                 >
-                  <span style={{ color: isMine ? "var(--jrpg-gold)" : "var(--jrpg-cyan)" }}>
+                  <span
+                    style={{
+                      // The named player's colour: the author's, or on your own whisper
+                      // ("→ Bob") the recipient's. Someone who left, or has no PC, keeps
+                      // today's gold (you) and cyan.
+                      color:
+                        names.get(isMine && isWhisper ? (message.to ?? "") : message.authorUid) ??
+                        (isMine ? "var(--jrpg-gold)" : "var(--jrpg-cyan)"),
+                    }}
+                  >
+                    {/* Your own lines carry a cursor mark, not only your colour. */}
+                    {isMine && <span aria-hidden="true">▶ </span>}
                     {isWhisper
                       ? isMine
                         ? `→ ${recipientName}`
@@ -133,7 +153,9 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
                       comes back entity-escaped, so "a < b" renders as
                       "a &lt; b". sanitizeText belongs on innerHTML paths;
                       this is not one. */}
-                  {message.text}
+                  {/* A whisper's text is dimmed; its name keeps full strength, so the
+                      lifted colour still reads. */}
+                  {isWhisper ? <span style={{ opacity: 0.85 }}>{message.text}</span> : message.text}
                 </div>
               );
             })

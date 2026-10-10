@@ -9,7 +9,7 @@ import type { IncomingMessage, ServerResponse } from "http";
 import { Readable } from "node:stream";
 import type { ReadableStream } from "node:stream/web";
 import { WebSocketServer } from "ws";
-import { WS_MAX_MESSAGE_BYTES } from "@herobyte/shared";
+import { WS_MAX_MESSAGE_BYTES, windowCellLabs } from "@herobyte/shared";
 import { createRoutes } from "./http/routes.js";
 import { Container } from "./container.js";
 import { ConnectionHandler } from "./ws/connectionHandler.js";
@@ -190,6 +190,9 @@ async function bootstrap() {
   // Attach WebSocket connection handler
   const connectionHandler = new ConnectionHandler(container, wss);
   connectionHandler.attach();
+
+  // Build the colour window's cells now (about 100 ms), not on the first token after boot.
+  windowCellLabs();
 
   // Start server
   server.listen(PORT, HOST, () => {

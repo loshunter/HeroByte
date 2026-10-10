@@ -8,6 +8,12 @@ import { useEffect, useRef, useState } from "react";
 import { Transformer, Group, Rect, Line } from "react-konva";
 import type Konva from "konva";
 import type { SceneObject } from "@herobyte/shared";
+import { useSelectionPalette } from "../selectionPalette";
+import { GIZMO_PADDING, GizmoKeyline } from "./GizmoKeyline";
+
+// One array for every render: a new one each render made react-konva re-apply the
+// snaps on every transform event, undoing Ctrl's free rotation mid-drag.
+const ROTATION_SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];
 
 interface TransformGizmoProps {
   selectedObject: SceneObject | null;
@@ -40,7 +46,9 @@ export function TransformGizmo({
   getNodeRef,
 }: TransformGizmoProps): JSX.Element | null {
   const transformerRef = useRef<Konva.Transformer>(null);
+  const keylineRef = useRef<Konva.Transformer>(null);
   const isCtrlPressed = useRef<boolean>(false);
+  const palette = useSelectionPalette();
   const currentNodeRef = useRef<Konva.Node | null>(null);
   const [handlePosition, setHandlePosition] = useState<{ x: number; y: number } | null>(null);
   // The selection as of THIS render, read by the cleanup below (whose closure holds the
@@ -107,9 +115,14 @@ export function TransformGizmo({
     const previousNode = currentNodeRef.current;
 
     if (!transformer) return;
+    // The gizmo and its keyline (a viewer's colour) always hold the same nodes.
+    const attach = (nodes: Konva.Node[]) => {
+      transformer.nodes(nodes);
+      keylineRef.current?.nodes(nodes);
+    };
 
     // Always detach first to prevent stale references
-    transformer.nodes([]);
+    attach([]);
 
     if (previousNode && previousNode !== node) {
       restoreNodeDraggable(previousNode);
@@ -126,11 +139,11 @@ export function TransformGizmo({
       node.draggable(true);
 
       try {
-        transformer.nodes([node]);
+        attach([node]);
         transformer.getLayer()?.batchDraw();
       } catch (error) {
         console.warn("[TransformGizmo] Failed to attach node:", error);
-        transformer.nodes([]);
+        attach([]);
       }
     } else {
       setHandlePosition(null);
@@ -142,7 +155,7 @@ export function TransformGizmo({
     return () => {
       restoreNodeDraggable(currentNodeRef.current);
       currentNodeRef.current = null;
-      transformer.nodes([]);
+      attach([]);
       setHandlePosition(null);
       setCursor("default");
     };
@@ -195,14 +208,8 @@ export function TransformGizmo({
     if (!node || !transformer) return;
 
     try {
-      // Override rotation snapping when Ctrl is pressed
-      if (isCtrlPressed.current) {
-        // Disable snapping by setting rotationSnaps to empty array
-        transformer.rotationSnaps([]);
-      } else {
-        // Re-enable 45° snap increments
-        transformer.rotationSnaps([0, 45, 90, 135, 180, 225, 270, 315]);
-      }
+      // Ctrl rotates freely; otherwise 45° snaps.
+      transformer.rotationSnaps(isCtrlPressed.current ? [] : ROTATION_SNAPS);
     } catch (error) {
       // Ignore errors during transform (node might be destroyed)
       console.warn("[TransformGizmo] Transform error:", error);
@@ -248,6 +255,7 @@ export function TransformGizmo({
 
   return (
     <>
+      <GizmoKeyline ref={keylineRef} keyline={palette.keyline} />
       <Transformer
         ref={transformerRef}
         rotateEnabled={true}
@@ -261,16 +269,19 @@ export function TransformGizmo({
           "middle-left",
           "middle-right",
         ]}
-        borderStroke="#447DF7"
+        // In a viewer's colour the dashed border (and the rotate line Konva draws with
+        // it) is the colour over GizmoKeyline's solid keyline, just outside the ring.
+        padding={palette.keyline ? GIZMO_PADDING : 0}
+        borderStroke={palette.stroke}
         borderStrokeWidth={2}
         borderDash={[5, 5]}
-        anchorFill="#447DF7"
-        anchorStroke="#FFFFFF"
+        anchorFill={palette.stroke}
+        anchorStroke={palette.keyline ?? "#FFFFFF"}
         anchorStrokeWidth={2}
         anchorSize={10}
         anchorCornerRadius={2}
         rotateAnchorOffset={30}
-        rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+        rotationSnaps={ROTATION_SNAPS}
         rotationSnapTolerance={10}
         keepRatio={false}
         boundBoxFunc={(oldBox, newBox) => {
@@ -296,23 +307,35 @@ export function TransformGizmo({
           onMouseEnter={handleCenterPointerEnter}
           onMouseLeave={handleCenterPointerLeave}
         >
+          {/* In a viewer's colour: a keyline edge, the colour inside it, the cross in the keyline. */}
           <Rect
             width={HANDLE_SIZE}
             height={HANDLE_SIZE}
             cornerRadius={4}
-            fill="rgba(68, 125, 247, 0.25)"
-            stroke="#447DF7"
-            strokeWidth={1.5}
+            fill={palette.handleFill}
+            stroke={palette.keyline ?? palette.stroke}
+            // 3.5 under the 1.5 colour stroke: 1 px of keyline each side.
+            strokeWidth={palette.keyline ? 3.5 : 1.5}
           />
+          {palette.keyline && (
+            <Rect
+              width={HANDLE_SIZE}
+              height={HANDLE_SIZE}
+              cornerRadius={4}
+              stroke={palette.stroke}
+              strokeWidth={1.5}
+              listening={false}
+            />
+          )}
           <Line
             points={[HANDLE_SIZE / 2, 4, HANDLE_SIZE / 2, HANDLE_SIZE - 4]}
-            stroke="#FFFFFF"
+            stroke={palette.keyline ?? "#FFFFFF"}
             strokeWidth={2}
             lineCap="round"
           />
           <Line
             points={[4, HANDLE_SIZE / 2, HANDLE_SIZE - 4, HANDLE_SIZE / 2]}
-            stroke="#FFFFFF"
+            stroke={palette.keyline ?? "#FFFFFF"}
             strokeWidth={2}
             lineCap="round"
           />

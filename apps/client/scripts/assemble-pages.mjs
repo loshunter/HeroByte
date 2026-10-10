@@ -14,9 +14,12 @@
 // Then the website (site/build.mjs -> site/dist) is copied in around it. A top-level name the site
 // and the app both have (other than index.html), or a site entry named "play", stops the build
 // before anything moves.
+// The app's sources describe the plain layout (the app at /), which is what dev, e2e and anyone
+// serving dist/ themselves get. So only here do the installed app's start page (manifest.json) and
+// the page the service worker pre-caches (sw.js) move from / to /play/.
 import { execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { cp, mkdir, readdir, readFile, rename, stat } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,12 +37,34 @@ export function shouldAssemble(env, argv) {
   return env.CF_PAGES === "1" || argv.includes("--force");
 }
 
+/** The manifest with its start page moved to /play/. Its id and scope stay "/". */
+export function manifestForPlay(text) {
+  const manifest = JSON.parse(text);
+  if (manifest.start_url !== "/") {
+    throw new Error(`assemble-pages: manifest start_url is ${manifest.start_url}, expected "/"`);
+  }
+  return `${JSON.stringify({ ...manifest, start_url: "/play/" }, null, 2)}\n`;
+}
+
+/** The service worker with "/" in its pre-cache list replaced by "/play/". */
+export function serviceWorkerForPlay(text) {
+  const found = [...text.matchAll(/const urlsToCache = (\[[^\]]*\]);/g)];
+  const list = found.length === 1 ? JSON.parse(found[0][1]) : [];
+  if (!list.includes("/")) {
+    throw new Error('assemble-pages: sw.js has no single urlsToCache list holding "/"');
+  }
+  const moved = JSON.stringify(list.map((u) => (u === "/" ? "/play/" : u))).replaceAll(",", ", ");
+  return text.replace(found[0][0], `const urlsToCache = ${moved};`);
+}
+
 export async function assemblePages({ appDist, siteDist }) {
   const appPage = path.join(appDist, "index.html");
   if (!(await exists(appPage))) throw new Error(`assemble-pages: no app page at ${appPage}`);
   const html = await readFile(appPage, "utf8");
   // A relative src/href would resolve under /play/ after the move and miss the bundle.
-  const relative = [...html.matchAll(/\s(?:src|href)="(?![a-z]+:|\/|#)([^"]+)"/gi)].map((m) => m[1]);
+  const relative = [...html.matchAll(/\s(?:src|href)="(?![a-z]+:|\/|#)([^"]+)"/gi)].map(
+    (m) => m[1],
+  );
   if (relative.length) {
     throw new Error(`assemble-pages: the app page has relative URLs: ${relative.join(", ")}`);
   }
@@ -59,6 +84,15 @@ export async function assemblePages({ appDist, siteDist }) {
     throw new Error(`assemble-pages: the site and the app both have: ${clashes.join(", ")}`);
   }
 
+  // Both are worked out before anything is written, so a source that has changed shape stops the
+  // build with dist/ untouched.
+  const manifestPath = path.join(appDist, "manifest.json");
+  const swPath = path.join(appDist, "sw.js");
+  const manifest = manifestForPlay(await readFile(manifestPath, "utf8"));
+  const sw = serviceWorkerForPlay(await readFile(swPath, "utf8"));
+
+  await writeFile(manifestPath, manifest);
+  await writeFile(swPath, sw);
   await mkdir(path.join(appDist, "play"));
   await rename(appPage, path.join(appDist, "play", "index.html"));
   for (const name of siteEntries) {
@@ -68,7 +102,10 @@ export async function assemblePages({ appDist, siteDist }) {
 
 // realpath both sides: Node resolves symlinks in import.meta.url but not in argv[1], and a silent
 // mismatch here would deploy the app at / with no website and no log line.
-if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+if (
+  process.argv[1] &&
+  realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+) {
   if (!shouldAssemble(process.env, process.argv)) {
     console.log("assemble-pages: not a Cloudflare Pages build, the app stays at /");
   } else {

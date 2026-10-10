@@ -14,6 +14,7 @@ import {
 } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
+import { looseTokenOf } from "./looseToken.js";
 
 /**
  * Character service - manages character data and actions
@@ -332,17 +333,11 @@ export class CharacterService {
       }
       character.tokenId = null;
     }
-    const ownedPcs = state.characters.filter(
-      (c) => c.type === "pc" && c.ownedByPlayerUID === ownerUid,
-    );
-    const claimed = new Set(state.characters.flatMap((c) => (c.tokenId ? [c.tokenId] : [])));
-    const loose =
-      ownedPcs.length === 1
-        ? state.tokens.filter((t) => t.owner === ownerUid && !claimed.has(t.id))
-        : [];
-    if (loose.length === 1) {
-      this.linkToken(state, character.id, loose[0].id);
-      return loose[0];
+    // The same rule loosePcColours colours the PC by, before this links it.
+    const loose = looseTokenOf(state, ownerUid);
+    if (loose) {
+      this.linkToken(state, character.id, loose.id);
+      return loose;
     }
     const spawn = spawnAt();
     const token = tokenService.createToken(state, ownerUid, spawn.x, spawn.y);
@@ -374,6 +369,7 @@ export class CharacterService {
       0,
       character.tokenImage ?? undefined,
       character.tokenSize ?? "medium",
+      "npc",
     );
     character.tokenId = token.id;
     return character;

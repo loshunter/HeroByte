@@ -12,6 +12,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { TemplateShape } from "../TemplateShape";
+import { SelectionPaletteContext, selectionPalette } from "../../selectionPalette";
 
 vi.mock("react-konva", () => ({
   Line: (props: Record<string, unknown>) => (
@@ -22,6 +23,7 @@ vi.mock("react-konva", () => ({
       data-fill={props.fill ?? ""}
       data-stroke={props.stroke ?? ""}
       data-opacity={props.opacity}
+      data-stroke-width={props.strokeWidth}
       data-dash={JSON.stringify(props.dash ?? null)}
       onClick={props.onClick as () => void}
     />
@@ -90,6 +92,60 @@ describe("TemplateShape", () => {
   it("shows no label on a shape with no metadata", () => {
     renderShape();
     expect(screen.queryByTestId("konva-text")).toBeNull();
+  });
+
+  it("dashes a selected template's outline in the viewer's colour", () => {
+    render(
+      <SelectionPaletteContext.Provider value={selectionPalette("#ffc2d3")}>
+        <TemplateShape
+          points={TRIANGLE}
+          color="#ff8800"
+          width={3}
+          opacity={0.8}
+          scale={1}
+          selected
+        />
+      </SelectionPaletteContext.Provider>,
+    );
+    const dashed = lines().filter((line) => line.getAttribute("data-dash") !== "null");
+    expect(dashed.map((line) => line.getAttribute("data-stroke"))).toEqual(["#ffc2d3"]);
+    // Over a solid keyline (dark, for a pastel).
+    expect(lines().filter((line) => line.getAttribute("data-stroke") === "#0b0b16")).toHaveLength(
+      1,
+    );
+  });
+
+  it("draws the keyline 4/scale wide under the 2/scale colour, and the label over both", () => {
+    const { container } = render(
+      <SelectionPaletteContext.Provider value={selectionPalette("#ffc2d3")}>
+        <TemplateShape
+          points={TRIANGLE}
+          color="#ff8800"
+          width={3}
+          opacity={0.8}
+          scale={2}
+          selected
+          template={{ kind: "square", sizeFeet: 5 }}
+        />
+      </SelectionPaletteContext.Provider>,
+    );
+    const keyline = lines().find((line) => line.getAttribute("data-stroke") === "#0b0b16")!;
+    const colour = lines().find((line) => line.getAttribute("data-stroke") === "#ffc2d3")!;
+    expect(keyline.getAttribute("data-stroke-width")).toBe("2");
+    expect(colour.getAttribute("data-stroke-width")).toBe("1");
+    // A small template's label is never struck through by the keyline: it comes last.
+    const order = [...container.querySelectorAll("[data-testid]")];
+    expect(order.indexOf(keyline)).toBeLessThan(order.indexOf(colour));
+    expect(order.at(-1)).toBe(screen.getByTestId("konva-text"));
+  });
+
+  it("keeps today's dashed blue outline, and no keyline, for a viewer with no colour", () => {
+    renderShape({ selected: true });
+    const dashed = lines().filter((line) => line.getAttribute("data-dash") !== "null");
+    expect(dashed.map((line) => line.getAttribute("data-stroke"))).toEqual(["#447DF7"]);
+    expect(lines().filter((line) => line.getAttribute("data-stroke") === "#0b0b16")).toHaveLength(
+      0,
+    );
   });
 
   it("adds a dashed outline only when selected", () => {

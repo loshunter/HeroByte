@@ -893,6 +893,50 @@ describe("useServerEventHandlers - Characterization Tests", () => {
     });
   });
 
+  // Personal colour (C1): a chosen colour moved out of another player's zone.
+  describe("color-adjusted events", () => {
+    it("says where the colour went and whose zone it was in", () => {
+      const registerServerEventHandler = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
+      const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
+      act(() =>
+        handler({
+          t: "color-adjusted",
+          tokenId: "t-1",
+          color: "#aabbcc",
+          near: "Bors",
+          name: "Ann",
+        }),
+      );
+      expect(toast.info).toHaveBeenLastCalledWith(
+        "Ann's colour was too close to Bors's, so it moved to the nearest free one.",
+        5000,
+      );
+      act(() => handler({ t: "color-adjusted", tokenId: "t-1", color: "#aabbcc" }));
+      expect(toast.info).toHaveBeenLastCalledWith(
+        "Your colour could not be read, so it was given a free one.",
+        5000,
+      );
+      act(() =>
+        handler({ t: "color-adjusted", tokenId: "t-1", color: "#aabbcc", throttled: true }),
+      );
+      expect(toast.info).toHaveBeenLastCalledWith(
+        "Too many colour changes at once: wait a moment and try again.",
+        5000,
+      );
+    });
+  });
+
   // The piece lock: the one who tried is told why, in the words for their role.
   describe("locked-refused events", () => {
     const mount = (viewerIsDM: boolean) => {

@@ -6,12 +6,14 @@
 import React, { memo, useEffect, useState } from "react";
 import { MobileRowConditions } from "./MobileRowConditions";
 import { MobileRowActions, type MobileRowInitiative } from "./MobileRowActions";
+import { MobileRowHeader } from "./MobileRowHeader";
 import type { MovementBudgetControl } from "../../features/players/components/MovementSpeedField";
 import type { Player, Token, TokenSize } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
 import { PlayerSettingsMenu } from "../../features/players/components/PlayerSettingsMenu";
 import type { OwnerControl } from "../../features/players/components/TokenSettingsSection";
 import type { CharacterFileActions } from "../../features/players/characterFile";
+import type { ColorPickerControl } from "../../features/players/components/colorPicker/colorPickerControl";
 import { useRoleKnown } from "../../features/table/roleKnown";
 
 /** The temp HP editor's state and handlers (the same ones the desktop card gets). */
@@ -61,6 +63,8 @@ interface MobilePlayerRowProps {
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   /** This player's token, for the DM-only sight controls (S7). */
   token?: Token;
+  /** The sheet's colour picker (C1): the owner's and the DM's. */
+  colorPicker?: ColorPickerControl;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   tokenSize?: TokenSize;
   /** Present when this viewer may resize this row's token (its owner, or a DM). */
@@ -117,6 +121,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     tableVisionDefault,
     onCharacterPortraitUpdate,
     token,
+    colorPicker,
     onTokenVisionRadiusChange,
     tokenSize,
     onTokenSizeChange,
@@ -170,68 +175,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           borderRadius: "8px",
         }}
       >
-        {/* Header: Portrait + Name */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: "2px solid var(--hero-gold)",
-              flexShrink: 0,
-            }}
-          >
-            {player.portrait ? (
-              <img
-                src={player.portrait}
-                alt={player.name}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  background: "#333",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#aaa",
-                  fontSize: "20px",
-                }}
-              >
-                ?
-              </div>
-            )}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                color: "var(--hero-white)",
-                fontWeight: "bold",
-                fontSize: "1.1rem",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {player.name}
-            </div>
-            <div
-              style={{
-                color: player.isDM ? "var(--hero-gold)" : "rgba(255, 255, 255, 0.6)",
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              {player.isDM ? "Dungeon Master" : "Adventurer"}
-              {initiative?.value !== undefined ? ` · Init ${initiative.value}` : ""}
-              {initiative?.isTurn ? " · ▶ Turn" : ""}
-            </div>
-          </div>
-        </div>
+        <MobileRowHeader player={player} initiative={initiative} />
 
         {/* The row's actions on a line of their own (U7): beside the name,
             FOCUS and EDIT left a phone ~80px for it and cut "Player 1" to
@@ -288,6 +232,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
         <PlayerSettingsMenu
           isOpen={mayEdit && settingsOpen}
           onClose={() => setSettingsOpen(false)}
+          colorPicker={colorPicker}
           tokenVisionRadius={token?.visionRadius}
           tableVisionDefault={tableVisionDefault}
           onTokenVisionRadiusChange={onTokenVisionRadiusChange}

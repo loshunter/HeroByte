@@ -32,19 +32,12 @@ import type { CharacterService } from "../../domains/character/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
 import type { PendingDelta } from "../types.js";
+import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
-/**
- * Result of handling a token message
- */
-export interface TokenMessageResult {
-  /** Whether a broadcast is needed */
+/** Result of handling a token message: the router's result, both flags always set. */
+export interface TokenMessageResult extends RouteHandlerResult {
   broadcast: boolean;
-  /** Whether state should be saved */
   save: boolean;
-  /** Optional delta payload describing targeted updates */
-  delta?: PendingDelta;
-  /** The piece lock stopped this action: the router tells the sender (the DM or owner only). */
-  lockRefusal?: LockRefusal;
 }
 
 const lockedToken = (tokenId: string): LockRefusal => ({ ids: [`token:${tokenId}`] });
@@ -142,8 +135,9 @@ export class TokenMessageHandler {
     senderUid: string,
     isDM: boolean,
   ): TokenMessageResult {
+    // save: true for consistency; the broadcast already requests the same debounced save.
     const recolored = this.tokenService.recolorToken(state, tokenId, senderUid, isDM);
-    return { broadcast: recolored, save: false };
+    return { broadcast: recolored, save: recolored };
   }
 
   /**
@@ -235,7 +229,7 @@ export class TokenMessageHandler {
    * @param state - Room state
    * @param tokenId - ID of token to recolor
    * @param senderUid - UID of player recoloring the token
-   * @param color - New color (HSL format)
+   * @param color - The chosen colour (#rrggbb; a file may carry a legacy hsl)
    * @param isDM - Whether sender is a DM
    */
   handleSetColor(
@@ -245,11 +239,15 @@ export class TokenMessageHandler {
     color: string,
     isDM: boolean,
   ): TokenMessageResult {
-    const updated = isDM
+    // The colour rule may snap a player's choice (colorPolicy); the sender is told.
+    const decision = isDM
       ? this.tokenService.setColorForToken(state, tokenId, color)
       : this.tokenService.setColor(state, tokenId, senderUid, color, isDM);
-
-    return { broadcast: updated, save: updated };
+    if (!decision) return { broadcast: false, save: false };
+    if (!decision.adjusted) return { broadcast: true, save: true };
+    const { color: moved, near, name } = decision;
+    const colorNotice = { tokenId, color: moved, near, name };
+    return { broadcast: true, save: true, colorNotice };
   }
 
   /**

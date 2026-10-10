@@ -72,6 +72,7 @@ export function dicePanelProps(): DicePanelsProps {
     handleViewRoll: vi.fn(),
     chatMessages: [],
     players: [],
+    playerColors: new Map(),
     uid: "me",
     handleSendChat: vi.fn(),
     isDM: false,

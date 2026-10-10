@@ -35,6 +35,17 @@ const legacySeat = seat({
 } as Partial<Player>);
 
 describe("rosterEntryView — a player character", () => {
+  it("rings a party member in their colour while fog keeps their token out of the payload", () => {
+    const view = rosterEntryView(entity({ tokenId: "t-far", color: "#8A2BE2" }));
+    expect(view.ring).toBe("#8a2be2");
+  });
+
+  it("falls back on the token's colour, then the default ring", () => {
+    const withToken = entity({ tokenId: "t" }, { token: { id: "t", color: "#123456" } as Token });
+    expect(rosterEntryView(withToken).ring).toBe("#123456");
+    expect(rosterEntryView(entity({})).ring).toBe("#5AFFAD");
+  });
+
   it("a sole character falls back to the seat's legacy conditions, temp HP and art", () => {
     const view = rosterEntryView(entity({}, { player: legacySeat }));
 
@@ -79,7 +90,9 @@ describe("rosterEntryView — a player character", () => {
 
   it("focuses its own token, and carries its turn and initiative", () => {
     const token = { id: "t-ranger", color: "#123456" } as Token;
-    const view = rosterEntryView(entity({ initiative: 14 }, { token, isCurrentTurn: true }));
+    const view = rosterEntryView(
+      entity({ initiative: 14, tokenId: "t-ranger" }, { token, isCurrentTurn: true }),
+    );
 
     expect(view).toMatchObject({
       focusTokenId: "t-ranger",
@@ -89,6 +102,13 @@ describe("rosterEntryView — a player character", () => {
       hiddenFromPlayers: false,
     });
     expect(rosterEntryView(entity({})).focusTokenId).toBeUndefined();
+  });
+
+  it("rings an unlinked PC from its record only, not from the loose token found for it", () => {
+    // A loose token in this viewer's (fogged) view is a guess the server may not share.
+    const loose = { id: "t-loose", color: "#123456" } as Token;
+    expect(rosterEntryView(entity({}, { token: loose })).ring).toBe("#5AFFAD");
+    expect(rosterEntryView(entity({ color: "#8a2be2" }, { token: loose })).ring).toBe("#8a2be2");
   });
 });
 

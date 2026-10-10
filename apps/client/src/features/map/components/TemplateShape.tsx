@@ -10,6 +10,8 @@
 // nothing here derives geometry.
 
 import { Line, Text } from "react-konva";
+import { useSelectionPalette } from "../selectionPalette";
+import { SelectionOutline } from "./SelectionOutline";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { formatAreaTemplate, type AreaTemplate } from "@herobyte/shared";
 
@@ -53,6 +55,7 @@ export function TemplateShape({
   selected = false,
   handlers,
 }: TemplateShapeProps) {
+  const palette = useSelectionPalette();
   if (points.length < 3) return null;
 
   const flat = points.flatMap((point) => [point.x, point.y]);
@@ -92,6 +95,20 @@ export function TemplateShape({
         opacity={opacity}
         listening={false}
       />
+      {selected && (
+        <SelectionOutline
+          shape={Line}
+          keyline={palette.keyline}
+          scale={scale}
+          points={flat}
+          closed
+          stroke={palette.stroke}
+          strokeWidth={2 / scale}
+          dash={[8 / scale, 4 / scale]}
+          listening={false}
+        />
+      )}
+      {/* The label after the outline, so a selected small template's keyline never strikes it through. */}
       {template && (
         <Text
           x={centreX}
@@ -103,16 +120,6 @@ export function TemplateShape({
           align="center"
           width={LABEL_WIDTH / scale}
           offsetX={LABEL_WIDTH / scale / 2}
-          listening={false}
-        />
-      )}
-      {selected && (
-        <Line
-          points={flat}
-          closed
-          stroke="#447DF7"
-          strokeWidth={2 / scale}
-          dash={[8 / scale, 4 / scale]}
           listening={false}
         />
       )}
