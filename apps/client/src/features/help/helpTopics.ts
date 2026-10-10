@@ -261,7 +261,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "👆 Ping",
         detail:
-          "Click to plant a ping for three seconds. A player’s ping reaches the DM and the players who can see that spot; a DM’s ping reaches everyone.",
+          "Click to plant a ping, in your colour, for three seconds. A player’s ping reaches the DM and the players who can see that spot; a DM’s ping reaches everyone.",
       },
       { term: "✥ Move", detail: "Return to moving tokens and panning the map after using a tool." },
     ],
@@ -300,7 +300,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🎤 Voice",
         detail:
-          "Join voice (the header on a PC; Party, or the chip at the top while a call runs, on a phone) and allow the microphone when asked. Mute keeps you hearing everyone; Leave voice hangs up. On a PC a speaker's portrait glows on their card; on a phone, Party lists who is in the call.",
+          "Join voice (the header on a PC; Party, or the chip at the top while a call runs, on a phone) and allow the microphone when asked. Mute keeps you hearing everyone; Leave voice hangs up. On a PC a speaker's portrait glows in their colour on their card; on a phone, Party lists who is in the call.",
       },
       {
         term: "INIT",
