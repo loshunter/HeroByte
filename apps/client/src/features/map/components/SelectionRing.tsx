@@ -1,24 +1,29 @@
 // ============================================================================
-// SELECTION RING — a selected token's outline in the viewer's colour (C3)
+// SELECTION RING — a selected token's or prop's outline in the viewer's colour (C3)
 // ============================================================================
-// Drawn over the token, whose own stroke becomes the keyline: the colour band
-// then has a contrasting edge on both sides, so it reads on the token's own
-// fill (your picture-less token is filled with your colour), on light and dark
-// maps and under fog. The token stays the one draggable node; the ring follows
-// its position, rotation and scale through drags, glides and the transform
-// handles by listening for those attribute changes.
+// Two rectangles over the piece: a keyline (dark or light, whichever contrasts
+// more with the colour) and the colour band on it, so the band has a
+// contrasting edge on both sides: it reads on the piece's own fill or picture
+// (your picture-less token is filled with your colour), on light and dark maps
+// and under fog. The piece stays the one draggable node, its own stroke
+// untouched; the ring follows its position, rotation and scale through drags,
+// glides and the transform handles by listening for those attribute changes on
+// the node it is given. The node is passed by value, so when the piece's node
+// is replaced (a picture loading swaps the placeholder for the image) the ring
+// listens to the new one.
 
-import { useEffect, useRef, type RefObject } from "react";
-import { Rect } from "react-konva";
+import { useEffect, useRef } from "react";
+import { Group, Rect } from "react-konva";
 import type Konva from "konva";
 
 const FOLLOWED =
   "xChange.selectionRing yChange.selectionRing rotationChange.selectionRing " +
   "scaleXChange.selectionRing scaleYChange.selectionRing";
 
-interface SelectionRingProps {
-  /** The token node the ring follows. */
-  follow: RefObject<Konva.Node | null>;
+/** How much wider than the colour band the keyline is, as a share of the band (1 px each side at 3 px). */
+const KEYLINE_RATIO = 5 / 3;
+
+export interface RingGeometry {
   x: number;
   y: number;
   width: number;
@@ -29,33 +34,72 @@ interface SelectionRingProps {
   scaleX: number;
   scaleY: number;
   cornerRadius: number;
-  stroke: string;
+}
+
+interface SelectionRingProps extends RingGeometry {
+  /** The piece's node; null until it mounts. */
+  follow: Konva.Node | null;
+  color: string;
+  keyline: string;
+  /** The colour band's width (already divided by the camera scale). */
   strokeWidth: number;
 }
 
-export function SelectionRing({ follow, ...rect }: SelectionRingProps): JSX.Element {
-  const ringRef = useRef<Konva.Rect | null>(null);
+export function SelectionRing({
+  follow,
+  color,
+  keyline,
+  strokeWidth,
+  x,
+  y,
+  rotation,
+  scaleX,
+  scaleY,
+  ...box
+}: SelectionRingProps): JSX.Element {
+  const ringRef = useRef<Konva.Group | null>(null);
   useEffect(() => {
-    const node = follow.current;
     const ring = ringRef.current;
     // Mocked nodes in tests have no event system: the props alone place the ring.
-    if (!node || typeof node.on !== "function" || !ring || typeof ring.setAttrs !== "function") {
+    if (
+      !follow ||
+      typeof follow.on !== "function" ||
+      !ring ||
+      typeof ring.setAttrs !== "function"
+    ) {
       return;
     }
     const sync = () => {
       ring.setAttrs({
-        x: node.x(),
-        y: node.y(),
-        rotation: node.rotation(),
-        scaleX: node.scaleX(),
-        scaleY: node.scaleY(),
+        x: follow.x(),
+        y: follow.y(),
+        rotation: follow.rotation(),
+        scaleX: follow.scaleX(),
+        scaleY: follow.scaleY(),
       });
     };
     sync();
-    node.on(FOLLOWED, sync);
+    follow.on(FOLLOWED, sync);
     return () => {
-      node.off(FOLLOWED);
+      follow.off(FOLLOWED, sync);
     };
   }, [follow]);
-  return <Rect ref={ringRef} listening={false} {...rect} />;
+  return (
+    <Group ref={ringRef} listening={false} {...{ x, y, rotation, scaleX, scaleY }}>
+      <Rect
+        {...box}
+        stroke={keyline}
+        strokeWidth={strokeWidth * KEYLINE_RATIO}
+        listening={false}
+        perfectDrawEnabled={false}
+      />
+      <Rect
+        {...box}
+        stroke={color}
+        strokeWidth={strokeWidth}
+        listening={false}
+        perfectDrawEnabled={false}
+      />
+    </Group>
+  );
 }

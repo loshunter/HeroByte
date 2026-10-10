@@ -65,7 +65,13 @@ vi.mock("../../features/map/components", () => ({
   TokensLayer: () => (
     <div data-testid="tokens-layer" data-selection={useSelectionPalette().stroke} />
   ),
-  PointersLayer: () => <div data-testid="pointers-layer" />,
+  // Surfaces the party records it is given: pings take each player's colour from them.
+  PointersLayer: (props: { characters?: { id: string }[] }) => (
+    <div
+      data-testid="pointers-layer"
+      data-characters={(props.characters ?? []).map((character) => character.id).join(",")}
+    />
+  ),
   DrawingsLayer: () => <div data-testid="drawings-layer" />,
   // Surfaces the props MapBoard hands it, so the S6 wiring is assertable: the
   // diagonal rule and the relayed measurements reach the overlay from the
@@ -274,8 +280,18 @@ describe("MapBoard", () => {
         color: "#390076",
       } as RoomSnapshot["characters"][number];
 
-      render(<MapBoard {...getDefaultProps({ snapshot: snapshot([mine]) })} />);
+      // Someone else's PC first: the palette must be the VIEWER's colour, not the first one.
+      const theirs = {
+        ...mine,
+        id: "c0",
+        ownedByPlayerUID: "other-user",
+        tokenId: "t0",
+        color: "#ffc2d3",
+      } as RoomSnapshot["characters"][number];
+      render(<MapBoard {...getDefaultProps({ snapshot: snapshot([theirs, mine]) })} />);
       expect(screen.getByTestId("tokens-layer").getAttribute("data-selection")).toBe("#390076");
+      // ...and the pings get the party records, which carry every colour through fog.
+      expect(screen.getByTestId("pointers-layer").getAttribute("data-characters")).toBe("c0,c1");
       cleanup();
 
       render(<MapBoard {...getDefaultProps({ snapshot: snapshot([]) })} />);

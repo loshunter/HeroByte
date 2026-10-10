@@ -28,6 +28,8 @@ export interface SelectionPalette {
   drag: string;
   /** The move handle's translucent fill. */
   fill: string;
+  /** The centre move handle's fill: the colour at 85% (it carries the keyline cross), today's translucent blue without one. */
+  handleFill: string;
   /** The pulsing glow (full motion only): lifted to 3:1 on a dark map, or a deep colour's glow vanishes. */
   glow: string;
   /**
@@ -47,6 +49,7 @@ export const DEFAULT_SELECTION: SelectionPalette = {
   stroke: "#447DF7",
   drag: "#44f",
   fill: "rgba(68, 125, 247, 0.25)",
+  handleFill: "rgba(68, 125, 247, 0.25)",
   glow: "#447DF7",
   keyline: null,
   badgeText: "#FFFFFF",
@@ -69,6 +72,7 @@ export function selectionPalette(color: string | null): SelectionPalette {
     stroke: hex,
     drag,
     fill: `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, 0.25)`,
+    handleFill: `rgba(${channel(rgb.r)}, ${channel(rgb.g)}, ${channel(rgb.b)}, 0.85)`,
     glow: readableOn(hex, DARK_MAP, 3) ?? hex,
     keyline,
     badgeText: keyline,
@@ -80,14 +84,4 @@ export const SelectionPaletteContext = createContext<SelectionPalette>(DEFAULT_S
 /** The viewer's selection palette (the default blue outside a provider, as in tests). */
 export function useSelectionPalette(): SelectionPalette {
   return useContext(SelectionPaletteContext);
-}
-
-/** Konva props for a thin keyline halo around a selected line or shape; none for the default blue. */
-export function keylineHalo(
-  palette: SelectionPalette,
-  scale: number,
-): { shadowColor?: string; shadowBlur?: number; shadowOpacity?: number } {
-  return palette.keyline
-    ? { shadowColor: palette.keyline, shadowBlur: 3 / scale, shadowOpacity: 1 }
-    : {};
 }

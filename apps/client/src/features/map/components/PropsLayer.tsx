@@ -3,14 +3,15 @@
 // ============================================================================
 // Renders props from the unified scene graph.
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Group, Rect, Image as KonvaImage } from "react-konva";
 import type Konva from "konva";
 import type { SceneObject } from "@herobyte/shared";
 import useImage from "use-image";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Camera } from "../types";
-import { keylineHalo, useSelectionPalette } from "../selectionPalette";
+import { useSelectionPalette } from "../selectionPalette";
+import { SelectionRing } from "./SelectionRing";
 import { LockIndicator } from "./LockIndicator";
 import { propRenderSize } from "../propSizing";
 
@@ -43,6 +44,10 @@ const PropSprite = memo(function PropSprite({
   const { data, transform, locked } = object;
   const [image, status] = useImage(data.imageUrl);
   const palette = useSelectionPalette();
+  // In a viewer's colour a ring draws the selection (keyline and colour) over the prop,
+  // following its node (a picture loading swaps the placeholder for the image).
+  const ringed = isSelected && palette.keyline !== null;
+  const [propNode, setPropNode] = useState<Konva.Node | null>(null);
 
   const size = propRenderSize(gridSize, data.size);
   const offset = size / 2;
@@ -60,28 +65,47 @@ const PropSprite = memo(function PropSprite({
     // before this gate, ANY player could grab ANY prop and watch it rubber-
     // band back when the server refused the transform.
     draggable: !locked && interactive && canDrag,
-    stroke: isSelected ? palette.stroke : "transparent",
+    stroke: isSelected && !ringed ? palette.stroke : "transparent",
     strokeWidth: isSelected ? 4 / cam.scale : 0,
-    ...(isSelected ? keylineHalo(palette, cam.scale) : {}),
     onClick: onClick,
     onTap,
     onDragEnd: onDragEnd,
     id: object.id,
     name: object.id,
     ref: (node: Konva.Node | null) => {
+      setPropNode(node);
       if (onNodeReady) {
         onNodeReady(node);
       }
     },
   };
+  const loaded = status === "loaded" && image;
 
   return (
     <Group>
       {/* Render image if loaded, otherwise show placeholder */}
-      {status === "loaded" && image ? (
+      {loaded ? (
         <KonvaImage {...commonProps} image={image} />
       ) : (
         <Rect {...commonProps} fill="#888888" cornerRadius={4} opacity={0.5} />
+      )}
+      {ringed && (
+        <SelectionRing
+          follow={propNode}
+          x={commonProps.x}
+          y={commonProps.y}
+          width={size}
+          height={size}
+          offsetX={0}
+          offsetY={0}
+          rotation={transform.rotation}
+          scaleX={transform.scaleX}
+          scaleY={transform.scaleY}
+          cornerRadius={loaded ? 0 : 4}
+          color={palette.stroke}
+          keyline={palette.keyline!}
+          strokeWidth={4 / cam.scale}
+        />
       )}
 
       {/* Lock indicator */}

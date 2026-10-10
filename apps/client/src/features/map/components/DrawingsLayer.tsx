@@ -16,7 +16,8 @@ import {
 } from "@herobyte/shared";
 import { TemplateShape } from "./TemplateShape";
 import type { Camera } from "../../../hooks/useCamera";
-import { keylineHalo, useSelectionPalette } from "../selectionPalette";
+import { useSelectionPalette } from "../selectionPalette";
+import { SelectionOutline } from "./SelectionOutline";
 
 interface DrawingsLayerProps {
   cam: Camera;
@@ -274,7 +275,6 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       : {};
 
     const selectionStroke = isDragging ? palette.drag : palette.stroke;
-    const selectionHalo = keylineHalo(palette, cam.scale);
     const baseStrokeWidth = drawing.width / cam.scale;
     const highlightStrokeWidth = 2 / cam.scale;
 
@@ -314,11 +314,13 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               listening={false}
             />
             {isSelected && canShowSelection && (
-              <Line
+              <SelectionOutline
+                shape={Line}
+                keyline={palette.keyline}
+                scale={cam.scale}
                 points={points.flatMap((p) => [p.x, p.y])}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
-                {...selectionHalo}
                 dash={[8 / cam.scale, 4 / cam.scale]}
                 lineCap="round"
                 lineJoin="round"
@@ -364,11 +366,13 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               listening={false}
             />
             {isSelected && canShowSelection && (
-              <Line
+              <SelectionOutline
+                shape={Line}
+                keyline={palette.keyline}
+                scale={cam.scale}
                 points={[start.x, start.y, end.x, end.y]}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
-                {...selectionHalo}
                 dash={[8 / cam.scale, 4 / cam.scale]}
                 lineCap="round"
                 listening={false}
@@ -411,14 +415,16 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               {...interactiveProps}
             />
             {isSelected && canShowSelection && (
-              <Rect
+              <SelectionOutline
+                shape={Rect}
+                keyline={palette.keyline}
+                scale={cam.scale}
                 x={x1}
                 y={y1}
                 width={x2 - x1}
                 height={y2 - y1}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
-                {...selectionHalo}
                 dash={[8 / cam.scale, 4 / cam.scale]}
                 listening={false}
               />
@@ -459,13 +465,15 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               {...interactiveProps}
             />
             {isSelected && canShowSelection && (
-              <Circle
+              <SelectionOutline
+                shape={Circle}
+                keyline={palette.keyline}
+                scale={cam.scale}
                 x={cx}
                 y={cy}
                 radius={radius}
                 stroke={selectionStroke}
                 strokeWidth={highlightStrokeWidth}
-                {...selectionHalo}
                 dash={[8 / cam.scale, 4 / cam.scale]}
                 listening={false}
               />

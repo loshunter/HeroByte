@@ -263,6 +263,8 @@ export function TransformGizmo({
           "middle-left",
           "middle-right",
         ]}
+        // In a viewer's colour every selected piece carries its own edged outline.
+        borderEnabled={palette.keyline === null}
         borderStroke={palette.stroke}
         borderStrokeWidth={2}
         borderDash={[5, 5]}
@@ -298,23 +300,34 @@ export function TransformGizmo({
           onMouseEnter={handleCenterPointerEnter}
           onMouseLeave={handleCenterPointerLeave}
         >
+          {/* In a viewer's colour: a keyline edge, the colour inside it, the cross in the keyline. */}
           <Rect
             width={HANDLE_SIZE}
             height={HANDLE_SIZE}
             cornerRadius={4}
-            fill={palette.fill}
-            stroke={palette.stroke}
-            strokeWidth={1.5}
+            fill={palette.handleFill}
+            stroke={palette.keyline ?? palette.stroke}
+            strokeWidth={palette.keyline ? 3 : 1.5}
           />
+          {palette.keyline && (
+            <Rect
+              width={HANDLE_SIZE}
+              height={HANDLE_SIZE}
+              cornerRadius={4}
+              stroke={palette.stroke}
+              strokeWidth={1.5}
+              listening={false}
+            />
+          )}
           <Line
             points={[HANDLE_SIZE / 2, 4, HANDLE_SIZE / 2, HANDLE_SIZE - 4]}
-            stroke="#FFFFFF"
+            stroke={palette.keyline ?? "#FFFFFF"}
             strokeWidth={2}
             lineCap="round"
           />
           <Line
             points={[4, HANDLE_SIZE / 2, HANDLE_SIZE - 4, HANDLE_SIZE / 2]}
-            stroke="#FFFFFF"
+            stroke={palette.keyline ?? "#FFFFFF"}
             strokeWidth={2}
             lineCap="round"
           />

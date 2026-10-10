@@ -108,6 +108,19 @@ describe("TemplateShape", () => {
     );
     const dashed = lines().filter((line) => line.getAttribute("data-dash") !== "null");
     expect(dashed.map((line) => line.getAttribute("data-stroke"))).toEqual(["#ffc2d3"]);
+    // Over a solid keyline (dark, for a pastel).
+    expect(lines().filter((line) => line.getAttribute("data-stroke") === "#0b0b16")).toHaveLength(
+      1,
+    );
+  });
+
+  it("keeps today's dashed blue outline, and no keyline, for a viewer with no colour", () => {
+    renderShape({ selected: true });
+    const dashed = lines().filter((line) => line.getAttribute("data-dash") !== "null");
+    expect(dashed.map((line) => line.getAttribute("data-stroke"))).toEqual(["#447DF7"]);
+    expect(lines().filter((line) => line.getAttribute("data-stroke") === "#0b0b16")).toHaveLength(
+      0,
+    );
   });
 
   it("adds a dashed outline only when selected", () => {

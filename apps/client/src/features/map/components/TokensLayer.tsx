@@ -76,7 +76,7 @@ const TokenSprite = memo(function TokenSprite({
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "");
   const palette = useSelectionPalette();
-  // In a viewer's colour, the token's own stroke is the keyline and a ring carries the colour.
+  // In a viewer's colour a ring draws the selection (keyline and colour) over the token.
   const ringed = selected && palette.keyline !== null;
 
   // Calculate size multiplier based on token size category
@@ -86,9 +86,13 @@ const TokenSprite = memo(function TokenSprite({
   const halfSize = size / 2;
 
   const shapeRef = useRef<Konva.Node | null>(null);
+  // The node in state too: a picture loading swaps the placeholder Rect for an Image,
+  // and the glow and the selection ring must move to the new node.
+  const [shapeNode, setShapeNode] = useState<Konva.Node | null>(null);
   const nodeRef = useCallback(
     (node: Konva.Node | null) => {
       shapeRef.current = node;
+      setShapeNode(node);
       onNodeReady?.(node);
     },
     [onNodeReady],
@@ -142,7 +146,7 @@ const TokenSprite = memo(function TokenSprite({
 
   // Pulsing glow while selected. Decorative: "full" motion only.
   useEffect(() => {
-    const node = shapeRef.current;
+    const node = shapeNode;
     if (!isKonvaNode(node) || !selected || decorativeMotionDisabled()) return;
     const layer = node.getLayer();
     if (!layer) return;
@@ -159,7 +163,7 @@ const TokenSprite = memo(function TokenSprite({
       shape.shadowBlur(0);
       shape.shadowOpacity(0);
     };
-  }, [selected, palette.glow]);
+  }, [selected, palette.glow, shapeNode]);
 
   const baseProps = {
     x: transform.x * gridSize + gridSize / 2,
@@ -172,8 +176,8 @@ const TokenSprite = memo(function TokenSprite({
     scaleX: transform.scaleX,
     scaleY: transform.scaleY,
     cornerRadius: gridSize / 8,
-    stroke: ringed ? palette.keyline! : stroke,
-    strokeWidth: ringed ? strokeWidth * 2 : strokeWidth,
+    stroke: ringed ? "transparent" : stroke,
+    strokeWidth,
     draggable,
     onDragEnd,
     onDragStart,
@@ -196,9 +200,10 @@ const TokenSprite = memo(function TokenSprite({
     baseProps;
   const ring = ringed ? (
     <SelectionRing
-      follow={shapeRef}
+      follow={shapeNode}
       {...{ x, y, offsetX, offsetY, width, height, rotation, scaleX, scaleY, cornerRadius }}
-      stroke={palette.stroke}
+      color={palette.stroke}
+      keyline={palette.keyline!}
       strokeWidth={strokeWidth}
     />
   ) : null;

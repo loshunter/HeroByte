@@ -84,24 +84,28 @@ const token = {
   data: { color: "#ffc2d3", size: "medium" },
 } as unknown as SceneObject;
 
-function renderSelected() {
-  return render(
-    <SelectionPaletteContext.Provider value={selectionPalette("#390076")}>
+function layer(color: string, selected = true) {
+  return (
+    <SelectionPaletteContext.Provider value={selectionPalette(color)}>
       <TokensLayer
         {...({
           cam: { x: 0, y: 0, scale: 1 },
           sceneObjects: [token],
           uid: "user-1",
           gridSize: 50,
-          selectedObjectIds: ["token:1"],
+          selectedObjectIds: selected ? ["token:1"] : [],
           hoveredTokenId: null,
           onHover: () => undefined,
           onTransformToken: () => undefined,
           onRecolorToken: () => undefined,
         } as unknown as ComponentProps<typeof TokensLayer>)}
       />
-    </SelectionPaletteContext.Provider>,
+    </SelectionPaletteContext.Provider>
   );
+}
+
+function renderSelected() {
+  return render(layer("#390076"));
 }
 
 describe("selected token glow", () => {
@@ -118,6 +122,21 @@ describe("selected token glow", () => {
     // The viewer's colour, lifted so a deep shade still glows on a dark map.
     expect(shadowColors).toContain(selectionPalette("#390076").glow);
     expect(shadowColors).not.toContain("#447DF7");
+  });
+
+  it("does not glow a token that is not selected", () => {
+    decorativeOff = false;
+    render(layer("#390076", false));
+    expect(frames).toHaveLength(0);
+  });
+
+  it("glows in the new colour after the viewer recolours", () => {
+    decorativeOff = false;
+    const { rerender } = renderSelected();
+    rerender(layer("#ffc2d3"));
+    shadowColors.length = 0;
+    frames.at(-1)!({ time: 500 });
+    expect(shadowColors).toEqual(["#ffc2d3"]);
   });
 
   it("does not glow at subtle or off motion (the outline stays)", () => {

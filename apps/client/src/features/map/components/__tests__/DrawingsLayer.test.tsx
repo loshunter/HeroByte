@@ -312,8 +312,13 @@ describe("DrawingsLayer", () => {
       );
 
       const lines = screen.getAllByTestId("konva-line");
-      expect(lines.some((line) => line.getAttribute("data-stroke") === "#390076")).toBe(true);
-      expect(lines.some((line) => line.getAttribute("data-stroke") === "#447DF7")).toBe(false);
+      const stroked = (color: string) =>
+        lines.filter((line) => line.getAttribute("data-stroke") === color);
+      // The dashed colour over a solid keyline (light, for a deep colour).
+      expect(stroked("#390076").map((line) => line.getAttribute("data-dash"))).toEqual(["[8,4]"]);
+      expect(stroked("#f4f1e8")).toHaveLength(1);
+      expect(stroked("#f4f1e8")[0]!.getAttribute("data-dash")).not.toBe("[8,4]");
+      expect(stroked("#447DF7")).toHaveLength(0);
     });
 
     it("should render selection highlight when drawing is selected", () => {

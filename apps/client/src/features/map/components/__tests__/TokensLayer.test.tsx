@@ -755,26 +755,42 @@ describe("TokensLayer", () => {
         {ui}
       </SelectionPaletteContext.Provider>
     );
+    const rectsIn = (container: HTMLElement) =>
+      [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
 
-    it("draws a selected token's keyline, and a ring in the viewer's colour over it", () => {
-      const token = createTokenObject("token:1", "user-1", { data: { color: "#ffc2d3" } as never });
-      const props = createDefaultProps({ sceneObjects: [token], selectedObjectIds: ["token:1"] });
+    it("rings a selected token: keyline then colour over it, its own stroke left alone", () => {
+      const token = createTokenObject("token:1", "user-1", {
+        transform: { x: 2, y: 3, scaleX: 1.5, scaleY: 1.5, rotation: 30 },
+      });
+      const props = createDefaultProps({
+        sceneObjects: [token],
+        selectedObjectIds: ["token:1"],
+        cam: createCamera({ scale: 2 }),
+      });
       const { container } = render(inColour("#ffc2d3", <TokensLayer {...props} />));
 
-      const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
-      expect(rects).toHaveLength(2);
-      // The token's own stroke is the keyline (dark on a pastel), twice the ring's width...
-      expect(rects[0]!.stroke).toBe("#0b0b16");
-      expect(rects[0]!.strokeWidth).toBe(6);
-      // ...and the ring on top carries the colour, so it never merges into the fill.
-      expect(rects[1]!.stroke).toBe("#ffc2d3");
-      expect(rects[1]!.strokeWidth).toBe(3);
-      expect(rects[1]!.listening).toBe(false);
-      expect(rects[1]!.x).toBe(rects[0]!.x);
-      expect(rects[1]!.width).toBe(rects[0]!.width);
+      const [shape, keyline, colour] = rectsIn(container);
+      // The token keeps a transparent stroke of today's width: hit area unchanged.
+      expect(shape!.stroke).toBe("transparent");
+      expect(shape!.strokeWidth).toBe(1.5);
+      expect([keyline!.stroke, keyline!.strokeWidth]).toEqual(["#0b0b16", 2.5]);
+      expect([colour!.stroke, colour!.strokeWidth]).toEqual(["#ffc2d3", 1.5]);
+      // The ring's group carries the token's place, turn and scale; its rects the token's box.
+      const group = getProps(
+        [...container.querySelectorAll('[data-testid="konva-group"]')].find(
+          (element) => getProps(element).listening === false,
+        )!,
+      );
+      for (const key of ["x", "y", "rotation", "scaleX", "scaleY"]) {
+        expect(group[key]).toBe(shape![key]);
+      }
+      for (const key of ["width", "height", "offsetX", "offsetY", "cornerRadius"]) {
+        expect(keyline![key]).toBe(shape![key]);
+        expect(colour![key]).toBe(shape![key]);
+      }
     });
 
-    it("edges a deep colour in light, and draws no ring for an unselected token", () => {
+    it("edges a deep colour in light, and rings only the selected token", () => {
       const selected = createTokenObject("token:1", "other-user");
       const plain = createTokenObject("token:2", "other-user");
       const props = createDefaultProps({
@@ -783,11 +799,21 @@ describe("TokensLayer", () => {
       });
       const { container } = render(inColour("#390076", <TokensLayer {...props} />));
 
-      const strokes = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(
-        (rect) => getProps(rect).stroke,
-      );
+      const strokes = rectsIn(container).map((rect) => rect.stroke);
       expect(strokes.filter((stroke) => stroke === "#f4f1e8")).toHaveLength(1);
       expect(strokes.filter((stroke) => stroke === "#390076")).toHaveLength(1);
+    });
+
+    it("strokes your own token in the drag shade while you drag it unselected", () => {
+      const token = createTokenObject("token:1", "test-user");
+      const props = createDefaultProps({ sceneObjects: [token] });
+      const { container } = render(inColour("#390076", <TokensLayer {...props} />));
+      const rect = container.querySelector('[data-testid="konva-rect"]')!;
+      const onDragStart = getProps(rect).onDragStart as (event: unknown) => void;
+      act(() => onDragStart({ target: { x: () => 0, y: () => 0 } }));
+      expect(getProps(container.querySelector('[data-testid="konva-rect"]')!).stroke).toBe(
+        "#57309c",
+      );
     });
 
     it("fills the multi-select count badge with the viewer's colour, its number readable", () => {
@@ -809,6 +835,22 @@ describe("TokensLayer", () => {
         .map(getProps)
         .find((text) => text.text === "2");
       expect(number?.fill).toBe("#0b0b16");
+    });
+
+    it("keeps today's white-edged blue badge with no colour", () => {
+      const tokens = [
+        createTokenObject("token:1", "user-1"),
+        createTokenObject("token:2", "user-1"),
+      ];
+      const props = createDefaultProps({
+        sceneObjects: tokens,
+        selectedObjectIds: ["token:1", "token:2"],
+      });
+      const { container } = render(<TokensLayer {...props} />);
+      const badge = [...container.querySelectorAll('[data-testid="konva-circle"]')]
+        .map(getProps)
+        .find((circle) => circle.fill === "#447DF7");
+      expect(badge?.stroke).toBe("#FFFFFF");
     });
   });
 

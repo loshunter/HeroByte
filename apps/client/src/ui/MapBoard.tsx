@@ -101,10 +101,10 @@ export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
  */
 export default function MapBoard(props: MapBoardProps): JSX.Element {
   const { uid, snapshot } = props;
-  const selection = useMemo(
-    () => selectionPalette(playerColor(uid, snapshot?.characters, snapshot?.tokens)),
-    [uid, snapshot?.characters, snapshot?.tokens],
-  );
+  // A new palette only when the viewer's colour changes: snapshots arrive with new
+  // arrays on every token move, and every layer reads the palette.
+  const viewerColor = playerColor(uid, snapshot?.characters, snapshot?.tokens);
+  const selection = useMemo(() => selectionPalette(viewerColor), [viewerColor]);
   return (
     <SelectionPaletteContext.Provider value={selection}>
       <MapBoardScene {...props} />

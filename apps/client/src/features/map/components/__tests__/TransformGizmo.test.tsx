@@ -310,9 +310,33 @@ describe("TransformGizmo", () => {
       const transformerProps = getProps(
         container.querySelector('[data-testid="konva-transformer"]'),
       );
-      expect(transformerProps.borderStroke).toBe("#390076");
       expect(transformerProps.anchorFill).toBe("#390076");
       expect(transformerProps.anchorStroke).toBe("#f4f1e8");
+      // Each selected piece carries its own edged outline, so the dashed border is off.
+      expect(transformerProps.borderEnabled).toBe(false);
+      // The centre move handle: a keyline edge, the colour inside, the cross in the keyline.
+      const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
+      expect(rects.map((rect) => [rect.fill, rect.stroke, rect.strokeWidth])).toEqual([
+        ["rgba(57, 0, 118, 0.85)", "#f4f1e8", 3],
+        [undefined, "#390076", 1.5],
+      ]);
+      const crosses = [...container.querySelectorAll('[data-testid="konva-line"]')].map(getProps);
+      expect(crosses.map((line) => line.stroke)).toEqual(["#f4f1e8", "#f4f1e8"]);
+    });
+
+    it("keeps today's blue handle and dashed border for a viewer with no colour", () => {
+      const { container } = render(<TransformGizmo {...createDefaultProps()} />);
+      const transformerProps = getProps(
+        container.querySelector('[data-testid="konva-transformer"]'),
+      );
+      expect(transformerProps.borderEnabled).toBe(true);
+      expect(transformerProps.borderStroke).toBe("#447DF7");
+      const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
+      expect(rects.map((rect) => [rect.fill, rect.stroke, rect.strokeWidth])).toEqual([
+        ["rgba(68, 125, 247, 0.25)", "#447DF7", 1.5],
+      ]);
+      const crosses = [...container.querySelectorAll('[data-testid="konva-line"]')].map(getProps);
+      expect(crosses.map((line) => line.stroke)).toEqual(["#FFFFFF", "#FFFFFF"]);
     });
 
     it("should render with correct Transformer props", () => {

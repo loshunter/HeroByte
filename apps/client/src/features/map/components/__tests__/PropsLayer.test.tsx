@@ -155,7 +155,7 @@ describe("PropsLayer drag round-trip", () => {
 });
 
 describe("PropsLayer selection colour", () => {
-  it("outlines a selected prop in the viewer's colour with a keyline halo; blue without one", () => {
+  it("rings a selected prop in the viewer's colour over a keyline; today's blue stroke without one", () => {
     const layer = (
       <PropsLayer
         cam={cam}
@@ -172,12 +172,18 @@ describe("PropsLayer selection colour", () => {
         {layer}
       </SelectionPaletteContext.Provider>,
     );
-    expect(spriteRect().stroke).toBe("#ffc2d3");
-    expect(spriteRect().shadowColor).toBe("#0b0b16");
+    const sprite = spriteRect();
+    expect(sprite.stroke).toBe("transparent");
+    const ring = rectProps.filter((rect) => rect !== sprite && rect.listening === false);
+    expect(ring.map((rect) => [rect.stroke, rect.strokeWidth])).toEqual([
+      ["#0b0b16", (4 * 5) / 3],
+      ["#ffc2d3", 4],
+    ]);
+    expect(ring.every((rect) => rect.width === sprite.width)).toBe(true);
 
     rectProps.length = 0;
     render(layer);
     expect(spriteRect().stroke).toBe("#447DF7");
-    expect(spriteRect().shadowColor).toBeUndefined();
+    expect(rectProps.filter((rect) => rect.listening === false)).toEqual([]);
   });
 });
