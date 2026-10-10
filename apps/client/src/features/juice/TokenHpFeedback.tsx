@@ -59,6 +59,7 @@ export function TokenHpFeedback({ hp, x, y, size }: TokenHpFeedbackProps) {
     tweens.forEach((tween) => tween.play());
     return () => tweens.forEach((tween) => tween.destroy());
     // Re-run for each distinct hit; position deps keep the target in sync.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the hit: one animation per distinct hit, not per feedback object
   }, [key, x, y, size]);
 
   if (!feedback) return null;

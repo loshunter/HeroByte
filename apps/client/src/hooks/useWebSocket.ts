@@ -178,6 +178,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       commandDeliveryRef.current?.({ type: "tracking-lost" });
       service.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the service is built once per url and uid; autoConnect is read at that moment only
   }, [url, uid]); // Only recreate if URL or UID changes
 
   // A measurement is relayed, not stored, so nothing on the server tells us

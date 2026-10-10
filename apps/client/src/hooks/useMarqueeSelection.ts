@@ -16,7 +16,6 @@ export interface UseMarqueeSelectionOptions {
   getAllNodes: () => Map<string, Konva.Node>;
   onSelectObject?: (objectId: string | null, options?: SelectionRequestOptions) => void;
   onSelectObjects?: (objectIds: string[]) => void;
-  minSelectionSize?: number;
 }
 
 export interface MarqueeRect {
@@ -40,8 +39,6 @@ interface MarqueeState {
   current: Point;
 }
 
-const DEFAULT_MIN_SELECTION_SIZE = 4;
-
 export function useMarqueeSelection({
   stageRef,
   selectMode,
@@ -51,7 +48,6 @@ export function useMarqueeSelection({
   getAllNodes,
   onSelectObject,
   onSelectObjects,
-  minSelectionSize = DEFAULT_MIN_SELECTION_SIZE,
 }: UseMarqueeSelectionOptions): UseMarqueeSelectionReturn {
   const [marquee, setMarquee] = useState<MarqueeState | null>(null);
   const marqueeRef = useRef<MarqueeState | null>(null);
@@ -176,7 +172,7 @@ export function useMarqueeSelection({
         onSelectObject?.(id, { mode });
       });
     },
-    [getAllNodes, minSelectionSize, onSelectObject, onSelectObjects, stageRef],
+    [getAllNodes, onSelectObject, onSelectObjects, stageRef],
   );
 
   const handlePointerUp = useCallback(() => {

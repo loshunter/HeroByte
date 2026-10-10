@@ -113,6 +113,7 @@ export function FogLayer({
       }),
     );
     // The three string keys stand in for the object/array identities above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the three string keys stand in for the object and array identities
   }, [sceneKey, transformKey, viewersKey, gridSize, gridSquareSize]);
 
   // Memoized with the polygons, not rebuilt per render: `cam` is a fresh

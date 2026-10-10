@@ -87,7 +87,10 @@ export default [
     },
     rules: {
       ...reactPlugin.configs.recommended.rules,
-      ...reactHooksPlugin.configs.recommended.rules,
+      // configs.recommended is a flat-config ARRAY in eslint-plugin-react-hooks 6, so
+      // spreading its .rules added nothing and no hooks rule ran: name them.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
     },

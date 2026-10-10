@@ -135,6 +135,7 @@ export function useCameraCommands({
     const target = sceneArrivalPoint(snapshot);
     if (!target) return;
     setCameraCommand({ type: "focus-point", x: target.x, y: target.y });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the snapshot parts the arrival reads, not the snapshot (new every broadcast)
   }, [
     snapshot?.compiledScene,
     snapshot?.playerStagingZone,

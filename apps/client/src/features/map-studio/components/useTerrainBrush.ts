@@ -47,6 +47,7 @@ export function useTerrainBrush({
             )
             .map((cell) => ({ ...cell, assetId: cursor.assetId }))
         : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- strokeCells is the render signal for the stroke ref this memo reads
     [activeDocument, cursor, brushSize, strokeCells],
   );
 

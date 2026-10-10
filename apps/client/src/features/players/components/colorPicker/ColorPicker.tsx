@@ -49,6 +49,7 @@ export { KEY_COMMIT_MS, NOTICE_HOLD_MS, PENDING_TIMEOUT_MS } from "./pickerInput
 export function ColorPicker(control: ColorPickerControl): JSX.Element {
   const fieldKey = pickerFieldKey(control);
   // Keyed, not on `control`: the holders arrive as a new array every snapshot.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on fieldKey: the holders arrive as a new array every snapshot
   const field = useMemo(() => pickerField(control), [fieldKey]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const handleRef = useRef<HTMLDivElement | null>(null);

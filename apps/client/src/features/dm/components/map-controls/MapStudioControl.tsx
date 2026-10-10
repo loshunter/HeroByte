@@ -92,7 +92,7 @@ export function MapStudioControl({
     onPublishToLiveMap,
     setStatus: setPublishStatus,
   });
-  const useAtTable = useUseMapAtTable({
+  const putAtTable = useUseMapAtTable({
     documents,
     tableMapDocumentId,
     liveSceneDocumentId,
@@ -204,7 +204,7 @@ export function MapStudioControl({
                     : "Put this map on the table for everyone"
                 }
                 disabled={!pickListed || busy || selectedId === tableMapDocumentId}
-                onClick={() => useAtTable(selectedId)}
+                onClick={() => putAtTable(selectedId)}
               >
                 Use at table
               </JRPGButton>

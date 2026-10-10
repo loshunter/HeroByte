@@ -145,6 +145,7 @@ const TokenSprite = memo(function TokenSprite({
       tween.destroy();
       node.scale({ x: targetX, y: targetY });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pops when popIn turns on, to the scale the token has at that moment
   }, [popIn]);
 
   // The node that glows. Konva draws an Image with a corner radius and a shadow
