@@ -11,6 +11,7 @@
 import {
   colorToOkLab,
   contrastRatio,
+  isInGamut,
   okLabToOkLch,
   okLabToRgb,
   okLchToOkLab,
@@ -19,15 +20,33 @@ import {
   rgbToHex,
   type Rgb,
 } from "./colorSpace.js";
-import { maxChroma } from "./colorWindow.js";
 
 /** The keyline pair: a near-black and a warm near-white from the JRPG palette. */
 export const KEYLINE_DARK = "#0b0b16";
 export const KEYLINE_LIGHT = "#f4f1e8";
 
+/**
+ * The most of `C` sRGB can show at this lightness and hue (binary search). Kept
+ * here rather than importing colorWindow's maxChroma: names and pings need this
+ * on first load, and that import would pull the whole colour window (the
+ * picker's lazy chunk) into the entry bundle.
+ */
+function chromaInGamut(L: number, C: number, h: number): number {
+  const fits = (chroma: number) => isInGamut(okLabToRgb(okLchToOkLab({ L, C: chroma, h })));
+  if (fits(C)) return C;
+  let low = 0;
+  let high = C;
+  for (let step = 0; step < 18; step += 1) {
+    const middle = (low + high) / 2;
+    if (fits(middle)) low = middle;
+    else high = middle;
+  }
+  return low;
+}
+
 /** The colour at lightness L with its own hue, chroma cut to what sRGB can show there. */
 function atLightness(L: number, C: number, h: number): Rgb {
-  const chroma = Math.min(C, maxChroma(L, h));
+  const chroma = chromaInGamut(L, C, h);
   const rgb = okLabToRgb(okLchToOkLab({ L, C: chroma, h }));
   const clamp = (value: number) => Math.min(1, Math.max(0, value));
   return { r: clamp(rgb.r), g: clamp(rgb.g), b: clamp(rgb.b) };
