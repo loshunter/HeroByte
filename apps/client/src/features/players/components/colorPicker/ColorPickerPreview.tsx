@@ -1,5 +1,6 @@
-// The colour picker's preview: the character's name on navy (as names are drawn,
-// lifted to read: C3), the portrait ring, and the token on a dark map floor and
+// The colour picker's preview: the character's name on navy (as chat and roll
+// names are drawn, lifted to read on the navy: C3; the card lifts its own name
+// on the card's lighter ground), the portrait ring, and the token on a dark map floor and
 // under fog, then the colour as a hex code.
 
 import { readableOn } from "@herobyte/shared";

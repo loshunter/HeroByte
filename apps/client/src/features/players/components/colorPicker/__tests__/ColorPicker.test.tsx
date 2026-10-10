@@ -93,7 +93,7 @@ describe("ColorPicker", () => {
     vi.restoreAllMocks();
   });
 
-  it("previews the name as names are drawn: a dark colour lifted to read on the navy", () => {
+  it("previews the name as chat and roll names are drawn: a dark colour lifted on the navy", () => {
     const { container } = renderPicker({ color: "#390076" });
     const name = container.querySelector(".color-picker__name") as HTMLElement;
     expect(name.style.color).not.toBe("rgb(57, 0, 118)");
