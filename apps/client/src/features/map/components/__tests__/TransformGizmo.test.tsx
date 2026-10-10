@@ -307,14 +307,30 @@ describe("TransformGizmo", () => {
         </SelectionPaletteContext.Provider>,
       );
 
-      const transformerProps = getProps(
-        container.querySelector('[data-testid="konva-transformer"]'),
-      );
-      expect(transformerProps.anchorFill).toBe("#390076");
-      expect(transformerProps.anchorStroke).toBe("#f4f1e8");
-      // The dashed border, and the rotate handle's line Konva draws with it, in the keyline.
-      expect(transformerProps.borderEnabled).toBe(true);
-      expect(transformerProps.borderStroke).toBe("#f4f1e8");
+      const [keyline, gizmo] = [
+        ...container.querySelectorAll('[data-testid="konva-transformer"]'),
+      ].map(getProps);
+      expect(gizmo!.anchorFill).toBe("#390076");
+      expect(gizmo!.anchorStroke).toBe("#f4f1e8");
+      // The dashed border (and the rotate line Konva draws with it) in the colour, over a
+      // solid keyline drawn by a second, border-only transformer underneath: it reads on
+      // any map. Both sit 2 px out, just outside a selected piece's ring.
+      expect([gizmo!.borderStroke, gizmo!.borderStrokeWidth, gizmo!.padding]).toEqual([
+        "#390076",
+        2,
+        2,
+      ]);
+      expect(gizmo!.borderDash).toEqual([5, 5]);
+      expect(keyline).toMatchObject({
+        borderStroke: "#f4f1e8",
+        borderStrokeWidth: 4,
+        padding: 2,
+        listening: false,
+        resizeEnabled: false,
+        rotateAnchorOffset: gizmo!.rotateAnchorOffset,
+        anchorSize: 0,
+      });
+      expect(keyline!.borderDash).toBeUndefined();
       // The centre move handle: a keyline edge, the colour inside, the cross in the keyline.
       const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
       expect(rects.map((rect) => [rect.fill, rect.stroke, rect.strokeWidth])).toEqual([
@@ -327,11 +343,12 @@ describe("TransformGizmo", () => {
 
     it("keeps today's blue handle and dashed border for a viewer with no colour", () => {
       const { container } = render(<TransformGizmo {...createDefaultProps()} />);
-      const transformerProps = getProps(
-        container.querySelector('[data-testid="konva-transformer"]'),
-      );
-      expect(transformerProps.borderEnabled).toBe(true);
+      const transformers = [...container.querySelectorAll('[data-testid="konva-transformer"]')];
+      // One transformer, no keyline, no padding: today's gizmo.
+      expect(transformers).toHaveLength(1);
+      const transformerProps = getProps(transformers[0]!);
       expect(transformerProps.borderStroke).toBe("#447DF7");
+      expect(transformerProps.padding).toBe(0);
       const rects = [...container.querySelectorAll('[data-testid="konva-rect"]')].map(getProps);
       expect(rects.map((rect) => [rect.fill, rect.stroke, rect.strokeWidth])).toEqual([
         ["rgba(68, 125, 247, 0.25)", "#447DF7", 1.5],

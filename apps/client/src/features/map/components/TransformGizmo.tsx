@@ -9,6 +9,7 @@ import { Transformer, Group, Rect, Line } from "react-konva";
 import type Konva from "konva";
 import type { SceneObject } from "@herobyte/shared";
 import { useSelectionPalette } from "../selectionPalette";
+import { GIZMO_PADDING, GizmoKeyline } from "./GizmoKeyline";
 
 interface TransformGizmoProps {
   selectedObject: SceneObject | null;
@@ -41,6 +42,7 @@ export function TransformGizmo({
   getNodeRef,
 }: TransformGizmoProps): JSX.Element | null {
   const transformerRef = useRef<Konva.Transformer>(null);
+  const keylineRef = useRef<Konva.Transformer>(null);
   const isCtrlPressed = useRef<boolean>(false);
   const palette = useSelectionPalette();
   const currentNodeRef = useRef<Konva.Node | null>(null);
@@ -109,9 +111,14 @@ export function TransformGizmo({
     const previousNode = currentNodeRef.current;
 
     if (!transformer) return;
+    // The gizmo and its keyline (a viewer's colour) always hold the same nodes.
+    const attach = (nodes: Konva.Node[]) => {
+      transformer.nodes(nodes);
+      keylineRef.current?.nodes(nodes);
+    };
 
     // Always detach first to prevent stale references
-    transformer.nodes([]);
+    attach([]);
 
     if (previousNode && previousNode !== node) {
       restoreNodeDraggable(previousNode);
@@ -128,11 +135,11 @@ export function TransformGizmo({
       node.draggable(true);
 
       try {
-        transformer.nodes([node]);
+        attach([node]);
         transformer.getLayer()?.batchDraw();
       } catch (error) {
         console.warn("[TransformGizmo] Failed to attach node:", error);
-        transformer.nodes([]);
+        attach([]);
       }
     } else {
       setHandlePosition(null);
@@ -144,7 +151,7 @@ export function TransformGizmo({
     return () => {
       restoreNodeDraggable(currentNodeRef.current);
       currentNodeRef.current = null;
-      transformer.nodes([]);
+      attach([]);
       setHandlePosition(null);
       setCursor("default");
     };
@@ -250,6 +257,7 @@ export function TransformGizmo({
 
   return (
     <>
+      {palette.keyline && <GizmoKeyline ref={keylineRef} keyline={palette.keyline} />}
       <Transformer
         ref={transformerRef}
         rotateEnabled={true}
@@ -263,11 +271,10 @@ export function TransformGizmo({
           "middle-left",
           "middle-right",
         ]}
-        // In a viewer's colour the dashed border (and the rotate handle's line, which
-        // Konva draws with it) is the keyline: a token, prop or drawing carries its own
-        // edged outline, and the map or staging zone still gets one.
-        borderEnabled={true}
-        borderStroke={palette.keyline ?? palette.stroke}
+        // In a viewer's colour the dashed border (and the rotate line Konva draws with
+        // it) is the colour over GizmoKeyline's solid keyline, just outside the ring.
+        padding={palette.keyline ? GIZMO_PADDING : 0}
+        borderStroke={palette.stroke}
         borderStrokeWidth={2}
         borderDash={[5, 5]}
         anchorFill={palette.stroke}
