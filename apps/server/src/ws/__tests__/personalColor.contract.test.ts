@@ -11,10 +11,14 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   colorToOkLab,
+  contrastRatio,
   createSeededRng,
   deltaE,
   farthestColor,
+  nearestAllowedColor,
   normalizeColor,
+  parseColor,
+  readableColor,
   ruleRadius,
   windowCells,
   windowColorAt,
@@ -82,7 +86,9 @@ describe("personal colours — the server is the authority", () => {
     expect(bo.color).not.toBe(annColor);
     expect(distance(bo.color, annColor)).toBeGreaterThanOrEqual(ruleRadius(2));
     // The NEAREST free colour: just outside the zone, not anywhere allowed.
-    expect(distance(bo.color, annColor)).toBeLessThan(ruleRadius(2) + 0.03);
+    expect(bo.color).toBe(
+      nearestAllowedColor(annColor, [{ lab: colorToOkLab(annColor)! }], ruleRadius(2)),
+    );
     expect(ann.color).toBe(annColor);
     expect(notices(BO)).toEqual([
       { t: "color-adjusted", tokenId: bo.id, color: bo.color, near: "Annika", name: "Bors" },
@@ -162,10 +168,10 @@ describe("personal colours — the server is the authority", () => {
     expect(notices(BO)).toEqual([]);
   });
 
-  it("gives an NPC token a plain window colour, not the spot the next player would get", () => {
+  it("gives an NPC token a readable random colour, not the spot the next player would get", () => {
     seat(ANN, "Annika");
     const goblin = characters.createCharacter(state(), "Goblin", 7, undefined, "npc");
-    const expected = farthestColor([], createSeededRng(99));
+    const expected = readableColor(createSeededRng(99));
     characters.placeNPCToken(state(), new TokenService(createSeededRng(99)), goblin.id, DM);
     expect(state().tokens.find((token) => token.id === goblin.tokenId)?.color).toBe(expected);
   });
@@ -245,12 +251,7 @@ describe("personal colours — the server is the authority", () => {
       harness.route({ t: "set-token-color", tokenId: bo.id, color: pick }, BO);
       expect(bo.color).not.toBe(pick);
       expect(notices(BO)).toHaveLength(toldBefore + 1);
-      expect(notices(BO).at(-1)).toEqual({
-        t: "color-adjusted",
-        tokenId: bo.id,
-        color: bo.color,
-        throttled: true,
-      });
+      expect(notices(BO).at(-1)).toEqual({ t: "color-adjusted", tokenId: bo.id, throttled: true });
       vi.setSystemTime(Date.now() + 1000);
       harness.route({ t: "set-token-color", tokenId: bo.id, color: pick }, BO);
       expect(bo.color).toBe(pick);
@@ -282,7 +283,7 @@ describe("personal colours — the server is the authority", () => {
       // Still over budget: the sender's own token is answered, with the colour it keeps.
       harness.route({ t: "set-token-color", tokenId: bo.id, color: pick }, BO);
       expect(notices(BO).slice(toldBefore)).toEqual([
-        { t: "color-adjusted", tokenId: bo.id, color: bo.color, throttled: true },
+        { t: "color-adjusted", tokenId: bo.id, throttled: true },
       ]);
     } finally {
       vi.useRealTimers();
@@ -304,7 +305,7 @@ describe("personal colours — the server is the authority", () => {
     }
   });
 
-  it("keeps a PC's colour out of other zones when the DM holds its token (after clear all)", () => {
+  it("keeps a PC's colour out of other zones when the DM holds its token (a DM's link or a restored file)", () => {
     const ann = seat(ANN, "Annika");
     const bo = seat(BO, "Bors");
     bo.owner = DM;
@@ -314,6 +315,69 @@ describe("personal colours — the server is the authority", () => {
         if (press % 10 === 0) vi.setSystemTime(Date.now() + 5000);
         harness.route({ t: "recolor", id: bo.id }, DM);
         expect(distance(bo.color, ann.color)).toBeGreaterThanOrEqual(ruleRadius(2));
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("answers the DM's over-budget write for any token, and with no colour in it", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const ann = seat(ANN, "Annika");
+      for (let press = 0; press < 10; press += 1) harness.route({ t: "recolor", id: ann.id }, DM);
+      const toldBefore = notices(DM).length;
+      harness.route({ t: "recolor", id: ann.id }, DM);
+      expect(notices(DM).slice(toldBefore)).toEqual([
+        { t: "color-adjusted", tokenId: ann.id, throttled: true },
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("judges a token by its PC's player, so a token held by another player never blocks itself", () => {
+    const bors = seat(BO, "Bors");
+    seat(ANN, "Annika");
+    // Bo's token, linked to Annika's PC (a DM's link): the colour is Annika's. It starts
+    // in Bo's colour (his further characters inherit it), so it is moved far away first.
+    const held = tokens.createToken(state(), BO, 5, 5);
+    held.color = farthestColor([{ lab: colorToOkLab(bors.color)! }]);
+    const annika = state().characters.find((character) => character.name === "Annika")!;
+    characters.linkToken(state(), annika.id, held.id);
+    const beside = nearbyColor(held.color);
+    expect(distance(beside, held.color)).toBeLessThan(ruleRadius(2));
+
+    harness.route({ t: "set-token-color", tokenId: held.id, color: beside }, BO);
+
+    expect(held.color).toBe(beside);
+    expect(notices(BO)).toEqual([]);
+  });
+
+  it("gives NPCs, and the DM's own recolours, colours that read on a dark map", () => {
+    const floor = parseColor("#2a2622")!;
+    const readable = (color: string) => contrastRatio(parseColor(color)!, floor) >= 3;
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const npc = new TokenService(createSeededRng(seed)).createToken(
+        state(),
+        DM,
+        1,
+        1,
+        undefined,
+        "medium",
+        "npc",
+      );
+      expect(readable(npc.color)).toBe(true);
+    }
+    const king = tokens.createToken(state(), DM, 2, 2, undefined, "medium", "npc");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      for (let press = 0; press < 30; press += 1) {
+        if (press % 10 === 0) vi.setSystemTime(Date.now() + 5000);
+        const before = king.color;
+        harness.route({ t: "recolor", id: king.id }, DM);
+        expect(king.color).not.toBe(before);
+        expect(readable(king.color)).toBe(true);
       }
     } finally {
       vi.useRealTimers();

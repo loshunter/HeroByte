@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { colorToOkLab, deltaE, normalizeColor, type OkLab } from "../colorSpace.js";
+import {
+  colorToOkLab,
+  contrastRatio,
+  deltaE,
+  normalizeColor,
+  parseColor,
+  type OkLab,
+} from "../colorSpace.js";
 import {
   COLOR_RULE,
   closestBlocker,
@@ -14,6 +21,7 @@ import {
   zoneMap,
 } from "../colorRule.js";
 import { cellIndexAt, windowCells, windowColorAt, windowPointOf } from "../colorWindow.js";
+import { readableColor } from "../colorReadable.js";
 import { createSeededRng } from "../rng.js";
 
 const blocker = (color: string) => ({ lab: colorToOkLab(color)! });
@@ -67,6 +75,37 @@ describe("colorRuleInputs", () => {
   it("sizes the radius from that count", () => {
     const inputs = colorRuleInputs(holders, isDM, "newcomer");
     expect(inputs.radius).toBe(ruleRadius(inputs.playerCount));
+  });
+
+  it("lets one colour block once, however many characters wear it", () => {
+    const flood = Array.from({ length: 500 }, (_, index) => ({
+      ownerUid: "sam",
+      color: index % 2 ? "#0000FF" : "#0000ff",
+      name: `Sam's ${index}`,
+    }));
+    const { others, playerCount } = colorRuleInputs([...holders, ...flood], isDM, "me");
+    expect(others.map((other) => other.name)).toEqual(["Sam's"]);
+    expect(playerCount).toBe(3);
+  });
+});
+
+describe("readableColor", () => {
+  const floor = parseColor("#2a2622")!;
+
+  it("draws only colours that read on a dark map floor (3:1)", () => {
+    const rng = createSeededRng(11);
+    for (let draw = 0; draw < 300; draw += 1) {
+      expect(contrastRatio(parseColor(readableColor(rng))!, floor)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("moves at least the step from the current colour", () => {
+    const rng = createSeededRng(12);
+    const current = readableColor(rng);
+    for (let draw = 0; draw < 100; draw += 1) {
+      const next = readableColor(rng, current, 0.1);
+      expect(deltaE(colorToOkLab(next)!, colorToOkLab(current)!)).toBeGreaterThanOrEqual(0.1);
+    }
   });
 });
 

@@ -9,8 +9,9 @@
 // gamut runs out first. The band runs from deep shades (L 0.30: dark navy,
 // maroon, purple, the owner's choice) to pastels. Its dark half does not read
 // on dark maps or the navy cards by itself: C3 lifts the colour for text, and
-// frames (C5a) light their facets. Below L 0.30 sRGB cannot keep hues apart,
-// and greys and near-white are left off: they carry no hue to tell players by.
+// frames (C5a) light their facets. Below L 0.30 the colours crowd toward black
+// (the owner's floor), and greys and near-white are left off: they carry no hue
+// to tell players by.
 //
 // The window is a VIEW. The rule itself is measured in OKLab (colorRule.ts),
 // on the colours each cell actually displays, so where the gamut clips a zone
@@ -150,8 +151,8 @@ export function cellIndexAt(point: WindowPoint): number {
 /**
  * The window's size in ΔE units at the target chroma: a hue step of Δh radians
  * is about C·Δh, a lightness step ΔL is ΔL. Width ≈ 2πC, height = the band.
- * The rule's distances use this aspect (about 4.45 : 1). The picker draws at
- * 2.6 : 1 so the window is tall enough to use, and bumps in its own aspect.
+ * The rule's distances use this aspect (about 1.84 : 1 on the 0.30–0.88 band).
+ * The picker draws wider, at 2.6 : 1, and bumps in its own drawn aspect.
  */
 export function windowSize(): { width: number; height: number } {
   const { chroma, lightMax, lightMin } = COLOR_WINDOW;

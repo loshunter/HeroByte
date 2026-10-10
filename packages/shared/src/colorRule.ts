@@ -78,12 +78,20 @@ export function colorRuleInputs(
 ): ColorRuleInputs {
   const owners = new Set<string>();
   const others: BlockingColor[] = [];
+  const seen = new Set<string>();
   for (const holder of holders) {
     if (isDM(holder.ownerUid)) continue;
     owners.add(holder.ownerUid);
     if (holder.ownerUid === requesterUid) continue;
     const lab = colorToOkLab(holder.color);
-    if (lab) others.push({ ...holder, lab });
+    if (!lab) continue;
+    // One colour blocks once, however many characters wear it: a player's further
+    // characters inherit their colour, and a flood of them must not multiply the
+    // cost of every write at the table.
+    const stored = normalizeColor(holder.color)!;
+    if (seen.has(stored)) continue;
+    seen.add(stored);
+    others.push({ ...holder, lab });
   }
   if (!isDM(requesterUid)) owners.add(requesterUid);
   return { others, playerCount: owners.size, radius: ruleRadius(owners.size) };

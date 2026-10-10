@@ -10,12 +10,14 @@
 // The server is the authority: the picker bumps a handle at a zone's edge,
 // but a crafted message, a stale picker (someone joined meanwhile) or a loaded
 // file can still ask for a taken colour. Those are SNAPPED to the nearest
-// allowed colour, never refused by the rule (an over-budget write is dropped,
-// and the sender told), and the sender is told (personal-colour-arc-plan §3.3). Messages are handled in order, so two players choosing the
-// same spot at once cannot both get it: the second is checked against the
-// first.
+// allowed colour, never refused by the rule, and the sender is told
+// (personal-colour-arc-plan §3.3). An over-budget write is dropped; the sender
+// is told only for a token they may colour (TokenDispatcher.throttled).
+// Messages are handled in order, so two players choosing the same spot at once
+// cannot both get it: the second is checked against the first.
 
 import {
+  COLOR_RULE,
   closestBlocker,
   colorRuleInputs,
   farthestColor,
@@ -23,6 +25,7 @@ import {
   nearestAllowedColor,
   normalizeColor,
   randomAllowedColor,
+  readableColor,
   type ColorHolder,
   type Token,
 } from "@herobyte/shared";
@@ -82,8 +85,9 @@ function inputsFor(state: RoomState, ownerUid: string) {
 /**
  * Whose colour a token wears: its PC's player when it is a PC's token (that is
  * whose zone the colour holds, pcColorHolders), else the token's owner. They
- * differ when "clear all" leaves a locked PC's token with the DM: its player's
- * colour still keeps out of the other zones.
+ * differ only after a DM links a PC to a token someone else owns, or in a
+ * restored file ("clear all" keeps a PC's locked token with its player): the
+ * player's colour still keeps out of the other zones.
  */
 function colorOwner(state: RoomState, token: Token): string {
   const pc = state.characters.find(
@@ -94,8 +98,9 @@ function colorOwner(state: RoomState, token: Token): string {
 }
 
 /**
- * A new token's colour. An NPC's is any window colour (NPCs hold no zone, and
- * steering them would put them on the colour the next player gets). A player's
+ * A new token's colour. An NPC's is a random colour that reads on a dark map
+ * (readableColor: NPCs hold no zone and have no picker, and steering them would
+ * put them on the colour the next player gets). A player's
  * further character starts in that player's colour (their characters may share,
  * and one player's characters must not spread across the window). A player's
  * first gets the open spot farthest from every other player's, among allowed
@@ -107,7 +112,7 @@ export function automaticColor(
   rng: () => number,
   kind: TokenKind = "pc",
 ): string {
-  if (kind === "npc") return farthestColor([], rng);
+  if (kind === "npc") return readableColor(rng);
   const holders = pcColorHolders(state);
   const own = holders.find(
     (holder) => holder.ownerUid === ownerUid && normalizeColor(holder.color),
@@ -121,14 +126,17 @@ export function automaticColor(
  * The double-click recolour: a random allowed colour, visibly away from the
  * current one, so "recolour" always recolours. The exemption follows whose
  * colour it is (colorOwner): the DM's own tokens (their PC, the NPCs they
- * placed) take any colour, but a player's token stays out of other players'
- * zones even when the DM is the one recolouring it (nobody chose that colour).
+ * placed) take any colour that reads on a dark map (readableColor), but a
+ * player's token stays out of other players' zones even when the DM is the one
+ * recolouring it (nobody chose that colour).
  */
 export function recolorChoice(state: RoomState, token: Token, rng: () => number): string {
   const owner = colorOwner(state, token);
   const { others, radius } = inputsFor(state, owner);
-  const ownerIsDM = dmCheck(state)(owner);
-  return randomAllowedColor(ownerIsDM ? [] : others, radius, rng, token.color);
+  if (dmCheck(state)(owner)) {
+    return readableColor(rng, token.color, Math.max(radius, COLOR_RULE.recolorStepMin));
+  }
+  return randomAllowedColor(others, radius, rng, token.color);
 }
 
 /**

@@ -12,19 +12,19 @@ export interface TokenDispatcherResult extends RouteHandlerResult {
 
 /**
  * An over-budget colour write: nothing changes. Only a token the sender may colour
- * (its owner, or the DM) is answered, with the colour it keeps; any other id gets
- * the same silence as a refused write, so the throttle never says whether a token
- * exists or what colour a hidden or fogged one is.
+ * (its owner, or the DM) is answered; any other id gets the same silence as a
+ * refused write. The reply never carries a colour: an owner may no longer see
+ * their token (a hidden NPC an ex-DM placed), and its colour is the DM's.
  */
 function throttled(
-  state: { tokens: { id: string; owner: string; color: string }[] },
+  state: { tokens: { id: string; owner: string }[] },
   tokenId: string,
   senderUid: string,
   isDM: boolean,
 ): TokenDispatcherResult {
   const token = state.tokens.find((candidate) => candidate.id === tokenId);
   if (!token || (token.owner !== senderUid && !isDM)) return { broadcast: false, save: false };
-  return { colorNotice: { tokenId, color: token.color, throttled: true } };
+  return { colorNotice: { tokenId, throttled: true } };
 }
 
 export class TokenDispatcher {

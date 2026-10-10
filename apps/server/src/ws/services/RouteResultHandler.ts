@@ -66,7 +66,8 @@ export interface RouteHandlerResult {
   /** The colour rule moved a chosen colour: the router tells the sender where and why. */
   colorNotice?: {
     tokenId: string;
-    color: string;
+    /** The colour it was moved to; absent on a throttled reply. */
+    color?: string;
     near?: string;
     name?: string;
     throttled?: boolean;

@@ -125,6 +125,7 @@ export * from "./rng.js";
 export * from "./colorSpace.js";
 export * from "./colorWindow.js";
 export * from "./colorRule.js";
+export * from "./colorReadable.js";
 
 // Dice NOTATION only — what a formula means, and nothing that rolls one. The
 // roller is server-side on purpose (see dice.ts).
@@ -1336,9 +1337,10 @@ export type ServerMessage =
       // another player's zone (or could not be read), so the server moved it to the
       // nearest free colour, or a free one when it could not be read (colorRule.ts).
       // `near`: the character whose zone it was in; `name`: the character moved.
-      // `throttled`: too many colour writes at once; nothing changed.
+      // `throttled`: too many colour writes at once; nothing changed, and no colour is sent.
       tokenId: string;
-      color: string;
+      /** The colour it was moved to; absent on a throttled reply. */
+      color?: string;
       near?: string;
       name?: string;
       throttled?: boolean;
