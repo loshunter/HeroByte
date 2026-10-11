@@ -391,7 +391,8 @@ CI's run on the push.
 - **Landed elsewhere:** a double-tap recolour on phones (`9da4011b`, another session), merged in `cb7539c2` before
   the push; its help line is folded into `RECOLOR_ENTRY`.
 - **Not touched:** `add-player-character` has no per-player cap (characters are capped only on session load, at 500).
-  **Since `e147c189`:** 5 per player (the DM's not counted), and add and claim refuse at the table's 500.
+  **Since `e147c189`/`26374db4`:** 5 per player (the DM's not counted); an add (the DM's create too) refuses at the
+  table's 500, a claim does not.
 
 ## Corrections to commit messages (pushed; not rewritten)
 
@@ -529,8 +530,43 @@ demoted DM keeps every PC made while DM, which can leave a player above five; ch
 a co-DM who is elevated now (older; the owner's call); `PlayerService.setDMMode` is dead code that would skip
 `demoteDM` if wired; the server's `clear-all-tokens` (no client sends it) deletes unlocked role monsters.
 
-**Where this is:** every commit above is on local `dev`, not pushed and not on main. Production (`040f7b97`) still
-has the demoted-DM hole (F3/F4) until it is merged.
+**Review round 3** (2026-10-10, the cap; three fresh reviewers, opus, read-only and static, on `5ba22735`, while a
+full gate run passed apart from the known local pair; entry bundle 170.36 KB of 175): A (the demotion and the cap)
+FAIL, 1 high, 2 medium, 3 low; B (client and UX) PASS, 6 P3; C (docs) FAIL, 2 major, 5 minor. Round-by-round for this
+review: about 28, 33, 23 findings. Fixed:
+
+- `020334a2`: a restore installed the file's parked maps after the snapshot's rehome, so a goblin parked in a backup
+  kept an old DM's uid (a player tonight) until the next restart (A high); REMOVE and Clear All left a seat's parked
+  pieces with it; a DM proven by the session token on reconnect now takes the role's pieces; the first-DM-password
+  hand-back has a test (it had none).
+- `0f389a73`: the Player View left out only the viewer's and the role's tokens, so a co-DM's monsters lit the party's
+  fog; it now leaves out every DM's.
+- `6a0883ad`: Delete told a DM "not yours" for the staging zone and a player "not yours" for their own prop with
+  player props off (it says the DM's switch now); the map check tested `map:`, the map's id is `map`.
+- `4ee591db`, `6e2fd4ae`: the selection bar re-places itself when its own width changes, and steps around the toast
+  stack (a wide toast sat over Unlock at 1024 px). `4ee591db` claimed its resize test was red without the observer;
+  it was not, and `6e2fd4ae` makes it so.
+- `26c85228`: keys pressed during a still press win its release; a blur during a press leaves the send to the
+  release or cancel (it sent twice, the older last).
+- Docs: the DM guide and Help say a hand-over to a player at five does nothing; `dmDemotion.ts` says the co-DM case.
+
+Still open after round 3, stated:
+- A new uid's first character (joinProvisioning) and a restore's merge do not check the table's 500. On the public
+  table, scripted joins could pass it and break the DM's backup.
+- "Creating..." gives up after 10 s in silence: if the add was only slow, a retry makes a second character.
+- A hand-over refused at five sends no reply (the DM sees nothing happen).
+- A demoted DM keeps every PC made while DM, which can leave a player above five.
+- Changing the DM password does not demote a co-DM who is elevated now (older; the owner's call).
+- `PlayerService.setDMMode` is dead code that would skip `demoteDM` if wired.
+- The server's `clear-all-tokens` (no client sends it) deletes unlocked role monsters.
+- A Ctrl change in the middle of a rotation still applies one move late (only the press is early now).
+- A DM after a deploy, until they enter the DM password again: every monster is the role's, so as a player they
+  cannot move, recolour or see through any monster (before `801896c3` the uid could). At a co-DM table the pieces go
+  to whichever DM elevates first.
+
+**Where this is:** every commit above, and the two that rode with them (`852ed363` Delete removes props by the
+server's rule; `b29bfb7d` the selection bar steps aside), are on local `dev`, not pushed and not on main. Production
+(`bc4b2356`) still has the demoted-DM hole (F3/F4) until they are merged.
 
 ## Commits (on `91c69b63`)
 

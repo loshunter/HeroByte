@@ -12,9 +12,10 @@
  * So a demotion hands the uid's pieces (all but its own player characters' tokens,
  * on the table and on every map it left) to another DM at the table, or else to the
  * DM role: an owner no uid can be (a uid is [A-Za-z0-9_-], ConnectionLifecycleManager),
- * which no player ever matches. The next DM to elevate takes the role's pieces back,
- * so the deploy that demotes every DM (session tokens live in memory) costs a DM
- * nothing once they enter the password again. A table loaded from disk, a restored
+ * which no player ever matches. The next DM to elevate (or to reconnect with their
+ * session token) takes the role's pieces back, so the deploy that demotes every DM
+ * (session tokens live in memory) costs a lone DM nothing once they enter the password
+ * again; at a co-DM table every DM's pieces go to whichever DM elevates first. A table loaded from disk, a restored
  * backup and a fork get the same rule for NPC tokens, which may name a uid that is
  * a player now.
  */

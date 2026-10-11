@@ -22,7 +22,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "A player's character",
       detail:
-        "Select its row, then on its card: click an HP number to set it. ⚙️ → Token settings → Owner moves it, token and all, to another player's seat (player characters only). On a phone: ◉ PARTY → the HP on its row, and ⚙️ EDIT → Owner.",
+        "Select its row, then on its card: click an HP number to set it. ⚙️ → Token settings → Owner moves it, token and all, to another player's seat (player characters only; not to a player who already holds 5). On a phone: ◉ PARTY → the HP on its row, and ⚙️ EDIT → Owner.",
     },
     {
       term: "Adding a whole pack",
