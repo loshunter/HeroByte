@@ -221,6 +221,24 @@ describe("the gizmo's keyline transformer", () => {
       expect(transformWith({ ctrlKey: false, metaKey: true })).toHaveBeenLastCalledWith([]);
     });
 
+    it("applies the choice at the press, before the first move (Konva reads snaps first)", () => {
+      const node = konvaNode();
+      render(
+        <TransformGizmo
+          selectedObject={token("a")}
+          onTransform={vi.fn()}
+          getNodeRef={() => node as never}
+        />,
+      );
+      const { gizmo } = split();
+      gizmo.api.rotationSnaps.mockClear();
+      const start = gizmo.props.onTransformStart as (e: { evt: Partial<MouseEvent> }) => void;
+      start({ evt: { ctrlKey: true } });
+      expect(gizmo.api.rotationSnaps).toHaveBeenLastCalledWith([]);
+      start({ evt: { ctrlKey: false } });
+      expect(gizmo.api.rotationSnaps).toHaveBeenLastCalledWith(SNAPS);
+    });
+
     it("still snaps after a Ctrl key-up that went to another window (Ctrl+T, Cmd+Tab)", () => {
       // The key-down reached the mounted gizmo's page, its key-up did not: a window key
       // flag stuck "on" and the next drag, Ctrl long released, rotated freely.

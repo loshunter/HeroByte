@@ -276,6 +276,9 @@ export function TransformGizmo({
         rotationSnapTolerance={10}
         keepRatio={false}
         boundBoxFunc={boundBox}
+        // At the press too: Konva reads the snaps before it fires `transform`, so a
+        // choice made only there applied one move late (the last Ctrl drag's, at first).
+        onTransformStart={handleTransform}
         onTransform={handleTransform}
         onTransformEnd={handleTransformEnd}
       />
