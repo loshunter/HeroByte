@@ -1349,6 +1349,15 @@ export type ServerMessage =
       name?: string;
       throttled?: boolean;
     }
+  | {
+      t: "character-refused";
+      // Sent to the SENDER only (sendControlMessage). A character the sender asked for
+      // was not taken: the player already holds PLAYER_CHARACTER_LIMITS.PER_PLAYER
+      // ("player-cap"; for a DM's hand-over, the player it was handed to), or the table
+      // is at its 500 and the DM's backup would no longer load ("table-full").
+      action: "add" | "claim" | "hand-over" | "create";
+      reason: "player-cap" | "table-full";
+    }
   | { t: "map-studio-deleted"; documentId: string }
   | {
       t: "map-studio-error";

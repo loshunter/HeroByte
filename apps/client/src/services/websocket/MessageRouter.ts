@@ -77,6 +77,8 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "locked-refused" }>
   // The colour rule moved a colour the viewer chose (personal colour, C1).
   | Extract<ServerMessage, { t: "color-adjusted" }>
+  // A character refused at a cap, and a backup refused whole: the sender's only word.
+  | Extract<ServerMessage, { t: "character-refused" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
   // Download table backup's reply. It was never on this list: it rode the router's
@@ -417,6 +419,7 @@ export class MessageRouter {
       candidate.t === "remove-player-refused" ||
       candidate.t === "locked-refused" ||
       candidate.t === "color-adjusted" ||
+      candidate.t === "character-refused" ||
       candidate.t === "room-created" ||
       candidate.t === "room-create-failed" ||
       candidate.t === "session-file" ||

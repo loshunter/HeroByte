@@ -18,6 +18,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 import { deliverSessionFile } from "../features/session/sessionBridge";
 import { onLockNotice } from "../features/locking/lockNotice";
+import { characterRefusalMessage } from "../features/players/characterCap";
+import {
+  deliverCharacterRefusal,
+  onCharacterNotice,
+} from "../features/players/characterRefusalBridge";
 
 /**
  * Status of a room password update operation
@@ -146,29 +151,9 @@ export interface UseServerEventHandlersReturn {
 }
 
 /**
- * Hook to handle server events for room password updates and DM elevation
- *
- * Listens to the following server message types:
- * - `room-password-updated`: Room password was successfully updated
- * - `room-password-update-failed`: Room password update failed
- * - `dm-status`: DM elevation status update (shows toast when isDM=true)
- * - `dm-elevation-failed`: DM elevation failed (shows error toast)
- *
- * @example
- * ```tsx
- * const {
- *   roomPasswordStatus,
- *   roomPasswordPending,
- *   dismissRoomPasswordStatus,
- *   startRoomPasswordUpdate
- * } = useServerEventHandlers({
- *   registerServerEventHandler,
- *   toast
- * });
- * ```
- *
- * @param options - Configuration options
- * @returns Server event handler state and functions
+ * App's server-event switchboard: the control messages no snapshot carries (password
+ * and DM replies, refusals said to the one who tried, replies routed on to a feature).
+ * Every type it handles must also pass MessageRouter's isControlMessage guard.
  */
 export function useServerEventHandlers({
   registerServerEventHandler,
@@ -292,6 +277,10 @@ export function useServerEventHandlers({
         // The Table tab's REMOVE is fire-and-forget too, and a refused one
         // changes nothing on the table: this is the DM's only failure surface.
         toastError(REMOVE_PLAYER_REFUSAL_COPY[message.reason], 5000);
+      } else if ("t" in message && message.t === "character-refused") {
+        // A character the viewer asked for (or handed over) was not taken: say why.
+        toastError(characterRefusalMessage(message), 5000);
+        deliverCharacterRefusal(message);
       } else if ("t" in message && message.t === "color-adjusted") {
         // The server moved a colour you chose out of another player's zone (C1).
         toastInfo(colorAdjustedMessage(message.near, message.name, message.throttled), 5000);
@@ -329,6 +318,8 @@ export function useServerEventHandlers({
       ),
     [toastError],
   );
+  // "Creating..." gave up with no answer (characterRefusalBridge).
+  useEffect(() => onCharacterNotice((message) => toastInfo(message, 8000)), [toastInfo]);
 
   return {
     roomPasswordStatus,

@@ -11,6 +11,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { CREATION_TIMEOUT_MS, useCharacterCreation } from "../useCharacterCreation.js";
+import { CHARACTER_CREATION_NO_ANSWER } from "../../features/players/characterCap";
+import {
+  deliverCharacterRefusal,
+  onCharacterNotice,
+} from "../../features/players/characterRefusalBridge";
 import type { Character } from "@herobyte/shared";
 
 /**
@@ -115,8 +120,34 @@ describe("useCharacterCreation", () => {
       expect(mockAddCharacter).toHaveBeenCalledWith("Hero");
     });
 
-    it('gives up "Creating..." when the server never answers (a refusal it could not predict)', () => {
+    it('gives up "Creating..." when the server never answers, and says so', () => {
       vi.useFakeTimers();
+      const notices: string[] = [];
+      const unsubscribe = onCharacterNotice((message) => notices.push(message));
+      try {
+        const { result } = renderHook(() =>
+          useCharacterCreation({ addCharacter: () => true, characters: [], uid: testUid }),
+        );
+        act(() => {
+          result.current.createCharacter("Slow");
+        });
+        expect(result.current.isCreating).toBe(true);
+        act(() => vi.advanceTimersByTime(CREATION_TIMEOUT_MS - 1));
+        expect(notices).toEqual([]);
+        act(() => vi.advanceTimersByTime(1));
+        expect(result.current.isCreating).toBe(false);
+        // A slow add still lands: the notice warns before a second press makes two.
+        expect(notices).toEqual([CHARACTER_CREATION_NO_ANSWER]);
+      } finally {
+        unsubscribe();
+        vi.useRealTimers();
+      }
+    });
+
+    it('stops "Creating..." at the refusal of the add, with no give-up notice', () => {
+      vi.useFakeTimers();
+      const notices: string[] = [];
+      const unsubscribe = onCharacterNotice((message) => notices.push(message));
       try {
         const { result } = renderHook(() =>
           useCharacterCreation({ addCharacter: () => true, characters: [], uid: testUid }),
@@ -124,10 +155,23 @@ describe("useCharacterCreation", () => {
         act(() => {
           result.current.createCharacter("Refused");
         });
+        // Another action's refusal is not this add's.
+        act(() =>
+          deliverCharacterRefusal({
+            t: "character-refused",
+            action: "claim",
+            reason: "player-cap",
+          }),
+        );
         expect(result.current.isCreating).toBe(true);
-        act(() => vi.advanceTimersByTime(CREATION_TIMEOUT_MS));
+        act(() =>
+          deliverCharacterRefusal({ t: "character-refused", action: "add", reason: "table-full" }),
+        );
         expect(result.current.isCreating).toBe(false);
+        act(() => vi.advanceTimersByTime(CREATION_TIMEOUT_MS * 2));
+        expect(notices).toEqual([]);
       } finally {
+        unsubscribe();
         vi.useRealTimers();
       }
     });

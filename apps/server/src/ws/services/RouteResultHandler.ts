@@ -54,6 +54,7 @@
  */
 import type { PendingDelta } from "../types.js";
 import type { LockRefusal } from "../../domains/room/locking/pieceLock.js";
+import type { CharacterRefusal } from "../../domains/character/characterLimits.js";
 
 export interface RouteHandlerResult {
   broadcast?: unknown;
@@ -63,6 +64,8 @@ export interface RouteHandlerResult {
   skipBroadcast?: boolean;
   /** The piece lock stopped (part of) this action: the router tells the sender. */
   lockRefusal?: LockRefusal;
+  /** A character refused at a cap: the router tells the sender why. */
+  characterRefusal?: CharacterRefusal;
   /** The colour rule moved a chosen colour: the router tells the sender where and why. */
   colorNotice?: {
     tokenId: string;

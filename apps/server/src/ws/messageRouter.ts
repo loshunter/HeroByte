@@ -508,6 +508,11 @@ export class MessageRouter {
       });
     }
 
+    // A character refused at a cap: the sender's add, claim or hand-over changed nothing.
+    if (result.characterRefusal) {
+      this.sendControlMessage(senderUid, { t: "character-refused", ...result.characterRefusal });
+    }
+
     // The colour rule moved what they chose: say where it went, to them alone.
     if (result.colorNotice) {
       this.sendControlMessage(senderUid, { t: "color-adjusted", ...result.colorNotice });

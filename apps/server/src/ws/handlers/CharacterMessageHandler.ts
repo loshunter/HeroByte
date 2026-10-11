@@ -16,7 +16,12 @@ import { replaceIfSeatedPlayerLostLastCharacter } from "./seatReplacement.js";
 import { deleteCharacterKeepingTurn, lockedTokenRefusal } from "./deleteCharacter.js";
 import type { LockRefusal } from "../../domains/room/locking/pieceLock.js";
 import type { CharacterService } from "../../domains/character/service.js";
-import { mayTakeCharacter, tableHasRoom } from "../../domains/character/characterLimits.js";
+import {
+  characterRefusalReason,
+  refuseCharacter,
+  tableHasRoom,
+  type CharacterRefusal,
+} from "../../domains/character/characterLimits.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
@@ -31,28 +36,20 @@ export interface CharacterMessageResult {
   save: boolean;
   /** The piece lock stopped this action: the router tells the sender. */
   lockRefusal?: LockRefusal;
+  /** A character refused at a cap: the router tells the sender why. */
+  characterRefusal?: CharacterRefusal;
 }
 
 /**
  * Handler for character-related messages
  */
 export class CharacterMessageHandler {
-  private characterService: CharacterService;
-  private tokenService: TokenService;
-  private selectionService: SelectionService;
-  private roomService: RoomService;
-
   constructor(
-    characterService: CharacterService,
-    tokenService: TokenService,
-    selectionService: SelectionService,
-    roomService: RoomService,
-  ) {
-    this.characterService = characterService;
-    this.tokenService = tokenService;
-    this.selectionService = selectionService;
-    this.roomService = roomService;
-  }
+    private characterService: CharacterService,
+    private tokenService: TokenService,
+    private selectionService: SelectionService,
+    private roomService: RoomService,
+  ) {}
 
   /**
    * Handle create character message (DM only)
@@ -68,7 +65,7 @@ export class CharacterMessageHandler {
     maxHp: number,
     portrait?: string,
   ): CharacterMessageResult {
-    if (!tableHasRoom(state)) return { broadcast: false, save: false };
+    if (!tableHasRoom(state)) return refuseCharacter("create", "table-full");
     this.characterService.createCharacter(state, name, maxHp, portrait);
     return { broadcast: true, save: true };
   }
@@ -87,9 +84,8 @@ export class CharacterMessageHandler {
     isDM = false,
   ): CharacterMessageResult {
     // A claim adds no character: only the player's own cap applies.
-    if (!mayTakeCharacter(state, senderUid, isDM, { adds: false })) {
-      return { broadcast: false, save: false };
-    }
+    const refused = characterRefusalReason(state, senderUid, isDM, { adds: false });
+    if (refused) return refuseCharacter("claim", refused);
     const claimed = this.characterService.claimCharacter(state, characterId, senderUid);
     return { broadcast: claimed, save: claimed };
   }
@@ -113,7 +109,8 @@ export class CharacterMessageHandler {
     isDM = false,
   ): CharacterMessageResult {
     // The player's cap and the table's: past the table's, the DM's backup is no backup.
-    if (!mayTakeCharacter(state, senderUid, isDM)) return { broadcast: false, save: false };
+    const refused = characterRefusalReason(state, senderUid, isDM);
+    if (refused) return refuseCharacter("add", refused);
 
     // Create character for the requesting player
     const actualMaxHp = maxHp ?? 100;

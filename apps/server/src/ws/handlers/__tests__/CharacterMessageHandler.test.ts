@@ -305,6 +305,64 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       expect(state.characters).toHaveLength(500);
       expect(state.characters.some((c) => c.name === "One too many")).toBe(false);
     });
+
+    describe("says why, to the sender alone", () => {
+      /** The character-refused frames each socket received. */
+      const socketFor = (uid: string) => {
+        const socket = { readyState: 1, send: vi.fn() } as unknown as WebSocket;
+        mockUidToWs.set(uid, socket);
+        return () =>
+          (socket.send as unknown as { mock: { calls: [string][] } }).mock.calls
+            .map(([raw]) => JSON.parse(raw) as { t: string })
+            .filter((frame) => frame.t === "character-refused");
+      };
+
+      it("an add or a claim at five, and a DM's hand-over to a player at five", () => {
+        const playerFrames = socketFor(playerUid);
+        const dmFrames = socketFor(dmUid);
+        const state = roomService.getState();
+        for (let n = 1; n <= 5; n += 1) {
+          messageRouter.route({ t: "add-player-character", name: `Hero ${n}` }, playerUid);
+        }
+        expect(playerFrames()).toEqual([]);
+
+        messageRouter.route({ t: "add-player-character", name: "Sixth" }, playerUid);
+        const spare = characterService.createCharacter(state, "Spare", 10, "");
+        messageRouter.route({ t: "claim-character", characterId: spare.id }, playerUid);
+        expect(playerFrames()).toEqual([
+          { t: "character-refused", action: "add", reason: "player-cap" },
+          { t: "character-refused", action: "claim", reason: "player-cap" },
+        ]);
+
+        messageRouter.route({ t: "add-player-character", name: "Ally" }, dmUid);
+        const ally = state.characters.find((c) => c.name === "Ally")!;
+        messageRouter.route(
+          { t: "set-character-owner", characterId: ally.id, ownerUid: playerUid },
+          dmUid,
+        );
+        expect(dmFrames()).toEqual([
+          { t: "character-refused", action: "hand-over", reason: "player-cap" },
+        ]);
+        expect(playerFrames()).toHaveLength(2);
+      });
+
+      it("an add or the DM's create at a full table", () => {
+        const playerFrames = socketFor(playerUid);
+        const dmFrames = socketFor(dmUid);
+        const state = roomService.getState();
+        for (let n = state.characters.length; n < 500; n += 1) {
+          characterService.createCharacter(state, `Filler ${n}`, 1, "", "npc");
+        }
+        messageRouter.route({ t: "add-player-character", name: "One too many" }, playerUid);
+        messageRouter.route({ t: "create-character", name: "And another", maxHp: 5 }, dmUid);
+        expect(playerFrames()).toEqual([
+          { t: "character-refused", action: "add", reason: "table-full" },
+        ]);
+        expect(dmFrames()).toEqual([
+          { t: "character-refused", action: "create", reason: "table-full" },
+        ]);
+      });
+    });
   });
 
   describe("delete-player-character message", () => {
