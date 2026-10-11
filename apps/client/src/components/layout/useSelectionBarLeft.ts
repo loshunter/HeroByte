@@ -1,7 +1,7 @@
 import { useLayoutEffect, useState, type RefObject } from "react";
 import { selectionBarLeft, type Span } from "./selectionBarPlacement";
 
-/** Marks a floating window (DraggableWindow) for the selection bar to step around. */
+/** Marks what the selection bar steps around: a floating window (DraggableWindow), the toasts. */
 export const FLOATING_WINDOW_ATTR = "data-floating-window";
 
 /**
@@ -49,8 +49,12 @@ export function useSelectionBarLeft(bar: RefObject<HTMLElement>, active: boolean
       attributeFilter: ["style"],
     });
     window.addEventListener("resize", schedule);
+    // The bar's own width can change with no DOM change (a web font arriving late).
+    const sized = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
+    if (bar.current) sized?.observe(bar.current);
     return () => {
       observer.disconnect();
+      sized?.disconnect();
       window.removeEventListener("resize", schedule);
       if (frame) cancelAnimationFrame(frame);
     };

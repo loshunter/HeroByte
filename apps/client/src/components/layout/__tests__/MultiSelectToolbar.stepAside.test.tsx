@@ -2,7 +2,8 @@
 // 3fd6c945) and steps aside from one over its strip, so 🔓 Unlock is never under Chat.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { ToastContainer } from "../../ui/Toast";
 import { MultiSelectToolbar } from "../MultiSelectToolbar";
 import { FLOATING_WINDOW_ATTR } from "../useSelectionBarLeft";
 
@@ -69,6 +70,47 @@ describe("MultiSelectToolbar — steps aside from floating windows", () => {
     const style = screen.getByTestId("selection-bar").style;
     expect(style.transform).toBe("none");
     expect(parseFloat(style.left) + 300).toBeLessThanOrEqual(604 - 8);
+  });
+
+  it("steps around the toasts too (a wide one sat over Unlock at 1024 px)", () => {
+    const { container } = render(
+      <ToastContainer
+        messages={[{ id: "t", type: "info", message: "Locked" }]}
+        onDismiss={vi.fn()}
+      />,
+    );
+    expect(container.querySelector(`[${FLOATING_WINDOW_ATTR}]`)).not.toBeNull();
+  });
+
+  it("re-places itself when its own width changes with no DOM change (a late web font)", async () => {
+    vi.spyOn(window, "innerWidth", "get").mockReturnValue(1024);
+    const boxes = new Map([
+      ["selection-bar", rect(362, 80, 300, 48)],
+      ["chat", rect(700, 100, 300, 500)],
+    ]);
+    mockRects(boxes);
+    addWindow("chat");
+    let resized: () => void = () => {};
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          resized = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    render(bar());
+    expect(screen.getByTestId("selection-bar").style.left).toBe("50%"); // clear of Chat at 300 wide
+    boxes.set("selection-bar", rect(312, 80, 400, 48)); // the font arrived: now it reaches Chat
+    await act(async () => {
+      resized();
+      await new Promise((done) => requestAnimationFrame(() => done(undefined)));
+    });
+    const left = parseFloat(screen.getByTestId("selection-bar").style.left);
+    expect(left + 400).toBeLessThanOrEqual(700 - 8);
+    vi.unstubAllGlobals();
   });
 
   it("stays centred when the only window is clear of its strip", () => {
