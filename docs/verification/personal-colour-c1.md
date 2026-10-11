@@ -550,14 +550,15 @@ review: about 28, 33, 23 findings. Fixed:
   release or cancel (it sent twice, the older last).
 - Docs: the DM guide and Help say a hand-over to a player at five does nothing; `dmDemotion.ts` says the co-DM case.
 
-Still open after round 3, stated:
-- A new uid's first character (joinProvisioning) and a restore's merge do not check the table's 500. On the public
-  table, scripted joins could pass it and break the DM's backup.
-- "Creating..." gives up after 10 s in silence: if the add was only slow, a retry makes a second character.
-- A hand-over refused at five sends no reply (the DM sees nothing happen).
+Still open after round 3, stated (struck items closed on local dev 2026-10-11, see
+[housekeeping-2026-10-11.md](housekeeping-2026-10-11.md)):
+- ~~A new uid's first character (joinProvisioning) and a restore's merge do not check the table's 500.~~ `07a4f80f`.
+- ~~"Creating..." gives up after 10 s in silence.~~ `e2b771fa`: it stops at the server's refusal, and a give-up says
+  to check the Party list before adding another.
+- ~~A hand-over refused at five sends no reply.~~ `e2b771fa`: `character-refused`, toasted to the DM.
 - A demoted DM keeps every PC made while DM, which can leave a player above five.
 - Changing the DM password does not demote a co-DM who is elevated now (older; the owner's call).
-- `PlayerService.setDMMode` is dead code that would skip `demoteDM` if wired.
+- ~~`PlayerService.setDMMode` is dead code that would skip `demoteDM` if wired.~~ Removed, `7fa1fe22`.
 - The server's `clear-all-tokens` (no client sends it) deletes unlocked role monsters.
 - A Ctrl change in the middle of a rotation still applies one move late (only the press is early now).
 - A DM after a deploy, until they enter the DM password again: every monster is the role's, so as a player they

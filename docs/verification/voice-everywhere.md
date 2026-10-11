@@ -86,7 +86,10 @@ fixes (see "Pre-merge review" and "Commits" below).
 1. **A silently dead connection stays "in the call" for up to ~5.5 minutes** (the server's 5-minute heartbeat timeout,
    swept every 30 s; it pings every 25 s but never checks for a pong). Pre-existing for presence in general; voice makes
    it visible. Fix proposed by the round-3 server reviewer: terminate a socket that misses a pong (~50 s). It changes
-   connection handling for every player, so it is the owner's call.
+   connection handling for every player, so it is the owner's call. **The owner approved it in two steps
+   (2026-10-10). Step 1 is built (`f722f022`, local dev 2026-10-11): each socket's pongs are logged as one `[pong]`
+   line at its close, nothing acted on. Step 2 waits on what those lines say in production** (see
+   [housekeeping-2026-10-11.md](housekeeping-2026-10-11.md)).
 2. **No TURN** (decision 2): a phone on mobile data behind carrier NAT may show "Can't reach …" forever. Documented.
 3. **iPhone not tested** (CI and this machine run Chromium only). The audio fallback and the WebKit autoplay behaviour
    need the owner's phone.
@@ -128,9 +131,8 @@ errors. Score 8.6 (functionality 9, multiplayer 9, craft 8, reach 8: no iPhone).
 
 - The ledger's limit is per room (worst case about 15 MB a room), with no server-wide cap; and it switches off with
   `FEATURE_FLAG_ACKS=false`.
-- A slow backup (`session-export`) can be built and sent 2 to 4 times on a slow link, as in production today: the
-  client tracks and retries it although its real answer is the file. Fix: add it to the client's untracked/no-retry
-  lists.
+- ~~A slow backup (`session-export`) can be built and sent 2 to 4 times on a slow link.~~ Fixed `b8ddd569`
+  (2026-10-11): the client neither tracks nor retries it.
 - A lock or remove refusal can be lost when the ledger answers a retry flushed after a reconnect (cosmetic).
 - A fork whose reply is lost leaves an orphaned table; old tabs still retry forks until they reload.
 - Old tabs (from before this deploy) cannot do voice with new ones until they reload.
