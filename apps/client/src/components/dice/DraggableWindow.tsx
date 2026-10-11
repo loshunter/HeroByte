@@ -7,6 +7,7 @@ import { registerOpenPanel } from "../effects/panelPresence";
 import { isMobileLayout } from "../../utils/mobileLayout";
 import { belowHeader, useFollowHeader } from "./headerPlacement";
 import { loadWindowPosition, saveWindowPosition } from "./windowPosition";
+import { FLOATING_WINDOW_ATTR } from "../layout/useSelectionBarLeft";
 import {
   WindowInteraction,
   type WindowInteractionOptions,
@@ -241,7 +242,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
       onClose={onClose}
     >
       {(close) => (
-        <div ref={windowRef} style={isMobile ? mobileStyles : desktopStyles}>
+        <div
+          ref={windowRef}
+          style={isMobile ? mobileStyles : desktopStyles}
+          {...(isMobile ? {} : { [FLOATING_WINDOW_ATTR]: "" })}
+        >
           {/* Title bar - draggable on desktop */}
           <div
             onMouseDown={handleMouseDown}

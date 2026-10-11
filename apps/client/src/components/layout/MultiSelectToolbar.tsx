@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef } from "react";
+import { useSelectionBarLeft } from "./useSelectionBarLeft";
 
 /**
  * MultiSelectToolbar Component
@@ -77,22 +78,27 @@ export function MultiSelectToolbar({
   onLock,
   onUnlock,
 }: MultiSelectToolbarProps): JSX.Element | null {
+  const visible = isDM && selectedObjectIds.length > 0;
+  const barRef = useRef<HTMLDivElement>(null);
+  const left = useSelectionBarLeft(barRef, visible);
   // Only show toolbar when user is DM and has objects selected
-  if (!isDM || selectedObjectIds.length === 0) {
+  if (!visible) {
     return null;
   }
 
   return (
     <div
+      ref={barRef}
+      data-testid="selection-bar"
       style={{
         position: "fixed",
         top: `${topHeight + 20}px`,
-        left: "50%",
-        transform: "translateX(-50%)",
-        // Not raised above the floating windows: Chat & Rolls (1000) can cover 🔓 Unlock
-        // at narrow widths, but the windows that open under the header (NPC settings,
-        // ROLL RESULT, the dice roller) put their ✕ where this bar sits, and a bar over
-        // them turns a close into a lock or an unlock.
+        // Centred, or stepped aside from a window over its strip (selectionBarPlacement.ts).
+        left: left === null ? "50%" : `${left}px`,
+        transform: left === null ? "translateX(-50%)" : "none",
+        // Not raised above the floating windows: the windows that open under the header
+        // (NPC settings, ROLL RESULT, the dice roller) put their ✕ where this bar sits,
+        // and a bar over them turned a close into a lock or an unlock (3fd6c945).
         zIndex: 1000,
         display: "flex",
         gap: "8px",
