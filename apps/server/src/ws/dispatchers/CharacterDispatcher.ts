@@ -45,7 +45,12 @@ export class CharacterDispatcher {
           console.warn(`claim-character refused: ${message.characterId} is not a PC`);
           return { broadcast: false, save: false };
         }
-        return this.characterHandler.handleClaimCharacter(state, message.characterId, senderUid);
+        return this.characterHandler.handleClaimCharacter(
+          state,
+          message.characterId,
+          senderUid,
+          isDM,
+        );
 
       case "add-player-character":
         return this.characterHandler.handleAddPlayerCharacter(
@@ -53,6 +58,7 @@ export class CharacterDispatcher {
           senderUid,
           message.name,
           message.maxHp,
+          isDM,
         );
 
       case "delete-player-character":

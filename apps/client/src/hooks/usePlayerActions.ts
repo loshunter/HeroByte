@@ -17,6 +17,7 @@
 import { useCallback, useMemo } from "react";
 import type { ClientMessage, PlayerState, PlayerStagingZone, RoomSnapshot } from "@herobyte/shared";
 import { normalizeHPValues } from "@herobyte/shared";
+import { CHARACTER_CAP_REACHED, characterCapReached } from "../features/players/characterCap";
 
 /**
  * Dependencies required by the usePlayerActions hook.
@@ -36,6 +37,9 @@ export interface UsePlayerActionsOptions {
    * Current player's unique identifier.
    */
   uid: string;
+
+  /** A short notice (the toast): why an add was not sent. */
+  notify?: (message: string) => void;
 }
 
 /**
@@ -92,8 +96,9 @@ export interface UsePlayerActionsReturn {
    * Add a new player character.
    *
    * @param name - Character name
+   * @returns false when nothing was sent (the player is at the character cap)
    */
-  addCharacter: (name: string) => void;
+  addCharacter: (name: string) => boolean;
 
   /**
    * Delete a player character with validation and confirmation.
@@ -174,6 +179,7 @@ export function usePlayerActions({
   sendMessage,
   snapshot,
   uid,
+  notify,
 }: UsePlayerActionsOptions): UsePlayerActionsReturn {
   /**
    * Rename the current player.
@@ -261,10 +267,14 @@ export function usePlayerActions({
    */
   const addCharacter = useCallback(
     (name: string) => {
-      console.log("[usePlayerActions] Sending add-player-character:", { name, maxHp: 100 });
+      if (characterCapReached(snapshot, uid)) {
+        notify?.(CHARACTER_CAP_REACHED);
+        return false;
+      }
       sendMessage({ t: "add-player-character", name, maxHp: 100 });
+      return true;
     },
-    [sendMessage],
+    [sendMessage, snapshot, uid, notify],
   );
 
   /**

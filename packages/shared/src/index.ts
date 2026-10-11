@@ -457,6 +457,8 @@ export type { DrawingType } from "./drawingTypes.js";
 // Bulk-NPC bounds — value re-export from a sub-module (see npcLimits.ts for
 // why it must not be a direct `export const` here: the server imports it).
 export { NPC_CREATE_LIMITS } from "./npcLimits.js";
+// Per-player character cap — the same sub-module rule (see playerCharacterLimits.ts).
+export { PLAYER_CHARACTER_LIMITS } from "./playerCharacterLimits.js";
 // Bulk-prop bounds — same sub-module rule (see propLimits.ts).
 export { PROP_CREATE_LIMITS } from "./propLimits.js";
 // The table's own Library tokens — same sub-module rule (see customTokenLimits.ts).

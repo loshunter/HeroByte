@@ -503,6 +503,7 @@ function AuthenticatedApp({
     sendMessage,
     snapshot,
     uid,
+    notify: toast.info,
   });
 
   const gridSize = snapshot?.gridSize || 50;

@@ -115,27 +115,22 @@ describe("useCharacterCreation", () => {
       expect(mockAddCharacter).toHaveBeenCalledWith("Hero");
     });
 
-    it("should log creation start message", () => {
-      const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
+    it('shows no "Creating..." when nothing was sent (the player is at the cap)', () => {
       const { result } = renderHook(() =>
         useCharacterCreation({
-          addCharacter: mockAddCharacter,
+          addCharacter: () => false,
           characters: [],
           uid: testUid,
         }),
       );
 
+      let returnValue = true;
       act(() => {
-        result.current.createCharacter("Warrior");
+        returnValue = result.current.createCharacter("Sixth");
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        "[useCharacterCreation] Starting character creation:",
-        "Warrior",
-      );
-
-      consoleLogSpy.mockRestore();
+      expect(returnValue).toBe(false);
+      expect(result.current.isCreating).toBe(false);
     });
 
     it("should return false when creation is already in progress", () => {

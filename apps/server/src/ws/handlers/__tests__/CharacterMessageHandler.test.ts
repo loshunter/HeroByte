@@ -250,6 +250,35 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       const character = state.characters[0];
       expect(character.maxHp).toBe(100); // Default
     });
+
+    it("stops a player at five characters, by add or by claim; the DM is not counted", () => {
+      const state = roomService.getState();
+      for (let n = 1; n <= 6; n += 1) {
+        messageRouter.route({ t: "add-player-character", name: `Hero ${n}` }, playerUid);
+      }
+      const mine = () => state.characters.filter((c) => c.ownedByPlayerUID === playerUid);
+      expect(mine().map((c) => c.name)).toEqual(["Hero 1", "Hero 2", "Hero 3", "Hero 4", "Hero 5"]);
+      expect(state.tokens.filter((t) => t.owner === playerUid)).toHaveLength(5);
+
+      const spare = characterService.createCharacter(state, "Spare", 10, "");
+      messageRouter.route({ t: "claim-character", characterId: spare.id }, playerUid);
+      expect(spare.ownedByPlayerUID ?? null).toBeNull();
+
+      for (let n = 1; n <= 6; n += 1) {
+        messageRouter.route({ t: "add-player-character", name: `Ally ${n}` }, dmUid);
+      }
+      expect(state.characters.filter((c) => c.ownedByPlayerUID === dmUid)).toHaveLength(6);
+    });
+
+    it("refuses any add once the table is at its character limit (the DM's backup must load)", () => {
+      const state = roomService.getState();
+      for (let n = state.characters.length; n < 500; n += 1) {
+        characterService.createCharacter(state, `Filler ${n}`, 1, "", "npc");
+      }
+      messageRouter.route({ t: "add-player-character", name: "One too many" }, dmUid);
+      expect(state.characters).toHaveLength(500);
+      expect(state.characters.some((c) => c.name === "One too many")).toBe(false);
+    });
   });
 
   describe("delete-player-character message", () => {
