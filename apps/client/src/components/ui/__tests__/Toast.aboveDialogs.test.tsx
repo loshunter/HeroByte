@@ -16,7 +16,14 @@ describe("the toast stack", () => {
         onDismiss={vi.fn()}
       />,
     );
-    render(<CharacterCreationModal isOpen onCreateCharacter={() => false} onClose={vi.fn()} />);
+    render(
+      <CharacterCreationModal
+        isOpen
+        isCreating={false}
+        onCreateCharacter={() => false}
+        onClose={vi.fn()}
+      />,
+    );
     const stack = toasts.container.querySelector("[title='Click to dismiss']")!.parentElement;
     // The dialog may portal to the body: look for its fixed backdrop anywhere.
     const backdrop = [...document.body.querySelectorAll<HTMLElement>("div")].find(

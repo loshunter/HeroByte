@@ -763,7 +763,7 @@ describe("ToastContainer Component", () => {
         position: "fixed",
         top: "calc(var(--mobile-safe-top, 0px) + 80px)",
         right: "calc(var(--mobile-safe-right, 0px) + 20px)",
-        zIndex: "10000",
+        zIndex: "10001",
         maxWidth: "min(400px, calc(100vw - 40px))",
         pointerEvents: "auto",
       });
@@ -779,7 +779,7 @@ describe("ToastContainer Component", () => {
       const { container } = render(<ToastContainer messages={[message]} onDismiss={vi.fn()} />);
       const containerDiv = container.querySelector('[style*="position: fixed"]') as HTMLElement;
 
-      expect(containerDiv).toHaveStyle({ zIndex: "10000" });
+      expect(containerDiv).toHaveStyle({ zIndex: "10001" });
     });
 
     it("should position container at top-right", () => {
