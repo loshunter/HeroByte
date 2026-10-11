@@ -25,14 +25,15 @@ describe("readableOn", () => {
       if (ratio(cell.hex, NAVY) < 4.5) {
         lifted += 1;
         // Each lift stops at the target, not past it.
-        if (reached >= 4.6) wrong.push(`${cell.hex} overshoots to ${reached}`);
+        if (!(reached < 4.6)) wrong.push(`${cell.hex} overshoots to ${reached}`);
       }
       // A coloured cell stays coloured (never lifted to grey), with its hue.
       const source = okLabToOkLch(colorToOkLab(cell.hex)!).C;
       const chroma = okLabToOkLch(colorToOkLab(text)!).C;
       if (source > 0.04) {
-        if (chroma <= 0.04) wrong.push(`${cell.hex} greys to ${text}`);
-        if (hueGap(hueOf(text), hueOf(cell.hex)) >= 12) wrong.push(`${cell.hex} turns to ${text}`);
+        if (!(chroma > 0.04)) wrong.push(`${cell.hex} greys to ${text}`);
+        if (!(hueGap(hueOf(text), hueOf(cell.hex)) < 12))
+          wrong.push(`${cell.hex} turns to ${text}`);
       }
     }
     expect(wrong).toEqual([]);
@@ -90,7 +91,7 @@ describe("textOn", () => {
       ...windowCells().map((cell) => cell.hex),
       ...Array.from({ length: 360 }, (_, hue) => `hsl(${hue}, 70%, 50%)`),
     ];
-    expect(colours.filter((colour) => ratio(colour, textOn(colour)) < 4.5)).toEqual([]);
+    expect(colours.filter((colour) => !(ratio(colour, textOn(colour)) >= 4.5))).toEqual([]);
   }, 30_000);
 
   it("picks white on a red ring the keyline pair leaves at 4.36:1, black on the default green", () => {
