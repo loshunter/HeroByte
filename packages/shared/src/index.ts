@@ -125,7 +125,6 @@ export * from "./rng.js";
 export * from "./colorSpace.js";
 export * from "./colorWindow.js";
 export * from "./colorRule.js";
-export * from "./colorReadable.js";
 export * from "./colorText.js";
 
 // Dice NOTATION only — what a formula means, and nothing that rolls one. The
