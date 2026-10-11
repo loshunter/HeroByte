@@ -10,6 +10,7 @@
 import type { WebSocket } from "ws";
 import type { Container } from "../../container.js";
 import type { DMElevationThrottle } from "./dmElevationThrottle.js";
+import { demoteDM } from "../../domains/room/dmDemotion.js";
 
 export interface DMElevationDeps {
   container: Container;
@@ -159,10 +160,9 @@ export function revokeUidDM(
     return;
   }
 
-  // Revoke DM status
-  player.isDM = false;
+  // Revoke DM status; the monsters this uid placed pass to the DM role (dmDemotion.ts).
+  demoteDM(state, player);
   ws.send(JSON.stringify({ t: "dm-status", isDM: false }));
-  console.log(`DM status revoked for ${uid}`);
 
   // Broadcast updated state to the player's room
   roomService.broadcast(container.getAuthenticatedClientsForRoom(roomId), uidToWs, {

@@ -18,6 +18,7 @@ import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 import { createAuthWorkLimiter, type TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 import { closeAnnounced } from "../announceClosing.js";
+import { demoteDM } from "../../domains/room/dmDemotion.js";
 
 /** The fields of an `authenticate` frame the handler acts on. */
 export interface AuthenticateRequest {
@@ -228,13 +229,12 @@ export class AuthenticationHandler {
     player.micLevel = 0;
 
     // A persisted DM flag is honoured only when the reconnect proves it is the
-    // SAME session, by the token minted to it — for THIS table. The room
-    // password is shared by the whole table and cannot tell dave from someone
-    // who was handed it, so a tokenless reclaim of a DM's uid gets the record
-    // — name, character, tokens — but must re-elevate with the DM password.
+    // SAME session, by the token minted to it — for THIS table. The room password
+    // cannot tell dave from someone handed it, so a tokenless reclaim of a DM's uid
+    // gets the record (name, characters) but not the DM's pieces (dmDemotion.ts),
+    // and must re-elevate with the DM password.
     if (player.isDM && !this.sessionTokens.verify(uid, requestedRoomId, request.token, now)) {
-      console.log(`[Auth] tokenless reclaim of ${uid}: DM reset, re-elevation required`);
-      player.isDM = false;
+      demoteDM(state, player);
     }
 
     // A session that moved tables in one step leaves the old roster, or the
