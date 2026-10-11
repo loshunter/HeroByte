@@ -17,6 +17,7 @@
 
 import { isLockablePiece } from "../locking/pieceLock.js";
 import type { SceneObject } from "@herobyte/shared";
+import { traceMessage } from "../../../config/messageTrace.js";
 import type { RoomState } from "../model.js";
 import { isTokenMoveBlocked } from "../scene/movementBlocking.js";
 import { chargeTokenMove } from "./movementCharge.js";
@@ -167,7 +168,7 @@ export class TransformHandler {
     if (!isDM) return false;
     if (!state.playerStagingZone) return false;
 
-    console.log("[DEBUG] Staging zone transform:", {
+    traceMessage("[DEBUG] Staging zone transform:", {
       position: changes.position,
       scale: changes.scale,
       rotation: changes.rotation,
@@ -190,7 +191,7 @@ export class TransformHandler {
       // The width/height remain as "base" values, and we scale them via transform
       this.applyScale(object, changes.scale);
 
-      console.log("[DEBUG] Staging zone scale applied:", {
+      traceMessage("[DEBUG] Staging zone scale applied:", {
         baseWidth: state.playerStagingZone.width,
         baseHeight: state.playerStagingZone.height,
         scaleX: changes.scale.x,

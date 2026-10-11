@@ -111,23 +111,14 @@ describe("HeartbeatHandler - Characterization Tests (Week 8)", () => {
     });
   });
 
-  describe("Side Effects - Debug Logging", () => {
-    it("should log debug message with player UID", () => {
+  describe("Side Effects - Logging", () => {
+    // Every player sends one every 25 s; the router's opt-in trace (HEROBYTE_MESSAGE_LOG)
+    // already names it. The unconditional "[DEBUG] Heartbeat received" line is gone.
+    it("logs nothing, for a known or an unknown player", () => {
       heartbeatHandler.handleHeartbeat(state, "player-1");
-
-      expect(consoleLogSpy).toHaveBeenCalledWith("[DEBUG] Heartbeat received from player-1");
-    });
-
-    it("should log debug message even for unknown player", () => {
       heartbeatHandler.handleHeartbeat(state, "unknown-player");
 
-      expect(consoleLogSpy).toHaveBeenCalledWith("[DEBUG] Heartbeat received from unknown-player");
-    });
-
-    it("should log debug message exactly once per heartbeat", () => {
-      heartbeatHandler.handleHeartbeat(state, "player-1");
-
-      expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+      expect(consoleLogSpy).not.toHaveBeenCalled();
     });
   });
 

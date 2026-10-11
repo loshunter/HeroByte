@@ -1,4 +1,5 @@
 import type { ClientMessage } from "@herobyte/shared";
+import { traceMessage } from "../../config/messageTrace.js";
 
 /**
  * Message Logger Service
@@ -60,10 +61,13 @@ export class MessageLogger {
    * // Output: [MessageRouter] Routing message type: move from player-123
    * ```
    *
+   * Off unless HEROBYTE_MESSAGE_LOG is set (config/messageTrace.ts): it runs for
+   * every routed message, drag previews and heartbeats included.
+   *
    * Original location: messageRouter.ts:165
    */
   logMessageRouting(messageType: string, senderUid: string): void {
-    console.log(`[MessageRouter] Routing message type: ${messageType} from ${senderUid}`);
+    traceMessage(`[MessageRouter] Routing message type: ${messageType} from ${senderUid}`);
   }
 
   /**

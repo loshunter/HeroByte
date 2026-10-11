@@ -187,16 +187,6 @@ export function useCombatOrdering({
         return aIndex - bIndex;
       });
 
-      const orderSummary = sorted
-        .map(
-          (e, idx) =>
-            `${idx + 1}. ${e.character.name} (init: ${e.character.initiative ?? "none"}, type: ${e.character.type})`,
-        )
-        .join("\n  ");
-      console.log(
-        `[useCombatOrdering] Ordered by initiative (${sorted.length} entities):\n  ${orderSummary}`,
-      );
-
       // In combat mode: the DM's bench separate, combatants sorted by initiative
       return { dmEntities, orderedEntities: sorted };
     }

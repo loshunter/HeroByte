@@ -1,4 +1,5 @@
 import type { ClientMessage } from "@herobyte/shared";
+import { trafficLog } from "./trafficLog";
 
 type AckEligibleType = ClientMessage["t"];
 
@@ -77,7 +78,7 @@ export class CommandAckManager {
       return;
     }
     this.pending.delete(commandId);
-    console.log(
+    trafficLog(
       `[WebSocket] Command acknowledged id=${commandId} type=${pending.type} latency=${Date.now() - pending.timestamp}ms`,
     );
   }

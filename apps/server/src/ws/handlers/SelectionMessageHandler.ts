@@ -17,6 +17,7 @@
  */
 
 import type { SelectionMode } from "@herobyte/shared";
+import { traceMessage } from "../../config/messageTrace.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
@@ -65,7 +66,7 @@ export class SelectionMessageHandler {
       console.warn(`select-object spoofed uid from ${senderUid}`);
       return { broadcast: false, save: false };
     }
-    console.info(`[DEBUG] select-object from ${senderUid}: objectId=${objectId}`);
+    traceMessage(`[DEBUG] select-object from ${senderUid}: objectId=${objectId}`);
     if (this.selectionService.selectObject(state, senderUid, objectId)) {
       return { broadcast: true, save: false };
     }
@@ -92,7 +93,7 @@ export class SelectionMessageHandler {
       console.warn(`deselect-object spoofed uid from ${senderUid}`);
       return { broadcast: false, save: false };
     }
-    console.info(`[DEBUG] deselect-object from ${senderUid}`);
+    traceMessage(`[DEBUG] deselect-object from ${senderUid}`);
     if (this.selectionService.deselect(state, senderUid)) {
       return { broadcast: true, save: false };
     }
@@ -123,7 +124,7 @@ export class SelectionMessageHandler {
       console.warn(`select-multiple spoofed uid from ${senderUid}`);
       return { broadcast: false, save: false };
     }
-    console.info(
+    traceMessage(
       `[DEBUG] select-multiple from ${senderUid}: objectIds=${JSON.stringify(objectIds)}, mode=${mode}`,
     );
     if (this.selectionService.selectMultiple(state, senderUid, objectIds, mode)) {

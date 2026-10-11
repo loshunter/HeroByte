@@ -575,37 +575,13 @@ export class MessageRouter {
   /**
    * Handle room snapshot message
    *
-   * Routes room state snapshots to the onMessage callback.
-   * Logs debug information for snapshots containing initiative data.
+   * Routes room state snapshots to the onMessage callback. (It logged every
+   * snapshot that held an initiative, in production too: useWebSocket keeps
+   * snapshot logs to dev builds because they arrive many times a second.)
    *
    * @param snapshot - Room snapshot data
    */
   private handleSnapshot(snapshot: RoomSnapshot): void {
-    // Debug: Log initiative values when snapshot is received
-    // Only access .characters if snapshot is a valid object
-    if (
-      snapshot &&
-      typeof snapshot === "object" &&
-      "characters" in snapshot &&
-      Array.isArray(snapshot.characters) &&
-      snapshot.characters.length > 0
-    ) {
-      const withInitiative = snapshot.characters.filter(
-        (c) => c.initiative !== undefined && c.initiative !== null,
-      );
-      if (withInitiative.length > 0) {
-        console.log(
-          "[WebSocket] Snapshot received with initiative data:",
-          withInitiative.map((c) => ({
-            id: c.id,
-            name: c.name,
-            initiative: c.initiative,
-            initiativeModifier: c.initiativeModifier,
-          })),
-        );
-      }
-    }
-
     this.config.onMessage(snapshot);
   }
 }

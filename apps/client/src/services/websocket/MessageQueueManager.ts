@@ -31,6 +31,7 @@
 import type { MessageQueueManagerConfig } from "./MessageQueueManagerConfig";
 export type { MessageQueueManagerConfig } from "./MessageQueueManagerConfig";
 import type { ClientMessage } from "@herobyte/shared";
+import { trafficLog } from "./trafficLog";
 
 /**
  * MessageQueueManager
@@ -125,8 +126,7 @@ export class MessageQueueManager {
     "set-dm-password",
     // Never acked either (answered by fork-table-result); see CommandAckManager.
     "fork-table",
-    // Untracked too (its answer is the backup file; see CommandAckManager): a retry
-    // built and sent the whole backup again.
+    // Untracked too: a retry built and sent the whole backup again (see CommandAckManager).
     "session-export",
   ]);
   private pendingRetries = new Map<
@@ -174,7 +174,7 @@ export class MessageQueueManager {
     }
 
     const canSend = this.canSendImmediately(ws, canSendFn);
-    console.log(
+    trafficLog(
       `[WebSocket] send() called for message type=${message.t}, canSendImmediately=${canSend}`,
     );
 
@@ -318,7 +318,7 @@ export class MessageQueueManager {
     }
 
     try {
-      console.log(`[WebSocket] sendRaw() - Sending message type=${message.t} over wire`);
+      trafficLog(`[WebSocket] sendRaw() - Sending message type=${message.t} over wire`);
       this.onBeforeSend?.(message);
       ws.send(JSON.stringify(message));
       this.registerInFlight(message);
