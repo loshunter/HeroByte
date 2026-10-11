@@ -654,6 +654,31 @@ describe("ColorPicker", () => {
     expect(onCommit.mock.calls).toEqual([[keyed]]);
   });
 
+  it("sends the keys' colour, not the press's, when keys move the handle during a still press", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const at = pixelOf(cellAt(0.3, 0.2));
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, ...at });
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...at });
+    // The handle shows the keys' colour; what is sent must be the same.
+    expect(onCommit.mock.calls).toEqual([[keyed]]);
+  });
+
+  it("sends one message, the latest keys', when focus leaves during a press that is then cancelled", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const handle = screen.getByRole("slider");
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    fireEvent.pointerDown(handle, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    const latest = screen.getByLabelText("Colour code").textContent;
+    fireEvent.blur(handle);
+    fireEvent.pointerCancel(surface, { pointerId: 1 });
+    expect(onCommit.mock.calls).toEqual([[latest]]);
+  });
+
   it("keeps an in-flight pick showing through a tap on the handle and a second press on it", () => {
     const { surface } = renderPicker();
     const picked = cellAt(0.3, 0.2);

@@ -248,8 +248,8 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
             return;
           }
           if (!active.moved) {
-            // A tap in a zone lands on its nearest free edge; the notice names whose it is.
-            commit(active.pressed);
+            // A tap in a zone lands on its nearest free edge (the notice names whose it is);
+            commit(keyed.current ? pendingRef.current : active.pressed); // keys after it win
           } else {
             commit(
               moveTo(pointFor(event.clientX + active.offsetX, event.clientY + active.offsetY)),
@@ -332,7 +332,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
               if (ARROWS[event.key]) event.stopPropagation();
             }}
             onBlur={() => {
-              if (keyed.current) commitRef.current(pendingRef.current);
+              if (keyed.current && !drag.current) commitRef.current(pendingRef.current);
             }}
           />
         )}
