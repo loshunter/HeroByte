@@ -358,6 +358,9 @@ describe("personal colours — the server is the authority", () => {
     const ann = seat(ANN, "Annika");
     const goblin = tokens.createToken(state(), DM_ROLE_OWNER, 2, 2, undefined, "medium", "npc");
     const landed: string[] = [];
+    // Seeded: the router's recolour draws from Math.random, and an unseeded run of 40
+    // draws missed the r(10) disc about once in a hundred (CI #962, Node 18).
+    const random = vi.spyOn(Math, "random").mockImplementation(createSeededRng(5));
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
       for (let press = 0; press < 40; press += 1) {
@@ -367,6 +370,7 @@ describe("personal colours — the server is the authority", () => {
       }
     } finally {
       vi.useRealTimers();
+      random.mockRestore();
     }
     // Kept out of every player's zone, no draw would come within r(10) of Annika's colour:
     // the zone at this table (three players at most) is wider than that.
