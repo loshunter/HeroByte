@@ -72,7 +72,7 @@ describe("join provisioning names", () => {
     const { state, join, playerService } = setup();
     const player = join("uid-1");
     playerService.rename(state, "uid-1", "Alice");
-    playerService.setDMMode(state, "uid-1", true);
+    player.isDM = true;
     const pc = state.characters[0]!;
     pc.name = "My hero";
     pc.hp = 12;

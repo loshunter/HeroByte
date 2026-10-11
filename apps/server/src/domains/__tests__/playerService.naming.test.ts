@@ -43,7 +43,7 @@ describe("PlayerService generated names", () => {
     service.createPlayer(state, "uid-2");
     service.rename(state, "uid-1", "Shared name");
     service.rename(state, "uid-2", "Shared name");
-    service.setDMMode(state, "uid-1", true);
+    service.findPlayer(state, "uid-1")!.isDM = true;
     service.setHP(state, "uid-1", 31, 60);
     const before = structuredClone(state.players);
 

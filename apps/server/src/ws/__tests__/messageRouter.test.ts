@@ -130,7 +130,6 @@ describe("MessageRouter", () => {
       setMicLevel: vi.fn(() => true),
       setVoiceState: vi.fn(() => true),
       setHP: vi.fn(() => true),
-      setDMMode: vi.fn(() => true),
       setStatusEffects: vi.fn(() => true),
       // The dice and chat handlers resolve the AUTHOR's display name through
       // this, from the sender's own record — never from the payload.
@@ -375,7 +374,6 @@ describe("MessageRouter", () => {
       routeAndFlush(msg, "player-1");
 
       // toggle-dm is deprecated and should be ignored
-      expect(mockPlayerService.setDMMode).not.toHaveBeenCalled();
       expect(mockRoomService.broadcast).not.toHaveBeenCalled();
       expect(mockRoomService.saveState).not.toHaveBeenCalled();
     });

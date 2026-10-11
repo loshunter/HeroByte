@@ -159,27 +159,6 @@ describe("PlayerService", () => {
     expect(service.setStatusEffects(state, "missing-uid", ["poisoned"])).toBe(false);
   });
 
-  it("handles DM role transitions and permissions", () => {
-    const state = createState();
-    const player = service.createPlayer(state, "uid-1");
-
-    // Test initial state - player is not a DM
-    expect(player.isDM).toBe(false);
-
-    // Test promoting player to DM
-    expect(service.setDMMode(state, "uid-1", true)).toBe(true);
-    let updatedPlayer = service.findPlayer(state, "uid-1");
-    expect(updatedPlayer?.isDM).toBe(true);
-
-    // Test demoting DM back to player
-    expect(service.setDMMode(state, "uid-1", false)).toBe(true);
-    updatedPlayer = service.findPlayer(state, "uid-1");
-    expect(updatedPlayer?.isDM).toBe(false);
-
-    // Test setting DM mode on unknown player
-    expect(service.setDMMode(state, "missing-uid", true)).toBe(false);
-  });
-
   it("handles portrait edge cases", () => {
     const state = createState();
     service.createPlayer(state, "uid-1");
