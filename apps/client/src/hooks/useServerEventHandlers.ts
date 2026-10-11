@@ -281,6 +281,9 @@ export function useServerEventHandlers({
         // A character the viewer asked for (or handed over) was not taken: say why.
         toastError(characterRefusalMessage(message), 5000);
         deliverCharacterRefusal(message);
+      } else if ("t" in message && message.t === "session-load-refused") {
+        // The backup was refused whole; the restore's own toast spoke before this came.
+        toastError(`Restore refused: ${message.reason} The table has NOT been changed.`, 9000);
       } else if ("t" in message && message.t === "color-adjusted") {
         // The server moved a colour you chose out of another player's zone (C1).
         toastInfo(colorAdjustedMessage(message.near, message.name, message.throttled), 5000);

@@ -1358,6 +1358,12 @@ export type ServerMessage =
       action: "add" | "claim" | "hand-over" | "create";
       reason: "player-cap" | "table-full";
     }
+  | {
+      t: "session-load-refused";
+      // Sent to the restoring DM only. The backup was refused WHOLE, before anything
+      // changed (too many map documents, or too many characters with the seats kept).
+      reason: string;
+    }
   | { t: "map-studio-deleted"; documentId: string }
   | {
       t: "map-studio-error";

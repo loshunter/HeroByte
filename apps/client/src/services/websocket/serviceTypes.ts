@@ -35,6 +35,7 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "locked-refused" }>
   | Extract<ServerMessage, { t: "color-adjusted" }>
   | Extract<ServerMessage, { t: "character-refused" }>
+  | Extract<ServerMessage, { t: "session-load-refused" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
   | Extract<ServerMessage, { t: "session-file" }>

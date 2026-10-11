@@ -897,7 +897,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
     });
   });
 
-  describe("character-refused events", () => {
+  describe("character-refused and session-load-refused events", () => {
     const mount = () => {
       const registerServerEventHandler = vi.fn();
       const toast = {
@@ -944,8 +944,13 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       unsubscribe();
     });
 
-    it("toasts a Creating... that gave up", () => {
-      const { toast, view } = mount();
+    it("toasts a refused restore, and a Creating... that gave up", () => {
+      const { toast, handler, view } = mount();
+      act(() => handler({ t: "session-load-refused", reason: "Too many characters." }));
+      expect(toast.error).toHaveBeenCalledWith(
+        "Restore refused: Too many characters. The table has NOT been changed.",
+        9000,
+      );
       act(() => announceCharacterNotice("No answer yet."));
       expect(toast.info).toHaveBeenCalledWith("No answer yet.", 8000);
       view.unmount();
