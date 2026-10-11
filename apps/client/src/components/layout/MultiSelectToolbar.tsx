@@ -80,7 +80,7 @@ export function MultiSelectToolbar({
 }: MultiSelectToolbarProps): JSX.Element | null {
   const visible = isDM && selectedObjectIds.length > 0;
   const barRef = useRef<HTMLDivElement>(null);
-  const left = useSelectionBarLeft(barRef, visible);
+  const placement = useSelectionBarLeft(barRef, visible);
   // Only show toolbar when user is DM and has objects selected
   if (!visible) {
     return null;
@@ -93,13 +93,21 @@ export function MultiSelectToolbar({
       style={{
         position: "fixed",
         top: `${topHeight + 20}px`,
-        // Centred, or stepped aside from a window over its strip (selectionBarPlacement.ts).
-        left: left === null ? "50%" : `${left}px`,
-        transform: left === null ? "translateX(-50%)" : "none",
+        // Centred, or stepped aside from a window over its strip (selectionBarPlacement.ts),
+        // wrapped to two rows when only a narrower gap is free.
+        left: placement === null ? "50%" : `${placement.left}px`,
+        transform: placement === null ? "translateX(-50%)" : "none",
         // Not raised above the floating windows: the windows that open under the header
         // (NPC settings, ROLL RESULT, the dice roller) put their ✕ where this bar sits,
         // and a bar over them turned a close into a lock or an unlock (3fd6c945).
         zIndex: 1000,
+        // Its own width, wherever it sits: centred at left 50% it was laid out in half the
+        // viewport and wrapped, and once moved aside it unwrapped and grew, so at 922 px
+        // it flipped between the two placements every frame and Unlock never held still.
+        width: "max-content",
+        maxWidth: placement?.maxWidth ? `${placement.maxWidth}px` : undefined,
+        whiteSpace: placement?.maxWidth ? "normal" : "nowrap",
+        flexWrap: placement?.maxWidth ? "wrap" : "nowrap",
         display: "flex",
         gap: "8px",
         padding: "8px 16px",
