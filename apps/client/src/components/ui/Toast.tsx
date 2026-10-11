@@ -176,7 +176,10 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ messages, onDism
           position: "fixed",
           top: "calc(var(--mobile-safe-top, 0px) + 80px)",
           right: "calc(var(--mobile-safe-right, 0px) + 20px)",
-          zIndex: 10000,
+          // Above every dialog (the Add Character and Initiative overlays are 10000): a
+          // refusal toasted from inside one ("Up to 5 characters each") read through its
+          // dimmed backdrop, if at all.
+          zIndex: 10001,
           maxWidth: "min(400px, calc(100vw - 40px))",
           pointerEvents: "auto",
         }}
