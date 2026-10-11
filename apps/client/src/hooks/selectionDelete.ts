@@ -5,11 +5,17 @@ export interface SelectionDelete {
   tokens: string[];
   drawings: string[];
   props: string[];
-  /** Selected pieces this Delete leaves: locked, the map, or not the viewer's. */
+  /** Selected pieces this Delete leaves: locked, or not the viewer's to delete. */
   skipped: number;
   /** Of those, the locked ones (a lock stops everyone, the DM included). */
   locked: number;
+  /** Of those, the viewer's own props while the DM has player props off. */
+  propsOff: number;
+  /** Selected things the key never deletes (the map, a staging zone): left in silence. */
+  ignored: number;
 }
+
+const DELETABLE = ["token:", "drawing:", "prop:"];
 
 const idOf = (sceneId: string) => sceneId.slice(sceneId.indexOf(":") + 1);
 
@@ -25,15 +31,29 @@ export function planSelectionDelete(
   isDM: boolean,
   uid: string,
 ): SelectionDelete {
-  const plan: SelectionDelete = { tokens: [], drawings: [], props: [], skipped: 0, locked: 0 };
+  const plan: SelectionDelete = {
+    tokens: [],
+    drawings: [],
+    props: [],
+    skipped: 0,
+    locked: 0,
+    propsOff: 0,
+    ignored: 0,
+  };
   for (const id of selected) {
+    // The map ("map"), a staging zone, a pointer: no Delete for them, and nothing to say.
+    if (!DELETABLE.some((kind) => id.startsWith(kind))) {
+      plan.ignored += 1;
+      continue;
+    }
     const obj = snapshot?.sceneObjects?.find((candidate) => candidate.id === id);
     if (obj?.locked) plan.locked += 1;
     let mine = false;
-    if (obj && !obj.locked && !id.startsWith("map:")) {
+    if (obj && !obj.locked) {
       if (id.startsWith("prop:")) {
-        const prop = snapshot?.props?.find((candidate) => candidate.id === idOf(id));
-        mine = isDM || (snapshot?.playerPropsEnabled === true && prop?.owner === uid);
+        const own = snapshot?.props?.find((candidate) => candidate.id === idOf(id))?.owner === uid;
+        mine = isDM || (snapshot?.playerPropsEnabled === true && own);
+        if (!mine && own) plan.propsOff += 1;
       } else {
         mine = isDM || !obj.owner || obj.owner === uid;
       }
@@ -41,8 +61,7 @@ export function planSelectionDelete(
     if (!mine) plan.skipped += 1;
     else if (id.startsWith("token:")) plan.tokens.push(idOf(id));
     else if (id.startsWith("drawing:")) plan.drawings.push(idOf(id));
-    else if (id.startsWith("prop:")) plan.props.push(idOf(id));
-    else plan.skipped += 1;
+    else plan.props.push(idOf(id));
   }
   return plan;
 }

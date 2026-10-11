@@ -155,6 +155,8 @@ export interface UseKeyboardShortcutsOptions {
 export const LOCKED_CANNOT_DELETE = "Locked: only the DM can unlock it.";
 export const LOCKED_CANNOT_DELETE_DM = "Locked: select it and press 🔓 Unlock first.";
 export const NOT_YOURS_CANNOT_DELETE = "You can only delete objects you own.";
+export const PROPS_OFF_CANNOT_DELETE =
+  "The DM has player props off: your props cannot be deleted now.";
 
 export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void {
   const {
@@ -185,16 +187,19 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
         const plan = planSelectionDelete(selectedObjectIds, snapshot, isDM, uid);
         const deleting = plan.tokens.length + plan.drawings.length + plan.props.length;
         if (deleting === 0) {
-          // A lock stops everyone, the DM included, until it is unlocked.
+          // A lock stops everyone, the DM included, until it is unlocked. Only the map
+          // or a staging zone selected: nothing to delete, and nothing to say.
           if (plan.locked > 0) notify(isDM ? LOCKED_CANNOT_DELETE_DM : LOCKED_CANNOT_DELETE);
-          else notify(NOT_YOURS_CANNOT_DELETE);
+          else if (plan.propsOff > 0) notify(PROPS_OFF_CANNOT_DELETE);
+          else if (plan.skipped > 0) notify(NOT_YOURS_CANNOT_DELETE);
           return;
         }
         if (plan.skipped > 0) {
+          const selected = selectedObjectIds.length - plan.ignored;
           const message =
             plan.locked > 0
               ? `Cannot delete ${plan.skipped} locked object${plan.skipped > 1 ? "s" : ""}. Delete the ${deleting} unlocked object${deleting > 1 ? "s" : ""}?`
-              : `You can only delete ${deleting} of ${selectedObjectIds.length} selected objects (${plan.skipped} owned by others). Continue?`;
+              : `You can only delete ${deleting} of ${selected} selected objects (${plan.skipped} owned by others). Continue?`;
           if (!confirm(message)) return;
         }
         if (confirm(deleteConfirmText(plan))) {

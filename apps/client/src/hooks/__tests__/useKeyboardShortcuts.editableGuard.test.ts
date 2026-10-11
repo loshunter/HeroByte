@@ -10,6 +10,7 @@ import {
   LOCKED_CANNOT_DELETE,
   LOCKED_CANNOT_DELETE_DM,
   NOT_YOURS_CANNOT_DELETE,
+  PROPS_OFF_CANNOT_DELETE,
   useKeyboardShortcuts,
   type UseKeyboardShortcutsOptions,
 } from "../useKeyboardShortcuts";
@@ -142,7 +143,7 @@ describe("useKeyboardShortcuts — Delete and props", () => {
     expect(notify).not.toHaveBeenCalled();
   });
 
-  it("leaves a prop a player may not delete (props off, or not theirs) and says so", () => {
+  it("tells a player their own prop waits on the DM's player-props switch", () => {
     const notify = vi.fn();
     const sendMessage = vi.fn();
     renderHook(() =>
@@ -159,7 +160,22 @@ describe("useKeyboardShortcuts — Delete and props", () => {
     );
     dispatchOn(window, { key: "Delete" });
     expect(sendMessage).not.toHaveBeenCalled();
-    expect(notify).toHaveBeenCalledExactlyOnceWith(NOT_YOURS_CANNOT_DELETE);
+    expect(notify).toHaveBeenCalledExactlyOnceWith(PROPS_OFF_CANNOT_DELETE);
+  });
+
+  it("says nothing when only the staging zone is selected (the key never deletes it)", () => {
+    const notify = vi.fn();
+    renderHook(() =>
+      useKeyboardShortcuts(
+        baseOptions({
+          selectedObjectIds: ["staging-zone"],
+          snapshot: { sceneObjects: [{ id: "staging-zone", locked: false }] } as never,
+          notify,
+        }),
+      ),
+    );
+    dispatchOn(window, { key: "Delete" });
+    expect(notify).not.toHaveBeenCalled();
   });
 });
 

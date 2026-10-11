@@ -22,7 +22,8 @@ const snapshot = (playerPropsEnabled: boolean) =>
       object("prop:mine", "me"),
       object("prop:dms", null),
       object("prop:locked", "me", true),
-      object("map:m", null),
+      object("map", null, true),
+      object("staging-zone", null),
     ],
     props: [
       { id: "mine", owner: "me" },
@@ -34,7 +35,7 @@ const snapshot = (playerPropsEnabled: boolean) =>
 describe("planSelectionDelete", () => {
   it("lets a DM delete props with tokens and drawings, never a locked piece or the map", () => {
     const plan = planSelectionDelete(
-      ["token:t2", "drawing:d1", "prop:mine", "prop:dms", "prop:locked", "map:m"],
+      ["token:t2", "drawing:d1", "prop:mine", "prop:dms", "prop:locked", "map", "staging-zone"],
       snapshot(false),
       true,
       "dm",
@@ -43,7 +44,8 @@ describe("planSelectionDelete", () => {
     expect(plan.drawings).toEqual(["d1"]);
     expect(plan.props).toEqual(["mine", "dms"]);
     expect(plan.locked).toBe(1);
-    expect(plan.skipped).toBe(2);
+    expect(plan.skipped).toBe(1); // the locked prop
+    expect(plan.ignored).toBe(2); // the map and the staging zone: never deleted, never "not yours"
   });
 
   it("lets a player delete their own prop only while the DM lets players manage props", () => {
@@ -53,6 +55,7 @@ describe("planSelectionDelete", () => {
     const off = planSelectionDelete(["prop:mine"], snapshot(false), false, "me");
     expect(off.props).toEqual([]);
     expect(off.skipped).toBe(1);
+    expect(off.propsOff).toBe(1); // their own, held back by the DM's switch, not "not theirs"
   });
 
   it("keeps a player to their own tokens", () => {
