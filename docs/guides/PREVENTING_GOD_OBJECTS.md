@@ -228,7 +228,7 @@ The structural guardrail runs on every PR:
 1. Run full test suite
 2. Manual smoke testing
 3. Check TypeScript compilation
-4. Update baseline: `pnpm baseline:update`
+4. Lower the baseline's ceilings: `pnpm baseline:update` (it only ever lowers them, and drops files now under the threshold)
 
 ---
 
@@ -357,12 +357,7 @@ pnpm lint:structure:enforce
 
 ### Q: Can I update the baseline to allow my god object?
 
-**A:** Only in these cases:
-1. You're actively refactoring it (add to baseline temporarily)
-2. It's a legacy file with refactoring plan in place
-3. It's generated code (rare!)
-
-**Never** update baseline just to bypass the check!
+**A:** No. `pnpm baseline:update` never adds a file or raises a ceiling: a listed file may only shrink. A file that truly must stay over the threshold (generated code, say) is a decision written into `scripts/structure-baseline.json` by hand, in its own commit, with the reason in the message.
 
 ### Q: What if the entire team disagrees with 350 LOC?
 
@@ -380,7 +375,7 @@ pnpm lint:structure:enforce --threshold 500
 
 ### Q: How do I handle generated files (e.g., Prisma, GraphQL)?
 
-**A:** Generated output normally lives in its own directory, and the scanner skips whole directories rather than matching path patterns. Add the directory to the `ignoreDirectories` set in `scripts/structure-report.mjs`, and mirror it in `scripts/update-baseline.mjs` so the baseline agrees:
+**A:** Generated output normally lives in its own directory, and the scanner skips whole directories rather than matching path patterns. Add the directory to the `ignoreDirectories` set in `scripts/structure-report.mjs` (`scripts/update-baseline.mjs` reads its sizes from that script, so the two agree):
 
 ```javascript
 const ignoreDirectories = new Set([
