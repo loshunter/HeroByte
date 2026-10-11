@@ -90,6 +90,7 @@ describe("MultiSelectToolbar — steps aside from floating windows", () => {
     ]);
     mockRects(boxes);
     addWindow("chat");
+    const watched: Element[] = [];
     let resized: () => void = () => {};
     vi.stubGlobal(
       "ResizeObserver",
@@ -97,12 +98,16 @@ describe("MultiSelectToolbar — steps aside from floating windows", () => {
         constructor(callback: () => void) {
           resized = callback;
         }
-        observe() {}
+        observe(element: Element) {
+          watched.push(element);
+        }
         disconnect() {}
       },
     );
     render(bar());
     expect(screen.getByTestId("selection-bar").style.left).toBe("50%"); // clear of Chat at 300 wide
+    // Watched is the bar itself: the callback alone would re-place it whatever was watched.
+    expect(watched).toEqual([screen.getByTestId("selection-bar")]);
     boxes.set("selection-bar", rect(312, 80, 400, 48)); // the font arrived: now it reaches Chat
     await act(async () => {
       resized();
