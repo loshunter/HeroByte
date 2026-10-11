@@ -320,8 +320,8 @@ was reviewed before the merge to main:
   record claimed final-tree gates that did not exist, said "at least 47%" where it is 46.8%, and described keys and
   taps as before `7cc07377`.
 - **Minor, fixed:** the throttled reply told an owner who can no longer see their token its colour (the reply now
-  carries none); NPC and DM-recolour colours from the whole window (42.6% of window cells under 3:1 on a dark map floor; now drawn from
-  the readable part); every identical PC was a separate blocker (one colour now blocks once); the first token after
+  carries none); NPC and DM-recolour colours from the whole window (42.6% of window cells under 3:1 on a dark map floor; drawn from the
+  readable part in `f0448ce1`; reversed by the owner in `53332a6e`); every identical PC was a separate blocker (one colour now blocks once); the first token after
   boot paid the 100 ms window build; `colorOwner`'s docstring premise; the DM's throttle reply and the chosen colour's
   owner were unpinned; the nearest-snap bound was weak (now equal to `nearestAllowedColor`); Chromium drew the window
   at 1.8:1 instead of 2.6:1 (`min-height: 0`; both colour e2e specs check it); a refused pick could stay on screen for
@@ -391,6 +391,7 @@ CI's run on the push.
 - **Landed elsewhere:** a double-tap recolour on phones (`9da4011b`, another session), merged in `cb7539c2` before
   the push; its help line is folded into `RECOLOR_ENTRY`.
 - **Not touched:** `add-player-character` has no per-player cap (characters are capped only on session load, at 500).
+  **Since `e147c189`:** 5 per player (the DM's not counted), and add and claim refuse at the table's 500.
 
 ## Corrections to commit messages (pushed; not rewritten)
 
@@ -472,9 +473,11 @@ Fixed, each in its own commit, each test red on the old code unless said:
 
 - `62edcc06` (B major): Ctrl's free rotation read a window key flag that stuck "on" when the key-up went elsewhere
   (Ctrl+T, Cmd+Tab), turning snapping off until Ctrl was tapped. It reads the drag's own pointer event now; the old
-  Ctrl test could not fail. The gizmo's other per-render arrays are constants (B minor 3).
+  Ctrl test could not fail. Of the new tests, Ctrl/Cmd and the stuck key-down are red on the old code; "no key
+  snaps" is a control, green on both. The gizmo's other per-render arrays are constants (B minor 3).
 - `53332a6e` (owner): NPC colours and the DM's own recolours draw from the whole window again; `readableColor` is gone.
-  Settles A minor 4 (one pool for every NPC).
+  Settled A minor 4 for an NPC's automatic colour only; round 2 found a recolour of an NPC whose owner is no DM still
+  kept out of players' zones, closed by `e4cfac8f` (the DM role counts as a DM for colour).
 - `d01a704b` (A minors 1-3): the picker left a retire timer polling for good after closing mid-press; a press held
   still on the handle let waiting keys go 400 ms in (the record's "nothing sent while a press is down" was false);
   dragging back to a throttled pick sent nothing.
@@ -484,18 +487,50 @@ Fixed, each in its own commit, each test red on the old code unless said:
   join disagreed about a player's token.
 - `93f1afe1` (B minor 6): the per-cell sweeps count a NaN as wrong and must see the whole window (not sabotaged: no
   input yields a NaN today).
-- `e147c189` (C major F2, owner's number): a player holds up to 5 characters (add or claim; the DM is not counted) and
-  the table refuses any past 500, where the DM's backup stopped loading. The client toasts instead of sending.
+- `e147c189` (C major F2, owner's number): a player holds up to 5 characters (add or claim; the DM is not counted),
+  and add and claim refuse past the table's 500, where the DM's backup stopped loading. The client toasts instead of
+  sending.
 - `801896c3` (C majors F3/F4, older than C1): a demoted DM (Leave DM mode, or a tokenless reclaim of a DM's uid) kept
   every monster they placed, so they saw through its eyes and through the fog and could move hidden NPCs. Those tokens
   pass to the DM role (`@dm`, an owner no uid can be).
-- This record (D): both status lines, "each code fix sabotaged red" (false for four), the finding count (32 distinct,
+- This record (D, `de2bbfb2`): both status lines, "each code fix sabotaged red" (false for four), the finding count (32 distinct,
   not 36), 13 pairs of dark cells, 42.6% not 44%, L 0.57 not 0.56, the guide no longer "uncommitted", "pushed"
   corrections, "since C1's first build", and the contract test's throttle comment.
 
 Not fixed, stated: the picker's loading placeholder holds 210 px whatever the window's width (A minor 6; the right
 figure needs a live measurement); the gizmo's transform handlers are still new functions each render (B minor 3,
-rebinding only); a request exactly at another player's colour still snaps to an arbitrary zone edge (round 4's list).
+rebinding only); a request exactly at another player's colour still snaps to an arbitrary zone edge (round 4's list);
+the dead-socket fix the owner approved (two steps) is not started. Not taken up from round 1 (minors, unchanged code):
+A minor 5 (the DM's recolour range, settled by the owner instead), A minor 7 (a bundle check and a warm boot for the
+deleted `readableColor`), B minors 1-2 (a stuck Ctrl flag, superseded by `62edcc06`; the Ctrl test, replaced).
+
+**Review round 2** (2026-10-10, three fresh reviewers, opus, read-only, on `de2bbfb2`): A (the colour fixes) FAIL, 0
+major, 3 minor, 4 nits; B (the demotion and the cap) FAIL, 1 major, 5 P2, 4 P3; C (docs and messages) FAIL, 4 major,
+8 minor. The major: `801896c3` walked only the live table, so monsters parked on maps the table had left kept the uid's
+sight on travel back; and since session tokens live in memory, every deploy demotes every DM through the
+tokenless-reconnect path, so every monster went to `@dm` for good (drawn under the DM's own tokens, no double-click
+recolour, lighting the Player View, reset by a restore). Fixed:
+
+- `e4cfac8f`: a DM who elevates (or sets the first DM password) takes the role's pieces back; a demotion with another
+  DM at the table hands them to that DM; demotion and the hand-back walk parked maps; NPC tokens of a uid that is no
+  DM pass to a seated DM or the role on a disk load, a restore and a fork; the role counts as a DM for colour; the
+  Player View leaves role monsters out. The fork's call for parked maps has no test.
+- `26374db4`: a claim at a full table goes through (it adds nothing); the DM's create-character refuses past 500; a
+  hand-over to a player at five is refused; "Creating..." gives up after 10 s on a refusal the client cannot predict;
+  Help and the guide say the DM's characters "are not counted".
+- `00105ca8`: `d01a704b` forgot the pick in flight once its answer was late, so a drag back to the old colour sent
+  nothing and a slow answer then showed the pick the player had left (a regression); keys pressed under a held handle
+  went mid-press. The pick stays in flight, marked unanswered; keys under a press wait for its release.
+- `aab5aef8`: four more sweep checks count a NaN as wrong; a stale docstring on the clear.
+- `a96671c4`: Ctrl's choice applies at the press (Konva reads the snaps before `transform`).
+
+Still open from round 2, stated: a new uid's first character and a restore's merge do not check the table's 500; a
+demoted DM keeps every PC made while DM, which can leave a player above five; changing the DM password does not demote
+a co-DM who is elevated now (older; the owner's call); `PlayerService.setDMMode` is dead code that would skip
+`demoteDM` if wired; the server's `clear-all-tokens` (no client sends it) deletes unlocked role monsters.
+
+**Where this is:** every commit above is on local `dev`, not pushed and not on main. Production (`040f7b97`) still
+has the demoted-DM hole (F3/F4) until it is merged.
 
 ## Commits (on `91c69b63`)
 
