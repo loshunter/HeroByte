@@ -24,5 +24,5 @@ export const TOKEN_SIZE_ENTRY: HelpEntry = {
 export const SECOND_CHARACTER_ENTRY: HelpEntry = {
   term: "A second character",
   detail:
-    "⚙️ → ➕ ADD CHARACTER gives you another row, card, token, HP and initiative. Up to 5 each (the DM has no limit).",
+    "⚙️ → ➕ ADD CHARACTER gives you another row, card, token, HP and initiative. Up to 5 each (the DM's are not counted).",
 };

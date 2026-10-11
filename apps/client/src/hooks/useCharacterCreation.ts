@@ -50,6 +50,9 @@ export interface UseCharacterCreationReturn {
   cancel: () => void;
 }
 
+/** How long "Creating..." waits for the new character before it gives up. */
+export const CREATION_TIMEOUT_MS = 10_000;
+
 /**
  * Hook to manage character creation with server confirmation.
  */
@@ -102,6 +105,17 @@ export function useCharacterCreation(
       }
     }
   }, [isCreating, pendingCharacterName, characters, uid]);
+
+  // A refusal the client could not predict (the table at its 500, a role that changed
+  // on the way) has no reply: "Creating..." gives up rather than wait for good.
+  useEffect(() => {
+    if (!isCreating) return;
+    const timer = setTimeout(() => {
+      setIsCreating(false);
+      setPendingCharacterName(null);
+    }, CREATION_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isCreating]);
 
   // Initiate character creation
   const createCharacter = useCallback(

@@ -16,7 +16,7 @@ import { replaceIfSeatedPlayerLostLastCharacter } from "./seatReplacement.js";
 import { deleteCharacterKeepingTurn, lockedTokenRefusal } from "./deleteCharacter.js";
 import type { LockRefusal } from "../../domains/room/locking/pieceLock.js";
 import type { CharacterService } from "../../domains/character/service.js";
-import { mayTakeCharacter } from "../../domains/character/characterLimits.js";
+import { mayTakeCharacter, tableHasRoom } from "../../domains/character/characterLimits.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
@@ -68,6 +68,7 @@ export class CharacterMessageHandler {
     maxHp: number,
     portrait?: string,
   ): CharacterMessageResult {
+    if (!tableHasRoom(state)) return { broadcast: false, save: false };
     this.characterService.createCharacter(state, name, maxHp, portrait);
     return { broadcast: true, save: true };
   }
@@ -85,7 +86,10 @@ export class CharacterMessageHandler {
     senderUid: string,
     isDM = false,
   ): CharacterMessageResult {
-    if (!mayTakeCharacter(state, senderUid, isDM)) return { broadcast: false, save: false };
+    // A claim adds no character: only the player's own cap applies.
+    if (!mayTakeCharacter(state, senderUid, isDM, { adds: false })) {
+      return { broadcast: false, save: false };
+    }
     const claimed = this.characterService.claimCharacter(state, characterId, senderUid);
     return { broadcast: claimed, save: claimed };
   }

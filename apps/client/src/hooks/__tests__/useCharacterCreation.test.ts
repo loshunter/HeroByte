@@ -10,7 +10,7 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { useCharacterCreation } from "../useCharacterCreation.js";
+import { CREATION_TIMEOUT_MS, useCharacterCreation } from "../useCharacterCreation.js";
 import type { Character } from "@herobyte/shared";
 
 /**
@@ -113,6 +113,23 @@ describe("useCharacterCreation", () => {
 
       expect(mockAddCharacter).toHaveBeenCalledTimes(1);
       expect(mockAddCharacter).toHaveBeenCalledWith("Hero");
+    });
+
+    it('gives up "Creating..." when the server never answers (a refusal it could not predict)', () => {
+      vi.useFakeTimers();
+      try {
+        const { result } = renderHook(() =>
+          useCharacterCreation({ addCharacter: () => true, characters: [], uid: testUid }),
+        );
+        act(() => {
+          result.current.createCharacter("Refused");
+        });
+        expect(result.current.isCreating).toBe(true);
+        act(() => vi.advanceTimersByTime(CREATION_TIMEOUT_MS));
+        expect(result.current.isCreating).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('shows no "Creating..." when nothing was sent (the player is at the cap)', () => {
