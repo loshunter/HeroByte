@@ -997,6 +997,22 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       expect(ws.ping).toHaveBeenCalledOnce();
     });
 
+    it("records each keepalive ping, and logs the socket's pong record at stopKeepalive", () => {
+      const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      const ws = new FakeWebSocket();
+      connect(ws, "newbie");
+      vi.advanceTimersByTime(50000);
+
+      manager.stopKeepalive(ws as unknown as WebSocket, { uid: "newbie", code: 1006 });
+
+      expect(ws.on).toHaveBeenCalledWith("pong", expect.any(Function));
+      expect(log).toHaveBeenCalledWith(
+        expect.stringMatching(/^\[pong\] newbie closed \(code 1006\) .*2 ping\(s\), 0 pong\(s\)/),
+      );
+      expect(ws.close).not.toHaveBeenCalled();
+      log.mockRestore();
+    });
+
     it("stopKeepalive(ws) stops only that socket's pings", () => {
       const a = new FakeWebSocket();
       const b = new FakeWebSocket();

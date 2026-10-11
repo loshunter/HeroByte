@@ -143,7 +143,7 @@ export class ConnectionHandler {
     ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid, ws));
 
     // Disconnection handling
-    ws.on("close", () => this.handleDisconnection(uid, ws));
+    ws.on("close", (code: number) => this.handleDisconnection(uid, ws, code));
   }
 
   /**
@@ -176,7 +176,7 @@ export class ConnectionHandler {
   /**
    * Handle client disconnection
    */
-  private handleDisconnection(uid: string, ws: WebSocket): void {
+  private handleDisconnection(uid: string, ws: WebSocket, code?: number): void {
     const live = this.container.liveSockets.get(uid);
     if (live) {
       live.delete(ws);
@@ -184,7 +184,7 @@ export class ConnectionHandler {
     }
 
     // Delegate keepalive cleanup to ConnectionLifecycleManager
-    this.lifecycleManager.stopKeepalive(ws);
+    this.lifecycleManager.stopKeepalive(ws, { uid, code });
 
     // Delegate player cleanup to DisconnectionCleanupManager
     // Pass WebSocket for race condition check
