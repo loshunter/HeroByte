@@ -281,12 +281,16 @@ export class TokenService {
 
   /**
    * Remove all tokens except those owned by specified UID, and any locked token
-   * (a lock is lifted before anything removes the piece).
+   * (a lock is lifted before anything removes the piece). Each removed token is
+   * unlinked from its character, like any other delete: a dead link made the
+   * record and the next join disagree about which token is the character's.
    */
   clearAllTokensExcept(state: RoomState, keepOwnerUid: string): void {
-    state.tokens = state.tokens.filter(
-      (t) => t.owner === keepOwnerUid || isTokenLocked(state, t.id),
-    );
+    const kept = state.tokens.filter((t) => t.owner === keepOwnerUid || isTokenLocked(state, t.id));
+    for (const token of state.tokens) {
+      if (!kept.includes(token)) unlinkDeletedToken(state, token.id);
+    }
+    state.tokens = kept;
   }
 
   /**
