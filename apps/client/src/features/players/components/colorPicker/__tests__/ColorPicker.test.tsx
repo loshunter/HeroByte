@@ -628,6 +628,32 @@ describe("ColorPicker", () => {
     expect(onCommit.mock.calls).toEqual([[picked.hex], [picked.hex]]);
   });
 
+  it("sends a drag back to the old colour while a slow answer is still on its way", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const picked = cellAt(0.3, 0.2);
+    press(surface, pixelOf(picked)); // in flight; its answer is slow, not lost
+    dragTo(surface, pixelOf(cellAt(0.4, 0.3)), pixelOf(cellAt(0.45, 0.35)), false);
+    act(() => vi.advanceTimersByTime(PENDING_TIMEOUT_MS + 100));
+    fireEvent.pointerMove(surface, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    // Not sending BLUE would leave the late answer to show the pick the player left.
+    expect(onCommit.mock.calls).toEqual([[picked.hex], [BLUE]]);
+  });
+
+  it("sends nothing for an arrow key pressed while the handle is held, until the release", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const handle = screen.getByRole("slider");
+    fireEvent.pointerDown(handle, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS + 50));
+    expect(onCommit).not.toHaveBeenCalled();
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    expect(onCommit.mock.calls).toEqual([[keyed]]);
+  });
+
   it("keeps an in-flight pick showing through a tap on the handle and a second press on it", () => {
     const { surface } = renderPicker();
     const picked = cellAt(0.3, 0.2);
