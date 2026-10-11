@@ -568,6 +568,33 @@ Still open after round 3, stated:
 server's rule; `b29bfb7d` the selection bar steps aside), are on local `dev`, not pushed and not on main. Production
 (`bc4b2356`) still has the demoted-DM hole (F3/F4) until they are merged.
 
+## Live evaluation (2026-10-11, after the push of `a99c178f` to dev; CI #961 green)
+
+Mode: **live-two-client** in the desktop app's browser pane (a DM tab `evaldm01` and a player tab `evalpl01` on
+the local dev table, 922 px wide), plus headless Playwright for the selection bar at 922 and 1024 px.
+
+Verified in both tabs: a fresh NPC's automatic colour is a deep shade (`#002f73`); **Leave DM mode** passes the
+goblin to `@dm` in both snapshots and leaves the ex-DM's own PC token theirs; the ex-DM's crafted `move` on the
+goblin is refused (it stays put); **re-entering DM mode** hands the goblin back, seen from the player tab; the dev
+server restarting (my e2e runs rebuilt the shared package) demoted the DM on reconnect, exactly as a deploy does,
+and the password brought the goblin back; at five characters the player's ➕ Add Character sends nothing and toasts
+"Up to 5 characters each: delete one to add another." with no stuck "Creating..."; the DM's **Delete** on a prop
+asks "Delete 1 prop? This cannot be undone." and the crate leaves the player's snapshot; the DM's initiative 8 reads
+at full strength (opacity 1) on the player's view of the DM's card though the button is disabled.
+
+Found and fixed:
+
+- `04b660d9` (major): at 922 px the selection bar never held still beside Chat & Rolls ("element is not stable"):
+  centred at 50% it wrapped in half the viewport, moved aside it unwrapped and grew, and flipped every frame. It now
+  has its own width, and wraps into the widest gap when none holds it on one row. An e2e at 922x549 joins the 1024
+  one.
+- `88d9bed5` (major): the cap's toast rendered under the Add Character dialog's backdrop (both z 10000): the toast
+  stack is 10001 now, verified live on top.
+
+Not driven live: the colour picker's drags and the gizmo's Ctrl rotation (Konva drags; covered by unit tests), and
+the phone shell (not this pass). Score: Functionality 8 · Multiplayer 9 · Craft 7.5 · Reach 6 (not driven) →
+**7.9** (pass at 7.0).
+
 ## Commits (on `91c69b63`)
 
 `4e012cad` shared colour module · `a436bb73` server rule, notice, wire colour · `72be1566` delete-token save
