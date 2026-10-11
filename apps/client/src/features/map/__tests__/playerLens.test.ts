@@ -4,7 +4,7 @@
 // already uniformly filtered (mapElements — the sole-producer invariant).
 
 import { describe, expect, it } from "vitest";
-import type { CompiledDoor, Token } from "@herobyte/shared";
+import { DM_ROLE_OWNER, type CompiledDoor, type Token } from "@herobyte/shared";
 import {
   dmViewActive,
   fogViewers,
@@ -48,6 +48,11 @@ describe("fogViewerTokens", () => {
 
   it("uses the PARTY's union vision under the lens (every token the DM does not own)", () => {
     expect(fogViewerTokens(tokens, "dm-uid", true).map((t) => t.id)).toEqual(["p1", "p2"]);
+  });
+
+  it("leaves the DM role's monsters out of the party's eyes (no player sees through them)", () => {
+    const withRole = [...tokens, token("goblin", DM_ROLE_OWNER)];
+    expect(fogViewerTokens(withRole, "dm-uid", true).map((t) => t.id)).toEqual(["p1", "p2"]);
   });
 });
 

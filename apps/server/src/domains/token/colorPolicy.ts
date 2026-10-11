@@ -27,6 +27,7 @@ import {
   type ColorHolder,
   type Token,
 } from "@herobyte/shared";
+import { DM_ROLE_OWNER } from "../room/dmDemotion.js";
 import type { RoomState } from "../room/model.js";
 import { pcTokenColours } from "../room/snapshot/pcColors.js";
 
@@ -44,9 +45,11 @@ export interface ColorDecision {
 /** Which kind of token is being born: a PC's gets a player colour, an NPC's a plain one. */
 export type TokenKind = "pc" | "npc";
 
+// The DM role (dmDemotion.ts) holds a demoted DM's monsters: a DM's, for colour too.
 const dmCheck =
   (state: RoomState) =>
   (uid: string): boolean =>
+    uid === DM_ROLE_OWNER ||
     state.players.some((player) => player.uid === uid && player.isDM === true);
 
 /**

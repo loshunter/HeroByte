@@ -9,14 +9,24 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket } from "ws";
 import { elevateUidToDM, type DMElevationDeps } from "../dmElevation.js";
 import { DMElevationThrottle } from "../dmElevationThrottle.js";
+import { DM_ROLE_OWNER } from "../../../domains/room/dmDemotion.js";
 
 function fakeWs(): WebSocket {
   return { readyState: 1, send: vi.fn() } as unknown as WebSocket;
 }
 
 /** A container just deep enough to reach the budget/in-flight gate. */
-function fakeContainer(ws: WebSocket, verifyDMPassword: () => Promise<boolean>) {
-  const state = { players: [{ uid: "dave", name: "dave", isDM: false }] };
+function fakeContainer(
+  ws: WebSocket,
+  verifyDMPassword: () => Promise<boolean>,
+  state = {
+    players: [{ uid: "dave", name: "dave", isDM: false }],
+    tokens: [] as { id: string; owner: string }[],
+    characters: [],
+    users: ["dave"],
+    sceneStates: {} as Record<string, { tokens: { id: string; owner: string }[] }>,
+  },
+) {
   const roomService = {
     getState: () => state,
     broadcast: vi.fn(),
@@ -44,9 +54,12 @@ describe("elevateUidToDM budget accounting", () => {
     refundAuthWork = vi.fn();
   });
 
-  function build(verifyDMPassword: () => Promise<boolean>): DMElevationDeps {
+  function build(
+    verifyDMPassword: () => Promise<boolean>,
+    state?: Parameters<typeof fakeContainer>[2],
+  ): DMElevationDeps {
     return {
-      container: fakeContainer(ws, verifyDMPassword),
+      container: fakeContainer(ws, verifyDMPassword, state),
       uidToWs: new Map<string, WebSocket>([["dave", ws]]),
       dmThrottle: new DMElevationThrottle(),
       pendingAuthWork: new Set<WebSocket>(),
@@ -54,6 +67,24 @@ describe("elevateUidToDM budget accounting", () => {
       refundAuthWork,
     };
   }
+
+  it("a DM who elevates takes back the DM role's pieces, on the table and on parked maps", async () => {
+    const state = {
+      players: [{ uid: "dave", name: "dave", isDM: false }],
+      tokens: [
+        { id: "goblin", owner: DM_ROLE_OWNER },
+        { id: "ally", owner: "sam" },
+      ],
+      characters: [],
+      users: ["dave"],
+      sceneStates: { cave: { tokens: [{ id: "bat", owner: DM_ROLE_OWNER }] } },
+    };
+    deps = build(async () => true, state);
+    await elevateUidToDM(deps, "dave", "FunDM");
+    expect(state.players[0]!.isDM).toBe(true);
+    expect(state.tokens.map((t) => t.owner)).toEqual(["dave", "sam"]);
+    expect(state.sceneStates.cave.tokens[0]!.owner).toBe("dave");
+  });
 
   it("a successful elevation refunds its budget token", async () => {
     deps = build(async () => true);

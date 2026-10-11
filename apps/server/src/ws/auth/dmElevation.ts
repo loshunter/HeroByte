@@ -10,7 +10,7 @@
 import type { WebSocket } from "ws";
 import type { Container } from "../../container.js";
 import type { DMElevationThrottle } from "./dmElevationThrottle.js";
-import { demoteDM } from "../../domains/room/dmDemotion.js";
+import { claimDmRolePieces, demoteDM } from "../../domains/room/dmDemotion.js";
 
 export interface DMElevationDeps {
   container: Container;
@@ -125,6 +125,8 @@ export async function elevateUidToDM(
   dmThrottle.clear(uid);
   deps.refundAuthWork(ws);
   player.isDM = true;
+  // The pieces a demotion (or a deploy's tokenless reconnect) handed the DM role come back.
+  claimDmRolePieces(state, uid);
   ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
   console.log(`DM elevation granted to ${uid}`);
 

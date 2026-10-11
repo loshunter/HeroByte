@@ -8,6 +8,7 @@
 //   - the DM-only walls/notes overlays (gated off dmView in MapBoard).
 
 import {
+  DM_ROLE_OWNER,
   effectiveVisionRadiusFeet,
   gridCellToWorldPoint,
   type AtlasNodeSnapshot,
@@ -66,8 +67,9 @@ export function visibleAtlasLinks(
 /**
  * The tokens whose vision feeds the fog for this view. A player sees from
  * their OWN tokens; the lens has no single player to impersonate, so it shows
- * the PARTY's union vision — every token the DM does not own. That is the
- * most honest one-toggle answer to "what can the table see right now".
+ * the PARTY's union vision — every token the DM does not own, except the DM
+ * role's (monsters a demoted DM held: no player sees through them). That is
+ * the most honest one-toggle answer to "what can the table see right now".
  */
 export function fogViewerTokens(
   tokens: readonly Token[],
@@ -75,7 +77,7 @@ export function fogViewerTokens(
   playerLens: boolean,
 ): Token[] {
   return playerLens
-    ? tokens.filter((token) => token.owner !== uid)
+    ? tokens.filter((token) => token.owner !== uid && token.owner !== DM_ROLE_OWNER)
     : tokens.filter((token) => token.owner === uid);
 }
 

@@ -459,6 +459,8 @@ export type { DrawingType } from "./drawingTypes.js";
 export { NPC_CREATE_LIMITS } from "./npcLimits.js";
 // Per-player character cap — the same sub-module rule (see playerCharacterLimits.ts).
 export { PLAYER_CHARACTER_LIMITS } from "./playerCharacterLimits.js";
+// The DM role's owner id — the same sub-module rule (see dmRole.ts).
+export { DM_ROLE_OWNER } from "./dmRole.js";
 // Bulk-prop bounds — same sub-module rule (see propLimits.ts).
 export { PROP_CREATE_LIMITS } from "./propLimits.js";
 // The table's own Library tokens — same sub-module rule (see customTokenLimits.ts).

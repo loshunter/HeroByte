@@ -15,7 +15,7 @@ function setup(roomId: string, opts: { isDM?: boolean; hasDMPassword?: boolean }
   } as unknown as WebSocket;
 
   const updateDMPassword = vi.fn().mockReturnValue({ source: "user", updatedAt: 1 });
-  const state = { players: [{ uid: "u1", isDM: opts.isDM ?? true }] };
+  const state = { players: [{ uid: "u1", isDM: opts.isDM ?? true }], tokens: [], sceneStates: {} };
 
   const container = {
     roomIdForUid: () => roomId,

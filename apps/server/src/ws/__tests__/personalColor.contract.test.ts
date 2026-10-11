@@ -28,6 +28,7 @@ import { CharacterService } from "../../domains/character/service.js";
 import { TokenService } from "../../domains/token/service.js";
 import { RoomService } from "../../domains/room/service.js";
 import { toSnapshot } from "../../domains/room/model.js";
+import { DM_ROLE_OWNER } from "../../domains/room/dmDemotion.js";
 import { createRouterHarness, flush, messagesOf, type RouterHarness } from "./routerHarness.js";
 
 const DM = "dm-1";
@@ -351,6 +352,25 @@ describe("personal colours — the server is the authority", () => {
 
     expect(held.color).toBe(beside);
     expect(notices(BO)).toEqual([]);
+  });
+
+  it("recolours the DM role's monsters as the DM's own: any colour, players' zones included", () => {
+    const ann = seat(ANN, "Annika");
+    const goblin = tokens.createToken(state(), DM_ROLE_OWNER, 2, 2, undefined, "medium", "npc");
+    const landed: string[] = [];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      for (let press = 0; press < 40; press += 1) {
+        if (press % 10 === 0) vi.setSystemTime(Date.now() + 5000);
+        harness.route({ t: "recolor", id: goblin.id }, DM);
+        landed.push(goblin.color);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+    // Kept out of every player's zone, no draw would come within r(10) of Annika's colour:
+    // the zone at this table (three players at most) is wider than that.
+    expect(landed.some((color) => distance(color, ann.color) < ruleRadius(10))).toBe(true);
   });
 
   it("gives NPCs, and the DM's own recolours, any window colour: deep shades too (the owner's word)", () => {
