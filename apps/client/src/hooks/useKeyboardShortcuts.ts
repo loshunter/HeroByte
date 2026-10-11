@@ -17,6 +17,7 @@
 import { useEffect } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import { mapShortcutAllowed } from "../features/interaction/mapShortcut";
+import { deleteConfirmText, planSelectionDelete } from "./selectionDelete";
 
 /**
  * Drawing manager interface for undo/redo operations
@@ -150,9 +151,6 @@ export interface UseKeyboardShortcutsOptions {
  * @see {@link UseKeyboardShortcutsOptions} for all available options
  * @see {@link DrawingManager} for drawing manager interface
  */
-/** Said when Delete is pressed on a selection that holds props. */
-export const PROPS_NOT_HERE = "Props are deleted in the Props panel.";
-
 /** Said (a toast, not a blocking alert) when Delete is pressed on a selection that cannot be deleted. */
 export const LOCKED_CANNOT_DELETE = "Locked: only the DM can unlock it.";
 export const LOCKED_CANNOT_DELETE_DM = "Locked: select it and press 🔓 Unlock first.";
@@ -181,111 +179,28 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
       // the selected tokens — and Ctrl+Z is native text undo. The focused map
       // keeps its keys beside an open floating window (see mapShortcut).
       if (!mapShortcutAllowed(e)) return;
-      // Delete or Backspace to delete selected object(s)
+      // Delete or Backspace deletes what the viewer may of the selection (selectionDelete.ts).
       if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectIds.length > 0) {
-        console.log("[KeyDown] Delete/Backspace pressed:", {
-          key: e.key,
-          selectedObjectIds,
-          isDM,
-          target: e.target,
-        });
-
         e.preventDefault();
-
-        // Filter to only objects the user can delete
-        // Note: Locked objects CANNOT be deleted by anyone (including DM)
-        const objectsToDelete = selectedObjectIds.filter((id) => {
-          const obj = snapshot?.sceneObjects?.find((o) => o.id === id);
-          if (!obj) return false;
-
-          // LOCK BLOCKS EVERYONE: Can't delete locked objects (even DM must unlock first)
-          if (obj.locked) return false;
-
-          // Can't delete the map
-          if (id.startsWith("map:")) return false;
-
-          // Can delete if DM (and not locked)
-          if (isDM) return true;
-
-          // Can delete if owner (or no owner set) and not locked
-          // Owner is stored at the SceneObject level, not in data
-          return !obj.owner || obj.owner === uid;
-        });
-
-        if (objectsToDelete.length === 0) {
-          const hasLocked = selectedObjectIds.some((id) => {
-            const obj = snapshot?.sceneObjects?.find((o) => o.id === id);
-            return obj?.locked;
-          });
-
-          if (hasLocked) {
-            notify(isDM ? LOCKED_CANNOT_DELETE_DM : LOCKED_CANNOT_DELETE);
-          } else {
-            notify(NOT_YOURS_CANNOT_DELETE);
-          }
+        const plan = planSelectionDelete(selectedObjectIds, snapshot, isDM, uid);
+        const deleting = plan.tokens.length + plan.drawings.length + plan.props.length;
+        if (deleting === 0) {
+          // A lock stops everyone, the DM included, until it is unlocked.
+          if (plan.locked > 0) notify(isDM ? LOCKED_CANNOT_DELETE_DM : LOCKED_CANNOT_DELETE);
+          else notify(NOT_YOURS_CANNOT_DELETE);
           return;
         }
-
-        // Show warning if some objects can't be deleted
-        if (objectsToDelete.length < selectedObjectIds.length) {
-          const skipped = selectedObjectIds.length - objectsToDelete.length;
-          const lockedCount = selectedObjectIds.filter((id) => {
-            const obj = snapshot?.sceneObjects?.find((o) => o.id === id);
-            return obj?.locked;
-          }).length;
-
+        if (plan.skipped > 0) {
           const message =
-            lockedCount > 0
-              ? `Cannot delete ${skipped} locked object${skipped > 1 ? "s" : ""}. Delete the ${objectsToDelete.length} unlocked object${objectsToDelete.length > 1 ? "s" : ""}?`
-              : `You can only delete ${objectsToDelete.length} of ${selectedObjectIds.length} selected objects (${skipped} owned by others). Continue?`;
-
-          if (!confirm(message)) {
-            return;
-          }
+            plan.locked > 0
+              ? `Cannot delete ${plan.skipped} locked object${plan.skipped > 1 ? "s" : ""}. Delete the ${deleting} unlocked object${deleting > 1 ? "s" : ""}?`
+              : `You can only delete ${deleting} of ${selectedObjectIds.length} selected objects (${plan.skipped} owned by others). Continue?`;
+          if (!confirm(message)) return;
         }
-
-        // Separate objects by type
-        const tokens = objectsToDelete
-          .filter((id) => id.startsWith("token:"))
-          .map((id) => id.split(":")[1]!)
-          .filter(Boolean);
-        const drawings = objectsToDelete
-          .filter((id) => id.startsWith("drawing:"))
-          .map((id) => id.split(":")[1]!)
-          .filter(Boolean);
-
-        // Props are not deleted by this key (they have their own panel): say so, so a
-        // selection of only props is not a silent no-op.
-        const hasProps = objectsToDelete.some((id) => id.startsWith("prop:"));
-        if (tokens.length === 0 && drawings.length === 0) {
-          if (hasProps) notify(PROPS_NOT_HERE);
-          return;
-        }
-
-        // Build confirmation message
-        const parts: string[] = [];
-        if (tokens.length > 0) {
-          parts.push(`${tokens.length} token${tokens.length > 1 ? "s" : ""}`);
-        }
-        if (drawings.length > 0) {
-          parts.push(`${drawings.length} drawing${drawings.length > 1 ? "s" : ""}`);
-        }
-        const message = `Delete ${parts.join(" and ")}? This cannot be undone.`;
-
-        if (confirm(message)) {
-          console.log("[Delete] Deleting selected objects:", { tokens, drawings });
-
-          // Delete all tokens
-          for (const id of tokens) {
-            sendMessage({ t: "delete-token", id });
-          }
-
-          // Delete all drawings
-          for (const id of drawings) {
-            sendMessage({ t: "delete-drawing", id });
-          }
-
-          if (hasProps) notify(PROPS_NOT_HERE);
+        if (confirm(deleteConfirmText(plan))) {
+          for (const id of plan.tokens) sendMessage({ t: "delete-token", id });
+          for (const id of plan.drawings) sendMessage({ t: "delete-drawing", id });
+          for (const id of plan.props) sendMessage({ t: "delete-prop", id });
           clearSelection();
         }
         return;

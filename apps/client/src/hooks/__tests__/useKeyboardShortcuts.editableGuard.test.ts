@@ -10,7 +10,6 @@ import {
   LOCKED_CANNOT_DELETE,
   LOCKED_CANNOT_DELETE_DM,
   NOT_YOURS_CANNOT_DELETE,
-  PROPS_NOT_HERE,
   useKeyboardShortcuts,
   type UseKeyboardShortcutsOptions,
 } from "../useKeyboardShortcuts";
@@ -88,11 +87,13 @@ describe("useKeyboardShortcuts — Delete and props", () => {
       { id: "prop:p1", locked: false, owner: "dm" },
       { id: "token:t1", locked: false, owner: "dm" },
     ],
+    props: [{ id: "p1", owner: "dm" }],
   } as unknown as RoomSnapshot;
 
-  it("says where props are deleted when the selection holds only props", () => {
+  it("deletes a selection of props, after the same confirm as tokens", () => {
     const notify = vi.fn();
     const sendMessage = vi.fn();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     renderHook(() =>
       useKeyboardShortcuts(
         baseOptions({
@@ -104,8 +105,9 @@ describe("useKeyboardShortcuts — Delete and props", () => {
       ),
     );
     dispatchOn(window, { key: "Delete" });
-    expect(notify).toHaveBeenCalledExactlyOnceWith(PROPS_NOT_HERE);
-    expect(sendMessage).not.toHaveBeenCalled();
+    expect(confirm).toHaveBeenCalledWith("Delete 1 prop? This cannot be undone.");
+    expect(sendMessage.mock.calls).toEqual([[{ t: "delete-prop", id: "p1" }]]);
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it("says nothing when the selection holds no prop", () => {
@@ -120,7 +122,7 @@ describe("useKeyboardShortcuts — Delete and props", () => {
     expect(notify).not.toHaveBeenCalled();
   });
 
-  it("deletes the tokens of a mixed selection and still says props are elsewhere", () => {
+  it("deletes the tokens and the props of a mixed selection", () => {
     const notify = vi.fn();
     const sendMessage = vi.fn();
     vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -136,7 +138,28 @@ describe("useKeyboardShortcuts — Delete and props", () => {
     );
     dispatchOn(window, { key: "Delete" });
     expect(sendMessage).toHaveBeenCalledWith({ t: "delete-token", id: "t1" });
-    expect(notify).toHaveBeenCalledExactlyOnceWith(PROPS_NOT_HERE);
+    expect(sendMessage).toHaveBeenCalledWith({ t: "delete-prop", id: "p1" });
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("leaves a prop a player may not delete (props off, or not theirs) and says so", () => {
+    const notify = vi.fn();
+    const sendMessage = vi.fn();
+    renderHook(() =>
+      useKeyboardShortcuts(
+        baseOptions({
+          selectedObjectIds: ["prop:p1"],
+          snapshot: PROP_SNAPSHOT,
+          isDM: false,
+          uid: "dm",
+          sendMessage,
+          notify,
+        }),
+      ),
+    );
+    dispatchOn(window, { key: "Delete" });
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledExactlyOnceWith(NOT_YOURS_CANNOT_DELETE);
   });
 });
 
