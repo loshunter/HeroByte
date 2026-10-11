@@ -9,6 +9,7 @@
 
 import type { WebSocket } from "ws";
 import type { Container } from "../../container.js";
+import { claimDmRolePieces } from "../../domains/room/dmDemotion.js";
 
 export function setDMPasswordForUid(
   container: Container,
@@ -66,6 +67,7 @@ export function setDMPasswordForUid(
     // If this is first-time setup and player doesn't have DM status yet, grant it
     if (!hasDMPassword && !player.isDM) {
       player.isDM = true;
+      claimDmRolePieces(roomService.getState(), uid);
       ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
       console.log(`DM status granted to ${uid} (first-time DM password setup)`);
       roomService.broadcast(container.getAuthenticatedClientsForRoom(roomId), container.uidToWs, {

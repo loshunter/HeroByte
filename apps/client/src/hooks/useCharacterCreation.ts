@@ -19,7 +19,7 @@ export interface UseCharacterCreationOptions {
   /**
    * Function to call to create a character (from usePlayerActions).
    */
-  addCharacter: (name: string) => void;
+  addCharacter: (name: string) => boolean | void;
 
   /**
    * Array of all characters in the session to watch for new characters.
@@ -49,6 +49,9 @@ export interface UseCharacterCreationReturn {
    */
   cancel: () => void;
 }
+
+/** How long "Creating..." waits for the new character before it gives up. */
+export const CREATION_TIMEOUT_MS = 10_000;
 
 /**
  * Hook to manage character creation with server confirmation.
@@ -103,6 +106,17 @@ export function useCharacterCreation(
     }
   }, [isCreating, pendingCharacterName, characters, uid]);
 
+  // A refusal the client could not predict (the table at its 500, a role that changed
+  // on the way) has no reply: "Creating..." gives up rather than wait for good.
+  useEffect(() => {
+    if (!isCreating) return;
+    const timer = setTimeout(() => {
+      setIsCreating(false);
+      setPendingCharacterName(null);
+    }, CREATION_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isCreating]);
+
   // Initiate character creation
   const createCharacter = useCallback(
     (name: string): boolean => {
@@ -111,15 +125,11 @@ export function useCharacterCreation(
         return false;
       }
 
-      console.log("[useCharacterCreation] Starting character creation:", name);
-
-      // Set loading state BEFORE sending message
+      // Nothing sent (the player is at the character cap): no "Creating..." to wait on.
+      // The reply cannot arrive before the state below is set (the socket is async).
+      if (addCharacter(name) === false) return false;
       setIsCreating(true);
       setPendingCharacterName(name);
-
-      // Send the creation message
-      addCharacter(name);
-
       return true;
     },
     [isCreating, addCharacter],

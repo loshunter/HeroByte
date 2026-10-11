@@ -101,14 +101,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
       }}
     >
       {/* Icon column: Camera snap + Initiative button */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "6px",
-          alignItems: "center",
-        }}
-      >
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "center" }}>
         <button
           type="button"
           className="jrpg-icon"
@@ -127,6 +120,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
             cursor: onFocusToken ? "pointer" : "default",
             padding: 0,
             lineHeight: 1,
+            opacity: 1, // read at full strength when disabled (another player's card)
           }}
           title={
             statusEffects.length > 0
@@ -197,6 +191,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               cursor: onInitiativeClick ? "pointer" : "default",
               padding: 0,
               color: "var(--jrpg-white)",
+              opacity: 1, // the number READS for every viewer: not `button:disabled`'s 0.5
             }}
             title={initiative !== undefined ? `Initiative: ${initiative}` : "Set Initiative"}
             aria-label={onInitiativeClick ? "Set Initiative" : `Initiative ${initiative}`}

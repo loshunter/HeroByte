@@ -151,3 +151,18 @@ export function cellOf(color: string): WindowCell | null {
 export function sameColor(first: string, second: string): boolean {
   return (normalizeColor(first) ?? first) === (normalizeColor(second) ?? second);
 }
+
+/**
+ * A pick that says nothing new, so nothing is sent: the colour still in flight, or
+ * with nothing in flight the colour shown. Going back to the old colour while a pick
+ * is in flight is a pick too, and so is going back to a pick that went unanswered
+ * (refused, throttled).
+ */
+export function repeatsPick(
+  hex: string,
+  current: string,
+  inFlight: string | null,
+  unanswered: boolean,
+): boolean {
+  return inFlight === null ? sameColor(hex, current) : !unanswered && sameColor(hex, inFlight);
+}

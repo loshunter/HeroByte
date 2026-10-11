@@ -24,6 +24,7 @@ import {
   pickerField,
   placeHandle,
   pointAt,
+  repeatsPick,
   sameColor,
   stepPoint,
   zoneOwnerAt,
@@ -61,6 +62,8 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSent = useRef<string | null>(null);
+  /** The pick in flight went unanswered (refused, throttled): going back to it sends it again. */
+  const unanswered = useRef(false);
   /** The last placement stopped at a zone's edge: its notice is held a few seconds. */
   const bumped = useRef(false);
   const aspect = useRef(DRAWN_ASPECT);
@@ -81,18 +84,22 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
   useEffect(() => {
     if (lastSent.current !== null && sameColor(control.color, lastSent.current)) {
       lastSent.current = null;
+      unanswered.current = false;
     }
     if (lastSent.current !== null || drag.current || keyed.current) return;
     stopTimer(pendingTimer);
     setPending(null);
   }, [control.color]);
-  // Closing the window mid-keystroke still sends the colour the keys chose.
+  // Closing the window mid-keystroke still sends the colour the keys chose, and leaves
+  // no timer behind (a press still recorded kept the retire timer polling for good).
   const commitRef = useRef<(cell: WindowCell | null) => void>(() => {});
   useEffect(
     () => () => {
-      stopTimer(pendingTimer);
+      drag.current = null;
       stopTimer(noticeTimer);
       if (keyed.current) commitRef.current(pendingRef.current);
+      stopTimer(keyTimer);
+      stopTimer(pendingTimer);
     },
     [],
   );
@@ -118,15 +125,13 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
     setNotice(placed.blockedBy ? { text: `Too close to ${placed.blockedBy}`, live: true } : null);
     return placed.cell;
   };
-  /**
-   * An answer that leaves the colour as it was (a snap, a refusal) changes nothing
-   * to clear the pending pick on, so it stops showing after a moment instead; while
-   * keys or a drag are still choosing, it looks again later rather than give up.
-   */
+  /** An answer that changes nothing (a snap, a refusal) retires the pick a moment later;
+   * while keys or a drag still choose, it looks again later rather than give up. */
   const retireSoon = () => {
     stopTimer(pendingTimer);
     const retire = () => {
       if (drag.current || keyed.current) {
+        unanswered.current = true; // still in flight, for a return to the colour it replaced
         pendingTimer.current = setTimeout(retire, PENDING_TIMEOUT_MS);
         return;
       }
@@ -140,12 +145,13 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
     stopTimer(keyTimer);
     keyed.current = false;
     // Judged against a pick still in flight: going back to the old colour is a pick too.
-    if (!cell || sameColor(cell.hex, lastSent.current ?? control.color)) {
+    if (!cell || repeatsPick(cell.hex, control.color, lastSent.current, unanswered.current)) {
       if (lastSent.current === null) setPending(null);
       else if (!pendingTimer.current) retireSoon();
       return;
     }
     lastSent.current = cell.hex;
+    unanswered.current = false;
     control.onCommit(cell.hex);
     retireSoon();
   };
@@ -169,7 +175,8 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
     const keys = drag.current?.keys ?? null;
     drag.current = null;
     setNotice(null);
-    if (keyed.current) return; // Keys still waiting commit on their own.
+    // Keys a press on the handle held back go now (their quiet-time timer was stopped).
+    if (keyed.current) return commit(pendingRef.current);
     // A cancelled press (a phone scroll) picks nothing, but keys it interrupted still go.
     setPending(keys);
     if (keys) commit(keys);
@@ -204,8 +211,12 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
             keys: keyed.current ? pendingRef.current : null,
           };
           event.currentTarget.setPointerCapture?.(event.pointerId);
-          // On the handle, nothing moves until the pointer does.
-          if (onHandle) return;
+          // On the handle, nothing moves until the pointer does, and keys still waiting
+          // wait for the release: nothing is sent while a press is down.
+          if (onHandle) {
+            stopTimer(keyTimer);
+            return;
+          }
           supersedeKeys();
           drag.current.pressed = moveTo(point);
         }}
@@ -231,10 +242,14 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
           if (!active || !isOwn(event)) return;
           drag.current = null;
           focusHandle();
-          if (active.onHandle && !active.moved) return; // A tap on your own handle picks nothing.
+          if (active.onHandle && !active.moved) {
+            // A tap on your own handle picks nothing; keys it held back go now.
+            if (keyed.current) commit(pendingRef.current);
+            return;
+          }
           if (!active.moved) {
-            // A tap in a zone lands on its nearest free edge; the notice names whose it is.
-            commit(active.pressed);
+            // A tap in a zone lands on its nearest free edge (the notice names whose it is);
+            commit(keyed.current ? pendingRef.current : active.pressed); // keys after it win
           } else {
             commit(
               moveTo(pointFor(event.clientX + active.offsetX, event.clientY + active.offsetY)),
@@ -303,10 +318,11 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
               const size = event.shiftKey ? 5 : 1;
               moveTo(stepPoint(shown, step[0] * size, step[1] * size));
               if (bumped.current) holdNotice();
-              // Commits once the keys go quiet: armed on every press (a held key
-              // repeats keydown), so it never waits on a keyup that may not come.
+              // Commits once the keys go quiet, re-armed on every keydown (a held key repeats);
+              // under a press they wait for its release or cancel: nothing is sent mid-press.
               keyed.current = true;
               stopTimer(keyTimer);
+              if (drag.current) return;
               keyTimer.current = setTimeout(
                 () => commitRef.current(pendingRef.current),
                 KEY_COMMIT_MS,
@@ -316,7 +332,7 @@ export function ColorPicker(control: ColorPickerControl): JSX.Element {
               if (ARROWS[event.key]) event.stopPropagation();
             }}
             onBlur={() => {
-              if (keyed.current) commitRef.current(pendingRef.current);
+              if (keyed.current && !drag.current) commitRef.current(pendingRef.current);
             }}
           />
         )}

@@ -1,6 +1,7 @@
 # Personal colour, slice C1 — colour identity
 
-**Status: pushed to `origin/dev` (2026-10-09), not on main.** Built from
+**Status: in production — merged to main with C3 in `040f7b97` (2026-10-10).** Round 4's fixes were first reviewed
+after that merge, on 2026-10-10 (see "Review of round 4" at the end). Built from
 [`PROMPT-personal-colour-c1.md`](../planning/PROMPT-personal-colour-c1.md) and against
 [`personal-colour-arc-plan.md`](../planning/personal-colour-arc-plan.md) §3 and its §8 revisions (both untracked:
 the links work on this machine only). The commits on top of `91c69b63` are listed at the end, including four
@@ -23,8 +24,9 @@ unreadable as text on the dark panels until C3's text rule lifts them.
 
 - **New tokens get a colour.** A player's first character gets an open spot far from every other player's colour
   (a draw among the allowed colours within 8% of the most open one; DM and NPC colours do not count). Their further
-  characters start in that player's colour. NPC tokens get a random colour that reads on a dark map (at least 3:1 on
-  the map floor, about L 0.57 up: an NPC has no picker to fix an unreadable one). Stored as `#rrggbb`. The choice never
+  characters start in that player's colour. NPC tokens get a random colour from the whole window, deep shades
+  included (round 4 limited them to colours at least 3:1 on a dark map floor; the owner reversed that on 2026-10-10:
+  dark colours are welcome). Stored as `#rrggbb`. The choice never
   fails, so it can never block a join.
 - **⚙️ settings → Character → Colour** (desktop) and the row's **⚙️ EDIT** sheet (phone): a hue × lightness window,
   loaded on demand. Other players' colours hold striped zones (a dark and a light stripe, so a zone shows at any lightness); a mouse hovering one names whose it is
@@ -63,8 +65,8 @@ unreadable as text on the dark panels until C3's text rule lifts them.
 - **Recolour** (double-click) picks a random colour no other player is using, at least max(r(N), ΔE 0.05) from the
   current one when a free colour that far exists (otherwise any free colour). The exemption follows whose
   colour it is: a PC's player for a PC's token, else the token's owner (the two differ only after a DM's link or in a
-  restored file; "clear all" keeps a PC's locked token with its player). The DM's own tokens take a random colour that
-  reads on a dark map; a player's stays out of other players' zones even when the DM recolours it. It returns `save: true`; it was already saved, because every broadcast requests a save
+  restored file; "clear all" keeps a PC's locked token with its player). The DM's own tokens take any window colour, deep
+  shades included (the owner's word, 2026-10-10); a player's stays out of other players' zones even when the DM recolours it. It returns `save: true`; it was already saved, because every broadcast requests a save
   (`RoomService.broadcast`).
 - **Every PC's colour rides its character record on the wire** (`SnapshotCharacter.color`, derived at send time and
   never stored in room state; an exported session file carries it and the loader strips it). Fog drops another
@@ -84,7 +86,7 @@ On 2026-10-09 the owner chose darker colours and the band now runs to 0.30, the 
 crowd toward black). The darkest window colour now, `#390076`, on each surface: navy `#0f0e1e` 1.30, indigo 1.18, fog
 1.34, `--hero-navy` 1.11, the preview's map floor 1.03, `--jrpg-panel` 1.02, the desktop card gradient 1.04–1.33, the
 DM's card 1.13; the worst window colours on those two are other dark shades at 1.00 (`#00442d`, `#3a3100`). So most of
-the dark half fails 4.5:1 for text on navy (no colour reaches it below about L 0.56), and below about L 0.50 even 3:1
+the dark half fails 4.5:1 for text on navy (no colour reaches it below about L 0.57), and below about L 0.50 even 3:1
 as a bare fill: C3's text lift and the frames' lit facets carry it, and C1 waits for C3. The picker's zones were drawn
 darkened; in the dark half that fell to 1.35:1 against the free colours beside them, so they are now diagonal stripes
 (the colour × 0.2, and the colour washed 75% toward white): the better of the two stripes is at least 3.55:1 against
@@ -172,7 +174,7 @@ server builds the window's cells at start (about 100 ms) instead of on the first
 **Bundle.** The picker is a lazy chunk: `ColorPicker-*.js` was 4.75 KB gzip after round 1's fixes and 5.14 KB gzip
 plus 0.81 KB CSS on `29d09a99` (reviewer measurements on the e2e harness's build). The entry bundle was 166.71 KB of
 the 175 KB budget after the lazy split (`d60d25d3`; it was 170.37 KB with the picker eager) and 166.84 KB on
-`b98e4645`, both from the production `pnpm build`; the figures on the final tree (round 4) are in the gates section.
+`b98e4645`, both from the production `pnpm build`; the last measured figures (on `254b47e0`) are in the gates section; the merged tree was not measured.
 
 ## Evaluation (evaluate-live)
 
@@ -307,21 +309,23 @@ as striped patches in both halves; the spots' dashed rings show on the dark half
 ## Round 4 (the owner's last round)
 
 Four fresh reviewers on the same model, over `29d09a99..HEAD`. **Server: PASS** (8 minors). **Client: PASS** (6
-minors). **Privacy and tests: FAIL** (1 major, 4 minors). **Docs: FAIL** (3 majors, 14 minors). Four findings were
-reported twice, so about 36 distinct (54, 53, 39, 36 across the four rounds). No privacy leak was found for a sender
-who does not own the token. The union was fixed in `f0448ce1`, `a1efc685`, `254b47e0` and the docs commit after them, each code
-fix sabotaged red; **none of it has been reviewed**:
+minors). **Privacy and tests: FAIL** (1 major, 4 minors). **Docs: FAIL** (3 majors, 14 minors). 36 findings in all,
+four reported twice, so about 32 distinct (54, 53, 39, 32 across the four rounds). No privacy leak was found for a sender
+who does not own the token. The union was fixed in `f0448ce1`, `a1efc685`, `254b47e0` and the docs commit after them; each fix a
+test can see was sabotaged red (the boot-time window build, the lazy floor parse `254b47e0`, the own-character
+squares and the placeholder height are pinned by no test: checked by hand or by the bundle figure only). None of it
+was reviewed before the merge to main:
 
 - **Major:** no test could fail if a drag committed where it was pressed instead of released (now pinned twice); the
   record claimed final-tree gates that did not exist, said "at least 47%" where it is 46.8%, and described keys and
   taps as before `7cc07377`.
 - **Minor, fixed:** the throttled reply told an owner who can no longer see their token its colour (the reply now
-  carries none); NPC and DM-recolour colours from the whole window (44% under 3:1 on a dark map floor; now drawn from
-  the readable part); every identical PC was a separate blocker (one colour now blocks once); the first token after
+  carries none); NPC and DM-recolour colours from the whole window (42.6% of window cells under 3:1 on a dark map floor; drawn from the
+  readable part in `f0448ce1`; reversed by the owner in `53332a6e`); every identical PC was a separate blocker (one colour now blocks once); the first token after
   boot paid the 100 ms window build; `colorOwner`'s docstring premise; the DM's throttle reply and the chosen colour's
   owner were unpinned; the nearest-snap bound was weak (now equal to `nearestAllowedColor`); Chromium drew the window
   at 1.8:1 instead of 2.6:1 (`min-height: 0`; both colour e2e specs check it); a refused pick could stay on screen for
-  good; 13 dark cells trapped single arrow steps; your other characters' dots looked like suggested spots; keys were
+  good; 13 pairs of dark cells (26 cells) trapped a single arrow step; your other characters' dots looked like suggested spots; keys were
   lost when a press off the handle was cancelled; hover labels were off for 3 s after every pick; a key step's bump
   notice never cleared; the picker was offered for a token someone else owns; the loading placeholder was 170 px
   against a 212 px picker; picker mutants that survived (handle tap in flight, a second press on the same pick, keys
@@ -329,7 +333,7 @@ fix sabotaged red; **none of it has been reviewed**:
 - **Not fixed:** a request exactly at another player's colour snaps to an arbitrary edge of its zone (every edge cell
   is equally near), which can be a different hue; a vertical swipe while a pick is in flight shows the old colour
   until the answer arrives; a second tap in the same zone is not re-announced to a screen reader; the window's first
-  build costs a few hundred ms on a phone; spots on the top row sit half outside the window (before C1); round 3's
+  build costs a few hundred ms on a phone; spots on the top row sit half outside the window (since C1's first build); round 3's
   scroll flash and drag-from-a-spot.
 
 ## Gates
@@ -387,8 +391,10 @@ CI's run on the push.
 - **Landed elsewhere:** a double-tap recolour on phones (`9da4011b`, another session), merged in `cb7539c2` before
   the push; its help line is folded into `RECOLOR_ENTRY`.
 - **Not touched:** `add-player-character` has no per-player cap (characters are capped only on session load, at 500).
+  **Since `e147c189`/`26374db4`:** 5 per player (the DM's not counted); an add (the DM's create too) refuses at the
+  table's 500, a claim does not.
 
-## Corrections to commit messages (unpushed; not rewritten)
+## Corrections to commit messages (pushed; not rewritten)
 
 - `4e012cad`: ">= 53%" holds only when every earlier pick is checked at the newcomer's radius; checked at the radius
   in force when each picked, the worst was 51% (at that commit's 0.10 cap; 51.8% at the 0.15 cap, table above). "So names stay readable" is false on the desktop party card (3.00:1).
@@ -431,9 +437,11 @@ CI's run on the push.
   rare enough to leave.
 - **No per-player character cap now.** Colour writes are budgeted, a new token's rule costs about 5 ms at 100 other
   PCs, and a session load caps characters at 500. A cap is a table rule; it can wait for a table that needs one.
+  **Superseded 2026-10-10:** the 500 is a load check, not a limit on live creation, so a player could break the DM's
+  backup; the owner chose 5 per player (`e147c189`).
 - **Colours nobody picked read on a dark map** (round 4): an NPC's automatic colour and the DM's double-click recolour
-  of their own token come from the window's cells at least 3:1 on the map floor. Players still pick any colour. On
-  parchment those are the weaker end, as before the darker band.
+  of their own token came from the window's cells at least 3:1 on the map floor. **Reversed by the owner on
+  2026-10-10** ("allow dark for both"): both draw from the whole window again, and `readableColor` is gone.
 - **A colour request exactly at another player's colour** (a file, a crafted message) snaps to an arbitrary edge of
   that zone, possibly a different hue: every edge cell is equally near. Left as it is.
 - **Light maps and automatic colours on legacy tables** need nothing in C1: the dark half reads on parchment, C3's
@@ -442,11 +450,150 @@ CI's run on the push.
 
 ## Left for the owner
 
-- The **player guide** and the **character-card lesson script** (`docs/user-guide/player-guide.md`,
-  `docs/website/video-scripts.md` Player path 3, chapters 5 and 7) are edited but **left uncommitted**: your own
-  uncommitted edits sit in the same hunks. `docs/website/narration-wren.md` (also yours, uncommitted) still narrates
+- The **player guide** is committed (`d4e39ce5`, `8579b812`, and the owner's portrait/token-art bullet in
+  `4d8a7059`). The **character-card lesson script** (`docs/website/video-scripts.md` Player path 3, chapters 5 and 7)
+  is still in the owner's uncommitted work. `docs/website/narration-wren.md` (also yours, uncommitted) still narrates
   "a new random colour" in chapter 5, lacks the script's picker lines there (the script films the picker), and lacks
   "your colour" in chapter 7; it was not touched.
+
+## Review of round 4 (2026-10-10, after the merge to main)
+
+C1's and C3's round-4 fixes reached production (`040f7b97`) unreviewed. The owner asked for a review. Four fresh
+reviewers (opus, read-only, on `f69079ea`; the tree was unchanged after) covered C1's code, C3's code, privacy and
+the wire, and docs against code. **A: PASS** (7 minors). **B: FAIL** (1 major, 5 minors). **C: FAIL** (3 majors, 1 minor,
+two of them older than C1). **D: FAIL** (3 majors, 8 minors). Gates before the review: everything green except the
+two character-file download e2e specs that fail only on this machine (CI passes them); two other e2e failures in that
+run were contention with the reviewers' own test runs and passed alone.
+
+**The owner's answers** (2026-10-10): off-band colours from a crafted message or file are fine (black and grey are
+the owner's favourites); a player's characters keep a zone each, and the count is capped instead (**5 per player**);
+NPC colours and the DM's own recolours **may be dark** (round 4's readable-only draw reversed); the dead-socket fix
+goes ahead in two steps (measure the ping replies first).
+
+Fixed, each in its own commit, each test red on the old code unless said:
+
+- `62edcc06` (B major): Ctrl's free rotation read a window key flag that stuck "on" when the key-up went elsewhere
+  (Ctrl+T, Cmd+Tab), turning snapping off until Ctrl was tapped. It reads the drag's own pointer event now; the old
+  Ctrl test could not fail. Of the new tests, Ctrl/Cmd and the stuck key-down are red on the old code; "no key
+  snaps" is a control, green on both. The gizmo's other per-render arrays are constants (B minor 3).
+- `53332a6e` (owner): NPC colours and the DM's own recolours draw from the whole window again; `readableColor` is gone.
+  Settled A minor 4 for an NPC's automatic colour only; round 2 found a recolour of an NPC whose owner is no DM still
+  kept out of players' zones, closed by `e4cfac8f` (the DM role counts as a DM for colour).
+- `d01a704b` (A minors 1-3): the picker left a retire timer polling for good after closing mid-press; a press held
+  still on the handle let waiting keys go 400 ms in (the record's "nothing sent while a press is down" was false);
+  dragging back to a throttled pick sent nothing.
+- `6d770bbb` (B minor 4): another player's initiative number and status icon were at half strength
+  (`button:disabled`), one element over from round 4's portrait fix.
+- `918fb40d` (B minor 5): a clear left characters linked to the tokens it removed, so the colour record and the next
+  join disagreed about a player's token.
+- `93f1afe1` (B minor 6): the per-cell sweeps count a NaN as wrong and must see the whole window (not sabotaged: no
+  input yields a NaN today).
+- `e147c189` (C major F2, owner's number): a player holds up to 5 characters (add or claim; the DM is not counted),
+  and add and claim refuse past the table's 500, where the DM's backup stopped loading. The client toasts instead of
+  sending.
+- `801896c3` (C majors F3/F4, older than C1): a demoted DM (Leave DM mode, or a tokenless reclaim of a DM's uid) kept
+  every monster they placed, so they saw through its eyes and through the fog and could move hidden NPCs. Those tokens
+  pass to the DM role (`@dm`, an owner no uid can be).
+- This record (D, `de2bbfb2`): both status lines, "each code fix sabotaged red" (false for four), the finding count (32 distinct,
+  not 36), 13 pairs of dark cells, 42.6% not 44%, L 0.57 not 0.56, the guide no longer "uncommitted", "pushed"
+  corrections, "since C1's first build", and the contract test's throttle comment.
+
+Not fixed, stated: the picker's loading placeholder holds 210 px whatever the window's width (A minor 6; the right
+figure needs a live measurement); the gizmo's transform handlers are still new functions each render (B minor 3,
+rebinding only); a request exactly at another player's colour still snaps to an arbitrary zone edge (round 4's list);
+the dead-socket fix the owner approved (two steps) is not started. Not taken up from round 1 (minors, unchanged code):
+A minor 5 (the DM's recolour range, settled by the owner instead), A minor 7 (a bundle check and a warm boot for the
+deleted `readableColor`), B minors 1-2 (a stuck Ctrl flag, superseded by `62edcc06`; the Ctrl test, replaced).
+
+**Review round 2** (2026-10-10, three fresh reviewers, opus, read-only, on `de2bbfb2`): A (the colour fixes) FAIL, 0
+major, 3 minor, 4 nits; B (the demotion and the cap) FAIL, 1 major, 5 P2, 4 P3; C (docs and messages) FAIL, 4 major,
+8 minor. The major: `801896c3` walked only the live table, so monsters parked on maps the table had left kept the uid's
+sight on travel back; and since session tokens live in memory, every deploy demotes every DM through the
+tokenless-reconnect path, so every monster went to `@dm` for good (drawn under the DM's own tokens, no double-click
+recolour, lighting the Player View, reset by a restore). Fixed:
+
+- `e4cfac8f`: a DM who elevates (or sets the first DM password) takes the role's pieces back; a demotion with another
+  DM at the table hands them to that DM; demotion and the hand-back walk parked maps; NPC tokens of a uid that is no
+  DM pass to a seated DM or the role on a disk load, a restore and a fork; the role counts as a DM for colour; the
+  Player View leaves role monsters out. The fork's call for parked maps has no test.
+- `26374db4`: a claim at a full table goes through (it adds nothing); the DM's create-character refuses past 500; a
+  hand-over to a player at five is refused; "Creating..." gives up after 10 s on a refusal the client cannot predict;
+  Help and the guide say the DM's characters "are not counted".
+- `00105ca8`: `d01a704b` forgot the pick in flight once its answer was late, so a drag back to the old colour sent
+  nothing and a slow answer then showed the pick the player had left (a regression); keys pressed under a held handle
+  went mid-press. The pick stays in flight, marked unanswered; keys under a press wait for its release.
+- `aab5aef8`: four more sweep checks count a NaN as wrong; a stale docstring on the clear.
+- `a96671c4`: Ctrl's choice applies at the press (Konva reads the snaps before `transform`).
+
+Still open from round 2, stated: a new uid's first character and a restore's merge do not check the table's 500; a
+demoted DM keeps every PC made while DM, which can leave a player above five; changing the DM password does not demote
+a co-DM who is elevated now (older; the owner's call); `PlayerService.setDMMode` is dead code that would skip
+`demoteDM` if wired; the server's `clear-all-tokens` (no client sends it) deletes unlocked role monsters.
+
+**Review round 3** (2026-10-10, the cap; three fresh reviewers, opus, read-only and static, on `5ba22735`, while a
+full gate run passed apart from the known local pair; entry bundle 170.36 KB of 175): A (the demotion and the cap)
+FAIL, 1 high, 2 medium, 3 low; B (client and UX) PASS, 6 P3; C (docs) FAIL, 2 major, 5 minor. Round-by-round for this
+review: about 28, 33, 23 findings. Fixed:
+
+- `020334a2`: a restore installed the file's parked maps after the snapshot's rehome, so a goblin parked in a backup
+  kept an old DM's uid (a player tonight) until the next restart (A high); REMOVE and Clear All left a seat's parked
+  pieces with it; a DM proven by the session token on reconnect now takes the role's pieces; the first-DM-password
+  hand-back has a test (it had none).
+- `0f389a73`: the Player View left out only the viewer's and the role's tokens, so a co-DM's monsters lit the party's
+  fog; it now leaves out every DM's.
+- `6a0883ad`: Delete told a DM "not yours" for the staging zone and a player "not yours" for their own prop with
+  player props off (it says the DM's switch now); the map check tested `map:`, the map's id is `map`.
+- `4ee591db`, `6e2fd4ae`: the selection bar re-places itself when its own width changes, and steps around the toast
+  stack (a wide toast sat over Unlock at 1024 px). `4ee591db` claimed its resize test was red without the observer;
+  it was not, and `6e2fd4ae` makes it so.
+- `26c85228`: keys pressed during a still press win its release; a blur during a press leaves the send to the
+  release or cancel (it sent twice, the older last).
+- Docs: the DM guide and Help say a hand-over to a player at five does nothing; `dmDemotion.ts` says the co-DM case.
+
+Still open after round 3, stated:
+- A new uid's first character (joinProvisioning) and a restore's merge do not check the table's 500. On the public
+  table, scripted joins could pass it and break the DM's backup.
+- "Creating..." gives up after 10 s in silence: if the add was only slow, a retry makes a second character.
+- A hand-over refused at five sends no reply (the DM sees nothing happen).
+- A demoted DM keeps every PC made while DM, which can leave a player above five.
+- Changing the DM password does not demote a co-DM who is elevated now (older; the owner's call).
+- `PlayerService.setDMMode` is dead code that would skip `demoteDM` if wired.
+- The server's `clear-all-tokens` (no client sends it) deletes unlocked role monsters.
+- A Ctrl change in the middle of a rotation still applies one move late (only the press is early now).
+- A DM after a deploy, until they enter the DM password again: every monster is the role's, so as a player they
+  cannot move, recolour or see through any monster (before `801896c3` the uid could). At a co-DM table the pieces go
+  to whichever DM elevates first.
+
+**Where this is:** every commit above, and the two that rode with them (`852ed363` Delete removes props by the
+server's rule; `b29bfb7d` the selection bar steps aside), are on local `dev`, not pushed and not on main. Production
+(`bc4b2356`) still has the demoted-DM hole (F3/F4) until they are merged.
+
+## Live evaluation (2026-10-11, after the push of `a99c178f` to dev; CI #961 green)
+
+Mode: **live-two-client** in the desktop app's browser pane (a DM tab `evaldm01` and a player tab `evalpl01` on
+the local dev table, 922 px wide), plus headless Playwright for the selection bar at 922 and 1024 px.
+
+Verified in both tabs: a fresh NPC's automatic colour is a deep shade (`#002f73`); **Leave DM mode** passes the
+goblin to `@dm` in both snapshots and leaves the ex-DM's own PC token theirs; the ex-DM's crafted `move` on the
+goblin is refused (it stays put); **re-entering DM mode** hands the goblin back, seen from the player tab; the dev
+server restarting (my e2e runs rebuilt the shared package) demoted the DM on reconnect, exactly as a deploy does,
+and the password brought the goblin back; at five characters the player's ➕ Add Character sends nothing and toasts
+"Up to 5 characters each: delete one to add another." with no stuck "Creating..."; the DM's **Delete** on a prop
+asks "Delete 1 prop? This cannot be undone." and the crate leaves the player's snapshot; the DM's initiative 8 reads
+at full strength (opacity 1) on the player's view of the DM's card though the button is disabled.
+
+Found and fixed:
+
+- `04b660d9` (major): at 922 px the selection bar never held still beside Chat & Rolls ("element is not stable"):
+  centred at 50% it wrapped in half the viewport, moved aside it unwrapped and grew, and flipped every frame. It now
+  has its own width, and wraps into the widest gap when none holds it on one row. An e2e at 922x549 joins the 1024
+  one.
+- `88d9bed5` (major): the cap's toast rendered under the Add Character dialog's backdrop (both z 10000): the toast
+  stack is 10001 now, verified live on top.
+
+Not driven live: the colour picker's drags and the gizmo's Ctrl rotation (Konva drags; covered by unit tests), and
+the phone shell (not this pass). Score: Functionality 8 · Multiplayer 9 · Craft 7.5 · Reach 6 (not driven) →
+**7.9** (pass at 7.0).
 
 ## Commits (on `91c69b63`)
 

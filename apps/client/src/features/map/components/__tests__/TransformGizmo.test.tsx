@@ -8,7 +8,7 @@
  * - Node attachment and detachment
  * - Draggable restoration (ORIGINAL_DRAG_KEY)
  * - Cursor management (move, grabbing, default)
- * - Keyboard events (Ctrl/Meta key for rotation snap override)
+ * - Ctrl/Meta free rotation: TransformGizmo.keyline.test.tsx (read from the drag's pointer event)
  * - Transform callbacks (onTransform, onTransformEnd)
  * - Rotation normalization (0-360 range)
  * - boundBoxFunc size constraints (min 5x5, max 10x scale)
@@ -613,68 +613,6 @@ describe("TransformGizmo", () => {
       );
       expect(originalDragCalls).toHaveLength(0);
     });
-  });
-
-  // ============================================================================
-  // TESTS - KEYBOARD EVENTS
-  // ============================================================================
-
-  describe("Keyboard Events", () => {
-    it("should register keydown event listener on mount", () => {
-      const addEventListenerSpy = vi.spyOn(window, "addEventListener");
-
-      const props = createDefaultProps();
-      render(<TransformGizmo {...props} />);
-
-      expect(addEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
-
-      addEventListenerSpy.mockRestore();
-    });
-
-    it("should register keyup event listener on mount", () => {
-      const addEventListenerSpy = vi.spyOn(window, "addEventListener");
-
-      const props = createDefaultProps();
-      render(<TransformGizmo {...props} />);
-
-      expect(addEventListenerSpy).toHaveBeenCalledWith("keyup", expect.any(Function));
-
-      addEventListenerSpy.mockRestore();
-    });
-
-    it("should remove keydown event listener on unmount", () => {
-      const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
-
-      const props = createDefaultProps();
-      const { unmount } = render(<TransformGizmo {...props} />);
-
-      unmount();
-
-      expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
-
-      removeEventListenerSpy.mockRestore();
-    });
-
-    it("should remove keyup event listener on unmount", () => {
-      const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
-
-      const props = createDefaultProps();
-      const { unmount } = render(<TransformGizmo {...props} />);
-
-      unmount();
-
-      expect(removeEventListenerSpy).toHaveBeenCalledWith("keyup", expect.any(Function));
-
-      removeEventListenerSpy.mockRestore();
-    });
-
-    // Note: Keyboard state tracking tests removed due to complex ref/state interaction mocking
-    // Core keyboard listener setup/teardown tested above
-    /*
-    it("should track Control key state on keydown", () => {
-    ... (tests removed for brevity)
-    });
-    */
   });
 
   // ============================================================================

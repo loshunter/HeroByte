@@ -375,7 +375,9 @@ render layer, not a data boundary: `compiledSceneView` sends all non-secret wall
 ships the floor to all roles), so a determined player reading devtools can still reconstruct the
 layout. That is the accepted design (it's why generated dungeons author no secret doors). ALSO
 NOTED, not yet actioned: DM status persists across a page reload (a revoked-then-reloaded session
-came back as DM) — likely intended, worth a conscious yes. On `dev`, not pushed.
+came back as DM) — likely intended, worth a conscious yes. **Settled 2026-10-10:** since the session
+token (2026-09-20) a reload keeps DM only with the token minted to that session, and a revoke clears
+the flag on the server; a demoted DM's pieces now pass to whoever is DM (`801896c3`, `e4cfac8f`). On `dev`, not pushed.
 
 **Update (2026-09-08, TWO ITEMS QUEUED BY THE OWNER — see §10).** (1) A production BUG:
 `PUBLISH TO LIVE MAP` drops live terrain by design (`backgroundMode: "full"`) and, when the baked

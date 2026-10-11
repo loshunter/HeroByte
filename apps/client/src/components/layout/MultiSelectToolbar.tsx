@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef } from "react";
+import { useSelectionBarLeft } from "./useSelectionBarLeft";
 
 /**
  * MultiSelectToolbar Component
@@ -77,23 +78,36 @@ export function MultiSelectToolbar({
   onLock,
   onUnlock,
 }: MultiSelectToolbarProps): JSX.Element | null {
+  const visible = isDM && selectedObjectIds.length > 0;
+  const barRef = useRef<HTMLDivElement>(null);
+  const placement = useSelectionBarLeft(barRef, visible);
   // Only show toolbar when user is DM and has objects selected
-  if (!isDM || selectedObjectIds.length === 0) {
+  if (!visible) {
     return null;
   }
 
   return (
     <div
+      ref={barRef}
+      data-testid="selection-bar"
       style={{
         position: "fixed",
         top: `${topHeight + 20}px`,
-        left: "50%",
-        transform: "translateX(-50%)",
-        // Not raised above the floating windows: Chat & Rolls (1000) can cover 🔓 Unlock
-        // at narrow widths, but the windows that open under the header (NPC settings,
-        // ROLL RESULT, the dice roller) put their ✕ where this bar sits, and a bar over
-        // them turns a close into a lock or an unlock.
+        // Centred, or stepped aside from a window over its strip (selectionBarPlacement.ts),
+        // wrapped to two rows when only a narrower gap is free.
+        left: placement === null ? "50%" : `${placement.left}px`,
+        transform: placement === null ? "translateX(-50%)" : "none",
+        // Not raised above the floating windows: the windows that open under the header
+        // (NPC settings, ROLL RESULT, the dice roller) put their ✕ where this bar sits,
+        // and a bar over them turned a close into a lock or an unlock (3fd6c945).
         zIndex: 1000,
+        // Its own width, wherever it sits: centred at left 50% it was laid out in half the
+        // viewport and wrapped, and once moved aside it unwrapped and grew, so at 922 px
+        // it flipped between the two placements every frame and Unlock never held still.
+        width: "max-content",
+        maxWidth: placement?.maxWidth ? `${placement.maxWidth}px` : undefined,
+        whiteSpace: placement?.maxWidth ? "normal" : "nowrap",
+        flexWrap: placement?.maxWidth ? "wrap" : "nowrap",
         display: "flex",
         gap: "8px",
         padding: "8px 16px",

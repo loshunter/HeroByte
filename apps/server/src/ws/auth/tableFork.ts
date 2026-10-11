@@ -17,6 +17,7 @@ import type { AssetService } from "../../domains/assets/service.js";
 import type { AuthService } from "../../domains/auth/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { RoomService } from "../../domains/room/service.js";
+import { rehomeNpcTokens } from "../../domains/room/dmDemotion.js";
 
 const ROOM_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
 const MAX_NAME_LENGTH = 60;
@@ -134,6 +135,8 @@ export async function handleForkTable(
       atlasLinks: structuredClone(sourceState.atlasLinks),
       sceneStates: structuredClone(sourceState.sceneStates),
     });
+    // The parked maps' monsters too: the fork's DM elevates and takes them (dmDemotion.ts).
+    rehomeNpcTokens(target.getState());
 
     // Map documents are the live map itself — the whole point of keeping the
     // table — and they live outside room state.

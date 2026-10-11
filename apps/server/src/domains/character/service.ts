@@ -295,8 +295,8 @@ export class CharacterService {
    * A reconnecting character's token. KEPT when linked and the token is in
    * state, or STASHED — a scene capture holds it and the link survives, so a
    * linked character is never re-tokened (no phantom). A link no scene holds
-   * is DEAD (a table saved before `unlinkDeletedToken` shipped, or
-   * `clearAllTokensExcept`, which still does not unlink): it is cleared and
+   * is DEAD (a table saved before `unlinkDeletedToken` shipped, or before
+   * `clearAllTokensExcept` unlinked in 918fb40d): it is cleared and
    * the character is re-tokened like an unlinked one — the road it replaced
    * did that too, and losing it stranded legacy players (F4's review, round
    * 2). Unlinked: ADOPT the one token of the owner's that no character

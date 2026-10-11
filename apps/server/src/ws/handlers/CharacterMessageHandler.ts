@@ -16,6 +16,7 @@ import { replaceIfSeatedPlayerLostLastCharacter } from "./seatReplacement.js";
 import { deleteCharacterKeepingTurn, lockedTokenRefusal } from "./deleteCharacter.js";
 import type { LockRefusal } from "../../domains/room/locking/pieceLock.js";
 import type { CharacterService } from "../../domains/character/service.js";
+import { mayTakeCharacter, tableHasRoom } from "../../domains/character/characterLimits.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
@@ -67,6 +68,7 @@ export class CharacterMessageHandler {
     maxHp: number,
     portrait?: string,
   ): CharacterMessageResult {
+    if (!tableHasRoom(state)) return { broadcast: false, save: false };
     this.characterService.createCharacter(state, name, maxHp, portrait);
     return { broadcast: true, save: true };
   }
@@ -82,7 +84,12 @@ export class CharacterMessageHandler {
     state: RoomState,
     characterId: string,
     senderUid: string,
+    isDM = false,
   ): CharacterMessageResult {
+    // A claim adds no character: only the player's own cap applies.
+    if (!mayTakeCharacter(state, senderUid, isDM, { adds: false })) {
+      return { broadcast: false, save: false };
+    }
     const claimed = this.characterService.claimCharacter(state, characterId, senderUid);
     return { broadcast: claimed, save: claimed };
   }
@@ -103,8 +110,10 @@ export class CharacterMessageHandler {
     senderUid: string,
     name: string,
     maxHp?: number,
+    isDM = false,
   ): CharacterMessageResult {
-    console.log(`[MessageRouter] Received add-player-character from ${senderUid}:`, name);
+    // The player's cap and the table's: past the table's, the DM's backup is no backup.
+    if (!mayTakeCharacter(state, senderUid, isDM)) return { broadcast: false, save: false };
 
     // Create character for the requesting player
     const actualMaxHp = maxHp ?? 100;
@@ -126,13 +135,6 @@ export class CharacterMessageHandler {
       const token = this.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
       this.characterService.linkToken(state, character.id, token.id);
     }
-
-    console.log(
-      `[MessageRouter] Player ${senderUid} created additional character: ${character.name} (ID: ${character.id})`,
-    );
-    console.log(
-      `[MessageRouter] Broadcasting update. Total characters: ${state.characters.length}`,
-    );
 
     return { broadcast: true, save: true };
   }

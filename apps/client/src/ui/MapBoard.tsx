@@ -966,6 +966,7 @@ function MapBoardScene({
               isDM && playerLens,
               grid.size,
               snapshot.defaultVisionRadius,
+              (owner) => snapshot.players.some((p) => p.uid === owner && p.isDM),
             )}
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize ?? 5}

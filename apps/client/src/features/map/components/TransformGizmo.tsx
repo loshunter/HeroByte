@@ -12,8 +12,28 @@ import { useSelectionPalette } from "../selectionPalette";
 import { GIZMO_PADDING, GizmoKeyline } from "./GizmoKeyline";
 
 // One array for every render: a new one each render made react-konva re-apply the
-// snaps on every transform event, undoing Ctrl's free rotation mid-drag.
+// snaps on every transform event, undoing Ctrl's free rotation mid-drag. The other
+// array and function props are constants for the same reason: the gizmo re-renders
+// on every pointer move (updateHandle), and a new one made Konva redo its layout.
 const ROTATION_SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];
+const ENABLED_ANCHORS = [
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+  "top-center",
+  "bottom-center",
+  "middle-left",
+  "middle-right",
+];
+const BORDER_DASH = [5, 5];
+
+/** Refuses a box under 5 px or over ten times the last one. */
+const boundBox: NonNullable<Konva.TransformerConfig["boundBoxFunc"]> = (oldBox, newBox) => {
+  if (newBox.width < 5 || newBox.height < 5) return oldBox;
+  if (newBox.width > oldBox.width * 10 || newBox.height > oldBox.height * 10) return oldBox;
+  return newBox;
+};
 
 interface TransformGizmoProps {
   selectedObject: SceneObject | null;
@@ -47,7 +67,6 @@ export function TransformGizmo({
 }: TransformGizmoProps): JSX.Element | null {
   const transformerRef = useRef<Konva.Transformer>(null);
   const keylineRef = useRef<Konva.Transformer>(null);
-  const isCtrlPressed = useRef<boolean>(false);
   const palette = useSelectionPalette();
   const currentNodeRef = useRef<Konva.Node | null>(null);
   const [handlePosition, setHandlePosition] = useState<{ x: number; y: number } | null>(null);
@@ -85,29 +104,6 @@ export function TransformGizmo({
 
   const handleCenterPointerEnter = () => setCursor("move");
   const handleCenterPointerLeave = () => setCursor("default");
-
-  // Track Ctrl key state for rotation snap override
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Control" || e.key === "Meta") {
-        isCtrlPressed.current = true;
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Control" || e.key === "Meta") {
-        isCtrlPressed.current = false;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, []);
 
   useEffect(() => {
     const transformer = transformerRef.current;
@@ -201,15 +197,19 @@ export function TransformGizmo({
     };
   }, [selectedObject, getNodeRef]);
 
-  const handleTransform = () => {
+  const handleTransform = (e: Konva.KonvaEventObject<Event>) => {
     if (!selectedObject) return;
     const node = getNodeRef();
     const transformer = transformerRef.current;
     if (!node || !transformer) return;
 
     try {
-      // Ctrl rotates freely; otherwise 45° snaps.
-      transformer.rotationSnaps(isCtrlPressed.current ? [] : ROTATION_SNAPS);
+      // Ctrl (Cmd) rotates freely; otherwise 45° snaps. Read from the pointer event
+      // itself: a window key flag stuck "on" when the key-up went elsewhere (Ctrl+T,
+      // Cmd+Tab), and snapping stayed off until Ctrl was tapped again.
+      const pointer = e.evt as MouseEvent | undefined;
+      const free = Boolean(pointer?.ctrlKey || pointer?.metaKey);
+      transformer.rotationSnaps(free ? [] : ROTATION_SNAPS);
     } catch (error) {
       // Ignore errors during transform (node might be destroyed)
       console.warn("[TransformGizmo] Transform error:", error);
@@ -259,22 +259,13 @@ export function TransformGizmo({
       <Transformer
         ref={transformerRef}
         rotateEnabled={true}
-        enabledAnchors={[
-          "top-left",
-          "top-right",
-          "bottom-left",
-          "bottom-right",
-          "top-center",
-          "bottom-center",
-          "middle-left",
-          "middle-right",
-        ]}
+        enabledAnchors={ENABLED_ANCHORS}
         // In a viewer's colour the dashed border (and the rotate line Konva draws with
         // it) is the colour over GizmoKeyline's solid keyline, just outside the ring.
         padding={palette.keyline ? GIZMO_PADDING : 0}
         borderStroke={palette.stroke}
         borderStrokeWidth={2}
-        borderDash={[5, 5]}
+        borderDash={BORDER_DASH}
         anchorFill={palette.stroke}
         anchorStroke={palette.keyline ?? "#FFFFFF"}
         anchorStrokeWidth={2}
@@ -284,15 +275,10 @@ export function TransformGizmo({
         rotationSnaps={ROTATION_SNAPS}
         rotationSnapTolerance={10}
         keepRatio={false}
-        boundBoxFunc={(oldBox, newBox) => {
-          if (newBox.width < 5 || newBox.height < 5) {
-            return oldBox;
-          }
-          if (newBox.width > oldBox.width * 10 || newBox.height > oldBox.height * 10) {
-            return oldBox;
-          }
-          return newBox;
-        }}
+        boundBoxFunc={boundBox}
+        // At the press too: Konva reads the snaps before it fires `transform`, so a
+        // choice made only there applied one move late (the last Ctrl drag's, at first).
+        onTransformStart={handleTransform}
         onTransform={handleTransform}
         onTransformEnd={handleTransformEnd}
       />

@@ -10,7 +10,7 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { useCharacterCreation } from "../useCharacterCreation.js";
+import { CREATION_TIMEOUT_MS, useCharacterCreation } from "../useCharacterCreation.js";
 import type { Character } from "@herobyte/shared";
 
 /**
@@ -115,27 +115,39 @@ describe("useCharacterCreation", () => {
       expect(mockAddCharacter).toHaveBeenCalledWith("Hero");
     });
 
-    it("should log creation start message", () => {
-      const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    it('gives up "Creating..." when the server never answers (a refusal it could not predict)', () => {
+      vi.useFakeTimers();
+      try {
+        const { result } = renderHook(() =>
+          useCharacterCreation({ addCharacter: () => true, characters: [], uid: testUid }),
+        );
+        act(() => {
+          result.current.createCharacter("Refused");
+        });
+        expect(result.current.isCreating).toBe(true);
+        act(() => vi.advanceTimersByTime(CREATION_TIMEOUT_MS));
+        expect(result.current.isCreating).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
 
+    it('shows no "Creating..." when nothing was sent (the player is at the cap)', () => {
       const { result } = renderHook(() =>
         useCharacterCreation({
-          addCharacter: mockAddCharacter,
+          addCharacter: () => false,
           characters: [],
           uid: testUid,
         }),
       );
 
+      let returnValue = true;
       act(() => {
-        result.current.createCharacter("Warrior");
+        returnValue = result.current.createCharacter("Sixth");
       });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        "[useCharacterCreation] Starting character creation:",
-        "Warrior",
-      );
-
-      consoleLogSpy.mockRestore();
+      expect(returnValue).toBe(false);
+      expect(result.current.isCreating).toBe(false);
     });
 
     it("should return false when creation is already in progress", () => {

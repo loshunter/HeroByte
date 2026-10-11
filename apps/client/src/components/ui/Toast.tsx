@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from "react";
 import { sanitizeText } from "../../utils/sanitize";
 import { useSfx } from "../../features/juice";
+import { FLOATING_WINDOW_ATTR } from "../layout/useSelectionBarLeft";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -164,6 +165,9 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ messages, onDism
         `}
       </style>
       <div
+        // The DM's selection bar steps around the toasts too (useSelectionBarLeft): at
+        // 1024 px a wide one, "press 🔓 Unlock first", sat over the Unlock it names.
+        {...{ [FLOATING_WINDOW_ATTR]: "" }}
         style={{
           // Offsets ride on the safe-area insets, which inherit from
           // .mobile-layout-root; desktop takes the fallbacks and is unchanged.
@@ -172,7 +176,10 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ messages, onDism
           position: "fixed",
           top: "calc(var(--mobile-safe-top, 0px) + 80px)",
           right: "calc(var(--mobile-safe-right, 0px) + 20px)",
-          zIndex: 10000,
+          // Above every dialog (the Add Character and Initiative overlays are 10000): a
+          // refusal toasted from inside one ("Up to 5 characters each") read through its
+          // dimmed backdrop, if at all.
+          zIndex: 10001,
           maxWidth: "min(400px, calc(100vw - 40px))",
           pointerEvents: "auto",
         }}

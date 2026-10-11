@@ -125,7 +125,6 @@ export * from "./rng.js";
 export * from "./colorSpace.js";
 export * from "./colorWindow.js";
 export * from "./colorRule.js";
-export * from "./colorReadable.js";
 export * from "./colorText.js";
 
 // Dice NOTATION only — what a formula means, and nothing that rolls one. The
@@ -458,6 +457,10 @@ export type { DrawingType } from "./drawingTypes.js";
 // Bulk-NPC bounds — value re-export from a sub-module (see npcLimits.ts for
 // why it must not be a direct `export const` here: the server imports it).
 export { NPC_CREATE_LIMITS } from "./npcLimits.js";
+// Per-player character cap — the same sub-module rule (see playerCharacterLimits.ts).
+export { PLAYER_CHARACTER_LIMITS } from "./playerCharacterLimits.js";
+// The DM role's owner id — the same sub-module rule (see dmRole.ts).
+export { DM_ROLE_OWNER } from "./dmRole.js";
 // Bulk-prop bounds — same sub-module rule (see propLimits.ts).
 export { PROP_CREATE_LIMITS } from "./propLimits.js";
 // The table's own Library tokens — same sub-module rule (see customTokenLimits.ts).

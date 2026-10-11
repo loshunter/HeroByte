@@ -592,6 +592,93 @@ describe("ColorPicker", () => {
     expect(onCommit).not.toHaveBeenCalled();
   });
 
+  it("leaves no timer running after the window closes mid-press", () => {
+    vi.useFakeTimers();
+    const view = renderPicker();
+    const handle = screen.getByRole("slider");
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    fireEvent.pointerDown(handle, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    view.unmount(); // Escape, or the token changed hands, with the press still down
+    expect(view.onCommit).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("holds keys back while the handle is pressed and still, and sends them on release", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const handle = screen.getByRole("slider");
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    fireEvent.pointerDown(handle, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS + 50));
+    expect(onCommit).not.toHaveBeenCalled();
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    expect(onCommit.mock.calls).toEqual([[keyed]]);
+  });
+
+  it("sends a pick again when a drag goes back to it after it went unanswered (throttled)", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const picked = cellAt(0.3, 0.2);
+    press(surface, pixelOf(picked)); // the server drops it: the colour stays BLUE
+    dragTo(surface, pixelOf(cellAt(0.4, 0.3)), pixelOf(cellAt(0.45, 0.35)), false);
+    act(() => vi.advanceTimersByTime(PENDING_TIMEOUT_MS + 100));
+    fireEvent.pointerMove(surface, { pointerId: 1, button: 0, ...pixelOf(picked) });
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(picked) });
+    expect(onCommit.mock.calls).toEqual([[picked.hex], [picked.hex]]);
+  });
+
+  it("sends a drag back to the old colour while a slow answer is still on its way", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const picked = cellAt(0.3, 0.2);
+    press(surface, pixelOf(picked)); // in flight; its answer is slow, not lost
+    dragTo(surface, pixelOf(cellAt(0.4, 0.3)), pixelOf(cellAt(0.45, 0.35)), false);
+    act(() => vi.advanceTimersByTime(PENDING_TIMEOUT_MS + 100));
+    fireEvent.pointerMove(surface, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    // Not sending BLUE would leave the late answer to show the pick the player left.
+    expect(onCommit.mock.calls).toEqual([[picked.hex], [BLUE]]);
+  });
+
+  it("sends nothing for an arrow key pressed while the handle is held, until the release", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const handle = screen.getByRole("slider");
+    fireEvent.pointerDown(handle, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    act(() => vi.advanceTimersByTime(KEY_COMMIT_MS + 50));
+    expect(onCommit).not.toHaveBeenCalled();
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    expect(onCommit.mock.calls).toEqual([[keyed]]);
+  });
+
+  it("sends the keys' colour, not the press's, when keys move the handle during a still press", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const at = pixelOf(cellAt(0.3, 0.2));
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, ...at });
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowUp" });
+    const keyed = screen.getByLabelText("Colour code").textContent;
+    fireEvent.pointerUp(surface, { pointerId: 1, button: 0, ...at });
+    // The handle shows the keys' colour; what is sent must be the same.
+    expect(onCommit.mock.calls).toEqual([[keyed]]);
+  });
+
+  it("sends one message, the latest keys', when focus leaves during a press that is then cancelled", () => {
+    vi.useFakeTimers();
+    const { surface, onCommit } = renderPicker();
+    const handle = screen.getByRole("slider");
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    fireEvent.pointerDown(handle, { pointerId: 1, button: 0, ...pixelOf(BLUE_CELL) });
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    const latest = screen.getByLabelText("Colour code").textContent;
+    fireEvent.blur(handle);
+    fireEvent.pointerCancel(surface, { pointerId: 1 });
+    expect(onCommit.mock.calls).toEqual([[latest]]);
+  });
+
   it("keeps an in-flight pick showing through a tap on the handle and a second press on it", () => {
     const { surface } = renderPicker();
     const picked = cellAt(0.3, 0.2);

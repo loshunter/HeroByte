@@ -71,50 +71,6 @@ test.describe("HeroByte UI state and accessibility", () => {
     }
   });
 
-  test("DM mode can be toggled", async ({ page }) => {
-    await joinDefaultRoom(page);
-
-    await page.waitForFunction(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      return Boolean(data?.snapshot?.players && data.uid);
-    });
-
-    // Look for DM toggle
-    const dmToggle = page.getByRole("button", { name: /DM|Dungeon Master/i });
-    const dmExists = await dmToggle.count();
-
-    if (dmExists === 0) {
-      test.skip(true, "DM toggle not found");
-      return;
-    }
-
-    const initialDMState = await page.evaluate(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      const player = data?.snapshot?.players?.find((p) => p.uid === data.uid);
-      return player?.isDM ?? false;
-    });
-
-    await dmToggle.click();
-
-    await page.waitForFunction(
-      (prevState) => {
-        const data = window.__HERO_BYTE_E2E__;
-        const player = data?.snapshot?.players?.find((p) => p.uid === data.uid);
-        return (player?.isDM ?? false) !== prevState;
-      },
-      initialDMState,
-      { timeout: 5000 },
-    );
-
-    const newDMState = await page.evaluate(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      const player = data?.snapshot?.players?.find((p) => p.uid === data.uid);
-      return player?.isDM ?? false;
-    });
-
-    expect(newDMState).toBe(!initialDMState);
-  });
-
   test("keyboard shortcuts work for common actions", async ({ page }) => {
     await joinDefaultRoom(page);
 

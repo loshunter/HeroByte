@@ -170,6 +170,47 @@ describe("usePlayerActions - Characterization Tests", () => {
       });
     });
 
+    it("sends no add at the five-character cap and says why; a DM is not capped", () => {
+      const five = Array.from({ length: 5 }, (_, n) => ({
+        id: `pc-${n}`,
+        name: `Hero ${n}`,
+        ownedByPlayerUID: "player-1",
+        type: "pc",
+        hp: 10,
+        maxHp: 10,
+      })) as Character[];
+      const notify = vi.fn();
+      const atCap = (isDM: boolean) =>
+        renderHook(() =>
+          usePlayerActions({
+            sendMessage: mockSendMessage,
+            snapshot: {
+              ...mockSnapshot,
+              characters: five,
+              players: [{ uid: "player-1", name: "P", isDM } as never],
+            },
+            uid: "player-1",
+            notify,
+          }),
+        ).result;
+
+      const player = atCap(false);
+      const dm = atCap(true);
+      let sent = true;
+      act(() => {
+        sent = player.current.addCharacter("Sixth");
+      });
+      expect(sent).toBe(false);
+      expect(mockSendMessage).not.toHaveBeenCalled();
+      expect(notify).toHaveBeenCalledWith("Up to 5 characters each: delete one to add another.");
+
+      act(() => {
+        sent = dm.current.addCharacter("Ally");
+      });
+      expect(sent).toBe(true);
+      expect(mockSendMessage).toHaveBeenCalledTimes(1);
+    });
+
     it("should update character name", () => {
       const { result } = renderHook(() =>
         usePlayerActions({

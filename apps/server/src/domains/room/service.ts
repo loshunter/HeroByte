@@ -22,6 +22,7 @@ import { BroadcastMetricsLogger } from "./metrics/BroadcastMetricsLogger.js";
 
 export const SNAPSHOT_SIZE_LIMIT_BYTES = 750 * 1024; // 750KB per snapshot
 import { InMemoryRoomStore, type RoomStore } from "./store/RoomStore.js";
+import { rehomeNpcTokens } from "./dmDemotion.js";
 
 /**
  * Room service - manages session state and persistence
@@ -113,6 +114,8 @@ export class RoomService {
    */
   loadState(): void {
     this.persistence.loadFromDisk();
+    // A table saved while a demoted DM still held the monsters (dmDemotion.ts).
+    rehomeNpcTokens(this.state);
   }
 
   /**
@@ -154,6 +157,8 @@ export class RoomService {
       this.state.tokens.includes(token),
     ).length;
     Object.assign(this.state, mergedState);
+    // The file's monsters may name a uid that is a player tonight (dmDemotion.ts).
+    rehomeNpcTokens(this.state);
     // A loaded session is a fresh boundary, exactly as a travel is: the file's
     // spend (and a connected player's live one) does not open the fight, and
     // the round returns to 1 — `combatRound` is server-only and never rides a

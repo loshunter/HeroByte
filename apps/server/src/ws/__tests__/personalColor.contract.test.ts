@@ -18,7 +18,6 @@ import {
   nearestAllowedColor,
   normalizeColor,
   parseColor,
-  readableColor,
   ruleRadius,
   windowCells,
   windowColorAt,
@@ -29,6 +28,7 @@ import { CharacterService } from "../../domains/character/service.js";
 import { TokenService } from "../../domains/token/service.js";
 import { RoomService } from "../../domains/room/service.js";
 import { toSnapshot } from "../../domains/room/model.js";
+import { DM_ROLE_OWNER } from "../../domains/room/dmDemotion.js";
 import { createRouterHarness, flush, messagesOf, type RouterHarness } from "./routerHarness.js";
 
 const DM = "dm-1";
@@ -168,10 +168,10 @@ describe("personal colours — the server is the authority", () => {
     expect(notices(BO)).toEqual([]);
   });
 
-  it("gives an NPC token a readable random colour, not the spot the next player would get", () => {
+  it("gives an NPC token a plain window colour, not the spot the next player would get", () => {
     seat(ANN, "Annika");
     const goblin = characters.createCharacter(state(), "Goblin", 7, undefined, "npc");
-    const expected = readableColor(createSeededRng(99));
+    const expected = farthestColor([], createSeededRng(99));
     characters.placeNPCToken(state(), new TokenService(createSeededRng(99)), goblin.id, DM);
     expect(state().tokens.find((token) => token.id === goblin.tokenId)?.color).toBe(expected);
   });
@@ -280,7 +280,7 @@ describe("personal colours — the server is the authority", () => {
       }
       expect(notices(BO)).toHaveLength(toldBefore);
 
-      // Still over budget: the sender's own token is answered, with the colour it keeps.
+      // Still over budget: the sender's own token is answered, with no colour in the reply.
       harness.route({ t: "set-token-color", tokenId: bo.id, color: pick }, BO);
       expect(notices(BO).slice(toldBefore)).toEqual([
         { t: "color-adjusted", tokenId: bo.id, throttled: true },
@@ -354,9 +354,34 @@ describe("personal colours — the server is the authority", () => {
     expect(notices(BO)).toEqual([]);
   });
 
-  it("gives NPCs, and the DM's own recolours, colours that read on a dark map", () => {
+  it("recolours the DM role's monsters as the DM's own: any colour, players' zones included", () => {
+    const ann = seat(ANN, "Annika");
+    const goblin = tokens.createToken(state(), DM_ROLE_OWNER, 2, 2, undefined, "medium", "npc");
+    const landed: string[] = [];
+    // Seeded: the router's recolour draws from Math.random, and an unseeded run of 40
+    // draws missed the r(10) disc about once in a hundred (CI #962, Node 18).
+    const random = vi.spyOn(Math, "random").mockImplementation(createSeededRng(5));
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      for (let press = 0; press < 40; press += 1) {
+        if (press % 10 === 0) vi.setSystemTime(Date.now() + 5000);
+        harness.route({ t: "recolor", id: goblin.id }, DM);
+        landed.push(goblin.color);
+      }
+    } finally {
+      vi.useRealTimers();
+      random.mockRestore();
+    }
+    // Kept out of every player's zone, no draw would come within r(10) of Annika's colour:
+    // the zone at this table (three players at most) is wider than that.
+    expect(landed.some((color) => distance(color, ann.color) < ruleRadius(10))).toBe(true);
+  });
+
+  it("gives NPCs, and the DM's own recolours, any window colour: deep shades too (the owner's word)", () => {
     const floor = parseColor("#2a2622")!;
     const readable = (color: string) => contrastRatio(parseColor(color)!, floor) >= 3;
+    const drawn: string[] = [];
+    const recoloured: string[] = [];
     for (let seed = 1; seed <= 40; seed += 1) {
       const npc = new TokenService(createSeededRng(seed)).createToken(
         state(),
@@ -367,7 +392,7 @@ describe("personal colours — the server is the authority", () => {
         "medium",
         "npc",
       );
-      expect(readable(npc.color)).toBe(true);
+      drawn.push(npc.color);
     }
     const king = tokens.createToken(state(), DM, 2, 2, undefined, "medium", "npc");
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -377,11 +402,15 @@ describe("personal colours — the server is the authority", () => {
         const before = king.color;
         harness.route({ t: "recolor", id: king.id }, DM);
         expect(king.color).not.toBe(before);
-        expect(readable(king.color)).toBe(true);
+        recoloured.push(king.color);
       }
     } finally {
       vi.useRealTimers();
     }
+    // About 43% of the window is under 3:1 on a dark map floor: across 40 draws and 30
+    // recolours, a readable-only draw would never land there.
+    expect(drawn.some((color) => !readable(color))).toBe(true);
+    expect(recoloured.some((color) => !readable(color))).toBe(true);
   });
 
   it("never names the sender's own PC in a notice when that PC is hidden", () => {

@@ -7,7 +7,10 @@ import type { ReactNode } from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-type Mock = { props: Record<string, unknown>; api: { nodes: ReturnType<typeof vi.fn> } };
+type Mock = {
+  props: Record<string, unknown>;
+  api: { nodes: ReturnType<typeof vi.fn>; rotationSnaps: ReturnType<typeof vi.fn> };
+};
 const h = vi.hoisted(() => ({ transformers: [] as Mock[] }));
 
 vi.mock("react-konva", async () => {
@@ -168,5 +171,82 @@ describe("the gizmo's keyline transformer", () => {
     // A new array each render made react-konva re-apply the snaps, undoing rotationSnaps([]).
     expect(split().gizmo.props.rotationSnaps).toBe(before);
     expect(before).toEqual([0, 45, 90, 135, 180, 225, 270, 315]);
+  });
+
+  it("keeps its other array and function props across renders, so Konva does not redo its layout", () => {
+    const node = konvaNode();
+    const selected = token("a");
+    const view = () => (
+      <TransformGizmo
+        selectedObject={selected}
+        onTransform={vi.fn()}
+        getNodeRef={() => node as never}
+      />
+    );
+    const { rerender } = render(view());
+    const before = split().gizmo.props;
+    rerender(view());
+    const after = split().gizmo.props;
+    expect(after.enabledAnchors).toBe(before.enabledAnchors);
+    expect(after.borderDash).toBe(before.borderDash);
+    expect(after.boundBoxFunc).toBe(before.boundBoxFunc);
+  });
+
+  describe("Ctrl (Cmd) rotates freely, read from the drag's own pointer event", () => {
+    const SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];
+    const transformWith = (evt: Partial<MouseEvent>, beforeDrag?: () => void) => {
+      const node = konvaNode();
+      render(
+        <TransformGizmo
+          selectedObject={token("a")}
+          onTransform={vi.fn()}
+          getNodeRef={() => node as never}
+        />,
+      );
+      beforeDrag?.();
+      const { gizmo } = split();
+      gizmo.api.rotationSnaps.mockClear();
+      (gizmo.props.onTransform as (e: { evt: Partial<MouseEvent> }) => void)({ evt });
+      return gizmo.api.rotationSnaps;
+    };
+
+    it("snaps to 45° without Ctrl", () => {
+      expect(transformWith({ ctrlKey: false, metaKey: false })).toHaveBeenLastCalledWith(SNAPS);
+    });
+
+    it("rotates freely with Ctrl, or with Cmd on a Mac", () => {
+      expect(transformWith({ ctrlKey: true, metaKey: false })).toHaveBeenLastCalledWith([]);
+      cleanup();
+      h.transformers.length = 0;
+      expect(transformWith({ ctrlKey: false, metaKey: true })).toHaveBeenLastCalledWith([]);
+    });
+
+    it("applies the choice at the press, before the first move (Konva reads snaps first)", () => {
+      const node = konvaNode();
+      render(
+        <TransformGizmo
+          selectedObject={token("a")}
+          onTransform={vi.fn()}
+          getNodeRef={() => node as never}
+        />,
+      );
+      const { gizmo } = split();
+      gizmo.api.rotationSnaps.mockClear();
+      const start = gizmo.props.onTransformStart as (e: { evt: Partial<MouseEvent> }) => void;
+      start({ evt: { ctrlKey: true } });
+      expect(gizmo.api.rotationSnaps).toHaveBeenLastCalledWith([]);
+      start({ evt: { ctrlKey: false } });
+      expect(gizmo.api.rotationSnaps).toHaveBeenLastCalledWith(SNAPS);
+    });
+
+    it("still snaps after a Ctrl key-up that went to another window (Ctrl+T, Cmd+Tab)", () => {
+      // The key-down reached the mounted gizmo's page, its key-up did not: a window key
+      // flag stuck "on" and the next drag, Ctrl long released, rotated freely.
+      const ctrlDownOnly = () =>
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Control" }));
+      expect(
+        transformWith({ ctrlKey: false, metaKey: false }, ctrlDownOnly),
+      ).toHaveBeenLastCalledWith(SNAPS);
+    });
   });
 });

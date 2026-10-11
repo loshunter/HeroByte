@@ -26,6 +26,7 @@ import {
 } from "../../middleware/validators/sessionValidators.js";
 import { buildSessionFile } from "../../domains/room/sessionExport.js";
 import { getDefaultRoomId, getRoomSecret } from "../../config/auth.js";
+import { rehomeNpcTokens } from "../../domains/room/dmDemotion.js";
 
 /**
  * Result of handling a room message
@@ -111,6 +112,9 @@ export class RoomMessageHandler {
     state.sceneStates = sceneStatesFromEnvelope(sceneStates, (documentId) =>
       this.hasDocument(roomId, documentId),
     );
+    // Their monsters may name a uid that is a player tonight; loadSnapshot's rehome
+    // ran before they were installed (dmDemotion.ts).
+    rehomeNpcTokens(state);
 
     // Same rule for the graph: a "mapped" node whose document did not restore
     // degrades back to a promise rather than a 12s open-timeout on travel.

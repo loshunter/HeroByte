@@ -4,7 +4,7 @@
 // already uniformly filtered (mapElements — the sole-producer invariant).
 
 import { describe, expect, it } from "vitest";
-import type { CompiledDoor, Token } from "@herobyte/shared";
+import { DM_ROLE_OWNER, type CompiledDoor, type Token } from "@herobyte/shared";
 import {
   dmViewActive,
   fogViewers,
@@ -17,6 +17,7 @@ const door = (id: string, state: CompiledDoor["state"]): CompiledDoor =>
   ({ id, state, x1: 0, y1: 0, x2: 50, y2: 0 }) as CompiledDoor;
 
 const token = (id: string, owner: string): Token => ({ id, owner, x: 1, y: 2 }) as Token;
+const noDMs = (owner: string) => owner === "dm-uid";
 
 describe("dmViewActive", () => {
   it("is on for a DM without the lens, off with it, and never on for players", () => {
@@ -43,11 +44,22 @@ describe("fogViewerTokens", () => {
   const tokens = [token("mine", "dm-uid"), token("p1", "player-1"), token("p2", "player-2")];
 
   it("uses the viewer's OWN tokens normally (the player fog rule)", () => {
-    expect(fogViewerTokens(tokens, "player-1", false).map((t) => t.id)).toEqual(["p1"]);
+    expect(fogViewerTokens(tokens, "player-1", false, noDMs).map((t) => t.id)).toEqual(["p1"]);
   });
 
   it("uses the PARTY's union vision under the lens (every token the DM does not own)", () => {
-    expect(fogViewerTokens(tokens, "dm-uid", true).map((t) => t.id)).toEqual(["p1", "p2"]);
+    expect(fogViewerTokens(tokens, "dm-uid", true, noDMs).map((t) => t.id)).toEqual(["p1", "p2"]);
+  });
+
+  it("leaves the DM role's monsters out of the party's eyes (no player sees through them)", () => {
+    const withRole = [...tokens, token("goblin", DM_ROLE_OWNER)];
+    expect(fogViewerTokens(withRole, "dm-uid", true, noDMs).map((t) => t.id)).toEqual(["p1", "p2"]);
+  });
+
+  it("leaves a co-DM's monsters out of the party's eyes too", () => {
+    const withCoDM = [...tokens, token("orc", "co-dm")];
+    const dms = (owner: string) => owner === "dm-uid" || owner === "co-dm";
+    expect(fogViewerTokens(withCoDM, "dm-uid", true, dms).map((t) => t.id)).toEqual(["p1", "p2"]);
   });
 });
 
@@ -63,31 +75,33 @@ describe("fogViewers", () => {
 
   it("converts cells to world-pixel CELL CENTRES, matching the renderer", () => {
     // Cell (3,4) at gridSize 50 is world (3*50+25, 4*50+25).
-    expect(fogViewers(tokens, "player-1", false, 50, undefined)).toEqual([
+    expect(fogViewers(tokens, "player-1", false, 50, undefined, noDMs)).toEqual([
       { x: 175, y: 225, radiusFeet: 60 },
     ]);
   });
 
   it("carries each token's own sight radius through", () => {
-    const viewers = fogViewers(tokens, "dm-uid", true, 50, undefined);
+    const viewers = fogViewers(tokens, "dm-uid", true, 50, undefined, noDMs);
     expect(viewers.map((viewer) => viewer.radiusFeet)).toEqual([60, undefined]);
   });
 
   it("leaves an unset radius undefined rather than inventing a default", () => {
-    expect(fogViewers(tokens, "player-2", false, 50, undefined)[0]!.radiusFeet).toBeUndefined();
+    expect(
+      fogViewers(tokens, "player-2", false, 50, undefined, noDMs)[0]!.radiusFeet,
+    ).toBeUndefined();
   });
 
   it("uses the party union under the lens, exactly as fogViewerTokens does", () => {
-    expect(fogViewers(tokens, "dm-uid", true, 50, undefined)).toHaveLength(2);
-    expect(fogViewers(tokens, "dm-uid", false, 50, undefined)).toHaveLength(1);
+    expect(fogViewers(tokens, "dm-uid", true, 50, undefined, noDMs)).toHaveLength(2);
+    expect(fogViewers(tokens, "dm-uid", false, 50, undefined, noDMs)).toHaveLength(1);
   });
 
   it("falls back to the table default for a token carrying no radius", () => {
-    expect(fogViewers(tokens, "player-2", false, 50, 30)[0]!.radiusFeet).toBe(30);
+    expect(fogViewers(tokens, "player-2", false, 50, 30, noDMs)[0]!.radiusFeet).toBe(30);
   });
 
   it("lets a token's own radius beat the table default", () => {
-    expect(fogViewers(tokens, "player-1", false, 50, 30)[0]!.radiusFeet).toBe(60);
+    expect(fogViewers(tokens, "player-1", false, 50, 30, noDMs)[0]!.radiusFeet).toBe(60);
   });
 
   // The ??-not-|| case on the client side. The two halves resolve this the
@@ -96,15 +110,15 @@ describe("fogViewers", () => {
     const blind: Token[] = [
       { id: "blind", owner: "player-3", x: 0, y: 0, color: "red", visionRadius: 0 },
     ];
-    expect(fogViewers(blind, "player-3", false, 50, 120)[0]!.radiusFeet).toBe(0);
+    expect(fogViewers(blind, "player-3", false, 50, 120, noDMs)[0]!.radiusFeet).toBe(0);
   });
 
   // A DM who darkened the table must SEE that darkness through the lens —
   // otherwise the one toggle built to show what players see lies about it.
   it("applies the default across the party union under the lens", () => {
-    expect(fogViewers(tokens, "dm-uid", true, 50, 30).map((viewer) => viewer.radiusFeet)).toEqual([
-      60, 30,
-    ]);
+    expect(
+      fogViewers(tokens, "dm-uid", true, 50, 30, noDMs).map((viewer) => viewer.radiusFeet),
+    ).toEqual([60, 30]);
   });
 });
 

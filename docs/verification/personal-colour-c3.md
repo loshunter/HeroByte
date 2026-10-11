@@ -1,13 +1,13 @@
 # Personal colour, slice C3 — your colour everywhere
 
-**Status: going to `dev` and then main with C1, on the owner's word (2026-10-10: "push"), after a fourth review
-round the owner asked for.** Built overnight 2026-10-09 to 10 from
+**Status: in production — merged to main with C1 in `040f7b97` (2026-10-10, the owner's word "push"), after a fourth
+review round the owner asked for; round 4's fixes were first reviewed after the merge (see "Review of round 4").** Built overnight 2026-10-09 to 10 from
 [`PROMPT-colour-everywhere-c3.md`](../planning/PROMPT-colour-everywhere-c3.md) (untracked: the link works on this
 machine only) on top of C1 (`origin/dev` `f43368ab`). C1 goes to main only together with C3 (the owner's decision:
 C1's darkest colours are unreadable as text until C3's lift).
 
-The player guide's colour lines are committed (`d4e39ce5`, `8579b812`) without the owner's own unfinished edit to the
-same file (the Character Name / Portrait / Token Image bullet), which stays in their working tree.
+The player guide is committed: its colour lines in `d4e39ce5` and `8579b812`, and the owner's Character Name /
+Portrait / Token Image bullet in `4d8a7059`.
 
 ## The owner's decisions it builds
 
@@ -296,7 +296,9 @@ React skip the render). Still equivalent (named by round 3's and 4's test review
 keyline anchor's stroke width (the anchor is 0 by 0).
 
 Round-by-round: 45, 45 (14 major), 30 (8 major; two PASS), 19 (6 major, 3 distinct; all four FAIL, the fixes then
-sabotaged red). Round 4's fixes are unreviewed.
+sabotaged red). Round 4's fixes were reviewed after the merge, on 2026-10-10, together with C1's: see "Review of
+round 4" in [the C1 record](personal-colour-c1.md) (the gizmo's stuck Ctrl, the initiative badge, the clear's dead
+links, the sweeps, and the demoted DM's monsters were fixed there).
 
 Not fixed, stated: the selection glow on a light map (above); baseline files grew (`TokensLayer.tsx` 836 → 878,
 `MapBoard.tsx` 1020 → 1041, `DrawingsLayer.tsx` 621 → 636; all exempt from the 350-line rule, none split); a picture

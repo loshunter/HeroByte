@@ -81,7 +81,7 @@ describe("help text, after the U10c review", () => {
     expect(entry(dice, /Correct a roll/)).toMatch(/older roll from the log is desktop only/);
     expect(entry(tokens, /^Delete$/)).toMatch(/A player's own token cannot be deleted on a phone/);
     expect(entry(tokens, /^Delete$/)).toMatch(/ask the DM to remove it, or use a computer/);
-    expect(entry(tokens, /^Delete$/)).toMatch(/Props are deleted in the Props panel/);
+    expect(entry(tokens, /^Delete$/)).toMatch(/a token, drawing or prop you own/);
     expect(entry(tokens, /^Delete$/)).toMatch(/Undo drawing/);
     const table = HELP_TOPICS.find((t) => t.id === "table")!;
     expect(entry(table, /^INIT$/)).toMatch(

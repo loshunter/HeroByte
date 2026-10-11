@@ -760,6 +760,26 @@ describe("SnapshotLoader - Characterization Tests", () => {
     });
   });
 
+  describe("a restored file's monsters (dmDemotion.ts)", () => {
+    it("pass to the DM at the table when the file names a uid that is a player tonight", () => {
+      roomService.setState({
+        players: [seat("dm-now", true), seat("old-dm", false)],
+        users: ["dm-now", "old-dm"],
+      });
+      roomService.loadSnapshot(
+        fileOf({
+          players: [seat("dm-now", true), seat("old-dm", false)],
+          characters: [
+            { id: "goblin", name: "Goblin", type: "npc", hp: 7, maxHp: 7, tokenId: "t-goblin" },
+          ] as Character[],
+          tokens: [{ id: "t-goblin", owner: "old-dm", x: 1, y: 1, color: "#123456" }] as Token[],
+        }),
+      );
+      // old-dm would otherwise see through the goblin's eyes and pass the fog with it.
+      expect(roomService.getState().tokens.find((t) => t.id === "t-goblin")?.owner).toBe("dm-now");
+    });
+  });
+
   describe("Token merging", () => {
     it("should preserve tokens owned by connected players", () => {
       // Setup: Connected player with token

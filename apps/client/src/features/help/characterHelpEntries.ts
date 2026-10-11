@@ -12,7 +12,7 @@ export const COLOUR_ENTRY: HelpEntry = {
 export const RECOLOR_ENTRY: HelpEntry = {
   term: "Recolor",
   detail:
-    "Double-click (on a phone, double-tap) your own token for a random colour no other player is using (the DM's own tokens get any colour that reads on a dark map), or pick one with ⚙️ → Colour.",
+    "Double-click (on a phone, double-tap) your own token for a random colour no other player is using (the DM's own tokens get any colour, dark ones included), or pick one with ⚙️ → Colour.",
 };
 
 export const TOKEN_SIZE_ENTRY: HelpEntry = {
@@ -23,5 +23,6 @@ export const TOKEN_SIZE_ENTRY: HelpEntry = {
 
 export const SECOND_CHARACTER_ENTRY: HelpEntry = {
   term: "A second character",
-  detail: "⚙️ → ➕ ADD CHARACTER gives you another row, card, token, HP and initiative.",
+  detail:
+    "⚙️ → ➕ ADD CHARACTER gives you another row, card, token, HP and initiative. Up to 5 each (the DM's are not counted).",
 };

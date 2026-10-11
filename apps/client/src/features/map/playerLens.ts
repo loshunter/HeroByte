@@ -8,6 +8,7 @@
 //   - the DM-only walls/notes overlays (gated off dmView in MapBoard).
 
 import {
+  DM_ROLE_OWNER,
   effectiveVisionRadiusFeet,
   gridCellToWorldPoint,
   type AtlasNodeSnapshot,
@@ -66,16 +67,20 @@ export function visibleAtlasLinks(
 /**
  * The tokens whose vision feeds the fog for this view. A player sees from
  * their OWN tokens; the lens has no single player to impersonate, so it shows
- * the PARTY's union vision — every token the DM does not own. That is the
- * most honest one-toggle answer to "what can the table see right now".
+ * the PARTY's union vision — every token no DM holds: not this DM's, a co-DM's,
+ * or the DM role's (monsters a demoted DM held). No player sees through those.
+ * That is the most honest one-toggle answer to "what can the table see right now".
  */
 export function fogViewerTokens(
   tokens: readonly Token[],
   uid: string,
   playerLens: boolean,
+  isDMUid: (owner: string) => boolean,
 ): Token[] {
   return playerLens
-    ? tokens.filter((token) => token.owner !== uid)
+    ? tokens.filter(
+        (token) => token.owner !== uid && token.owner !== DM_ROLE_OWNER && !isDMUid(token.owner),
+      )
     : tokens.filter((token) => token.owner === uid);
 }
 
@@ -102,8 +107,10 @@ export function fogViewers(
    * result is client fog and server filtering disagreeing in silence.
    */
   defaultRadiusFeet: number | undefined,
+  /** Whether a uid is a DM now: a co-DM's monsters are not the party's eyes. */
+  isDMUid: (owner: string) => boolean,
 ): FogViewer[] {
-  return fogViewerTokens(tokens, uid, playerLens).map((token) => ({
+  return fogViewerTokens(tokens, uid, playerLens, isDMUid).map((token) => ({
     ...gridCellToWorldPoint(gridSize, { x: token.x, y: token.y }),
     radiusFeet: effectiveVisionRadiusFeet(token.visionRadius, defaultRadiusFeet),
   }));

@@ -28,6 +28,7 @@ import type { WebSocket, WebSocketServer } from "ws";
 import type { RoomSnapshot } from "@herobyte/shared";
 import { Container } from "../../container.js";
 import { RoomRegistry } from "../../domains/room/RoomRegistry.js";
+import { DM_ROLE_OWNER } from "../../domains/room/dmDemotion.js";
 import { ConnectionHandler } from "../connectionHandler.js";
 import type { AuthService } from "../../domains/auth/service.js";
 import { SESSION_TOKEN_GRACE_MS } from "../auth/SessionTokenService.js";
@@ -185,6 +186,27 @@ describe("session identity: who may hold a uid's session", () => {
       expect(back.authOk()[0].sessionToken).not.toBe(token);
     });
 
+    it("a DM proven by the session token takes back the DM role's pieces on reconnect", async () => {
+      const { ws, token } = await joinAsDM();
+      const state = container.roomService.getState();
+      const goblin = container.tokenService.createToken(
+        state,
+        "dave",
+        3,
+        3,
+        undefined,
+        "medium",
+        "npc",
+      );
+      ws.close(1001, "browser going away");
+      goblin.owner = DM_ROLE_OWNER; // a co-DM left DM mode while dave was away
+
+      await authenticate(server.connect("dave"), token);
+
+      expect(dave()?.isDM).toBe(true);
+      expect(goblin.owner).toBe("dave");
+    });
+
     it("a tokenless reclaim INSIDE the grace window is refused, and the owner is NOT locked out", async () => {
       // The lockout the security review found: a room-password holder who was
       // first back after dave's blip used to re-mint over dave's record, so
@@ -235,6 +257,56 @@ describe("session identity: who may hold a uid's session", () => {
       expect(dave()?.isDM).toBe(false);
       const roster = reclaimer.latestSnapshot()?.players ?? [];
       expect(roster.find((p) => p.uid === "dave")?.isDM).toBe(false);
+    });
+
+    it("a tokenless reclaim does not inherit the DM's monsters: they pass to the DM role", async () => {
+      const { ws } = await joinAsDM();
+      const state = container.roomService.getState();
+      const goblin = container.characterService.createCharacter(state, "Goblin", 7, "", "npc");
+      const goblinToken = container.tokenService.createToken(
+        state,
+        "dave",
+        3,
+        3,
+        undefined,
+        "medium",
+        "npc",
+      );
+      container.characterService.linkToken(state, goblin.id, goblinToken.id);
+      const ownPc = state.characters.find((c) => c.ownedByPlayerUID === "dave" && c.type === "pc");
+      const ownToken = state.tokens.find((t) => t.id === ownPc?.tokenId);
+      ws.close(1001, "browser going away");
+      vi.setSystemTime(Date.now() + SESSION_TOKEN_GRACE_MS + 1);
+
+      await authenticate(server.connect("dave", "203.0.113.7"));
+
+      expect(dave()?.isDM).toBe(false);
+      // Not dave's to see through, move or recolour any more; only a DM acts on it.
+      expect(goblinToken.owner).toBe(DM_ROLE_OWNER);
+      expect(ownToken).toBeDefined();
+      expect(ownToken?.owner).toBe("dave");
+    });
+
+    it("Leave DM mode (revoke-dm) passes the monsters to the DM role too, and keeps own characters", async () => {
+      const { ws } = await joinAsDM();
+      const state = container.roomService.getState();
+      const goblinToken = container.tokenService.createToken(
+        state,
+        "dave",
+        3,
+        3,
+        undefined,
+        "medium",
+        "npc",
+      );
+      const ownPc = state.characters.find((c) => c.ownedByPlayerUID === "dave" && c.type === "pc");
+
+      send(ws, { t: "revoke-dm" });
+      await settle();
+
+      expect(dave()?.isDM).toBe(false);
+      expect(goblinToken.owner).toBe(DM_ROLE_OWNER);
+      expect(state.tokens.find((t) => t.id === ownPc?.tokenId)?.owner).toBe("dave");
     });
 
     it("after the grace window, the old token no longer restores DM", async () => {

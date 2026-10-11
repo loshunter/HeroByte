@@ -73,6 +73,24 @@ describe("PortraitSection", () => {
     expect(frame.style.opacity).toBe("1");
   });
 
+  it("shows another player's initiative and status at full strength, though they are disabled", () => {
+    render(
+      <PortraitSection
+        portrait={undefined}
+        statusEffects={[]}
+        tokenColor="#c64475"
+        initiative={18}
+      />,
+    );
+    const badge = screen.getByRole("button", { name: /18/ });
+    const status = screen.getByRole("button", { name: "Status effects" });
+    expect(badge).toBeDisabled();
+    expect(status).toBeDisabled();
+    // The number is drawn nowhere else: `button:disabled { opacity: 0.5 }` halved it.
+    expect(badge.style.opacity).toBe("1");
+    expect(status.style.opacity).toBe("1");
+  });
+
   it("shows the empty portrait's hint at full strength (dimmed, it fell under 4.5:1)", () => {
     render(
       <PortraitSection isEditable portrait={undefined} statusEffects={[]} tokenColor="#d92685" />,

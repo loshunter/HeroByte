@@ -176,6 +176,23 @@ describe("TokenService", () => {
     expect(state.tokens).not.toContain(b);
   });
 
+  it("unlinks the characters whose tokens a clear removed, and keeps the kept ones linked", () => {
+    const state = createEmptyRoomState();
+    const kept = service.createToken(state, "keep", 0, 0);
+    const dropped = service.createToken(state, "drop", 1, 1);
+    const character = (id: string, tokenId: string) =>
+      ({ id, name: id, type: "pc", tokenId, ownedByPlayerUID: "drop" }) as never;
+    state.characters.push(character("stays", kept.id), character("goes", dropped.id));
+
+    service.clearAllTokensExcept(state, "keep");
+
+    // A dead link made the record show no colour while the next join adopted a loose token.
+    expect(state.characters.map((c) => [c.id, c.tokenId])).toEqual([
+      ["stays", kept.id],
+      ["goes", null],
+    ]);
+  });
+
   it("updates token image when owner requests it", () => {
     const state = createEmptyRoomState();
     const token = service.createToken(state, "keep", 0, 0);
