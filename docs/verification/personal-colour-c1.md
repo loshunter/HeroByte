@@ -564,9 +564,11 @@ Still open after round 3, stated:
   cannot move, recolour or see through any monster (before `801896c3` the uid could). At a co-DM table the pieces go
   to whichever DM elevates first.
 
-**Where this is:** every commit above, and the two that rode with them (`852ed363` Delete removes props by the
-server's rule; `b29bfb7d` the selection bar steps aside), are on local `dev`, not pushed and not on main. Production
-(`bc4b2356`) still has the demoted-DM hole (F3/F4) until they are merged.
+**Where this is:** IN PRODUCTION 2026-10-11 — every commit above, the two that rode with them (`852ed363` Delete
+removes props by the server's rule; `b29bfb7d` the selection bar steps aside) and the live evaluation's fixes below
+were merged to main in `12ec8989` (tree identical to dev `1d7cb078`, CI #963 green on dev). The client was probed
+live on herobyte.pages.dev/play/ (new strings present, a removed one gone, a control present); the server's version
+is proven only by the owner's `pnpm check:live-session`.
 
 ## Live evaluation (2026-10-11, after the push of `a99c178f` to dev; CI #961 green)
 
