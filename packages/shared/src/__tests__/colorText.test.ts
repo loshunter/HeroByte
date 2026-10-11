@@ -20,7 +20,8 @@ describe("readableOn", () => {
     for (const cell of windowCells()) {
       const text = readableOn(cell.hex, NAVY)!;
       const reached = ratio(text, NAVY);
-      if (reached < 4.5) wrong.push(`${cell.hex} reaches ${reached}`);
+      // Negated, so a NaN (an unparsed colour) is wrong too, as the per-cell expect made it.
+      if (!(reached >= 4.5)) wrong.push(`${cell.hex} reaches ${reached}`);
       if (ratio(cell.hex, NAVY) < 4.5) {
         lifted += 1;
         // Each lift stops at the target, not past it.

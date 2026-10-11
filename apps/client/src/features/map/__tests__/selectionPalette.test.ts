@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  COLOR_WINDOW,
   KEYLINE_DARK,
   KEYLINE_LIGHT,
   contrastRatio,
@@ -51,11 +52,17 @@ describe("selectionPalette", () => {
   });
 
   it("keeps the drag shade at least 6.7:1 from the keyline it is drawn over", () => {
-    // Every window cell; the short ones are collected and asserted once.
-    const short = windowCells().filter((cell) => {
-      const palette = selectionPalette(cell.hex);
-      return contrastRatio(parseColor(palette.drag)!, parseColor(palette.keyline!)!) < 6.7;
-    });
-    expect(short.map((cell) => cell.hex)).toEqual([]);
+    // Every window cell; the short ones are collected and asserted once. Negated, so a
+    // NaN (an unparsed colour) counts as short; and the sweep must see the whole window.
+    const cells = windowCells();
+    expect(cells).toHaveLength(COLOR_WINDOW.columns * COLOR_WINDOW.rows);
+    const short = cells
+      .map((cell) => {
+        const palette = selectionPalette(cell.hex);
+        const reached = contrastRatio(parseColor(palette.drag)!, parseColor(palette.keyline!)!);
+        return { hex: cell.hex, reached };
+      })
+      .filter(({ reached }) => !(reached >= 6.7));
+    expect(short.map(({ hex, reached }) => `${hex} reaches ${reached}`)).toEqual([]);
   }, 30_000);
 });
