@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WebSocket } from "ws";
+import { DM_ROLE_OWNER } from "../../../domains/room/dmDemotion.js";
 import { setDMPasswordForUid } from "../dmPasswordUpdate.js";
 import type { Container } from "../../../container.js";
 
@@ -15,7 +16,11 @@ function setup(roomId: string, opts: { isDM?: boolean; hasDMPassword?: boolean }
   } as unknown as WebSocket;
 
   const updateDMPassword = vi.fn().mockReturnValue({ source: "user", updatedAt: 1 });
-  const state = { players: [{ uid: "u1", isDM: opts.isDM ?? true }], tokens: [], sceneStates: {} };
+  const state = {
+    players: [{ uid: "u1", isDM: opts.isDM ?? true }],
+    tokens: [{ id: "t-goblin", owner: DM_ROLE_OWNER }],
+    sceneStates: {},
+  };
 
   const container = {
     roomIdForUid: () => roomId,
@@ -32,7 +37,7 @@ function setup(roomId: string, opts: { isDM?: boolean; hasDMPassword?: boolean }
     uidToWs: new Map(),
   } as unknown as Container;
 
-  return { ws, sent, container, updateDMPassword };
+  return { ws, sent, container, updateDMPassword, state };
 }
 
 describe("setDMPasswordForUid", () => {
@@ -80,6 +85,14 @@ describe("setDMPasswordForUid", () => {
 
     expect(sent.some((m) => m.t === "dm-password-updated")).toBe(true);
     expect(sent.some((m) => m.t === "dm-status" && m.isDM === true)).toBe(true);
+  });
+
+  it("hands the first DM the DM role's pieces, as an elevation does", () => {
+    const { ws, container, state } = setup("table-mine", { hasDMPassword: false, isDM: false });
+
+    setDMPasswordForUid(container, ws, "u1", "a-new-dm-password", "default");
+
+    expect(state.tokens[0]!.owner).toBe("u1");
   });
 
   it("refuses a non-DM on a private table that already has one", () => {

@@ -56,6 +56,21 @@ export function demoteDM(state: TableState, player: Player): void {
   console.log(`[DM] ${player.uid} is no longer DM; ${passed} piece(s) passed to ${heir}`);
 }
 
+/**
+ * The pieces `from` left parked on maps the table left pass to `to` — a REMOVE or a
+ * clear hands the live ones over itself. Parked tokens are never the party's (a
+ * traveler never suspends), so every one of them is a placed piece.
+ */
+export function handParkedPieces(
+  state: Pick<RoomState, "sceneStates">,
+  from: ReadonlySet<string>,
+  to: string,
+): void {
+  for (const scene of Object.values(state.sceneStates ?? {})) {
+    for (const token of scene.tokens) if (from.has(token.owner)) token.owner = to;
+  }
+}
+
 /** A DM who elevates takes back the pieces the DM role holds. */
 export function claimDmRolePieces(state: TableState, uid: string): void {
   for (const token of everyToken(state)) {

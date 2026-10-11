@@ -39,6 +39,7 @@ import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import { deleteCharacterKeepingTurn } from "./deleteCharacter.js";
 import { isTokenLocked, type LockRefusal } from "../../domains/room/locking/pieceLock.js";
+import { handParkedPieces } from "../../domains/room/dmDemotion.js";
 
 /**
  * A seat whose last heartbeat is this recent cannot be removed yet. The
@@ -169,6 +170,8 @@ export function removePlayer(
   for (const token of state.tokens) {
     if (token.owner === uid && keptByOthers.has(token.id)) token.owner = senderUid;
   }
+  // ...and on the maps the table left: back on travel, they would answer to the uid again.
+  handParkedPieces(state, new Set([uid]), senderUid);
   for (const npc of claimedNpcs) npc.ownedByPlayerUID = undefined;
   for (const token of stray) {
     if (keptLocked.includes(token.id)) continue;

@@ -186,6 +186,27 @@ describe("session identity: who may hold a uid's session", () => {
       expect(back.authOk()[0].sessionToken).not.toBe(token);
     });
 
+    it("a DM proven by the session token takes back the DM role's pieces on reconnect", async () => {
+      const { ws, token } = await joinAsDM();
+      const state = container.roomService.getState();
+      const goblin = container.tokenService.createToken(
+        state,
+        "dave",
+        3,
+        3,
+        undefined,
+        "medium",
+        "npc",
+      );
+      ws.close(1001, "browser going away");
+      goblin.owner = DM_ROLE_OWNER; // a co-DM left DM mode while dave was away
+
+      await authenticate(server.connect("dave"), token);
+
+      expect(dave()?.isDM).toBe(true);
+      expect(goblin.owner).toBe("dave");
+    });
+
     it("a tokenless reclaim INSIDE the grace window is refused, and the owner is NOT locked out", async () => {
       // The lockout the security review found: a room-password holder who was
       // first back after dave's blip used to re-mint over dave's record, so

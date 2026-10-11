@@ -18,7 +18,7 @@ import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 import { createAuthWorkLimiter, type TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 import { closeAnnounced } from "../announceClosing.js";
-import { demoteDM } from "../../domains/room/dmDemotion.js";
+import { claimDmRolePieces, demoteDM } from "../../domains/room/dmDemotion.js";
 
 /** The fields of an `authenticate` frame the handler acts on. */
 export interface AuthenticateRequest {
@@ -228,14 +228,13 @@ export class AuthenticationHandler {
     delete player.voice;
     player.micLevel = 0;
 
-    // A persisted DM flag is honoured only when the reconnect proves it is the
-    // SAME session, by the token minted to it — for THIS table. The room password
-    // cannot tell dave from someone handed it, so a tokenless reclaim of a DM's uid
-    // gets the record (name, characters) but not the DM's pieces (dmDemotion.ts),
-    // and must re-elevate with the DM password.
+    // A persisted DM flag is honoured only when the reconnect proves the SAME session,
+    // by the token minted to it for THIS table: the room password cannot tell dave from
+    // someone handed it, so a tokenless reclaim gets the record but not the DM's pieces
+    // and must re-elevate (dmDemotion.ts). A proven DM takes back the role's pieces.
     if (player.isDM && !this.sessionTokens.verify(uid, requestedRoomId, request.token, now)) {
       demoteDM(state, player);
-    }
+    } else if (player.isDM) claimDmRolePieces(state, uid);
 
     // A session that moved tables in one step leaves the old roster, or the
     // heartbeat sweep would later find the stale entry and clean up the NEW room.

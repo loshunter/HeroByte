@@ -580,6 +580,17 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       roomService.createSnapshot();
     });
 
+    it("hands the removed seats' monsters parked on other maps to the DM who cleared", () => {
+      const state = roomService.getState();
+      state.sceneStates = {
+        cave: { tokens: [{ id: "t-bat", owner: "other-player" }], characterLinks: {} },
+      } as unknown as typeof state.sceneStates;
+
+      messageRouter.route({ t: "clear-all-tokens" }, dmUid);
+
+      expect(state.sceneStates.cave!.tokens[0]!.owner).toBe(dmUid);
+    });
+
     it("should clear all tokens except DM's when DM clears", () => {
       const clearMessage: ClientMessage = {
         t: "clear-all-tokens",

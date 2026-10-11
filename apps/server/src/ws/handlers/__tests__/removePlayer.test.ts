@@ -108,6 +108,17 @@ describe("remove-player", () => {
     );
   });
 
+  it("hands the seat's monsters parked on a map the table left to the DM who cleared it", () => {
+    state().sceneStates = {
+      cave: { tokens: [{ id: "t-bat", owner: ghostUid }], characterLinks: {} },
+    } as unknown as ReturnType<typeof state>["sceneStates"];
+
+    messageRouter.route({ t: "remove-player", uid: ghostUid }, dmUid);
+
+    // Back on travel, the bat would otherwise answer to (and see for) the returning uid.
+    expect(state().sceneStates.cave!.tokens[0]!.owner).toBe(dmUid);
+  });
+
   it("the DM clears an absent player's seat: row, PCs, their tokens, a stray token, their selection — and nobody else's", () => {
     seat(ghostUid, "Ghost A");
     seat(ghostUid, "Ghost B");

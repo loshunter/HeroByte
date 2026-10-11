@@ -33,6 +33,7 @@ import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
 import type { PendingDelta } from "../types.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
+import { handParkedPieces } from "../../domains/room/dmDemotion.js";
 
 /** Result of handling a token message: the router's result, both flags always set. */
 export interface TokenMessageResult extends RouteHandlerResult {
@@ -329,6 +330,7 @@ export class TokenMessageHandler {
       .map((player) => player.uid);
 
     handKeptTokensTo(state, senderUid);
+    handParkedPieces(state, new Set(removedPlayerUids), senderUid);
     state.players = state.players.filter((p) => p.uid === senderUid);
 
     // Deselect for removed players
