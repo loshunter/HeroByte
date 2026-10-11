@@ -874,7 +874,9 @@ export class MessageRouter {
    * them with a commandId (60/s), and they would flush real commands out. And
    * except the two whose answer is a reply, not the ack: a retry flushed after
    * a reconnect must run again to get the backup file or the password
-   * confirmation the dead socket lost (both are safe to repeat).
+   * confirmation the dead socket lost (both are safe to repeat). Today's client
+   * sends session-export without a commandId (each retry built the file again);
+   * a tab from before that still retries it.
    */
   private isReplayGuarded(message: ClientMessage): boolean {
     return (

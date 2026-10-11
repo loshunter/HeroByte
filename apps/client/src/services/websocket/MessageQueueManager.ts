@@ -125,6 +125,9 @@ export class MessageQueueManager {
     "set-dm-password",
     // Never acked either (answered by fork-table-result); see CommandAckManager.
     "fork-table",
+    // Untracked too (its answer is the backup file; see CommandAckManager): a retry
+    // built and sent the whole backup again.
+    "session-export",
   ]);
   private pendingRetries = new Map<
     string,

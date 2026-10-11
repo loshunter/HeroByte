@@ -9,6 +9,11 @@ const NON_TRACKED_TYPES: AckEligibleType[] = [
   // routing, like create-room): a tracked fork was retried three times, each
   // copy carrying both passwords and minting the table again.
   "fork-table",
+  // Download table backup: its answer is the session-file reply, built AFTER the
+  // file — so on a slow link the ack queues behind megabytes, the retries (500 ms,
+  // 1 s, 2 s) fire first, and each one built and sent the whole backup again.
+  // useSessionManagement holds one export at a time and times it out itself.
+  "session-export",
   "heartbeat",
   "rtc-signal",
   "request-room-resync",
