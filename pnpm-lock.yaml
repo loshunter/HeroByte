@@ -50,9 +50,6 @@ importers:
 
   apps/client:
     dependencies:
-      '@herobyte/adapters-net':
-        specifier: workspace:*
-        version: link:../../packages/adapters-net
       '@herobyte/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -150,9 +147,6 @@ importers:
       '@herobyte/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@hono/node-server':
-        specifier: ^1.12.0
-        version: 1.19.5(hono@4.9.9)
       '@types/node':
         specifier: ^24.6.1
         version: 24.6.1
@@ -168,9 +162,6 @@ importers:
       typescript:
         specifier: ^5.5.4
         version: 5.9.2
-      uuid:
-        specifier: ^9.0.1
-        version: 9.0.1
       ws:
         specifier: ^8.18.0
         version: 8.18.3
@@ -190,8 +181,6 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@24.6.1)(jsdom@24.1.3)
-
-  packages/adapters-net: {}
 
   packages/shared:
     devDependencies:
@@ -670,12 +659,6 @@ packages:
   '@eslint/plugin-kit@0.4.0':
     resolution: {integrity: sha512-sB5uyeq+dwCWyPi31B2gQlVlo+j5brPlWx4yZBrEaRo/nhdDE8Xke1gsGgtiBdaBTxuTkceLVuVt/pclrasb0A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@hono/node-server@1.19.5':
-    resolution: {integrity: sha512-iBuhh+uaaggeAuf+TftcjZyWh2GEgZcVGXkNtskLVoWaXhnJtC5HLHrU8W1KHDoucqO1MswwglmkWLFyiDn4WQ==}
-    engines: {node: '>=18.14.1'}
-    peerDependencies:
-      hono: ^4
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2565,11 +2548,6 @@ packages:
   util@0.12.5:
     resolution: {integrity: sha512-kZf/K6hEIrWHI6XqOFUiiMa+79wE/D8Q+NCNAWclkyg3b4d2k7s0QGepNjiABc+aR3N1PAyHL7p6UcLY6LmrnA==}
 
-  uuid@9.0.1:
-    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
-    hasBin: true
-
   vite-node@3.2.4:
     resolution: {integrity: sha512-EbKSKh+bh1E1IFxeO0pg1n4dvoOTt0UDiXMd/qn++r98+jPO1xtJilvXldeuQ8giIB5IkpjCgMleHMNEsGH6pg==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
@@ -3095,10 +3073,6 @@ snapshots:
     dependencies:
       '@eslint/core': 0.16.0
       levn: 0.4.1
-
-  '@hono/node-server@1.19.5(hono@4.9.9)':
-    dependencies:
-      hono: 4.9.9
 
   '@humanfs/core@0.19.1': {}
 
@@ -5308,8 +5282,6 @@ snapshots:
       is-generator-function: 1.1.2
       is-typed-array: 1.1.15
       which-typed-array: 1.1.19
-
-  uuid@9.0.1: {}
 
   vite-node@3.2.4(@types/node@24.6.1):
     dependencies:

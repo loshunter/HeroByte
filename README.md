@@ -369,8 +369,7 @@ HeroByte/
 │   │       └── index.ts           # Bootstrap layer
 │   └── e2e/             # Playwright end-to-end specs + docs screenshot harness
 ├── packages/
-│   ├── shared/          # Shared types between client/server
-│   └── adapters-net/    # Network adapter
+│   └── shared/          # Shared types between client/server
 └── package.json
 ```
 
