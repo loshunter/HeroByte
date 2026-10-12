@@ -55,7 +55,7 @@ Things to know before your first wall:
 
 Door states go beyond open/closed — select a door with **👆 Select**, open **🔍 Inspect**, and the door section offers **Closed / Open / Locked / Secret** plus a width field:
 
-- **Locked** — players get "Door is locked"; you can force it (Alt-click a door at the table cycles its lock).
+- **Locked** — a player who clicks it is told "This door is locked. Only the DM can open it." and hears the latch rattle (only they hear it). Your own click forces it open; Alt-click a door at the table cycles its lock. Under **👁 Player View** doors answer you as they would a player, so leave it to force one.
 - **Secret** — invisible to players entirely, dashed seam for you. Alt-click reveals it when the rogue finds it.
 
 At the table, anyone can click a door to swing it — creak and slam included.

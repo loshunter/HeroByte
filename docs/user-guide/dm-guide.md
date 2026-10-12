@@ -246,7 +246,7 @@ That cuts both ways, so treat a generated room key as a **prep note, not a secre
 
 ### The player lens
 
-**👁 PLAYER VIEW** shows you _exactly_ what players see — fog computed from the party's vision, secret doors hidden, DM overlays gone — while you keep every DM power. One click on, one click off.
+**👁 PLAYER VIEW** shows you _exactly_ what players see — fog computed from the party's vision, secret doors hidden, DM overlays gone — while you keep every DM power except at doors, which answer you as they would a player (no Alt-click lock cycle; a locked door stays shut and says so). One click on, one click off.
 
 ![The player lens: the DM sees the table through the party's eyes](img/dm-player-lens.jpg)
 

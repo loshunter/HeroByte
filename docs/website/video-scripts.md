@@ -829,7 +829,7 @@ How it signs in:
 
 **Show:**
 1. Click the closed door: it swings open; fog lifts beyond it.
-2. Zoom: the gold square on the locked door. Click it; it stays shut.
+2. Zoom: the gold square on the locked door. Click it; it stays shut, the latch clunks, and the toast reads `This door is locked. Only the DM can open it.`
 3. Split screen: DM sees the secret door as a dashed seam; player sees wall.
 
 ### 5. The world map (2:40)
@@ -847,7 +847,6 @@ How it signs in:
 **Common mistake:** trusting a remembered room. Chapter 3's split screen shows it: a creature the DM moved into the dim room is not drawn. Caption: `Dim means remembered, not seen.`
 
 **Unverified, check before recording:**
-- What a player sees and hears when clicking a locked door (the map editor guide says players get "Door is locked"; check where that message appears).
 - How the DM sets a door to Locked or Secret on the desktop (see DM lesson 5's note on Inspect versus Properties).
 
 ---
