@@ -1,6 +1,6 @@
 # Housekeeping, 2026-10-11
 
-**Status: on local `dev`, not pushed.** Eight commits on `f4623134` (production is main `12ec8989`). They close the
+**Status: on local `dev`, not pushed.** Nine code commits on `f4623134` (production is main `12ec8989`). They close the
 items left open after the colour review ([personal-colour-c1.md](personal-colour-c1.md), "Still open after round 3")
 and the housekeeping list from the start of that session: the backup retry, the line-limit ratchet, the hot-path
 logging, the dead code, and dead-socket step 1.
@@ -16,6 +16,7 @@ logging, the dead code, and dead-socket step 1.
 | `d302ab94` | Per-message logging is opt-in. Server: the routing line for every message, the heartbeat line, the selection and staging-zone `[DEBUG]` lines go through `HEROBYTE_MESSAGE_LOG` (DEPLOYMENT.md). Client: three lines per send and one per ack go through `VITE_DEBUG_TRAFFIC`; the per-snapshot initiative dump and useCombatOrdering's order dump are gone. |
 | `7fa1fe22` | `PlayerService.setDMMode` removed: dead, and it would have skipped `demoteDM` if wired. |
 | `9d8dcc52` | Dead code: three unmounted map editors (452 lines), `sanitizeUrl` and `sanitizeImageDataUri` (never called, though ROOM_AUTH_FLOW.md listed them as protections; the doc is corrected), `packages/adapters-net`, and the server's unused `uuid` and `@hono/node-server`. |
+| `c7f45eaa` | A table holds **30 seats** (the owner's number, 2026-10-11: "even 50 players is excessive"; every seat counts, connected or not). A new uid's join past it is turned away on the login screen ("This table is full: it holds 30 seats… Ask the DM to remove some"); a seat's own uid still gets back in, and the right password is refunded to the network's attempt budget. Nothing held the roster before, so scripted joins could pass the backup's 100. `rejectAuthentication` moved to `announceClosing.ts` for AuthenticationHandler's 350-line guard. |
 | `f722f022` | Dead-socket step 1 (the owner's decision, 2026-10-10): each socket's pings and pongs are recorded and logged as one `[pong]` line at its close. Nothing is closed or terminated. |
 
 Each behaviour fix has a test that was seen to fail with the fix taken out (a temporary edit, restored by copy):
@@ -44,9 +45,8 @@ Sockets that close before their first ping (25 s) log nothing.
   list): `components/dice/RollButton.tsx`, `components/ui/EmptyState.tsx`, `components/ui/FormInput.tsx`,
   `components/ui/ImagePreview.tsx`, and `features/map-edit/mobile/mobileToolTiles.ts` (used by another component's
   live test). Left for a decision on whether they are a component kit in waiting.
-- **The same class of bug as the 500, for two other collections (found here, older):** nothing holds the roster to
-  `SNAPSHOT_LIMITS.players` (100) or the tokens to `SNAPSHOT_LIMITS.tokens` (1000), and a table past either writes a
-  backup that fails its own load check. Refusing a join at 100 seats changes who can enter, so it is the owner's call.
+- **The same class of bug as the 500, for the tokens (found here, older):** nothing holds a table to
+  `SNAPSHOT_LIMITS.tokens` (1000), and a table past it writes a backup that fails its own load check.
 - **Still open from the colour review:** a demoted DM keeps every PC made while DM; a DM password change does not
   demote a co-DM; the server's `clear-all-tokens` deletes unlocked role monsters; Ctrl mid-rotation applies one move
   late.
@@ -55,7 +55,7 @@ Sockets that close before their first ping (25 s) log nothing.
 
 ## Gates
 
-Full ladder on `f722f022` (all eight commits): shared build, lint, format, structure guard and both typechecks
+Full ladder on `f722f022` (the first eight code commits; the seat cap after it ran its own server suites, help tests and the structure guard, not the full ladder): shared build, lint, format, structure guard and both typechecks
 pass; unit tests shared 530, server 2980, client 8400 (4 skipped); dev boot clean (server on 8787, Vite ready, no
 missing-export error). e2e: 375 passed, 2 failed, 0 flaky. The two failures are the character-file download specs
 (`interface-table-backups.spec.ts:191`, `mobile/mobile-table.spec.ts:323`) that fail only on this machine since
