@@ -1,6 +1,6 @@
 # Housekeeping, 2026-10-11
 
-**Status: on local `dev`, not pushed.** Nine code commits on `f4623134` (production is main `12ec8989`). They close the
+**Status: pushed to `dev` (`5c0d516f`), CI #966 green, including the full e2e suite; not on main.** Nine code commits on `f4623134` (production is main `12ec8989`). They close the
 items left open after the colour review ([personal-colour-c1.md](personal-colour-c1.md), "Still open after round 3")
 and the housekeeping list from the start of that session: the backup retry, the line-limit ratchet, the hot-path
 logging, the dead code, and dead-socket step 1.
@@ -59,4 +59,6 @@ Full ladder on `f722f022` (the first eight code commits; the seat cap after it r
 pass; unit tests shared 530, server 2980, client 8400 (4 skipped); dev boot clean (server on 8787, Vite ready, no
 missing-export error). e2e: 375 passed, 2 failed, 0 flaky. The two failures are the character-file download specs
 (`interface-table-backups.spec.ts:191`, `mobile/mobile-table.spec.ts:323`) that fail only on this machine since
-2026-10-02 and pass in CI; CI has not run on these commits yet.
+2026-10-02 and pass in CI. A second local run on `5c0d516f` (with the seat cap) stopped at 201 of 377 tests with 8
+timeouts: the machine was saturated (a dozen idle MCP server processes at ~4% CPU each, plus Unity). All 8 passed
+alone, and CI #966 ran the whole suite green.
