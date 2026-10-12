@@ -604,6 +604,34 @@ describe("ConnectionHandler", () => {
     expect(frames[0].reason).toMatch(/too many attempts/i);
   });
 
+  it("turns a new uid away from a table at 30 seats, says why, and lets a seat's own uid back in", async () => {
+    // The owner's number (2026-10-11). Every seat counts, connected or not: the roster
+    // is what the DM's backup holds. A right password is refunded, so a party at a
+    // full table never drains its network's attempt budget (5 here) into a throttle.
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const state = container.roomService.getState();
+    for (let n = 0; n < 30; n += 1) container.playerService.createPlayer(state, `seat-${n}`);
+
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const turnedAway = await attemptFrom(`newcomer-${attempt}`, "198.51.100.7", "Fun1");
+      const frames = turnedAway.send.mock.calls.map(
+        ([p]) => JSON.parse(p as string) as { t?: string; reason?: string },
+      );
+      expect(frames).toEqual([
+        {
+          t: "auth-failed",
+          reason: expect.stringMatching(/^This table is full: it holds 30 seats/),
+        },
+      ]);
+    }
+    expect(state.players).toHaveLength(30);
+    expect(state.players.some((player) => player.uid.startsWith("newcomer"))).toBe(false);
+
+    const returning = await attemptFrom("seat-4", "198.51.100.7", "Fun1");
+    expect(authOkFrames(returning)).toHaveLength(1);
+    expect(state.players).toHaveLength(30);
+  });
+
   it("one flooding network cannot lock another network out", async () => {
     // Pins the socket→IP wiring itself (ConnectionHandler recording
     // clientIpFor off req.socket/headers). Without it every socket lands in

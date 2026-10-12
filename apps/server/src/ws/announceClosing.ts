@@ -34,6 +34,7 @@
 
 import type { WebSocket } from "ws";
 import {
+  WS_CLOSE_AUTH_REJECTED,
   WS_CLOSE_REPLACED,
   WS_CLOSE_SESSION_CONFLICT,
   type ConnectionClosingReason,
@@ -71,4 +72,18 @@ export function closeAnnounced(ws: WebSocket, reason: ConnectionClosingReason): 
   announceClosing(ws, reason);
   const { code, text } = CLOSE_FOR_REASON[reason];
   ws.close(code, text);
+}
+
+/**
+ * Reject an authentication attempt: `auth-failed` with the reason the login screen
+ * shows, then WS_CLOSE_AUTH_REJECTED 100 ms later (the send-then-close noted above).
+ * Moved here from AuthenticationHandler for its 350-line guard.
+ */
+export function rejectAuthentication(ws: WebSocket, reason: string): void {
+  ws.send(JSON.stringify({ t: "auth-failed", reason }));
+  setTimeout(() => {
+    if (ws.readyState === OPEN) {
+      ws.close(WS_CLOSE_AUTH_REJECTED, reason);
+    }
+  }, 100);
 }

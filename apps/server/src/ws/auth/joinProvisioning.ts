@@ -41,6 +41,23 @@ export function leaveRoomRoster(
 }
 
 /**
+ * How many seats a table holds (the owner's number, 2026-10-11: "even 50 players is
+ * excessive"). EVERY seat counts, connected or not: a seat outlives its player until
+ * the DM removes it, and the roster is what the DM's backup has to hold (its load
+ * check stops at SNAPSHOT_LIMITS.players, 100). Before this nothing held it, and
+ * scripted joins on the public table could take a roster past what a backup loads.
+ */
+export const TABLE_SEAT_LIMIT = 30;
+
+/** Why `uid` may not take a seat at this table, or null. A seat's own uid always may (a reconnect). */
+export function seatRefusal(state: RoomState, uid: string): string | null {
+  if (state.players.length < TABLE_SEAT_LIMIT) return null;
+  if (state.players.some((player) => player.uid === uid)) return null;
+  console.warn(`[Auth] ${uid} turned away: the table holds ${state.players.length} seats`);
+  return `This table is full: it holds ${TABLE_SEAT_LIMIT} seats, and a seat stays until the DM removes it. Ask the DM to remove some (Table → Players), then try again.`;
+}
+
+/**
  * Create-or-reconnect the player record for `uid` and provision its tokens.
  * Returns the player (existing or freshly created).
  */
