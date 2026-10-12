@@ -180,7 +180,7 @@ test("record: DM path 7", async ({ browser }) => {
       await focus(rec, enc().getByRole("list", { name: "In the order" }), "In the order", { at: cue("its own line") });
       const line = enc().getByText(/by hand/i).first();
       await line.scrollIntoViewIfNeeded();
-      await focus(rec, line, "hand entry line", { at: cue("The line here says", -0.6) });
+      await focus(rec, line, "hand entry line", { at: cue("This line tells you", -0.6) });
       await rest(dm!);
     });
 

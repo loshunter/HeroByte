@@ -64,7 +64,7 @@ export const dmPath7: LessonScript = {
         { kind: "popup", from: say("rolls a D20"), to: say("Each gets its own line", -0.2), icon: "🎲", title: "D20 + MODIFIER", lines: ["For every NPC with none"], pos: { x: 600, y: 300 }, width: 480 },
         { kind: "sticker", from: say("Each gets its own line"), to: say("A hidden NPC", -0.2), text: "ONE LOG LINE EACH", pos: { x: 600, y: 300 }, tone: "blue", tilt: 2 },
         { kind: "sticker", from: say("A hidden NPC"), to: say("Players may type", -0.2), text: "🙈 HIDDEN NPC: YOUR LOG ONLY", pos: { x: 600, y: 300 }, tone: "gold", tilt: -2 },
-        { kind: "ring", from: say("The line here says", -0.5), to: say("says which", 1.6, true), target: t("hand entry line") },
+        { kind: "ring", from: say("This line tells you", -0.5), to: say("whether it does.", 1.6, true), target: t("hand entry line") },
       ],
     },
     {
