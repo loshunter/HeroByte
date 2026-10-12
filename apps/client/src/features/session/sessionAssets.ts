@@ -80,7 +80,12 @@ export async function collectSessionAssets(
 
   for (const hash of hashes) {
     try {
-      const response = await fetch(`${httpBaseFromWsUrl(wsUrl)}/assets/${hash}`);
+      // no-store: the table already showed this art through <img>/canvas, a request with
+      // no Origin, so the browser cached it without CORS headers; a cached reply makes
+      // this cross-origin read fail and the backup quietly drops the image.
+      const response = await fetch(`${httpBaseFromWsUrl(wsUrl)}/assets/${hash}`, {
+        cache: "no-store",
+      });
       if (!response.ok) {
         skipped.push(hash);
         continue;
