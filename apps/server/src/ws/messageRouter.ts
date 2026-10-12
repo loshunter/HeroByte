@@ -58,7 +58,11 @@ import { AuthorizationService } from "./services/AuthorizationService.js";
 import { MessageErrorHandler } from "./services/MessageErrorHandler.js";
 import { BroadcastService } from "./services/BroadcastService.js";
 import { DirectMessageService } from "./services/DirectMessageService.js";
-import { RouteResultHandler, type RouteHandlerResult } from "./services/RouteResultHandler.js";
+import {
+  RouteResultHandler,
+  senderNotices,
+  type RouteHandlerResult,
+} from "./services/RouteResultHandler.js";
 import { TokenDispatcher } from "./dispatchers/TokenDispatcher.js";
 import { CharacterDispatcher } from "./dispatchers/CharacterDispatcher.js";
 import { PlayerDispatcher } from "./dispatchers/PlayerDispatcher.js";
@@ -497,25 +501,9 @@ export class MessageRouter {
       return;
     }
 
-    // The piece lock stopped some or all of it: say so to the one who tried. A refused
-    // move also broadcasts (its handler asks), so their client drops its local position.
-    if (result.lockRefusal && result.lockRefusal.ids.length > 0) {
-      this.sendControlMessage(senderUid, {
-        t: "locked-refused",
-        ids: result.lockRefusal.ids,
-        ...(result.lockRefusal.kept ? { kept: true } : {}),
-        ...(result.lockRefusal.elsewhere ? { elsewhere: true } : {}),
-      });
-    }
-
-    // A character refused at a cap: the sender's add, claim or hand-over changed nothing.
-    if (result.characterRefusal) {
-      this.sendControlMessage(senderUid, { t: "character-refused", ...result.characterRefusal });
-    }
-
-    // The colour rule moved what they chose: say where it went, to them alone.
-    if (result.colorNotice) {
-      this.sendControlMessage(senderUid, { t: "color-adjusted", ...result.colorNotice });
+    // What the result says to the one who tried, alone: refusals and adjustments.
+    for (const notice of senderNotices(result)) {
+      this.sendControlMessage(senderUid, notice);
     }
 
     const shouldSkipBroadcastVersionBump = Boolean(result.delta && result.broadcast);
