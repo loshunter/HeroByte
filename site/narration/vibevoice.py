@@ -11,8 +11,9 @@ site/narration/out/lessons/<video-slug>/<chapter-slug>-take1.mp3. So align.py, p
 frames-to-mp4.mjs and the edit all take a temp track exactly as they take a real one, and a real take
 from narrate.mjs later simply replaces it.
 
-Temp tracks are listed in that folder's temp-narration.json. This tool only ever overwrites a file
-listed there: a real ElevenLabs take is never replaced (pass --force to replace one anyway).
+Temp tracks are listed, with their hashes, in that folder's temp-narration.json. This tool only
+overwrites a file it made and nobody replaced since: a real ElevenLabs take (narrate.mjs writes the
+same names) is never replaced (pass --force to replace one anyway).
 
 Wren here is a VibeVoice clone of 24 s of her ElevenLabs narration (the DM quick start's first
 chapter), installed as <VibeVoiceTTS>/demo/voices/en-Wren_woman.wav. VibeVoice cannot read the
@@ -22,6 +23,7 @@ close", slightly lower quality, without the real voice's acting choices: more th
 a temp track. Run with the VibeVoiceTTS venv's python; the model loads once per run (minutes).
 """
 import argparse
+import hashlib
 import json
 import pathlib
 import re
@@ -41,6 +43,16 @@ RESPELL = {
     "/koʊ diː ˈɛm/": "co-D-M",
     "/ˈhɪəroʊˌbaɪt/": "HeroByte",
 }
+
+
+def sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def is_temp(target, manifest):
+    """A file this tool made and nobody has replaced since (narrate.mjs writes the same names)."""
+    entry = manifest.get(target.name)
+    return bool(entry) and entry.get("sha256") == sha256(target)
 
 
 def slug(text):
@@ -92,7 +104,7 @@ def main():
         made = 0
         for number, heading, text in chapters:
             target = folder / f"{slug(heading)}-take1.mp3"
-            if target.exists() and target.name not in manifest and not args.force:
+            if target.exists() and not is_temp(target, manifest) and not args.force:
                 print(f"skip {title} / {target.name}: a real take is there (--force replaces it)")
                 continue
             plan.append((heading, speakable(text), target))
@@ -158,6 +170,7 @@ def main():
             "voice": voice.name,
             "cfg": args.cfg,
             "made": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "sha256": sha256(target),
         }
         manifest_path.write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
         print(f"  {target.parent.name}/{target.name}: {seconds:.1f} s of audio in {time.time() - started:.0f} s", flush=True)

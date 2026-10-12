@@ -13,6 +13,12 @@ app's dependencies, gates or CI.
 1. **Narration.** Generate the lesson's chapters with `site/narration/narrate.mjs lesson ...`
    (see `site/README.md`; it never spends past the plan's included credits). The MP3s land in
    `site/narration/out/lessons/<slug>/`.
+   **Temp track first (free):** `D:/AI/VibeVoiceTTS/.venv/Scripts/python.exe site/narration/vibevoice.py
+   "<video title words>" [...]` voices the same chapters locally with a VibeVoice clone of Wren
+   (close, a little flatter) into the same folder and file names, listed in `temp-narration.json`.
+   Capture and edit against it; a real take from `narrate.mjs` later replaces it, and re-running
+   steps 2 to 6 (the capture included: its actions are timed to the narration) re-paces the video to
+   the real voice. The tool never overwrites a real take.
 2. **Word timings** (local Whisper, no credits):
    `python site/video/tools/align.py <slug>` → `narration-timing/<slug>.json`.
 3. **Capture.** Write `capture/<lesson>.capture.ts` (copy `dm-quick-start.capture.ts`). Every
