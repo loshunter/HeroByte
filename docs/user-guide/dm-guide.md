@@ -154,7 +154,7 @@ Ticking **Players can enter rolls by hand** is for tables that roll physical dic
 
 Who may correct what: a player can rewrite **their own** rolls, and you can rewrite anybody's, because you adjudicate the table. Correcting the same roll twice keeps the **original** app roll struck through rather than the intermediate guess.
 
-Untick it and the app's dice become the only way in **for players**. You keep hand entry either way — the switch exists for you to grant, not to take a vow.
+Untick it and the app's dice become the only way in **for players**: their initiative dialog and dice roller drop the hand-entry buttons and say the setting is off, on the desktop and the phone. You keep hand entry either way — the switch exists for you to grant, not to take a vow.
 
 #### Player props
 

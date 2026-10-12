@@ -19,7 +19,7 @@ import { DiceBar } from "./DiceBar";
 import { BuildStrip } from "./BuildStrip";
 import { MacroBar } from "./MacroBar";
 import { NestedMobileDiceResult } from "./NestedMobileDiceResult";
-import { HandEntry } from "./HandEntry";
+import { HandEntry, HandEntryOffNote } from "./HandEntry";
 import { RollOptions } from "./RollOptions";
 import { JRPGButton } from "../ui/JRPGPanel";
 import { ConnectionChip } from "../../features/table/ConnectionChip";
@@ -45,6 +45,11 @@ interface MobileDiceRollerProps {
    * the id is the roller's own `result`.
    */
   onOverrideRoll?: (rollId: string, total: number) => void;
+  /**
+   * The table has hand entry off for this viewer: say so where the control would
+   * be. The caller leaves onEnterRoll and onOverrideRoll unset as well.
+   */
+  handEntryOff?: boolean;
   onClose: () => void;
 }
 
@@ -54,6 +59,7 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
   latestOwnRoll,
   onEnterRoll,
   onOverrideRoll,
+  handEntryOff = false,
   onClose,
 }) => {
   const {
@@ -264,6 +270,11 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
                     })
                   }
                 />
+              </div>
+            )}
+            {handEntryOff && (
+              <div style={{ marginTop: "12px" }}>
+                <HandEntryOffNote testId="mobile-roller-hand-entry-off" />
               </div>
             )}
           </div>

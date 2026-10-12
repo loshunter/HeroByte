@@ -24,6 +24,7 @@ import type {
 } from "@herobyte/shared";
 import type { RollLogEntry } from "../components/dice/rollLogTypes";
 import type { DieType, RollResult } from "../components/dice/types";
+import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
 
 /** What the roller asks the server to roll. Deliberately carries no result. */
 export interface DiceRollRequest {
@@ -285,16 +286,18 @@ export function useDiceRolling({
   );
 
   /**
-   * Whether THIS viewer may rewrite a given roll: their own always, anybody's
-   * if they are the DM. Mirrors the server gate in DiceMessageHandler — the
-   * server is what enforces it; this only decides whether to offer the control.
+   * Whether THIS viewer may rewrite a given roll: their own while the table
+   * allows hand entry, anybody's if they are the DM. Mirrors the server gate in
+   * DiceMessageHandler — the server is what enforces it; this only decides
+   * whether to offer the control.
    */
+  const handEntryAllowed = manualInitiativeAllowedFor(snapshot, isDM);
   const canEnterOver = useCallback(
     (roll: RollLogEntry | RollResult | null | undefined): boolean => {
-      if (!roll) return false;
+      if (!roll || !handEntryAllowed) return false;
       return isDM || roll.playerUid === uid;
     },
-    [isDM, uid],
+    [handEntryAllowed, isDM, uid],
   );
 
   /**

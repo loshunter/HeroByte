@@ -7,10 +7,12 @@
  * renders unchecked on every table that has never touched the setting, and the
  * DM "fixes" it by writing an explicit value that was already the default.
  *
- * It is a named rule rather than an inline expression because two callers
- * derive it — the DM menu's checkbox and the initiative modal's gate — and
- * because the same intent is pinned on the server from the other side
- * (StatePersistence.test.ts, "reading an ABSENT key as ON").
+ * It is a named rule rather than an inline expression because several callers
+ * derive it — the DM menu's checkbox, the initiative modal's gate, and the dice
+ * roller's hand entry on both layouts — and because the same intent is pinned
+ * on the server from the other side (StatePersistence.test.ts, "reading an
+ * ABSENT key as ON"). One switch governs every roll typed by hand: the server
+ * gates `enter-roll` on it exactly as it gates a hand-set initiative.
  *
  * @module features/initiative/manualOverride
  */
@@ -48,3 +50,11 @@ export function manualInitiativeAllowedFor(
 ): boolean {
   return isDM || manualInitiativeEnabled(snapshot);
 }
+
+/**
+ * What a player is told where a hand-entry control would be, when the table has
+ * it off. One copy for the initiative dialog and both dice rollers: a control
+ * that vanishes without a word reads as a bug, not a rule.
+ */
+export const HAND_ENTRY_OFF_NOTE =
+  "Entering a roll by hand is off at this table. The DM can allow it in DM Menu → Table → Permissions.";

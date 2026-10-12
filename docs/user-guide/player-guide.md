@@ -134,7 +134,7 @@ There are two ways in, and they cover the two moments you need them:
 
 Either way the entry wears a **BY HAND** badge in the log, in its own colour, with anything it replaced struck through. Nothing typed is ever dressed up as something the server rolled. Correct the same roll twice and the struck-through number stays the app's **original** roll, which is the one worth being able to check.
 
-You can correct your own rolls; the DM can correct anybody's. On a phone, only the roll you just made, on its result card before you close it; correcting an older roll from the log is desktop only. And your DM can switch hand entry off for players entirely (**DM Menu → Table → Permissions**), in which case the app's dice are the only way in.
+You can correct your own rolls; the DM can correct anybody's. On a phone, only the roll you just made, on its result card before you close it; correcting an older roll from the log is desktop only. And your DM can switch hand entry off for players entirely (**DM Menu → Table → Permissions**), in which case the app's dice are the only way in: both buttons go — from the roller and from a roll's result, on a phone too — and the roller says hand entry is off at this table in their place.
 
 ### Advantage and disadvantage
 

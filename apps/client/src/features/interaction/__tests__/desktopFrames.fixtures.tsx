@@ -64,6 +64,7 @@ export function dicePanelProps(): DicePanelsProps {
     latestOwnRoll: null,
     handleEnterRoll: vi.fn(),
     canEnterOver: () => false,
+    handEntryAllowed: true,
     rollLogOpen: true,
     toggleRollLog: vi.fn(),
     rollHistory: [],

@@ -15,6 +15,7 @@
 import { useLocalEscape } from "../../features/interaction/useEscapeOwner";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { JRPGButton } from "../ui/JRPGPanel";
+import { HAND_ENTRY_OFF_NOTE } from "../../features/initiative/manualOverride";
 
 interface HandEntryProps {
   /** The closed button's text, e.g. "✋ I ROLLED IT". */
@@ -129,3 +130,26 @@ export const HandEntry: React.FC<HandEntryProps> = ({
     </div>
   );
 };
+
+/**
+ * Said where a roller's ✋ I ROLLED IT would be, when the table has hand entry
+ * off for this viewer. The caller decides that (it knows the table and the
+ * seat) and leaves the entry handlers unset; this only says why they are gone.
+ * The initiative dialog's note, in the same words and the same body type.
+ */
+export const HandEntryOffNote: React.FC<{ testId: string }> = ({ testId }) => (
+  <p
+    data-testid={testId}
+    style={{
+      margin: 0,
+      fontFamily: "var(--font-body)",
+      fontSize: "12px",
+      lineHeight: 1.45,
+      color: "var(--jrpg-white)",
+      opacity: 0.85,
+      textAlign: "center",
+    }}
+  >
+    {HAND_ENTRY_OFF_NOTE}
+  </p>
+);
