@@ -47,7 +47,7 @@ import { traceMessage } from "../../config/messageTrace.js";
  */
 /**
  * Messages whose payload never reaches a log: a password, or a whole table (a backup
- * holds hidden NPCs, GM notes and secret doors). An error on one logs its type alone.
+ * or a map holds hidden NPCs, GM notes and secret doors). An error on one logs its type alone.
  */
 const PAYLOAD_NOT_LOGGED: ReadonlySet<string> = new Set([
   "authenticate",
@@ -55,6 +55,7 @@ const PAYLOAD_NOT_LOGGED: ReadonlySet<string> = new Set([
   "set-dm-password",
   "set-room-password",
   "load-session",
+  "map-studio-import",
 ]);
 
 export class MessageLogger {

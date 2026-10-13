@@ -736,4 +736,29 @@ describe("MessagePipelineManager (real class) - per-socket limiting + redaction"
     expect(logged).toContain("authenticate"); // non-secret fields still help debugging
     errorSpy.mockRestore();
   });
+
+  it("never prints a backup's or a map's contents in the error sink", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const limiter = { check: () => true } as unknown as RateLimiter;
+    const pipeline = new MessagePipelineManager(
+      {
+        maxMessageSize: 1024 * 1024,
+        onValidMessage: () => {
+          throw new Error("boom after validation");
+        },
+      },
+      limiter,
+    );
+    const lich = { id: "c1", name: "Hidden Lich", hp: 1, maxHp: 1, type: "npc" };
+    pipeline.processMessage(
+      frame({ t: "load-session", snapshot: { characters: [lich] }, mapDocuments: [] }),
+      "dave",
+      socketA,
+    );
+
+    const logged = errorSpy.mock.calls.map((c) => c.join(" ")).join(" ");
+    expect(logged).toContain("[omitted]");
+    expect(logged).not.toContain("Hidden Lich");
+    errorSpy.mockRestore();
+  });
 });
