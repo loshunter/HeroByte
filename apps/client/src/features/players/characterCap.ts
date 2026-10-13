@@ -24,7 +24,10 @@ export function characterRefusalMessage(
     return "This table holds as many characters as it can: delete one to add another.";
   }
   if (refusal.action === "hand-over") {
-    return `That player already has ${PLAYER_CHARACTER_LIMITS.PER_PLAYER} characters: they must delete one before you hand them another.`;
+    return `That player already has ${PLAYER_CHARACTER_LIMITS.PER_PLAYER} characters: one of theirs must be deleted (by them or by you) before you hand them another.`;
+  }
+  if (refusal.action === "claim") {
+    return `Up to ${PLAYER_CHARACTER_LIMITS.PER_PLAYER} characters each: delete one before claiming another.`;
   }
   return CHARACTER_CAP_REACHED;
 }

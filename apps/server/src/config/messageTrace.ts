@@ -1,6 +1,6 @@
 /**
- * Per-message traces: the router's "Routing message type" line, heartbeats, selections,
- * the staging zone's steps. OFF by default; HEROBYTE_MESSAGE_LOG=true (or 1) turns them
+ * Per-message traces: the router's "Routing message type" line, selections, the staging
+ * zone's steps (the per-heartbeat line is gone). OFF by default; HEROBYTE_MESSAGE_LOG=true (or 1) turns them
  * on. Unconditionally they wrote a line for every routed message — every drag preview
  * and measure frame, every player's 25 s heartbeat (twice) — and buried the warnings
  * that matter in the production logs. Read per call, like BroadcastMetricsLogger, so a

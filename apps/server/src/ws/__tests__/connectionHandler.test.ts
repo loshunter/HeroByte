@@ -636,6 +636,17 @@ describe("ConnectionHandler", () => {
     expect(state.players).toHaveLength(30);
   });
 
+  it("charges a wrong password at a full table, so the seat check cannot buy free guesses", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const state = container.roomService.getState();
+    for (let n = 0; n < 30; n += 1) container.playerService.createPlayer(state, `seat-${n}`);
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await attemptFrom(`guess-${attempt}`, "198.51.100.10", "wrong-password");
+    }
+    const sixth = await attemptFrom("guess-5", "198.51.100.10", "wrong-password");
+    expect(JSON.parse(sixth.send.mock.calls[0]![0] as string).reason).toMatch(/too many attempts/i);
+  });
+
   it("seats a newcomer at a full table in the seat of a player long gone", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "log").mockImplementation(() => {});

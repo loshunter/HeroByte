@@ -144,7 +144,7 @@ export class MapMessageHandler {
     });
 
     if (!isDM) {
-      traceMessage("[DEBUG] Rejected: sender is not DM");
+      console.warn(`[MapMessageHandler] Non-DM ${senderUid} tried to set the staging zone`);
       return { broadcast: false, save: false };
     }
 

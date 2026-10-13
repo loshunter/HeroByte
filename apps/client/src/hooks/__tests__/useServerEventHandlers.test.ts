@@ -926,7 +926,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       } as const;
       act(() => handler(handOver));
       expect(toast.error).toHaveBeenLastCalledWith(
-        "That player already has 5 characters: they must delete one before you hand them another.",
+        "That player already has 5 characters: one of theirs must be deleted (by them or by you) before you hand them another.",
         5000,
       );
       act(() => handler({ t: "character-refused", action: "add", reason: "player-cap" }));
@@ -934,12 +934,17 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         "Up to 5 characters each: delete one to add another.",
         5000,
       );
+      act(() => handler({ t: "character-refused", action: "claim", reason: "player-cap" }));
+      expect(toast.error).toHaveBeenLastCalledWith(
+        "Up to 5 characters each: delete one before claiming another.",
+        5000,
+      );
       act(() => handler({ t: "character-refused", action: "create", reason: "table-full" }));
       expect(toast.error).toHaveBeenLastCalledWith(
         "This table holds as many characters as it can: delete one to add another.",
         5000,
       );
-      expect(delivered).toHaveLength(3);
+      expect(delivered).toHaveLength(4);
       expect(delivered[0]).toEqual(handOver);
       unsubscribe();
     });
