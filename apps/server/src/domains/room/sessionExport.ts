@@ -11,7 +11,7 @@
 import {
   loadSessionFrameBytes,
   SESSION_MINT_CEILING_BYTES,
-  WS_MAX_MESSAGE_BYTES,
+  SESSION_RESTORE_MAX_BYTES,
   type MapDocument,
   type RoomSnapshot,
   type SessionFile,
@@ -81,9 +81,10 @@ export function buildSessionFile(
   mapDocuments: MapDocument[],
   exportingUid: string,
   savedAt: number,
-  options: { warn?: boolean } = {},
+  options: { warn?: boolean; everyScene?: boolean } = {},
 ): SessionFile {
   const suspendedScenes = Object.values(state.sceneStates).filter((scene) => {
+    if (options.everyScene) return true;
     const usable = parseSceneState(scene) !== null;
     // Loud on a real export (the DM's backup lost a scene); silent for the
     // weigh, which runs on every mint and every list and would otherwise fill
@@ -117,7 +118,12 @@ export function withCandidate(documents: MapDocument[], candidate: MapDocument):
 
 /** What the export of `state` + `documents` weighs on the wire — the DM's readout and the ceiling's measure. */
 export function exportBytes(state: RoomState, documents: MapDocument[], actingUid: string): number {
-  return loadSessionFrameBytes(buildSessionFile(state, documents, actingUid, 0));
+  // Every waiting scene, even one past a backup's limits (kept since 025c3b84; the
+  // export refuses it): left out, the readout and the mint ceiling read low, and
+  // trimming that scene back under would push the backup over at once.
+  return loadSessionFrameBytes(
+    buildSessionFile(state, documents, actingUid, 0, { everyScene: true }),
+  );
 }
 
 /** The would-be export's wire weight and the ceiling it crossed. */
@@ -179,6 +185,6 @@ export function mintRefusal(overflow: MintOverflow): string {
   return (
     `This would put the campaign's export at about ${mb(overflow.bytes)} — past the ` +
     `${mb(overflow.ceiling)} a table may hold and still have room to play (a load accepts ` +
-    `${mb(WS_MAX_MESSAGE_BYTES)} in one message). Delete a map first.`
+    `${mb(SESSION_RESTORE_MAX_BYTES)} in one restore). Delete a map first.`
   );
 }

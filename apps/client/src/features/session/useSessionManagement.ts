@@ -124,8 +124,8 @@ export function useSessionManagement({
       const frameBytes = loadSessionFrameBytes(file);
       if (frameBytes > SESSION_RESTORE_MAX_BYTES) {
         toast.error(
-          `This table backup would not restore, so it was not saved. At ${kilobytes(frameBytes)} it is ` +
-            `past the ${kilobytes(SESSION_RESTORE_MAX_BYTES)} one restore carries. Delete maps or erase ` +
+          `This table backup would not restore, so it was not saved. At ${kilobytes(frameBytes)} the ` +
+            `backup is past the ${kilobytes(SESSION_RESTORE_MAX_BYTES)} a restore can carry. Delete maps or erase ` +
             `drawings you no longer need, then download it again.`,
           15000,
         );
@@ -239,7 +239,7 @@ export function useSessionManagement({
           toast.error(
             `"${file.name}" is too large to restore: ${kilobytes(frameBytes)}, and a restore takes at ` +
               `most ${kilobytes(SESSION_RESTORE_MAX_BYTES)}. The table has NOT been changed. ` +
-              `Delete some maps from the campaign and download the backup again.`,
+              `On the table that saved it, delete some maps and download the backup again.`,
             9000,
           );
           return;

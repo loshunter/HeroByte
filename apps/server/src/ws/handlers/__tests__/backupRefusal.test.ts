@@ -58,6 +58,7 @@ describe("Download table backup refuses a file Restore would refuse", () => {
     seats: number,
     extra: Record<string, unknown> = {},
     mapDocuments: MapDocument[] = [],
+    buildScene = false,
   ) => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const roomService = new RoomService({ stateFile: STATE_FILE });
@@ -66,6 +67,11 @@ describe("Download table backup refuses a file Restore would refuse", () => {
       users: ["dm"],
       ...extra,
     } as never);
+    // setState is a plain assign; the scene graph (every token, drawing and prop again,
+    // and the map with its background) is built as the live table builds it.
+    if (buildScene) {
+      (roomService as unknown as { rebuildSceneGraph(): void }).rebuildSceneGraph();
+    }
     const sent: ServerMessage[] = [];
     const handler = new RoomMessageHandler(
       roomService,
@@ -106,18 +112,18 @@ describe("Download table backup refuses a file Restore would refuse", () => {
       SESSION_RESTORE_MAX_BYTES,
     );
     expect(refusal(padded(SESSION_RESTORE_MAX_BYTES - base + 1))).toMatch(
-      /At 1,024 KB it is past the 1,023 KB one restore carries/,
+      /At 1,024 KB the backup is past the 1,023 KB a restore can carry/,
     );
   });
 
   it("names maps alone when maps are the weight", () => {
     const heavy = { id: "heavy", name: "x".repeat(1024 * 1024 + 1) } as unknown as MapDocument;
     const reason = refusal(setup(2, {}, [heavy]));
-    expect(reason).toMatch(/At 1,025 KB it is past the 1,023 KB one restore carries\./);
+    expect(reason).toMatch(/At 1,025 KB the backup is past the 1,023 KB a restore can carry\./);
     expect(reason).toMatch(
-      /The heaviest part is maps and their waiting scenes \(1,025 KB\)\. Delete maps you no longer need/,
+      /The heaviest part is maps \(1,025 KB\)\. Delete maps you no longer need/,
     );
-    expect(reason).not.toMatch(/drawings|tokens and characters/);
+    expect(reason).not.toMatch(/drawings|tokens and characters|background/);
   });
 
   it("names drawings alone, not maps, when drawings are the weight", () => {
@@ -128,7 +134,7 @@ describe("Download table backup refuses a file Restore would refuse", () => {
     expect(reason).toMatch(
       /The heaviest part is drawings \([\d,]+ KB\)\. Erase drawings with Clear All Drawings/,
     );
-    expect(reason).not.toMatch(/maps and their waiting scenes|tokens and characters/);
+    expect(reason).not.toMatch(/The heaviest parts? (is|are) maps|tokens and characters/);
   });
 
   it("says each collection over its limit once, and the combined count only when still over", () => {
@@ -137,7 +143,7 @@ describe("Download table backup refuses a file Restore would refuse", () => {
     expect(once).toMatch(
       /The table has 1,001 tokens, and a backup holds 1,000\. Delete 1 or more tokens or NPCs\./,
     );
-    expect(once).not.toMatch(/together/);
+    expect(once).not.toMatch(/objects on the map/);
 
     // 50 drawings over, but 5,100 scene objects: still 50 over once those go.
     const both = refusal(setup(2, { drawings: items(5050, "d"), sceneObjects: items(5100, "o") }));
@@ -145,7 +151,7 @@ describe("Download table backup refuses a file Restore would refuse", () => {
       /The table has 5,050 drawings, and a backup holds 5,000\. Erase 50 or more/,
     );
     expect(both).toMatch(
-      /The table has 5,100 tokens, drawings and props together, and a backup holds 5,000\. Erase drawings or delete tokens or props, 100 or more in all\./,
+      /The table has 5,100 objects on the map \(tokens, drawings, props, the map and its staging zone\), and a backup holds 5,000\. Erase drawings or delete tokens or props, 100 or more in all\./,
     );
     expect(both.match(/Then download it again/g)).toHaveLength(1);
   });
@@ -160,15 +166,35 @@ describe("Download table backup refuses a file Restore would refuse", () => {
     expect(reason).toMatch(
       /The scene waiting on the map "The Cellar" would be left out: it has 5,001 drawings \(a backup holds 5,000\)\. Open that map with Use at table/,
     );
-    expect(reason).not.toMatch(/together/);
+    expect(reason).not.toMatch(/objects on the map/);
+    expect(reason).toMatch(/^This table backup would not restore whole, so it was not saved\./);
   });
 
-  it("calls a waiting scene whose map is gone a fault", () => {
+  it("hands the file over when the only scene left out waits on a map that is gone", () => {
+    // Restore keeps only scenes whose map came back, so leaving it out loses nothing.
     const scene = waitingScene("gone", { tokens: items(1001, "t") });
-    const reason = refusal(setup(2, { sceneStates: { gone: scene } }));
+    const sent = setup(2, { sceneStates: { gone: scene } });
+    expect(sent[0]).toMatchObject({ t: "session-file" });
+  });
+
+  it("weighs the real scene objects: a pasted map background rides twice and is named", () => {
+    const pasted = `data:image/png;base64,${"A".repeat(540 * 1024)}`;
+    const sent = setup(2, { mapBackground: pasted }, [], true);
+    const reason = refusal(sent);
     expect(reason).toMatch(
-      /A scene waiting on a map that no longer exists would be left out; this is a fault/,
+      /The heaviest part is the map background \(1,0\d\d KB\)\. Replace a pasted map background with ⬆ Upload image/,
     );
+  });
+
+  it("counts each drawing's scene object in the drawings part", () => {
+    const stroke = (n: number) => ({ id: `d-${n}`, type: "freehand", points: Array(4000).fill(1) });
+    const drawings = Array.from({ length: 70 }, (_, n) => stroke(n));
+    const reason = refusal(setup(2, { drawings }, [], true));
+    const kb = Number(
+      /The heaviest part is drawings \(([\d,]+) KB\)/.exec(reason)?.[1].replace(/,/g, ""),
+    );
+    // Seventy strokes weigh about half a megabyte; with their scene objects, twice that.
+    expect(kb * 1024).toBeGreaterThan(1.9 * JSON.stringify(drawings).length);
   });
 
   it("names a stored map that fails the restore's check, and says to delete it", () => {

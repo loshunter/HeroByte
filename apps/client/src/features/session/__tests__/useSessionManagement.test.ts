@@ -247,7 +247,7 @@ describe("useSessionManagement — save", () => {
     const said = vi.mocked(toast.error).mock.calls[0]?.[0] ?? "";
     expect(said).toContain("would not restore, so it was not saved");
     expect(said).toContain("At 1,537 KB");
-    expect(said).toContain("past the 1,023 KB");
+    expect(said).toContain("the backup is past the 1,023 KB a restore can carry");
   });
 
   it("drops a bundle nobody asked for", () => {

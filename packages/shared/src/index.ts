@@ -1241,8 +1241,8 @@ export type ServerMessage =
       /**
        * What the campaign's session export weighs on the wire right now — the
        * DM's readout beside the map list. A mint is refused once this would
-       * pass SESSION_MINT_CEILING_BYTES; a load is refused past
-       * WS_MAX_MESSAGE_BYTES. Refreshed with the list. Absent from older servers.
+       * pass SESSION_MINT_CEILING_BYTES; a backup is refused past
+       * SESSION_RESTORE_MAX_BYTES. Refreshed with the list. Absent from older servers.
        */
       exportBytes?: number;
     }

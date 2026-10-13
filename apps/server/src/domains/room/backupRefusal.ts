@@ -36,7 +36,6 @@ type LimitedCollection = keyof typeof SNAPSHOT_LIMITS;
 
 const TABLE_PATH = "DM Menu → Table → Players at this table, or on a phone ♛ DM → Table";
 const MAPS_PATH = "DM Menu → Maps, or on a phone ♛ DM → Maps";
-const HEADER = "This table backup would not restore, so it was not saved.";
 
 /**
  * What each collection is called at the table, and the sentence that clears `n`
@@ -59,8 +58,10 @@ const COLLECTION_ADVICE: Record<LimitedCollection, { name: string; fix: (n: numb
     fix: (n) => `Delete ${n} or more from the Token Library's own shelf.`,
   },
   diceRolls: { name: "dice rolls in the log", fix: () => "Clear the roll log." },
+  // Every token, drawing and prop is one of these, and so are the map itself and its
+  // staging zone: the name says so, so the count is true.
   sceneObjects: {
-    name: "tokens, drawings and props together",
+    name: "objects on the map (tokens, drawings, props, the map and its staging zone)",
     fix: (n) => `Erase drawings or delete tokens or props, ${n} or more in all.`,
   },
   chatLog: { name: "chat messages", fix: () => "Clear the chat." },
@@ -68,7 +69,7 @@ const COLLECTION_ADVICE: Record<LimitedCollection, { name: string; fix: (n: numb
   atlasLinks: { name: "Atlas links", fix: (n) => `Delete ${n} or more links from the Atlas.` },
 };
 
-/** Every token, drawing and prop is also a scene object, so their excess counts toward its. */
+/** Each token, drawing and prop is also a scene object, so their excess counts toward its. */
 const PARTS_OF_SCENE_OBJECTS = ["tokens", "drawings", "props"] as const;
 
 const count = (n: number) => n.toLocaleString("en-US");
@@ -97,19 +98,38 @@ function overLimits(record: Record<string, unknown>, keys: readonly LimitedColle
     .map((key) => [key, length(record, key)] as const);
 }
 
-/** The parts of a frame that is over, heaviest first, that make up a tenth of it or more. */
-function heaviestParts(file: SessionFile, frameBytes: number): string {
+interface WeighedPart {
+  name: string;
+  bytes: number;
+  fix: string;
+}
+
+/**
+ * What makes a frame that is over heavy, heaviest first: the parts that are a tenth
+ * of it or more (two at most), or else the single heaviest, so the DM is always
+ * told where the weight is and what clears it.
+ */
+function heaviestParts(
+  file: SessionFile,
+  frameBytes: number,
+  mapName: (id: string) => string | undefined,
+): string {
   const snapshot = file.snapshot as unknown as Record<string, unknown>;
   const sceneObjects = Array.isArray(snapshot.sceneObjects)
     ? (snapshot.sceneObjects as Array<{ type?: string }>)
     : [];
   const objectsOf = (type: string) => weigh(sceneObjects.filter((o) => o.type === type));
-  const parts = [
+  const named: WeighedPart[] = [
     {
-      name: "maps and their waiting scenes",
-      bytes: weigh(file.mapDocuments) + weigh(file.sceneStates),
+      name: "maps",
+      bytes: weigh(file.mapDocuments),
       fix: `delete maps you no longer need (${MAPS_PATH})`,
     },
+    ...(file.sceneStates ?? []).map((scene) => ({
+      name: `the scene waiting on "${mapName(scene.mapDocumentId) ?? "a map"}"`,
+      bytes: weigh(scene),
+      fix: `open that map with Use at table (${MAPS_PATH}; the whole party moves there) and erase its drawings or delete its tokens`,
+    })),
     {
       name: "drawings",
       bytes: weigh(snapshot.drawings) + objectsOf("drawing"),
@@ -125,25 +145,49 @@ function heaviestParts(file: SessionFile, frameBytes: number): string {
       bytes: weigh(snapshot.props) + objectsOf("prop"),
       fix: "delete props you no longer need",
     },
-  ]
-    .filter((part) => part.bytes >= Math.max(1024, frameBytes / 10))
-    .sort((a, b) => b.bytes - a.bytes)
-    .slice(0, 2);
-  if (parts.length === 0) return "";
-  const which = parts.map((part) => `${part.name} (${kilobytes(part.bytes)})`).join(" and ");
-  const fixes = parts.map((part) => part.fix).join(", or ");
-  const verb = parts.length === 1 ? "part is" : "parts are";
+    // A pasted image (a data: link) rides twice: the background and the map object.
+    {
+      name: "the map background",
+      bytes: weigh(snapshot.mapBackground) + objectsOf("map"),
+      fix: `replace a pasted map background with ⬆ Upload image (${MAPS_PATH}), which stores it once on the server`,
+    },
+    {
+      name: "the map on the table",
+      bytes:
+        weigh(snapshot.compiledScene) + weigh(snapshot.mapTerrain) + weigh(snapshot.mapElements),
+      fix: `use a smaller map at the table (${MAPS_PATH})`,
+    },
+  ];
+  const rest = frameBytes - named.reduce((sum, part) => sum + part.bytes, 0);
+  const parts: WeighedPart[] = [
+    ...named,
+    {
+      name: "the rest of the table (portraits, chat, the Atlas and settings)",
+      bytes: rest,
+      fix: "this is unusual: please report it",
+    },
+  ].sort((a, b) => b.bytes - a.bytes);
+  const big = parts.filter((part) => part.bytes >= frameBytes / 10).slice(0, 2);
+  const chosen = big.length > 0 ? big : parts.slice(0, 1);
+  const which = chosen.map((part) => `${part.name} (${kilobytes(part.bytes)})`).join(" and ");
+  const fixes = chosen.map((part) => part.fix).join(", or ");
+  const verb = chosen.length === 1 ? "part is" : "parts are";
   return ` The heaviest ${verb} ${which}. ${fixes.charAt(0).toUpperCase()}${fixes.slice(1)}.`;
 }
 
-/** Sentences for the waiting scenes the file leaves out because Restore would refuse them. */
+/**
+ * Sentences for the waiting scenes the file leaves out because Restore would refuse
+ * them. A scene whose map is gone is not one: Restore drops it anyway (it keeps only
+ * scenes whose map came back), so leaving it out loses nothing.
+ */
 function skippedScenes(state: Pick<RoomState, "sceneStates">, maps: MapDocument[]): string[] {
   return Object.values(state.sceneStates)
     .filter((scene) => parseSceneState(scene) === null)
-    .map((scene) => {
+    .flatMap((scene) => {
       const map = maps.find((doc) => doc.id === scene.mapDocumentId);
       if (!map) {
-        return "A scene waiting on a map that no longer exists would be left out; this is a fault, not something to clear, so please report it.";
+        console.warn(`[Backup] left out a scene waiting on a missing map ${scene.mapDocumentId}`);
+        return [];
       }
       const record = scene as unknown as Record<string, unknown>;
       const over = overLimits(record, [...PARTS_OF_SCENE_OBJECTS, "sceneObjects"]).map(
@@ -151,7 +195,9 @@ function skippedScenes(state: Pick<RoomState, "sceneStates">, maps: MapDocument[
           `${count(n)} ${COLLECTION_ADVICE[key].name} (a backup holds ${count(SNAPSHOT_LIMITS[key])})`,
       );
       const detail = over.length > 0 ? `: it has ${over.join(" and ")}` : "";
-      return `The scene waiting on the map "${map.name}" would be left out${detail}. Open that map with Use at table (${MAPS_PATH}; the whole party moves there) and clear it, or delete the map.`;
+      return [
+        `The scene waiting on the map "${map.name}" would be left out${detail}. Open that map with Use at table (${MAPS_PATH}; the whole party moves there) and clear it, or delete the map.`,
+      ];
     });
 }
 
@@ -165,24 +211,32 @@ export function backupRefusal(
   maps: MapDocument[],
 ): string | null {
   const snapshot = file.snapshot as unknown as Record<string, unknown>;
-  const reasons = overLimits(snapshot, Object.keys(SNAPSHOT_LIMITS) as LimitedCollection[]).map(
+  const counted = overLimits(snapshot, Object.keys(SNAPSHOT_LIMITS) as LimitedCollection[]).map(
     ([key, n]) => {
       const { name, fix } = COLLECTION_ADVICE[key];
       const limit = SNAPSHOT_LIMITS[key];
       return `The table has ${count(n)} ${name}, and a backup holds ${count(limit)}. ${fix(n - limit)}`;
     },
   );
-
-  reasons.push(...skippedScenes(state, maps));
+  const scenes = skippedScenes(state, maps);
 
   const bytes = loadSessionFrameBytes(file);
-  if (bytes > SESSION_RESTORE_MAX_BYTES) {
-    reasons.push(
-      `At ${kilobytes(bytes)} it is past the ${kilobytes(SESSION_RESTORE_MAX_BYTES)} one restore carries.${heaviestParts(file, bytes)}`,
-    );
-  }
+  const weight =
+    bytes > SESSION_RESTORE_MAX_BYTES
+      ? [
+          `At ${kilobytes(bytes)} the backup is past the ${kilobytes(SESSION_RESTORE_MAX_BYTES)} a restore can carry.${heaviestParts(file, bytes, (id) => maps.find((doc) => doc.id === id)?.name)}`,
+        ]
+      : [];
 
-  if (reasons.length > 0) return `${HEADER} ${reasons.join(" ")} Then download it again.`;
+  const reasons = [...counted, ...scenes, ...weight];
+  if (reasons.length > 0) {
+    // A file short of only a waiting scene would restore, just not whole.
+    const header =
+      counted.length === 0 && weight.length === 0
+        ? "This table backup would not restore whole, so it was not saved."
+        : "This table backup would not restore, so it was not saved.";
+    return `${header} ${reasons.join(" ")} Then download it again.`;
+  }
 
   // The load's own verdict, for anything the checks above do not name. Its error
   // reads "... at mapDocuments.3.<field>: ..." when one stored map is malformed.
@@ -192,7 +246,8 @@ export function backupRefusal(
   if (verdict.valid) return null;
   const index = /mapDocuments\.(\d+)/.exec(verdict.error ?? "")?.[1];
   const map = index === undefined ? undefined : file.mapDocuments[Number(index)];
+  const header = "This table backup would not restore, so it was not saved.";
   return map
-    ? `${HEADER} The map "${map.name}" does not pass the restore's check. Delete it (${MAPS_PATH}), then download the backup again.`
-    : `${HEADER} Part of the table does not pass the restore's check (${verdict.error}). This is a fault, not something to clear: please report it.`;
+    ? `${header} The map "${map.name}" does not pass the restore's check. Delete it (${MAPS_PATH}), then download the backup again.`
+    : `${header} Part of the table does not pass the restore's check (${verdict.error}). This is a fault, not something to clear: please report it.`;
 }
