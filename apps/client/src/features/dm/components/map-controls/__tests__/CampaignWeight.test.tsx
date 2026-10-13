@@ -59,7 +59,7 @@ describe("CampaignWeight — the campaign's room as an outcome", () => {
     expect(read(SESSION_MINT_CEILING_BYTES - 1)?.text).toMatch(/a large map may be refused/);
     expect(read(SESSION_MINT_CEILING_BYTES + 1)?.text).toMatch(/Full.*Delete a map to make room/);
     expect(read(WS_MAX_MESSAGE_BYTES + 1)?.text).toMatch(
-      /Download table backup will refuse it.*delete a map/,
+      /Download table backup will refuse it, and say which parts are heaviest/,
     );
   });
 

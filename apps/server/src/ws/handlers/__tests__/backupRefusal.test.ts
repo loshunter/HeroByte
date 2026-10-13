@@ -164,7 +164,7 @@ describe("Download table backup refuses a file Restore would refuse", () => {
     });
     const reason = refusal(setup(2, { sceneStates: { cellar: scene } }, [cellar]));
     expect(reason).toMatch(
-      /The scene waiting on the map "The Cellar" would be left out: it has 5,001 drawings \(a backup holds 5,000\)\. Open that map with Use at table/,
+      /The scene waiting on the map "The Cellar" would be left out: it has 5,001 drawings, more than the 5,000 a backup holds\. Open that map with Use at table/,
     );
     expect(reason).not.toMatch(/objects on the map/);
     expect(reason).toMatch(/^This table backup would not restore whole, so it was not saved\./);
@@ -195,6 +195,33 @@ describe("Download table backup refuses a file Restore would refuse", () => {
     );
     // Seventy strokes weigh about half a megabyte; with their scene objects, twice that.
     expect(kb * 1024).toBeGreaterThan(1.9 * JSON.stringify(drawings).length);
+  });
+
+  it("tells a waiting scene heavy with a pasted background to replace it, not to erase drawings", () => {
+    const cellar = { id: "cellar", name: "The Cellar" } as unknown as MapDocument;
+    const pasted = `data:image/png;base64,${"A".repeat(540 * 1024)}`;
+    const scene = waitingScene("cellar", {
+      mapBackground: pasted,
+      sceneObjects: [{ id: "map", type: "map", data: { imageUrl: pasted } }],
+    });
+    const reason = refusal(setup(2, { sceneStates: { cellar: scene } }, [cellar]));
+    expect(reason).toMatch(
+      /The heaviest part is the scene waiting on "The Cellar" \([\d,]+ KB\)\. Open that map with Use at table .* and replace its pasted map background with ⬆ Upload image\./,
+    );
+  });
+
+  it("does not call an ordinary full Token Library unusual", () => {
+    const heavy = { id: "heavy", name: "x".repeat(1000 * 1024) } as unknown as MapDocument;
+    const shelf = Array.from({ length: 200 }, (_, n) => ({
+      id: `c-${n}`,
+      name: `Token ${n}`,
+      description: "d".repeat(300),
+      tags: Array(12).fill("tag"),
+      imageUrl: `/assets/${"a".repeat(64)}`,
+    }));
+    const reason = refusal(setup(2, { customTokens: shelf }, [heavy]));
+    expect(reason).toMatch(/The heaviest parts? (is|are) maps/);
+    expect(reason).not.toMatch(/report it/);
   });
 
   it("names a stored map that fails the restore's check, and says to delete it", () => {

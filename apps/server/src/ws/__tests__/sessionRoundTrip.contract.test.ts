@@ -729,6 +729,10 @@ describe("session round trip", () => {
       // The shape the first filter let through: a name, nothing else — the
       // reimport envelope requires every collection.
       state.sceneStates.half = { mapDocumentId: "live" } as never;
+      // A scene rides only with its map (Restore drops one whose map is gone).
+      if (!origin.mapStudioService.list("default").some((doc) => doc.id === "live")) {
+        origin.mapStudioService.create("default", { id: "live", name: "live" });
+      }
 
       const file = exportSession();
       expect(file.sceneStates?.map((scene) => scene.mapDocumentId)).toEqual(["live"]);

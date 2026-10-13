@@ -136,6 +136,14 @@ describe("exportBytes", () => {
   });
 });
 
+describe("buildSessionFile and a map that is gone", () => {
+  it("leaves out a waiting scene whose map is not in the file: Restore would drop it anyway", () => {
+    const state = stateWith({ sceneStates: { gone: scene("gone"), "doc-A": scene("doc-A") } });
+    const file = buildSessionFile(state, [document("doc-A")], DM, 1);
+    expect(file.sceneStates?.map((entry) => entry.mapDocumentId)).toEqual(["doc-A"]);
+  });
+});
+
 describe("mintOverflow", () => {
   it("weighs the export the CANDIDATE list would write, with the same builder the export uses", () => {
     const state = stateWith({ liveMapDocumentId: "doc-A" });

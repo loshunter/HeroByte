@@ -28,6 +28,7 @@ import type { RoomState } from "./model.js";
 import {
   SNAPSHOT_LIMITS,
   parseSceneState,
+  parseSceneStateShape,
   validateLoadSessionEnvelope,
   validateLoadSessionMessage,
 } from "../../middleware/validators/sessionValidators.js";
@@ -104,6 +105,25 @@ interface WeighedPart {
   fix: string;
 }
 
+/** What clears a heavy waiting scene: whichever of its own parts is heaviest. */
+function sceneFix(scene: unknown): string {
+  const record = scene as Record<string, unknown>;
+  const objects = Array.isArray(record.sceneObjects)
+    ? (record.sceneObjects as Array<{ type?: string }>)
+    : [];
+  const objectsOf = (type: string) => weigh(objects.filter((o) => o.type === type));
+  const options = [
+    { bytes: weigh(record.drawings) + objectsOf("drawing"), fix: "erase its drawings" },
+    { bytes: weigh(record.tokens) + objectsOf("token"), fix: "delete tokens you no longer need" },
+    {
+      // A pasted background rides twice in a waiting scene too: its own and its map object's.
+      bytes: weigh(record.mapBackground) + objectsOf("map"),
+      fix: "replace its pasted map background with ⬆ Upload image",
+    },
+  ].sort((a, b) => b.bytes - a.bytes);
+  return options[0]!.fix;
+}
+
 /**
  * What makes a frame that is over heavy, heaviest first: the parts that are a tenth
  * of it or more (two at most), or else the single heaviest, so the DM is always
@@ -128,8 +148,13 @@ function heaviestParts(
     ...(file.sceneStates ?? []).map((scene) => ({
       name: `the scene waiting on "${mapName(scene.mapDocumentId) ?? "a map"}"`,
       bytes: weigh(scene),
-      fix: `open that map with Use at table (${MAPS_PATH}; the whole party moves there) and erase its drawings or delete its tokens`,
+      fix: `open that map with Use at table (${MAPS_PATH}; the whole party moves there) and ${sceneFix(scene)}`,
     })),
+    {
+      name: "the Token Library's own shelf",
+      bytes: weigh(snapshot.customTokens),
+      fix: "delete tokens you no longer need from the Token Library's own shelf",
+    },
     {
       name: "drawings",
       bytes: weigh(snapshot.drawings) + objectsOf("drawing"),
@@ -158,15 +183,13 @@ function heaviestParts(
       fix: `use a smaller map at the table (${MAPS_PATH})`,
     },
   ];
+  // What no part above names (seats, portraits, chat, the roll log, the Atlas, settings).
+  // Named only when it alone outweighs every part: ordinary tables carry some of it.
   const rest = frameBytes - named.reduce((sum, part) => sum + part.bytes, 0);
-  const parts: WeighedPart[] = [
-    ...named,
-    {
-      name: "the rest of the table (portraits, chat, the Atlas and settings)",
-      bytes: rest,
-      fix: "this is unusual: please report it",
-    },
-  ].sort((a, b) => b.bytes - a.bytes);
+  const parts = [...named].sort((a, b) => b.bytes - a.bytes);
+  if (rest > (parts[0]?.bytes ?? 0)) {
+    return ` The heaviest part is the rest of the table: seats, portraits, chat, the roll log and the Atlas, ${kilobytes(rest)}. This is unusual: please report it.`;
+  }
   const big = parts.filter((part) => part.bytes >= frameBytes / 10).slice(0, 2);
   const chosen = big.length > 0 ? big : parts.slice(0, 1);
   const which = chosen.map((part) => `${part.name} (${kilobytes(part.bytes)})`).join(" and ");
@@ -181,8 +204,11 @@ function heaviestParts(
  * scenes whose map came back), so leaving it out loses nothing.
  */
 function skippedScenes(state: Pick<RoomState, "sceneStates">, maps: MapDocument[]): string[] {
+  // Only a well-shaped scene past the count limits is the DM's to clear. A malformed
+  // one is a fault the export skips loudly (a restart drops it too); refusing over it
+  // would block every backup with nothing to do.
   return Object.values(state.sceneStates)
-    .filter((scene) => parseSceneState(scene) === null)
+    .filter((scene) => parseSceneState(scene) === null && parseSceneStateShape(scene) !== null)
     .flatMap((scene) => {
       const map = maps.find((doc) => doc.id === scene.mapDocumentId);
       if (!map) {
@@ -192,9 +218,9 @@ function skippedScenes(state: Pick<RoomState, "sceneStates">, maps: MapDocument[
       const record = scene as unknown as Record<string, unknown>;
       const over = overLimits(record, [...PARTS_OF_SCENE_OBJECTS, "sceneObjects"]).map(
         ([key, n]) =>
-          `${count(n)} ${COLLECTION_ADVICE[key].name} (a backup holds ${count(SNAPSHOT_LIMITS[key])})`,
+          `${count(n)} ${COLLECTION_ADVICE[key].name}, more than the ${count(SNAPSHOT_LIMITS[key])} a backup holds`,
       );
-      const detail = over.length > 0 ? `: it has ${over.join(" and ")}` : "";
+      const detail = over.length > 0 ? `: it has ${over.join("; and ")}` : "";
       return [
         `The scene waiting on the map "${map.name}" would be left out${detail}. Open that map with Use at table (${MAPS_PATH}; the whole party moves there) and clear it, or delete the map.`,
       ];

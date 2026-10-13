@@ -83,15 +83,17 @@ export function buildSessionFile(
   savedAt: number,
   options: { warn?: boolean; everyScene?: boolean } = {},
 ): SessionFile {
+  // A scene whose map is gone rides nowhere: Restore keeps only scenes whose map came
+  // back, so in the file it is only weight (and the backup refusal would name it).
+  const documentIds = new Set(mapDocuments.map((doc) => doc.id));
   const suspendedScenes = Object.values(state.sceneStates).filter((scene) => {
-    if (options.everyScene) return true;
-    const usable = parseSceneState(scene) !== null;
+    const usable = options.everyScene || parseSceneState(scene) !== null;
     // Loud on a real export (the DM's backup lost a scene); silent for the
     // weigh, which runs on every mint and every list and would otherwise fill
     // the log with the same line during ordinary play.
     if (!usable && options.warn)
       console.warn("session-export: skipped a malformed suspended scene");
-    return usable;
+    return usable && documentIds.has(scene.mapDocumentId);
   });
   return {
     schemaVersion: 1,
