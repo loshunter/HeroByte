@@ -604,15 +604,15 @@ describe("ConnectionHandler", () => {
     expect(frames[0].reason).toMatch(/too many attempts/i);
   });
 
-  it("turns a new uid away from a table at 30 seats, says why, and lets a seat's own uid back in", async () => {
-    // The owner's number (2026-10-11). Every seat counts, connected or not: the roster
-    // is what the DM's backup holds. A right password is refunded, so a party at a
-    // full table never drains its network's attempt budget (5 here) into a throttle.
+  it("turns a new uid away from a table at 30 recent seats, charged, and lets a seat's own uid back in", async () => {
+    // The owner's number (2026-10-11). A refusal is NOT refunded: refunded, a loop of
+    // right-password joins at a full table spent scrypt forever for free. The network's
+    // budget (5 here) runs out on the sixth.
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const state = container.roomService.getState();
     for (let n = 0; n < 30; n += 1) container.playerService.createPlayer(state, `seat-${n}`);
 
-    for (let attempt = 0; attempt < 6; attempt += 1) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
       const turnedAway = await attemptFrom(`newcomer-${attempt}`, "198.51.100.7", "Fun1");
       const frames = turnedAway.send.mock.calls.map(
         ([p]) => JSON.parse(p as string) as { t?: string; reason?: string },
@@ -624,12 +624,31 @@ describe("ConnectionHandler", () => {
         },
       ]);
     }
+    const throttled = await attemptFrom("newcomer-5", "198.51.100.7", "Fun1");
+    expect(JSON.parse(throttled.send.mock.calls[0]![0] as string).reason).toMatch(
+      /too many attempts/i,
+    );
     expect(state.players).toHaveLength(30);
     expect(state.players.some((player) => player.uid.startsWith("newcomer"))).toBe(false);
 
-    const returning = await attemptFrom("seat-4", "198.51.100.7", "Fun1");
+    const returning = await attemptFrom("seat-4", "198.51.100.8", "Fun1");
     expect(authOkFrames(returning)).toHaveLength(1);
     expect(state.players).toHaveLength(30);
+  });
+
+  it("seats a newcomer at a full table in the seat of a player long gone", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const state = container.roomService.getState();
+    for (let n = 0; n < 30; n += 1) container.playerService.createPlayer(state, `seat-${n}`);
+    state.players.find((player) => player.uid === "seat-7")!.lastHeartbeat =
+      Date.now() - 8 * 24 * 60 * 60 * 1000;
+
+    const newcomer = await attemptFrom("newcomer", "198.51.100.9", "Fun1");
+    expect(authOkFrames(newcomer)).toHaveLength(1);
+    expect(state.players).toHaveLength(30);
+    expect(state.players.some((player) => player.uid === "seat-7")).toBe(false);
+    expect(state.players.some((player) => player.uid === "newcomer")).toBe(true);
   });
 
   it("one flooding network cannot lock another network out", async () => {

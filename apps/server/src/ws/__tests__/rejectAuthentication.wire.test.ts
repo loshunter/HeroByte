@@ -11,17 +11,29 @@ import { describe, it, expect, vi } from "vitest";
 import { WebSocketServer, WebSocket } from "ws";
 import type { RoomState } from "../../domains/room/model.js";
 import { rejectAuthentication } from "../announceClosing.js";
-import { TABLE_SEAT_LIMIT, seatRefusal } from "../auth/joinProvisioning.js";
+import type { Container } from "../../container.js";
+import { TABLE_SEAT_LIMIT } from "../auth/joinProvisioning.js";
+import { SeatAdmission } from "../auth/seatAdmission.js";
 
 vi.setConfig({ testTimeout: 15_000 });
 
 describe("rejectAuthentication on real ws sockets", () => {
   it("sends the full-table reason whole and closes with 4001, without throwing", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
+    const now = Date.now();
     const full = {
-      players: Array.from({ length: TABLE_SEAT_LIMIT }, (_, n) => ({ uid: `seat-${n}` })),
+      players: Array.from({ length: TABLE_SEAT_LIMIT }, (_, n) => ({
+        uid: `seat-${n}`,
+        lastHeartbeat: now,
+      })),
+      users: [],
     } as unknown as RoomState;
-    const reason = seatRefusal(full, "newcomer");
+    const seats = new SeatAdmission(
+      { liveSockets: new Map() } as unknown as Container,
+      "public",
+      () => false,
+    );
+    const reason = seats.refusal(full, "private-table", "newcomer", "198.51.100.1", now);
     expect(reason).not.toBeNull();
     expect(Buffer.byteLength(reason!)).toBeGreaterThan(123);
 

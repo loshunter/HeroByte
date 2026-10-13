@@ -11,7 +11,8 @@ import { createRoomForUid, forkTableForSender } from "./roomMinting.js";
 import { setDMPasswordForUid } from "./dmPasswordUpdate.js";
 import { DMElevationThrottle } from "./dmElevationThrottle.js";
 import { elevateUidToDM, revokeUidDM } from "./dmElevation.js";
-import { leaveRoomRoster, provisionJoin, seatRefusal } from "./joinProvisioning.js";
+import { leaveRoomRoster, provisionJoin } from "./joinProvisioning.js";
+import { SeatAdmission } from "./seatAdmission.js";
 import type { SessionTokenService } from "./SessionTokenService.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
@@ -55,6 +56,7 @@ export class AuthenticationHandler {
   // Socket → remote IP, filled by ConnectionHandler at connection time. A
   // WeakMap so a closed socket's entry needs no lifecycle bookkeeping.
   private readonly ipOfWs: WeakMap<WebSocket, string>;
+  private readonly seats: SeatAdmission;
 
   constructor(
     container: Container,
@@ -73,6 +75,9 @@ export class AuthenticationHandler {
     this.defaultRoomId = getDefaultRoomId();
     this.authWorkLimiter = authWorkLimiter ?? createAuthWorkLimiter();
     this.ipOfWs = ipOfWs ?? new WeakMap();
+    this.seats = new SeatAdmission(container, this.defaultRoomId, (u, at) =>
+      sessionTokens.has(u, at),
+    );
   }
 
   /**
@@ -181,15 +186,12 @@ export class AuthenticationHandler {
       console.warn(`Authentication failed for uid ${uid}`);
       return rejectAuthentication(ws, "Invalid table password");
     }
-    // A full table seats no one new; the login screen says why. The password was right: refunded.
-    const tableFull = seatRefusal(
-      this.container.getRoomServiceForRoom(requestedRoomId).getState(),
-      uid,
-    );
-    if (tableFull) {
-      this.refundAuthWork(ws);
-      return rejectAuthentication(ws, tableFull);
-    }
+    // A new seat at a full table takes the longest-absent one, or no one new sits and the
+    // login screen says why. Not refunded: a refusal that spent scrypt stays charged.
+    const roomState = this.container.getRoomServiceForRoom(requestedRoomId).getState();
+    const ip = this.ipOfWs.get(ws) ?? "unknown";
+    const noSeat = this.seats.refusal(roomState, requestedRoomId, uid, ip, now);
+    if (noSeat) return rejectAuthentication(ws, noSeat);
 
     // Who may hold the uid. Claimable by password alone ONLY when nothing
     // holds it: no live socket on another connection, and no session still
