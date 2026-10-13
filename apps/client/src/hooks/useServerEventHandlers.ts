@@ -317,14 +317,17 @@ export function useServerEventHandlers({
     onAtlasError,
   ]);
 
-  // A control the lock stopped on this client (lockNotice) gets the same toast.
-  useEffect(
-    () =>
-      onLockNotice((message) =>
-        toastError(message ?? lockRefusalMessage(1, false, viewerIsDMRef.current), 4000),
-      ),
-    [toastError],
-  );
+  // A control the lock stopped on this client (lockNotice) gets the same toast — once
+  // while it is up: rattling a locked door stacked a copy per click.
+  useEffect(() => {
+    let shown = { text: "", until: 0 };
+    return onLockNotice((message) => {
+      const text = message ?? lockRefusalMessage(1, false, viewerIsDMRef.current);
+      if (text === shown.text && Date.now() < shown.until) return;
+      shown = { text, until: Date.now() + 4000 };
+      toastError(text, 4000);
+    });
+  }, [toastError]);
   // "Creating..." gave up with no answer (characterRefusalBridge).
   useEffect(() => onCharacterNotice((message) => toastInfo(message, 8000)), [toastInfo]);
 
