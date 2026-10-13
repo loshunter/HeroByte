@@ -118,17 +118,13 @@ export function useSessionManagement({
       if (name === null) return; // nobody asked (or the export already timed out)
       clearPending();
 
-      // The server bundles the room and its maps; the image BYTES behind every
-      // upload:<hash> are fetched here, because only the client can reach the
-      // asset store's HTTP endpoints. Without them the file names art it cannot
-      // restore. Async, so the download lands after the fetches settle.
       // A save that would not load back is a backup in name only, and the owner's rule
       // (2026-10-13) is to refuse it. The server refuses first (backupRefusal.ts) with the
       // same counter; this is the same refusal for a reply from an older server.
       const frameBytes = loadSessionFrameBytes(file);
       if (frameBytes > SESSION_RESTORE_MAX_BYTES) {
         toast.error(
-          `This table backup would not restore, so it was not saved: at ${kilobytes(frameBytes)} it is ` +
+          `This table backup would not restore, so it was not saved. At ${kilobytes(frameBytes)} it is ` +
             `past the ${kilobytes(SESSION_RESTORE_MAX_BYTES)} one restore carries. Delete maps or erase ` +
             `drawings you no longer need, then download it again.`,
           15000,
@@ -136,6 +132,10 @@ export function useSessionManagement({
         return;
       }
 
+      // The server bundles the room and its maps; the image BYTES behind every
+      // upload:<hash> are fetched here, because only the client can reach the
+      // asset store's HTTP endpoints. Without them the file names art it cannot
+      // restore. Async, so the download lands after the fetches settle.
       void (async () => {
         try {
           const { assets, skipped } = await collectSessionAssets(file);
@@ -237,8 +237,8 @@ export function useSessionManagement({
         const frameBytes = loadSessionFrameBytes(session);
         if (frameBytes > SESSION_RESTORE_MAX_BYTES) {
           toast.error(
-            `"${file.name}" is too large to restore: ${kilobytes(frameBytes)}, and the server accepts ` +
-              `${kilobytes(SESSION_RESTORE_MAX_BYTES)} in one restore. The table has NOT been changed. ` +
+            `"${file.name}" is too large to restore: ${kilobytes(frameBytes)}, and a restore takes at ` +
+              `most ${kilobytes(SESSION_RESTORE_MAX_BYTES)}. The table has NOT been changed. ` +
               `Delete some maps from the campaign and download the backup again.`,
             9000,
           );

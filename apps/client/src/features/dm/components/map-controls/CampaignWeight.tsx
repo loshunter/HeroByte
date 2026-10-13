@@ -27,7 +27,8 @@ const OUTCOME: Record<Room, string> = {
   room: "Room for more maps.",
   "nearly-full": "Nearly full — a large map may be refused. Delete a map you no longer need.",
   full: "Full — new maps are refused. Delete a map to make room.",
-  "too-big": "Too big to restore — Download table backup will refuse it until you delete a map.",
+  "too-big":
+    "Too big to restore — Download table backup will refuse it until the table is smaller: delete a map or erase drawings.",
 };
 
 /**

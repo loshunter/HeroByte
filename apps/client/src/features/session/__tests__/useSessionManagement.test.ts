@@ -17,6 +17,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import {
+  SESSION_RESTORE_MAX_BYTES,
   WS_MAX_MESSAGE_BYTES,
   type SessionFile,
   loadSessionFrameBytes,
@@ -245,7 +246,7 @@ describe("useSessionManagement — save", () => {
     expect(toast.success).not.toHaveBeenCalled();
     const said = vi.mocked(toast.error).mock.calls[0]?.[0] ?? "";
     expect(said).toContain("would not restore, so it was not saved");
-    expect(said).toContain("at 1,537 KB");
+    expect(said).toContain("At 1,537 KB");
     expect(said).toContain("past the 1,023 KB");
   });
 
@@ -381,6 +382,33 @@ describe("useSessionManagement — load", () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('"fine.json" sent.'), 4000);
     expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("sends a file exactly at the restore limit and refuses one a byte past it", async () => {
+    // The same limit Download table backup refuses past, so a file it handed over restores.
+    const withName = (name: string) =>
+      sessionFile({
+        snapshot: { gridSize: 50, sceneObjects: [{}], characters: [{}] } as never,
+        mapDocuments: [{ id: "doc-A", name } as never],
+        liveMapDocumentId: "doc-A",
+      });
+    const pad = SESSION_RESTORE_MAX_BYTES - loadSessionFrameBytes(withName(""));
+    const atLimit = withName("x".repeat(pad));
+    expect(loadSessionFrameBytes(atLimit)).toBe(SESSION_RESTORE_MAX_BYTES);
+    const { result } = mount();
+
+    vi.mocked(loadSession).mockResolvedValue(atLimit);
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "at-limit.json"));
+    });
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+
+    vi.mocked(loadSession).mockResolvedValue(withName("x".repeat(pad + 1)));
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "over.json"));
+    });
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(toast.error).mock.calls.at(-1)?.[0]).toContain("too large to restore");
   });
 
   it("warns when a session names a map it does not carry", async () => {
