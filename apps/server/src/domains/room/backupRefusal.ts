@@ -27,22 +27,25 @@ import {
 
 type LimitedCollection = keyof typeof SNAPSHOT_LIMITS;
 
-/** What each collection is called at the table, and how the DM makes it smaller. */
-const COLLECTION_ADVICE: Record<LimitedCollection, { name: string; fix: string }> = {
+/** What each collection is called at the table, and how the DM clears `n` of it. */
+const COLLECTION_ADVICE: Record<LimitedCollection, { name: string; fix: (n: number) => string }> = {
   players: {
     name: "seats",
-    fix: "remove absent players (DM Menu → Table → Players at this table)",
+    fix: (n) => `remove ${n} or more absent players (DM Menu → Table → Players at this table)`,
   },
-  tokens: { name: "tokens", fix: "delete tokens or NPCs you no longer need" },
-  characters: { name: "characters", fix: "delete NPCs or characters you no longer need" },
-  drawings: { name: "drawings", fix: "erase drawings you no longer need" },
-  props: { name: "props", fix: "delete props you no longer need" },
-  customTokens: { name: "Library tokens", fix: "delete some from the Token Library's own shelf" },
-  diceRolls: { name: "dice rolls in the log", fix: "clear the roll log" },
-  sceneObjects: { name: "map pieces", fix: "remove map elements you no longer need" },
-  chatLog: { name: "chat messages", fix: "clear the chat" },
-  atlasNodes: { name: "Atlas places", fix: "delete places from the Atlas" },
-  atlasLinks: { name: "Atlas links", fix: "delete links from the Atlas" },
+  tokens: { name: "tokens", fix: (n) => `delete ${n} or more tokens or NPCs` },
+  characters: { name: "characters", fix: (n) => `delete ${n} or more NPCs or characters` },
+  drawings: { name: "drawings", fix: (n) => `erase ${n} or more drawings` },
+  props: { name: "props", fix: (n) => `delete ${n} or more props` },
+  customTokens: {
+    name: "Library tokens",
+    fix: (n) => `delete ${n} or more from the Token Library's own shelf`,
+  },
+  diceRolls: { name: "dice rolls in the log", fix: () => "clear the roll log" },
+  sceneObjects: { name: "map pieces", fix: (n) => `remove ${n} or more map elements` },
+  chatLog: { name: "chat messages", fix: () => "clear the chat" },
+  atlasNodes: { name: "Atlas places", fix: (n) => `delete ${n} or more places from the Atlas` },
+  atlasLinks: { name: "Atlas links", fix: (n) => `delete ${n} or more links from the Atlas` },
 };
 
 function megabytes(bytes: number): string {
@@ -61,7 +64,7 @@ export function backupRefusal(file: SessionFile): string | null {
     if (Array.isArray(collection) && collection.length > limit) {
       const { name, fix } = COLLECTION_ADVICE[key];
       reasons.push(
-        `the table has ${collection.length} ${name} and a backup holds ${limit}: ${fix} (${collection.length - limit} or more)`,
+        `the table has ${collection.length} ${name} and a backup holds ${limit}: ${fix(collection.length - limit)}`,
       );
     }
   }

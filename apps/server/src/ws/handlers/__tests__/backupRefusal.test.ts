@@ -48,7 +48,7 @@ describe("Download table backup refuses a file Restore would refuse", () => {
 
   it("hands over a table at 100 seats", () => {
     const sent = setup(100);
-    expect(sent.map((message) => message.t)).toEqual(["session-file"]);
+    expect(sent.map((message) => ("t" in message ? message.t : null))).toEqual(["session-file"]);
   });
 
   it("refuses a table at 101 seats, says how many and how to fix it, and sends no file", () => {
@@ -58,7 +58,9 @@ describe("Download table backup refuses a file Restore would refuse", () => {
     expect(refusal.t).toBe("session-export-refused");
     expect(refusal.reason).toMatch(/would not restore, so it was not saved/);
     expect(refusal.reason).toMatch(/101 seats and a backup holds 100/);
-    expect(refusal.reason).toMatch(/DM Menu → Table → Players at this table/);
+    expect(refusal.reason).toMatch(
+      /remove 1 or more absent players \(DM Menu → Table → Players at this table\)/,
+    );
   });
 
   it("refuses a table whose restore would not fit in one message", () => {
