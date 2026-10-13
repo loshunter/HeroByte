@@ -51,7 +51,7 @@ describe("CampaignWeight — the campaign's room as an outcome", () => {
     // "a large map": a smaller one may still fit, so the sentence does not say "a new map".
     expect(read(SESSION_MINT_CEILING_BYTES - 1)?.text).toMatch(/a large map may be refused/);
     expect(read(SESSION_MINT_CEILING_BYTES + 1)?.text).toMatch(/Full.*Delete a map to make room/);
-    expect(read(WS_MAX_MESSAGE_BYTES + 1)?.text).toMatch(/would not load back.*Delete a map/);
+    expect(read(WS_MAX_MESSAGE_BYTES + 1)?.text).toMatch(/Download table backup will refuse it.*delete a map/);
   });
 
   it("keeps the byte arithmetic out of the sentence: it is the tooltip's", () => {

@@ -43,3 +43,13 @@ export const WS_MAX_MESSAGE_BYTES = 1024 * 1024;
  * ten or eleven shops or houses.
  */
 export const SESSION_MINT_CEILING_BYTES = Math.floor((WS_MAX_MESSAGE_BYTES * 3) / 4);
+
+/**
+ * The most a table backup's load-session frame may weigh, as `loadSessionFrameBytes`
+ * counts it, for Restore to take it. A KiB under the wire limit: the frame on the wire
+ * also carries a commandId (about 50 bytes) and the server's own parse adds a few
+ * dozen, so a file within a hair of the limit passed every check and was then dropped
+ * by ws with a 1009 after the "sent" toast. Download table backup refuses past it, and
+ * Restore table backup checks it before sending.
+ */
+export const SESSION_RESTORE_MAX_BYTES = WS_MAX_MESSAGE_BYTES - 1024;

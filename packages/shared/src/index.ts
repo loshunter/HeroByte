@@ -38,7 +38,11 @@ export {
   WS_CLOSE_SESSION_CONFLICT,
 } from "./wsCloseCodes.js";
 export type { ConnectionClosingReason } from "./wsCloseCodes.js";
-export { WS_MAX_MESSAGE_BYTES, SESSION_MINT_CEILING_BYTES } from "./wsLimits.js";
+export {
+  WS_MAX_MESSAGE_BYTES,
+  SESSION_MINT_CEILING_BYTES,
+  SESSION_RESTORE_MAX_BYTES,
+} from "./wsLimits.js";
 // The one `load-session` frame builder + UTF-8 counter (client loader, server
 // mint ceiling, server round-trip test) — same sub-module rule.
 export { loadSessionFrame, loadSessionFrameBytes, utf8ByteLength } from "./sessionFrame.js";

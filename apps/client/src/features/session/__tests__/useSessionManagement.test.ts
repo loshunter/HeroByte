@@ -225,11 +225,9 @@ describe("useSessionManagement — save", () => {
     expect(toast.warning).not.toHaveBeenCalled();
   });
 
-  it("still saves a file that will NOT load back — and warns with both numbers instead of congratulating", async () => {
-    // Play grows a table past the wire limit even when every mint stayed
-    // under the ceiling (tokens, drawings, suspended scenes). The bytes are
-    // the DM's — the file downloads — but "saved!" over a backup that cannot
-    // be restored is the failure the whole arc exists to end.
+  it("refuses a file that will NOT load back — no download, and both sizes, which differ", async () => {
+    // The owner's rule (2026-10-13): a backup that would not restore is not saved. The
+    // server refuses first; this is the same refusal for a reply from an older server.
     const { result } = mount();
     // One and a half times the limit: the weight and the limit are different numbers.
     const file = sessionFile({
@@ -243,12 +241,12 @@ describe("useSessionManagement — save", () => {
       deliverSessionFile(file);
     });
 
-    expect(downloadSessionJson).toHaveBeenCalled();
+    expect(downloadSessionJson).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
-    const said = vi.mocked(toast.warning).mock.calls[0]?.[0] ?? "";
-    expect(said).toContain("NOT restore");
-    expect(said).toContain("at 1.50 MB on the wire");
-    expect(said).toContain("accepts 1.00 MB");
+    const said = vi.mocked(toast.error).mock.calls[0]?.[0] ?? "";
+    expect(said).toContain("would not restore, so it was not saved");
+    expect(said).toContain("at 1,537 KB");
+    expect(said).toContain("past the 1,023 KB");
   });
 
   it("drops a bundle nobody asked for", () => {

@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import {
-  WS_MAX_MESSAGE_BYTES,
+  SESSION_RESTORE_MAX_BYTES,
   loadSessionFrame,
   loadSessionFrameBytes,
   type ClientMessage,
@@ -35,6 +35,9 @@ import { collectSessionAssets, restoreSessionAssets } from "./sessionAssets";
  * Toast notification interface for displaying status messages.
  */
 const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+/** For "past the limit" lines: MB rounding can print the same figure on both sides. */
+const kilobytes = (bytes: number): string =>
+  `${Math.ceil(bytes / 1024).toLocaleString("en-US")} KB`;
 
 export interface ToastManager {
   info: (message: string, duration?: number) => void;
@@ -119,6 +122,20 @@ export function useSessionManagement({
       // upload:<hash> are fetched here, because only the client can reach the
       // asset store's HTTP endpoints. Without them the file names art it cannot
       // restore. Async, so the download lands after the fetches settle.
+      // A save that would not load back is a backup in name only, and the owner's rule
+      // (2026-10-13) is to refuse it. The server refuses first (backupRefusal.ts) with the
+      // same counter; this is the same refusal for a reply from an older server.
+      const frameBytes = loadSessionFrameBytes(file);
+      if (frameBytes > SESSION_RESTORE_MAX_BYTES) {
+        toast.error(
+          `This table backup would not restore, so it was not saved: at ${kilobytes(frameBytes)} it is ` +
+            `past the ${kilobytes(SESSION_RESTORE_MAX_BYTES)} one restore carries. Delete maps or erase ` +
+            `drawings you no longer need, then download it again.`,
+          15000,
+        );
+        return;
+      }
+
       void (async () => {
         try {
           const { assets, skipped } = await collectSessionAssets(file);
@@ -129,29 +146,15 @@ export function useSessionManagement({
           const parts = [`${maps} map${maps === 1 ? "" : "s"}`];
           if (assets.length > 0)
             parts.push(`${assets.length} image${assets.length === 1 ? "" : "s"}`);
-          // SAY THE WEIGHT. The file is the DM's either way, but a save that
-          // will not load back is a backup in name only. Play grows a table
-          // past what one load-session frame carries — tokens, drawings,
-          // suspended scenes — even when every mint stayed under the ceiling,
-          // and this is where that becomes visible before the day it matters.
-          // Two numbers, because they differ by 2× or more: the wire weight is
-          // what a load sends (the frame, no images), the disk size is what was
-          // just written (pretty-printed, images inlined).
-          const frameBytes = loadSessionFrameBytes(file);
-          if (frameBytes > WS_MAX_MESSAGE_BYTES) {
-            toast.warning(
-              `Table backup "${name}" downloaded (${parts.join(", ")}; ${megabytes(diskBytes)} on disk) — but at ` +
-                `${megabytes(frameBytes)} on the wire it will NOT restore: the server accepts ` +
-                `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. Delete some maps and download again.`,
-              9000,
-            );
-          } else {
-            toast.success(
-              `Table backup "${name}" downloaded — ${parts.join(", ")} included; ${megabytes(frameBytes)} of ` +
-                `the ${megabytes(WS_MAX_MESSAGE_BYTES)} a restore accepts (${megabytes(diskBytes)} on disk with images).`,
-              4000,
-            );
-          }
+          // SAY THE WEIGHT, so the DM sees the room left before the day it matters. Two
+          // numbers, because they differ by 2× or more: the wire weight is what a load
+          // sends (the frame, no images), the disk size is what was just written
+          // (pretty-printed, images inlined).
+          toast.success(
+            `Table backup "${name}" downloaded — ${parts.join(", ")} included; ${megabytes(frameBytes)} of ` +
+              `the ${megabytes(SESSION_RESTORE_MAX_BYTES)} a restore accepts (${megabytes(diskBytes)} on disk with images).`,
+            4000,
+          );
 
           // Never silent: a skipped asset is art the DM will not get back.
           if (skipped.length > 0) {
@@ -232,10 +235,10 @@ export function useSessionManagement({
         // is not. Say the real numbers rather than fail invisibly. Checked
         // BEFORE restoreSessionAssets so a doomed load costs no uploads.
         const frameBytes = loadSessionFrameBytes(session);
-        if (frameBytes > WS_MAX_MESSAGE_BYTES) {
+        if (frameBytes > SESSION_RESTORE_MAX_BYTES) {
           toast.error(
-            `"${file.name}" is too large to restore: ${megabytes(frameBytes)}, and the server accepts ` +
-              `${megabytes(WS_MAX_MESSAGE_BYTES)} in one message. The table has NOT been changed. ` +
+            `"${file.name}" is too large to restore: ${kilobytes(frameBytes)}, and the server accepts ` +
+              `${kilobytes(SESSION_RESTORE_MAX_BYTES)} in one restore. The table has NOT been changed. ` +
               `Delete some maps from the campaign and download the backup again.`,
             9000,
           );

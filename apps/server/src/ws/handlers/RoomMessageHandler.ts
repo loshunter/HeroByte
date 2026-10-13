@@ -164,7 +164,7 @@ export class RoomMessageHandler {
     // ceiling weighs the very same builder before a mint persists.
     const file = buildSessionFile(state, mapDocuments, senderUid, Date.now(), { warn: true });
     // A backup Restore would refuse is no backup: say why instead (backupRefusal.ts).
-    const refusal = backupRefusal(file);
+    const refusal = backupRefusal(file, state, mapDocuments);
     if (refusal) {
       console.warn(`[Backup] refused for ${senderUid}: ${refusal}`);
       this.sendControlMessage(senderUid, { t: "session-export-refused", reason: refusal });
