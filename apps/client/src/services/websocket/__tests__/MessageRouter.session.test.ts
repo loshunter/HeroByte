@@ -143,6 +143,7 @@ describe("MessageRouter — session-file", () => {
       "room-created",
       "room-password-update-failed",
       "room-password-updated",
+      "session-export-refused",
       "session-file",
       "session-load-refused",
       "table-fork-failed",

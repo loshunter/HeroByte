@@ -283,7 +283,20 @@ export function useSessionManagement({
   // directly. Registering here (rather than being handed the file as a prop)
   // keeps the round trip's two halves in one file, where the pending-name
   // invariant is visible.
-  useEffect(() => awaitSessionFile(onSessionFile), [onSessionFile]);
+  // A backup Restore would refuse is not sent: the server says why, and the wait ends.
+  const onSessionRefused = useCallback(
+    (reason: string) => {
+      if (pendingName.current === null) return;
+      clearPending();
+      toast.error(reason, 15000);
+    },
+    [toast, clearPending],
+  );
+
+  useEffect(
+    () => awaitSessionFile(onSessionFile, onSessionRefused),
+    [onSessionFile, onSessionRefused],
+  );
 
   return { handleSaveSession, handleLoadSession, onSessionFile };
 }

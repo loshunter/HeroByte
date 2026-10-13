@@ -16,7 +16,7 @@ import { lockRefusalMessage } from "../features/locking/lockRefusalCopy";
 import { colorAdjustedMessage } from "../features/players/components/colorPicker/colorPickerControl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
-import { deliverSessionFile } from "../features/session/sessionBridge";
+import { deliverSessionFile, deliverSessionRefusal } from "../features/session/sessionBridge";
 import { onLockNotice } from "../features/locking/lockNotice";
 import { announceLockedDoor } from "../features/map/lockedDoor";
 import { characterRefusalMessage } from "../features/players/characterCap";
@@ -260,6 +260,8 @@ export function useServerEventHandlers({
         // Routed rather than handled: the DM's chosen filename lives in
         // useSessionManagement, down in the DM menu. See sessionFileBridge.
         deliverSessionFile(message.file);
+      } else if ("t" in message && message.t === "session-export-refused") {
+        deliverSessionRefusal(message.reason); // the waiting backup says why, and stops waiting
       } else if (
         "t" in message &&
         (message.t === "map-studio-documents" ||

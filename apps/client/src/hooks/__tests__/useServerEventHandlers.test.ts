@@ -16,6 +16,7 @@
 
 import { onLockRefusal } from "../../features/locking/lockRefusalBridge";
 import { announceLocked } from "../../features/locking/lockNotice";
+import { awaitSessionFile } from "../../features/session/sessionBridge";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ServerMessage } from "@herobyte/shared";
@@ -914,6 +915,16 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
       return { toast, handler, view };
     };
+
+    it("hands a refused backup's reason to the waiting Download table backup", () => {
+      const { toast, handler } = mount();
+      const onRefused = vi.fn();
+      const stop = awaitSessionFile(vi.fn(), onRefused);
+      act(() => handler({ t: "session-export-refused", reason: "101 seats" }));
+      expect(onRefused).toHaveBeenCalledWith("101 seats");
+      expect(toast.error).not.toHaveBeenCalled(); // the backup's own hook says it, once
+      stop();
+    });
 
     it("says why a character was refused, and passes it on to a waiting Creating...", () => {
       const { toast, handler } = mount();

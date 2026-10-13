@@ -1257,6 +1257,7 @@ export type ServerMessage =
       exportBytes?: number;
     }
   | { t: "session-file"; file: SessionFile } // DM-only: the bundled reply to session-export
+  | { t: "session-export-refused"; reason: string } // DM-only: that backup would not restore, so none was sent
   | {
       t: "remove-player-refused";
       // Sent to the ACTING DM only (sendControlMessage). A refused REMOVE

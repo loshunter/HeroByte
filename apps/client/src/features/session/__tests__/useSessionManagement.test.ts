@@ -23,7 +23,7 @@ import {
   utf8ByteLength,
 } from "@herobyte/shared";
 import { useSessionManagement } from "../useSessionManagement";
-import { deliverSessionFile } from "../sessionBridge";
+import { deliverSessionFile, deliverSessionRefusal } from "../sessionBridge";
 import {
   downloadSessionJson,
   loadSession,
@@ -177,6 +177,28 @@ describe("useSessionManagement — save", () => {
     // ...and the in-flight guard resets, so a retry is possible.
     act(() => result.current.handleSaveSession("x"));
     expect(sendMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it("says why a backup Restore would refuse was not sent, and stops waiting", () => {
+    const { result } = mount();
+    const reason = "This table backup would not restore, so it was not saved: 101 seats.";
+
+    act(() => result.current.handleSaveSession("x"));
+    act(() => deliverSessionRefusal(reason));
+
+    expect(toast.error).toHaveBeenCalledWith(reason, 15000);
+    expect(downloadSessionJson).not.toHaveBeenCalled();
+    // The wait is over: no "did not return" later, and the DM can save again at once.
+    act(() => vi.advanceTimersByTime(15_000));
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    act(() => result.current.handleSaveSession("x"));
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores a refusal nobody is waiting for", () => {
+    mount();
+    act(() => deliverSessionRefusal("late"));
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("says the file's wire weight AND its disk size on a save that will load back", async () => {
