@@ -104,6 +104,12 @@ describe("asset HTTP routes", () => {
     expect(served.status).toBe(200);
     expect(served.headers.get("access-control-allow-origin")).toBe("http://localhost:5174");
     expect(served.headers.get("vary")).toBe("Origin");
+
+    // An <img> asks with no Origin. Its reply must still say it varies by Origin, or the
+    // browser reuses it, CORS-less, for the canvas's crossOrigin read of the same URL.
+    const plain = await app.request(new Request(`http://test/assets/${hash}`));
+    expect(plain.headers.get("vary")).toBe("Origin");
+    expect(plain.headers.get("access-control-allow-origin")).toBeNull();
   });
 
   it("rejects non-image payloads", async () => {
