@@ -841,7 +841,8 @@ describe("session round trip", () => {
   it("refuses a load that would leave the table past MAX_SESSION_DOCUMENTS — before anything mutates", () => {
     // The file's documents UPSERT into the room's; a disjoint backup onto a
     // busy table crossed the ceiling in one click and wrote an unloadable
-    // export. Same throw-shaped refusal as map-studio-create's.
+    // export. Refused by a frame to the DM, never thrown: the router's error
+    // path logged the whole backup (hidden NPCs, GM notes) to the server log.
     const file = exportSession();
     const restored = bootServer();
     for (let index = 0; index < MAX_SESSION_DOCUMENTS; index += 1) {
@@ -855,7 +856,7 @@ describe("session round trip", () => {
         mapDocuments: file.mapDocuments,
         liveMapDocumentId: file.liveMapDocumentId,
       });
-      expect(errorLog).toHaveBeenCalled();
+      expect(errorLog).not.toHaveBeenCalled();
     } finally {
       errorLog.mockRestore();
     }

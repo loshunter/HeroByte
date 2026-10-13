@@ -1,4 +1,5 @@
 import type { ClientMessage } from "@herobyte/shared";
+import { traceMessage } from "../../config/messageTrace.js";
 
 /**
  * Message Logger Service
@@ -44,6 +45,19 @@ import type { ClientMessage } from "@herobyte/shared";
  *
  * Provides centralized, structured logging for WebSocket message routing operations.
  */
+/**
+ * Messages whose payload never reaches a log: a password, or a whole table (a backup
+ * or a map holds hidden NPCs, GM notes and secret doors). An error on one logs its type alone.
+ */
+const PAYLOAD_NOT_LOGGED: ReadonlySet<string> = new Set([
+  "authenticate",
+  "elevate-to-dm",
+  "set-dm-password",
+  "set-room-password",
+  "load-session",
+  "map-studio-import",
+]);
+
 export class MessageLogger {
   /**
    * Log the start of message routing
@@ -60,10 +74,13 @@ export class MessageLogger {
    * // Output: [MessageRouter] Routing message type: move from player-123
    * ```
    *
+   * Off unless HEROBYTE_MESSAGE_LOG is set (config/messageTrace.ts): it runs for
+   * every routed message, drag previews and heartbeats included.
+   *
    * Original location: messageRouter.ts:165
    */
   logMessageRouting(messageType: string, senderUid: string): void {
-    console.log(`[MessageRouter] Routing message type: ${messageType} from ${senderUid}`);
+    traceMessage(`[MessageRouter] Routing message type: ${messageType} from ${senderUid}`);
   }
 
   /**
@@ -147,6 +164,10 @@ export class MessageLogger {
    * Original location: MessageErrorHandler.ts:45
    */
   logMessageDetails(message: ClientMessage): void {
+    if (PAYLOAD_NOT_LOGGED.has(message.t)) {
+      console.error(`[MessageRouter] Message details:`, JSON.stringify({ t: message.t }));
+      return;
+    }
     console.error(`[MessageRouter] Message details:`, JSON.stringify(message));
   }
 

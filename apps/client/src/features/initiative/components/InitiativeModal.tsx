@@ -15,6 +15,7 @@ import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useFollowedModifier, useInertPage, useOwnSave } from "./dialogGuards";
 import type { SnapshotCharacter } from "@herobyte/shared";
 import { InitiativeModifierDial } from "./InitiativeModifierDial";
+import { HAND_ENTRY_OFF_NOTE } from "../manualOverride";
 
 interface InitiativeModalProps {
   character: SnapshotCharacter;
@@ -202,10 +203,7 @@ export function InitiativeModal({
                   )}
                 </div>
                 {!manualEntryAllowed && (
-                  <p className="initiative-modal__note">
-                    Entering a roll by hand is off at this table. The DM can allow it in DM Menu →
-                    Table → Permissions.
-                  </p>
+                  <p className="initiative-modal__note">{HAND_ENTRY_OFF_NOTE}</p>
                 )}
                 {!combatActive && (
                   <p className="initiative-modal__note">

@@ -556,7 +556,7 @@ describe("Map Studio export", () => {
 
       const dataUrl = await createMapDocumentSvgDataUrlWithAssets(documentWithUploadStamp());
 
-      expect(fetchMock).toHaveBeenCalledWith(UPLOAD_URL);
+      expect(fetchMock).toHaveBeenCalledWith(UPLOAD_URL, { cache: "no-store" });
       const svg = decodeURIComponent(dataUrl.split(",").slice(1).join(","));
       expect(svg).toContain('href="data:image/png;base64,AQID"');
       expect(svg).not.toContain(`href="${UPLOAD_URL}"`);

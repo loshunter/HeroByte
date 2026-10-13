@@ -56,7 +56,6 @@ export class HeartbeatHandler {
     if (player) {
       player.lastHeartbeat = Date.now();
     }
-    console.log(`[DEBUG] Heartbeat received from ${senderUid}`);
 
     // Broadcast required to keep connection alive and align with refactor pattern.
     return { broadcast: true };

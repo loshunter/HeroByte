@@ -11,6 +11,7 @@ import type { IncomingMessage } from "http";
 import { WS_CLOSE_REPLACED } from "@herobyte/shared";
 import type { RoomService } from "../../domains/room/service.js";
 import type { SessionTokenService } from "../auth/SessionTokenService.js";
+import { PongRecorder } from "./pongRecorder.js";
 
 /**
  * Configuration for ConnectionLifecycleManager
@@ -95,6 +96,8 @@ export class ConnectionLifecycleManager {
   // Keyed by SOCKET, not uid: a held newcomer needs its own ping, and a swap
   // must not have to hand a timer over from one socket to another.
   private keepalives: Map<WebSocket, NodeJS.Timeout>;
+  /** Dead-socket step 1: each socket's pongs, logged at its close (pongRecorder.ts). */
+  readonly pongs = new PongRecorder();
 
   /**
    * @param config - Room resolvers and optional callbacks
@@ -212,8 +215,10 @@ export class ConnectionLifecycleManager {
 
   /** Ping every 25 s to keep cloud-provider proxies from idling the socket out. */
   private startKeepalive(ws: WebSocket): void {
+    this.pongs.watch(ws);
     const keepalive = setInterval(() => {
       if (ws.readyState === 1) {
+        this.pongs.pinged(ws);
         ws.ping();
       }
     }, 25000);
@@ -223,12 +228,14 @@ export class ConnectionLifecycleManager {
   /**
    * Stop keepalive ping for a socket
    *
-   * Clears the interval and removes it from internal tracking.
-   * Safe to call even if no keepalive exists for the socket.
+   * Clears the interval and removes it from internal tracking, and logs the
+   * socket's pong record. Safe to call even if no keepalive exists for the socket.
    *
    * @param ws - The socket whose keepalive should stop
+   * @param detail - Who it was and how it closed, for the pong record's line
    */
-  stopKeepalive(ws: WebSocket): void {
+  stopKeepalive(ws: WebSocket, detail?: { uid?: string; code?: number }): void {
+    this.pongs.closed(ws, detail);
     const keepalive = this.keepalives.get(ws);
     if (keepalive) {
       clearInterval(keepalive);

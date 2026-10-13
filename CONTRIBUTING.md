@@ -135,7 +135,7 @@ The CI enforces zero warnings (`--max-warnings=0`), so all lint warnings must be
 - Use named exports (no default exports) unless a React component.
 - **Keep files small and cohesive. Maximum 350 lines of code per file (enforced by CI).**
   - The structural guardrail prevents new files from exceeding the 350 LOC threshold.
-  - Files already over the threshold are tracked in `scripts/structure-baseline.json`.
+  - Files already over the threshold are listed in `scripts/structure-baseline.json`, each with a ceiling it may not grow past.
   - Run `pnpm lint:structure` to see current file sizes and refactoring hints.
   - When in doubt, create a new module.
 
@@ -151,7 +151,7 @@ The project enforces a **350 lines of code (LOC) limit per file** to maintain SO
 
 1. **CI Enforcement**: The `lint:structure:enforce` step in CI will **fail the build** if you introduce a new file exceeding 350 LOC.
 
-2. **Existing Violations**: Files that already exceed the threshold are tracked in `scripts/structure-baseline.json`. These are allowed but should be refactored over time (see TODO.md Phase 15).
+2. **Existing Violations**: Files that already exceed the threshold are listed in `scripts/structure-baseline.json`, each with a **ceiling**: its size when it was recorded. A listed file may shrink but not grow; one line past its ceiling fails the build like a new violation. (Until 2026-10-11 a listed file could grow without limit, and several doubled.)
 
 3. **Checking File Sizes**: Run `pnpm lint:structure` locally to see:
    - The largest files in the codebase
@@ -164,11 +164,11 @@ The project enforces a **350 lines of code (LOC) limit per file** to maintain SO
    - Use the refactoring hints provided by `pnpm lint:structure` for guidance
    - See TODO.md Phase 15 for detailed refactoring strategies
 
-5. **Updating the Baseline** (maintainers only):
+5. **Updating the Baseline**: after a split, lower the ceilings:
    ```bash
-   # Only do this if absolutely necessary and with approval
-   pnpm lint:structure --json --limit 200 > scripts/structure-baseline.json
+   pnpm baseline:update
    ```
+   It is a ratchet: each listed file gets the smaller of its ceiling and its size now, and files that were deleted or fell under the threshold are dropped. It never raises a ceiling or adds a file. A file that truly must stay larger is a decision: edit the JSON by hand, in its own commit, with the reason in the message.
 
 This guardrail ensures the codebase remains maintainable and prevents technical debt from accumulating.
 

@@ -11,11 +11,13 @@ import { Group, Line, Rect } from "react-konva";
 import type Konva from "konva";
 import type { CompiledDoor, CompiledDoorState, SceneObjectTransform } from "@herobyte/shared";
 import type { Camera } from "../types";
+import { announceLockedDoor } from "../lockedDoor";
 
 interface DoorsLayerProps {
   cam: Camera;
   doors: CompiledDoor[];
   mapTransform?: SceneObjectTransform;
+  /** The DM VIEW: under the player lens doors are player-grade (P4), locked ones included. */
   isDM: boolean;
   /** Click: flip open/closed (server enforces lock/secret rules). */
   onToggleDoor: (doorId: string) => void;
@@ -131,6 +133,12 @@ function DoorSprite({
     const altPressed = "altKey" in event.evt && Boolean(event.evt.altKey);
     if (isDM && altPressed) {
       onSetDoorState(door.id, lockCycle(door.state));
+      return;
+    }
+    // The sprite can see the lock, so it says so before sending. The server stays
+    // the judge: a view a moment stale is answered by its door-refused instead.
+    if (!isDM && door.state === "locked") {
+      announceLockedDoor();
       return;
     }
     onToggleDoor(door.id);

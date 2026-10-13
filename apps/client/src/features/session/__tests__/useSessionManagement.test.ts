@@ -359,7 +359,7 @@ describe("useSessionManagement — load", () => {
     });
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
-    expect(toast.success).toHaveBeenCalled();
+    expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('"fine.json" sent.'), 4000);
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -459,7 +459,7 @@ describe("useSessionManagement — the words name the scope (U9)", () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
-  it("says the backup was restored, by the file's name", async () => {
+  it("says the backup was sent, by the file's name, never that it was restored", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(loadSession).mockResolvedValue(file());
     const { result } = mount();
@@ -468,7 +468,11 @@ describe("useSessionManagement — the words name the scope (U9)", () => {
       await result.current.handleLoadSession(new File([], "friday.json"));
     });
 
-    expect(toast.success).toHaveBeenCalledWith('Table backup "friday.json" restored.', 4000);
+    expect(toast.info).toHaveBeenCalledWith(
+      'Table backup "friday.json" sent. The table changes for everyone once the server accepts it.',
+      4000,
+    );
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it("passes the loader's wrong-kind message through, by name, and changes nothing", async () => {

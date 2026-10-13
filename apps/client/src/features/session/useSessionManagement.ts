@@ -256,10 +256,15 @@ export function useSessionManagement({
 
         sendMessage(frame);
 
+        // Said on send, before the server answers: never "restored", since the server can
+        // still refuse it whole (session-load-refused, which says so in its own toast).
         if (warnings.length > 0) {
-          toast.warning(`Table backup restored with warnings: ${warnings.join(", ")}`, 5000);
+          toast.warning(`Table backup sent, with warnings: ${warnings.join(", ")}`, 5000);
         } else {
-          toast.success(`Table backup "${file.name}" restored.`, 4000);
+          toast.info(
+            `Table backup "${file.name}" sent. The table changes for everyone once the server accepts it.`,
+            4000,
+          );
         }
       } catch (err) {
         console.error("Failed to load session", err);

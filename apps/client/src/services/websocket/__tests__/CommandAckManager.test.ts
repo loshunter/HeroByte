@@ -22,7 +22,17 @@ describe("CommandAckManager", () => {
     expect(decorated.commandId).toBeDefined();
 
     manager.handleAck(decorated.commandId!);
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Command acknowledged"));
+    // One per tracked command: a trace only while VITE_DEBUG_TRAFFIC is on (trafficLog).
+    expect(console.log).not.toHaveBeenCalled();
+
+    vi.stubEnv("VITE_DEBUG_TRAFFIC", "true");
+    try {
+      const traced = manager.attachCommandId(baseMessage);
+      manager.handleAck(traced.commandId!);
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Command acknowledged"));
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("skips attaching commandId for non-mutating messages", () => {

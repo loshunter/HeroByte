@@ -22,8 +22,10 @@ import type { MapDocument, RoomSnapshot, SceneState, ServerMessage } from "@hero
 import { sceneStatesFromEnvelope } from "../../domains/room/atlasState.js";
 import {
   MAX_SESSION_DOCUMENTS,
+  SNAPSHOT_LIMITS,
   documentsPastCap,
 } from "../../middleware/validators/sessionValidators.js";
+import { mergeCharacters } from "../../domains/room/snapshot/SnapshotLoader.js";
 import { buildSessionFile } from "../../domains/room/sessionExport.js";
 import { getDefaultRoomId, getRoomSecret } from "../../config/auth.js";
 import { rehomeNpcTokens } from "../../domains/room/dmDemotion.js";
@@ -82,9 +84,18 @@ export class RoomMessageHandler {
       return { broadcast: false, save: false };
     }
 
+    // Refused WHOLE, before anything mutates, and said to the DM by the frame alone. Not
+    // thrown: the router's error path logs the whole message, and a backup holds hidden
+    // NPCs, GM notes and secret doors (found in the pre-merge review, 2026-10-13).
+    const roomId = this.getRoomIdForUid?.(senderUid);
+    const refusal = this.loadRefusal(roomId, state, snapshot, mapDocuments);
+    if (refusal) {
+      this.sendControlMessage(senderUid, { t: "session-load-refused", reason: refusal });
+      return { broadcast: false, save: false };
+    }
+
     // Documents FIRST: the snapshot's liveMapDocumentId is only safe to restore
     // once the document it names is actually present.
-    const roomId = this.getRoomIdForUid?.(senderUid);
     const restored = this.restoreMapDocuments(roomId, mapDocuments);
 
     this.roomService.loadSnapshot({
@@ -158,20 +169,34 @@ export class RoomMessageHandler {
   }
 
   /**
-   * Upsert each document, skipping (not failing) any single bad one — after
-   * the mint ceiling: a load that would leave the table past the cap is
-   * refused WHOLE, before anything mutates (thrown like map-studio-create's,
-   * so the nack carries it). This runs before the snapshot merge.
+   * Why this file may not load, or null. Two ceilings: the map documents (the mint
+   * ceiling), and the characters — the file is held to the table's 500 on its own,
+   * but every seated player keeps their live characters beside it (mergeCharacters),
+   * and a table past 500 writes a backup that fails its own load check.
    */
+  private loadRefusal(
+    roomId: string | undefined,
+    state: RoomState,
+    snapshot: RoomSnapshot,
+    documents?: MapDocument[],
+  ): string | null {
+    if (roomId && this.mapStudioService && documents?.length) {
+      const existing = this.mapStudioService.list(roomId).map((document) => document.id);
+      const past = documentsPastCap(existing, documents);
+      if (past) {
+        return `Loading this file would leave the table with ${past} map documents — the maximum is ${MAX_SESSION_DOCUMENTS}. Delete some maps first.`;
+      }
+    }
+    const characters = mergeCharacters(state, snapshot.characters ?? []).length;
+    if (characters > SNAPSHOT_LIMITS.characters) {
+      return `With the seated players keeping their own characters, this file would leave the table with ${characters} characters — the maximum is ${SNAPSHOT_LIMITS.characters}. Remove some absent players (DM Menu → Table → Players at this table) or delete some of their characters, then try again.`;
+    }
+    return null;
+  }
+
+  /** Upsert each document, skipping (not failing) any single bad one. Runs before the merge. */
   private restoreMapDocuments(roomId: string | undefined, documents?: MapDocument[]): number {
     if (!roomId || !this.mapStudioService || !documents?.length) return 0;
-    const existing = this.mapStudioService.list(roomId).map((document) => document.id);
-    const past = documentsPastCap(existing, documents);
-    if (past) {
-      throw new Error(
-        `Loading this file would leave the table with ${past} map documents — the maximum is ${MAX_SESSION_DOCUMENTS}. Delete some maps first.`,
-      );
-    }
     let restored = 0;
     for (const document of documents) {
       try {

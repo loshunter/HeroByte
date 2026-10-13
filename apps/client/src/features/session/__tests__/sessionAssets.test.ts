@@ -90,6 +90,8 @@ describe("collectSessionAssets", () => {
     const { assets, skipped } = await collectSessionAssets(file, "ws://s");
 
     expect(skipped).toEqual([]);
+    // Past the HTTP cache: an <img> already cached this art without CORS headers.
+    expect(fetchMock).toHaveBeenCalledWith(`http://s/assets/${HASH_A}`, { cache: "no-store" });
     expect(assets).toHaveLength(1);
     expect(assets[0]?.hash).toBe(HASH_A);
     expect(assets[0]?.mime).toBe("image/png");

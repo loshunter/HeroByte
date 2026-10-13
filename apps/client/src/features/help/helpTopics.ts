@@ -287,7 +287,8 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         term: "Doors",
-        detail: "Click to open or close. A small gold square means locked (DM only).",
+        detail:
+          "Click to open or close. A small gold square means locked: only the DM can open it, and a click tells you so.",
       },
       { term: "Secret doors", detail: "They read as plain wall until the DM reveals one." },
     ],

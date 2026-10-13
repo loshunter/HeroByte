@@ -19,7 +19,7 @@ import { Spinner } from "../../components/ui/Spinner";
 import { useEntityEditHandlers } from "../../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../../hooks/useInitiativeSetting";
 import { useInitiativeDialog } from "../../features/initiative/useInitiativeDialog";
-import { manualInitiativeEnabled } from "../../features/initiative/manualOverride";
+import { manualInitiativeAllowedFor } from "../../features/initiative/manualOverride";
 import { buildDMMenuProps } from "../../features/dm/buildDMMenuProps";
 import { DMMenuLoadFailure } from "../../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
@@ -76,6 +76,9 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
   const dmMenuProps = buildDMMenuProps(props, { initiative: initiativeSetting });
   const tableMenu = useTableMenuProps(props);
   const tableLabel = useTableLabel(tableMenu.tableName);
+  // One table switch for every roll typed by hand: INIT's and the roller's.
+  const handEntryAllowed = manualInitiativeAllowedFor(props.snapshot, props.isDM);
+  const enterRoll = handEntryAllowed ? props.handleEnterRoll : undefined;
   // The phone Party's INIT (U8): the same dialog and rule as the desktop card's.
   const initiativeDialog = useInitiativeDialog({
     characters: props.snapshot?.characters ?? [],
@@ -83,7 +86,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
     uid: props.uid,
     isDM: props.isDM,
     initiative: initiativeSetting,
-    manualEntryAllowed: props.isDM || manualInitiativeEnabled(props.snapshot),
+    manualEntryAllowed: handEntryAllowed,
     combatActive: props.snapshot?.combatActive ?? false,
   });
 
@@ -95,8 +98,9 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             isConnected={props.isConnected}
             onRoll={props.handleRoll}
             latestOwnRoll={props.latestOwnRoll}
-            onEnterRoll={props.handleEnterRoll}
-            onOverrideRoll={(rollId, total) => props.handleEnterRoll({ rollId, total })}
+            onEnterRoll={enterRoll}
+            onOverrideRoll={enterRoll && ((rollId, total) => enterRoll({ rollId, total }))}
+            handEntryOff={!enterRoll}
             onClose={closeSurface}
           />
         </div>

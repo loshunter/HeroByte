@@ -75,8 +75,13 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "remove-player-refused" }>
   // The piece lock stopped a move or a delete: the sender's only word of why.
   | Extract<ServerMessage, { t: "locked-refused" }>
+  // A locked door held against a stale view's click: the sender's only word of why.
+  | Extract<ServerMessage, { t: "door-refused" }>
   // The colour rule moved a colour the viewer chose (personal colour, C1).
   | Extract<ServerMessage, { t: "color-adjusted" }>
+  // A character refused at a cap, and a backup refused whole: the sender's only word.
+  | Extract<ServerMessage, { t: "character-refused" }>
+  | Extract<ServerMessage, { t: "session-load-refused" }>
   | Extract<ServerMessage, { t: "room-created" }>
   | Extract<ServerMessage, { t: "room-create-failed" }>
   // Download table backup's reply. It was never on this list: it rode the router's
@@ -416,7 +421,10 @@ export class MessageRouter {
       candidate.t === "atlas-error" ||
       candidate.t === "remove-player-refused" ||
       candidate.t === "locked-refused" ||
+      candidate.t === "door-refused" ||
       candidate.t === "color-adjusted" ||
+      candidate.t === "character-refused" ||
+      candidate.t === "session-load-refused" ||
       candidate.t === "room-created" ||
       candidate.t === "room-create-failed" ||
       candidate.t === "session-file" ||
@@ -570,37 +578,13 @@ export class MessageRouter {
   /**
    * Handle room snapshot message
    *
-   * Routes room state snapshots to the onMessage callback.
-   * Logs debug information for snapshots containing initiative data.
+   * Routes room state snapshots to the onMessage callback. (It logged every
+   * snapshot that held an initiative, in production too: useWebSocket keeps
+   * snapshot logs to dev builds because they arrive many times a second.)
    *
    * @param snapshot - Room snapshot data
    */
   private handleSnapshot(snapshot: RoomSnapshot): void {
-    // Debug: Log initiative values when snapshot is received
-    // Only access .characters if snapshot is a valid object
-    if (
-      snapshot &&
-      typeof snapshot === "object" &&
-      "characters" in snapshot &&
-      Array.isArray(snapshot.characters) &&
-      snapshot.characters.length > 0
-    ) {
-      const withInitiative = snapshot.characters.filter(
-        (c) => c.initiative !== undefined && c.initiative !== null,
-      );
-      if (withInitiative.length > 0) {
-        console.log(
-          "[WebSocket] Snapshot received with initiative data:",
-          withInitiative.map((c) => ({
-            id: c.id,
-            name: c.name,
-            initiative: c.initiative,
-            initiativeModifier: c.initiativeModifier,
-          })),
-        );
-      }
-    }
-
     this.config.onMessage(snapshot);
   }
 }

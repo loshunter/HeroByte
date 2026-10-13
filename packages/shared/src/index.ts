@@ -454,8 +454,7 @@ export interface DragPreviewEvent {
 export { DRAWING_TYPES } from "./drawingTypes.js";
 export type { DrawingType } from "./drawingTypes.js";
 
-// Bulk-NPC bounds — value re-export from a sub-module (see npcLimits.ts for
-// why it must not be a direct `export const` here: the server imports it).
+// Bulk-NPC bounds — a sub-module, never an `export const` here (npcLimits.ts: the server imports it).
 export { NPC_CREATE_LIMITS } from "./npcLimits.js";
 // Per-player character cap — the same sub-module rule (see playerCharacterLimits.ts).
 export { PLAYER_CHARACTER_LIMITS } from "./playerCharacterLimits.js";
@@ -1335,6 +1334,7 @@ export type ServerMessage =
       // client cannot see it, so it says where to go to unlock it.
       elsewhere?: boolean;
     }
+  | { t: "door-refused"; doorId: string } // SENDER only: a player's toggle met a locked door
   | {
       t: "color-adjusted";
       // Sent to the SENDER only (sendControlMessage). A player's chosen colour fell inside
@@ -1348,6 +1348,21 @@ export type ServerMessage =
       near?: string;
       name?: string;
       throttled?: boolean;
+    }
+  | {
+      t: "character-refused";
+      // Sent to the SENDER only (sendControlMessage). A character the sender asked for
+      // was not taken: the player already holds PLAYER_CHARACTER_LIMITS.PER_PLAYER
+      // ("player-cap"; for a DM's hand-over, the player it was handed to), or the table
+      // is at its 500 and the DM's backup would no longer load ("table-full").
+      action: "add" | "claim" | "hand-over" | "create";
+      reason: "player-cap" | "table-full";
+    }
+  | {
+      t: "session-load-refused";
+      // Sent to the restoring DM only. The backup was refused WHOLE, before anything
+      // changed (too many map documents, or too many characters with the seats kept).
+      reason: string;
     }
   | { t: "map-studio-deleted"; documentId: string }
   | {

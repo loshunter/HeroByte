@@ -644,7 +644,7 @@ A small gold square marks a locked door. Only the DM can open those.
 [Warm, clear tutorial narration] At night the map darkens, and torches and braziers cast light.
 ```
 
-- Check: what a player sees and hears when clicking a locked door (the map editor guide says players get "Door is locked"; check where it appears).
+- Resolved 2026-10-12: a player clicking a locked door gets a toast, "This door is locked. Only the DM can open it.", and a quiet latch clunk only they hear (before the fix, the refusal reached only the console).
 - Check: how the DM sets a door to Locked or Secret on the desktop, for the setup (see DM 5's note on Inspect versus Properties).
 
 ### 5. The world map

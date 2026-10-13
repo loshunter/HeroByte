@@ -5,7 +5,6 @@
 // Single responsibility: Authentication flow management
 
 import type { WebSocket } from "ws";
-import { WS_CLOSE_AUTH_REJECTED } from "@herobyte/shared";
 import type { CreateRoomRequest } from "./roomCreation.js";
 import type { ForkTableRequest } from "./tableFork.js";
 import { createRoomForUid, forkTableForSender } from "./roomMinting.js";
@@ -17,7 +16,7 @@ import type { SessionTokenService } from "./SessionTokenService.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 import { createAuthWorkLimiter, type TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
-import { closeAnnounced } from "../announceClosing.js";
+import { closeAnnounced, rejectAuthentication } from "../announceClosing.js";
 import { claimDmRolePieces, demoteDM } from "../../domains/room/dmDemotion.js";
 
 /** The fields of an `authenticate` frame the handler acts on. */
@@ -135,7 +134,7 @@ export class AuthenticationHandler {
     // Validate room ID: URL-safe names only; rooms are created on first join.
     const requestedRoomId = request.roomId?.trim() || this.defaultRoomId;
     if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(requestedRoomId)) {
-      this.rejectAuthentication(ws, "Invalid room id");
+      rejectAuthentication(ws, "Invalid room id");
       return;
     }
 
@@ -143,10 +142,7 @@ export class AuthenticationHandler {
     // exempt on purpose: it does no hashing, and heartbeat re-auths from an
     // established session must never burn the network's budget.
     if (!this.takeAuthWork(ws)) {
-      this.rejectAuthentication(
-        ws,
-        "Too many attempts from your network. Wait a minute and try again.",
-      );
+      rejectAuthentication(ws, "Too many attempts from your network. Wait a minute and try again.");
       return;
     }
 
@@ -183,7 +179,7 @@ export class AuthenticationHandler {
 
     if (!verified) {
       console.warn(`Authentication failed for uid ${uid}`);
-      this.rejectAuthentication(ws, "Invalid table password");
+      rejectAuthentication(ws, "Invalid table password");
       return;
     }
 
@@ -317,16 +313,6 @@ export class AuthenticationHandler {
       defaultRoomId: this.defaultRoomId,
       takeAuthWork: (ws: WebSocket) => this.takeAuthWork(ws),
     };
-  }
-
-  /** Reject an authentication attempt and close the connection. */
-  private rejectAuthentication(ws: WebSocket, reason: string): void {
-    ws.send(JSON.stringify({ t: "auth-failed", reason }));
-    setTimeout(() => {
-      if (ws.readyState === 1) {
-        ws.close(WS_CLOSE_AUTH_REJECTED, reason);
-      }
-    }, 100);
   }
 
   /** Refresh or create the authenticated-session record (preserving room if unset). */

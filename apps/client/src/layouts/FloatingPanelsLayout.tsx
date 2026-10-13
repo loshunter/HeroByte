@@ -27,6 +27,7 @@ import type { KickControls } from "../features/atlas/useKickedInDoor";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { DicePanels } from "./DicePanels";
+import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
 import { usePlayerColors } from "../features/players/usePlayerColors";
 import { ToastContainer } from "../components/ui/Toast";
 import { Spinner } from "../components/ui/Spinner";
@@ -229,6 +230,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           handleRoll={handleRoll}
           handleEnterRoll={handleEnterRoll}
           canEnterOver={canEnterOver}
+          handEntryAllowed={manualInitiativeAllowedFor(snapshot, isDM)}
           latestOwnRoll={latestOwnRoll}
           rollLogOpen={rollLogOpen}
           toggleRollLog={toggleRollLog}

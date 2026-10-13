@@ -14,6 +14,11 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { SnapshotCharacter } from "@herobyte/shared";
+import { CHARACTER_CREATION_NO_ANSWER } from "../features/players/characterCap";
+import {
+  announceCharacterNotice,
+  onCharacterRefusal,
+} from "../features/players/characterRefusalBridge";
 
 export interface UseCharacterCreationOptions {
   /**
@@ -107,14 +112,26 @@ export function useCharacterCreation(
   }, [isCreating, pendingCharacterName, characters, uid]);
 
   // A refusal the client could not predict (the table at its 500, a role that changed
-  // on the way) has no reply: "Creating..." gives up rather than wait for good.
+  // on the way) is answered with character-refused, which the switchboard toasts:
+  // "Creating..." stops there. No answer at all and it gives up, saying so, because a
+  // slow add still lands and a second press would make two characters.
   useEffect(() => {
     if (!isCreating) return;
-    const timer = setTimeout(() => {
+    const stop = () => {
       setIsCreating(false);
       setPendingCharacterName(null);
+    };
+    const unsubscribe = onCharacterRefusal((refusal) => {
+      if (refusal.action === "add") stop();
+    });
+    const timer = setTimeout(() => {
+      stop();
+      announceCharacterNotice(CHARACTER_CREATION_NO_ANSWER);
     }, CREATION_TIMEOUT_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, [isCreating]);
 
   // Initiate character creation

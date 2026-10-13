@@ -16,6 +16,7 @@
  */
 
 import type { PlayerStagingZone } from "@herobyte/shared";
+import { traceMessage } from "../../config/messageTrace.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
 import type { RoomService } from "../../domains/room/service.js";
@@ -129,29 +130,29 @@ export class MapMessageHandler {
     zone: PlayerStagingZone | undefined,
     isDM: boolean,
   ): MapMessageResult {
-    console.log("[DEBUG] Received set-player-staging-zone message:", {
+    traceMessage("[DEBUG] Received set-player-staging-zone message:", {
       senderUid,
       zone,
       timestamp: new Date().toISOString(),
     });
 
     const sender = state.players.find((player) => player.uid === senderUid);
-    console.log("[DEBUG] Sender found:", {
+    traceMessage("[DEBUG] Sender found:", {
       uid: sender?.uid,
       isDM: sender?.isDM,
       name: sender?.name,
     });
 
     if (!isDM) {
-      console.log("[DEBUG] Rejected: sender is not DM");
+      console.warn(`[MapMessageHandler] Non-DM ${senderUid} tried to set the staging zone`);
       return { broadcast: false, save: false };
     }
 
     const result = this.roomService.setPlayerStagingZone(zone);
-    console.log("[DEBUG] setPlayerStagingZone result:", result);
+    traceMessage("[DEBUG] setPlayerStagingZone result:", result);
 
     if (result) {
-      console.log("[DEBUG] Staging zone set successfully and saved");
+      traceMessage("[DEBUG] Staging zone set successfully and saved");
       return { broadcast: true, save: true };
     }
 

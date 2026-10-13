@@ -18,6 +18,8 @@ describe("MessageLogger", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    // The routing trace is opt-in (config/messageTrace.ts); these tests read it on.
+    vi.stubEnv("HEROBYTE_MESSAGE_LOG", "true");
     logger = new MessageLogger();
     consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -25,12 +27,26 @@ describe("MessageLogger", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
     consoleErrorSpy.mockRestore();
   });
 
   describe("logMessageRouting", () => {
+    it("is silent unless HEROBYTE_MESSAGE_LOG is true or 1 (it runs for every routed message)", () => {
+      for (const setting of [undefined, "", "false", "0", "yes"]) {
+        vi.stubEnv("HEROBYTE_MESSAGE_LOG", setting as string);
+        logger.logMessageRouting("drag-preview", "player-123");
+      }
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+      for (const setting of ["1", " TRUE "]) {
+        vi.stubEnv("HEROBYTE_MESSAGE_LOG", setting);
+        logger.logMessageRouting("move", "player-123");
+      }
+      expect(consoleLogSpy).toHaveBeenCalledTimes(2);
+    });
+
     it("should log message type and sender UID", () => {
       logger.logMessageRouting("move", "player-123");
 
@@ -364,6 +380,26 @@ describe("MessageLogger", () => {
         "[MessageRouter] Message details:",
         JSON.stringify(message),
       );
+    });
+
+    it("logs a password or a backup by its type alone", () => {
+      const secrets = [
+        { t: "authenticate", secret: "hunter2" },
+        { t: "elevate-to-dm", dmPassword: "hunter2" },
+        { t: "set-dm-password", dmPassword: "hunter2" },
+        { t: "set-room-password", secret: "hunter2" },
+        { t: "load-session", snapshot: { characters: [{ name: "Hidden Lich" }] } },
+        { t: "map-studio-import", document: { name: "Hidden Lich's lair" } },
+      ] as unknown as ClientMessage[];
+      for (const message of secrets) {
+        consoleErrorSpy.mockClear();
+        logger.logMessageDetails(message);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "[MessageRouter] Message details:",
+          JSON.stringify({ t: message.t }),
+        );
+        expect(JSON.stringify(consoleErrorSpy.mock.calls)).not.toMatch(/hunter2|Hidden Lich/);
+      }
     });
   });
 

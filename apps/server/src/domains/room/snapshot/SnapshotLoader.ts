@@ -37,6 +37,24 @@ import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
  *
  * Extracted from: apps/server/src/domains/room/service.ts:70-161
  */
+/**
+ * The merge's character rule: a seated player (on the roster) keeps their live
+ * characters as they are, and the file brings every other character. Its own
+ * function so a restore can count the result before it changes anything: the
+ * file is held to the table's 500 on its own, and the kept seats add to it.
+ */
+export function mergeCharacters<T extends { id: string }>(
+  currentState: Pick<RoomState, "players" | "characters">,
+  loadedCharacters: T[],
+): Array<RoomState["characters"][number] | T> {
+  const currentPlayerUIDs = new Set(currentState.players.map((p) => p.uid));
+  const kept = currentState.characters.filter(
+    (char) => char.ownedByPlayerUID && currentPlayerUIDs.has(char.ownedByPlayerUID),
+  );
+  const keptIds = new Set(kept.map((c) => c.id));
+  return [...kept, ...loadedCharacters.filter((char) => !keptIds.has(char.id))];
+}
+
 export class SnapshotLoader {
   /**
    * Load a snapshot and merge with current state
@@ -115,19 +133,8 @@ export class SnapshotLoader {
     // Get UIDs of currently connected players
     const currentPlayerUIDs = new Set(currentState.players.map((p) => p.uid));
 
-    // Preserve characters belonging to currently connected players
-    const currentPlayerCharacters = currentState.characters.filter(
-      (char) => char.ownedByPlayerUID && currentPlayerUIDs.has(char.ownedByPlayerUID),
-    );
-
-    // Get IDs of preserved characters to avoid duplicates
-    const preservedCharacterIds = new Set(currentPlayerCharacters.map((c) => c.id));
-
-    // Add loaded characters that don't conflict with preserved ones
-    const mergedCharacters = [
-      ...currentPlayerCharacters,
-      ...loadedCharacters.filter((char) => !preservedCharacterIds.has(char.id)),
-    ];
+    // Seated players keep their live characters; the file brings the rest.
+    const mergedCharacters = mergeCharacters(currentState, loadedCharacters);
 
     // A token follows its character. The merge carries a seated player's
     // characters and the file's, and drops the rest of the room's — an NPC is the

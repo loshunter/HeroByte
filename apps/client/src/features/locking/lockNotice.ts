@@ -2,9 +2,9 @@
 // LOCK NOTICE — the client says the lock stopped you, before the server must
 // ============================================================================
 // A control the lock stops (a card's Delete, Place, an arrow key on a locked
-// token, an eraser pass over a locked drawing) never reaches the server, so no
-// `locked-refused` comes back to explain it. A `disabled` button answered a press
-// with nothing at all — and a tooltip never shows on a phone. These say it here:
+// token, an eraser pass over a locked drawing, a player's click on a locked
+// door) never reaches the server, so no `locked-refused` comes back to explain
+// it. A `disabled` button answered a press with nothing at all — and a tooltip never shows on a phone. These say it here:
 // App's server-event switchboard (useServerEventHandlers) listens and toasts, the
 // same toast a server refusal gets. Module-scoped for the reason
 // lockRefusalBridge gives: one app per tab.

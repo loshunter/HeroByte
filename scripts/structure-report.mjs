@@ -259,21 +259,24 @@ async function main() {
     if (newViolations.length > 0) {
       console.error("\n❌ STRUCTURAL GUARDRAIL VIOLATION");
       console.error(
-        `Found ${newViolations.length} new file(s) exceeding ${threshold} LOC threshold:\n`,
+        `Found ${newViolations.length} file(s) at or over the ${threshold} LOC threshold that are new or grew:\n`,
       );
 
       for (const violation of newViolations) {
         console.error(
-          `  ⚠️  ${violation.path} (${violation.loc} LOC, +${violation.loc - threshold} over threshold)`,
+          violation.ceiling === undefined
+            ? `  ⚠️  ${violation.path} (${violation.loc} LOC, +${violation.loc - threshold} over threshold)`
+            : `  ⚠️  ${violation.path} (${violation.loc} LOC, grew past its ceiling of ${violation.ceiling})`,
         );
         if (violation.hint) {
           console.error(`      Hint: ${violation.hint}`);
         }
       }
 
-      console.error("\nTo fix this, either refactor the file(s) to be under the threshold,");
+      console.error("\nTo fix this, move code out of the file(s) into their own modules.");
       console.error(
-        "or update the baseline if this is intentional: pnpm lint:structure --json > scripts/structure-baseline.json\n",
+        "A file on the baseline may not grow: its ceiling only comes down. After a split,\n" +
+          "pnpm baseline:update lowers the ceilings and drops files that fell under the threshold.\n",
       );
       process.exit(1);
     } else {
@@ -329,32 +332,31 @@ async function loadBaseline(baselinePath) {
   }
 }
 
+/**
+ * The baseline is a list of CEILINGS, not of exemptions: a file at or over the
+ * threshold passes only if it is listed and no bigger than its recorded size. Until
+ * 2026-10-11 a listed file passed at any size, and the grandfathered files grew
+ * unchecked (MapBoard.tsx 562 -> 1043 lines, shared index.ts 544 -> 1401).
+ */
 function findNewViolations(currentFiles, baseline, threshold) {
-  const baselineMap = new Map();
-
-  // Build map of baseline violations (files exceeding threshold)
+  const ceilings = new Map();
   for (const file of baseline.files || []) {
     if (file.loc >= threshold) {
-      baselineMap.set(file.path, file.loc);
+      ceilings.set(file.path, file.loc);
     }
   }
 
-  const newViolations = [];
-
+  const violations = [];
   for (const file of currentFiles) {
-    if (file.loc >= threshold) {
-      const baselineLoc = baselineMap.get(file.path);
-
-      // This is a new violation if:
-      // 1. The file didn't exist in baseline, OR
-      // 2. The file existed but was under threshold in baseline
-      if (baselineLoc === undefined) {
-        newViolations.push(file);
-      }
+    if (file.loc < threshold) continue;
+    const ceiling = ceilings.get(file.path);
+    if (ceiling === undefined) {
+      violations.push(file);
+    } else if (file.loc > ceiling) {
+      violations.push({ ...file, ceiling });
     }
   }
-
-  return newViolations;
+  return violations;
 }
 
 function pad(value, width) {

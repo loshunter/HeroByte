@@ -52,8 +52,10 @@
  * resultHandler.handleResult(result);
  * ```
  */
+import type { ServerMessage } from "@herobyte/shared";
 import type { PendingDelta } from "../types.js";
 import type { LockRefusal } from "../../domains/room/locking/pieceLock.js";
+import type { CharacterRefusal } from "../../domains/character/characterLimits.js";
 
 export interface RouteHandlerResult {
   broadcast?: unknown;
@@ -63,6 +65,10 @@ export interface RouteHandlerResult {
   skipBroadcast?: boolean;
   /** The piece lock stopped (part of) this action: the router tells the sender. */
   lockRefusal?: LockRefusal;
+  /** A character refused at a cap: the router tells the sender why. */
+  characterRefusal?: CharacterRefusal;
+  /** A player's toggle met a locked door: the router tells the sender. */
+  doorRefusal?: { doorId: string };
   /** The colour rule moved a chosen colour: the router tells the sender where and why. */
   colorNotice?: {
     tokenId: string;
@@ -72,6 +78,37 @@ export interface RouteHandlerResult {
     name?: string;
     throttled?: boolean;
   };
+}
+
+/**
+ * The frames a result says to its SENDER alone, in the order the router sends them
+ * (sendControlMessage): nothing else on the table shows them what was refused or moved.
+ */
+export function senderNotices(result: RouteHandlerResult): ServerMessage[] {
+  const notices: ServerMessage[] = [];
+  // The piece lock stopped some or all of it. A refused move also broadcasts (its
+  // handler asks), so their client drops its local position.
+  if (result.lockRefusal && result.lockRefusal.ids.length > 0) {
+    notices.push({
+      t: "locked-refused",
+      ids: result.lockRefusal.ids,
+      ...(result.lockRefusal.kept ? { kept: true } : {}),
+      ...(result.lockRefusal.elsewhere ? { elsewhere: true } : {}),
+    });
+  }
+  // A character refused at a cap: the sender's add, claim or hand-over changed nothing.
+  if (result.characterRefusal) {
+    notices.push({ t: "character-refused", ...result.characterRefusal });
+  }
+  // A locked door held against the sender's toggle.
+  if (result.doorRefusal) {
+    notices.push({ t: "door-refused", ...result.doorRefusal });
+  }
+  // The colour rule moved what they chose: where it went.
+  if (result.colorNotice) {
+    notices.push({ t: "color-adjusted", ...result.colorNotice });
+  }
+  return notices;
 }
 
 export class RouteResultHandler {

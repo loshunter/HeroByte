@@ -12,6 +12,7 @@ import type { Player } from "@herobyte/shared";
 import type { Container } from "../../container.js";
 import type { RoomService } from "../../domains/room/service.js";
 import type { RoomState } from "../../domains/room/model.js";
+import { tableHasRoom } from "../../domains/character/characterLimits.js";
 
 /**
  * Drop a uid from the roster of a room it is no longer connected to, and tell
@@ -56,9 +57,13 @@ export function provisionJoin(
     player = container.playerService.createPlayer(state, uid);
   }
 
-  // Create character if player doesn't have one
+  // Create character if player doesn't have one — while the table has room: past its
+  // 500 the DM's backup fails its own load check, and scripted joins on the public
+  // table could take it there. The seat waits without one; its next join tries again.
   const existingCharacter = container.characterService.findCharacterByOwner(state, uid);
-  if (!existingCharacter) {
+  if (!existingCharacter && !tableHasRoom(state)) {
+    console.warn(`[Auth] ${uid} joined a full table: no character made for the seat`);
+  } else if (!existingCharacter) {
     const character = container.characterService.createCharacter(
       state,
       player.name,

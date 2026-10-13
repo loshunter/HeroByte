@@ -20,6 +20,10 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ServerMessage } from "@herobyte/shared";
 import { REMOVE_PLAYER_REFUSAL_COPY, useServerEventHandlers } from "../useServerEventHandlers.js";
+import {
+  announceCharacterNotice,
+  onCharacterRefusal,
+} from "../../features/players/characterRefusalBridge";
 
 describe("useServerEventHandlers - Characterization Tests", () => {
   describe("initialization", () => {
@@ -890,6 +894,73 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       expect(toast.error).toHaveBeenCalledTimes(4);
       expect(REMOVE_PLAYER_REFUSAL_COPY.recent).toMatch(/less than a minute/);
       expect(REMOVE_PLAYER_REFUSAL_COPY.connected).toMatch(/another table/);
+    });
+  });
+
+  describe("character-refused and session-load-refused events", () => {
+    const mount = () => {
+      const registerServerEventHandler = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+      const view = renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
+      const handler = registerServerEventHandler.mock.calls[0][0] as (m: ServerMessage) => void;
+      return { toast, handler, view };
+    };
+
+    it("says why a character was refused, and passes it on to a waiting Creating...", () => {
+      const { toast, handler } = mount();
+      const delivered: unknown[] = [];
+      const unsubscribe = onCharacterRefusal((refusal) => delivered.push(refusal));
+      const handOver = {
+        t: "character-refused",
+        action: "hand-over",
+        reason: "player-cap",
+      } as const;
+      act(() => handler(handOver));
+      expect(toast.error).toHaveBeenLastCalledWith(
+        "That player already has 5 characters: one of theirs must be deleted (by them or by you) before you hand them another.",
+        5000,
+      );
+      act(() => handler({ t: "character-refused", action: "add", reason: "player-cap" }));
+      expect(toast.error).toHaveBeenLastCalledWith(
+        "Up to 5 characters each: delete one to add another.",
+        5000,
+      );
+      act(() => handler({ t: "character-refused", action: "claim", reason: "player-cap" }));
+      expect(toast.error).toHaveBeenLastCalledWith(
+        "Up to 5 characters each: delete one before claiming another.",
+        5000,
+      );
+      act(() => handler({ t: "character-refused", action: "create", reason: "table-full" }));
+      expect(toast.error).toHaveBeenLastCalledWith(
+        "This table holds as many characters as it can: delete one to add another.",
+        5000,
+      );
+      expect(delivered).toHaveLength(4);
+      expect(delivered[0]).toEqual(handOver);
+      unsubscribe();
+    });
+
+    it("toasts a refused restore, and a Creating... that gave up", () => {
+      const { toast, handler, view } = mount();
+      act(() => handler({ t: "session-load-refused", reason: "Too many characters." }));
+      expect(toast.error).toHaveBeenCalledWith(
+        "Restore refused: Too many characters. The table has NOT been changed.",
+        9000,
+      );
+      act(() => announceCharacterNotice("No answer yet."));
+      expect(toast.info).toHaveBeenCalledWith("No answer yet.", 8000);
+      view.unmount();
+      act(() => announceCharacterNotice("After unmount."));
+      expect(toast.info).toHaveBeenCalledTimes(1);
     });
   });
 

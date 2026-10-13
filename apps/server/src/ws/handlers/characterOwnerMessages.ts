@@ -15,7 +15,10 @@
 
 import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterMessageResult } from "./CharacterMessageHandler.js";
-import { mayTakeCharacter } from "../../domains/character/characterLimits.js";
+import {
+  characterRefusalReason,
+  refuseCharacter,
+} from "../../domains/character/characterLimits.js";
 
 const NO_CHANGE: CharacterMessageResult = { broadcast: false, save: false };
 
@@ -34,9 +37,11 @@ export function handleSetCharacterOwner(
   if (!character || character.type !== "pc") return NO_CHANGE;
   if (!state.players.some((player) => player.uid === ownerUid)) return NO_CHANGE;
   if (character.ownedByPlayerUID === ownerUid) return NO_CHANGE;
-  // A player at the character cap takes no more, by a DM's hand-over either.
+  // A player at the character cap takes no more, by a DM's hand-over either; the DM
+  // is told (their Owner menu changed nothing they could see).
   const newOwnerIsDM = state.players.some((player) => player.uid === ownerUid && player.isDM);
-  if (!mayTakeCharacter(state, ownerUid, newOwnerIsDM, { adds: false })) return NO_CHANGE;
+  const refused = characterRefusalReason(state, ownerUid, newOwnerIsDM, { adds: false });
+  if (refused) return refuseCharacter("hand-over", refused);
 
   character.ownedByPlayerUID = ownerUid;
   const token = character.tokenId

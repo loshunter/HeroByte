@@ -165,10 +165,11 @@ The following actions now require `isDM=true`:
 
 - DOMPurify installed for client-side sanitization
 - Utility functions in `apps/client/src/utils/sanitize.ts`:
-  - `sanitizeText()` - Player names, text fields
-  - `sanitizeUrl()` - Blocks javascript:/data:/vbscript:
-  - `sanitizeImageDataUri()` - Validates Base64 images
-  - `sanitizeHtml()` - Strips HTML tags
+  - `sanitizeText()` - Player names, text fields (in Toast, NameEditor, the Party roster
+    and inspector, and roll entries)
+  - `sanitizeHtml()` - Strips HTML tags (what `sanitizeText()` calls)
+- There is no client URL or data-URI sanitizer: `sanitizeUrl()` and `sanitizeImageDataUri()`
+  were listed here but never called, and were removed (2026-10-11).
 
 ### Implementation Files
 

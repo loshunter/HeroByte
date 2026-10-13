@@ -70,6 +70,7 @@ import {
 import { ServerWarmupManager } from "./websocket/ServerWarmupManager";
 import { SnapshotReconciler, type SnapshotResyncReason } from "./websocket/SnapshotReconciler";
 import { CommandAckManager } from "./websocket/CommandAckManager";
+import { trafficLog } from "./websocket/trafficLog";
 
 /**
  * WebSocket service orchestrator
@@ -351,9 +352,8 @@ export class WebSocketService {
    * @param message - Client message to send
    */
   send(message: ClientMessage): void {
-    // Log additional context for debugging
     if (message.t !== "authenticate" && message.t !== "heartbeat") {
-      console.log(
+      trafficLog(
         `[WebSocket] send() called for message type=${message.t}, authState=${this.authManager.getAuthState()}, connectionState=${this.connectionManager.getState()}`,
       );
     }

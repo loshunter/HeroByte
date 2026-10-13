@@ -3,6 +3,8 @@
 // ============================================================================
 // DOMPurify-based sanitization for user-generated content
 // Use these helpers whenever displaying untrusted data (player names, messages, etc.)
+// (sanitizeUrl and sanitizeImageDataUri were removed 2026-10-11: nothing called them,
+// though ROOM_AUTH_FLOW.md listed them as protections in force.)
 
 import DOMPurify from "dompurify";
 
@@ -27,51 +29,4 @@ export function sanitizeText(text: string): string {
     return "";
   }
   return sanitizeHtml(text);
-}
-
-/**
- * Sanitize URLs to prevent javascript: protocol attacks
- * Returns empty string if URL is invalid or dangerous
- */
-export function sanitizeUrl(url: string): string {
-  if (!url || typeof url !== "string") {
-    return "";
-  }
-
-  const trimmed = url.trim();
-
-  // Block javascript:, data:, vbscript: protocols
-  const dangerousProtocols = /^(javascript|data|vbscript):/i;
-  if (dangerousProtocols.test(trimmed)) {
-    console.warn("[Sanitize] Blocked dangerous URL protocol:", trimmed);
-    return "";
-  }
-
-  // Allow http:, https:, and relative URLs
-  const safeProtocols = /^(https?:\/\/|\/|\.\/)/i;
-  if (!safeProtocols.test(trimmed)) {
-    console.warn("[Sanitize] Blocked non-standard URL:", trimmed);
-    return "";
-  }
-
-  return trimmed;
-}
-
-/**
- * Sanitize Base64 data URIs (for images)
- * Validates that it's a legitimate image data URI
- */
-export function sanitizeImageDataUri(dataUri: string): string {
-  if (!dataUri || typeof dataUri !== "string") {
-    return "";
-  }
-
-  // Only allow image data URIs
-  const imageDataUriPattern = /^data:image\/(png|jpeg|jpg|gif|webp);base64,/i;
-  if (!imageDataUriPattern.test(dataUri)) {
-    console.warn("[Sanitize] Invalid image data URI format");
-    return "";
-  }
-
-  return dataUri;
 }

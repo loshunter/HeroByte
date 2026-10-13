@@ -123,18 +123,6 @@ export class PlayerService {
   }
 
   /**
-   * Toggle DM mode flag
-   */
-  setDMMode(state: RoomState, uid: string, isDM: boolean): boolean {
-    const player = this.findPlayer(state, uid);
-    if (player) {
-      player.isDM = isDM;
-      return true;
-    }
-    return false;
-  }
-
-  /**
    * Replace the player's status effects array
    */
   setStatusEffects(state: RoomState, uid: string, effects: string[]): boolean {

@@ -381,4 +381,31 @@ describe("useDiceRolling", () => {
       expect(result.current.chatMessages).toEqual(snapshot.chatLog);
     });
   });
+
+  // --------------------------------------------------------------------------
+  // Rewriting a roll by hand
+  // --------------------------------------------------------------------------
+
+  describe("canEnterOver", () => {
+    // The roll log's result panel offers ✋ THAT'S NOT WHAT I ROLLED on this answer. It
+    // used to ignore the table switch, so a player at a table with hand entry off was
+    // offered a rewrite the server then dropped without a word.
+    // The rolls as the log holds them: the hook's own history, off the snapshot.
+    const rolls = [createServerRoll(), createServerRoll({ id: "roll-2", playerUid: "else" })];
+    const snapshotWith = (allowed: boolean): RoomSnapshot => ({
+      ...createMockSnapshot(rolls),
+      ...(allowed ? {} : { initiativeManualOverride: false }),
+    });
+
+    it.each([
+      ["a player, hand entry on: their own roll only", false, true, true, false],
+      ["a player, hand entry off: neither", false, false, false, false],
+      ["the DM, hand entry off: both", true, false, true, true],
+    ])("%s", (_label, isDM, allowed, ownOffered, othersOffered) => {
+      const { result } = renderDice(snapshotWith(allowed), isDM);
+      const byId = (id: string) => result.current.rollHistory.find((roll) => roll.id === id);
+      expect(result.current.canEnterOver(byId("roll-1"))).toBe(ownOffered);
+      expect(result.current.canEnterOver(byId("roll-2"))).toBe(othersOffered);
+    });
+  });
 });

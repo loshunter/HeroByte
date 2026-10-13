@@ -58,7 +58,11 @@ import { AuthorizationService } from "./services/AuthorizationService.js";
 import { MessageErrorHandler } from "./services/MessageErrorHandler.js";
 import { BroadcastService } from "./services/BroadcastService.js";
 import { DirectMessageService } from "./services/DirectMessageService.js";
-import { RouteResultHandler, type RouteHandlerResult } from "./services/RouteResultHandler.js";
+import {
+  RouteResultHandler,
+  senderNotices,
+  type RouteHandlerResult,
+} from "./services/RouteResultHandler.js";
 import { TokenDispatcher } from "./dispatchers/TokenDispatcher.js";
 import { CharacterDispatcher } from "./dispatchers/CharacterDispatcher.js";
 import { PlayerDispatcher } from "./dispatchers/PlayerDispatcher.js";
@@ -497,20 +501,9 @@ export class MessageRouter {
       return;
     }
 
-    // The piece lock stopped some or all of it: say so to the one who tried. A refused
-    // move also broadcasts (its handler asks), so their client drops its local position.
-    if (result.lockRefusal && result.lockRefusal.ids.length > 0) {
-      this.sendControlMessage(senderUid, {
-        t: "locked-refused",
-        ids: result.lockRefusal.ids,
-        ...(result.lockRefusal.kept ? { kept: true } : {}),
-        ...(result.lockRefusal.elsewhere ? { elsewhere: true } : {}),
-      });
-    }
-
-    // The colour rule moved what they chose: say where it went, to them alone.
-    if (result.colorNotice) {
-      this.sendControlMessage(senderUid, { t: "color-adjusted", ...result.colorNotice });
+    // What the result says to the one who tried, alone: refusals and adjustments.
+    for (const notice of senderNotices(result)) {
+      this.sendControlMessage(senderUid, notice);
     }
 
     const shouldSkipBroadcastVersionBump = Boolean(result.delta && result.broadcast);
@@ -869,7 +862,9 @@ export class MessageRouter {
    * them with a commandId (60/s), and they would flush real commands out. And
    * except the two whose answer is a reply, not the ack: a retry flushed after
    * a reconnect must run again to get the backup file or the password
-   * confirmation the dead socket lost (both are safe to repeat).
+   * confirmation the dead socket lost (both are safe to repeat). Today's client
+   * sends session-export without a commandId (each retry built the file again);
+   * a tab from before that still retries it.
    */
   private isReplayGuarded(message: ClientMessage): boolean {
     return (

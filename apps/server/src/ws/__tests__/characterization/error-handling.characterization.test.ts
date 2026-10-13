@@ -111,7 +111,6 @@ describe("MessageRouter - Error Handling Characterization", () => {
       rename: vi.fn(() => true),
       setMicLevel: vi.fn(() => true),
       setHP: vi.fn(() => true),
-      setDMMode: vi.fn(() => true),
       setStatusEffects: vi.fn(() => true),
     } as unknown as PlayerService;
 

@@ -136,7 +136,9 @@ test.describe("U9 — table backup (the whole table)", () => {
       // Valid: confirmed, the table goes back to the backup; everyone stays seated.
       dm.once("dialog", (dialog) => void dialog.accept());
       await chooser.setInputFiles(backup);
-      await expect(dm.getByText(/Table backup ".*" restored\./)).toBeVisible();
+      await expect(
+        dm.getByText(/Table backup ".*" sent\. The table changes for everyone/),
+      ).toBeVisible();
       await expect.poll(() => npcCount(dm)).toBe(0);
       await expect.poll(() => npcCount(player)).toBe(0);
       await expect.poll(() => drawingIds(dm)).toEqual(["u9-line"]);

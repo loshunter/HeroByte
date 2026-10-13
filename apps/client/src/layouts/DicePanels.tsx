@@ -26,6 +26,12 @@ export interface DicePanelsProps {
   handleEnterRoll: (request: EnterRollRequest) => void;
   /** Whether this viewer may rewrite that roll — the server enforces it too. */
   canEnterOver: (roll: RollLogEntry | null | undefined) => boolean;
+  /**
+   * Whether this viewer may type a roll at all: the DM always, a player only
+   * while the table allows it (manualInitiativeAllowedFor). Required: a dropped
+   * line would be a silent default, and either default is wrong at some table.
+   */
+  handEntryAllowed: boolean;
   rollLogOpen: boolean;
   toggleRollLog: (open: boolean) => void;
   rollHistory: RollLogEntry[];
@@ -49,6 +55,7 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
   latestOwnRoll,
   handleEnterRoll,
   canEnterOver,
+  handEntryAllowed,
   rollLogOpen,
   toggleRollLog,
   rollHistory,
@@ -64,14 +71,18 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
 }) => {
   const rollLogFrame = useRef<HTMLDivElement>(null);
   const rollLogRoot = useEscapeRoot(rollLogFrame, 1000);
+  // Off, the server drops a player's entry, so offering the controls would lose
+  // the number without a word. The roller says why in their place.
+  const enterRoll = handEntryAllowed ? handleEnterRoll : undefined;
   return (
     <>
       {diceRollerOpen && (
         <DiceRoller
           onRoll={handleRoll}
           latestOwnRoll={latestOwnRoll}
-          onEnterRoll={handleEnterRoll}
-          onOverrideRoll={(rollId, total) => handleEnterRoll({ rollId, total })}
+          onEnterRoll={enterRoll}
+          onOverrideRoll={enterRoll && ((rollId, total) => enterRoll({ rollId, total }))}
+          handEntryOff={!enterRoll}
           onClose={() => toggleDiceRoller(false)}
         />
       )}

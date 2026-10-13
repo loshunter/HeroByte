@@ -68,9 +68,12 @@ export interface MessagePipelineConfig {
  */
 /** Keys whose values must never reach a log line. */
 const REDACTED_KEYS = new Set(["secret", "token", "dmPassword", "roomPassword", "sessionToken"]);
+/** A whole table or map: hidden NPCs, GM notes, secret doors, and up to a megabyte. */
+const OMITTED_KEYS = new Set(["snapshot", "mapDocuments", "sceneStates", "document"]);
 
 function redact(key: string, value: unknown): unknown {
-  return REDACTED_KEYS.has(key) ? "[redacted]" : value;
+  if (REDACTED_KEYS.has(key)) return "[redacted]";
+  return OMITTED_KEYS.has(key) ? "[omitted]" : value;
 }
 
 export class MessagePipelineManager {

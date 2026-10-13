@@ -58,8 +58,11 @@ export function createRoutes(
 
     await next();
 
+    // Always, Origin or not: an <img> asks with no Origin, and a reply cached without
+    // Vary (immutable, a year) was reused for the canvas's CORS read, which then
+    // failed (the backup and custom-token bugs, 7a22fa5c and ed76effa).
+    c.header("Vary", "Origin");
     if (origin) {
-      c.header("Vary", "Origin");
       c.header("Access-Control-Allow-Origin", origin);
       c.header("Access-Control-Allow-Credentials", "true");
     }

@@ -131,6 +131,22 @@ describe("WebSocketService late-ack retry", () => {
     expect(socket.framesOfType("chat")).toHaveLength(1);
   });
 
+  it("a session-export is sent once, with no commandId, and never retried (its answer is the file)", () => {
+    // Its ack arrives after the backup it built: on a slow link the ack queued behind
+    // megabytes, and each retry built and sent the whole backup again.
+    const { service, socket } = authenticatedSocket();
+
+    service.send({ t: "session-export" });
+    const exports = () => socket.framesOfType("session-export");
+    expect(exports()).toHaveLength(1);
+    expect(exports()[0]).not.toHaveProperty("commandId");
+
+    for (const step of [500, 1000, 2000, 10_000]) {
+      vi.advanceTimersByTime(step);
+      expect(exports(), `after another ${step} ms`).toHaveLength(1);
+    }
+  });
+
   it("a fork-table is sent once, with no commandId, and never retried (it is never acked)", () => {
     // The server answers it with fork-table-result, not an ack: tracked, it was sent
     // three more times, each copy carrying both passwords and minting the table again.

@@ -398,7 +398,9 @@ describe("MessageRouter - Characterization Tests", () => {
   });
 
   describe("Debug Logging Behavior (Initiative Data)", () => {
-    it("should log initiative data when snapshot contains characters with initiative", () => {
+    // It logged every snapshot holding an initiative, in production too, many times a
+    // second during combat (useWebSocket keeps snapshot logs to dev builds). Gone.
+    it("does not log a snapshot whose characters have initiatives", () => {
       const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
       const snapshot: RoomSnapshot = {
@@ -437,12 +439,8 @@ describe("MessageRouter - Characterization Tests", () => {
 
       router.route(JSON.stringify(snapshot));
 
-      // Verify debug logging occurred
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const initiativeLogs = consoleLogSpy.mock.calls.filter(
-        (call) => call[0] && typeof call[0] === "string" && call[0].includes("initiative"),
-      );
-      expect(initiativeLogs.length).toBeGreaterThan(0);
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+      expect(mockOnMessage).toHaveBeenCalledWith(snapshot);
 
       consoleLogSpy.mockRestore();
     });

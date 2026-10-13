@@ -127,7 +127,8 @@ async function collectUploadDataUrls(document: MapDocument): Promise<Map<string,
   const entries = await Promise.all(
     [...hashes].map(async (hash) => {
       try {
-        const response = await fetch(uploadedAssetUrl(hash));
+        // no-store, as in sessionAssets: the canvas cached this art without CORS headers.
+        const response = await fetch(uploadedAssetUrl(hash), { cache: "no-store" });
         if (!response.ok) return null;
         return [hash, await responseToDataUrl(response)] as const;
       } catch {

@@ -126,11 +126,13 @@ describe("MessageRouter — session-file", () => {
     // switch, a const) must change this list on purpose, not slip past it.
     expect(handled).toEqual([
       "atlas-error",
+      "character-refused",
       "color-adjusted",
       "dm-elevation-failed",
       "dm-password-update-failed",
       "dm-password-updated",
       "dm-status",
+      "door-refused",
       "locked-refused",
       "map-studio-deleted",
       "map-studio-document",
@@ -142,6 +144,7 @@ describe("MessageRouter — session-file", () => {
       "room-password-update-failed",
       "room-password-updated",
       "session-file",
+      "session-load-refused",
       "table-fork-failed",
       "table-forked",
     ]);
