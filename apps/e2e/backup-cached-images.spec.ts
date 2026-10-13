@@ -29,11 +29,19 @@ test("a table backup includes a map image the table has already displayed", asyn
     .click();
   await (await chooser).setFiles({ name: "floor.png", mimeType: "image/png", buffer: PNG });
   await expect(dm.getByText(/On table:/)).not.toContainText("no map yet", { timeout: 20_000 });
-  // The table has drawn it: the browser has made (and cached) its own request for the asset.
+  // The table has drawn it: the browser has finished (and cached) its own request for the
+  // UPLOAD, by its content hash. A bare "/assets/" also matched the app's own bundle
+  // (vite serves /assets/index-*.js), which made this wait pass before the image loaded.
   await expect
     .poll(() =>
       dm.evaluate(() =>
-        performance.getEntriesByType("resource").some((entry) => entry.name.includes("/assets/")),
+        performance
+          .getEntriesByType("resource")
+          .some(
+            (entry) =>
+              /\/assets\/[a-f0-9]{64}(?:[?#]|$)/.test(entry.name) &&
+              (entry as PerformanceResourceTiming).responseEnd > 0,
+          ),
       ),
     )
     .toBe(true);
