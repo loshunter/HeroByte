@@ -4,7 +4,7 @@
   "files": [
     {
       "path": "packages/shared/src/index.ts",
-      "loc": 1343
+      "loc": 1348
     },
     {
       "path": "apps/client/src/ui/MapBoard.tsx",
@@ -40,7 +40,7 @@
     },
     {
       "path": "apps/client/src/services/websocket/MessageRouter.ts",
-      "loc": 591
+      "loc": 593
     },
     {
       "path": "apps/client/src/hooks/usePlayerActions.ts",
