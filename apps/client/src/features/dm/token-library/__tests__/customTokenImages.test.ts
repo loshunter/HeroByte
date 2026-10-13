@@ -10,6 +10,7 @@ import {
   canKeepCopy,
   classifyCustomImage,
   prepareCustomImage,
+  readableImageSource,
   type PrepareDeps,
 } from "../customTokenImages";
 import { AssetUploadError } from "../../../map-studio/uploads/assetUpload";
@@ -44,6 +45,32 @@ describe("classifyCustomImage", () => {
     expect(classifyCustomImage(LINK)).toBe("external");
     expect(classifyCustomImage("https://media.discordapp.net/attachments/1/2/x.png")).toBe(
       "external",
+    );
+  });
+});
+
+describe("readableImageSource", () => {
+  it("fetches an upload past the HTTP cache into a blob, and loads any other address as given", async () => {
+    // The table already drew the upload with no Origin header, so the browser holds a
+    // cached reply without CORS headers; a crossOrigin load of the same URL fails.
+    const fetchImpl = vi.fn(async () => new Response(new Blob(["png"]), { status: 200 }));
+    const original = URL.createObjectURL; // jsdom has none
+    URL.createObjectURL = vi.fn(() => "blob:upload");
+    const upload = `https://herobyte-server.onrender.com/assets/${HASH}`;
+
+    expect(await readableImageSource(upload, fetchImpl as typeof fetch)).toBe("blob:upload");
+    expect(fetchImpl).toHaveBeenCalledWith(upload, { cache: "no-store" });
+
+    fetchImpl.mockClear();
+    expect(await readableImageSource(LINK, fetchImpl as typeof fetch)).toBe(LINK);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    URL.createObjectURL = original;
+  });
+
+  it("fails the load when the upload is gone", async () => {
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 404 }));
+    await expect(readableImageSource(`/assets/${HASH}`, fetchImpl as typeof fetch)).rejects.toThrow(
+      /404/,
     );
   });
 });
