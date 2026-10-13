@@ -17,7 +17,7 @@ cached-image backup fix, and the lesson videos), and the fixes it led to.
 
 Every review agent ran read-only (Opus, pinned), none errored, and the tree was unchanged after each round.
 
-## Fixed (each with a test seen red with the fix taken out)
+## Fixed (each with a test seen red with the fix taken out, except the staging-zone warning in `c6420033`)
 
 | Commit | What |
 | --- | --- |
@@ -43,12 +43,16 @@ answers: keep the characters, an hour on the Main Hall, at most 6 seats per netw
 - the DM's notice was a whisper authored by the DM's own uid, so it read as one they had sent themselves;
 - the per-network key rests on Render's last `x-forwarded-for` entry, which nobody has checked.
 
-A table has no seat limit again, as on main. The seat cap needs its own slice: a Party group for unowned characters
+A table has no seat limit again, as on main, and so the gap the cap was meant to close is open again: past 100
+seats a table writes a backup that fails its own load check (`SNAPSHOT_LIMITS.players`), and on the public table
+repeated joins are all it takes. The seat cap needs its own slice: a Party group for unowned characters
 (desktop and phone, Owner and Delete), a system author for notices, counting only present seats, failing open on a
 proxy address, and the Render header read first.
 
 ## Not done, stated
 
+- **A roster past 100 seats writes a backup that fails its own load check**, and the DM is told only "sent" (a
+  load-session that fails the schema gets no refusal frame; below). Open on main too; the seat cap was its fix.
 - **The owner's lesson videos now disagree with the app.** DM path 5's popup says "A click does nothing" at a locked
   door (players are told it is locked since `11ac4e6f`). DM path 2's narration and overlay say a table holds 30 seats
   and turns new players away; with the cap out there is no limit.
@@ -66,4 +70,5 @@ proxy address, and the Render header read first.
 
 Full ladder on `c6420033` (before the seat removal): all green except e2e, 373 passed and 5 failed. Three of those (the
 compact Party at 375 px, the U2 window annotation, the mobile Table screen) timed out under load and passed alone; the
-other two are the local-only character-download pair. `78d5a3c8` and `dcb90a15` were gated again before the push.
+other two are the local-only character-download pair. The final tree is gated again, pushed to `dev`, and its CI run
+watched before any merge to main; the run number goes in the merge record.

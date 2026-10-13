@@ -80,9 +80,9 @@ export function closeAnnounced(ws: WebSocket, reason: ConnectionClosingReason): 
  * Moved here from AuthenticationHandler for its 350-line guard.
  *
  * The reason rides the frame only. A close reason is capped at 123 bytes and
- * `ws` throws past it; the full-table reason is longer, and that throw, in this
- * timer, took the whole server down (found live 2026-10-13). The client reads
- * the frame, never the close text.
+ * `ws` throws past it; a login-screen reason can be longer (a dev-only 30-seat
+ * refusal was), and that throw, in this timer, took the whole server down (found
+ * live 2026-10-13). The client reads the frame, never the close text.
  */
 export function rejectAuthentication(ws: WebSocket, reason: string): void {
   ws.send(JSON.stringify({ t: "auth-failed", reason }));

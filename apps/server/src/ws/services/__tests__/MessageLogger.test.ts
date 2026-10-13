@@ -389,6 +389,7 @@ describe("MessageLogger", () => {
         { t: "set-dm-password", dmPassword: "hunter2" },
         { t: "set-room-password", secret: "hunter2" },
         { t: "load-session", snapshot: { characters: [{ name: "Hidden Lich" }] } },
+        { t: "map-studio-import", document: { name: "Hidden Lich's lair" } },
       ] as unknown as ClientMessage[];
       for (const message of secrets) {
         consoleErrorSpy.mockClear();

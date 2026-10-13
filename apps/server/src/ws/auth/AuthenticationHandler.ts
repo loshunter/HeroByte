@@ -179,8 +179,10 @@ export class AuthenticationHandler {
 
     if (!verified) {
       console.warn(`Authentication failed for uid ${uid}`);
-      return rejectAuthentication(ws, "Invalid table password");
+      rejectAuthentication(ws, "Invalid table password");
+      return;
     }
+
     // Who may hold the uid. Claimable by password alone ONLY when nothing
     // holds it: no live socket on another connection, and no session still
     // provable by a token (live or detached inside the grace window).

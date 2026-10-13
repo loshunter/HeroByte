@@ -2,9 +2,9 @@
 // REJECT AUTHENTICATION — on real sockets, a long reason cannot crash the server
 // ============================================================================
 // `ws` throws when a close reason passes 123 bytes. rejectAuthentication used to
-// close with the reason itself; a 30-seat refusal on dev was longer, and the throw,
-// in a timer, ended the server process (found live 2026-10-13, joining a 31st
-// player). Any login-screen reason may grow that long, so the close text is fixed.
+// close with the reason itself; a dev-only seat-limit refusal was longer, and the
+// throw, in a timer, ended the server process (found live 2026-10-13). Any
+// login-screen reason may grow that long, so the close text is fixed.
 // The contract suites mock close(), so they cannot see the limit: this drives the
 // real library over loopback.
 

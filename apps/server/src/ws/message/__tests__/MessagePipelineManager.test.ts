@@ -751,7 +751,17 @@ describe("MessagePipelineManager (real class) - per-socket limiting + redaction"
     );
     const lich = { id: "c1", name: "Hidden Lich", hp: 1, maxHp: 1, type: "npc" };
     pipeline.processMessage(
-      frame({ t: "load-session", snapshot: { characters: [lich] }, mapDocuments: [] }),
+      frame({
+        t: "load-session",
+        snapshot: { characters: [lich] },
+        mapDocuments: [{ name: "Hidden Lich map" }],
+        sceneStates: [{ note: "Hidden Lich scene" }],
+      }),
+      "dave",
+      socketA,
+    );
+    pipeline.processMessage(
+      frame({ t: "map-studio-import", document: { name: "Hidden Lich lair" } }),
       "dave",
       socketA,
     );
