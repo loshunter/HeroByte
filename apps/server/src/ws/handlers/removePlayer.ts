@@ -4,8 +4,7 @@
 // A player row outlives everything that made it: a character delete leaves
 // the roster entry (the DM menu's Table tab lists it with no tokens), only
 // a Main Hall idle clear wipes players, and a private table keeps every seat
-// anyone ever took until a full one gives the longest-absent away (seatAdmission.ts)
-// — SNAPSHOT_LIMITS.players (100) is the load ceiling a
+// anyone ever took — SNAPSHOT_LIMITS.players (100) is the load ceiling a
 // long campaign would walk into. This is the DM-side remove: the row, every
 // PC the uid owns (through the turn-safe delete, so a fight in progress does
 // not skip a round), every token it still owns that no surviving character

@@ -41,14 +41,6 @@ export function leaveRoomRoster(
 }
 
 /**
- * How many seats a table holds (the owner's number, 2026-10-11: "even 50 players is
- * excessive"). EVERY seat counts, connected or not: the roster is what the DM's backup
- * has to hold (its load check stops at SNAPSHOT_LIMITS.players, 100). A full table
- * reclaims its longest-absent seat for a newcomer (seatAdmission.ts, 2026-10-13).
- */
-export const TABLE_SEAT_LIMIT = 30;
-
-/**
  * Create-or-reconnect the player record for `uid` and provision its tokens.
  * Returns the player (existing or freshly created).
  */

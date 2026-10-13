@@ -39,8 +39,7 @@ import { clearSessionTokens } from "../rooms/roomDirectory";
 export const FRESH_SESSION_CONFIRM =
   "Start a fresh session? This cannot be undone: this browser becomes a new player and you will " +
   "not get back into your current character. It and its token stay at the table until the DM " +
-  "deletes them or removes the seat (by default the Main Hall also clears itself after an hour empty); a full table may " +
-  "later give the empty seat to a newcomer, leaving the character for the DM to hand back. Any DM powers on this " +
+  "deletes them or removes the seat (by default the Main Hall also clears itself after an hour empty). Any DM powers on this " +
   "browser are gone; the DM password is needed again. You may need to enter the table password " +
   "again.";
 
