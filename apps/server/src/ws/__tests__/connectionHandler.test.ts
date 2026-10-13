@@ -647,6 +647,25 @@ describe("ConnectionHandler", () => {
     expect(JSON.parse(sixth.send.mock.calls[0]![0] as string).reason).toMatch(/too many attempts/i);
   });
 
+  it("frees no seat for a join that the session check then turns away", async () => {
+    // The seat check ran before the conflict check: each "Try Again" on a held
+    // session gave away one more absent player's seat with nobody taking it.
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const state = container.roomService.getState();
+    for (let n = 0; n < 30; n += 1) container.playerService.createPlayer(state, `seat-${n}`);
+    state.players.find((player) => player.uid === "seat-7")!.lastHeartbeat =
+      Date.now() - 8 * 24 * 60 * 60 * 1000;
+    const incumbent = new FakeWebSocket();
+    wss.emitConnection(incumbent, {
+      url: "/?uid=twin",
+      socket: { remoteAddress: "198.51.100.11" },
+    });
+
+    await attemptFrom("twin", "198.51.100.11", "Fun1");
+    expect(state.players.some((player) => player.uid === "seat-7")).toBe(true);
+    expect(state.players.some((player) => player.uid === "twin")).toBe(false);
+  });
+
   it("seats a newcomer at a full table in the seat of a player long gone", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "log").mockImplementation(() => {});

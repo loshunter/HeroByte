@@ -75,9 +75,7 @@ export class AuthenticationHandler {
     this.defaultRoomId = getDefaultRoomId();
     this.authWorkLimiter = authWorkLimiter ?? createAuthWorkLimiter();
     this.ipOfWs = ipOfWs ?? new WeakMap();
-    this.seats = new SeatAdmission(container, this.defaultRoomId, (u, at) =>
-      sessionTokens.has(u, at),
-    );
+    this.seats = new SeatAdmission(container, this.defaultRoomId, sessionTokens);
   }
 
   /**
@@ -186,13 +184,6 @@ export class AuthenticationHandler {
       console.warn(`Authentication failed for uid ${uid}`);
       return rejectAuthentication(ws, "Invalid table password");
     }
-    // A new seat at a full table takes the longest-absent one, or no one new sits and the
-    // login screen says why. Not refunded: a refusal that spent scrypt stays charged.
-    const roomState = this.container.getRoomServiceForRoom(requestedRoomId).getState();
-    const ip = this.ipOfWs.get(ws) ?? "unknown";
-    const noSeat = this.seats.refusal(roomState, requestedRoomId, uid, ip, now);
-    if (noSeat) return rejectAuthentication(ws, noSeat);
-
     // Who may hold the uid. Claimable by password alone ONLY when nothing
     // holds it: no live socket on another connection, and no session still
     // provable by a token (live or detached inside the grace window).
@@ -213,6 +204,13 @@ export class AuthenticationHandler {
       closeAnnounced(ws, "conflict"); // frame first — the proxy strips the code
       return;
     }
+    // A new seat at a full table takes the longest-absent one, or no one new sits and the
+    // login screen says why. After the conflict check: a turned-away claim frees no seat.
+    // Not refunded: a refusal that spent scrypt stays charged.
+    const roomState = this.container.getRoomServiceForRoom(requestedRoomId).getState();
+    const ip = this.ipOfWs.get(ws) ?? "unknown";
+    const noSeat = this.seats.refusal(roomState, requestedRoomId, uid, ip, now);
+    if (noSeat) return rejectAuthentication(ws, noSeat);
     const previousRoomId = this.container.roomIdForUid(uid);
     // Register the newcomer BEFORE closing any old socket, so a close handler
     // that runs synchronously sees it is stale and skips cleanup. The occupant

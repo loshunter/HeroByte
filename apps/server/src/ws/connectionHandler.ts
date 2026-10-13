@@ -17,6 +17,9 @@ import { MessagePipelineManager } from "./message/MessagePipelineManager.js";
 import { MessageAuthenticator } from "./auth/MessageAuthenticator.js";
 import { clientIpFor } from "../middleware/authWorkLimit.js";
 
+/** How many connections after a boot log their address ([ip-check]). */
+let ipChecksLeft = 20;
+
 /**
  * WebSocket connection handler
  * Manages client connections and delegates to domain services
@@ -109,7 +112,16 @@ export class ConnectionHandler {
   private handleConnection(ws: WebSocket, req: IncomingMessage): void {
     // Record the connection's real remote IP (x-forwarded-for's last entry
     // behind a trusted proxy, else the socket peer) for the auth budget.
-    this.ipOfWs.set(ws, clientIpFor(req.socket?.remoteAddress, req.headers?.["x-forwarded-for"]));
+    const ip = clientIpFor(req.socket?.remoteAddress, req.headers?.["x-forwarded-for"]);
+    this.ipOfWs.set(ws, ip);
+    // The per-network limits trust this key, and nobody has seen what Render's header holds
+    // (pre-merge review, 2026-10-13): the first connections after each boot say.
+    if (ipChecksLeft > 0) {
+      ipChecksLeft -= 1;
+      console.log(
+        `[ip-check] key=${ip} peer=${req.socket?.remoteAddress} xff=${String(req.headers?.["x-forwarded-for"] ?? "")}`,
+      );
+    }
 
     // A ws socket with NO "error" listener is a remote kill switch: `ws`
     // emits "error" on a protocol violation, and EventEmitter THROWS when

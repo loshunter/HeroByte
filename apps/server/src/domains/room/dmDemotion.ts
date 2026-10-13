@@ -33,7 +33,7 @@ function everyToken(state: TableState): Token[] {
 }
 
 /** Another DM at the table (authenticated now), or the DM role. */
-function heirOf(state: TableState, leaving?: string): string {
+export function heirOf(state: TableState, leaving?: string): string {
   const seated = state.players.find(
     (player) => player.isDM && player.uid !== leaving && state.users.includes(player.uid),
   );

@@ -209,7 +209,8 @@ export function AuthGate({
             is yours, play from there. If that retry does not get you in, a Start a Fresh Session
             option appears below. It makes this browser a new player; the old character stays at the
             table until the DM deletes it or removes the seat (on the Main Hall, until it clears
-            itself).
+            itself); a full table may later give the empty seat to a newcomer, leaving the character
+            for the DM to hand back.
           </p>
         ) : null}
         {!isConnected ? (

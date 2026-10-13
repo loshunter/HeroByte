@@ -28,11 +28,9 @@ describe("rejectAuthentication on real ws sockets", () => {
       })),
       users: [],
     } as unknown as RoomState;
-    const seats = new SeatAdmission(
-      { liveSockets: new Map() } as unknown as Container,
-      "public",
-      () => false,
-    );
+    const seats = new SeatAdmission({ liveSockets: new Map() } as unknown as Container, "public", {
+      has: () => false,
+    });
     const reason = seats.refusal(full, "private-table", "newcomer", "198.51.100.1", now);
     expect(reason).not.toBeNull();
     expect(Buffer.byteLength(reason!)).toBeGreaterThan(123);

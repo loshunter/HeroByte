@@ -334,7 +334,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Start a Fresh Session",
         detail:
-          "Appears on that gate once a retry has failed. This browser becomes a new player: you will not get back into the old character, which stays at the table until the DM deletes it or removes the seat, and DM powers need the DM password again.",
+          "Appears on that gate once a retry has failed. This browser becomes a new player: you will not get back into the old character, which stays at the table until the DM deletes it or removes the seat (a full table may give the empty seat to a newcomer, leaving the character for the DM to hand back), and DM powers need the DM password again.",
       },
       {
         term: "After a deploy",
