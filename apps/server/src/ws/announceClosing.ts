@@ -78,12 +78,17 @@ export function closeAnnounced(ws: WebSocket, reason: ConnectionClosingReason): 
  * Reject an authentication attempt: `auth-failed` with the reason the login screen
  * shows, then WS_CLOSE_AUTH_REJECTED 100 ms later (the send-then-close noted above).
  * Moved here from AuthenticationHandler for its 350-line guard.
+ *
+ * The reason rides the frame only. A close reason is capped at 123 bytes and
+ * `ws` throws past it; the full-table reason is longer, and that throw, in this
+ * timer, took the whole server down (found live 2026-10-13). The client reads
+ * the frame, never the close text.
  */
 export function rejectAuthentication(ws: WebSocket, reason: string): void {
   ws.send(JSON.stringify({ t: "auth-failed", reason }));
   setTimeout(() => {
     if (ws.readyState === OPEN) {
-      ws.close(WS_CLOSE_AUTH_REJECTED, reason);
+      ws.close(WS_CLOSE_AUTH_REJECTED, "Authentication rejected");
     }
   }, 100);
 }
