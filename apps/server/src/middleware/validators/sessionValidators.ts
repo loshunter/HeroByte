@@ -147,6 +147,23 @@ export function parseSceneState(value: unknown): SceneState | null {
 }
 
 /**
+ * The same shape without the count limits, for the DISK/Redis boundary. Travel
+ * walks a scene's shape, not its size, and a scene can grow past a backup's
+ * limits in play (it is captured as the party leaves, with no cap): dropped
+ * here, it vanished on the next restart, while Download table backup refuses
+ * and names it so the DM can clear it (backupRefusal.ts).
+ */
+const sceneStateShape = sceneState.extend({
+  tokens: z.array(entryRecord),
+  props: z.array(entryRecord),
+  drawings: z.array(entryRecord),
+  sceneObjects: z.array(entryRecord),
+});
+export function parseSceneStateShape(value: unknown): SceneState | null {
+  return sceneStateShape.safeParse(value).success ? (value as SceneState) : null;
+}
+
+/**
  * Validate the map-document half of a load-session message. Both fields are
  * optional: a legacy save file is a bare snapshot with neither, and must still
  * load (it just restores a map that cannot be edited afterwards).
