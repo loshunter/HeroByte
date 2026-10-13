@@ -72,7 +72,7 @@ export const dmPath2: LessonScript = {
       beats: [
         { kind: "popup", from: say("Select All grabs"), to: say("Remove appears", -0.2), icon: "🖱️", title: "SELECT ALL", lines: ["Every unlocked token a player owns"], target: t("Select All"), side: "left", width: 520 },
         { kind: "popup", from: say("Remove appears"), to: say("It's not a ban", -0.2), icon: "🧹", tone: "red", title: "REMOVE", lines: ["Only for someone not at the table", "Seat, characters and tokens", "Locked tokens stay, and pass to you"], lineAt: [say("Remove appears"), say("It clears their seat"), say("A locked token stays")], target: t("REMOVE"), side: "left", width: 560 },
-        { kind: "sticker", from: say("There's no undo"), to: say("It's not a ban", -0.2), text: "NO UNDO", pos: { x: 700, y: 300 }, tone: "gold", tilt: -3 },
+        { kind: "sticker", from: say("There's no undo"), to: say("The password", -0.2), text: "NO UNDO", pos: { x: 700, y: 300 }, tone: "gold", tilt: -3 },
         { kind: "sticker", from: say("It's not a ban"), to: say("As a new player.", 1.4, true), text: "NOT A BAN", pos: { x: 700, y: 420 }, tone: "green", tilt: -2 },
       ],
     },

@@ -49,7 +49,7 @@ export const dmPath5: LessonScript = {
           pos: { x: 1100, y: 860 },
           items: [
             { text: "CLOSED", at: say("Closed,") },
-            { text: "OPEN", at: say("Open,", 0, false) },
+            { text: "OPEN", at: { say: "Open,", nth: 2, off: 0, end: false } }, // the 1st "Open" is "Open Inspect"
             { text: "🔒 LOCKED", at: say("Locked,") },
             { text: "SECRET", at: say("Secret.") },
           ],
