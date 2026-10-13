@@ -189,7 +189,7 @@ export class RoomMessageHandler {
     }
     const characters = mergeCharacters(state, snapshot.characters ?? []).length;
     if (characters > SNAPSHOT_LIMITS.characters) {
-      return `With the seated players keeping their own characters, this file would leave the table with ${characters} characters — the maximum is ${SNAPSHOT_LIMITS.characters}. Remove some seats (Table → Players) or delete some of their characters, then try again.`;
+      return `With the seated players keeping their own characters, this file would leave the table with ${characters} characters — the maximum is ${SNAPSHOT_LIMITS.characters}. Remove some absent players (DM Menu → Table → Players at this table) or delete some of their characters, then try again.`;
     }
     return null;
   }

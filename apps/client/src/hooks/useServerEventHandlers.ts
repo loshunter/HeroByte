@@ -286,7 +286,7 @@ export function useServerEventHandlers({
         // A locked door held against a click the viewer's stale view thought free.
         announceLockedDoor();
       } else if ("t" in message && message.t === "session-load-refused") {
-        // The backup was refused whole; the restore's own toast spoke before this came.
+        // The backup was refused whole; the restore's own toast said only that it was sent.
         toastError(`Restore refused: ${message.reason} The table has NOT been changed.`, 9000);
       } else if ("t" in message && message.t === "color-adjusted") {
         // The server moved a colour you chose out of another player's zone (C1).
