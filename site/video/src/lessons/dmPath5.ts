@@ -54,7 +54,7 @@ export const dmPath5: LessonScript = {
             { text: "SECRET", at: say("Secret.") },
           ],
         },
-        { kind: "popup", from: say("small gold lock"), to: say("A secret door", -0.2), icon: "🔒", title: "LOCKED", lines: ["A small gold lock", "A click does nothing", "You can still open it"], lineAt: [say("small gold lock"), say("Clicking it does nothing"), say("You can still open it")], pos: { x: 1440, y: 260 }, width: 480 },
+        { kind: "popup", from: say("small gold lock"), to: say("A secret door", -0.2), icon: "🔒", title: "LOCKED", lines: ["A small gold lock", "A click says it's locked", "You can still open it"], lineAt: [say("small gold lock"), say("a click tells them"), say("You can still open it")], pos: { x: 1440, y: 610 }, width: 480 },
         { kind: "popup", from: say("A secret door"), to: say("At the table", -0.2), icon: "🤫", title: "SECRET", lines: ["Invisible to players", "You see a dashed seam"], lineAt: [say("A secret door"), say("dashed seam")], pos: { x: 480, y: 260 }, width: 480 },
         { kind: "key", from: say("At the table", 0.4), to: say("reveal it.", 1.4, true), label: "ALT + CLICK", pos: { x: 480, y: 300 }, sfx: "button-blip.wav" },
         { kind: "sticker", from: say("reveal it", -0.2), to: say("reveal it.", 1.4, true), text: "REVEALED!", pos: { x: 1440, y: 300 }, tone: "green", tilt: -2 },
