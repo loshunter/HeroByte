@@ -45,6 +45,18 @@ import { traceMessage } from "../../config/messageTrace.js";
  *
  * Provides centralized, structured logging for WebSocket message routing operations.
  */
+/**
+ * Messages whose payload never reaches a log: a password, or a whole table (a backup
+ * holds hidden NPCs, GM notes and secret doors). An error on one logs its type alone.
+ */
+const PAYLOAD_NOT_LOGGED: ReadonlySet<string> = new Set([
+  "authenticate",
+  "elevate-to-dm",
+  "set-dm-password",
+  "set-room-password",
+  "load-session",
+]);
+
 export class MessageLogger {
   /**
    * Log the start of message routing
@@ -151,6 +163,10 @@ export class MessageLogger {
    * Original location: MessageErrorHandler.ts:45
    */
   logMessageDetails(message: ClientMessage): void {
+    if (PAYLOAD_NOT_LOGGED.has(message.t)) {
+      console.error(`[MessageRouter] Message details:`, JSON.stringify({ t: message.t }));
+      return;
+    }
     console.error(`[MessageRouter] Message details:`, JSON.stringify(message));
   }
 

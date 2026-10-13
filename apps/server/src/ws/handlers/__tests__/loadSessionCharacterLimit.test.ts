@@ -71,9 +71,11 @@ describe("load-session and the table's character limit", () => {
 
   it("refuses a file that, with the seats' own characters, passes 500 — and says so", () => {
     const { roomService, handler, sent } = setup();
-    expect(() =>
-      handler.handleLoadSession(roomService.getState(), "dm", fileWith(496), true),
-    ).toThrow(/501 characters — the maximum is 500/);
+    // Returned, not thrown: the router's error path would log the whole backup.
+    expect(handler.handleLoadSession(roomService.getState(), "dm", fileWith(496), true)).toEqual({
+      broadcast: false,
+      save: false,
+    });
     expect(sent).toEqual([
       { t: "session-load-refused", reason: expect.stringMatching(/501 characters/) },
     ]);

@@ -84,13 +84,14 @@ export class RoomMessageHandler {
       return { broadcast: false, save: false };
     }
 
-    // Refused WHOLE, before anything mutates, and said to the DM: their client toasted
-    // "restored" when it sent the file (thrown too, so the nack carries it).
+    // Refused WHOLE, before anything mutates, and said to the DM by the frame alone. Not
+    // thrown: the router's error path logs the whole message, and a backup holds hidden
+    // NPCs, GM notes and secret doors (found in the pre-merge review, 2026-10-13).
     const roomId = this.getRoomIdForUid?.(senderUid);
     const refusal = this.loadRefusal(roomId, state, snapshot, mapDocuments);
     if (refusal) {
       this.sendControlMessage(senderUid, { t: "session-load-refused", reason: refusal });
-      throw new Error(refusal);
+      return { broadcast: false, save: false };
     }
 
     // Documents FIRST: the snapshot's liveMapDocumentId is only safe to restore

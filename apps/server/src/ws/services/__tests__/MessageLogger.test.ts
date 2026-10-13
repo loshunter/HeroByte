@@ -381,6 +381,25 @@ describe("MessageLogger", () => {
         JSON.stringify(message),
       );
     });
+
+    it("logs a password or a backup by its type alone", () => {
+      const secrets = [
+        { t: "authenticate", secret: "hunter2" },
+        { t: "elevate-to-dm", dmPassword: "hunter2" },
+        { t: "set-dm-password", dmPassword: "hunter2" },
+        { t: "set-room-password", secret: "hunter2" },
+        { t: "load-session", snapshot: { characters: [{ name: "Hidden Lich" }] } },
+      ] as unknown as ClientMessage[];
+      for (const message of secrets) {
+        consoleErrorSpy.mockClear();
+        logger.logMessageDetails(message);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "[MessageRouter] Message details:",
+          JSON.stringify({ t: message.t }),
+        );
+        expect(JSON.stringify(consoleErrorSpy.mock.calls)).not.toMatch(/hunter2|Hidden Lich/);
+      }
+    });
   });
 
   describe("logUnauthorizedAction", () => {
