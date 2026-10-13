@@ -214,7 +214,8 @@ export async function prepareCustomImage(
  * A host that sends no `Access-Control-Allow-Origin` (media.discordapp.net)
  * fails the LOAD outright rather than tainting the canvas — same outcome for
  * us, one step earlier, and the reason the load has its own catch above.
- * `fetch` is not an option: the site's connect-src does not list i.imgur.com.
+ * `fetch` is not an option for other hosts: the site's connect-src does not list
+ * i.imgur.com. Our own uploads are fetched first (readableImageSource below).
  */
 async function loadImage(url: string): Promise<HTMLImageElement> {
   const source = await readableImageSource(url);

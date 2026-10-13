@@ -359,7 +359,7 @@ describe("useSessionManagement — load", () => {
     });
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
-    expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('"fine.json" sent'), 4000);
+    expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('"fine.json" sent.'), 4000);
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -469,7 +469,7 @@ describe("useSessionManagement — the words name the scope (U9)", () => {
     });
 
     expect(toast.info).toHaveBeenCalledWith(
-      'Table backup "friday.json" sent: the table changes for everyone in a moment.',
+      'Table backup "friday.json" sent. The table changes for everyone once the server accepts it.',
       4000,
     );
     expect(toast.success).not.toHaveBeenCalled();

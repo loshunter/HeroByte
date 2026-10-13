@@ -262,7 +262,7 @@ export function useSessionManagement({
           toast.warning(`Table backup sent, with warnings: ${warnings.join(", ")}`, 5000);
         } else {
           toast.info(
-            `Table backup "${file.name}" sent: the table changes for everyone in a moment.`,
+            `Table backup "${file.name}" sent. The table changes for everyone once the server accepts it.`,
             4000,
           );
         }

@@ -57,14 +57,16 @@ describe("readableImageSource", () => {
     const original = URL.createObjectURL; // jsdom has none
     URL.createObjectURL = vi.fn(() => "blob:upload");
     const upload = `https://herobyte-server.onrender.com/assets/${HASH}`;
+    try {
+      expect(await readableImageSource(upload, fetchImpl as typeof fetch)).toBe("blob:upload");
+      expect(fetchImpl).toHaveBeenCalledWith(upload, { cache: "no-store" });
 
-    expect(await readableImageSource(upload, fetchImpl as typeof fetch)).toBe("blob:upload");
-    expect(fetchImpl).toHaveBeenCalledWith(upload, { cache: "no-store" });
-
-    fetchImpl.mockClear();
-    expect(await readableImageSource(LINK, fetchImpl as typeof fetch)).toBe(LINK);
-    expect(fetchImpl).not.toHaveBeenCalled();
-    URL.createObjectURL = original;
+      fetchImpl.mockClear();
+      expect(await readableImageSource(LINK, fetchImpl as typeof fetch)).toBe(LINK);
+      expect(fetchImpl).not.toHaveBeenCalled();
+    } finally {
+      URL.createObjectURL = original;
+    }
   });
 
   it("fails the load when the upload is gone", async () => {
