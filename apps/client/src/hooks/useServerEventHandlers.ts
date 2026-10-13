@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 import { deliverSessionFile } from "../features/session/sessionBridge";
 import { onLockNotice } from "../features/locking/lockNotice";
+import { announceLockedDoor } from "../features/map/lockedDoor";
 import { characterRefusalMessage } from "../features/players/characterCap";
 import {
   deliverCharacterRefusal,
@@ -281,6 +282,9 @@ export function useServerEventHandlers({
         // A character the viewer asked for (or handed over) was not taken: say why.
         toastError(characterRefusalMessage(message), 5000);
         deliverCharacterRefusal(message);
+      } else if ("t" in message && message.t === "door-refused") {
+        // A locked door held against a click the viewer's stale view thought free.
+        announceLockedDoor();
       } else if ("t" in message && message.t === "session-load-refused") {
         // The backup was refused whole; the restore's own toast spoke before this came.
         toastError(`Restore refused: ${message.reason} The table has NOT been changed.`, 9000);

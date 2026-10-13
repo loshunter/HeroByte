@@ -75,6 +75,8 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "remove-player-refused" }>
   // The piece lock stopped a move or a delete: the sender's only word of why.
   | Extract<ServerMessage, { t: "locked-refused" }>
+  // A locked door held against a stale view's click: the sender's only word of why.
+  | Extract<ServerMessage, { t: "door-refused" }>
   // The colour rule moved a colour the viewer chose (personal colour, C1).
   | Extract<ServerMessage, { t: "color-adjusted" }>
   // A character refused at a cap, and a backup refused whole: the sender's only word.
@@ -419,6 +421,7 @@ export class MessageRouter {
       candidate.t === "atlas-error" ||
       candidate.t === "remove-player-refused" ||
       candidate.t === "locked-refused" ||
+      candidate.t === "door-refused" ||
       candidate.t === "color-adjusted" ||
       candidate.t === "character-refused" ||
       candidate.t === "session-load-refused" ||

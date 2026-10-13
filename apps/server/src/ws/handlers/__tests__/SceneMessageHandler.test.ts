@@ -122,9 +122,10 @@ describe("SceneMessageHandler", () => {
   });
 
   it("refuses to toggle a locked door for players but lets the DM force it open", () => {
-    expect(() =>
-      handler.handle({ t: "toggle-door", doorId: "door-locked" }, "room", false),
-    ).toThrow("Door is locked");
+    // Refused, not thrown: the router tells the sender (door-refused); nothing broadcasts.
+    expect(handler.handle({ t: "toggle-door", doorId: "door-locked" }, "room", false)).toEqual({
+      doorRefusal: { doorId: "door-locked" },
+    });
     expect(doorState("door-locked")).toBe("locked");
 
     handler.handle({ t: "toggle-door", doorId: "door-locked" }, "room", true);

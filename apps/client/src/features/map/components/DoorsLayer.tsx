@@ -11,8 +11,7 @@ import { Group, Line, Rect } from "react-konva";
 import type Konva from "konva";
 import type { CompiledDoor, CompiledDoorState, SceneObjectTransform } from "@herobyte/shared";
 import type { Camera } from "../types";
-import { announceLocked } from "../../locking/lockNotice";
-import { sfxEngine } from "../../juice/sfxEngine";
+import { announceLockedDoor } from "../lockedDoor";
 
 interface DoorsLayerProps {
   cam: Camera;
@@ -47,9 +46,6 @@ const FRAME_COLOR = "#4a3b28";
 const DOOR_COLOR = "#c99b55";
 const LOCK_COLOR = "#ffd75e";
 const SECRET_COLOR = "#7ce0d3";
-
-/** What a player's click on a locked door is told (the user guide quotes it). */
-const LOCKED_DOOR_NOTICE = "This door is locked. Only the DM can open it.";
 
 /** Press-to-release movement past this many CSS px is a pan, not a door click. */
 const DOOR_TAP_SLOP_PX = 8;
@@ -139,12 +135,10 @@ function DoorSprite({
       onSetDoorState(door.id, lockCycle(door.state));
       return;
     }
-    // The server refuses a player's toggle of a locked door, and a refusal
-    // reaches only the console — so say it here, before sending: a toast and a
-    // latch rattle only the one who tried hears. The server stays the judge.
+    // The sprite can see the lock, so it says so before sending. The server stays
+    // the judge: a view a moment stale is answered by its door-refused instead.
     if (!isDM && door.state === "locked") {
-      announceLocked(LOCKED_DOOR_NOTICE);
-      sfxEngine.play("doorClunk", { gainScale: 0.6 });
+      announceLockedDoor();
       return;
     }
     onToggleDoor(door.id);

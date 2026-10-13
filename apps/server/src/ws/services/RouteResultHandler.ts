@@ -67,6 +67,8 @@ export interface RouteHandlerResult {
   lockRefusal?: LockRefusal;
   /** A character refused at a cap: the router tells the sender why. */
   characterRefusal?: CharacterRefusal;
+  /** A player's toggle met a locked door: the router tells the sender. */
+  doorRefusal?: { doorId: string };
   /** The colour rule moved a chosen colour: the router tells the sender where and why. */
   colorNotice?: {
     tokenId: string;
@@ -97,6 +99,10 @@ export function senderNotices(result: RouteHandlerResult): ServerMessage[] {
   // A character refused at a cap: the sender's add, claim or hand-over changed nothing.
   if (result.characterRefusal) {
     notices.push({ t: "character-refused", ...result.characterRefusal });
+  }
+  // A locked door held against the sender's toggle.
+  if (result.doorRefusal) {
+    notices.push({ t: "door-refused", ...result.doorRefusal });
   }
   // The colour rule moved what they chose: where it went.
   if (result.colorNotice) {

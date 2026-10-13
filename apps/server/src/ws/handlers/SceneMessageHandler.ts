@@ -13,8 +13,7 @@ export class SceneMessageHandler {
 
   handle(message: ClientMessage, roomId: string, isDM: boolean): RouteHandlerResult | null {
     if (message.t === "toggle-door") {
-      this.toggleDoor(roomId, message.doorId, isDM);
-      return { broadcast: true, save: true };
+      return this.toggleDoor(roomId, message.doorId, isDM);
     }
     if (message.t === "set-door-state") {
       if (!isDM) {
@@ -82,13 +81,17 @@ export class SceneMessageHandler {
     return null;
   }
 
-  private toggleDoor(roomId: string, doorId: string, isDM: boolean): void {
+  private toggleDoor(roomId: string, doorId: string, isDM: boolean): RouteHandlerResult {
     const door = this.requireDoor(roomId, doorId, isDM);
+    // The client says "locked" before sending when it can see the lock; a view a
+    // moment stale (the DM just locked it) cannot, so the door holds and the sender
+    // alone is told (door-refused). A thrown nack reached only the console.
     if (door.state === "locked" && !isDM) {
-      throw new Error("Door is locked");
+      return { doorRefusal: { doorId } };
     }
     // DM toggles force any door open; players flip only open/closed.
     door.state = door.state === "open" ? "closed" : "open";
+    return { broadcast: true, save: true };
   }
 
   private requireDoor(roomId: string, doorId: string, isDM: boolean): CompiledDoor {
