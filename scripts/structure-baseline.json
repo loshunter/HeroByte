@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-11T22:34:23.890Z",
+  "generatedAt": "2026-10-13T20:37:23.367Z",
   "threshold": 350,
   "files": [
     {
       "path": "packages/shared/src/index.ts",
-      "loc": 1401
+      "loc": 1343
     },
     {
       "path": "apps/client/src/ui/MapBoard.tsx",
@@ -16,7 +16,7 @@
     },
     {
       "path": "apps/server/src/ws/messageRouter.ts",
-      "loc": 909
+      "loc": 897
     },
     {
       "path": "apps/client/src/features/map/components/TokensLayer.tsx",
@@ -35,12 +35,12 @@
       "loc": 627
     },
     {
-      "path": "apps/client/src/services/websocket/MessageRouter.ts",
-      "loc": 612
-    },
-    {
       "path": "packages/shared/src/models.ts",
       "loc": 600
+    },
+    {
+      "path": "apps/client/src/services/websocket/MessageRouter.ts",
+      "loc": 591
     },
     {
       "path": "apps/client/src/hooks/usePlayerActions.ts",
