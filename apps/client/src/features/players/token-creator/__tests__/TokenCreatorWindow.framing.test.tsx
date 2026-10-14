@@ -19,6 +19,7 @@ import {
   pasteEvent,
   pickFile,
   recordingCanvas,
+  settle,
   uploaded,
 } from "./creatorTestKit";
 
@@ -66,6 +67,9 @@ describe("the controls reach the bake", () => {
     const slider = screen.getByRole("slider", { name: "Zoom" });
     fireEvent.change(slider, { target: { value: String(Math.log(2)) } });
     expect(slider).toHaveAttribute("aria-valuetext", "200%");
+    // Absolute, not compounding: 200% then the slider at 3× reads 300%, not 600%.
+    fireEvent.change(slider, { target: { value: String(Math.log(3)) } });
+    expect(slider).toHaveAttribute("aria-valuetext", "300%");
     fireEvent.click(screen.getByRole("button", { name: "Reset" }));
     expect(slider).toHaveAttribute("aria-valuetext", "100%");
   });
@@ -112,12 +116,12 @@ describe("the controls reach the bake", () => {
 });
 
 describe("the preview draws what the map draws", () => {
-  it("a rounded square at the map's corner (1/6 of the side), with no outline", async () => {
-    open();
+  it("a Medium token: a rounded square at the map's corner (1/6 of the side), no outline", async () => {
+    open(deps(), "medium");
     await pickFile();
     const preview = screen.getByRole("group", { name: "Preview at token size" });
     const token = within(preview).getAllByRole("img", { hidden: true })[0]!.parentElement!;
-    expect(token.style.borderRadius).toBe(`${44 / 6}px`);
+    expect(token.style.borderRadius).toBe("8px");
     expect(token.style.outline).toBe("");
   });
 });
@@ -237,6 +241,23 @@ describe("the pointer", () => {
     expect(top()).not.toBe(start);
   });
 
+  it("a drag moves the picture with the pointer, at the square's own scale", async () => {
+    open();
+    await pickFile();
+    // Give the square a layout width (jsdom has none): 200 px.
+    Object.defineProperty(crop(), "clientWidth", { value: 200, configurable: true });
+    fireEvent.pointerDown(crop(), {
+      pointerId: 4,
+      pointerType: "mouse",
+      button: 0,
+      buttons: 1,
+      clientY: 100,
+    });
+    // 20 px down on a 200 px square: a tenth of the square, downward.
+    fireEvent.pointerMove(crop(), { pointerId: 4, pointerType: "mouse", buttons: 1, clientY: 120 });
+    expect(parseFloat(cropImage().style.top)).toBeCloseTo(-40, 6);
+  });
+
   it("a mouse whose release was lost stops steering", async () => {
     open();
     await pickFile();
@@ -257,6 +278,84 @@ describe("the pointer", () => {
     at(100.2, 0);
     at(100.3, 1);
     expect(cropImage().style.top).toBe(after);
+  });
+});
+
+describe("round 3: sizes, near misses and stale offers", () => {
+  it("the corners follow the token's size, as the map draws them", async () => {
+    open(deps(), "huge");
+    await pickFile();
+    // Huge: 2× the side, the same 1/8-cell corner: 1/12 of the side.
+    expect(parseFloat(crop().style.borderRadius)).toBeCloseTo(100 / 12, 6);
+    const preview = screen.getByRole("group", { name: "Preview at token size" });
+    const token = within(preview).getAllByRole("img", { hidden: true })[0]!.parentElement!;
+    expect(token.style.borderRadius).toBe(`${48 / 12}px`);
+  });
+
+  it("a file let go outside the window goes to the creator, not the tab", async () => {
+    const d = deps();
+    open(d);
+    const dropped = new File(["x"], "near.png", { type: "image/png" });
+    const transfer = {
+      types: ["Files"],
+      files: { length: 1, item: () => dropped },
+      getData: () => "",
+    };
+    const over = new Event("dragover", { bubbles: true, cancelable: true });
+    Object.defineProperty(over, "dataTransfer", { value: transfer });
+    const drop = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, "dataTransfer", { value: transfer });
+    act(() => {
+      document.body.dispatchEvent(over);
+      document.body.dispatchEvent(drop);
+    });
+    expect(over.defaultPrevented).toBe(true);
+    expect(drop.defaultPrevented).toBe(true);
+    await screen.findByRole("button", { name: /Rotate/ });
+    expect(d.load.createObjectURL).toHaveBeenCalledWith(dropped);
+  });
+
+  it("text dragged within the link field stays the field's", () => {
+    open();
+    const field = screen.getByLabelText("Or a link to a picture");
+    const kept = fireEvent.drop(field, {
+      dataTransfer: {
+        types: ["text/plain"],
+        files: { length: 0, item: () => null },
+        getData: (format: string) => (format === "text/plain" ? "abc" : ""),
+      },
+    });
+    expect(kept).toBe(true);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("a link edited while it loads offers nothing when the old one fails", async () => {
+    const d = deps();
+    const first = deferred<HTMLImageElement>();
+    vi.mocked(d.load.loadImage)
+      .mockReturnValueOnce(first.promise)
+      .mockRejectedValue(new Error("404"));
+    open(d);
+    await loadLink("https://i.imgur.com/tpyo.png");
+    fireEvent.change(screen.getByLabelText("Or a link to a picture"), {
+      target: { value: "https://i.imgur.com/typo.png" },
+    });
+    await act(async () => first.reject(new Error("404")));
+    await settle();
+    expect(screen.queryByRole("button", { name: "Use the link as is" })).toBeNull();
+  });
+
+  it("editing the link clears a 'too long' alert about the old one", async () => {
+    const d = deps();
+    vi.mocked(d.load.loadImage).mockRejectedValue(new Error("404"));
+    open(d);
+    await loadLink(`https://i.imgur.com/${"a".repeat(LINK_MAX_LENGTH)}.png`);
+    fireEvent.click(await screen.findByRole("button", { name: "Use the link as is" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("too long");
+    fireEvent.change(screen.getByLabelText("Or a link to a picture"), {
+      target: { value: "https://i.imgur.com/short.png" },
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });
 

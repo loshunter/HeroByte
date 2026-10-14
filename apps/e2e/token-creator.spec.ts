@@ -142,8 +142,10 @@ test.describe("token creator", () => {
       await player.mouse.down();
       await player.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2, { steps: 4 });
       await player.mouse.up();
-      // 40 px on a 280 px square: about +14% of the square.
-      expect((await left()) - leftBefore).toBeGreaterThan(10);
+      // 40 px on a 280 px square: about +14% of the square (the picture's slack is 25%).
+      const moved = (await left()) - leftBefore;
+      expect(moved).toBeGreaterThan(10);
+      expect(moved).toBeLessThan(18);
       await player.mouse.wheel(0, -300);
       const zoomed = Number.parseInt((await zoom.getAttribute("aria-valuetext"))!, 10);
       expect(zoomed).toBeGreaterThanOrEqual(150);

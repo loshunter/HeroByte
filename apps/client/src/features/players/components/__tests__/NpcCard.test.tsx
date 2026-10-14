@@ -1091,6 +1091,18 @@ describe("NpcCard", () => {
       expect(screen.getByTestId("npc-settings-menu")).toHaveAttribute("data-name", "Goblin King");
     });
 
+    it("an unplaced NPC's picture is baked at its recorded token size", () => {
+      render(
+        <NpcCard
+          {...createDefaultProps({
+            tokenSize: undefined,
+            character: { ...createMockCharacter(), tokenSize: "huge" },
+          })}
+        />,
+      );
+      expect(screen.getByTestId("settings-token-size")).toHaveTextContent("huge");
+    });
+
     // Replaces "does not apply token image when isDM is false": the handler is now
     // withheld rather than a no-op, so there is nothing to click.
     it("gives the settings menu no picture handlers unless the viewer is the DM", () => {
