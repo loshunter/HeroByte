@@ -258,7 +258,7 @@
    "aud": "player",
    "heading": "Player path 3",
    "title": "Your character card",
-   "lead": "By the end, you can open your card and every card at once, edit your character's name and HP, give it a portrait and token art, by upload or by link, and know the limits of each, set conditions and size, recolour your token, save it to a file, and add a second character.",
+   "lead": "By the end, you can open your card and every card at once, edit your character's name and HP, add a portrait and token art by upload or by link (and know the limits of each), set conditions and size, recolour your token, save the character to a file, and add a second one.",
    "duration": 199.2,
    "bytes": 10367947,
    "chapters": [
@@ -669,7 +669,7 @@
    "aud": "dm",
    "heading": "DM path 3",
    "title": "Three ways to get a map on the table",
-   "lead": "By the end, you can put your own map image on the table, start a map to build by hand or generate a place mid-session, and know when to use each.",
+   "lead": "By the end, you can put your own map image on the table, start a live map to build by hand, generate a place mid-session, and know when to use each.",
    "duration": 155.6,
    "bytes": 7997626,
    "chapters": [

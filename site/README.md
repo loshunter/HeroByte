@@ -94,6 +94,10 @@ Safari may refuse to play it at all. So a video shows its poster and a play butt
 play it from memory, a `blob:` URL that the CSP's `media-src 'self' blob:` allows. Each page also
 links the MP4 to download.
 
+**Notes:** `notes` in `LESSON_PAGES` (by chapter number) put a NOTE under a chapter where the
+video says less than the app does, such as what fog really keeps out of a browser. Delete a note
+once the re-recorded video says it.
+
 **Moving a video to YouTube:** set its `youtube` id in `LESSON_PAGES`. The page then embeds
 YouTube's player (youtube-nocookie.com) instead of the MP4, and the chapter buttons reload it at
 that second. First add `frame-src https://www.youtube-nocookie.com` to the CSP in

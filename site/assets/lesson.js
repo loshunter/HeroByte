@@ -7,27 +7,50 @@
   const whole = new Map();
   for (const video of document.querySelectorAll("video[data-src]")) {
     const start = video.parentElement.querySelector(".video-start");
-    const status = start.querySelector(".video-status");
+    const status = video.parentElement.querySelector(".video-status");
     let loading = null;
     let ready = false;
+    let cannot = false;
+    // The button is never disabled (that would drop a keyboard user's focus); while it loads it is
+    // aria-busy and ignores presses.
+    // Without H.264 neither way below can play it, so it is never downloaded.
+    const cannotPlay = () => {
+      if (cannot || video.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) return cannot;
+      cannot = true;
+      start.classList.add("cannot");
+      start.setAttribute("aria-disabled", "true");
+      status.textContent = "THIS BROWSER CANNOT PLAY IT. USE THE DOWNLOAD LINK";
+      return true;
+    };
     const load = () =>
       (loading ??= (async () => {
-        // Without H.264 neither way below can play it, so do not download it first.
-        if (!video.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) throw new Error("no H.264");
-        start.disabled = true;
+        start.setAttribute("aria-busy", "true");
         status.textContent = "LOADING…";
-        const res = await fetch(video.dataset.src);
-        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-        const total = Number(res.headers.get("content-length")) || 0;
-        const reader = res.body.getReader();
+        // A download that stalls for 30 seconds is given up, so a press can try again.
+        const ctl = new AbortController();
+        let idle;
+        const bump = () => {
+          clearTimeout(idle);
+          idle = setTimeout(() => ctl.abort(), 30000);
+        };
         const parts = [];
-        let got = 0;
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          parts.push(value);
-          got += value.length;
-          if (total) status.textContent = `LOADING ${Math.min(100, Math.floor((got * 100) / total))}%`;
+        try {
+          bump();
+          const res = await fetch(video.dataset.src, { signal: ctl.signal });
+          if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+          const total = Number(res.headers.get("content-length")) || 0;
+          const reader = res.body.getReader();
+          let got = 0;
+          for (;;) {
+            bump();
+            const { done, value } = await reader.read();
+            if (done) break;
+            parts.push(value);
+            got += value.length;
+            if (total) status.textContent = `LOADING ${Math.min(100, Math.floor((got * 100) / total))}%`;
+          }
+        } finally {
+          clearTimeout(idle);
         }
         // preload "none" (until the press) would leave the second src unloaded, so ask for it;
         // and give up on a source that has neither loaded nor failed in a minute.
@@ -49,27 +72,26 @@
         ready = true;
         video.controls = true;
         status.textContent = "";
-        // A keyboard press on the button would leave focus on nothing once it hides.
+        start.removeAttribute("aria-busy");
+        // Focus on the button would be lost when it hides; hand it to the video.
         const hadFocus = document.activeElement === start;
         start.hidden = true;
         if (hadFocus) video.focus({ preventScroll: true });
       })().catch((err) => {
         loading = null;
+        start.removeAttribute("aria-busy");
         video.removeAttribute("src");
         video.load();
-        start.disabled = false;
-        status.textContent =
-          err?.message === "no H.264"
-            ? "THIS BROWSER CANNOT PLAY IT. USE THE DOWNLOAD LINK"
-            : "COULD NOT LOAD IT. PRESS TO TRY AGAIN";
+        status.textContent = "COULD NOT LOAD IT. PRESS TO TRY AGAIN";
         throw err;
       }));
     // play() inside the press, before the download: Safari then allows the play() after it.
     const play = (t) => {
+      if (cannotPlay()) return false;
       if (ready) {
         video.currentTime = t;
         video.play().catch(() => {});
-        return;
+        return true;
       }
       video.play().catch(() => {});
       load()
@@ -78,8 +100,10 @@
           return video.play();
         })
         .catch(() => {});
+      return true;
     };
-    start.addEventListener("click", () => play(0));
+    // A press while it loads would put a chosen chapter back to 0:00.
+    start.addEventListener("click", () => loading || play(0));
     whole.set(video, play);
   }
 
@@ -89,16 +113,17 @@
   const mark = (b) => buttons.forEach((o) => o.setAttribute("aria-current", String(o === b)));
   // The last chapter starting at or before t (no findLast: iOS before 15.4 lacks it).
   const chapterAt = (t) => [...buttons].reverse().find((o) => Number(o.dataset.t) <= t) ?? buttons[0];
+  // false when the video cannot play here, so nothing is marked as playing.
   const seek = (t) => {
-    if (video) whole.get(video)?.(t);
-    else if (frame) frame.src = `${frame.dataset.base}?start=${Math.floor(t)}&autoplay=1`;
+    if (video) return whole.get(video)?.(t) ?? false;
+    if (frame) frame.src = `${frame.dataset.base}?start=${Math.floor(t)}&autoplay=1`;
+    return !!frame;
   };
-  buttons.forEach((b) => b.addEventListener("click", () => (mark(b), seek(Number(b.dataset.t)))));
+  buttons.forEach((b) => b.addEventListener("click", () => seek(Number(b.dataset.t)) && mark(b)));
   document.querySelectorAll("[data-seek]").forEach((b) =>
     b.addEventListener("click", () => {
       const t = Number(b.dataset.seek);
-      mark(chapterAt(t));
-      seek(t);
+      if (seek(t)) mark(chapterAt(t));
       (video ?? frame)?.scrollIntoView({ behavior: "smooth", block: "center" });
     }),
   );

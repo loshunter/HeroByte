@@ -87,15 +87,29 @@ const GUIDES = [
 export const LESSON_PAGES = {
   "player-quick-start": { page: "player-quick-start.html", hand: true, youtube: null },
   "dm-quick-start": { page: "dm-quick-start.html", hand: true, youtube: null },
-  "player-path-1": { page: "join-a-table.html", guide: ["guide/getting-started.html#joining-a-table", "Getting started: Joining a table"], youtube: null },
-  "player-path-2": { page: "the-table-at-a-glance.html", guide: ["guide/player-guide.html#the-table-at-a-glance", "Player guide: The table at a glance"], youtube: null },
+  "player-path-1": {
+    page: "join-a-table.html",
+    guide: ["guide/getting-started.html#joining-a-table", "Getting started: Joining a table"],
+    youtube: null,
+    notes: {
+      3: "Six hours is the longest your seat is held. A server restart for an update ends the hold sooner. Once it ends, anyone with the table password can take the seat, and a DM needs the DM password again.",
+    },
+  },
+  "player-path-2": {
+    page: "the-table-at-a-glance.html",
+    guide: ["guide/player-guide.html#the-table-at-a-glance", "Player guide: The table at a glance"],
+    youtube: null,
+    notes: {
+      4: "A whisper is kept for the seats of its sender and its recipient. If a seat has been empty for more than six hours, or the server has restarted for an update, anyone with the table password can claim it and read the whispers stored for it.",
+    },
+  },
   "player-path-3": { page: "your-character-card.html", guide: ["guide/player-guide.html#your-character-card", "Player guide: Your character card"], youtube: null },
   "player-path-4": {
     page: "roll-dice.html",
     guide: ["guide/player-guide.html#dice", "Player guide: Dice"],
     youtube: null,
     notes: {
-      2: "A hidden roll is kept for its seat. If you are away for more than six hours, someone with the table password can claim your seat and see the hidden rolls stored for it.",
+      2: "A hidden roll is kept for its seat. If a seat has been empty for more than six hours, or the server has restarted for an update, anyone with the table password can claim it and read the hidden rolls stored for it.",
     },
   },
   "player-path-5": { page: "draw-measure-and-ping.html", guide: ["guide/player-guide.html#drawing-measuring-pointing", "Player guide: Drawing, measuring, pointing"], youtube: null },
@@ -109,7 +123,7 @@ export const LESSON_PAGES = {
     guide: ["guide/map-editor-guide.html#-wall-and--door", "Map editor guide: Wall and Door"],
     youtube: null,
     notes: {
-      4: "Fog keeps tokens, NPCs, props and pings out of a player's browser until they can see them. The map itself, its walls, doors and floor plan, is sent to every player, so fog does not hide that a room exists.",
+      4: "Fog keeps tokens, NPCs, props and pings out of a player's browser until their characters can see them. The map is different: its floor plan, walls, ordinary doors, lights and any drawings are sent to every player's browser, and fog only darkens them on screen. A secret door is sent as plain wall, but the floor around it still goes.",
     },
   },
   "dm-path-6": { page: "npcs-and-the-token-library.html", guide: ["guide/dm-guide.html#npcs--monsters", "DM guide: NPCs and monsters"], youtube: null },
@@ -132,7 +146,7 @@ const PLAY_ICON = `<svg width="22" height="22" viewBox="0 0 14 14" aria-hidden="
 // on the first press and plays it from memory (a blob: URL, allowed by media-src in
 // apps/client/public/_headers), where seeking always works.
 function mp4Screen(id, label, root) {
-  return `<div class="screen"><video preload="none" playsinline poster="${root}media/${id}.jpg" data-src="${root}media/${id}.mp4" aria-label="${esc(label)}"></video><button type="button" class="video-start" aria-label="Play: ${esc(label)}"><span class="play-box">${PLAY_ICON}</span><span class="video-status" aria-live="polite"></span></button></div>`;
+  return `<div class="screen"><video preload="none" playsinline poster="${root}media/${id}.jpg" data-src="${root}media/${id}.mp4" aria-label="${esc(label)}"></video><button type="button" class="video-start" aria-label="Play: ${esc(label)}"><span class="play-box">${PLAY_ICON}</span></button><span class="video-status" role="status"></span></div>`;
 }
 function mp4Download(id, root) {
   const mb = statSync(path.join(here, "media", `${id}.mp4`)).size / 1e6;
@@ -227,7 +241,7 @@ ${videoBlock(lesson, root)}
 <section aria-labelledby="written" style="display: flex; flex-direction: column; gap: 36px">
 <div class="written-head">
 <h2 id="written">Step by step</h2>
-<p>What the narrator says in the video, chapter by chapter, with a note where the app needs more said. Press a time to play that part.</p>
+<p>What the narrator says in the video, chapter by chapter. A NOTE marks a place where the video says less than the app does. Press a time to play that part.</p>
 </div>
 
 ${steps}
