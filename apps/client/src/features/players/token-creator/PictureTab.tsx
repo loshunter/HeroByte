@@ -111,10 +111,11 @@ export function PictureTab({ creator, color }: PictureTabProps) {
           className="jrpg-input"
           value={backdrop.kind}
           onChange={(event) => chooseBackdrop(event.target.value as Backdrop["kind"])}
+          title="Auto: the colour at the picture's edge. None: keep transparency."
           style={{ flex: 1 }}
         >
-          <option value="auto">Auto (from the picture&apos;s edge)</option>
-          <option value="none">None (keep transparency)</option>
+          <option value="auto">Auto</option>
+          <option value="none">None</option>
           <option value="solid">Solid colour</option>
           <option value="gradient">Gradient</option>
         </select>
