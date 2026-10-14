@@ -1,0 +1,1059 @@
+{
+ "lessons": [
+  {
+   "id": "player-quick-start",
+   "aud": "player",
+   "heading": "Player quick start",
+   "title": "Your first session as a player",
+   "lead": "By the end, you can join a table, find your character, move your token and make a roll.",
+   "duration": 116.1,
+   "bytes": 15374200,
+   "chapters": [
+    {
+     "title": "Get in",
+     "start": 0,
+     "say": [
+      "Every adventure starts with getting through the door.",
+      "Your DM sends you two things: a link, and a password. They come separately. The link never carries the password.",
+      "Open the link. Check the Connection status line. It should say Connected.",
+      "Type the table password. Passwords are case-sensitive.",
+      "Press Enter Table."
+     ]
+    },
+    {
+     "title": "Find yourself",
+     "start": 28.8,
+     "say": [
+      "This is your token. Your character has a row in the Party at the bottom. Your row reads \"You.\"",
+      "Lost your token? Press the target button on your row. The map jumps to it.",
+      "Select your row to open your character card.",
+      "Click your name to rename your character.",
+      "Click a number in HP to type a new value, or drag along the bar."
+     ]
+    },
+    {
+     "title": "Move",
+     "start": 52.5,
+     "say": [
+      "Drag your token to move it. Turn Snap on and it clicks to the grid.",
+      "Everyone sees the new spot when you let go.",
+      "You can also step with WASD or the arrow keys. One press, one cell.",
+      "On a phone, open Tools, then Select. Tap your token, and use the d-pad."
+     ]
+    },
+    {
+     "title": "Roll",
+     "start": 74.3,
+     "say": [
+      "Press Dice to open the roller.",
+      "Click a die to add it to the tray. Click again for more of the same.",
+      "Add a modifier chip if you need one.",
+      "Pick Normal, ADV for advantage, or DIS for disadvantage. Then pick who sees it: the table, the DM, or only you.",
+      "Press Roll.",
+      "For a quick d20, use the Roll now row. One press, one roll.",
+      "Rolling real dice at the table? Press I Rolled It, and type what you got. The log marks it \"by hand.\""
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-quick-start",
+   "aud": "dm",
+   "heading": "DM quick start",
+   "title": "Set up your table before game night",
+   "lead": "By the end, you can create a private table, claim the DM seat, put a map down, invite players and check what they see.",
+   "duration": 124.4,
+   "bytes": 20305823,
+   "chapters": [
+    {
+     "title": "Make a table",
+     "start": 0,
+     "say": [
+      "Every campaign needs somewhere to happen.",
+      "Real games live on a private table. It has its own passwords, and it is never cleared automatically.",
+      "Press New Table. Give it a name you'll recognise.",
+      "Choose a table password. Your players type this one.",
+      "Choose a DM password too. Whoever knows it can run the table.",
+      "Press Create Private Table."
+     ]
+    },
+    {
+     "title": "Claim the DM seat",
+     "start": 30.6,
+     "say": [
+      "You arrive as an ordinary player. This card offers two next steps. Nothing on it happens by itself.",
+      "Press Enter DM mode, and type your DM password.",
+      "You can also do this any time from the Table button, top left."
+     ]
+    },
+    {
+     "title": "Put a map down",
+     "start": 47.1,
+     "say": [
+      "There are three ways to get a map on the table.",
+      "If you have a map image, upload it in the DM Menu, under Maps. Lesson three covers that.",
+      "To build one here, open Build map and press Start live map.",
+      "Press Escape to leave the editor. The map stays live.",
+      "And the third way... is the fun one.",
+      "Now press G. That's the Kicked-In Door. Pick a recipe, press Generate and enter, and HeroByte builds a stocked place and moves the table there."
+     ]
+    },
+    {
+     "title": "Send the invite",
+     "start": 79.6,
+     "say": [
+      "Now Invite players works, because you are the DM. It copies the link.",
+      "Later, find it in the DM Menu, under Table, then Invite.",
+      "Send the password separately. The link does not carry it.",
+      "Unless you enjoy answering \"what's the password?\" for the next ten minutes."
+     ]
+    },
+    {
+     "title": "See what they see",
+     "start": 101,
+     "say": [
+      "Press Player view. You now see exactly what players see: fog from the party's vision, secret doors hidden.",
+      "You keep every DM power. Press it again to switch back.",
+      "Player view is on the computer layout."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "player-path-1",
+   "aud": "player",
+   "heading": "Player path 1",
+   "title": "Join a table",
+   "lead": "By the end, you can get into any table and know what each join-screen message means.",
+   "duration": 158.4,
+   "bytes": 6702556,
+   "chapters": [
+    {
+     "title": "The join screen",
+     "start": 0,
+     "say": [
+      "Before the dice come out, you have to get in.",
+      "Use Chrome, Edge or Firefox on a computer. Phones get their own touch layout.",
+      "First, the Connection status line. It should say Connected.",
+      "Type the table password and press Enter Table.",
+      "Get it wrong and the error shows in red. What you typed stays in the field, so you can spot the typo. Passwords are case-sensitive.",
+      "On a built map with one character, the view starts on your token."
+     ]
+    },
+    {
+     "title": "Switching tables, codes, forgetting",
+     "start": 36.3,
+     "say": [
+      "Belong to more than one table? A Table picker appears above the password. Choose the table, type its password, enter.",
+      "Have a code instead of a link? Paste it in the table code box, under Start or join. Then press Join.",
+      "Forget this table drops a private table from this browser's list. You'll need its code to get back.",
+      "Your browser remembers up to twelve tables. The server publishes no list of tables, so keep your codes."
+     ]
+    },
+    {
+     "title": "It remembers you",
+     "start": 67.1,
+     "say": [
+      "The password is stored for that table in this tab, so a reload drops you straight back in.",
+      "If your connection blips, HeroByte reconnects for you. You'll see Reconnecting, then Re-authenticating, under the header.",
+      "In this browser, a reload or a blip brings you back as the same person. Your seat is held for you for six hours. After that, a DM needs the DM password again."
+     ]
+    },
+    {
+     "title": "One tab, one device",
+     "start": 94,
+     "say": [
+      "One live connection per browser. Open the same table in a second tab and the older tab pauses. Press Reclaim this tab to switch back.",
+      "A different device or browser joins as a new player, with a new character.",
+      "Sometimes this browser can't prove it's still you. Then you'll see Held in another window, and your seat stays held. Try again once. If it still fails, Start a fresh session appears.",
+      "That makes you a new player. You can't get back into your old character. Use it as a last resort."
+     ]
+    },
+    {
+     "title": "The Main Hall",
+     "start": 131.4,
+     "say": [
+      "Every server starts with one table, the Main Hall. It's a public test table.",
+      "Its passwords are fixed, and by default it wipes itself after an hour with nobody in it.",
+      "You'll see the public test table marker at the top while you're there. Build freely, but don't keep anything there."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "player-path-2",
+   "aud": "player",
+   "heading": "Player path 2",
+   "title": "The table at a glance",
+   "lead": "By the end, you know every part of the screen, can find your way around the map, and can chat and join voice.",
+   "duration": 164.7,
+   "bytes": 7282488,
+   "chapters": [
+    {
+     "title": "Toolbar, map, Party",
+     "start": 0,
+     "say": [
+      "A quick tour of the table, before anything tries to eat you.",
+      "Along the top are two groups: Play tools, and Panels and settings. Hover any button for a tooltip.",
+      "Tools take turns. Picking one turns the last one off. Press Move, or click the active tool again, to turn it off.",
+      "The map is shared. What you change, everyone sees. What you see through the fog is yours.",
+      "The Party at the bottom has a row for every character: the party, the DM's, and any NPCs you can see.",
+      "Cards shows every card at once. Roster goes back to rows. Hide party folds it down.",
+      "The bar also holds World, and Props when your DM allows it."
+     ]
+    },
+    {
+     "title": "The Table menu",
+     "start": 44,
+     "say": [
+      "Top left is the Table button. It shows the table's name, and a dot for your connection: green online, red offline.",
+      "It opens a menu about the table and about you. Your role is here.",
+      "Preferences are yours alone. CRT adds scanlines and a monitor frame. Sound and motion controls animation, sound effects and volume."
+     ]
+    },
+    {
+     "title": "Moving around the map",
+     "start": 72.5,
+     "say": [
+      "Drag empty map space to pan. Middle-mouse drag works even with a tool active.",
+      "The wheel zooms toward your cursor.",
+      "Reset puts the view at the map's top-left corner at normal zoom. It's not the middle of the map. Or, sadly, your token.",
+      "To find your token, press the target on your row."
+     ]
+    },
+    {
+     "title": "Chat and whispers",
+     "start": 94.2,
+     "say": [
+      "Open Chat and Rolls. Chat is the first tab.",
+      "Choose Everyone for table talk, or Whisper to someone for a private message. Press Send or Enter.",
+      "Being the DM doesn't let anyone read other players' whispers."
+     ]
+    },
+    {
+     "title": "Voice",
+     "start": 111.4,
+     "say": [
+      "Voice works like joining a call. Press Join voice. Allow the microphone when your browser asks.",
+      "Before you join, you can see whether a call is running and how many are in it.",
+      "Mute keeps you in the call. You still hear everyone. Leave voice hangs up.",
+      "When someone talks, their portrait on their card glows in their colour and grows.",
+      "Wear headphones. It stops echo."
+     ]
+    },
+    {
+     "title": "On a phone",
+     "start": 139.8,
+     "say": [
+      "On a phone the map fills the screen, with a dock of five buttons.",
+      "Party, Tools, Dice, Chat, and Reset.",
+      "Party and Chat open full screen. Close them with the X, or drag the title bar down.",
+      "Voice is at the top of Party."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "player-path-3",
+   "aud": "player",
+   "heading": "Player path 3",
+   "title": "Your character card",
+   "lead": "By the end, you can open your card and every card at once, edit your character's name and HP, add a portrait and token art by upload or by link (and know the limits of each), set conditions and size, recolour your token, save the character to a file, and add a second one.",
+   "duration": 199.2,
+   "bytes": 10367947,
+   "chapters": [
+    {
+     "title": "Open your card",
+     "start": 0,
+     "say": [
+      "Every hero needs a name, a face, and a place to count the bruises.",
+      "The Party lists characters, not players. Select your row and your card opens beside the rows.",
+      "X or Escape closes it. Select another row to switch.",
+      "Cards shows every card at once."
+     ]
+    },
+    {
+     "title": "Name, HP and temp HP",
+     "start": 24.7,
+     "say": [
+      "Click the name to edit it.",
+      "Click either HP number to type a new value. Enter or click away saves.",
+      "Or drag along the bar. It goes green, amber, red as you drop.",
+      "Temp HP is a separate pool. It's used up before regular HP.",
+      "The sword button centres the map on this character's token."
+     ]
+    },
+    {
+     "title": "Portrait and token art",
+     "start": 50.1,
+     "say": [
+      "The gear opens your full settings. One window per character.",
+      "Your portrait and your token are two separate pictures.",
+      "There are two ways to add one. Upload image sends a picture from your computer to the table: a PNG, JPEG, GIF or WebP, up to five megabytes.",
+      "Or paste a link and press Apply. Links work from Imgur and Discord. Other sites are blocked, so if a link shows nothing, download the picture and upload it.",
+      "Clear takes the token back to a plain square in your colour."
+     ]
+    },
+    {
+     "title": "Conditions and size",
+     "start": 85.2,
+     "say": [
+      "Status Effects is a checklist of conditions. Up to three show on your portrait and token. The rest roll into a plus bubble.",
+      "Token Size runs from Tiny to Gargantuan."
+     ]
+    },
+    {
+     "title": "Your token on the map",
+     "start": 99.4,
+     "say": [
+      "Every token wears its name and, when you're allowed the numbers, a thin health bar.",
+      "Your colour is yours alone: no other player can take one close to it. Pick it in settings. Drag the handle and let go, or tap a dashed ring for a free one. The striped patches are the other players' colours, and the handle stops at their edge.",
+      "Double-click your token for a random colour nobody else is using. With a picture on it, the colour still shows in your name on the card and the ring on your Party row.",
+      "With Transform, click a token for scale and rotate handles.",
+      "A lock badge means the DM pinned it. No one can move it until they unlock it."
+     ]
+    },
+    {
+     "title": "Save, load, add a character",
+     "start": 141.1,
+     "say": [
+      "Save character downloads this character to a file. Load character brings it back, here or at another table.",
+      "It's one character, never the whole table.",
+      "One warning. A file with drawings replaces the drawings you have on the map.",
+      "Add Character gives you another one, with its own row, card, token and HP. Up to five each."
+     ]
+    },
+    {
+     "title": "On a phone",
+     "start": 169.9,
+     "say": [
+      "On a phone, open Party. Tap or drag your own HP to edit it.",
+      "Edit holds the name, your colour, portrait, token size, Add Character, and the character file. Double-tap your token for a new colour.",
+      "Token art is set from a computer. The phone keeps the art you gave it there."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "player-path-4",
+   "aud": "player",
+   "heading": "Player path 4",
+   "title": "Roll dice",
+   "lead": "By the end, you can build any roll, choose who sees it, enter physical dice, and roll initiative.",
+   "duration": 167.1,
+   "bytes": 8585356,
+   "chapters": [
+    {
+     "title": "Build and roll",
+     "start": 0,
+     "say": [
+      "Sooner or later, everything comes down to the dice.",
+      "Press Dice for the roller. Chat and Rolls holds the history.",
+      "Click dice to add them to the tray. Nothing rolls yet. Click again for more of the same.",
+      "Click the count badge to type an exact number.",
+      "Add a +1 or -1 chip. Click a chip to type any value.",
+      "Press Roll. Each die shows, then the total.",
+      "A natural 20 gets a critical banner.",
+      "A natural one, a fumble."
+     ]
+    },
+    {
+     "title": "Advantage and who sees it",
+     "start": 35.6,
+     "say": [
+      "Advantage rolls the first die twice and keeps the higher. Disadvantage keeps the lower. The other die stays, struck through.",
+      "Table means everyone. DM means you and the DM. Me means only you.",
+      "The line under the buttons says who will see it. A natural 20 only you can see is a very lonely natural 20.",
+      "A hidden roll is never sent to anyone else. Their browser has no copy."
+     ]
+    },
+    {
+     "title": "Quick rolls and macros",
+     "start": 67.6,
+     "say": [
+      "The Roll now row rolls straight away: d20, advantage, disadvantage and 2d6.",
+      "Build any roll and press Save to name it and keep it.",
+      "Saved rolls live in this browser. They don't follow you to another device."
+     ]
+    },
+    {
+     "title": "Rolling real dice",
+     "start": 89.2,
+     "say": [
+      "Rolling physical dice? Press I Rolled It and type the total. The tray can be empty.",
+      "Already rolled in the app, but the real dice said something else? Press That's Not What I Rolled.",
+      "Either way the log marks it \"by hand.\" When you correct a roll, the app's number stays, struck through.",
+      "Your DM can turn hand entry off."
+     ]
+    },
+    {
+     "title": "Initiative",
+     "start": 111.4,
+     "say": [
+      "Press Init on your card. Init is short for initiative: you roll it to find your place in the coming battle.",
+      "Set your modifier, then press Roll d20 now. The server rolls it, and it lands in the log with your name.",
+      "Or press Enter a roll by hand, and type your real d20.",
+      "If no fight is running, setting initiative starts combat for the whole table.",
+      "Prev and Next move the turn. Prev means previous: it steps the turn back one. On your turn, your card says Your Turn."
+     ]
+    },
+    {
+     "title": "On a phone",
+     "start": 147.2,
+     "say": [
+      "On a phone, Dice opens a full-screen roller. Tap outside the result card, or its cross, to close it.",
+      "Initiative is Init on your row in Party."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "player-path-5",
+   "aud": "player",
+   "heading": "Player path 5",
+   "title": "Draw, measure and ping",
+   "lead": "By the end, you can draw and erase, place an area template, measure a distance and ping a spot.",
+   "duration": 134.9,
+   "bytes": 6570909,
+   "chapters": [
+    {
+     "title": "Draw",
+     "start": 0,
+     "say": [
+      "Every battle plan needs a picture, or at least a very confident arrow.",
+      "Press Draw. The toolbox runs Tool, then Settings, then History.",
+      "Pick Freehand, Line, Rectangle or Circle. Rectangle and Circle can be filled.",
+      "Settings has colour, stroke width and opacity.",
+      "A drawing reaches everyone when you finish the stroke.",
+      "Press Move in the header to put the toolbox away."
+     ]
+    },
+    {
+     "title": "Undo and erase",
+     "start": 32,
+     "say": [
+      "Undo and redo affect only your own drawings. Ctrl+Z and Ctrl+Y work while Draw is on.",
+      "Erase drawings cuts through a freehand line. Other shapes go whole. All of it. At once.",
+      "You can erase your own drawings, and old ones with no owner. The DM can remove anyone's."
+     ]
+    },
+    {
+     "title": "Area templates",
+     "start": 55.1,
+     "say": [
+      "For spells, use the area templates: Burst, Cone, Cube and Bolt.",
+      "Drag out from the point of origin. It snaps to whole squares.",
+      "When you let go it's labelled with its size, like 15 ft cone. Everyone sees it. Including whoever is standing in it."
+     ]
+    },
+    {
+     "title": "Measure",
+     "start": 78,
+     "say": [
+      "Press Measure. Click a start point, and a line follows your cursor with the distance.",
+      "Click again to freeze it. A third click starts fresh.",
+      "The whole table sees your line while you draw it, with your name on it.",
+      "Distance follows the table's diagonal rule, set by the DM."
+     ]
+    },
+    {
+     "title": "Ping",
+     "start": 98.3,
+     "say": [
+      "Ping plants a coloured burst with your name, for three seconds, with a chime.",
+      "You can also double-click empty map space, in any tool."
+     ]
+    },
+    {
+     "title": "On a phone",
+     "start": 109.8,
+     "say": [
+      "On a phone, open Tools, then Draw. Hide controls makes room on the map. Your tool stays on.",
+      "The small row keeps undo, redo, cancel and done.",
+      "Double-tap empty map to ping."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "player-path-6",
+   "aud": "player",
+   "heading": "Player path 6",
+   "title": "Fog, doors and what you can see",
+   "lead": "By the end, you understand fog of war, sight limits, remembered areas and doors, and can read the world map.",
+   "duration": 111.3,
+   "bytes": 4522095,
+   "chapters": [
+    {
+     "title": "Fog follows your tokens",
+     "start": 0,
+     "say": [
+      "The dark is where all the interesting things hide.",
+      "When your DM runs a built map, fog of war hides what your characters can't see.",
+      "Vision comes from your own tokens. Walls and closed doors block it.",
+      "Move, and your view moves with you."
+     ]
+    },
+    {
+     "title": "Sight limits",
+     "start": 25.4,
+     "say": [
+      "Your DM can give a token a sight limit, like a torch or darkvision.",
+      "Past it you see nothing, even down an open corridor.",
+      "There's no player control for this. Ask your DM. Nicely."
+     ]
+    },
+    {
+     "title": "Places you have been",
+     "start": 39.6,
+     "say": [
+      "Somewhere you've already seen stays dimly lit, so you can find your way back.",
+      "It's only a memory of the ground. Anything that walked in since is still hidden.",
+      "Dim means remembered. Not safe.",
+      "The memory lives in your browser, for this table and this map."
+     ]
+    },
+    {
+     "title": "Doors",
+     "start": 60.6,
+     "say": [
+      "Click a door to open or close it. Everyone hears it.",
+      "A small gold square marks a locked door. Only the DM can open those.",
+      "Secret doors exist. Until the DM reveals one, it's a wall to you.",
+      "When your DM turns the light down, the map darkens, and torches and braziers glow. That's only the look. It doesn't change what you can see."
+     ]
+    },
+    {
+     "title": "The world map",
+     "start": 88.2,
+     "say": [
+      "World opens your campaign map: every place your party has found.",
+      "\"You are here\" marks where you're standing.",
+      "Door and stair sprites on a map lead somewhere else. Your DM opens them, and the whole table travels together."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-path-1",
+   "aud": "dm",
+   "heading": "DM path 1",
+   "title": "Create a private table",
+   "lead": "By the end, you can choose between the Main Hall and a private table, make one, find it again, and change its password.",
+   "duration": 130,
+   "bytes": 6018534,
+   "chapters": [
+    {
+     "title": "Main Hall or private table",
+     "start": 0,
+     "say": [
+      "Every campaign needs a home.",
+      "Every server starts with the Main Hall. It's a public test table. Its passwords are fixed, and it wipes itself after an hour empty.",
+      "For a real game, make a private table. It has its own passwords, and it's never cleared automatically.",
+      "Anyone can make one. You don't need to be a DM."
+     ]
+    },
+    {
+     "title": "The NEW TABLE form",
+     "start": 26.8,
+     "say": [
+      "Press New Table.",
+      "A name helps you find it in your list later.",
+      "The table password is what your players type. Six characters or more.",
+      "The DM password is optional, eight or more. If you skip it, the first person to enter DM mode sets it.",
+      "Press Create Private Table. You get a random table code, and you arrive as an ordinary player."
+     ]
+    },
+    {
+     "title": "Finding it again",
+     "start": 54.1,
+     "say": [
+      "Back on the join screen, the Table picker lists your tables by name.",
+      "Your browser remembers up to twelve. The server keeps no public list, so note your table's code.",
+      "Forget this table removes it from this browser. You'll need the code to return."
+     ]
+    },
+    {
+     "title": "Keeping a Main Hall build",
+     "start": 71.4,
+     "say": [
+      "Built something good on the Main Hall? Copy it to a table of your own.",
+      "In the DM Menu, open Table, then Security, then Save as a Private Table.",
+      "Give it a name and passwords, and press Save and Go There.",
+      "Everything comes across: the map, tokens, NPCs, drawings and images. The Main Hall carries on as before."
+     ]
+    },
+    {
+     "title": "Changing the password",
+     "start": 97.1,
+     "say": [
+      "On a private table, Security has Change table password. People already in stay. New joiners need the new one.",
+      "Change it if a code leaks, or after a one-shot.",
+      "Reset to default gives your table the Main Hall's password. Anyone with your code could join. Don't use it to tidy up.",
+      "Sure, it looks tidier. It also leaves your front door wide open."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-path-2",
+   "aud": "dm",
+   "heading": "DM path 2",
+   "title": "Become the DM and invite players",
+   "lead": "By the end, you can enter and leave DM mode, invite players safely, and remove a player who has left.",
+   "duration": 147.7,
+   "bytes": 5950578,
+   "chapters": [
+    {
+     "title": "Enter DM mode",
+     "start": 0,
+     "say": [
+      "Someone has to sit behind the screen, and today it's you.",
+      "DM mode belongs to the table, not a character. It's in the Table menu.",
+      "Press the Table button, top left. Under Your role, press Enter DM mode, and type the DM password.",
+      "A wrong password keeps the dialog open, with the reason, and you stay a player.",
+      "After five wrong tries, the server locks it for fifteen seconds."
+     ]
+    },
+    {
+     "title": "First DM on a new table",
+     "start": 35.6,
+     "say": [
+      "This table was made without a DM password. So the first try offers to set one.",
+      "You become the DM the moment it's saved."
+     ]
+    },
+    {
+     "title": "What you get",
+     "start": 47.1,
+     "say": [
+      "Two new buttons in the header: Build map, the live editor, and Player view.",
+      "The DM Menu sits at the right of the Party bar. It has six tabs.",
+      "On a phone, the dock's Reset slot becomes DM.",
+      "The Table menu now has Table settings, which opens the DM Menu on its Table tab."
+     ]
+    },
+    {
+     "title": "Invite players",
+     "start": 69.3,
+     "say": [
+      "Invite players on the next-steps card stays greyed until you've been the DM. Clicking it harder doesn't help.",
+      "Now it works.",
+      "Any time later, DM Menu, Table, Invite. You'll see the table's code and Copy invite link.",
+      "The link carries no password, on purpose. Send the password another way.",
+      "On a plain local network address, the browser blocks copying, so the link shows in a box to copy by hand."
+     ]
+    },
+    {
+     "title": "Who is at the table",
+     "start": 98.2,
+     "say": [
+      "Players at this table lists everyone who has joined, with a token count.",
+      "Select All grabs every unlocked token a player owns.",
+      "Remove appears on a player who isn't at the table. It clears their seat, characters and tokens. A locked token stays, and passes to you. There's no undo.",
+      "It's not a ban. The password still lets them back in, as a new player."
+     ]
+    },
+    {
+     "title": "Stepping down, co-DMs",
+     "start": 126,
+     "say": [
+      "Leave DM mode steps you back to player. You keep your character. The password brings the tools back.",
+      "Share the DM password with a co-DM, a second Dungeon Master, and you can both hold DM powers."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-path-3",
+   "aud": "dm",
+   "heading": "DM path 3",
+   "title": "Three ways to get a map on the table",
+   "lead": "By the end, you can put your own map image on the table, start a live map to build by hand, generate a place mid-session, and know when to use each.",
+   "duration": 155.6,
+   "bytes": 7997626,
+   "chapters": [
+    {
+     "title": "Which one, right now?",
+     "start": 0,
+     "say": [
+      "There are three ways to get a map down. Bring your own art. Build it here. Or kick in a door and let HeroByte make one.",
+      "You can switch between them mid-session.",
+      "One rule ties them together. Fog and the Kicked-In Door need a live map. A picture on its own isn't one. However lovely it is."
+     ]
+    },
+    {
+     "title": "A: a map you already have",
+     "start": 27.6,
+     "say": [
+      "Open the DM Menu, then Maps. Everything we need is under Current table map.",
+      "Under Map Background, upload your image. It's stored with your table.",
+      "You can paste a link instead, but the image's host must allow it. If nothing appears, download it and upload.",
+      "Now match the grid. Open Advanced. A new map starts locked, so nobody drags it mid-fight. Press Map Locked to unlock it.",
+      "In the Grid Alignment Wizard, press Start Alignment. Click two opposite corners of one square on the image. Press Apply Alignment.",
+      "Set Square Size in feet. Then lock the map again."
+     ]
+    },
+    {
+     "title": "B: build it here",
+     "start": 68,
+     "say": [
+      "For a scene that matters, build it. Walls block sight, doors open, fog reveals the room.",
+      "Open Build map and press Start live map. The live badge lights up.",
+      "Lesson four builds a room from here."
+     ]
+    },
+    {
+     "title": "C: kick in a door",
+     "start": 86.5,
+     "say": [
+      "The party goes somewhere you never prepped. They always do.",
+      "Close the editor, click the map, and press G.",
+      "The panel has a name already filled in. Type a better one if you like.",
+      "Pick the recipe. Dungeon, or a building: a tavern, shop, warehouse or house. Pick a size.",
+      "Press Generate and enter, or Enter. Reroll only changes the seed.",
+      "Seconds later the whole table is somewhere new. Fog is on, and the party stands inside the entrance.",
+      "A door sprite leads back. Click it, confirm, and the old scene comes back as you left it."
+     ]
+    },
+    {
+     "title": "Mixing them",
+     "start": 125.8,
+     "say": [
+      "Want fog on your own art? Upload it, start a live map, and draw only walls and doors over it.",
+      "Walls are invisible to players, so your art shows through.",
+      "A kicked-in place is an ordinary map. Stay in the editor and change it.",
+      "Every map can join your campaign tree on the World tab."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-path-4",
+   "aud": "dm",
+   "heading": "DM path 4",
+   "title": "Build your first room live",
+   "lead": "By the end, you can start a live map, draw a walled room with the floor and walls you want, fix mistakes, and check what players see.",
+   "duration": 130.6,
+   "bytes": 5842099,
+   "chapters": [
+    {
+     "title": "Start a live map",
+     "start": 0,
+     "say": [
+      "Every dungeon starts with one room.",
+      "The map editor runs on the live table. Players see each edit the moment you make it.",
+      "Press Build map, then Start live map.",
+      "That makes a fresh map and binds it to the table. The live badge lights up.",
+      "You'll see \"saving\" flicker just below it as each edit lands.",
+      "The tools are grouped: Terrain, Structures, Objects, Lighting and Generate."
+     ]
+    },
+    {
+     "title": "Pick a floor and walls",
+     "start": 34.2,
+     "say": [
+      "In Structures, pick Room.",
+      "The brush deck picks the floor. Choose a shelf, or search by name.",
+      "Wall ring picks the wall style: none, stone, brick, timber or dark.",
+      "None leaves the wall band unpainted, but the room still blocks sight."
+     ]
+    },
+    {
+     "title": "Drag out the room",
+     "start": 55.1,
+     "say": [
+      "Drag a rectangle. The preview shows the real floor, and a size in cells.",
+      "Let go. You get floor, a wall band, and blocking walls all round.",
+      "That whole room is one step to undo."
+     ]
+    },
+    {
+     "title": "Undo, redo and Escape",
+     "start": 70.4,
+     "say": [
+      "Undo map and Redo map sit above the settings. Ctrl+Z and Ctrl+Y work too.",
+      "Each drag is one step.",
+      "Mid-drag, Escape cancels it. Press Escape again, with nothing in progress, to leave the editor.",
+      "The map stays live. Open Build map again and you carry on.",
+      "One edit goes at a time. If you draw while the last one is still saving, you'll see \"Still saving the last change.\" Draw it again. Nothing was half-applied.",
+      "Think of it as building one brick at a time."
+     ]
+    },
+    {
+     "title": "What your players see",
+     "start": 107,
+     "say": [
+      "Here's the player's screen. The room appeared as you built it.",
+      "Players don't see walls. They act through fog and movement.",
+      "To check from your side, press Player view. You keep building while it's on."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-path-5",
+   "aud": "dm",
+   "heading": "DM path 5",
+   "title": "Walls, doors and fog",
+   "lead": "By the end, you can add walls and doors, set doors locked or secret, turn on fog, and make a dungeon dark.",
+   "duration": 138.6,
+   "bytes": 5885723,
+   "chapters": [
+    {
+     "title": "Walls",
+     "start": 0,
+     "say": [
+      "Good walls make good secrets.",
+      "Wall draws one straight blocking wall. Drag from point to point.",
+      "Players never see walls. They stop movement and sight.",
+      "While you edit, walls show as a see-through overlay. Pin walls overlay keeps it after you leave."
+     ]
+    },
+    {
+     "title": "Doors",
+     "start": 24.2,
+     "say": [
+      "Door: leave a gap in your wall, then drag the door across the gap. The drag sets its length and angle.",
+      "Doors start closed.",
+      "At the table, anyone can click a door to open or close it."
+     ]
+    },
+    {
+     "title": "Locked and secret",
+     "start": 41.3,
+     "say": [
+      "To change a door, pick it with Select, and open Inspect. Choose its state, then press Save changes.",
+      "Closed, Open, Locked or Secret.",
+      "A locked door shows a small gold lock to players, and a click tells them it's locked. You can still open it.",
+      "A secret door is invisible to players. You see it as a dashed seam.",
+      "At the table, Alt click a door to cycle its lock. Alt click a secret door to reveal it."
+     ]
+    },
+    {
+     "title": "Turn on fog",
+     "start": 74.2,
+     "say": [
+      "Fog of War is in the DM Menu, under Maps. It needs a built map with walls and doors.",
+      "Players then see only what their tokens see. You still see everything.",
+      "Things outside a player's sight are never sent to them."
+     ]
+    },
+    {
+     "title": "Make it dark",
+     "start": 92.3,
+     "say": [
+      "Table Sight Default sets how far every token sees. Set thirty feet and a corridor becomes something to walk down.",
+      "A single token can have its own Sight Radius, in its Token settings. 30, 60 or 120 feet, Blind, or any number you type.",
+      "A token you set yourself always wins over the table default."
+     ]
+    },
+    {
+     "title": "Check it",
+     "start": 116.7,
+     "say": [
+      "Player view shows the table through the party's eyes. Fog, hidden doors, no DM overlays.",
+      "Use it while you prep. It's the difference between \"I think that's hidden\"... and \"it is.\""
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-path-6",
+   "aud": "dm",
+   "heading": "DM path 6",
+   "title": "NPCs and the token library",
+   "lead": "By the end, you can add NPCs one at a time or as a pack, use the library, hide and reveal them, and set their stance.",
+   "duration": 155.1,
+   "bytes": 7361243,
+   "chapters": [
+    {
+     "title": "Add an NPC",
+     "start": 0,
+     "say": [
+      "A world is only as good as the things living in it.",
+      "Open the DM Menu, then NPCs and Monsters. Press Add NPC.",
+      "Each NPC has a name, HP, temp HP, an initiative modifier, a portrait and token art.",
+      "Players can't rename, damage or move your NPCs."
+     ]
+    },
+    {
+     "title": "Place it and find it",
+     "start": 28.7,
+     "say": [
+      "Place on Map drops its token at the map's top-left corner. Not the middle of your view. It hasn't vanished. It's sulking in the corner.",
+      "Press Focus to jump to it, then drag it where you want.",
+      "Pressing Place again moves it back to the corner as a fresh token. It doesn't add a second one."
+     ]
+    },
+    {
+     "title": "A pack at once",
+     "start": 51.1,
+     "say": [
+      "Set the number field to five, and the button says Add five NPCs. Five arrive, numbered.",
+      "A second batch carries on the numbering. It doesn't repeat it.",
+      "Duplicate copies one NPC: HP, art, size, stance. It takes the next free number."
+     ]
+    },
+    {
+     "title": "The library",
+     "start": 75.7,
+     "say": [
+      "Library opens the bundled pack: two hundred and forty-four tokens, monsters and townsfolk.",
+      "Narrow it with Monsters or Townsfolk, then Family.",
+      "Search matches every word. \"Goblin archer\" finds the goblin archer.",
+      "Click a token and it arrives as a new NPC, with its name, art and portrait filled in, at the right size. It isn't on the map yet. Press Place on Map, as before.",
+      "The number field works here too."
+     ]
+    },
+    {
+     "title": "Hide, stance and mimics",
+     "start": 108.1,
+     "say": [
+      "Select an NPC's row for its card. The eye hides it from players. Prep an ambush hidden, reveal it on the pounce.",
+      "Stance is Enemy, Neutral or Ally. It sets the card's colour. Players see it.",
+      "Mimics come in pairs. Place the closed chest. When they touch it... press Reveal Mimic."
+     ]
+    },
+    {
+     "title": "Your own tokens",
+     "start": 132.3,
+     "say": [
+      "The This Table shelf holds your own tokens. Add your own, from your computer or an image link.",
+      "Give it a name, tags and a stance, and it searches like the pack's tokens.",
+      "Players never receive the shelf."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-path-7",
+   "aud": "dm",
+   "heading": "DM path 7",
+   "title": "Run your first combat",
+   "lead": "By the end, you can set up an encounter, get initiative from NPCs and players, run turns and end the fight.",
+   "duration": 144.1,
+   "bytes": 7403878,
+   "chapters": [
+    {
+     "title": "The Encounter tab",
+     "start": 0,
+     "say": [
+      "Steel is drawn, and the dice are out.",
+      "Fights live in the DM Menu, under Encounter. Prepare, roll, run and end, all here.",
+      "Setup lists everyone who can fight: In the order, and Not rolled yet.",
+      "Monster HP players see: Exact, Bloodied, or Hidden. The server enforces it."
+     ]
+    },
+    {
+     "title": "Players roll first",
+     "start": 30.6,
+     "say": [
+      "Watch one thing. Any initiative saved while no fight is running starts combat, on that character's turn.",
+      "Your players press Init, short for initiative, on their card, and roll for their place in the battle.",
+      "The first one to roll starts the fight."
+     ]
+    },
+    {
+     "title": "Roll the NPCs",
+     "start": 50,
+     "say": [
+      "Roll missing NPC initiative rolls a d20 plus modifier for every NPC that has none.",
+      "Each gets its own line in the log. A hidden NPC rolls into your log only.",
+      "Players may type rolls by hand if your table allows it. This line tells you whether it does."
+     ]
+    },
+    {
+     "title": "Start at the top",
+     "start": 72.6,
+     "say": [
+      "The turn is with whoever rolled first, not the highest roll. Yes, even if that was a goblin.",
+      "Encounter shows a note when the turn isn't at the top.",
+      "Press Start at top of order. It moves the turn there, starts the round over and refills movement."
+     ]
+    },
+    {
+     "title": "Running turns",
+     "start": 93.1,
+     "say": [
+      "Next and Prev, for previous, move the turn. A chime marks each change. Anyone can press them.",
+      "The status line reads Turn, the number, and whose turn it is.",
+      "On a token's plate, its movement left this turn. Overspend and it turns red. Nothing is refused.",
+      "With monster HP on Bloodied, players see a red dot, not numbers."
+     ]
+    },
+    {
+     "title": "End the fight",
+     "start": 121.9,
+     "say": [
+      "End combat stops the fight and keeps every initiative on file.",
+      "That means the next initiative anyone saves starts a new fight.",
+      "Clear all initiative empties the order."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dm-path-8",
+   "aud": "dm",
+   "heading": "DM path 8",
+   "title": "Backups and keeping your work",
+   "lead": "By the end, you can download and restore a table backup, tell the three kinds of file apart, and know how big a campaign can get.",
+   "duration": 138.8,
+   "bytes": 6787048,
+   "chapters": [
+    {
+     "title": "Three kinds of file",
+     "start": 0,
+     "say": [
+      "Campaigns take months to build and one bad afternoon to lose.",
+      "HeroByte makes three kinds of file, and each picker tells you which it was handed.",
+      "A table backup is the whole table. It's in the DM Menu, under Table.",
+      "A character file is one character. It's in that character's settings.",
+      "An editable map is one map. It's under Maps, in the map library."
+     ]
+    },
+    {
+     "title": "Download a table backup",
+     "start": 30.2,
+     "say": [
+      "Download table backup saves the entire table as one file. Tokens, characters, NPCs, props, drawings, dice history, every saved map, and uploaded images.",
+      "Private rolls and whispers are left out.",
+      "It still holds secret doors, hidden NPCs and your notes.",
+      "Keep it to yourself."
+     ]
+    },
+    {
+     "title": "Restore one",
+     "start": 53.6,
+     "say": [
+      "Restore table backup replaces the table for everyone connected. Read the confirmation.",
+      "The map, NPCs, props, drawings and settings become the file's.",
+      "Players keep their own characters and tokens. Nobody's DM status changes.",
+      "Hand it the wrong kind of file and it says so, by name, and loads nothing.",
+      "If the table would end up too big, it refuses, says why, and changes nothing."
+     ]
+    },
+    {
+     "title": "How big a campaign can get",
+     "start": 82.8,
+     "say": [
+      "A backup has to restore in one go, so a table has a size limit.",
+      "The line beside the map list says where you are: Room for more maps, Nearly full, Full, or Too big to restore.",
+      "Its tooltip shows the exact size. Delete a map you're done with to make room."
+     ]
+    },
+    {
+     "title": "Habits that save campaigns",
+     "start": 104.6,
+     "say": [
+      "Download a backup at the end of every session. The file name already carries the date and time.",
+      "Download one before anything risky, like mass deleting.",
+      "On free hosting, the server's disk can reset. The file in your downloads is what you can count on.",
+      "Building on the Main Hall? Save it as a private table before it clears. DM lesson one shows how."
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -77,34 +77,18 @@
 <div class="section-head">
 <div class="eyebrow">The full course</div>
 <h2 class="h2" style="font-size: clamp(16px, 2vw, 22px)">Learning paths</h2>
-<p class="sub">Ready for more after your first session? Each path is a run of lessons in order. Where a lesson page isn't written yet, the step opens the guide section that covers it.</p>
+<p class="sub">Ready for more after your first session? Each path is a run of short video lessons, in order, each with its steps written out underneath.</p>
 </div>
 <div class="grid" style="--min: 360px">
 <div class="card blue shadow path" style="padding: 32px; gap: 20px">
 <div class="path-head"><h3 class="h3 blue" style="font-size: 14px">I'M A PLAYER</h3><span class="muted small" style="font-family: var(--mono)">6 lessons</span></div>
-<ol>
-<li><a href="player-quick-start.html"><span class="n blue">1</span><span class="t">Join a table</span><span class="kind blue">LESSON</span></a></li>
-<li><a href="guide/player-guide.html#the-table-at-a-glance"><span class="n blue">2</span><span class="t">The table at a glance</span></a></li>
-<li><a href="guide/player-guide.html#your-character-card"><span class="n blue">3</span><span class="t">Your character card</span></a></li>
-<li><a href="guide/player-guide.html#dice"><span class="n blue">4</span><span class="t">Roll dice</span></a></li>
-<li><a href="guide/player-guide.html#drawing-measuring-pointing"><span class="n blue">5</span><span class="t">Draw, measure and ping</span></a></li>
-<li><a href="guide/player-guide.html#doors-fog-and-what-you-can-see"><span class="n blue">6</span><span class="t">Fog, doors and what you can see</span></a></li>
-</ol>
-<a class="btn btn-blue btn-sm" style="align-self: flex-start" href="player-quick-start.html">START THE PLAYER PATH</a>
+{{pathList:player}}
+<a class="btn btn-blue btn-sm" style="align-self: flex-start" href="join-a-table.html">START THE PLAYER PATH</a>
 </div>
 <div class="card gold shadow path" style="padding: 32px; gap: 20px">
 <div class="path-head"><h3 class="h3 gold" style="font-size: 14px">I'M THE DM</h3><span class="muted small" style="font-family: var(--mono)">8 lessons</span></div>
-<ol>
-<li><a href="dm-quick-start.html"><span class="n gold">1</span><span class="t">Create a private table</span><span class="kind gold">LESSON</span></a></li>
-<li><a href="guide/getting-started.html#becoming-the-dm"><span class="n gold">2</span><span class="t">Become the DM and invite players</span></a></li>
-<li><a href="guide/running-a-game.html"><span class="n gold">3</span><span class="t">Three ways to get a map on the table</span></a></li>
-<li><a href="build-your-first-room.html"><span class="n gold">4</span><span class="t">Build your first room live</span><span class="kind gold">LESSON</span></a></li>
-<li><a href="guide/map-editor-guide.html#-wall-and--door"><span class="n gold">5</span><span class="t">Walls, doors and fog</span></a></li>
-<li><a href="guide/dm-guide.html#npcs--monsters"><span class="n gold">6</span><span class="t">NPCs and the token library</span></a></li>
-<li><a href="guide/dm-guide.html#encounter"><span class="n gold">7</span><span class="t">Run your first combat</span></a></li>
-<li><a href="guide/dm-guide.html#backups"><span class="n gold">8</span><span class="t">Backups and keeping your work</span></a></li>
-</ol>
-<a class="btn btn-gold btn-sm" style="align-self: flex-start" href="dm-quick-start.html">START THE DM PATH</a>
+{{pathList:dm}}
+<a class="btn btn-gold btn-sm" style="align-self: flex-start" href="create-a-private-table.html">START THE DM PATH</a>
 </div>
 </div>
 </section>
@@ -113,14 +97,9 @@
 <div class="section-head">
 <div class="eyebrow">Watch or read</div>
 <h2 class="h2" style="font-size: clamp(16px, 2vw, 22px)">Lessons</h2>
-<p class="sub">Each lesson has a written version now. The videos are being recorded.</p>
+<p class="sub">Two quick starts, then a path for each side of the table. Every video has its steps written out on its page.</p>
 </div>
-<div class="grid" style="--min: 250px; --gap: 24px">
-<a class="video-card" href="player-quick-start.html"><div class="thumb"><img src="../img/dice-result.jpg" alt="" loading="lazy"><span class="badge">VIDEO SOON</span></div><span class="tag blue">Player</span><span class="title">Your first session as a player</span></a>
-<a class="video-card" href="dm-quick-start.html"><div class="thumb"><img src="../img/table-next-steps.jpg" alt="" loading="lazy"><span class="badge">VIDEO SOON</span></div><span class="tag gold">DM</span><span class="title">Set up your table before game night</span></a>
-<a class="video-card" href="build-your-first-room.html"><div class="thumb"><img src="../img/mapedit-start.jpg" alt="" loading="lazy"><span class="badge">VIDEO SOON</span></div><span class="tag gold">DM</span><span class="title">Build your first room live</span></a>
-<a class="video-card" href="voice-chat.html"><div class="thumb"><img src="../img/party-details.jpg" alt="" loading="lazy"></div><span class="tag" style="color: var(--ink-3)">Everyone</span><span class="title">Voice chat</span></a>
-</div>
+{{lessonCards}}
 </section>
 
 <section id="topics" class="section" style="padding-top: 64px">
@@ -146,43 +125,44 @@
 <li><a href="guide/getting-started.html#switching-tables-invites-and-codes">Lost a table code</a></li>
 </ul></div>
 <div class="topic" data-aud="everyone"><div class="topic-head"><h3 class="h3">GETTING STARTED</h3><span class="aud aud-everyone">Everyone</span></div><ul>
-<li><a href="player-quick-start.html">Join a table<span class="kind">LESSON</span></a></li>
+<li><a href="join-a-table.html">Join a table<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/getting-started.html#the-main-hall-is-the-public-test-table">The Main Hall test table</a></li>
-<li><a href="dm-quick-start.html">Create a private table<span class="kind">LESSON</span></a></li>
-<li><a href="guide/getting-started.html#becoming-the-dm">Become the DM</a></li>
+<li><a href="create-a-private-table.html">Create a private table<span class="kind">VIDEO</span></a></li>
+<li><a href="become-the-dm.html">Become the DM<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/getting-started.html#which-browser-which-device">Which browser or device?</a></li>
 </ul></div>
 <div class="topic" data-aud="player"><div class="topic-head"><h3 class="h3">AT THE TABLE</h3><span class="aud aud-player">Player</span></div><ul>
-<li><a href="guide/player-guide.html#the-table-at-a-glance">The table at a glance</a></li>
-<li><a href="guide/player-guide.html#your-character-card">Your character card</a></li>
+<li><a href="the-table-at-a-glance.html">The table at a glance<span class="kind">VIDEO</span></a></li>
+<li><a href="your-character-card.html">Your character card<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/player-guide.html#tokens">Tokens and moving around</a></li>
 <li><a href="guide/player-guide.html#table-chat-and-whispers">Chat and whispers</a></li>
 <li><a href="voice-chat.html">Voice chat<span class="kind">ARTICLE</span></a></li>
 </ul></div>
 <div class="topic" data-aud="player"><div class="topic-head"><h3 class="h3">DICE</h3><span class="aud aud-player">Player</span></div><ul>
-<li><a href="guide/player-guide.html#dice">Roll dice</a></li>
+<li><a href="roll-dice.html">Roll dice<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/player-guide.html#advantage-and-disadvantage">Advantage and disadvantage</a></li>
 <li><a href="guide/player-guide.html#rolling-real-dice-instead">Enter real dice rolls</a></li>
 <li><a href="guide/player-guide.html#who-sees-a-roll">Who sees a roll</a></li>
 <li><a href="guide/player-guide.html#macros">Macros</a></li>
 </ul></div>
 <div class="topic" data-aud="player"><div class="topic-head"><h3 class="h3">DRAW, MEASURE, PING</h3><span class="aud aud-player">Player</span></div><ul>
+<li><a href="draw-measure-and-ping.html">Draw, measure and ping<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/player-guide.html#-draw">Draw on the map</a></li>
 <li><a href="guide/player-guide.html#area-templates">Area templates</a></li>
 <li><a href="guide/player-guide.html#-measure">Measure distance</a></li>
 <li><a href="guide/player-guide.html#-ping">Ping a spot</a></li>
 </ul></div>
 <div class="topic" data-aud="everyone"><div class="topic-head"><h3 class="h3">FOG, DOORS AND SIGHT</h3><span class="aud aud-everyone">Everyone</span></div><ul>
-<li><a href="guide/player-guide.html#doors-fog-and-what-you-can-see">What your character can see</a></li>
+<li><a href="fog-doors-and-sight.html">What your character can see<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/player-guide.html#doors-fog-and-what-you-can-see">Opening doors</a></li>
 <li><a href="guide/dm-guide.html#everything-else-you-now-own">Locked and secret doors</a></li>
 <li><a href="guide/dm-guide.html#the-player-lens">Check the player lens (DM)</a></li>
 </ul></div>
 <div class="topic" data-aud="dm"><div class="topic-head"><h3 class="h3">BUILDING MAPS</h3><span class="aud aud-dm">DM</span></div><ul>
 <li><a href="guide/map-editor-guide.html#starting-a-live-map">Start a live map</a></li>
-<li><a href="build-your-first-room.html">Build your first room live<span class="kind">LESSON</span></a></li>
+<li><a href="build-your-first-room.html">Build your first room live<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/map-editor-guide.html#-room-and--hallway--the-structural-tools">Rooms and hallways</a></li>
-<li><a href="guide/map-editor-guide.html#-wall-and--door">Walls and doors</a></li>
+<li><a href="walls-doors-and-fog.html">Walls, doors and fog<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/map-editor-guide.html#-light--torches-and-night">Torchlight and night</a></li>
 <li><a href="guide/map-editor-guide.html#-paint-and--erase--freehand-terrain">Paint and erase terrain</a></li>
 <li><a href="guide/map-editor-guide.html#-place--scatter-and--repeat-along-line--set-dressing">Place, scatter and repeat props</a></li>
@@ -191,10 +171,10 @@
 <li><a href="guide/map-editor-guide.html#the-quick-wheel">The quick wheel</a></li>
 </ul></div>
 <div class="topic" data-aud="dm"><div class="topic-head"><h3 class="h3">RUNNING A SESSION</h3><span class="aud aud-dm">DM</span></div><ul>
-<li><a href="guide/running-a-game.html">Three ways to get a map on the table</a></li>
-<li><a href="guide/dm-guide.html#npcs--monsters">NPCs and monsters</a></li>
+<li><a href="three-ways-to-get-a-map.html">Three ways to get a map on the table<span class="kind">VIDEO</span></a></li>
+<li><a href="npcs-and-the-token-library.html">NPCs and the token library<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/dm-guide.html#the-library-monsters-and-townsfolk">The token library</a></li>
-<li><a href="guide/dm-guide.html#encounter">Initiative and combat</a></li>
+<li><a href="run-your-first-combat.html">Run your first combat<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/dm-guide.html#props--objects">Props and objects</a></li>
 </ul></div>
 <div class="topic" data-aud="dm"><div class="topic-head"><h3 class="h3">TABLE ADMIN</h3><span class="aud aud-dm">DM</span></div><ul>
@@ -204,6 +184,7 @@
 <li><a href="guide/dm-guide.html#save-as-a-private-table-the-test-table">Save the Main Hall as a private table</a></li>
 </ul></div>
 <div class="topic" data-aud="dm"><div class="topic-head"><h3 class="h3">SAVING AND BACKUPS</h3><span class="aud aud-dm">DM</span></div><ul>
+<li><a href="backups-and-keeping-your-work.html">Backups and keeping your work<span class="kind">VIDEO</span></a></li>
 <li><a href="guide/dm-guide.html#backups">What is saved, and what a backup is</a></li>
 <li><a href="guide/dm-guide.html#backups">Download or restore a table backup</a></li>
 <li><a href="guide/player-guide.html#the-settings-window-">Save or load one character</a></li>

@@ -206,7 +206,7 @@ Type the table password and press Enter Table.
 
 Get it wrong and the error shows in red. What you typed stays in the field, so you can spot the typo. [Pause, dry amusement] Passwords are case-sensitive.
 
-[Warm, clear tutorial narration] On a built map, the view starts on your token.
+[Warm, clear tutorial narration] On a built map with one character, the view starts on your token.
 ```
 
 - Added: "Before the dice come out, you have to get in."
@@ -216,7 +216,7 @@ Get it wrong and the error shows in red. What you typed stays in the field, so y
 ```text
 [Warm, clear tutorial narration] Belong to more than one table? A Table picker appears above the password. Choose the table, type its password, enter.
 
-Have a code instead of a link? Paste it under Join by code, and press Join.
+Have a code instead of a link? Paste it in the table code box, under Start or join. Then press Join.
 
 Forget this table drops a private table from this browser's list. You'll need its code to get back.
 
@@ -230,17 +230,17 @@ Your browser remembers up to twelve tables. [lower, conspiratorial] The server p
 
 If your connection blips, HeroByte reconnects for you. You'll see Reconnecting, then Re-authenticating, under the header.
 
-For up to six hours, a reload or a blip brings you back as the same person.
+In this browser, a reload or a blip brings you back as the same person. Your seat is held for you for six hours. After that, a DM needs the DM password again.
 ```
 
 ### 4. One tab, one device
 
 ```text
-[Warm, clear tutorial narration] One live connection per device. Open the same table in a second tab and the older tab pauses. Press Reclaim this tab to switch back.
+[Warm, clear tutorial narration] One live connection per browser. Open the same table in a second tab and the older tab pauses. Press Reclaim this tab to switch back.
 
-Open it on a different device while the first is still connected, and you'll see Held in another window. Your seat is kept for the first device.
+A different device or browser joins as a new player, with a new character.
 
-If the first device is gone and this browser can't get back in, try again once. If it still fails, Start a fresh session appears.
+Sometimes this browser can't prove it's still you. Then you'll see Held in another window, and your seat stays held. Try again once. If it still fails, Start a fresh session appears.
 
 [measured, serious] That makes you a new player. You can't get back into your old character. Use it as a last resort.
 ```
@@ -267,11 +267,11 @@ You'll see the public test table marker at the top while you're there. Build fre
 ```text
 [Warm, clear tutorial narration] A quick tour of the table, before anything tries to eat you.
 
-Tools and toggles run along the top. Hover any button for a tooltip.
+Along the top are two groups: Play tools, and Panels and settings. Hover any button for a tooltip.
 
-Tools take turns. Picking one turns the last one off. Click the active tool again to turn it off.
+Tools take turns. Picking one turns the last one off. Press Move, or click the active tool again, to turn it off.
 
-The map is shared. Everything on it syncs to every player.
+The map is shared. What you change, everyone sees. What you see through the fog is yours.
 
 The Party at the bottom has a row for every character: the party, the DM's, and any N P Cs you can see.
 
@@ -309,7 +309,7 @@ Reset puts the view at the map's top-left corner at normal zoom. [Pause, dry amu
 ### 4. Chat and whispers
 
 ```text
-[Warm, clear tutorial narration] Open Chat and Rolls, then Chat.
+[Warm, clear tutorial narration] Open Chat and Rolls. Chat is the first tab.
 
 Choose Everyone for table talk, or Whisper to someone for a private message. Press Send or Enter.
 
@@ -325,7 +325,7 @@ Before you join, you can see whether a call is running and how many are in it.
 
 Mute keeps you in the call. You still hear everyone. Leave voice hangs up.
 
-When someone talks, their portrait glows green and grows.
+When someone talks, their portrait on their card glows in their colour and grows.
 
 Wear headphones. It stops echo.
 ```
@@ -358,6 +358,8 @@ Voice is at the top of Party.
 The Party lists characters, not players. Select your row and your card opens beside the rows.
 
 X or Escape closes it. Select another row to switch.
+
+Cards shows every card at once.
 ```
 
 - Added: "Every hero needs a name, a face, and a place to count the bruises."
@@ -376,35 +378,45 @@ Temp H P is a separate pool. It's used up before regular H P.
 The sword button centres the map on this character's token.
 ```
 
-### 3. The settings window
+### 3. Portrait and token art
 
 ```text
 [Warm, clear tutorial narration] The gear opens your full settings. One window per character.
 
-Upload a portrait from your computer. On a phone, that's your camera roll.
+Your portrait and your token are two separate pictures.
 
-Give your token its own image too. Clear goes back to a coloured ring.
+There are two ways to add one. Upload image sends a picture from your computer to the table: a P N G, JPEG, GIF or WebP, up to five megabytes.
 
-Status Effects is a checklist of conditions. Up to three show on your portrait and token. The rest roll into a plus bubble.
+Or paste a link and press Apply. Links work from Imgur and Discord. Other sites are blocked, so if a link shows nothing, download the picture and upload it.
+
+Clear takes the token back to a plain square in your colour.
 ```
 
-### 4. Your token
+- Check: how Wren reads "JPEG", "GIF", "WebP" and "Imgur"; pin any she misreads with IPA as the header note describes.
+
+### 4. Conditions and size
 
 ```text
-[Warm, clear tutorial narration] Token Size runs from Tiny to Gargantuan.
+[Warm, clear tutorial narration] Status Effects is a checklist of conditions. Up to three show on your portrait and token. The rest roll into a plus bubble.
 
-Every token wears its name and, when you're allowed the numbers, a thin health bar.
+Token Size runs from Tiny to Gargantuan.
+```
 
-Double-click your token for a new random colour.
+### 5. Your token on the map
+
+```text
+[Warm, clear tutorial narration] Every token wears its name and, when you're allowed the numbers, a thin health bar.
+
+Your colour is yours alone: no other player can take one close to it. Pick it in settings. Drag the handle and let go, or tap a dashed ring for a free one. The striped patches are the other players' colours, and the handle stops at their edge.
+
+Double-click your token for a random colour nobody else is using. With a picture on it, the colour still shows in your name on the card and the ring on your Party row.
 
 With Transform, click a token for scale and rotate handles.
 
 A lock badge means the DM pinned it. No one can move it until they unlock it.
 ```
 
-- Check: whether double-click recolour works on a token that has a custom image.
-
-### 5. Save, load, add a character
+### 6. Save, load, add a character
 
 ```text
 [Warm, clear tutorial narration] Save character downloads this character to a file. Load character brings it back, here or at another table.
@@ -413,17 +425,19 @@ It's one character, never the whole table.
 
 [Pause, dry amusement] One warning. A file with drawings replaces the drawings you have on the map.
 
-[Warm, clear tutorial narration] Add Character gives you a second one, with its own row, card, token and H P.
+[Warm, clear tutorial narration] Add Character gives you another one, with its own row, card, token and H P. Up to five each.
 ```
 
 - Added: "One warning. A file with drawings replaces the drawings you have on the map." The second sentence is the source's common-mistake caption, which says "Say it; no need to perform it"; it was not in the Say block.
 
-### 6. On a phone
+### 7. On a phone
 
 ```text
 [Warm, clear tutorial narration] On a phone, open Party. Tap or drag your own H P to edit it.
 
-Edit holds the name, portrait, token size, Add Character, and the character file.
+Edit holds the name, your colour, portrait, token size, Add Character, and the character file. Double-tap your token for a new colour.
+
+Token art is set from a computer. The phone keeps the art you gave it there.
 ```
 
 ---
@@ -483,7 +497,7 @@ Saved rolls live in this browser. They don't follow you to another device.
 
 Already rolled in the app, but the real dice said something else? Press That's Not What I Rolled.
 
-Either way the log marks it "by hand," and keeps the app's number struck through.
+Either way the log marks it "by hand." When you correct a roll, the app's number stays, struck through.
 
 [lower, conspiratorial] Your DM can turn hand entry off.
 ```
@@ -507,7 +521,7 @@ If no fight is running, setting initiative starts combat for the whole table.
 ### 6. On a phone
 
 ```text
-[Warm, clear tutorial narration] On a phone, Dice opens a full-screen roller. Tap the result card to dismiss it.
+[Warm, clear tutorial narration] On a phone, Dice opens a full-screen roller. Tap outside the result card, or its cross, to close it.
 
 Initiative is "/ˈɪnɪt/" on your row in Party.
 ```
@@ -641,7 +655,7 @@ A small gold square marks a locked door. Only the DM can open those.
 
 [whispering] Secret doors exist. Until the DM reveals one, it's a wall to you.
 
-[Warm, clear tutorial narration] At night the map darkens, and torches and braziers cast light.
+[Warm, clear tutorial narration] When your DM turns the light down, the map darkens, and torches and braziers glow. That's only the look. It doesn't change what you can see.
 ```
 
 - Resolved 2026-10-12: a player clicking a locked door gets a toast, "This door is locked. Only the DM can open it.", and a quiet latch clunk only they hear (before the fix, the refusal reached only the console).
@@ -793,9 +807,9 @@ On a plain local network address, the browser blocks copying, so the link shows 
 ```text
 [Warm, clear tutorial narration] Players at this table lists everyone who has joined, with a token count.
 
-Select All grabs every token a player owns.
+Select All grabs every unlocked token a player owns.
 
-Remove appears on a player who isn't at the table. It clears their seat, characters and tokens. [measured, serious] There's no undo.
+Remove appears on a player who isn't at the table. It clears their seat, characters and tokens. A locked token stays, and passes to you. [measured, serious] There's no undo.
 
 [Warm, clear tutorial narration] It's not a ban. The password still lets them back in, as a new player.
 ```
@@ -829,17 +843,17 @@ One rule ties them together. Fog and the Kicked-In Door need a live map. [Pause,
 ### 2. A: a map you already have
 
 ```text
-[Warm, clear tutorial narration] Open the DM Menu, then Maps. Everything here is under Current table map.
+[Warm, clear tutorial narration] Open the DM Menu, then Maps. Everything we need is under Current table map.
 
 Under Map Background, upload your image. It's stored with your table.
 
 You can paste a link instead, but the image's host must allow it. If nothing appears, download it and upload.
 
-Now match the grid. Open Advanced, then the Grid Alignment Wizard, and press Start Alignment.
+Now match the grid. Open Advanced. A new map starts locked, so nobody drags it mid-fight. Press Map Locked to unlock it.
 
-Click two opposite corners of one square on the image. Press Apply Alignment.
+In the Grid Alignment Wizard, press Start Alignment. Click two opposite corners of one square on the image. Press Apply Alignment.
 
-Set Square Size in feet. Then lock the map, so nobody drags it mid-fight.
+Set Square Size in feet. Then lock the map again.
 ```
 
 ### 3. B: build it here
@@ -857,7 +871,7 @@ Lesson four builds a room from here.
 ```text
 [Warm, clear tutorial narration] The party goes somewhere you never prepped. [Pause, dry amusement] They always do.
 
-[Quick, light, playful pace] Press G.
+[Quick, light, playful pace] Close the editor, click the map, and press G.
 
 [Warm, clear tutorial narration] The panel has a name already filled in. Type a better one if you like.
 
@@ -902,7 +916,7 @@ Press Build map, then Start live map.
 
 That makes a fresh map and binds it to the table. The live badge lights up.
 
-You'll see "saving" flicker beside it as each edit lands.
+You'll see "saving" flicker just below it as each edit lands.
 
 The tools are grouped: Terrain, Structures, Objects, Lighting and Generate.
 ```
@@ -983,7 +997,7 @@ While you edit, walls show as a see-through overlay. Pin walls overlay keeps it 
 ### 2. Doors
 
 ```text
-[Warm, clear tutorial narration] Door: drag across a wall. The drag sets its length and angle.
+[Warm, clear tutorial narration] Door: leave a gap in your wall, then drag the door across the gap. The drag sets its length and angle.
 
 Doors start closed.
 
@@ -993,11 +1007,11 @@ At the table, anyone can click a door to open or close it.
 ### 3. Locked and secret
 
 ```text
-[Warm, clear tutorial narration] To change a door, pick it with Select, and open Inspect.
+[Warm, clear tutorial narration] To change a door, pick it with Select, and open Inspect. Choose its state, then press Save changes.
 
 Closed, Open, Locked or Secret.
 
-A locked door says it's locked to players. You can still open it.
+A locked door shows a small gold lock to players, and a click tells them it's locked. You can still open it.
 
 [whispering] A secret door is invisible to players. You see it as a dashed seam.
 
@@ -1021,7 +1035,7 @@ Players then see only what their tokens see. You still see everything.
 ```text
 [Warm, clear tutorial narration] Table Sight Default sets how far every token sees. Set thirty feet and a corridor becomes something to walk down.
 
-A single token can have its own Sight Radius, in its Token settings. Darkvision, a torch, or Blind.
+A single token can have its own Sight Radius, in its Token settings. Thirty, sixty or a hundred and twenty feet, Blind, or any number you type.
 
 [Pause, dry amusement] A token you set yourself always wins over the table default.
 ```
@@ -1083,9 +1097,9 @@ Duplicate copies one N P C: H P, art, size, stance. It takes the next free numbe
 
 Narrow it with Monsters or Townsfolk, then Family.
 
-Search matches every word. "Goblin archer" finds goblin archers.
+Search matches every word. "Goblin archer" finds the goblin archer.
 
-Click a token and it arrives as a new N P C, with its name, art and portrait filled in, at the right size.
+Click a token and it arrives as a new N P C, with its name, art and portrait filled in, at the right size. It isn't on the map yet. Press Place on Map, as before.
 
 The number field works here too.
 ```
@@ -1151,7 +1165,7 @@ The first one to roll starts the fight.
 
 Each gets its own line in the log. [lower, conspiratorial] A hidden N P C rolls into your log only.
 
-[Warm, clear tutorial narration] Players may type rolls by hand if your table allows it. The line here says which.
+[Warm, clear tutorial narration] Players may type rolls by hand if your table allows it. This line tells you whether it does.
 ```
 
 ### 4. Start at the top
@@ -1214,7 +1228,7 @@ An editable map is one map. It's under Maps, in the map library.
 ### 2. Download a table backup
 
 ```text
-[Warm, clear tutorial narration] Download table backup saves the entire table as one file. Tokens, characters, N P Cs, props, drawings, dice history, the live map, and uploaded images.
+[Warm, clear tutorial narration] Download table backup saves the entire table as one file. Tokens, characters, N P Cs, props, drawings, dice history, every saved map, and uploaded images.
 
 Private rolls and whispers are left out.
 
@@ -1236,6 +1250,8 @@ The map, N P Cs, props, drawings and settings become the file's.
 Players keep their own characters and tokens. Nobody's DM status changes.
 
 Hand it the wrong kind of file and it says so, by name, and loads nothing.
+
+If the table would end up too big, it refuses, says why, and changes nothing.
 ```
 
 ### 4. How big a campaign can get
@@ -1251,11 +1267,41 @@ Its tooltip shows the exact size. Delete a map you're done with to make room.
 ### 5. Habits that save campaigns
 
 ```text
-[Warm, clear tutorial narration] Download a backup at the end of every session. Name it by date.
+[Warm, clear tutorial narration] Download a backup at the end of every session. The file name already carries the date and time.
 
 Download one before anything risky, like mass deleting.
 
 On free hosting, the server's disk can reset. The file in your downloads is what you can count on.
 
 Building on the Main Hall? Save it as a private table before it clears. DM lesson one shows how.
+```
+
+---
+
+## Trailer: Kick In The Door
+
+The 60-second trailer (`docs/website/trailer.md`). Four short lines over the music, each timed into a gap in the cut.
+
+### 1. Cold open
+
+```text
+[low, conspiratorial] Every campaign... needs somewhere to happen.
+```
+
+### 2. The hook
+
+```text
+[confident, building] Build the dungeon... while your party plays.
+```
+
+### 3. The break
+
+```text
+[warm, easy] No accounts. Your players join with a link and a password.
+```
+
+### 4. The close
+
+```text
+[triumphant, warm] HeroByte. Your table is ready.
 ```
