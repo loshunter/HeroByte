@@ -100,10 +100,11 @@ Handoff: `docs/planning/PROMPT-token-creator-c4.md` (untracked).
 
 ## Known debt and open items
 
-- **Abandoned uploads (server): fixed after the slice** (`4226467b` refactor, then the reclaim
-  commit). The creator uploads with `x-herobyte-intent: apply`; the server stamps that room's claim
+- **Abandoned uploads (server): fixed after the slice** (`4226467b` refactor, `269436f5` the reclaim,
+  then the review's fixes). The creator uploads with `x-herobyte-intent: apply`; the server stamps that room's claim
   (`StoredAsset.pendingApply`), and the reclaim sweep releases a stamped claim the room's state has
-  not referenced within 15 minutes (`APPLY_ADOPT_WINDOW_MS`), condemning the asset if it was the last
+  not referenced 15 minutes after the upload (`APPLY_ADOPT_WINDOW_MS`; at the next 5-minute sweep, so
+  15 to 20 minutes), condemning the asset if it was the last
   claim (the 7-day grace still guards the bytes). Uploads without the intent (My Stuff shelves,
   backups, the other image fields) keep the old rule. A fork inherits a pending stamp with its clock.
 - **Not automated:** a character file loaded at another table, and a backup restoring the picture,
