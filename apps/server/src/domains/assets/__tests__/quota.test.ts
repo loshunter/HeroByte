@@ -9,6 +9,9 @@ import {
   roomBytesFromTotal,
 } from "../quota.js";
 import { AssetService, roomsOf } from "../service.js";
+import { ABANDONED_APPLY_ALLOWANCE_BYTES, roomChargedBytes } from "../quota.js";
+import { APPLY_ADOPT_WINDOW_MS } from "../assetRoomClaims.js";
+import type { StoredAsset } from "../assetTypes.js";
 
 const MB = 1024 * 1024;
 const TMP_DIR = path.join(process.cwd(), ".tmp", "asset-quota-test");
@@ -217,5 +220,47 @@ describe("AssetService quota integration", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe("roomChargedBytes: abandoned apply uploads, up to an allowance", () => {
+  const MB = 1024 * 1024;
+  const NOW = 10 * APPLY_ADOPT_WINDOW_MS;
+  const OLD = NOW - APPLY_ADOPT_WINDOW_MS;
+  const piece = (hash: string, size: number, extra: Partial<StoredAsset> = {}): StoredAsset => ({
+    hash,
+    mime: "image/png",
+    extension: "png",
+    size,
+    createdAt: 1,
+    rooms: ["room-a"],
+    ...extra,
+  });
+
+  it("the allowance is 5 MB", () => {
+    expect(ABANDONED_APPLY_ALLOWANCE_BYTES).toBe(5 * MB);
+  });
+
+  it("frees abandoned bytes up to the allowance and charges the rest", () => {
+    const assets = [
+      piece("a", 3 * MB, { pendingApply: { "room-a": OLD } }),
+      piece("b", 4 * MB, { pendingApply: { "room-a": OLD } }),
+      piece("c", 1 * MB),
+    ];
+    // 8 MB claimed, 7 MB abandoned, 5 MB of it free: 3 MB charged.
+    expect(roomChargedBytes(assets, "room-a", NOW)).toBe(3 * MB);
+  });
+
+  it("charges a stamp still inside its window, and a claim a sweep saw used", () => {
+    const assets = [
+      piece("a", 1 * MB, { pendingApply: { "room-a": NOW - 1 } }),
+      piece("b", 2 * MB, { pendingApply: { "room-a": OLD }, referencedBy: ["room-a"] }),
+    ];
+    expect(roomChargedBytes(assets, "room-a", NOW)).toBe(3 * MB);
+  });
+
+  it("charges nothing for bytes the room does not claim", () => {
+    const assets = [piece("a", 2 * MB, { rooms: ["room-b"], pendingApply: { "room-a": OLD } })];
+    expect(roomChargedBytes(assets, "room-a", NOW)).toBe(0);
   });
 });

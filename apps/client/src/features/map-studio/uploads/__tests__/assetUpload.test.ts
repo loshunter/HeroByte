@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import {
   AssetUploadError,
   MAX_UPLOAD_BYTES,
@@ -186,6 +188,27 @@ describe("uploadAssetFile", () => {
     const [[, applied], [, plain]] = fetchMock.mock.calls as [string, RequestInit][];
     expect(applied!.headers).toMatchObject({ "x-herobyte-intent": "apply" });
     expect(plain!.headers).not.toHaveProperty("x-herobyte-intent");
+  });
+
+  it("only the token creator sends the 'apply' intent (it un-charges a table's quota)", () => {
+    // Any other upload path sending it would let shelf items and map art stop
+    // counting against the table's storage limit after 15 minutes.
+    const root = path.resolve(__dirname, "../../../..");
+    const senders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "__tests__" && entry.name !== "node_modules") walk(full);
+        } else if (/[.](ts|tsx)$/.test(entry.name)) {
+          if (/intent:[ ]*"apply"/.test(readFileSync(full, "utf-8"))) {
+            senders.push(path.relative(root, full).split(path.sep).join("/"));
+          }
+        }
+      }
+    };
+    walk(root);
+    expect(senders).toEqual(["features/players/token-creator/useTokenCreator.ts"]);
   });
 
   it("accepts a deduplicated 200 response", async () => {

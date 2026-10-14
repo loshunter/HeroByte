@@ -21,22 +21,35 @@ import { AssetRejectedError, roomsOf, type StoredAsset } from "./assetTypes.js";
 import { isAbandonedApply } from "./assetRoomClaims.js";
 
 /**
+ * How many bytes of abandoned apply-intent uploads a room carries free. A real
+ * token creator abandons a picture rarely (one is 30-100 KB), so this is
+ * ~50-150 of them; past it they count again. Without a cap, a client sending
+ * the intent on every upload escapes the per-room quota and fills the shared
+ * store (review finding): the cap holds it to the room limit plus this.
+ */
+export const ABANDONED_APPLY_ALLOWANCE_BYTES = 5 * 1024 * 1024;
+
+/**
  * Bytes charged to one room: what it claims, less apply-intent uploads it
- * abandoned (the token creator's picture nobody took up). Those stay claimed
- * and on the disk, so the WHOLE-store total still counts them.
+ * abandoned (the token creator's picture no sweep has seen used), up to
+ * ABANDONED_APPLY_ALLOWANCE_BYTES. Those stay claimed and on the disk, so the
+ * WHOLE-store total still counts them. A stamp a sweep later drops (the
+ * picture was used after all) makes the bytes count again, with no quota
+ * check: a table can sit over its limit until it frees space.
  */
 export function roomChargedBytes(
   assets: Iterable<StoredAsset>,
   roomId: string,
   now: number = Date.now(),
 ): number {
-  let bytes = 0;
+  let claimed = 0;
+  let abandoned = 0;
   for (const asset of assets) {
-    if (roomsOf(asset).includes(roomId) && !isAbandonedApply(asset, roomId, now)) {
-      bytes += asset.size;
-    }
+    if (!roomsOf(asset).includes(roomId)) continue;
+    claimed += asset.size;
+    if (isAbandonedApply(asset, roomId, now)) abandoned += asset.size;
   }
-  return bytes;
+  return claimed - Math.min(abandoned, ABANDONED_APPLY_ALLOWANCE_BYTES);
 }
 
 export interface AssetQuotaLimits {
@@ -154,8 +167,10 @@ export async function resolveQuotaLimits(input: {
  * Refuse an upload that would bust either ceiling.
  *
  * TWO quotas, and both are load-bearing. The per-room one is fairness: without
- * it one table's uploads returned 507 to every other table. The whole-store
- * one is physics: the disk is finite no matter how the rooms divide it.
+ * it one table's uploads returned 507 to every other table (a room's abandoned
+ * token-creator uploads are exempt only up to ABANDONED_APPLY_ALLOWANCE_BYTES,
+ * so it still bounds each table). The whole-store one is physics: the disk is
+ * finite no matter how the rooms divide it, and it counts every byte.
  *
  * Call it INSIDE the service's runExclusive, which is what keeps the
  * read-then-write atomic: checking outside the lock would reintroduce the

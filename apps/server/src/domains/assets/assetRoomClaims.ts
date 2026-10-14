@@ -69,12 +69,18 @@ export function pendingWithout(
 
 /**
  * `roomId`'s claim is an apply-intent upload no sweep has seen referenced
- * within APPLY_ADOPT_WINDOW_MS of its upload: abandoned, and not charged to the
- * table's quota (quota.ts). The claim itself stays.
+ * within APPLY_ADOPT_WINDOW_MS of its upload: abandoned, and (up to an
+ * allowance) not charged to the table's quota (quota.ts). The claim itself
+ * stays. A claim a sweep has marked referenced is never abandoned, even if a
+ * stamp survived (a rollback to a server without stamps and back).
  */
 export function isAbandonedApply(asset: StoredAsset, roomId: string, now: number): boolean {
   const since = pendingStamp(asset, roomId);
-  return since !== undefined && now - since >= APPLY_ADOPT_WINDOW_MS;
+  return (
+    since !== undefined &&
+    now - since >= APPLY_ADOPT_WINDOW_MS &&
+    !referencedByOf(asset).includes(roomId)
+  );
 }
 
 /**
@@ -179,7 +185,8 @@ export function planRoomRelease(assets: Assets, roomId: string): ClaimPlan {
  *                               sweep saw it referenced stays claimed until the
  *                               room is cleared; an apply-intent one stops
  *                               counting against the room's quota after
- *                               APPLY_ADOPT_WINDOW_MS (isAbandonedApply).
+ *                               APPLY_ADOPT_WINDOW_MS, up to an allowance
+ *                               (isAbandonedApply, roomChargedBytes).
  *
  * Resurrection deliberately skips legacy unclaimed assets (no
  * `unreferencedAt`): charging those to a room that may not have uploaded

@@ -79,6 +79,16 @@ describe("AssetReclaimSweeper and a token-creator upload (pending apply)", () =>
     await sweeperOver(service, { tokens: [] }).sweepLoadedRooms();
     expect(await service.roomBytes("room-a")).toBe(0);
     expect(await service.read(hash)).not.toBeNull();
+    // Still this room's claim, never condemned: a plain re-store is "already ours".
+    const again = await service.store(
+      Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.from("creator bake"),
+      ]),
+      "room-a",
+    );
+    expect(again.deduplicated).toBe(true);
+    expect(again.asset.unreferencedAt).toBeUndefined();
     // Used again later, it counts again.
     await sweeperOver(service, { tokens: [{ imageUrl: `/assets/${hash}` }] }).sweepLoadedRooms();
     expect(await service.roomBytes("room-a")).toBe(size);

@@ -73,7 +73,7 @@ describe("AssetService", () => {
     expect(plain.asset.pendingApply).toEqual({ "room-a": 1000 });
   });
 
-  it("a restarted clock is saved: a fresh service holds it, and the old window no longer releases", async () => {
+  it("a restarted clock is saved: a fresh service holds it, and the old window no longer un-charges", async () => {
     const window = 15 * 60 * 1000;
     const picture = pngBytes("restarted");
     const first = new AssetService({ directory: TMP_DIR });
@@ -87,18 +87,24 @@ describe("AssetService", () => {
   });
 
   it("an abandoned creator picture stops blocking new uploads, and its file stays", async () => {
+    const abandoned = pngBytes("abandoned bake 20b"); // 26 bytes
+    const next = pngBytes("next picture 20b"); // 24 bytes
     const service = new AssetService({
       directory: TMP_DIR,
       maxRoomBytes: 40,
-      maxTotalBytes: 10_000,
+      // The whole store holds both and nothing more: it counts every byte.
+      maxTotalBytes: abandoned.length + next.length + 5,
     });
-    const abandoned = pngBytes("abandoned bake 20b"); // ~26 bytes
     const { asset } = await service.store(abandoned, ROOM, Date.now() - 20 * 60 * 1000, {
       apply: true,
     });
     // Counted, this would bust the 40-byte room quota; abandoned, it does not.
-    await expect(service.store(pngBytes("next picture 20b"), ROOM)).resolves.toBeTruthy();
+    await expect(service.store(next, ROOM)).resolves.toBeTruthy();
     expect(await service.read(asset.hash)).not.toBeNull();
+    expect(await service.totalBytes()).toBe(abandoned.length + next.length);
+    await expect(service.store(pngBytes("third"), "room-z")).rejects.toThrow(
+      /Asset storage quota exceeded/,
+    );
   });
 
   it("a late apply over shared bytes keeps the file through the other table's clear (review repro)", async () => {

@@ -131,7 +131,7 @@ export class AssetService {
       // Already ours: the only case that reports dedup, and a no-op unless the
       // claim carries an apply stamp. Then a plain re-upload (a shelf item, a
       // backup) makes it an ordinary claim, and an apply re-upload restarts its
-      // clock: an old stamp must not release bytes uploaded again just now.
+      // clock: an old stamp must not un-charge bytes uploaded again just now.
       if (existing && roomsOf(existing).includes(roomId)) {
         if (pendingStamp(existing, roomId) === undefined) {
           return { asset: existing, deduplicated: true };

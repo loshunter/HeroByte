@@ -95,7 +95,9 @@ describe("asset HTTP routes", () => {
     const applied = pngBytes("token-creator bake");
     const shelved = pngBytes("my stuff shelf");
 
-    expect((await app.request(upload(applied, "Fun1", undefined, "apply"))).status).toBe(201);
+    const first = await app.request(upload(applied, "Fun1", undefined, "apply"));
+    expect(first.status).toBe(201);
+    const { hash } = (await first.json()) as { hash: string };
     expect((await app.request(upload(shelved, "Fun1"))).status).toBe(201);
     expect(await assetService.roomBytes(room)).toBe(applied.length + shelved.length);
 
@@ -104,12 +106,11 @@ describe("asset HTTP routes", () => {
       applied.length + shelved.length,
     );
     // Past it, the abandoned apply stops counting; the shelf item still counts,
-    // and the abandoned picture is still served (nothing is released).
+    // and a sweep past the window releases nothing: the picture is still served.
     expect(await assetService.roomBytes(room, Date.now() + 16 * 60 * 1000)).toBe(shelved.length);
-    const hash = (await app
-      .request(upload(applied, "Fun1", undefined, "apply"))
-      .then((r) => r.json())) as { hash: string };
-    expect((await app.request(new Request(`http://test/assets/${hash.hash}`))).status).toBe(200);
+    await assetService.reclaimRoom(room, new Set(), Date.now() + 16 * 60 * 1000);
+    await assetService.expireCondemned(Date.now() + 400 * 24 * 60 * 60 * 1000);
+    expect((await app.request(new Request(`http://test/assets/${hash}`))).status).toBe(200);
   });
 
   it("only the exact intent 'apply' stamps an upload", async () => {

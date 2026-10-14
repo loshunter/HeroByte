@@ -148,7 +148,7 @@ describe("planRoomReclaim", () => {
 describe("planRoomReclaim and apply-intent uploads (the token creator)", () => {
   const STAMP = NOW - APPLY_ADOPT_WINDOW_MS;
 
-  it("keeps an apply upload still inside its window", () => {
+  it("the planner ignores the window: a stamp alone releases nothing, before or after", () => {
     const plan = planRoomReclaim(
       { [H1]: asset(H1, { rooms: ["room-a"], pendingApply: { "room-a": STAMP + 1 } }) },
       "room-a",
@@ -173,7 +173,12 @@ describe("planRoomReclaim and apply-intent uploads (the token creator)", () => {
     expect(isAbandonedApply(stamped, "room-a", NOW - 1)).toBe(false);
     expect(isAbandonedApply(stamped, "room-b", NOW)).toBe(false);
     expect(isAbandonedApply(asset(H1, { rooms: ["room-a"] }), "room-a", NOW)).toBe(false);
-    expect(isAbandonedApply(stamped, "constructor", NOW)).toBe(false);
+    const used = asset(H1, {
+      rooms: ["room-a"],
+      referencedBy: ["room-a"],
+      pendingApply: { "room-a": STAMP },
+    });
+    expect(isAbandonedApply(used, "room-a", NOW)).toBe(false);
   });
 
   it("an apply upload the state took up becomes an ordinary marked claim", () => {
@@ -235,7 +240,7 @@ describe("planRoomReclaim and apply-intent uploads (the token creator)", () => {
     expect(plan.assets[H1]!.rooms).toEqual(["main", "room-p"]);
   });
 
-  it("another table's stamp never releases this table's plain claim", () => {
+  it("another table's stamp leaves this table's plain claim alone (and charged)", () => {
     const plan = planRoomReclaim(
       { [H1]: asset(H1, { rooms: ["room-b"], pendingApply: { "room-a": STAMP } }) },
       "room-b",
