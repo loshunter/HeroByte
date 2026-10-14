@@ -1,6 +1,6 @@
 // Serves site/dist for a local look: `node site/serve.mjs [port]` (default 4321). No dependencies.
-// Unlike `python -m http.server`, it answers Range requests, which a browser needs to jump around
-// in a video (the lesson pages' chapter buttons); Cloudflare Pages answers them too.
+// Sends the right content types, the 404 page, and answers Range requests like an ordinary static
+// host. (Cloudflare Pages does not, which is why lesson.js downloads a video whole.)
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";

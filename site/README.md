@@ -14,8 +14,8 @@ node site/build.mjs
 
 That writes `site/dist/` (git-ignored, like every `dist/`). To look at it, run
 `node site/serve.mjs` (the `site` preview in `.claude/launch.json`) and open
-http://localhost:4321/. It answers Range requests, which the lesson videos' chapter buttons need
-to jump into a video; `python -m http.server` does not, so there every chapter starts at 0:00. Its **Open HeroByte** links go to `/play/`, where the app lives once
+http://localhost:4321/. It sends the right types and the 404 page, and answers Range requests
+like an ordinary static host (Cloudflare Pages does not: see "Lesson videos"). Its **Open HeroByte** links go to `/play/`, where the app lives once
 deployed; to try them locally, build the whole Cloudflare layout instead (below).
 
 ## What is where
@@ -64,11 +64,18 @@ After rendering a lesson (`video/README.md`), and making its phone-size copy
 node tools/site-lessons.mjs
 ```
 
-It copies the small renders and the trailer to `media/` (remuxed so playback starts before the
-whole file has arrived), takes a poster frame from each, and rewrites `lessons.json`: the chapter
+It copies the small renders and the trailer to `media/` (remuxed with the MP4 index first),
+takes a poster frame from each, and rewrites `lessons.json`: the chapter
 start times worked out the way the edit lays the video out, and the steps from the **Say:** blocks
 of `docs/website/video-scripts.md`. Cloudflare Pages refuses a file over 25 MiB, so it stops on a
 video that big. Commit `media/` and `lessons.json` with the change.
+
+**Why a video downloads whole first:** Cloudflare Pages answers a Range request with the whole
+file (checked 2026-10-14 on production and previews), so a video streamed from it cannot seek, and
+Safari may refuse to play it at all. So a video shows its poster and a play button; the first press
+(or a chapter button) makes `assets/lesson.js` download the whole file with a progress count and
+play it from memory, a `blob:` URL that the CSP's `media-src 'self' blob:` allows. Each page also
+links the MP4 to download.
 
 **Moving a video to YouTube:** set its `youtube` id in `LESSON_PAGES`. The page then embeds
 YouTube's player (youtube-nocookie.com) instead of the MP4, and the chapter buttons reload it at

@@ -6,7 +6,7 @@
 //   the help center links to the same text the app's docs maintain. Headings get GitHub-style
 //   ids, so the guides' own cross-links (getting-started.md#becoming-the-dm) keep working.
 // - site/dist/help/search-index.json holds every guide section for the help search.
-import { realpathSync } from "node:fs";
+import { realpathSync, statSync } from "node:fs";
 import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -109,6 +109,20 @@ const QUICK_START = { player: "player-quick-start", dm: "dm-quick-start" };
 const COLOR = { player: "blue", dm: "gold" };
 
 const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const PLAY_ICON = `<svg width="22" height="22" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="#14100a"></path></svg>`;
+
+// A video from site/media/. Cloudflare Pages answers a Range request with the whole file, so a
+// video streamed from it cannot seek (no scrubbing, no chapter buttons) and Safari may refuse it
+// outright. So the page shows the poster and a play button, and lesson.js downloads the whole file
+// on the first press and plays it from memory (a blob: URL, allowed by media-src in
+// apps/client/public/_headers), where seeking always works.
+function mp4Screen(id, label, root) {
+  return `<div class="screen"><video preload="none" playsinline poster="${root}media/${id}.jpg" data-src="${root}media/${id}.mp4" aria-label="${esc(label)}"></video><button type="button" class="video-start" aria-label="Play: ${esc(label)}"><span class="play-box">${PLAY_ICON}</span><span class="video-status" aria-live="polite"></span></button></div>`;
+}
+function mp4Download(id, root) {
+  const mb = statSync(path.join(here, "media", `${id}.mp4`)).size / 2 ** 20;
+  return `<a href="${root}media/${id}.mp4" download>Download the video (${mb.toFixed(mb < 10 ? 1 : 0)} MB)</a>`;
+}
 
 /** The video and its chapter buttons, at the top of a lesson page. */
 function videoBlock(lesson, root) {
@@ -116,7 +130,7 @@ function videoBlock(lesson, root) {
   const label = `${lesson.heading}: ${lesson.title}`;
   const player = youtube
     ? `<iframe src="https://www.youtube-nocookie.com/embed/${youtube}" data-base="https://www.youtube-nocookie.com/embed/${youtube}" title="${esc(label)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`
-    : `<video controls preload="metadata" playsinline poster="${root}media/${lesson.id}.jpg" aria-label="${esc(label)}"><source src="${root}media/${lesson.id}.mp4" type="video/mp4"><a href="${root}media/${lesson.id}.mp4">Download the video</a></video>`;
+    : null;
   const chapters = lesson.chapters
     .map(
       (c, i) =>
@@ -124,9 +138,9 @@ function videoBlock(lesson, root) {
     )
     .join("\n");
   return `<section class="player" aria-label="Video lesson">
-<div class="screen">${player}</div>
+${player ? `<div class="screen">${player}</div>` : mp4Screen(lesson.id, label, root)}
 <div class="chapters">
-<h2>Chapters · ${clock(lesson.duration)}</h2>
+<div class="chapters-head"><h2>Chapters · ${clock(lesson.duration)}</h2>${player ? "" : mp4Download(lesson.id, root)}</div>
 <ol>
 ${chapters}
 </ol>
@@ -149,7 +163,7 @@ function pathList(aud, current, root, lessons) {
 function lessonCards(root, lessons) {
   const card = (id, tag) => {
     const l = lessons.get(id);
-    return `<a class="video-card" href="${root}help/${LESSON_PAGES[id].page}"><div class="thumb"><img src="${root}media/${id}.jpg" alt="" loading="lazy"><div class="play"><div class="play-box"><svg width="22" height="22" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="#14100a"></path></svg></div></div><span class="badge">${clock(l.duration)}</span></div><span class="tag ${COLOR[l.aud]}">${tag}</span><span class="title">${esc(l.title)}</span></a>`;
+    return `<a class="video-card" href="${root}help/${LESSON_PAGES[id].page}"><div class="thumb"><img src="${root}media/${id}.jpg" alt="" loading="lazy"><div class="play"><div class="play-box">${PLAY_ICON}</div></div><span class="badge">${clock(l.duration)}</span></div><span class="tag ${COLOR[l.aud]}">${tag}</span><span class="title">${esc(l.title)}</span></a>`;
   };
   const group = (title, cards) =>
     `<h3 class="h3 lesson-group">${title}</h3>\n<div class="grid" style="--min: 250px; --gap: 24px">\n${cards.join("\n")}\n</div>`;
@@ -507,7 +521,7 @@ const mainHallLine = SITE.mainHall.password
     (SITE.mainHall.dmPassword ? `, and <code>${SITE.mainHall.dmPassword}</code> to try the DM tools.` : ".")
   : "Ask the host for the Main Hall password.";
 // The lesson placeholders: {{video:<id>}}, {{pathList:<player|dm>}} (or :<current id>) and
-// {{lessonCards}}.
+// {{lessonCards}}; for any other video in media/, {{screen:<id>:<label>}} and {{download:<id>}}.
 const lessonOf = (lessons, id) => {
   const l = lessons.get(id);
   if (!l) throw new Error(`no lesson "${id}" in site/lessons.json`);
@@ -520,7 +534,9 @@ const fill = (s, root, lessons) =>
     .replace(/\{\{mainHallLine\}\}/g, mainHallLine)
     .replace(/\{\{video:([a-z0-9-]+)\}\}/g, (_, id) => videoBlock(lessonOf(lessons, id), root))
     .replace(/\{\{pathList:(player|dm)(?::([a-z0-9-]+))?\}\}/g, (_, aud, cur) => pathList(aud, cur, root, lessons))
-    .replace(/\{\{lessonCards\}\}/g, () => lessonCards(root, lessons));
+    .replace(/\{\{lessonCards\}\}/g, () => lessonCards(root, lessons))
+    .replace(/\{\{screen:([a-z0-9-]+):([^}]+)\}\}/g, (_, id, label) => mp4Screen(id, label, root))
+    .replace(/\{\{download:([a-z0-9-]+)\}\}/g, (_, id) => mp4Download(id, root));
 
 // ---------- build ----------
 

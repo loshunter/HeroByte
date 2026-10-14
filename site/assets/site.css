@@ -273,7 +273,16 @@ p, li { text-wrap: pretty; }
 .path .kind { font-family: var(--mono); font-size: 12px; color: var(--muted); flex: none; }
 .path a[aria-current="page"] { font-weight: 600; color: var(--gold); }
 .path.blue a[aria-current="page"] { color: var(--blue-2); }
-.trailer .shot-frame video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+.video-start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 14px; padding: 12px 12px 8%; border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--ink); }
+.video-start:disabled { cursor: progress; }
+.video-start .play-box { width: clamp(44px, 9vw, 72px); height: clamp(44px, 9vw, 72px); }
+.video-start:hover .play-box, .video-start:focus-visible .play-box { background: var(--ink); }
+.video-status:empty { display: none; }
+.video-status { font-family: var(--pixel); font-size: clamp(9px, 1.3vw, 12px); line-height: 1.6; background: var(--bg); color: var(--gold); border: 2px solid var(--gold); padding: 8px 12px; }
+.chapters-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; margin-bottom: 10px; }
+.chapters-head h2 { margin: 0; }
+.chapters-head a, .video-alt a { font-family: var(--mono); font-size: 13px; }
+.video-alt { margin: 18px 0 0; }
 
 .written-head { display: flex; flex-direction: column; gap: 8px; }
 .written-head h2 { margin: 0; font-family: var(--pixel); font-weight: 400; font-size: 16px; line-height: 1.6; }

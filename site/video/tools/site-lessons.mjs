@@ -2,8 +2,7 @@
 // rendering; needs ffmpeg on PATH).
 //
 // - Copies each lesson's phone-size render (out/<file>-small.mp4) to site/media/<file>.mp4, remuxed
-//   with +faststart so the browser can start playing before the whole file has arrived, and the
-//   trailer the same way.
+//   with +faststart (the MP4 index first), and the trailer the same way.
 // - Grabs a poster frame from each one (site/media/<file>.jpg).
 // - Writes site/lessons.json: each lesson's chapter start times (worked out exactly as Lesson.tsx
 //   lays the edit out, so a chapter button lands on the chapter's wipe) and its transcript (the
