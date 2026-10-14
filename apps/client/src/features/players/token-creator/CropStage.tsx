@@ -3,7 +3,7 @@
 // ============================================================================
 // The token's square at working size. Drag moves the picture, the wheel and
 // a pinch zoom about the pointer (or between the fingers), arrow keys nudge
-// and +/- zoom. Also the drop target. Placement is in percent of the square,
+// and +/- zoom (drops land on the window around it). Placement is in percent of the square,
 // from the same plan the bake draws with.
 //
 // Pinch is two pointers on one element with `touch-action: none`, pointer
@@ -183,7 +183,7 @@ export function CropStage({ picture, crop, onCrop, fill }: CropStageProps) {
         aspectRatio: "1 / 1",
         margin: "0 auto",
         overflow: "hidden",
-        borderRadius: "12.5%",
+        borderRadius: "16.67%", // the map's corner: 1/6 of the token's side
         border: "2px solid var(--jrpg-border-gold)",
         background: fill.kind === "none" ? CHECKER : cssBackground(fill),
         touchAction: "none",

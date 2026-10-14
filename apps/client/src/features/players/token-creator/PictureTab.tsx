@@ -1,9 +1,11 @@
 // ============================================================================
 // TOKEN CREATOR — THE PICTURE TAB
 // ============================================================================
-// Sources (file, link; drop and paste land on the crop area and the window),
-// the crop with its turn/flip/zoom controls, the backdrop, the preview, and
-// the two messages: an error, or a link offered "as is".
+// Sources (a file, a link; a drop lands on the window, a paste on the page:
+// TokenCreatorWindow), the crop with its turn/flip/zoom controls, the
+// backdrop, the preview, and the messages: an error, or a link offered "as
+// is". While a save runs, the framing holds still: what is on screen is what
+// is being saved.
 
 import { useId, useRef, useState } from "react";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
@@ -23,50 +25,58 @@ import type { TokenCreatorState } from "./useTokenCreator";
 
 interface PictureTabProps {
   creator: TokenCreatorState;
-  color?: string;
 }
 
 // No inline min-height: the phone's 44px floor is a class rule an inline one would beat.
 const small = { fontSize: "10px", padding: "6px 10px" } as const;
 const label = { color: "var(--jrpg-gold)" } as const;
 
-export function PictureTab({ creator, color }: PictureTabProps) {
+export function PictureTab({ creator }: PictureTabProps) {
   const { picture, crop, setCrop, backdrop, setBackdrop, autoColor, phase } = creator;
   const fileRef = useRef<HTMLInputElement>(null);
   const [link, setLink] = useState("");
   const ids = { link: useId(), zoom: useId(), backdrop: useId() };
   const fill = resolveBackdrop(backdrop, autoColor);
   const busy = phase !== "idle";
+  const frame: typeof setCrop = (update) => {
+    if (!busy) setCrop(update);
+  };
+  const changeBackdrop = (next: Backdrop) => {
+    if (!busy) setBackdrop(next);
+  };
 
   const chooseBackdrop = (kind: Backdrop["kind"]) => {
-    if (kind === "solid") setBackdrop({ kind, color: autoColor });
-    else if (kind === "gradient") setBackdrop({ kind, ...defaultGradient(autoColor) });
-    else setBackdrop({ kind });
+    if (kind === "solid") changeBackdrop({ kind, color: autoColor });
+    else if (kind === "gradient") changeBackdrop({ kind, ...defaultGradient(autoColor) });
+    else changeBackdrop({ kind });
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      <CropStage picture={picture} crop={crop} onCrop={setCrop} fill={fill} />
+      <CropStage picture={picture} crop={crop} onCrop={frame} fill={fill} />
 
       {picture && (
         <>
           <div style={{ display: "flex", gap: "6px", justifyContent: "center", flexWrap: "wrap" }}>
             <JRPGButton
-              onClick={() => setCrop((c) => rotateClockwise(c, picture.size))}
+              onClick={() => frame((c) => rotateClockwise(c, picture.size))}
+              aria-disabled={busy}
               title="Turn the picture a quarter turn clockwise"
               style={small}
             >
               ⟳ Rotate
             </JRPGButton>
             <JRPGButton
-              onClick={() => setCrop((c) => flipHorizontal(c, picture.size))}
+              onClick={() => frame((c) => flipHorizontal(c, picture.size))}
+              aria-disabled={busy}
               title="Mirror the picture left to right"
               style={small}
             >
               ⇋ Flip
             </JRPGButton>
             <JRPGButton
-              onClick={() => setCrop(DEFAULT_CROP)}
+              onClick={() => frame(DEFAULT_CROP)}
+              aria-disabled={busy}
               title="Back to the picture covering the square, centred"
               style={small}
             >
@@ -84,9 +94,10 @@ export function PictureTab({ creator, color }: PictureTabProps) {
             step={0.01}
             value={Math.log(crop.zoom)}
             aria-valuetext={`${Math.round(crop.zoom * 100)}%`}
+            aria-disabled={busy}
             onChange={(event) => {
               const target = Math.exp(Number(event.target.value));
-              setCrop((c) => zoomAbout(c, picture.size, target / c.zoom));
+              frame((c) => zoomAbout(c, picture.size, target / c.zoom));
             }}
           />
         </>
@@ -101,7 +112,8 @@ export function PictureTab({ creator, color }: PictureTabProps) {
           className="jrpg-input"
           value={backdrop.kind}
           onChange={(event) => chooseBackdrop(event.target.value as Backdrop["kind"])}
-          title="Auto: the colour at the picture's edge. None: keep transparency."
+          aria-disabled={busy}
+          title="Auto: the colour of the first mostly-opaque ring in from the picture's edge. None: keep transparency."
           style={{ flex: 1 }}
         >
           <option value="auto">Auto</option>
@@ -114,7 +126,7 @@ export function PictureTab({ creator, color }: PictureTabProps) {
             type="color"
             aria-label="Backdrop colour"
             value={backdrop.color}
-            onChange={(event) => setBackdrop({ kind: "solid", color: event.target.value })}
+            onChange={(event) => changeBackdrop({ kind: "solid", color: event.target.value })}
           />
         )}
         {backdrop.kind === "gradient" && (
@@ -123,19 +135,19 @@ export function PictureTab({ creator, color }: PictureTabProps) {
               type="color"
               aria-label="Gradient top colour"
               value={backdrop.from}
-              onChange={(event) => setBackdrop({ ...backdrop, from: event.target.value })}
+              onChange={(event) => changeBackdrop({ ...backdrop, from: event.target.value })}
             />
             <input
               type="color"
               aria-label="Gradient bottom colour"
               value={backdrop.to}
-              onChange={(event) => setBackdrop({ ...backdrop, to: event.target.value })}
+              onChange={(event) => changeBackdrop({ ...backdrop, to: event.target.value })}
             />
           </>
         )}
       </div>
 
-      {picture && <PicturePreview picture={picture} crop={crop} fill={fill} color={color} />}
+      {picture && <PicturePreview picture={picture} crop={crop} fill={fill} />}
 
       <input
         ref={fileRef}
@@ -168,7 +180,10 @@ export function PictureTab({ creator, color }: PictureTabProps) {
           type="text"
           value={link}
           placeholder="https://i.imgur.com/…"
-          onChange={(event) => setLink(event.target.value)}
+          onChange={(event) => {
+            setLink(event.target.value);
+            creator.forgetFailedLink();
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter") void creator.loadLink(link);
           }}
@@ -187,14 +202,14 @@ export function PictureTab({ creator, color }: PictureTabProps) {
         >
           {creator.unbakeable.reason === "no-copy"
             ? "That site does not let HeroByte copy its pictures, so it cannot be framed here."
-            : "That link did not load a picture: check the address. Only Imgur and Discord links show at the table."}
+            : "That link did not load a picture: check the address. Links show at the table only from Imgur, Discord and this table's own pictures."}
         </p>
       )}
       {/* Today's way, never taken away: the link itself, unframed, nothing uploaded. */}
       {creator.linkAsIs && (
         <JRPGButton
           onClick={creator.applyLinkAsIs}
-          title="Set the link exactly as given: no framing, and no copy on the table"
+          title="Set the link itself (an imgur.com page becomes its image link): no framing, and nothing saved to the table"
           style={small}
         >
           Use the link as is

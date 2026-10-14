@@ -4,8 +4,10 @@
 // One picture at a time: load it (file, drop, paste, link), frame it, accept.
 // Accept is the ONLY step that uploads. Closing the window (Cancel, ✕, Escape)
 // abandons whatever is in flight: a bake not yet uploaded is never uploaded,
-// and an upload that lands after the close is never applied (its bytes are
-// on the store, unclaimed, and the server reclaims them). Accept writes
+// and an upload that lands after the close is never applied. Its bytes stay on
+// the store, charged to this table's quota until the table is cleared: the
+// server's reclaim sweep never takes an upload no state referenced (server
+// debt, apps/server/src/domains/assets/assetRoomClaims.ts). Accept writes
 // through the caller's `onApply(url)`,
 // the same callback the old URL field committed through, so a player's token
 // and an NPC's record (which the server copies back onto its token) both keep
@@ -68,6 +70,9 @@ export interface TokenCreatorOptions {
 
 export type CreatorPhase = "idle" | "loading" | "baking" | "uploading";
 
+/** The server refuses a token image link longer than this (tokenValidators). */
+export const LINK_MAX_LENGTH = 2048;
+
 export function useTokenCreator({
   tokenSize,
   onApply,
@@ -114,6 +119,7 @@ export function useTokenCreator({
       pictureRef.current?.release();
       pictureRef.current = next;
       setPicture(next);
+      setError(null);
       setCrop(DEFAULT_CROP);
       setAutoColor(deps.autoColor(next));
     },
@@ -134,6 +140,10 @@ export function useTokenCreator({
       } catch (failure) {
         if (seq !== loadSeq.current) return;
         if (failure instanceof UnbakeableLinkError) {
+          // The old picture goes: Accept and "as is" now mean this link only.
+          pictureRef.current?.release();
+          pictureRef.current = null;
+          setPicture(null);
           setUnbakeable({ link: failure.link, reason: failure.reason });
         } else
           setError(failure instanceof Error ? failure.message : "That picture would not load.");
@@ -204,12 +214,19 @@ export function useTokenCreator({
    * unframed and with no copy on the table. The picture's link when it loaded,
    * or the link that could not be loaded.
    */
-  const linkAsIs = unbakeable?.link ?? picture?.link ?? null;
+  const linkAsIs = phase === "idle" ? (unbakeable?.link ?? picture?.link ?? null) : null;
   const applyLinkAsIs = useCallback(() => {
     if (!linkAsIs || saving.current) return;
+    if (linkAsIs.length > LINK_MAX_LENGTH) {
+      setError(`That link is too long to use (over ${LINK_MAX_LENGTH} characters).`);
+      return;
+    }
     applyRef.current.onApply(linkAsIs);
     applyRef.current.onDone();
   }, [linkAsIs]);
+
+  /** The link field changed: a failed link's offer no longer matches what is typed. */
+  const forgetFailedLink = useCallback(() => setUnbakeable(null), []);
 
   return {
     picture,
@@ -222,6 +239,7 @@ export function useTokenCreator({
     error,
     unbakeable,
     linkAsIs,
+    forgetFailedLink,
     loadFile,
     loadLink,
     loadDropped,

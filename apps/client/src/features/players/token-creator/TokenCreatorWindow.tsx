@@ -5,9 +5,9 @@
 // window that opened it, with a tab strip that holds one tab today, Picture;
 // C5a adds Frame beside it. Escape and ✕ close it like Cancel, and abandon a
 // save in flight (useTokenCreator). While it is open, `data-modal-overlay`
-// keeps WASD from moving a token, a pasted image lands here (in the top-most
-// creator, when a DM has two open), and a file dropped anywhere on the window
-// loads instead of opening in the tab.
+// keeps WASD from moving a token, a pasted image lands here (in the creator
+// opened last, when two are open), and a file dropped anywhere on the window,
+// title bar and frame included, loads instead of opening in the tab.
 
 import { useEffect, useRef, type DragEvent } from "react";
 import { createPortal } from "react-dom";
@@ -26,8 +26,6 @@ export interface TokenCreatorWindowProps {
   /** Whose token, for the title ("Token picture: Eldryn"). */
   name?: string;
   tokenSize?: TokenSize;
-  /** The token's stroke colour, for the preview. */
-  color?: string;
   onApply: (url: string) => void;
   onClose: () => void;
   deps?: TokenCreatorDeps;
@@ -43,7 +41,6 @@ const PHASE_LABEL = {
 export function TokenCreatorWindow({
   name,
   tokenSize,
-  color,
   onApply,
   onClose,
   deps,
@@ -74,8 +71,10 @@ export function TokenCreatorWindow({
     };
   }, []);
 
-  // The whole window is the drop target: a file dropped beside the square must
-  // not reach the browser, which would open it in place of the table.
+  // The whole window is the drop target, title bar and frame too (they sit
+  // outside the content box, inside the display:contents wrapper): a file
+  // dropped on it must not reach the browser, which would open it in place of
+  // the table.
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     creator.loadDropped(event.dataTransfer);
@@ -84,7 +83,13 @@ export function TokenCreatorWindow({
   const ready = creator.picture !== null && creator.phase === "idle";
 
   return createPortal(
-    <div style={{ display: "contents" }} data-mobile-surface="token-creator" data-modal-overlay="">
+    <div
+      style={{ display: "contents" }}
+      data-mobile-surface="token-creator"
+      data-modal-overlay=""
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={onDrop}
+    >
       <DraggableWindow
         title={name ? `🖼️ Token picture: ${name}` : "🖼️ Token picture"}
         onClose={onClose}
@@ -98,8 +103,6 @@ export function TokenCreatorWindow({
         zIndex={2600}
       >
         <div
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={onDrop}
           style={{
             display: "flex",
             flexDirection: "column",
@@ -126,7 +129,7 @@ export function TokenCreatorWindow({
             id="token-creator-panel-picture"
             aria-labelledby="token-creator-tab-picture"
           >
-            <PictureTab creator={creator} color={color} />
+            <PictureTab creator={creator} />
           </div>
           {/* Pinned to the window's foot: on a short screen the picture scrolls, not Accept. */}
           <div
