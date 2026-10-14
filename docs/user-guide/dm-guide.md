@@ -55,7 +55,7 @@ To edit the table's map, use **🏗️ Build map** in the header. If you have a 
 
 **+ ADD NPC** creates a monster with a full stat row:
 
-- **Name, HP / Max HP / Temp HP, Init Mod, Portrait, Token Image** — same character plumbing as players. Both image fields take an **⬆ UPLOAD IMAGE** from your device or a pasted URL.
+- **Name, HP / Max HP / Temp HP, Init Mod, Portrait, Token Image** — the portrait and token image are URL fields with **⬆ UPLOAD IMAGE**, used as they are. To move, zoom or turn a token picture, use **Token picture…** in the NPC's ⚙️ window in the Party.
 - **Status Effects** and **🎯 FOCUS** — the same conditions picker as the NPC's window in the Party, and a button that centres your view on its token while that token is on the current map. On a phone this tab is where both live (**♛ DM** → **NPCs & Monsters**; the phone's Party lists seats, not NPCs), and Focus closes the DM screen so you see the token.
 - **PLACE ON MAP** drops its token at the map's top-left corner cell — not at the center of your
   view — so reset the view or drag it across from there. Pressing it again replaces the old token with a fresh
@@ -84,7 +84,7 @@ NPCs are yours alone to edit: players can't rename, damage, or move them.
 
 **📖 LIBRARY** next to **+ ADD NPC** opens the bundled token pack: 244 top-down pixel-art tokens — 184 monsters across 30 families, from goblins and skeletons to hags, elementals and mimics, and 60 townsfolk for taverns, shops, streets and children. **MONSTERS** / **TOWNSFOLK** narrows the pack; **Family** narrows further (Goblins, Tavern & inn, Shops & trades…); **Search** matches every word you type against names, ancestry, gender, setting and the pack's own tags, so `goblin archer`, `dice dwarf` and `kid kite` each find what you mean. Click a token and it arrives as a new NPC with its name, token art and portrait already filled in, and its token is born at the pack's size — an ogre lands large, a goblin small — which you can change on the token afterwards like any other. The **×N** field applies to a pick just as it does to the plain button: set it to 5 and click the goblin archer for five numbered archers.
 
-An NPC that already exists can take a library token too. Its card's **📖 LIBRARY** button, under the token image field, swaps the art in place; the portrait follows only when it was empty or was itself a library image, so a portrait you chose stays yours.
+An NPC that already exists can take a library token too. Its DM Menu card's **📖 LIBRARY** button, under the token image field, swaps the art in place; the portrait follows only when it was empty or was itself a library image, so a portrait you chose stays yours.
 
 Names remain visible on token cards. Keyboard focus shows **Token preview** without
 adding anything; activating a card still immediately performs the action described
