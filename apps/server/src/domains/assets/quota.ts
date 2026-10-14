@@ -17,6 +17,7 @@
 // at the old 50MB) unless set explicitly, so fairness scales with the disk.
 
 import { mkdir, statfs } from "node:fs/promises";
+import { AssetRejectedError, roomsOf, type StoredAsset } from "./assetTypes.js";
 
 export interface AssetQuotaLimits {
   maxTotalBytes: number;
@@ -127,4 +128,36 @@ export async function resolveQuotaLimits(input: {
   }
 
   return { maxTotalBytes: totalBytes, maxRoomBytes: roomBytes };
+}
+
+/**
+ * Refuse an upload that would bust either ceiling.
+ *
+ * TWO quotas, and both are load-bearing. The per-room one is fairness: without
+ * it one table's uploads returned 507 to every other table. The whole-store
+ * one is physics: the disk is finite no matter how the rooms divide it.
+ *
+ * Call it INSIDE the service's runExclusive, which is what keeps the
+ * read-then-write atomic: checking outside the lock would reintroduce the
+ * quota TOCTOU that an earlier review already found here once.
+ */
+export function assertQuota(
+  index: Record<string, StoredAsset>,
+  incoming: number,
+  roomId: string,
+  limits: AssetQuotaLimits,
+  /** Bytes the STORE gains: 0 when the file is already on disk. */
+  storeIncoming: number = incoming,
+): void {
+  const assets = Object.values(index);
+  const total = assets.reduce((sum, asset) => sum + asset.size, 0);
+  if (total + storeIncoming > limits.maxTotalBytes) {
+    throw new AssetRejectedError("Asset storage quota exceeded", 507);
+  }
+  const roomTotal = assets
+    .filter((asset) => roomsOf(asset).includes(roomId))
+    .reduce((sum, asset) => sum + asset.size, 0);
+  if (roomTotal + incoming > limits.maxRoomBytes) {
+    throw new AssetRejectedError("This table's asset storage is full", 507);
+  }
 }

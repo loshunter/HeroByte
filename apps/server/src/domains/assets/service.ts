@@ -21,7 +21,7 @@ import {
   type ClaimPlan,
 } from "./assetRoomClaims.js";
 import { getDefaultRoomId } from "../../config/auth.js";
-import { reclaimGraceMs, resolveQuotaLimits, type AssetQuotaLimits } from "./quota.js";
+import { assertQuota, reclaimGraceMs, resolveQuotaLimits, type AssetQuotaLimits } from "./quota.js";
 import { loadAssetIndex, writeAssetIndex, type AssetIndex } from "./assetIndexStore.js";
 import {
   AssetRejectedError,
@@ -137,7 +137,7 @@ export class AssetService {
           rooms: [...roomsOf(existing), roomId],
           unreferencedAt: undefined,
         };
-        this.assertQuota(index, bytes.length, roomId, await this.limits(index), 0);
+        assertQuota(index.assets, bytes.length, roomId, await this.limits(index), 0);
         await this.writeIndex({
           schemaVersion: 1,
           assets: { ...index.assets, [hash]: claimed },
@@ -146,7 +146,7 @@ export class AssetService {
         return { asset: claimed, deduplicated: false };
       }
 
-      this.assertQuota(index, bytes.length, roomId, await this.limits(index));
+      assertQuota(index.assets, bytes.length, roomId, await this.limits(index));
 
       await mkdir(this.directory, { recursive: true });
       const filePath = path.join(this.directory, `${hash}.${sniffed.extension}`);
@@ -173,38 +173,6 @@ export class AssetService {
       index.assets[hash] = asset;
       return { asset, deduplicated: false };
     });
-  }
-
-  /**
-   * Refuse an upload that would bust either ceiling.
-   *
-   * TWO quotas, and both are load-bearing. The per-room one is fairness: without
-   * it one table's uploads returned 507 to every other table. The whole-store
-   * one is physics: the disk is finite no matter how the rooms divide it.
-   *
-   * Called INSIDE runExclusive, which is what keeps the read-then-write atomic —
-   * checking outside the lock would reintroduce the quota TOCTOU that an earlier
-   * review already found here once.
-   */
-  private assertQuota(
-    index: AssetIndex,
-    incoming: number,
-    roomId: string,
-    limits: AssetQuotaLimits,
-    /** Bytes the STORE gains — 0 when the file is already on disk. */
-    storeIncoming: number = incoming,
-  ): void {
-    const assets = Object.values(index.assets);
-    const total = assets.reduce((sum, asset) => sum + asset.size, 0);
-    if (total + storeIncoming > limits.maxTotalBytes) {
-      throw new AssetRejectedError("Asset storage quota exceeded", 507);
-    }
-    const roomTotal = assets
-      .filter((asset) => roomsOf(asset).includes(roomId))
-      .reduce((sum, asset) => sum + asset.size, 0);
-    if (roomTotal + incoming > limits.maxRoomBytes) {
-      throw new AssetRejectedError("This table's asset storage is full", 507);
-    }
   }
 
   /**
