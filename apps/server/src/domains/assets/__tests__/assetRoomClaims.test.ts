@@ -184,6 +184,24 @@ describe("planRoomReclaim and apply-intent uploads (the token creator)", () => {
     expect(plan.assets[H1]!.pendingApply).toBeUndefined();
   });
 
+  it("a marked claim that still carries a stamp loses the stamp when referenced", () => {
+    const plan = planRoomReclaim(
+      {
+        [H1]: asset(H1, {
+          rooms: ["room-a"],
+          referencedBy: ["room-a"],
+          pendingApply: { "room-a": STAMP },
+        }),
+      },
+      "room-a",
+      new Set([H1]),
+      NOW,
+    );
+    expect(plan.changed).toBe(true);
+    expect(plan.assets[H1]!.pendingApply).toBeUndefined();
+    expect(plan.assets[H1]!.referencedBy).toEqual(["room-a"]);
+  });
+
   it("never touches an unmarked upload sent without the intent (a My Stuff shelf)", () => {
     const plan = planRoomReclaim(
       { [H1]: asset(H1, { rooms: ["room-a"], createdAt: 1 }) },

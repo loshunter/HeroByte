@@ -45,7 +45,9 @@ export interface StoredAsset {
    * APPLY_ADOPT_WINDOW_MS was abandoned (the window closed mid-upload, or the
    * picture was replaced before any sweep saw it), and the sweep releases the
    * claim as if it had been replaced. A claim from any other upload (a My Stuff
-   * shelf, a backup restore) never appears here and keeps today's rule.
+   * shelf, a backup restore) never adds a stamp, and keeps today's rule; an
+   * identical plain upload over a stamped claim clears that claim's stamp, an
+   * identical apply upload restarts it (AssetService.store).
    */
   pendingApply?: Record<string, number>;
 }

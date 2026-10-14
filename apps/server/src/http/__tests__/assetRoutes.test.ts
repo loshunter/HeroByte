@@ -99,9 +99,22 @@ describe("asset HTTP routes", () => {
     expect((await app.request(upload(shelved, "Fun1"))).status).toBe(201);
     expect(await assetService.roomBytes(room)).toBe(applied.length + shelved.length);
 
-    // The table's state references neither; past the adopt window, the sweep runs.
+    // The table's state references neither. Inside the 15-minute window it keeps both.
+    await assetService.reclaimRoom(room, new Set(), Date.now() + 14 * 60 * 1000);
+    expect(await assetService.roomBytes(room)).toBe(applied.length + shelved.length);
+    // Past it, the abandoned apply goes; the shelf item stays.
     await assetService.reclaimRoom(room, new Set(), Date.now() + 16 * 60 * 1000);
     expect(await assetService.roomBytes(room)).toBe(shelved.length);
+  });
+
+  it("only the exact intent 'apply' stamps an upload", async () => {
+    const auth = new AuthService({ storagePath: SECRET_PATH });
+    const assetService = new AssetService({ directory: ASSET_DIR });
+    const app = createRoutes(auth, undefined, assetService);
+    const bogus = pngBytes("bogus intent");
+    expect((await app.request(upload(bogus, "Fun1", undefined, "bogus"))).status).toBe(201);
+    await assetService.reclaimRoom(getDefaultRoomId(), new Set(), Date.now() + 16 * 60 * 1000);
+    expect(await assetService.roomBytes(getDefaultRoomId())).toBe(bogus.length);
   });
 
   it("serves an asset with the CORS header a canvas read needs", async () => {

@@ -16,8 +16,12 @@ type Assets = Record<string, StoredAsset>;
 
 /**
  * How long an apply-intent upload may stay unreferenced before the sweep calls
- * it abandoned. The client applies the picture the moment the upload answers,
- * so a live one is referenced within seconds; the sweep runs every 5 minutes.
+ * it abandoned, counted from the upload; the release lands at the first sweep
+ * after (they run every 5 minutes), so 15 to 20 minutes. The client applies
+ * the picture the moment the upload answers, so a live one is referenced
+ * within seconds. One applied later than this (a replayed send after a long
+ * outage) is condemned, not deleted: the first sweep that sees it referenced
+ * resurrects the claim (planRoomReclaim), inside the 7-day grace.
  */
 export const APPLY_ADOPT_WINDOW_MS = 15 * 60 * 1000;
 
@@ -42,7 +46,10 @@ function orUndefined(rooms: string[]): string[] | undefined {
 }
 
 /** The asset's pending-apply stamps without `roomId`'s (absent when none remain). */
-function pendingWithout(asset: StoredAsset, roomId: string): Record<string, number> | undefined {
+export function pendingWithout(
+  asset: StoredAsset,
+  roomId: string,
+): Record<string, number> | undefined {
   if (!asset.pendingApply || !(roomId in asset.pendingApply)) return asset.pendingApply;
   const { [roomId]: _dropped, ...rest } = asset.pendingApply;
   return Object.keys(rest).length > 0 ? rest : undefined;

@@ -18,6 +18,7 @@ import {
   planCondemnedExpiry,
   planRoomReclaim,
   planRoomRelease,
+  pendingWithout,
   type ClaimPlan,
 } from "./assetRoomClaims.js";
 import { getDefaultRoomId } from "../../config/auth.js";
@@ -120,9 +121,23 @@ export class AssetService {
       const index = await this.loadIndex();
       const existing = index.assets[hash];
 
-      // Already ours: a true no-op, and the only case that reports dedup.
+      // Already ours: the only case that reports dedup, and a no-op unless the
+      // claim carries an apply stamp. Then a plain re-upload (a shelf item, a
+      // backup) makes it an ordinary claim, and an apply re-upload restarts its
+      // clock: an old stamp must not release bytes uploaded again just now.
       if (existing && roomsOf(existing).includes(roomId)) {
-        return { asset: existing, deduplicated: true };
+        if (existing.pendingApply?.[roomId] === undefined) {
+          return { asset: existing, deduplicated: true };
+        }
+        const restamped: StoredAsset = {
+          ...existing,
+          pendingApply: intent.apply
+            ? { ...existing.pendingApply, [roomId]: timestamp }
+            : pendingWithout(existing, roomId),
+        };
+        await this.writeIndex({ schemaVersion: 1, assets: { ...index.assets, [hash]: restamped } });
+        index.assets[hash] = restamped;
+        return { asset: restamped, deduplicated: true };
       }
 
       // The bytes exist but this room has not claimed them. Charge this room's

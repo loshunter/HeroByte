@@ -41,6 +41,30 @@ describe("AssetService", () => {
     expect(other.asset.pendingApply).toEqual({ [ROOM]: 3000, "room-b": 4000 });
   });
 
+  it("a plain claim of existing bytes is never stamped, nor are other rooms' plain claims", async () => {
+    const service = new AssetService({ directory: TMP_DIR });
+    const picture = pngBytes("shared");
+    await service.store(picture, "room-c", 1000);
+    const plain = await service.store(picture, "room-b", 2000);
+    expect(plain.asset.pendingApply).toBeUndefined();
+    const applied = await service.store(picture, "room-d", 3000, { apply: true });
+    expect(applied.asset.pendingApply).toEqual({ "room-d": 3000 });
+  });
+
+  it("re-uploading over a stamped claim: plain clears the stamp, apply restarts it", async () => {
+    const service = new AssetService({ directory: TMP_DIR });
+    const picture = pngBytes("again");
+    await service.store(picture, ROOM, 1000, { apply: true });
+    const restarted = await service.store(picture, ROOM, 5000, { apply: true });
+    expect(restarted).toMatchObject({
+      deduplicated: true,
+      asset: { pendingApply: { [ROOM]: 5000 } },
+    });
+    const cleared = await service.store(picture, ROOM, 6000);
+    expect(cleared.deduplicated).toBe(true);
+    expect(cleared.asset.pendingApply).toBeUndefined();
+  });
+
   it("stores a sniffed image under its SHA-256 content address", async () => {
     const service = new AssetService({ directory: TMP_DIR });
     const bytes = pngBytes("pixels");

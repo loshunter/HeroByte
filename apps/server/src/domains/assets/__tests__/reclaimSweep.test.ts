@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { existsSync, rmSync } from "node:fs";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AssetReclaimSweeper } from "../reclaimSweep.js";
-import type { AssetService } from "../service.js";
+import { AssetService } from "../service.js";
 
 const H1 = "a".repeat(64);
 const H2 = "b".repeat(64);
@@ -31,6 +33,53 @@ function sweeper(overrides: {
   });
   return { instance, reclaimRoom, expireCondemned };
 }
+
+describe("AssetReclaimSweeper and a token-creator upload (pending apply)", () => {
+  const DIR = path.join(process.cwd(), ".tmp", "reclaim-sweep-apply-test");
+  afterEach(() => {
+    if (existsSync(DIR)) rmSync(DIR, { recursive: true, force: true });
+  });
+
+  async function stampedPastWindow() {
+    const service = new AssetService({ directory: DIR });
+    const bytes = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from("creator bake"),
+    ]);
+    const { asset } = await service.store(bytes, "room-a", Date.now() - 20 * 60 * 1000, {
+      apply: true,
+    });
+    return { service, hash: asset.hash, size: bytes.length };
+  }
+
+  function sweeperOver(service: AssetService, state: unknown) {
+    return new AssetReclaimSweeper({
+      assetService: service,
+      rooms: {
+        listRooms: () => ["room-a"],
+        has: () => true,
+        get: () => ({ getState: () => state }),
+      },
+      mapDocuments: { list: () => [], historyDocuments: () => [] },
+    });
+  }
+
+  it("keeps a creator picture the state uses, even on a scene parked off the map", async () => {
+    const { service, hash, size } = await stampedPastWindow();
+    const state = {
+      tokens: [],
+      sceneStates: { cave: { tokens: [{ imageUrl: `https://host.example/assets/${hash}` }] } },
+    };
+    await sweeperOver(service, state).sweepLoadedRooms();
+    expect(await service.roomBytes("room-a")).toBe(size);
+  });
+
+  it("releases a creator picture nothing uses", async () => {
+    const { service } = await stampedPastWindow();
+    await sweeperOver(service, { tokens: [] }).sweepLoadedRooms();
+    expect(await service.roomBytes("room-a")).toBe(0);
+  });
+});
 
 describe("AssetReclaimSweeper", () => {
   it("hands reclaimRoom the hashes referenced by state AND map documents", async () => {
