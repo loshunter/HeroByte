@@ -291,19 +291,13 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
                 hpInput={hpInput}
                 onHpInputChange={onHpInputChange}
                 onHpEdit={onHpEdit}
-                onHpSubmit={(_hpStr) => {
-                  // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
-                  // Here we just trigger the submit logic
-                  onHpSubmit();
-                }}
+                // HPBar passes the typed value; these submits read their own buffers.
+                onHpSubmit={() => onHpSubmit()}
                 editingMaxHpUID={editingMaxHpUID}
                 maxHpInput={maxHpInput}
                 onMaxHpInputChange={onMaxHpInputChange}
                 onMaxHpEdit={onMaxHpEdit}
-                onMaxHpSubmit={(_maxHpStr) => {
-                  // HPBar passes the string value, but onMaxHpSubmit expects void here
-                  onMaxHpSubmit();
-                }}
+                onMaxHpSubmit={() => onMaxHpSubmit()}
                 tempHp={tempHp}
                 onCharacterHpChange={onCharacterHpChange}
                 onStatusEffectsChange={
