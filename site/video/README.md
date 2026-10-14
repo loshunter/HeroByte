@@ -47,10 +47,10 @@ app's dependencies, gates or CI.
    npx remotion render src/index.ts DmQuickStart out/dm-quick-start.mp4
    ```
 
-7. **Put it on the website:** with the phone-size copy in `out/<file>-small.mp4`,
+7. **Put it on the website:** make the phone-size copy `out/<file>-small.mp4` (an ffmpeg
+   re-encode; the command is in `site/README.md`, "Lesson videos"), then
    `node tools/site-lessons.mjs` copies it to `site/media/` with a poster and rewrites
-   `site/lessons.json` (chapter start times and the steps written out). See `site/README.md`,
-   "Lesson videos".
+   `site/lessons.json` (chapter start times, and what Wren says written out).
 
 ## What is where
 
@@ -60,7 +60,7 @@ app's dependencies, gates or CI.
 | `capture/cues.ts` | A phrase in the narration → seconds into the chapter. |
 | `tools/align.py` | Word timings from the narration with Whisper (`large-v3-turbo`, CPU is fine). |
 | `tools/frames-to-mp4.mjs` | Frames → retimed constant-rate MP4 + `recordings.json` for the edit. |
-| `tools/site-lessons.mjs` | A render → `site/media/` (video + poster) and `site/lessons.json` (chapters, steps) for the website. |
+| `tools/site-lessons.mjs` | A render → `site/media/` (video + poster) and `site/lessons.json` (chapters, what Wren says) for the website. |
 | `src/engine.tsx` | A chapter: camera zooms, DM/player split screen, shake, banner, captions, sound. |
 | `src/overlays.tsx` | Popups, rings, arrows, key caps, chips, big titles, stickers, the chat-spam gag. |
 | `src/bookends.tsx` | Intro card and the outro checklist. |

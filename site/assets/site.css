@@ -275,6 +275,7 @@ p, li { text-wrap: pretty; }
 .path.blue a[aria-current="page"] { color: var(--blue-2); }
 .video-start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 14px; padding: 12px 12px 8%; border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--ink); }
 .video-start:disabled { cursor: progress; }
+.video-start[hidden] { display: none; }
 .video-start .play-box { width: clamp(44px, 9vw, 72px); height: clamp(44px, 9vw, 72px); }
 .video-start:hover .play-box, .video-start:focus-visible .play-box { background: var(--ink); }
 .video-status:empty { display: none; }

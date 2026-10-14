@@ -22,7 +22,12 @@ const TYPES = {
 };
 
 createServer(async (req, res) => {
-  const url = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+  let url;
+  try {
+    url = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+  } catch {
+    return res.writeHead(400).end();
+  }
   let file = path.join(dist, url);
   if (!file.startsWith(dist)) return res.writeHead(403).end();
   let info = await stat(file).catch(() => null);

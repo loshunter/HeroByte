@@ -120,7 +120,7 @@ function mp4Screen(id, label, root) {
   return `<div class="screen"><video preload="none" playsinline poster="${root}media/${id}.jpg" data-src="${root}media/${id}.mp4" aria-label="${esc(label)}"></video><button type="button" class="video-start" aria-label="Play: ${esc(label)}"><span class="play-box">${PLAY_ICON}</span><span class="video-status" aria-live="polite"></span></button></div>`;
 }
 function mp4Download(id, root) {
-  const mb = statSync(path.join(here, "media", `${id}.mp4`)).size / 2 ** 20;
+  const mb = statSync(path.join(here, "media", `${id}.mp4`)).size / 1e6;
   return `<a href="${root}media/${id}.mp4" download>Download the video (${mb.toFixed(mb < 10 ? 1 : 0)} MB)</a>`;
 }
 
@@ -211,12 +211,12 @@ ${videoBlock(lesson, root)}
 <section aria-labelledby="written" style="display: flex; flex-direction: column; gap: 36px">
 <div class="written-head">
 <h2 id="written">Step by step</h2>
-<p>What the video says, chapter by chapter. Press a time to play that part.</p>
+<p>What Wren says in the video, chapter by chapter. Press a time to play that part.</p>
 </div>
 
 ${steps}
 
-<div class="callout ${color}"><b>THE FULL STORY</b><p><a href="${guideHref}">${esc(guideLabel)}</a> covers all of this in writing, with screenshots.</p></div>
+<div class="callout ${color}"><b>IN THE GUIDE</b><p>The guide goes deeper, with screenshots, starting at <a href="${guideHref}">${esc(guideLabel)}</a>.</p></div>
 </section>
 
 <nav class="lesson-nav" aria-label="Lesson navigation">
@@ -520,7 +520,7 @@ const mainHallLine = SITE.mainHall.password
   ? `Table password <code>${SITE.mainHall.password}</code>` +
     (SITE.mainHall.dmPassword ? `, and <code>${SITE.mainHall.dmPassword}</code> to try the DM tools.` : ".")
   : "Ask the host for the Main Hall password.";
-// The lesson placeholders: {{video:<id>}}, {{pathList:<player|dm>}} (or :<current id>) and
+// The lesson placeholders: {{video:<id>}}, {{pathList:<player|dm>}} (or {{pathList:dm:<id>}} to mark one) and
 // {{lessonCards}}; for any other video in media/, {{screen:<id>:<label>}} and {{download:<id>}}.
 const lessonOf = (lessons, id) => {
   const l = lessons.get(id);
@@ -623,7 +623,7 @@ export async function build(dest = out) {
     await writeFile(path.join(dest, rel), layout({ ...meta, body, root, head }));
     if (meta.search) {
       const words = body
-        .replace(/<(script|style|nav|aside)[\s\S]*?<\/>/g, " ")
+        .replace(/<(script|style|nav|aside)\b[\s\S]*?<\/\1>/g, " ")
         .replace(/<[^>]+>/g, " ")
         .replace(/&amp;/g, "&")
         .replace(/\s+/g, " ")

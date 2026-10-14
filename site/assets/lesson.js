@@ -9,6 +9,7 @@
     const start = video.parentElement.querySelector(".video-start");
     const status = start.querySelector(".video-status");
     let loading = null;
+    let ready = false;
     const load = () =>
       (loading ??= (async () => {
         start.disabled = true;
@@ -24,13 +25,17 @@
           if (done) break;
           parts.push(value);
           got += value.length;
-          if (total) status.textContent = `LOADING ${Math.floor((got * 100) / total)}%`;
+          if (total) status.textContent = `LOADING ${Math.min(100, Math.floor((got * 100) / total))}%`;
         }
+        // preload "none" (until the press) would leave the second src unloaded, so ask for it;
+        // and give up on a source that has neither loaded nor failed in 20 seconds.
         const open = (src) => {
           const loaded = new Promise((resolve, reject) => {
             video.addEventListener("loadedmetadata", resolve, { once: true });
             video.addEventListener("error", reject, { once: true });
+            setTimeout(reject, 20000);
           });
+          video.preload = "auto";
           video.src = src;
           return loaded;
         };
@@ -38,17 +43,21 @@
         // A browser that will not play a blob: video (WebKit's Windows build, for one) gets the
         // file itself: it plays, though it may not seek.
         await open(blob).catch(() => (URL.revokeObjectURL(blob), open(video.dataset.src)));
+        ready = true;
         video.controls = true;
+        status.textContent = "";
         start.hidden = true;
       })().catch((err) => {
         loading = null;
+        video.removeAttribute("src");
+        video.load();
         start.disabled = false;
         status.textContent = "COULD NOT LOAD IT. PRESS TO TRY AGAIN";
         throw err;
       }));
     // play() inside the press, before the download: Safari then allows the play() after it.
     const play = (t) => {
-      if (video.src) {
+      if (ready) {
         video.currentTime = t;
         video.play().catch(() => {});
         return;
@@ -83,7 +92,7 @@
     }),
   );
   video?.addEventListener("timeupdate", () => {
-    if (!video.src) return;
+    if (!video.controls) return;
     const now = buttons.findLast((o) => Number(o.dataset.t) <= video.currentTime + 0.25) ?? buttons[0];
     if (now && now.getAttribute("aria-current") !== "true") mark(now);
   });
