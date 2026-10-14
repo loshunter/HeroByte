@@ -82,21 +82,36 @@ const GUIDES = [
 // player; before setting the first one, allow it in the CSP (apps/client/public/_headers:
 // `frame-src https://www.youtube-nocookie.com`), or the browser shows an empty box.
 // A `hand` page is written in pages/help/ and places the video with {{video:<id>}}; the others
-// are built from lessons.json.
+// are built from lessons.json. `notes` (by chapter number) add a line under what the narrator says
+// where the video says less than the app does, until the video is re-recorded.
 export const LESSON_PAGES = {
   "player-quick-start": { page: "player-quick-start.html", hand: true, youtube: null },
   "dm-quick-start": { page: "dm-quick-start.html", hand: true, youtube: null },
   "player-path-1": { page: "join-a-table.html", guide: ["guide/getting-started.html#joining-a-table", "Getting started: Joining a table"], youtube: null },
   "player-path-2": { page: "the-table-at-a-glance.html", guide: ["guide/player-guide.html#the-table-at-a-glance", "Player guide: The table at a glance"], youtube: null },
   "player-path-3": { page: "your-character-card.html", guide: ["guide/player-guide.html#your-character-card", "Player guide: Your character card"], youtube: null },
-  "player-path-4": { page: "roll-dice.html", guide: ["guide/player-guide.html#dice", "Player guide: Dice"], youtube: null },
+  "player-path-4": {
+    page: "roll-dice.html",
+    guide: ["guide/player-guide.html#dice", "Player guide: Dice"],
+    youtube: null,
+    notes: {
+      2: "A hidden roll is kept for its seat. If you are away for more than six hours, someone with the table password can claim your seat and see the hidden rolls stored for it.",
+    },
+  },
   "player-path-5": { page: "draw-measure-and-ping.html", guide: ["guide/player-guide.html#drawing-measuring-pointing", "Player guide: Drawing, measuring, pointing"], youtube: null },
   "player-path-6": { page: "fog-doors-and-sight.html", guide: ["guide/player-guide.html#doors-fog-and-what-you-can-see", "Player guide: Doors, fog and what you can see"], youtube: null },
   "dm-path-1": { page: "create-a-private-table.html", guide: ["guide/getting-started.html#creating-a-private-table", "Getting started: Creating a private table"], youtube: null },
   "dm-path-2": { page: "become-the-dm.html", guide: ["guide/getting-started.html#becoming-the-dm", "Getting started: Becoming the DM"], youtube: null },
   "dm-path-3": { page: "three-ways-to-get-a-map.html", guide: ["guide/running-a-game.html", "Running a game"], youtube: null },
   "dm-path-4": { page: "build-your-first-room.html", hand: true, youtube: null },
-  "dm-path-5": { page: "walls-doors-and-fog.html", guide: ["guide/map-editor-guide.html#-wall-and--door", "Map editor guide: Wall and Door"], youtube: null },
+  "dm-path-5": {
+    page: "walls-doors-and-fog.html",
+    guide: ["guide/map-editor-guide.html#-wall-and--door", "Map editor guide: Wall and Door"],
+    youtube: null,
+    notes: {
+      4: "Fog keeps tokens, NPCs, props and pings out of a player's browser until they can see them. The map itself, its walls, doors and floor plan, is sent to every player, so fog does not hide that a room exists.",
+    },
+  },
   "dm-path-6": { page: "npcs-and-the-token-library.html", guide: ["guide/dm-guide.html#npcs--monsters", "DM guide: NPCs and monsters"], youtube: null },
   "dm-path-7": { page: "run-your-first-combat.html", guide: ["guide/dm-guide.html#encounter", "DM guide: Encounter"], youtube: null },
   "dm-path-8": { page: "backups-and-keeping-your-work.html", guide: ["guide/dm-guide.html#backups", "DM guide: Backups"], youtube: null },
@@ -182,6 +197,7 @@ function lessonPage(lesson, lessons) {
   const at = path.indexOf(lesson.id);
   const pathName = lesson.aud === "dm" ? "DM path" : "Player path";
   const [guideHref, guideLabel] = LESSON_PAGES[lesson.id].guide;
+  const notes = LESSON_PAGES[lesson.id].notes ?? {};
   const prevId = at > 0 ? path[at - 1] : QUICK_START[lesson.aud];
   const prev = lessons.get(prevId);
   const nextId = path[at + 1];
@@ -190,7 +206,7 @@ function lessonPage(lesson, lessons) {
     .map(
       (c, i) => `<article class="step" id="chapter-${i + 1}">
 <div class="step-head"><span class="num ${color}">${i + 1}</span><h3>${esc(c.title)}</h3><button type="button" class="seek" data-seek="${c.start}" aria-label="Play chapter ${i + 1} from ${clock(c.start)}">▶ ${clock(c.start)}</button></div>
-${c.say.map((s) => `<p>${esc(s)}</p>`).join("\n")}
+${c.say.map((s) => `<p>${esc(s)}</p>`).join("\n")}${notes[i + 1] ? `\n<p class="note"><b>NOTE</b> ${esc(notes[i + 1])}</p>` : ""}
 </article>`,
     )
     .join("\n\n");
@@ -211,12 +227,12 @@ ${videoBlock(lesson, root)}
 <section aria-labelledby="written" style="display: flex; flex-direction: column; gap: 36px">
 <div class="written-head">
 <h2 id="written">Step by step</h2>
-<p>What Wren says in the video, chapter by chapter. Press a time to play that part.</p>
+<p>What the narrator says in the video, chapter by chapter, with a note where the app needs more said. Press a time to play that part.</p>
 </div>
 
 ${steps}
 
-<div class="callout ${color}"><b>IN THE GUIDE</b><p>The guide goes deeper, with screenshots, starting at <a href="${guideHref}">${esc(guideLabel)}</a>.</p></div>
+<div class="callout ${color}"><b>IN THE GUIDE</b><p>The guide goes deeper, starting at <a href="${guideHref}">${esc(guideLabel)}</a>.</p></div>
 </section>
 
 <nav class="lesson-nav" aria-label="Lesson navigation">

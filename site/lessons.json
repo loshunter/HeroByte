@@ -258,7 +258,7 @@
    "aud": "player",
    "heading": "Player path 3",
    "title": "Your character card",
-   "lead": "By the end, you can open your card and every card at once, edit your character's name and HP, give it a portrait and token art (by upload or by link, and know the limits of each), set conditions and size, recolour your token, save it to a file, and add a second character.",
+   "lead": "By the end, you can open your card and every card at once, edit your character's name and HP, give it a portrait and token art, by upload or by link, and know the limits of each, set conditions and size, recolour your token, save it to a file, and add a second character.",
    "duration": 199.2,
    "bytes": 10367947,
    "chapters": [
@@ -351,7 +351,7 @@
       "Press Dice for the roller. Chat and Rolls holds the history.",
       "Click dice to add them to the tray. Nothing rolls yet. Click again for more of the same.",
       "Click the count badge to type an exact number.",
-      "Add a plus one or minus one chip. Click a chip to type any value.",
+      "Add a +1 or -1 chip. Click a chip to type any value.",
       "Press Roll. Each die shows, then the total.",
       "A natural 20 gets a critical banner.",
       "A natural one, a fumble."
@@ -443,7 +443,7 @@
      "say": [
       "For spells, use the area templates: Burst, Cone, Cube and Bolt.",
       "Drag out from the point of origin. It snaps to whole squares.",
-      "When you let go it's labelled with its size, like fifteen foot cone. Everyone sees it. Including whoever is standing in it."
+      "When you let go it's labelled with its size, like 15 ft cone. Everyone sees it. Including whoever is standing in it."
      ]
     },
     {
@@ -669,7 +669,7 @@
    "aud": "dm",
    "heading": "DM path 3",
    "title": "Three ways to get a map on the table",
-   "lead": "By the end, you can put your own map image on the table, start a map to build by hand, and generate a place mid-session, and know when to use each.",
+   "lead": "By the end, you can put your own map image on the table, start a map to build by hand or generate a place mid-session, and know when to use each.",
    "duration": 155.6,
    "bytes": 7997626,
    "chapters": [
@@ -844,7 +844,7 @@
      "start": 92.3,
      "say": [
       "Table Sight Default sets how far every token sees. Set thirty feet and a corridor becomes something to walk down.",
-      "A single token can have its own Sight Radius, in its Token settings. Thirty, sixty or a hundred and twenty feet, Blind, or any number you type.",
+      "A single token can have its own Sight Radius, in its Token settings. 30, 60 or 120 feet, Blind, or any number you type.",
       "A token you set yourself always wins over the table default."
      ]
     },

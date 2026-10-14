@@ -479,7 +479,7 @@ How it signs in:
 ## Player path 3: Your character card
 
 - **Audience:** players. **Length:** about 4:40.
-- **By the end:** the viewer can open their card and every card at once, edit their character's name and HP, give it a portrait and token art (by upload or by link, and knows the limits of each), set conditions and size, recolour their token, save it to a file, and add a second character.
+- **By the end:** the viewer can open their card and every card at once, edit their character's name and HP, give it a portrait and token art, by upload or by link, and knows the limits of each, set conditions and size, recolour their token, save it to a file, and add a second character.
 - **Setup:** Main Hall or a private table, one player signed in with one character, its token on the map. The example token `site/video/capture/assets/rogue-token.png` (the owner's round rogue portrait, 400×400 PNG with transparent corners, 226 KB) for the upload, and `rogue-portrait.png` (a close crop of the same art) for the portrait. For the link step the recording pastes the uploaded portrait's own-server link (the table's own server is allowed like Imgur and Discord; Claude cannot upload to Imgur). A second player on a phone at 390 px (Bram), whose colour gives the picker a striped patch and whose token the DM locks, and who is recorded for chapter 7.
 - **Recorded:** `site/video/capture/player-path-3.capture.ts` (2026-10-11), on the temp narration (VibeVoice clone of Wren, `site/narration/vibevoice.py`).
 - **Thumbnail:** `img/party-details.jpg` (predates the new voice controls; the card's mic button may look different now).
@@ -1059,7 +1059,7 @@ How it signs in:
 ## DM path 3: Three ways to get a map on the table
 
 - **Audience:** DMs. **Length:** about 5:00.
-- **By the end:** the viewer can put their own map image on the table, start a map to build by hand, and generate a place mid-session, and knows when to use each.
+- **By the end:** the viewer can put their own map image on the table, start a map to build by hand or generate a place mid-session, and knows when to use each.
 - **Setup:** a private table, DM signed in, one player signed in (second browser) for the arrival shot. A battlemap image with a printed grid on the computer. Rehearse the alignment clicks. Fix the kick seed in rehearsal.
 - **Thumbnail:** `img/dm-kick-arrival.jpg`.
 

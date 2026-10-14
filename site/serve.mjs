@@ -29,7 +29,7 @@ createServer(async (req, res) => {
     return res.writeHead(400).end();
   }
   let file = path.join(dist, url);
-  if (!file.startsWith(dist)) return res.writeHead(403).end();
+  if (file !== dist && !file.startsWith(dist + path.sep)) return res.writeHead(403).end();
   let info = await stat(file).catch(() => null);
   if (info?.isDirectory()) {
     file = path.join(file, "index.html");

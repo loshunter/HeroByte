@@ -57,11 +57,17 @@ the other 13 path pages are built from `lessons.json`. `LESSON_PAGES` in `build.
 lesson its page and the guide section where its topic starts; `{{pathList:<player|dm>}}` and
 `{{lessonCards}}` print the paths and the video cards from the same data.
 
-After rendering a lesson (`video/README.md`), make its phone-size copy. The paths were made at
-720p and the quick starts at 1080p with `-crf 25`, for example, from `site/video/`:
+After rendering a lesson (`video/README.md`), make its phone-size copy, from `site/video/`. The
+14 paths are 720p at CRF 28:
 
 ```bash
 ffmpeg -i out/dm-path-1.mp4 -vf scale=-2:720 -c:v libx264 -crf 28 -c:a aac -b:a 128k out/dm-path-1-small.mp4
+```
+
+The two quick starts stayed 1080p, at CRF 25 (their audio bitrate was not recorded):
+
+```bash
+ffmpeg -i out/dm-quick-start.mp4 -c:v libx264 -crf 25 -c:a aac out/dm-quick-start-small.mp4
 ```
 
 Then put it on the site, from `site/video/` (needs ffmpeg on PATH; `esbuild` comes with Remotion's
@@ -93,7 +99,8 @@ YouTube's player (youtube-nocookie.com) instead of the MP4, and the chapter butt
 that second. First add `frame-src https://www.youtube-nocookie.com` to the CSP in
 `apps/client/public/_headers`, which covers the website too, or the player is an empty box. The
 MP4 can then leave `media/` (keep its `.jpg`: the lesson cards use it), though it stays in git
-history; the page's download link goes with it.
+history; the page's download link goes with it. After that, `--json-only` stops on that lesson,
+because it reads the MP4's size, and the download link in `build.mjs` needs the file too.
 
 ## Narration (ElevenLabs)
 
@@ -132,7 +139,7 @@ was not found.
 ## Checks used while building it
 
 - Every `href`/`src` in `site/dist` and every `#anchor` resolved (488 references, 0 broken, before
-  the `/play/` move; 886 with the lesson videos, 2026-10-14), and every search entry points at a
+  the `/play/` move; again with the lesson videos, 2026-10-14), and every search entry points at a
   real anchor. The `/play/` app links and
   `404.html`'s root-absolute links resolve only in the assembled layout; re-run the count there.
 - No page scrolls sideways at 375 px or 1280 px wide; the guides' wide tables scroll inside their

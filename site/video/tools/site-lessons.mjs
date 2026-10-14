@@ -130,6 +130,9 @@ const WRITTEN = [
   [/\bD I S\b/g, "DIS"],
   [/\bP N G\b/g, "PNG"],
   [/\bnatural twenty\b/g, "natural 20"],
+  [/\bfifteen foot cone\b/g, "15 ft cone"],
+  [/\bThirty, sixty or a hundred and twenty feet\b/g, "30, 60 or 120 feet"],
+  [/\bplus one or minus one chip\b/g, "+1 or -1 chip"],
 ];
 const NUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, eight: 8, ten: 10, twelve: 12, twenty: 20, "a hundred": 100 };
 
