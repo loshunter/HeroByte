@@ -1340,7 +1340,7 @@ describe("MobileEntitiesList token picture (C4)", () => {
   ] as unknown as SnapshotCharacter[];
   const pieces: Token[] = [
     { id: "my-token", owner: ME, x: 1, y: 1, color: "red", imageUrl: "/assets/x" },
-    { id: "their-token", owner: "other-uid", x: 2, y: 2, color: "blue" },
+    { id: "their-token", owner: "other-uid", x: 2, y: 2, color: "blue", imageUrl: "/assets/y" },
   ];
   const openRow = (name: string) => {
     const row = screen
@@ -1364,14 +1364,23 @@ describe("MobileEntitiesList token picture (C4)", () => {
   });
 
   it("a DM gets it on another player's row, bound to that row's token", () => {
+    const onTokenImageChange = vi.fn();
     render(
       <MobileEntitiesList
-        {...listProps({ players: seats, characters: pcs, tokens: pieces, isDM: true })}
+        {...listProps({
+          players: seats,
+          characters: pcs,
+          tokens: pieces,
+          isDM: true,
+          onTokenImageChange,
+        })}
       />,
     );
     openRow("Other");
     expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
-    expect(screen.queryByAltText("Token preview")).not.toBeInTheDocument();
+    expect(screen.getByAltText("Token preview")).toHaveAttribute("src", "/assets/y");
+    fireEvent.click(screen.getByRole("button", { name: "Clear picture" }));
+    expect(onTokenImageChange).toHaveBeenCalledWith("their-token", "");
   });
 
   it("a row with no token offers no picture control", () => {

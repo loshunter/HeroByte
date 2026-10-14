@@ -13,7 +13,10 @@ import type { TokenCreatorDeps } from "../useTokenCreator";
 export const HASH = "b".repeat(64);
 export const decoded = { naturalWidth: 300, naturalHeight: 600 } as HTMLImageElement;
 
-/** A canvas whose context records [name, ...args] and whose toBlob answers `type`. */
+/**
+ * A canvas whose context records [name, ...args] (fillRect with the fillStyle it
+ * paints, drawImage with the image it draws) and whose toBlob answers `type`.
+ */
 export function recordingCanvas(type = "image/webp") {
   const calls: Array<[string, ...unknown[]]> = [];
   const record =
@@ -24,14 +27,19 @@ export function recordingCanvas(type = "image/webp") {
     fillStyle: "",
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high",
-    fillRect: record("fillRect"),
-    createLinearGradient: () => ({ addColorStop: () => {} }) as unknown as CanvasGradient,
+    fillRect: (...args) => void calls.push(["fillRect", context.fillStyle, ...args]),
+    createLinearGradient: (...args) => {
+      calls.push(["createLinearGradient", ...args]);
+      return {
+        addColorStop: (...stop: unknown[]) => void calls.push(["addColorStop", ...stop]),
+      } as unknown as CanvasGradient;
+    },
     save: record("save"),
     restore: record("restore"),
     translate: record("translate"),
     scale: record("scale"),
     rotate: record("rotate"),
-    drawImage: (_image, ...args) => void calls.push(["drawImage", ...args]),
+    drawImage: (image, ...args) => void calls.push(["drawImage", image, ...args]),
   };
   const canvas: BakeCanvas = {
     width: 0,

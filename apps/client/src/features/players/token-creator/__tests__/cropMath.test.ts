@@ -117,14 +117,18 @@ describe("zoom and pan limits", () => {
     expect(small.y).toBe(-0.25);
   });
 
-  it("zooming about a point keeps that point still", () => {
-    const start = { ...DEFAULT_CROP, zoom: 2 };
-    const focus = { x: 0.25, y: 0.25 };
+  it("zooming about a point keeps that point still, on both axes", () => {
+    const start = { ...DEFAULT_CROP, zoom: 2, x: 0.1, y: -0.2 };
+    const focus = { x: 0.25, y: -0.15 };
     const zoomed = zoomAbout(start, SQUARE, 1.5, focus);
-    // The picture point under the focus before: (focus - offset) / zoom, in box edges.
-    const before = (focus.x - start.x) / start.zoom;
-    const after = (focus.x - zoomed.x) / zoomed.zoom;
-    expect(after).toBeCloseTo(before);
+    // The picture point under the focus: (focus - offset) / zoom, in box edges.
+    expect((focus.x - zoomed.x) / zoomed.zoom).toBeCloseTo((focus.x - start.x) / start.zoom);
+    expect((focus.y - zoomed.y) / zoomed.zoom).toBeCloseTo((focus.y - start.y) / start.zoom);
+  });
+
+  it("a flip mirrors an offset too", () => {
+    const moved = panBy(DEFAULT_CROP, LANDSCAPE, 0.3, 0);
+    expect(flipHorizontal(moved, LANDSCAPE).x).toBeCloseTo(-0.3);
   });
 });
 

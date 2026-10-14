@@ -123,20 +123,6 @@ test.describe("token creator", () => {
       await openCreator(settings, player);
       await pick(player, await drawPicture(player, false));
 
-      // Drag and wheel on the crop area: the picture moves and the zoom grows.
-      const crop = player.getByTestId("token-creator-crop");
-      const box = (await crop.boundingBox())!;
-      const zoom = player.getByRole("slider", { name: "Zoom" });
-      await expect(zoom).toHaveAttribute("aria-valuetext", "100%");
-      const leftBefore = await crop.locator("img").evaluate((img) => img.style.left);
-      await player.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await player.mouse.down();
-      await player.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2, { steps: 4 });
-      await player.mouse.up();
-      expect(await crop.locator("img").evaluate((img) => img.style.left)).not.toBe(leftBefore);
-      await player.mouse.wheel(0, -300);
-      await expect(zoom).not.toHaveAttribute("aria-valuetext", "100%");
-
       // Escape closes the creator alone: the settings window behind it stays.
       await player.keyboard.press("Escape");
       await expect(player.getByRole("tabpanel", { name: "Picture" })).toHaveCount(0);
@@ -144,6 +130,23 @@ test.describe("token creator", () => {
       expect(await tokenImage(player, tokenId)).toBeNull();
       await openCreator(settings, player);
       await pick(player, await drawPicture(player, false));
+
+      // Drag right and wheel up on the crop area: the picture moves right and grows.
+      const crop = player.getByTestId("token-creator-crop");
+      const box = (await crop.boundingBox())!;
+      const zoom = player.getByRole("slider", { name: "Zoom" });
+      await expect(zoom).toHaveAttribute("aria-valuetext", "100%");
+      const left = () => crop.locator("img").evaluate((img) => parseFloat(img.style.left));
+      const leftBefore = await left();
+      await player.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await player.mouse.down();
+      await player.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2, { steps: 4 });
+      await player.mouse.up();
+      // 40 px on a 280 px square: about +14% of the square.
+      expect((await left()) - leftBefore).toBeGreaterThan(10);
+      await player.mouse.wheel(0, -300);
+      const zoomed = Number.parseInt((await zoom.getAttribute("aria-valuetext"))!, 10);
+      expect(zoomed).toBeGreaterThanOrEqual(150);
 
       await player.getByRole("button", { name: "Use this picture" }).click();
       await expect.poll(() => tokenImage(player, tokenId), { timeout: 15_000 }).toMatch(ASSET);

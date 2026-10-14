@@ -58,8 +58,9 @@ test.describe("mobile token creator", () => {
     const windowBox = (await close
       .locator("xpath=ancestor::*[contains(@style,'position: fixed')][1]")
       .boundingBox())!;
-    expect(windowBox.x).toBe(0);
+    expect(windowBox).toMatchObject({ x: 0, y: 0 });
     expect(windowBox.width).toBe(viewport.width);
+    expect(windowBox.height).toBe(viewport.height);
 
     // ✕ before any picture: back to the settings window, nothing changed.
     const imageBefore = await ownTokenImage(page);
@@ -80,7 +81,7 @@ test.describe("mobile token creator", () => {
     // Every control a finger presses clears the floor, under each backdrop's controls.
     const sweep = async (when: string) => {
       const controls = creator.locator(
-        "button:visible, select:visible, input:visible:not([type=file]):not([type=range])",
+        "button:visible, select:visible, input:visible:not([type=file])",
       );
       for (const control of await controls.all()) {
         const box = (await control.boundingBox())!;
@@ -126,9 +127,11 @@ test.describe("mobile token creator", () => {
     expect(zoomed).toBeGreaterThan(250);
     expect(zoomed).toBeLessThan(350);
 
-    const before = await crop.locator("img").evaluate((img) => img.style.left);
+    const left = () => crop.locator("img").evaluate((img) => parseFloat(img.style.left));
+    const before = await left();
     await touchDrag(cdp, { x: cx, y: cy }, [{ x: cx + 40, y: cy + 20 }]);
-    expect(await crop.locator("img").evaluate((img) => img.style.left)).not.toBe(before);
+    // A finger 40 px right moves the picture right.
+    expect((await left()) - before).toBeGreaterThan(5);
 
     await creator.getByRole("button", { name: "Use this picture" }).click();
     await expect.poll(() => ownTokenImage(page), { timeout: 15_000 }).toMatch(ASSET);
