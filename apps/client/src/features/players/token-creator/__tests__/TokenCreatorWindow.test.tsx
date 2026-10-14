@@ -169,7 +169,10 @@ describe("TokenCreatorWindow", () => {
     const link = "https://media.discordapp.net/attachments/1/2/art.png";
     fireEvent.change(screen.getByLabelText("Or a link to a picture"), { target: { value: link } });
     fireEvent.click(screen.getByRole("button", { name: "Load link" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Use the link as is" }));
+    const offer = await screen.findByRole("button", { name: "Use the link as is" });
+    // Nothing loaded at all: the words say so, rather than blaming the site.
+    expect(screen.getByText(/did not load a picture here/)).toBeInTheDocument();
+    fireEvent.click(offer);
     expect(onApply).toHaveBeenCalledWith(link);
     expect(onClose).toHaveBeenCalled();
     expect(d.upload).not.toHaveBeenCalled();
@@ -188,7 +191,9 @@ describe("TokenCreatorWindow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load link" }));
     await screen.findByRole("button", { name: /Rotate/ });
     fireEvent.click(screen.getByRole("button", { name: "Use this picture" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Use the link as is" }));
+    const offer = await screen.findByRole("button", { name: "Use the link as is" });
+    expect(screen.getByText(/does not let HeroByte copy its pictures/)).toBeInTheDocument();
+    fireEvent.click(offer);
     expect(onApply).toHaveBeenCalledWith("https://example.com/a.png");
     expect(d.upload).not.toHaveBeenCalled();
   });

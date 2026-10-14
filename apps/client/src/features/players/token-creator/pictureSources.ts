@@ -28,10 +28,25 @@ export interface LoadedPicture {
   release: () => void;
 }
 
+/**
+ * Why a link cannot be framed: the site shows its picture but will not let a
+ * page copy it ("no-copy"), or nothing loaded at all here ("unreachable": a
+ * typo, a deleted picture, or a site that refuses this address). Either way it
+ * is offered as is: another player's browser may still show it.
+ */
+export type UnbakeableReason = "no-copy" | "unreachable";
+
 /** A link that would not load readably: offer it as is. */
 export class UnbakeableLinkError extends Error {
-  constructor(readonly link: string) {
-    super("That site does not let HeroByte copy its pictures.");
+  constructor(
+    readonly link: string,
+    readonly reason: UnbakeableReason,
+  ) {
+    super(
+      reason === "no-copy"
+        ? "That site does not let HeroByte copy its pictures."
+        : "That link did not load a picture.",
+    );
     this.name = "UnbakeableLinkError";
   }
 }
@@ -139,7 +154,7 @@ export async function loadPictureLink(link: string, deps: LoadDeps): Promise<Loa
   try {
     source = await deps.readableSource(direct);
   } catch {
-    throw new UnbakeableLinkError(direct);
+    throw new UnbakeableLinkError(direct, "unreachable");
   }
   const ownBlob = source !== direct;
   try {
@@ -155,7 +170,12 @@ export async function loadPictureLink(link: string, deps: LoadDeps): Promise<Loa
     };
   } catch {
     if (ownBlob) deps.revokeObjectURL(source);
-    throw new UnbakeableLinkError(direct);
+    // A plain load needs no permission: if it works, the site refused the copy.
+    const shows = await deps.loadImage(direct, false).then(
+      () => true,
+      () => false,
+    );
+    throw new UnbakeableLinkError(direct, shows ? "no-copy" : "unreachable");
   }
 }
 

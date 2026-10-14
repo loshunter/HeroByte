@@ -103,7 +103,17 @@ export function TokenCreatorWindow({
           >
             <PictureTab creator={creator} color={color} />
           </div>
-          <div style={{ display: "flex", gap: "6px" }}>
+          {/* Pinned to the window's foot: on a short screen the picture scrolls, not Accept. */}
+          <div
+            style={{
+              display: "flex",
+              gap: "6px",
+              position: "sticky",
+              bottom: 0,
+              padding: "8px 0",
+              background: "rgba(12, 18, 40, 0.97)",
+            }}
+          >
             <JRPGButton
               variant="primary"
               onClick={() => void creator.accept()}
@@ -111,7 +121,14 @@ export function TokenCreatorWindow({
               title={
                 creator.picture ? "Bake, upload and set this picture" : "Choose a picture first"
               }
-              style={{ flex: 2, fontSize: "11px", padding: "8px", minHeight: "44px" }}
+              // Two lines in a 340 px window: give them room to stand apart.
+              style={{
+                flex: 2,
+                fontSize: "11px",
+                padding: "8px",
+                minHeight: "44px",
+                lineHeight: 1.5,
+              }}
             >
               {PHASE_LABEL[creator.phase]}
             </JRPGButton>

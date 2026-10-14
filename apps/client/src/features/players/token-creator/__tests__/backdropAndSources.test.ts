@@ -137,10 +137,23 @@ describe("links", () => {
     });
   });
 
-  it("a link that will not load readably is offered as is", async () => {
-    const deps = loadDeps({ loadImage: vi.fn(async () => Promise.reject(new Error("cors"))) });
+  it("a site that shows its picture but refuses the copy is 'no-copy'", async () => {
+    // The anonymous (CORS) load fails, a plain one works: the site refused the copy.
+    const deps = loadDeps({
+      loadImage: vi.fn(async (_src: string, cors: boolean) =>
+        cors
+          ? Promise.reject(new Error("cors"))
+          : ({ naturalWidth: 1, naturalHeight: 1 } as HTMLImageElement),
+      ),
+    });
     const error = await loadPictureLink("https://media.discordapp.net/x.png", deps).catch((e) => e);
     expect(error).toBeInstanceOf(UnbakeableLinkError);
-    expect((error as UnbakeableLinkError).link).toBe("https://media.discordapp.net/x.png");
+    expect(error).toMatchObject({ link: "https://media.discordapp.net/x.png", reason: "no-copy" });
+  });
+
+  it("a link that loads nothing at all is 'unreachable', not blamed on the site", async () => {
+    const deps = loadDeps({ loadImage: vi.fn(async () => Promise.reject(new Error("404"))) });
+    const error = await loadPictureLink("https://i.imgur.com/gone.png", deps).catch((e) => e);
+    expect(error).toMatchObject({ link: "https://i.imgur.com/gone.png", reason: "unreachable" });
   });
 });

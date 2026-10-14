@@ -34,6 +34,7 @@ import {
   sampleAutoColor,
   type LoadDeps,
   type LoadedPicture,
+  type UnbakeableReason,
 } from "./pictureSources";
 
 export interface TokenCreatorDeps {
@@ -74,7 +75,9 @@ export function useTokenCreator({
   const [phase, setPhase] = useState<CreatorPhase>("idle");
   const [error, setError] = useState<string | null>(null);
   /** A link that loads but cannot be baked: offered as is. */
-  const [unbakeable, setUnbakeable] = useState<string | null>(null);
+  const [unbakeable, setUnbakeable] = useState<{ link: string; reason: UnbakeableReason } | null>(
+    null,
+  );
 
   // Apply through the latest callback, never the one captured when a slow
   // upload began (an NPC's onApply closes over its other fields).
@@ -110,8 +113,10 @@ export function useTokenCreator({
         adopt(next);
       } catch (failure) {
         if (seq !== loadSeq.current) return;
-        if (failure instanceof UnbakeableLinkError) setUnbakeable(failure.link);
-        else setError(failure instanceof Error ? failure.message : "That picture would not load.");
+        if (failure instanceof UnbakeableLinkError) {
+          setUnbakeable({ link: failure.link, reason: failure.reason });
+        } else
+          setError(failure instanceof Error ? failure.message : "That picture would not load.");
       } finally {
         if (seq === loadSeq.current) setPhase("idle");
       }
@@ -146,7 +151,7 @@ export function useTokenCreator({
       applyRef.current.onDone();
     } catch (failure) {
       if (failure instanceof TaintedPictureError && picture.link) {
-        setUnbakeable(picture.link);
+        setUnbakeable({ link: picture.link, reason: "no-copy" });
       } else if (failure instanceof AssetUploadError) {
         setError(failure.message);
       } else {
@@ -160,7 +165,7 @@ export function useTokenCreator({
   /** Today's behaviour for a link that cannot be baked: set it exactly as given. */
   const applyLinkAsIs = useCallback(() => {
     if (!unbakeable) return;
-    applyRef.current.onApply(unbakeable);
+    applyRef.current.onApply(unbakeable.link);
     applyRef.current.onDone();
   }, [unbakeable]);
 

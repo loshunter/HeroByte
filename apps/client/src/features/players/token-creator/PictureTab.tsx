@@ -192,7 +192,9 @@ export function PictureTab({ creator, color }: PictureTabProps) {
       {creator.unbakeable && (
         <div role="status" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
-            That site does not let HeroByte copy its pictures, so it cannot be framed here.
+            {creator.unbakeable.reason === "no-copy"
+              ? "That site does not let HeroByte copy its pictures, so it cannot be framed here."
+              : "That link did not load a picture here: check the address. Another player's browser may still show it."}
           </p>
           <JRPGButton onClick={creator.applyLinkAsIs} style={small}>
             Use the link as is
