@@ -3,18 +3,24 @@
 // ============================================================================
 // A DraggableWindow (a full-screen takeover on phones) above the settings
 // window that opened it, with a tab strip that holds one tab today, Picture;
-// C5a adds Frame beside it. Escape and ✕ close it like Cancel: nothing is
-// uploaded and nothing changes. While it is open, `data-modal-overlay` keeps
-// WASD from moving a token, and a pasted image anywhere lands here.
+// C5a adds Frame beside it. Escape and ✕ close it like Cancel, and abandon a
+// save in flight (useTokenCreator). While it is open, `data-modal-overlay`
+// keeps WASD from moving a token, a pasted image lands here (in the top-most
+// creator, when a DM has two open), and a file dropped anywhere on the window
+// loads instead of opening in the tab.
 
-import { useEffect } from "react";
+import { useEffect, useRef, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
+import { isEditableTarget } from "../../../utils/isEditableTarget";
 import { pictureFileFrom } from "./pictureSources";
 import { PictureTab } from "./PictureTab";
 import { useTokenCreator, type TokenCreatorDeps } from "./useTokenCreator";
+
+/** Open creators, oldest first: a paste goes to the last one opened. */
+const openCreators: symbol[] = [];
 
 export interface TokenCreatorWindowProps {
   /** Whose token, for the title ("Token picture: Eldryn"). */
@@ -43,20 +49,37 @@ export function TokenCreatorWindow({
   deps,
 }: TokenCreatorWindowProps) {
   const creator = useTokenCreator({ tokenSize, onApply, onDone: onClose, deps });
-  const { loadFile } = creator;
+  const loadFileRef = useRef(creator.loadFile);
+  loadFileRef.current = creator.loadFile;
 
-  // Paste an image anywhere while the creator is open. Text pasted into the
-  // link field stays text.
+  // Paste an image anywhere while the creator is open. A paste that carries
+  // text into a text field stays text (cells copied from a spreadsheet bring a
+  // picture of themselves along), and only the newest creator takes it.
   useEffect(() => {
+    const me = Symbol("token-creator");
+    openCreators.push(me);
     const onPaste = (event: ClipboardEvent) => {
+      if (openCreators[openCreators.length - 1] !== me) return;
+      const text = event.clipboardData?.getData?.("text/plain") ?? "";
+      if (text && isEditableTarget(event.target)) return;
       const file = pictureFileFrom(event.clipboardData);
       if (!file) return;
       event.preventDefault();
-      void loadFile(file);
+      void loadFileRef.current(file);
     };
     document.addEventListener("paste", onPaste);
-    return () => document.removeEventListener("paste", onPaste);
-  }, [loadFile]);
+    return () => {
+      document.removeEventListener("paste", onPaste);
+      openCreators.splice(openCreators.indexOf(me), 1);
+    };
+  }, []);
+
+  // The whole window is the drop target: a file dropped beside the square must
+  // not reach the browser, which would open it in place of the table.
+  const onDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    creator.loadDropped(event.dataTransfer);
+  };
 
   const ready = creator.picture !== null && creator.phase === "idle";
 
@@ -71,10 +94,12 @@ export function TokenCreatorWindow({
         width={340}
         minWidth={320}
         maxWidth={380}
-        storageKey="token-creator"
+        storageKey={name ? `token-creator:${name}` : "token-creator"}
         zIndex={2600}
       >
         <div
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={onDrop}
           style={{
             display: "flex",
             flexDirection: "column",

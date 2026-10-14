@@ -50,6 +50,16 @@ describe("auto backdrop", () => {
     expect(autoBackdropColor(data, 16, 16)).toBe("#0000ff");
   });
 
+  it("a ring under 5% opaque does not count, even with 8+ opaque pixels", () => {
+    // 64×64: ring 0 has 252 pixels; 9 opaque is 3.6%. Ring 1 is solid blue.
+    const data = pixels(64, 64, (x, y) => {
+      const ring = Math.min(x, y, 63 - x, 63 - y);
+      if (ring === 0) return y === 0 && x < 9 ? [255, 0, 0, 255] : [0, 0, 0, 0];
+      return ring === 1 ? [0, 0, 255, 255] : [255, 255, 255, 255];
+    });
+    expect(autoBackdropColor(data, 64, 64)).toBe("#0000ff");
+  });
+
   it("ignores a few stray opaque pixels on a transparent edge", () => {
     const data = pixels(64, 64, (x, y) =>
       x === 0 && y < 3
@@ -100,9 +110,14 @@ describe("drop and paste", () => {
     expect(pictureFileFrom(transfer)).toBe(shot);
   });
 
-  it("refuses a format the server would refuse", () => {
+  it("takes any image the browser may decode, and an unnamed file; refuses a non-image", () => {
+    // The bake re-encodes, so the source format is the decoder's business.
     const tiff = file("image/tiff");
-    expect(pictureFileFrom({ files: { length: 1, item: () => tiff } })).toBeNull();
+    expect(pictureFileFrom({ files: { length: 1, item: () => tiff } })).toBe(tiff);
+    const unnamed = new File(["x"], "art.webp", { type: "" });
+    expect(pictureFileFrom({ files: { length: 1, item: () => unnamed } })).toBe(unnamed);
+    const text = file("text/plain");
+    expect(pictureFileFrom({ files: { length: 1, item: () => text } })).toBeNull();
   });
 
   it("reads a dropped link from the uri list, skipping comments", () => {
@@ -127,6 +142,13 @@ function loadDeps(overrides: Partial<LoadDeps> = {}): LoadDeps {
 }
 
 describe("links", () => {
+  it("loads the normalized link (an imgur page becomes its image)", async () => {
+    const deps = loadDeps({ normalizeLink: vi.fn(async () => "https://i.imgur.com/abc.png") });
+    const picture = await loadPictureLink("https://imgur.com/abc", deps);
+    expect(deps.loadImage).toHaveBeenCalledWith("https://i.imgur.com/abc.png", true);
+    expect(picture.link).toBe("https://i.imgur.com/abc.png");
+  });
+
   it("loads a link with crossOrigin so it can bake", async () => {
     const deps = loadDeps();
     const picture = await loadPictureLink(" https://i.imgur.com/a.png ", deps);

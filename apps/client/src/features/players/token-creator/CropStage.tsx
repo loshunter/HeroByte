@@ -10,7 +10,7 @@
 // capture per finger (the InitiativeModifierDial precedent): no browser
 // gesture competes, and a finger that slides off the square still steers.
 
-import { useEffect, useRef, type CSSProperties, type DragEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
 import { cssBackground, type BackdropFill } from "./backdrop";
 import {
   cssPlacement,
@@ -20,15 +20,13 @@ import {
   type CropState,
   type Size,
 } from "./cropMath";
-import { pictureFileFrom, pictureLinkFrom, type LoadedPicture } from "./pictureSources";
+import type { LoadedPicture } from "./pictureSources";
 
 interface CropStageProps {
   picture: LoadedPicture | null;
   crop: CropState;
   onCrop: (update: (crop: CropState) => CropState) => void;
   fill: BackdropFill;
-  onFile: (file: File) => void;
-  onLink: (link: string) => void;
 }
 
 const NUDGE = 0.02;
@@ -40,18 +38,23 @@ const CHECKER = "repeating-conic-gradient(#3a3646 0% 25%, #24212d 0% 50%) 50% / 
 
 type Point = { x: number; y: number };
 
-export function CropStage({ picture, crop, onCrop, fill, onFile, onLink }: CropStageProps) {
+/** The window around it takes drops (TokenCreatorWindow); the square shows the hint. */
+export function CropStage({ picture, crop, onCrop, fill }: CropStageProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const sizeRef = useRef<Size | null>(null);
   sizeRef.current = picture?.size ?? null;
 
-  /** A client point as box edges from the square's centre, plus the box's width. */
+  /**
+   * A client point as box edges from the square's centre, plus the square's width.
+   * The square is its padding box (the picture's box): the 2 px border is outside it.
+   */
   const toBox = (point: Point): { at: Point; px: number } => {
-    const rect = boxRef.current?.getBoundingClientRect();
-    const px = rect?.width || 1;
-    const left = rect?.left ?? 0;
-    const top = rect?.top ?? 0;
+    const box = boxRef.current;
+    const rect = box?.getBoundingClientRect();
+    const px = box?.clientWidth || rect?.width || 1;
+    const left = (rect?.left ?? 0) + (box?.clientLeft ?? 0);
+    const top = (rect?.top ?? 0) + (box?.clientTop ?? 0);
     return { at: { x: (point.x - left) / px - 0.5, y: (point.y - top) / px - 0.5 }, px };
   };
 
@@ -81,7 +84,8 @@ export function CropStage({ picture, crop, onCrop, fill, onFile, onLink }: CropS
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!picture) return;
+    // The primary button only: a right-click's context menu swallows its pointerup.
+    if (!picture || (event.pointerType === "mouse" && event.button !== 0)) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
   };
@@ -90,6 +94,11 @@ export function CropStage({ picture, crop, onCrop, fill, onFile, onLink }: CropS
     const size = sizeRef.current;
     const previous = pointers.current.get(event.pointerId);
     if (!size || !previous) return;
+    // A mouse whose release never reached us (it left the window, a menu ate it).
+    if (event.pointerType === "mouse" && event.buttons === 0) {
+      pointers.current.delete(event.pointerId);
+      return;
+    }
     const before = pinchState();
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointers.current.size === 1) {
@@ -135,14 +144,6 @@ export function CropStage({ picture, crop, onCrop, fill, onFile, onLink }: CropS
     onCrop(update);
   };
 
-  const onDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const file = pictureFileFrom(event.dataTransfer);
-    if (file) return onFile(file);
-    const link = pictureLinkFrom(event.dataTransfer);
-    if (link) onLink(link);
-  };
-
   const placed = picture ? cssPlacement(placementFor(crop, picture.size, 100)) : null;
   const imageStyle: CSSProperties | undefined = placed
     ? {
@@ -173,9 +174,8 @@ export function CropStage({ picture, crop, onCrop, fill, onFile, onLink }: CropS
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
+      onLostPointerCapture={onPointerEnd}
       onKeyDown={onKeyDown}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={onDrop}
       style={{
         position: "relative",
         width: "100%",

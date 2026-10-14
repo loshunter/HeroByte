@@ -3,17 +3,23 @@
 // ============================================================================
 // Four ways in: a picked file, a dropped file (or a dropped link), a pasted
 // image, a typed link. Files never taint the canvas (blob: is same-origin). A
-// link loads through <img crossOrigin="anonymous">, never fetch (the CSP's
-// connect-src does not list other hosts; img-src does); a host that sends no
+// link to another host loads through <img crossOrigin="anonymous">, never fetch
+// (the CSP's connect-src does not list other hosts; img-src does; the table's
+// own /assets uploads ARE fetched, see readableImageSource); a host that sends no
 // CORS header fails the load outright, and the creator then offers the link
 // "as is", today's behaviour.
 
-import { readableImageSource } from "../../dm/token-library/customTokenImages";
+import { readableImageSource } from "../../map-studio/uploads/readableImageSource";
 import { normalizeImageUrl } from "../../../utils/imageUrlHelpers";
 import { AUTO_FALLBACK, AUTO_SAMPLE_EDGE, autoBackdropColor } from "./backdrop";
 import type { Size } from "./cropMath";
 
-/** The four formats the server sniffs for (GIF bakes to its first frame). */
+/**
+ * What the file picker offers: the four formats the server sniffs for (GIF bakes
+ * to its first frame). Listing them, not image/*, is what makes iOS hand over a
+ * HEIC camera-roll photo as JPEG. A drop or paste takes any image the browser
+ * can decode: the bake re-encodes it.
+ */
 export const PICTURE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"] as const;
 export const PICTURE_ACCEPT = PICTURE_TYPES.join(",");
 
@@ -67,7 +73,9 @@ export interface TransferLike {
 }
 
 function accepted(file: File | null | undefined): file is File {
-  return Boolean(file && (PICTURE_TYPES as readonly string[]).includes(file.type));
+  // An empty type is a file the OS could not name (a .webp on some Windows set-ups):
+  // let the decoder decide.
+  return Boolean(file && (file.type.startsWith("image/") || file.type === ""));
 }
 
 /** The first picture file in a drop or a paste, or null. */
