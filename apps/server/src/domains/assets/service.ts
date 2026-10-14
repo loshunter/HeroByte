@@ -18,6 +18,7 @@ import {
   planCondemnedExpiry,
   planRoomReclaim,
   planRoomRelease,
+  pendingStamp,
   pendingWithout,
   type ClaimPlan,
 } from "./assetRoomClaims.js";
@@ -126,7 +127,7 @@ export class AssetService {
       // backup) makes it an ordinary claim, and an apply re-upload restarts its
       // clock: an old stamp must not release bytes uploaded again just now.
       if (existing && roomsOf(existing).includes(roomId)) {
-        if (existing.pendingApply?.[roomId] === undefined) {
+        if (pendingStamp(existing, roomId) === undefined) {
           return { asset: existing, deduplicated: true };
         }
         const restamped: StoredAsset = {
@@ -153,9 +154,11 @@ export class AssetService {
           ...existing,
           rooms: [...roomsOf(existing), roomId],
           unreferencedAt: undefined,
-          ...(intent.apply
-            ? { pendingApply: { ...existing.pendingApply, [roomId]: timestamp } }
-            : {}),
+          // A stamp this room left behind (an older server version) does not
+          // carry over to a plain claim; an apply claim gets a fresh one.
+          pendingApply: intent.apply
+            ? { ...pendingWithout(existing, roomId), [roomId]: timestamp }
+            : pendingWithout(existing, roomId),
         };
         assertQuota(index.assets, bytes.length, roomId, await this.limits(index), 0);
         await this.writeIndex({

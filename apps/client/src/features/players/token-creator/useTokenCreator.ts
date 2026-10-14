@@ -7,8 +7,8 @@
 // and an upload that lands after the close is never applied. It is sent with
 // the "apply" intent, so the server's reclaim sweep releases the table's claim
 // on it when no state has taken it up 15 minutes after the upload (at the next
-// 5-minute sweep: APPLY_ADOPT_WINDOW_MS,
-// apps/server/src/domains/assets/assetRoomClaims.ts). Accept writes
+// 5-minute sweep of a loaded table) and no other table claims the same bytes
+// (APPLY_ADOPT_WINDOW_MS, apps/server/src/domains/assets/assetRoomClaims.ts). Accept writes
 // through the caller's `onApply(url)`,
 // the same callback the old URL field committed through, so a player's token
 // and an NPC's record (which the server copies back onto its token) both keep

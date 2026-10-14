@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { AssetRejectedError, AssetService } from "../service.js";
@@ -63,6 +63,42 @@ describe("AssetService", () => {
     const cleared = await service.store(picture, ROOM, 6000);
     expect(cleared.deduplicated).toBe(true);
     expect(cleared.asset.pendingApply).toBeUndefined();
+  });
+
+  it("a plain claim by another table keeps the first table's stamp", async () => {
+    const service = new AssetService({ directory: TMP_DIR });
+    const picture = pngBytes("kept stamp");
+    await service.store(picture, "room-a", 1000, { apply: true });
+    const plain = await service.store(picture, "room-b", 2000);
+    expect(plain.asset.pendingApply).toEqual({ "room-a": 1000 });
+  });
+
+  it("a restarted clock is saved: a fresh service holds it, and the old window no longer releases", async () => {
+    const window = 15 * 60 * 1000;
+    const picture = pngBytes("restarted");
+    const first = new AssetService({ directory: TMP_DIR });
+    await first.store(picture, ROOM, 1000, { apply: true });
+    await first.store(picture, ROOM, 5000, { apply: true });
+    const restarted = new AssetService({ directory: TMP_DIR });
+    await restarted.reclaimRoom(ROOM, new Set(), 1000 + window);
+    expect(await restarted.roomBytes(ROOM)).toBe(picture.length);
+    await restarted.reclaimRoom(ROOM, new Set(), 5000 + window);
+    expect(await restarted.roomBytes(ROOM)).toBe(0);
+  });
+
+  it("a stamp an older server left on this table does not carry over to a plain claim", async () => {
+    const picture = pngBytes("left behind");
+    const hash = createHash("sha256").update(picture).digest("hex");
+    const seed = new AssetService({ directory: TMP_DIR });
+    await seed.store(picture, "room-x", 1000);
+    // Hand-edit the index as an older version could leave it: room-r's stamp, no room-r claim.
+    const indexPath = path.join(TMP_DIR, "index.json");
+    const index = JSON.parse(readFileSync(indexPath, "utf-8"));
+    index.assets[hash].pendingApply = { "room-r": 1 };
+    writeFileSync(indexPath, JSON.stringify(index));
+    const service = new AssetService({ directory: TMP_DIR });
+    const claimed = await service.store(picture, "room-r", 2000);
+    expect(claimed.asset.pendingApply).toBeUndefined();
   });
 
   it("stores a sniffed image under its SHA-256 content address", async () => {

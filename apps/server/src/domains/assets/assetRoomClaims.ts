@@ -21,7 +21,8 @@ type Assets = Record<string, StoredAsset>;
  * the picture the moment the upload answers, so a live one is referenced
  * within seconds. One applied later than this (a replayed send after a long
  * outage) is condemned, not deleted: the first sweep that sees it referenced
- * resurrects the claim (planRoomReclaim), inside the 7-day grace.
+ * resurrects the claim (planRoomReclaim), inside the 7-day grace. That holds
+ * because only a table's sole claim is released this way (abandonedApply).
  */
 export const APPLY_ADOPT_WINDOW_MS = 15 * 60 * 1000;
 
@@ -45,20 +46,38 @@ function orUndefined(rooms: string[]): string[] | undefined {
   return rooms.length > 0 ? rooms : undefined;
 }
 
+/**
+ * `roomId`'s own pending-apply stamp, or undefined. Own properties only: a
+ * table id is user-chosen, and "constructor" would otherwise find Object's.
+ */
+export function pendingStamp(asset: StoredAsset, roomId: string): number | undefined {
+  const stamps = asset.pendingApply;
+  return stamps && Object.prototype.hasOwnProperty.call(stamps, roomId)
+    ? stamps[roomId]
+    : undefined;
+}
+
 /** The asset's pending-apply stamps without `roomId`'s (absent when none remain). */
 export function pendingWithout(
   asset: StoredAsset,
   roomId: string,
 ): Record<string, number> | undefined {
-  if (!asset.pendingApply || !(roomId in asset.pendingApply)) return asset.pendingApply;
-  const { [roomId]: _dropped, ...rest } = asset.pendingApply;
+  if (pendingStamp(asset, roomId) === undefined) return asset.pendingApply;
+  const { [roomId]: _dropped, ...rest } = asset.pendingApply!;
   return Object.keys(rest).length > 0 ? rest : undefined;
 }
 
-/** `roomId`'s claim is an apply-intent upload left unreferenced past the window. */
+/**
+ * `roomId`'s claim is an apply-intent upload left unreferenced past the window,
+ * and the ONLY claim on these bytes. With another table still claiming them,
+ * the claim stays: releasing it would leave a late apply (a send queued while
+ * the phone slept) using bytes this table no longer claims, which the other
+ * table's clear would then delete at once, past any grace. As the last claim,
+ * the asset is condemned, and the late apply resurrects it.
+ */
 function abandonedApply(asset: StoredAsset, roomId: string, now: number): boolean {
-  const since = asset.pendingApply?.[roomId];
-  return since !== undefined && now - since >= APPLY_ADOPT_WINDOW_MS;
+  const since = pendingStamp(asset, roomId);
+  return since !== undefined && roomsOf(asset).length === 1 && now - since >= APPLY_ADOPT_WINDOW_MS;
 }
 
 /**
@@ -80,7 +99,7 @@ export function planClaimCopy(
     const rooms = roomsOf(asset);
     if (rooms.includes(fromRoomId) && !rooms.includes(toRoomId)) {
       const refs = referencedByOf(asset);
-      const pending = asset.pendingApply?.[fromRoomId];
+      const pending = pendingStamp(asset, fromRoomId);
       next[hash] = {
         ...asset,
         rooms: [...rooms, toRoomId],
@@ -190,6 +209,7 @@ export function planRoomReclaim(
           rooms: [roomId],
           referencedBy: [roomId],
           unreferencedAt: undefined,
+          pendingApply: undefined,
         };
         changed = true;
       } else {

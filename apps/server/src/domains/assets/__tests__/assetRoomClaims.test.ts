@@ -213,7 +213,37 @@ describe("planRoomReclaim and apply-intent uploads (the token creator)", () => {
     expect(plan.assets[H1]!.rooms).toEqual(["room-a"]);
   });
 
-  it("drops only the abandoning room's claim when another room still holds the bytes", () => {
+  it("keeps an abandoned apply claim while another table still claims the bytes", () => {
+    // Releasing it would let a late apply use bytes this table no longer claims,
+    // which the other table's clear would delete at once (review reproduction).
+    const plan = planRoomReclaim(
+      {
+        [H1]: asset(H1, {
+          rooms: ["main", "room-p"],
+          referencedBy: ["main"],
+          pendingApply: { "room-p": STAMP },
+        }),
+      },
+      "room-p",
+      new Set(),
+      NOW,
+    );
+    expect(plan.changed).toBe(false);
+    expect(plan.assets[H1]!.rooms).toEqual(["main", "room-p"]);
+  });
+
+  it("another table's stamp never releases this table's plain claim", () => {
+    const plan = planRoomReclaim(
+      { [H1]: asset(H1, { rooms: ["room-b"], pendingApply: { "room-a": STAMP } }) },
+      "room-b",
+      new Set(),
+      NOW,
+    );
+    expect(plan.changed).toBe(false);
+    expect(plan.assets[H1]!.rooms).toEqual(["room-b"]);
+  });
+
+  it("taking up a picture in one table leaves another table's stamp", () => {
     const plan = planRoomReclaim(
       {
         [H1]: asset(H1, {
@@ -222,12 +252,30 @@ describe("planRoomReclaim and apply-intent uploads (the token creator)", () => {
         }),
       },
       "room-a",
-      new Set(),
+      new Set([H1]),
       NOW,
     );
-    expect(plan.assets[H1]!.rooms).toEqual(["room-b"]);
     expect(plan.assets[H1]!.pendingApply).toEqual({ "room-b": STAMP });
-    expect(plan.assets[H1]!.unreferencedAt).toBeUndefined();
+  });
+
+  it("a table named like an Object property ('constructor') has no stamp it never got", () => {
+    const plan = planRoomReclaim(
+      {
+        [H1]: asset(H1, {
+          rooms: ["room-a", "constructor"],
+          referencedBy: ["room-a"],
+          pendingApply: { "room-a": STAMP },
+        }),
+      },
+      "constructor",
+      new Set([H1]),
+      NOW,
+    );
+    // Marked now (it is referenced), and room-a's stamp untouched.
+    expect(plan.assets[H1]!.referencedBy).toEqual(["room-a", "constructor"]);
+    expect(plan.assets[H1]!.pendingApply).toEqual({ "room-a": STAMP });
+    const again = planRoomReclaim(plan.assets, "constructor", new Set([H1]), NOW);
+    expect(again.changed).toBe(false);
   });
 
   it("a fork inherits a pending apply with its clock; a release drops it", () => {
@@ -261,6 +309,8 @@ describe("planClaimCopy carries the referenced-by mark", () => {
     );
     expect(assets[H1]!.rooms).toEqual(["default", "table-fork"]);
     expect(assets[H1]!.referencedBy).toBeUndefined();
+    // Nor a pending-apply stamp: a shelf item copied into a fork stays a plain claim.
+    expect(assets[H1]!.pendingApply).toBeUndefined();
   });
 });
 
