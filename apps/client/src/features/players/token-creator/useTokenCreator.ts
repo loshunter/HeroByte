@@ -2,8 +2,11 @@
 // TOKEN CREATOR — STATE AND ACTIONS
 // ============================================================================
 // One picture at a time: load it (file, drop, paste, link), frame it, accept.
-// Accept is the ONLY step that uploads, so a cancelled creator leaves nothing
-// on the table's store. Accept writes through the caller's `onApply(url)`,
+// Accept is the ONLY step that uploads. Closing the window (Cancel, ✕, Escape)
+// abandons whatever is in flight: a bake not yet uploaded is never uploaded,
+// and an upload that lands after the close is never applied (its bytes are
+// on the store, unclaimed, and the server reclaims them). Accept writes
+// through the caller's `onApply(url)`,
 // the same callback the old URL field committed through, so a player's token
 // and an NPC's record (which the server copies back onto its token) both keep
 // the result.
@@ -32,8 +35,11 @@ import {
   loadPictureFile,
   loadPictureLink,
   sampleAutoColor,
+  pictureFileFrom,
+  pictureLinkFrom,
   type LoadDeps,
   type LoadedPicture,
+  type TransferLike,
   type UnbakeableReason,
 } from "./pictureSources";
 
@@ -74,7 +80,7 @@ export function useTokenCreator({
   const [autoColor, setAutoColor] = useState(AUTO_FALLBACK);
   const [phase, setPhase] = useState<CreatorPhase>("idle");
   const [error, setError] = useState<string | null>(null);
-  /** A link that loads but cannot be baked: offered as is. */
+  /** A link that cannot be baked (or whose copy could not be saved): offered as is. */
   const [unbakeable, setUnbakeable] = useState<{ link: string; reason: UnbakeableReason } | null>(
     null,
   );
@@ -88,7 +94,20 @@ export function useTokenCreator({
   // The picture shown now, so a stale load cannot replace a newer one.
   const loadSeq = useRef(0);
   const pictureRef = useRef<LoadedPicture | null>(null);
-  useEffect(() => () => pictureRef.current?.release(), []);
+  // Closed: every await from here on drops its result (a load in flight
+  // releases what it loaded; a bake or upload is never applied).
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      loadSeq.current += 1;
+      pictureRef.current?.release();
+      pictureRef.current = null;
+    };
+  }, []);
+  // A save in progress owns the picture: nothing new loads over it.
+  const saving = useRef(false);
 
   const adopt = useCallback(
     (next: LoadedPicture) => {
@@ -103,6 +122,7 @@ export function useTokenCreator({
 
   const load = useCallback(
     async (start: () => Promise<LoadedPicture>) => {
+      if (saving.current) return;
       const seq = ++loadSeq.current;
       setPhase("loading");
       setError(null);
@@ -136,20 +156,36 @@ export function useTokenCreator({
     [load, deps],
   );
 
+  /** A drop: its picture file, else its link; anything else says what to drop. */
+  const loadDropped = useCallback(
+    (transfer: TransferLike | null) => {
+      const file = pictureFileFrom(transfer);
+      if (file) return void loadFile(file);
+      const link = pictureLinkFrom(transfer);
+      if (link) return void loadLink(link);
+      if (!saving.current) setError("Drop a picture file, or a link to a picture.");
+    },
+    [loadFile, loadLink],
+  );
+
   const accept = useCallback(async () => {
-    if (!picture || phase !== "idle") return;
+    if (!picture || phase !== "idle" || saving.current) return;
+    saving.current = true;
     setError(null);
     setPhase("baking");
     try {
       const fill = resolveBackdrop(backdrop, autoColor);
       const edge = bakeEdgeFor(tokenSize);
       const baked = await bakePicture(picture.image, picture.size, crop, fill, edge, deps.bake);
+      if (!alive.current) return;
       setPhase("uploading");
       const file = new File([baked.blob], baked.fileName, { type: baked.mime });
       const info = await deps.upload(file, deps.getCredentials());
+      if (!alive.current) return;
       applyRef.current.onApply(uploadedAssetUrl(info.hash));
       applyRef.current.onDone();
     } catch (failure) {
+      if (!alive.current) return;
       if (failure instanceof TaintedPictureError && picture.link) {
         setUnbakeable({ link: picture.link, reason: "no-copy" });
       } else if (failure instanceof AssetUploadError) {
@@ -158,16 +194,22 @@ export function useTokenCreator({
         setError(failure instanceof Error ? failure.message : "The picture could not be saved.");
       }
     } finally {
-      setPhase("idle");
+      saving.current = false;
+      if (alive.current) setPhase("idle");
     }
   }, [picture, phase, backdrop, autoColor, tokenSize, crop, deps]);
 
-  /** Today's behaviour for a link that cannot be baked: set it exactly as given. */
+  /**
+   * Today's behaviour, always on offer for a link: set it exactly as given,
+   * unframed and with no copy on the table. The picture's link when it loaded,
+   * or the link that could not be loaded.
+   */
+  const linkAsIs = unbakeable?.link ?? picture?.link ?? null;
   const applyLinkAsIs = useCallback(() => {
-    if (!unbakeable) return;
-    applyRef.current.onApply(unbakeable.link);
+    if (!linkAsIs || saving.current) return;
+    applyRef.current.onApply(linkAsIs);
     applyRef.current.onDone();
-  }, [unbakeable]);
+  }, [linkAsIs]);
 
   return {
     picture,
@@ -179,8 +221,10 @@ export function useTokenCreator({
     phase,
     error,
     unbakeable,
+    linkAsIs,
     loadFile,
     loadLink,
+    loadDropped,
     accept,
     applyLinkAsIs,
   };

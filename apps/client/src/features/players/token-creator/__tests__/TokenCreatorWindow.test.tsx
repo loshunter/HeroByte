@@ -171,7 +171,7 @@ describe("TokenCreatorWindow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load link" }));
     const offer = await screen.findByRole("button", { name: "Use the link as is" });
     // Nothing loaded at all: the words say so, rather than blaming the site.
-    expect(screen.getByText(/did not load a picture here/)).toBeInTheDocument();
+    expect(screen.getByText(/did not load a picture: check the address/)).toBeInTheDocument();
     fireEvent.click(offer);
     expect(onApply).toHaveBeenCalledWith(link);
     expect(onClose).toHaveBeenCalled();
@@ -239,7 +239,8 @@ describe("TokenCreatorWindow", () => {
     });
     expect(event.defaultPrevented).toBe(true);
     expect(crop.querySelector("img")!.style.left).toBe(before);
-    expect(crop.querySelector("img")!.style.top).not.toBe("-50%");
+    // Down by one nudge (0.02 of the square): from −50% to −48%.
+    expect(crop.querySelector("img")!.style.top).toBe("-48%");
   });
 
   it("marks the page modal while open, so WASD stays off the map", () => {

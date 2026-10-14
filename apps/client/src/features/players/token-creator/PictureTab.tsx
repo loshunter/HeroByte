@@ -46,17 +46,7 @@ export function PictureTab({ creator, color }: PictureTabProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      <CropStage
-        picture={picture}
-        crop={crop}
-        onCrop={setCrop}
-        fill={fill}
-        onFile={(file) => void creator.loadFile(file)}
-        onLink={(dropped) => {
-          setLink(dropped);
-          void creator.loadLink(dropped);
-        }}
-      />
+      <CropStage picture={picture} crop={crop} onCrop={setCrop} fill={fill} />
 
       {picture && (
         <>
@@ -190,16 +180,25 @@ export function PictureTab({ creator, color }: PictureTabProps) {
       </div>
 
       {creator.unbakeable && (
-        <div role="status" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
-            {creator.unbakeable.reason === "no-copy"
-              ? "That site does not let HeroByte copy its pictures, so it cannot be framed here."
-              : "That link did not load a picture here: check the address. Another player's browser may still show it."}
-          </p>
-          <JRPGButton onClick={creator.applyLinkAsIs} style={small}>
-            Use the link as is
-          </JRPGButton>
-        </div>
+        <p
+          role="status"
+          className="jrpg-text-small"
+          style={{ margin: 0, color: "var(--jrpg-white)" }}
+        >
+          {creator.unbakeable.reason === "no-copy"
+            ? "That site does not let HeroByte copy its pictures, so it cannot be framed here."
+            : "That link did not load a picture: check the address. Only Imgur and Discord links show at the table."}
+        </p>
+      )}
+      {/* Today's way, never taken away: the link itself, unframed, nothing uploaded. */}
+      {creator.linkAsIs && (
+        <JRPGButton
+          onClick={creator.applyLinkAsIs}
+          title="Set the link exactly as given: no framing, and no copy on the table"
+          style={small}
+        >
+          Use the link as is
+        </JRPGButton>
       )}
       {creator.error && (
         <p
