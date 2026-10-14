@@ -18,6 +18,26 @@
 
 import { mkdir, statfs } from "node:fs/promises";
 import { AssetRejectedError, roomsOf, type StoredAsset } from "./assetTypes.js";
+import { isAbandonedApply } from "./assetRoomClaims.js";
+
+/**
+ * Bytes charged to one room: what it claims, less apply-intent uploads it
+ * abandoned (the token creator's picture nobody took up). Those stay claimed
+ * and on the disk, so the WHOLE-store total still counts them.
+ */
+export function roomChargedBytes(
+  assets: Iterable<StoredAsset>,
+  roomId: string,
+  now: number = Date.now(),
+): number {
+  let bytes = 0;
+  for (const asset of assets) {
+    if (roomsOf(asset).includes(roomId) && !isAbandonedApply(asset, roomId, now)) {
+      bytes += asset.size;
+    }
+  }
+  return bytes;
+}
 
 export interface AssetQuotaLimits {
   maxTotalBytes: number;
@@ -154,9 +174,7 @@ export function assertQuota(
   if (total + storeIncoming > limits.maxTotalBytes) {
     throw new AssetRejectedError("Asset storage quota exceeded", 507);
   }
-  const roomTotal = assets
-    .filter((asset) => roomsOf(asset).includes(roomId))
-    .reduce((sum, asset) => sum + asset.size, 0);
+  const roomTotal = roomChargedBytes(assets, roomId);
   if (roomTotal + incoming > limits.maxRoomBytes) {
     throw new AssetRejectedError("This table's asset storage is full", 507);
   }

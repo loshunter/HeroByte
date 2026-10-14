@@ -79,11 +79,44 @@ describe("AssetService", () => {
     const first = new AssetService({ directory: TMP_DIR });
     await first.store(picture, ROOM, 1000, { apply: true });
     await first.store(picture, ROOM, 5000, { apply: true });
+    // The same service, before any restart: the restarted clock already holds.
+    expect(await first.roomBytes(ROOM, 1000 + window)).toBe(picture.length);
     const restarted = new AssetService({ directory: TMP_DIR });
-    await restarted.reclaimRoom(ROOM, new Set(), 1000 + window);
-    expect(await restarted.roomBytes(ROOM)).toBe(picture.length);
-    await restarted.reclaimRoom(ROOM, new Set(), 5000 + window);
-    expect(await restarted.roomBytes(ROOM)).toBe(0);
+    expect(await restarted.roomBytes(ROOM, 1000 + window)).toBe(picture.length);
+    expect(await restarted.roomBytes(ROOM, 5000 + window)).toBe(0);
+  });
+
+  it("an abandoned creator picture stops blocking new uploads, and its file stays", async () => {
+    const service = new AssetService({
+      directory: TMP_DIR,
+      maxRoomBytes: 40,
+      maxTotalBytes: 10_000,
+    });
+    const abandoned = pngBytes("abandoned bake 20b"); // ~26 bytes
+    const { asset } = await service.store(abandoned, ROOM, Date.now() - 20 * 60 * 1000, {
+      apply: true,
+    });
+    // Counted, this would bust the 40-byte room quota; abandoned, it does not.
+    await expect(service.store(pngBytes("next picture 20b"), ROOM)).resolves.toBeTruthy();
+    expect(await service.read(asset.hash)).not.toBeNull();
+  });
+
+  it("a late apply over shared bytes keeps the file through the other table's clear (review repro)", async () => {
+    const service = new AssetService({ directory: TMP_DIR });
+    const window = 15 * 60 * 1000;
+    const x = pngBytes("deterministic bake");
+    const { asset } = await service.store(x, "table-a", 1000, { apply: true });
+    // A's sweep past the window, X unused: nothing is released.
+    await service.reclaimRoom("table-a", new Set(), 1000 + window + 1);
+    // The Main Hall uploads the identical bake and uses it.
+    await service.store(x, "main", 2000 + window);
+    await service.reclaimRoom("main", new Set([asset.hash]), 3000 + window);
+    // A's queued apply lands; A's sweep sees it.
+    await service.reclaimRoom("table-a", new Set([asset.hash]), 4000 + window);
+    // The Main Hall clears itself: A still claims X, so the file stays.
+    await service.releaseRoom("main");
+    expect(await service.read(asset.hash)).not.toBeNull();
+    expect(await service.roomBytes("table-a", 5000 + window)).toBe(x.length);
   });
 
   it("a stamp an older server left on this table does not carry over to a plain claim", async () => {

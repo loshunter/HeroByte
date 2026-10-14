@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   APPLY_ADOPT_WINDOW_MS,
+  isAbandonedApply,
   planClaimCopy,
   planCondemnedExpiry,
   planRoomReclaim,
@@ -158,19 +159,21 @@ describe("planRoomReclaim and apply-intent uploads (the token creator)", () => {
     expect(plan.assets[H1]!.rooms).toEqual(["room-a"]);
   });
 
-  it("condemns an apply upload left unreferenced past the window, freeing the room", () => {
-    const plan = planRoomReclaim(
-      { [H1]: asset(H1, { rooms: ["room-a"], pendingApply: { "room-a": STAMP } }) },
-      "room-a",
-      new Set(),
-      NOW,
-    );
-    expect(plan.changed).toBe(true);
-    expect(plan.assets[H1]).toMatchObject({ unreferencedAt: NOW });
-    expect(plan.assets[H1]!.rooms).toBeUndefined();
-    expect(plan.assets[H1]!.pendingApply).toBeUndefined();
-    // Condemned, not deleted: the grace window still guards the bytes.
-    expect(plan.orphaned).toEqual([]);
+  it("never releases an abandoned apply claim: only the quota changes", () => {
+    const abandoned = asset(H1, { rooms: ["room-a"], pendingApply: { "room-a": STAMP } });
+    const plan = planRoomReclaim({ [H1]: abandoned }, "room-a", new Set(), NOW);
+    expect(plan.changed).toBe(false);
+    expect(plan.assets[H1]!.rooms).toEqual(["room-a"]);
+    expect(plan.assets[H1]!.unreferencedAt).toBeUndefined();
+  });
+
+  it("isAbandonedApply: this room's stamp, past the window, and nothing else", () => {
+    const stamped = asset(H1, { rooms: ["room-a", "room-b"], pendingApply: { "room-a": STAMP } });
+    expect(isAbandonedApply(stamped, "room-a", NOW)).toBe(true);
+    expect(isAbandonedApply(stamped, "room-a", NOW - 1)).toBe(false);
+    expect(isAbandonedApply(stamped, "room-b", NOW)).toBe(false);
+    expect(isAbandonedApply(asset(H1, { rooms: ["room-a"] }), "room-a", NOW)).toBe(false);
+    expect(isAbandonedApply(stamped, "constructor", NOW)).toBe(false);
   });
 
   it("an apply upload the state took up becomes an ordinary marked claim", () => {

@@ -23,7 +23,13 @@ import {
   type ClaimPlan,
 } from "./assetRoomClaims.js";
 import { getDefaultRoomId } from "../../config/auth.js";
-import { assertQuota, reclaimGraceMs, resolveQuotaLimits, type AssetQuotaLimits } from "./quota.js";
+import {
+  assertQuota,
+  reclaimGraceMs,
+  resolveQuotaLimits,
+  roomChargedBytes,
+  type AssetQuotaLimits,
+} from "./quota.js";
 import { loadAssetIndex, writeAssetIndex, type AssetIndex } from "./assetIndexStore.js";
 import {
   AssetRejectedError,
@@ -232,12 +238,10 @@ export class AssetService {
     return Object.values(index.assets).reduce((sum, asset) => sum + asset.size, 0);
   }
 
-  /** Bytes currently charged to one room's quota. */
-  async roomBytes(roomId: string): Promise<number> {
+  /** Bytes currently charged to one room's quota (see roomChargedBytes). */
+  async roomBytes(roomId: string, now: number = Date.now()): Promise<number> {
     const index = await this.loadIndex();
-    return Object.values(index.assets)
-      .filter((asset) => roomsOf(asset).includes(roomId))
-      .reduce((sum, asset) => sum + asset.size, 0);
+    return roomChargedBytes(Object.values(index.assets), roomId, now);
   }
 
   /**

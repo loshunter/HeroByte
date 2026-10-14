@@ -15,14 +15,14 @@ import type { StoredAsset } from "./assetTypes.js";
 type Assets = Record<string, StoredAsset>;
 
 /**
- * How long an apply-intent upload may stay unreferenced before the sweep calls
- * it abandoned, counted from the upload; the release lands at the first sweep
- * after (they run every 5 minutes), so 15 to 20 minutes. The client applies
- * the picture the moment the upload answers, so a live one is referenced
- * within seconds. One applied later than this (a replayed send after a long
- * outage) is condemned, not deleted: the first sweep that sees it referenced
- * resurrects the claim (planRoomReclaim), inside the 7-day grace. That holds
- * because only a table's sole claim is released this way (abandonedApply).
+ * How long after its upload an apply-intent upload may go without a sweep
+ * seeing it referenced before it stops counting against its table's quota.
+ * The client applies the picture the moment the upload answers, so a live one
+ * is referenced within seconds and the next sweep (every 5 minutes) drops the
+ * stamp. Only the QUOTA changes: the claim and the bytes are never released
+ * on this account (releasing claims kept opening deletion paths with shared
+ * bytes and late applies: three review rounds, 2026-10-14). A late apply, or
+ * a table not swept for a while, just counts again once a sweep sees it.
  */
 export const APPLY_ADOPT_WINDOW_MS = 15 * 60 * 1000;
 
@@ -68,16 +68,13 @@ export function pendingWithout(
 }
 
 /**
- * `roomId`'s claim is an apply-intent upload left unreferenced past the window,
- * and the ONLY claim on these bytes. With another table still claiming them,
- * the claim stays: releasing it would leave a late apply (a send queued while
- * the phone slept) using bytes this table no longer claims, which the other
- * table's clear would then delete at once, past any grace. As the last claim,
- * the asset is condemned, and the late apply resurrects it.
+ * `roomId`'s claim is an apply-intent upload no sweep has seen referenced
+ * within APPLY_ADOPT_WINDOW_MS of its upload: abandoned, and not charged to the
+ * table's quota (quota.ts). The claim itself stays.
  */
-function abandonedApply(asset: StoredAsset, roomId: string, now: number): boolean {
+export function isAbandonedApply(asset: StoredAsset, roomId: string, now: number): boolean {
   const since = pendingStamp(asset, roomId);
-  return since !== undefined && roomsOf(asset).length === 1 && now - since >= APPLY_ADOPT_WINDOW_MS;
+  return since !== undefined && now - since >= APPLY_ADOPT_WINDOW_MS;
 }
 
 /**
@@ -178,13 +175,11 @@ export function planRoomRelease(assets: Assets, roomId: string): ClaimPlan {
  *                               shelf's "bytes live on the server" promise.)
  *   unmarked, not referenced  → NOT ours to take. An upload the state has
  *                               not caught up with, or palette stock (a My
- *                               Stuff shelf) — EXCEPT an apply-intent upload
- *                               (`pendingApply`) still unreferenced after
- *                               APPLY_ADOPT_WINDOW_MS: that one was abandoned
- *                               and is un-claimed like a replaced one. Any
- *                               other upload abandoned before a sweep saw it
- *                               referenced still leaks until the room is
- *                               cleared — bounded by the room quota.
+ *                               Stuff shelf). An upload abandoned before a
+ *                               sweep saw it referenced stays claimed until the
+ *                               room is cleared; an apply-intent one stops
+ *                               counting against the room's quota after
+ *                               APPLY_ADOPT_WINDOW_MS (isAbandonedApply).
  *
  * Resurrection deliberately skips legacy unclaimed assets (no
  * `unreferencedAt`): charging those to a room that may not have uploaded
@@ -232,7 +227,7 @@ export function planRoomReclaim(
       }
       continue;
     }
-    if (!marked && !abandonedApply(asset, roomId, now)) {
+    if (!marked) {
       next[hash] = asset;
       continue;
     }

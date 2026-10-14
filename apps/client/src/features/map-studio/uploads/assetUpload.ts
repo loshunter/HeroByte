@@ -123,8 +123,9 @@ export async function uploadAssetFile(
   wsUrl: string = WS_URL,
   /**
    * "apply": the caller sets the picture the moment this answers (the token
-   * creator). The server releases the claim of such an upload if no state
-   * takes it up, so an abandoned one stops costing the table's storage.
+   * creator). If no state takes such an upload up within 15 minutes, the
+   * server stops counting it against the table's storage limit (the file
+   * stays: nothing is deleted on that account).
    */
   options: { intent?: "apply" } = {},
 ): Promise<UploadedAssetInfo> {

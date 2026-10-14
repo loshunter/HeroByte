@@ -99,12 +99,17 @@ describe("asset HTTP routes", () => {
     expect((await app.request(upload(shelved, "Fun1"))).status).toBe(201);
     expect(await assetService.roomBytes(room)).toBe(applied.length + shelved.length);
 
-    // The table's state references neither. Inside the 15-minute window it keeps both.
-    await assetService.reclaimRoom(room, new Set(), Date.now() + 14 * 60 * 1000);
-    expect(await assetService.roomBytes(room)).toBe(applied.length + shelved.length);
-    // Past it, the abandoned apply goes; the shelf item stays.
-    await assetService.reclaimRoom(room, new Set(), Date.now() + 16 * 60 * 1000);
-    expect(await assetService.roomBytes(room)).toBe(shelved.length);
+    // Inside the 15-minute window both count.
+    expect(await assetService.roomBytes(room, Date.now() + 14 * 60 * 1000)).toBe(
+      applied.length + shelved.length,
+    );
+    // Past it, the abandoned apply stops counting; the shelf item still counts,
+    // and the abandoned picture is still served (nothing is released).
+    expect(await assetService.roomBytes(room, Date.now() + 16 * 60 * 1000)).toBe(shelved.length);
+    const hash = (await app
+      .request(upload(applied, "Fun1", undefined, "apply"))
+      .then((r) => r.json())) as { hash: string };
+    expect((await app.request(new Request(`http://test/assets/${hash.hash}`))).status).toBe(200);
   });
 
   it("only the exact intent 'apply' stamps an upload", async () => {
@@ -113,8 +118,9 @@ describe("asset HTTP routes", () => {
     const app = createRoutes(auth, undefined, assetService);
     const bogus = pngBytes("bogus intent");
     expect((await app.request(upload(bogus, "Fun1", undefined, "bogus"))).status).toBe(201);
-    await assetService.reclaimRoom(getDefaultRoomId(), new Set(), Date.now() + 16 * 60 * 1000);
-    expect(await assetService.roomBytes(getDefaultRoomId())).toBe(bogus.length);
+    expect(await assetService.roomBytes(getDefaultRoomId(), Date.now() + 16 * 60 * 1000)).toBe(
+      bogus.length,
+    );
   });
 
   it("serves an asset with the CORS header a canvas read needs", async () => {

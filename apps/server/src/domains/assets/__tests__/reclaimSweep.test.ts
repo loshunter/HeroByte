@@ -74,10 +74,14 @@ describe("AssetReclaimSweeper and a token-creator upload (pending apply)", () =>
     expect(await service.roomBytes("room-a")).toBe(size);
   });
 
-  it("releases a creator picture nothing uses", async () => {
-    const { service } = await stampedPastWindow();
+  it("a creator picture nothing uses stops counting, but keeps its claim and file", async () => {
+    const { service, hash, size } = await stampedPastWindow();
     await sweeperOver(service, { tokens: [] }).sweepLoadedRooms();
     expect(await service.roomBytes("room-a")).toBe(0);
+    expect(await service.read(hash)).not.toBeNull();
+    // Used again later, it counts again.
+    await sweeperOver(service, { tokens: [{ imageUrl: `/assets/${hash}` }] }).sweepLoadedRooms();
+    expect(await service.roomBytes("room-a")).toBe(size);
   });
 });
 

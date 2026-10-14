@@ -41,10 +41,11 @@ export interface StoredAsset {
   /**
    * Rooms whose claim came from an upload sent to be applied at once (the
    * token creator's Accept: `x-herobyte-intent: apply`), with when. The state
-   * references such an upload within seconds; one still unreferenced after
-   * APPLY_ADOPT_WINDOW_MS was abandoned (the window closed mid-upload, or the
-   * picture was replaced before any sweep saw it), and the sweep releases the
-   * claim as if it had been replaced. A claim from any other upload (a My Stuff
+   * references such an upload within seconds, and the next sweep drops the
+   * stamp. One no sweep has seen referenced APPLY_ADOPT_WINDOW_MS after its
+   * upload was abandoned (the window closed mid-upload, or the picture was
+   * replaced before any sweep saw it): it stops counting against this room's
+   * quota. The claim and the bytes stay; nothing is released on this account. A claim from any other upload (a My Stuff
    * shelf, a backup restore) never adds a stamp, and keeps today's rule; an
    * identical plain upload over a stamped claim clears that claim's stamp, an
    * identical apply upload restarts it (AssetService.store).
