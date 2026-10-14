@@ -104,9 +104,13 @@ Handoff: `docs/planning/PROMPT-token-creator-c4.md` (untracked).
   reclaim commits; owner's choice 2026-10-14). The creator uploads with `x-herobyte-intent: apply`; the
   server stamps that room's claim (`StoredAsset.pendingApply`), and a sweep that sees the picture used
   drops the stamp. A stamped claim no sweep has seen used 15 minutes after its upload
-  (`APPLY_ADOPT_WINDOW_MS`) stops counting against that table's storage limit (`roomChargedBytes`); the
-  claim and the file are never released on that account, so the whole-store total still counts them
-  until the table is cleared. A first design released such claims; three review rounds each found a
+  (`APPLY_ADOPT_WINDOW_MS`) stops counting against that table's storage limit (`roomChargedBytes`), up
+  to 5 MB a table (`ABANDONED_APPLY_ALLOWANCE_BYTES`): without the cap, a client sending the intent on
+  every upload escaped the per-table limit and could fill the shared store (review finding), so each
+  table is still bounded by its limit plus 5 MB. The claim and the file are never released on that
+  account, so the whole-store total still counts them until the table is cleared (on a private table,
+  never). A picture used after all counts again without a quota check, so a table can sit over its
+  limit until it frees space. A first design released such claims; three review rounds each found a
   new way for a picture a table still used to be deleted (identical bakes in two tables plus a late
   apply), so it was replaced. Uploads without the intent never add a stamp; an identical plain re-upload
   clears this table's stamp, an apply re-upload restarts it; a fork inherits a stamp with its clock.
