@@ -4,7 +4,7 @@
 // Replaces the "Token Image URL" field in the player's and the NPC's settings
 // windows: the current picture, a "Token picture…" button that opens the
 // creator, and Clear. A link still works (it lives in the creator, and one
-// that cannot be framed is set as is). The creator is a lazy chunk; each
+// that cannot be framed is offered as is). The creator is a lazy chunk; each
 // "Try again" makes a fresh lazy component, because React caches a lazy
 // payload's rejection for good.
 

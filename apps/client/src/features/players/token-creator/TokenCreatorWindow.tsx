@@ -9,10 +9,11 @@
 // opened last, when two are open), and a file dropped anywhere on the window,
 // title bar and frame included, loads instead of opening in the tab.
 
-import { useEffect, useRef, type DragEvent } from "react";
+import { useEffect, useRef, type DragEvent as ReactDragEvent } from "react";
 import { createPortal } from "react-dom";
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
+import { PROP_SIZE_MULTIPLIERS } from "../../map/propSizing";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import { isEditableTarget } from "../../../utils/isEditableTarget";
 import { pictureFileFrom } from "./pictureSources";
@@ -48,6 +49,8 @@ export function TokenCreatorWindow({
   const creator = useTokenCreator({ tokenSize, onApply, onDone: onClose, deps });
   const loadFileRef = useRef(creator.loadFile);
   loadFileRef.current = creator.loadFile;
+  const loadDroppedRef = useRef(creator.loadDropped);
+  loadDroppedRef.current = creator.loadDropped;
 
   // Paste an image anywhere while the creator is open. A paste that carries
   // text into a text field stays text (cells copied from a spreadsheet bring a
@@ -64,9 +67,26 @@ export function TokenCreatorWindow({
       event.preventDefault();
       void loadFileRef.current(file);
     };
+    // A file let go just outside the window would open in the tab in place of
+    // the table: while a creator is open, a file dropped anywhere on the page
+    // goes to the newest creator instead (the window's own drop runs first).
+    const carriesFiles = (event: DragEvent) =>
+      Array.from(event.dataTransfer?.types ?? []).includes("Files");
+    const onDragOver = (event: DragEvent) => {
+      if (carriesFiles(event)) event.preventDefault();
+    };
+    const onDocumentDrop = (event: DragEvent) => {
+      if (event.defaultPrevented || !carriesFiles(event)) return;
+      event.preventDefault();
+      if (openCreators[openCreators.length - 1] === me) loadDroppedRef.current(event.dataTransfer);
+    };
     document.addEventListener("paste", onPaste);
+    document.addEventListener("dragover", onDragOver);
+    document.addEventListener("drop", onDocumentDrop);
     return () => {
       document.removeEventListener("paste", onPaste);
+      document.removeEventListener("dragover", onDragOver);
+      document.removeEventListener("drop", onDocumentDrop);
       openCreators.splice(openCreators.indexOf(me), 1);
     };
   }, []);
@@ -75,10 +95,16 @@ export function TokenCreatorWindow({
   // outside the content box, inside the display:contents wrapper): a file
   // dropped on it must not reach the browser, which would open it in place of
   // the table.
-  const onDrop = (event: DragEvent<HTMLDivElement>) => {
+  const onDrop = (event: ReactDragEvent<HTMLDivElement>) => {
+    // Text dragged within the link field stays the field's own business.
+    if (isEditableTarget(event.target) && !pictureFileFrom(event.dataTransfer)) return;
     event.preventDefault();
     creator.loadDropped(event.dataTransfer);
   };
+
+  // The map draws a token 3/4 of a cell times its size, with corners of 1/8 of a
+  // cell whatever its size: the corner, as a share of the side, shrinks with size.
+  const corner = 1 / (6 * (PROP_SIZE_MULTIPLIERS[tokenSize ?? "medium"] ?? 1));
 
   const ready = creator.picture !== null && creator.phase === "idle";
 
@@ -129,7 +155,7 @@ export function TokenCreatorWindow({
             id="token-creator-panel-picture"
             aria-labelledby="token-creator-tab-picture"
           >
-            <PictureTab creator={creator} />
+            <PictureTab creator={creator} corner={corner} />
           </div>
           {/* Pinned to the window's foot: on a short screen the picture scrolls, not Accept. */}
           <div

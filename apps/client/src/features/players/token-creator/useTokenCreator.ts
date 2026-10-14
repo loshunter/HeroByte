@@ -113,6 +113,9 @@ export function useTokenCreator({
   }, []);
   // A save in progress owns the picture: nothing new loads over it.
   const saving = useRef(false);
+  // The load the link field was last edited during: a failure it ends in is
+  // about a link no longer typed, so it offers nothing.
+  const editedDuring = useRef(-1);
 
   const adopt = useCallback(
     (next: LoadedPicture) => {
@@ -144,7 +147,9 @@ export function useTokenCreator({
           pictureRef.current?.release();
           pictureRef.current = null;
           setPicture(null);
-          setUnbakeable({ link: failure.link, reason: failure.reason });
+          if (editedDuring.current !== seq) {
+            setUnbakeable({ link: failure.link, reason: failure.reason });
+          }
         } else
           setError(failure instanceof Error ? failure.message : "That picture would not load.");
       } finally {
@@ -226,7 +231,11 @@ export function useTokenCreator({
   }, [linkAsIs]);
 
   /** The link field changed: a failed link's offer no longer matches what is typed. */
-  const forgetFailedLink = useCallback(() => setUnbakeable(null), []);
+  const forgetFailedLink = useCallback(() => {
+    editedDuring.current = loadSeq.current;
+    setUnbakeable(null);
+    setError(null);
+  }, []);
 
   return {
     picture,

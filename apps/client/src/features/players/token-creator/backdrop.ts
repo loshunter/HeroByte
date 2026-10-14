@@ -5,8 +5,8 @@
 // zoomed-out picture leaves. Baked into the picture (the map draws no
 // backdrop of its own).
 //
-// The AUTO rule: the mean colour of the picture's outermost ring of pixels
-// that is mostly opaque. Rings are read from the edge inward, up to a quarter
+// The AUTO rule: the mean colour of the solid pixels in the picture's
+// outermost ring that has a real number of them. Rings are read from the edge inward, up to a quarter
 // of the way in; a ring counts when at least 5% of it (and at least 8 pixels)
 // is ≥ 50% opaque, and only those pixels are averaged. A picture whose edges
 // are opaque (a photo) gets its own edge colour, so a zoom-out margin reads as

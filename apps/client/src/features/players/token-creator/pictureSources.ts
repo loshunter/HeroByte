@@ -37,8 +37,10 @@ export interface LoadedPicture {
 /**
  * Why a link cannot be framed: the site shows its picture but will not let a
  * page copy it ("no-copy"), or nothing loaded at all here ("unreachable": a
- * typo, a deleted picture, or a site that refuses this address). Either way it
- * is offered as is: another player's browser may still show it.
+ * typo, a deleted picture, a host the page's security policy blocks, or a site
+ * that refuses this address). Either way it is offered as is: a typo or a
+ * blocked host shows for nobody, a site refusing this address may still show
+ * for others.
  */
 export type UnbakeableReason = "no-copy" | "unreachable";
 

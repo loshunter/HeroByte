@@ -328,7 +328,8 @@ export function NpcCard({
         onDelete={onDelete ? () => onDelete(character.id) : undefined}
         tokenLocked={tokenLocked}
         onToggleTokenLock={onToggleTokenLock}
-        tokenSize={tokenSize}
+        // Unplaced, the NPC bakes at the size its token will be placed at.
+        tokenSize={tokenSize ?? character.tokenSize}
         onTokenSizeChange={onTokenSizeChange}
         isDeleting={isDeleting}
         deletionError={deletionError}

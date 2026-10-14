@@ -25,13 +25,15 @@ import type { TokenCreatorState } from "./useTokenCreator";
 
 interface PictureTabProps {
   creator: TokenCreatorState;
+  /** The map's corner radius as a share of the token's side (it depends on size). */
+  corner: number;
 }
 
 // No inline min-height: the phone's 44px floor is a class rule an inline one would beat.
 const small = { fontSize: "10px", padding: "6px 10px" } as const;
 const label = { color: "var(--jrpg-gold)" } as const;
 
-export function PictureTab({ creator }: PictureTabProps) {
+export function PictureTab({ creator, corner }: PictureTabProps) {
   const { picture, crop, setCrop, backdrop, setBackdrop, autoColor, phase } = creator;
   const fileRef = useRef<HTMLInputElement>(null);
   const [link, setLink] = useState("");
@@ -53,7 +55,7 @@ export function PictureTab({ creator }: PictureTabProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      <CropStage picture={picture} crop={crop} onCrop={frame} fill={fill} />
+      <CropStage picture={picture} crop={crop} onCrop={frame} fill={fill} corner={corner} />
 
       {picture && (
         <>
@@ -113,7 +115,7 @@ export function PictureTab({ creator }: PictureTabProps) {
           value={backdrop.kind}
           onChange={(event) => chooseBackdrop(event.target.value as Backdrop["kind"])}
           aria-disabled={busy}
-          title="Auto: the colour of the first mostly-opaque ring in from the picture's edge. None: keep transparency."
+          title="Auto: the average solid colour of the outermost ring of pixels (within a quarter of the way in) that has a real number of solid pixels. None: keep transparency."
           style={{ flex: 1 }}
         >
           <option value="auto">Auto</option>
@@ -147,7 +149,7 @@ export function PictureTab({ creator }: PictureTabProps) {
         )}
       </div>
 
-      {picture && <PicturePreview picture={picture} crop={crop} fill={fill} />}
+      {picture && <PicturePreview picture={picture} crop={crop} fill={fill} corner={corner} />}
 
       <input
         ref={fileRef}
@@ -202,14 +204,14 @@ export function PictureTab({ creator }: PictureTabProps) {
         >
           {creator.unbakeable.reason === "no-copy"
             ? "That site does not let HeroByte copy its pictures, so it cannot be framed here."
-            : "That link did not load a picture: check the address. Links show at the table only from Imgur, Discord and this table's own pictures."}
+            : "That link did not load a picture: check the address. Links show at the table only from Imgur (i.imgur.com), Discord (media.discordapp.net) and pictures already on this HeroByte server."}
         </p>
       )}
       {/* Today's way, never taken away: the link itself, unframed, nothing uploaded. */}
       {creator.linkAsIs && (
         <JRPGButton
           onClick={creator.applyLinkAsIs}
-          title="Set the link itself (an imgur.com page becomes its image link): no framing, and nothing saved to the table"
+          title="Set this picture's link itself (an imgur.com page becomes its image link): no framing, and nothing saved to the table"
           style={small}
         >
           Use the link as is
