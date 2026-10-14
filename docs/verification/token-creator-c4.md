@@ -105,8 +105,15 @@ Handoff: `docs/planning/PROMPT-token-creator-c4.md` (untracked).
   (`StoredAsset.pendingApply`), and the reclaim sweep releases a stamped claim the room's state has
   not referenced 15 minutes after the upload (`APPLY_ADOPT_WINDOW_MS`; at the next 5-minute sweep, so
   15 to 20 minutes), condemning the asset if it was the last
-  claim (the 7-day grace still guards the bytes). Uploads without the intent (My Stuff shelves,
-  backups, the other image fields) keep the old rule. A fork inherits a pending stamp with its clock.
+  claim (the 7-day grace still guards the bytes, and a late apply resurrects it). Only a table's
+  SOLE claim is released this way: with another table also claiming the bytes (a fork made within the
+  window), the claim stays, because a late apply would otherwise use bytes the table no longer claims
+  and the other table's clear deletes at once; that case keeps the old leak until one side lets go.
+  Uploads without the intent (My Stuff shelves, backups, the other image fields) never add a stamp;
+  an identical plain re-upload clears this table's stamp, an apply re-upload restarts it. Only loaded
+  tables are swept (a table stays loaded 30 minutes after its last player leaves; the Main Hall never
+  unloads), so after a server restart the release waits until the table is next opened. A fork
+  inherits a pending stamp with its clock.
 - **Not automated:** a character file loaded at another table, and a backup restoring the picture,
   rest on the existing `/assets/<hash>` handling (`sessionAssets` scans absolute URLs); the Imgur bake
   was checked live only; drop is unit-tested (Playwright e2e covers file pick, paste is unit-only).
