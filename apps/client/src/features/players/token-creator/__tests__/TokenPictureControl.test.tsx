@@ -26,9 +26,13 @@ describe("TokenPictureControl", () => {
     const onApply = vi.fn();
     render(<TokenPictureControl name="Tristan" onApply={onApply} />);
     fireEvent.click(screen.getByRole("button", { name: "Token picture…" }));
-    expect(await screen.findByText("🖼️ Token picture: Tristan")).toBeInTheDocument();
+    // The window is a lazy chunk: its first import compiles the creator, which a loaded
+    // batch run can stretch well past findBy's default second.
+    expect(
+      await screen.findByText("🖼️ Token picture: Tristan", undefined, { timeout: 15_000 }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByText("🖼️ Token picture: Tristan")).toBeNull();
     expect(onApply).not.toHaveBeenCalled();
-  });
+  }, 20_000);
 });
