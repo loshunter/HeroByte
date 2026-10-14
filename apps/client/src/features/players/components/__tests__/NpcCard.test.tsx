@@ -170,7 +170,6 @@ interface MockNpcSettingsMenuProps {
   tokenImageUrl: string;
   onTokenImageApply?: (input: string) => void;
   onTokenImageClear?: () => void;
-  color?: string;
   portraitImageInput: string;
   onPortraitInputChange: (input: string) => void;
   onPortraitApply: (input: string) => void;
@@ -192,7 +191,6 @@ vi.mock("../NpcSettingsMenu", () => ({
     tokenImageUrl,
     onTokenImageApply,
     onTokenImageClear,
-    color,
     portraitImageInput,
     onPortraitInputChange,
     onPortraitApply,
@@ -205,7 +203,7 @@ vi.mock("../NpcSettingsMenu", () => ({
     isDeleting,
     deletionError,
   }: MockNpcSettingsMenuProps) => (
-    <div data-testid="npc-settings-menu" data-name={name} data-color={color}>
+    <div data-testid="npc-settings-menu" data-name={name}>
       <span data-testid="settings-is-open">{String(isOpen)}</span>
       <span data-testid="settings-token-image-url">{tokenImageUrl}</span>
       <span data-testid="settings-portrait-input">{portraitImageInput}</span>
@@ -1091,15 +1089,6 @@ describe("NpcCard", () => {
       render(<NpcCard {...props} />);
 
       expect(screen.getByTestId("npc-settings-menu")).toHaveAttribute("data-name", "Goblin King");
-    });
-
-    it("passes the NPC's colour, for the picture window's preview", () => {
-      render(
-        <NpcCard
-          {...createDefaultProps({ character: { ...createMockCharacter(), color: "#3a1f5c" } })}
-        />,
-      );
-      expect(screen.getByTestId("npc-settings-menu")).toHaveAttribute("data-color", "#3a1f5c");
     });
 
     // Replaces "does not apply token image when isDM is false": the handler is now

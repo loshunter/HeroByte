@@ -264,7 +264,6 @@ export function PlayerSettingsMenu({
                   onClear={onTokenImageClear}
                   name={nameInput || undefined}
                   tokenSize={tokenSize}
-                  color={colorPicker?.color}
                 />
               </JRPGPanel>
             )}

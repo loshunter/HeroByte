@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-14T15:33:37.585Z",
+  "generatedAt": "2026-10-14T17:34:45.730Z",
   "threshold": 350,
   "files": [
     {
@@ -64,7 +64,7 @@
     },
     {
       "path": "apps/client/src/features/players/components/PlayerSettingsMenu.tsx",
-      "loc": 437
+      "loc": 432
     },
     {
       "path": "apps/client/src/layouts/BottomPanelLayout.tsx",

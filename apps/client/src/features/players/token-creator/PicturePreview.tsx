@@ -2,8 +2,10 @@
 // TOKEN CREATOR — PREVIEW
 // ============================================================================
 // The result at token size, drawn as the map draws a picture today: a rounded
-// square (corner radius an eighth of the cell) with the token's stroke, on a
-// dark map, a light map and under fog. C5a replaces the square with the frame.
+// square (the map's token is 3/4 of a cell with corners of 1/8 of a cell, so
+// 1/6 of its side), with no outline (the map strokes a picture only for your
+// own token, in white, or a selection, in the viewer's colour), on a dark map,
+// a light map and under fog. C5a replaces the square with the frame.
 
 import type { CSSProperties } from "react";
 import { cssBackground, type BackdropFill } from "./backdrop";
@@ -23,11 +25,9 @@ interface PicturePreviewProps {
   picture: LoadedPicture;
   crop: CropState;
   fill: BackdropFill;
-  /** The token's stroke colour, when it has one. */
-  color?: string;
 }
 
-export function PicturePreview({ picture, crop, fill, color }: PicturePreviewProps) {
+export function PicturePreview({ picture, crop, fill }: PicturePreviewProps) {
   const placed = cssPlacement(placementFor(crop, picture.size, 100));
   const imageStyle: CSSProperties = {
     position: "absolute",
@@ -64,8 +64,7 @@ export function PicturePreview({ picture, crop, fill, color }: PicturePreviewPro
                 width: TOKEN,
                 height: TOKEN,
                 overflow: "hidden",
-                borderRadius: TOKEN / 8,
-                outline: `2px solid ${color ?? "var(--jrpg-border-gold)"}`,
+                borderRadius: TOKEN / 6,
                 background: cssBackground(fill),
               }}
             >

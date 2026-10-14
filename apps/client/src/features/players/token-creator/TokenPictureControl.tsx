@@ -22,7 +22,6 @@ export interface TokenPictureControlProps {
   onClear?: () => void;
   name?: string;
   tokenSize?: TokenSize;
-  color?: string;
   /** Test seam: how the window's chunk is fetched. */
   loadWindow?: () => Promise<{ default: ComponentType<TokenCreatorWindowProps> }>;
 }
@@ -35,7 +34,6 @@ export function TokenPictureControl({
   onClear,
   name,
   tokenSize,
-  color,
   loadWindow = importWindow,
 }: TokenPictureControlProps) {
   const [open, setOpen] = useState(false);
@@ -111,7 +109,6 @@ export function TokenPictureControl({
             <Window
               name={name}
               tokenSize={tokenSize}
-              color={color}
               onApply={onApply}
               onClose={() => setOpen(false)}
             />
