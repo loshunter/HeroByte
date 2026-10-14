@@ -31,6 +31,10 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Range requests (the website's lesson videos, seeking) go straight to the network: nothing here
+  // caches them, and Safari plays a video badly through a service worker.
+  if (event.request.headers.has("range")) return;
+
   // Navigation requests (HTML) -> Network First
   if (event.request.mode === "navigate") {
     event.respondWith(

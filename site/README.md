@@ -12,9 +12,10 @@ Plain HTML, CSS and a little JavaScript. No dependencies and no framework.
 node site/build.mjs
 ```
 
-That writes `site/dist/` (git-ignored, like every `dist/`). To look at it, serve that folder,
-for example with `python -m http.server 4321 --directory site/dist`, and open
-http://localhost:4321/. Its **Open HeroByte** links go to `/play/`, where the app lives once
+That writes `site/dist/` (git-ignored, like every `dist/`). To look at it, run
+`node site/serve.mjs` (the `site` preview in `.claude/launch.json`) and open
+http://localhost:4321/. It answers Range requests, which the lesson videos' chapter buttons need
+to jump into a video; `python -m http.server` does not, so there every chapter starts at 0:00. Its **Open HeroByte** links go to `/play/`, where the app lives once
 deployed; to try them locally, build the whole Cloudflare layout instead (below).
 
 ## What is where
@@ -23,9 +24,13 @@ deployed; to try them locally, build the whole Cloudflare layout instead (below)
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | `build.mjs`         | The build, plus `SITE`: the app link, the site's public address (`origin`, for link previews), the Main Hall passwords, and the links still to fill in. |
 | `pages/`            | Hand-written page bodies. The first line is `<!--meta {...}-->` (title, description, scripts, search). |
-| `assets/`           | `site.css`, `help.js` (topic filter and search), `lesson.js` (chapter stills), the favicon. Served at `/site-assets/`, because `/assets/` is the app's bundle, cached for a year. |
+| `assets/`           | `site.css`, `help.js` (topic filter and search), `lesson.js` (chapter buttons play the video from there), the favicon. Served at `/site-assets/`, because `/assets/` is the app's bundle, cached for a year. |
 | `docs/user-guide/*` | Not copied by hand: the build renders the guides and copies `docs/user-guide/img/`.                     |
 | `narration/`        | Lesson narration with ElevenLabs (see below). Audio output and the API key are git-ignored.             |
+| `lessons.json`      | Each lesson video's chapters (start times) and its steps written out. Made by `video/tools/site-lessons.mjs`, not by hand. |
+| `media/`            | The lesson videos and the trailer (MP4) with their posters, served at `/media/`. Made by the same tool. |
+| `serve.mjs`         | A local preview server for `dist/` (see above).                                                         |
+| `video/`            | The lesson videos' own project: capture, narration timing and the Remotion edit (`video/README.md`).    |
 
 Editing a user guide updates the website on the next build. Guide headings become anchors the
 same way GitHub makes them, so the guides' own links (`getting-started.md#becoming-the-dm`)
@@ -39,10 +44,37 @@ below, because a topic link to its old anchor would stop pointing anywhere.
 - `SITE.mainHall` prints the Main Hall's published passwords (`Fun1` / `FunDM`) on the landing
   page, because a visitor cannot try the public table without them. Set it to
   `{ password: null, dmPassword: null }` to stop printing them.
-- Videos: every lesson says "Video coming soon". The scripts and shot lists are in
-  `docs/website/video-scripts.md`.
+- Videos: every lesson has its video (see "Lesson videos" below). The 14 path videos are on the
+  free temp narration (VibeVoice); the two quick starts are on Wren's real ElevenLabs takes.
 - The voice copy describes the rebuilt voice chat (phones and PCs), live on `main` since
   2026-10-07 (`6decc06d`).
+
+## Lesson videos
+
+Every lesson in the help center is a video with its steps written out underneath: the two quick
+starts and the hand-written "Build your first room live" place theirs with `{{video:<id>}}`, and
+the other 13 path pages are built from `lessons.json`. `LESSON_PAGES` in `build.mjs` gives each
+lesson its page and the guide section that covers it in full; `{{pathList:<player|dm>}}` and
+`{{lessonCards}}` print the paths and the video cards from the same data.
+
+After rendering a lesson (`video/README.md`), and making its phone-size copy
+`video/out/<lesson>-small.mp4`, put it on the site from `site/video/`:
+
+```bash
+node tools/site-lessons.mjs
+```
+
+It copies the small renders and the trailer to `media/` (remuxed so playback starts before the
+whole file has arrived), takes a poster frame from each, and rewrites `lessons.json`: the chapter
+start times worked out the way the edit lays the video out, and the steps from the **Say:** blocks
+of `docs/website/video-scripts.md`. Cloudflare Pages refuses a file over 25 MiB, so it stops on a
+video that big. Commit `media/` and `lessons.json` with the change.
+
+**Moving a video to YouTube:** set its `youtube` id in `LESSON_PAGES`. The page then embeds
+YouTube's player (youtube-nocookie.com) instead of the MP4, and the chapter buttons reload it at
+that second. First add `frame-src https://www.youtube-nocookie.com` to the CSP in
+`apps/client/public/_headers`, which covers the website too, or the player is an empty box. The
+MP4 can then leave `media/`, though it stays in git history.
 
 ## Narration (ElevenLabs)
 
