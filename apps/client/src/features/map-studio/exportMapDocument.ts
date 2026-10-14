@@ -166,7 +166,8 @@ export async function downloadRasterMapDocument(
   format: Extract<MapExportFormat, "png" | "webp"> = "png",
 ): Promise<void> {
   const blob = await rasterizeMapDocument(document, imageMime(format));
-  downloadBlob(blob, document, format);
+  // Safari answers a WebP request with a PNG and no error: name the file for what it holds.
+  downloadBlob(blob, document, blob.type === "image/png" ? "png" : format);
 }
 
 export async function rasterizeMapDocument(

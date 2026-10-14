@@ -5,6 +5,7 @@ import {
   backgroundExceedsPublishLimit,
   createMapDocumentSvgDataUrl,
   createMapDocumentSvgDataUrlWithAssets,
+  downloadRasterMapDocument,
   rasterizeMapDocument,
   renderMapDocumentSvg,
   serializeMapDocument,
@@ -677,6 +678,42 @@ describe("Map Studio export", () => {
     expect(drawImage).toHaveBeenCalledTimes(2);
     expect(createObjectURL).toHaveBeenCalledTimes(2);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:map-svg");
+  });
+
+  it("names a WebP download .png when the engine hands back a PNG (Safari)", async () => {
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:x"),
+      revokeObjectURL: vi.fn(),
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
+    // Asked for WebP, answers PNG: what Safari does, silently.
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) =>
+      callback(new Blob(["raster"], { type: "image/png" })),
+    );
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+
+        set src(_value: string) {
+          this.onload?.();
+        }
+      },
+    );
+    const names: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      names.push(this.download);
+    });
+
+    await downloadRasterMapDocument(document, "webp");
+
+    expect(names).toEqual(["keep.png"]);
   });
 });
 
