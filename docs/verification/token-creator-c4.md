@@ -100,11 +100,12 @@ Handoff: `docs/planning/PROMPT-token-creator-c4.md` (untracked).
 
 ## Known debt and open items
 
-- **Abandoned uploads (server):** an upload no room state ever referenced (a close during
-  "Uploading…", or a re-frame replaced before the 5-minute claim sweep) is never reclaimed: it counts
-  against a private table's storage for good, and a fork copies the claim
-  (`apps/server/src/domains/assets/assetRoomClaims.ts`). The rate limit (30 uploads a minute) is
-  per table. Needs its own server slice.
+- **Abandoned uploads (server): fixed after the slice** (`4226467b` refactor, then the reclaim
+  commit). The creator uploads with `x-herobyte-intent: apply`; the server stamps that room's claim
+  (`StoredAsset.pendingApply`), and the reclaim sweep releases a stamped claim the room's state has
+  not referenced within 15 minutes (`APPLY_ADOPT_WINDOW_MS`), condemning the asset if it was the last
+  claim (the 7-day grace still guards the bytes). Uploads without the intent (My Stuff shelves,
+  backups, the other image fields) keep the old rule. A fork inherits a pending stamp with its clock.
 - **Not automated:** a character file loaded at another table, and a backup restoring the picture,
   rest on the existing `/assets/<hash>` handling (`sessionAssets` scans absolute URLs); the Imgur bake
   was checked live only; drop is unit-tested (Playwright e2e covers file pick, paste is unit-only).
