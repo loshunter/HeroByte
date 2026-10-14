@@ -4,10 +4,10 @@
 // One picture at a time: load it (file, drop, paste, link), frame it, accept.
 // Accept is the ONLY step that uploads. Closing the window (Cancel, ✕, Escape)
 // abandons whatever is in flight: a bake not yet uploaded is never uploaded,
-// and an upload that lands after the close is never applied. Its bytes stay on
-// the store, charged to this table's quota until the table is cleared: the
-// server's reclaim sweep never takes an upload no state referenced (server
-// debt, apps/server/src/domains/assets/assetRoomClaims.ts). Accept writes
+// and an upload that lands after the close is never applied. It is sent with
+// the "apply" intent, so the server's reclaim sweep releases the table's claim
+// on it once it has gone unreferenced for 15 minutes (APPLY_ADOPT_WINDOW_MS,
+// apps/server/src/domains/assets/assetRoomClaims.ts). Accept writes
 // through the caller's `onApply(url)`,
 // the same callback the old URL field committed through, so a player's token
 // and an NPC's record (which the server copies back onto its token) both keep
@@ -195,7 +195,7 @@ export function useTokenCreator({
       if (!alive.current) return;
       setPhase("uploading");
       const file = new File([baked.blob], baked.fileName, { type: baked.mime });
-      const info = await deps.upload(file, deps.getCredentials());
+      const info = await deps.upload(file, deps.getCredentials(), undefined, { intent: "apply" });
       if (!alive.current) return;
       applyRef.current.onApply(uploadedAssetUrl(info.hash));
       applyRef.current.onDone();

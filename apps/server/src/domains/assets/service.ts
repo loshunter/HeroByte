@@ -94,6 +94,8 @@ export class AssetService {
     // never reconcile against a renamed default room.
     roomId: string = getDefaultRoomId(),
     timestamp: number = Date.now(),
+    /** Sent to be applied at once (the token creator): see StoredAsset.pendingApply. */
+    intent: { apply?: boolean } = {},
   ): Promise<{ asset: StoredAsset; deduplicated: boolean }> {
     // Stateless checks run outside the lock (no shared state, no yield needed).
     if (bytes.length > this.maxAssetBytes) {
@@ -136,6 +138,9 @@ export class AssetService {
           ...existing,
           rooms: [...roomsOf(existing), roomId],
           unreferencedAt: undefined,
+          ...(intent.apply
+            ? { pendingApply: { ...existing.pendingApply, [roomId]: timestamp } }
+            : {}),
         };
         assertQuota(index.assets, bytes.length, roomId, await this.limits(index), 0);
         await this.writeIndex({
@@ -161,6 +166,7 @@ export class AssetService {
         size: bytes.length,
         createdAt: timestamp,
         rooms: [roomId],
+        ...(intent.apply ? { pendingApply: { [roomId]: timestamp } } : {}),
       };
       // Persist the index BEFORE committing to the in-memory copy, so a failed
       // write leaves both the on-disk index and memory consistent (the orphan

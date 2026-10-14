@@ -26,6 +26,21 @@ describe("AssetService", () => {
     if (existsSync(TMP_DIR)) rmSync(TMP_DIR, { recursive: true, force: true });
   });
 
+  it("records an apply-intent claim, and only a NEW claim (an existing one stays as it was)", async () => {
+    const service = new AssetService({ directory: TMP_DIR });
+    const shelf = pngBytes("shelf");
+    const picture = pngBytes("picture");
+
+    await service.store(shelf, ROOM, 1000);
+    const again = await service.store(shelf, ROOM, 2000, { apply: true });
+    expect(again.asset.pendingApply).toBeUndefined();
+
+    const fresh = await service.store(picture, ROOM, 3000, { apply: true });
+    expect(fresh.asset.pendingApply).toEqual({ [ROOM]: 3000 });
+    const other = await service.store(picture, "room-b", 4000, { apply: true });
+    expect(other.asset.pendingApply).toEqual({ [ROOM]: 3000, "room-b": 4000 });
+  });
+
   it("stores a sniffed image under its SHA-256 content address", async () => {
     const service = new AssetService({ directory: TMP_DIR });
     const bytes = pngBytes("pixels");

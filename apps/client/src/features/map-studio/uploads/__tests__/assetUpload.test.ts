@@ -175,6 +175,19 @@ describe("uploadAssetFile", () => {
     expect(init.headers).not.toHaveProperty("x-herobyte-room");
   });
 
+  it("sends the intent header only when asked (the token creator's apply)", async () => {
+    // A fresh Response per call: a body can be read once.
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
+      jsonResponse(201, successBody()),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await uploadAssetFile(pngFile(), { secret: "s" }, WS, { intent: "apply" });
+    await uploadAssetFile(pngFile(), { secret: "s" }, WS);
+    const [[, applied], [, plain]] = fetchMock.mock.calls as [string, RequestInit][];
+    expect(applied!.headers).toMatchObject({ "x-herobyte-intent": "apply" });
+    expect(plain!.headers).not.toHaveProperty("x-herobyte-intent");
+  });
+
   it("accepts a deduplicated 200 response", async () => {
     const fetchMock = vi
       .fn()

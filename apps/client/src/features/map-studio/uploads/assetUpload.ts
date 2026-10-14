@@ -121,6 +121,12 @@ export async function uploadAssetFile(
   file: File,
   credentials: AssetUploadCredentials | null,
   wsUrl: string = WS_URL,
+  /**
+   * "apply": the caller sets the picture the moment this answers (the token
+   * creator). The server releases the claim of such an upload if no state
+   * takes it up, so an abandoned one stops costing the table's storage.
+   */
+  options: { intent?: "apply" } = {},
 ): Promise<UploadedAssetInfo> {
   if (!credentials?.secret) {
     throw new AssetUploadError("no-credentials", "Join the table before uploading assets.");
@@ -147,6 +153,7 @@ export async function uploadAssetFile(
     "x-herobyte-secret": credentials.secret,
   };
   if (credentials.roomId) headers["x-herobyte-room"] = credentials.roomId;
+  if (options.intent) headers["x-herobyte-intent"] = options.intent;
 
   let bytes: ArrayBuffer;
   try {

@@ -6,6 +6,7 @@ import { AssetService } from "../../domains/assets/service.js";
 import { RateLimiter } from "../../middleware/rateLimit.js";
 import { TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 import { createRoutes } from "../routes.js";
+import { getDefaultRoomId } from "../../config/auth.js";
 
 const TMP_ROOT = path.join(process.cwd(), ".tmp", "asset-routes-test");
 const SECRET_PATH = path.join(TMP_ROOT, "secret.json");
@@ -20,13 +21,14 @@ function pngBytes(payload: string): Buffer {
   ]);
 }
 
-function upload(body: Buffer, secret: string, roomId?: string) {
+function upload(body: Buffer, secret: string, roomId?: string, intent?: string) {
   const headers: Record<string, string> = {
     "content-type": "application/octet-stream",
     "content-length": String(body.length),
     "x-herobyte-secret": secret,
   };
   if (roomId) headers["x-herobyte-room"] = roomId;
+  if (intent) headers["x-herobyte-intent"] = intent;
   return new Request("http://test/assets", {
     method: "POST",
     headers,
@@ -83,6 +85,23 @@ describe("asset HTTP routes", () => {
     expect(served.headers.get("cache-control")).toContain("immutable");
     expect(served.headers.get("x-content-type-options")).toBe("nosniff");
     expect(Buffer.from(await served.arrayBuffer()).equals(bytes)).toBe(true);
+  });
+
+  it("an 'apply' upload nobody takes up stops costing the table; a plain one keeps today's rule", async () => {
+    const auth = new AuthService({ storagePath: SECRET_PATH });
+    const assetService = new AssetService({ directory: ASSET_DIR });
+    const app = createRoutes(auth, undefined, assetService);
+    const room = getDefaultRoomId();
+    const applied = pngBytes("token-creator bake");
+    const shelved = pngBytes("my stuff shelf");
+
+    expect((await app.request(upload(applied, "Fun1", undefined, "apply"))).status).toBe(201);
+    expect((await app.request(upload(shelved, "Fun1"))).status).toBe(201);
+    expect(await assetService.roomBytes(room)).toBe(applied.length + shelved.length);
+
+    // The table's state references neither; past the adopt window, the sweep runs.
+    await assetService.reclaimRoom(room, new Set(), Date.now() + 16 * 60 * 1000);
+    expect(await assetService.roomBytes(room)).toBe(shelved.length);
   });
 
   it("serves an asset with the CORS header a canvas read needs", async () => {

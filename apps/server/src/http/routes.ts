@@ -242,7 +242,12 @@ export function createRoutes(
         }
         // roomId was verified against the secret above, so the store can trust
         // it to scope this room's quota and dedup.
-        const { asset, deduplicated } = await assetService.store(bytes, roomId);
+        // "apply": the client sets the picture the moment this answers, so the
+        // reclaim sweep may treat it as abandoned if no state takes it up.
+        const apply = c.req.header("x-herobyte-intent") === "apply";
+        const { asset, deduplicated } = await assetService.store(bytes, roomId, undefined, {
+          apply,
+        });
         return new Response(
           JSON.stringify({
             hash: asset.hash,

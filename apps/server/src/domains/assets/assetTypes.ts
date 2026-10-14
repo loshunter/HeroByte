@@ -38,6 +38,16 @@ export interface StoredAsset {
    * unclaimed assets — those were never condemned and are never expired.
    */
   unreferencedAt?: number;
+  /**
+   * Rooms whose claim came from an upload sent to be applied at once (the
+   * token creator's Accept: `x-herobyte-intent: apply`), with when. The state
+   * references such an upload within seconds; one still unreferenced after
+   * APPLY_ADOPT_WINDOW_MS was abandoned (the window closed mid-upload, or the
+   * picture was replaced before any sweep saw it), and the sweep releases the
+   * claim as if it had been replaced. A claim from any other upload (a My Stuff
+   * shelf, a backup restore) never appears here and keeps today's rule.
+   */
+  pendingApply?: Record<string, number>;
 }
 
 export class AssetRejectedError extends Error {

@@ -14,6 +14,13 @@ import type { StoredAsset } from "./assetTypes.js";
 
 type Assets = Record<string, StoredAsset>;
 
+/**
+ * How long an apply-intent upload may stay unreferenced before the sweep calls
+ * it abandoned. The client applies the picture the moment the upload answers,
+ * so a live one is referenced within seconds; the sweep runs every 5 minutes.
+ */
+export const APPLY_ADOPT_WINDOW_MS = 15 * 60 * 1000;
+
 export interface ClaimPlan {
   assets: Assets;
   orphaned: StoredAsset[];
@@ -32,6 +39,19 @@ function referencedByOf(asset: StoredAsset): string[] {
 /** Empty arrays serialize as absent, keeping the index shape stable. */
 function orUndefined(rooms: string[]): string[] | undefined {
   return rooms.length > 0 ? rooms : undefined;
+}
+
+/** The asset's pending-apply stamps without `roomId`'s (absent when none remain). */
+function pendingWithout(asset: StoredAsset, roomId: string): Record<string, number> | undefined {
+  if (!asset.pendingApply || !(roomId in asset.pendingApply)) return asset.pendingApply;
+  const { [roomId]: _dropped, ...rest } = asset.pendingApply;
+  return Object.keys(rest).length > 0 ? rest : undefined;
+}
+
+/** `roomId`'s claim is an apply-intent upload left unreferenced past the window. */
+function abandonedApply(asset: StoredAsset, roomId: string, now: number): boolean {
+  const since = asset.pendingApply?.[roomId];
+  return since !== undefined && now - since >= APPLY_ADOPT_WINDOW_MS;
 }
 
 /**
@@ -53,10 +73,15 @@ export function planClaimCopy(
     const rooms = roomsOf(asset);
     if (rooms.includes(fromRoomId) && !rooms.includes(toRoomId)) {
       const refs = referencedByOf(asset);
+      const pending = asset.pendingApply?.[fromRoomId];
       next[hash] = {
         ...asset,
         rooms: [...rooms, toRoomId],
         referencedBy: orUndefined(refs.includes(fromRoomId) ? [...refs, toRoomId] : refs),
+        // The fork inherits an apply still pending, clock and all.
+        ...(pending !== undefined
+          ? { pendingApply: { ...asset.pendingApply, [toRoomId]: pending } }
+          : {}),
       };
       claimed += 1;
     } else {
@@ -91,6 +116,7 @@ export function planRoomRelease(assets: Assets, roomId: string): ClaimPlan {
         ...asset,
         rooms: remaining,
         referencedBy: orUndefined(referencedByOf(asset).filter((room) => room !== roomId)),
+        pendingApply: pendingWithout(asset, roomId),
       };
     } else {
       orphaned.push(asset);
@@ -125,10 +151,14 @@ export function planRoomRelease(assets: Assets, roomId: string): ClaimPlan {
  *                               delete this replaced broke Undo and the
  *                               shelf's "bytes live on the server" promise.)
  *   unmarked, not referenced  → NOT ours to take. An upload the state has
- *                               not caught up with, or palette stock. The
- *                               cost is that an upload abandoned before any
- *                               sweep observed it referenced leaks until the
- *                               room is cleared — bounded by the room quota.
+ *                               not caught up with, or palette stock (a My
+ *                               Stuff shelf) — EXCEPT an apply-intent upload
+ *                               (`pendingApply`) still unreferenced after
+ *                               APPLY_ADOPT_WINDOW_MS: that one was abandoned
+ *                               and is un-claimed like a replaced one. Any
+ *                               other upload abandoned before a sweep saw it
+ *                               referenced still leaks until the room is
+ *                               cleared — bounded by the room quota.
  *
  * Resurrection deliberately skips legacy unclaimed assets (no
  * `unreferencedAt`): charging those to a room that may not have uploaded
@@ -161,15 +191,21 @@ export function planRoomReclaim(
       continue;
     }
     if (referenced.has(hash)) {
-      if (!marked) {
-        next[hash] = { ...asset, referencedBy: [...referencedByOf(asset), roomId] };
+      // Seen in the state: an ordinary marked claim from here on.
+      const pending = pendingWithout(asset, roomId);
+      if (!marked || pending !== asset.pendingApply) {
+        next[hash] = {
+          ...asset,
+          referencedBy: marked ? asset.referencedBy : [...referencedByOf(asset), roomId],
+          pendingApply: pending,
+        };
         changed = true;
       } else {
         next[hash] = asset;
       }
       continue;
     }
-    if (!marked) {
+    if (!marked && !abandonedApply(asset, roomId, now)) {
       next[hash] = asset;
       continue;
     }
@@ -180,9 +216,16 @@ export function planRoomReclaim(
         ...asset,
         rooms: remaining,
         referencedBy: orUndefined(referencedByOf(asset).filter((room) => room !== roomId)),
+        pendingApply: pendingWithout(asset, roomId),
       };
     } else {
-      next[hash] = { ...asset, rooms: undefined, referencedBy: undefined, unreferencedAt: now };
+      next[hash] = {
+        ...asset,
+        rooms: undefined,
+        referencedBy: undefined,
+        pendingApply: undefined,
+        unreferencedAt: now,
+      };
     }
   }
 

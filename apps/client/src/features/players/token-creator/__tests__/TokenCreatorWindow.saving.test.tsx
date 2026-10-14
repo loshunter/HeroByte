@@ -43,6 +43,15 @@ describe("the bake follows the framing", () => {
     await waitFor(() => expect(onApply).toHaveBeenCalled());
     expect(canvas.width).toBe(512);
   });
+
+  it("uploads with the 'apply' intent, so an abandoned bake does not cost the table", async () => {
+    const d = deps();
+    const { onApply } = open(d);
+    await pickFile();
+    fireEvent.click(screen.getByRole("button", { name: "Use this picture" }));
+    await waitFor(() => expect(onApply).toHaveBeenCalled());
+    expect(vi.mocked(d.upload).mock.calls[0]![3]).toEqual({ intent: "apply" });
+  });
 });
 
 describe("closing abandons a save", () => {

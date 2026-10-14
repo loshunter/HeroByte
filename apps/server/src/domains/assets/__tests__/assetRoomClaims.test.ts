@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  APPLY_ADOPT_WINDOW_MS,
   planClaimCopy,
   planCondemnedExpiry,
   planRoomReclaim,
@@ -140,6 +141,86 @@ describe("planRoomReclaim", () => {
     expect(plan.assets[H2]).toMatchObject({ unreferencedAt: NOW }); // condemned
     expect(plan.assets[H3]!.rooms).toEqual(["room-a"]);
     expect(plan.orphaned).toEqual([]);
+  });
+});
+
+describe("planRoomReclaim and apply-intent uploads (the token creator)", () => {
+  const STAMP = NOW - APPLY_ADOPT_WINDOW_MS;
+
+  it("keeps an apply upload still inside its window", () => {
+    const plan = planRoomReclaim(
+      { [H1]: asset(H1, { rooms: ["room-a"], pendingApply: { "room-a": STAMP + 1 } }) },
+      "room-a",
+      new Set(),
+      NOW,
+    );
+    expect(plan.changed).toBe(false);
+    expect(plan.assets[H1]!.rooms).toEqual(["room-a"]);
+  });
+
+  it("condemns an apply upload left unreferenced past the window, freeing the room", () => {
+    const plan = planRoomReclaim(
+      { [H1]: asset(H1, { rooms: ["room-a"], pendingApply: { "room-a": STAMP } }) },
+      "room-a",
+      new Set(),
+      NOW,
+    );
+    expect(plan.changed).toBe(true);
+    expect(plan.assets[H1]).toMatchObject({ unreferencedAt: NOW });
+    expect(plan.assets[H1]!.rooms).toBeUndefined();
+    expect(plan.assets[H1]!.pendingApply).toBeUndefined();
+    // Condemned, not deleted: the grace window still guards the bytes.
+    expect(plan.orphaned).toEqual([]);
+  });
+
+  it("an apply upload the state took up becomes an ordinary marked claim", () => {
+    const plan = planRoomReclaim(
+      { [H1]: asset(H1, { rooms: ["room-a"], pendingApply: { "room-a": STAMP } }) },
+      "room-a",
+      new Set([H1]),
+      NOW,
+    );
+    expect(plan.assets[H1]!.referencedBy).toEqual(["room-a"]);
+    expect(plan.assets[H1]!.pendingApply).toBeUndefined();
+  });
+
+  it("never touches an unmarked upload sent without the intent (a My Stuff shelf)", () => {
+    const plan = planRoomReclaim(
+      { [H1]: asset(H1, { rooms: ["room-a"], createdAt: 1 }) },
+      "room-a",
+      new Set(),
+      NOW + 10 * APPLY_ADOPT_WINDOW_MS,
+    );
+    expect(plan.changed).toBe(false);
+    expect(plan.assets[H1]!.rooms).toEqual(["room-a"]);
+  });
+
+  it("drops only the abandoning room's claim when another room still holds the bytes", () => {
+    const plan = planRoomReclaim(
+      {
+        [H1]: asset(H1, {
+          rooms: ["room-a", "room-b"],
+          pendingApply: { "room-a": STAMP, "room-b": STAMP },
+        }),
+      },
+      "room-a",
+      new Set(),
+      NOW,
+    );
+    expect(plan.assets[H1]!.rooms).toEqual(["room-b"]);
+    expect(plan.assets[H1]!.pendingApply).toEqual({ "room-b": STAMP });
+    expect(plan.assets[H1]!.unreferencedAt).toBeUndefined();
+  });
+
+  it("a fork inherits a pending apply with its clock; a release drops it", () => {
+    const copy = planClaimCopy(
+      { [H1]: asset(H1, { rooms: ["room-a"], pendingApply: { "room-a": STAMP } }) },
+      "room-a",
+      "fork",
+    );
+    expect(copy.assets[H1]!.pendingApply).toEqual({ "room-a": STAMP, fork: STAMP });
+    const released = planRoomRelease(copy.assets, "room-a");
+    expect(released.assets[H1]!.pendingApply).toEqual({ fork: STAMP });
   });
 });
 
