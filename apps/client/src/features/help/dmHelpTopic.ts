@@ -17,7 +17,7 @@ export const DM_HELP_TOPIC: HelpTopic = {
     {
       term: "+ Add NPC",
       detail:
-        "DM Menu → NPCs & Monsters. Name, HP, initiative modifier, portrait, token art and conditions — the same plumbing as a player. 🎯 FOCUS centres the map on a placed NPC; on a phone this tab (♛ DM → NPCs & Monsters) is where an NPC's conditions and Focus live.",
+        "DM Menu → NPCs & Monsters. Name, HP, initiative modifier, portrait, a token image URL used as it is, and conditions. To frame an NPC's token picture, use Token picture… in its ⚙️ window in the Party (on a computer). 🎯 FOCUS centres the map on a placed NPC; on a phone this tab (♛ DM → NPCs & Monsters) is where an NPC's conditions and Focus live.",
     },
     {
       term: "A player's character",

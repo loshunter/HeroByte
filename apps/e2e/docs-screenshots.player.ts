@@ -125,6 +125,10 @@ test.describe("docs screenshots: player", () => {
       await expect(page.getByRole("button", { name: /Rotate/ })).toBeVisible();
       await page.getByRole("slider", { name: "Zoom" }).focus();
       await page.keyboard.press("Home");
+      // The previews sit below the square, under the pinned Accept row: centre them.
+      await page
+        .getByRole("group", { name: "Preview at token size" })
+        .evaluate((group) => group.scrollIntoView({ block: "center" }));
       await shotPage(page, "token-creator");
       await page.getByRole("button", { name: "Cancel" }).click();
       await closeTopWindow(page, "Player Settings");

@@ -55,7 +55,7 @@ To edit the table's map, use **🏗️ Build map** in the header. If you have a 
 
 **+ ADD NPC** creates a monster with a full stat row:
 
-- **Name, HP / Max HP / Temp HP, Init Mod, Portrait, Token Image** — the portrait and token image are URL fields with **⬆ UPLOAD IMAGE**, used as they are. To move, zoom or turn a token picture, use **Token picture…** in the NPC's ⚙️ window in the Party.
+- **Name, HP / Max HP / Temp HP, Init Mod, Portrait, Token Image** — the portrait and token image are URL fields with **⬆ UPLOAD IMAGE**, used as they are. To move, zoom or turn a token picture, use **Token picture…** in the NPC's ⚙️ window in the Party (on a computer: the phone's Party lists seats, not NPCs, so a phone has only this URL field).
 - **Status Effects** and **🎯 FOCUS** — the same conditions picker as the NPC's window in the Party, and a button that centres your view on its token while that token is on the current map. On a phone this tab is where both live (**♛ DM** → **NPCs & Monsters**; the phone's Party lists seats, not NPCs), and Focus closes the DM screen so you see the token.
 - **PLACE ON MAP** drops its token at the map's top-left corner cell — not at the center of your
   view — so reset the view or drag it across from there. Pressing it again replaces the old token with a fresh
