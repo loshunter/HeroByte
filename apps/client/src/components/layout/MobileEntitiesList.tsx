@@ -61,6 +61,7 @@ interface MobileEntitiesListProps {
    * so a phone cannot silently lose the control again.
    */
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  onTokenImageChange: (tokenId: string, imageUrl: string) => void;
   /** A chosen token colour (the settings sheet's picker, C1). */
   onTokenColorChange?: (tokenId: string, color: string) => void;
   /** The viewer's own rows add a character, as the desktop window does. */
@@ -126,6 +127,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   tokens,
   onTokenVisionRadiusChange,
   onTokenSizeChange,
+  onTokenImageChange,
   onTokenColorChange,
   onAddCharacter,
   sceneObjects,
@@ -265,6 +267,11 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
                 }
                 colorPicker={colorPickerFor(entity, entityToken)}
                 tokenSize={entityToken?.size}
+                onTokenImageChange={
+                  (entity.uid === uid || isDM) && entityToken
+                    ? (url) => onTokenImageChange(entityToken.id, url)
+                    : undefined
+                }
                 onTokenSizeChange={
                   (entity.uid === uid || isDM) && entityToken
                     ? (size) => onTokenSizeChange(entityToken.id, size)

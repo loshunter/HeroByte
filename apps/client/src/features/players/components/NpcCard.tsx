@@ -93,14 +93,12 @@ export function NpcCard({
       close(false);
     }
   }, [isDM, roleKnown]);
-  const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
   const [portraitInput, setPortraitInput] = useState(character.portrait ?? "");
   const { feedback, flashClass } = useHpFeedback(character.hp);
   // Absent = hostile: an NPC made before stances existed looks exactly as it did.
   const look = npcDispositionLook(character.disposition);
 
   // Art buffers re-fill on the server's VALUE; seeded once, a blur re-sent a stale URL.
-  useEffect(() => setTokenImageInput(character.tokenImage ?? ""), [character.tokenImage]);
   useEffect(() => setPortraitInput(character.portrait ?? ""), [character.portrait]);
 
   const handleHpChange = useCallback(
@@ -318,14 +316,10 @@ export function NpcCard({
       <NpcSettingsMenu
         isOpen={(canEdit || !roleKnown) && settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        tokenImageInput={tokenImageInput}
+        name={character.name}
         tokenImageUrl={character.tokenImage ?? undefined}
-        onTokenImageInputChange={setTokenImageInput}
         onTokenImageApply={handleTokenImageApply}
-        onTokenImageClear={() => {
-          setTokenImageInput("");
-          handleTokenImageApply("");
-        }}
+        onTokenImageClear={() => handleTokenImageApply("")}
         portraitImageInput={portraitInput}
         onPortraitInputChange={setPortraitInput}
         onPortraitApply={handlePortraitApply}

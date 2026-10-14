@@ -19,8 +19,6 @@ function openPicker(selectedEffects: string[] = []) {
     <PlayerSettingsMenu
       isOpen
       onClose={vi.fn()}
-      tokenImageInput=""
-      onTokenImageInputChange={vi.fn()}
       onTokenImageClear={vi.fn()}
       onTokenImageApply={vi.fn()}
       onSavePlayerState={vi.fn()}

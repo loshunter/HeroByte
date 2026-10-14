@@ -144,6 +144,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             tokens={props.snapshot?.tokens || []}
             onTokenVisionRadiusChange={props.updateTokenVisionRadius}
             onTokenSizeChange={props.updateTokenSize}
+            onTokenImageChange={props.updateTokenImage}
             onTokenColorChange={(tokenId, color) =>
               props.sendMessage({ t: "set-token-color", tokenId, color })
             }
@@ -163,8 +164,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             onOpenInitiative={initiativeDialog.open}
             onClearInitiative={initiativeSetting.clearInitiative}
             tableVisionDefault={props.snapshot?.defaultVisionRadius}
-            // Focus shows the map: the camera centres on the token, and the
-            // screen that covers the map closes.
+            // Focus shows the map: centre on the token, close the covering screen.
             onFocusToken={(tokenId) => {
               props.handleFocusToken(tokenId);
               closeSurface();

@@ -166,9 +166,8 @@ vi.mock("../HPBar", () => ({
 interface MockNpcSettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  tokenImageInput: string;
+  name?: string;
   tokenImageUrl: string;
-  onTokenImageInputChange: (input: string) => void;
   onTokenImageApply: (input: string) => void;
   onTokenImageClear: () => void;
   portraitImageInput: string;
@@ -188,9 +187,8 @@ vi.mock("../NpcSettingsMenu", () => ({
   NpcSettingsMenu: ({
     isOpen,
     onClose,
-    tokenImageInput,
+    name,
     tokenImageUrl,
-    onTokenImageInputChange,
     onTokenImageApply,
     onTokenImageClear,
     portraitImageInput,
@@ -205,9 +203,8 @@ vi.mock("../NpcSettingsMenu", () => ({
     isDeleting,
     deletionError,
   }: MockNpcSettingsMenuProps) => (
-    <div data-testid="npc-settings-menu">
+    <div data-testid="npc-settings-menu" data-name={name}>
       <span data-testid="settings-is-open">{String(isOpen)}</span>
-      <span data-testid="settings-token-image-input">{tokenImageInput}</span>
       <span data-testid="settings-token-image-url">{tokenImageUrl}</span>
       <span data-testid="settings-portrait-input">{portraitImageInput}</span>
       <button
@@ -230,12 +227,9 @@ vi.mock("../NpcSettingsMenu", () => ({
         Close
       </button>
       <button
-        data-testid="settings-change-token-input"
-        onClick={() => onTokenImageInputChange("new-image.png")}
+        data-testid="settings-apply-token"
+        onClick={() => onTokenImageApply("  new-image.png  ")}
       >
-        Change Token Input
-      </button>
-      <button data-testid="settings-apply-token" onClick={() => onTokenImageApply(tokenImageInput)}>
         Apply Token
       </button>
       <button data-testid="settings-clear-token" onClick={onTokenImageClear}>
@@ -1042,51 +1036,29 @@ describe("NpcCard", () => {
   // ============================================================================
 
   describe("Token Image Management", () => {
-    it("initializes tokenImageInput from character.tokenImage", () => {
-      const props = createDefaultProps({
-        character: createMockCharacter({ tokenImage: "token.png" }),
-      });
-      render(<NpcCard {...props} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("token.png");
-    });
-
-    it("initializes tokenImageInput as empty string when character.tokenImage is null", () => {
-      const props = createDefaultProps({
-        character: createMockCharacter({ tokenImage: null }),
-      });
-      render(<NpcCard {...props} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("");
-    });
-
-    it("updates tokenImageInput when character.tokenImage changes", () => {
+    it("updates tokenImageUrl when character.tokenImage changes", () => {
       const props = createDefaultProps({
         character: createMockCharacter({ tokenImage: "initial.png" }),
       });
       const { rerender } = render(<NpcCard {...props} />);
 
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("initial.png");
+      expect(screen.getByTestId("settings-token-image-url")).toHaveTextContent("initial.png");
 
       const updatedProps = createDefaultProps({
         character: createMockCharacter({ tokenImage: "updated.png" }),
       });
       rerender(<NpcCard {...updatedProps} />);
 
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("updated.png");
+      expect(screen.getByTestId("settings-token-image-url")).toHaveTextContent("updated.png");
     });
 
-    it("trims and validates token image on apply", () => {
+    it("sends the trimmed picture the creator hands over", () => {
       const onUpdate = vi.fn();
       const props = createDefaultProps({
         character: createMockCharacter({ id: "npc-123" }),
         onUpdate,
       });
       render(<NpcCard {...props} />);
-
-      // Change input to have whitespace
-      fireEvent.click(screen.getByTestId("settings-change-token-input"));
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("new-image.png");
 
       fireEvent.click(screen.getByTestId("settings-apply-token"));
 
@@ -1101,24 +1073,9 @@ describe("NpcCard", () => {
       });
       render(<NpcCard {...props} />);
 
-      // Clear the input
       fireEvent.click(screen.getByTestId("settings-clear-token"));
 
       expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: "" });
-    });
-
-    it("sets tokenImage to string when non-empty", () => {
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({
-        character: createMockCharacter({ id: "npc-123" }),
-        onUpdate,
-      });
-      render(<NpcCard {...props} />);
-
-      fireEvent.click(screen.getByTestId("settings-change-token-input"));
-      fireEvent.click(screen.getByTestId("settings-apply-token"));
-
-      expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: "new-image.png" });
     });
 
     it("does not apply token image when isDM is false", () => {
@@ -1131,13 +1088,13 @@ describe("NpcCard", () => {
       expect(onUpdate).not.toHaveBeenCalled();
     });
 
-    it("passes tokenImageInput to NpcSettingsMenu", () => {
+    it("passes the NPC's name to NpcSettingsMenu, for the token picture window's title", () => {
       const props = createDefaultProps({
-        character: createMockCharacter({ tokenImage: "test.png" }),
+        character: createMockCharacter({ name: "Goblin King" }),
       });
       render(<NpcCard {...props} />);
 
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("test.png");
+      expect(screen.getByTestId("npc-settings-menu")).toHaveAttribute("data-name", "Goblin King");
     });
 
     it("passes tokenImageUrl to NpcSettingsMenu", () => {
@@ -1352,7 +1309,7 @@ describe("NpcCard", () => {
       });
       render(<NpcCard {...props} />);
 
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("");
+      expect(screen.getByTestId("settings-token-image-url")).toHaveTextContent("");
     });
 
     it("handles character with no statusEffects", () => {

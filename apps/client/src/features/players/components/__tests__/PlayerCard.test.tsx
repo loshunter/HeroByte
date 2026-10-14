@@ -216,9 +216,7 @@ vi.mock("../PlayerSettingsMenu", () => ({
   PlayerSettingsMenu: ({
     isOpen,
     onClose,
-    tokenImageInput,
     tokenImageUrl,
-    onTokenImageInputChange,
     onTokenImageApply,
     onTokenImageClear,
     onDeleteToken,
@@ -238,9 +236,7 @@ vi.mock("../PlayerSettingsMenu", () => ({
   }: {
     isOpen: boolean;
     onClose: () => void;
-    tokenImageInput: string;
     tokenImageUrl?: string;
-    onTokenImageInputChange: (value: string) => void;
     onTokenImageClear: () => void;
     onTokenImageApply: (value: string) => void;
     onSavePlayerState: () => void;
@@ -260,7 +256,6 @@ vi.mock("../PlayerSettingsMenu", () => ({
   }) => (
     <div data-testid="player-settings-menu">
       <span data-testid="settings-is-open">{String(isOpen)}</span>
-      <span data-testid="settings-token-image-input">{tokenImageInput}</span>
       <span data-testid="settings-token-image-url">{tokenImageUrl}</span>
       <span data-testid="settings-selected-effects">{selectedEffects.join(",")}</span>
       <span data-testid="settings-is-dm">{String(isDM)}</span>
@@ -272,14 +267,8 @@ vi.mock("../PlayerSettingsMenu", () => ({
         Close
       </button>
       <button
-        data-testid="settings-change-token-input"
-        onClick={() => onTokenImageInputChange?.("new-image.png")}
-      >
-        Change Token Input
-      </button>
-      <button
         data-testid="settings-apply-token"
-        onClick={() => onTokenImageApply?.(tokenImageInput)}
+        onClick={() => onTokenImageApply?.("new-image.png")}
       >
         Apply Token
       </button>
@@ -777,70 +766,6 @@ describe("PlayerCard", () => {
   });
 
   // ============================================================================
-  // TESTS - TOKEN IMAGE STATE SYNC
-  // ============================================================================
-
-  describe("Token Image State Sync", () => {
-    it("initializes tokenImageInput from tokenImageUrl", () => {
-      const props = createDefaultProps({
-        tokenImageUrl: "initial-token.png",
-      });
-      render(<PlayerCard {...props} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
-        "initial-token.png",
-      );
-    });
-
-    it("updates tokenImageInput when tokenImageUrl prop changes", () => {
-      const props = createDefaultProps({
-        tokenImageUrl: "initial-token.png",
-      });
-      const { rerender } = render(<PlayerCard {...props} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
-        "initial-token.png",
-      );
-
-      const updatedProps = createDefaultProps({
-        tokenImageUrl: "updated-token.png",
-      });
-      rerender(<PlayerCard {...updatedProps} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
-        "updated-token.png",
-      );
-    });
-
-    it("defaults tokenImageInput to empty string when tokenImageUrl is undefined", () => {
-      const props = createDefaultProps({
-        tokenImageUrl: undefined,
-      });
-      render(<PlayerCard {...props} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("");
-    });
-
-    it("updates tokenImageInput to empty string when tokenImageUrl changes to undefined", () => {
-      const props = createDefaultProps({
-        tokenImageUrl: "initial-token.png",
-      });
-      const { rerender } = render(<PlayerCard {...props} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
-        "initial-token.png",
-      );
-
-      const updatedProps = createDefaultProps({
-        tokenImageUrl: undefined,
-      });
-      rerender(<PlayerCard {...updatedProps} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("");
-    });
-  });
-
-  // ============================================================================
   // TESTS - TOKEN IMAGE APPLY
   // ============================================================================
 
@@ -858,7 +783,7 @@ describe("PlayerCard", () => {
       fireEvent.click(applyButton);
 
       expect(onTokenImageSubmit).toHaveBeenCalledTimes(1);
-      expect(onTokenImageSubmit).toHaveBeenCalledWith("current.png");
+      expect(onTokenImageSubmit).toHaveBeenCalledWith("new-image.png");
     });
 
     it("does not call onTokenImageSubmit when isMe is false", () => {
@@ -889,41 +814,6 @@ describe("PlayerCard", () => {
       const applyButton = screen.getByTestId("settings-apply-token");
       expect(() => fireEvent.click(applyButton)).not.toThrow();
     });
-
-    it("passes trimmed value when tokenImageInput has whitespace", () => {
-      const onTokenImageSubmit = vi.fn();
-      const props = createDefaultProps({
-        isMe: true,
-        tokenImageUrl: "  trimmed.png  ",
-        onTokenImageSubmit,
-      });
-      render(<PlayerCard {...props} />);
-
-      const applyButton = screen.getByTestId("settings-apply-token");
-      fireEvent.click(applyButton);
-
-      expect(onTokenImageSubmit).toHaveBeenCalledWith("  trimmed.png  ");
-    });
-
-    it("passes original tokenImageUrl when tokenImageInput is empty after trim", () => {
-      const onTokenImageSubmit = vi.fn();
-      const props = createDefaultProps({
-        isMe: true,
-        tokenImageUrl: "fallback.png",
-        onTokenImageSubmit,
-      });
-      render(<PlayerCard {...props} />);
-
-      // Change input to whitespace-only
-      const changeButton = screen.getByTestId("settings-change-token-input");
-      fireEvent.click(changeButton);
-
-      // Now clear it
-      const clearButton = screen.getByTestId("settings-clear-token");
-      fireEvent.click(clearButton);
-
-      expect(onTokenImageSubmit).toHaveBeenCalledWith("");
-    });
   });
 
   // ============================================================================
@@ -931,21 +821,6 @@ describe("PlayerCard", () => {
   // ============================================================================
 
   describe("Token Image Clear", () => {
-    it("clears tokenImageInput to empty string", () => {
-      const props = createDefaultProps({
-        isMe: true,
-        tokenImageUrl: "current.png",
-      });
-      render(<PlayerCard {...props} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("current.png");
-
-      const clearButton = screen.getByTestId("settings-clear-token");
-      fireEvent.click(clearButton);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("");
-    });
-
     it("calls handleTokenImageApply with empty string", () => {
       const onTokenImageSubmit = vi.fn();
       const props = createDefaultProps({
@@ -1049,7 +924,7 @@ describe("PlayerCard", () => {
       );
     });
 
-    it("uses tokenImageInput if available, falls back to tokenImageUrl", () => {
+    it("saves the token picture on file (tokenImageUrl) over the token's own", () => {
       const player = createMockPlayer();
       const token = createMockToken({ imageUrl: "original.png" });
 
@@ -1064,7 +939,6 @@ describe("PlayerCard", () => {
       const saveButton = screen.getByTestId("settings-save-state");
       fireEvent.click(saveButton);
 
-      // tokenImageInput is initialized from tokenImageUrl, so it should use "fallback.png"
       expect(savePlayerState).toHaveBeenCalledWith(
         expect.objectContaining({
           token: expect.objectContaining({
@@ -1292,89 +1166,6 @@ describe("PlayerCard", () => {
       await waitFor(() => {
         expect(onApplyPlayerState).toHaveBeenCalledTimes(1);
         expect(onApplyPlayerState).toHaveBeenCalledWith(mockState, "token-123", "char-456");
-      });
-    });
-
-    it("updates tokenImageInput from loaded state.token.imageUrl", async () => {
-      const mockState: PlayerState = {
-        name: "Loaded Player",
-        hp: 90,
-        maxHp: 120,
-        portrait: "loaded.jpg",
-        token: {
-          imageUrl: "token-from-state.png",
-        },
-      };
-      mockedLoadPlayerState.mockResolvedValue(mockState);
-
-      const onApplyPlayerState = vi.fn();
-      const props = createDefaultProps({
-        isMe: true,
-        onApplyPlayerState,
-      });
-      render(<PlayerCard {...props} />);
-
-      const loadButton = screen.getByTestId("settings-load-state");
-      fireEvent.click(loadButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
-          "token-from-state.png",
-        );
-      });
-    });
-
-    it("updates tokenImageInput from loaded state.tokenImage when token.imageUrl is undefined", async () => {
-      const mockState: PlayerState = {
-        name: "Loaded Player",
-        hp: 90,
-        maxHp: 120,
-        portrait: "loaded.jpg",
-        tokenImage: "fallback-token.png",
-      };
-      mockedLoadPlayerState.mockResolvedValue(mockState);
-
-      const onApplyPlayerState = vi.fn();
-      const props = createDefaultProps({
-        isMe: true,
-        onApplyPlayerState,
-      });
-      render(<PlayerCard {...props} />);
-
-      const loadButton = screen.getByTestId("settings-load-state");
-      fireEvent.click(loadButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
-          "fallback-token.png",
-        );
-      });
-    });
-
-    it("sets tokenImageInput to empty string when state has no token image", async () => {
-      const mockState: PlayerState = {
-        name: "Loaded Player",
-        hp: 90,
-        maxHp: 120,
-        portrait: "loaded.jpg",
-      };
-      mockedLoadPlayerState.mockResolvedValue(mockState);
-
-      const onApplyPlayerState = vi.fn();
-      const props = createDefaultProps({
-        isMe: true,
-        onApplyPlayerState,
-        tokenImageUrl: "existing.png",
-      });
-      render(<PlayerCard {...props} />);
-
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("existing.png");
-
-      const loadButton = screen.getByTestId("settings-load-state");
-      fireEvent.click(loadButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("");
       });
     });
   });
@@ -1870,13 +1661,6 @@ describe("PlayerCard", () => {
 
         fireEvent.click(screen.getByTestId("card-controls-open-settings"));
         expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
-      });
-
-      it("receives tokenImageInput", () => {
-        const props = createDefaultProps({ tokenImageUrl: "test.png" });
-        render(<PlayerCard {...props} />);
-
-        expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("test.png");
       });
 
       it("receives tokenImageUrl", () => {

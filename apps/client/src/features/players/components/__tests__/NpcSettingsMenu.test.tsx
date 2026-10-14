@@ -2,7 +2,7 @@
 // NPC SETTINGS MENU COMPONENT TESTS
 // ============================================================================
 // Comprehensive tests for NpcSettingsMenu component following SOLID principles (SRP, SoC)
-// Tests all features: portal rendering, draggable window, token image input/preview,
+// Tests all features: portal rendering, draggable window, token picture control/preview,
 // place token, token size selector, token lock toggle, delete NPC, and auto-close
 //
 // Coverage: ~72 tests for 241 LOC source file
@@ -91,9 +91,7 @@ function listenForLockNotices(): { heard: (string | undefined)[]; off: () => voi
 interface NpcSettingsMenuPropsFactory {
   isOpen?: boolean;
   onClose?: () => void;
-  tokenImageInput?: string;
   tokenImageUrl?: string;
-  onTokenImageInputChange?: (value: string) => void;
   onTokenImageApply?: (value: string) => void;
   onTokenImageClear?: () => void;
   onPlaceToken?: () => void;
@@ -117,9 +115,7 @@ function createProps(
   return {
     isOpen: true,
     onClose: vi.fn(),
-    tokenImageInput: "",
     tokenImageUrl: "",
-    onTokenImageInputChange: vi.fn(),
     onTokenImageApply: vi.fn(),
     onTokenImageClear: vi.fn(),
     onPlaceToken: vi.fn(),
@@ -220,7 +216,7 @@ describe("NpcSettingsMenu", () => {
 
       const content = screen.getByTestId("draggable-window-content");
       expect(content).toBeInTheDocument();
-      expect(content).toContainElement(screen.getByText("Token Image URL"));
+      expect(content).toContainElement(screen.getByText("Token picture"));
     });
 
     it("does not render when closed, then renders when opened", () => {
@@ -261,198 +257,42 @@ describe("NpcSettingsMenu", () => {
   });
 
   // ==========================================================================
-  // TOKEN IMAGE INPUT
+  // TOKEN PICTURE CONTROL
   // ==========================================================================
 
-  describe("Token Image Input", () => {
-    it("displays tokenImageInput value in input field", () => {
-      const props = createProps({ tokenImageInput: "https://example.com/token.png" });
-      render(<NpcSettingsMenu {...props} />);
-
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      expect(input).toHaveValue("https://example.com/token.png");
-    });
-
-    it("displays empty string when tokenImageInput is empty", () => {
-      const props = createProps({ tokenImageInput: "" });
-      render(<NpcSettingsMenu {...props} />);
-
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      expect(input).toHaveValue("");
-    });
-
-    it("shows placeholder text", () => {
+  describe("Token Picture Control", () => {
+    it("renders the Token picture label", () => {
       const props = createProps();
       render(<NpcSettingsMenu {...props} />);
 
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      expect(input).toBeInTheDocument();
+      expect(screen.getByText("Token picture")).toBeInTheDocument();
+      expect(screen.getByText("Token picture")).toHaveClass("jrpg-text-small");
     });
 
-    it("calls onTokenImageInputChange when input changes", () => {
-      const onTokenImageInputChange = vi.fn();
-      const props = createProps({ onTokenImageInputChange });
-      render(<NpcSettingsMenu {...props} />);
+    it("always renders the Token picture… button, with or without a picture", () => {
+      const { unmount } = render(<NpcSettingsMenu {...createProps({ tokenImageUrl: "" })} />);
+      expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
+      unmount();
 
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      fireEvent.change(input, { target: { value: "https://new-url.com/image.png" } });
-
-      expect(onTokenImageInputChange).toHaveBeenCalledWith("https://new-url.com/image.png");
+      render(<NpcSettingsMenu {...createProps({ tokenImageUrl: "https://example.com/t.png" })} />);
+      expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
     });
 
-    it("calls normalizeUrl and onTokenImageApply when Enter key is pressed", async () => {
-      const onTokenImageApply = vi.fn();
-      const props = createProps({
-        tokenImageInput: "https://example.com/token.png",
-        onTokenImageApply,
-      });
-      mockNormalizeUrl.mockResolvedValue("https://normalized.com/token.png");
-
-      render(<NpcSettingsMenu {...props} />);
-
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
-
-      await waitFor(() => {
-        expect(mockNormalizeUrl).toHaveBeenCalledWith("https://example.com/token.png");
-        expect(onTokenImageApply).toHaveBeenCalledWith("https://normalized.com/token.png");
-      });
-    });
-
-    it("trims whitespace before normalizing on Enter", async () => {
-      const onTokenImageApply = vi.fn();
-      const props = createProps({
-        tokenImageInput: "  https://example.com/token.png  ",
-        onTokenImageApply,
-      });
-      mockNormalizeUrl.mockResolvedValue("https://normalized.com/token.png");
-
-      render(<NpcSettingsMenu {...props} />);
-
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
-
-      await waitFor(() => {
-        expect(mockNormalizeUrl).toHaveBeenCalledWith("https://example.com/token.png");
-      });
-    });
-
-    it("calls normalizeUrl and onTokenImageApply on blur", async () => {
-      const onTokenImageApply = vi.fn();
-      const props = createProps({
-        tokenImageInput: "https://example.com/token.png",
-        onTokenImageApply,
-      });
-      mockNormalizeUrl.mockResolvedValue("https://normalized.com/token.png");
-
-      render(<NpcSettingsMenu {...props} />);
-
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      fireEvent.blur(input);
-
-      await waitFor(() => {
-        expect(mockNormalizeUrl).toHaveBeenCalledWith("https://example.com/token.png");
-        expect(onTokenImageApply).toHaveBeenCalledWith("https://normalized.com/token.png");
-      });
-    });
-
-    it("Apply button calls normalizeUrl then onTokenImageApply", async () => {
-      const onTokenImageApply = vi.fn();
-      const props = createProps({
-        tokenImageInput: "https://example.com/token.png",
-        onTokenImageApply,
-      });
-      mockNormalizeUrl.mockResolvedValue("https://normalized.com/token.png");
-
-      render(<NpcSettingsMenu {...props} />);
-
-      const applyButton = screen.getByRole("button", { name: "Apply" });
-      fireEvent.click(applyButton);
-
-      await waitFor(() => {
-        expect(mockNormalizeUrl).toHaveBeenCalledWith("https://example.com/token.png");
-        expect(onTokenImageApply).toHaveBeenCalledWith("https://normalized.com/token.png");
-      });
-    });
-
-    it("Clear button calls onTokenImageClear", () => {
+    it("Clear picture appears only when there is a picture, and calls onTokenImageClear", () => {
       const onTokenImageClear = vi.fn();
-      const props = createProps({ onTokenImageClear });
-      render(<NpcSettingsMenu {...props} />);
+      const { rerender } = render(
+        <NpcSettingsMenu {...createProps({ tokenImageUrl: "", onTokenImageClear })} />,
+      );
+      expect(screen.queryByRole("button", { name: "Clear picture" })).not.toBeInTheDocument();
 
-      const clearButton = screen.getByRole("button", { name: "Clear" });
-      fireEvent.click(clearButton);
+      rerender(
+        <NpcSettingsMenu
+          {...createProps({ tokenImageUrl: "https://example.com/token.png", onTokenImageClear })}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Clear picture" }));
 
       expect(onTokenImageClear).toHaveBeenCalledOnce();
-    });
-
-    it("handles async normalizeUrl resolution", async () => {
-      const onTokenImageApply = vi.fn();
-      const props = createProps({
-        tokenImageInput: "https://example.com/token.png",
-        onTokenImageApply,
-      });
-      mockNormalizeUrl.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve("https://async-normalized.com/token.png"), 50),
-          ),
-      );
-
-      render(<NpcSettingsMenu {...props} />);
-
-      const applyButton = screen.getByRole("button", { name: "Apply" });
-      fireEvent.click(applyButton);
-
-      // Should not be called immediately
-      expect(onTokenImageApply).not.toHaveBeenCalled();
-
-      // Should be called after async resolution
-      await waitFor(() => {
-        expect(onTokenImageApply).toHaveBeenCalledWith("https://async-normalized.com/token.png");
-      });
-    });
-
-    it("renders the shared ImageField input (S3: one widget, one look)", () => {
-      const props = createProps();
-      render(<NpcSettingsMenu {...props} />);
-
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      expect(input).toHaveAttribute("type", "text");
-      expect(input).toHaveClass("jrpg-input");
-    });
-
-    it("does not call normalizeUrl when other keys are pressed", () => {
-      const props = createProps({ tokenImageInput: "https://example.com/token.png" });
-      render(<NpcSettingsMenu {...props} />);
-
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      fireEvent.keyDown(input, { key: "a", code: "KeyA" });
-      fireEvent.keyDown(input, { key: "Tab", code: "Tab" });
-      fireEvent.keyDown(input, { key: "Escape", code: "Escape" });
-
-      expect(mockNormalizeUrl).not.toHaveBeenCalled();
-    });
-
-    it("renders Apply and Clear buttons with correct styling", () => {
-      const props = createProps();
-      render(<NpcSettingsMenu {...props} />);
-
-      const applyButton = screen.getByRole("button", { name: "Apply" });
-      const clearButton = screen.getByRole("button", { name: "Clear" });
-
-      // S3 unified the five image inputs onto ImageField, whose buttons are
-      // JRPGButtons — not the raw .btn classes this menu used to hand-roll.
-      expect(applyButton).toHaveClass("jrpg-button");
-      expect(clearButton).toHaveClass("jrpg-button");
-    });
-
-    it("renders Token Image URL label", () => {
-      const props = createProps();
-      render(<NpcSettingsMenu {...props} />);
-
-      expect(screen.getByText("Token Image URL")).toBeInTheDocument();
-      expect(screen.getByText("Token Image URL")).toHaveClass("jrpg-text-small");
     });
   });
 
@@ -492,10 +332,10 @@ describe("NpcSettingsMenu", () => {
 
       const img = screen.getByAltText("Token preview");
       expect(img).toHaveStyle({
-        width: "56px",
-        height: "56px",
+        width: "60px",
+        height: "60px",
         objectFit: "cover",
-        borderRadius: "6px",
+        borderRadius: "8px",
       });
     });
 
@@ -549,12 +389,18 @@ describe("NpcSettingsMenu", () => {
       const props = createProps({ tokenImageUrl: "https://example.com/token1.png" });
       const { rerender } = render(<NpcSettingsMenu {...props} />);
 
-      const img = screen.getByAltText("Token preview");
-      expect(img).toHaveAttribute("src", "https://example.com/token1.png");
+      expect(screen.getByAltText("Token preview")).toHaveAttribute(
+        "src",
+        "https://example.com/token1.png",
+      );
 
       rerender(<NpcSettingsMenu {...props} tokenImageUrl="https://example.com/token2.png" />);
 
-      expect(img).toHaveAttribute("src", "https://example.com/token2.png");
+      // Re-queried: the control keys the image on its URL, so a new picture is a new element.
+      expect(screen.getByAltText("Token preview")).toHaveAttribute(
+        "src",
+        "https://example.com/token2.png",
+      );
     });
   });
 
@@ -1167,8 +1013,6 @@ describe("NpcSettingsMenu", () => {
       const minimalProps = {
         isOpen: true,
         onClose: vi.fn(),
-        tokenImageInput: "",
-        onTokenImageInputChange: vi.fn(),
         onTokenImageApply: vi.fn(),
         onTokenImageClear: vi.fn(),
         onPlaceToken: vi.fn(),
@@ -1184,7 +1028,6 @@ describe("NpcSettingsMenu", () => {
 
     it("handles multiple state changes correctly", async () => {
       const props = createProps({
-        tokenImageInput: "",
         tokenImageUrl: undefined,
         tokenSize: "medium",
         tokenLocked: false,
@@ -1192,41 +1035,20 @@ describe("NpcSettingsMenu", () => {
       });
       const { rerender } = render(<NpcSettingsMenu {...props} />);
 
-      // Update tokenImageInput
-      rerender(<NpcSettingsMenu {...props} tokenImageInput="https://example.com/token.png" />);
-      expect(screen.getByPlaceholderText("https://enemy-token.png")).toHaveValue(
-        "https://example.com/token.png",
-      );
-
       // Update tokenImageUrl
-      rerender(
-        <NpcSettingsMenu
-          {...props}
-          tokenImageInput="https://example.com/token.png"
-          tokenImageUrl="https://example.com/token.png"
-        />,
-      );
+      rerender(<NpcSettingsMenu {...props} tokenImageUrl="https://example.com/token.png" />);
       expect(screen.getByAltText("Token preview")).toBeInTheDocument();
 
       // Update tokenSize
       rerender(
         <NpcSettingsMenu
           {...props}
-          tokenImageInput="https://example.com/token.png"
           tokenImageUrl="https://example.com/token.png"
           tokenSize="large"
           onTokenSizeChange={vi.fn()}
         />,
       );
       expect(screen.getByRole("button", { name: "Large" })).toHaveClass("btn-primary");
-    });
-
-    it("handles tokenImageInput as empty string", () => {
-      const props = createProps({ tokenImageInput: "" });
-      render(<NpcSettingsMenu {...props} />);
-
-      const input = screen.getByPlaceholderText("https://enemy-token.png");
-      expect(input).toHaveValue("");
     });
 
     it("handles tokenImageUrl as null", () => {
@@ -1254,7 +1076,7 @@ describe("NpcSettingsMenu", () => {
       render(<NpcSettingsMenu {...props} />);
 
       // Verify all major sections render
-      expect(screen.getByText("Token Image URL")).toBeInTheDocument();
+      expect(screen.getByText("Token picture")).toBeInTheDocument();
       expect(screen.getByText("Place Token")).toBeInTheDocument();
       expect(screen.getByText("Token Size")).toBeInTheDocument();
       expect(screen.getByText(/Locked|Unlocked/)).toBeInTheDocument();
@@ -1264,7 +1086,6 @@ describe("NpcSettingsMenu", () => {
     it("handles all callbacks being called in sequence", async () => {
       const callbacks = {
         onClose: vi.fn(),
-        onTokenImageInputChange: vi.fn(),
         onTokenImageApply: vi.fn(),
         onTokenImageClear: vi.fn(),
         onPlaceToken: vi.fn(),
@@ -1272,16 +1093,11 @@ describe("NpcSettingsMenu", () => {
         onToggleTokenLock: vi.fn(),
         onTokenSizeChange: vi.fn(),
       };
-      const props = createProps(callbacks);
+      const props = createProps({ ...callbacks, tokenImageUrl: "https://example.com/token.png" });
       render(<NpcSettingsMenu {...props} />);
 
       // Trigger various callbacks
-      fireEvent.change(screen.getByPlaceholderText("https://enemy-token.png"), {
-        target: { value: "test" },
-      });
-      expect(callbacks.onTokenImageInputChange).toHaveBeenCalled();
-
-      fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+      fireEvent.click(screen.getByRole("button", { name: "Clear picture" }));
       expect(callbacks.onTokenImageClear).toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole("button", { name: "Place Token" }));
@@ -1295,22 +1111,6 @@ describe("NpcSettingsMenu", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Delete NPC" }));
       expect(callbacks.onDelete).toHaveBeenCalled();
-    });
-
-    it("normalizeUrl handles empty string input", async () => {
-      const onTokenImageApply = vi.fn();
-      const props = createProps({ tokenImageInput: "", onTokenImageApply });
-      mockNormalizeUrl.mockResolvedValue("");
-
-      render(<NpcSettingsMenu {...props} />);
-
-      const applyButton = screen.getByRole("button", { name: "Apply" });
-      fireEvent.click(applyButton);
-
-      await waitFor(() => {
-        expect(mockNormalizeUrl).toHaveBeenCalledWith("");
-        expect(onTokenImageApply).toHaveBeenCalledWith("");
-      });
     });
   });
 });

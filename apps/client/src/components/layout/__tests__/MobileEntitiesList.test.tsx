@@ -58,6 +58,7 @@ function renderList(
       onCharacterNameUpdate={vi.fn()}
       onCharacterPortraitUpdate={vi.fn()}
       onTokenSizeChange={vi.fn()}
+      onTokenImageChange={vi.fn()}
       onAddCharacter={vi.fn()}
       sceneObjects={[]}
       drawings={[]}
@@ -108,6 +109,7 @@ describe("delete character — the desktop gate, on a phone", () => {
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
         onTokenSizeChange={vi.fn()}
+        onTokenImageChange={vi.fn()}
         onAddCharacter={vi.fn()}
         sceneObjects={[]}
         drawings={[]}
@@ -160,6 +162,7 @@ describe("delete character — the desktop gate, on a phone", () => {
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
         onTokenSizeChange={vi.fn()}
+        onTokenImageChange={vi.fn()}
         onAddCharacter={vi.fn()}
         sceneObjects={[]}
         drawings={[]}
@@ -385,6 +388,7 @@ function listProps(overrides: Partial<Parameters<typeof MobileEntitiesList>[0]> 
     onCharacterNameUpdate: vi.fn(),
     onCharacterPortraitUpdate: vi.fn(),
     onTokenSizeChange: vi.fn(),
+    onTokenImageChange: vi.fn(),
     onAddCharacter: vi.fn(),
     sceneObjects: [],
     drawings: [],
@@ -630,6 +634,7 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
         onTokenSizeChange={vi.fn()}
+        onTokenImageChange={vi.fn()}
         onAddCharacter={vi.fn()}
         sceneObjects={[]}
         drawings={[]}
@@ -675,6 +680,7 @@ describe("MobileEntitiesList sight-radius gate", () => {
         onCharacterNameUpdate={vi.fn()}
         onCharacterPortraitUpdate={vi.fn()}
         onTokenSizeChange={vi.fn()}
+        onTokenImageChange={vi.fn()}
         onAddCharacter={vi.fn()}
         sceneObjects={[]}
         drawings={[]}

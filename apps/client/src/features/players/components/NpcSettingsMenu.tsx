@@ -11,6 +11,7 @@ import { useEffect, useId, useState } from "react";
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { ImageField } from "../../../components/ui/ImageField";
+import { TokenPictureControl } from "../token-creator/TokenPictureControl";
 import { StatusEffectsPicker } from "./StatusEffectsPicker";
 import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import "./characterSettings.css";
@@ -24,9 +25,9 @@ const IGNORE_EFFECTS = () => {};
 interface NpcSettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  tokenImageInput: string;
+  /** The NPC's name, for the token picture window's title. */
+  name?: string;
   tokenImageUrl?: string;
-  onTokenImageInputChange: (value: string) => void;
   onTokenImageApply: (value: string) => void;
   onTokenImageClear: () => void;
   /*
@@ -68,9 +69,8 @@ interface NpcSettingsMenuProps {
 export function NpcSettingsMenu({
   isOpen,
   onClose,
-  tokenImageInput,
+  name,
   tokenImageUrl,
-  onTokenImageInputChange,
   onTokenImageApply,
   onTokenImageClear,
   portraitImageInput,
@@ -157,33 +157,16 @@ export function NpcSettingsMenu({
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <ImageField
-              label="Token Image URL"
-              value={tokenImageInput}
-              onChange={onTokenImageInputChange}
-              onCommit={onTokenImageApply}
-              onClear={onTokenImageClear}
-              placeholder="https://enemy-token.png"
-            />
-            {tokenImageUrl ? (
-              <img
-                src={tokenImageUrl}
-                alt="Token preview"
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  margin: "6px auto 0",
-                  objectFit: "cover",
-                  borderRadius: "6px",
-                  border: "1px solid var(--jrpg-border-gold)",
-                }}
-                onError={(event) => {
-                  (event.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
-            ) : null}
-          </div>
+          {/* Through the NPC's record (update-npc), never the token alone: the
+            server copies the record's picture back onto the token after every
+            NPC edit, so a token-only write would be undone by the next one. */}
+          <TokenPictureControl
+            imageUrl={tokenImageUrl}
+            onApply={onTokenImageApply}
+            onClear={onTokenImageClear}
+            name={name}
+            tokenSize={tokenSize}
+          />
 
           {onStatusEffectsChange && <StatusEffectsPicker {...statusEffectsPicker} />}
           {onClearInitiative && (

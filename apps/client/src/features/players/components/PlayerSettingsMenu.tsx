@@ -26,6 +26,7 @@ import { CharacterNameField, useCharacterEscapeGuard } from "./CharacterNameFiel
 import { CharacterCreationModal } from "./CharacterCreationModal";
 import { LazyColorPicker } from "./colorPicker/LazyColorPicker";
 import type { ColorPickerControl } from "./colorPicker/colorPickerControl";
+import { TokenPictureControl } from "../token-creator/TokenPictureControl";
 import "./characterSettings.css";
 import { lockGuard } from "../../locking/lockNotice";
 
@@ -46,9 +47,7 @@ interface PlayerSettingsMenuProps {
    */
   /** This character's colour picker (C1): the owner's and the DM's. */
   colorPicker?: ColorPickerControl;
-  tokenImageInput?: string;
   tokenImageUrl?: string;
-  onTokenImageInputChange?: (value: string) => void;
   onTokenImageClear?: () => void;
   onTokenImageApply?: (value: string) => void;
   onSavePlayerState?: () => void;
@@ -114,9 +113,7 @@ export function PlayerSettingsMenu({
   isOpen,
   onClose,
   colorPicker,
-  tokenImageInput,
   tokenImageUrl,
-  onTokenImageInputChange,
   onTokenImageClear,
   onTokenImageApply,
   onSavePlayerState,
@@ -264,41 +261,15 @@ export function PlayerSettingsMenu({
           "DM players don't have tokens" — they do, since their own character
           got one; the caller's handler is the gate now, like Sight Radius.)
         */}
-            {onTokenImageInputChange && onTokenImageApply && (
-              <JRPGPanel
-                variant="simple"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                  padding: "12px",
-                }}
-              >
-                <ImageField
-                  label="Token Image URL"
-                  value={tokenImageInput ?? ""}
-                  onChange={onTokenImageInputChange}
-                  onCommit={onTokenImageApply}
+            {onTokenImageApply && (
+              <JRPGPanel variant="simple" style={{ padding: "12px" }}>
+                <TokenPictureControl
+                  imageUrl={tokenImageUrl}
+                  onApply={onTokenImageApply}
                   onClear={onTokenImageClear}
-                  placeholder="https://example.com/token.png"
+                  name={nameInput || undefined}
+                  tokenSize={tokenSize}
                 />
-                {tokenImageUrl ? (
-                  <img
-                    src={tokenImageUrl}
-                    alt="Token preview"
-                    style={{
-                      width: "60px",
-                      height: "60px",
-                      margin: "4px auto 0",
-                      objectFit: "cover",
-                      borderRadius: "6px",
-                      border: "2px solid var(--jrpg-border-gold)",
-                    }}
-                    onError={(event) => {
-                      (event.currentTarget as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : null}
               </JRPGPanel>
             )}
 

@@ -70,17 +70,17 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Play
   ...overrides,
 });
 
-describe("PlayerCard — the token-image field only where it can act", () => {
-  it("no token (no onTokenImageSubmit): no Token Image panel; with one: the panel", () => {
+describe("PlayerCard — the token picture control only where it can act", () => {
+  it("no token (no onTokenImageSubmit): no Token picture panel; with one: the panel", () => {
     const { unmount } = render(
       <PlayerCard {...createDefaultProps({ isMe: true, onTokenImageSubmit: undefined })} />,
     );
     fireEvent.click(screen.getByLabelText("Change portrait"));
-    expect(screen.queryByText(/Token Image/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Token picture…" })).toBeNull();
     unmount();
     render(<PlayerCard {...createDefaultProps({ isMe: true, onTokenImageSubmit: vi.fn() })} />);
     fireEvent.click(screen.getByLabelText("Change portrait"));
-    expect(screen.getByText(/Token Image/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
   });
 });
 

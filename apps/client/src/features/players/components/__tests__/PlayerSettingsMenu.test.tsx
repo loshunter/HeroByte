@@ -7,8 +7,6 @@ describe("PlayerSettingsMenu", () => {
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
-    tokenImageInput: "",
-    onTokenImageInputChange: vi.fn(),
     onTokenImageClear: vi.fn(),
     onTokenImageApply: vi.fn(),
     onSavePlayerState: vi.fn(),
@@ -42,15 +40,48 @@ describe("PlayerSettingsMenu", () => {
           tokenLocked={false}
         />,
       );
-      // The image field is on by defaultProps' handlers; size and lock by the ones above.
+      // The picture control is on by defaultProps' handlers; size and lock by the ones above.
       expect(screen.getByText(/Token Size/i)).toBeInTheDocument();
       expect(screen.getByText(/Token Lock/i)).toBeInTheDocument();
-      expect(screen.getByText(/Token Image/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
     });
 
     it("+ Add Character renders on a DM's card whenever the caller hands it the handler (a DM-run ally needs a card to be added from)", () => {
       render(<PlayerSettingsMenu {...defaultProps} isDM={true} onAddCharacter={vi.fn()} />);
       expect(screen.getByText(/Add Character/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Token picture", () => {
+    it("the creator button renders only where the apply handler is supplied", () => {
+      const { unmount } = render(<PlayerSettingsMenu {...defaultProps} />);
+      expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
+      unmount();
+
+      render(<PlayerSettingsMenu {...defaultProps} onTokenImageApply={undefined} />);
+      expect(screen.queryByRole("button", { name: "Token picture…" })).not.toBeInTheDocument();
+      expect(screen.queryByText("Token picture")).not.toBeInTheDocument();
+    });
+
+    it("the preview shows the picture on file, and Clear picture calls onTokenImageClear", () => {
+      const onTokenImageClear = vi.fn();
+      const { rerender } = render(<PlayerSettingsMenu {...defaultProps} />);
+      expect(screen.queryByAltText("Token preview")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Clear picture" })).not.toBeInTheDocument();
+
+      rerender(
+        <PlayerSettingsMenu
+          {...defaultProps}
+          tokenImageUrl="https://example.com/token.png"
+          onTokenImageClear={onTokenImageClear}
+        />,
+      );
+      expect(screen.getByAltText("Token preview")).toHaveAttribute(
+        "src",
+        "https://example.com/token.png",
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Clear picture" }));
+      expect(onTokenImageClear).toHaveBeenCalledOnce();
     });
   });
 

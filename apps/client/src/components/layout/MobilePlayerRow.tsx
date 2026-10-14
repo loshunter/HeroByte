@@ -69,6 +69,8 @@ interface MobilePlayerRowProps {
   tokenSize?: TokenSize;
   /** Present when this viewer may resize this row's token (its owner, or a DM). */
   onTokenSizeChange?: (size: TokenSize) => void;
+  /** Present when this viewer may set this row's token picture (its owner, or a DM). */
+  onTokenImageChange?: (url: string) => void;
   /** Your own row: add a character (the settings window asks for its name). */
   onAddCharacter?: (name: string) => boolean;
   isCreatingCharacter?: boolean;
@@ -125,6 +127,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onTokenVisionRadiusChange,
     tokenSize,
     onTokenSizeChange,
+    onTokenImageChange,
     onAddCharacter,
     isCreatingCharacter,
     tokenLocked,
@@ -262,10 +265,11 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           onPortraitApply={(url) => {
             onCharacterPortraitUpdate(player.characterId, url);
           }}
-          // The token image is deliberately OMITTED rather than stubbed: it is not
-          // wired on mobile, and a control that silently does nothing is worse
-          // than one that isn't there. PlayerSettingsMenu hides a section whose
-          // handlers are absent. Save / Load character are wired (U9).
+          // The token picture (C4): the full-screen creator, like the desktop's.
+          // Absent when this viewer may not set it; the menu then hides it.
+          tokenImageUrl={token?.imageUrl}
+          onTokenImageApply={onTokenImageChange}
+          onTokenImageClear={onTokenImageChange ? () => onTokenImageChange("") : undefined}
           onSavePlayerState={characterFile?.save}
           onLoadPlayerState={
             characterFile

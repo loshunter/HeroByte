@@ -170,7 +170,6 @@ export const PlayerCard = memo<PlayerCardProps>(
     const editingHp = editingHpUID === (characterId ?? player.uid);
     const editingMaxHp = editingMaxHpUID === (characterId ?? player.uid);
     const editingTempHp = editingTempHpUID === (characterId ?? player.uid);
-    const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
     // Another player's window is the DM's to hold: on losing DM rights it closes (a
@@ -202,10 +201,6 @@ export const PlayerCard = memo<PlayerCardProps>(
     const { feedback, flashClass } = useHpFeedback(player.hp);
 
     useEffect(() => {
-      setTokenImageInput(tokenImageUrl ?? "");
-    }, [tokenImageUrl]);
-
-    useEffect(() => {
       setPortraitImageInput(player.portrait ?? "");
     }, [player.portrait]);
 
@@ -226,7 +221,7 @@ export const PlayerCard = memo<PlayerCardProps>(
         player,
         statusEffects: statusEffects ?? [],
         token: token ?? undefined,
-        tokenImage: tokenImageInput.trim() || tokenImageUrl || undefined,
+        tokenImage: tokenImageUrl || undefined,
         tokenScene: tokenSceneObject,
         drawings: playerDrawings,
         initiativeModifier,
@@ -237,9 +232,7 @@ export const PlayerCard = memo<PlayerCardProps>(
       if ((!isMe && !viewerIsDM) || !onApplyPlayerState) return;
       const state = await loadPlayerState(file);
       onApplyPlayerState(state, tokenId, characterId);
-      const nextTokenImage = state.token?.imageUrl ?? state.tokenImage ?? "";
       const nextPortrait = state.portrait ?? "";
-      setTokenImageInput(nextTokenImage ?? "");
       setPortraitImageInput(nextPortrait ?? "");
     };
 
@@ -398,26 +391,17 @@ export const PlayerCard = memo<PlayerCardProps>(
           isOpen={(isMe || viewerIsDM || !roleKnown) && settingsOpen}
           onClose={() => setSettingsOpen(false)}
           colorPicker={colorPicker}
-          tokenImageInput={tokenImageInput}
           tokenImageUrl={tokenImageUrl}
           // Only where the apply can ACT (a token to write to, a viewer who may):
-          // the menu keys the Token Image panel on these handlers, and before
+          // the menu keys the Token picture panel on these handlers, and before
           // this a token-less card rendered a URL field whose Apply did nothing.
-          onTokenImageInputChange={
-            onTokenImageSubmit && (isMe || viewerIsDM) ? setTokenImageInput : undefined
-          }
           onTokenImageApply={
             onTokenImageSubmit && (isMe || viewerIsDM)
               ? (value) => handleTokenImageApply(value)
               : undefined
           }
           onTokenImageClear={
-            onTokenImageSubmit && (isMe || viewerIsDM)
-              ? () => {
-                  setTokenImageInput("");
-                  handleTokenImageApply("");
-                }
-              : undefined
+            onTokenImageSubmit && (isMe || viewerIsDM) ? () => handleTokenImageApply("") : undefined
           }
           onDeleteToken={tokenId && onDeleteToken ? () => onDeleteToken(tokenId) : undefined}
           onSavePlayerState={handleSavePlayerState}

@@ -59,6 +59,7 @@ function renderList(isDM: boolean) {
       onCharacterNameUpdate={vi.fn()}
       onCharacterPortraitUpdate={vi.fn()}
       onTokenSizeChange={vi.fn()}
+      onTokenImageChange={vi.fn()}
       onAddCharacter={vi.fn()}
       sceneObjects={[]}
       drawings={[]}
