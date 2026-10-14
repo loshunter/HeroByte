@@ -1314,3 +1314,73 @@ describe("MobileEntitiesList — the character file's contents, both ways (U9)",
     expect(saved().initiativeModifier).toBe(-1);
   });
 });
+
+describe("MobileEntitiesList token picture (C4)", () => {
+  const other = { ...players[0], uid: "other-uid", name: "Other" } as Player;
+  const seats = [players[0]!, other];
+  const pcs = [
+    {
+      id: "char-1",
+      name: "Me",
+      type: "pc",
+      ownedByPlayerUID: ME,
+      hp: 10,
+      maxHp: 10,
+      tokenId: "my-token",
+    },
+    {
+      id: "char-2",
+      name: "Other",
+      type: "pc",
+      ownedByPlayerUID: "other-uid",
+      hp: 10,
+      maxHp: 10,
+      tokenId: "their-token",
+    },
+  ] as unknown as SnapshotCharacter[];
+  const pieces: Token[] = [
+    { id: "my-token", owner: ME, x: 1, y: 1, color: "red", imageUrl: "/assets/x" },
+    { id: "their-token", owner: "other-uid", x: 2, y: 2, color: "blue" },
+  ];
+  const openRow = (name: string) => {
+    const row = screen
+      .getAllByTestId("mobile-player-row")
+      .find((r) => r.textContent?.includes(name))!;
+    fireEvent.click(within(row).getByRole("button", { name: /EDIT/ }));
+  };
+
+  it("a player's own row offers the picture; Clear sends an empty picture for that token", () => {
+    const onTokenImageChange = vi.fn();
+    render(
+      <MobileEntitiesList
+        {...listProps({ players: seats, characters: pcs, tokens: pieces, onTokenImageChange })}
+      />,
+    );
+    openRow("Me");
+    expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
+    expect(screen.getByAltText("Token preview")).toHaveAttribute("src", "/assets/x");
+    fireEvent.click(screen.getByRole("button", { name: "Clear picture" }));
+    expect(onTokenImageChange).toHaveBeenCalledWith("my-token", "");
+  });
+
+  it("a DM gets it on another player's row, bound to that row's token", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ players: seats, characters: pcs, tokens: pieces, isDM: true })}
+      />,
+    );
+    openRow("Other");
+    expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
+    expect(screen.queryByAltText("Token preview")).not.toBeInTheDocument();
+  });
+
+  it("a row with no token offers no picture control", () => {
+    render(
+      <MobileEntitiesList
+        {...listProps({ players: seats, characters: pcs, tokens: [pieces[1]!], isDM: true })}
+      />,
+    );
+    openRow("Me");
+    expect(screen.queryByRole("button", { name: "Token picture…" })).not.toBeInTheDocument();
+  });
+});

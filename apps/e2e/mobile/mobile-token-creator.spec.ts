@@ -52,10 +52,23 @@ test.describe("mobile token creator", () => {
     const creator = page.locator('[data-mobile-surface="token-creator"]');
     const panel = creator.getByRole("tabpanel", { name: "Picture" });
     await expect(panel).toBeVisible({ timeout: 15_000 });
-    // Full-screen: the creator's window covers the viewport's width.
+    // Full-screen: the creator's window spans the viewport edge to edge.
     const viewport = page.viewportSize()!;
-    const windowBox = (await panel.boundingBox())!;
-    expect(windowBox.width).toBeGreaterThan(viewport.width * 0.8);
+    const close = creator.getByRole("button", { name: /^Close 🖼️ Token picture/ });
+    const windowBox = (await close
+      .locator("xpath=ancestor::*[contains(@style,'position: fixed')][1]")
+      .boundingBox())!;
+    expect(windowBox.x).toBe(0);
+    expect(windowBox.width).toBe(viewport.width);
+
+    // ✕ before any picture: back to the settings window, nothing changed.
+    const imageBefore = await ownTokenImage(page);
+    await close.click();
+    await expect(panel).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Token picture…" })).toBeVisible();
+    expect(await ownTokenImage(page)).toBe(imageBefore);
+    await page.getByRole("button", { name: "Token picture…" }).click();
+    await expect(panel).toBeVisible({ timeout: 15_000 });
 
     await page.getByLabel("Token picture file").setInputFiles({
       name: "camera-roll.png",
@@ -64,12 +77,29 @@ test.describe("mobile token creator", () => {
     });
     await expect(creator.getByRole("button", { name: /Rotate/ })).toBeVisible();
 
-    // Every control a finger presses clears the floor.
-    for (const control of await creator.locator("button:visible, select:visible").all()) {
-      const box = (await control.boundingBox())!;
-      const name = (await control.getAttribute("aria-label")) ?? (await control.textContent());
-      expect(box.height, `${name} is ${box.height}px tall`).toBeGreaterThanOrEqual(44);
-    }
+    // Every control a finger presses clears the floor, under each backdrop's controls.
+    const sweep = async (when: string) => {
+      const controls = creator.locator(
+        "button:visible, select:visible, input:visible:not([type=file]):not([type=range])",
+      );
+      for (const control of await controls.all()) {
+        const box = (await control.boundingBox())!;
+        const name =
+          (await control.getAttribute("aria-label")) ??
+          (await control.textContent()) ??
+          (await control.getAttribute("type"));
+        expect(box.height, `${when}: ${name} is ${box.height}px tall`).toBeGreaterThanOrEqual(44);
+      }
+      const closeBox = (await close.boundingBox())!;
+      expect(closeBox.width, `${when}: ✕ width`).toBeGreaterThanOrEqual(44);
+    };
+    await sweep("auto");
+    const backdrop = creator.getByLabel("Backdrop", { exact: true });
+    await backdrop.selectOption("solid");
+    await sweep("solid");
+    await backdrop.selectOption("gradient");
+    await sweep("gradient");
+    await backdrop.selectOption("auto");
 
     const crop = creator.getByTestId("token-creator-crop");
     await crop.scrollIntoViewIfNeeded();
@@ -103,5 +133,10 @@ test.describe("mobile token creator", () => {
     await creator.getByRole("button", { name: "Use this picture" }).click();
     await expect.poll(() => ownTokenImage(page), { timeout: 15_000 }).toMatch(ASSET);
     await expect(panel).toHaveCount(0);
+    // Back on the settings sheet, which now shows the picture.
+    await expect(page.getByAltText("Token preview")).toHaveAttribute(
+      "src",
+      (await ownTokenImage(page))!,
+    );
   });
 });

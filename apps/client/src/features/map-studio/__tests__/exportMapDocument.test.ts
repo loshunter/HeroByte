@@ -714,6 +714,13 @@ describe("Map Studio export", () => {
     await downloadRasterMapDocument(document, "webp");
 
     expect(names).toEqual(["keep.png"]);
+
+    // And an engine that does encode WebP keeps the .webp name.
+    vi.mocked(HTMLCanvasElement.prototype.toBlob).mockImplementation((callback) =>
+      callback(new Blob(["raster"], { type: "image/webp" })),
+    );
+    await downloadRasterMapDocument(document, "webp");
+    expect(names).toEqual(["keep.png", "keep.webp"]);
   });
 });
 

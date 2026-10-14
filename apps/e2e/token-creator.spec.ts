@@ -137,6 +137,14 @@ test.describe("token creator", () => {
       await player.mouse.wheel(0, -300);
       await expect(zoom).not.toHaveAttribute("aria-valuetext", "100%");
 
+      // Escape closes the creator alone: the settings window behind it stays.
+      await player.keyboard.press("Escape");
+      await expect(player.getByRole("tabpanel", { name: "Picture" })).toHaveCount(0);
+      await expect(settings.getByRole("button", { name: "Token picture…" })).toBeVisible();
+      expect(await tokenImage(player, tokenId)).toBeNull();
+      await openCreator(settings, player);
+      await pick(player, await drawPicture(player, false));
+
       await player.getByRole("button", { name: "Use this picture" }).click();
       await expect.poll(() => tokenImage(player, tokenId), { timeout: 15_000 }).toMatch(ASSET);
       const url = (await tokenImage(player, tokenId))!;
@@ -223,18 +231,14 @@ test.describe("token creator", () => {
     const url = (await npc())!.tokenImage!;
     await expect.poll(() => tokenImage(dm, tokenId)).toBe(url);
 
-    // An NPC edit is a full-record send built from the snapshot (usePartyNpcActions):
-    // the server copies the record's picture onto the token, so it must still be there.
-    const record = (await npc())!;
-    await send(dm, {
-      t: "update-npc",
-      id: record.id,
-      name: record.name,
-      hp: 3,
-      maxHp: record.maxHp,
-      tokenImage: record.tokenImage,
-    });
+    // An NPC edit through the card (a full-record send, usePartyNpcActions): the
+    // server copies the record's picture onto the token, so it must still be there.
+    await dm.getByRole("button", { name: "Close NPC Settings" }).click();
+    await inspector.getByRole("button", { name: "Set current HP: 7" }).click();
+    await inspector.getByLabel("Current HP").fill("3");
+    await inspector.getByLabel("Current HP").press("Enter");
     await expect.poll(async () => (await npc())?.hp).toBe(3);
+    expect((await npc())?.tokenImage).toBe(url);
     expect(await tokenImage(dm, tokenId)).toBe(url);
   });
 });

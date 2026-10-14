@@ -8,10 +8,11 @@
 // "Try again" makes a fresh lazy component, because React caches a lazy
 // payload's rejection for good.
 
-import { Suspense, lazy, useMemo, useState } from "react";
+import { Suspense, lazy, useMemo, useState, type ComponentType } from "react";
 import type { TokenSize } from "@herobyte/shared";
 import { ErrorBoundary } from "../../../components/ErrorBoundary";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
+import type { TokenCreatorWindowProps } from "./TokenCreatorWindow";
 
 export interface TokenPictureControlProps {
   /** The picture on file now. */
@@ -22,9 +23,11 @@ export interface TokenPictureControlProps {
   name?: string;
   tokenSize?: TokenSize;
   color?: string;
+  /** Test seam: how the window's chunk is fetched. */
+  loadWindow?: () => Promise<{ default: ComponentType<TokenCreatorWindowProps> }>;
 }
 
-const loadWindow = () => import("./TokenCreatorWindow");
+const importWindow = () => import("./TokenCreatorWindow");
 
 export function TokenPictureControl({
   imageUrl,
@@ -33,11 +36,12 @@ export function TokenPictureControl({
   name,
   tokenSize,
   color,
+  loadWindow = importWindow,
 }: TokenPictureControlProps) {
   const [open, setOpen] = useState(false);
   const [attempt, setAttempt] = useState(0);
   // A new lazy per attempt: a failed chunk load can be tried again.
-  const Window = useMemo(() => lazy(loadWindow), [attempt]); // eslint-disable-line react-hooks/exhaustive-deps
+  const Window = useMemo(() => lazy(loadWindow), [attempt]); // eslint-disable-line react-hooks/exhaustive-deps -- a new attempt is the point
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

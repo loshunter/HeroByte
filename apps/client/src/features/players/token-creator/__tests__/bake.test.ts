@@ -16,7 +16,7 @@ import {
   type BakeCanvas,
   type BakeContext,
 } from "../bake";
-import { DEFAULT_CROP, rotateClockwise } from "../cropMath";
+import { DEFAULT_CROP, flipHorizontal, rotateClockwise } from "../cropMath";
 
 const SOURCE = { width: 300, height: 600 };
 const image = {} as CanvasImageSource;
@@ -92,10 +92,13 @@ describe("encodePicture", () => {
 
 describe("bakePicture", () => {
   it("bakes Huge and Gargantuan at 768, everything else at 512", () => {
-    expect(bakeEdgeFor("gargantuan")).toBe(BAKE_EDGE_LARGE);
-    expect(bakeEdgeFor("huge")).toBe(BAKE_EDGE_LARGE);
-    expect(bakeEdgeFor("large")).toBe(BAKE_EDGE);
-    expect(bakeEdgeFor(undefined)).toBe(BAKE_EDGE);
+    // Literals: the constants themselves are what this pins.
+    expect(BAKE_EDGE_LARGE).toBe(768);
+    expect(BAKE_EDGE).toBe(512);
+    expect(bakeEdgeFor("gargantuan")).toBe(768);
+    expect(bakeEdgeFor("huge")).toBe(768);
+    expect(bakeEdgeFor("large")).toBe(512);
+    expect(bakeEdgeFor(undefined)).toBe(512);
   });
 
   it("paints the solid backdrop first, then the placed picture", async () => {
@@ -121,6 +124,15 @@ describe("bakePicture", () => {
       ["drawImage", -256, -512, 512, 1024],
       ["restore"],
     ]);
+  });
+
+  it("a flip mirrors the bake left to right", async () => {
+    const { calls, context } = recorder();
+    const { canvas } = canvasAnswering([new Blob(["w"], { type: "image/webp" })], context);
+    await bakePicture(image, SOURCE, flipHorizontal(DEFAULT_CROP, SOURCE), { kind: "none" }, 512, {
+      createCanvas: () => canvas,
+    });
+    expect(calls).toContainEqual(["scale", -1, 1]);
   });
 
   it("paints no backdrop for 'none', so transparency survives", async () => {

@@ -35,4 +35,20 @@ describe("TokenPictureControl", () => {
     expect(screen.queryByText("🖼️ Token picture: Tristan")).toBeNull();
     expect(onApply).not.toHaveBeenCalled();
   }, 20_000);
+
+  it("a window chunk that failed to load can be tried again", async () => {
+    const real = await import("../TokenCreatorWindow");
+    const loadWindow = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("chunk renamed by a deploy"))
+      .mockResolvedValue(real);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<TokenPictureControl name="Tristan" onApply={vi.fn()} loadWindow={loadWindow} />);
+    fireEvent.click(screen.getByRole("button", { name: "Token picture…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByText("🖼️ Token picture: Tristan", undefined, { timeout: 15_000 }),
+    ).toBeInTheDocument();
+    expect(loadWindow).toHaveBeenCalledTimes(2);
+  }, 20_000);
 });
