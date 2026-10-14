@@ -269,7 +269,13 @@ describe("NpcSettingsMenu", () => {
       expect(screen.getByText("Token picture")).toHaveClass("jrpg-text-small");
     });
 
-    it("always renders the Token picture… button, with or without a picture", () => {
+    it("renders no picture control without the DM's handler (a reconnect blip)", () => {
+      render(<NpcSettingsMenu {...createProps({ onTokenImageApply: undefined })} />);
+      expect(screen.queryByRole("button", { name: "Token picture…" })).not.toBeInTheDocument();
+      expect(screen.queryByText("Token picture")).not.toBeInTheDocument();
+    });
+
+    it("renders the Token picture… button with the handler, with or without a picture", () => {
       const { unmount } = render(<NpcSettingsMenu {...createProps({ tokenImageUrl: "" })} />);
       expect(screen.getByRole("button", { name: "Token picture…" })).toBeInTheDocument();
       unmount();

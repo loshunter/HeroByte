@@ -28,8 +28,11 @@ interface NpcSettingsMenuProps {
   /** The NPC's name, for the token picture window's title. */
   name?: string;
   tokenImageUrl?: string;
-  onTokenImageApply: (value: string) => void;
-  onTokenImageClear: () => void;
+  /** Absent while the viewer is not known to be the DM (a reconnect blip): no control. */
+  onTokenImageApply?: (value: string) => void;
+  onTokenImageClear?: () => void;
+  /** The NPC's token colour, for the picture window's preview. */
+  color?: string;
   /*
    * Portrait, mirroring PlayerSettingsMenu. Optional as a trio so a caller
    * that has no portrait to offer renders no half-wired control.
@@ -73,6 +76,7 @@ export function NpcSettingsMenu({
   tokenImageUrl,
   onTokenImageApply,
   onTokenImageClear,
+  color,
   portraitImageInput,
   onPortraitInputChange,
   onPortraitApply,
@@ -160,13 +164,16 @@ export function NpcSettingsMenu({
           {/* Through the NPC's record (update-npc), never the token alone: the
             server copies the record's picture back onto the token after every
             NPC edit, so a token-only write would be undone by the next one. */}
-          <TokenPictureControl
-            imageUrl={tokenImageUrl}
-            onApply={onTokenImageApply}
-            onClear={onTokenImageClear}
-            name={name}
-            tokenSize={tokenSize}
-          />
+          {onTokenImageApply && (
+            <TokenPictureControl
+              imageUrl={tokenImageUrl}
+              onApply={onTokenImageApply}
+              onClear={onTokenImageClear}
+              name={name}
+              tokenSize={tokenSize}
+              color={color}
+            />
+          )}
 
           {onStatusEffectsChange && <StatusEffectsPicker {...statusEffectsPicker} />}
           {onClearInitiative && (

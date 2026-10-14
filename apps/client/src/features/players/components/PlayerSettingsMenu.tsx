@@ -254,13 +254,8 @@ export function PlayerSettingsMenu({
               </JRPGPanel>
             )}
 
-            {/*
-          Hidden when no handler is supplied: the mobile sheet used to pass a
-          value pinned to "" with a no-op onChange, producing a text field that
-          physically could not be typed into. (It also used to hide behind
-          "DM players don't have tokens" — they do, since their own character
-          got one; the caller's handler is the gate now, like Sight Radius.)
-        */}
+            {/* Hidden without a handler: the caller's gate (a token to write to, a viewer
+              who may), like Sight Radius. A control that does nothing is worse than none. */}
             {onTokenImageApply && (
               <JRPGPanel variant="simple" style={{ padding: "12px" }}>
                 <TokenPictureControl
@@ -269,6 +264,7 @@ export function PlayerSettingsMenu({
                   onClear={onTokenImageClear}
                   name={nameInput || undefined}
                   tokenSize={tokenSize}
+                  color={colorPicker?.color}
                 />
               </JRPGPanel>
             )}

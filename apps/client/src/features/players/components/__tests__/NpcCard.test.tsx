@@ -168,8 +168,9 @@ interface MockNpcSettingsMenuProps {
   onClose: () => void;
   name?: string;
   tokenImageUrl: string;
-  onTokenImageApply: (input: string) => void;
-  onTokenImageClear: () => void;
+  onTokenImageApply?: (input: string) => void;
+  onTokenImageClear?: () => void;
+  color?: string;
   portraitImageInput: string;
   onPortraitInputChange: (input: string) => void;
   onPortraitApply: (input: string) => void;
@@ -191,6 +192,7 @@ vi.mock("../NpcSettingsMenu", () => ({
     tokenImageUrl,
     onTokenImageApply,
     onTokenImageClear,
+    color,
     portraitImageInput,
     onPortraitInputChange,
     onPortraitApply,
@@ -203,7 +205,7 @@ vi.mock("../NpcSettingsMenu", () => ({
     isDeleting,
     deletionError,
   }: MockNpcSettingsMenuProps) => (
-    <div data-testid="npc-settings-menu" data-name={name}>
+    <div data-testid="npc-settings-menu" data-name={name} data-color={color}>
       <span data-testid="settings-is-open">{String(isOpen)}</span>
       <span data-testid="settings-token-image-url">{tokenImageUrl}</span>
       <span data-testid="settings-portrait-input">{portraitImageInput}</span>
@@ -226,15 +228,19 @@ vi.mock("../NpcSettingsMenu", () => ({
       <button data-testid="settings-close" onClick={onClose}>
         Close
       </button>
-      <button
-        data-testid="settings-apply-token"
-        onClick={() => onTokenImageApply("  new-image.png  ")}
-      >
-        Apply Token
-      </button>
-      <button data-testid="settings-clear-token" onClick={onTokenImageClear}>
-        Clear Token
-      </button>
+      {onTokenImageApply && (
+        <button
+          data-testid="settings-apply-token"
+          onClick={() => onTokenImageApply("  new-image.png  ")}
+        >
+          Apply Token
+        </button>
+      )}
+      {onTokenImageClear && (
+        <button data-testid="settings-clear-token" onClick={onTokenImageClear}>
+          Clear Token
+        </button>
+      )}
       <button data-testid="settings-place-token" onClick={onPlaceToken}>
         Place Token
       </button>
@@ -1078,16 +1084,6 @@ describe("NpcCard", () => {
       expect(onUpdate).toHaveBeenCalledWith("npc-123", { tokenImage: "" });
     });
 
-    it("does not apply token image when isDM is false", () => {
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({ isDM: false, onUpdate });
-      render(<NpcCard {...props} />);
-
-      fireEvent.click(screen.getByTestId("settings-apply-token"));
-
-      expect(onUpdate).not.toHaveBeenCalled();
-    });
-
     it("passes the NPC's name to NpcSettingsMenu, for the token picture window's title", () => {
       const props = createDefaultProps({
         character: createMockCharacter({ name: "Goblin King" }),
@@ -1095,6 +1091,23 @@ describe("NpcCard", () => {
       render(<NpcCard {...props} />);
 
       expect(screen.getByTestId("npc-settings-menu")).toHaveAttribute("data-name", "Goblin King");
+    });
+
+    it("passes the NPC's colour, for the picture window's preview", () => {
+      render(
+        <NpcCard
+          {...createDefaultProps({ character: { ...createMockCharacter(), color: "#3a1f5c" } })}
+        />,
+      );
+      expect(screen.getByTestId("npc-settings-menu")).toHaveAttribute("data-color", "#3a1f5c");
+    });
+
+    // Replaces "does not apply token image when isDM is false": the handler is now
+    // withheld rather than a no-op, so there is nothing to click.
+    it("gives the settings menu no picture handlers unless the viewer is the DM", () => {
+      render(<NpcCard {...createDefaultProps({ isDM: false })} />);
+      expect(screen.queryByTestId("settings-apply-token")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("settings-clear-token")).not.toBeInTheDocument();
     });
 
     it("passes tokenImageUrl to NpcSettingsMenu", () => {

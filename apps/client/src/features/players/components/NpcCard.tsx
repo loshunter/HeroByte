@@ -318,8 +318,10 @@ export function NpcCard({
         onClose={() => setSettingsOpen(false)}
         name={character.name}
         tokenImageUrl={character.tokenImage ?? undefined}
-        onTokenImageApply={handleTokenImageApply}
-        onTokenImageClear={() => handleTokenImageApply("")}
+        // The DM's alone: through a reconnect blip the window stays, the control goes.
+        onTokenImageApply={isDM ? handleTokenImageApply : undefined}
+        onTokenImageClear={isDM ? () => handleTokenImageApply("") : undefined}
+        color={character.color}
         portraitImageInput={portraitInput}
         onPortraitInputChange={setPortraitInput}
         onPortraitApply={handlePortraitApply}
