@@ -100,20 +100,16 @@ Handoff: `docs/planning/PROMPT-token-creator-c4.md` (untracked).
 
 ## Known debt and open items
 
-- **Abandoned uploads (server): fixed after the slice** (`4226467b` refactor, `269436f5` the reclaim,
-  then the review's fixes). The creator uploads with `x-herobyte-intent: apply`; the server stamps that room's claim
-  (`StoredAsset.pendingApply`), and the reclaim sweep releases a stamped claim the room's state has
-  not referenced 15 minutes after the upload (`APPLY_ADOPT_WINDOW_MS`; at the next 5-minute sweep, so
-  15 to 20 minutes), condemning the asset if it was the last
-  claim (the 7-day grace still guards the bytes, and a late apply resurrects it). Only a table's
-  SOLE claim is released this way: with another table also claiming the bytes (a fork made within the
-  window), the claim stays, because a late apply would otherwise use bytes the table no longer claims
-  and the other table's clear deletes at once; that case keeps the old leak until one side lets go.
-  Uploads without the intent (My Stuff shelves, backups, the other image fields) never add a stamp;
-  an identical plain re-upload clears this table's stamp, an apply re-upload restarts it. Only loaded
-  tables are swept (a table stays loaded 30 minutes after its last player leaves; the Main Hall never
-  unloads), so after a server restart the release waits until the table is next opened. A fork
-  inherits a pending stamp with its clock.
+- **Abandoned uploads (server): fixed after the slice, quota only** (`4226467b` refactor, then the
+  reclaim commits; owner's choice 2026-10-14). The creator uploads with `x-herobyte-intent: apply`; the
+  server stamps that room's claim (`StoredAsset.pendingApply`), and a sweep that sees the picture used
+  drops the stamp. A stamped claim no sweep has seen used 15 minutes after its upload
+  (`APPLY_ADOPT_WINDOW_MS`) stops counting against that table's storage limit (`roomChargedBytes`); the
+  claim and the file are never released on that account, so the whole-store total still counts them
+  until the table is cleared. A first design released such claims; three review rounds each found a
+  new way for a picture a table still used to be deleted (identical bakes in two tables plus a late
+  apply), so it was replaced. Uploads without the intent never add a stamp; an identical plain re-upload
+  clears this table's stamp, an apply re-upload restarts it; a fork inherits a stamp with its clock.
 - **Not automated:** a character file loaded at another table, and a backup restoring the picture,
   rest on the existing `/assets/<hash>` handling (`sessionAssets` scans absolute URLs); the Imgur bake
   was checked live only; drop is unit-tested (Playwright e2e covers file pick, paste is unit-only).
