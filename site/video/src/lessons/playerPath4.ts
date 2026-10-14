@@ -68,7 +68,8 @@ export const playerPath4: LessonScript = {
         },
         { kind: "ring", from: say("The line under"), to: say("A natural 20", -0.2), target: t("who line") },
         { kind: "sticker", from: say("A natural 20"), to: say("hidden", -0.2), text: "A VERY LONELY NATURAL 20", pos: { x: 1300, y: 300 }, tone: "blue", tilt: -3 },
-        { kind: "popup", from: say("hidden"), to: say("no copy.", 1.2, true), icon: "🙈", title: "HIDDEN ROLLS", lines: ["Never sent to anyone else", "Their browser has no copy"], lineAt: [say("never sent"), say("Their browser")], pos: { x: 1300, y: 420 }, width: 520 },
+        { kind: "popup", from: say("hidden"), to: say("kept for your seat", -0.3), icon: "🙈", title: "HIDDEN ROLLS", lines: ["Never sent to anyone else", "Their browser has no copy"], lineAt: [say("never sent"), say("Their browser")], pos: { x: 1300, y: 420 }, width: 520 },
+        { kind: "popup", from: say("kept for your seat"), to: say("rolls and all.", 1.2, true), icon: "🪑", title: "KEPT FOR YOUR SEAT", lines: ["Empty over six hours, or a restart", "Anyone with the password can take it"], lineAt: [say("kept for your seat"), say("can be taken")], pos: { x: 1300, y: 420 }, width: 560 },
       ],
     },
     {

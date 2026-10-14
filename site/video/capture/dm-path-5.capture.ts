@@ -143,7 +143,7 @@ test("record: DM path 5", async ({ browser }) => {
     await chapter(1, { dm }, async ({ cue, recs: { dm: rec } }) => {
       await click(rec, dm.getByRole("button", { name: "Wall", exact: true }), "Wall", { at: cue("Wall draws one", 0.2) });
       await dragTo(rec, at({ x: 500, y: 100 }), at(DOOR1.a), "wall", { at: cue("Drag from point to point") });
-      rec.mark("note", "never see walls", { at: cue("Players never see walls") });
+      rec.mark("note", "never see walls", { at: cue("Players never see a wall") });
       await focus(rec, dm.getByRole("button", { name: "📐 Pin walls overlay" }), "Pin walls overlay", { at: cue("Pinwall's", -0.3) });
       await rest(dm);
     });
@@ -182,7 +182,7 @@ test("record: DM path 5", async ({ browser }) => {
       await click(rec, dm.getByRole("button", { name: "Save changes" }), "Save changes", { at: cue("Save changes", 0.1), ms: 300 });
       await focus(rec, dm.getByRole("combobox", { name: "Door state" }), "states", { at: cue("Closed, Open") });
       const d1 = pat(mid(DOOR1));
-      prec.mark("focus", "gold lock", { box: { x: d1.x - 60, y: d1.y - 60, width: 120, height: 120 }, at: cue("small gold lock") });
+      prec.mark("focus", "gold lock", { box: { x: d1.x - 60, y: d1.y - 60, width: 120, height: 120 }, at: cue("small gold square") });
       await clickAt(prec, d1, "locked door", { at: cue("a click tells them", 0.4) });
       // Door 2 goes secret while Wren says the DM can still open the locked one.
       await clickAt(rec, at(mid(DOOR2)), "door 2", { at: cue("You can still open it", 0.3), ms: 350 });

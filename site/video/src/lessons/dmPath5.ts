@@ -21,7 +21,7 @@ export const dmPath5: LessonScript = {
       beats: [
         { kind: "title", from: 0.2, to: say("Wall draws one", -0.2), text: "GOOD WALLS", sub: "make good secrets", y: 420, sfx: "ping.wav" },
         { kind: "ring", from: say("Wall draws one", -0.1), to: mark("Wall", 0.7), target: t("Wall") },
-        { kind: "popup", from: say("Players never see walls"), to: say("While you edit", -0.2), icon: "🧱", title: "PLAYERS NEVER SEE WALLS", lines: ["They stop movement and sight"], lineAt: [say("They stop movement")], pos: { x: 1250, y: 300 }, width: 520 },
+        { kind: "popup", from: say("Players never see a wall"), to: say("While you edit", -0.2), icon: "🧱", title: "PLAYERS NEVER SEE IT", lines: ["It only stops movement and sight"], lineAt: [say("It only stops")], pos: { x: 1250, y: 300 }, width: 520 },
         { kind: "sticker", from: say("While you edit"), to: say("keeps it after", -0.2), text: "SEE-THROUGH WHILE YOU EDIT", pos: { x: 1250, y: 300 }, tone: "blue", tilt: 2 },
         { kind: "ring", from: say("keeps it after", -0.6), to: say("you leave.", 1.4, true), target: t("Pin walls overlay") },
       ],
@@ -39,13 +39,13 @@ export const dmPath5: LessonScript = {
     },
     {
       title: "Locked and secret",
-      split: { from: say("small gold lock", -0.6), labels: ["DM", "THE PLAYER'S SCREEN"] },
+      split: { from: say("small gold square", -0.6), labels: ["DM", "THE PLAYER'S SCREEN"] },
       beats: [
         { kind: "chips", to: say("Closed, Open", -0.2), pos: { x: 1100, y: 860 }, sep: "›", items: [{ text: "👆 SELECT", at: say("pick it with Select") }, { text: "🔍 INSPECT", at: say("Inspect") }, { text: "STATE", at: say("Choose its state") }, { text: "SAVE CHANGES", at: say("Save changes") }] },
         { kind: "ring", from: say("Save changes", -0.1), to: mark("Save changes", 0.7), target: t("Save changes") },
         {
           kind: "chips",
-          to: say("small gold lock", -0.7),
+          to: say("small gold square", -0.7),
           pos: { x: 1100, y: 860 },
           items: [
             { text: "CLOSED", at: say("Closed,") },
@@ -54,7 +54,7 @@ export const dmPath5: LessonScript = {
             { text: "SECRET", at: say("Secret.") },
           ],
         },
-        { kind: "popup", from: say("small gold lock"), to: say("A secret door", -0.2), icon: "🔒", title: "LOCKED", lines: ["A small gold lock", "A click says it's locked", "You can still open it"], lineAt: [say("small gold lock"), say("a click tells them"), say("You can still open it")], pos: { x: 1440, y: 610 }, width: 480 },
+        { kind: "popup", from: say("small gold square"), to: say("A secret door", -0.2), icon: "🔒", title: "LOCKED", lines: ["A small gold square", "A click says it's locked", "You can still open it"], lineAt: [say("small gold square"), say("a click tells them"), say("You can still open it")], pos: { x: 1440, y: 610 }, width: 480 },
         { kind: "popup", from: say("A secret door"), to: say("At the table", -0.2), icon: "🤫", title: "SECRET", lines: ["Invisible to players", "You see a dashed seam"], lineAt: [say("A secret door"), say("dashed seam")], pos: { x: 480, y: 260 }, width: 480 },
         { kind: "key", from: say("At the table", 0.4), to: say("reveal it.", 1.4, true), label: "ALT + CLICK", pos: { x: 480, y: 300 }, sfx: "button-blip.wav" },
         { kind: "sticker", from: say("reveal it", -0.2), to: say("reveal it.", 1.4, true), text: "REVEALED!", pos: { x: 1440, y: 300 }, tone: "green", tilt: -2 },
@@ -68,8 +68,8 @@ export const dmPath5: LessonScript = {
         { kind: "popup", from: say("It needs a built map"), to: say("Players then see", -0.3), icon: "🏗️", title: "FOG NEEDS A BUILT MAP", lines: ["With walls and doors"], pos: { x: 600, y: 300 }, width: 520 },
         { kind: "ring", from: say("Players then see", -0.4), to: mark("FOG", 0.8), target: t("FOG") },
         { kind: "sticker", from: say("Players then see"), to: say("You still see", -0.2), text: "ONLY WHAT THEIR TOKENS SEE", pos: { x: 1440, y: 260 }, tone: "blue", tilt: 2 },
-        { kind: "sticker", from: say("You still see"), to: say("Things outside", -0.2), text: "YOU SEE EVERYTHING", pos: { x: 480, y: 260 }, tone: "gold", tilt: -2 },
-        { kind: "popup", from: say("Things outside"), to: say("sent to them.", 1.4, true), icon: "📡", title: "NEVER SENT", lines: ["Outside a player's sight", "never reaches them"], pos: { x: 1440, y: 300 }, width: 500 },
+        { kind: "sticker", from: say("You still see"), to: say("Tokens, monsters", -0.2), text: "YOU SEE EVERYTHING", pos: { x: 480, y: 260 }, tone: "gold", tilt: -2 },
+        { kind: "popup", from: say("Tokens, monsters"), to: say("darkens it.", 1.4, true), icon: "📡", title: "WHAT FOG KEEPS BACK", lines: ["Tokens, monsters, props: never sent", "The map is sent. Fog darkens it"], lineAt: [say("Tokens, monsters"), say("The map itself")], pos: { x: 1440, y: 300 }, width: 500 },
       ],
     },
     {

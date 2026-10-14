@@ -262,7 +262,7 @@ How it signs in:
 
 **Say:**
 > Press PLAYER VIEW. You now see exactly what players see: fog from the party's vision, secret doors hidden.
-> You keep every DM power. Press it again to switch back.
+> You keep every DM power, except at doors: they answer you as they would a player. Press it again to switch back.
 > Player view is on the computer layout.
 
 **Show:**
@@ -328,7 +328,7 @@ How it signs in:
 **Say:**
 > The password is stored for that table in this tab, so a reload drops you straight back in.
 > If your connection blips, HeroByte reconnects for you. You'll see Reconnecting, then Re-authenticating, under the header.
-> For up to six hours, a reload or a blip brings you back as the same person.
+> For up to six hours, less if the server restarts for an update, a reload or a blip brings you back as the same person. After that, anyone with the table password can take your seat.
 
 **Show:**
 1. Reload the tab. The table returns without the join screen.
@@ -432,6 +432,7 @@ How it signs in:
 > Open Chat and Rolls, then Chat.
 > Choose Everyone for table talk, or Whisper to someone for a private message. Press SEND or Enter.
 > Being the DM doesn't let anyone read other players' whispers.
+> But a seat left empty for over six hours, or through a server restart, can be taken by anyone with the table password, along with the whispers stored for it.
 
 **Show:**
 1. Click **📜 Chat & Rolls → Chat**.
@@ -639,6 +640,7 @@ How it signs in:
 > TABLE means everyone. DM means you and the DM. ME means only you.
 > The line under the buttons says who will see it.
 > A hidden roll is never sent to anyone else. Their browser has no copy.
+> It's kept for your seat, though. A seat left empty for over six hours, or through a server restart, can be taken by anyone with the table password, hidden rolls and all.
 
 **Show:**
 1. Clear the tray, add **+d20**, click **ADV**, **⚂ ROLL!**. Zoom: the struck-through die, the **ADV** tag in the log.
@@ -1222,7 +1224,7 @@ How it signs in:
 
 **Say:**
 > Here's the player's screen. The room appeared as you built it.
-> Players don't see walls. They act through fog and movement.
+> Players see the painted wall band, never the blocking line. It works through fog and movement.
 > To check from your side, press PLAYER VIEW. You keep building while it's on.
 
 **Show:**
@@ -1258,7 +1260,7 @@ How it signs in:
 
 **Say:**
 > Wall draws one straight blocking wall. Drag from point to point.
-> Players never see walls. They stop movement and sight.
+> Players never see a wall drawn this way. It only stops movement and sight.
 > While you edit, walls show as a see-through overlay. PIN WALLS OVERLAY keeps it after you leave.
 
 **Show:**
@@ -1281,7 +1283,7 @@ How it signs in:
 **Say:**
 > To change a door, pick it with Select, and open Inspect.
 > Closed, Open, Locked or Secret.
-> A locked door shows a small gold lock to players, and a click tells them it's locked. You can still open it.
+> A locked door shows a small gold square to players, and a click tells them it's locked. You can still open it.
 > A secret door is invisible to players. You see it as a dashed seam.
 > At the table, Alt-click a door to cycle its lock. Alt-click a secret door to reveal it.
 
@@ -1296,7 +1298,7 @@ How it signs in:
 **Say:**
 > Fog of War is in the DM Menu, under Maps. It needs a built map with walls and doors.
 > Players then see only what their tokens see. You still see everything.
-> Things outside a player's sight are never sent to them.
+> Tokens, monsters and props outside a player's sight are never sent to them. The map itself is. Fog only darkens it.
 
 **Show:**
 1. **🛠️ DM MENU → Maps → Fog of War** on.

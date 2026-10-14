@@ -181,7 +181,7 @@ Send the password separately. The link does not carry it.
 ```text
 [Warm, clear tutorial narration] Press Player view. You now see exactly what players see: fog from the party's vision, secret doors hidden.
 
-You keep every DM power. Press it again to switch back.
+You keep every DM power, except at doors: they answer you as they would a player. Press it again to switch back.
 
 Player view is on the computer layout.
 ```
@@ -230,7 +230,7 @@ Your browser remembers up to twelve tables. [lower, conspiratorial] The server p
 
 If your connection blips, HeroByte reconnects for you. You'll see Reconnecting, then Re-authenticating, under the header.
 
-In this browser, a reload or a blip brings you back as the same person. Your seat is held for you for six hours. After that, a DM needs the DM password again.
+In this browser, a reload or a blip brings you back as the same person. Your seat is held for you for up to six hours, less if the server restarts for an update. After that, anyone with the table password can take it, and a DM needs the DM password again.
 ```
 
 ### 4. One tab, one device
@@ -314,6 +314,8 @@ Reset puts the view at the map's top-left corner at normal zoom. [Pause, dry amu
 Choose Everyone for table talk, or Whisper to someone for a private message. Press Send or Enter.
 
 [lower, conspiratorial] Being the DM doesn't let anyone read other players' whispers.
+
+[Warm, clear tutorial narration] But a seat left empty for over six hours, or through a server restart, can be taken by anyone with the table password, along with the whispers stored for it.
 ```
 
 ### 5. Voice
@@ -476,6 +478,8 @@ Table means everyone. DM means you and the DM. Me means only you.
 The line under the buttons says who will see it. [Pause, dry amusement] A natural twenty only you can see is a very lonely natural twenty.
 
 [lower, conspiratorial] A hidden roll is never sent to anyone else. Their browser has no copy.
+
+[Warm, clear tutorial narration] It's kept for your seat, though. A seat left empty for over six hours, or through a server restart, can be taken by anyone with the table password, hidden rolls and all.
 ```
 
 - Added: "A natural twenty only you can see is a very lonely natural twenty." (the common-mistake beat: rolling with Me selected)
@@ -971,7 +975,7 @@ One edit goes at a time. If you draw while the last one is still saving, you'll 
 ```text
 [Warm, clear tutorial narration] Here's the player's screen. The room appeared as you built it.
 
-Players don't see walls. They act through fog and movement.
+Players see the painted wall band, never the blocking line. It works through fog and movement.
 
 To check from your side, press Player view. You keep building while it's on.
 ```
@@ -987,7 +991,7 @@ To check from your side, press Player view. You keep building while it's on.
 
 Wall draws one straight blocking wall. Drag from point to point.
 
-Players never see walls. They stop movement and sight.
+Players never see a wall drawn this way. It only stops movement and sight.
 
 While you edit, walls show as a see-through overlay. Pin walls overlay keeps it after you leave.
 ```
@@ -1011,7 +1015,7 @@ At the table, anyone can click a door to open or close it.
 
 Closed, Open, Locked or Secret.
 
-A locked door shows a small gold lock to players, and a click tells them it's locked. You can still open it.
+A locked door shows a small gold square to players, and a click tells them it's locked. You can still open it.
 
 [whispering] A secret door is invisible to players. You see it as a dashed seam.
 
@@ -1027,7 +1031,7 @@ A locked door shows a small gold lock to players, and a click tells them it's lo
 
 Players then see only what their tokens see. You still see everything.
 
-[lower, conspiratorial] Things outside a player's sight are never sent to them.
+[lower, conspiratorial] Tokens, monsters and props outside a player's sight are never sent to them. The map itself is. Fog only darkens it.
 ```
 
 ### 5. Make it dark

@@ -87,45 +87,17 @@ const GUIDES = [
 export const LESSON_PAGES = {
   "player-quick-start": { page: "player-quick-start.html", hand: true, youtube: null },
   "dm-quick-start": { page: "dm-quick-start.html", hand: true, youtube: null },
-  "player-path-1": {
-    page: "join-a-table.html",
-    guide: ["guide/getting-started.html#joining-a-table", "Getting started: Joining a table"],
-    youtube: null,
-    notes: {
-      3: "Six hours is the longest your seat is held. A server restart for an update ends the hold sooner. Once it ends, anyone with the table password can take the seat, and a DM needs the DM password again.",
-    },
-  },
-  "player-path-2": {
-    page: "the-table-at-a-glance.html",
-    guide: ["guide/player-guide.html#the-table-at-a-glance", "Player guide: The table at a glance"],
-    youtube: null,
-    notes: {
-      4: "A whisper is kept for the seats of its sender and its recipient. If a seat has been empty for more than six hours, or the server has restarted for an update, anyone with the table password can claim it and read the whispers stored for it.",
-    },
-  },
+  "player-path-1": { page: "join-a-table.html", guide: ["guide/getting-started.html#joining-a-table", "Getting started: Joining a table"], youtube: null },
+  "player-path-2": { page: "the-table-at-a-glance.html", guide: ["guide/player-guide.html#the-table-at-a-glance", "Player guide: The table at a glance"], youtube: null },
   "player-path-3": { page: "your-character-card.html", guide: ["guide/player-guide.html#your-character-card", "Player guide: Your character card"], youtube: null },
-  "player-path-4": {
-    page: "roll-dice.html",
-    guide: ["guide/player-guide.html#dice", "Player guide: Dice"],
-    youtube: null,
-    notes: {
-      2: "A hidden roll is kept for its seat. If a seat has been empty for more than six hours, or the server has restarted for an update, anyone with the table password can claim it and read the hidden rolls stored for it.",
-    },
-  },
+  "player-path-4": { page: "roll-dice.html", guide: ["guide/player-guide.html#dice", "Player guide: Dice"], youtube: null },
   "player-path-5": { page: "draw-measure-and-ping.html", guide: ["guide/player-guide.html#drawing-measuring-pointing", "Player guide: Drawing, measuring, pointing"], youtube: null },
   "player-path-6": { page: "fog-doors-and-sight.html", guide: ["guide/player-guide.html#doors-fog-and-what-you-can-see", "Player guide: Doors, fog and what you can see"], youtube: null },
   "dm-path-1": { page: "create-a-private-table.html", guide: ["guide/getting-started.html#creating-a-private-table", "Getting started: Creating a private table"], youtube: null },
   "dm-path-2": { page: "become-the-dm.html", guide: ["guide/getting-started.html#becoming-the-dm", "Getting started: Becoming the DM"], youtube: null },
   "dm-path-3": { page: "three-ways-to-get-a-map.html", guide: ["guide/running-a-game.html", "Running a game"], youtube: null },
   "dm-path-4": { page: "build-your-first-room.html", hand: true, youtube: null },
-  "dm-path-5": {
-    page: "walls-doors-and-fog.html",
-    guide: ["guide/map-editor-guide.html#-wall-and--door", "Map editor guide: Wall and Door"],
-    youtube: null,
-    notes: {
-      4: "Fog keeps tokens, NPCs, props and pings out of a player's browser until their characters can see them. The map is different: its floor plan, walls, ordinary doors, lights and any drawings are sent to every player's browser, and fog only darkens them on screen. A secret door is sent as plain wall, but the floor around it still goes.",
-    },
-  },
+  "dm-path-5": { page: "walls-doors-and-fog.html", guide: ["guide/map-editor-guide.html#-wall-and--door", "Map editor guide: Wall and Door"], youtube: null },
   "dm-path-6": { page: "npcs-and-the-token-library.html", guide: ["guide/dm-guide.html#npcs--monsters", "DM guide: NPCs and monsters"], youtube: null },
   "dm-path-7": { page: "run-your-first-combat.html", guide: ["guide/dm-guide.html#encounter", "DM guide: Encounter"], youtube: null },
   "dm-path-8": { page: "backups-and-keeping-your-work.html", guide: ["guide/dm-guide.html#backups", "DM guide: Backups"], youtube: null },
