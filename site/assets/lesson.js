@@ -26,12 +26,18 @@
           got += value.length;
           if (total) status.textContent = `LOADING ${Math.floor((got * 100) / total)}%`;
         }
-        const loaded = new Promise((resolve, reject) => {
-          video.addEventListener("loadedmetadata", resolve, { once: true });
-          video.addEventListener("error", reject, { once: true });
-        });
-        video.src = URL.createObjectURL(new Blob(parts, { type: "video/mp4" }));
-        await loaded;
+        const open = (src) => {
+          const loaded = new Promise((resolve, reject) => {
+            video.addEventListener("loadedmetadata", resolve, { once: true });
+            video.addEventListener("error", reject, { once: true });
+          });
+          video.src = src;
+          return loaded;
+        };
+        const blob = URL.createObjectURL(new Blob(parts, { type: "video/mp4" }));
+        // A browser that will not play a blob: video (WebKit's Windows build, for one) gets the
+        // file itself: it plays, though it may not seek.
+        await open(blob).catch(() => (URL.revokeObjectURL(blob), open(video.dataset.src)));
         video.controls = true;
         start.hidden = true;
       })().catch((err) => {
