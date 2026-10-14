@@ -150,7 +150,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Portrait & token art",
         detail:
-          "⚙️ → ⬆ UPLOAD IMAGE takes a file from your device — on a phone, the camera roll. A pasted image URL still works. Token art is set from the desktop window only.",
+          "Portrait: ⚙️ → ⬆ UPLOAD IMAGE takes a file from your device (on a phone, the camera roll); a pasted image URL still works. Token: ⚙️ → Token picture… opens a window to choose a picture (file, drop, paste or link), move, zoom, turn and flip it inside the token, and save it. On a phone it is in ⚙️ EDIT.",
       },
       {
         term: "Status effects",

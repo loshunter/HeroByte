@@ -49,17 +49,26 @@ The Party lists characters, not players: if you run two, you have two rows, and 
 
 ### The settings window (⚙️)
 
-![The settings window: the Character section with name, portrait and token image](img/player-settings.jpg)
+![The settings window: the Character section with name, portrait and token picture](img/player-settings.jpg)
 
 One draggable window per character, in two halves — what the character is, and how its token behaves:
 
 **Character**
 
-- **Character Name**, **Portrait**, and a **Token Image** — give your portrait and map token custom art (they are two separate pictures). Two ways:
+- **Character Name** and **Portrait**: the portrait is the picture on your card. Two ways to set it:
   - **⬆ UPLOAD IMAGE** sends a picture from your device to the table (camera roll on a phone): PNG, JPEG, GIF or WebP, up to 5 MB each. The table's image storage has a limit too ("The table's asset storage is full."), and on the Main Hall uploaded images are cleared once it has been empty for an hour.
-  - **Paste a link** and press **Apply** (**Apply Portrait** for the portrait). Links show only from **Imgur** (`i.imgur.com`) and **Discord** (`media.discordapp.net`); an `imgur.com` page or album link is turned into its image for you. A link from any other site shows nothing: download the picture and upload it instead.
+  - **Paste a link** and press **Apply Portrait**. Links show only from **Imgur** (`i.imgur.com`) and **Discord** (`media.discordapp.net`); an `imgur.com` page or album link is turned into its image for you. A link from any other site shows nothing: download the picture and upload it instead.
+- **Token picture…**: the picture on your map token, separate from the portrait. It opens the token picture window (full screen on a phone, from **⚙️ EDIT**):
 
-  **CLEAR** the token image to go back to a plain square in your token's colour. Token art is set from a computer: a phone's **⚙️ EDIT** has the portrait but no token image, and keeps whatever art the token already has.
+  ![The token picture window: the picture inside the token square, its controls, and the previews on a dark map, a light map and fog](img/token-creator.jpg)
+
+  - Bring a picture in: **⬆ Choose a file**, drop one on the square, paste one (**Ctrl+V**), or give a link and press **Load link**.
+  - Frame it inside the square, which is your token: drag to move it, zoom with the wheel, the **Zoom** slider or a pinch, and **⟳ Rotate** a quarter turn or **⇋ Flip** it. **Reset** puts it back. Arrow keys nudge it and **+** / **−** zoom.
+  - **Backdrop** fills whatever the picture leaves empty, such as transparent art or a picture zoomed out to fit: **Auto** takes the colour of the picture's edge, or choose **Solid colour**, a **Gradient**, or **None** to keep it transparent.
+  - The previews show the token on a dark map, a light map and under fog. **Use this picture** saves it to the table and sets it; **Cancel**, ✕ or **Esc** change nothing. The saved picture is a 512-pixel square (768 for a Huge or Gargantuan token at the time you save it). To change the framing later, choose the picture again.
+  - Some sites (Discord, for one) do not let HeroByte copy their pictures, so a link from one cannot be framed. The window says so and offers **Use the link as is**, which sets the link exactly as given.
+
+  **Clear picture** goes back to a plain square in your token's colour.
 - **Colour** — your character's colour: it fills your token when it has no picture; on a computer it colours your name on your card, your card's portrait while it has none, the ring on your Party row and your speaking glow; and it colours your pings, your chat and roll names and, on your own screen, everything you select. Where your colour would not read, names, ping labels and the glow use a lighter or darker shade of it. With two characters, pings, chat and roll names and selections use your first character's colour; each character's card and Party row keep its own. Others still see your colour on your card, your Party row and your chat and roll names while your token is out of their sight; a ping reaches other players only where they can see the spot (the DM sees every ping). Drag the handle across the colour window (hue runs left to right, light at the top) and let go to keep it, or tap one of the three dashed rings for a free colour in one go. **No two players share a colour** (a player's pick is checked whenever it changes; the DM's picks and table restores are not): the striped patches are the space around other players' colours, a drag or a tap into one stops at its nearest free edge and says whose it is (hover over a patch to see whose without picking), and the patches shrink as more players join. Your own other characters show as small squares and may share your colour; a new character starts in your colour. Arrow keys move the handle a step (**Shift** for five) and the colour is kept when you stop. If someone took the colour a moment before you, the table moves yours to the nearest free one and tells you. The DM's colour has no patches and blocks no one. On a phone it is in the row's **⚙️ EDIT** sheet.
 - **Status Effects** — a checklist of 38 conditions (Prone, Poisoned, Blessed, Rage, Concentration…). They belong to this character only: your other character's row, card and token do not wear them. Up to three show as emoji medallions on the portrait and token; the rest roll up into a `+N` bubble.
 - **Initiative Status** — this character's current initiative, with a **🧹 CLEAR INITIATIVE** reset (on a phone too: **⚙️ EDIT** on your row).

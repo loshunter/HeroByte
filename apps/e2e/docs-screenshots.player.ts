@@ -115,6 +115,18 @@ test.describe("docs screenshots: player", () => {
       await page.getByRole("button", { name: "Apply Portrait" }).click();
       await page.waitForTimeout(400);
       await shotPage(page, "player-settings");
+    });
+
+    await step("token picture window", async () => {
+      // The table's own icon, by link: a same-site picture bakes, and Cancel uploads nothing.
+      await page.getByRole("button", { name: "Token picture…" }).click();
+      await page.getByLabel("Or a link to a picture").fill("/icon-512.png");
+      await page.getByRole("button", { name: "Load link" }).click();
+      await expect(page.getByRole("button", { name: /Rotate/ })).toBeVisible();
+      await page.getByRole("slider", { name: "Zoom" }).focus();
+      await page.keyboard.press("Home");
+      await shotPage(page, "token-creator");
+      await page.getByRole("button", { name: "Cancel" }).click();
       await closeTopWindow(page, "Player Settings");
       await closePartyDetails(page);
     });
