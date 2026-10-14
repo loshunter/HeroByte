@@ -89,6 +89,16 @@ describe("normalizeAtlasState — scenes take the envelope's schema at the disk 
     }
   });
 
+  it("keeps a scene grown past a backup's limits: a restart must not delete it", () => {
+    // Captured as the party leaves, with no cap. Dropped here, it vanished on the next
+    // deploy; kept, Download table backup refuses and names it so the DM can clear it.
+    const big = {
+      ...scene("cellar"),
+      tokens: Array.from({ length: 1001 }, (_, n) => ({ id: `t-${n}` })),
+    };
+    expect(normalizeAtlasState({ sceneStates: { cellar: big } }).sceneStates.cellar).toBe(big);
+  });
+
   it("keeps a newer server's extra fields — the schema validates, it does not strip", () => {
     const future = { ...scene("doc-a"), weatherLater: "storm" };
     const result = normalizeAtlasState({ sceneStates: { "doc-a": future } });

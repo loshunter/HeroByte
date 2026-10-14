@@ -183,7 +183,7 @@ test("record: DM path 5", async ({ browser }) => {
       await focus(rec, dm.getByRole("combobox", { name: "Door state" }), "states", { at: cue("Closed, Open") });
       const d1 = pat(mid(DOOR1));
       prec.mark("focus", "gold lock", { box: { x: d1.x - 60, y: d1.y - 60, width: 120, height: 120 }, at: cue("small gold lock") });
-      await clickAt(prec, d1, "locked door", { at: cue("Clicking it does nothing", 0.4) });
+      await clickAt(prec, d1, "locked door", { at: cue("a click tells them", 0.4) });
       // Door 2 goes secret while Wren says the DM can still open the locked one.
       await clickAt(rec, at(mid(DOOR2)), "door 2", { at: cue("You can still open it", 0.3), ms: 350 });
       await select(rec, dm.getByRole("combobox", { name: "Door state" }), "Door state", "secret", { ms: 250 });

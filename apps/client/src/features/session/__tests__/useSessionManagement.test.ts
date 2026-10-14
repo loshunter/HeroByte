@@ -17,13 +17,14 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import {
+  SESSION_RESTORE_MAX_BYTES,
   WS_MAX_MESSAGE_BYTES,
   type SessionFile,
   loadSessionFrameBytes,
   utf8ByteLength,
 } from "@herobyte/shared";
 import { useSessionManagement } from "../useSessionManagement";
-import { deliverSessionFile } from "../sessionBridge";
+import { deliverSessionFile, deliverSessionRefusal } from "../sessionBridge";
 import {
   downloadSessionJson,
   loadSession,
@@ -179,6 +180,28 @@ describe("useSessionManagement — save", () => {
     expect(sendMessage).toHaveBeenCalledTimes(2);
   });
 
+  it("says why a backup Restore would refuse was not sent, and stops waiting", () => {
+    const { result } = mount();
+    const reason = "This table backup would not restore, so it was not saved: 101 seats.";
+
+    act(() => result.current.handleSaveSession("x"));
+    act(() => deliverSessionRefusal(reason));
+
+    expect(toast.error).toHaveBeenCalledWith(reason, 15000);
+    expect(downloadSessionJson).not.toHaveBeenCalled();
+    // The wait is over: no "did not return" later, and the DM can save again at once.
+    act(() => vi.advanceTimersByTime(15_000));
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    act(() => result.current.handleSaveSession("x"));
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores a refusal nobody is waiting for", () => {
+    mount();
+    act(() => deliverSessionRefusal("late"));
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
   it("says the file's wire weight AND its disk size on a save that will load back", async () => {
     const { result } = mount();
     // ~300 KB of name: a weight that cannot be confused with the limit or with zero.
@@ -203,11 +226,9 @@ describe("useSessionManagement — save", () => {
     expect(toast.warning).not.toHaveBeenCalled();
   });
 
-  it("still saves a file that will NOT load back — and warns with both numbers instead of congratulating", async () => {
-    // Play grows a table past the wire limit even when every mint stayed
-    // under the ceiling (tokens, drawings, suspended scenes). The bytes are
-    // the DM's — the file downloads — but "saved!" over a backup that cannot
-    // be restored is the failure the whole arc exists to end.
+  it("refuses a file that will NOT load back — no download, and both sizes, which differ", async () => {
+    // The owner's rule (2026-10-13): a backup that would not restore is not saved. The
+    // server refuses first; this is the same refusal for a reply from an older server.
     const { result } = mount();
     // One and a half times the limit: the weight and the limit are different numbers.
     const file = sessionFile({
@@ -221,12 +242,12 @@ describe("useSessionManagement — save", () => {
       deliverSessionFile(file);
     });
 
-    expect(downloadSessionJson).toHaveBeenCalled();
+    expect(downloadSessionJson).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
-    const said = vi.mocked(toast.warning).mock.calls[0]?.[0] ?? "";
-    expect(said).toContain("NOT restore");
-    expect(said).toContain("at 1.50 MB on the wire");
-    expect(said).toContain("accepts 1.00 MB");
+    const said = vi.mocked(toast.error).mock.calls[0]?.[0] ?? "";
+    expect(said).toContain("would not restore, so it was not saved");
+    expect(said).toContain("At 1,537 KB");
+    expect(said).toContain("the backup is past the 1,023 KB a restore can carry");
   });
 
   it("drops a bundle nobody asked for", () => {
@@ -361,6 +382,33 @@ describe("useSessionManagement — load", () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('"fine.json" sent.'), 4000);
     expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("sends a file exactly at the restore limit and refuses one a byte past it", async () => {
+    // The same limit Download table backup refuses past, so a file it handed over restores.
+    const withName = (name: string) =>
+      sessionFile({
+        snapshot: { gridSize: 50, sceneObjects: [{}], characters: [{}] } as never,
+        mapDocuments: [{ id: "doc-A", name } as never],
+        liveMapDocumentId: "doc-A",
+      });
+    const pad = SESSION_RESTORE_MAX_BYTES - loadSessionFrameBytes(withName(""));
+    const atLimit = withName("x".repeat(pad));
+    expect(loadSessionFrameBytes(atLimit)).toBe(SESSION_RESTORE_MAX_BYTES);
+    const { result } = mount();
+
+    vi.mocked(loadSession).mockResolvedValue(atLimit);
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "at-limit.json"));
+    });
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+
+    vi.mocked(loadSession).mockResolvedValue(withName("x".repeat(pad + 1)));
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "over.json"));
+    });
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(toast.error).mock.calls.at(-1)?.[0]).toContain("too large to restore");
   });
 
   it("warns when a session names a map it does not carry", async () => {

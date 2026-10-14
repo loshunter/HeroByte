@@ -1,4 +1,4 @@
-import { SESSION_MINT_CEILING_BYTES, WS_MAX_MESSAGE_BYTES } from "@herobyte/shared";
+import { SESSION_MINT_CEILING_BYTES, SESSION_RESTORE_MAX_BYTES } from "@herobyte/shared";
 
 const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
@@ -16,7 +16,7 @@ export const NEW_MAP_ALLOWANCE_BYTES = (270 + 190) * 1024;
 type Room = "room" | "nearly-full" | "full" | "too-big";
 
 function roomFor(bytes: number): Room {
-  if (bytes > WS_MAX_MESSAGE_BYTES) return "too-big";
+  if (bytes > SESSION_RESTORE_MAX_BYTES) return "too-big";
   if (bytes > SESSION_MINT_CEILING_BYTES) return "full";
   if (bytes + NEW_MAP_ALLOWANCE_BYTES > SESSION_MINT_CEILING_BYTES) return "nearly-full";
   return "room";
@@ -28,7 +28,7 @@ const OUTCOME: Record<Room, string> = {
   "nearly-full": "Nearly full — a large map may be refused. Delete a map you no longer need.",
   full: "Full — new maps are refused. Delete a map to make room.",
   "too-big":
-    "Too big to restore — a table backup of this campaign would not load back. Delete a map.",
+    "Too big to restore — Download table backup will refuse it, and say which parts are heaviest and what clears them.",
 };
 
 /**

@@ -10,7 +10,7 @@
 // poisoned value kills the one process serving every room, on every restart.
 
 import type { AtlasNode, MapLink, SceneState } from "@herobyte/shared";
-import { parseSceneState } from "../../middleware/validators/sessionValidators.js";
+import { parseSceneStateShape } from "../../middleware/validators/sessionValidators.js";
 
 export interface AtlasStateFields {
   atlasNodes: AtlasNode[];
@@ -55,7 +55,8 @@ export function normalizeAtlasState(data: {
   atlasLinks?: unknown;
   sceneStates?: unknown;
 }): AtlasStateFields {
-  // Scenes take the SAME schema the load-session envelope enforces: travel
+  // Scenes take the SAME shape the load-session envelope enforces, without its count
+  // limits (a scene grown past them in play is kept; the backup refusal names it): travel
   // dereferences deep inside a scene (saved.tokens.filter, saved.doorStates[id])
   // AFTER the outgoing capture and the destination compile have landed, so a
   // record-shallow scene that walked in here threw mid-mutation and persisted a
@@ -63,7 +64,7 @@ export function normalizeAtlasState(data: {
   const sceneStates: Record<string, SceneState> = {};
   if (isRecord(data.sceneStates)) {
     for (const [key, value] of Object.entries(data.sceneStates)) {
-      const scene = parseSceneState(value);
+      const scene = parseSceneStateShape(value);
       if (scene) {
         sceneStates[key] = scene;
       } else if (isRecord(value)) {

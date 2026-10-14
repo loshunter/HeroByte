@@ -117,6 +117,33 @@ describe("buildSessionFile", () => {
   });
 });
 
+describe("exportBytes", () => {
+  it("weighs a waiting scene past a backup's limits too, so the map list never reads low", () => {
+    // A restart keeps such a scene; the backup refuses it. Left out of this weigh, the
+    // readout said "room for more" and trimming the scene pushed the backup over.
+    const big = {
+      ...scene("doc-B"),
+      tokens: Array.from({ length: 1001 }, (_, n) => ({ id: `t${n}` })),
+    };
+    const documents = [document("doc-A"), document("doc-B")];
+    const without = exportBytes(stateWith({}), documents, DM);
+    const withBig = exportBytes(
+      stateWith({ sceneStates: { "doc-B": big as never } }),
+      documents,
+      DM,
+    );
+    expect(withBig - without).toBeGreaterThan(JSON.stringify(big.tokens).length);
+  });
+});
+
+describe("buildSessionFile and a map that is gone", () => {
+  it("leaves out a waiting scene whose map is not in the file: Restore would drop it anyway", () => {
+    const state = stateWith({ sceneStates: { gone: scene("gone"), "doc-A": scene("doc-A") } });
+    const file = buildSessionFile(state, [document("doc-A")], DM, 1);
+    expect(file.sceneStates?.map((entry) => entry.mapDocumentId)).toEqual(["doc-A"]);
+  });
+});
+
 describe("mintOverflow", () => {
   it("weighs the export the CANDIDATE list would write, with the same builder the export uses", () => {
     const state = stateWith({ liveMapDocumentId: "doc-A" });

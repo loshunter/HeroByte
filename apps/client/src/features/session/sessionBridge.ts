@@ -26,17 +26,28 @@ import type { SessionFile } from "@herobyte/shared";
 import type { AssetUploadCredentials } from "../map-studio/uploads/assetUpload";
 
 let waiting: ((file: SessionFile) => void) | null = null;
+let waitingRefusal: ((reason: string) => void) | null = null;
 let credentialsProvider: (() => AssetUploadCredentials | null) | null = null;
 
 /**
  * Register the handler for the next `session-file`. Returns an unsubscribe —
  * call it on unmount so a stale closure cannot receive a late reply.
  */
-export function awaitSessionFile(handler: (file: SessionFile) => void): () => void {
+export function awaitSessionFile(
+  handler: (file: SessionFile) => void,
+  onRefused?: (reason: string) => void,
+): () => void {
   waiting = handler;
+  waitingRefusal = onRefused ?? null;
   return () => {
     if (waiting === handler) waiting = null;
+    if (waitingRefusal === onRefused) waitingRefusal = null;
   };
+}
+
+/** The server would not hand over a backup Restore would refuse (`session-export-refused`). */
+export function deliverSessionRefusal(reason: string): void {
+  waitingRefusal?.(reason);
 }
 
 /**

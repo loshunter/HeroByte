@@ -173,7 +173,6 @@ test("record: DM path 2", async ({ browser }) => {
       await expect(remove).toBeVisible({ timeout: 60_000 });
       await focus(rec, remove, "REMOVE", { at: cue("Remove appears", 0.2) });
       await hover(rec, remove, "REMOVE", { at: cue("There's no undo", -0.3) });
-      await focus(rec, players, "thirty seats", { at: cue("A table holds 30") });
       await rest(dm);
     });
 

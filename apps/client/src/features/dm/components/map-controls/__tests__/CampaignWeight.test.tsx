@@ -1,6 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SESSION_MINT_CEILING_BYTES, WS_MAX_MESSAGE_BYTES } from "@herobyte/shared";
+import {
+  SESSION_MINT_CEILING_BYTES,
+  SESSION_RESTORE_MAX_BYTES,
+  WS_MAX_MESSAGE_BYTES,
+} from "@herobyte/shared";
 import { CampaignWeight } from "../CampaignWeight";
 
 // What the heaviest new map can still cost: a `large` warehouse, 270 KB stored plus up to 190 KB
@@ -39,8 +43,11 @@ describe("CampaignWeight — the campaign's room as an outcome", () => {
     ["a campaign a large warehouse would not fit on", 346_000, "nearly-full"],
     ["at the ceiling", SESSION_MINT_CEILING_BYTES, "nearly-full"],
     ["a byte past the ceiling", SESSION_MINT_CEILING_BYTES + 1, "full"],
-    ["at the wire limit", WS_MAX_MESSAGE_BYTES, "full"],
-    ["a byte past the wire limit", WS_MAX_MESSAGE_BYTES + 1, "too-big"],
+    // Too big at the restore limit (a KiB under the wire limit), where Download table
+    // backup starts refusing: the line and the refusal must agree.
+    ["at the restore limit", SESSION_RESTORE_MAX_BYTES, "full"],
+    ["a byte past the restore limit", SESSION_RESTORE_MAX_BYTES + 1, "too-big"],
+    ["at the wire limit", WS_MAX_MESSAGE_BYTES, "too-big"],
   ] as const)("%s reads as %s", (_label, bytes, room) => {
     expect(read(bytes)?.room).toBe(room);
   });
@@ -51,7 +58,9 @@ describe("CampaignWeight — the campaign's room as an outcome", () => {
     // "a large map": a smaller one may still fit, so the sentence does not say "a new map".
     expect(read(SESSION_MINT_CEILING_BYTES - 1)?.text).toMatch(/a large map may be refused/);
     expect(read(SESSION_MINT_CEILING_BYTES + 1)?.text).toMatch(/Full.*Delete a map to make room/);
-    expect(read(WS_MAX_MESSAGE_BYTES + 1)?.text).toMatch(/would not load back.*Delete a map/);
+    expect(read(WS_MAX_MESSAGE_BYTES + 1)?.text).toMatch(
+      /Download table backup will refuse it, and say which parts are heaviest/,
+    );
   });
 
   it("keeps the byte arithmetic out of the sentence: it is the tooltip's", () => {

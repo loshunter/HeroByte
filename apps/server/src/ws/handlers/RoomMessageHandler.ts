@@ -27,6 +27,7 @@ import {
 } from "../../middleware/validators/sessionValidators.js";
 import { mergeCharacters } from "../../domains/room/snapshot/SnapshotLoader.js";
 import { buildSessionFile } from "../../domains/room/sessionExport.js";
+import { backupRefusal } from "../../domains/room/backupRefusal.js";
 import { getDefaultRoomId, getRoomSecret } from "../../config/auth.js";
 import { rehomeNpcTokens } from "../../domains/room/dmDemotion.js";
 
@@ -161,10 +162,15 @@ export class RoomMessageHandler {
     const mapDocuments = roomId && this.mapStudioService ? this.mapStudioService.list(roomId) : [];
     // ONE author for the file (domains/room/sessionExport.ts): the mint
     // ceiling weighs the very same builder before a mint persists.
-    this.sendControlMessage(senderUid, {
-      t: "session-file",
-      file: buildSessionFile(state, mapDocuments, senderUid, Date.now(), { warn: true }),
-    });
+    const file = buildSessionFile(state, mapDocuments, senderUid, Date.now(), { warn: true });
+    // A backup Restore would refuse is no backup: say why instead (backupRefusal.ts).
+    const refusal = backupRefusal(file, state, mapDocuments);
+    if (refusal) {
+      console.warn(`[Backup] refused for ${senderUid}: ${refusal}`);
+      this.sendControlMessage(senderUid, { t: "session-export-refused", reason: refusal });
+      return { broadcast: false, save: false };
+    }
+    this.sendControlMessage(senderUid, { t: "session-file", file });
     return { broadcast: false, save: false };
   }
 

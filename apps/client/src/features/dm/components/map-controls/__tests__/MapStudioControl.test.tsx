@@ -79,7 +79,9 @@ describe("MapStudioControl", () => {
     expect(screen.getByTestId("campaign-weight").textContent).toMatch(/^0 maps · Full/);
 
     rerender(<MapStudioControl controller={controller({ exportBytes: 1_100_000 })} />);
-    expect(screen.getByTestId("campaign-weight").textContent).toContain("would not load back");
+    expect(screen.getByTestId("campaign-weight").textContent).toContain(
+      "Download table backup will refuse it",
+    );
 
     // Nothing until a server has said: no number that means nothing.
     rerender(<MapStudioControl controller={controller({ exportBytes: null })} />);
