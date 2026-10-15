@@ -179,8 +179,14 @@ function ffmpeg(args) {
 const jsonOnly = process.argv.includes("--json-only");
 // --only dm-path-5,dm-quick-start copies just those videos (and their posters); the rest stay as
 // they are, for the same reason.
-const onlyArg = process.argv.find((a) => a.startsWith("--only="));
-const only = onlyArg ? new Set(onlyArg.slice("--only=".length).split(",")) : null;
+const onlyArg = process.argv.find((a) => a.startsWith("--only"));
+if (onlyArg && !onlyArg.startsWith("--only=")) throw new Error("Write --only=<file>,<file> (with =), or every video is copied again.");
+const only = onlyArg ? new Set(onlyArg.slice("--only=".length).split(",").filter(Boolean)) : null;
+if (only) {
+  const known = [...Object.values(FILES), "trailer"];
+  const bad = [...only].filter((n) => !known.includes(n));
+  if (bad.length || !only.size) throw new Error(`--only: ${bad.length ? `unknown ${bad.join(", ")}` : "no files"} (known: ${known.join(", ")})`);
+}
 
 function publish(file, posterAt) {
   const src = path.join(video, "out", `${file}-small.mp4`);

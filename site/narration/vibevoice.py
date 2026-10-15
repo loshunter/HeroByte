@@ -97,10 +97,19 @@ def main():
     for video in args.videos:
         # "DM path 5#1,3,4" picks that video's own chapters, so one run (one model load) can voice
         # different chapters of several videos; --chapters applies to the videos without one.
-        video, _, own = video.partition("#")
+        video, hash_, own = video.partition("#")
         title, chapters = chapters_of(video)
-        if own or args.chapters:
-            wanted = {int(n) for n in (own or args.chapters).split(",")}
+        spec = own if hash_ else args.chapters
+        if spec is not None:
+            try:
+                wanted = {int(n) for n in spec.split(",") if n.strip()}
+            except ValueError:
+                sys.exit(f'"{spec}" is not a list of chapter numbers ({title}).')
+            known = {c[0] for c in chapters}
+            if not wanted:
+                sys.exit(f"{title}: no chapter numbers given; it has {sorted(known)}.")
+            if not wanted <= known:
+                sys.exit(f"{title}: chapters {sorted(wanted - known)} do not exist; it has {sorted(known)}.")
             chapters = [c for c in chapters if c[0] in wanted]
         folder = REPO / "site" / "narration" / "out" / "lessons" / slug(title)
         folder.mkdir(parents=True, exist_ok=True)
