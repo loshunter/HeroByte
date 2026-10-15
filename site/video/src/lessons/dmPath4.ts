@@ -98,8 +98,8 @@ export const dmPath4: LessonScript = {
       title: "What your players see",
       split: { from: 0, labels: ["DM", "THE PLAYER'S SCREEN"] },
       beats: [
-        { kind: "sticker", from: say("The room appeared"), to: say("Players don't see walls", -0.2), text: "IT APPEARED AS YOU BUILT IT", pos: { x: 1440, y: 260 }, tone: "blue", tilt: 2 },
-        { kind: "popup", from: say("Players don't see walls"), to: say("To check from your side", -0.2), icon: "🌫", title: "PLAYERS DON'T SEE WALLS", lines: ["They feel them", "through fog and movement"], lineAt: [say("Players don't see walls"), say("They act through")], pos: { x: 1440, y: 300 }, width: 520 },
+        { kind: "sticker", from: say("The room appeared"), to: say("Players see the painted", -0.2), text: "IT APPEARED AS YOU BUILT IT", pos: { x: 1440, y: 260 }, tone: "blue", tilt: 2 },
+        { kind: "popup", from: say("Players see the painted"), to: say("To check from your side", -0.2), icon: "🌫", title: "THE BAND, NOT THE LINE", lines: ["Players see the painted wall band", "The blocking line works unseen"], lineAt: [say("Players see the painted"), say("It works through")], pos: { x: 1440, y: 300 }, width: 520 },
         { kind: "ring", from: say("press player view", -0.1), to: mark("Player View", 0.8), target: t("Player View") },
         { kind: "sticker", from: say("You keep building"), to: say("while it's on.", 1.4, true), text: "👁 KEEP BUILDING WHILE IT'S ON", pos: { x: 480, y: 260 }, tone: "gold", tilt: -2 },
       ],

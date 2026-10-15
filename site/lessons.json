@@ -62,8 +62,8 @@
    "heading": "DM quick start",
    "title": "Set up your table before game night",
    "lead": "By the end, you can create a private table, claim the DM seat, put a map down, invite players and check what they see.",
-   "duration": 124.4,
-   "bytes": 20305823,
+   "duration": 127.7,
+   "bytes": 19997976,
    "chapters": [
     {
      "title": "Make a table",
@@ -113,7 +113,7 @@
      "start": 101,
      "say": [
       "Press Player view. You now see exactly what players see: fog from the party's vision, secret doors hidden.",
-      "You keep every DM power. Press it again to switch back.",
+      "You keep every DM power, except at doors: they answer you as they would a player. Press it again to switch back.",
       "Player view is on the computer layout."
      ]
     }
@@ -125,8 +125,8 @@
    "heading": "Player path 1",
    "title": "Join a table",
    "lead": "By the end, you can get into any table and know what each join-screen message means.",
-   "duration": 158.4,
-   "bytes": 6702556,
+   "duration": 164.9,
+   "bytes": 6878943,
    "chapters": [
     {
      "title": "The join screen",
@@ -156,12 +156,12 @@
      "say": [
       "The password is stored for that table in this tab, so a reload drops you straight back in.",
       "If your connection blips, HeroByte reconnects for you. You'll see Reconnecting, then Re-authenticating, under the header.",
-      "In this browser, a reload or a blip brings you back as the same person. Your seat is held for you for six hours. After that, a DM needs the DM password again."
+      "In this browser, a reload or a blip brings you back as the same person. Your seat is held for you for up to six hours, less if the server restarts for an update. After that, anyone with the table password can take it, and a DM needs the DM password again."
      ]
     },
     {
      "title": "One tab, one device",
-     "start": 94,
+     "start": 100.5,
      "say": [
       "One live connection per browser. Open the same table in a second tab and the older tab pauses. Press Reclaim this tab to switch back.",
       "A different device or browser joins as a new player, with a new character.",
@@ -171,7 +171,7 @@
     },
     {
      "title": "The Main Hall",
-     "start": 131.4,
+     "start": 137.9,
      "say": [
       "Every server starts with one table, the Main Hall. It's a public test table.",
       "Its passwords are fixed, and by default it wipes itself after an hour with nobody in it.",
@@ -186,8 +186,8 @@
    "heading": "Player path 2",
    "title": "The table at a glance",
    "lead": "By the end, you know every part of the screen, can find your way around the map, and can chat and join voice.",
-   "duration": 164.7,
-   "bytes": 7282488,
+   "duration": 172.9,
+   "bytes": 7554600,
    "chapters": [
     {
      "title": "Toolbar, map, Party",
@@ -227,12 +227,13 @@
      "say": [
       "Open Chat and Rolls. Chat is the first tab.",
       "Choose Everyone for table talk, or Whisper to someone for a private message. Press Send or Enter.",
-      "Being the DM doesn't let anyone read other players' whispers."
+      "Being the DM doesn't let anyone read other players' whispers.",
+      "But a seat left empty for over six hours, or through a server restart, can be taken by anyone with the table password, along with the whispers stored for it."
      ]
     },
     {
      "title": "Voice",
-     "start": 111.4,
+     "start": 119.5,
      "say": [
       "Voice works like joining a call. Press Join voice. Allow the microphone when your browser asks.",
       "Before you join, you can see whether a call is running and how many are in it.",
@@ -243,7 +244,7 @@
     },
     {
      "title": "On a phone",
-     "start": 139.8,
+     "start": 147.9,
      "say": [
       "On a phone the map fills the screen, with a dock of five buttons.",
       "Party, Tools, Dice, Chat, and Reset.",
@@ -340,8 +341,8 @@
    "heading": "Player path 4",
    "title": "Roll dice",
    "lead": "By the end, you can build any roll, choose who sees it, enter physical dice, and roll initiative.",
-   "duration": 167.1,
-   "bytes": 8585356,
+   "duration": 173.7,
+   "bytes": 8713377,
    "chapters": [
     {
      "title": "Build and roll",
@@ -364,12 +365,13 @@
       "Advantage rolls the first die twice and keeps the higher. Disadvantage keeps the lower. The other die stays, struck through.",
       "Table means everyone. DM means you and the DM. Me means only you.",
       "The line under the buttons says who will see it. A natural 20 only you can see is a very lonely natural 20.",
-      "A hidden roll is never sent to anyone else. Their browser has no copy."
+      "A hidden roll is never sent to anyone else. Their browser has no copy.",
+      "It's kept for your seat, though. A seat left empty for over six hours, or through a server restart, can be taken by anyone with the table password, hidden rolls and all."
      ]
     },
     {
      "title": "Quick rolls and macros",
-     "start": 67.6,
+     "start": 74.1,
      "say": [
       "The Roll now row rolls straight away: d20, advantage, disadvantage and 2d6.",
       "Build any roll and press Save to name it and keep it.",
@@ -378,7 +380,7 @@
     },
     {
      "title": "Rolling real dice",
-     "start": 89.2,
+     "start": 95.7,
      "say": [
       "Rolling physical dice? Press I Rolled It and type the total. The tray can be empty.",
       "Already rolled in the app, but the real dice said something else? Press That's Not What I Rolled.",
@@ -388,7 +390,7 @@
     },
     {
      "title": "Initiative",
-     "start": 111.4,
+     "start": 117.9,
      "say": [
       "Press Init on your card. Init is short for initiative: you roll it to find your place in the coming battle.",
       "Set your modifier, then press Roll d20 now. The server rolls it, and it lands in the log with your name.",
@@ -399,7 +401,7 @@
     },
     {
      "title": "On a phone",
-     "start": 147.2,
+     "start": 153.8,
      "say": [
       "On a phone, Dice opens a full-screen roller. Tap outside the result card, or its cross, to close it.",
       "Initiative is Init on your row in Party."
@@ -734,8 +736,8 @@
    "heading": "DM path 4",
    "title": "Build your first room live",
    "lead": "By the end, you can start a live map, draw a walled room with the floor and walls you want, fix mistakes, and check what players see.",
-   "duration": 130.6,
-   "bytes": 5842099,
+   "duration": 131.8,
+   "bytes": 5996699,
    "chapters": [
     {
      "title": "Start a live map",
@@ -785,7 +787,7 @@
      "start": 107,
      "say": [
       "Here's the player's screen. The room appeared as you built it.",
-      "Players don't see walls. They act through fog and movement.",
+      "Players see the painted wall band, never the blocking line. It works through fog and movement.",
       "To check from your side, press Player view. You keep building while it's on."
      ]
     }
@@ -797,8 +799,8 @@
    "heading": "DM path 5",
    "title": "Walls, doors and fog",
    "lead": "By the end, you can add walls and doors, set doors locked or secret, turn on fog, and make a dungeon dark.",
-   "duration": 138.6,
-   "bytes": 5885723,
+   "duration": 145,
+   "bytes": 7023421,
    "chapters": [
     {
      "title": "Walls",
@@ -806,13 +808,13 @@
      "say": [
       "Good walls make good secrets.",
       "Wall draws one straight blocking wall. Drag from point to point.",
-      "Players never see walls. They stop movement and sight.",
+      "Players never see a wall drawn this way. It only stops movement and sight.",
       "While you edit, walls show as a see-through overlay. Pin walls overlay keeps it after you leave."
      ]
     },
     {
      "title": "Doors",
-     "start": 24.2,
+     "start": 25.9,
      "say": [
       "Door: leave a gap in your wall, then drag the door across the gap. The drag sets its length and angle.",
       "Doors start closed.",
@@ -821,27 +823,27 @@
     },
     {
      "title": "Locked and secret",
-     "start": 41.3,
+     "start": 43.1,
      "say": [
       "To change a door, pick it with Select, and open Inspect. Choose its state, then press Save changes.",
       "Closed, Open, Locked or Secret.",
-      "A locked door shows a small gold lock to players, and a click tells them it's locked. You can still open it.",
+      "A locked door shows a small gold square to players, and a click tells them it's locked. You can still open it.",
       "A secret door is invisible to players. You see it as a dashed seam.",
       "At the table, Alt click a door to cycle its lock. Alt click a secret door to reveal it."
      ]
     },
     {
      "title": "Turn on fog",
-     "start": 74.2,
+     "start": 75.3,
      "say": [
       "Fog of War is in the DM Menu, under Maps. It needs a built map with walls and doors.",
       "Players then see only what their tokens see. You still see everything.",
-      "Things outside a player's sight are never sent to them."
+      "Tokens, monsters and props outside a player's sight are never sent to them. The map itself is. Fog only darkens it."
      ]
     },
     {
      "title": "Make it dark",
-     "start": 92.3,
+     "start": 98.7,
      "say": [
       "Table Sight Default sets how far every token sees. Set thirty feet and a corridor becomes something to walk down.",
       "A single token can have its own Sight Radius, in its Token settings. 30, 60 or 120 feet, Blind, or any number you type.",
@@ -850,7 +852,7 @@
     },
     {
      "title": "Check it",
-     "start": 116.7,
+     "start": 123.1,
      "say": [
       "Player view shows the table through the party's eyes. Fog, hidden doors, no DM overlays.",
       "Use it while you prep. It's the difference between \"I think that's hidden\"... and \"it is.\""

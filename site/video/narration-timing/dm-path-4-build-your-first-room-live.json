@@ -1191,183 +1191,213 @@
   },
   {
    "file": "5-what-your-players-see-take1.mp3",
-   "duration": 14.933333,
-   "text": "Here's the player's screen. The room appeared as you built it. Players don't see walls. They act through fog and movement. To check from your side, press player view. You keep building while it's on.",
+   "duration": 16.133333,
+   "text": "Here's the player's screen. The room appeared as you built it. Players see the painted wall band, never the blocking line. It works through fog and movement. To check from your side, press Player View. You keep building while it's on.",
    "words": [
     {
      "w": "Here's",
      "s": 0.0,
-     "e": 0.78
+     "e": 0.96
     },
     {
      "w": "the",
-     "s": 0.78,
-     "e": 0.92
+     "s": 0.96,
+     "e": 1.06
     },
     {
      "w": "player's",
-     "s": 0.92,
-     "e": 1.48
+     "s": 1.06,
+     "e": 1.52
     },
     {
      "w": "screen.",
-     "s": 1.48,
-     "e": 1.76
+     "s": 1.52,
+     "e": 1.78
     },
     {
      "w": "The",
-     "s": 2.14,
-     "e": 2.58
+     "s": 2.12,
+     "e": 2.54
     },
     {
      "w": "room",
-     "s": 2.58,
-     "e": 2.84
+     "s": 2.54,
+     "e": 2.74
     },
     {
      "w": "appeared",
-     "s": 2.84,
-     "e": 3.38
+     "s": 2.74,
+     "e": 3.14
     },
     {
      "w": "as",
-     "s": 3.38,
-     "e": 3.72
+     "s": 3.14,
+     "e": 3.34
     },
     {
      "w": "you",
-     "s": 3.72,
-     "e": 3.86
+     "s": 3.34,
+     "e": 3.44
     },
     {
      "w": "built",
-     "s": 3.86,
-     "e": 4.1
+     "s": 3.44,
+     "e": 3.66
     },
     {
      "w": "it.",
-     "s": 4.1,
-     "e": 4.36
+     "s": 3.66,
+     "e": 3.9
     },
     {
      "w": "Players",
-     "s": 4.72,
-     "e": 5.34
-    },
-    {
-     "w": "don't",
-     "s": 5.34,
-     "e": 5.74
+     "s": 4.18,
+     "e": 4.74
     },
     {
      "w": "see",
-     "s": 5.74,
+     "s": 4.74,
+     "e": 5.14
+    },
+    {
+     "w": "the",
+     "s": 5.14,
+     "e": 5.3
+    },
+    {
+     "w": "painted",
+     "s": 5.3,
+     "e": 5.66
+    },
+    {
+     "w": "wall",
+     "s": 5.66,
      "e": 5.98
     },
     {
-     "w": "walls.",
+     "w": "band,",
      "s": 5.98,
-     "e": 6.56
+     "e": 6.34
     },
     {
-     "w": "They",
-     "s": 6.84,
-     "e": 7.2
+     "w": "never",
+     "s": 6.6,
+     "e": 6.98
     },
     {
-     "w": "act",
-     "s": 7.2,
+     "w": "the",
+     "s": 6.98,
+     "e": 7.14
+    },
+    {
+     "w": "blocking",
+     "s": 7.14,
      "e": 7.48
     },
     {
-     "w": "through",
+     "w": "line.",
      "s": 7.48,
-     "e": 7.7
+     "e": 7.88
+    },
+    {
+     "w": "It",
+     "s": 8.18,
+     "e": 8.72
+    },
+    {
+     "w": "works",
+     "s": 8.72,
+     "e": 9.12
+    },
+    {
+     "w": "through",
+     "s": 9.12,
+     "e": 9.32
     },
     {
      "w": "fog",
-     "s": 7.7,
-     "e": 8.14
+     "s": 9.32,
+     "e": 9.72
     },
     {
      "w": "and",
-     "s": 8.14,
-     "e": 8.48
+     "s": 9.72,
+     "e": 9.9
     },
     {
      "w": "movement.",
-     "s": 8.48,
-     "e": 8.94
+     "s": 9.9,
+     "e": 10.3
     },
     {
      "w": "To",
-     "s": 9.32,
-     "e": 9.82
+     "s": 10.62,
+     "e": 11.08
     },
     {
      "w": "check",
-     "s": 9.82,
-     "e": 10.06
+     "s": 11.08,
+     "e": 11.32
     },
     {
      "w": "from",
-     "s": 10.06,
-     "e": 10.28
-    },
-    {
-     "w": "your",
-     "s": 10.28,
-     "e": 10.46
-    },
-    {
-     "w": "side,",
-     "s": 10.46,
-     "e": 10.92
-    },
-    {
-     "w": "press",
-     "s": 11.1,
+     "s": 11.32,
      "e": 11.52
     },
     {
-     "w": "player",
+     "w": "your",
      "s": 11.52,
-     "e": 11.9
+     "e": 11.72
     },
     {
-     "w": "view.",
-     "s": 11.9,
-     "e": 12.28
+     "w": "side,",
+     "s": 11.72,
+     "e": 12.16
     },
     {
-     "w": "You",
-     "s": 12.64,
+     "w": "press",
+     "s": 12.44,
+     "e": 12.82
+    },
+    {
+     "w": "Player",
+     "s": 12.82,
      "e": 13.16
     },
     {
-     "w": "keep",
+     "w": "View.",
      "s": 13.16,
-     "e": 13.38
+     "e": 13.48
+    },
+    {
+     "w": "You",
+     "s": 13.96,
+     "e": 14.44
+    },
+    {
+     "w": "keep",
+     "s": 14.44,
+     "e": 14.72
     },
     {
      "w": "building",
-     "s": 13.38,
-     "e": 13.8
+     "s": 14.72,
+     "e": 15.14
     },
     {
      "w": "while",
-     "s": 13.8,
-     "e": 14.16
+     "s": 15.14,
+     "e": 15.44
     },
     {
      "w": "it's",
-     "s": 14.16,
-     "e": 14.4
+     "s": 15.44,
+     "e": 15.68
     },
     {
      "w": "on.",
-     "s": 14.4,
-     "e": 14.64
+     "s": 15.68,
+     "e": 15.94
     }
    ]
   }

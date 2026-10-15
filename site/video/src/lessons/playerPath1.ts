@@ -54,7 +54,7 @@ export const playerPath1: LessonScript = {
       beats: [
         { kind: "sticker", from: say("a reload drops you"), to: say("If your connection", -0.2), text: "🔄 RELOAD = STRAIGHT BACK IN", pos: { x: 960, y: 420 }, tone: "green", tilt: -2 },
         { kind: "chips", to: say("In this browser", -0.2), pos: { x: 960, y: 300 }, sep: "→", items: [{ text: "RECONNECTING…", at: say("You'll see reconnecting") }, { text: "RE-AUTHENTICATING…", at: say("then re authenticating") }] },
-        { kind: "popup", from: say("In this browser"), to: say("DM password again.", 1.4, true), icon: "🪑", title: "SAME PERSON", lines: ["Your seat is held six hours", "Then a DM re-enters the DM password"], lineAt: [say("Your seat is held"), say("After that")], pos: { x: 960, y: 420 }, width: 600 },
+        { kind: "popup", from: say("In this browser"), to: say("DM password again.", 1.4, true), icon: "🪑", title: "SAME PERSON", lines: ["Your seat is held up to six hours", "Less if the server restarts", "Then anyone with the password can take it"], lineAt: [say("Your seat is held"), say("less if the server"), say("After that")], pos: { x: 960, y: 420 }, width: 600 },
       ],
     },
     {

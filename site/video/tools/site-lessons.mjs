@@ -177,11 +177,15 @@ function ffmpeg(args) {
 // --json-only rewrites lessons.json from the videos already in site/media/ (a copy that is not
 // byte-identical would add another copy of every video to git history).
 const jsonOnly = process.argv.includes("--json-only");
+// --only dm-path-5,dm-quick-start copies just those videos (and their posters); the rest stay as
+// they are, for the same reason.
+const onlyArg = process.argv.find((a) => a.startsWith("--only="));
+const only = onlyArg ? new Set(onlyArg.slice("--only=".length).split(",")) : null;
 
 function publish(file, posterAt) {
   const src = path.join(video, "out", `${file}-small.mp4`);
   const dest = path.join(media, `${file}.mp4`);
-  if (jsonOnly) return statSync(dest).size;
+  if (jsonOnly || (only && !only.has(file))) return statSync(dest).size;
   ffmpeg(["-i", src, "-c", "copy", "-movflags", "+faststart", dest]);
   const bytes = statSync(dest).size;
   if (bytes > MAX_BYTES) throw new Error(`${dest} is ${(bytes / 2 ** 20).toFixed(1)} MiB; Cloudflare Pages takes 25 MiB at most`);

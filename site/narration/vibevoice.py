@@ -2,6 +2,7 @@
 
     D:/AI/VibeVoiceTTS/.venv/Scripts/python.exe site/narration/vibevoice.py "Player path 3" ["Player path 4" ...]
         [--chapters 1,3] [--model 1.5B|Large] [--voice Wren] [--force]
+    ... "DM path 5#1,3,4" voices only that video's chapters 1, 3 and 4.
 
 Several videos in one run share one model load (minutes).
 
@@ -94,9 +95,12 @@ def main():
 
     plan = []
     for video in args.videos:
+        # "DM path 5#1,3,4" picks that video's own chapters, so one run (one model load) can voice
+        # different chapters of several videos; --chapters applies to the videos without one.
+        video, _, own = video.partition("#")
         title, chapters = chapters_of(video)
-        if args.chapters:
-            wanted = {int(n) for n in args.chapters.split(",")}
+        if own or args.chapters:
+            wanted = {int(n) for n in (own or args.chapters).split(",")}
             chapters = [c for c in chapters if c[0] in wanted]
         folder = REPO / "site" / "narration" / "out" / "lessons" / slug(title)
         folder.mkdir(parents=True, exist_ok=True)
