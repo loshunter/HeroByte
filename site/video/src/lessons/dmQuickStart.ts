@@ -201,7 +201,7 @@ export const dmQuickStart: LessonScript = {
             { text: "🚪 SECRET DOORS HIDDEN", at: say("secret doors") },
           ],
         },
-        { kind: "sticker", from: say("You keep every"), to: say("Press it again", -0.2), text: "👑 YOU KEEP EVERY DM POWER", pos: { x: 960, y: 820 }, tone: "blue", tilt: -2 },
+        { kind: "sticker", from: say("You keep every"), to: say("Press it again", -0.2), text: "👑 EVERY DM POWER · BUT DOORS ACT AS FOR A PLAYER", pos: { x: 960, y: 820 }, tone: "blue", tilt: -2 },
         { kind: "ring", from: say("Press it again", -0.1), to: mark("Player View", 0.6), target: { mark: "Player View", nth: 2 } },
         { kind: "sticker", from: say("switch back", -0.1), to: say("Player View is on", -0.2), text: "ONE CLICK ON · ONE CLICK OFF", pos: { x: 960, y: 820 }, tone: "gold", tilt: 2 },
         { kind: "sticker", from: say("Player View is on"), to: say("layout", 1.4, true), text: "💻 COMPUTER LAYOUT ONLY", pos: { x: 960, y: 820 }, tone: "green", tilt: -3 },

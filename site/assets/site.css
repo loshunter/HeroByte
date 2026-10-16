@@ -257,16 +257,35 @@ p, li { text-wrap: pretty; }
 
 .player { border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--shadow); }
 .screen { position: relative; background: #000; }
-.screen img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; opacity: 0.55; }
-.screen-over { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; text-align: center; }
-.screen-over .soon { font-family: var(--pixel); font-size: clamp(10px, 1.4vw, 13px); background: var(--bg); color: var(--gold); padding: 10px 14px; border: 2px solid var(--gold); line-height: 1.6; }
-.screen-over .cap { font-family: var(--mono); font-size: 13px; background: var(--bg); color: var(--ink); padding: 4px 10px; }
 .chapters { background: var(--panel); border-top: 3px solid var(--line-2); padding: 18px 16px 14px; }
 .chapters h2 { margin: 0 0 10px; font-family: var(--mono); font-weight: 500; font-size: 13px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
 .chapters ol { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 6px; }
 .chapters button { width: 100%; min-height: 48px; text-align: left; display: flex; gap: 12px; align-items: center; padding: 8px 12px; cursor: pointer; font: inherit; font-size: 15px; background: transparent; color: var(--ink-2); border: 2px solid var(--line-2); }
 .chapters button span:first-child { font-family: var(--pixel); font-size: 10px; flex: none; }
 .chapters button[aria-current="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.screen video, .screen iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: #000; }
+.chapters button .at { margin-left: auto; flex: none; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.chapters button[aria-current="true"] .at { color: inherit; }
+.step-head .seek { margin-left: auto; flex: none; min-height: 44px; padding: 6px 12px; cursor: pointer; font-family: var(--mono); font-size: 13px; background: transparent; color: var(--ink-2); border: 2px solid var(--line-2); }
+.step-head .seek:hover { color: var(--gold); border-color: var(--gold); }
+.lesson-group { margin: 32px 0 16px; }
+.lesson-group:first-of-type { margin-top: 0; }
+.path .kind { font-family: var(--mono); font-size: 12px; color: var(--muted); flex: none; }
+.path a[aria-current="page"] { font-weight: 600; color: var(--gold); }
+.path.blue a[aria-current="page"] { color: var(--blue-2); }
+.video-start { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 14px; padding: 12px 12px 8%; border: 0; background: transparent; cursor: pointer; font: inherit; color: var(--ink); }
+.video-start[aria-busy] { cursor: progress; }
+.video-start.cannot { cursor: default; }
+.video-start.cannot .play-box { display: none; }
+.video-start[hidden] { display: none; }
+.video-start .play-box { width: clamp(44px, 9vw, 72px); height: clamp(44px, 9vw, 72px); }
+.video-start:hover .play-box, .video-start:focus-visible .play-box { background: var(--ink); }
+.video-status:empty { display: none; }
+.video-status { position: absolute; left: 50%; top: 10%; transform: translateX(-50%); max-width: calc(100% - 24px); text-align: center; pointer-events: none; font-family: var(--pixel); font-size: clamp(9px, 1.3vw, 12px); line-height: 1.6; background: var(--bg); color: var(--gold); border: 2px solid var(--gold); padding: 8px 12px; }
+.chapters-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; margin-bottom: 10px; }
+.chapters-head h2 { margin: 0; }
+.chapters-head a, .video-alt a { font-family: var(--mono); font-size: 13px; }
+.video-alt { margin: 18px 0 0; }
 
 .written-head { display: flex; flex-direction: column; gap: 8px; }
 .written-head h2 { margin: 0; font-family: var(--pixel); font-weight: 400; font-size: 16px; line-height: 1.6; }
@@ -277,6 +296,8 @@ p, li { text-wrap: pretty; }
 .step-head h3 { margin: 0; font-size: 22px; font-weight: 600; line-height: 1.35; }
 .step p { margin: 0; color: var(--ink-3); }
 .step .phone { color: var(--muted); font-size: 15px; }
+.step .note { border-left: 3px solid var(--gold); padding-left: 12px; font-size: 15px; }
+.step .note b { font-family: var(--mono); font-weight: 500; font-size: 12px; letter-spacing: 1px; padding-right: 8px; color: var(--gold); }
 .step .phone b { font-family: var(--mono); font-weight: 500; font-size: 12px; letter-spacing: 1px; padding-right: 8px; }
 .step figure, .prose figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .step figure img, .prose figure img { display: block; width: 100%; border: 3px solid var(--line-2); }

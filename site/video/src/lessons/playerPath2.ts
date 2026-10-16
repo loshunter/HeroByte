@@ -95,7 +95,8 @@ export const playerPath2: LessonScript = {
             { text: "WHISPER = PRIVATE", at: say("whisper to someone") },
           ],
         },
-        { kind: "popup", from: say("Being the DM"), to: say("whispers.", 1.4, true), icon: "🤫", title: "WHISPERS STAY PRIVATE", lines: ["Not even the DM reads them"], pos: { x: 700, y: 420 }, width: 520 },
+        { kind: "popup", from: say("Being the DM"), to: say("But a seat left empty", -0.2), icon: "🤫", title: "WHISPERS STAY PRIVATE", lines: ["Not even the DM reads them"], pos: { x: 700, y: 420 }, width: 520 },
+        { kind: "popup", from: say("But a seat left empty"), to: say("stored for it.", 1.4, true), icon: "🪑", title: "AN EMPTY SEAT", lines: ["Empty over six hours, or a restart", "Anyone with the password can take it"], lineAt: [say("But a seat left empty"), say("can be taken")], pos: { x: 700, y: 420 }, width: 560 },
       ],
     },
     {

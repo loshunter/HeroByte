@@ -6,7 +6,7 @@
 //   the help center links to the same text the app's docs maintain. Headings get GitHub-style
 //   ids, so the guides' own cross-links (getting-started.md#becoming-the-dm) keep working.
 // - site/dist/help/search-index.json holds every guide section for the help search.
-import { realpathSync } from "node:fs";
+import { realpathSync, statSync } from "node:fs";
 import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,6 +72,180 @@ const GUIDES = [
   { file: "running-a-game.md", title: "Running a game", aud: "dm" },
   { file: "map-editor-guide.md", title: "Map editor guide", aud: "dm" },
 ];
+
+// ---------- lessons ----------
+
+// The lesson videos: site/lessons.json (chapters and the written version) and site/media/ (the
+// videos and their posters) come from site/video/tools/site-lessons.mjs after a render. Here is
+// what only the website decides: each lesson's page, the guide section that covers it in full, and
+// its YouTube video once it is uploaded. A `youtube` id swaps the page's own video for the YouTube
+// player; before setting the first one, allow it in the CSP (apps/client/public/_headers:
+// `frame-src https://www.youtube-nocookie.com`), or the browser shows an empty box.
+// A `hand` page is written in pages/help/ and places the video with {{video:<id>}}; the others
+// are built from lessons.json. `notes` (by chapter number) add a line under what the narrator says
+// where the video says less than the app does, until the video is re-recorded.
+export const LESSON_PAGES = {
+  "player-quick-start": { page: "player-quick-start.html", hand: true, youtube: null },
+  "dm-quick-start": { page: "dm-quick-start.html", hand: true, youtube: null },
+  "player-path-1": { page: "join-a-table.html", guide: ["guide/getting-started.html#joining-a-table", "Getting started: Joining a table"], youtube: null },
+  "player-path-2": { page: "the-table-at-a-glance.html", guide: ["guide/player-guide.html#the-table-at-a-glance", "Player guide: The table at a glance"], youtube: null },
+  "player-path-3": { page: "your-character-card.html", guide: ["guide/player-guide.html#your-character-card", "Player guide: Your character card"], youtube: null },
+  "player-path-4": { page: "roll-dice.html", guide: ["guide/player-guide.html#dice", "Player guide: Dice"], youtube: null },
+  "player-path-5": { page: "draw-measure-and-ping.html", guide: ["guide/player-guide.html#drawing-measuring-pointing", "Player guide: Drawing, measuring, pointing"], youtube: null },
+  "player-path-6": { page: "fog-doors-and-sight.html", guide: ["guide/player-guide.html#doors-fog-and-what-you-can-see", "Player guide: Doors, fog and what you can see"], youtube: null },
+  "dm-path-1": { page: "create-a-private-table.html", guide: ["guide/getting-started.html#creating-a-private-table", "Getting started: Creating a private table"], youtube: null },
+  "dm-path-2": { page: "become-the-dm.html", guide: ["guide/getting-started.html#becoming-the-dm", "Getting started: Becoming the DM"], youtube: null },
+  "dm-path-3": { page: "three-ways-to-get-a-map.html", guide: ["guide/running-a-game.html", "Running a game"], youtube: null },
+  "dm-path-4": { page: "build-your-first-room.html", hand: true, youtube: null },
+  "dm-path-5": { page: "walls-doors-and-fog.html", guide: ["guide/map-editor-guide.html#-wall-and--door", "Map editor guide: Wall and Door"], youtube: null },
+  "dm-path-6": { page: "npcs-and-the-token-library.html", guide: ["guide/dm-guide.html#npcs--monsters", "DM guide: NPCs and monsters"], youtube: null },
+  "dm-path-7": { page: "run-your-first-combat.html", guide: ["guide/dm-guide.html#encounter", "DM guide: Encounter"], youtube: null },
+  "dm-path-8": { page: "backups-and-keeping-your-work.html", guide: ["guide/dm-guide.html#backups", "DM guide: Backups"], youtube: null },
+};
+const PATHS = {
+  player: ["player-path-1", "player-path-2", "player-path-3", "player-path-4", "player-path-5", "player-path-6"],
+  dm: ["dm-path-1", "dm-path-2", "dm-path-3", "dm-path-4", "dm-path-5", "dm-path-6", "dm-path-7", "dm-path-8"],
+};
+const QUICK_START = { player: "player-quick-start", dm: "dm-quick-start" };
+const COLOR = { player: "blue", dm: "gold" };
+
+const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const PLAY_ICON = `<svg width="22" height="22" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="#14100a"></path></svg>`;
+
+// A video from site/media/. Cloudflare Pages answers a Range request with the whole file, so a
+// video streamed from it cannot seek (no scrubbing, no chapter buttons) and Safari may refuse it
+// outright. So the page shows the poster and a play button, and lesson.js downloads the whole file
+// on the first press and plays it from memory (a blob: URL, allowed by media-src in
+// apps/client/public/_headers), where seeking always works.
+function mp4Screen(id, label, root) {
+  return `<div class="screen"><video preload="none" playsinline poster="${root}media/${id}.jpg" data-src="${root}media/${id}.mp4" aria-label="${esc(label)}"></video><button type="button" class="video-start" aria-label="Play: ${esc(label)}"><span class="play-box">${PLAY_ICON}</span></button><span class="video-status" role="status"></span></div>`;
+}
+function mp4Download(id, root) {
+  const mb = statSync(path.join(here, "media", `${id}.mp4`)).size / 1e6;
+  return `<a href="${root}media/${id}.mp4" download>Download the video (${mb.toFixed(mb < 10 ? 1 : 0)} MB)</a>`;
+}
+
+/** The video and its chapter buttons, at the top of a lesson page. */
+function videoBlock(lesson, root) {
+  const { youtube } = LESSON_PAGES[lesson.id];
+  const label = `${lesson.heading}: ${lesson.title}`;
+  const player = youtube
+    ? `<iframe src="https://www.youtube-nocookie.com/embed/${youtube}" data-base="https://www.youtube-nocookie.com/embed/${youtube}" title="${esc(label)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`
+    : null;
+  const chapters = lesson.chapters
+    .map(
+      (c, i) =>
+        `<li><button type="button" aria-current="${i === 0}" data-t="${c.start}"><span>${i + 1}</span><span>${esc(c.title)}</span><span class="at">${clock(c.start)}</span></button></li>`,
+    )
+    .join("\n");
+  return `<section class="player" aria-label="Video lesson">
+${player ? `<div class="screen">${player}</div>` : mp4Screen(lesson.id, label, root)}
+<div class="chapters">
+<div class="chapters-head"><h2>Chapters · ${clock(lesson.duration)}</h2>${player ? "" : mp4Download(lesson.id, root)}</div>
+<ol>
+${chapters}
+</ol>
+</div>
+</section>`;
+}
+
+/** A path's lessons in order, for the help center and the lesson pages' asides. */
+function pathList(aud, current, root, lessons) {
+  return `<ol>\n${PATHS[aud]
+    .map((id, i) => {
+      const l = lessons.get(id);
+      const here = id === current ? ' aria-current="page"' : "";
+      return `<li><a href="${root}help/${LESSON_PAGES[id].page}"${here}><span class="n ${COLOR[aud]}">${i + 1}</span><span class="t">${esc(l.title)}</span><span class="kind ${COLOR[aud]}">${clock(l.duration)}</span></a></li>`;
+    })
+    .join("\n")}\n</ol>`;
+}
+
+/** One card per lesson video, grouped by path, for the help center. */
+function lessonCards(root, lessons) {
+  const card = (id, tag) => {
+    const l = lessons.get(id);
+    return `<a class="video-card" href="${root}help/${LESSON_PAGES[id].page}"><div class="thumb"><img src="${root}media/${id}.jpg" alt="" loading="lazy"><div class="play"><div class="play-box">${PLAY_ICON}</div></div><span class="badge">${clock(l.duration)}</span></div><span class="tag ${COLOR[l.aud]}">${tag}</span><span class="title">${esc(l.title)}</span></a>`;
+  };
+  const group = (title, cards) =>
+    `<h3 class="h3 lesson-group">${title}</h3>\n<div class="grid" style="--min: 250px; --gap: 24px">\n${cards.join("\n")}\n</div>`;
+  return [
+    group("QUICK STARTS", [card(QUICK_START.player, "Player quick start"), card(QUICK_START.dm, "DM quick start")]),
+    group("PLAYER PATH", PATHS.player.map((id, i) => card(id, `Player ${i + 1} of ${PATHS.player.length}`))),
+    group("DM PATH", PATHS.dm.map((id, i) => card(id, `DM ${i + 1} of ${PATHS.dm.length}`))),
+  ].join("\n");
+}
+
+/** A lesson page built from lessons.json: the video, its chapters written out, the path around it. */
+function lessonPage(lesson, lessons) {
+  const root = "../";
+  const color = COLOR[lesson.aud];
+  const path = PATHS[lesson.aud];
+  const at = path.indexOf(lesson.id);
+  const pathName = lesson.aud === "dm" ? "DM path" : "Player path";
+  const [guideHref, guideLabel] = LESSON_PAGES[lesson.id].guide;
+  const notes = LESSON_PAGES[lesson.id].notes ?? {};
+  const prevId = at > 0 ? path[at - 1] : QUICK_START[lesson.aud];
+  const prev = lessons.get(prevId);
+  const nextId = path[at + 1];
+  const next = nextId && lessons.get(nextId);
+  const steps = lesson.chapters
+    .map(
+      (c, i) => `<article class="step" id="chapter-${i + 1}">
+<div class="step-head"><span class="num ${color}">${i + 1}</span><h3>${esc(c.title)}</h3><button type="button" class="seek" data-seek="${c.start}" aria-label="Play chapter ${i + 1} from ${clock(c.start)}">▶ ${clock(c.start)}</button></div>
+${c.say.map((s) => `<p>${esc(s)}</p>`).join("\n")}${notes[i + 1] ? `\n<p class="note"><b>NOTE</b> ${esc(notes[i + 1])}</p>` : ""}
+</article>`,
+    )
+    .join("\n\n");
+  const body = `<main id="main" class="wrap page">
+<nav aria-label="Breadcrumb" class="crumbs"><a href="index.html">Help</a><span aria-hidden="true">/</span><a href="index.html#paths">${pathName}</a><span aria-hidden="true">/</span><span>${esc(lesson.title)}</span></nav>
+
+<div class="intro">
+<div class="tags"><span class="tag-box ${lesson.aud}">${lesson.aud === "dm" ? "DM" : "PLAYER"}</span><span class="tag-box">${pathName.toUpperCase()} · ${at + 1} OF ${path.length}</span><span class="tag-box">VIDEO · ${clock(lesson.duration)}</span></div>
+<h1>${esc(lesson.title)}</h1>
+<p class="lead">${esc(lesson.lead)}</p>
+</div>
+
+<div class="with-aside">
+<div>
+
+${videoBlock(lesson, root)}
+
+<section aria-labelledby="written" style="display: flex; flex-direction: column; gap: 36px">
+<div class="written-head">
+<h2 id="written">Step by step</h2>
+<p>What the narrator says in the video, chapter by chapter. A NOTE marks a place where the video says less than the app does. Press a time to play that part.</p>
+</div>
+
+${steps}
+
+<div class="callout ${color}"><b>IN THE GUIDE</b><p>The guide goes deeper, starting at <a href="${guideHref}">${esc(guideLabel)}</a>.</p></div>
+</section>
+
+<nav class="lesson-nav" aria-label="Lesson navigation">
+<a href="${LESSON_PAGES[prevId].page}"><span>BACK</span><span>${esc(prev.title)}</span></a>
+${
+  next
+    ? `<a class="next ${lesson.aud}" href="${LESSON_PAGES[nextId].page}"><span>NEXT · ${pathName.toUpperCase()}</span><span>${esc(next.title)}</span></a>`
+    : `<a class="next ${lesson.aud}" href="index.html#videos"><span>PATH COMPLETE</span><span>Every lesson</span></a>`
+}
+</nav>
+</div>
+
+<aside class="aside">
+<div class="panel ${color} path">
+<h2 class="panel-title ${color}">${pathName.toUpperCase()}</h2>
+${pathList(lesson.aud, lesson.id, root, lessons)}
+</div>
+<div class="panel">
+<h2 class="panel-title">IN THE GUIDE</h2>
+<a href="${guideHref}" class="small">${esc(guideLabel)}</a>
+<a href="${LESSON_PAGES[QUICK_START[lesson.aud]].page}" class="small">${lesson.aud === "dm" ? "DM" : "Player"} quick start</a>
+</div>
+</aside>
+</div>
+</main>`;
+  return body;
+}
 
 // ---------- markdown ----------
 
@@ -348,11 +522,23 @@ const mainHallLine = SITE.mainHall.password
   ? `Table password <code>${SITE.mainHall.password}</code>` +
     (SITE.mainHall.dmPassword ? `, and <code>${SITE.mainHall.dmPassword}</code> to try the DM tools.` : ".")
   : "Ask the host for the Main Hall password.";
-const fill = (s, root) =>
+// The lesson placeholders: {{video:<id>}}, {{pathList:<player|dm>}} (or {{pathList:dm:<id>}} to mark one) and
+// {{lessonCards}}; for any other video in media/, {{screen:<id>:<label>}} and {{download:<id>}}.
+const lessonOf = (lessons, id) => {
+  const l = lessons.get(id);
+  if (!l) throw new Error(`no lesson "${id}" in site/lessons.json`);
+  return l;
+};
+const fill = (s, root, lessons) =>
   s
     .replace(/\{\{app\}\}/g, SITE.appUrl)
     .replace(/\{\{root\}\}/g, root)
-    .replace(/\{\{mainHallLine\}\}/g, mainHallLine);
+    .replace(/\{\{mainHallLine\}\}/g, mainHallLine)
+    .replace(/\{\{video:([a-z0-9-]+)\}\}/g, (_, id) => videoBlock(lessonOf(lessons, id), root))
+    .replace(/\{\{pathList:(player|dm)(?::([a-z0-9-]+))?\}\}/g, (_, aud, cur) => pathList(aud, cur, root, lessons))
+    .replace(/\{\{lessonCards\}\}/g, () => lessonCards(root, lessons))
+    .replace(/\{\{screen:([a-z0-9-]+):([^}]+)\}\}/g, (_, id, label) => mp4Screen(id, label, root))
+    .replace(/\{\{download:([a-z0-9-]+)\}\}/g, (_, id) => mp4Download(id, root));
 
 // ---------- build ----------
 
@@ -364,9 +550,26 @@ export async function build(dest = out) {
   // Not "assets/": that is the app's content-hashed bundle folder, cached for a year (_headers).
   await cp(path.join(here, "assets"), path.join(dest, "site-assets"), { recursive: true });
   await cp(path.join(guideDir, "img"), path.join(dest, "img"), { recursive: true });
+  await cp(path.join(here, "media"), path.join(dest, "media"), { recursive: true });
 
   const guideFiles = new Set(GUIDES.map((g) => g.file));
   const index = [];
+  const lessons = new Map(
+    JSON.parse(await readFile(path.join(here, "lessons.json"), "utf8")).lessons.map((l) => [l.id, l]),
+  );
+  for (const id of Object.keys(LESSON_PAGES)) lessonOf(lessons, id);
+
+  for (const l of lessons.values()) {
+    const p = LESSON_PAGES[l.id];
+    if (!p || p.hand) continue;
+    const body = lessonPage(l, lessons);
+    await writeFile(
+      path.join(dest, "help", p.page),
+      layout({ title: `${l.title} · HeroByte help`, description: l.lead, body, root: "../", current: "help", scripts: ["lesson.js"] }),
+    );
+    const words = l.chapters.map((c) => `${c.title}. ${c.say.join(" ")}`).join(" ");
+    index.push({ t: `${l.heading}: ${l.title}`, g: "Lessons", a: l.aud, u: p.page, x: `${l.lead} ${words}`.slice(0, 2000) });
+  }
 
   for (const g of GUIDES) {
     const md = await readFile(path.join(guideDir, g.file), "utf8");
@@ -416,13 +619,13 @@ export async function build(dest = out) {
     const depth = rel.split("/").length - 1;
     // 404.html is served at whatever address was not found, so its links must not be relative.
     const root = rel === "404.html" ? "/" : "../".repeat(depth);
-    const body = fill(src.slice(m[0].length), root);
+    const body = fill(src.slice(m[0].length), root, lessons);
     await mkdir(path.dirname(path.join(dest, rel)), { recursive: true });
     const head = rel === "index.html" ? `${forwarder}\n` : "";
     await writeFile(path.join(dest, rel), layout({ ...meta, body, root, head }));
     if (meta.search) {
       const words = body
-        .replace(/<(script|style|nav|aside)[\s\S]*?<\/>/g, " ")
+        .replace(/<(script|style|nav|aside)\b[\s\S]*?<\/\1>/g, " ")
         .replace(/<[^>]+>/g, " ")
         .replace(/&amp;/g, "&")
         .replace(/\s+/g, " ")

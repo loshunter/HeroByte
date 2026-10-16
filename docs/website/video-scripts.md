@@ -181,7 +181,7 @@ How it signs in:
 3. Zoom: **NORMAL / ADV / DIS**, then **TABLE / DM / ME** and the line under them.
 4. Click **⚂ ROLL!**. Let the dice land; hold on the result panel.
 5. Click **d20** in the **Roll now:** row.
-6. Click **✋ I ROLLED IT**, type `17`, confirm. Open **📜 Chat & Rolls → Rolls** and zoom on the **BY HAND** badge.
+6. Click **✋ I ROLLED IT**, type `17`, press **RECORD**. Open **📜 Chat & Rolls → Rolls** and zoom on the **BY HAND** badge.
 7. End card: links to Player lessons 1 to 6.
 
 **Common mistake:** pasting the invite link and expecting to be let in. Show the join screen still asking for the password, then the line: `The link has no password. Ask your DM for it.`
@@ -262,7 +262,7 @@ How it signs in:
 
 **Say:**
 > Press PLAYER VIEW. You now see exactly what players see: fog from the party's vision, secret doors hidden.
-> You keep every DM power. Press it again to switch back.
+> You keep every DM power, except at doors: they answer you as they would a player. Press it again to switch back.
 > Player view is on the computer layout.
 
 **Show:**
@@ -314,13 +314,13 @@ How it signs in:
 
 **Say:**
 > Belong to more than one table? A Table picker appears above the password. Choose the table, type its password, enter.
-> Have a code instead of a link? Paste it under Join by code, and press JOIN.
+> Have a code instead of a link? Paste it in the table code box, under Start or join. Then press JOIN.
 > Forget this table drops a private table from this browser's list. You'll need its code to get back.
 > Your browser remembers up to twelve tables. The server publishes no list of tables, so keep your codes.
 
 **Show:**
-1. Reload to the join screen. Zoom: the **Table** picker; open it, pick the other table.
-2. Paste a code like `table-k3f9x2` into **Join by code**, point at **JOIN** (do not press).
+1. Open the table's link in a new tab (a reload signs you straight back in). Zoom: the **Table** picker; open it, pick the other table.
+2. Paste a code like `table-k3f9x2` into the **table code** box under **START OR JOIN**, point at **JOIN** (do not press).
 3. Zoom: **Forget this table**. Caption: `You'll need the code to get back.`
 
 ### 3. It remembers you (1:40)
@@ -328,7 +328,7 @@ How it signs in:
 **Say:**
 > The password is stored for that table in this tab, so a reload drops you straight back in.
 > If your connection blips, HeroByte reconnects for you. You'll see Reconnecting, then Re-authenticating, under the header.
-> For up to six hours, a reload or a blip brings you back as the same person.
+> For up to six hours, less if the server restarts for an update, a reload or a blip brings you back as the same person. After that, anyone with the table password can take your seat.
 
 **Show:**
 1. Reload the tab. The table returns without the join screen.
@@ -432,6 +432,7 @@ How it signs in:
 > Open Chat and Rolls, then Chat.
 > Choose Everyone for table talk, or Whisper to someone for a private message. Press SEND or Enter.
 > Being the DM doesn't let anyone read other players' whispers.
+> But a seat left empty for over six hours, or through a server restart, can be taken by anyone with the table password, along with the whispers stored for it.
 
 **Show:**
 1. Click **📜 Chat & Rolls → Chat**.
@@ -478,32 +479,36 @@ How it signs in:
 
 ## Player path 3: Your character card
 
-- **Audience:** players. **Length:** about 4:00.
-- **By the end:** the viewer can edit their character, its portrait and token art, conditions and size, save it to a file, and add a second character.
-- **Setup:** Main Hall or a private table, one player signed in with one character, its token on the map. A small portrait image and a token image saved on the computer. A phone at 390 px for chapter 5.
+- **Audience:** players. **Length:** about 4:40.
+- **By the end:** the viewer can open their card and every card at once, edit their character's name and HP, add a portrait and token art by upload or by link (and knows the limits of each), set conditions and size, recolour their token, save the character to a file, and add a second one.
+- **Setup:** Main Hall or a private table, one player signed in with one character, its token on the map. The example token `site/video/capture/assets/rogue-token.png` (the owner's round rogue portrait, 400×400 PNG with transparent corners, 226 KB) for the upload, and `rogue-portrait.png` (a close crop of the same art) for the portrait. For the link step the recording pastes the uploaded portrait's own-server link (the table's own server is allowed like Imgur and Discord; Claude cannot upload to Imgur). A second player on a phone at 390 px (Bram), whose colour gives the picker a striped patch and whose token the DM locks, and who is recorded for chapter 7.
+- **Recorded:** `site/video/capture/player-path-3.capture.ts` (2026-10-11), on the temp narration (VibeVoice clone of Wren, `site/narration/vibevoice.py`).
 - **Thumbnail:** `img/party-details.jpg` (predates the new voice controls; the card's mic button may look different now).
 
 | Start | Chapter |
 | --- | --- |
 | 0:00 | Open your card |
-| 0:30 | Name, HP and temp HP |
-| 1:15 | The settings window |
-| 2:20 | Your token |
-| 3:00 | Save, load, add a character |
-| 3:35 | On a phone |
+| 0:35 | Name, HP and temp HP |
+| 1:20 | Portrait and token art |
+| 2:25 | Conditions and size |
+| 2:55 | Your token on the map |
+| 3:35 | Save, load, add a character |
+| 4:10 | On a phone |
 
 ### 1. Open your card (0:00)
 
 **Say:**
 > The Party lists characters, not players. Select your row and your card opens beside the rows.
 > X or Escape closes it. Select another row to switch.
+> CARDS shows every card at once.
 
 **Show:**
 1. Click your row's portrait. The card opens.
 2. Zoom: name, portrait, HP, **⚔️**, **INIT**, **⚙️**.
 3. Press **Esc**; reopen.
+4. Click **▦ Cards**; every character's card shows. Click **☰ Roster** to go back.
 
-### 2. Name, HP and temp HP (0:30)
+### 2. Name, HP and temp HP (0:35)
 
 **Say:**
 > Click the name to edit it.
@@ -513,65 +518,85 @@ How it signs in:
 > The sword button centres the map on this character's token.
 
 **Show:**
-1. Click the name, type `Aria the Bold`, Enter.
+1. Click the name, type `Kael the Quick`, Enter (the example art is a male elf rogue).
 2. Click the max HP number, type `30`; click the current, type `22`.
 3. Drag along the bar down to red, then back.
 4. Click Temp HP, type `5`.
 5. Pan away, click **⚔️**.
 
-### 3. The settings window (1:15)
+### 3. Portrait and token art (1:20)
 
 **Say:**
 > The gear opens your full settings. One window per character.
-> Upload a portrait from your computer. On a phone, that's your camera roll.
-> Give your token its own image too. CLEAR goes back to a coloured ring.
-> Status Effects is a checklist of conditions. Up to three show on your portrait and token. The rest roll into a plus bubble.
+> Your portrait and your token are two separate pictures.
+> There are two ways to add one. UPLOAD IMAGE sends a picture from your computer to the table: PNG, JPEG, GIF or WebP, up to 5 megabytes.
+> Or paste a link and press APPLY. Links work from Imgur and Discord. Other sites are blocked, so if a link shows nothing, download the picture and upload it.
+> CLEAR takes the token back to a plain square in your colour.
 
 **Show:**
 1. Click **⚙️**. Zoom: the **Character** half.
-2. **Portrait** → **⬆ UPLOAD IMAGE**, pick the file.
-3. **Token Image** → **⬆ UPLOAD IMAGE**; the token changes on the map. Point at **CLEAR**.
-4. **Status Effects**: tick Prone, Poisoned, Blessed, Concentration. Zoom: three medallions and `+1` on the token.
+2. **Portrait Image URL** → **⬆ UPLOAD IMAGE**, pick `rogue-portrait.png`. It appears on the card and the row.
+3. **Token Image URL** → **⬆ UPLOAD IMAGE**, pick `rogue-token.png`; the square token becomes the round rogue on the map. Zoom: the token, and the 60 px preview.
+4. Paste a link into **Token Image URL** (the portrait's), press **Apply**; the token changes again. Zoom: the 60 px token preview.
+5. **CLEAR** the token image; the token turns back into a coloured square (it stays plain for chapter 5's recolour).
 
-### 4. Your token (2:20)
+### 4. Conditions and size (2:25)
 
 **Say:**
+> Status Effects is a checklist of conditions. Up to three show on your portrait and token. The rest roll into a plus bubble.
 > Token Size runs from Tiny to Gargantuan.
+
+**Show:**
+1. **Status Effects**: tick Prone, Poisoned, Frightened, Burning. Zoom: three medallions and `+1` on the token.
+2. In **Token settings**, set **Token Size** to Large. Close the window.
+
+### 5. Your token on the map (2:55)
+
+**Say:**
 > Every token wears its name and, when you're allowed the numbers, a thin health bar.
-> Double-click your token for a new random colour.
+> No other player can take a colour close to yours. Pick it in settings: drag the handle and let go, or tap a dashed ring for a free one. The striped patches are the space around other players' colours; the handle stops at their edge.
+> Double-click your token for a random colour nobody else is using. With a picture on it, the colour still shows in your name on the card and the ring on your Party row.
 > With TRANSFORM, click a token for scale and rotate handles.
 > A lock badge means the DM pinned it. No one can move it until they unlock it.
 
 **Show:**
-1. In **Token settings**, set **Token Size** to Large. Close the window.
-2. Zoom: nameplate and HP bar on the token.
-3. Click **🔄 TRANSFORM**, click the token; handles appear. Rotate once; it snaps to 45°.
+1. Zoom: nameplate and HP bar on the token.
+2. In **⚙️ → Colour**, drag the handle into another player's striped patch; it stops at the edge and reads `Too close to <name>`. Let go. Tap a dashed ring; the colour jumps there. Zoom: the preview row (name, ring, token) changing with it.
+3. Clear the token image first (or use a second, plain token), double-click it twice; it changes colour each time. Zoom: the card's name colour changing with it.
+4. Click **🔄 TRANSFORM**, click the token; handles appear. Rotate once; it snaps to 45°.
 
-### 5. Save, load, add a character (3:00)
+### 6. Save, load, add a character (3:35)
 
 **Say:**
 > Save character downloads this character to a file. Load character brings it back, here or at another table.
 > It's one character, never the whole table.
-> ADD CHARACTER gives you a second one, with its own row, card, token and HP.
+> ADD CHARACTER gives you another one, with its own row, card, token and HP. Up to five each.
 
 **Show:**
 1. In **⚙️**, zoom: **Character file → Save character / Load character…**. Click **Save character**.
 2. Click **Multiple Characters → ➕ ADD CHARACTER**. A second row appears with **You**.
 
-### 6. On a phone (3:35)
+### 7. On a phone (4:10)
 
 **Say:**
 > On a phone, open PARTY. Tap or drag your own HP to edit it.
-> EDIT holds the name, portrait, token size, Add Character, and the character file.
+> EDIT holds the name, your colour, portrait, token size, Add Character, and the character file. Double-tap your token for a new colour.
+> Token art is set from a computer. The phone keeps the art you gave it there.
 
 **Show:**
 1. `[Phone]` **◉ PARTY**; tap your HP and change it.
-2. `[Phone]` Tap **⚙️ EDIT** on your row. Zoom: **➕ Add Character**, **Save character / Load character…**.
+2. `[Phone]` Tap **⚙️ EDIT** on your row. Zoom: **Portrait** (camera roll), **➕ Add Character**, **Save character / Load character…**.
 
-**Common mistake:** loading a character file that holds drawings. Caption over the **Load character…** button: `A file with drawings replaces the drawings you have on the map.` (Say it; no need to perform it.)
+**Common mistake:** pasting a link from a site other than Imgur or Discord, or a link to an image's web page instead of the image. Show it: paste a link from another site into **Token Image URL**, press **Apply**; nothing appears. Caption: `Only Imgur and Discord links work. Download it and upload instead.`
 
-**Unverified, check before recording:**
-- Whether double-click recolour works on a token that has a custom image. The guide says only "double-click (or double-tap) your token for a new random color".
+**Second common mistake:** loading a character file that holds drawings. Caption over the **Load character…** button: `A file with drawings replaces the drawings you have on the map.` (Say it; no need to perform it.)
+
+**Checked in the code (2026-10-08), confirm on screen while recording:**
+- Uploads: 5 MB per file, PNG/JPEG/GIF/WebP only, 30 uploads a minute per table; the table's storage has a quota ("The table's asset storage is full."). On the Main Hall, uploaded images are wiped once it has been empty for an hour.
+- Links show only from the table's own server, `i.imgur.com` and `media.discordapp.net` (the page's image policy). An `imgur.com/a/...` album or `imgur.com/<id>` page link is turned into its image when you press Apply.
+- The portrait has no CLEAR button; the token image does, and clearing it draws a filled square in the token's colour (not a ring).
+- Colour (checked 2026-10-09, slice C1): ⚙️ → Colour on desktop and in the phone's ⚙️ EDIT; no two players share a colour: a player's pick is checked whenever it changes, the DM's picks and table restores are not (zones shrink as players join; a player's own characters may share, and a new one starts in the player's colour; the DM is exempt both ways). Recolour is a mouse double-click of your own token (`onDblClick`) or, on a phone, a double-tap (`9da4011b`, pinned by `mobile-token-recolor.spec.ts`). It picks a random colour no other player is using. A token with an image hides its colour on the map.
+- Phones have no token-image control, on purpose (`MobilePlayerRow.tsx`); the in-app help says "Token art is set from the desktop window only."
 
 ---
 
@@ -615,6 +640,7 @@ How it signs in:
 > TABLE means everyone. DM means you and the DM. ME means only you.
 > The line under the buttons says who will see it.
 > A hidden roll is never sent to anyone else. Their browser has no copy.
+> It's kept for your seat, though. A seat left empty for over six hours, or through a server restart, can be taken by anyone with the table password, hidden rolls and all.
 
 **Show:**
 1. Clear the tray, add **+d20**, click **ADV**, **⚂ ROLL!**. Zoom: the struck-through die, the **ADV** tag in the log.
@@ -641,7 +667,7 @@ How it signs in:
 > Your DM can turn hand entry off.
 
 **Show:**
-1. With an empty tray, click **✋ I ROLLED IT**, type `17`, confirm.
+1. With an empty tray, click **✋ I ROLLED IT**, type `17`, press **RECORD**. (Never film this with the DM's hand entry off: the buttons still show, and the entry is dropped silently.)
 2. Roll **⚂ ROLL!**, then click **✋ THAT'S NOT WHAT I ROLLED**, type `12`.
 3. Zoom: the **BY HAND** badges and the struck-through number.
 
@@ -667,7 +693,7 @@ How it signs in:
 > Initiative is INIT on your row in PARTY.
 
 **Show:**
-1. `[Phone]` **⚂ DICE**, add a d20, roll, tap the result card.
+1. `[Phone]` **⚂ DICE**, add a d20, roll, tap outside the result card (tapping the card itself does nothing).
 2. `[Phone]` **◉ PARTY → ⚔️ INIT** on your row.
 
 **Common mistake:** rolling with **ME** selected when the table should see it. Show the DM's log with nothing in it, then zoom on the line under **TABLE / DM / ME**. Caption: `Check who sees it before you roll.`
@@ -681,7 +707,7 @@ How it signs in:
 
 - **Audience:** players. **Length:** about 3:45.
 - **By the end:** the viewer can draw and erase, place an area template, measure a distance and ping a spot.
-- **Setup:** Main Hall or a private table with a map and a grid, two players signed in (second browser filmed to show the others see it). Fog off. A phone at 390 px for chapter 5.
+- **Setup:** Main Hall or a private table with a map and a grid, two players signed in (second browser filmed to show the others see it). Fog off. A phone at 390 px for chapter 6.
 - **Thumbnail:** `img/measure-tool.jpg` (or `img/drawing-tools.jpg`).
 
 | Start | Chapter |
@@ -717,7 +743,7 @@ How it signs in:
 
 **Show:**
 1. Press **Ctrl+Z**, then **Ctrl+Y** (key badge).
-2. **Erase drawings**, cross the arrow: a section disappears. Touch the circle: it goes whole.
+2. **Erase drawings**, cross the arrow: a section disappears. Cross the circle's edge: it goes whole (the eraser only hits a circle near its outline).
 3. Click **✥ Move**.
 
 ### 3. Area templates (1:40)
@@ -900,8 +926,8 @@ How it signs in:
 > Forget this table removes it from this browser. You'll need the code to return.
 
 **Show:**
-1. Reload to the join screen. Open the **Table** picker; zoom on `Sunday Game`.
-2. Zoom: **Join by code**, **Forget this table**.
+1. Open the table's link in a new tab (a reload signs you straight back in). Open the **Table** picker; zoom on `Sunday Game`.
+2. Zoom: the **table code** box under **START OR JOIN**, and **Forget this table** (shown only when the address names a table; it asks first).
 
 ### 4. Keeping a Main Hall build (2:05)
 
@@ -1004,8 +1030,8 @@ How it signs in:
 
 **Say:**
 > Players at this table lists everyone who has joined, with a token count.
-> SELECT ALL grabs every token a player owns.
-> REMOVE appears on a player who isn't at the table. It clears their seat, characters and tokens. There's no undo.
+> SELECT ALL grabs every unlocked token a player owns.
+> REMOVE appears on a player who isn't at the table. It clears their seat, characters and tokens. A locked token stays, and passes to you. There's no undo.
 > It's not a ban. The password still lets them back in, as a new player.
 
 **Show:**
@@ -1020,7 +1046,7 @@ How it signs in:
 > Share the DM password with a co-DM, and you can both hold DM powers.
 
 **Show:**
-1. Table menu → **LEAVE DM MODE**. The DM buttons disappear.
+1. Table menu → **LEAVE DM MODE**; the **Leave DM mode?** dialog asks; press **LEAVE DM MODE** again. The DM buttons disappear, and the toast reads "You left DM mode. You are a player again."
 2. Re-enter DM mode for the next lesson.
 
 **Common mistake:** trying to invite before claiming the seat. At the start of chapter 4 (or in a cut-in from a fresh table), zoom on the greyed **Invite players**. Caption: `Enter DM mode first. The link waits for you.`
@@ -1035,7 +1061,7 @@ How it signs in:
 ## DM path 3: Three ways to get a map on the table
 
 - **Audience:** DMs. **Length:** about 5:00.
-- **By the end:** the viewer can put their own map image on the table, start a map to build by hand, and generate a place mid-session, and knows when to use each.
+- **By the end:** the viewer can put their own map image on the table, start a live map to build by hand, generate a place mid-session, and knows when to use each.
 - **Setup:** a private table, DM signed in, one player signed in (second browser) for the arrival shot. A battlemap image with a printed grid on the computer. Rehearse the alignment clicks. Fix the kick seed in rehearsal.
 - **Thumbnail:** `img/dm-kick-arrival.jpg`.
 
@@ -1070,11 +1096,11 @@ How it signs in:
 **Show:**
 1. **🛠️ DM MENU → Maps**. Zoom: **On table:** line, **Map Background**.
 2. **⬆ UPLOAD IMAGE**, pick the battlemap. It appears.
-3. Open **Advanced: map position and grid alignment → Grid Alignment Wizard → START ALIGNMENT**.
-4. Zoom into one printed square; click its top-left, then bottom-right corner. Click **APPLY ALIGNMENT**. The map shifts to mesh.
+3. Open **Advanced: map position and grid alignment**. A new map starts locked: press **🔒 MAP LOCKED ▲** so it reads **🔓 MAP UNLOCKED ▼** (Apply Alignment is greyed while it is locked).
+4. **Grid Alignment Wizard → START ALIGNMENT**. Zoom into one printed square; click its top-left, then bottom-right corner. Click **APPLY ALIGNMENT**. The map shifts to mesh.
 5. **Grid Controls → Square Size** `5`.
-6. **Map Transform → Map is locked** on.
-7. Scroll to **Fog of War**: zoom on the disabled button and its message.
+6. Lock it again: **🔒 MAP LOCKED**.
+7. Scroll to **Fog of War**: zoom on the button **and its note**. The button flips, but nothing is hidden until there's a live map.
 
 ### 3. B: build it here (2:00)
 
@@ -1198,7 +1224,7 @@ How it signs in:
 
 **Say:**
 > Here's the player's screen. The room appeared as you built it.
-> Players don't see walls. They act through fog and movement.
+> Players see the painted wall band, never the blocking line. It works through fog and movement.
 > To check from your side, press PLAYER VIEW. You keep building while it's on.
 
 **Show:**
@@ -1234,7 +1260,7 @@ How it signs in:
 
 **Say:**
 > Wall draws one straight blocking wall. Drag from point to point.
-> Players never see walls. They stop movement and sight.
+> Players never see a wall drawn this way. It only stops movement and sight.
 > While you edit, walls show as a see-through overlay. PIN WALLS OVERLAY keeps it after you leave.
 
 **Show:**
@@ -1244,20 +1270,20 @@ How it signs in:
 ### 2. Doors (0:40)
 
 **Say:**
-> Door: drag across a wall. The drag sets its length and angle.
+> Door: leave a gap in your wall, then drag the door across the gap. The drag sets its length and angle.
 > Doors start closed.
 > At the table, anyone can click a door to open or close it.
 
 **Show:**
-1. **🚪 Door**, drag across the new wall.
-2. Press **Esc** to leave the editor. Player browser: click the door; it opens.
+1. Draw the splitting wall as two **Wall** drags with a one-cell gap; **🚪 Door**, drag across the gap. (A door drawn over a solid wall swings open but blocks movement and sight: the wall under it still stands.)
+2. Press **Done building** (safer than Esc, whose first press cancels a drag) to leave the editor. Player browser: click the door; it opens.
 
 ### 3. Locked and secret (1:15)
 
 **Say:**
 > To change a door, pick it with Select, and open Inspect.
 > Closed, Open, Locked or Secret.
-> A locked door says it's locked to players. You can still open it.
+> A locked door shows a small gold square to players, and a click tells them it's locked. You can still open it.
 > A secret door is invisible to players. You see it as a dashed seam.
 > At the table, Alt-click a door to cycle its lock. Alt-click a secret door to reveal it.
 
@@ -1272,7 +1298,7 @@ How it signs in:
 **Say:**
 > Fog of War is in the DM Menu, under Maps. It needs a built map with walls and doors.
 > Players then see only what their tokens see. You still see everything.
-> Things outside a player's sight are never sent to them.
+> Tokens, monsters and props outside a player's sight are never sent to them. The map itself is. Fog only darkens it.
 
 **Show:**
 1. **🛠️ DM MENU → Maps → Fog of War** on.
@@ -1404,7 +1430,7 @@ How it signs in:
 
 - **Audience:** DMs. **Length:** about 4:45.
 - **By the end:** the viewer can set up an encounter, get initiative from NPCs and players, run turns and end the fight.
-- **Setup:** a private table with a live map, fog off. DM signed in. Two players signed in on separate browsers, tokens placed, each with a movement speed set (**Token settings → Movement**). Three goblin NPCs placed (DM lesson 6). No initiative on file: if needed, **Encounter → 🗑️ Clear all initiative** and **🏁 End combat** before recording.
+- **Setup:** a private table with a live map, fog off. DM signed in. Two players signed in on separate browsers, tokens placed, each with a movement speed set (**Token settings → Speed (ft per turn)**). Three goblin NPCs placed (DM lesson 6). No initiative on file: if needed, **Encounter → 🗑️ Clear all initiative** and **🏁 End combat** before recording.
 - **Thumbnail:** `img/combat-active.jpg` (predates the new voice controls; check the cards).
 
 | Start | Chapter |
@@ -1444,7 +1470,7 @@ How it signs in:
 **Say:**
 > Roll missing NPC initiative rolls a d20 plus modifier for every NPC that has none.
 > Each gets its own line in the log. A hidden NPC rolls into your log only.
-> Players may type rolls by hand if your table allows it. The line here says which.
+> Players may type rolls by hand if your table allows it. This line tells you whether it does.
 
 **Show:**
 1. Click **🎲 Roll missing NPC initiative**. The goblins slot into the order. The button disables, with its reason.
