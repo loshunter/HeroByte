@@ -1,0 +1,16 @@
+{
+  "id": "personal",
+  "name": "Your colour",
+  "roles": {
+    "top": "personal",
+    "bevel": "personal",
+    "side": "personal",
+    "outline": "personal",
+    "crack": "personal",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.4,
+  "gloss": 0.55
+}

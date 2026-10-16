@@ -1,0 +1,15 @@
+{
+  "id": "stone.sandstone",
+  "name": "Sandstone",
+  "theme": "stone",
+  "tags": ["masonry", "desert"],
+  "bands": [
+    {
+      "generator": "masonry",
+      "palette": "stone.sand",
+      "share": 1,
+      "depth": 0.7,
+      "params": { "bond": "running", "stoneLength": 1.8, "irregularity": 0.2 }
+    }
+  ]
+}

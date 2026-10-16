@@ -1,0 +1,16 @@
+{
+  "id": "stone.grey",
+  "name": "Grey stone",
+  "roles": {
+    "top": "#9b978f",
+    "bevel": "#86827b",
+    "side": "#57544f",
+    "outline": "#2c2a28",
+    "crack": "#3b3835",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.06,
+  "gloss": 0.15
+}

@@ -29,6 +29,7 @@ import type {
 import type { GenerateRequest } from "./recipes.js";
 import type { ChatMessage } from "./chat.js";
 import type { SessionFile } from "./sessionFile.js";
+import type { TokenFrame } from "./frames/types.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
@@ -149,6 +150,9 @@ export * from "./movementBudget.js";
 // format (golden-tested; changes are schema migrations).
 export * from "./terrain.js";
 
+// Token frames (C5a): the model, the catalog, the server's rule, the pure bake.
+export * from "./frames/index.js";
+
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
 // ----------------------------------------------------------------------------
@@ -187,6 +191,7 @@ export interface TokenSceneData {
   color: string;
   imageUrl?: string;
   size?: TokenSize;
+  frame?: TokenFrame; // C5a
 }
 
 export interface DrawingSceneData {
@@ -248,6 +253,7 @@ export interface Token {
    * player clear their own would just undo the darkness the DM authored.
    */
   visionRadius?: number;
+  frame?: TokenFrame; // C5a: absent draws as before frames; new tokens wear a plain ring
 }
 
 /**
@@ -366,32 +372,8 @@ export interface Player {
   statusEffects?: string[]; // Active status effect identifiers/labels
 }
 
-/**
- * PlayerState: Serialized player data for persistence
- */
-export interface PlayerState {
-  name: string;
-  hp: number;
-  maxHp: number;
-  tempHp?: number; // Temporary hit points (absorbed before regular HP)
-  portrait?: string | null;
-  tokenImage?: string | null; // Legacy support (deprecated in favor of token.imageUrl)
-  color?: string; // Legacy support (mirrors token.color)
-  token?: PlayerStateTokenSnapshot;
-  statusEffects?: string[];
-  drawings?: Drawing[];
-  initiativeModifier?: number; // Initiative modifier saved with player state
-}
-
-export interface PlayerStateTokenSnapshot {
-  id?: string;
-  color?: string;
-  imageUrl?: string | null;
-  position?: { x: number; y: number };
-  size?: TokenSize;
-  rotation?: number;
-  scale?: { x: number; y: number };
-}
+// PlayerState (a character file's contents) lives in playerState.ts.
+export type { PlayerState, PlayerStateTokenSnapshot } from "./playerState.js";
 
 /**
  * Pointer: Temporary pointer indicator that players can place on the map
@@ -831,6 +813,7 @@ type ClientMessagePayload =
   | { t: "update-token-image"; tokenId: string; imageUrl: string } // Update token image URL
   | { t: "set-token-size"; tokenId: string; size: TokenSize } // Change token size (Phase 11)
   | { t: "set-token-color"; tokenId: string; color: string } // Explicitly set token color
+  | { t: "set-token-frame"; tokenId: string; frame: TokenFrame | null } // Owner or DM: the token's frame, null = none (C5a)
   | { t: "set-token-vision-radius"; tokenId: string; radius: number | null } // DM-only: sight limit in feet, null = unlimited (S7)
 
   // Selection actions

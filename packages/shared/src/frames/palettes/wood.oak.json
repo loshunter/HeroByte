@@ -1,0 +1,16 @@
+{
+  "id": "wood.oak",
+  "name": "Oak",
+  "roles": {
+    "top": "#9c6c3e",
+    "bevel": "#875b33",
+    "side": "#5c3d21",
+    "outline": "#2c1c0f",
+    "crack": "#6e4a28",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.08,
+  "gloss": 0.2
+}

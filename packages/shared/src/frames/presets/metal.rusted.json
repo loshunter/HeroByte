@@ -1,0 +1,15 @@
+{
+  "id": "metal.rusted",
+  "name": "Rusted plate",
+  "theme": "metal",
+  "tags": ["metal", "rust"],
+  "bands": [
+    {
+      "generator": "plate",
+      "palette": "metal.rust",
+      "share": 1,
+      "depth": 0.6,
+      "params": { "rivetRows": 1, "irregularity": 0.7 }
+    }
+  ]
+}

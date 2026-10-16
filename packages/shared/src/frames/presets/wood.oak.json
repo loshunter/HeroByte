@@ -1,0 +1,15 @@
+{
+  "id": "wood.oak",
+  "name": "Oak planks",
+  "theme": "wood",
+  "tags": ["wood"],
+  "bands": [
+    {
+      "generator": "plank",
+      "palette": "wood.oak",
+      "share": 1,
+      "depth": 0.6,
+      "params": { "nails": 2 }
+    }
+  ]
+}

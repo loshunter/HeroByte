@@ -1,0 +1,21 @@
+{
+  "id": "brick.red",
+  "name": "Red brick",
+  "theme": "stone",
+  "tags": ["masonry", "brick"],
+  "bands": [
+    {
+      "generator": "masonry",
+      "palette": "brick.red",
+      "share": 1,
+      "depth": 0.6,
+      "params": {
+        "bond": "running",
+        "stoneLength": 1.0,
+        "chamfer": 0.2,
+        "gap": 0.09,
+        "irregularity": 0.1
+      }
+    }
+  ]
+}

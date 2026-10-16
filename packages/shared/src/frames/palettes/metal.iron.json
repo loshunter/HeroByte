@@ -1,0 +1,16 @@
+{
+  "id": "metal.iron",
+  "name": "Iron",
+  "roles": {
+    "top": "#717479",
+    "bevel": "#5f6267",
+    "side": "#414448",
+    "outline": "#1c1e20",
+    "crack": "#2c2e31",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.32,
+  "gloss": 0.45
+}

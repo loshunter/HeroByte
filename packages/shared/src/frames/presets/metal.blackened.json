@@ -1,0 +1,15 @@
+{
+  "id": "metal.blackened",
+  "name": "Blackened iron",
+  "theme": "metal",
+  "tags": ["metal", "dark"],
+  "bands": [
+    {
+      "generator": "plate",
+      "palette": "metal.blackened",
+      "share": 1,
+      "depth": 0.6,
+      "params": { "rivetRows": 1 }
+    }
+  ]
+}

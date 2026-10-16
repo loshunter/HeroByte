@@ -1,0 +1,7 @@
+{
+  "id": "plain.ring",
+  "name": "Plain ring",
+  "theme": "plain",
+  "tags": ["default", "colour"],
+  "bands": [{ "generator": "plain", "palette": "personal", "share": 1, "depth": 0.6 }]
+}

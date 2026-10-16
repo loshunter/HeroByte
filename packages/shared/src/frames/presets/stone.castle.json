@@ -1,0 +1,15 @@
+{
+  "id": "stone.castle",
+  "name": "Castle stone",
+  "theme": "stone",
+  "tags": ["masonry"],
+  "bands": [
+    {
+      "generator": "masonry",
+      "palette": "stone.grey",
+      "share": 1,
+      "depth": 0.7,
+      "params": { "bond": "running" }
+    }
+  ]
+}

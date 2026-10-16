@@ -1,0 +1,15 @@
+{
+  "id": "stone.cave",
+  "name": "Cave rubble",
+  "theme": "stone",
+  "tags": ["masonry", "rubble"],
+  "bands": [
+    {
+      "generator": "masonry",
+      "palette": "stone.grey",
+      "share": 1,
+      "depth": 0.7,
+      "params": { "bond": "rubble", "irregularity": 0.8, "stoneLength": 1.2 }
+    }
+  ]
+}

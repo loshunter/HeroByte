@@ -1,0 +1,16 @@
+{
+  "id": "shadow.black",
+  "name": "Shadow black",
+  "roles": {
+    "top": "#1a181d",
+    "bevel": "#141217",
+    "side": "#0d0c0f",
+    "outline": "#050506",
+    "crack": "#211e25",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.5,
+  "gloss": 0.7
+}

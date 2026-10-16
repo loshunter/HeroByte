@@ -1,0 +1,17 @@
+{
+  "id": "metal.welded",
+  "name": "Welded steel",
+  "theme": "metal",
+  "tags": ["metal", "raised edges"],
+  "bands": [
+    { "generator": "plain", "palette": "metal.steel", "share": 0.15, "depth": 1 },
+    {
+      "generator": "plate",
+      "palette": "metal.steel",
+      "share": 0.7,
+      "depth": 0.5,
+      "params": { "weld": true, "rivetRows": 0 }
+    },
+    { "generator": "plain", "palette": "metal.steel", "share": 0.15, "depth": 1 }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "stone.sand",
+  "name": "Sandstone",
+  "roles": {
+    "top": "#cdae7f",
+    "bevel": "#b8986a",
+    "side": "#7f6545",
+    "outline": "#43331f",
+    "crack": "#6b5539",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.05,
+  "gloss": 0.1
+}

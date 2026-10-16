@@ -1,0 +1,15 @@
+{
+  "id": "metal.steel",
+  "name": "Steel",
+  "theme": "metal",
+  "tags": ["metal", "shiny"],
+  "bands": [
+    {
+      "generator": "plain",
+      "palette": "metal.steel",
+      "share": 1,
+      "depth": 0.6,
+      "params": { "grain": 0.3 }
+    }
+  ]
+}

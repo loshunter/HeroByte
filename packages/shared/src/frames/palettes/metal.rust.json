@@ -1,0 +1,16 @@
+{
+  "id": "metal.rust",
+  "name": "Rusted iron",
+  "roles": {
+    "top": "#8c5130",
+    "bevel": "#764322",
+    "side": "#4f2d17",
+    "outline": "#28180e",
+    "crack": "#5c3a22",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.12,
+  "gloss": 0.25
+}

@@ -1,0 +1,15 @@
+{
+  "id": "plain.chamfer",
+  "name": "Chamfered ring",
+  "theme": "plain",
+  "tags": ["colour"],
+  "bands": [
+    {
+      "generator": "plain",
+      "palette": "personal",
+      "share": 1,
+      "depth": 0.6,
+      "bevel": { "profile": "chamfer", "width": 0.3 }
+    }
+  ]
+}

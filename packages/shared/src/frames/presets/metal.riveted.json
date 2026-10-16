@@ -1,0 +1,15 @@
+{
+  "id": "metal.riveted",
+  "name": "Riveted iron",
+  "theme": "metal",
+  "tags": ["metal", "rivets"],
+  "bands": [
+    {
+      "generator": "plate",
+      "palette": "metal.iron",
+      "share": 1,
+      "depth": 0.6,
+      "params": { "rivetRows": 2 }
+    }
+  ]
+}

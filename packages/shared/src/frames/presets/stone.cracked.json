@@ -1,0 +1,16 @@
+{
+  "id": "stone.cracked",
+  "name": "Cracked stone",
+  "theme": "stone",
+  "tags": ["masonry", "glow"],
+  "bands": [
+    {
+      "generator": "masonry",
+      "palette": "stone.grey",
+      "share": 1,
+      "depth": 0.7,
+      "params": { "bond": "running", "crackDensity": 0.8 },
+      "glow": { "color": "personal", "strength": 0.8 }
+    }
+  ]
+}

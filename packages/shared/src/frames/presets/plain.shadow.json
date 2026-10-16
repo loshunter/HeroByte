@@ -1,0 +1,7 @@
+{
+  "id": "plain.shadow",
+  "name": "Shadow ring",
+  "theme": "plain",
+  "tags": ["dark"],
+  "bands": [{ "generator": "plain", "palette": "shadow.black", "share": 1, "depth": 0.6 }]
+}

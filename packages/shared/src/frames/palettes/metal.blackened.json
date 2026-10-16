@@ -1,0 +1,16 @@
+{
+  "id": "metal.blackened",
+  "name": "Blackened iron",
+  "roles": {
+    "top": "#2e2d31",
+    "bevel": "#252428",
+    "side": "#19181c",
+    "outline": "#0b0a0c",
+    "crack": "#3d1d12",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.5,
+  "gloss": 0.6
+}

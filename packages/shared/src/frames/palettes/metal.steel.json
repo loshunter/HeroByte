@@ -1,0 +1,16 @@
+{
+  "id": "metal.steel",
+  "name": "Steel",
+  "roles": {
+    "top": "#a8afb7",
+    "bevel": "#8d949d",
+    "side": "#5b6169",
+    "outline": "#272b30",
+    "crack": "#3a3f45",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.6,
+  "gloss": 0.75
+}

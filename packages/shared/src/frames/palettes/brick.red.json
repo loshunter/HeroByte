@@ -1,0 +1,16 @@
+{
+  "id": "brick.red",
+  "name": "Red brick",
+  "roles": {
+    "top": "#a9543c",
+    "bevel": "#924633",
+    "side": "#857b70",
+    "outline": "#3b2620",
+    "crack": "#5a2a1e",
+    "glow": "personal",
+    "tint": "personal",
+    "shadow": "#000000"
+  },
+  "specular": 0.05,
+  "gloss": 0.12
+}
