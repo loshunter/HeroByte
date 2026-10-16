@@ -3,6 +3,7 @@ import {
   coerceDefaultVisionRadius,
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
+  coerceTokenFrames,
   coerceTokenVisionRadii,
 } from "@herobyte/shared";
 import { normalizeAtlasState } from "../atlasState.js";
@@ -64,7 +65,9 @@ export class RedisRoomStore implements RoomStore {
           const state: RoomState = {
             users: [],
             stateVersion: typeof parsed.stateVersion === "number" ? parsed.stateVersion : 0,
-            tokens: coerceTokenVisionRadii(Array.isArray(parsed.tokens) ? parsed.tokens : []),
+            tokens: coerceTokenFrames(
+              coerceTokenVisionRadii(Array.isArray(parsed.tokens) ? parsed.tokens : []),
+            ),
             ...coerceLoadedSeats(parsed.players, parsed.characters, parsed.combatActive === true),
             props: parsed.props || [],
             customTokens: coerceCustomTokens(parsed.customTokens),

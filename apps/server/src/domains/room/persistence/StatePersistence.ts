@@ -20,6 +20,7 @@ import {
   coerceDefaultVisionRadius,
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
+  coerceTokenFrames,
   coerceTokenVisionRadii,
 } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
@@ -127,8 +128,11 @@ export class StatePersistence {
           // array-guards as well, so removing the `Array.isArray` here no longer
           // changes behaviour and no test notices. Keep both: they protect
           // different things (a crash, and a poisoned field), and either could
-          // be moved or dropped by a later refactor of the other.
-          tokens: coerceTokenVisionRadii(Array.isArray(data.tokens) ? data.tokens : []),
+          // be moved or dropped by a later refactor of the other. A frame is
+          // coerced the same way (C5a): one the client could not draw is dropped.
+          tokens: coerceTokenFrames(
+            coerceTokenVisionRadii(Array.isArray(data.tokens) ? data.tokens : []),
+          ),
           ...coerceLoadedSeats(data.players, data.characters, data.combatActive === true),
           props: data.props || [],
           customTokens: coerceCustomTokens(data.customTokens),

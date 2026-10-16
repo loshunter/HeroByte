@@ -2,6 +2,7 @@ import type { ClientMessage, DragPreviewEvent } from "@herobyte/shared";
 import { isDragPreviewEnabled } from "../../config/featureFlags.js";
 import type { TokenMessageHandler } from "../handlers/TokenMessageHandler.js";
 import { ColorWriteBudget } from "../../domains/token/colorPolicy.js";
+import { setTokenFrame } from "../../domains/token/tokenFrame.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
 import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
@@ -78,6 +79,9 @@ export class TokenDispatcher {
         if (!this.colorBudget.take(senderUid))
           return throttled(state, message.tokenId, senderUid, isDM);
         return this.handler.handleSetColor(state, message.tokenId, senderUid, message.color, isDM);
+
+      case "set-token-frame":
+        return setTokenFrame(state, message.tokenId, senderUid, message.frame, isDM);
 
       case "set-token-vision-radius":
         return this.handler.handleSetVisionRadius(state, message.tokenId, message.radius, isDM);

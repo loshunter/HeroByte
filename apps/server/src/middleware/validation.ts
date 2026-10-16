@@ -3,17 +3,15 @@
 // ============================================================================
 // Validates incoming WebSocket messages using domain-specific validators.
 //
-// The validator table below is keyed by ClientMessage["t"], so adding a new
-// message type to the shared contract without registering a validator here is
-// a COMPILE ERROR rather than a silent runtime rejection. (Previously,
-// "request-room-resync", "clear-all-initiative", and
-// "set-character-status-effects" were routed by dispatchers but unreachable in
-// production because the validator switch didn't know about them.)
+// The validator table below is keyed by ClientMessage["t"], so adding a new message type to the
+// shared contract without registering a validator here is a COMPILE ERROR rather than a silent
+// runtime rejection. (Previously, "request-room-resync", "clear-all-initiative", and
+// "set-character-status-effects" were routed by dispatchers but unreachable in production
+// because the validator switch didn't know about them.)
 
 import type { ClientMessage } from "@herobyte/shared";
 import { isRecord, type ValidationResult, type MessageRecord } from "./validators/index.js";
 
-// Token validators
 import { validateForkTableMessage } from "./validators/forkValidators.js";
 import {
   validateAddCustomTokenMessage,
@@ -34,6 +32,7 @@ import {
   validateUpdateTokenImageMessage,
   validateSetTokenSizeMessage,
   validateSetTokenColorMessage,
+  validateSetTokenFrameMessage,
   validateSetTokenVisionRadiusMessage,
   validateDragPreviewMessage,
 } from "./validators/index.js";
@@ -167,6 +166,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "update-token-image": validateUpdateTokenImageMessage,
   "set-token-size": validateSetTokenSizeMessage,
   "set-token-color": validateSetTokenColorMessage,
+  "set-token-frame": validateSetTokenFrameMessage,
   "set-token-vision-radius": validateSetTokenVisionRadiusMessage,
   "drag-preview": validateDragPreviewMessage,
 

@@ -352,10 +352,9 @@ export class CharacterService {
     ownerUid: string,
   ): Character | undefined {
     const character = this.findCharacter(state, characterId);
-    if (!character) {
-      return undefined;
-    }
+    if (!character) return undefined;
 
+    const frame = tokenService.findToken(state, character.tokenId ?? "")?.frame; // kept (C5a)
     if (character.tokenId) {
       tokenService.forceDeleteToken(state, character.tokenId);
     }
@@ -371,6 +370,7 @@ export class CharacterService {
       character.tokenSize ?? "medium",
       "npc",
     );
+    if (frame) token.frame = frame;
     character.tokenId = token.id;
     return character;
   }

@@ -28,6 +28,7 @@ vi.mock("fs/promises", async () => {
 
 import * as fsPromises from "fs/promises";
 import { RoomService } from "../../service.js";
+import { presetFrame } from "@herobyte/shared";
 import { awaitAllPendingWrites } from "../StatePersistence.js";
 
 const TEST_STATE_FILE = "./test-herobyte-state.json";
@@ -848,6 +849,42 @@ describe("StatePersistence - Characterization Tests", () => {
       // Not a number at all, so it degrades to UNLIMITED — the pre-S7
       // behaviour — rather than to a garbage value or a blinded token.
       expect("visionRadius" in byId.get("stringy")!).toBe(false);
+    });
+
+    it("restores frames as saved, drops one it cannot read, adds none (C5a)", () => {
+      const castle = presetFrame("stone.castle", 0.24)!;
+      writeFileSync(
+        PROD_STATE_FILE,
+        JSON.stringify({
+          tokens: [
+            { id: "framed", owner: "p1", x: 0, y: 0, color: "#336699", frame: castle },
+            { id: "before", owner: "p1", x: 1, y: 0, color: "#336699" },
+            { id: "junk", owner: "p1", x: 2, y: 0, color: "#336699", frame: { bands: 3 } },
+            {
+              id: "newer",
+              owner: "p1",
+              x: 3,
+              y: 0,
+              color: "#336699",
+              frame: {
+                bands: [{ generator: "foliage", palette: "leaf.green", weight: 0.1, depth: 1 }],
+              },
+            },
+          ],
+        }),
+        "utf-8",
+      );
+
+      roomService.loadState();
+      const byId = new Map(roomService.getState().tokens.map((token) => [token.id, token]));
+
+      expect(byId.get("framed")!.frame).toEqual(castle);
+      expect("frame" in byId.get("before")!).toBe(false);
+      expect("frame" in byId.get("junk")!).toBe(false);
+      expect(byId.get("newer")!.frame!.bands[0]).toMatchObject({
+        generator: "plain",
+        palette: "stone.grey",
+      });
     });
 
     it("should handle corrupted JSON gracefully (error logged, state unchanged)", () => {

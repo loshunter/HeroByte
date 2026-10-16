@@ -5,7 +5,7 @@
 
 import { isTokenLocked } from "../room/locking/pieceLock.js";
 import { randomUUID } from "crypto";
-import type { Token, TokenSize } from "@herobyte/shared";
+import { defaultTokenFrame, type Token, type TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import { isTokenMoveBlocked } from "../room/scene/movementBlocking.js";
 import {
@@ -88,6 +88,9 @@ export class TokenService {
       color: automaticColor(state, ownerUid, this.rng, kind),
       imageUrl,
       size,
+      // Every token made from now on wears a plain ring in its own colour (C5a);
+      // tokens made before keep drawing as they always did.
+      frame: defaultTokenFrame(),
     };
     // Inherit the owner's tightest existing sight limit (S7). A radius is
     // DM-authored and is supposed to only ever NARROW what a player can see —

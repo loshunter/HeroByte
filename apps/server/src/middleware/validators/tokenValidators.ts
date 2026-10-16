@@ -1,9 +1,14 @@
 // ============================================================================
 // TOKEN VALIDATION
 // ============================================================================
-// Validates token-related messages: move, recolor, delete, update-image, set-size, set-color
+// Validates token-related messages: move, recolor, delete, update-image, set-size, set-color,
+// set-frame
 
-import { VISION_RADIUS_MAX_FEET, VISION_RADIUS_MIN_FEET } from "@herobyte/shared";
+import {
+  VISION_RADIUS_MAX_FEET,
+  VISION_RADIUS_MIN_FEET,
+  sanitizeTokenFrame,
+} from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isFiniteNumber, isRecord, VALID_TOKEN_SIZES } from "./commonValidators.js";
 import { STRING_LIMITS } from "./constants.js";
@@ -128,6 +133,22 @@ export function validateSetTokenColorMessage(message: MessageRecord): Validation
     return { valid: false, error: "set-token-color: color too long (max 128 chars)" };
   }
   return { valid: true };
+}
+
+/**
+ * Validate set-token-frame message (C5a)
+ * Required: tokenId (string), frame (null, or a frame the catalog allows:
+ * circle only, no finish, 1–6 known bands, total weight 0.04–0.34)
+ */
+export function validateSetTokenFrameMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.tokenId !== "string" || message.tokenId.length === 0) {
+    return { valid: false, error: "set-token-frame: tokenId required" };
+  }
+  if (message.frame === null) return { valid: true };
+  const checked = sanitizeTokenFrame(message.frame);
+  return "error" in checked
+    ? { valid: false, error: `set-token-frame: ${checked.error}` }
+    : { valid: true };
 }
 
 /**

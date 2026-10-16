@@ -9,6 +9,7 @@ import {
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
   coerceMovementBudgetFields,
+  coerceTokenFrames,
   coerceTokenVisionRadii,
   normalizeHPValues,
 } from "@herobyte/shared";
@@ -176,11 +177,13 @@ export class SnapshotLoader {
     // geometry. The live half is already ours, so it keeps its identity.
     const mergedTokens = [
       ...currentPlayerTokens,
-      ...coerceTokenVisionRadii(
-        (snapshot.tokens ?? []).filter(
-          (token) =>
-            !preservedTokenIds.has(token.id) &&
-            (!fileCharacterTokenIds.has(token.id) || carriedTokenIds.has(token.id)),
+      ...coerceTokenFrames(
+        coerceTokenVisionRadii(
+          (snapshot.tokens ?? []).filter(
+            (token) =>
+              !preservedTokenIds.has(token.id) &&
+              (!fileCharacterTokenIds.has(token.id) || carriedTokenIds.has(token.id)),
+          ),
         ),
       ),
     ];
