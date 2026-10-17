@@ -53,6 +53,7 @@ function buildLegacySceneObjects(snapshot: RoomSnapshot): SceneObject[] {
       data: {
         color: token.color,
         imageUrl: token.imageUrl,
+        ...(token.frame ? { frame: token.frame } : {}),
       },
     });
   }

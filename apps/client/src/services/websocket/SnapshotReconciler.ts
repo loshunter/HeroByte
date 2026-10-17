@@ -155,7 +155,12 @@ export class SnapshotReconciler {
         locked: false,
         zIndex: 10,
         transform: { x: token.x, y: token.y, scaleX: 1, scaleY: 1, rotation: 0 },
-        data: { color: token.color, imageUrl: token.imageUrl, size: token.size },
+        data: {
+          color: token.color,
+          imageUrl: token.imageUrl,
+          size: token.size,
+          ...(token.frame ? { frame: token.frame } : {}),
+        },
       });
     }
     return { ...snapshot, tokens, sceneObjects };

@@ -3,243 +3,26 @@
 // ============================================================================
 // Renders tokens from the unified scene graph with drag support.
 
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Group, Rect, Image as KonvaImage, Circle, Text } from "react-konva";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { Group, Circle, Text } from "react-konva";
 import Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { DragPreviewUpdate, SceneObject } from "@herobyte/shared";
-import useImage from "use-image";
 import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";
 import type { StatusOption } from "../../players/constants/statusOptions";
 import { TokenHpFeedback } from "../../juice/TokenHpFeedback";
 import { TokenNameplate, type TokenPlateData } from "./TokenNameplate";
-import { SelectionRing } from "./SelectionRing";
 import { useSelectionPalette } from "../selectionPalette";
-import { decorativeMotionDisabled, motionDisabled, useSfx } from "../../juice";
+import { useSfx } from "../../juice";
 import { PROP_SIZE_MULTIPLIERS } from "../propSizing";
-
-interface TokenSpriteProps {
-  object: SceneObject & { type: "token" };
-  gridSize: number;
-  stroke: string;
-  strokeWidth: number;
-  interactive: boolean;
-  draggable?: boolean;
-  onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
-  onDragStart?: (event: KonvaEventObject<DragEvent>) => void;
-  onDragMove?: (event: KonvaEventObject<DragEvent>) => void;
-  onHover: (id: string | null) => void;
-  onDoubleClick?: () => void;
-  onClick?: (event: KonvaEventObject<MouseEvent>) => void;
-  onTap?: (event: KonvaEventObject<TouchEvent>) => void;
-  onNodeReady?: (node: Konva.Node | null) => void;
-  /** Play a scale "pop" when the token first appears. */
-  popIn?: boolean;
-  /** Glide to new positions (used for remote moves; off during local drag). */
-  glide?: boolean;
-  /** Pulse a selection glow. */
-  selected?: boolean;
-}
-
-// Guards against non-Konva refs (e.g. mocked nodes in tests / no-canvas envs)
-// so animation calls never throw where the DSP/canvas isn't available.
-function isKonvaNode(node: Konva.Node | null): node is Konva.Node {
-  return !!node && typeof node.getLayer === "function" && typeof node.to === "function";
-}
+import { TokenSprite } from "./TokenSprite";
 
 // Size multiplier per token size category — ONE ladder with the props (and
 // the move-pad follow, which sizes what it keeps on screen from it).
 const SIZE_MULTIPLIERS = PROP_SIZE_MULTIPLIERS;
 // --jrpg-border-gold as a literal: Konva cannot resolve var(), and the canvas drops it silently.
 const MEDALLION_RING = "#e2b75c";
-
-const TokenSprite = memo(function TokenSprite({
-  object,
-  gridSize,
-  stroke,
-  strokeWidth,
-  draggable = false,
-  interactive,
-  onDragEnd,
-  onDragStart,
-  onDragMove,
-  onHover,
-  onDoubleClick,
-  onClick,
-  onTap,
-  onNodeReady,
-  popIn = false,
-  glide = false,
-  selected = false,
-}: TokenSpriteProps) {
-  const { data, transform, id } = object;
-  const [image, status] = useImage(data.imageUrl ?? "");
-  const palette = useSelectionPalette();
-  // In a viewer's colour a ring draws the selection (keyline and colour) over the token.
-  const ringed = selected && palette.keyline !== null;
-
-  // Calculate size multiplier based on token size category
-  const sizeMultiplier = SIZE_MULTIPLIERS[data.size ?? "medium"] ?? 1.0;
-
-  const size = gridSize * 0.75 * sizeMultiplier;
-  const halfSize = size / 2;
-
-  const shapeRef = useRef<Konva.Node | null>(null);
-  // The node in state too: a picture loading swaps the placeholder Rect for an Image,
-  // and the glow and the selection ring must move to the new node.
-  const [shapeNode, setShapeNode] = useState<Konva.Node | null>(null);
-  // A stable ref callback (the caller's onNodeReady is a new function every render,
-  // and a changing ref callback detached and re-attached the node on each one).
-  const onNodeReadyRef = useRef(onNodeReady);
-  useLayoutEffect(() => {
-    onNodeReadyRef.current = onNodeReady;
-  }, [onNodeReady]);
-  const nodeRef = useCallback((node: Konva.Node | null) => {
-    shapeRef.current = node;
-    setShapeNode(node);
-    onNodeReadyRef.current?.(node);
-  }, []);
-
-  const posX = transform.x * gridSize + gridSize / 2;
-  const posY = transform.y * gridSize + gridSize / 2;
-
-  // Glide to new positions when moved remotely (never while locally dragging).
-  const prevPos = useRef({ x: posX, y: posY });
-  useLayoutEffect(() => {
-    const node = shapeRef.current;
-    const prev = prevPos.current;
-    prevPos.current = { x: posX, y: posY };
-    if (!isKonvaNode(node) || !glide || motionDisabled()) return;
-    if (prev.x === posX && prev.y === posY) return;
-    node.position({ x: prev.x, y: prev.y });
-    const tween = new Konva.Tween({
-      node,
-      duration: 0.16,
-      x: posX,
-      y: posY,
-      easing: Konva.Easings.EaseOut,
-    });
-    tween.play();
-    return () => tween.destroy();
-  }, [posX, posY, glide]);
-
-  // Scale "pop" when a token first appears on the board. Decorative: plays on
-  // "full" motion only — glide above stays on for "subtle" because a token
-  // teleporting reads as a different move.
-  useEffect(() => {
-    const node = shapeRef.current;
-    if (!isKonvaNode(node) || !popIn || decorativeMotionDisabled()) return;
-    const targetX = transform.scaleX;
-    const targetY = transform.scaleY;
-    node.scale({ x: targetX * 0.3, y: targetY * 0.3 });
-    const tween = new Konva.Tween({
-      node,
-      duration: 0.3,
-      scaleX: targetX,
-      scaleY: targetY,
-      easing: Konva.Easings.BackEaseOut,
-    });
-    tween.play();
-    return () => {
-      tween.destroy();
-      node.scale({ x: targetX, y: targetY });
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- pops when popIn turns on, to the scale the token has at that moment
-  }, [popIn]);
-
-  // The node that glows. Konva draws an Image with a corner radius and a shadow
-  // through its stage-sized buffer canvas on every frame, a stroke-only rect never:
-  // so a ringed picture glows on its ring's colour band. Without a ring (no colour)
-  // a picture keeps today's glow.
-  const [ringBand, setRingBand] = useState<Konva.Node | null>(null);
-  const picture = Boolean(data.imageUrl && status === "loaded" && image);
-  const glowNode = ringed && picture ? ringBand : shapeNode;
-
-  // Pulsing glow while selected. Decorative: "full" motion only.
-  useEffect(() => {
-    const node = glowNode;
-    if (!isKonvaNode(node) || !selected || decorativeMotionDisabled()) return;
-    const layer = node.getLayer();
-    if (!layer) return;
-    const shape = node as Konva.Shape;
-    const anim = new Konva.Animation((frame) => {
-      const seconds = (frame?.time ?? 0) / 1000;
-      shape.shadowColor(palette.glow);
-      shape.shadowBlur(9 + 6 * Math.sin(seconds * Math.PI * 2 * 1.1));
-      shape.shadowOpacity(0.9);
-    }, layer);
-    anim.start();
-    return () => {
-      anim.stop();
-      shape.shadowBlur(0);
-      shape.shadowOpacity(0);
-    };
-  }, [selected, palette.glow, glowNode]);
-
-  const baseProps = {
-    x: transform.x * gridSize + gridSize / 2,
-    y: transform.y * gridSize + gridSize / 2,
-    offsetX: halfSize,
-    offsetY: halfSize,
-    width: size,
-    height: size,
-    rotation: transform.rotation,
-    scaleX: transform.scaleX,
-    scaleY: transform.scaleY,
-    cornerRadius: gridSize / 8,
-    stroke: ringed ? "transparent" : stroke,
-    strokeWidth,
-    // Ringed, the stroke is invisible: drawing directly keeps a glowing token off
-    // Konva's stage-sized buffer canvas (fill + stroke + shadow) on every frame.
-    perfectDrawEnabled: !ringed,
-    draggable,
-    onDragEnd,
-    onDragStart,
-    onDragMove,
-    onMouseEnter: () => onHover(id),
-    onMouseLeave: () => onHover(null),
-    listening: interactive,
-    onDblClick: onDoubleClick,
-    // A phone fires no dblclick (Konva cancels a touchstart on a shape, so the
-    // browser never synthesises mouse events), so a double-tap needs its own wire.
-    onDblTap: onDoubleClick,
-    onClick,
-    onTap,
-    id,
-    name: id,
-    attrs: { "data-token-id": id },
-  } as const;
-  const shapeProps = { ...baseProps, ref: nodeRef };
-  const { x, y, offsetX, offsetY, width, height, rotation, scaleX, scaleY, cornerRadius } =
-    baseProps;
-  const ring = ringed ? (
-    <SelectionRing
-      follow={shapeNode}
-      {...{ x, y, offsetX, offsetY, width, height, rotation, scaleX, scaleY, cornerRadius }}
-      color={palette.stroke}
-      keyline={palette.keyline!}
-      strokeWidth={strokeWidth}
-      bandRef={setRingBand}
-    />
-  ) : null;
-
-  if (data.imageUrl && status === "loaded" && image) {
-    return (
-      <>
-        <KonvaImage image={image} {...shapeProps} />
-        {ring}
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Rect fill={data.color} {...shapeProps} />
-      {ring}
-    </>
-  );
-});
 
 interface MultiSelectBadgeProps {
   x: number;
@@ -796,6 +579,7 @@ export const TokensLayer = memo(function TokensLayer({
             <TokenSprite
               object={mapOverrides(object)}
               gridSize={gridSize}
+              camScale={cam.scale}
               stroke={
                 isSelected ? palette.stroke : hoveredTokenId === object.id ? "#aaa" : "transparent"
               }
@@ -845,6 +629,7 @@ export const TokensLayer = memo(function TokensLayer({
             <TokenSprite
               object={mapOverrides(object)}
               gridSize={gridSize}
+              camScale={cam.scale}
               stroke={
                 isSelected ? palette.stroke : draggingId === object.id ? palette.drag : "#fff"
               }
