@@ -24,17 +24,23 @@ export interface AcceptState {
   frameChanged: boolean;
 }
 
+/** Each tab's button and its title; a frame is named only when it would change. */
 export function acceptLabels({ phase, hasPicture, hasFrame, frameChanged }: AcceptState) {
-  if (phase !== "idle") return { picture: PHASE_LABEL[phase], frame: PHASE_LABEL[phase] };
-  const both = hasFrame ? "Use picture + frame" : "Use picture, no frame";
-  return {
-    picture: frameChanged ? both : PHASE_LABEL.idle,
-    frame: hasPicture
-      ? hasFrame
-        ? "Use frame + picture"
-        : "Use picture, no frame"
-      : hasFrame
-        ? "Use this frame"
-        : "Use no frame",
-  };
+  const withFrame = hasFrame ? ", and set the frame picked" : ", and take the frame off";
+  const pictureTitle = hasPicture
+    ? `Bake, upload and set the picture loaded on the Picture tab${frameChanged ? withFrame : ""}`
+    : "Choose a picture first";
+  const frameTitle = hasPicture
+    ? pictureTitle
+    : hasFrame
+      ? "Set this frame on the token"
+      : "Take the frame off the token";
+  const titles = { pictureTitle, frameTitle };
+  if (phase !== "idle")
+    return { picture: PHASE_LABEL[phase], frame: PHASE_LABEL[phase], ...titles };
+  const noFrame = "Use picture, no frame";
+  const picture = !frameChanged ? PHASE_LABEL.idle : hasFrame ? "Use picture + frame" : noFrame;
+  const withPicture = !frameChanged ? PHASE_LABEL.idle : hasFrame ? "Use frame + picture" : noFrame;
+  const frameOnly = hasFrame ? "Use this frame" : "Use no frame";
+  return { picture, frame: hasPicture ? withPicture : frameOnly, ...titles };
 }

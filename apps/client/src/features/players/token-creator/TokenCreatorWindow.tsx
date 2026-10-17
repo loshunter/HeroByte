@@ -57,27 +57,25 @@ export function TokenCreatorWindow({
   initialTab = "picture",
   tabRequest = 0,
 }: TokenCreatorWindowProps) {
-  const [draft, setDraftState] = useState<TokenFrame | null>(frame?.frame ?? null);
-  const latest = useRef({ draft, frame });
-  latest.current = { draft, frame };
+  // Untouched (undefined), the draft IS the token's frame, whatever a sync
+  // brings meanwhile, and is never sent: a copy kept in step by an effect was
+  // the old frame for one render after a sync, long enough to be sent back.
+  const [picked, setDraft] = useState<TokenFrame | null | undefined>(undefined);
+  const draft = picked === undefined ? (frame?.frame ?? null) : picked;
+  const edited = picked !== undefined;
+  const latest = useRef({ draft, frame, edited });
+  latest.current = { draft, frame, edited };
   // A picture that lands (baked, or its link as is) takes the frame picked by
   // then along: read at that moment, so one picked while it uploads still goes.
   const applyPicture = (url: string) => {
     onApply(url);
-    const { draft: picked, frame: control } = latest.current;
-    if (control && picked !== (control.frame ?? null)) control.onApply(picked);
+    const now = latest.current;
+    if (now.frame && now.edited && now.draft !== (now.frame.frame ?? null)) {
+      now.frame.onApply(now.draft);
+    }
   };
   const creator = useTokenCreator({ tokenSize, onApply: applyPicture, onDone: onClose, deps });
   const [tab, setTab] = useState<CreatorTab>(frame ? initialTab : "picture");
-  // Untouched, the draft follows the token (someone else may change its frame meanwhile).
-  const edited = useRef(false);
-  const setDraft = (next: TokenFrame | null) => {
-    edited.current = true;
-    setDraftState(next);
-  };
-  useEffect(() => {
-    if (!edited.current) setDraftState(frame?.frame ?? null);
-  }, [frame?.frame]);
   const ids = useId();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   // The settings window's other button, pressed while this is open, turns the tab.
@@ -158,7 +156,7 @@ export function TokenCreatorWindow({
   };
   const shown: CreatorTab = frame ? tab : "picture";
   // Each Accept takes the other tab's unsaved work along, and its label says so.
-  const draftChanged = frame !== undefined && draft !== (frame.frame ?? null);
+  const draftChanged = frame !== undefined && edited && draft !== (frame.frame ?? null);
   const idle = creator.phase === "idle";
   const ready = creator.picture !== null && idle;
   const labels = acceptLabels({
@@ -284,13 +282,7 @@ export function TokenCreatorWindow({
                   });
                 }}
                 aria-disabled={!idle}
-                title={
-                  creator.picture
-                    ? "Bake, upload and set the picture loaded on the Picture tab, and set this frame"
-                    : draft
-                      ? "Set this frame on the token"
-                      : "Take the frame off the token"
-                }
+                title={labels.frameTitle}
                 style={{ flex: 2, fontSize: "11px", padding: "8px", minHeight: "44px" }}
               >
                 {labels.frame}
@@ -300,13 +292,7 @@ export function TokenCreatorWindow({
                 variant="primary"
                 onClick={() => void creator.accept()}
                 aria-disabled={!ready}
-                title={
-                  !creator.picture
-                    ? "Choose a picture first"
-                    : draftChanged
-                      ? "Bake, upload and set this picture, and the frame picked on the Frame tab"
-                      : "Bake, upload and set this picture"
-                }
+                title={labels.pictureTitle}
                 // Two lines in a 340 px window: give them room to stand apart.
                 style={{
                   flex: 2,
