@@ -6,6 +6,9 @@
 // narrow local types. Jobs run one per task, so a cancel posted for a job the
 // table no longer wants (its token changed tier or frame first) lands before
 // that job starts and the bake is skipped. The bytes go back as a transfer.
+// The yield between jobs is a MessageChannel, not setTimeout: a hidden tab
+// throttles a worker's timers to about one a second, which made every bake
+// in a background tab wait seconds for its turn.
 
 import { bakeFrame, type FrameBakeInput } from "@herobyte/shared";
 
@@ -19,6 +22,8 @@ export type FrameWorkerReply =
 const queue: { jobId: number; input: FrameBakeInput }[] = [];
 const cancelled = new Set<number>();
 let draining = false;
+const tick = new MessageChannel();
+const nextTask = () => tick.port2.postMessage(0);
 
 function post(reply: FrameWorkerReply, transfer: Transferable[] = []): void {
   (self as unknown as { postMessage(r: FrameWorkerReply, t: Transferable[]): void }).postMessage(
@@ -53,8 +58,10 @@ function drainOne(): void {
     }
   }
   // One job per task: a cancel or a newer job's message gets in between.
-  setTimeout(drainOne, 0);
+  nextTask();
 }
+
+tick.port1.onmessage = drainOne;
 
 self.onmessage = (event: MessageEvent<FrameWorkerRequest>) => {
   const message = event.data;
@@ -65,6 +72,6 @@ self.onmessage = (event: MessageEvent<FrameWorkerRequest>) => {
   queue.push(message);
   if (!draining) {
     draining = true;
-    setTimeout(drainOne, 0);
+    nextTask();
   }
 };
