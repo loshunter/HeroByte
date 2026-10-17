@@ -15,7 +15,10 @@
 /** Shapes the model names. Only "circle" is accepted until slice C5b. */
 export type FrameShape = "circle" | "squircle" | "square" | "hexagon" | "octagon" | "shield";
 
-/** `in` keeps the outer edge on the token box; `out` keeps the window on it; `mid` splits. */
+/**
+ * `in` keeps the outer edge on the token box; `out` keeps the window on it until
+ * the frame stands 15% out (MAX_OUTSET), the rest growing in; `mid` splits.
+ */
 export type FrameGrowth = "in" | "out" | "mid";
 
 /** Beyond "none" these are the DM's, and they arrive with slice C2. */
