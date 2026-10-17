@@ -69,23 +69,48 @@ export function fillPolygon(
   const columnFrom = Math.max(0, Math.floor(minX));
   const columnTo = Math.min(size - 1, Math.ceil(maxX));
   if (rowFrom > rowTo || columnFrom > columnTo) return;
+  // Edges by their top, each with its x at the top and its slope: a sub-row
+  // tests only the edges that cross it (an active list), not every edge of
+  // the polygon, so a long ring of hundreds of edges costs a few per row.
+  const tops = new Float64Array(count);
+  const bottoms = new Float64Array(count);
+  const xs = new Float64Array(count);
+  const slopes = new Float64Array(count);
+  let edges = 0;
+  for (let index = 0; index < count; index += 1) {
+    const next = (index + 1) % count;
+    const y0 = points[index * 2 + 1]!;
+    const y1 = points[next * 2 + 1]!;
+    if (y0 === y1) continue;
+    const x0 = points[index * 2]!;
+    const x1 = points[next * 2]!;
+    const down = y0 < y1;
+    tops[edges] = down ? y0 : y1;
+    bottoms[edges] = down ? y1 : y0;
+    xs[edges] = down ? x0 : x1;
+    slopes[edges] = (x1 - x0) / (y1 - y0);
+    edges += 1;
+  }
+  const order = Array.from({ length: edges }, (_, index) => index).sort(
+    (first, second) => tops[first]! - tops[second]!,
+  );
+  const active: number[] = [];
+  let waiting = 0;
   const weight = 1 / SUB_ROWS;
   for (let row = rowFrom; row <= rowTo; row += 1) {
     coverage.fill(0, columnFrom, columnTo + 2);
     let any = false;
     for (let sub = 0; sub < SUB_ROWS; sub += 1) {
       const y = row + (sub + 0.5) / SUB_ROWS;
+      while (waiting < edges && tops[order[waiting]!]! <= y) active.push(order[waiting++]!);
       crossings.length = 0;
-      for (let index = 0; index < count; index += 1) {
-        const next = (index + 1) % count;
-        const y0 = points[index * 2 + 1]!;
-        const y1 = points[next * 2 + 1]!;
-        if ((y0 <= y && y < y1) || (y1 <= y && y < y0)) {
-          const x0 = points[index * 2]!;
-          const x1 = points[next * 2]!;
-          crossings.push(x0 + ((y - y0) * (x1 - x0)) / (y1 - y0));
-        }
+      let kept = 0;
+      for (const edge of active) {
+        if (bottoms[edge]! <= y) continue; // finished above this sub-row
+        active[kept++] = edge;
+        crossings.push(xs[edge]! + (y - tops[edge]!) * slopes[edge]!);
       }
+      active.length = kept;
       if (crossings.length < 2) continue;
       crossings.sort((first, second) => first - second);
       for (let pair = 0; pair + 1 < crossings.length; pair += 2) {
