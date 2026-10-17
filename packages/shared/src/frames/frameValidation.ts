@@ -165,12 +165,21 @@ export function sanitizeTokenFrame(
 function scaleInto(bands: FrameBand[], total: number): void {
   const target = clamp(total, FRAME_LIMITS.MIN_WEIGHT, FRAME_LIMITS.MAX_WEIGHT);
   const floor = FRAME_LIMITS.MIN_BAND_WEIGHT;
-  const held = bands.filter((band) => (band.weight * target) / total < floor);
-  const free = bands.filter((band) => !held.includes(band));
-  const freeTotal = free.reduce((sum, band) => sum + band.weight, 0);
-  const room = target - held.length * floor;
-  for (const band of held) band.weight = floor;
-  for (const band of free) band.weight = roundTo((band.weight * room) / freeTotal, 1e-4);
+  // Holding one band shrinks what the rest share, which can thin another past
+  // the floor in turn: hold until no free band would fall under it.
+  const held = new Set<FrameBand>();
+  for (;;) {
+    const room = target - held.size * floor;
+    const free = bands.filter((band) => !held.has(band));
+    const freeTotal = free.reduce((sum, band) => sum + band.weight, 0);
+    const thin = free.filter((band) => (band.weight * room) / freeTotal < floor);
+    if (thin.length === 0 || thin.length === free.length) {
+      for (const band of held) band.weight = floor;
+      for (const band of free) band.weight = roundTo((band.weight * room) / freeTotal, 1e-4);
+      break;
+    }
+    for (const band of thin) held.add(band);
+  }
   const widest = bands.reduce((best, band) => (band.weight > best.weight ? band : best));
   widest.weight = roundTo(widest.weight + target - totalOf(bands), 1e-4);
 }

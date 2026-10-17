@@ -1,5 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { defaultTokenFrame } from "@herobyte/shared";
 import type { Container } from "../../../container.js";
 import { PlayerService } from "../../../domains/player/service.js";
 import { CharacterService } from "../../../domains/character/service.js";
@@ -27,6 +28,21 @@ function setup() {
 }
 
 describe("join provisioning names", () => {
+  it("dresses a new seat's token, and a returning seat's restored token, in the default ring", () => {
+    const { state, join } = setup();
+    join("uid-1");
+    const pc = state.characters.find((character) => character.ownedByPlayerUID === "uid-1")!;
+    expect(state.tokens.find((token) => token.id === pc.tokenId)?.frame).toEqual(
+      defaultTokenFrame(),
+    );
+    state.tokens = [];
+    join("uid-1");
+    const back = state.characters.find((character) => character.ownedByPlayerUID === "uid-1")!;
+    expect(state.tokens.find((token) => token.id === back.tokenId)?.frame).toEqual(
+      defaultTokenFrame(),
+    );
+  });
+
   it("gives a removed UID a fresh uniquely named seat and PC without rewriting its old whisper", () => {
     const { state, join, ...services } = setup();
     for (let i = 1; i <= 4; i++) join(`uid-${i}`);

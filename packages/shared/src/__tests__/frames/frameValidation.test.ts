@@ -162,6 +162,8 @@ describe("coerceTokenFrame (files)", () => {
     expect(coerced[0]).toBe(tokens[0]);
     expect(coerced[1]).toEqual({ id: "b" });
     expect(coerced[2]!.frame).toEqual(defaultTokenFrame());
+    // the default ring, the commonest frame there is, loads as itself: no copy per load
+    expect(coerced[2]).toBe(tokens[2]);
     expect(coerceTokenFrames("x" as unknown as [])).toEqual([]);
   });
 });

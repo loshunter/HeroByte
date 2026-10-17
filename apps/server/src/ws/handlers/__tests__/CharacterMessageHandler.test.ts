@@ -20,7 +20,7 @@
  */
 
 import { handleResetMovementBudget } from "../movementBudgetMessages.js";
-import { resetMovementBudget } from "@herobyte/shared";
+import { defaultTokenFrame, resetMovementBudget } from "@herobyte/shared";
 import path from "node:path";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
@@ -413,6 +413,9 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       expect(replacement?.name).toBe("New Character");
       expect(replacement?.tokenId).toBeDefined();
       expect(after.tokens.find((t) => t.id === replacement?.tokenId)?.owner).toBe(playerUid);
+      expect(after.tokens.find((t) => t.id === replacement?.tokenId)?.frame).toEqual(
+        defaultTokenFrame(),
+      );
     });
 
     it("a DM deleting an ABSENT player's last character leaves the seat empty — that is the point", () => {

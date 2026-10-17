@@ -157,6 +157,13 @@ describe("a file's frame", () => {
     const scaled = coerceTokenFrame({ bands: [band({ weight: 0.006 }), band({ weight: 1 })] })!;
     expect(scaled.bands[0]!.weight).toBe(0.005);
     expect(frameWeight(scaled)).toBeCloseTo(0.34, 6);
+    // holding the thin ones thins the next in turn: it is held too, not dropped
+    const cascade = coerceTokenFrame({
+      bands: [1, 0.0157, 0.01, 0.01, 0.01, 0.01].map((weight) => band({ weight })),
+    })!;
+    expect(cascade).toBeDefined();
+    expect(Math.min(...cascade.bands.map((b) => b.weight))).toBe(0.005);
+    expect(frameWeight(cascade)).toBeCloseTo(0.34, 6);
   });
 
   it("never throws on built-in names and thickens a band too thin to draw", () => {

@@ -9,7 +9,7 @@
 import { FRAME_PRESETS } from "./frameCatalog.generated.js";
 import { resolveFrameParams } from "./generatorSpecs.js";
 import { FRAME_LIMITS, FRAME_WEIGHTS } from "./frameLimits.js";
-import { roundTo } from "./frameValidation.js";
+import { roundTo, sanitizeTokenFrame } from "./frameValidation.js";
 import type { FramePreset, TokenFrame } from "./types.js";
 
 /** The preset every new token wears (owner decision, 2026-10-08). */
@@ -59,7 +59,9 @@ export function presetFrame(
 
 /** What a token created from now on wears: a plain ring in its own colour, regular weight. */
 export function defaultTokenFrame(): TokenFrame {
-  return presetFrame(DEFAULT_FRAME_PRESET)!;
+  // Through the wire's check, so it is spelled exactly as a stored frame is and
+  // a load finds it unchanged (coerceTokenFrames compares the JSON).
+  return (sanitizeTokenFrame(presetFrame(DEFAULT_FRAME_PRESET)) as { frame: TokenFrame }).frame;
 }
 
 /** Whether any band lights a glow (the Frame tab then offers the glow colour and strength). */
