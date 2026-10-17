@@ -22,6 +22,7 @@ export {
   framePaints,
   frameSeed,
   bandSeed,
+  pinFrameSeeds,
   type FrameBakeInput,
   type FrameBakeResult,
 } from "./engine/frameBake.js";

@@ -9,7 +9,10 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  bandSeed,
   defaultTokenFrame,
+  frameSeed,
+  pinFrameSeeds,
   presetFrame,
   withFrameWeight,
   type RoomSnapshot,
@@ -49,7 +52,8 @@ describe("token frames — the server is the authority", () => {
     const scene = latestSnapshot(harness.sockets[BO]!)?.sceneObjects?.find(
       (object) => object.id === `token:${ann.id}`,
     );
-    expect(scene?.type === "token" && scene.data.frame).toEqual(slab);
+    // Sent once, on the token: the client puts it back on the scene object.
+    expect(scene?.type === "token" && "frame" in scene.data).toBe(false);
   });
 
   it("refuses a frame on someone else's token, and lets the DM frame any", async () => {
@@ -113,6 +117,31 @@ describe("token frames — the server is the authority", () => {
       "set-token-frame: tokenId required",
     );
     expect(validateMessage({ t: "set-token-frame", tokenId: "t", frame: null }).valid).toBe(true);
+    expect(refused({ bands: [{ ...band, palette: "constructor" }] }).error).toBe(
+      "set-token-frame: frame band palette is unknown",
+    );
+    expect(refused({ bands: [{ ...band, weight: 1e-4 }, band] }).error).toBe(
+      "set-token-frame: frame band weight must be at least 0.005",
+    );
+  });
+});
+
+describe("frame writes are budgeted", () => {
+  it("drops a seventh rapid write from one player, each costing every client a bake", async () => {
+    const harness = createRouterHarness("tokenFrame-budget-state.json", [
+      { uid: ANN, isDM: false },
+    ]);
+    const ann = new TokenService(() => 0.5).createToken(harness.roomService.getState(), ANN, 0, 0);
+    for (let write = 0; write < 7; write += 1) {
+      const frame = {
+        ...presetFrame("stone.castle")!,
+        bands: [{ ...presetFrame("stone.castle")!.bands[0]!, seed: write }],
+      };
+      harness.route({ t: "set-token-frame", tokenId: ann.id, frame }, ANN);
+    }
+    await flush();
+    const stored = harness.roomService.getState().tokens.find((token) => token.id === ann.id)!;
+    expect(stored.frame!.bands[0]!.seed).toBe(5);
   });
 });
 
@@ -160,6 +189,12 @@ describe("new tokens wear the default ring", () => {
     await flush();
     const second = state().characters.find((character) => character.id === npc.id)!.tokenId!;
     expect(second).not.toBe(first);
-    expect(state().tokens.find((token) => token.id === second)?.frame).toEqual(castle);
+    // the same frame, its stones pinned from the old token so they do not re-roll
+    expect(state().tokens.find((token) => token.id === second)?.frame).toEqual(
+      pinFrameSeeds(castle, first),
+    );
+    expect(state().tokens.find((token) => token.id === second)!.frame!.bands[0]!.seed).toBe(
+      bandSeed(castle, 0, frameSeed(first)),
+    );
   });
 });

@@ -22,6 +22,7 @@ import type {
   SceneObject,
   Token,
 } from "@herobyte/shared";
+import { presetFrame } from "@herobyte/shared";
 
 // Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
 // apps/server/herobyte-state.json, which parallel workers and the dev
@@ -491,6 +492,31 @@ describe("SnapshotLoader - Characterization Tests", () => {
       );
 
       expect("visionRadius" in roomService.getState().tokens[0]!).toBe(false);
+    });
+  });
+
+  describe("Token frame coercion (C5a)", () => {
+    it("restores a backup's frames exactly and drops one no client could draw", () => {
+      const castle = presetFrame("metal.welded", 0.34)!;
+      roomService.loadSnapshot({
+        players: [],
+        characters: [],
+        tokens: [
+          { id: "good", owner: "p", x: 0, y: 0, color: "#336699", frame: castle },
+          { id: "junk", owner: "p", x: 1, y: 0, color: "#336699", frame: { bands: 3 } },
+        ],
+        props: [],
+        pointers: [],
+        drawings: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        diceRolls: [],
+        sceneObjects: [],
+        combatActive: false,
+      } as unknown as Parameters<typeof roomService.loadSnapshot>[0]);
+      const byId = new Map(roomService.getState().tokens.map((token) => [token.id, token]));
+      expect(byId.get("good")!.frame).toEqual(castle);
+      expect(byId.get("junk")).not.toHaveProperty("frame");
     });
   });
 

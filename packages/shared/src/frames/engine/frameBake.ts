@@ -87,6 +87,23 @@ export function bandSeed(frame: TokenFrame, index: number, seed: number): number
   return frame.bands[index]?.seed ?? (seed + Math.imul(index + 1, 0x9e3779b1)) | 0;
 }
 
+/**
+ * The frame with each seeded band's seed written in, from the token it was
+ * drawn on: carried to another token (an NPC placed again, a character file
+ * loaded at another table) it lays the same stones, not new ones.
+ */
+export function pinFrameSeeds(frame: TokenFrame, tokenId: string): TokenFrame {
+  const seed = frameSeed(tokenId);
+  return {
+    ...frame,
+    bands: frame.bands.map((band, index) =>
+      band.seed === undefined && frameGeneratorSpec(band.generator)?.seeded
+        ? { ...band, seed: bandSeed(frame, index, seed) }
+        : band,
+    ),
+  };
+}
+
 /** The ring between radii r0 and r1 as one polygon (its two seam edges coincide and cancel). */
 function annulus(r0: number, r1: number, steps = 180): number[] {
   const points: number[] = [];

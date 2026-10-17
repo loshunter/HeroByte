@@ -129,7 +129,6 @@ export class SceneGraphBuilder {
           color: token.color,
           imageUrl: token.imageUrl,
           size: token.size ?? "medium",
-          ...(token.frame ? { frame: token.frame } : {}),
         },
       });
     }

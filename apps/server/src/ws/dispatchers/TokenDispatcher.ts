@@ -34,6 +34,8 @@ export class TokenDispatcher {
     private authWrapper: AuthorizationCheckWrapper,
     // Colour writes cost cells x PCs each: a burst of 10, then 5 a second per player.
     private colorBudget: ColorWriteBudget = new ColorWriteBudget(),
+    // Each frame write makes every client bake: a burst of 6, then 2 a second.
+    private frameBudget: ColorWriteBudget = new ColorWriteBudget(6, 2),
   ) {}
 
   dispatch(
@@ -81,6 +83,7 @@ export class TokenDispatcher {
         return this.handler.handleSetColor(state, message.tokenId, senderUid, message.color, isDM);
 
       case "set-token-frame":
+        if (!this.frameBudget.take(senderUid)) return { broadcast: false, save: false };
         return setTokenFrame(state, message.tokenId, senderUid, message.frame, isDM);
 
       case "set-token-vision-radius":

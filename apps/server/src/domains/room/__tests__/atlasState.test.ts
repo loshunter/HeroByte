@@ -7,7 +7,7 @@
 // non-nullish, which is exactly how the chatLog crash recurred on restart.
 
 import { describe, expect, it, vi } from "vitest";
-import type { SceneState } from "@herobyte/shared";
+import { presetFrame, type SceneState } from "@herobyte/shared";
 import { normalizeAtlasState, sceneStatesFromEnvelope } from "../atlasState.js";
 
 function scene(mapDocumentId: string): SceneState {
@@ -125,5 +125,30 @@ describe("sceneStatesFromEnvelope", () => {
     expect(sceneStatesFromEnvelope(undefined, () => true)).toEqual({});
     const noKey = { ...scene("doc-a"), mapDocumentId: "" };
     expect(sceneStatesFromEnvelope([noKey], () => true)).toEqual({});
+  });
+});
+
+describe("tokens parked on another map (C5a)", () => {
+  const parked = (frame: unknown) => ({
+    ...scene("doc-p"),
+    tokens: [
+      { id: "keep", owner: "p", x: 0, y: 0, color: "#336699", frame: presetFrame("stone.castle") },
+      { id: "junk", owner: "p", x: 1, y: 0, color: "#336699", frame },
+    ],
+  });
+
+  it("are checked like the live ones off disk: a frame no client could draw is dropped", () => {
+    const { sceneStates } = normalizeAtlasState({ sceneStates: { "doc-p": parked({ bands: 3 }) } });
+    const [keep, junk] = sceneStates["doc-p"]!.tokens;
+    expect(keep!.frame).toEqual(presetFrame("stone.castle"));
+    expect(junk).not.toHaveProperty("frame");
+  });
+
+  it("and out of a load-session envelope", () => {
+    const poisoned = parked({
+      bands: [{ generator: "plain", palette: "constructor", weight: 0.1 }],
+    });
+    const result = sceneStatesFromEnvelope([poisoned as SceneState], () => true);
+    expect(result["doc-p"]!.tokens[1]!.frame!.bands[0]).toMatchObject({ palette: "stone.grey" });
   });
 });

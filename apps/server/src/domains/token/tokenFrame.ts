@@ -8,7 +8,7 @@
 // copy sanitizeTokenFrame returns, never the client's object. `null` deletes
 // the field: the token draws as it did before frames.
 
-import { sanitizeTokenFrame } from "@herobyte/shared";
+import { pinFrameSeeds, sanitizeTokenFrame, type TokenFrame } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 
 export function setTokenFrame(
@@ -28,4 +28,19 @@ export function setTokenFrame(
   if ("error" in checked) return { broadcast: false, save: false };
   token.frame = checked.frame;
   return { broadcast: true, save: true };
+}
+
+/**
+ * The frame a token wore, wherever it stands (this map, or parked on
+ * another), with its stones' seeds pinned from that token: given to a token
+ * made in its place (an NPC placed again) it looks exactly the same.
+ */
+export function carriedFrame(
+  state: RoomState,
+  tokenId: string | null | undefined,
+): TokenFrame | undefined {
+  if (!tokenId) return undefined;
+  const parked = Object.values(state.sceneStates ?? {}).flatMap((scene) => scene.tokens);
+  const token = [...state.tokens, ...parked].find((candidate) => candidate.id === tokenId);
+  return token?.frame ? pinFrameSeeds(token.frame, token.id) : undefined;
 }

@@ -15,6 +15,7 @@ import {
 import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
 import { looseTokenOf } from "./looseToken.js";
+import { carriedFrame } from "../token/tokenFrame.js";
 
 /**
  * Character service - manages character data and actions
@@ -353,8 +354,7 @@ export class CharacterService {
   ): Character | undefined {
     const character = this.findCharacter(state, characterId);
     if (!character) return undefined;
-
-    const frame = tokenService.findToken(state, character.tokenId ?? "")?.frame; // kept (C5a)
+    const frame = carriedFrame(state, character.tokenId); // kept, stones and all (C5a)
     if (character.tokenId) {
       tokenService.forceDeleteToken(state, character.tokenId);
     }

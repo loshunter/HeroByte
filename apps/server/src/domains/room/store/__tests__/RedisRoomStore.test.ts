@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RedisRoomStore, type RedisRoomStoreOptions } from "../RedisRoomStore.js";
 import { createEmptyRoomState } from "../../model.js";
 import type { RoomState } from "../../model.js";
+import { presetFrame } from "@herobyte/shared";
 
 const createMockClient = () => {
   const client = {
@@ -46,6 +47,22 @@ describe("RedisRoomStore", () => {
 
     const hydrated = store.get("room-a");
     expect(hydrated?.tokens[0]?.id).toBe("token-1");
+  });
+
+  it("hydrates frames through the files' door: kept exactly, or dropped when undrawable (C5a)", async () => {
+    const state = createEmptyRoomState();
+    const castle = presetFrame("stone.castle", 0.24)!;
+    const token = (id: string, frame: unknown) =>
+      ({ id, owner: "u1", x: 0, y: 0, color: "#336699", frame }) as RoomState["tokens"][number];
+    state.tokens.push(token("good", castle), token("junk", { bands: 3 }));
+    client.hkeys.mockResolvedValue(["room-a"]);
+    client.hget.mockResolvedValue(JSON.stringify(state));
+
+    await store.hydrate();
+
+    const [good, junk] = store.get("room-a")!.tokens;
+    expect(good!.frame).toEqual(castle);
+    expect(junk).not.toHaveProperty("frame");
   });
 
   it("gives a table saved before characters had condition lists its lists on hydrate", async () => {

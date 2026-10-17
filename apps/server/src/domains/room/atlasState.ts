@@ -9,7 +9,13 @@
 // route()'s try/catch, in a process with no uncaughtException handler — so a
 // poisoned value kills the one process serving every room, on every restart.
 
-import type { AtlasNode, MapLink, SceneState } from "@herobyte/shared";
+import {
+  coerceTokenFrames,
+  coerceTokenVisionRadii,
+  type AtlasNode,
+  type MapLink,
+  type SceneState,
+} from "@herobyte/shared";
 import { parseSceneStateShape } from "../../middleware/validators/sessionValidators.js";
 
 export interface AtlasStateFields {
@@ -66,7 +72,7 @@ export function normalizeAtlasState(data: {
     for (const [key, value] of Object.entries(data.sceneStates)) {
       const scene = parseSceneStateShape(value);
       if (scene) {
-        sceneStates[key] = scene;
+        sceneStates[key] = withCheckedTokens(scene);
       } else if (isRecord(value)) {
         console.warn(`normalizeAtlasState: dropped a malformed suspended scene under ${key}`);
       }
@@ -77,6 +83,19 @@ export function normalizeAtlasState(data: {
     atlasLinks: recordArray<MapLink>(data.atlasLinks).filter(hasFiniteAnchor),
     sceneStates,
   };
+}
+
+/**
+ * A parked map's tokens through the same door as the live ones: travel
+ * installs them verbatim, so a frame or a sight radius no client could use
+ * is coerced here, not discovered mid-render after the party arrives.
+ */
+function withCheckedTokens(scene: SceneState): SceneState {
+  const tokens = coerceTokenFrames(coerceTokenVisionRadii(scene.tokens));
+  // A scene with nothing to fix is kept as it came (its identity included).
+  return tokens.every((token, index) => token === scene.tokens[index])
+    ? scene
+    : { ...scene, tokens };
 }
 
 /**
@@ -97,7 +116,7 @@ export function sceneStatesFromEnvelope(
       console.warn(`load-session: dropped suspended scene for missing document ${documentId}`);
       continue;
     }
-    result[documentId] = scene;
+    result[documentId] = withCheckedTokens(scene);
   }
   return result;
 }

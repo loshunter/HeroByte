@@ -5,7 +5,7 @@
 // legacy tokens/drawings/map if the server has not yet populated sceneObjects.
 
 import { useMemo } from "react";
-import type { RoomSnapshot, SceneObject } from "@herobyte/shared";
+import type { RoomSnapshot, SceneObject, TokenFrame } from "@herobyte/shared";
 
 const DEFAULT_TRANSFORM = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
 
@@ -123,10 +123,20 @@ export function useSceneObjects(snapshot: RoomSnapshot | null): SceneObject[] {
     }
 
     if (snapshot.sceneObjects && snapshot.sceneObjects.length > 0) {
-      return snapshot.sceneObjects.map((object) => ({
-        ...object,
-        transform: cloneTransform(object.transform),
-      }));
+      // A token's frame (C5a) travels once, on the token, not again on its
+      // scene object: it is put back on the object here, where the map reads it.
+      const frames = new Map<string, TokenFrame>();
+      for (const token of snapshot.tokens ?? []) {
+        if (token.frame) frames.set(`token:${token.id}`, token.frame);
+      }
+      return snapshot.sceneObjects.map((object) => {
+        const frame = object.type === "token" ? frames.get(object.id) : undefined;
+        return {
+          ...object,
+          transform: cloneTransform(object.transform),
+          ...(frame && object.type === "token" ? { data: { ...object.data, frame } } : {}),
+        } as SceneObject;
+      });
     }
 
     return buildLegacySceneObjects(snapshot);
