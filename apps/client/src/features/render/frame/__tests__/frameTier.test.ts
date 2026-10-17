@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { frameTierCeiling, pickFrameTier } from "../frameTier";
+import { frameTierCeiling, nextFrameBudget, pickFrameTier } from "../frameTier";
 
 describe("pickFrameTier", () => {
   it("takes the smallest tier that covers the frame on screen", () => {
@@ -47,9 +47,37 @@ describe("pickFrameTier", () => {
     expect(frameTierCeiling(10, 48 * MB)).toBe(1024); // 40 MB
     expect(frameTierCeiling(0, 48 * MB)).toBe(1024);
     expect(frameTierCeiling(5000, 16 * MB)).toBe(128); // never below the smallest tier
-    for (const count of [1, 7, 30, 120]) {
-      const tier = frameTierCeiling(count, 16 * MB);
-      if (tier > 128) expect(count * tier * tier * 4).toBeLessThanOrEqual(0.9 * 16 * MB);
+  });
+});
+
+describe("the map's frame budget", () => {
+  const MB = 1024 * 1024;
+  const cap = 16 * MB;
+
+  it("keeps every count's bitmaps inside the cap, sharing stones where even 128 does not fit", () => {
+    for (let count = 1; count <= 1000; count += 1) {
+      const { tier, shareSeeds } = nextFrameBudget(null, count, cap);
+      const fits = count * tier * tier * 4 <= 0.9 * cap;
+      expect(fits || shareSeeds, `${count} bitmaps`).toBe(true);
+      if (shareSeeds) expect(tier).toBe(128);
     }
+    expect(nextFrameBudget(null, 230, cap).shareSeeds).toBe(false);
+    expect(nextFrameBudget(null, 231, cap).shareSeeds).toBe(true);
+  });
+
+  it("drops at once, and rises only with room for a quarter more", () => {
+    const at14 = nextFrameBudget(null, 14, cap); // 14 × 1 MB fits under 14.4 MB
+    expect(at14.tier).toBe(512);
+    const at15 = nextFrameBudget(at14, 15, cap);
+    expect(at15.tier).toBe(256); // down at once
+    // back to 14: not up yet (14 × 1.25 would not fit at 512), so nothing re-bakes twice
+    expect(nextFrameBudget(at15, 14, cap).tier).toBe(256);
+    expect(nextFrameBudget(at15, 11, cap).tier).toBe(512); // 14 at 512 fits: up again
+  });
+
+  it("stops sharing stones only with room for a quarter more", () => {
+    const shared = nextFrameBudget(null, 231, cap);
+    expect(nextFrameBudget(shared, 230, cap).shareSeeds).toBe(true);
+    expect(nextFrameBudget(shared, 184, cap).shareSeeds).toBe(false);
   });
 });

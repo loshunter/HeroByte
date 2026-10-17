@@ -39,15 +39,49 @@ export function isCoarsePointer(): boolean {
 export const MAP_FRAME_SHARE = 0.9;
 
 /**
- * The largest tier every framed token on the map can hold at once inside
- * the cache's cap: held bitmaps are never evicted, so without it thirty
- * frames at 1024 would be 120 MB against a 48 MB cap. The same for every
- * token, and it moves only when the count does, so no token's crispness
- * depends on the order the map draws them in (30 tokens: 512 on a desktop,
- * 256 on a phone; 10: 1024).
+ * The largest tier `bitmaps` distinct frames can all be held at inside the
+ * cache's cap: held bitmaps are never evicted, so without it thirty frames
+ * at 1024 would be 120 MB against a 48 MB cap (30: 512 on a desktop, 256
+ * on a phone; 10: 1024). 128 at the least, even where that does not fit.
  */
-export function frameTierCeiling(framedTokens: number, cap: number): number {
-  const count = Math.max(1, framedTokens);
+export function frameTierCeiling(bitmaps: number, cap: number): number {
+  const count = Math.max(1, bitmaps);
   const fits = FRAME_TIERS.filter((tier) => count * tier * tier * 4 <= MAP_FRAME_SHARE * cap);
   return fits[fits.length - 1] ?? FRAME_TIERS[0];
+}
+
+/** What every token on the map bakes under: one tier for all, and whether stones are shared. */
+export interface FrameTierBudget {
+  tier: number;
+  /**
+   * Past the smallest tier's room, frames alike but for their stones bake
+   * with one seed, so they share a bitmap: the stones repeat from token to
+   * token, and another screen with room may lay them differently.
+   */
+  shareSeeds: boolean;
+}
+
+/** Room for a quarter more bitmaps is needed before the budget rises again. */
+export const BUDGET_RISE_ROOM = 1.25;
+
+/**
+ * The budget for `bitmaps` distinct frames on the map. It drops at once, and
+ * rises only when a quarter more would still fit, so a token added and
+ * taken away at a boundary does not re-bake every frame on the map twice.
+ */
+export function nextFrameBudget(
+  previous: FrameTierBudget | null,
+  bitmaps: number,
+  cap: number,
+): FrameTierBudget {
+  const roomy = Math.ceil(Math.max(1, bitmaps) * BUDGET_RISE_ROOM);
+  const fresh = frameTierCeiling(bitmaps, cap);
+  const tier =
+    previous === null || fresh <= previous.tier
+      ? fresh
+      : Math.max(previous.tier, frameTierCeiling(roomy, cap));
+  const smallest = FRAME_TIERS[0] * FRAME_TIERS[0] * 4;
+  const overflows = (count: number) => count * smallest > MAP_FRAME_SHARE * cap;
+  const shareSeeds = previous?.shareSeeds ? overflows(roomy) : overflows(Math.max(1, bitmaps));
+  return { tier, shareSeeds };
 }

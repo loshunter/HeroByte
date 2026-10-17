@@ -12,23 +12,19 @@ import {
   frameBakeKey,
   frameSeed,
   layoutFrame,
-  normalizeColor,
   type FrameBakeInput,
   type FrameLayout,
   type TokenFrame,
   type TokenSize,
 } from "@herobyte/shared";
 import {
-  frameCacheCap,
   peekFrameBitmap,
   requestFrameBitmap,
   retainFrameBitmap,
   type FrameBitmap,
 } from "./frameBitmapCache";
-import { frameTierCeiling, isCoarsePointer, pickFrameTier } from "./frameTier";
-
-/** A colour nobody's token has, for an unreadable one: the frame still draws. */
-const FALLBACK_ACCENT = "#808080";
+import { isCoarsePointer, pickFrameTier, type FrameTierBudget } from "./frameTier";
+import { frameAccent, framePersonal } from "./frameColors";
 
 export interface FrameDrawing {
   bitmap: FrameBitmap | null;
@@ -48,13 +44,8 @@ export interface FrameBitmapRequest {
   tokenPx: number;
   /** The map's zoom times the token's own scale (the gizmo's). */
   zoom: number;
-  /** On the map: how many tokens there wear a frame, which caps every one's tier. */
-  framedTokens?: number;
-}
-
-export function frameAccent(frame: TokenFrame, color: string): string {
-  const accent = frame.accent && frame.accent !== "personal" ? frame.accent : color;
-  return normalizeColor(accent) ?? FALLBACK_ACCENT;
+  /** On the map: the tier every framed token there is capped at (useFrameTierBudget). */
+  budget?: FrameTierBudget;
 }
 
 export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing | null {
@@ -77,17 +68,14 @@ export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing
     // The pick keeps its own hysteresis; the bake is capped so the map's
     // frames, all held at once, fit the cache together.
     tierRef.current = pickFrameTier(needed, tierRef.current, isCoarsePointer());
-    const tier =
-      request.framedTokens === undefined
-        ? tierRef.current
-        : Math.min(tierRef.current, frameTierCeiling(request.framedTokens, frameCacheCap()));
+    const tier = request.budget ? Math.min(tierRef.current, request.budget.tier) : tierRef.current;
     input = {
       frame: request.frame,
       size: request.size,
       accent: frameAccent(request.frame, request.color),
       // A "personal" glow is the character's own colour, even under a picked frame colour.
-      personal: normalizeColor(request.color) ?? FALLBACK_ACCENT,
-      seed: frameSeed(request.tokenId),
+      personal: framePersonal(request.color),
+      seed: request.budget?.shareSeeds ? 0 : frameSeed(request.tokenId),
       tier,
     };
   }

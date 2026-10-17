@@ -141,3 +141,23 @@ describe("a framed token on the map", () => {
     expect(frameOutset(out, "medium")).toBeCloseTo(0.15);
   });
 });
+
+describe("the map's one frame budget", () => {
+  const many = (frame: TokenFrame, count = 30) =>
+    [...Array(count)].map((_, index) => ({ ...token(frame), id: `token:t${index}` }));
+  const layer = (objects: SceneObject[]) => ({ ...props(objects[0]!), sceneObjects: objects });
+
+  it("caps every framed token at the tier thirty different frames fit the cache at", () => {
+    requests.length = 0;
+    render(<TokensLayer {...layer(many(presetFrame("stone.castle")!))} />);
+    const asked = requests.filter((request) => request !== null);
+    expect(asked.length).toBeGreaterThanOrEqual(30); // every token, every render
+    for (const request of asked) expect(request!.budget).toEqual({ tier: 512, shareSeeds: false });
+  });
+
+  it("counts thirty alike rings as one bitmap", () => {
+    requests.length = 0;
+    render(<TokensLayer {...layer(many(presetFrame("plain.ring")!))} />);
+    expect(requests.at(-1)!.budget).toEqual({ tier: 1024, shareSeeds: false });
+  });
+});

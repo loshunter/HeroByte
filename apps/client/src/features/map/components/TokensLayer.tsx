@@ -18,6 +18,7 @@ import { useSfx } from "../../juice";
 import { PROP_SIZE_MULTIPLIERS } from "../propSizing";
 import { TokenSprite } from "./TokenSprite";
 import { frameOutset } from "./TokenFrameOverlay";
+import { useFrameTierBudget } from "../../render/frame/useFrameTierBudget";
 
 // Size multiplier per token size category — ONE ladder with the props (and
 // the move-pad follow, which sizes what it keeps on screen from it).
@@ -578,8 +579,8 @@ export const TokensLayer = memo(function TokensLayer({
     [onSelectObject],
   );
 
-  // Every framed token's bitmap is held at once: their count caps the tier (useFrameBitmap).
-  const framedTokens = [...otherTokens, ...myTokens].filter((object) => object.data.frame).length;
+  // Every framed token's bitmap is held at once: together they set one tier cap.
+  const frameBudget = useFrameTierBudget(tokens);
 
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
@@ -592,7 +593,7 @@ export const TokensLayer = memo(function TokensLayer({
               object={mapOverrides(object)}
               gridSize={gridSize}
               camScale={cam.scale}
-              framedTokens={framedTokens}
+              frameBudget={frameBudget}
               stroke={
                 isSelected ? palette.stroke : hoveredTokenId === object.id ? "#aaa" : "transparent"
               }
@@ -643,7 +644,7 @@ export const TokensLayer = memo(function TokensLayer({
               object={mapOverrides(object)}
               gridSize={gridSize}
               camScale={cam.scale}
-              framedTokens={framedTokens}
+              frameBudget={frameBudget}
               stroke={
                 isSelected ? palette.stroke : draggingId === object.id ? palette.drag : "#fff"
               }

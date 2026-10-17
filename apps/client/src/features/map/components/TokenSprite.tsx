@@ -18,6 +18,7 @@ import { useSelectionPalette } from "../selectionPalette";
 import { decorativeMotionDisabled, motionDisabled } from "../../juice";
 import { PROP_SIZE_MULTIPLIERS } from "../propSizing";
 import { useFrameBitmap } from "../../render/frame/useFrameBitmap";
+import type { FrameTierBudget } from "../../render/frame/frameTier";
 
 interface TokenSpriteProps {
   object: SceneObject & { type: "token" };
@@ -42,8 +43,8 @@ interface TokenSpriteProps {
   selected?: boolean;
   /** The map's zoom: a framed token bakes its frame at the size it is seen (C5a). */
   camScale?: number;
-  /** How many tokens on the map wear a frame: together they must fit the frame cache. */
-  framedTokens?: number;
+  /** The tier every framed token on the map is capped at, so together they fit the cache. */
+  frameBudget: FrameTierBudget;
 }
 
 // Guards against non-Konva refs (e.g. mocked nodes in tests / no-canvas envs)
@@ -75,7 +76,7 @@ export const TokenSprite = memo(function TokenSprite({
   glide = false,
   selected = false,
   camScale = 1,
-  framedTokens = 1,
+  frameBudget,
 }: TokenSpriteProps) {
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "");
@@ -100,7 +101,7 @@ export const TokenSprite = memo(function TokenSprite({
           size: data.size,
           tokenPx: size,
           zoom: camScale * Math.max(Math.abs(transform.scaleX), Math.abs(transform.scaleY)),
-          framedTokens,
+          budget: frameBudget,
         }
       : null,
   );
