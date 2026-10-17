@@ -402,7 +402,7 @@ describe("the engine, after review round 3", () => {
         weld: true,
         irregularity: 1,
       },
-      bevel: { profile: "round", width: 0.5 },
+      bevel: { profile: "round" as const, width: 0.5 },
       glow: { color: "personal", strength: 1 },
     });
     const riveted = {
