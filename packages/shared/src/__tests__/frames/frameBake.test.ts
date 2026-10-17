@@ -13,7 +13,7 @@ import {
 } from "../../index.js";
 import { createRaster, fillPolygon, rasterToRgba } from "../../frames/engine/raster.js";
 import { LIGHT, UP, diffuse, personalRoleColor, slopeNormal } from "../../frames/engine/shading.js";
-import { stepFacets, windowShadowFacets } from "../../frames/engine/frameEdges.js";
+import { EDGE_SEGMENTS, stepFacets, windowShadowFacets } from "../../frames/engine/frameEdges.js";
 
 const bake = (frame: TokenFrame, accent = "#4f7cc4", tier = 128, seed = 1) =>
   bakeFrame({ frame, accent, seed, tier });
@@ -120,7 +120,8 @@ describe("the bake", () => {
     const { shadow } = stepFacets(0.42, 0.5, true, 0.005, 0.02);
     const alphaAt = (dx: number, dy: number) => {
       const angle = Math.atan2(dy, dx);
-      const index = Math.round(((angle + 2 * Math.PI) % (2 * Math.PI)) / ((2 * Math.PI) / 72)) % 72;
+      const segment = (2 * Math.PI) / EDGE_SEGMENTS;
+      const index = Math.floor(((angle + 2 * Math.PI) % (2 * Math.PI)) / segment) % EDGE_SEGMENTS;
       return shadow[index * 2]!.alpha;
     };
     expect(alphaAt(1, 1)).toBeGreaterThan(alphaAt(-1, -1) * 2); // bottom-right, away from the light

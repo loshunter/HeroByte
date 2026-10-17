@@ -32,6 +32,8 @@ function generate(generator: string, frame: TokenFrame, seed = 7, size?: TokenSi
       (target.r0 + (target.r1 - target.r0) * ((course + 0.5) / courses)) / middle,
     params: resolveFrameParams(generator, target.band.params),
     rng: createSeededRng(seed),
+    maxMotifs: 256,
+    bandPx: 200, // detailed enough that every nail, rivet and grain line is drawn
   });
   return { facets, length, courses, ring: target };
 }

@@ -22,7 +22,15 @@ const DRAWS_PER_PLANK = 12;
 const GRAIN_LINES = [0.3, 0.5, 0.72];
 const GRAIN_STEPS = 10;
 
-export const plank: FrameGenerator = ({ length, courses, courseScale, params, rng }) => {
+export const plank: FrameGenerator = ({
+  length,
+  courses,
+  courseScale,
+  params,
+  rng,
+  maxMotifs,
+  bandPx,
+}) => {
   const plankLength = num(params, "plankLength");
   const gap = num(params, "gap");
   const nails = num(params, "nails");
@@ -36,7 +44,7 @@ export const plank: FrameGenerator = ({ length, courses, courseScale, params, rn
     const scale = courseScale(course);
     const heightU = 1 / courses / scale;
     const heightV = 1 / courses;
-    const count = motifCount(length * scale * courses, plankLength);
+    const count = motifCount(length * scale * courses, plankLength, maxMotifs);
     const lengths = splitLength(length, count, 0.15, draws(rng, count));
     let u = phaseRoll! * (length / count) + (course % 2) * (lengths[0]! / 2);
     const v0 = course * heightV;
@@ -57,7 +65,9 @@ export const plank: FrameGenerator = ({ length, courses, courseScale, params, rn
         ),
       );
       // Grain: wavy lines along the board, phase from the board's own draw.
-      for (const line of GRAIN_LINES) {
+      // Grain, knots and nails only where they would be a pixel or more.
+      const px = bandPx * heightV;
+      for (const line of px >= 10 ? GRAIN_LINES : []) {
         const path: number[] = [];
         for (let step = 0; step <= GRAIN_STEPS; step += 1) {
           const t = step / GRAIN_STEPS;
@@ -69,7 +79,7 @@ export const plank: FrameGenerator = ({ length, courses, courseScale, params, rn
         }
         facets.push(...stroke(path, 0.028 * heightV, "crack", 0.7));
       }
-      if (d[1]! < knotDensity) {
+      if (d[1]! < knotDensity && px * 0.09 >= 1) {
         const knotU = start + (end - start) * (0.3 + 0.4 * d[2]!);
         const knotV = v0 + (0.35 + 0.3 * d[3]!) * heightV;
         facets.push(
@@ -79,7 +89,7 @@ export const plank: FrameGenerator = ({ length, courses, courseScale, params, rn
           })),
         );
       }
-      for (let nail = 0; nail < nails; nail += 1) {
+      for (let nail = 0; nail < (px * 0.05 >= 1 ? nails : 0); nail += 1) {
         const v = v0 + (nails === 1 ? 0.5 : nail === 0 ? 0.3 : 0.7) * heightV;
         for (const at of [start + 0.22 * heightU, end - 0.22 * heightU]) {
           facets.push(...dome(at, v, 0.05 * heightV, 1 / scale));

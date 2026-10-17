@@ -15,12 +15,12 @@ import { draws, num, stroke, type FrameGenerator } from "./common.js";
 
 const GRAIN_SEED = 0x5eed;
 
-export const plain: FrameGenerator = ({ length, params }) => {
+export const plain: FrameGenerator = ({ length, params, bandPx }) => {
   // One polygon round the whole band (its two seam edges coincide and cancel),
   // so the flat top has no joints for the background to show through.
   const facets: Facet[] = [{ role: "top", points: bandQuad(0, length, 0, 1) }];
   const grain = num(params, "grain");
-  if (grain > 0) {
+  if (grain > 0 && bandPx >= 6) {
     const rng = createSeededRng(GRAIN_SEED);
     const streaks = Math.min(512, Math.round(length * 3 * grain));
     for (let index = 0; index < streaks; index += 1) {

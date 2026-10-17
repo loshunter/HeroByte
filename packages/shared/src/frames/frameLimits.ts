@@ -20,8 +20,6 @@ export const FRAME_LIMITS = {
   MAX_WEIGHT: 0.34,
   /** How far a frame may grow OUTSIDE the token box, as a fraction of its edge. */
   MAX_OUTSET: 0.15,
-  /** A preset id or a palette id, at most. */
-  MAX_ID_LENGTH: 64,
   /**
    * The thinnest band, as a fraction of the token edge. A band's motif count
    * grows as it thins, so a near-zero band is thousands of stones that stall
@@ -29,8 +27,13 @@ export const FRAME_LIMITS = {
    * rim at the 0.04 floor) is 0.006.
    */
   MIN_BAND_WEIGHT: 0.005,
-  /** A frame's JSON, at most: it rides every token in every snapshot and backup. */
-  MAX_FRAME_BYTES: 1536,
+  /**
+   * A frame's JSON, at most, counting the seeds a carry would pin (19 bytes a
+   * seeded band). Every field is already bounded, so the largest frame the
+   * catalog allows (six full bands, about 2.1 KB pinned) fits: this is a
+   * backstop against a future field, not a limit a real frame meets.
+   */
+  MAX_FRAME_BYTES: 2304,
 } as const;
 
 /** The weight slider's four named stops. */

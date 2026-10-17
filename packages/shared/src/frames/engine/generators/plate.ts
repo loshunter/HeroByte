@@ -29,7 +29,15 @@ const RIVET_ROWS: Record<number, number[]> = {
 };
 const BEAD_RIPPLES = 6;
 
-export const plate: FrameGenerator = ({ length, courses, courseScale, params, rng }) => {
+export const plate: FrameGenerator = ({
+  length,
+  courses,
+  courseScale,
+  params,
+  rng,
+  maxMotifs,
+  bandPx,
+}) => {
   const plateLength = num(params, "plateLength");
   const rivetRows = RIVET_ROWS[num(params, "rivetRows")] ?? [];
   const rivetSize = num(params, "rivetSize");
@@ -44,7 +52,7 @@ export const plate: FrameGenerator = ({ length, courses, courseScale, params, rn
     const scale = courseScale(course);
     const heightU = 1 / courses / scale;
     const heightV = 1 / courses;
-    const count = motifCount(length * scale * courses, plateLength);
+    const count = motifCount(length * scale * courses, plateLength, maxMotifs);
     const lengths = splitLength(length, count, 0.25 * irregularity, draws(rng, count));
     let u = phaseRoll! * (length / count) + (course % 2) * (lengths[0]! / 2);
     const v0 = course * heightV;
@@ -104,7 +112,9 @@ export const plate: FrameGenerator = ({ length, courses, courseScale, params, rn
       const span = end - start;
       const rivetAt = [start + 0.28 * heightU, end - 0.28 * heightU];
       if (span > 2.6 * heightU) rivetAt.push((start + end) / 2);
-      rivetRows.forEach((row, rowIndex) => {
+      // Rivets only where they would be a pixel or more across.
+      const rows = bandPx * heightV * (rivetSize / 2) >= 1 ? rivetRows : [];
+      rows.forEach((row, rowIndex) => {
         rivetAt.forEach((at, atIndex) => {
           const slot = 12 + rowIndex * 6 + atIndex * 2; // two draws a rivet, none shared
           facets.push(

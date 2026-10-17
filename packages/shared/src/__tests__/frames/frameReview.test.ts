@@ -17,6 +17,7 @@ import {
   frameSeed,
   frameWeight,
   layoutFrame,
+  pinFrameSeeds,
   presetFrame,
   relativeLuminance,
   resolveFrameParams,
@@ -25,6 +26,8 @@ import {
   type TokenFrame,
 } from "../../index.js";
 import { motifCount, MAX_MOTIFS } from "../../frames/engine/generators/common.js";
+import { FRAME_GENERATORS } from "../../frames/engine/generators/index.js";
+import { createSeededRng } from "../../rng.js";
 
 const band = (extra: Record<string, unknown> = {}) => ({
   generator: "plain",
@@ -58,14 +61,38 @@ describe("a frame the wire must refuse", () => {
     });
   });
 
-  it("carries more than 1.5 KB of JSON", () => {
-    const huge = {
-      bands: [band({ params: { grain: 0.5 } })],
-      preset: undefined,
-      accent: "personal",
+  it("is accepted at its largest: six full bands, its stones pinned for a carry, under the cap", () => {
+    const full = (index: number) => ({
+      generator: "masonry",
+      palette: "metal.blackened",
+      weight: 0.0566,
+      depth: 0.333,
+      params: {
+        bond: "rubble",
+        stoneLength: 1.234,
+        gap: 0.123,
+        inset: 0.123,
+        irregularity: 0.123,
+        chamfer: 0.123,
+        crackDensity: 0.123,
+      },
+      bevel: { profile: "chamfer", width: 0.33 },
+      glow: { color: "#abcdef", strength: 0.33 },
+      ...(index % 2 ? { seed: -2147483648 } : {}),
+    });
+    const worst = {
+      preset: "metal.blackened",
+      shape: "circle",
+      growth: "mid",
+      accent: "#123456",
+      bands: [0, 1, 2, 3, 4, 5].map(full),
     };
-    expect(refusal(huge)).toBeNull();
-    expect(JSON.stringify(sanitizeTokenFrame(huge)).length).toBeLessThan(1536);
+    const accepted = sanitizeTokenFrame(worst);
+    if ("error" in accepted) throw new Error(accepted.error);
+    const pinned = pinFrameSeeds(accepted.frame, "token-with-a-long-id");
+    expect(JSON.stringify(pinned).length).toBeLessThanOrEqual(2304);
+    // carried to a file or a re-placed NPC, it survives the files' door intact
+    expect(coerceTokenFrame(JSON.parse(JSON.stringify(pinned)))).toEqual(pinned);
   });
 });
 
@@ -99,14 +126,39 @@ describe("numbers the wire keeps", () => {
   });
 
   it("come back from a file exactly, a total a hair over the cap included", () => {
-    const stored = sanitizeTokenFrame(withFrameWeight(presetFrame("metal.welded")!, 0.34));
+    const welded = presetFrame("metal.welded")!;
+    const over = {
+      ...welded,
+      bands: welded.bands.map((band, index) => ({
+        ...band,
+        weight: [0.0511, 0.2381, 0.0511][index]!,
+      })),
+    };
+    const stored = sanitizeTokenFrame(over);
     if ("error" in stored) throw new Error(stored.error);
-    expect(frameWeight(stored.frame)).toBeCloseTo(0.34, 3);
+    expect(frameWeight(stored.frame)).toBeCloseTo(0.3403, 4); // inside the tolerance, over the cap
     expect(coerceTokenFrame(JSON.parse(JSON.stringify(stored.frame)))).toEqual(stored.frame);
   });
 });
 
 describe("a file's frame", () => {
+  it("scales an out-of-range total into the limits, a thin band held at the floor, never dropped", () => {
+    const frame = coerceTokenFrame({ bands: [band({ weight: 0.0001 }), band({ weight: 0.5 })] })!;
+    expect(frame).toBeDefined();
+    expect(frame.bands[0]!.weight).toBe(0.005);
+    expect(frameWeight(frame)).toBeCloseTo(0.34, 6);
+    const many = coerceTokenFrame({
+      bands: [...Array(5)].map(() => band({ weight: 0.001 })).concat([band({ weight: 10 })]),
+    })!;
+    expect(many).toBeDefined();
+    expect(frameWeight(many)).toBeCloseTo(0.34, 6);
+    expect(coerceTokenFrame({ bands: [band({ weight: 1e308 })] })).toBeDefined();
+    // a band the scaling itself would thin past the floor is held at it
+    const scaled = coerceTokenFrame({ bands: [band({ weight: 0.006 }), band({ weight: 1 })] })!;
+    expect(scaled.bands[0]!.weight).toBe(0.005);
+    expect(frameWeight(scaled)).toBeCloseTo(0.34, 6);
+  });
+
   it("never throws on built-in names and thickens a band too thin to draw", () => {
     const frame = coerceTokenFrame({
       bands: [band({ generator: "constructor", palette: "__proto__" }), band({ weight: 1e-9 })],
@@ -117,6 +169,96 @@ describe("a file's frame", () => {
 });
 
 describe("the engine's own limits", () => {
+  it("keeps a crafted frame of hair-thin rivetted plates inside the whole-frame budget", () => {
+    const thin = (depth: number) => ({
+      generator: "plate",
+      palette: "metal.iron",
+      weight: 0.005,
+      depth,
+      params: { plateLength: 1, rivetRows: 3, rivetSize: 0.3, irregularity: 1 },
+    });
+    const crafted = {
+      growth: "out" as const,
+      bands: [thin(0), thin(1), thin(0), thin(1), thin(0), { ...thin(1), weight: 0.015 }],
+    };
+    expect(sanitizeTokenFrame(crafted)).toHaveProperty("frame");
+    const { paints } = framePaints({
+      frame: crafted,
+      size: "gargantuan",
+      accent: "#000000",
+      seed: 1,
+      tier: 512,
+    });
+    expect(paints.length).toBeLessThan(40_000);
+  });
+
+  it("shares one motif budget across the frame's bands", () => {
+    const thinStone = {
+      generator: "masonry",
+      palette: "stone.grey",
+      weight: 0.005,
+      depth: 0.6,
+      params: { stoneLength: 0.6 },
+    };
+    const frame = {
+      bands: [...Array(5)].map(() => thinStone).concat([{ ...thinStone, weight: 0.015 }]),
+    };
+    expect(sanitizeTokenFrame(frame)).toHaveProperty("frame");
+    const { paints } = framePaints({
+      frame,
+      size: "gargantuan",
+      accent: "#000000",
+      seed: 1,
+      tier: 512,
+    });
+    // a stone is an outline, four bevels and a top: six paints, so 768 stones at most
+    expect(paints.length).toBeLessThan(768 * 6 + 2000);
+  });
+
+  it("lays rubble in its own course, not over the next one", () => {
+    const facets = FRAME_GENERATORS.masonry!({
+      length: 20,
+      courses: 2,
+      courseScale: () => 1,
+      params: resolveFrameParams("masonry", { bond: "rubble", irregularity: 1, gap: 0 }),
+      rng: createSeededRng(9),
+      maxMotifs: 256,
+      bandPx: 200,
+    });
+    // every stone outline stays inside the half of the band its centre is in
+    for (const facet of facets.filter((candidate) => candidate.role === "outline")) {
+      const vs = facet.points.filter((_, index) => index % 2 === 1);
+      const centre = vs.reduce((sum, v) => sum + v, 0) / vs.length;
+      const [low, high] = centre < 0.5 ? [0, 0.5] : [0.5, 1];
+      for (const v of vs) {
+        expect(v).toBeGreaterThanOrEqual(low - 1e-9);
+        expect(v).toBeLessThanOrEqual(high + 1e-9);
+      }
+    }
+  });
+
+  it("puts no underlay under a single band, so its own edges keep their smoothing", () => {
+    const one = framePaints({
+      frame: presetFrame("plain.ring")!,
+      accent: "#4f7cc4",
+      seed: 1,
+      tier: 256,
+    });
+    const two = framePaints({
+      frame: presetFrame("metal.welded")!,
+      accent: "#4f7cc4",
+      seed: 1,
+      tier: 256,
+    });
+    // The underlay strip starts at angle 0 (on +x); warped bands start at the top.
+    const annuli = (paints: { points: number[] }[]) =>
+      paints.filter(
+        (paint) => paint.points.length > 700 && paint.points[1] === 0 && paint.points[0]! > 0,
+      ).length;
+    expect(annuli(one.paints)).toBe(0);
+    expect(annuli(two.paints)).toBe(2); // one strip under each of welded's two joints
+  });
+
   it("caps the motifs a course may hold", () => {
     expect(motifCount(1e9, 1)).toBe(MAX_MOTIFS);
     expect(motifCount(1, 5)).toBe(3);
@@ -131,6 +273,7 @@ describe("the engine's own limits", () => {
         expect(pixels[(at * tier + 0) * 4 + 3]).toBe(0); // left edge
         expect(pixels[(0 * tier + at) * 4 + 3]).toBe(0); // top edge
         expect(pixels[(at * tier + tier - 1) * 4 + 3]).toBe(0); // right edge
+        expect(pixels[((tier - 1) * tier + at) * 4 + 3]).toBe(0); // bottom edge
       }
     }
   });
@@ -175,7 +318,6 @@ describe("the engine's own limits", () => {
     });
     const tones = paints.map((paint) => relativeLuminance(paint.color));
     const brightest = Math.max(...tones);
-    const top = presetFrame("stone.castle")!; // grey stone top #9b978f
     expect(brightest).toBeGreaterThan(
       relativeLuminance({ r: 0x9b / 255, g: 0x97 / 255, b: 0x8f / 255 }),
     );
@@ -190,7 +332,6 @@ describe("the engine's own limits", () => {
         .map((paint) => relativeLuminance(paint.color));
     const mean = (values: number[]) =>
       values.reduce((sum, value) => sum + value, 0) / values.length;
-    expect(top.bands).toHaveLength(1);
     expect(mean(side(-1))).toBeGreaterThan(mean(side(1)));
   });
 });

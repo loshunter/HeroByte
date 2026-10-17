@@ -31,6 +31,7 @@ import {
   type EdgeFacet,
 } from "./frameEdges.js";
 import { FRAME_GENERATORS } from "./generators/index.js";
+import { FRAME_MOTIF_BUDGET } from "./generators/common.js";
 import { createRaster, fillPolygon, rasterToRgba } from "./raster.js";
 import {
   mixRgb,
@@ -134,6 +135,7 @@ function ringPaints(
   index: number,
   input: FrameBakeInput,
   palette: ResolvedPalette,
+  layout: FrameLayout,
 ): Paint[] {
   const { band } = ring;
   const generate = frameGeneratorSpec(band.generator)
@@ -148,6 +150,8 @@ function ringPaints(
     courseScale: (course) => (ring.r0 + (ring.r1 - ring.r0) * ((course + 0.5) / courses)) / middle,
     params: resolveFrameParams(band.generator, band.params),
     rng: createSeededRng(bandSeed(input.frame, index, input.seed)),
+    maxMotifs: Math.max(3, Math.floor(FRAME_MOTIF_BUDGET / (input.frame.bands.length * courses))),
+    bandPx: ((ring.r1 - ring.r0) * input.tier) / (2 * layout.extent),
   });
   const glow = band.glow
     ? band.glow.color === "personal"
@@ -217,14 +221,23 @@ export function framePaints(input: FrameBakeInput): { paints: Paint[]; layout: F
   if (layout.outset > 0) {
     add(dropShadowFacets(layout.outer).map((edge) => edgePaint(edge, null, "shadow")));
   }
-  // One opaque underlay under every band, so where two bands meet their
-  // smoothed edges blend into it instead of letting the map show through.
-  if (palettes[0]) {
+  // Where two bands meet, a thin opaque strip under the joint: their smoothed
+  // edges blend into it instead of letting the map show through. Only there,
+  // so the frame's own outer and inner edges keep their smoothing.
+  const pixel = (2 * layout.extent) / input.tier;
+  for (let index = 0; index + 1 < layout.rings.length; index += 1) {
+    const joint = layout.rings[index]!.r1;
     add([
-      { points: annulus(layout.window, layout.outer), color: palettes[0].roles.outline, alpha: 1 },
+      {
+        points: annulus(joint - 2 * pixel, joint + 2 * pixel),
+        color: palettes[index]!.roles.outline,
+        alpha: 1,
+      },
     ]);
   }
-  layout.rings.forEach((ring, index) => add(ringPaints(ring, index, input, palettes[index]!)));
+  layout.rings.forEach((ring, index) =>
+    add(ringPaints(ring, index, input, palettes[index]!, layout)),
+  );
   // Steps between neighbouring bands of different height, over both of them.
   for (let index = 0; index + 1 < layout.rings.length; index += 1) {
     const inner = layout.rings[index]!;

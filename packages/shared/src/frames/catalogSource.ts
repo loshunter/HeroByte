@@ -9,7 +9,9 @@
 // param, or a param outside its range. Presets list each band's SHARE of the
 // frame; the catalog stores them at regular weight.
 
-import { frameGeneratorSpec, type FrameParamSpec } from "./generatorSpecs.js";
+import { frameGeneratorSpec, resolveFrameParams, type FrameParamSpec } from "./generatorSpecs.js";
+import { sanitizeTokenFrame } from "./frameValidation.js";
+import { withFrameWeight } from "./frameDefaults.js";
 import { FRAME_LIMITS, FRAME_WEIGHTS } from "./frameLimits.js";
 import type {
   FrameBand,
@@ -274,6 +276,27 @@ export function buildFrameCatalogSource(
     errors.push(`palette stone.grey: required (the fallback material)`);
   if (!presets.some((preset) => preset.id === "plain.ring")) {
     errors.push(`preset plain.ring: required (every new token wears it)`);
+  }
+  // Every preset must pass the wire's own check at both ends of the weight slider.
+  for (const preset of presets) {
+    for (const weight of [FRAME_LIMITS.MIN_WEIGHT, FRAME_LIMITS.MAX_WEIGHT]) {
+      const scaled = withFrameWeight(
+        {
+          ...preset.frame,
+          bands: preset.frame.bands.map((band) => ({
+            ...band,
+            ...(Object.keys(resolveFrameParams(band.generator, band.params)).length > 0
+              ? { params: resolveFrameParams(band.generator, band.params) }
+              : {}),
+          })),
+        },
+        weight,
+      );
+      // Its id is not in the shipped catalog yet: checked without it.
+      const checked = sanitizeTokenFrame({ ...scaled, preset: undefined }, palettes);
+      if ("error" in checked)
+        errors.push(`preset ${preset.id}: at weight ${weight}, ${checked.error}`);
+    }
   }
   // The shelf's order: by theme, the default first within its theme, then as listed.
   const rank = (preset: FramePreset) =>

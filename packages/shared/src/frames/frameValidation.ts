@@ -5,7 +5,7 @@
 // sends is checked against the catalog and refused whole, with a reason, when
 // it names a shape, finish, generator, palette or preset this build does not
 // have, more than six bands, a band thinner than 0.005, a total weight outside
-// 0.04–0.34 or more than 1.5 KB of JSON; numbers inside an otherwise good
+// 0.04–0.34 or more than 2.25 KB of JSON; numbers inside an otherwise good
 // frame are clamped and rounded (they ride every token in every snapshot).
 // `coerceTokenFrame` is the files': a character file or a table from a newer
 // build must load, so an unknown generator or palette becomes plain stone per
@@ -15,8 +15,16 @@
 import { FRAME_PRESETS } from "./frameCatalog.generated.js";
 import { framePaletteById } from "./catalogLookup.js";
 import { frameGeneratorSpec, resolveFrameParams } from "./generatorSpecs.js";
+/** What pinning a seeded band's seed adds to its JSON, at most (`,"seed":-2147483648`). */
+const PINNED_SEED_BYTES = 19;
 import { FRAME_LIMITS } from "./frameLimits.js";
-import type { FrameBand, FrameBevelProfile, FrameGrowth, TokenFrame } from "./types.js";
+import type {
+  FrameBand,
+  FrameBevelProfile,
+  FrameGrowth,
+  FramePalette,
+  TokenFrame,
+} from "./types.js";
 
 const HEX = /^#[0-9a-f]{6}$/;
 const PROFILES: readonly FrameBevelProfile[] = ["round", "chamfer", "step", "flat"];
@@ -37,7 +45,8 @@ const isColor = (value: unknown): value is string =>
 export const roundTo = (value: number, step: number): number =>
   Number((Math.round(value / step) * step).toFixed(Math.max(0, Math.ceil(-Math.log10(step)))));
 const knownGenerator = (id: unknown) => frameGeneratorSpec(id) !== undefined;
-const knownPalette = (id: unknown) => framePaletteById(id) !== undefined;
+const knownPalette = (id: unknown, palettes?: Readonly<Record<string, FramePalette>>) =>
+  framePaletteById(id, palettes) !== undefined;
 
 export function isFramePreset(id: unknown): boolean {
   return typeof id === "string" && FRAME_PRESETS.some((preset) => preset.id === id);
@@ -81,7 +90,11 @@ function cleanBand(
 const totalOf = (bands: readonly FrameBand[]) => bands.reduce((sum, band) => sum + band.weight, 0);
 
 /** The wire's check: a clean copy of the frame, or the reason it is refused. */
-export function sanitizeTokenFrame(raw: unknown): FrameCheck {
+export function sanitizeTokenFrame(
+  raw: unknown,
+  /** The build script's freshly checked palettes; the shipped catalog otherwise. */
+  palettes?: Readonly<Record<string, FramePalette>>,
+): FrameCheck {
   if (!isRecord(raw)) return { error: "frame must be an object" };
   if (raw.shape !== undefined && raw.shape !== "circle") {
     return { error: "frame shape must be circle" };
@@ -108,7 +121,7 @@ export function sanitizeTokenFrame(raw: unknown): FrameCheck {
   for (const band of raw.bands) {
     if (!isRecord(band)) return { error: "frame band must be an object" };
     if (!knownGenerator(band.generator)) return { error: "frame band generator is unknown" };
-    if (!knownPalette(band.palette)) return { error: "frame band palette is unknown" };
+    if (!knownPalette(band.palette, palettes)) return { error: "frame band palette is unknown" };
     if (!isFiniteNumber(band.weight) || band.weight <= 0) {
       return { error: "frame band weight must be a positive number" };
     }
@@ -133,10 +146,33 @@ export function sanitizeTokenFrame(raw: unknown): FrameCheck {
     accent: (raw.accent as string | undefined) ?? "personal",
     bands,
   };
-  if (JSON.stringify(frame).length > FRAME_LIMITS.MAX_FRAME_BYTES) {
+  // Counted as a carry would store it (pinFrameSeeds), so a frame the wire
+  // takes never outgrows the cap on its way to a file or a re-placed NPC.
+  const unpinned = bands.filter(
+    (band) => band.seed === undefined && frameGeneratorSpec(band.generator)?.seeded,
+  ).length;
+  if (JSON.stringify(frame).length + unpinned * PINNED_SEED_BYTES > FRAME_LIMITS.MAX_FRAME_BYTES) {
     return { error: `frame is larger than ${FRAME_LIMITS.MAX_FRAME_BYTES} bytes` };
   }
   return { frame };
+}
+
+/**
+ * Bands scaled so their total lands inside the limits: any band the scaling
+ * would thin past the floor is held at it and the rest share what is left,
+ * and the rounding's remainder goes to the widest band, so the total is exact.
+ */
+function scaleInto(bands: FrameBand[], total: number): void {
+  const target = clamp(total, FRAME_LIMITS.MIN_WEIGHT, FRAME_LIMITS.MAX_WEIGHT);
+  const floor = FRAME_LIMITS.MIN_BAND_WEIGHT;
+  const held = bands.filter((band) => (band.weight * target) / total < floor);
+  const free = bands.filter((band) => !held.includes(band));
+  const freeTotal = free.reduce((sum, band) => sum + band.weight, 0);
+  const room = target - held.length * floor;
+  for (const band of held) band.weight = floor;
+  for (const band of free) band.weight = roundTo((band.weight * room) / freeTotal, 1e-4);
+  const widest = bands.reduce((best, band) => (band.weight > best.weight ? band : best));
+  widest.weight = roundTo(widest.weight + target - totalOf(bands), 1e-4);
 }
 
 /**
@@ -152,9 +188,10 @@ export function coerceTokenFrame(raw: unknown): TokenFrame | undefined {
   for (const band of raw.bands.slice(0, FRAME_LIMITS.MAX_BANDS)) {
     if (!isRecord(band)) continue;
     const known = knownGenerator(band.generator) && knownPalette(band.palette);
-    const weight = Math.max(
-      FRAME_LIMITS.MIN_BAND_WEIGHT,
+    const weight = clamp(
       isFiniteNumber(band.weight) && band.weight > 0 ? band.weight : 0.1,
+      FRAME_LIMITS.MIN_BAND_WEIGHT,
+      1,
     );
     bands.push(
       known
@@ -166,15 +203,7 @@ export function coerceTokenFrame(raw: unknown): TokenFrame | undefined {
   const total = totalOf(bands);
   const low = FRAME_LIMITS.MIN_WEIGHT - FRAME_WEIGHT_TOLERANCE;
   const high = FRAME_LIMITS.MAX_WEIGHT + FRAME_WEIGHT_TOLERANCE;
-  if (total < low || total > high) {
-    const target = clamp(total, FRAME_LIMITS.MIN_WEIGHT, FRAME_LIMITS.MAX_WEIGHT);
-    for (const band of bands) {
-      band.weight = Math.max(
-        FRAME_LIMITS.MIN_BAND_WEIGHT,
-        roundTo((band.weight * target) / total, 1e-4),
-      );
-    }
-  }
+  if (total < low || total > high) scaleInto(bands, total);
   const frame: TokenFrame = {
     ...(isFramePreset(raw.preset) ? { preset: raw.preset as string } : {}),
     ...(raw.shape === "circle" ? { shape: "circle" as const } : {}),
@@ -196,6 +225,8 @@ export function coerceTokenFrames<T extends { frame?: TokenFrame }>(tokens: read
   return tokens.map((token) => {
     if (token?.frame === undefined) return token;
     const frame = coerceTokenFrame(token.frame);
+    // Unchanged, the token itself comes back (a parked map with nothing to fix keeps its identity).
+    if (frame && JSON.stringify(frame) === JSON.stringify(token.frame)) return token;
     const next = { ...token };
     if (frame) next.frame = frame;
     else delete next.frame;

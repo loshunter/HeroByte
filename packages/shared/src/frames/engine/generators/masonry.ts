@@ -5,7 +5,7 @@
 // the repeat rule (N = round(perimeter / (stoneLength × band)), per course),
 // so stones keep their proportions at any weight and taper exactly as their
 // radius says; a band too thick for its circle is laid in two courses
-// (courseCount). Each stone is a dark outline, a ring of chamfer facets
+// or three (courseCount). Each stone is a dark outline, a ring of chamfer facets
 // falling from its centre, an inset top, and maybe a crack (the crack role,
 // which a band with a glow lights up). Mortar is the band's base.
 //
@@ -29,7 +29,14 @@ import {
 
 const DRAWS_PER_STONE = 20;
 
-export const masonry: FrameGenerator = ({ length, courses, courseScale, params, rng }) => {
+export const masonry: FrameGenerator = ({
+  length,
+  courses,
+  courseScale,
+  params,
+  rng,
+  maxMotifs,
+}) => {
   const bond = params.bond as string;
   const stoneLength = num(params, "stoneLength");
   const gap = num(params, "gap");
@@ -48,7 +55,7 @@ export const masonry: FrameGenerator = ({ length, courses, courseScale, params, 
     // One band height of THIS course, along u and across v.
     const heightU = 1 / courses / scale;
     const heightV = 1 / courses;
-    const count = motifCount(length * scale * courses, stoneLength);
+    const count = motifCount(length * scale * courses, stoneLength, maxMotifs);
     const rolls = draws(rng, count);
     const spread = rough ? 0.3 + 0.3 * irregularity : 0.12 * irregularity;
     const lengths = splitLength(length, count, spread, rolls);
@@ -121,8 +128,8 @@ export const masonry: FrameGenerator = ({ length, courses, courseScale, params, 
       const pitch = 22 + chamfer * 40;
       const outline: [number, number] = [0.03 * heightU, 0.03 * heightV];
       const bevel: [number, number] = [inset * heightU, inset * heightV];
-      // Jitter may not carry a stone out of its band: past v = 1 it leaves the bitmap.
-      for (const facet of bevelledBlock(clampAcross(shape), outline, bevel, pitch))
+      // Jitter may not carry a stone out of its course (over the next) or its band (off the bitmap).
+      for (const facet of bevelledBlock(clampAcross(shape, v0, v1), outline, bevel, pitch))
         facets.push(facet);
 
       if (d[11]! < crackDensity * 0.85) {

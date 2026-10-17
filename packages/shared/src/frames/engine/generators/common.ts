@@ -13,12 +13,16 @@ import type { Facet } from "../bandSpace.js";
 export interface GeneratorContext {
   /** The u range once round, in band heights. */
   length: number;
-  /** 1, or 2 when the slivers rule lays the band in two courses. */
+  /** 1, 2, or 3 near the weight cap (courseCount: the slivers rule). */
   courses: number;
   /** Middle radius of each course over the band's middle radius (a course's u is shorter inside). */
   courseScale: (course: number) => number;
   params: Record<string, FrameParamValue>;
   rng: SeededRng;
+  /** Motifs a course may hold: the frame's whole budget shared by its bands and courses. */
+  maxMotifs: number;
+  /** The band's thickness in this bitmap's pixels: details under a pixel are left out. */
+  bandPx: number;
 }
 
 export type FrameGenerator = (context: GeneratorContext) => Facet[];
@@ -26,9 +30,16 @@ export type FrameGenerator = (context: GeneratorContext) => Facet[];
 /** Motifs per course at most: a backstop under the band-weight floor (MIN_BAND_WEIGHT). */
 export const MAX_MOTIFS = 256;
 
-/** How many motifs `length` holds at `motif` each, by the repeat rule: at least 3, at most MAX_MOTIFS. */
-export function motifCount(length: number, motif: number): number {
-  return Math.min(MAX_MOTIFS, Math.max(3, Math.round(length / motif)));
+/**
+ * Motifs a whole frame may hold, across all its bands and courses: six
+ * crafted hair-thin bands of tiny rivetted plates were 145k facets and half a
+ * second a bake on every client before this budget.
+ */
+export const FRAME_MOTIF_BUDGET = 768;
+
+/** How many motifs `length` holds at `motif` each, by the repeat rule: at least 3, at most `max`. */
+export function motifCount(length: number, motif: number, max = MAX_MOTIFS): number {
+  return Math.min(max, MAX_MOTIFS, Math.max(3, Math.round(length / motif)));
 }
 
 /** A shape's v coordinates held inside the band (jitter must not leave the bitmap). */
