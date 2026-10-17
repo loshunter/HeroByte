@@ -31,7 +31,7 @@ import {
   type EdgeFacet,
 } from "./frameEdges.js";
 import { FRAME_GENERATORS } from "./generators/index.js";
-import { FRAME_FACET_BUDGET, motifFacets } from "./generators/common.js";
+import { motifBudget } from "./generators/common.js";
 import { createRaster, fillPolygon, rasterToRgba } from "./raster.js";
 import {
   mixRgb,
@@ -150,12 +150,7 @@ function ringPaints(
     courseScale: (course) => (ring.r0 + (ring.r1 - ring.r0) * ((course + 0.5) / courses)) / middle,
     params,
     rng: createSeededRng(bandSeed(input.frame, index, input.seed)),
-    maxMotifs: Math.max(
-      3,
-      Math.floor(
-        FRAME_FACET_BUDGET / (input.frame.bands.length * courses * motifFacets(generator, params)),
-      ),
-    ),
+    maxMotifs: motifBudget(input.frame.bands.length, courses, generator, params),
     bandPx: ((ring.r1 - ring.r0) * input.tier) / (2 * layout.extent),
   });
   const glow = band.glow

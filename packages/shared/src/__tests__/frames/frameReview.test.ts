@@ -28,6 +28,7 @@ import {
 } from "../../index.js";
 import {
   FRAME_FACET_BUDGET,
+  motifBudget,
   motifCount,
   motifFacets,
   MAX_MOTIFS,
@@ -224,8 +225,10 @@ describe("the engine's own limits", () => {
       seed: 1,
       tier: 512,
     });
-    // a stone is counted at twelve facets (a cobble and a crack): 1000 stones at most
-    expect(paints.length).toBeLessThan(FRAME_FACET_BUDGET + 2000);
+    // the budget counts a stone at twelve facets (a cobble and a crack), so 1000
+    // stones; these are running bond, six facets each, plus about 370 of edges.
+    // 6347 today; with no budget (256 a course) 9587.
+    expect(paints.length).toBeLessThan((FRAME_FACET_BUDGET / motifFacets("masonry", {})) * 6 + 600);
   });
 
   it("lays rubble in its own course, not over the next one", () => {
@@ -431,7 +434,7 @@ describe("the engine, after review round 3", () => {
     for (const preset of FRAME_PRESETS) {
       for (let step = 4; step <= 34; step += 1) {
         for (const size of SIZES) {
-          for (const growth of ["in", "out"] as const) {
+          for (const growth of ["in", "out", "mid"] as const) {
             const frame = { ...presetFrame(preset.id, step / 100)!, growth };
             for (const ring of layoutFrame(frame, size).rings) {
               const generator = ring.band.generator;
@@ -443,10 +446,7 @@ describe("the engine, after review round 3", () => {
                 bandLength(ring) * outerScale * courses,
                 params[MOTIF_LENGTH[generator]!] as number,
               );
-              const budget = Math.floor(
-                FRAME_FACET_BUDGET /
-                  (frame.bands.length * courses * motifFacets(generator, params)),
-              );
+              const budget = motifBudget(frame.bands.length, courses, generator, params);
               expect(
                 budget,
                 `${preset.id} at ${step / 100} on ${size}, ${growth}`,

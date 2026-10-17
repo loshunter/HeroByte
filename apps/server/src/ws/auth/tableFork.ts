@@ -124,12 +124,10 @@ export async function handleForkTable(
     target.setState({
       tableName: name,
       isPublicTable: false,
-      // The atlas trio is cloned OUT OF BAND, structuredClone each, because
-      // this is the ONE in-process snapshot copy (no JSON crossing to sever
-      // references): the DM projection returns LIVE node/link objects and the
-      // loader's normalize keeps the same element objects — so without these
-      // clones, an in-place `atlas-update-node` (rename, discover) in either
-      // room bled into the other. The A1 review proved it with a probe:
+      // The atlas trio is cloned too, structuredClone each, because it comes
+      // from the source's LIVE state, not the (already cloned) snapshot:
+      // without these clones, an in-place `atlas-update-node` (rename,
+      // discover) in either room bled into the other. The A1 review proved it with a probe:
       // toggling `discovered` in a private fork changed the PUBLIC table's
       // player projection. sceneStates additionally can never ride a snapshot
       // at all (they serialize to no recipient).

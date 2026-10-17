@@ -61,7 +61,9 @@ export function presetFrame(
 export function defaultTokenFrame(): TokenFrame {
   // Through the wire's check, so it is spelled exactly as a stored frame is and
   // a load finds it unchanged (coerceTokenFrames compares the JSON).
-  return (sanitizeTokenFrame(presetFrame(DEFAULT_FRAME_PRESET)) as { frame: TokenFrame }).frame;
+  const checked = sanitizeTokenFrame(presetFrame(DEFAULT_FRAME_PRESET));
+  if ("error" in checked) throw new Error(`The default ring is refused: ${checked.error}`);
+  return checked.frame;
 }
 
 /** Whether any band lights a glow (the Frame tab then offers the glow colour and strength). */

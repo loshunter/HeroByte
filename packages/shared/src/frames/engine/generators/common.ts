@@ -39,6 +39,17 @@ export const MAX_MOTIFS = 256;
  */
 export const FRAME_FACET_BUDGET = 12_000;
 
+/** The motifs a course of this band may hold under the frame's facet budget (3 at least). */
+export function motifBudget(
+  bandCount: number,
+  courses: number,
+  generator: string,
+  params: Record<string, FrameParamValue>,
+): number {
+  const share = bandCount * courses * motifFacets(generator, params);
+  return Math.max(3, Math.floor(FRAME_FACET_BUDGET / share));
+}
+
 /** The most facets one motif draws with these params, every detail shown. */
 export function motifFacets(generator: string, params: Record<string, FrameParamValue>): number {
   switch (generator) {
