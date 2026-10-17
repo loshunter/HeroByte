@@ -37,5 +37,5 @@ export const PORTRAIT_ENTRY: HelpEntry = {
 export const TOKEN_FRAME_ENTRY: HelpEntry = {
   term: "Token frame",
   detail:
-    "⚙️ → Token frame… picks the ring round your token on the map: Plain, Stone, Metal or Wood, its weight (Skinny to Slab), grow in or out, and your colour or one you pick; Use this frame sets it for everyone. New tokens start with a plain ring in your colour. On a phone it is in ⚙️ EDIT.",
+    "⚙️ → Token frame… picks the ring round your token on the map: Plain, Stone, Metal or Wood, its weight (a slider, with Skinny, Regular, Bold and Slab), grow in or out, and for the plain rings your colour or one you pick; Use this frame sets it for everyone. New tokens start with a plain ring in your colour. On a phone it is in ⚙️ EDIT.",
 };
