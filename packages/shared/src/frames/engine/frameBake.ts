@@ -31,7 +31,7 @@ import {
   type EdgeFacet,
 } from "./frameEdges.js";
 import { FRAME_GENERATORS } from "./generators/index.js";
-import { FRAME_MOTIF_BUDGET } from "./generators/common.js";
+import { FRAME_FACET_BUDGET, motifFacets } from "./generators/common.js";
 import { createRaster, fillPolygon, rasterToRgba } from "./raster.js";
 import {
   mixRgb,
@@ -138,9 +138,9 @@ function ringPaints(
   layout: FrameLayout,
 ): Paint[] {
   const { band } = ring;
-  const generate = frameGeneratorSpec(band.generator)
-    ? FRAME_GENERATORS[band.generator]!
-    : FRAME_GENERATORS.plain!;
+  const generator = frameGeneratorSpec(band.generator) ? band.generator : "plain";
+  const generate = FRAME_GENERATORS[generator]!;
+  const params = resolveFrameParams(generator, band.params);
   const length = bandLength(ring);
   const courses = courseCount(ring);
   const middle = (ring.r0 + ring.r1) / 2;
@@ -148,9 +148,14 @@ function ringPaints(
     length,
     courses,
     courseScale: (course) => (ring.r0 + (ring.r1 - ring.r0) * ((course + 0.5) / courses)) / middle,
-    params: resolveFrameParams(band.generator, band.params),
+    params,
     rng: createSeededRng(bandSeed(input.frame, index, input.seed)),
-    maxMotifs: Math.max(3, Math.floor(FRAME_MOTIF_BUDGET / (input.frame.bands.length * courses))),
+    maxMotifs: Math.max(
+      3,
+      Math.floor(
+        FRAME_FACET_BUDGET / (input.frame.bands.length * courses * motifFacets(generator, params)),
+      ),
+    ),
     bandPx: ((ring.r1 - ring.r0) * input.tier) / (2 * layout.extent),
   });
   const glow = band.glow
@@ -226,10 +231,15 @@ export function framePaints(input: FrameBakeInput): { paints: Paint[]; layout: F
   // so the frame's own outer and inner edges keep their smoothing.
   const pixel = (2 * layout.extent) / input.tier;
   for (let index = 0; index + 1 < layout.rings.length; index += 1) {
-    const joint = layout.rings[index]!.r1;
+    const inner = layout.rings[index]!;
+    const outer = layout.rings[index + 1]!;
+    const joint = inner.r1;
+    // Each half kept inside its own band: past a thin edge band it was a dark halo.
+    const below = Math.min(2 * pixel, (inner.r1 - inner.r0) / 2);
+    const above = Math.min(2 * pixel, (outer.r1 - outer.r0) / 2);
     add([
       {
-        points: annulus(joint - 2 * pixel, joint + 2 * pixel),
+        points: annulus(joint - below, joint + above),
         color: palettes[index]!.roles.outline,
         alpha: 1,
       },

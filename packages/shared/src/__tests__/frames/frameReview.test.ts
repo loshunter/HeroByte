@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bakeFrame,
+  bandLength,
   coerceTokenFrame,
   courseCount,
   FRAME_PRESETS,
@@ -25,7 +26,12 @@ import {
   withFrameWeight,
   type TokenFrame,
 } from "../../index.js";
-import { motifCount, MAX_MOTIFS } from "../../frames/engine/generators/common.js";
+import {
+  FRAME_FACET_BUDGET,
+  motifCount,
+  motifFacets,
+  MAX_MOTIFS,
+} from "../../frames/engine/generators/common.js";
 import { FRAME_GENERATORS } from "../../frames/engine/generators/index.js";
 import { createSeededRng } from "../../rng.js";
 
@@ -218,8 +224,8 @@ describe("the engine's own limits", () => {
       seed: 1,
       tier: 512,
     });
-    // a stone is an outline, four bevels and a top: six paints, so 768 stones at most
-    expect(paints.length).toBeLessThan(768 * 6 + 2000);
+    // a stone is counted at twelve facets (a cobble and a crack): 1000 stones at most
+    expect(paints.length).toBeLessThan(FRAME_FACET_BUDGET + 2000);
   });
 
   it("lays rubble in its own course, not over the next one", () => {
@@ -371,5 +377,111 @@ describe("the bake key", () => {
     const red = bake(cracked, 128, 2, "#00ff00", "#ff0000").pixels;
     const blue = bake(cracked, 128, 2, "#00ff00", "#0000ff").pixels;
     expect(red).not.toEqual(blue);
+  });
+});
+
+describe("the engine, after review round 3", () => {
+  const SIZES = ["tiny", "small", "medium", "large", "huge", "gargantuan"] as const;
+  const MOTIF_LENGTH: Record<string, string> = {
+    masonry: "stoneLength",
+    plank: "plankLength",
+    plate: "plateLength",
+  };
+
+  it("budgets the facets a crafted frame draws, rivets and nails showing, not only its plates", () => {
+    const plates = (depth: number, weight = 0.0333) => ({
+      generator: "plate",
+      palette: "metal.iron",
+      weight,
+      depth,
+      params: {
+        plateLength: 1,
+        rivetRows: 3,
+        rivetSize: 0.3,
+        seamWidth: 0.15,
+        weld: true,
+        irregularity: 1,
+      },
+      bevel: { profile: "round", width: 0.5 },
+      glow: { color: "personal", strength: 1 },
+    });
+    const riveted = {
+      bands: [plates(0), plates(1), plates(0), plates(1), plates(0), plates(1, 0.0335)],
+    };
+    const boards = {
+      bands: [...Array(6)].map(() => ({
+        generator: "plank",
+        palette: "wood.oak",
+        weight: 0.02,
+        depth: 0.6,
+        params: { plankLength: 1, nails: 2, knotDensity: 1 },
+      })),
+    };
+    for (const frame of [riveted, boards]) {
+      expect(sanitizeTokenFrame(frame)).toHaveProperty("frame");
+      const paints = (tier: number) =>
+        framePaints({ frame, size: "gargantuan", accent: "#000000", seed: 1, tier }).paints.length;
+      // the motifs' budget plus each band's own edges, steps and glow; 62k and 72k before
+      expect(paints(1024)).toBeLessThan(FRAME_FACET_BUDGET + 8000);
+      expect(paints(1024)).toBeGreaterThan(paints(128)); // the detail does show at 1024
+    }
+  });
+
+  it("never trims a shipped preset: the budget binds only crafted frames", () => {
+    for (const preset of FRAME_PRESETS) {
+      for (let step = 4; step <= 34; step += 1) {
+        for (const size of SIZES) {
+          for (const growth of ["in", "out"] as const) {
+            const frame = { ...presetFrame(preset.id, step / 100)!, growth };
+            for (const ring of layoutFrame(frame, size).rings) {
+              const generator = ring.band.generator;
+              if (!MOTIF_LENGTH[generator]) continue;
+              const params = resolveFrameParams(generator, ring.band.params);
+              const courses = courseCount(ring);
+              const outerScale = ring.r1 / ((ring.r0 + ring.r1) / 2);
+              const natural = motifCount(
+                bandLength(ring) * outerScale * courses,
+                params[MOTIF_LENGTH[generator]!] as number,
+              );
+              const budget = Math.floor(
+                FRAME_FACET_BUDGET /
+                  (frame.bands.length * courses * motifFacets(generator, params)),
+              );
+              expect(
+                budget,
+                `${preset.id} at ${step / 100} on ${size}, ${growth}`,
+              ).toBeGreaterThanOrEqual(natural);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it("keeps the joint strip inside a thin edge band: no dark halo past the frame", () => {
+    const frame = presetFrame("metal.welded", FRAME_WEIGHTS.skinny)!;
+    for (const size of ["medium", "gargantuan"] as const) {
+      const { pixels, tier, layout } = bakeFrame({
+        frame,
+        size,
+        accent: "#4f7cc4",
+        seed: 1,
+        tier: 128,
+      });
+      const scale = tier / (2 * layout.extent);
+      const meanAlpha = (r: number) => {
+        let sum = 0;
+        for (let step = 0; step < 120; step += 1) {
+          const a = (step / 120) * Math.PI * 2;
+          const x = Math.floor(tier / 2 + Math.cos(a) * r * scale);
+          const y = Math.floor(tier / 2 + Math.sin(a) * r * scale);
+          sum += pixels[(y * tier + x) * 4 + 3]!;
+        }
+        return sum / 120;
+      };
+      // One band of the same total: about 6 outside, under 50 inside. The unclamped strip: 127–221.
+      expect(meanAlpha(layout.outer + 1 / scale), size).toBeLessThan(40);
+      expect(meanAlpha(layout.window - 1 / scale), size).toBeLessThan(90);
+    }
   });
 });

@@ -105,7 +105,18 @@ writeFileSync(CATALOG_FILE, formatted);
 
 // --- The contact sheet ------------------------------------------------------
 
-const { bakeFrame, presetFrame, FRAME_WEIGHTS } = await load("index.ts");
+const { bakeFrame, resolveFrameParams, withFrameWeight, FRAME_WEIGHTS } = await load("index.ts");
+// From the catalog just built, never presetFrame: the engine loaded the shipped
+// catalog before it was written (catalogSource imports it), so a new preset
+// would be missing and an edited one drawn as it was.
+const sheetFrame = (presetId, weight) => {
+  const preset = catalog.presets.find((candidate) => candidate.id === presetId);
+  const bands = preset.frame.bands.map((band) => {
+    const params = resolveFrameParams(band.generator, band.params);
+    return { ...band, ...(Object.keys(params).length > 0 ? { params } : {}) };
+  });
+  return withFrameWeight({ ...preset.frame, bands }, weight);
+};
 const TIER = 128;
 const PAD = 8;
 const CELL = TIER + PAD * 2;
@@ -139,7 +150,7 @@ rows.forEach(([presetId, accent], row) => {
     WEIGHTS.forEach(([, weight], weightIndex) => {
       const left = (bgIndex * WEIGHTS.length + weightIndex) * CELL;
       const top = row * CELL;
-      const frame = presetFrame(presetId, weight);
+      const frame = sheetFrame(presetId, weight);
       const baked = bakeFrame({
         frame,
         accent,

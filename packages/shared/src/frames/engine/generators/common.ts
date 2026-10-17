@@ -31,11 +31,27 @@ export type FrameGenerator = (context: GeneratorContext) => Facet[];
 export const MAX_MOTIFS = 256;
 
 /**
- * Motifs a whole frame may hold, across all its bands and courses: six
- * crafted hair-thin bands of tiny rivetted plates were 145k facets and half a
- * second a bake on every client before this budget.
+ * Facets a whole frame's motifs may draw, across all its bands and courses:
+ * six crafted bands of tiny rivetted plates were 145k facets and half a second
+ * a bake on every client with no budget, and still 62k with a budget counted
+ * in plates (each rivet is ten facets). Counted at full detail (motifFacets),
+ * so how many stones a band holds never depends on the tier it is baked at.
  */
-export const FRAME_MOTIF_BUDGET = 768;
+export const FRAME_FACET_BUDGET = 12_000;
+
+/** The most facets one motif draws with these params, every detail shown. */
+export function motifFacets(generator: string, params: Record<string, FrameParamValue>): number {
+  switch (generator) {
+    case "plate": // a block, its lip or a six-ripple bead, a ten-facet rivet per row at up to 3 places
+      return 6 + (params.weld === true ? 6 : 1) + 30 * num(params, "rivetRows");
+    case "plank": // a block, three ten-step grain lines, a knot, two nails a row
+      return 6 + 30 + 10 + 20 * num(params, "nails");
+    case "masonry": // a cobble's ten facets and a two-step crack
+      return 12;
+    default:
+      return 1;
+  }
+}
 
 /** How many motifs `length` holds at `motif` each, by the repeat rule: at least 3, at most `max`. */
 export function motifCount(length: number, motif: number, max = MAX_MOTIFS): number {
