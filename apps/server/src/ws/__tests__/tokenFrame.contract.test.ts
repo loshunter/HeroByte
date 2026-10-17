@@ -178,6 +178,31 @@ describe("new tokens wear the default ring", () => {
     );
   });
 
+  it("keeps an NPC's frame when its old token is parked on another map, and no frame stays none", async () => {
+    const npc = new CharacterService().createCharacter(state(), "Wraith", 9, undefined, "npc");
+    harness.route({ t: "place-npc-token", id: npc.id }, DM);
+    await flush();
+    const first = state().characters.find((character) => character.id === npc.id)!.tokenId!;
+    const castle = presetFrame("stone.castle")!;
+    // its token sleeps on another map, wearing a castle ring
+    const old = state().tokens.find((token) => token.id === first)!;
+    state().tokens = state().tokens.filter((token) => token.id !== first);
+    state().sceneStates = { "doc-x": { tokens: [{ ...old, frame: castle }] } } as never;
+    harness.route({ t: "place-npc-token", id: npc.id }, DM);
+    await flush();
+    const second = state().characters.find((character) => character.id === npc.id)!.tokenId!;
+    expect(state().tokens.find((token) => token.id === second)?.frame).toEqual(
+      pinFrameSeeds(castle, first),
+    );
+    // the DM takes the frame off; placed again, it stays off (not the default ring)
+    harness.route({ t: "set-token-frame", tokenId: second, frame: null }, DM);
+    harness.route({ t: "place-npc-token", id: npc.id }, DM);
+    await flush();
+    const third = state().characters.find((character) => character.id === npc.id)!.tokenId!;
+    expect(third).not.toBe(second);
+    expect(state().tokens.find((token) => token.id === third)).not.toHaveProperty("frame");
+  });
+
   it("keeps the frame the DM gave an NPC when it is placed again", async () => {
     const npc = new CharacterService().createCharacter(state(), "Ogre", 30, undefined, "npc");
     harness.route({ t: "place-npc-token", id: npc.id }, DM);

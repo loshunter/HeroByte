@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { RoomSnapshot } from "@herobyte/shared";
+import { defaultTokenFrame, type RoomSnapshot } from "@herobyte/shared";
 import { SnapshotReconciler } from "../SnapshotReconciler";
 
 function createSnapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
@@ -387,5 +387,19 @@ describe("SnapshotReconciler", () => {
         stateVersion: 3,
       }),
     );
+  });
+
+  it("a token born over the delta channel draws with its frame (C5a)", () => {
+    reconciler.applySnapshot(createSnapshot({ stateVersion: 5 }));
+    onSnapshot.mockClear();
+    const frame = defaultTokenFrame();
+    reconciler.applyDelta({
+      t: "token-updated",
+      stateVersion: 6,
+      token: { id: "born", owner: "p1", x: 2, y: 3, color: "#336699", frame },
+    });
+    const next = onSnapshot.mock.calls.at(-1)![0] as RoomSnapshot;
+    const object = next.sceneObjects?.find((candidate) => candidate.id === "token:born");
+    expect(object?.type === "token" && object.data.frame).toEqual(frame);
   });
 });

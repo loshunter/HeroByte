@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import type { RoomSnapshot, Token, Drawing, PlayerStagingZone, Pointer } from "@herobyte/shared";
+import { defaultTokenFrame } from "@herobyte/shared";
 import { useSceneObjects } from "../useSceneObjects";
 
 // Helper to create a minimal valid snapshot
@@ -180,5 +181,43 @@ describe("useSceneObjects - Migration Logic", () => {
   it("should return empty array for null snapshot", () => {
     const { result } = renderHook(() => useSceneObjects(null));
     expect(result.current).toEqual([]);
+  });
+});
+
+describe("useSceneObjects - token frames (C5a)", () => {
+  // The server sends a frame once, on the token; the map reads it off the scene object.
+  const frame = defaultTokenFrame();
+  const sceneToken = (id: string) => ({
+    id: `token:${id}`,
+    type: "token" as const,
+    owner: "p1",
+    locked: false,
+    zIndex: 10,
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: { color: "#336699" },
+  });
+
+  it("puts each token's frame back on its scene object, and none on a frameless one", () => {
+    const snapshot = createLegacySnapshot({
+      tokens: [
+        { id: "framed", owner: "p1", x: 0, y: 0, color: "#336699", frame },
+        { id: "plain", owner: "p1", x: 1, y: 0, color: "#336699" },
+      ],
+      sceneObjects: [sceneToken("framed"), sceneToken("plain")] as RoomSnapshot["sceneObjects"],
+    });
+    const { result } = renderHook(() => useSceneObjects(snapshot));
+    const byId = new Map(result.current.map((object) => [object.id, object]));
+    const framed = byId.get("token:framed");
+    expect(framed?.type === "token" && framed.data.frame).toEqual(frame);
+    expect(byId.get("token:plain")?.data).not.toHaveProperty("frame");
+  });
+
+  it("carries a token's frame on the legacy path too", () => {
+    const snapshot = createLegacySnapshot({
+      tokens: [{ id: "framed", owner: "p1", x: 0, y: 0, color: "#336699", frame }],
+    });
+    const { result } = renderHook(() => useSceneObjects(snapshot));
+    const framed = result.current.find((object) => object.id === "token:framed");
+    expect(framed?.type === "token" && framed.data.frame).toEqual(frame);
   });
 });
