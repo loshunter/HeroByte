@@ -11,6 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { PlayerState, PlayerStagingZone, RoomSnapshot, Character } from "@herobyte/shared";
+import { defaultTokenFrame } from "@herobyte/shared";
 import { usePlayerActions } from "../../usePlayerActions";
 
 // Mock dependencies
@@ -730,6 +731,31 @@ describe("usePlayerActions - Characterization Tests", () => {
         tokenId: "token-1",
         size: "large",
       });
+    });
+
+    it("should apply the token's frame, null included, and leave it alone when the file has none", () => {
+      const { result } = renderHook(() =>
+        usePlayerActions({ sendMessage: mockSendMessage, snapshot: mockSnapshot, uid: "player-1" }),
+      );
+      const frame = defaultTokenFrame();
+      const base = { name: "Gandalf", hp: 80, maxHp: 120 };
+
+      act(() => result.current.applyPlayerState({ ...base, token: { frame } }, "token-1"));
+      expect(mockSendMessage).toHaveBeenCalledWith({
+        t: "set-token-frame",
+        tokenId: "token-1",
+        frame,
+      });
+      act(() => result.current.applyPlayerState({ ...base, token: { frame: null } }, "token-1"));
+      expect(mockSendMessage).toHaveBeenCalledWith({
+        t: "set-token-frame",
+        tokenId: "token-1",
+        frame: null,
+      });
+      mockSendMessage.mockClear();
+      act(() => result.current.applyPlayerState({ ...base, token: { size: "large" } }, "token-1"));
+      const sent = mockSendMessage.mock.calls.map(([message]) => (message as { t: string }).t);
+      expect(sent).not.toContain("set-token-frame");
     });
 
     it("should apply token transform (position, scale, rotation)", () => {

@@ -237,12 +237,10 @@ export function usePlayerActions({
     (characterId: string, effects: string[]) => {
       sendMessage({ t: "set-character-status-effects", characterId, effects });
 
-      // Mirror onto the legacy player-level list only when this is the
-      // sender's SOLE player character: that list is read back for a sole
-      // character alone (UX-02). With two it held whichever was edited last,
-      // and a deleted sibling's conditions resurfaced on the survivor. Never
-      // for an NPC: one can carry its placing DM's uid, and U7 gave NPCs a
-      // condition picker.
+      // Mirror onto the legacy player-level list only when this is the sender's SOLE player
+      // character: that list is read back for a sole character alone (UX-02). With two it held
+      // whichever was edited last, and a deleted sibling's conditions resurfaced on the survivor.
+      // Never for an NPC: one can carry its placing DM's uid, and U7 gave NPCs a condition picker.
       const ownPcs =
         snapshot?.characters?.filter((c) => c.type === "pc" && c.ownedByPlayerUID === uid) ?? [];
       if (ownPcs.length === 1 && ownPcs[0]!.id === characterId) {
@@ -467,10 +465,12 @@ export function usePlayerActions({
           });
         }
 
-        // Token size
+        // Token size, and frame (C5a: a file's null frame takes the ring off)
         if (state.token?.size && !tokenLocked) {
           sendMessage({ t: "set-token-size", tokenId, size: state.token.size });
         }
+        const frame = state.token?.frame;
+        if (frame !== undefined) sendMessage({ t: "set-token-frame", tokenId, frame });
 
         // Token transform (position, scale, rotation)
         const transform: {

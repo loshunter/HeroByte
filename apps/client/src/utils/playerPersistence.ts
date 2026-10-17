@@ -1,11 +1,12 @@
-import type {
-  Drawing,
-  Player,
-  PlayerState,
-  PlayerStateTokenSnapshot,
-  SceneObject,
-  Token,
-  TokenSize,
+import {
+  coerceTokenFrame,
+  type Drawing,
+  type Player,
+  type PlayerState,
+  type PlayerStateTokenSnapshot,
+  type SceneObject,
+  type Token,
+  type TokenSize,
 } from "@herobyte/shared";
 import {
   MAP_FOR_CHARACTER_LOAD,
@@ -57,7 +58,7 @@ function parseTokenSnapshot(raw: unknown): PlayerStateTokenSnapshot | undefined 
   }
 
   const snapshot: PlayerStateTokenSnapshot = {};
-  const { id, color, imageUrl, position, size, rotation, scale } = raw;
+  const { id, color, imageUrl, position, size, rotation, scale, frame } = raw;
 
   if (typeof id === "string" && id.trim().length > 0) {
     snapshot.id = id.trim();
@@ -96,6 +97,15 @@ function parseTokenSnapshot(raw: unknown): PlayerStateTokenSnapshot | undefined 
     snapshot.scale = { x: scale.x, y: scale.y };
   }
 
+  // The frame (C5a): null was saved frameless; one from a newer build loads with
+  // plain grey stone in any band this build cannot draw; junk is no frame change.
+  if (frame === null) {
+    snapshot.frame = null;
+  } else if (frame !== undefined) {
+    const coerced = coerceTokenFrame(frame);
+    if (coerced) snapshot.frame = coerced;
+  }
+
   const definedKeys = Object.keys(snapshot);
   return definedKeys.length === 0 ? undefined : snapshot;
 }
@@ -114,6 +124,7 @@ export function savePlayerState({
         imageUrl: token.imageUrl ?? null,
         position: { x: token.x, y: token.y },
         size: token.size,
+        frame: token.frame ?? null,
         rotation: tokenScene?.transform.rotation,
         scale:
           tokenScene && (tokenScene.transform.scaleX !== 1 || tokenScene.transform.scaleY !== 1)

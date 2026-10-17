@@ -1,4 +1,5 @@
-// Help entries for a character's own settings: its colour (C1), token size, a second character.
+// Help entries for a character's own settings: its portrait and token art, its token frame
+// (C5a), its colour (C1), token size, a second character.
 // They live in their own file so helpTopics.ts stays under the 350-line guard, like
 // phoneHelpEntries.ts.
 import type { HelpEntry } from "./helpTopics";
@@ -25,4 +26,16 @@ export const SECOND_CHARACTER_ENTRY: HelpEntry = {
   term: "A second character",
   detail:
     "⚙️ → ➕ ADD CHARACTER gives you another row, card, token, HP and initiative. Up to 5 each (the DM's are not counted).",
+};
+
+export const PORTRAIT_ENTRY: HelpEntry = {
+  term: "Portrait & token art",
+  detail:
+    "Portrait: ⚙️ → ⬆ UPLOAD IMAGE takes a file from your device (on a phone, the camera roll); a pasted image URL still works. Token (once your character has a token): ⚙️ → Token picture… opens a window to choose a picture (file, drop, paste or an Imgur/Discord link), move, zoom, turn and flip it inside the token, and save it; a link can also be used as is. On a phone it is in ⚙️ EDIT.",
+};
+
+export const TOKEN_FRAME_ENTRY: HelpEntry = {
+  term: "Token frame",
+  detail:
+    "⚙️ → Token frame… picks the ring round your token on the map: Plain, Stone, Metal or Wood, its weight (Skinny to Slab), grow in or out, and your colour or one you pick; Use this frame sets it for everyone. New tokens start with a plain ring in your colour. On a phone it is in ⚙️ EDIT.",
 };

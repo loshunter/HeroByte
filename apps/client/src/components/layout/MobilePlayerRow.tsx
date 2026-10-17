@@ -15,6 +15,7 @@ import type { OwnerControl } from "../../features/players/components/TokenSettin
 import type { CharacterFileActions } from "../../features/players/characterFile";
 import type { ColorPickerControl } from "../../features/players/components/colorPicker/colorPickerControl";
 import { useRoleKnown } from "../../features/table/roleKnown";
+import { useTokenFrameControl } from "../../features/players/token-creator/frameControl";
 
 /** The temp HP editor's state and handlers (the same ones the desktop card gets). */
 export interface TempHpEditing {
@@ -142,6 +143,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     const isEditingHp = editingHpUID === player.characterId;
     const isEditingMaxHp = editingMaxHpUID === player.characterId;
     const [settingsOpen, setSettingsOpen] = useState(false);
+    // The token's frame (C5a): whoever may set its picture may frame it.
+    const tokenFrame = useTokenFrameControl(token, Boolean(onTokenImageChange));
     // Another player's sheet is the DM's to hold. On losing DM rights (a deploy, a
     // restart; a reconnect blip waits for the roster) it closes rather than offering
     // editors the server now refuses, and does not reopen by itself on re-elevation.
@@ -270,6 +273,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           tokenImageUrl={token?.imageUrl}
           onTokenImageApply={onTokenImageChange}
           onTokenImageClear={onTokenImageChange ? () => onTokenImageChange("") : undefined}
+          tokenFrame={tokenFrame}
           onSavePlayerState={characterFile?.save}
           onLoadPlayerState={
             characterFile

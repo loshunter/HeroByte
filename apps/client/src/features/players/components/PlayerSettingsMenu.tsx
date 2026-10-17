@@ -26,7 +26,7 @@ import { CharacterNameField, useCharacterEscapeGuard } from "./CharacterNameFiel
 import { CharacterCreationModal } from "./CharacterCreationModal";
 import { LazyColorPicker } from "./colorPicker/LazyColorPicker";
 import type { ColorPickerControl } from "./colorPicker/colorPickerControl";
-import { TokenPictureControl } from "../token-creator/TokenPictureControl";
+import { TokenPictureControl, type TokenFrameControl } from "../token-creator/TokenPictureControl";
 import "./characterSettings.css";
 import { lockGuard } from "../../locking/lockNotice";
 
@@ -50,18 +50,18 @@ interface PlayerSettingsMenuProps {
   tokenImageUrl?: string;
   onTokenImageClear?: () => void;
   onTokenImageApply?: (value: string) => void;
+  tokenFrame?: TokenFrameControl; // the creator's Frame tab (C5a)
   onSavePlayerState?: () => void;
   onLoadPlayerState?: (file: File) => Promise<void>;
   selectedEffects: string[];
   /** Absent for a seat with no character: no picker is offered. */
   onStatusEffectsChange?: (effects: string[]) => void;
   /**
-   * Whether the player/character this card BELONGS TO is a DM. Accepted for
-   * the callers' sake and no longer read: it once hid the token image, size
-   * and lock ("DM players don't have tokens") and "+ Add Character" on a DM's
-   * card — a DM-run ally is a combatant since F3 and needs a card to be added
-   * from, and the server tokens it like anyone's. The caller's handlers are
-   * the gates, as they always were for Sight Radius and Movement.
+   * Whether the player/character this card BELONGS TO is a DM. Accepted for the callers' sake
+   * and no longer read: it once hid the token image, size and lock ("DM players don't have
+   * tokens") and "+ Add Character" on a DM's card — a DM-run ally is a combatant since F3 and
+   * needs a card to be added from, and the server tokens it like anyone's. The caller's
+   * handlers are the gates, as they always were for Sight Radius and Movement.
    */
   isDM?: boolean;
   /**
@@ -77,9 +77,8 @@ interface PlayerSettingsMenuProps {
   onTokenSizeChange?: (size: TokenSize) => void;
   /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
   tokenVisionRadius?: number;
-  /** The table's default sight radius in feet, so a token that INHERITS it can
-   *  say what it inherited. Undefined means no default is set, which is
-   *  unlimited — a real answer, not a missing one. */
+  /** The table's default sight radius in feet, so a token that INHERITS it can say what it
+   *  inherited. Undefined (no default set) is unlimited — a real answer, not a missing one. */
   tableVisionDefault?: number;
   onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   /** Feet per turn (movement budget); DM-only, like the sight radius. */
@@ -99,7 +98,6 @@ interface PlayerSettingsMenuProps {
   onDeleteCharacter?: (characterId: string) => void;
   initiative?: number;
   onClearInitiative?: () => void;
-  // New props for name and portrait editing
   nameInput?: string;
   onNameInputChange?: (value: string) => void;
   onNameSubmit?: () => void;
@@ -116,6 +114,7 @@ export function PlayerSettingsMenu({
   tokenImageUrl,
   onTokenImageClear,
   onTokenImageApply,
+  tokenFrame,
   onSavePlayerState,
   onLoadPlayerState,
   selectedEffects,
@@ -264,6 +263,7 @@ export function PlayerSettingsMenu({
                   onClear={onTokenImageClear}
                   name={nameInput || undefined}
                   tokenSize={tokenSize}
+                  frame={tokenFrame}
                 />
               </JRPGPanel>
             )}

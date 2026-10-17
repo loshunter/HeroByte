@@ -40,7 +40,7 @@ import { useAtlasLinkAim } from "../features/atlas/useAtlasLinkAim";
 import { useKickedInDoor, type AtlasErrorMessage } from "../features/atlas/useKickedInDoor";
 import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoice } from "../hooks/voice/useVoice";
-import { VoiceContext } from "../features/voice/VoiceContext";
+import { TableProviders } from "../features/table/TableProviders";
 import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
@@ -965,9 +965,9 @@ function AuthenticatedApp({
 
   return (
     <RoleKnownContext.Provider value={roleKnown}>
-      <VoiceContext.Provider value={voiceContext}>
+      <TableProviders voice={voiceContext} sendMessage={sendMessage}>
         {isMobile ? <MobileLayout {...layoutProps} /> : <MainLayout {...layoutProps} />}
-      </VoiceContext.Provider>
+      </TableProviders>
 
       {/* DM Elevation Modal */}
       <DMElevationModal {...modalState} {...modalActionsWithSync} />

@@ -2,22 +2,25 @@
 // TOKEN CREATOR — THE WINDOW (C4)
 // ============================================================================
 // A DraggableWindow (a full-screen takeover on phones) above the settings
-// window that opened it, with a tab strip that holds one tab today, Picture;
-// C5a adds Frame beside it. Escape and ✕ close it like Cancel, and abandon a
+// window that opened it, with two tabs: Picture, and Frame (C5a) when the
+// card hands it a frame control. Each tab has its own Accept: a picture is
+// baked and uploaded, a frame is sent as it is. Escape and ✕ close it like Cancel, and abandon a
 // save in flight (useTokenCreator). While it is open, `data-modal-overlay`
 // keeps WASD from moving a token, a pasted image lands here (in the creator
 // opened last, when two are open), and a file dropped anywhere on the window,
 // title bar and frame included, loads instead of opening in the tab.
 
-import { useEffect, useRef, type DragEvent as ReactDragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from "react";
 import { createPortal } from "react-dom";
-import type { TokenSize } from "@herobyte/shared";
+import type { TokenFrame, TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { PROP_SIZE_MULTIPLIERS } from "../../map/propSizing";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import { isEditableTarget } from "../../../utils/isEditableTarget";
 import { pictureFileFrom } from "./pictureSources";
 import { PictureTab } from "./PictureTab";
+import { FrameTab } from "./FrameTab";
+import type { TokenFrameControl } from "./frameControl";
 import { useTokenCreator, type TokenCreatorDeps } from "./useTokenCreator";
 
 /** Open creators, oldest first: a paste goes to the last one opened. */
@@ -30,7 +33,13 @@ export interface TokenCreatorWindowProps {
   onApply: (url: string) => void;
   onClose: () => void;
   deps?: TokenCreatorDeps;
+  /** The token's frame and how to set it: present, the window has a Frame tab (C5a). */
+  frame?: TokenFrameControl;
+  /** Which tab opens first. */
+  initialTab?: CreatorTab;
 }
+
+type CreatorTab = "picture" | "frame";
 
 const PHASE_LABEL = {
   idle: "Use this picture",
@@ -45,8 +54,12 @@ export function TokenCreatorWindow({
   onApply,
   onClose,
   deps,
+  frame,
+  initialTab = "picture",
 }: TokenCreatorWindowProps) {
   const creator = useTokenCreator({ tokenSize, onApply, onDone: onClose, deps });
+  const [tab, setTab] = useState<CreatorTab>(frame ? initialTab : "picture");
+  const [draft, setDraft] = useState<TokenFrame | null>(frame?.frame ?? null);
   const loadFileRef = useRef(creator.loadFile);
   loadFileRef.current = creator.loadFile;
   const loadDroppedRef = useRef(creator.loadDropped);
@@ -117,7 +130,7 @@ export function TokenCreatorWindow({
       onDrop={onDrop}
     >
       <DraggableWindow
-        title={name ? `🖼️ Token picture: ${name}` : "🖼️ Token picture"}
+        title={`🖼️ ${frame ? "Art & frame" : "Token picture"}${name ? `: ${name}` : ""}`}
         onClose={onClose}
         interaction={{ behavior: "close", panel: "character" }}
         initialX={600}
@@ -138,24 +151,32 @@ export function TokenCreatorWindow({
           }}
         >
           <div role="tablist" aria-label="Token creator" style={{ display: "flex", gap: "4px" }}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected="true"
-              id="token-creator-tab-picture"
-              aria-controls="token-creator-panel-picture"
-              className="jrpg-button"
-              style={{ fontSize: "10px", padding: "6px 12px" }}
-            >
-              Picture
-            </button>
+            {(frame ? (["picture", "frame"] as const) : (["picture"] as const)).map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                id={`token-creator-tab-${id}`}
+                aria-controls={`token-creator-panel-${id}`}
+                className="jrpg-button"
+                onClick={() => setTab(id)}
+                style={{ fontSize: "10px", padding: "6px 12px", opacity: tab === id ? 1 : 0.7 }}
+              >
+                {id === "picture" ? "Picture" : "Frame"}
+              </button>
+            ))}
           </div>
           <div
             role="tabpanel"
-            id="token-creator-panel-picture"
-            aria-labelledby="token-creator-tab-picture"
+            id={`token-creator-panel-${tab}`}
+            aria-labelledby={`token-creator-tab-${tab}`}
           >
-            <PictureTab creator={creator} corner={corner} />
+            {tab === "frame" && frame ? (
+              <FrameTab control={frame} draft={draft} onDraft={setDraft} />
+            ) : (
+              <PictureTab creator={creator} corner={corner} />
+            )}
           </div>
           {/* Pinned to the window's foot: on a short screen the picture scrolls, not Accept. */}
           <div
@@ -168,24 +189,38 @@ export function TokenCreatorWindow({
               background: "rgba(12, 18, 40, 0.97)",
             }}
           >
-            <JRPGButton
-              variant="primary"
-              onClick={() => void creator.accept()}
-              aria-disabled={!ready}
-              title={
-                creator.picture ? "Bake, upload and set this picture" : "Choose a picture first"
-              }
-              // Two lines in a 340 px window: give them room to stand apart.
-              style={{
-                flex: 2,
-                fontSize: "11px",
-                padding: "8px",
-                minHeight: "44px",
-                lineHeight: 1.5,
-              }}
-            >
-              {PHASE_LABEL[creator.phase]}
-            </JRPGButton>
+            {tab === "frame" && frame ? (
+              <JRPGButton
+                variant="primary"
+                onClick={() => {
+                  frame.onApply(draft);
+                  onClose();
+                }}
+                title={draft ? "Set this frame on the token" : "Take the frame off the token"}
+                style={{ flex: 2, fontSize: "11px", padding: "8px", minHeight: "44px" }}
+              >
+                {draft ? "Use this frame" : "Use no frame"}
+              </JRPGButton>
+            ) : (
+              <JRPGButton
+                variant="primary"
+                onClick={() => void creator.accept()}
+                aria-disabled={!ready}
+                title={
+                  creator.picture ? "Bake, upload and set this picture" : "Choose a picture first"
+                }
+                // Two lines in a 340 px window: give them room to stand apart.
+                style={{
+                  flex: 2,
+                  fontSize: "11px",
+                  padding: "8px",
+                  minHeight: "44px",
+                  lineHeight: 1.5,
+                }}
+              >
+                {PHASE_LABEL[creator.phase]}
+              </JRPGButton>
+            )}
             <JRPGButton
               onClick={onClose}
               style={{ flex: 1, fontSize: "11px", padding: "8px", minHeight: "44px" }}

@@ -17,6 +17,7 @@ import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import { npcDispositionLook } from "./npcDisposition";
 import { tempHpEdit, tokenImageEdit } from "../npcUpdate";
+import type { TokenFrameControl } from "../token-creator/frameControl";
 import { npcSettingsProps, npcVisibilityProps } from "./npcButtonNames";
 import { useRoleKnown } from "../../table/roleKnown";
 
@@ -54,6 +55,7 @@ interface NpcCardProps {
   isCurrentTurn?: boolean;
   /** DM-only: set THIS NPC's conditions (the settings window's picker). */
   onStatusEffectsChange?: (effects: string[]) => void;
+  tokenFrame?: TokenFrameControl; // the creator's Frame tab (C5a)
 }
 
 export function NpcCard({
@@ -76,6 +78,7 @@ export function NpcCard({
   onClearInitiative,
   isCurrentTurn = false,
   onStatusEffectsChange,
+  tokenFrame,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));
@@ -337,6 +340,7 @@ export function NpcCard({
         hasInitiative={character.initiative !== undefined}
         selectedEffects={character.statusEffects ?? []}
         onStatusEffectsChange={canEdit ? onStatusEffectsChange : undefined}
+        tokenFrame={isDM ? tokenFrame : undefined}
       />
     </div>
   );

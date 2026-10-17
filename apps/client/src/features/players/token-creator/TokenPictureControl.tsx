@@ -4,15 +4,20 @@
 // Replaces the "Token Image URL" field in the player's and the NPC's settings
 // windows: the current picture, a "Token picture…" button that opens the
 // creator, and Clear. A link still works (it lives in the creator, and one
-// that cannot be framed is offered as is). The creator is a lazy chunk; each
+// that cannot be framed is offered as is). With a frame control (C5a) it
+// also offers "Token frame…", the same window opened on its Frame tab, and
+// names the frame the token wears. The creator is a lazy chunk; each
 // "Try again" makes a fresh lazy component, because React caches a lazy
 // payload's rejection for good.
 
 import { Suspense, lazy, useMemo, useState, type ComponentType } from "react";
-import type { TokenSize } from "@herobyte/shared";
+import { findFramePreset, type TokenSize } from "@herobyte/shared";
 import { ErrorBoundary } from "../../../components/ErrorBoundary";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { TokenCreatorWindowProps } from "./TokenCreatorWindow";
+import type { TokenFrameControl } from "./frameControl";
+
+export type { TokenFrameControl };
 
 export interface TokenPictureControlProps {
   /** The picture on file now. */
@@ -22,6 +27,8 @@ export interface TokenPictureControlProps {
   onClear?: () => void;
   name?: string;
   tokenSize?: TokenSize;
+  /** The token's frame and how to set it (C5a); absent, no frame button. */
+  frame?: TokenFrameControl;
   /** Test seam: how the window's chunk is fetched. */
   loadWindow?: () => Promise<{ default: ComponentType<TokenCreatorWindowProps> }>;
 }
@@ -34,9 +41,13 @@ export function TokenPictureControl({
   onClear,
   name,
   tokenSize,
+  frame,
   loadWindow = importWindow,
 }: TokenPictureControlProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<false | "picture" | "frame">(false);
+  const frameName = frame?.frame
+    ? (findFramePreset(frame.frame.preset)?.name ?? "Custom frame")
+    : "No frame";
   const [attempt, setAttempt] = useState(0);
   // A new lazy per attempt: a failed chunk load can be tried again.
   const Window = useMemo(() => lazy(loadWindow), [attempt]); // eslint-disable-line react-hooks/exhaustive-deps -- a new attempt is the point
@@ -44,7 +55,7 @@ export function TokenPictureControl({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-        Token picture
+        {frame ? "Token picture & frame" : "Token picture"}
       </span>
       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
         {imageUrl ? (
@@ -68,13 +79,23 @@ export function TokenPictureControl({
         <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>
           <JRPGButton
             variant="primary"
-            onClick={() => setOpen(true)}
-            aria-expanded={open}
+            onClick={() => setOpen("picture")}
+            aria-expanded={open === "picture"}
             title="Choose a picture, then move, zoom and turn it inside the token"
             style={{ fontSize: "10px", padding: "8px", minHeight: "44px" }}
           >
             Token picture…
           </JRPGButton>
+          {frame && (
+            <JRPGButton
+              onClick={() => setOpen("frame")}
+              aria-expanded={open === "frame"}
+              title="Choose the frame drawn round the token on the map"
+              style={{ fontSize: "10px", padding: "8px", minHeight: "44px" }}
+            >
+              Token frame… ({frameName})
+            </JRPGButton>
+          )}
           {imageUrl && onClear && (
             <JRPGButton onClick={onClear} style={{ fontSize: "10px", padding: "6px 8px" }}>
               Clear picture
@@ -111,6 +132,8 @@ export function TokenPictureControl({
               tokenSize={tokenSize}
               onApply={onApply}
               onClose={() => setOpen(false)}
+              frame={frame}
+              initialTab={open}
             />
           </Suspense>
         </ErrorBoundary>

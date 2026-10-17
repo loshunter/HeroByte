@@ -16,8 +16,10 @@ import { TABLE_MENU_HELP_TOPIC } from "./tableHelpTopic";
 import { CORRECT_A_ROLL_ENTRY, DELETE_ENTRY, HP_ENTRY } from "./phoneHelpEntries";
 import {
   COLOUR_ENTRY,
+  PORTRAIT_ENTRY,
   RECOLOR_ENTRY,
   SECOND_CHARACTER_ENTRY,
+  TOKEN_FRAME_ENTRY,
   TOKEN_SIZE_ENTRY,
 } from "./characterHelpEntries";
 
@@ -147,11 +149,8 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       { term: "Name", detail: "Click it to rename inline (on a phone: ⚙️ EDIT → Character Name)." },
       HP_ENTRY,
-      {
-        term: "Portrait & token art",
-        detail:
-          "Portrait: ⚙️ → ⬆ UPLOAD IMAGE takes a file from your device (on a phone, the camera roll); a pasted image URL still works. Token (once your character has a token): ⚙️ → Token picture… opens a window to choose a picture (file, drop, paste or an Imgur/Discord link), move, zoom, turn and flip it inside the token, and save it; a link can also be used as is. On a phone it is in ⚙️ EDIT.",
-      },
+      PORTRAIT_ENTRY,
+      TOKEN_FRAME_ENTRY,
       {
         term: "Status effects",
         detail:

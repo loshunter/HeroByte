@@ -11,7 +11,7 @@ import { useEffect, useId, useState } from "react";
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { ImageField } from "../../../components/ui/ImageField";
-import { TokenPictureControl } from "../token-creator/TokenPictureControl";
+import { TokenPictureControl, type TokenFrameControl } from "../token-creator/TokenPictureControl";
 import { StatusEffectsPicker } from "./StatusEffectsPicker";
 import { useStatusEffectsPicker } from "./useStatusEffectsPicker";
 import "./characterSettings.css";
@@ -31,6 +31,7 @@ interface NpcSettingsMenuProps {
   /** Absent while the viewer is not known to be the DM (a reconnect blip): no control. */
   onTokenImageApply?: (value: string) => void;
   onTokenImageClear?: () => void;
+  tokenFrame?: TokenFrameControl; // the creator's Frame tab (C5a)
   /*
    * Portrait, mirroring PlayerSettingsMenu. Optional as a trio so a caller
    * that has no portrait to offer renders no half-wired control.
@@ -74,6 +75,7 @@ export function NpcSettingsMenu({
   tokenImageUrl,
   onTokenImageApply,
   onTokenImageClear,
+  tokenFrame,
   portraitImageInput,
   onPortraitInputChange,
   onPortraitApply,
@@ -166,6 +168,7 @@ export function NpcSettingsMenu({
               imageUrl={tokenImageUrl}
               onApply={onTokenImageApply}
               onClear={onTokenImageClear}
+              frame={tokenFrame}
               name={name}
               tokenSize={tokenSize}
             />

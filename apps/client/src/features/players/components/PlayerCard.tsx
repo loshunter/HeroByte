@@ -1,8 +1,7 @@
 // ============================================================================
 // PLAYER CARD COMPONENT
 // ============================================================================
-// Displays a single player's portrait, name, HP bar, and controls
-// Memoized to prevent unnecessary re-renders
+// A player's portrait, name, HP bar and controls; memoized against needless re-renders.
 
 import { memo, useEffect, useState } from "react";
 import type { MovementBudgetControl } from "./MovementSpeedField";
@@ -19,6 +18,7 @@ import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 import type { OwnerControl } from "./TokenSettingsSection";
 import { useRoleKnown } from "../../table/roleKnown";
 import { useVoiceContext } from "../../voice/VoiceContext";
+import { useTokenFrameControl } from "../token-creator/frameControl";
 
 export interface PlayerCardProps {
   player: Player;
@@ -172,6 +172,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     const editingTempHp = editingTempHpUID === (characterId ?? player.uid);
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const tokenFrame = useTokenFrameControl(token, isMe || viewerIsDM);
     // Another player's window is the DM's to hold: on losing DM rights it closes (a
     // reconnect blip waits for the roster), and does not reopen when DM comes back.
     const roleKnown = useRoleKnown();
@@ -403,6 +404,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           onTokenImageClear={
             onTokenImageSubmit && (isMe || viewerIsDM) ? () => handleTokenImageApply("") : undefined
           }
+          tokenFrame={tokenFrame}
           onDeleteToken={tokenId && onDeleteToken ? () => onDeleteToken(tokenId) : undefined}
           onSavePlayerState={handleSavePlayerState}
           onLoadPlayerState={handleLoadPlayerState}
@@ -433,10 +435,9 @@ export const PlayerCard = memo<PlayerCardProps>(
           onNameSubmit={() => {
             const next = settingsNameInput.trim();
             if (next && next !== player.name) {
-              // Hand the value over directly. Seeding the panel buffer first
-              // and calling onNameSubmit() in the same tick made the receiver
-              // read the PREVIOUS buffer (React had not re-rendered yet), so
-              // the rename looked accepted and was silently discarded.
+              // Hand the value over directly. Seeding the panel buffer first and calling
+              // onNameSubmit() in the same tick made the receiver read the PREVIOUS buffer (React
+              // had not re-rendered yet), so the rename looked accepted and was silently discarded.
               onNameSubmit(next);
             }
           }}
@@ -479,10 +480,9 @@ export const PlayerCard = memo<PlayerCardProps>(
     prevProps.initiative === nextProps.initiative &&
     prevProps.initiativeModifier === nextProps.initiativeModifier &&
     prevProps.isCurrentTurn === nextProps.isCurrentTurn &&
-    // The movement fields (slice 3 / F2): a spend or a speed changing ALONE —
-    // no token, no drawing, no HP moved — must still repaint "Used N ft" and
-    // the Reset's inert state. Latent while every snapshot mints a fresh
-    // token object, load-bearing the day it does not.
+    // The movement fields (slice 3 / F2): a spend or a speed changing ALONE — no token, no drawing,
+    // no HP moved — must still repaint "Used N ft" and the Reset's inert state. Latent while every
+    // snapshot mints a fresh token object, load-bearing the day it does not.
     prevProps.characterSpeed === nextProps.characterSpeed &&
     // The budget's SHAPE, not its closure: the panel mints `onReset` fresh
     // every render (it closes over the character id and a stable handler),

@@ -9,6 +9,7 @@ import type { EntityInfo } from "../../../hooks/useCombatOrdering";
 import { NpcCard } from "../../../features/players/components/NpcCard";
 import type { PartyCardContext } from "./partyTypes";
 import { useDMThroughBlip } from "../../../features/table/roleKnown";
+import { useTokenFrameControl } from "../../../features/players/token-creator/frameControl";
 
 interface PartyNpcCardProps {
   /** An NPC entity (kind "npc"). */
@@ -29,6 +30,9 @@ export function PartyNpcCard({ entity, context }: PartyNpcCardProps): JSX.Elemen
         | (SceneObject & { type: "token" })
         | undefined)
     : undefined;
+
+  // The DM frames an NPC's token (C5a) from its settings window, like its picture.
+  const tokenFrame = useTokenFrameControl(entity.token, currentIsDM);
 
   return (
     <div
@@ -63,6 +67,7 @@ export function PartyNpcCard({ entity, context }: PartyNpcCardProps): JSX.Elemen
           panel.onClearInitiative ? () => panel.onClearInitiative?.(character.id) : undefined
         }
         isCurrentTurn={entity.isCurrentTurn}
+        tokenFrame={tokenFrame}
         // The DM sets an NPC's conditions as they do a player's (U7); the
         // server has always allowed it, and the map draws them.
         onStatusEffectsChange={
