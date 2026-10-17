@@ -6,16 +6,33 @@
 // frame's outer circle in place of the token box's square. It follows the
 // node's position and scale through drags, glides and the transform handles,
 // but NOT its rotation: the frame is lit by the table's one light, and a
-// turned token must not turn its light with it. Never listens: the hit area
-// is the token's own node.
+// turned token must not turn its light with it. Two exceptions keep the frame
+// on its picture: a stretched token (an oval) takes its rotation with it, and
+// a flipped one is drawn unflipped (a mirrored frame would mirror the light).
+// Never listens: the hit area is the token's own node.
 
 import { useEffect, useRef } from "react";
 import { Circle, Group, Image as KonvaImage } from "react-konva";
 import type Konva from "konva";
+import { layoutFrame, type TokenFrame, type TokenSize } from "@herobyte/shared";
 import type { FrameDrawing } from "../../render/frame/useFrameBitmap";
 
 const FOLLOWED =
-  "xChange.tokenFrame yChange.tokenFrame scaleXChange.tokenFrame scaleYChange.tokenFrame";
+  "xChange.tokenFrame yChange.tokenFrame scaleXChange.tokenFrame scaleYChange.tokenFrame " +
+  "rotationChange.tokenFrame";
+
+/** The overlay's scale and turn for a token's: unflipped, and upright unless stretched. */
+export function framePose(scaleX: number, scaleY: number, rotation: number) {
+  const x = Math.abs(scaleX);
+  const y = Math.abs(scaleY);
+  const stretched = Math.abs(x - y) > 1e-3 * Math.max(x, y, 1);
+  return { scaleX: x, scaleY: y, rotation: stretched ? rotation : 0 };
+}
+
+/** How far a frame reaches past the token box, as a share of its edge (0 growing in). */
+export function frameOutset(frame: TokenFrame | undefined, size: TokenSize | undefined): number {
+  return frame ? layoutFrame(frame, size).outset : 0;
+}
 /** The keyline is this much wider than the colour band (SelectionRing's ratio). */
 const KEYLINE_RATIO = 5 / 3;
 
@@ -26,6 +43,7 @@ export interface TokenFrameOverlayProps {
   y: number;
   scaleX: number;
   scaleY: number;
+  rotation: number;
   /** The token's edge in map pixels. */
   size: number;
   drawing: FrameDrawing;
@@ -44,6 +62,7 @@ export function TokenFrameOverlay({
   y,
   scaleX,
   scaleY,
+  rotation,
   size,
   drawing,
   stroke,
@@ -62,8 +81,7 @@ export function TokenFrameOverlay({
       group.setAttrs({
         x: follow.x(),
         y: follow.y(),
-        scaleX: follow.scaleX(),
-        scaleY: follow.scaleY(),
+        ...framePose(follow.scaleX(), follow.scaleY(), follow.rotation()),
       });
     sync();
     follow.on(FOLLOWED, sync);
@@ -76,7 +94,7 @@ export function TokenFrameOverlay({
   const radius = drawing.layout.outer * size;
   const outlined = stroke !== "transparent";
   return (
-    <Group ref={groupRef} listening={false} x={x} y={y} scaleX={scaleX} scaleY={scaleY}>
+    <Group ref={groupRef} listening={false} x={x} y={y} {...framePose(scaleX, scaleY, rotation)}>
       {drawing.bitmap && (
         <KonvaImage
           image={drawing.bitmap}

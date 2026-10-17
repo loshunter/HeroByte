@@ -109,7 +109,7 @@ export function TokenPictureControl({
           fallback={
             <div role="alert" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <p className="jrpg-text-small" style={{ margin: 0 }}>
-                The token picture window could not be loaded. Your picture is unchanged.
+                The token picture and frame window could not be loaded. Your token is unchanged.
               </p>
               <JRPGButton
                 onClick={() => setAttempt((n) => n + 1)}

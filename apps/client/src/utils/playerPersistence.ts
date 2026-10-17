@@ -1,5 +1,6 @@
 import {
   coerceTokenFrame,
+  pinFrameSeeds,
   type Drawing,
   type Player,
   type PlayerState,
@@ -124,7 +125,8 @@ export function savePlayerState({
         imageUrl: token.imageUrl ?? null,
         position: { x: token.x, y: token.y },
         size: token.size,
-        frame: token.frame ?? null,
+        // Seeds pinned: loaded onto another token (another table) it lays the same stones.
+        frame: token.frame ? pinFrameSeeds(token.frame, token.id) : null,
         rotation: tokenScene?.transform.rotation,
         scale:
           tokenScene && (tokenScene.transform.scaleX !== 1 || tokenScene.transform.scaleY !== 1)

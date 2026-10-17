@@ -3,7 +3,13 @@
 // stone in that band, never an error), null for a frameless token.
 
 import { describe, expect, it, vi } from "vitest";
-import { defaultTokenFrame, presetFrame, type Player, type Token } from "@herobyte/shared";
+import {
+  defaultTokenFrame,
+  pinFrameSeeds,
+  presetFrame,
+  type Player,
+  type Token,
+} from "@herobyte/shared";
 import { loadPlayerState, savePlayerState } from "../playerPersistence";
 
 const player = { uid: "uid-1", name: "Aria", hp: 30, maxHp: 40 } as Player;
@@ -41,10 +47,16 @@ function saved(forToken: Token): string {
 const load = (json: string) => loadPlayerState({ text: async () => json } as unknown as File);
 
 describe("a character file's frame", () => {
-  it("round-trips exactly", async () => {
+  it("round-trips, its stones' seeds pinned from the token it was saved from", async () => {
     const frame = { ...presetFrame("metal.welded", 0.24)!, growth: "out" as const };
     const loaded = await load(saved(token(frame)));
-    expect(loaded.token?.frame).toEqual(frame);
+    expect(loaded.token?.frame).toEqual(pinFrameSeeds(frame, "t1"));
+    // the welded plate band is seeded; its plain rims draw nothing from a seed
+    expect(loaded.token!.frame!.bands.map((band) => band.seed === undefined)).toEqual([
+      true,
+      false,
+      true,
+    ]);
   });
 
   it("saves a frameless token as null, which loads as null (the ring comes off)", async () => {

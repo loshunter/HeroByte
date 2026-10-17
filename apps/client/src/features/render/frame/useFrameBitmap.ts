@@ -18,7 +18,12 @@ import {
   type TokenFrame,
   type TokenSize,
 } from "@herobyte/shared";
-import { peekFrameBitmap, requestFrameBitmap, type FrameBitmap } from "./frameBitmapCache";
+import {
+  peekFrameBitmap,
+  requestFrameBitmap,
+  retainFrameBitmap,
+  type FrameBitmap,
+} from "./frameBitmapCache";
 import { isCoarsePointer, pickFrameTier } from "./frameTier";
 
 /** A colour nobody's token has, for an unreadable one: the frame still draws. */
@@ -65,6 +70,8 @@ export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing
       frame: request.frame,
       size: request.size,
       accent: frameAccent(request.frame, request.color),
+      // A "personal" glow is the character's own colour, even under a picked frame colour.
+      personal: normalizeColor(request.color) ?? FALLBACK_ACCENT,
       seed: frameSeed(request.tokenId),
       tier: tierRef.current,
     };
@@ -75,8 +82,14 @@ export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing
 
   const bitmap = key ? peekFrameBitmap(key) : null;
   useEffect(() => {
-    if (!key || !inputRef.current || peekFrameBitmap(key)) return;
-    return requestFrameBitmap(key, inputRef.current, bump);
+    if (!key || !inputRef.current) return;
+    // Held while this token draws it, so eviction never drops a bitmap in use.
+    const release = retainFrameBitmap(key);
+    const withdraw = peekFrameBitmap(key) ? null : requestFrameBitmap(key, inputRef.current, bump);
+    return () => {
+      release();
+      withdraw?.();
+    };
   }, [key]);
 
   if (!request || !layout) {

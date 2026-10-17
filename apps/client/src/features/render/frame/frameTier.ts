@@ -22,7 +22,11 @@ export function pickFrameTier(needed: number, current: number | null, coarse: bo
   const ideal = tiers.find((tier) => tier >= needed) ?? cap;
   if (current === null || !tiers.includes(current as (typeof FRAME_TIERS)[number])) return ideal;
   if (ideal > current) return needed > current * TIER_STRETCH ? ideal : current;
-  if (ideal < current) return needed <= ideal * TIER_SHRINK ? ideal : current;
+  if (ideal < current) {
+    // The smallest tier the frame is comfortably (15%) under, if smaller than now.
+    const shrunk = tiers.find((tier) => needed <= tier * TIER_SHRINK);
+    return shrunk !== undefined && shrunk < current ? shrunk : current;
+  }
   return current;
 }
 

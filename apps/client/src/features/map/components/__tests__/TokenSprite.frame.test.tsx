@@ -47,7 +47,12 @@ vi.mock("../../../render/frame/useFrameBitmap", () => ({
   },
 }));
 
+vi.mock("../LockIndicator", () => ({
+  LockIndicator: ({ y }: { y: number }) => <div data-testid="lock" data-y={y} />,
+}));
+
 const { TokensLayer } = await import("../TokensLayer");
+const { framePose, frameOutset } = await import("../TokenFrameOverlay");
 
 const token = (frame?: TokenFrame, rotation = 0): SceneObject & { type: "token" } => ({
   id: "token:t1",
@@ -105,7 +110,7 @@ describe("a framed token on the map", () => {
       (group) => group.scaleX === 1 && group.listening === false,
     );
     expect(frameGroup).toBeDefined();
-    expect(frameGroup!.rotation).toBeUndefined();
+    expect(frameGroup!.rotation).toBe(0);
   });
 
   it("leaves a token from before frames exactly as it was", () => {
@@ -116,5 +121,23 @@ describe("a framed token on the map", () => {
     expect(node.hitStrokeWidth).toBeUndefined();
     expect(all("image").some((image) => image.image === BITMAP)).toBe(false);
     expect(requests.at(-1)).toBeNull();
+  });
+
+  it("turns with a stretched token and never mirrors, so its oval stays on the picture", () => {
+    expect(framePose(2, 1, 45)).toEqual({ scaleX: 2, scaleY: 1, rotation: 45 });
+    expect(framePose(1, 1, 45)).toEqual({ scaleX: 1, scaleY: 1, rotation: 0 });
+    expect(framePose(-1.5, 1.5, 30)).toEqual({ scaleX: 1.5, scaleY: 1.5, rotation: 0 });
+  });
+
+  it("lifts a locked token's padlock clear of a grown-out frame", () => {
+    const locked = (frame: TokenFrame) => ({ ...token(frame), locked: true });
+    const { unmount } = render(<TokensLayer {...props(locked(presetFrame("plain.ring")!))} />);
+    const lockIn = Number(screen.getByTestId("lock").dataset.y);
+    unmount();
+    const out = { ...presetFrame("plain.ring", 0.24)!, growth: "out" as const };
+    render(<TokensLayer {...props(locked(out))} />);
+    const lockOut = Number(screen.getByTestId("lock").dataset.y);
+    expect(lockIn - lockOut).toBeCloseTo(50 * 0.15 * 0.75);
+    expect(frameOutset(out, "medium")).toBeCloseTo(0.15);
   });
 });

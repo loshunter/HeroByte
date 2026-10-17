@@ -34,4 +34,9 @@ describe("pickFrameTier", () => {
     }
     expect(new Set(tiers).size).toBe(1);
   });
+
+  it("steps straight down to the smallest tier that fits, not only to the next one", () => {
+    expect(pickFrameTier(240, 1024, false)).toBe(512);
+    expect(pickFrameTier(100, 1024, false)).toBe(128);
+  });
 });

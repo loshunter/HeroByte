@@ -15,6 +15,8 @@ import {
   FRAME_PRESETS,
   FRAME_WEIGHTS,
   frameHasGlow,
+  frameUsesAccent,
+  normalizeColor,
   frameWeight,
   presetFrame,
   withFrameWeight,
@@ -44,20 +46,19 @@ const capitalised = (name: string) => name.charAt(0).toUpperCase() + name.slice(
 
 export interface FrameTabProps {
   control: TokenFrameControl;
+  /** A picture loaded on the Picture tab and not yet saved: the previews show it. */
+  pendingImage?: string;
   draft: TokenFrame | null;
   onDraft: (frame: TokenFrame | null) => void;
 }
 
 /** The custom colour a picker should start from: the frame's own, else the token's. */
 function pickerColor(value: string | undefined, fallback: string): string {
-  return value && value.startsWith("#")
-    ? value
-    : /^#[0-9a-f]{6}$/i.test(fallback)
-      ? fallback
-      : "#808080";
+  // An older table's hsl() colour still starts the picker at that colour.
+  return value && value.startsWith("#") ? value : (normalizeColor(fallback) ?? "#808080");
 }
 
-export function FrameTab({ control, draft, onDraft }: FrameTabProps) {
+export function FrameTab({ control, pendingImage, draft, onDraft }: FrameTabProps) {
   const ids = { weight: useId(), glow: useId() };
   const weight = draft ? frameWeight(draft) : FRAME_WEIGHTS.regular;
   const glowBand = draft?.bands.find((band) => band.glow);
@@ -89,7 +90,7 @@ export function FrameTab({ control, draft, onDraft }: FrameTabProps) {
       tokenId={control.tokenId}
       color={control.color}
       size={control.size}
-      imageUrl={control.imageUrl}
+      imageUrl={pendingImage ?? control.imageUrl}
       edge={edge}
       floor={floor}
       label={`Preview at ${edge > 60 ? "card" : "token"} size on the ${where}`}
@@ -139,7 +140,7 @@ export function FrameTab({ control, draft, onDraft }: FrameTabProps) {
         onClick={() => onDraft(null)}
         aria-pressed={draft === null}
         variant={draft === null ? "primary" : "default"}
-        title="The token as it was before frames: a rounded square"
+        title="No frame: the token as it was before frames, a rounded square"
         style={small}
       >
         No frame
@@ -195,24 +196,31 @@ export function FrameTab({ control, draft, onDraft }: FrameTabProps) {
             ))}
           </div>
 
-          <div style={row} role="group" aria-label="Frame colour">
-            <JRPGButton
-              onClick={() => edit((frame) => ({ ...frame, accent: "personal" }))}
-              aria-pressed={(draft.accent ?? "personal") === "personal"}
-              variant={(draft.accent ?? "personal") === "personal" ? "primary" : "default"}
-              style={small}
-            >
-              Your colour
-            </JRPGButton>
-            <input
-              type="color"
-              aria-label="Custom frame colour"
-              value={pickerColor(draft.accent, control.color)}
-              onChange={(event) =>
-                edit((frame) => ({ ...frame, accent: event.target.value.toLowerCase() }))
-              }
-            />
-          </div>
+          {!frameUsesAccent(draft) && (
+            <span className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
+              This material has its own colours.
+            </span>
+          )}
+          {frameUsesAccent(draft) && (
+            <div style={row} role="group" aria-label="Frame colour">
+              <JRPGButton
+                onClick={() => edit((frame) => ({ ...frame, accent: "personal" }))}
+                aria-pressed={(draft.accent ?? "personal") === "personal"}
+                variant={(draft.accent ?? "personal") === "personal" ? "primary" : "default"}
+                style={small}
+              >
+                Your colour
+              </JRPGButton>
+              <input
+                type="color"
+                aria-label="Custom frame colour"
+                value={pickerColor(draft.accent, control.color)}
+                onChange={(event) =>
+                  edit((frame) => ({ ...frame, accent: event.target.value.toLowerCase() }))
+                }
+              />
+            </div>
+          )}
 
           {frameHasGlow(draft) && glowBand?.glow && (
             <>

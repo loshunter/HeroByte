@@ -32,6 +32,20 @@ export interface FramePreviewProps {
   label: string;
 }
 
+function roundedSquare(
+  context: CanvasRenderingContext2D,
+  at: number,
+  side: number,
+  radius: number,
+) {
+  context.moveTo(at + radius, at);
+  context.arcTo(at + side, at, at + side, at + side, radius);
+  context.arcTo(at + side, at + side, at, at + side, radius);
+  context.arcTo(at, at + side, at, at, radius);
+  context.arcTo(at, at, at + side, at, radius);
+  context.closePath();
+}
+
 export function FramePreview({
   frame,
   tokenId,
@@ -81,7 +95,8 @@ export function FramePreview({
     context.save();
     context.beginPath();
     if (frame) context.arc(centre, centre, token / 2, 0, Math.PI * 2);
-    else context.rect(centre - token / 2, centre - token / 2, token, token);
+    // Frameless, the map's own rounded square: corners of an eighth of a cell, a sixth of the token.
+    else roundedSquare(context, centre - token / 2, token, token / 6);
     context.clip();
     if (pictureRef.current) {
       context.drawImage(pictureRef.current, centre - token / 2, centre - token / 2, token, token);

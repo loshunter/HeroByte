@@ -60,6 +60,8 @@ export function TokenCreatorWindow({
   const creator = useTokenCreator({ tokenSize, onApply, onDone: onClose, deps });
   const [tab, setTab] = useState<CreatorTab>(frame ? initialTab : "picture");
   const [draft, setDraft] = useState<TokenFrame | null>(frame?.frame ?? null);
+  // The settings window's other button, pressed while this is open, turns the tab.
+  useEffect(() => setTab(frame ? initialTab : "picture"), [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps -- the tab follows the button, not the control
   const loadFileRef = useRef(creator.loadFile);
   loadFileRef.current = creator.loadFile;
   const loadDroppedRef = useRef(creator.loadDropped);
@@ -78,6 +80,7 @@ export function TokenCreatorWindow({
       const file = pictureFileFrom(event.clipboardData);
       if (!file) return;
       event.preventDefault();
+      setTab("picture"); // a picture lands where it can be seen and framed
       void loadFileRef.current(file);
     };
     // A file let go just outside the window would open in the tab in place of
@@ -91,7 +94,9 @@ export function TokenCreatorWindow({
     const onDocumentDrop = (event: DragEvent) => {
       if (event.defaultPrevented || !carriesFiles(event)) return;
       event.preventDefault();
-      if (openCreators[openCreators.length - 1] === me) loadDroppedRef.current(event.dataTransfer);
+      if (openCreators[openCreators.length - 1] !== me) return;
+      setTab("picture");
+      loadDroppedRef.current(event.dataTransfer);
     };
     document.addEventListener("paste", onPaste);
     document.addEventListener("dragover", onDragOver);
@@ -112,12 +117,23 @@ export function TokenCreatorWindow({
     // Text dragged within the link field stays the field's own business.
     if (isEditableTarget(event.target) && !pictureFileFrom(event.dataTransfer)) return;
     event.preventDefault();
+    setTab("picture");
     creator.loadDropped(event.dataTransfer);
   };
 
   // The map draws a token 3/4 of a cell times its size, with corners of 1/8 of a
   // cell whatever its size: the corner, as a share of the side, shrinks with size.
-  const corner = 1 / (6 * (PROP_SIZE_MULTIPLIERS[tokenSize ?? "medium"] ?? 1));
+  // A framed token is round on the map (C5a), so its picture is framed in a circle.
+  const corner = frame?.frame ? 0.5 : 1 / (6 * (PROP_SIZE_MULTIPLIERS[tokenSize ?? "medium"] ?? 1));
+  const tabs: readonly CreatorTab[] = frame ? ["picture", "frame"] : ["picture"];
+  const onTabKey = (event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    event.preventDefault();
+    const next =
+      tabs[(tabs.indexOf(tab) + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length]!;
+    setTab(next);
+    document.getElementById(`token-creator-tab-${next}`)?.focus();
+  };
 
   const ready = creator.picture !== null && creator.phase === "idle";
 
@@ -150,13 +166,19 @@ export function TokenCreatorWindow({
             background: "rgba(12, 18, 40, 0.97)",
           }}
         >
-          <div role="tablist" aria-label="Token creator" style={{ display: "flex", gap: "4px" }}>
-            {(frame ? (["picture", "frame"] as const) : (["picture"] as const)).map((id) => (
+          <div
+            role="tablist"
+            aria-label="Token creator"
+            onKeyDown={onTabKey}
+            style={{ display: "flex", gap: "4px" }}
+          >
+            {tabs.map((id) => (
               <button
                 key={id}
                 type="button"
                 role="tab"
                 aria-selected={tab === id}
+                tabIndex={tab === id ? 0 : -1}
                 id={`token-creator-tab-${id}`}
                 aria-controls={`token-creator-panel-${id}`}
                 className="jrpg-button"
@@ -167,17 +189,30 @@ export function TokenCreatorWindow({
               </button>
             ))}
           </div>
+          {/* Both panels stay mounted (the hidden one keeps its state): the tabs only show one. */}
           <div
             role="tabpanel"
-            id={`token-creator-panel-${tab}`}
-            aria-labelledby={`token-creator-tab-${tab}`}
+            id="token-creator-panel-picture"
+            aria-labelledby="token-creator-tab-picture"
+            hidden={tab !== "picture"}
           >
-            {tab === "frame" && frame ? (
-              <FrameTab control={frame} draft={draft} onDraft={setDraft} />
-            ) : (
-              <PictureTab creator={creator} corner={corner} />
-            )}
+            <PictureTab creator={creator} corner={corner} />
           </div>
+          {frame && (
+            <div
+              role="tabpanel"
+              id="token-creator-panel-frame"
+              aria-labelledby="token-creator-tab-frame"
+              hidden={tab !== "frame"}
+            >
+              <FrameTab
+                control={frame}
+                pendingImage={creator.picture?.displaySrc}
+                draft={draft}
+                onDraft={setDraft}
+              />
+            </div>
+          )}
           {/* Pinned to the window's foot: on a short screen the picture scrolls, not Accept. */}
           <div
             style={{
@@ -193,9 +228,12 @@ export function TokenCreatorWindow({
               <JRPGButton
                 variant="primary"
                 onClick={() => {
+                  // A picture on its way to the table is not abandoned by a frame's Accept.
+                  if (creator.phase !== "idle") return;
                   frame.onApply(draft);
                   onClose();
                 }}
+                aria-disabled={creator.phase !== "idle"}
                 title={draft ? "Set this frame on the token" : "Take the frame off the token"}
                 style={{ flex: 2, fontSize: "11px", padding: "8px", minHeight: "44px" }}
               >

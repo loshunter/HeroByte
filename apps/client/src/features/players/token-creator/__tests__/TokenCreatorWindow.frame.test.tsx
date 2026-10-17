@@ -5,7 +5,7 @@
  * left to its own tests (jsdom draws no bitmap, and the previews stay blank).
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   defaultTokenFrame,
@@ -126,6 +126,66 @@ describe("the Frame tab", () => {
     press("Castle stone");
     press("Cancel");
     expect(onApply).not.toHaveBeenCalled();
+  });
+});
+
+describe("the Frame tab, after review", () => {
+  it("offers a frame colour only for frames that take one", () => {
+    open(control().value);
+    expect(screen.getByLabelText("Custom frame colour")).toBeInTheDocument();
+    press("Castle stone");
+    expect(screen.queryByLabelText("Custom frame colour")).toBeNull();
+    expect(screen.getByText("This material has its own colours.")).toBeInTheDocument();
+  });
+
+  it("starts the custom pickers at an older table's hsl colour, not grey", () => {
+    const value = { ...control().value, color: "hsl(120, 70%, 50%)" };
+    open(value);
+    expect(screen.getByLabelText("Custom frame colour")).toHaveValue("#26d926");
+  });
+
+  it("turns to the Picture tab when a picture is pasted, and with the arrow keys", () => {
+    open(control().value);
+    const file = new File(["x"], "art.png", { type: "image/png" });
+    const paste = new Event("paste", { bubbles: true }) as unknown as ClipboardEvent;
+    Object.defineProperty(paste, "clipboardData", {
+      value: {
+        getData: () => "",
+        files: { length: 1, 0: file, item: () => file },
+        items: { length: 1, 0: { kind: "file", type: file.type, getAsFile: () => file } },
+        types: ["Files"],
+      },
+    });
+    act(() => {
+      document.dispatchEvent(paste);
+    });
+    expect(screen.getByRole("tab", { name: "Picture" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Picture" }), { key: "ArrowRight" });
+    expect(screen.getByRole("tab", { name: "Frame" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Frame" })).toHaveAttribute("tabindex", "0");
+  });
+
+  it("follows the settings window's buttons while it is open", () => {
+    const { value } = control();
+    const { rerender } = render(
+      <TokenCreatorWindow
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+        deps={deps()}
+        frame={value}
+        initialTab="frame"
+      />,
+    );
+    rerender(
+      <TokenCreatorWindow
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+        deps={deps()}
+        frame={value}
+        initialTab="picture"
+      />,
+    );
+    expect(screen.getByRole("tab", { name: "Picture" })).toHaveAttribute("aria-selected", "true");
   });
 });
 

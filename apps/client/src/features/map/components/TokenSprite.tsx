@@ -236,7 +236,7 @@ export const TokenSprite = memo(function TokenSprite({
   const ring = framed ? (
     <TokenFrameOverlay
       follow={shapeNode}
-      {...{ x, y, scaleX, scaleY, size }}
+      {...{ x, y, scaleX, scaleY, rotation, size }}
       drawing={frameDrawing}
       stroke={stroke}
       strokeWidth={strokeWidth}

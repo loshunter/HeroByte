@@ -47,6 +47,8 @@ export interface FrameStats {
 const cache = new Map<string, { bitmap: FrameBitmap; bytes: number }>();
 const pending = new Map<string, Pending>();
 const keysByJob = new Map<number, string>();
+/** How many tokens are drawing each key. */
+const holds = new Map<string, number>();
 let nextJobId = 1;
 let cacheBytes = 0;
 const stats: FrameStats = {
@@ -116,27 +118,49 @@ async function toBitmap(pixels: Uint8ClampedArray, tier: number): Promise<FrameB
 }
 
 function store(key: string, bitmap: FrameBitmap, bytes: number): void {
+  const previous = cache.get(key);
+  if (previous) {
+    // A second bake of a key (a late reply after a re-request) replaces, never adds.
+    cache.delete(key);
+    cacheBytes -= previous.bytes;
+  }
   cache.set(key, { bitmap, bytes });
   cacheBytes += bytes;
-  // Oldest first (a Map keeps insertion order; a hit re-inserts). Never the newest.
+  // Oldest first (a Map keeps insertion order; a hit re-inserts), never the
+  // newest and never one a token is drawing: evicting that would only make it
+  // bake again while the bitmap itself stays alive in the drawing.
   for (const [oldest, entry] of cache) {
     if (cacheBytes <= cap() || oldest === key) break;
+    if ((holds.get(oldest) ?? 0) > 0) continue;
     cache.delete(oldest);
     cacheBytes -= entry.bytes;
   }
 }
 
-async function finish(key: string, pixels: Uint8ClampedArray, tier: number, ms: number) {
-  const waiting = pending.get(key);
-  stats.bakes += 1;
-  stats.lastBakeMs = ms;
-  stats.maxBakeMs = Math.max(stats.maxBakeMs, ms);
-  const bitmap = await toBitmap(pixels, tier);
-  if (bitmap) store(key, bitmap, tier * tier * 4);
-  else stats.failed += 1;
+/** A bake is over, one way or the other: whoever waited is told, and the key may be asked again. */
+function settle(key: string, waiting: Pending | undefined): void {
   if (pending.get(key) === waiting) pending.delete(key);
   publish();
   for (const listener of waiting?.listeners ?? []) listener();
+}
+
+async function finish(key: string, pixels: Uint8ClampedArray, tier: number, ms: number) {
+  const waiting = pending.get(key);
+  let bitmap: FrameBitmap | null = null;
+  try {
+    bitmap = await toBitmap(pixels, tier);
+  } catch {
+    bitmap = null; // a decode refused under memory pressure: the next ask bakes again
+  }
+  if (bitmap) {
+    stats.bakes += 1;
+    stats.lastBakeMs = ms;
+    stats.maxBakeMs = Math.max(stats.maxBakeMs, ms);
+    store(key, bitmap, tier * tier * 4);
+  } else {
+    stats.failed += 1;
+  }
+  settle(key, waiting);
 }
 
 function onReply(reply: FrameWorkerReply): void {
@@ -144,6 +168,10 @@ function onReply(reply: FrameWorkerReply): void {
   keysByJob.delete(reply.jobId);
   if (key === undefined) return;
   if ("pixels" in reply) {
+    if (cache.has(key)) {
+      stats.cancelled += 1; // a duplicate of a bake that already landed
+      return;
+    }
     stats.workerBakes += 1;
     void finish(key, new Uint8ClampedArray(reply.pixels), reply.tier, reply.ms);
     return;
@@ -159,9 +187,14 @@ function bakeOnTimer(key: string, job: Pending): void {
   setTimeout(() => {
     if (pending.get(key) !== job) return; // withdrawn before it started
     const started = performance.now();
-    const { pixels, tier } = bakeFrame(job.input);
-    stats.syncBakes += 1;
-    void finish(key, pixels, tier, performance.now() - started);
+    try {
+      const { pixels, tier } = bakeFrame(job.input);
+      stats.syncBakes += 1;
+      void finish(key, pixels, tier, performance.now() - started);
+    } catch {
+      stats.failed += 1;
+      settle(key, job);
+    }
   }, 0);
 }
 
@@ -207,7 +240,24 @@ export function requestFrameBitmap(
     if (keysByJob.has(owned.jobId)) {
       const cancel: FrameWorkerRequest = { cancel: owned.jobId };
       worker?.postMessage(cancel);
+      keysByJob.delete(owned.jobId); // a reply that still comes is dropped
     }
+  };
+}
+
+/**
+ * A token is drawing `key`: until the returned release, eviction passes it
+ * over, so the cache's bytes are an honest count of what the table holds.
+ */
+export function retainFrameBitmap(key: string): () => void {
+  holds.set(key, (holds.get(key) ?? 0) + 1);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    const count = (holds.get(key) ?? 1) - 1;
+    if (count > 0) holds.set(key, count);
+    else holds.delete(key);
   };
 }
 
@@ -221,6 +271,7 @@ export function resetFrameBitmapCache(): void {
   cache.clear();
   pending.clear();
   keysByJob.clear();
+  holds.clear();
   cacheBytes = 0;
   worker?.terminate();
   worker = null;

@@ -17,12 +17,19 @@ import { useSelectionPalette } from "../selectionPalette";
 import { useSfx } from "../../juice";
 import { PROP_SIZE_MULTIPLIERS } from "../propSizing";
 import { TokenSprite } from "./TokenSprite";
+import { frameOutset } from "./TokenFrameOverlay";
 
 // Size multiplier per token size category — ONE ladder with the props (and
 // the move-pad follow, which sizes what it keeps on screen from it).
 const SIZE_MULTIPLIERS = PROP_SIZE_MULTIPLIERS;
 // --jrpg-border-gold as a literal: Konva cannot resolve var(), and the canvas drops it silently.
 const MEDALLION_RING = "#e2b75c";
+/** How far above a token's centre its lock sits, in cells: clear of a grown-out frame too. */
+const lockLift = (object: SceneObject & { type: "token" }) =>
+  0.45 +
+  frameOutset(object.data.frame, object.data.size) *
+    0.75 *
+    (SIZE_MULTIPLIERS[object.data.size ?? "medium"] ?? 1);
 
 interface MultiSelectBadgeProps {
   x: number;
@@ -542,7 +549,9 @@ export const TokensLayer = memo(function TokensLayer({
     // must clear the RENDERED extent or it overlaps the sprite.
     // |scaleY|: a flipped token is as tall as an unflipped one, and its plate
     // hangs below the sprite either way (the move-pad follow reserves that side).
-    const tokenSize = gridSize * 0.75 * sizeMultiplier * (Math.abs(scaleY) || 1);
+    // A frame grown out (C5a) reaches past the box: the plate clears the frame.
+    const reach = 1 + 2 * frameOutset(object.data.frame, object.data.size);
+    const tokenSize = gridSize * 0.75 * sizeMultiplier * reach * (Math.abs(scaleY) || 1);
     return (
       <TokenNameplate
         plate={plate}
@@ -602,7 +611,7 @@ export const TokensLayer = memo(function TokensLayer({
             {object.locked && (
               <LockIndicator
                 x={object.transform.x * gridSize + gridSize / 2}
-                y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
+                y={object.transform.y * gridSize + gridSize / 2 - gridSize * lockLift(object)}
                 size={gridSize * 0.25}
               />
             )}
@@ -653,7 +662,7 @@ export const TokensLayer = memo(function TokensLayer({
             {object.locked && (
               <LockIndicator
                 x={object.transform.x * gridSize + gridSize / 2}
-                y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
+                y={object.transform.y * gridSize + gridSize / 2 - gridSize * lockLift(object)}
                 size={gridSize * 0.25}
               />
             )}
