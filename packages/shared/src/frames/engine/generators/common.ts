@@ -23,6 +23,22 @@ export interface GeneratorContext {
 
 export type FrameGenerator = (context: GeneratorContext) => Facet[];
 
+/** Motifs per course at most: a backstop under the band-weight floor (MIN_BAND_WEIGHT). */
+export const MAX_MOTIFS = 256;
+
+/** How many motifs `length` holds at `motif` each, by the repeat rule: at least 3, at most MAX_MOTIFS. */
+export function motifCount(length: number, motif: number): number {
+  return Math.min(MAX_MOTIFS, Math.max(3, Math.round(length / motif)));
+}
+
+/** A shape's v coordinates held inside the band (jitter must not leave the bitmap). */
+export function clampAcross(points: number[], top = 0, bottom = 1): number[] {
+  for (let index = 1; index < points.length; index += 2) {
+    points[index] = Math.min(bottom, Math.max(top, points[index]!));
+  }
+  return points;
+}
+
 export const num = (params: Record<string, FrameParamValue>, name: string): number =>
   params[name] as number;
 

@@ -11,6 +11,7 @@ import {
   bevelledBlock,
   dome,
   draws,
+  motifCount,
   num,
   splitLength,
   stroke,
@@ -35,7 +36,7 @@ export const plank: FrameGenerator = ({ length, courses, courseScale, params, rn
     const scale = courseScale(course);
     const heightU = 1 / courses / scale;
     const heightV = 1 / courses;
-    const count = Math.max(3, Math.round((length * scale * courses) / plankLength));
+    const count = motifCount(length * scale * courses, plankLength);
     const lengths = splitLength(length, count, 0.15, draws(rng, count));
     let u = phaseRoll! * (length / count) + (course % 2) * (lengths[0]! / 2);
     const v0 = course * heightV;

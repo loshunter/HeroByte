@@ -4,13 +4,14 @@
 // Everything the bake reads, in a fixed order: the stack with every param
 // filled in, the growth, the size's weight scale, the tier, the accent only
 // when some band takes it, and each band's seed only when its generator
-// draws from one. So every plain ring of one colour at one tier is one bake,
-// while two castle rings (seeded by their token ids) are two.
+// draws from one. So every plain ring of one colour, weight, growth and size
+// class at one tier is one bake, while two castle rings (seeded by their
+// token ids) are two.
 
 import type { TokenSize } from "../../index.js";
-import { FRAME_PALETTES } from "../frameCatalog.generated.js";
+import { framePaletteById } from "../catalogLookup.js";
 import { frameSizeScale } from "../frameLimits.js";
-import { FRAME_GENERATOR_SPECS, resolveFrameParams } from "../generatorSpecs.js";
+import { frameGeneratorSpec, resolveFrameParams } from "../generatorSpecs.js";
 import type { TokenFrame } from "../types.js";
 import { bandSeed } from "./frameBake.js";
 
@@ -21,28 +22,35 @@ import { bandSeed } from "./frameBake.js";
  */
 const DRAWN_ROLES = ["top", "bevel", "side", "outline", "crack", "shadow"] as const;
 
-/** Whether any band's palette or glow takes the frame's accent colour. */
+/** Whether any band's palette takes the frame's colour (the "Frame colour" row has an effect). */
 export function frameUsesAccent(frame: TokenFrame): boolean {
   return frame.bands.some((band) => {
-    if (band.glow?.color === "personal") return true;
-    const roles = FRAME_PALETTES[band.palette]?.roles;
+    const roles = framePaletteById(band.palette)?.roles;
     return roles !== undefined && DRAWN_ROLES.some((role) => roles[role] === "personal");
   });
+}
+
+/** Whether any band glows in the character's own colour. */
+export function frameGlowsPersonal(frame: TokenFrame): boolean {
+  return frame.bands.some((band) => band.glow?.color === "personal");
 }
 
 export function frameBakeKey(input: {
   frame: TokenFrame;
   size?: TokenSize;
   accent: string;
+  personal?: string;
   seed: number;
   tier: number;
 }): string {
   const { frame } = input;
   return JSON.stringify([
+    frame.shape ?? "circle",
     frame.growth ?? "in",
     frameSizeScale(input.size),
     input.tier,
     frameUsesAccent(frame) ? input.accent : "",
+    frameGlowsPersonal(frame) ? (input.personal ?? input.accent) : "",
     frame.bands.map((band, index) => [
       band.generator,
       band.palette,
@@ -51,7 +59,7 @@ export function frameBakeKey(input: {
       band.bevel ? [band.bevel.profile, band.bevel.width] : null,
       band.glow ? [band.glow.color, band.glow.strength] : null,
       Object.values(resolveFrameParams(band.generator, band.params)),
-      FRAME_GENERATOR_SPECS[band.generator]?.seeded ? bandSeed(frame, index, input.seed) : 0,
+      frameGeneratorSpec(band.generator)?.seeded ? bandSeed(frame, index, input.seed) : 0,
     ]),
   ]);
 }

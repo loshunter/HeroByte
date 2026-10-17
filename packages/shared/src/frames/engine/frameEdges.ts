@@ -23,7 +23,8 @@ export interface EdgeFacet {
   alpha: number;
 }
 
-export const EDGE_SEGMENTS = 72;
+/** Segments round the ring: 3° each, so a lit edge's chords sag under 0.2 px at 1024. */
+export const EDGE_SEGMENTS = 120;
 /** Shadows fall away from the light: the screen direction they are cast in. */
 const CAST: [number, number] = (() => {
   const length = Math.hypot(LIGHT[0], LIGHT[1]);

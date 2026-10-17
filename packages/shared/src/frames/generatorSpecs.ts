@@ -74,6 +74,16 @@ export const FRAME_GENERATOR_SPECS: Readonly<Record<string, FrameGeneratorSpec>>
   },
 };
 
+/**
+ * The spec for a generator id, or undefined. An own-property test, not a
+ * lookup: "constructor" or "toString" must not pass for a generator.
+ */
+export function frameGeneratorSpec(id: unknown): FrameGeneratorSpec | undefined {
+  return typeof id === "string" && Object.prototype.hasOwnProperty.call(FRAME_GENERATOR_SPECS, id)
+    ? FRAME_GENERATOR_SPECS[id]
+    : undefined;
+}
+
 /** A param value clamped to its spec, the spec's default when it is missing or unreadable. */
 export function clampFrameParam(spec: FrameParamSpec, value: unknown): FrameParamValue {
   if (spec.kind === "number") {
@@ -92,11 +102,13 @@ export function resolveFrameParams(
   generator: string,
   params: Record<string, unknown> | undefined,
 ): Record<string, FrameParamValue> {
-  const spec = FRAME_GENERATOR_SPECS[generator];
+  const spec = frameGeneratorSpec(generator);
   const resolved: Record<string, FrameParamValue> = {};
   if (!spec) return resolved;
   for (const [name, paramSpec] of Object.entries(spec.params)) {
-    resolved[name] = clampFrameParam(paramSpec, params?.[name]);
+    const value =
+      params && Object.prototype.hasOwnProperty.call(params, name) ? params[name] : undefined;
+    resolved[name] = clampFrameParam(paramSpec, value);
   }
   return resolved;
 }

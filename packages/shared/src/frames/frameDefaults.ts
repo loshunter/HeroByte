@@ -9,6 +9,7 @@
 import { FRAME_PRESETS } from "./frameCatalog.generated.js";
 import { resolveFrameParams } from "./generatorSpecs.js";
 import { FRAME_LIMITS, FRAME_WEIGHTS } from "./frameLimits.js";
+import { roundTo } from "./frameValidation.js";
 import type { FramePreset, TokenFrame } from "./types.js";
 
 /** The preset every new token wears (owner decision, 2026-10-08). */
@@ -31,7 +32,10 @@ export function withFrameWeight(frame: TokenFrame, total: number): TokenFrame {
     ...frame,
     bands: frame.bands.map((band) => ({
       ...band,
-      weight: Math.round(((band.weight * target) / current) * 1e6) / 1e6,
+      weight: Math.max(
+        FRAME_LIMITS.MIN_BAND_WEIGHT,
+        roundTo((band.weight * target) / current, 1e-4),
+      ),
     })),
   };
 }

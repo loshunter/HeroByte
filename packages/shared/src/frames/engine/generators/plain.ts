@@ -22,7 +22,7 @@ export const plain: FrameGenerator = ({ length, params }) => {
   const grain = num(params, "grain");
   if (grain > 0) {
     const rng = createSeededRng(GRAIN_SEED);
-    const streaks = Math.round(length * 3 * grain);
+    const streaks = Math.min(512, Math.round(length * 3 * grain));
     for (let index = 0; index < streaks; index += 1) {
       const [start, span, across, light] = draws(rng, 4);
       const u0 = start! * length;

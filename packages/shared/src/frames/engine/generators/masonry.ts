@@ -10,11 +10,22 @@
 // which a band with a glow lights up). Mortar is the band's base.
 //
 // Every stone takes the same fixed number of draws whatever the params, so
-// changing one knob never reshuffles the rest of the ring.
+// gap, inset, irregularity, chamfer, crack density and bond never reshuffle
+// the ring; anything that changes the stone COUNT (stone length, weight, the
+// token's size) lays different stones.
 
 import type { Facet } from "../bandSpace.js";
 import { bandQuad } from "../bandSpace.js";
-import { bevelledBlock, draws, num, splitLength, stroke, type FrameGenerator } from "./common.js";
+import {
+  bevelledBlock,
+  clampAcross,
+  draws,
+  motifCount,
+  num,
+  splitLength,
+  stroke,
+  type FrameGenerator,
+} from "./common.js";
 
 const DRAWS_PER_STONE = 20;
 
@@ -37,7 +48,7 @@ export const masonry: FrameGenerator = ({ length, courses, courseScale, params, 
     // One band height of THIS course, along u and across v.
     const heightU = 1 / courses / scale;
     const heightV = 1 / courses;
-    const count = Math.max(3, Math.round((length * scale * courses) / stoneLength));
+    const count = motifCount(length * scale * courses, stoneLength);
     const rolls = draws(rng, count);
     const spread = rough ? 0.3 + 0.3 * irregularity : 0.12 * irregularity;
     const lengths = splitLength(length, count, spread, rolls);
@@ -110,7 +121,9 @@ export const masonry: FrameGenerator = ({ length, courses, courseScale, params, 
       const pitch = 22 + chamfer * 40;
       const outline: [number, number] = [0.03 * heightU, 0.03 * heightV];
       const bevel: [number, number] = [inset * heightU, inset * heightV];
-      facets.push(...bevelledBlock(shape, outline, bevel, pitch));
+      // Jitter may not carry a stone out of its band: past v = 1 it leaves the bitmap.
+      for (const facet of bevelledBlock(clampAcross(shape), outline, bevel, pitch))
+        facets.push(facet);
 
       if (d[11]! < crackDensity * 0.85) {
         // A crack across the top: in at one long edge, a kink, out at the other.

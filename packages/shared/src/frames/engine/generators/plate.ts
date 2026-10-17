@@ -10,9 +10,17 @@
 
 import type { Facet } from "../bandSpace.js";
 import { bandQuad } from "../bandSpace.js";
-import { bevelledBlock, dome, draws, num, splitLength, type FrameGenerator } from "./common.js";
+import {
+  bevelledBlock,
+  dome,
+  draws,
+  motifCount,
+  num,
+  splitLength,
+  type FrameGenerator,
+} from "./common.js";
 
-const DRAWS_PER_PLATE = 24;
+const DRAWS_PER_PLATE = 30;
 const RIVET_ROWS: Record<number, number[]> = {
   0: [],
   1: [0.5],
@@ -36,7 +44,7 @@ export const plate: FrameGenerator = ({ length, courses, courseScale, params, rn
     const scale = courseScale(course);
     const heightU = 1 / courses / scale;
     const heightV = 1 / courses;
-    const count = Math.max(3, Math.round((length * scale * courses) / plateLength));
+    const count = motifCount(length * scale * courses, plateLength);
     const lengths = splitLength(length, count, 0.25 * irregularity, draws(rng, count));
     let u = phaseRoll! * (length / count) + (course % 2) * (lengths[0]! / 2);
     const v0 = course * heightV;
@@ -98,7 +106,7 @@ export const plate: FrameGenerator = ({ length, courses, courseScale, params, rn
       if (span > 2.6 * heightU) rivetAt.push((start + end) / 2);
       rivetRows.forEach((row, rowIndex) => {
         rivetAt.forEach((at, atIndex) => {
-          const slot = 12 + rowIndex * 3 + atIndex;
+          const slot = 12 + rowIndex * 6 + atIndex * 2; // two draws a rivet, none shared
           facets.push(
             ...dome(
               at + jitter(slot, 0.08 * heightU),

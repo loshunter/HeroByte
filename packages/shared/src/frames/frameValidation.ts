@@ -4,21 +4,25 @@
 // Two doors, two tempers. `sanitizeTokenFrame` is the wire's: a frame a client
 // sends is checked against the catalog and refused whole, with a reason, when
 // it names a shape, finish, generator, palette or preset this build does not
-// have, more than six bands, or a total weight outside 0.04–0.34; numbers
-// inside an otherwise good frame are clamped. `coerceTokenFrame` is the files':
-// a character file or a table from a newer build must load, so an unknown
-// generator or palette becomes plain stone per band and nothing is rejected.
+// have, more than six bands, a band thinner than 0.005, a total weight outside
+// 0.04–0.34 or more than 1.5 KB of JSON; numbers inside an otherwise good
+// frame are clamped and rounded (they ride every token in every snapshot).
+// `coerceTokenFrame` is the files': a character file or a table from a newer
+// build must load, so an unknown generator or palette becomes plain stone per
+// band, a band too thin is thickened, and nothing is rejected. A frame the
+// wire stored comes back through it exactly as it was saved.
 
-import { FRAME_PALETTES, FRAME_PRESETS } from "./frameCatalog.generated.js";
-import { FRAME_GENERATOR_SPECS, resolveFrameParams } from "./generatorSpecs.js";
+import { FRAME_PRESETS } from "./frameCatalog.generated.js";
+import { framePaletteById } from "./catalogLookup.js";
+import { frameGeneratorSpec, resolveFrameParams } from "./generatorSpecs.js";
 import { FRAME_LIMITS } from "./frameLimits.js";
 import type { FrameBand, FrameBevelProfile, FrameGrowth, TokenFrame } from "./types.js";
 
 const HEX = /^#[0-9a-f]{6}$/;
 const PROFILES: readonly FrameBevelProfile[] = ["round", "chamfer", "step", "flat"];
 const GROWTHS: readonly FrameGrowth[] = ["in", "out", "mid"];
-/** Totals are summed in floating point: a hair over the cap is the cap. */
-const EPSILON = 1e-6;
+/** Weights are rounded to 1e-4 each, so six bands' total may stray by 3e-4. */
+export const FRAME_WEIGHT_TOLERANCE = 5e-4;
 
 export type FrameCheck = { frame: TokenFrame } | { error: string };
 
@@ -29,37 +33,52 @@ const isFiniteNumber = (value: unknown): value is number =>
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const isColor = (value: unknown): value is string =>
   typeof value === "string" && (value === "personal" || HEX.test(value));
+/** `value` to the nearest `step`, without float tails (0.1 + 0.2 stays 0.3). */
+export const roundTo = (value: number, step: number): number =>
+  Number((Math.round(value / step) * step).toFixed(Math.max(0, Math.ceil(-Math.log10(step)))));
+const knownGenerator = (id: unknown) => frameGeneratorSpec(id) !== undefined;
+const knownPalette = (id: unknown) => framePaletteById(id) !== undefined;
 
 export function isFramePreset(id: unknown): boolean {
   return typeof id === "string" && FRAME_PRESETS.some((preset) => preset.id === id);
 }
 
-/** The band's optional parts, clamped; the generator and palette are the caller's. */
+/** The band's optional parts, clamped and rounded; generator and palette are the caller's. */
 function bandExtras(raw: Record<string, unknown>): Partial<FrameBand> {
   const extras: Partial<FrameBand> = {};
   if (isRecord(raw.bevel) && PROFILES.includes(raw.bevel.profile as FrameBevelProfile)) {
     const width = isFiniteNumber(raw.bevel.width) ? clamp(raw.bevel.width, 0, 0.5) : 0;
-    extras.bevel = { profile: raw.bevel.profile as FrameBevelProfile, width };
+    extras.bevel = { profile: raw.bevel.profile as FrameBevelProfile, width: roundTo(width, 0.01) };
   }
   if (isRecord(raw.glow) && isColor(raw.glow.color)) {
     const strength = isFiniteNumber(raw.glow.strength) ? clamp(raw.glow.strength, 0, 1) : 0.5;
-    extras.glow = { color: raw.glow.color, strength };
+    extras.glow = { color: raw.glow.color, strength: roundTo(strength, 0.01) };
   }
   if (isFiniteNumber(raw.seed)) extras.seed = Math.trunc(raw.seed) | 0;
   return extras;
 }
 
-function cleanBand(raw: Record<string, unknown>, generator: string, palette: string): FrameBand {
+function cleanBand(
+  raw: Record<string, unknown>,
+  generator: string,
+  palette: string,
+  weight: number,
+): FrameBand {
   const params = resolveFrameParams(generator, isRecord(raw.params) ? raw.params : undefined);
+  for (const [name, value] of Object.entries(params)) {
+    if (typeof value === "number") params[name] = roundTo(value, 0.001);
+  }
   return {
     generator,
     ...(Object.keys(params).length > 0 ? { params } : {}),
     palette,
-    weight: raw.weight as number,
-    depth: isFiniteNumber(raw.depth) ? clamp(raw.depth, 0, 1) : 0.6,
+    weight: roundTo(weight, 1e-4),
+    depth: isFiniteNumber(raw.depth) ? roundTo(clamp(raw.depth, 0, 1), 0.001) : 0.6,
     ...bandExtras(raw),
   };
 }
+
+const totalOf = (bands: readonly FrameBand[]) => bands.reduce((sum, band) => sum + band.weight, 0);
 
 /** The wire's check: a clean copy of the frame, or the reason it is refused. */
 export function sanitizeTokenFrame(raw: unknown): FrameCheck {
@@ -88,75 +107,89 @@ export function sanitizeTokenFrame(raw: unknown): FrameCheck {
   const bands: FrameBand[] = [];
   for (const band of raw.bands) {
     if (!isRecord(band)) return { error: "frame band must be an object" };
-    if (typeof band.generator !== "string" || !FRAME_GENERATOR_SPECS[band.generator]) {
-      return { error: "frame band generator is unknown" };
-    }
-    if (typeof band.palette !== "string" || !FRAME_PALETTES[band.palette]) {
-      return { error: "frame band palette is unknown" };
-    }
+    if (!knownGenerator(band.generator)) return { error: "frame band generator is unknown" };
+    if (!knownPalette(band.palette)) return { error: "frame band palette is unknown" };
     if (!isFiniteNumber(band.weight) || band.weight <= 0) {
       return { error: "frame band weight must be a positive number" };
     }
-    bands.push(cleanBand(band, band.generator, band.palette));
+    if (band.weight < FRAME_LIMITS.MIN_BAND_WEIGHT - FRAME_WEIGHT_TOLERANCE / 10) {
+      return { error: `frame band weight must be at least ${FRAME_LIMITS.MIN_BAND_WEIGHT}` };
+    }
+    bands.push(cleanBand(band, band.generator as string, band.palette as string, band.weight));
   }
-  const total = bands.reduce((sum, band) => sum + band.weight, 0);
-  if (total < FRAME_LIMITS.MIN_WEIGHT - EPSILON || total > FRAME_LIMITS.MAX_WEIGHT + EPSILON) {
+  const total = totalOf(bands);
+  if (
+    total < FRAME_LIMITS.MIN_WEIGHT - FRAME_WEIGHT_TOLERANCE ||
+    total > FRAME_LIMITS.MAX_WEIGHT + FRAME_WEIGHT_TOLERANCE
+  ) {
     return {
       error: `frame weight must be ${FRAME_LIMITS.MIN_WEIGHT}–${FRAME_LIMITS.MAX_WEIGHT}`,
     };
   }
-  return {
-    frame: {
-      ...(raw.preset !== undefined ? { preset: raw.preset as string } : {}),
-      ...(raw.shape !== undefined ? { shape: "circle" as const } : {}),
-      ...(raw.growth !== undefined ? { growth: raw.growth as FrameGrowth } : {}),
-      accent: (raw.accent as string | undefined) ?? "personal",
-      bands,
-    },
+  const frame: TokenFrame = {
+    ...(raw.preset !== undefined ? { preset: raw.preset as string } : {}),
+    ...(raw.shape !== undefined ? { shape: "circle" as const } : {}),
+    ...(raw.growth !== undefined ? { growth: raw.growth as FrameGrowth } : {}),
+    accent: (raw.accent as string | undefined) ?? "personal",
+    bands,
   };
+  if (JSON.stringify(frame).length > FRAME_LIMITS.MAX_FRAME_BYTES) {
+    return { error: `frame is larger than ${FRAME_LIMITS.MAX_FRAME_BYTES} bytes` };
+  }
+  return { frame };
 }
 
 /**
  * A file's frame, loaded whatever it holds: a missing or bandless frame is
  * none; an unknown generator or palette (a newer build's) is plain grey stone
- * in that band; extra bands are dropped; the total is brought into range by
- * scaling every band; an unknown preset, shape or finish is forgotten.
+ * in that band; extra bands are dropped; a band too thin is thickened; a total
+ * out of range is scaled into it; an unknown preset, shape or finish is
+ * forgotten. A frame already in range is kept exactly (backups restore it).
  */
 export function coerceTokenFrame(raw: unknown): TokenFrame | undefined {
   if (!isRecord(raw) || !Array.isArray(raw.bands)) return undefined;
   const bands: FrameBand[] = [];
   for (const band of raw.bands.slice(0, FRAME_LIMITS.MAX_BANDS)) {
     if (!isRecord(band)) continue;
-    const known =
-      typeof band.generator === "string" &&
-      Boolean(FRAME_GENERATOR_SPECS[band.generator]) &&
-      typeof band.palette === "string" &&
-      Boolean(FRAME_PALETTES[band.palette]);
-    const weight = isFiniteNumber(band.weight) && band.weight > 0 ? band.weight : 0.1;
+    const known = knownGenerator(band.generator) && knownPalette(band.palette);
+    const weight = Math.max(
+      FRAME_LIMITS.MIN_BAND_WEIGHT,
+      isFiniteNumber(band.weight) && band.weight > 0 ? band.weight : 0.1,
+    );
     bands.push(
       known
-        ? cleanBand({ ...band, weight }, band.generator as string, band.palette as string)
-        : cleanBand({ ...band, weight, params: undefined }, "plain", "stone.grey"),
+        ? cleanBand(band, band.generator as string, band.palette as string, weight)
+        : cleanBand({ ...band, params: undefined }, "plain", "stone.grey", weight),
     );
   }
   if (bands.length === 0) return undefined;
-  const total = bands.reduce((sum, band) => sum + band.weight, 0);
-  const target = clamp(total, FRAME_LIMITS.MIN_WEIGHT, FRAME_LIMITS.MAX_WEIGHT);
-  if (target !== total) {
-    for (const band of bands) band.weight = (band.weight * target) / total;
+  const total = totalOf(bands);
+  const low = FRAME_LIMITS.MIN_WEIGHT - FRAME_WEIGHT_TOLERANCE;
+  const high = FRAME_LIMITS.MAX_WEIGHT + FRAME_WEIGHT_TOLERANCE;
+  if (total < low || total > high) {
+    const target = clamp(total, FRAME_LIMITS.MIN_WEIGHT, FRAME_LIMITS.MAX_WEIGHT);
+    for (const band of bands) {
+      band.weight = Math.max(
+        FRAME_LIMITS.MIN_BAND_WEIGHT,
+        roundTo((band.weight * target) / total, 1e-4),
+      );
+    }
   }
-  return {
+  const frame: TokenFrame = {
     ...(isFramePreset(raw.preset) ? { preset: raw.preset as string } : {}),
     ...(raw.shape === "circle" ? { shape: "circle" as const } : {}),
     ...(GROWTHS.includes(raw.growth as FrameGrowth) ? { growth: raw.growth as FrameGrowth } : {}),
     accent: isColor(raw.accent) ? raw.accent : "personal",
     bands,
   };
+  // One the wire would refuse (six thin bands thickened past the cap) is no frame.
+  return "frame" in sanitizeTokenFrame(frame) ? frame : undefined;
 }
 
 /**
  * Every token's frame through the files' door (table state off disk or out
- * of a backup): a frame that cannot be read is dropped, the token kept.
+ * of a backup, live or parked on another map): a frame that cannot be read
+ * is dropped, the token kept.
  */
 export function coerceTokenFrames<T extends { frame?: TokenFrame }>(tokens: readonly T[]): T[] {
   if (!Array.isArray(tokens)) return [];

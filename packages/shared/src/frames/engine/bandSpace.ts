@@ -117,9 +117,11 @@ export function bandQuad(u0: number, u1: number, v0: number, v1: number): number
 
 /**
  * The slivers rule: a band so thick for its radius that a cell's inner edge
- * would fall under 0.6 of its outer edge is laid in two courses (each then
- * comfortably over it), so stones never come to a point.
+ * would fall under 0.6 of its outer edge is laid in two courses, and under
+ * 0.36 in three (only near the 0.34 cap), so every course's inner edge stays
+ * over half its outer and stones never come to a point.
  */
 export function courseCount(ring: BandRing): number {
-  return ring.r0 / ring.r1 < 0.6 ? 2 : 1;
+  const ratio = ring.r0 / ring.r1;
+  return ratio < 0.36 ? 3 : ratio < 0.6 ? 2 : 1;
 }

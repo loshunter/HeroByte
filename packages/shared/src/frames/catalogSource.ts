@@ -9,7 +9,7 @@
 // param, or a param outside its range. Presets list each band's SHARE of the
 // frame; the catalog stores them at regular weight.
 
-import { FRAME_GENERATOR_SPECS, type FrameParamSpec } from "./generatorSpecs.js";
+import { frameGeneratorSpec, type FrameParamSpec } from "./generatorSpecs.js";
 import { FRAME_LIMITS, FRAME_WEIGHTS } from "./frameLimits.js";
 import type {
   FrameBand,
@@ -49,6 +49,7 @@ export interface FrameCatalogResult extends FrameCatalog {
   errors: string[];
 }
 
+const hasOwn = (record: object, key: string) => Object.prototype.hasOwnProperty.call(record, key);
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const isUnit = (value: unknown): value is number =>
@@ -120,9 +121,9 @@ function checkBand(
     return null;
   }
   const before = errors.length;
-  const spec = typeof raw.generator === "string" ? FRAME_GENERATOR_SPECS[raw.generator] : undefined;
+  const spec = frameGeneratorSpec(raw.generator);
   if (!spec) errors.push(`${where}: unknown generator ${JSON.stringify(raw.generator)}`);
-  if (typeof raw.palette !== "string" || !palettes[raw.palette]) {
+  if (typeof raw.palette !== "string" || !hasOwn(palettes, raw.palette)) {
     errors.push(`${where}: unknown palette ${JSON.stringify(raw.palette)}`);
   }
   if (typeof raw.share !== "number" || !(raw.share > 0) || raw.share > 1) {
@@ -135,7 +136,7 @@ function checkBand(
       errors.push(`${where}: params must be an object`);
     } else if (spec) {
       for (const [name, value] of Object.entries(raw.params)) {
-        const paramSpec = spec.params[name];
+        const paramSpec = hasOwn(spec.params, name) ? spec.params[name] : undefined;
         if (!paramSpec) errors.push(`${where}: ${spec.id} has no param "${name}"`);
         else if (!checkParam(paramSpec, value))
           errors.push(`${where}: param "${name}" out of range`);
@@ -217,6 +218,12 @@ function checkPreset(
       const checked = checkBand(band, `${where} band ${index + 1}`, palettes, errors);
       if (checked) bands.push(checked);
     });
+    const thinnest = Math.min(...bands.map((band) => band.share)) * FRAME_LIMITS.MIN_WEIGHT;
+    if (bands.length > 0 && thinnest < FRAME_LIMITS.MIN_BAND_WEIGHT) {
+      errors.push(
+        `${where}: its thinnest band is under ${FRAME_LIMITS.MIN_BAND_WEIGHT} at the weight slider's floor`,
+      );
+    }
     const shares = bands.reduce((sum, band) => sum + band.share, 0);
     if (bands.length === raw.bands.length && Math.abs(shares - 1) > 1e-6) {
       errors.push(`${where}: band shares sum to ${shares.toFixed(3)}, not 1`);
@@ -251,7 +258,7 @@ export function buildFrameCatalogSource(
   for (const raw of rawPalettes) {
     const palette = checkPalette(raw, errors);
     if (!palette) continue;
-    if (palettes[palette.id]) errors.push(`palette ${palette.id}: listed twice`);
+    if (hasOwn(palettes, palette.id)) errors.push(`palette ${palette.id}: listed twice`);
     palettes[palette.id] = palette;
   }
   const presets: FramePreset[] = [];
@@ -263,7 +270,8 @@ export function buildFrameCatalogSource(
     }
     presets.push(preset);
   }
-  if (!palettes["stone.grey"]) errors.push(`palette stone.grey: required (the fallback material)`);
+  if (!hasOwn(palettes, "stone.grey"))
+    errors.push(`palette stone.grey: required (the fallback material)`);
   if (!presets.some((preset) => preset.id === "plain.ring")) {
     errors.push(`preset plain.ring: required (every new token wears it)`);
   }

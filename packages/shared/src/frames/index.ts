@@ -25,6 +25,7 @@ export {
   type FrameBakeInput,
   type FrameBakeResult,
 } from "./engine/frameBake.js";
-export { frameBakeKey, frameUsesAccent } from "./engine/frameBakeKey.js";
+export { frameBakeKey, frameGlowsPersonal, frameUsesAccent } from "./engine/frameBakeKey.js";
+export { framePaletteById } from "./catalogLookup.js";
 export { personalRoleColor, diffuse, LIGHT as FRAME_LIGHT_VECTOR } from "./engine/shading.js";
 export { FRAME_GENERATORS } from "./engine/generators/index.js";

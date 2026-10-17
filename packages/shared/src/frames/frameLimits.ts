@@ -22,6 +22,15 @@ export const FRAME_LIMITS = {
   MAX_OUTSET: 0.15,
   /** A preset id or a palette id, at most. */
   MAX_ID_LENGTH: 64,
+  /**
+   * The thinnest band, as a fraction of the token edge. A band's motif count
+   * grows as it thins, so a near-zero band is thousands of stones that stall
+   * or crash every client's bake; the thinnest shipped band (welded steel's
+   * rim at the 0.04 floor) is 0.006.
+   */
+  MIN_BAND_WEIGHT: 0.005,
+  /** A frame's JSON, at most: it rides every token in every snapshot and backup. */
+  MAX_FRAME_BYTES: 1536,
 } as const;
 
 /** The weight slider's four named stops. */

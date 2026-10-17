@@ -49,7 +49,7 @@ export interface FrameBand {
 }
 
 export interface TokenFrame {
-  /** The shipped preset this stack came from, if unedited. */
+  /** The shipped preset this stack was picked from (the simple-mode knobs keep it). */
   preset?: string;
   /** Default "circle". */
   shape?: FrameShape;

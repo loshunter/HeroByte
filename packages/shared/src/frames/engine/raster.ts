@@ -16,6 +16,28 @@ export interface Raster {
   /** Scratch: one row of coverage, and the crossings of one sub-row. */
   coverage: Float32Array;
   crossings: number[];
+  /** Scratch for one polygon's edges (grown on demand, reused for every polygon). */
+  edges: EdgeScratch;
+}
+
+interface EdgeScratch {
+  tops: Float64Array;
+  bottoms: Float64Array;
+  xs: Float64Array;
+  slopes: Float64Array;
+  order: Int32Array;
+  active: number[];
+}
+
+function edgeScratch(capacity: number): EdgeScratch {
+  return {
+    tops: new Float64Array(capacity),
+    bottoms: new Float64Array(capacity),
+    xs: new Float64Array(capacity),
+    slopes: new Float64Array(capacity),
+    order: new Int32Array(capacity),
+    active: [],
+  };
 }
 
 export function createRaster(size: number): Raster {
@@ -24,6 +46,7 @@ export function createRaster(size: number): Raster {
     data: new Float32Array(size * size * 4),
     coverage: new Float32Array(size + 1),
     crossings: [],
+    edges: edgeScratch(64),
   };
 }
 
@@ -72,10 +95,9 @@ export function fillPolygon(
   // Edges by their top, each with its x at the top and its slope: a sub-row
   // tests only the edges that cross it (an active list), not every edge of
   // the polygon, so a long ring of hundreds of edges costs a few per row.
-  const tops = new Float64Array(count);
-  const bottoms = new Float64Array(count);
-  const xs = new Float64Array(count);
-  const slopes = new Float64Array(count);
+  if (raster.edges.tops.length < count) raster.edges = edgeScratch(count * 2);
+  const { tops, bottoms, xs, slopes, order, active } = raster.edges;
+  active.length = 0;
   let edges = 0;
   for (let index = 0; index < count; index += 1) {
     const next = (index + 1) % count;
@@ -91,10 +113,15 @@ export function fillPolygon(
     slopes[edges] = (x1 - x0) / (y1 - y0);
     edges += 1;
   }
-  const order = Array.from({ length: edges }, (_, index) => index).sort(
-    (first, second) => tops[first]! - tops[second]!,
-  );
-  const active: number[] = [];
+  // By top, an insertion sort over the typed scratch (polygons are small or nearly sorted).
+  for (let index = 0; index < edges; index += 1) {
+    let at = index;
+    while (at > 0 && tops[order[at - 1]!]! > tops[index]!) {
+      order[at] = order[at - 1]!;
+      at -= 1;
+    }
+    order[at] = index;
+  }
   let waiting = 0;
   const weight = 1 / SUB_ROWS;
   for (let row = rowFrom; row <= rowTo; row += 1) {

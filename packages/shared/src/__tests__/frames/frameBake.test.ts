@@ -166,7 +166,9 @@ describe("the bake key", () => {
     expect(key(castle)).not.toBe(key(castle, { seed: frameSeed("b") }));
     expect(key(castle)).toBe(key(castle, { accent: "#c0392b" }));
     expect(frameUsesAccent(castle)).toBe(false);
-    expect(frameUsesAccent(presetFrame("stone.cracked")!)).toBe(true);
+    // cracked stone's glow takes the character's colour, its stone does not
+    expect(frameUsesAccent(presetFrame("stone.cracked")!)).toBe(false);
+    expect(frameUsesAccent(presetFrame("plain.ring")!)).toBe(true);
   });
 
   it("changes with every knob the bake reads", () => {
