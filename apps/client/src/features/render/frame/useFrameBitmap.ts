@@ -20,13 +20,12 @@ import {
 } from "@herobyte/shared";
 import {
   frameCacheCap,
-  heldFrameBytes,
   peekFrameBitmap,
   requestFrameBitmap,
   retainFrameBitmap,
   type FrameBitmap,
 } from "./frameBitmapCache";
-import { fitTierToBudget, isCoarsePointer, pickFrameTier } from "./frameTier";
+import { frameTierCeiling, isCoarsePointer, pickFrameTier } from "./frameTier";
 
 /** A colour nobody's token has, for an unreadable one: the frame still draws. */
 const FALLBACK_ACCENT = "#808080";
@@ -49,6 +48,8 @@ export interface FrameBitmapRequest {
   tokenPx: number;
   /** The map's zoom times the token's own scale (the gizmo's). */
   zoom: number;
+  /** On the map: how many tokens there wear a frame, which caps every one's tier. */
+  framedTokens?: number;
 }
 
 export function frameAccent(frame: TokenFrame, color: string): string {
@@ -73,12 +74,13 @@ export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing
     layout = layoutFrame(request.frame, request.size);
     const dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
     const needed = request.tokenPx * 2 * layout.extent * Math.abs(request.zoom) * dpr;
-    // The cache never passes its cap for bitmaps tokens hold: past it, a smaller tier.
-    tierRef.current = fitTierToBudget(
-      pickFrameTier(needed, tierRef.current, isCoarsePointer()),
-      heldFrameBytes(keyRef.current ?? undefined),
-      frameCacheCap(),
-    );
+    // The pick keeps its own hysteresis; the bake is capped so the map's
+    // frames, all held at once, fit the cache together.
+    tierRef.current = pickFrameTier(needed, tierRef.current, isCoarsePointer());
+    const tier =
+      request.framedTokens === undefined
+        ? tierRef.current
+        : Math.min(tierRef.current, frameTierCeiling(request.framedTokens, frameCacheCap()));
     input = {
       frame: request.frame,
       size: request.size,
@@ -86,7 +88,7 @@ export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing
       // A "personal" glow is the character's own colour, even under a picked frame colour.
       personal: normalizeColor(request.color) ?? FALLBACK_ACCENT,
       seed: frameSeed(request.tokenId),
-      tier: tierRef.current,
+      tier,
     };
   }
   const key = input ? frameBakeKey(input) : null;
@@ -122,6 +124,6 @@ export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing
     bitmap: lastRef.current?.bitmap ?? null,
     extent: lastRef.current?.extent ?? layout.extent,
     layout,
-    tier: tierRef.current!,
+    tier: input!.tier,
   };
 }

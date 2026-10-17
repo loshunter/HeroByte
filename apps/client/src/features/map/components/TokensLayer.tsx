@@ -578,6 +578,9 @@ export const TokensLayer = memo(function TokensLayer({
     [onSelectObject],
   );
 
+  // Every framed token's bitmap is held at once: their count caps the tier (useFrameBitmap).
+  const framedTokens = [...otherTokens, ...myTokens].filter((object) => object.data.frame).length;
+
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {otherTokens.map((object) => {
@@ -588,7 +591,8 @@ export const TokensLayer = memo(function TokensLayer({
             <TokenSprite
               object={mapOverrides(object)}
               gridSize={gridSize}
-              camScale={object.data.frame ? cam.scale : 1}
+              camScale={cam.scale}
+              framedTokens={framedTokens}
               stroke={
                 isSelected ? palette.stroke : hoveredTokenId === object.id ? "#aaa" : "transparent"
               }
@@ -638,7 +642,8 @@ export const TokensLayer = memo(function TokensLayer({
             <TokenSprite
               object={mapOverrides(object)}
               gridSize={gridSize}
-              camScale={object.data.frame ? cam.scale : 1}
+              camScale={cam.scale}
+              framedTokens={framedTokens}
               stroke={
                 isSelected ? palette.stroke : draggingId === object.id ? palette.drag : "#fff"
               }

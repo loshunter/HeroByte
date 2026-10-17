@@ -10,6 +10,9 @@ import { useEffect, useRef } from "react";
 import type { TokenFrame, TokenSize } from "@herobyte/shared";
 import { useFrameBitmap } from "../../render/frame/useFrameBitmap";
 import { PROP_SIZE_MULTIPLIERS } from "../../map/propSizing";
+import { paintPicture } from "./bake";
+import type { BackdropFill } from "./backdrop";
+import type { CropState, Size } from "./cropMath";
 
 export const PREVIEW_FLOORS = {
   dark: "#2a2622",
@@ -31,8 +34,18 @@ export interface FramePreviewProps {
   edge: number;
   floor: PreviewFloor;
   label: string;
-  /** A picture loaded and not yet saved: shown instead of the saved one, centred and cropped square. */
-  pendingImage?: HTMLImageElement;
+  /** A picture loaded and not yet saved: shown instead of the saved one, as it would bake. */
+  pending?: PendingPicture;
+  /** False while hidden: nothing is drawn or baked (a crop drag would redraw six canvases). */
+  active?: boolean;
+}
+
+/** The Picture tab's picture with its crop and backdrop, before it is baked. */
+export interface PendingPicture {
+  image: HTMLImageElement;
+  size: Size;
+  crop: CropState;
+  fill: BackdropFill;
 }
 
 function roundedSquare(
@@ -58,12 +71,13 @@ export function FramePreview({
   edge,
   floor,
   label,
-  pendingImage,
+  pending,
+  active = true,
 }: FramePreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const token = edge / (2 * MAX_EXTENT);
   const drawing = useFrameBitmap(
-    frame ? { frame, tokenId, color, size, tokenPx: token, zoom: 1 } : null,
+    frame && active ? { frame, tokenId, color, size, tokenPx: token, zoom: 1 } : null,
   );
   const pictureRef = useRef<HTMLImageElement | null>(null);
 
@@ -87,7 +101,7 @@ export function FramePreview({
 
   function draw() {
     const canvas = canvasRef.current;
-    const context = canvas?.getContext?.("2d");
+    const context = active ? canvas?.getContext?.("2d") : null;
     if (!canvas || !context) return;
     const dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
     canvas.width = Math.round(edge * dpr);
@@ -108,23 +122,13 @@ export function FramePreview({
         token / (6 * (PROP_SIZE_MULTIPLIERS[size ?? "medium"] ?? 1)),
       );
     context.clip();
-    const picture = pendingImage ?? pictureRef.current;
-    if (picture) {
-      // The middle square of the picture, not the whole picture squeezed square.
-      const width = picture.naturalWidth || picture.width;
-      const height = picture.naturalHeight || picture.height;
-      const side = Math.min(width, height);
-      context.drawImage(
-        picture,
-        (width - side) / 2,
-        (height - side) / 2,
-        side,
-        side,
-        centre - token / 2,
-        centre - token / 2,
-        token,
-        token,
-      );
+    if (pending) {
+      // Cropped, turned and backed exactly as the bake will paint it.
+      context.translate(centre - token / 2, centre - token / 2);
+      paintPicture(context, pending.image, pending.size, pending.crop, pending.fill, token);
+    } else if (pictureRef.current) {
+      const at = centre - token / 2;
+      context.drawImage(pictureRef.current, at, at, token, token);
     } else {
       context.fillStyle = color;
       context.fillRect(centre - token / 2, centre - token / 2, token, token);

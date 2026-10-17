@@ -4,7 +4,9 @@
 // A DraggableWindow (a full-screen takeover on phones) above the settings
 // window that opened it, with two tabs: Picture, and Frame (C5a) when the
 // card hands it a frame control. Each tab has its own Accept: a picture is
-// baked and uploaded, a frame is sent as it is. Escape and ✕ close it like Cancel, and abandon a
+// baked and uploaded, a frame is sent as it is, and a frame picked goes with
+// a picture only once the picture is on the token, so Cancel or a failed save
+// leaves the token as it was. Escape and ✕ close it like Cancel, and abandon a
 // save in flight (useTokenCreator). While it is open, `data-modal-overlay`
 // keeps WASD from moving a token, a pasted image lands here (in the creator
 // opened last, when two are open), and a file dropped anywhere on the window,
@@ -22,6 +24,8 @@ import { PictureTab } from "./PictureTab";
 import { FrameTab } from "./FrameTab";
 import type { TokenFrameControl } from "./frameControl";
 import { useTokenCreator, type TokenCreatorDeps } from "./useTokenCreator";
+import { resolveBackdrop } from "./backdrop";
+import { acceptLabels } from "./acceptLabels";
 
 /** Open creators, oldest first: a paste goes to the last one opened. */
 const openCreators: symbol[] = [];
@@ -43,13 +47,6 @@ export interface TokenCreatorWindowProps {
 
 type CreatorTab = "picture" | "frame";
 
-const PHASE_LABEL = {
-  idle: "Use this picture",
-  loading: "Loading…",
-  baking: "Baking…",
-  uploading: "Uploading…",
-};
-
 export function TokenCreatorWindow({
   name,
   tokenSize,
@@ -60,9 +57,18 @@ export function TokenCreatorWindow({
   initialTab = "picture",
   tabRequest = 0,
 }: TokenCreatorWindowProps) {
-  const creator = useTokenCreator({ tokenSize, onApply, onDone: onClose, deps });
-  const [tab, setTab] = useState<CreatorTab>(frame ? initialTab : "picture");
   const [draft, setDraftState] = useState<TokenFrame | null>(frame?.frame ?? null);
+  const latest = useRef({ draft, frame });
+  latest.current = { draft, frame };
+  // A picture that lands (baked, or its link as is) takes the frame picked by
+  // then along: read at that moment, so one picked while it uploads still goes.
+  const applyPicture = (url: string) => {
+    onApply(url);
+    const { draft: picked, frame: control } = latest.current;
+    if (control && picked !== (control.frame ?? null)) control.onApply(picked);
+  };
+  const creator = useTokenCreator({ tokenSize, onApply: applyPicture, onDone: onClose, deps });
+  const [tab, setTab] = useState<CreatorTab>(frame ? initialTab : "picture");
   // Untouched, the draft follows the token (someone else may change its frame meanwhile).
   const edited = useRef(false);
   const setDraft = (next: TokenFrame | null) => {
@@ -151,10 +157,24 @@ export function TokenCreatorWindow({
     tabRefs.current[next]?.focus(); // this window's tab, not another creator's
   };
   const shown: CreatorTab = frame ? tab : "picture";
-  // Each Accept takes the other tab's unsaved work along rather than dropping it.
+  // Each Accept takes the other tab's unsaved work along, and its label says so.
   const draftChanged = frame !== undefined && draft !== (frame.frame ?? null);
-
-  const ready = creator.picture !== null && creator.phase === "idle";
+  const idle = creator.phase === "idle";
+  const ready = creator.picture !== null && idle;
+  const labels = acceptLabels({
+    phase: creator.phase,
+    hasPicture: creator.picture !== null,
+    hasFrame: draft !== null,
+    frameChanged: draftChanged,
+  });
+  const pending = creator.picture
+    ? {
+        image: creator.picture.image,
+        size: creator.picture.size,
+        crop: creator.crop,
+        fill: resolveBackdrop(creator.backdrop, creator.autoColor),
+      }
+    : undefined;
 
   return createPortal(
     <div
@@ -229,7 +249,8 @@ export function TokenCreatorWindow({
             >
               <FrameTab
                 control={frame}
-                pendingImage={creator.picture?.image}
+                active={shown === "frame"}
+                pending={pending}
                 draft={draft}
                 onDraft={setDraft}
               />
@@ -250,29 +271,41 @@ export function TokenCreatorWindow({
               <JRPGButton
                 variant="primary"
                 onClick={() => {
-                  // A picture on its way to the table is not abandoned by a frame's Accept.
-                  if (creator.phase !== "idle") return;
-                  frame.onApply(draft);
-                  // A picture loaded and not yet saved is saved too (that closes the window).
-                  if (creator.picture) void creator.accept();
-                  else onClose();
+                  // A picture saving takes this frame along when it lands (applyPicture).
+                  if (!idle) return;
+                  if (!creator.picture) {
+                    frame.onApply(draft);
+                    onClose();
+                    return;
+                  }
+                  // The picture first, the frame with it; a failure shows on its tab.
+                  void creator.accept().then((saved) => {
+                    if (!saved) setTab("picture");
+                  });
                 }}
-                aria-disabled={creator.phase !== "idle"}
-                title={draft ? "Set this frame on the token" : "Take the frame off the token"}
+                aria-disabled={!idle}
+                title={
+                  creator.picture
+                    ? "Bake, upload and set the picture loaded on the Picture tab, and set this frame"
+                    : draft
+                      ? "Set this frame on the token"
+                      : "Take the frame off the token"
+                }
                 style={{ flex: 2, fontSize: "11px", padding: "8px", minHeight: "44px" }}
               >
-                {draft ? "Use this frame" : "Use no frame"}
+                {labels.frame}
               </JRPGButton>
             ) : (
               <JRPGButton
                 variant="primary"
-                onClick={() => {
-                  if (draftChanged && ready) frame?.onApply(draft); // the frame picked meanwhile, too
-                  void creator.accept();
-                }}
+                onClick={() => void creator.accept()}
                 aria-disabled={!ready}
                 title={
-                  creator.picture ? "Bake, upload and set this picture" : "Choose a picture first"
+                  !creator.picture
+                    ? "Choose a picture first"
+                    : draftChanged
+                      ? "Bake, upload and set this picture, and the frame picked on the Frame tab"
+                      : "Bake, upload and set this picture"
                 }
                 // Two lines in a 340 px window: give them room to stand apart.
                 style={{
@@ -283,7 +316,7 @@ export function TokenCreatorWindow({
                   lineHeight: 1.5,
                 }}
               >
-                {PHASE_LABEL[creator.phase]}
+                {labels.picture}
               </JRPGButton>
             )}
             <JRPGButton

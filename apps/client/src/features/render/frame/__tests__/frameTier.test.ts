@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fitTierToBudget, pickFrameTier } from "../frameTier";
+import { frameTierCeiling, pickFrameTier } from "../frameTier";
 
 describe("pickFrameTier", () => {
   it("takes the smallest tier that covers the frame on screen", () => {
@@ -40,10 +40,16 @@ describe("pickFrameTier", () => {
     expect(pickFrameTier(100, 1024, false)).toBe(128);
   });
 
-  it("steps down to fit beside the bitmaps other tokens hold, under the cache's cap", () => {
+  it("caps every map token at the one tier all of them fit the cache at, whatever their order", () => {
     const MB = 1024 * 1024;
-    expect(fitTierToBudget(1024, 0, 48 * MB)).toBe(1024);
-    expect(fitTierToBudget(1024, 45 * MB, 48 * MB)).toBe(512); // 4 MB would not fit, 1 MB does
-    expect(fitTierToBudget(512, 16 * MB, 16 * MB)).toBe(128); // never below the smallest tier
+    expect(frameTierCeiling(30, 48 * MB)).toBe(512); // 30 MB, where 1024 would be 120 MB
+    expect(frameTierCeiling(30, 16 * MB)).toBe(256); // a phone: 7.5 MB
+    expect(frameTierCeiling(10, 48 * MB)).toBe(1024); // 40 MB
+    expect(frameTierCeiling(0, 48 * MB)).toBe(1024);
+    expect(frameTierCeiling(5000, 16 * MB)).toBe(128); // never below the smallest tier
+    for (const count of [1, 7, 30, 120]) {
+      const tier = frameTierCeiling(count, 16 * MB);
+      if (tier > 128) expect(count * tier * tier * 4).toBeLessThanOrEqual(0.9 * 16 * MB);
+    }
   });
 });

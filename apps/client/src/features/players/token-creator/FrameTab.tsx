@@ -25,7 +25,7 @@ import {
   type TokenFrame,
 } from "@herobyte/shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
-import { FramePreview, type PreviewFloor } from "./FramePreview";
+import { FramePreview, type PendingPicture, type PreviewFloor } from "./FramePreview";
 import type { TokenFrameControl } from "./frameControl";
 
 const THEMES: { theme: FramePresetTheme; label: string }[] = [
@@ -47,8 +47,10 @@ const capitalised = (name: string) => name.charAt(0).toUpperCase() + name.slice(
 
 export interface FrameTabProps {
   control: TokenFrameControl;
-  /** A picture loaded on the Picture tab and not yet saved: the previews show it. */
-  pendingImage?: HTMLImageElement;
+  /** False while the tab is hidden: its previews neither draw nor bake. */
+  active?: boolean;
+  /** A picture loaded on the Picture tab and not yet saved: the previews show it as cropped. */
+  pending?: PendingPicture;
   draft: TokenFrame | null;
   onDraft: (frame: TokenFrame | null) => void;
 }
@@ -59,7 +61,7 @@ function pickerColor(value: string | undefined, fallback: string): string {
   return value && value.startsWith("#") ? value : (normalizeColor(fallback) ?? "#808080");
 }
 
-export function FrameTab({ control, pendingImage, draft, onDraft }: FrameTabProps) {
+export function FrameTab({ control, active = true, pending, draft, onDraft }: FrameTabProps) {
   const ids = { weight: useId(), glow: useId() };
   const weight = draft ? frameWeight(draft) : FRAME_WEIGHTS.regular;
   const glowBand = draft?.bands.find((band) => band.glow);
@@ -92,7 +94,8 @@ export function FrameTab({ control, pendingImage, draft, onDraft }: FrameTabProp
       color={control.color}
       size={control.size}
       imageUrl={control.imageUrl}
-      pendingImage={pendingImage}
+      pending={pending}
+      active={active}
       edge={edge}
       floor={floor}
       label={`Preview at ${edge > 60 ? "card" : "token"} size on the ${where}`}

@@ -183,8 +183,9 @@ export function useTokenCreator({
     [loadFile, loadLink],
   );
 
-  const accept = useCallback(async () => {
-    if (!picture || phase !== "idle" || saving.current) return;
+  /** Bake, upload and set the picture: true once it is on the token. */
+  const accept = useCallback(async (): Promise<boolean> => {
+    if (!picture || phase !== "idle" || saving.current) return false;
     saving.current = true;
     setError(null);
     setPhase("baking");
@@ -192,15 +193,16 @@ export function useTokenCreator({
       const fill = resolveBackdrop(backdrop, autoColor);
       const edge = bakeEdgeFor(tokenSize);
       const baked = await bakePicture(picture.image, picture.size, crop, fill, edge, deps.bake);
-      if (!alive.current) return;
+      if (!alive.current) return false;
       setPhase("uploading");
       const file = new File([baked.blob], baked.fileName, { type: baked.mime });
       const info = await deps.upload(file, deps.getCredentials(), undefined, { intent: "apply" });
-      if (!alive.current) return;
+      if (!alive.current) return false;
       applyRef.current.onApply(uploadedAssetUrl(info.hash));
       applyRef.current.onDone();
+      return true;
     } catch (failure) {
-      if (!alive.current) return;
+      if (!alive.current) return false;
       if (failure instanceof TaintedPictureError && picture.link) {
         setUnbakeable({ link: picture.link, reason: "no-copy" });
       } else if (failure instanceof AssetUploadError) {
@@ -208,6 +210,7 @@ export function useTokenCreator({
       } else {
         setError(failure instanceof Error ? failure.message : "The picture could not be saved.");
       }
+      return false;
     } finally {
       saving.current = false;
       if (alive.current) setPhase("idle");

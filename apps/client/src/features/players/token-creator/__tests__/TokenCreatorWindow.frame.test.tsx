@@ -17,7 +17,7 @@ import {
 import { TokenCreatorWindow } from "../TokenCreatorWindow";
 import { TokenPictureControl } from "../TokenPictureControl";
 import type { TokenFrameControl } from "../frameControl";
-import { deps, pickFile, settle } from "./creatorTestKit";
+import { deferred, deps, loadLink, pickFile, settle, uploaded } from "./creatorTestKit";
 
 function control(frame: TokenFrame | undefined = defaultTokenFrame()) {
   const onApply = vi.fn<(frame: TokenFrame | null) => void>();
@@ -236,7 +236,7 @@ describe("the Frame tab, after review round 2", () => {
     await pickFile();
     fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
     press("Welded steel");
-    press("Use this frame");
+    press("Use frame + picture"); // the label names both
     await settle();
     expect(onApply).toHaveBeenCalledTimes(1);
     expect(d.upload).toHaveBeenCalledTimes(1);
@@ -257,7 +257,7 @@ describe("the Frame tab, after review round 2", () => {
     press("Castle stone");
     fireEvent.click(screen.getByRole("tab", { name: "Picture" }));
     await pickFile();
-    fireEvent.click(screen.getByRole("button", { name: "Use this picture" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use picture + frame" }));
     await settle();
     expect(sent(onApply)!.preset).toBe("stone.castle");
   });
@@ -303,5 +303,85 @@ describe("the Frame tab, after review round 2", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Picture" }));
     press("Token frame… (Plain ring)");
     expect(screen.getByRole("tab", { name: "Frame" })).toHaveAttribute("aria-selected", "true");
+  });
+});
+
+describe("the Frame tab, after review round 3", () => {
+  const openOn = (value: TokenFrameControl, d = deps(), tab: "picture" | "frame" = "picture") => {
+    const onPicture = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <TokenCreatorWindow
+        onApply={onPicture}
+        onClose={onClose}
+        deps={d}
+        frame={value}
+        initialTab={tab}
+      />,
+    );
+    return { onPicture, onClose };
+  };
+
+  it("sends no frame when the picture it goes with fails, and turns to show why", async () => {
+    const { value, onApply } = control();
+    const d = deps({ upload: vi.fn(async () => Promise.reject(new Error("Storage full"))) });
+    const { onPicture, onClose } = openOn(value, d);
+    await pickFile();
+    fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
+    press("Welded steel");
+    press("Use frame + picture");
+    await settle();
+    expect(onApply).not.toHaveBeenCalled();
+    expect(onPicture).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: "Picture" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("alert")).toHaveTextContent("Storage full");
+    press("Cancel");
+    expect(onApply).not.toHaveBeenCalled(); // Cancel leaves the token as it was
+  });
+
+  it("sends a frame picked while the picture uploads, with the picture, and shows the upload", async () => {
+    const { value, onApply } = control();
+    const upload = deferred<ReturnType<typeof uploaded>>();
+    const { onPicture } = openOn(value, deps({ upload: vi.fn(() => upload.promise) }));
+    await pickFile();
+    fireEvent.click(screen.getByRole("button", { name: "Use this picture" }));
+    await settle();
+    fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
+    press("Castle stone");
+    expect(screen.getByRole("button", { name: "Uploading…" })).toBeInTheDocument();
+    press("Uploading…"); // waits: the save in flight takes the frame along
+    expect(onApply).not.toHaveBeenCalled();
+    await act(async () => upload.resolve(uploaded()));
+    await settle();
+    expect(onPicture).toHaveBeenCalledTimes(1);
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(sent(onApply)!.preset).toBe("stone.castle");
+  });
+
+  it("takes the frame picked along when a link is used as is", async () => {
+    const { value, onApply } = control();
+    const { onPicture } = openOn(value, deps(), "frame");
+    press("Castle stone");
+    fireEvent.click(screen.getByRole("tab", { name: "Picture" }));
+    await loadLink("https://example.com/art.png");
+    fireEvent.click(await screen.findByRole("button", { name: /Use the link as is/ }));
+    expect(onPicture).toHaveBeenCalledWith("https://example.com/art.png");
+    expect(sent(onApply)!.preset).toBe("stone.castle");
+  });
+  it("draws no hidden preview while the picture is cropped on the Picture tab", async () => {
+    const { value } = control();
+    openOn(value);
+    await pickFile();
+    const getContext = vi.mocked(HTMLCanvasElement.prototype.getContext);
+    const previewDraws = () =>
+      getContext.mock.contexts.filter((canvas) =>
+        (canvas as HTMLCanvasElement).getAttribute("aria-label")?.startsWith("Preview at"),
+      ).length;
+    const before = previewDraws();
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole("button", { name: /Rotate/ }));
+    expect(previewDraws()).toBe(before);
+    fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
+    expect(previewDraws()).toBeGreaterThan(before); // shown, they draw
   });
 });

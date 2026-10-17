@@ -42,6 +42,8 @@ interface TokenSpriteProps {
   selected?: boolean;
   /** The map's zoom: a framed token bakes its frame at the size it is seen (C5a). */
   camScale?: number;
+  /** How many tokens on the map wear a frame: together they must fit the frame cache. */
+  framedTokens?: number;
 }
 
 // Guards against non-Konva refs (e.g. mocked nodes in tests / no-canvas envs)
@@ -73,6 +75,7 @@ export const TokenSprite = memo(function TokenSprite({
   glide = false,
   selected = false,
   camScale = 1,
+  framedTokens = 1,
 }: TokenSpriteProps) {
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "");
@@ -97,6 +100,7 @@ export const TokenSprite = memo(function TokenSprite({
           size: data.size,
           tokenPx: size,
           zoom: camScale * Math.max(Math.abs(transform.scaleX), Math.abs(transform.scaleY)),
+          framedTokens,
         }
       : null,
   );

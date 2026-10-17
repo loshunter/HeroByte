@@ -248,15 +248,6 @@ export function requestFrameBitmap(
   };
 }
 
-/** Bytes of the cached bitmaps tokens are drawing, leaving out `except` (the asker's own). */
-export function heldFrameBytes(except?: string): number {
-  let bytes = 0;
-  for (const [key, entry] of cache) {
-    if (key !== except && (holds.get(key) ?? 0) > 0) bytes += entry.bytes;
-  }
-  return bytes;
-}
-
 /** The cache's byte cap on this device (48 MB, 16 MB on a coarse pointer). */
 export function frameCacheCap(): number {
   return cap();

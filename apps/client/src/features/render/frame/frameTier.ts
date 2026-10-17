@@ -35,13 +35,19 @@ export function isCoarsePointer(): boolean {
   return typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches === true;
 }
 
+/** The share of the cache the map's frames may hold at once; the rest is previews and bitmaps going out. */
+export const MAP_FRAME_SHARE = 0.9;
+
 /**
- * The tier, stepped down until it fits beside the bitmaps other tokens hold
- * (`others` bytes) under the cache's cap: held bitmaps are never evicted, so
- * without this thirty frames at 1024 would be 120 MB against a 48 MB cap.
+ * The largest tier every framed token on the map can hold at once inside
+ * the cache's cap: held bitmaps are never evicted, so without it thirty
+ * frames at 1024 would be 120 MB against a 48 MB cap. The same for every
+ * token, and it moves only when the count does, so no token's crispness
+ * depends on the order the map draws them in (30 tokens: 512 on a desktop,
+ * 256 on a phone; 10: 1024).
  */
-export function fitTierToBudget(tier: number, others: number, cap: number): number {
-  let fitted = tier;
-  while (fitted > FRAME_TIERS[0] && others + fitted * fitted * 4 > cap) fitted /= 2;
-  return fitted;
+export function frameTierCeiling(framedTokens: number, cap: number): number {
+  const count = Math.max(1, framedTokens);
+  const fits = FRAME_TIERS.filter((tier) => count * tier * tier * 4 <= MAP_FRAME_SHARE * cap);
+  return fits[fits.length - 1] ?? FRAME_TIERS[0];
 }
