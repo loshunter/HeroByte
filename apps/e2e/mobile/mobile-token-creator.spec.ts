@@ -54,7 +54,8 @@ test.describe("mobile token creator", () => {
     await expect(panel).toBeVisible({ timeout: 15_000 });
     // Full-screen: the creator's window spans the viewport edge to edge.
     const viewport = page.viewportSize()!;
-    const close = creator.getByRole("button", { name: /^Close 🖼️ Token picture/ });
+    // The window is "Art & frame" since C5a gave it the Frame tab (a token to frame).
+    const close = creator.getByRole("button", { name: /^Close 🖼️ Art & frame/ });
     const windowBox = (await close
       .locator("xpath=ancestor::*[contains(@style,'position: fixed')][1]")
       .boundingBox())!;
