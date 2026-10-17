@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickFrameTier } from "../frameTier";
+import { fitTierToBudget, pickFrameTier } from "../frameTier";
 
 describe("pickFrameTier", () => {
   it("takes the smallest tier that covers the frame on screen", () => {
@@ -38,5 +38,12 @@ describe("pickFrameTier", () => {
   it("steps straight down to the smallest tier that fits, not only to the next one", () => {
     expect(pickFrameTier(240, 1024, false)).toBe(512);
     expect(pickFrameTier(100, 1024, false)).toBe(128);
+  });
+
+  it("steps down to fit beside the bitmaps other tokens hold, under the cache's cap", () => {
+    const MB = 1024 * 1024;
+    expect(fitTierToBudget(1024, 0, 48 * MB)).toBe(1024);
+    expect(fitTierToBudget(1024, 45 * MB, 48 * MB)).toBe(512); // 4 MB would not fit, 1 MB does
+    expect(fitTierToBudget(512, 16 * MB, 16 * MB)).toBe(128); // never below the smallest tier
   });
 });

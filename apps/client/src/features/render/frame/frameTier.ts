@@ -34,3 +34,14 @@ export function pickFrameTier(needed: number, current: number | null, coarse: bo
 export function isCoarsePointer(): boolean {
   return typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches === true;
 }
+
+/**
+ * The tier, stepped down until it fits beside the bitmaps other tokens hold
+ * (`others` bytes) under the cache's cap: held bitmaps are never evicted, so
+ * without this thirty frames at 1024 would be 120 MB against a 48 MB cap.
+ */
+export function fitTierToBudget(tier: number, others: number, cap: number): number {
+  let fitted = tier;
+  while (fitted > FRAME_TIERS[0] && others + fitted * fitted * 4 > cap) fitted /= 2;
+  return fitted;
+}

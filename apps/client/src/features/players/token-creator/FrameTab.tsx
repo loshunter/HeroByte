@@ -15,6 +15,7 @@ import {
   FRAME_PRESETS,
   FRAME_WEIGHTS,
   frameHasGlow,
+  frameSizeScale,
   frameUsesAccent,
   normalizeColor,
   frameWeight,
@@ -47,7 +48,7 @@ const capitalised = (name: string) => name.charAt(0).toUpperCase() + name.slice(
 export interface FrameTabProps {
   control: TokenFrameControl;
   /** A picture loaded on the Picture tab and not yet saved: the previews show it. */
-  pendingImage?: string;
+  pendingImage?: HTMLImageElement;
   draft: TokenFrame | null;
   onDraft: (frame: TokenFrame | null) => void;
 }
@@ -90,7 +91,8 @@ export function FrameTab({ control, pendingImage, draft, onDraft }: FrameTabProp
       tokenId={control.tokenId}
       color={control.color}
       size={control.size}
-      imageUrl={pendingImage ?? control.imageUrl}
+      imageUrl={control.imageUrl}
+      pendingImage={pendingImage}
       edge={edge}
       floor={floor}
       label={`Preview at ${edge > 60 ? "card" : "token"} size on the ${where}`}
@@ -99,7 +101,7 @@ export function FrameTab({ control, pendingImage, draft, onDraft }: FrameTabProp
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      <div style={{ ...row, justifyContent: "center" }} aria-label="Frame preview">
+      <div style={{ ...row, justifyContent: "center" }} role="group" aria-label="Frame preview">
         {FLOORS.map(({ floor, label: where }) => (
           <div
             key={floor}
@@ -158,7 +160,7 @@ export function FrameTab({ control, pendingImage, draft, onDraft }: FrameTabProp
             max={FRAME_LIMITS.MAX_WEIGHT}
             step={0.01}
             value={weight}
-            aria-valuetext={`${Math.round(weight * 100)}% of the token`}
+            aria-valuetext={`${Math.round(weight * frameSizeScale(control.size) * 100)}% of the token's edge`}
             onChange={(event) =>
               edit((frame) => withFrameWeight(frame, Number(event.target.value)))
             }

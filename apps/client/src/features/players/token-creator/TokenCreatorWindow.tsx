@@ -10,7 +10,7 @@
 // opened last, when two are open), and a file dropped anywhere on the window,
 // title bar and frame included, loads instead of opening in the tab.
 
-import { useEffect, useRef, useState, type DragEvent as ReactDragEvent } from "react";
+import { useEffect, useId, useRef, useState, type DragEvent as ReactDragEvent } from "react";
 import { createPortal } from "react-dom";
 import type { TokenFrame, TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
@@ -37,6 +37,8 @@ export interface TokenCreatorWindowProps {
   frame?: TokenFrameControl;
   /** Which tab opens first. */
   initialTab?: CreatorTab;
+  /** Goes up with every press of the settings window's buttons: each press turns to `initialTab`. */
+  tabRequest?: number;
 }
 
 type CreatorTab = "picture" | "frame";
@@ -56,12 +58,24 @@ export function TokenCreatorWindow({
   deps,
   frame,
   initialTab = "picture",
+  tabRequest = 0,
 }: TokenCreatorWindowProps) {
   const creator = useTokenCreator({ tokenSize, onApply, onDone: onClose, deps });
   const [tab, setTab] = useState<CreatorTab>(frame ? initialTab : "picture");
-  const [draft, setDraft] = useState<TokenFrame | null>(frame?.frame ?? null);
+  const [draft, setDraftState] = useState<TokenFrame | null>(frame?.frame ?? null);
+  // Untouched, the draft follows the token (someone else may change its frame meanwhile).
+  const edited = useRef(false);
+  const setDraft = (next: TokenFrame | null) => {
+    edited.current = true;
+    setDraftState(next);
+  };
+  useEffect(() => {
+    if (!edited.current) setDraftState(frame?.frame ?? null);
+  }, [frame?.frame]);
+  const ids = useId();
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   // The settings window's other button, pressed while this is open, turns the tab.
-  useEffect(() => setTab(frame ? initialTab : "picture"), [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps -- the tab follows the button, not the control
+  useEffect(() => setTab(frame ? initialTab : "picture"), [initialTab, tabRequest]); // eslint-disable-line react-hooks/exhaustive-deps -- the tab follows the button, not the control
   const loadFileRef = useRef(creator.loadFile);
   loadFileRef.current = creator.loadFile;
   const loadDroppedRef = useRef(creator.loadDropped);
@@ -124,7 +138,9 @@ export function TokenCreatorWindow({
   // The map draws a token 3/4 of a cell times its size, with corners of 1/8 of a
   // cell whatever its size: the corner, as a share of the side, shrinks with size.
   // A framed token is round on the map (C5a), so its picture is framed in a circle.
-  const corner = frame?.frame ? 0.5 : 1 / (6 * (PROP_SIZE_MULTIPLIERS[tokenSize ?? "medium"] ?? 1));
+  const corner = (frame ? draft : null)
+    ? 0.5
+    : 1 / (6 * (PROP_SIZE_MULTIPLIERS[tokenSize ?? "medium"] ?? 1));
   const tabs: readonly CreatorTab[] = frame ? ["picture", "frame"] : ["picture"];
   const onTabKey = (event: React.KeyboardEvent) => {
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
@@ -132,8 +148,11 @@ export function TokenCreatorWindow({
     const next =
       tabs[(tabs.indexOf(tab) + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length]!;
     setTab(next);
-    document.getElementById(`token-creator-tab-${next}`)?.focus();
+    tabRefs.current[next]?.focus(); // this window's tab, not another creator's
   };
+  const shown: CreatorTab = frame ? tab : "picture";
+  // Each Accept takes the other tab's unsaved work along rather than dropping it.
+  const draftChanged = frame !== undefined && draft !== (frame.frame ?? null);
 
   const ready = creator.picture !== null && creator.phase === "idle";
 
@@ -177,13 +196,16 @@ export function TokenCreatorWindow({
                 key={id}
                 type="button"
                 role="tab"
-                aria-selected={tab === id}
-                tabIndex={tab === id ? 0 : -1}
-                id={`token-creator-tab-${id}`}
-                aria-controls={`token-creator-panel-${id}`}
+                aria-selected={shown === id}
+                tabIndex={shown === id ? 0 : -1}
+                ref={(node) => {
+                  tabRefs.current[id] = node;
+                }}
+                id={`${ids}-tab-${id}`}
+                aria-controls={`${ids}-panel-${id}`}
                 className="jrpg-button"
                 onClick={() => setTab(id)}
-                style={{ fontSize: "10px", padding: "6px 12px", opacity: tab === id ? 1 : 0.7 }}
+                style={{ fontSize: "10px", padding: "6px 12px", opacity: shown === id ? 1 : 0.7 }}
               >
                 {id === "picture" ? "Picture" : "Frame"}
               </button>
@@ -192,22 +214,22 @@ export function TokenCreatorWindow({
           {/* Both panels stay mounted (the hidden one keeps its state): the tabs only show one. */}
           <div
             role="tabpanel"
-            id="token-creator-panel-picture"
-            aria-labelledby="token-creator-tab-picture"
-            hidden={tab !== "picture"}
+            id={`${ids}-panel-picture`}
+            aria-labelledby={`${ids}-tab-picture`}
+            hidden={shown !== "picture"}
           >
             <PictureTab creator={creator} corner={corner} />
           </div>
           {frame && (
             <div
               role="tabpanel"
-              id="token-creator-panel-frame"
-              aria-labelledby="token-creator-tab-frame"
-              hidden={tab !== "frame"}
+              id={`${ids}-panel-frame`}
+              aria-labelledby={`${ids}-tab-frame`}
+              hidden={shown !== "frame"}
             >
               <FrameTab
                 control={frame}
-                pendingImage={creator.picture?.displaySrc}
+                pendingImage={creator.picture?.image}
                 draft={draft}
                 onDraft={setDraft}
               />
@@ -224,14 +246,16 @@ export function TokenCreatorWindow({
               background: "rgba(12, 18, 40, 0.97)",
             }}
           >
-            {tab === "frame" && frame ? (
+            {shown === "frame" && frame ? (
               <JRPGButton
                 variant="primary"
                 onClick={() => {
                   // A picture on its way to the table is not abandoned by a frame's Accept.
                   if (creator.phase !== "idle") return;
                   frame.onApply(draft);
-                  onClose();
+                  // A picture loaded and not yet saved is saved too (that closes the window).
+                  if (creator.picture) void creator.accept();
+                  else onClose();
                 }}
                 aria-disabled={creator.phase !== "idle"}
                 title={draft ? "Set this frame on the token" : "Take the frame off the token"}
@@ -242,7 +266,10 @@ export function TokenCreatorWindow({
             ) : (
               <JRPGButton
                 variant="primary"
-                onClick={() => void creator.accept()}
+                onClick={() => {
+                  if (draftChanged && ready) frame?.onApply(draft); // the frame picked meanwhile, too
+                  void creator.accept();
+                }}
                 aria-disabled={!ready}
                 title={
                   creator.picture ? "Bake, upload and set this picture" : "Choose a picture first"

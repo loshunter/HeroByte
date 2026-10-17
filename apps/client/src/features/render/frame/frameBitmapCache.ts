@@ -8,7 +8,7 @@
 // Several tokens wanting one key share one bake; a key nobody wants any more
 // before its bake starts is cancelled. Without a Worker (tests, very old
 // browsers) the same pure bake runs on a timer instead; without a bitmap API
-// at all (jsdom) nothing is drawn and the token keeps its frameless look.
+// at all (jsdom) nothing is drawn over it: the token shows round, with no ring and no outline.
 //
 // The counts (bakes, cache bytes, entries) are on the dev seam as
 // window.__HERO_BYTE_E2E__.frames, so a browser check can count re-bakes.
@@ -170,6 +170,8 @@ function onReply(reply: FrameWorkerReply): void {
   if ("pixels" in reply) {
     if (cache.has(key)) {
       stats.cancelled += 1; // a duplicate of a bake that already landed
+      const waiting = pending.get(key);
+      if (waiting?.jobId === reply.jobId) settle(key, waiting); // its waiters have the bitmap now
       return;
     }
     stats.workerBakes += 1;
@@ -178,8 +180,9 @@ function onReply(reply: FrameWorkerReply): void {
   }
   if ("error" in reply) stats.failed += 1;
   else stats.cancelled += 1;
-  if (pending.get(key)?.jobId === reply.jobId) pending.delete(key);
-  publish();
+  const waiting = pending.get(key);
+  if (waiting?.jobId === reply.jobId) settle(key, waiting);
+  else publish();
 }
 
 /** The same pure bake on the main thread, one task later (no Worker, or it broke). */
@@ -243,6 +246,20 @@ export function requestFrameBitmap(
       keysByJob.delete(owned.jobId); // a reply that still comes is dropped
     }
   };
+}
+
+/** Bytes of the cached bitmaps tokens are drawing, leaving out `except` (the asker's own). */
+export function heldFrameBytes(except?: string): number {
+  let bytes = 0;
+  for (const [key, entry] of cache) {
+    if (key !== except && (holds.get(key) ?? 0) > 0) bytes += entry.bytes;
+  }
+  return bytes;
+}
+
+/** The cache's byte cap on this device (48 MB, 16 MB on a coarse pointer). */
+export function frameCacheCap(): number {
+  return cap();
 }
 
 /**

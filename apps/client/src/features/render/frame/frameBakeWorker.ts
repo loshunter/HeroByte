@@ -36,6 +36,7 @@ function drainOne(): void {
   const job = queue.shift();
   if (!job) {
     draining = false;
+    cancelled.clear(); // nothing left to cancel: a cancel for a job already baked is moot
     return;
   }
   if (cancelled.delete(job.jobId)) {

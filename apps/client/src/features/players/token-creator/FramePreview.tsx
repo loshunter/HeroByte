@@ -9,6 +9,7 @@
 import { useEffect, useRef } from "react";
 import type { TokenFrame, TokenSize } from "@herobyte/shared";
 import { useFrameBitmap } from "../../render/frame/useFrameBitmap";
+import { PROP_SIZE_MULTIPLIERS } from "../../map/propSizing";
 
 export const PREVIEW_FLOORS = {
   dark: "#2a2622",
@@ -30,6 +31,8 @@ export interface FramePreviewProps {
   edge: number;
   floor: PreviewFloor;
   label: string;
+  /** A picture loaded and not yet saved: shown instead of the saved one, centred and cropped square. */
+  pendingImage?: HTMLImageElement;
 }
 
 function roundedSquare(
@@ -55,6 +58,7 @@ export function FramePreview({
   edge,
   floor,
   label,
+  pendingImage,
 }: FramePreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const token = edge / (2 * MAX_EXTENT);
@@ -95,11 +99,32 @@ export function FramePreview({
     context.save();
     context.beginPath();
     if (frame) context.arc(centre, centre, token / 2, 0, Math.PI * 2);
-    // Frameless, the map's own rounded square: corners of an eighth of a cell, a sixth of the token.
-    else roundedSquare(context, centre - token / 2, token, token / 6);
+    // Frameless, the map's own rounded square: corners of an eighth of a cell whatever the size.
+    else
+      roundedSquare(
+        context,
+        centre - token / 2,
+        token,
+        token / (6 * (PROP_SIZE_MULTIPLIERS[size ?? "medium"] ?? 1)),
+      );
     context.clip();
-    if (pictureRef.current) {
-      context.drawImage(pictureRef.current, centre - token / 2, centre - token / 2, token, token);
+    const picture = pendingImage ?? pictureRef.current;
+    if (picture) {
+      // The middle square of the picture, not the whole picture squeezed square.
+      const width = picture.naturalWidth || picture.width;
+      const height = picture.naturalHeight || picture.height;
+      const side = Math.min(width, height);
+      context.drawImage(
+        picture,
+        (width - side) / 2,
+        (height - side) / 2,
+        side,
+        side,
+        centre - token / 2,
+        centre - token / 2,
+        token,
+        token,
+      );
     } else {
       context.fillStyle = color;
       context.fillRect(centre - token / 2, centre - token / 2, token, token);

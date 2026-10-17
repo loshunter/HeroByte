@@ -45,6 +45,12 @@ export function TokenPictureControl({
   loadWindow = importWindow,
 }: TokenPictureControlProps) {
   const [open, setOpen] = useState<false | "picture" | "frame">(false);
+  // Every press counts, so pressing the same button again turns an open window back to its tab.
+  const [presses, setPresses] = useState(0);
+  const show = (tab: "picture" | "frame") => {
+    setOpen(tab);
+    setPresses((count) => count + 1);
+  };
   const frameName = frame?.frame
     ? (findFramePreset(frame.frame.preset)?.name ?? "Custom frame")
     : "No frame";
@@ -79,7 +85,7 @@ export function TokenPictureControl({
         <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>
           <JRPGButton
             variant="primary"
-            onClick={() => setOpen("picture")}
+            onClick={() => show("picture")}
             aria-expanded={open === "picture"}
             title="Choose a picture, then move, zoom and turn it inside the token"
             style={{ fontSize: "10px", padding: "8px", minHeight: "44px" }}
@@ -88,7 +94,7 @@ export function TokenPictureControl({
           </JRPGButton>
           {frame && (
             <JRPGButton
-              onClick={() => setOpen("frame")}
+              onClick={() => show("frame")}
               aria-expanded={open === "frame"}
               title="Choose the frame drawn round the token on the map"
               style={{ fontSize: "10px", padding: "8px", minHeight: "44px" }}
@@ -134,6 +140,7 @@ export function TokenPictureControl({
               onClose={() => setOpen(false)}
               frame={frame}
               initialTab={open}
+              tabRequest={presses}
             />
           </Suspense>
         </ErrorBoundary>

@@ -123,4 +123,31 @@ describe("the frame cache's worker road", () => {
     expect(peekFrameBitmap(keys[1]!)).toBeNull(); // the oldest unheld went
     expect(frameStatsSnapshot().cacheBytes).toBeLessThanOrEqual(16 * 1024 * 1024);
   });
+
+  it("tells a re-request's waiters when its duplicate reply finds the bitmap already in", async () => {
+    const job = input(256, "dup");
+    const key = frameBakeKey(job);
+    const withdraw = requestFrameBitmap(key, job, vi.fn());
+    reply(jobs()[0]!.jobId, 256); // the reply lands; its decode is under way
+    withdraw(); // every waiter leaves during the decode (no cancel: the job already answered)
+    const second = vi.fn();
+    requestFrameBitmap(key, job, second); // and a token asks again: a second job
+    expect(jobs()).toHaveLength(2);
+    await settle(); // the first decode stores the bitmap
+    reply(jobs()[1]!.jobId, 256); // the second job's reply: a duplicate
+    await settle();
+    expect(second).toHaveBeenCalled();
+    expect(frameStatsSnapshot().cacheBytes).toBe(256 * 256 * 4);
+  });
+
+  it("tells whoever waited when the worker reports an error", async () => {
+    const job = input(128, "err");
+    const key = frameBakeKey(job);
+    const waiting = vi.fn();
+    requestFrameBitmap(key, job, waiting);
+    workers.at(-1)!.onmessage!({ data: { jobId: jobs()[0]!.jobId, error: "boom" } });
+    await settle();
+    expect(waiting).toHaveBeenCalledTimes(1);
+    expect(frameStatsSnapshot().failed).toBe(1);
+  });
 });

@@ -17,7 +17,7 @@ import {
 import { TokenCreatorWindow } from "../TokenCreatorWindow";
 import { TokenPictureControl } from "../TokenPictureControl";
 import type { TokenFrameControl } from "../frameControl";
-import { deps } from "./creatorTestKit";
+import { deps, pickFile, settle } from "./creatorTestKit";
 
 function control(frame: TokenFrame | undefined = defaultTokenFrame()) {
   const onApply = vi.fn<(frame: TokenFrame | null) => void>();
@@ -215,5 +215,93 @@ describe("the settings window's frame button", () => {
     const frameless = { ...control().value, frame: undefined };
     rerender(<TokenPictureControl onApply={vi.fn()} frame={frameless} />);
     expect(screen.getByRole("button", { name: "Token frame… (No frame)" })).toBeInTheDocument();
+  });
+});
+
+describe("the Frame tab, after review round 2", () => {
+  it("saves a picture loaded on the Picture tab when the frame is accepted, not dropping it", async () => {
+    const { value, onApply } = control();
+    const d = deps();
+    const onPicture = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <TokenCreatorWindow
+        onApply={onPicture}
+        onClose={onClose}
+        deps={d}
+        frame={value}
+        initialTab="picture"
+      />,
+    );
+    await pickFile();
+    fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
+    press("Welded steel");
+    press("Use this frame");
+    await settle();
+    expect(onApply).toHaveBeenCalledTimes(1);
+    expect(d.upload).toHaveBeenCalledTimes(1);
+    expect(onPicture).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the frame picked meanwhile when the picture is accepted", async () => {
+    const { value, onApply } = control();
+    render(
+      <TokenCreatorWindow
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+        deps={deps()}
+        frame={value}
+        initialTab="frame"
+      />,
+    );
+    press("Castle stone");
+    fireEvent.click(screen.getByRole("tab", { name: "Picture" }));
+    await pickFile();
+    fireEvent.click(screen.getByRole("button", { name: "Use this picture" }));
+    await settle();
+    expect(sent(onApply)!.preset).toBe("stone.castle");
+  });
+
+  it("moves focus with the arrow keys inside its own window when two are open", () => {
+    render(
+      <>
+        <TokenCreatorWindow
+          name="A"
+          onApply={vi.fn()}
+          onClose={vi.fn()}
+          deps={deps()}
+          frame={control().value}
+        />
+        <TokenCreatorWindow
+          name="B"
+          onApply={vi.fn()}
+          onClose={vi.fn()}
+          deps={deps()}
+          frame={control().value}
+        />
+      </>,
+    );
+    const pictureTabs = screen.getAllByRole("tab", { name: "Picture" });
+    fireEvent.keyDown(pictureTabs[1]!, { key: "ArrowRight" });
+    const frameTabs = screen.getAllByRole("tab", { name: "Frame" });
+    expect(document.activeElement).toBe(frameTabs[1]);
+    expect(frameTabs[0]).toHaveAttribute("aria-selected", "false");
+    expect(frameTabs[0]!.id).not.toBe(frameTabs[1]!.id);
+  });
+
+  it("turns back to the Frame tab when Token frame… is pressed again", async () => {
+    render(
+      <TokenPictureControl
+        onApply={vi.fn()}
+        frame={control().value}
+        loadWindow={async () => ({
+          default: (props) => <TokenCreatorWindow {...props} deps={deps()} />,
+        })}
+      />,
+    );
+    press("Token frame… (Plain ring)");
+    fireEvent.click(await screen.findByRole("tab", { name: "Picture" }));
+    press("Token frame… (Plain ring)");
+    expect(screen.getByRole("tab", { name: "Frame" })).toHaveAttribute("aria-selected", "true");
   });
 });

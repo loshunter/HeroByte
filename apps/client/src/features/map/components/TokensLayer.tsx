@@ -588,7 +588,7 @@ export const TokensLayer = memo(function TokensLayer({
             <TokenSprite
               object={mapOverrides(object)}
               gridSize={gridSize}
-              camScale={cam.scale}
+              camScale={object.data.frame ? cam.scale : 1}
               stroke={
                 isSelected ? palette.stroke : hoveredTokenId === object.id ? "#aaa" : "transparent"
               }
@@ -638,7 +638,7 @@ export const TokensLayer = memo(function TokensLayer({
             <TokenSprite
               object={mapOverrides(object)}
               gridSize={gridSize}
-              camScale={cam.scale}
+              camScale={object.data.frame ? cam.scale : 1}
               stroke={
                 isSelected ? palette.stroke : draggingId === object.id ? palette.drag : "#fff"
               }
