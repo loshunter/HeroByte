@@ -1,5 +1,6 @@
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { defaultTokenFrame } from "@herobyte/shared";
 import { handleForkTable, type ForkTableDeps } from "../tableFork.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { MapStudioService } from "../../../domains/mapStudio/service.js";
@@ -235,6 +236,25 @@ describe("handleForkTable", () => {
 
     expect(source.getState().tokens).toHaveLength(1);
     expect(source.getState().tableName).toBeUndefined();
+  });
+
+  it("gives the fork its own tokens: a move or a frame change there never reaches the source", async () => {
+    const { ws, source, rooms, deps } = setup();
+    source.getState().tokens[0]!.frame = defaultTokenFrame();
+
+    await handleForkTable(
+      ws,
+      { roomId: "table-keeper", name: "Sunday Game", roomPassword: "a-good-password" },
+      deps,
+    );
+
+    const fork = rooms.get("table-keeper")!.getState().tokens[0]!;
+    const original = source.getState().tokens[0]!;
+    expect(fork).not.toBe(original);
+    fork.x = 9;
+    delete fork.frame;
+    expect(original.x).toBe(2);
+    expect(original.frame).toEqual(defaultTokenFrame());
   });
 
   describe("refusals", () => {

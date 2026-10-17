@@ -116,8 +116,10 @@ export async function handleForkTable(
     const target = deps.getRoomServiceForRoom(roomId);
 
     // Unfiltered DM view (createSnapshot with no recipient), so secret doors
-    // and hidden NPCs survive the copy. Same path load-session uses.
-    target.loadSnapshot(deps.sourceRoomService.createSnapshot());
+    // and hidden NPCs survive the copy. Same path load-session uses, but cloned:
+    // the DM projection hands out the LIVE tokens, so without it a move, recolour
+    // or frame change in either room bled into the other (review, C5a round 3).
+    target.loadSnapshot(structuredClone(deps.sourceRoomService.createSnapshot()));
     const sourceState = deps.sourceRoomService.getState();
     target.setState({
       tableName: name,
