@@ -11,7 +11,7 @@
 // payload's rejection for good.
 
 import { Suspense, lazy, useMemo, useState, type ComponentType } from "react";
-import { findFramePreset, type TokenSize } from "@herobyte/shared";
+import { framePresetName, type TokenSize } from "@herobyte/shared";
 import { ErrorBoundary } from "../../../components/ErrorBoundary";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { TokenCreatorWindowProps } from "./TokenCreatorWindow";
@@ -52,7 +52,7 @@ export function TokenPictureControl({
     setPresses((count) => count + 1);
   };
   const frameName = frame?.frame
-    ? (findFramePreset(frame.frame.preset)?.name ?? "Custom frame")
+    ? (framePresetName(frame.frame.preset) ?? "Custom frame")
     : "No frame";
   const [attempt, setAttempt] = useState(0);
   // A new lazy per attempt: a failed chunk load can be tried again.

@@ -13,7 +13,7 @@ import { framePaletteById } from "../catalogLookup.js";
 import { frameSizeScale } from "../frameLimits.js";
 import { frameGeneratorSpec, resolveFrameParams } from "../generatorSpecs.js";
 import type { TokenFrame } from "../types.js";
-import { bandSeed } from "./frameBake.js";
+import { bandSeed } from "./frameSeeds.js";
 
 /**
  * The roles a band is drawn in without a glow. Glow and tint default to

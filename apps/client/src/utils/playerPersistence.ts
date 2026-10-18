@@ -1,5 +1,4 @@
 import {
-  coerceTokenFrame,
   pinFrameSeeds,
   type Drawing,
   type Player,
@@ -7,6 +6,7 @@ import {
   type PlayerStateTokenSnapshot,
   type SceneObject,
   type Token,
+  type TokenFrame,
   type TokenSize,
 } from "@herobyte/shared";
 import {
@@ -53,7 +53,10 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function parseTokenSnapshot(raw: unknown): PlayerStateTokenSnapshot | undefined {
+function parseTokenSnapshot(
+  raw: unknown,
+  coerceFrame: (frame: unknown) => TokenFrame | undefined = () => undefined,
+): PlayerStateTokenSnapshot | undefined {
   if (!isRecord(raw)) {
     return undefined;
   }
@@ -103,7 +106,7 @@ function parseTokenSnapshot(raw: unknown): PlayerStateTokenSnapshot | undefined 
   if (frame === null) {
     snapshot.frame = null;
   } else if (frame !== undefined) {
-    const coerced = coerceTokenFrame(frame);
+    const coerced = coerceFrame(frame);
     if (coerced) snapshot.frame = coerced;
   }
 
@@ -227,7 +230,9 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
   const normalizedTokenImage =
     tokenImage === undefined ? undefined : tokenImage === null ? null : (tokenImage as string);
 
-  const primaryToken = parseTokenSnapshot(parsed.token);
+  // The frame's reader is fetched only now: it is too big for the app's first load.
+  const { coerceTokenFrame } = await import("./frameFileParse");
+  const primaryToken = parseTokenSnapshot(parsed.token, coerceTokenFrame);
 
   let fallbackToken: PlayerStateTokenSnapshot | undefined;
   if (!primaryToken) {

@@ -20,13 +20,11 @@ export {
 export {
   bakeFrame,
   framePaints,
-  frameSeed,
-  bandSeed,
-  pinFrameSeeds,
   type FrameBakeInput,
   type FrameBakeResult,
 } from "./engine/frameBake.js";
+export { frameSeed, bandSeed, pinFrameSeeds } from "./engine/frameSeeds.js";
 export { frameBakeKey, frameGlowsPersonal, frameUsesAccent } from "./engine/frameBakeKey.js";
-export { framePaletteById } from "./catalogLookup.js";
+export { framePaletteById, framePresetName } from "./catalogLookup.js";
 export { personalRoleColor, diffuse, LIGHT as FRAME_LIGHT_VECTOR } from "./engine/shading.js";
 export { FRAME_GENERATORS } from "./engine/generators/index.js";
