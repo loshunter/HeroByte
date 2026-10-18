@@ -133,6 +133,39 @@ describe("a frame nobody touched, when a sync replaces it", () => {
   });
 });
 
+describe("a failure the Frame tab turns to show", () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  });
+
+  it("is scrolled to, clear of the Accept bar, once its tab shows", async () => {
+    const scrolled: Element[] = [];
+    const scrollTo = Element.prototype.scrollTo;
+    Element.prototype.scrollTo = vi.fn(function (this: Element) {
+      scrolled.push(this);
+    }) as never;
+    const d = deps({ upload: vi.fn(async () => Promise.reject(new Error("Storage full"))) });
+    render(
+      <TokenCreatorWindow
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+        deps={d}
+        frame={control(defaultTokenFrame())}
+        initialTab="picture"
+      />,
+    );
+    await pickFile();
+    fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
+    fireEvent.click(screen.getByRole("button", { name: "Castle stone" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use frame + picture" }));
+    await settle();
+    const alert = screen.getByRole("alert");
+    // the window's own scroller, the one holding both the message and the bar
+    expect(scrolled.some((scroller) => scroller.contains(alert))).toBe(true);
+    Element.prototype.scrollTo = scrollTo;
+  });
+});
+
 describe("the Frame tab's previews of a picture not yet saved", () => {
   it("draw it through its crop and turn, as the bake will", async () => {
     const calls: { canvas: string; name: string; args: unknown[] }[] = [];

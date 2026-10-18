@@ -236,7 +236,7 @@ export function TokenCreatorWindow({
             aria-labelledby={`${ids}-tab-picture`}
             hidden={shown !== "picture"}
           >
-            <PictureTab creator={creator} corner={corner} />
+            <PictureTab creator={creator} corner={corner} shown={shown === "picture"} />
           </div>
           {frame && (
             <div

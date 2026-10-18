@@ -7,7 +7,7 @@
 // is". While a save runs, the framing holds still: what is on screen is what
 // is being saved.
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import { defaultGradient, resolveBackdrop, type Backdrop } from "./backdrop";
 import { CropStage } from "./CropStage";
@@ -27,15 +27,33 @@ interface PictureTabProps {
   creator: TokenCreatorState;
   /** The map's corner radius as a share of the token's side (it depends on size). */
   corner: number;
+  /** Whether this tab is the one showing (an error is brought into view only then). */
+  shown?: boolean;
 }
 
 // No inline min-height: the phone's 44px floor is a class rule an inline one would beat.
 const small = { fontSize: "10px", padding: "6px 10px" } as const;
 const label = { color: "var(--jrpg-gold)" } as const;
 
-export function PictureTab({ creator, corner }: PictureTabProps) {
+export function PictureTab({ creator, corner, shown = true }: PictureTabProps) {
   const { picture, crop, setCrop, backdrop, setBackdrop, autoColor, phase } = creator;
   const fileRef = useRef<HTMLInputElement>(null);
+  // A failure is said at the foot of the tab, where the sticky Accept bar covers
+  // it: the window scrolls to its end to show it, also when the Frame tab turns
+  // here. (scrollIntoView counts it as seen under the bar and does not move.)
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!shown || !creator.error) return;
+    let scroller = errorRef.current?.parentElement ?? null;
+    const scrolls = (node: HTMLElement) => {
+      const style = getComputedStyle(node);
+      return /(auto|scroll)/.test(style.overflowY || style.overflow);
+    };
+    while (scroller && !scrolls(scroller)) {
+      scroller = scroller.parentElement;
+    }
+    scroller?.scrollTo?.({ top: scroller.scrollHeight });
+  }, [shown, creator.error]);
   const [link, setLink] = useState("");
   const ids = { link: useId(), zoom: useId(), backdrop: useId() };
   const fill = resolveBackdrop(backdrop, autoColor);
@@ -219,6 +237,7 @@ export function PictureTab({ creator, corner }: PictureTabProps) {
       )}
       {creator.error && (
         <p
+          ref={errorRef}
           className="jrpg-text-small"
           role="alert"
           style={{ margin: 0, color: "var(--jrpg-danger, #ff6b6b)" }}
