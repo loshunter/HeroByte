@@ -19,6 +19,7 @@ import { bandQuad } from "../bandSpace.js";
 import {
   bevelledBlock,
   clampAcross,
+  clampAlong,
   draws,
   motifCount,
   num,
@@ -63,7 +64,7 @@ export const masonry: FrameGenerator = ({
     const laid = layCourse({ length, corners }, count, spread, rolls, phaseRoll!, running);
     const v0 = course * heightV;
     const v1 = v0 + heightV;
-    for (const { at: u, length: piece } of laid) {
+    for (const { at: u, length: piece, side } of laid) {
       const d = draws(rng, DRAWS_PER_STONE);
       const jitter = (index: number, size: number) => (d[index]! * 2 - 1) * size;
       const half = { u: (gap / 2) * heightU, v: (gap / 2) * heightV };
@@ -128,7 +129,12 @@ export const masonry: FrameGenerator = ({
       const outline: [number, number] = [0.03 * heightU, 0.03 * heightV];
       const bevel: [number, number] = [inset * heightU, inset * heightV];
       // Jitter may not carry a stone out of its course (over the next) or its band (off the bitmap).
-      for (const facet of bevelledBlock(clampAcross(shape, v0, v1), outline, bevel, pitch))
+      for (const facet of bevelledBlock(
+        clampAlong(clampAcross(shape, v0, v1), side),
+        outline,
+        bevel,
+        pitch,
+      ))
         facets.push(facet);
 
       if (d[11]! < crackDensity * 0.85) {

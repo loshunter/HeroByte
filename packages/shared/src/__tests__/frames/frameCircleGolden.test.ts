@@ -50,6 +50,34 @@ const C5A_CIRCLE: Record<string, string> = {
   "wood.oak@128/0.1/in/medium": "7cf158d0",
   "wood.oak@512/0.1/in/medium": "2aaa339f",
   "wood.oak@128/0.24/out/gargantuan": "94c2ea66",
+  "plain.ring@256/0.05/mid/large": "70dfb1e",
+  "plain.ring@1024/0.34/in/tiny": "ac60ea7f",
+  "plain.chamfer@256/0.05/mid/large": "86dbbe71",
+  "plain.chamfer@1024/0.34/in/tiny": "bbaf2645",
+  "plain.shadow@256/0.05/mid/large": "d3f70501",
+  "plain.shadow@1024/0.34/in/tiny": "f75cb442",
+  "brick.red@256/0.05/mid/large": "7c17770f",
+  "brick.red@1024/0.34/in/tiny": "8f021cc8",
+  "stone.castle@256/0.05/mid/large": "7734fcda",
+  "stone.castle@1024/0.34/in/tiny": "470ab4c3",
+  "stone.cave@256/0.05/mid/large": "c34a8ee7",
+  "stone.cave@1024/0.34/in/tiny": "c4d45657",
+  "stone.cracked@256/0.05/mid/large": "d779d21",
+  "stone.cracked@1024/0.34/in/tiny": "acc0c5ba",
+  "stone.sandstone@256/0.05/mid/large": "f2a25103",
+  "stone.sandstone@1024/0.34/in/tiny": "69831b88",
+  "metal.blackened@256/0.05/mid/large": "b30697e0",
+  "metal.blackened@1024/0.34/in/tiny": "c70f7321",
+  "metal.riveted@256/0.05/mid/large": "2443587c",
+  "metal.riveted@1024/0.34/in/tiny": "931d1372",
+  "metal.rusted@256/0.05/mid/large": "abeadf9f",
+  "metal.rusted@1024/0.34/in/tiny": "984499ca",
+  "metal.steel@256/0.05/mid/large": "2e102fea",
+  "metal.steel@1024/0.34/in/tiny": "ae1123d5",
+  "metal.welded@256/0.05/mid/large": "ca8225cf",
+  "metal.welded@1024/0.34/in/tiny": "1706d35a",
+  "wood.oak@256/0.05/mid/large": "2383ea70",
+  "wood.oak@1024/0.34/in/tiny": "de0dcb1c",
 };
 
 const fnv = (bytes: Uint8ClampedArray) => {
@@ -65,6 +93,8 @@ const SETUPS = [
   [128, 0.1, "in", "medium"],
   [512, 0.1, "in", "medium"],
   [128, 0.24, "out", "gargantuan"],
+  [256, 0.05, "mid", "large"],
+  [1024, 0.34, "in", "tiny"],
 ] as const;
 
 describe("the circle, as C5a shipped it", () => {

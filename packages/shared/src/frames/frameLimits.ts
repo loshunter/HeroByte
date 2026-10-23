@@ -37,7 +37,6 @@ export const FRAME_LIMITS = {
   MAX_FRAME_BYTES: 2304,
 } as const;
 
-/** The weight slider's four named stops. */
 /** The shapes a frame may be laid round (C5b; plan §3.7), in the order the Frame tab offers them. */
 export const FRAME_SHAPES: readonly FrameShape[] = [
   "circle",
@@ -48,6 +47,7 @@ export const FRAME_SHAPES: readonly FrameShape[] = [
   "shield",
 ];
 
+/** The weight slider's four named stops. */
 export const FRAME_WEIGHTS = {
   skinny: 0.05,
   regular: 0.1,

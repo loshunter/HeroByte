@@ -2,11 +2,11 @@
 // SHAPE RIBBONS — band space warped onto a polygon (C5b)
 // ============================================================================
 // The polygon version of bandSpace.ts's circle warp. A band between levels r0
-// and r1 is a RIBBON: the shape's outline at r0, at r1 and at their middle,
-// vertex for vertex (shapes.ts). `u` runs along the middle outline in band
-// heights; a point (u, v) is found on the middle outline's segment at that
-// length, then taken the same share along the inner and outer outlines'
-// matching segments and `v` of the way between them. A corner is therefore
+// and r1 is a RIBBON: the shape's outline at r0 and at r1, vertex for vertex
+// (shapes.ts). `u` runs along the band in band heights, each segment as long
+// as the mean of its inner and outer edges; a point (u, v) is found on its
+// segment at that length, then taken the same share along the inner and outer
+// outlines' matching segments and `v` of the way between them. A corner is therefore
 // one straight mitre line across the band at a fixed `u`, which the corner-
 // aware generators end their motifs on.
 
@@ -19,7 +19,7 @@ export interface Ribbon {
   shape: PolygonShape;
   inner: number[];
   outer: number[];
-  /** Length along the middle outline up to each vertex (token units), and once round. */
+  /** Length along the band (the mean of its edges) up to each vertex, token units, and once round. */
   along: number[];
   perimeter: number;
   /** The band's thickness, token units: u is measured in these. */
@@ -35,18 +35,20 @@ export interface Ribbon {
 export function makeRibbon(shape: PolygonShape, r0: number, r1: number): Ribbon {
   const inner = shapeOutline(shape, r0);
   const outer = shapeOutline(shape, r1);
-  const middle = shapeOutline(shape, (r0 + r1) / 2);
-  const count = middle.length / 2;
+  const count = inner.length / 2;
   const along: number[] = [0];
+  const span = (points: number[], index: number, next: number) =>
+    Math.hypot(
+      points[next * 2]! - points[index * 2]!,
+      points[next * 2 + 1]! - points[index * 2 + 1]!,
+    );
   for (let index = 0; index < count; index += 1) {
     const next = (index + 1) % count;
-    along.push(
-      along[index]! +
-        Math.hypot(
-          middle[next * 2]! - middle[index * 2]!,
-          middle[next * 2 + 1]! - middle[index * 2 + 1]!,
-        ),
-    );
+    // The mean of the inner and outer edges' lengths: the middle's own for a
+    // mitred polygon, and still a real length where the middle has shrunk to
+    // a point (a shield's side, a squircle's corner) but the outer edge has
+    // not, so the warp never skips the outer corner.
+    along.push(along[index]! + (span(inner, index, next) + span(outer, index, next)) / 2);
   }
   const perimeter = along[count]!;
   const thickness = r1 - r0;

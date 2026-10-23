@@ -148,7 +148,7 @@ const DARK_ROWS = [
 const SHAPE_ROWS = ["squircle", "square", "hexagon", "octagon", "shield"].map((shape) => [
   "stone.castle",
   DEMO_ACCENT,
-  `Castle stone on a ${shape}`,
+  `Castle stone on ${/^[aeiou]/.test(shape) ? "an" : "a"} ${shape}`,
   { shape },
 ]);
 const NOTCH_ROWS = [

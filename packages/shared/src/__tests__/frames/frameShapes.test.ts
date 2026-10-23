@@ -11,7 +11,15 @@ import { describe, expect, it } from "vitest";
 import { bakeFrame, frameSeed, presetFrame, type FrameShape } from "../../index.js";
 import { shapeCorners, shapeOutline, type PolygonShape } from "../../frames/engine/shapes.js";
 import { makeRibbon, ribbonPoint } from "../../frames/engine/shapeRibbon.js";
-import { layCourse } from "../../frames/engine/generators/common.js";
+import { layCourse, FRAME_FACET_BUDGET } from "../../frames/engine/generators/common.js";
+import { FRAME_GENERATORS } from "../../frames/engine/generators/index.js";
+import { createSeededRng } from "../../rng.js";
+import {
+  framePaints,
+  insideOutline,
+  resolveFrameParams,
+  shapeOutline as outlineOf,
+} from "../../index.js";
 
 const SHAPES: PolygonShape[] = ["squircle", "square", "hexagon", "octagon", "shield"];
 const LEVELS = [0.16, 0.26, 0.4, 0.5, 0.58, 0.65];
@@ -109,8 +117,11 @@ describe("the shapes' outlines", () => {
             expect(angle, `${shape} vertex ${index}`).toBeLessThan(31);
         }
       }
-      for (const index of corners)
-        expect(turn(shapeOutline(shape, 0.5), index)).toBeGreaterThan(40);
+      // a squircle's corners are its rounded corners' middles: gentle at the box, sharp in a heavy frame
+      const level = shape === "squircle" ? 0.16 : 0.5;
+      for (const index of corners) {
+        expect(turn(shapeOutline(shape, level), index), shape).toBeGreaterThan(40);
+      }
     }
   });
 });
@@ -233,5 +244,201 @@ describe("a polygon frame baked", () => {
       expect(pixels[((tier - 1) * tier + at) * 4 + 3]).toBe(0); // the bottom row stays clear
     }
     expect(layout.extent).toBeGreaterThan(layout.outer);
+  });
+});
+
+describe("polygon frames, after review round 1", () => {
+  const opaque = (shape: PolygonShape, id: string, weight: number) => {
+    const frame = { ...presetFrame(id, weight)!, shape };
+    const tier = 256;
+    const { pixels, layout } = bakeFrame({ frame, accent: "#4f7cc4", seed: frameSeed("t"), tier });
+    const scale = tier / (2 * layout.extent);
+    const pad = 2 / scale;
+    // every pixel between the window and the outer edge, two pixels in from each, by the outlines alone
+    const outer = outlineOf(shape, layout.outer - pad);
+    const window = outlineOf(shape, layout.window + pad);
+    let holes = 0;
+    for (let y = 0; y < tier; y += 1) {
+      for (let x = 0; x < tier; x += 1) {
+        const tx = (x + 0.5) / scale - layout.extent;
+        const ty = (y + 0.5) / scale - layout.extent;
+        if (!insideOutline(outer, tx, ty) || insideOutline(window, tx, ty)) continue;
+        if (pixels[(y * tier + x) * 4 + 3]! < 250) holes += 1;
+      }
+    }
+    return holes;
+  };
+
+  it("covers the whole band of a heavy shield or squircle, corners included", () => {
+    for (const shape of ["shield", "squircle", "square", "hexagon"] as const) {
+      for (const weight of [0.16, 0.28, 0.34]) {
+        for (const id of ["stone.castle", "plain.ring", "wood.oak"]) {
+          expect(opaque(shape, id, weight), `${id} on a ${shape} at ${weight}`).toBe(0);
+        }
+      }
+    }
+  });
+
+  it("keeps a jittered stone inside its side: rubble and cobble never cross a corner", () => {
+    const ribbon = makeRibbon("square", 0.4, 0.5);
+    for (const bond of ["rubble", "cobble"]) {
+      const facets = FRAME_GENERATORS.masonry!({
+        length: ribbon.length,
+        courses: 1,
+        courseScale: () => 1,
+        params: resolveFrameParams("masonry", { bond, irregularity: 1, gap: 0 }),
+        rng: createSeededRng(3),
+        maxMotifs: 256,
+        bandPx: 200,
+        corners: ribbon.corners,
+      });
+      for (const facet of facets.slice(1)) {
+        const us = facet.points.filter((_, index) => index % 2 === 0);
+        for (const corner of ribbon.corners) {
+          const across = Math.min(...us) < corner - 1e-9 && Math.max(...us) > corner + 1e-9;
+          expect(across, `${bond} across ${corner}`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("keeps a course to its budget on a many-sided shape", () => {
+    const ribbon = makeRibbon("octagon", 0.4, 0.5);
+    for (const shift of [false, true]) {
+      const laid = layCourse(ribbon, 40, 0.1, [0.5], 0.5, shift);
+      expect(laid.length, `shifted ${shift}`).toBeLessThanOrEqual(40);
+    }
+    const plates = [...Array(6)].map(() => ({
+      generator: "plate",
+      palette: "metal.iron",
+      weight: 0.0333,
+      depth: 0.6,
+      params: { plateLength: 1, rivetRows: 3, rivetSize: 0.3 },
+    }));
+    const frame = { shape: "octagon" as const, bands: plates };
+    const paints = framePaints({
+      frame,
+      size: "gargantuan",
+      accent: "#000",
+      seed: 1,
+      tier: 1024,
+    }).paints;
+    expect(paints.length).toBeLessThan(FRAME_FACET_BUDGET + 8000);
+  });
+
+  it("lights a hexagon's bevel from the top left: its up-left edge brighter than its down-right", () => {
+    const frame = { ...presetFrame("plain.chamfer", 0.16)!, shape: "hexagon" as const };
+    const tier = 512;
+    const { pixels, layout } = bakeFrame({ frame, accent: "#808080", seed: 1, tier });
+    const scale = tier / (2 * layout.extent);
+    const lum = (x: number, y: number) => {
+      const at =
+        (Math.floor((y + layout.extent) * scale) * tier + Math.floor((x + layout.extent) * scale)) *
+        4;
+      return pixels[at]! + pixels[at + 1]! + pixels[at + 2]!;
+    };
+    // just inside the outer edge, at the middle of the up-left side and of the down-right side
+    const apothem = outlineOf("hexagon", layout.outer)[1]! * -1 - 1.5 / scale;
+    const upLeft = lum(-apothem * Math.sin(Math.PI / 3), -apothem * Math.cos(Math.PI / 3));
+    const downRight = lum(apothem * Math.sin(Math.PI / 3), apothem * Math.cos(Math.PI / 3));
+    expect(upLeft).toBeGreaterThan(downRight + 30);
+  });
+
+  it("shades the window's edge along the hexagon's sides, and a grown-out square's corner on the map", () => {
+    const hexagon = { ...presetFrame("plain.ring", 0.1)!, shape: "hexagon" as const };
+    const tier = 512;
+    const baked = bakeFrame({ frame: hexagon, accent: "#808080", seed: 1, tier });
+    const scale = tier / (2 * baked.layout.extent);
+    const alphaAt = (pixels: Uint8ClampedArray, extent: number, x: number, y: number) =>
+      pixels[(Math.floor((y + extent) * scale) * tier + Math.floor((x + extent) * scale)) * 4 + 3]!;
+    // inside the window, just under its top side: the contact shadow
+    const top = outlineOf("hexagon", baked.layout.window)[1]!;
+    expect(alphaAt(baked.pixels, baked.layout.extent, 0, top + 2 / scale)).toBeGreaterThan(0);
+    const square = {
+      ...presetFrame("plain.ring", 0.16)!,
+      shape: "square" as const,
+      growth: "out" as const,
+    };
+    const out = bakeFrame({ frame: square, accent: "#808080", seed: 1, tier });
+    const outScale = tier / (2 * out.layout.extent);
+    const corner = out.layout.outer + 1.5 / outScale; // past the bottom-right corner, where the shadow falls
+    const at =
+      (Math.floor((corner + out.layout.extent) * outScale) * tier +
+        Math.floor((corner + out.layout.extent) * outScale)) *
+      4;
+    expect(out.pixels[at + 3]!).toBeGreaterThan(0);
+  });
+
+  it("gives the squircle straight sides 1 - 2 × 0.22 long at the token box", () => {
+    const points = shapeOutline("squircle", 0.5);
+    // the top side runs from the top-left arc's end to the top-right arc's start
+    const xs = points.filter((_, index) => index % 2 === 0);
+    const ys = points.filter((_, index) => index % 2 === 1);
+    const onTop = xs.filter((_, index) => Math.abs(ys[index]! + 0.5) < 1e-9);
+    expect(Math.max(...onTop) - Math.min(...onTop)).toBeCloseTo(1 - 2 * 0.22, 9);
+  });
+
+  it("sets the notch's tip on the frame's top edge, for every shape", () => {
+    for (const shape of ["circle", "squircle", "square", "hexagon", "octagon", "shield"] as const) {
+      const frame = { ...presetFrame("plain.ring", 0.1)!, shape };
+      const tier = 256;
+      const plain = bakeFrame({ frame, accent: "#4f7cc4", seed: 1, tier });
+      const gem = bakeFrame({
+        frame: { ...frame, notch: { gem: "arrow" as const } },
+        accent: "#4f7cc4",
+        seed: 1,
+        tier,
+      });
+      const { layout } = gem;
+      const scale = tier / (2 * layout.extent);
+      let topmost = tier;
+      for (let y = 0; y < tier && topmost === tier; y += 1) {
+        for (let x = 0; x < tier; x += 1) {
+          const at = (y * tier + x) * 4;
+          if (gem.pixels[at + 3] !== plain.pixels[at + 3] || gem.pixels[at] !== plain.pixels[at]) {
+            topmost = y;
+            break;
+          }
+        }
+      }
+      const edge = shape === "circle" ? -layout.outer : outlineOf(shape, layout.outer)[1]!;
+      const edgePx = (edge + layout.extent) * scale;
+      expect(Math.abs(topmost - edgePx), shape).toBeLessThan(1.5);
+    }
+  });
+  it("puts a joint at each of the squircle's four rounded corners", () => {
+    expect(shapeCorners("squircle")).toHaveLength(4);
+    const ribbon = makeRibbon("squircle", 0.26, 0.5); // slab: the window's corners are sharp
+    const laid = layCourse(ribbon, 24, 0.1, [0.4], 0.5, false);
+    for (const corner of ribbon.corners) {
+      expect(laid.some((piece) => Math.abs(piece.at - corner) < 1e-9)).toBe(true);
+    }
+  });
+
+  it("draws a hexagon's depth steps inside its shape, along its own sides", () => {
+    const welded = { ...presetFrame("metal.welded", 0.16)!, shape: "hexagon" as const };
+    const flat = { ...welded, bands: welded.bands.map((band) => ({ ...band, depth: 0.6 })) };
+    const tier = 256;
+    const stepped = bakeFrame({ frame: welded, accent: "#808080", seed: 1, tier });
+    const level = bakeFrame({ frame: flat, accent: "#808080", seed: 1, tier });
+    const { layout } = stepped;
+    const scale = tier / (2 * layout.extent);
+    const outline = outlineOf("hexagon", layout.outer + 1 / scale);
+    let changed = 0;
+    for (let y = 0; y < tier; y += 1) {
+      for (let x = 0; x < tier; x += 1) {
+        const at = (y * tier + x) * 4;
+        if (
+          stepped.pixels[at + 3] === level.pixels[at + 3] &&
+          stepped.pixels[at] === level.pixels[at]
+        )
+          continue;
+        changed += 1;
+        const tx = (x + 0.5) / scale - layout.extent;
+        const ty = (y + 0.5) / scale - layout.extent;
+        expect(insideOutline(outline, tx, ty), `a step at (${x}, ${y})`).toBe(true);
+      }
+    }
+    expect(changed).toBeGreaterThan(50);
   });
 });

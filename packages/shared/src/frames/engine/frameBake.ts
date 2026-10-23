@@ -36,7 +36,7 @@ import {
 import { FRAME_GENERATORS } from "./generators/index.js";
 import { motifBudget } from "./generators/common.js";
 import { bandSeed } from "./frameSeeds.js";
-import { isPolygonShape, outlineLength, shapeOutline, type PolygonShape } from "./shapes.js";
+import { isPolygonShape } from "./shapes.js";
 import { levelScale, makeRibbon, ribbonPoint, ribbonPolygon, shapeBand } from "./shapeRibbon.js";
 import { notchPaints } from "./frameNotch.js";
 import { createRaster, fillPolygon, rasterToRgba } from "./raster.js";
@@ -130,7 +130,9 @@ function ringWarp(ring: BandRing, shape: FrameLayout["shape"]): RingWarp {
     };
   }
   const ribbon = makeRibbon(shape, ring.r0, ring.r1);
-  const courses = polygonCourses(shape, ring.r0, ring.r1);
+  // The circle's rows: a polygon's straight sides do not taper, and its
+  // corners' mitres taper as a circle's stones do.
+  const courses = courseCount(ring);
   return {
     length: ribbon.length,
     courses,
@@ -140,12 +142,6 @@ function ringWarp(ring: BandRing, shape: FrameLayout["shape"]): RingWarp {
     polygon: (points) => ribbonPolygon(ribbon, points),
     point: (u, v) => ribbonPoint(ribbon, u, v),
   };
-}
-
-/** The slivers rule on a polygon: the inner outline's length over the outer's, as courseCount. */
-function polygonCourses(shape: PolygonShape, r0: number, r1: number): number {
-  const ratio = outlineLength(shapeOutline(shape, r0)) / outlineLength(shapeOutline(shape, r1));
-  return ratio < 0.36 ? 3 : ratio < 0.6 ? 2 : 1;
 }
 
 function ringPaints(

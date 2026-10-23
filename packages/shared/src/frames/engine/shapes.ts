@@ -12,6 +12,8 @@
 //
 // The circle is not drawn from here: the engine keeps its own exact arcs for
 // it (bandSpace.ts), so circle frames bake exactly as they did before shapes.
+// No mitre needs a limit: the sharpest corner is a right angle (the square's
+// and the shield's top), whose mitre reaches 1 / cos 45° = 1.414 of the offset.
 
 import type { FrameShape } from "../types.js";
 
@@ -161,9 +163,18 @@ export function shapeOutline(shape: PolygonShape, level: number): number[] {
   return mitre(BASE[shape].points, level - 0.5);
 }
 
-/** Vertex indices where the outline turns a corner (none for the squircle: it is smooth). */
+/**
+ * Each rounded corner's middle point: the squircle's corners are curves at
+ * the token box, but they shrink to sharp corners inside a heavy frame, so a
+ * motif must not run round them.
+ */
+const SQUIRCLE_CORNERS = [0, 1, 2, 3].map(
+  (corner) => 1 + corner * (CURVE_STEPS + 1) + CURVE_STEPS / 2,
+);
+
+/** Vertex indices where a motif must end: the corners, and the middle of each rounded one. */
 export function shapeCorners(shape: PolygonShape): readonly number[] {
-  if (shape === "squircle") return [];
+  if (shape === "squircle") return SQUIRCLE_CORNERS;
   return shape === "shield" ? SHIELD_CORNERS : BASE[shape].corners;
 }
 

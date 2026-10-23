@@ -28,7 +28,7 @@ Rows, top to bottom (accent #4f7cc4 where a preset takes the player's colour):
 18. `stone.castle`: Castle stone on a squircle
 19. `stone.castle`: Castle stone on a square
 20. `stone.castle`: Castle stone on a hexagon
-21. `stone.castle`: Castle stone on a octagon
+21. `stone.castle`: Castle stone on an octagon
 22. `stone.castle`: Castle stone on a shield
 23. `metal.welded`: Welded steel, hexagon, facing notch
 24. `plain.ring`: Plain ring, circle, facing notch

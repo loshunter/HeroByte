@@ -12,6 +12,7 @@ import type { Facet } from "../bandSpace.js";
 import { bandQuad } from "../bandSpace.js";
 import {
   bevelledBlock,
+  clampAlong,
   dome,
   draws,
   motifCount,
@@ -65,7 +66,7 @@ export const plate: FrameGenerator = ({
     );
     const v0 = course * heightV;
     const v1 = v0 + heightV;
-    for (const { at: u, length: piece } of laid) {
+    for (const { at: u, length: piece, side } of laid) {
       const d = draws(rng, DRAWS_PER_PLATE);
       const jitter = (at: number, size: number) => (d[at]! * 2 - 1) * size * irregularity;
       const gapU = weld ? 0 : (seam / 2) * heightU;
@@ -83,7 +84,12 @@ export const plate: FrameGenerator = ({
         v1,
       ];
       facets.push(
-        ...bevelledBlock(shape, [0.02 * heightU, 0], [0.07 * heightU, 0.04 * heightV], 30),
+        ...bevelledBlock(
+          clampAlong(shape, side),
+          [0.02 * heightU, 0],
+          [0.07 * heightU, 0.04 * heightV],
+          30,
+        ),
       );
       if (!weld) {
         // The overlap: a lip along the plate's leading end, a sloped strip that catches the light.

@@ -61,8 +61,12 @@ export interface EdgeSegment {
   dy: number;
 }
 
-/** The pieces round a shape. Lit pieces overlap their neighbour a hair (`overlap`); shadows never do. */
-export type EdgePath = (overlap?: number) => Iterable<EdgeSegment>;
+/**
+ * The pieces round a shape, facing as the outline does at `level` (a
+ * shield's curves turn with level). Lit pieces overlap their neighbour a
+ * hair (`overlap`); shadows never do.
+ */
+export type EdgePath = (overlap?: number, level?: number) => Iterable<EdgeSegment>;
 
 /**
  * Round the circle: each segment's start and end angle, and its outward
@@ -84,8 +88,8 @@ export const CIRCLE_PATH: EdgePath = function* (overlap = 0) {
 
 /**
  * Round a polygon: one piece per edge of its outline (a corner is the mitre
- * between two). Pieces share their corners exactly, and the band's own fill
- * lies under them, so they need no overlap.
+ * between two). Pieces share their corners exactly, and the band's base
+ * polygon lies under them, so they need no overlap.
  */
 export function shapePath(shape: PolygonShape): EdgePath {
   const levels = new Map<number, number[]>();
@@ -94,10 +98,14 @@ export function shapePath(shape: PolygonShape): EdgePath {
     if (!points) levels.set(level, (points = shapeOutline(shape, level)));
     return points;
   };
-  const normals = edgeNormalsOf(shapeOutline(shape, 0.5));
-  const count = normals.length / 2;
-  return function* () {
+  const box = edgeNormalsOf(shapeOutline(shape, 0.5));
+  const count = box.length / 2;
+  return function* (_overlap = 0, level = 0.5) {
+    const facing = edgeNormalsOf(at(level));
     for (let index = 0; index < count; index += 1) {
+      // A piece shrunk to a point at this level faces as it does at the token box.
+      const shrunk = facing[index * 2] === 0 && facing[index * 2 + 1] === 0;
+      const normals = shrunk ? box : facing;
       const next = (index + 1) % count;
       yield {
         quad: (l0, l1, _extra = 0, cx = 0, cy = 0) => {
@@ -144,8 +152,13 @@ export function bandEdgeFacets(
   const facets: EdgeFacet[] = [];
   const reach = (r1 - r0) * Math.min(0.5, width);
   if (reach <= 0) return facets;
+  // Each edge faces as the outline does where it lies (the circle's are the same pieces).
+  const outerEdge = [...path(OVERLAP, r1)];
+  const innerEdge = [...path(OVERLAP, r0)];
   for (const strip of PROFILES[profile]) {
-    for (const { quad, dx, dy } of path(OVERLAP)) {
+    for (let at = 0; at < outerEdge.length; at += 1) {
+      const { quad, dx, dy } = outerEdge[at]!;
+      const inner = innerEdge[at]!;
       // The outer edge slopes outward, the inner edge inward.
       facets.push({
         kind: "edge",
@@ -155,8 +168,8 @@ export function bandEdgeFacets(
       });
       facets.push({
         kind: "edge",
-        points: quad(r0 + reach * strip.from, r0 + reach * strip.to),
-        normal: slopeNormal(-dx, -dy, strip.pitch),
+        points: inner.quad(r0 + reach * strip.from, r0 + reach * strip.to),
+        normal: slopeNormal(-inner.dx, -inner.dy, strip.pitch),
         alpha: 1,
       });
     }
@@ -183,7 +196,7 @@ export function stepFacets(
   const side: EdgeFacet[] = [];
   const shadow: EdgeFacet[] = [];
   const toward = tallerInside ? 1 : -1; // from the taller band toward the lower, radially
-  for (const { quad, dx, dy } of path()) {
+  for (const { quad, dx, dy } of path(0, boundary)) {
     const [ox, oy] = [dx * toward, dy * toward];
     const sideFrom = boundary - toward * sideWidth;
     side.push({
@@ -225,7 +238,7 @@ export function windowShadowFacets(
     [1 / 3, 2 / 3, 0.5],
     [2 / 3, 1, 0.2],
   ] as const;
-  for (const { quad, dx, dy } of path()) {
+  for (const { quad, dx, dy } of path(0, window)) {
     const away = awayFromLight(-dx, -dy);
     const alpha = (0.16 + 0.5 * away * depth) * 0.9;
     for (const [from, to, share] of strips) {
@@ -250,7 +263,7 @@ export function dropShadowFacets(outer: number, path: EdgePath = CIRCLE_PATH): E
     [outer + 0.008, outer + 0.02, 0.15],
     [outer + 0.02, outer + 0.032, 0.06],
   ] as const;
-  for (const { quad } of path()) {
+  for (const { quad } of path(0, outer)) {
     for (const [r0, r1, alpha] of rings) {
       facets.push({ kind: "shadow", points: quad(r0, r1, 0, cx, cy), normal: UP, alpha });
     }

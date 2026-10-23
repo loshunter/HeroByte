@@ -228,7 +228,7 @@ export function coerceTokenFrame(raw: unknown): TokenFrame | undefined {
     ...(GROWTHS.includes(raw.growth as FrameGrowth) ? { growth: raw.growth as FrameGrowth } : {}),
     accent: isColor(raw.accent) ? raw.accent : "personal",
     bands,
-    // A newer build's gems or counts load as the one arrow; anything else, as no notch.
+    // An arrow with a newer build's count loads as the one arrow; another gem, as no notch.
     ...(isRecord(raw.notch) && raw.notch.gem === "arrow"
       ? { notch: { gem: "arrow" as const } }
       : {}),

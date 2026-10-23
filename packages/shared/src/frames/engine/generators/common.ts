@@ -105,6 +105,8 @@ export function splitLength(
 export interface Laid {
   at: number;
   length: number;
+  /** On a polygon, the side it lies on: jitter must keep the motif inside it (clampAlong). */
+  side?: [number, number];
 }
 
 /**
@@ -135,21 +137,56 @@ export function layCourse(
     }
     return laid;
   }
+  const spans = corners.map(
+    (corner, index) =>
+      (index + 1 < corners.length ? corners[index + 1]! : corners[0]! + length) - corner,
+  );
+  // A shifted course lays each side with a half motif at both ends (one more
+  // piece a side), so it takes one fewer whole share a side: the course keeps
+  // its budget either way (motifBudget).
+  const shares = shareOut(spans, Math.max(corners.length, shift ? count - corners.length : count));
   let used = 0;
   corners.forEach((corner, index) => {
-    const span = (index + 1 < corners.length ? corners[index + 1]! : corners[0]! + length) - corner;
-    const share = Math.max(1, Math.round((count * span) / length));
+    const share = shares[index]!;
     const own = Array.from({ length: share }, (_, at) => rolls[(used + at) % rolls.length]!);
     used += share;
-    const lengths = splitLength(span, share, spread, own);
+    const lengths = splitLength(spans[index]!, share, spread, own);
     const pieces = shift ? [lengths[0]! / 2, ...lengths.slice(1), lengths[0]! / 2] : lengths;
+    const side: [number, number] = [corner, corner + spans[index]!];
     let u = corner;
     for (const piece of pieces) {
-      laid.push({ at: u, length: piece });
+      laid.push({ at: u, length: piece, side });
       u += piece;
     }
   });
   return laid;
+}
+
+/** `total` shares among sides by length, at least one each (largest remainder): they sum to `total`. */
+function shareOut(spans: readonly number[], total: number): number[] {
+  const length = spans.reduce((sum, span) => sum + span, 0);
+  const extra = Math.max(0, total - spans.length);
+  const exact = spans.map((span) => (extra * span) / length);
+  const shares = exact.map((value) => 1 + Math.floor(value));
+  let left = total - shares.reduce((sum, share) => sum + share, 0);
+  const order = exact
+    .map((value, index) => ({ index, rest: value - Math.floor(value) }))
+    .sort((a, b) => b.rest - a.rest || a.index - b.index);
+  for (const { index } of order) {
+    if (left <= 0) break;
+    shares[index]! += 1;
+    left -= 1;
+  }
+  return shares;
+}
+
+/** A shape's u coordinates held inside its side (jitter must not carry it round a corner). */
+export function clampAlong(points: number[], side: [number, number] | undefined): number[] {
+  if (!side) return points;
+  for (let index = 0; index < points.length; index += 2) {
+    points[index] = Math.min(side[1], Math.max(side[0], points[index]!));
+  }
+  return points;
 }
 
 /** A polygon's centroid (vertex mean: motifs are convex enough for lighting). */

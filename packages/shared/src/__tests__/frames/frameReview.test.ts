@@ -69,6 +69,7 @@ describe("a frame the wire must refuse", () => {
   });
 
   it("is accepted at its largest: six full bands, its stones pinned for a carry, under the cap", () => {
+    // (C5b: on a squircle, the longest shape name, and wearing the facing notch)
     const full = (index: number) => ({
       generator: "masonry",
       palette: "metal.blackened",
@@ -89,7 +90,8 @@ describe("a frame the wire must refuse", () => {
     });
     const worst = {
       preset: "metal.blackened",
-      shape: "circle",
+      shape: "squircle",
+      notch: { gem: "arrow" as const },
       growth: "mid",
       accent: "#123456",
       bands: [0, 1, 2, 3, 4, 5].map(full),

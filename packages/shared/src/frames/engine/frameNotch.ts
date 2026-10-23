@@ -20,7 +20,7 @@ export interface NotchPaint {
 }
 
 /** The gem's height at least, token units: a skinny frame still shows it. */
-const MIN_GEM = 0.1;
+const MIN_GEM = 0.14;
 /** The dark rim round the faces, as a share of the gem from its ridge. */
 const RIM = 1.18;
 /** How far the gem's facets slope from its ridge, degrees. */
