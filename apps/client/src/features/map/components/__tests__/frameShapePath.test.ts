@@ -14,16 +14,22 @@ const SIZE = 60;
 function recorder() {
   const points: number[] = [];
   const calls: string[] = [];
+  const rects: number[][] = [];
   return {
     points,
     calls,
+    rects,
     context: {
       beginPath: () => points.splice(0),
       moveTo: (x: number, y: number) => points.push(x, y),
       lineTo: (x: number, y: number) => points.push(x, y),
       closePath: () => {},
       fillStrokeShape: () => calls.push("fill"),
-      fill: () => calls.push("fillPath"),
+      fill: (rule?: string) => calls.push(`fill:${rule ?? "nonzero"}`),
+      rect: (x: number, y: number, w: number, h: number) => {
+        calls.push("rect");
+        rects.push([x, y, w, h]);
+      },
       fillStyle: "",
       save: () => calls.push("save"),
       clip: () => calls.push("clip"),
@@ -118,17 +124,46 @@ describe("a polygon frame's picture", () => {
     expect(Math.max(...ys)).toBeCloseTo(60);
   });
 
-  it("fills its window with the token's colour under a turned picture", () => {
-    const { calls, context } = recorder();
+  it("fills only the window's corners a turned picture leaves open, never under the picture", () => {
+    const { calls, points, rects, context } = recorder();
+    const n = node(45);
     drawInShape(
       context as unknown as Konva.Context,
-      node(45),
+      n,
       "square",
       SIZE,
       {} as CanvasImageSource,
       "#ff0000",
     );
-    expect(calls).toEqual(["save", "fillPath", "clip", "drawImage", "restore"]);
+    expect(calls).toEqual(["save", "clip", "rect", "fill:evenodd", "drawImage", "restore"]);
+    // even-odd: the window less the picture's square
+    const [rx, ry, rw, rh] = rects[0]!;
+    const filled = (x: number, y: number) =>
+      insideOutline(points, x, y) !== (x >= rx! && x <= rx! + rw! && y >= ry! && y <= ry! + rh!);
+    expect(filled(...local(n, 0.48 * SIZE, -0.48 * SIZE))).toBe(true); // a window corner the turned square misses
+    expect(filled(SIZE / 2, SIZE / 2)).toBe(false); // the picture itself: a transparent one shows the map
+  });
+
+  it("paints no colour round an unturned picture: the window and the picture are one square", () => {
+    const { points, rects, context } = recorder();
+    drawInShape(
+      context as unknown as Konva.Context,
+      node(0),
+      "square",
+      SIZE,
+      {} as CanvasImageSource,
+      "#ff0000",
+    );
+    const [rx, ry, rw, rh] = rects[0]!;
+    for (const [x, y] of [
+      [5, 5],
+      [30, 30],
+      [55, 2],
+    ] as const) {
+      expect(
+        insideOutline(points, x, y) !== (x >= rx! && x <= rx! + rw! && y >= ry! && y <= ry! + rh!),
+      ).toBe(false);
+    }
   });
 
   it("is its colour filling the shape when it has no picture", () => {

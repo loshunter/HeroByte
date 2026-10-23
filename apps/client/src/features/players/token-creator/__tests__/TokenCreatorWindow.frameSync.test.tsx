@@ -206,3 +206,61 @@ describe("the Frame tab's previews of a picture not yet saved", () => {
     expect(card.some((call) => call.name === "rotate" && call.args[0] === Math.PI / 2)).toBe(true);
   });
 });
+
+describe("the previews of a polygon frame (C5b)", () => {
+  it("trace the frame's shape on the Frame tab, at the room a polygon needs", () => {
+    const calls: { canvas: string; name: string; args: unknown[] }[] = [];
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (
+      this: HTMLCanvasElement,
+    ) {
+      const label = this.getAttribute("aria-label") ?? "";
+      return new Proxy({} as Record<string, unknown>, {
+        get: (target, name: string) =>
+          name in target
+            ? target[name]
+            : (...args: unknown[]) => {
+                calls.push({ canvas: label, name, args });
+                return { addColorStop: () => {} };
+              },
+        set: (target, name: string, value) => {
+          target[name] = value;
+          return true;
+        },
+      }) as never;
+    } as never);
+    render(
+      <TokenCreatorWindow
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+        deps={deps()}
+        frame={control({ ...defaultTokenFrame(), shape: "hexagon" })}
+        initialTab="frame"
+      />,
+    );
+    const card = calls.filter((call) => call.canvas === "Preview at card size on the dark map");
+    expect(card.some((call) => call.name === "arc")).toBe(false);
+    const token = 88 / (2 * 0.74);
+    const start = card.find((call) => call.name === "moveTo")!;
+    expect(start.args[0]).toBeCloseTo(44);
+    expect(start.args[1]).toBeCloseTo(44 - 0.5 * Math.cos(Math.PI / 6) * token);
+    expect(card.filter((call) => call.name === "lineTo").length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("show the picture in the shape on the Picture tab's small previews", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+    render(
+      <TokenCreatorWindow
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+        deps={deps()}
+        frame={control({ ...defaultTokenFrame(), shape: "shield" })}
+        initialTab="picture"
+      />,
+    );
+    await pickFile();
+    const previews = screen.getByRole("group", { name: "Preview at token size" });
+    const clipped = [...previews.querySelectorAll("div")].filter((div) => div.style.clipPath);
+    expect(clipped).toHaveLength(3); // the dark map, the light map, the fog
+    expect(clipped[0]!.style.clipPath).toMatch(/^polygon\(/);
+  });
+});

@@ -94,13 +94,17 @@ export function drawInShape(
   }
   context.save();
   traceLocal(context, node, shape, size, 0.5);
-  // The window stays upright while the picture turns with the token: its
-  // colour fills the corners a turned square picture leaves open.
-  if (color) {
-    context.fillStyle = color;
-    context.fill();
-  }
   context.clip();
+  // The window stays upright while the picture turns with the token: its
+  // colour fills only the corners a turned picture leaves open (the window
+  // less the picture's square), so a transparent picture shows the map
+  // through it, as a circle frame's does.
+  if (color) {
+    traceLocal(context, node, shape, size, 0.5);
+    context.rect(0, 0, node.width(), node.height());
+    context.fillStyle = color;
+    context.fill("evenodd");
+  }
   context.drawImage(image, 0, 0, node.width(), node.height());
   context.restore();
 }

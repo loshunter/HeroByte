@@ -13,10 +13,11 @@ import { useFrameBitmap } from "../useFrameBitmap";
 import type { FrameTierBudget } from "../frameTier";
 
 const requested: FrameBakeInput[] = [];
+let peeked: unknown = null;
 let cap = 48 * 1024 * 1024;
 vi.mock("../frameBitmapCache", () => ({
   frameCacheCap: () => cap,
-  peekFrameBitmap: () => null,
+  peekFrameBitmap: () => peeked,
   retainFrameBitmap: () => () => {},
   requestFrameBitmap: (_key: string, input: FrameBakeInput) => {
     requested.push(input);
@@ -59,5 +60,19 @@ describe("a map token's frame tier", () => {
     renderHook(() => useFrameBitmap(request({ tier: 128, shareSeeds: true }, "b")));
     expect(requested[2]!.seed).toBe(0);
     expect(requested[3]!.seed).toBe(0);
+  });
+  it("keeps the shown bitmap's layout, its shape included, until the changed frame's bitmap is in", () => {
+    peeked = { width: 1, height: 1 };
+    let frame = presetFrame("plain.ring")!;
+    const { result, rerender } = renderHook(() => useFrameBitmap({ ...request(undefined), frame }));
+    expect(result.current?.layout.shape).toBe("circle");
+    peeked = null; // the hexagon's bake has not landed
+    frame = { ...frame, shape: "hexagon" };
+    rerender();
+    expect(result.current?.layout.shape).toBe("circle");
+    peeked = { width: 1, height: 1 };
+    rerender();
+    expect(result.current?.layout.shape).toBe("hexagon");
+    peeked = null;
   });
 });

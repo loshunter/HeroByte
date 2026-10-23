@@ -30,6 +30,7 @@ export interface FrameDrawing {
   bitmap: FrameBitmap | null;
   /** Half the bitmap's edge in token units: the bitmap's own, which may be the previous frame's. */
   extent: number;
+  /** Where the bands lie: the bitmap's own too, so the clip, hit area and outline match it. */
   layout: FrameLayout;
   tier: number;
 }
@@ -50,7 +51,7 @@ export interface FrameBitmapRequest {
 
 export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing | null {
   const tierRef = useRef<number | null>(null);
-  const lastRef = useRef<{ bitmap: FrameBitmap; extent: number } | null>(null);
+  const lastRef = useRef<{ bitmap: FrameBitmap; extent: number; layout: FrameLayout } | null>(null);
   const [, bump] = useReducer((count: number) => count + 1, 0);
   // A bake that failed (a decode refused under memory pressure) is asked for again, twice at most.
   const [retry, setRetry] = useState<{ key: string | null; count: number }>({
@@ -107,11 +108,13 @@ export function useFrameBitmap(request: FrameBitmapRequest | null): FrameDrawing
     lastRef.current = null;
     return null;
   }
-  if (bitmap) lastRef.current = { bitmap, extent: layout.extent };
+  if (bitmap) lastRef.current = { bitmap, extent: layout.extent, layout };
+  // The layout of the bitmap on show: until a changed frame's bitmap is in, the
+  // clip, hit area and outline stay with the frame still drawn (a new shape too).
   return {
     bitmap: lastRef.current?.bitmap ?? null,
     extent: lastRef.current?.extent ?? layout.extent,
-    layout,
+    layout: lastRef.current?.layout ?? layout,
     tier: input!.tier,
   };
 }
