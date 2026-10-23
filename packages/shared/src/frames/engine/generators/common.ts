@@ -23,6 +23,8 @@ export interface GeneratorContext {
   maxMotifs: number;
   /** The band's thickness in this bitmap's pixels: details under a pixel are left out. */
   bandPx: number;
+  /** A polygon's corners, u ascending: corner-aware motifs end on them (absent on a circle). */
+  corners?: number[];
 }
 
 export type FrameGenerator = (context: GeneratorContext) => Facet[];
@@ -97,6 +99,57 @@ export function splitLength(
   const raw = Array.from({ length: count }, (_, index) => 1 + spread * (rolls[index]! * 2 - 1));
   const sum = raw.reduce((acc, value) => acc + value, 0);
   return raw.map((value) => (value / sum) * total);
+}
+
+/** One motif's place along a course: where it starts and how long it is, in u. */
+export interface Laid {
+  at: number;
+  length: number;
+}
+
+/**
+ * A course's motifs end to end, `count` of them by the repeat rule, their
+ * lengths varied by `spread` with `rolls`. Round a circle they start at a
+ * seeded `phase` and a `shift`ed course starts half a motif on (a running
+ * bond). Round a polygon (CORNER-AWARE) every side between two corners gets
+ * its own share, so a joint falls on every corner and no motif folds round
+ * one; a shifted course there starts and ends each side with a half motif,
+ * as a quoin would.
+ */
+export function layCourse(
+  context: Pick<GeneratorContext, "length" | "corners">,
+  count: number,
+  spread: number,
+  rolls: number[],
+  phase: number,
+  shift: boolean,
+): Laid[] {
+  const { length, corners } = context;
+  const laid: Laid[] = [];
+  if (!corners || corners.length === 0) {
+    const lengths = splitLength(length, count, spread, rolls);
+    let u = phase * (length / count) + (shift ? lengths[0]! / 2 : 0);
+    for (const piece of lengths) {
+      laid.push({ at: u, length: piece });
+      u += piece;
+    }
+    return laid;
+  }
+  let used = 0;
+  corners.forEach((corner, index) => {
+    const span = (index + 1 < corners.length ? corners[index + 1]! : corners[0]! + length) - corner;
+    const share = Math.max(1, Math.round((count * span) / length));
+    const own = Array.from({ length: share }, (_, at) => rolls[(used + at) % rolls.length]!);
+    used += share;
+    const lengths = splitLength(span, share, spread, own);
+    const pieces = shift ? [lengths[0]! / 2, ...lengths.slice(1), lengths[0]! / 2] : lengths;
+    let u = corner;
+    for (const piece of pieces) {
+      laid.push({ at: u, length: piece });
+      u += piece;
+    }
+  });
+  return laid;
 }
 
 /** A polygon's centroid (vertex mean: motifs are convex enough for lighting). */

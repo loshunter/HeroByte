@@ -16,7 +16,7 @@ import {
   draws,
   motifCount,
   num,
-  splitLength,
+  layCourse,
   type FrameGenerator,
 } from "./common.js";
 
@@ -37,6 +37,7 @@ export const plate: FrameGenerator = ({
   rng,
   maxMotifs,
   bandPx,
+  corners,
 }) => {
   const plateLength = num(params, "plateLength");
   const rivetRows = RIVET_ROWS[num(params, "rivetRows")] ?? [];
@@ -53,17 +54,24 @@ export const plate: FrameGenerator = ({
     const heightU = 1 / courses / scale;
     const heightV = 1 / courses;
     const count = motifCount(length * scale * courses, plateLength, maxMotifs);
-    const lengths = splitLength(length, count, 0.25 * irregularity, draws(rng, count));
-    let u = phaseRoll! * (length / count) + (course % 2) * (lengths[0]! / 2);
+    const rolls = draws(rng, count);
+    const laid = layCourse(
+      { length, corners },
+      count,
+      0.25 * irregularity,
+      rolls,
+      phaseRoll!,
+      course % 2 === 1,
+    );
     const v0 = course * heightV;
     const v1 = v0 + heightV;
-    for (let index = 0; index < count; index += 1) {
+    for (const { at: u, length: piece } of laid) {
       const d = draws(rng, DRAWS_PER_PLATE);
       const jitter = (at: number, size: number) => (d[at]! * 2 - 1) * size * irregularity;
       const gapU = weld ? 0 : (seam / 2) * heightU;
       const start = u + gapU;
-      const end = u + lengths[index]! - gapU;
-      u += lengths[index]!;
+      const end = u + piece - gapU;
+      const joint = u + piece;
       const shape = [
         start + jitter(0, 0.12 * heightU),
         v0,
@@ -92,7 +100,7 @@ export const plate: FrameGenerator = ({
         for (let ripple = 0; ripple < BEAD_RIPPLES; ripple += 1) {
           const a = v0 + ripple * step;
           const b = a + step;
-          const centre = u + jitter(4 + ripple, 0.2 * half);
+          const centre = joint + jitter(4 + ripple, 0.2 * half);
           facets.push({
             role: "bevel",
             points: [

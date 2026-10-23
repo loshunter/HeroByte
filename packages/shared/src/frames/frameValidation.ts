@@ -17,12 +17,13 @@ import { framePaletteById } from "./catalogLookup.js";
 import { frameGeneratorSpec, resolveFrameParams } from "./generatorSpecs.js";
 /** What pinning a seeded band's seed adds to its JSON, at most (`,"seed":-2147483648`). */
 const PINNED_SEED_BYTES = 19;
-import { FRAME_LIMITS } from "./frameLimits.js";
+import { FRAME_LIMITS, FRAME_SHAPES } from "./frameLimits.js";
 import type {
   FrameBand,
   FrameBevelProfile,
   FrameGrowth,
   FramePalette,
+  FrameShape,
   TokenFrame,
 } from "./types.js";
 
@@ -96,8 +97,8 @@ export function sanitizeTokenFrame(
   palettes?: Readonly<Record<string, FramePalette>>,
 ): FrameCheck {
   if (!isRecord(raw)) return { error: "frame must be an object" };
-  if (raw.shape !== undefined && raw.shape !== "circle") {
-    return { error: "frame shape must be circle" };
+  if (raw.shape !== undefined && !FRAME_SHAPES.includes(raw.shape as FrameShape)) {
+    return { error: `frame shape must be one of ${FRAME_SHAPES.join(", ")}` };
   }
   if (raw.finish !== undefined && raw.finish !== "none") {
     return { error: "frame finishes are not available" };
@@ -141,7 +142,7 @@ export function sanitizeTokenFrame(
   }
   const frame: TokenFrame = {
     ...(raw.preset !== undefined ? { preset: raw.preset as string } : {}),
-    ...(raw.shape !== undefined ? { shape: "circle" as const } : {}),
+    ...(raw.shape !== undefined ? { shape: raw.shape as FrameShape } : {}),
     ...(raw.growth !== undefined ? { growth: raw.growth as FrameGrowth } : {}),
     accent: (raw.accent as string | undefined) ?? "personal",
     bands,
@@ -215,7 +216,7 @@ export function coerceTokenFrame(raw: unknown): TokenFrame | undefined {
   if (total < low || total > high) scaleInto(bands, total);
   const frame: TokenFrame = {
     ...(isFramePreset(raw.preset) ? { preset: raw.preset as string } : {}),
-    ...(raw.shape === "circle" ? { shape: "circle" as const } : {}),
+    ...(FRAME_SHAPES.includes(raw.shape as FrameShape) ? { shape: raw.shape as FrameShape } : {}),
     ...(GROWTHS.includes(raw.growth as FrameGrowth) ? { growth: raw.growth as FrameGrowth } : {}),
     accent: isColor(raw.accent) ? raw.accent : "personal",
     bands,

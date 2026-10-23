@@ -25,14 +25,19 @@ import {
 } from "./bandSpace.js";
 import {
   bandEdgeFacets,
+  CIRCLE_PATH,
   dropShadowFacets,
+  shapePath,
   stepFacets,
   windowShadowFacets,
   type EdgeFacet,
+  type EdgePath,
 } from "./frameEdges.js";
 import { FRAME_GENERATORS } from "./generators/index.js";
 import { motifBudget } from "./generators/common.js";
 import { bandSeed } from "./frameSeeds.js";
+import { isPolygonShape, outlineLength, shapeOutline, type PolygonShape } from "./shapes.js";
+import { levelScale, makeRibbon, ribbonPoint, ribbonPolygon, shapeBand } from "./shapeRibbon.js";
 import { createRaster, fillPolygon, rasterToRgba } from "./raster.js";
 import {
   mixRgb,
@@ -99,24 +104,68 @@ function centroid(points: readonly number[]): [number, number] {
   return [x / count, y / count];
 }
 
+/** How one ring is laid out in band space and warped, for the circle or a polygon. */
+interface RingWarp {
+  length: number;
+  courses: number;
+  courseScale: (course: number) => number;
+  corners?: number[];
+  polygon: (points: readonly number[]) => number[];
+  point: (u: number, v: number) => [number, number];
+}
+
+function ringWarp(ring: BandRing, shape: FrameLayout["shape"]): RingWarp {
+  const middle = (ring.r0 + ring.r1) / 2;
+  if (!isPolygonShape(shape)) {
+    const length = bandLength(ring);
+    const courses = courseCount(ring);
+    return {
+      length,
+      courses,
+      courseScale: (course) =>
+        (ring.r0 + (ring.r1 - ring.r0) * ((course + 0.5) / courses)) / middle,
+      polygon: (points) => warpPolygon(ring, length, points),
+      point: (u, v) => warpPoint(ring, length, u, v),
+    };
+  }
+  const ribbon = makeRibbon(shape, ring.r0, ring.r1);
+  const courses = polygonCourses(shape, ring.r0, ring.r1);
+  return {
+    length: ribbon.length,
+    courses,
+    courseScale: (course) =>
+      levelScale(shape, ring.r0 + (ring.r1 - ring.r0) * ((course + 0.5) / courses), middle),
+    corners: ribbon.corners,
+    polygon: (points) => ribbonPolygon(ribbon, points),
+    point: (u, v) => ribbonPoint(ribbon, u, v),
+  };
+}
+
+/** The slivers rule on a polygon: the inner outline's length over the outer's, as courseCount. */
+function polygonCourses(shape: PolygonShape, r0: number, r1: number): number {
+  const ratio = outlineLength(shapeOutline(shape, r0)) / outlineLength(shapeOutline(shape, r1));
+  return ratio < 0.36 ? 3 : ratio < 0.6 ? 2 : 1;
+}
+
 function ringPaints(
   ring: BandRing,
   index: number,
   input: FrameBakeInput,
   palette: ResolvedPalette,
   layout: FrameLayout,
+  path: EdgePath,
 ): Paint[] {
   const { band } = ring;
   const generator = frameGeneratorSpec(band.generator) ? band.generator : "plain";
   const generate = FRAME_GENERATORS[generator]!;
   const params = resolveFrameParams(generator, band.params);
-  const length = bandLength(ring);
-  const courses = courseCount(ring);
-  const middle = (ring.r0 + ring.r1) / 2;
+  const warp = ringWarp(ring, layout.shape);
+  const { length, courses } = warp;
   const facets = generate({
     length,
     courses,
-    courseScale: (course) => (ring.r0 + (ring.r1 - ring.r0) * ((course + 0.5) / courses)) / middle,
+    courseScale: warp.courseScale,
+    ...(warp.corners ? { corners: warp.corners } : {}),
     params,
     rng: createSeededRng(bandSeed(input.frame, index, input.seed)),
     maxMotifs: motifBudget(input.frame.bands.length, courses, generator, params),
@@ -129,7 +178,7 @@ function ringPaints(
     : null;
   const paints: Paint[] = [];
   for (const facet of facets) {
-    const points = warpPolygon(ring, length, facet.points);
+    const points = warp.polygon(facet.points);
     let role: FrameRole = facet.role;
     const base = palette.roles[role];
     if (glow && (role === "crack" || role === "glow")) {
@@ -145,7 +194,7 @@ function ringPaints(
     let normal: Vec3 = UP;
     if (facet.tilt) {
       const [cx, cy] = centroid(points);
-      const [fx, fy] = warpPoint(ring, length, facet.tilt.from[0], facet.tilt.from[1]);
+      const [fx, fy] = warp.point(facet.tilt.from[0], facet.tilt.from[1]);
       normal = slopeNormal(cx - fx, cy - fy, facet.tilt.pitch);
     }
     paints.push({
@@ -156,7 +205,7 @@ function ringPaints(
   }
   const bevel = band.bevel ?? frameGeneratorSpec(band.generator)?.bevel;
   if (bevel) {
-    for (const edge of bandEdgeFacets(ring.r0, ring.r1, bevel.profile, bevel.width)) {
+    for (const edge of bandEdgeFacets(ring.r0, ring.r1, bevel.profile, bevel.width, path)) {
       paints.push(edgePaint(edge, palette, "bevel"));
     }
   }
@@ -183,12 +232,16 @@ export function framePaints(input: FrameBakeInput): { paints: Paint[]; layout: F
     resolvePalette(framePaletteById(ring.band.palette, catalog) ?? fallback, input.accent),
   );
   const paints: Paint[] = [];
+  const shape = layout.shape;
+  const path = isPolygonShape(shape) ? shapePath(shape) : CIRCLE_PATH;
+  const band = (level0: number, level1: number) =>
+    isPolygonShape(shape) ? shapeBand(shape, level0, level1) : annulus(level0, level1);
   // Loops, never push(...many): a big frame is tens of thousands of facets.
   const add = (more: readonly Paint[]) => {
     for (const paint of more) paints.push(paint);
   };
   if (layout.outset > 0) {
-    add(dropShadowFacets(layout.outer).map((edge) => edgePaint(edge, null, "shadow")));
+    add(dropShadowFacets(layout.outer, path).map((edge) => edgePaint(edge, null, "shadow")));
   }
   // Where two bands meet, a thin opaque strip under the joint: their smoothed
   // edges blend into it instead of letting the map show through. Only there,
@@ -203,14 +256,14 @@ export function framePaints(input: FrameBakeInput): { paints: Paint[]; layout: F
     const above = Math.min(2 * pixel, (outer.r1 - outer.r0) / 2);
     add([
       {
-        points: annulus(joint - below, joint + above),
+        points: band(joint - below, joint + above),
         color: palettes[index]!.roles.outline,
         alpha: 1,
       },
     ]);
   }
   layout.rings.forEach((ring, index) =>
-    add(ringPaints(ring, index, input, palettes[index]!, layout)),
+    add(ringPaints(ring, index, input, palettes[index]!, layout, path)),
   );
   // Steps between neighbouring bands of different height, over both of them.
   for (let index = 0; index + 1 < layout.rings.length; index += 1) {
@@ -227,6 +280,7 @@ export function framePaints(input: FrameBakeInput): { paints: Paint[]; layout: F
       tallerInside,
       Math.min(0.45 * (taller.r1 - taller.r0), 0.03 * Math.abs(rise)),
       0.8 * (lower.r1 - lower.r0),
+      path,
     );
     const tallerPalette = palettes[tallerInside ? index : index + 1]!;
     add(side.map((edge) => edgePaint(edge, tallerPalette, "side")));
@@ -235,7 +289,7 @@ export function framePaints(input: FrameBakeInput): { paints: Paint[]; layout: F
   const innermost = layout.rings[0];
   if (innermost) {
     add(
-      windowShadowFacets(layout.window, innermost.band.depth).map((edge) =>
+      windowShadowFacets(layout.window, innermost.band.depth, path).map((edge) =>
         edgePaint(edge, null, "shadow"),
       ),
     );

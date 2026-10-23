@@ -22,7 +22,7 @@ import {
   draws,
   motifCount,
   num,
-  splitLength,
+  layCourse,
   stroke,
   type FrameGenerator,
 } from "./common.js";
@@ -36,6 +36,7 @@ export const masonry: FrameGenerator = ({
   params,
   rng,
   maxMotifs,
+  corners,
 }) => {
   const bond = params.bond as string;
   const stoneLength = num(params, "stoneLength");
@@ -58,18 +59,16 @@ export const masonry: FrameGenerator = ({
     const count = motifCount(length * scale * courses, stoneLength, maxMotifs);
     const rolls = draws(rng, count);
     const spread = rough ? 0.3 + 0.3 * irregularity : 0.12 * irregularity;
-    const lengths = splitLength(length, count, spread, rolls);
-    const bondShift = bond === "running" && course % 2 === 1 ? lengths[0]! / 2 : 0;
-    let u = phaseRoll! * (length / count) + bondShift;
+    const running = bond === "running" && course % 2 === 1;
+    const laid = layCourse({ length, corners }, count, spread, rolls, phaseRoll!, running);
     const v0 = course * heightV;
     const v1 = v0 + heightV;
-    for (let stone = 0; stone < count; stone += 1) {
+    for (const { at: u, length: piece } of laid) {
       const d = draws(rng, DRAWS_PER_STONE);
       const jitter = (index: number, size: number) => (d[index]! * 2 - 1) * size;
       const half = { u: (gap / 2) * heightU, v: (gap / 2) * heightV };
       const start = u + half.u;
-      const end = u + lengths[stone]! - half.u;
-      u += lengths[stone]!;
+      const end = u + piece - half.u;
       const ju = irregularity * (rough ? 0.22 : 0.1) * heightU;
       const jv = irregularity * (rough ? 0.14 : 0.06) * heightV;
       const top = v0 + half.v;

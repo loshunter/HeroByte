@@ -13,7 +13,7 @@ import {
   draws,
   motifCount,
   num,
-  splitLength,
+  layCourse,
   stroke,
   type FrameGenerator,
 } from "./common.js";
@@ -30,6 +30,7 @@ export const plank: FrameGenerator = ({
   rng,
   maxMotifs,
   bandPx,
+  corners,
 }) => {
   const plankLength = num(params, "plankLength");
   const gap = num(params, "gap");
@@ -45,14 +46,13 @@ export const plank: FrameGenerator = ({
     const heightU = 1 / courses / scale;
     const heightV = 1 / courses;
     const count = motifCount(length * scale * courses, plankLength, maxMotifs);
-    const lengths = splitLength(length, count, 0.15, draws(rng, count));
-    let u = phaseRoll! * (length / count) + (course % 2) * (lengths[0]! / 2);
+    const rolls = draws(rng, count);
+    const laid = layCourse({ length, corners }, count, 0.15, rolls, phaseRoll!, course % 2 === 1);
     const v0 = course * heightV;
-    for (let board = 0; board < count; board += 1) {
+    for (const { at: u, length: piece } of laid) {
       const d = draws(rng, DRAWS_PER_PLANK);
       const start = u + (gap / 2) * heightU;
-      const end = u + lengths[board]! - (gap / 2) * heightU;
-      u += lengths[board]!;
+      const end = u + piece - (gap / 2) * heightU;
       const top = v0 + 0.04 * heightV;
       const bottom = v0 + 0.96 * heightV;
       const shape = [start, top, end, top, end, bottom, start, bottom];

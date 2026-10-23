@@ -14,7 +14,8 @@
 
 import type { TokenSize } from "../../index.js";
 import { FRAME_LIMITS, frameSizeScale } from "../frameLimits.js";
-import type { FrameBand, FrameRole, TokenFrame } from "../types.js";
+import type { FrameBand, FrameRole, FrameShape, TokenFrame } from "../types.js";
+import { isPolygonShape, shapeReach } from "./shapes.js";
 
 /** A polygon in band space, tagged with what it is. */
 export interface Facet {
@@ -47,6 +48,8 @@ export interface FrameLayout {
   outset: number;
   /** Half the bitmap's edge, token units: the outer radius plus room for shadows and smoothing. */
   extent: number;
+  /** What the bands are laid round; the levels above are radii for a circle (shapes.ts). */
+  shape: FrameShape;
 }
 
 /** Where the bands sit for this token: weight scaled for its size, growth applied. */
@@ -70,8 +73,12 @@ export function layoutFrame(frame: TokenFrame, size?: TokenSize): FrameLayout {
     return { band, r0, r1: radius };
   });
   // A grown-out frame casts a soft shadow on the map; room for it, and for smoothing.
-  const extent = outer + (outset > 0 ? 0.045 : 0.012);
-  return { rings, window, outer, outset, extent };
+  // A polygon's corners and the shield's point reach past its level, its
+  // shadow's too: measured at the level the shadow reaches, a pixel to spare.
+  const shape = frame.shape ?? "circle";
+  const margin = outset > 0 ? 0.045 : 0.012;
+  const extent = isPolygonShape(shape) ? shapeReach(shape, outer + margin) + 0.012 : outer + margin;
+  return { rings, window, outer, outset, extent, shape };
 }
 
 /** The ring's length once round, in its own band heights (the u range). */

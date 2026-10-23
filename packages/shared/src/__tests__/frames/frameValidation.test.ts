@@ -31,8 +31,13 @@ describe("sanitizeTokenFrame (the wire)", () => {
     }
   });
 
-  it("refuses a hexagon, a finish, seven bands, a 0.5 total and an unknown palette", () => {
-    expect(refusal({ ...welded(), shape: "hexagon" })).toBe("frame shape must be circle");
+  it("refuses a triangle, a finish, seven bands, a 0.5 total and an unknown palette", () => {
+    expect(refusal({ ...welded(), shape: "triangle" })).toBe(
+      "frame shape must be one of circle, squircle, square, hexagon, octagon, shield",
+    );
+    for (const shape of ["circle", "squircle", "square", "hexagon", "octagon", "shield"]) {
+      expect(refusal({ ...welded(), shape }), shape).toBeNull(); // the six shapes (C5b)
+    }
     expect(refusal({ ...welded(), finish: "rainbow" })).toBe("frame finishes are not available");
     const band = { ...welded().bands[0]!, weight: 0.03 };
     expect(refusal({ bands: Array.from({ length: 7 }, () => band) })).toBe(
@@ -102,7 +107,7 @@ describe("coerceTokenFrame (files)", () => {
   it("loads an unknown generator or palette as plain grey stone, never refusing", () => {
     const frame = coerceTokenFrame({
       preset: "nature.ivy",
-      shape: "hexagon",
+      shape: "triangle",
       finish: "rainbow",
       accent: "chartreuse",
       bands: [
@@ -125,8 +130,11 @@ describe("coerceTokenFrame (files)", () => {
     expect(frame.bands[0]!.params).toEqual({ grain: 0 });
     expect(frame.bands[1]).toMatchObject({ generator: "masonry", palette: "brick.red" });
     expect(frame).not.toHaveProperty("preset");
-    expect(frame).not.toHaveProperty("shape");
+    expect(frame).not.toHaveProperty("shape"); // a newer build's shape: a circle here
     expect(frame).not.toHaveProperty("finish");
+    expect(coerceTokenFrame({ ...presetFrame("stone.castle"), shape: "shield" })!.shape).toBe(
+      "shield",
+    );
     expect(frame.accent).toBe("personal");
     expect(sanitizeTokenFrame(frame)).toHaveProperty("frame");
   });

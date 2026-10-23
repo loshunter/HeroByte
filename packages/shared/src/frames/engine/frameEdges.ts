@@ -14,6 +14,7 @@
 
 import type { FrameBevelProfile } from "../types.js";
 import { LIGHT, UP, slopeNormal, type Vec3 } from "./shading.js";
+import { edgeNormalsOf, shapeOutline, type PolygonShape } from "./shapes.js";
 
 /** A facet in token space, its normal already known. */
 export interface EdgeFacet {
@@ -52,18 +53,72 @@ function arcQuad(r0: number, r1: number, a0: number, a1: number, cx = 0, cy = 0)
 /** How far a lit segment runs on under its neighbour, so no seam of background shows between. */
 const OVERLAP = 0.004;
 
+/** One piece of the edge round the shape: its quad between two levels, and its outward direction. */
+export interface EdgeSegment {
+  /** Between levels l0 and l1; `extra` runs a lit piece on under its neighbour; (cx, cy) shifts it. */
+  quad: (l0: number, l1: number, extra?: number, cx?: number, cy?: number) => number[];
+  dx: number;
+  dy: number;
+}
+
+/** The pieces round a shape. Lit pieces overlap their neighbour a hair (`overlap`); shadows never do. */
+export type EdgePath = (overlap?: number) => Iterable<EdgeSegment>;
+
 /**
- * Round the ring: each segment's start and end angle, and its outward
+ * Round the circle: each segment's start and end angle, and its outward
  * direction. Lit segments overlap their neighbour a hair (`overlap`);
  * shadows never do, or each joint would darken twice.
  */
-function* segments(overlap = 0): Generator<{ a0: number; a1: number; dx: number; dy: number }> {
+export const CIRCLE_PATH: EdgePath = function* (overlap = 0) {
   for (let index = 0; index < EDGE_SEGMENTS; index += 1) {
     const a0 = (index / EDGE_SEGMENTS) * Math.PI * 2;
     const a1 = ((index + 1) / EDGE_SEGMENTS) * Math.PI * 2 + overlap;
     const middle = (a0 + a1) / 2;
-    yield { a0, a1, dx: Math.cos(middle), dy: Math.sin(middle) };
+    yield {
+      quad: (l0, l1, extra = 0, cx = 0, cy = 0) => arcQuad(l0, l1, a0, a1 + extra, cx, cy),
+      dx: Math.cos(middle),
+      dy: Math.sin(middle),
+    };
   }
+};
+
+/**
+ * Round a polygon: one piece per edge of its outline (a corner is the mitre
+ * between two). Pieces share their corners exactly, and the band's own fill
+ * lies under them, so they need no overlap.
+ */
+export function shapePath(shape: PolygonShape): EdgePath {
+  const levels = new Map<number, number[]>();
+  const at = (level: number) => {
+    let points = levels.get(level);
+    if (!points) levels.set(level, (points = shapeOutline(shape, level)));
+    return points;
+  };
+  const normals = edgeNormalsOf(shapeOutline(shape, 0.5));
+  const count = normals.length / 2;
+  return function* () {
+    for (let index = 0; index < count; index += 1) {
+      const next = (index + 1) % count;
+      yield {
+        quad: (l0, l1, _extra = 0, cx = 0, cy = 0) => {
+          const a = at(l0);
+          const b = at(l1);
+          return [
+            cx + a[index * 2]!,
+            cy + a[index * 2 + 1]!,
+            cx + b[index * 2]!,
+            cy + b[index * 2 + 1]!,
+            cx + b[next * 2]!,
+            cy + b[next * 2 + 1]!,
+            cx + a[next * 2]!,
+            cy + a[next * 2 + 1]!,
+          ];
+        },
+        dx: normals[index * 2]!,
+        dy: normals[index * 2 + 1]!,
+      };
+    }
+  };
 }
 
 /** Strips from the edge inward: [start, end] as shares of the bevel width, and the slope. */
@@ -84,22 +139,23 @@ export function bandEdgeFacets(
   r1: number,
   profile: FrameBevelProfile,
   width: number,
+  path: EdgePath = CIRCLE_PATH,
 ): EdgeFacet[] {
   const facets: EdgeFacet[] = [];
   const reach = (r1 - r0) * Math.min(0.5, width);
   if (reach <= 0) return facets;
   for (const strip of PROFILES[profile]) {
-    for (const { a0, a1, dx, dy } of segments(OVERLAP)) {
+    for (const { quad, dx, dy } of path(OVERLAP)) {
       // The outer edge slopes outward, the inner edge inward.
       facets.push({
         kind: "edge",
-        points: arcQuad(r1 - reach * strip.to, r1 - reach * strip.from, a0, a1),
+        points: quad(r1 - reach * strip.to, r1 - reach * strip.from),
         normal: slopeNormal(dx, dy, strip.pitch),
         alpha: 1,
       });
       facets.push({
         kind: "edge",
-        points: arcQuad(r0 + reach * strip.from, r0 + reach * strip.to, a0, a1),
+        points: quad(r0 + reach * strip.from, r0 + reach * strip.to),
         normal: slopeNormal(-dx, -dy, strip.pitch),
         alpha: 1,
       });
@@ -122,16 +178,17 @@ export function stepFacets(
   tallerInside: boolean,
   sideWidth: number,
   room: number,
+  path: EdgePath = CIRCLE_PATH,
 ): { side: EdgeFacet[]; shadow: EdgeFacet[] } {
   const side: EdgeFacet[] = [];
   const shadow: EdgeFacet[] = [];
   const toward = tallerInside ? 1 : -1; // from the taller band toward the lower, radially
-  for (const { a0, a1, dx, dy } of segments()) {
+  for (const { quad, dx, dy } of path()) {
     const [ox, oy] = [dx * toward, dy * toward];
     const sideFrom = boundary - toward * sideWidth;
     side.push({
       kind: "edge",
-      points: arcQuad(Math.min(sideFrom, boundary), Math.max(sideFrom, boundary), a0, a1 + OVERLAP),
+      points: quad(Math.min(sideFrom, boundary), Math.max(sideFrom, boundary), OVERLAP),
       normal: slopeNormal(ox, oy, 76),
       alpha: 1,
     });
@@ -147,7 +204,7 @@ export function stepFacets(
       const far = boundary + toward * depth * to;
       shadow.push({
         kind: "shadow",
-        points: arcQuad(Math.min(near, far), Math.max(near, far), a0, a1),
+        points: quad(Math.min(near, far), Math.max(near, far)),
         normal: UP,
         alpha: alpha * share,
       });
@@ -157,25 +214,24 @@ export function stepFacets(
 }
 
 /** The picture's edge, darkened where the frame stands between it and the light. */
-export function windowShadowFacets(window: number, depth: number): EdgeFacet[] {
+export function windowShadowFacets(
+  window: number,
+  depth: number,
+  path: EdgePath = CIRCLE_PATH,
+): EdgeFacet[] {
   const facets: EdgeFacet[] = [];
   const strips = [
     [0, 1 / 3, 1],
     [1 / 3, 2 / 3, 0.5],
     [2 / 3, 1, 0.2],
   ] as const;
-  for (const { a0, a1, dx, dy } of segments()) {
+  for (const { quad, dx, dy } of path()) {
     const away = awayFromLight(-dx, -dy);
     const alpha = (0.16 + 0.5 * away * depth) * 0.9;
     for (const [from, to, share] of strips) {
       facets.push({
         kind: "shadow",
-        points: arcQuad(
-          window - WINDOW_SHADOW_WIDTH * to,
-          window - WINDOW_SHADOW_WIDTH * from,
-          a0,
-          a1,
-        ),
+        points: quad(window - WINDOW_SHADOW_WIDTH * to, window - WINDOW_SHADOW_WIDTH * from),
         normal: UP,
         alpha: alpha * share,
       });
@@ -185,7 +241,7 @@ export function windowShadowFacets(window: number, depth: number): EdgeFacet[] {
 }
 
 /** A soft shadow under a grown-out frame, cast away from the light. */
-export function dropShadowFacets(outer: number): EdgeFacet[] {
+export function dropShadowFacets(outer: number, path: EdgePath = CIRCLE_PATH): EdgeFacet[] {
   const facets: EdgeFacet[] = [];
   const cx = CAST[0] * 0.012;
   const cy = CAST[1] * 0.012;
@@ -194,9 +250,9 @@ export function dropShadowFacets(outer: number): EdgeFacet[] {
     [outer + 0.008, outer + 0.02, 0.15],
     [outer + 0.02, outer + 0.032, 0.06],
   ] as const;
-  for (const { a0, a1 } of segments()) {
+  for (const { quad } of path()) {
     for (const [r0, r1, alpha] of rings) {
-      facets.push({ kind: "shadow", points: arcQuad(r0, r1, a0, a1, cx, cy), normal: UP, alpha });
+      facets.push({ kind: "shadow", points: quad(r0, r1, 0, cx, cy), normal: UP, alpha });
     }
   }
   return facets;
