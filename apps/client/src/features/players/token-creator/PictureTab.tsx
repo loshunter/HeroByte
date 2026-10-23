@@ -27,6 +27,8 @@ interface PictureTabProps {
   creator: TokenCreatorState;
   /** The map's corner radius as a share of the token's side (it depends on size). */
   corner: number;
+  /** A polygon frame's shape as a CSS clip-path (C5b): the picture framed in that shape. */
+  clip?: string;
   /** Whether this tab is the one showing (an error is brought into view only then). */
   shown?: boolean;
 }
@@ -35,7 +37,7 @@ interface PictureTabProps {
 const small = { fontSize: "10px", padding: "6px 10px" } as const;
 const label = { color: "var(--jrpg-gold)" } as const;
 
-export function PictureTab({ creator, corner, shown = true }: PictureTabProps) {
+export function PictureTab({ creator, corner, clip, shown = true }: PictureTabProps) {
   const { picture, crop, setCrop, backdrop, setBackdrop, autoColor, phase } = creator;
   const fileRef = useRef<HTMLInputElement>(null);
   // A failure is said at the foot of the tab, where the sticky Accept bar covers
@@ -73,7 +75,14 @@ export function PictureTab({ creator, corner, shown = true }: PictureTabProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      <CropStage picture={picture} crop={crop} onCrop={frame} fill={fill} corner={corner} />
+      <CropStage
+        picture={picture}
+        crop={crop}
+        onCrop={frame}
+        fill={fill}
+        corner={corner}
+        clip={clip}
+      />
 
       {picture && (
         <>
@@ -167,7 +176,9 @@ export function PictureTab({ creator, corner, shown = true }: PictureTabProps) {
         )}
       </div>
 
-      {picture && <PicturePreview picture={picture} crop={crop} fill={fill} corner={corner} />}
+      {picture && (
+        <PicturePreview picture={picture} crop={crop} fill={fill} corner={corner} clip={clip} />
+      )}
 
       <input
         ref={fileRef}

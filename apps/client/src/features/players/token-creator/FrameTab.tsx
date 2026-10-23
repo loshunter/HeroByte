@@ -21,7 +21,9 @@ import {
   frameWeight,
   presetFrame,
   withFrameWeight,
+  FRAME_SHAPES,
   type FramePresetTheme,
+  type FrameShape,
   type TokenFrame,
 } from "@herobyte/shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
@@ -35,6 +37,14 @@ const THEMES: { theme: FramePresetTheme; label: string }[] = [
   { theme: "wood", label: "Wood" },
 ];
 const WEIGHT_STOPS = Object.entries(FRAME_WEIGHTS) as [keyof typeof FRAME_WEIGHTS, number][];
+const SHAPE_NAMES: Record<FrameShape, string> = {
+  circle: "Circle",
+  squircle: "Rounded",
+  square: "Square",
+  hexagon: "Hexagon",
+  octagon: "Octagon",
+  shield: "Shield",
+};
 const FLOORS: { floor: PreviewFloor; label: string }[] = [
   { floor: "dark", label: "dark map" },
   { floor: "light", label: "light map" },
@@ -72,6 +82,9 @@ export function FrameTab({ control, active = true, pending, draft, onDraft }: Fr
     onDraft({
       ...next,
       ...(draft?.growth ? { growth: draft.growth } : {}),
+      // The shape and the notch are the token's, not the material's: a new preset keeps them.
+      ...(draft?.shape ? { shape: draft.shape } : {}),
+      ...(draft?.notch ? { notch: draft.notch } : {}),
       accent: draft?.accent ?? "personal",
     });
   };
@@ -115,6 +128,22 @@ export function FrameTab({ control, active = true, pending, draft, onDraft }: Fr
           </div>
         ))}
       </div>
+
+      {draft && (
+        <div style={row} role="group" aria-label="Shape">
+          {FRAME_SHAPES.map((shape) => (
+            <JRPGButton
+              key={shape}
+              onClick={() => edit((frame) => ({ ...frame, shape }))}
+              aria-pressed={(draft.shape ?? "circle") === shape}
+              variant={(draft.shape ?? "circle") === shape ? "primary" : "default"}
+              style={small}
+            >
+              {SHAPE_NAMES[shape]}
+            </JRPGButton>
+          ))}
+        </div>
+      )}
 
       {THEMES.map(({ theme, label: name }) => (
         <div
@@ -200,6 +229,18 @@ export function FrameTab({ control, active = true, pending, draft, onDraft }: Fr
               </JRPGButton>
             ))}
           </div>
+
+          <JRPGButton
+            onClick={() =>
+              edit(({ notch, ...frame }) => (notch ? frame : { ...frame, notch: { gem: "arrow" } }))
+            }
+            aria-pressed={draft.notch !== undefined}
+            variant={draft.notch ? "primary" : "default"}
+            title="An arrow gem at the top of the frame, pointing up"
+            style={small}
+          >
+            Facing notch
+          </JRPGButton>
 
           {!frameUsesAccent(draft) && (
             <span className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>

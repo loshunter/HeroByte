@@ -26,6 +26,7 @@ import type { TokenFrameControl } from "./frameControl";
 import { useTokenCreator, type TokenCreatorDeps } from "./useTokenCreator";
 import { resolveBackdrop } from "./backdrop";
 import { acceptLabels } from "./acceptLabels";
+import { shapeClipPath } from "./shapeClip";
 
 /** Open creators, oldest first: a paste goes to the last one opened. */
 const openCreators: symbol[] = [];
@@ -236,7 +237,12 @@ export function TokenCreatorWindow({
             aria-labelledby={`${ids}-tab-picture`}
             hidden={shown !== "picture"}
           >
-            <PictureTab creator={creator} corner={corner} shown={shown === "picture"} />
+            <PictureTab
+              creator={creator}
+              corner={corner}
+              clip={frame && draft ? shapeClipPath(draft.shape) : undefined}
+              shown={shown === "picture"}
+            />
           </div>
           {frame && (
             <div

@@ -29,6 +29,8 @@ interface CropStageProps {
   fill: BackdropFill;
   /** The map's corner as a share of the side (see TokenCreatorWindow). */
   corner: number;
+  /** A polygon frame's shape as a CSS clip-path (C5b), in place of the rounded corners. */
+  clip?: string;
 }
 
 const NUDGE = 0.02;
@@ -41,7 +43,7 @@ const CHECKER = "repeating-conic-gradient(#3a3646 0% 25%, #24212d 0% 50%) 50% / 
 type Point = { x: number; y: number };
 
 /** The window around it takes drops (TokenCreatorWindow); the square shows the hint. */
-export function CropStage({ picture, crop, onCrop, fill, corner }: CropStageProps) {
+export function CropStage({ picture, crop, onCrop, fill, corner, clip }: CropStageProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const sizeRef = useRef<Size | null>(null);
@@ -185,7 +187,8 @@ export function CropStage({ picture, crop, onCrop, fill, corner }: CropStageProp
         aspectRatio: "1 / 1",
         margin: "0 auto",
         overflow: "hidden",
-        borderRadius: `${corner * 100}%`,
+        borderRadius: clip ? 0 : `${corner * 100}%`,
+        clipPath: clip,
         border: "2px solid var(--jrpg-border-gold)",
         background: fill.kind === "none" ? CHECKER : cssBackground(fill),
         touchAction: "none",

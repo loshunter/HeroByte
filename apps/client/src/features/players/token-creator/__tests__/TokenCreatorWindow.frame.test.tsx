@@ -385,3 +385,46 @@ describe("the Frame tab, after review round 3", () => {
     expect(previewDraws()).toBeGreaterThan(before); // shown, they draw
   });
 });
+
+describe("the Frame tab's shapes and notch (C5b)", () => {
+  it("sends the shape and the notch picked, and keeps both when the material changes", () => {
+    const { value, onApply } = control();
+    open(value);
+    press("Hexagon");
+    press("Facing notch");
+    press("Castle stone"); // a new material keeps the token's shape and notch
+    expect(screen.getByRole("button", { name: "Hexagon" })).toHaveAttribute("aria-pressed", "true");
+    press("Use this frame");
+    const frame = sent(onApply)!;
+    expect(frame.preset).toBe("stone.castle");
+    expect(frame.shape).toBe("hexagon");
+    expect(frame.notch).toEqual({ gem: "arrow" });
+    expect(sanitizeTokenFrame(frame)).toHaveProperty("frame");
+  });
+
+  it("takes the notch off again, and offers the frame colour for the gem", () => {
+    const { value, onApply } = control();
+    open(value);
+    press("Castle stone");
+    expect(screen.queryByRole("group", { name: "Frame colour" })).toBeNull();
+    press("Facing notch");
+    expect(screen.getByRole("group", { name: "Frame colour" })).toBeInTheDocument(); // the gem's
+    press("Facing notch");
+    press("Use this frame");
+    expect(sent(onApply)).not.toHaveProperty("notch");
+  });
+
+  it("frames the picture in the shape on the Picture tab", async () => {
+    const { value } = control();
+    open(value);
+    press("Shield");
+    fireEvent.click(screen.getByRole("tab", { name: "Picture" }));
+    await pickFile();
+    const crop = screen.getByTestId("token-creator-crop");
+    expect(crop.style.clipPath).toMatch(/^polygon\(50\.00% 0\.00%, /);
+    fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
+    press("Circle");
+    fireEvent.click(screen.getByRole("tab", { name: "Picture" }));
+    expect(screen.getByTestId("token-creator-crop").style.clipPath).toBe("");
+  });
+});

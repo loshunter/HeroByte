@@ -28,9 +28,11 @@ interface PicturePreviewProps {
   fill: BackdropFill;
   /** The map's corner as a share of the side. */
   corner: number;
+  /** A polygon frame's shape as a CSS clip-path (C5b), in place of the rounded corners. */
+  clip?: string;
 }
 
-export function PicturePreview({ picture, crop, fill, corner }: PicturePreviewProps) {
+export function PicturePreview({ picture, crop, fill, corner, clip }: PicturePreviewProps) {
   const placed = cssPlacement(placementFor(crop, picture.size, 100));
   const imageStyle: CSSProperties = {
     position: "absolute",
@@ -67,7 +69,8 @@ export function PicturePreview({ picture, crop, fill, corner }: PicturePreviewPr
                 width: TOKEN,
                 height: TOKEN,
                 overflow: "hidden",
-                borderRadius: TOKEN * corner,
+                borderRadius: clip ? 0 : TOKEN * corner,
+                clipPath: clip,
                 background: cssBackground(fill),
               }}
             >

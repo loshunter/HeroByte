@@ -7,10 +7,11 @@
 // map). Sized so even a frame grown out to its limit fits.
 
 import { useEffect, useRef } from "react";
-import type { TokenFrame, TokenSize } from "@herobyte/shared";
+import { isPolygonShape, type TokenFrame, type TokenSize } from "@herobyte/shared";
 import { useFrameBitmap } from "../../render/frame/useFrameBitmap";
 import { PROP_SIZE_MULTIPLIERS } from "../../map/propSizing";
 import { paintPicture } from "./bake";
+import { traceShape } from "./shapeClip";
 import type { BackdropFill } from "./backdrop";
 import type { CropState, Size } from "./cropMath";
 
@@ -21,8 +22,8 @@ export const PREVIEW_FLOORS = {
 } as const;
 export type PreviewFloor = keyof typeof PREVIEW_FLOORS;
 
-/** A frame's bitmap reaches 0.7 of the token's edge from its centre at most. */
-const MAX_EXTENT = 0.7;
+/** A frame's bitmap reaches 0.75 of the token's edge from its centre at most (a grown-out hexagon's corner). */
+const MAX_EXTENT = 0.75;
 
 export interface FramePreviewProps {
   frame: TokenFrame | null;
@@ -112,7 +113,8 @@ export function FramePreview({
     const centre = edge / 2;
     context.save();
     context.beginPath();
-    if (frame) context.arc(centre, centre, token / 2, 0, Math.PI * 2);
+    if (frame && isPolygonShape(frame.shape)) traceShape(context, frame.shape, centre, token);
+    else if (frame) context.arc(centre, centre, token / 2, 0, Math.PI * 2);
     // Frameless, the map's own rounded square: corners of an eighth of a cell whatever the size.
     else
       roundedSquare(
