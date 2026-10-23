@@ -7,10 +7,11 @@
 // framed token is drawn as a circle with TokenFrameOverlay over it.
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Rect, Image as KonvaImage } from "react-konva";
+import { Group, Rect, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { SceneObject } from "@herobyte/shared";
+import { isPolygonShape, type SceneObject } from "@herobyte/shared";
+import { clipToShape, hitShape } from "./frameShapePath";
 import useImage from "use-image";
 import { SelectionRing } from "./SelectionRing";
 import { TokenFrameOverlay } from "./TokenFrameOverlay";
@@ -106,6 +107,9 @@ export const TokenSprite = memo(function TokenSprite({
       : null,
   );
   const framed = frameDrawing !== null;
+  // A polygon frame (C5b): the picture clipped to its shape, the hit area on its outer edge.
+  const shape =
+    frameDrawing && isPolygonShape(frameDrawing.layout.shape) ? frameDrawing.layout.shape : null;
   const [frameOutline, setFrameOutline] = useState<Konva.Node | null>(null);
 
   const shapeRef = useRef<Konva.Node | null>(null);
@@ -210,11 +214,16 @@ export const TokenSprite = memo(function TokenSprite({
     rotation: transform.rotation,
     scaleX: transform.scaleX,
     scaleY: transform.scaleY,
-    cornerRadius: framed ? halfSize : gridSize / 8,
+    cornerRadius: shape ? 0 : framed ? halfSize : gridSize / 8,
     stroke: ringed || framed ? "transparent" : stroke,
     strokeWidth,
     // Grown out, the frame reaches past the token box: the hit area reaches with it.
-    hitStrokeWidth: framed ? strokeWidth + 2 * frameDrawing.layout.outset * size : undefined,
+    hitStrokeWidth:
+      framed && !shape ? strokeWidth + 2 * frameDrawing.layout.outset * size : undefined,
+    hitFunc: shape
+      ? (context: Konva.Context, node: Konva.Shape) =>
+          hitShape(context, node, shape, size, frameDrawing!.layout.outer)
+      : undefined,
     // Ringed, the stroke is invisible: drawing directly keeps a glowing token off
     // Konva's stage-sized buffer canvas (fill + stroke + shadow) on every frame.
     perfectDrawEnabled: !ringed && !framed,
@@ -259,18 +268,21 @@ export const TokenSprite = memo(function TokenSprite({
     />
   ) : null;
 
-  if (data.imageUrl && status === "loaded" && image) {
-    return (
-      <>
-        <KonvaImage image={image} {...shapeProps} />
-        {ring}
-      </>
+  const node =
+    data.imageUrl && status === "loaded" && image ? (
+      <KonvaImage image={image} {...shapeProps} />
+    ) : (
+      <Rect fill={data.color} {...shapeProps} />
     );
-  }
-
   return (
     <>
-      <Rect fill={data.color} {...shapeProps} />
+      {shape ? (
+        <Group clipFunc={(context) => clipToShape(context, shapeRef.current, shape, size)}>
+          {node}
+        </Group>
+      ) : (
+        node
+      )}
       {ring}
     </>
   );

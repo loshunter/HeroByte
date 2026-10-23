@@ -9,12 +9,19 @@
 // turned token must not turn its light with it. Two exceptions keep the frame
 // on its picture: a stretched token (an oval) takes its rotation with it, and
 // a flipped one is drawn unflipped (a mirrored frame would mirror the light).
+// A polygon frame (C5b) outlines its shape instead of a circle.
 // Never listens: the hit area is the token's own node.
 
 import { useEffect, useRef } from "react";
-import { Circle, Group, Image as KonvaImage } from "react-konva";
+import { Circle, Group, Image as KonvaImage, Line } from "react-konva";
 import type Konva from "konva";
-import { layoutFrame, type TokenFrame, type TokenSize } from "@herobyte/shared";
+import {
+  isPolygonShape,
+  layoutFrame,
+  shapeOutline,
+  type TokenFrame,
+  type TokenSize,
+} from "@herobyte/shared";
 import type { FrameDrawing } from "../../render/frame/useFrameBitmap";
 
 const FOLLOWED =
@@ -31,7 +38,12 @@ export function framePose(scaleX: number, scaleY: number, rotation: number) {
 
 /** How far a frame reaches past the token box, as a share of its edge (0 growing in). */
 export function frameOutset(frame: TokenFrame | undefined, size: TokenSize | undefined): number {
-  return frame ? layoutFrame(frame, size).outset : 0;
+  if (!frame) return 0;
+  const layout = layoutFrame(frame, size);
+  if (!isPolygonShape(layout.shape)) return layout.outset;
+  // A hexagon's corners and the shield's point reach past their level.
+  const reach = Math.max(...shapeOutline(layout.shape, layout.outer).map(Math.abs));
+  return Math.max(0, reach - 0.5);
 }
 /** The keyline is this much wider than the colour band (SelectionRing's ratio). */
 const KEYLINE_RATIO = 5 / 3;
@@ -53,7 +65,7 @@ export interface TokenFrameOverlayProps {
   /** The viewer's contrasting edge round a selection outline (C3), or none. */
   keyline: string | null;
   /** Receives the outline's node, which carries the selection glow. */
-  outlineRef?: (node: Konva.Circle | null) => void;
+  outlineRef?: (node: Konva.Shape | null) => void;
 }
 
 export function TokenFrameOverlay({
@@ -93,6 +105,21 @@ export function TokenFrameOverlay({
   const edge = 2 * drawing.extent * size;
   const radius = drawing.layout.outer * size;
   const outlined = stroke !== "transparent";
+  const { shape } = drawing.layout;
+  // The outline the selection draws: the frame's outer edge, round or not.
+  const outline = (props: { stroke: string; strokeWidth: number; ref?: typeof outlineRef }) =>
+    isPolygonShape(shape) ? (
+      <Line
+        points={shapeOutline(shape, drawing.layout.outer).map((value) => value * size)}
+        closed
+        lineJoin="miter"
+        listening={false}
+        perfectDrawEnabled={false}
+        {...props}
+      />
+    ) : (
+      <Circle radius={radius} listening={false} perfectDrawEnabled={false} {...props} />
+    );
   return (
     <Group ref={groupRef} listening={false} x={x} y={y} {...framePose(scaleX, scaleY, rotation)}>
       {drawing.bitmap && (
@@ -106,25 +133,10 @@ export function TokenFrameOverlay({
           perfectDrawEnabled={false}
         />
       )}
-      {outlined && keyline && (
-        <Circle
-          radius={radius}
-          stroke={keyline}
-          strokeWidth={strokeWidth * KEYLINE_RATIO}
-          listening={false}
-          perfectDrawEnabled={false}
-        />
-      )}
-      {outlined && (
-        <Circle
-          ref={outlineRef}
-          radius={radius}
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-          listening={false}
-          perfectDrawEnabled={false}
-        />
-      )}
+      {outlined &&
+        keyline &&
+        outline({ stroke: keyline, strokeWidth: strokeWidth * KEYLINE_RATIO })}
+      {outlined && outline({ stroke, strokeWidth, ref: outlineRef })}
     </Group>
   );
 }

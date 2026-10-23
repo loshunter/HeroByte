@@ -33,6 +33,7 @@ vi.mock("react-konva", () => ({
   Rect: mock("rect"),
   Image: mock("image"),
   Circle: mock("circle"),
+  Line: mock("line"),
   Text: mock("text"),
 }));
 vi.mock("use-image", () => ({ default: () => [undefined, "loading"] }));
@@ -139,6 +140,30 @@ describe("a framed token on the map", () => {
     const lockOut = Number(screen.getByTestId("lock").dataset.y);
     expect(lockIn - lockOut).toBeCloseTo(50 * 0.15 * 0.75);
     expect(frameOutset(out, "medium")).toBeCloseTo(0.15);
+  });
+});
+
+describe("a polygon frame on the map (C5b)", () => {
+  it("clips the picture to its shape, outlines its outer edge and hits on its shape", () => {
+    const hexagon = { ...presetFrame("plain.ring")!, shape: "hexagon" as const };
+    render(<TokensLayer {...props(token(hexagon), true)} />);
+    const node = all("rect").find((rect) => rect.name === "token:t1")!;
+    expect(node.cornerRadius).toBe(0); // no round clip: the shape's own
+    expect(typeof node.hitFunc).toBe("function");
+    expect(node.hitStrokeWidth).toBeUndefined();
+    expect(all("group").some((group) => typeof group.clipFunc === "function")).toBe(true);
+    const outline = all("line").find((line) => line.stroke === "#447DF7")!;
+    expect(outline.closed).toBe(true);
+    expect((outline.points as number[]).length).toBe(14); // a hexagon's seven points from the top
+    expect(all("circle").some((circle) => circle.stroke === "#447DF7")).toBe(false);
+  });
+
+  it("keeps a circle frame drawn as before: round, no clip group, no hit function", () => {
+    render(<TokensLayer {...props(token(presetFrame("plain.ring")!), true)} />);
+    const node = all("rect").find((rect) => rect.name === "token:t1")!;
+    expect(node.cornerRadius).toBe(SIZE / 2);
+    expect(node.hitFunc).toBeUndefined();
+    expect(all("group").some((group) => typeof group.clipFunc === "function")).toBe(false);
   });
 });
 
