@@ -4,7 +4,7 @@
 // A circle frame is a corner radius and Konva circles (TokenSprite,
 // TokenFrameOverlay). A polygon frame is drawn from the shared outline
 // (packages/shared/src/frames/engine/shapes.ts) instead, in three places that
-// must agree: the picture clipped to the shape fitted to the token box, the
+// must agree: the picture drawn in the shape fitted to the token box, the
 // hit area on the frame's outer edge, and the outline the selection draws.
 // All three follow the frame's pose (framePose): upright unless the token is
 // stretched, never mirrored, so the light stays where it is.
@@ -49,28 +49,57 @@ function posed(node: Konva.Node) {
 }
 
 /**
- * The picture's clip, drawn by the Group holding the token's node: the shape
- * fitted to the token box, where the node is now (mid-drag included).
+ * The outline at `level` traced in the token node's own coordinates: its
+ * offset, turn and scale undone, so the path sits where the upright frame is.
  */
-export function clipToShape(
+function traceLocal(
   context: Pathing,
-  node: Konva.Node | null,
+  node: Konva.Shape,
   shape: PolygonShape,
   size: number,
+  level: number,
 ): void {
-  if (!node || typeof node.x !== "function") return;
   const frame = posed(node);
-  const cx = node.x();
-  const cy = node.y();
-  trace(context, outlinePoints(shape, 0.5, size), (x, y) => {
+  const turn = -node.rotation() * RADIANS;
+  const cos = Math.cos(turn);
+  const sin = Math.sin(turn);
+  const sx = node.scaleX() || 1;
+  const sy = node.scaleY() || 1;
+  const ox = node.offsetX();
+  const oy = node.offsetY();
+  trace(context, outlinePoints(shape, level, size), (x, y) => {
     const [px, py] = frame(x, y);
-    return [cx + px, cy + py];
+    return [ox + (px * cos - py * sin) / sx, oy + (px * sin + py * cos) / sy];
   });
 }
 
 /**
- * The token node's hit area: the frame's outer edge, in the node's own
- * coordinates (its offset, turn and scale undone), so a click on a grown-out
+ * The token node's own drawing: its picture, or its colour, inside the shape
+ * fitted to the token box. Drawn by the node itself, not clipped by a group
+ * round it: a group's clip clips the hit canvas too, and the hit area must
+ * reach a grown-out frame's edge.
+ */
+export function drawInShape(
+  context: Konva.Context,
+  node: Konva.Shape,
+  shape: PolygonShape,
+  size: number,
+  image?: CanvasImageSource,
+): void {
+  if (!image) {
+    traceLocal(context, node, shape, size, 0.5);
+    context.fillStrokeShape(node);
+    return;
+  }
+  context.save();
+  traceLocal(context, node, shape, size, 0.5);
+  context.clip();
+  context.drawImage(image, 0, 0, node.width(), node.height());
+  context.restore();
+}
+
+/**
+ * The token node's hit area: the frame's outer edge, so a click on a grown-out
  * frame's corner takes the token and a click in the box outside the shape
  * does not.
  */
@@ -81,17 +110,6 @@ export function hitShape(
   size: number,
   outer: number,
 ): void {
-  const frame = posed(node);
-  const turn = -node.rotation() * RADIANS;
-  const cos = Math.cos(turn);
-  const sin = Math.sin(turn);
-  const sx = node.scaleX() || 1;
-  const sy = node.scaleY() || 1;
-  const ox = node.offsetX();
-  const oy = node.offsetY();
-  trace(context, outlinePoints(shape, outer, size), (x, y) => {
-    const [px, py] = frame(x, y);
-    return [ox + (px * cos - py * sin) / sx, oy + (px * sin + py * cos) / sy];
-  });
+  traceLocal(context, node, shape, size, outer);
   context.fillStrokeShape(node);
 }

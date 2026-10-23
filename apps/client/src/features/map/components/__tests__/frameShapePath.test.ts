@@ -6,21 +6,27 @@
 import { describe, expect, it } from "vitest";
 import type Konva from "konva";
 import { insideOutline, presetFrame, layoutFrame } from "@herobyte/shared";
-import { clipToShape, hitShape } from "../frameShapePath";
+import { drawInShape, hitShape } from "../frameShapePath";
 
 const SIZE = 60;
 
 /** A canvas context that only records the path it is given. */
 function recorder() {
   const points: number[] = [];
+  const calls: string[] = [];
   return {
     points,
+    calls,
     context: {
       beginPath: () => points.splice(0),
       moveTo: (x: number, y: number) => points.push(x, y),
       lineTo: (x: number, y: number) => points.push(x, y),
       closePath: () => {},
-      fillStrokeShape: () => {},
+      fillStrokeShape: () => calls.push("fill"),
+      save: () => calls.push("save"),
+      clip: () => calls.push("clip"),
+      drawImage: () => calls.push("drawImage"),
+      restore: () => calls.push("restore"),
     },
   };
 }
@@ -34,6 +40,8 @@ function node(rotation = 0, scaleX = 1, scaleY = 1) {
     scaleY: () => scaleY,
     offsetX: () => SIZE / 2,
     offsetY: () => SIZE / 2,
+    width: () => SIZE,
+    height: () => SIZE,
   } as unknown as Konva.Shape;
 }
 /** A point given from the token's centre on the map, in the node's own coordinates. */
@@ -80,15 +88,29 @@ describe("a polygon frame's hit area", () => {
   });
 });
 
-describe("a polygon frame's picture clip", () => {
-  it("is the shape fitted to the token box, where the node is now", () => {
-    const { points, context } = recorder();
-    clipToShape(context, node(), "square", SIZE);
+describe("a polygon frame's picture", () => {
+  it("is drawn by its own node inside the shape fitted to the token box", () => {
+    const { points, calls, context } = recorder();
+    drawInShape(
+      context as unknown as Konva.Context,
+      node(),
+      "square",
+      SIZE,
+      {} as CanvasImageSource,
+    );
+    expect(calls).toEqual(["save", "clip", "drawImage", "restore"]);
     const xs = points.filter((_, index) => index % 2 === 0);
     const ys = points.filter((_, index) => index % 2 === 1);
-    expect(Math.min(...xs)).toBeCloseTo(70);
-    expect(Math.max(...xs)).toBeCloseTo(130);
-    expect(Math.min(...ys)).toBeCloseTo(50);
-    expect(Math.max(...ys)).toBeCloseTo(110);
+    // node-local: the box from 0 to 60 (its offset is its centre)
+    expect(Math.min(...xs)).toBeCloseTo(0);
+    expect(Math.max(...xs)).toBeCloseTo(60);
+    expect(Math.min(...ys)).toBeCloseTo(0);
+    expect(Math.max(...ys)).toBeCloseTo(60);
+  });
+
+  it("is its colour filling the shape when it has no picture", () => {
+    const { calls, context } = recorder();
+    drawInShape(context as unknown as Konva.Context, node(), "hexagon", SIZE);
+    expect(calls).toEqual(["fill"]);
   });
 });

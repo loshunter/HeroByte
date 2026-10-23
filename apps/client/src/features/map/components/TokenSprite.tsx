@@ -7,11 +7,11 @@
 // framed token is drawn as a circle with TokenFrameOverlay over it.
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Group, Rect, Image as KonvaImage } from "react-konva";
+import { Rect, Image as KonvaImage } from "react-konva";
 import Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { isPolygonShape, type SceneObject } from "@herobyte/shared";
-import { clipToShape, hitShape } from "./frameShapePath";
+import { drawInShape, hitShape } from "./frameShapePath";
 import useImage from "use-image";
 import { SelectionRing } from "./SelectionRing";
 import { TokenFrameOverlay } from "./TokenFrameOverlay";
@@ -268,20 +268,17 @@ export const TokenSprite = memo(function TokenSprite({
     />
   ) : null;
 
-  const node =
-    data.imageUrl && status === "loaded" && image ? (
-      <KonvaImage image={image} {...shapeProps} />
-    ) : (
-      <Rect fill={data.color} {...shapeProps} />
-    );
+  const loaded = data.imageUrl && status === "loaded" && image ? image : undefined;
+  // A polygon frame's node draws itself in the shape (a group's clip would clip its hit area too).
+  const sceneFunc = shape
+    ? (context: Konva.Context, node: Konva.Shape) => drawInShape(context, node, shape, size, loaded)
+    : undefined;
   return (
     <>
-      {shape ? (
-        <Group clipFunc={(context) => clipToShape(context, shapeRef.current, shape, size)}>
-          {node}
-        </Group>
+      {loaded ? (
+        <KonvaImage image={loaded} {...shapeProps} sceneFunc={sceneFunc} />
       ) : (
-        node
+        <Rect fill={data.color} {...shapeProps} sceneFunc={sceneFunc} />
       )}
       {ring}
     </>

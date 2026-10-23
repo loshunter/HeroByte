@@ -151,7 +151,9 @@ describe("a polygon frame on the map (C5b)", () => {
     expect(node.cornerRadius).toBe(0); // no round clip: the shape's own
     expect(typeof node.hitFunc).toBe("function");
     expect(node.hitStrokeWidth).toBeUndefined();
-    expect(all("group").some((group) => typeof group.clipFunc === "function")).toBe(true);
+    // drawn by the node itself: a group's clip would clip its hit area too
+    expect(typeof node.sceneFunc).toBe("function");
+    expect(all("group").some((group) => typeof group.clipFunc === "function")).toBe(false);
     const outline = all("line").find((line) => line.stroke === "#447DF7")!;
     expect(outline.closed).toBe(true);
     expect((outline.points as number[]).length).toBe(14); // a hexagon's seven points from the top
@@ -163,7 +165,7 @@ describe("a polygon frame on the map (C5b)", () => {
     const node = all("rect").find((rect) => rect.name === "token:t1")!;
     expect(node.cornerRadius).toBe(SIZE / 2);
     expect(node.hitFunc).toBeUndefined();
-    expect(all("group").some((group) => typeof group.clipFunc === "function")).toBe(false);
+    expect(node.sceneFunc).toBeUndefined();
   });
 });
 
