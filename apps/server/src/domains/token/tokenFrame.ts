@@ -3,8 +3,8 @@
 // ============================================================================
 // A token's frame is its owner's or the DM's to change, like its colour. The
 // validator has already refused anything the catalog does not allow (a shape
-// other than the circle, a finish, an unknown generator or palette, more than
-// six bands, a weight outside 0.04–0.34); what is stored is the clean, clamped
+// it does not list, a notch but the one arrow, a finish, an unknown generator
+// or palette, more than six bands, a weight outside 0.04–0.34); what is stored is the clean, clamped
 // copy sanitizeTokenFrame returns, never the client's object. `null` deletes
 // the field: the token draws as it did before frames.
 

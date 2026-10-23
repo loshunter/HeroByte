@@ -1,7 +1,7 @@
 // ============================================================================
 // FRAME BAKE — a TokenFrame into an RGBA bitmap (C5a)
 // ============================================================================
-// generate (band space) → warp (onto the circle) → light (per facet, the one
+// generate (band space) → warp (onto the shape) → light (per facet, the one
 // table light) → rasterise (raster.ts). Pure: plain arrays in, bytes out, so
 // it runs in a worker, under Node for the contact sheet, and in the tests.
 // The bitmap is a square `tier` pixels across covering 2 × `extent` token
@@ -130,8 +130,9 @@ function ringWarp(ring: BandRing, shape: FrameLayout["shape"]): RingWarp {
     };
   }
   const ribbon = makeRibbon(shape, ring.r0, ring.r1);
-  // The circle's rows: a polygon's straight sides do not taper, and its
-  // corners' mitres taper as a circle's stones do.
+  // The circle's rows: a polygon's straight sides do not taper. Its corner
+  // pieces taper more than a circle's stones (an inner edge down to about a
+  // third of the outer on a heavy shield), but stay trapezoids, not points.
   const courses = courseCount(ring);
   return {
     length: ribbon.length,

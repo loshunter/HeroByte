@@ -12,7 +12,7 @@
 // own modules, because an `export const` in the shared barrel never reaches the
 // server (shared-barrel-no-runtime-const).
 
-/** Shapes the model names. Only "circle" is accepted until slice C5b. */
+/** The shapes a frame is laid round (C5b; FRAME_SHAPES lists them in the Frame tab's order). */
 export type FrameShape = "circle" | "squircle" | "square" | "hexagon" | "octagon" | "shield";
 
 /**

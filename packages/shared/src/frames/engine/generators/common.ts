@@ -15,7 +15,7 @@ export interface GeneratorContext {
   length: number;
   /** 1, 2, or 3 near the weight cap (courseCount: the slivers rule). */
   courses: number;
-  /** Middle radius of each course over the band's middle radius (a course's u is shorter inside). */
+  /** Each course's middle (radius, or outline length on a polygon) over the band's: a course's u is shorter inside. */
   courseScale: (course: number) => number;
   params: Record<string, FrameParamValue>;
   rng: SeededRng;
@@ -144,14 +144,16 @@ export function layCourse(
   // A shifted course lays each side with a half motif at both ends (one more
   // piece a side), so it takes one fewer whole share a side: the course keeps
   // its budget either way (motifBudget).
-  const shares = shareOut(spans, Math.max(corners.length, shift ? count - corners.length : count));
+  // Too few motifs for two halves a side: the course is laid unshifted (the budget holds).
+  const halves = shift && count >= 2 * corners.length;
+  const shares = shareOut(spans, Math.max(corners.length, halves ? count - corners.length : count));
   let used = 0;
   corners.forEach((corner, index) => {
     const share = shares[index]!;
     const own = Array.from({ length: share }, (_, at) => rolls[(used + at) % rolls.length]!);
     used += share;
     const lengths = splitLength(spans[index]!, share, spread, own);
-    const pieces = shift ? [lengths[0]! / 2, ...lengths.slice(1), lengths[0]! / 2] : lengths;
+    const pieces = halves ? [lengths[0]! / 2, ...lengths.slice(1), lengths[0]! / 2] : lengths;
     const side: [number, number] = [corner, corner + spans[index]!];
     let u = corner;
     for (const piece of pieces) {
@@ -178,6 +180,21 @@ function shareOut(spans: readonly number[], total: number): number[] {
     left -= 1;
   }
   return shares;
+}
+
+/** The side of a polygon's band holding `u`, between two corners (u ascending, wrapped once round). */
+export function sideOf(corners: readonly number[], length: number, u: number): [number, number] {
+  const at = ((u % length) + length) % length;
+  let start = corners[corners.length - 1]! - length;
+  let end = corners[0]!;
+  for (let index = 0; index < corners.length; index += 1) {
+    if (corners[index]! <= at) {
+      start = corners[index]!;
+      end = index + 1 < corners.length ? corners[index + 1]! : corners[0]! + length;
+    }
+  }
+  const turn = u - at;
+  return [start + turn, end + turn];
 }
 
 /** A shape's u coordinates held inside its side (jitter must not carry it round a corner). */

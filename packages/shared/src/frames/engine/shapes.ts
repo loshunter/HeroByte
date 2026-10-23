@@ -12,8 +12,10 @@
 //
 // The circle is not drawn from here: the engine keeps its own exact arcs for
 // it (bandSpace.ts), so circle frames bake exactly as they did before shapes.
-// No mitre needs a limit: the sharpest corner is a right angle (the square's
-// and the shield's top), whose mitre reaches 1 / cos 45° = 1.414 of the offset.
+// No mitre needs a limit: the sharpest mitred corner is a right angle (the
+// square's), whose mitre reaches 1 / cos 45° = 1.414 of the offset. The
+// shield is built per level, not mitred (its top corners close to 67° in the
+// heaviest frames).
 
 import type { FrameShape } from "../types.js";
 
@@ -103,7 +105,12 @@ function shield(level: number): number[] {
   const from = Math.max(0, Math.asin(Math.min(1, (top - SHIELD_SHOULDER) / radius)));
   const corner = from > 0 ? radius * Math.cos(from) - 0.5 : level;
   const right = arc(-0.5, SHIELD_SHOULDER, radius, from, point);
-  const left = arc(0.5, SHIELD_SHOULDER, radius, Math.PI - point, Math.PI - from).slice(2);
+  // The left half is the right mirrored, point for point, so both sides shrink
+  // away at exactly the same level (an arc of its own missed by 1e-16).
+  const left: number[] = [];
+  for (let index = right.length / 2 - 2; index >= 0; index -= 1) {
+    left.push(-right[index * 2]!, right[index * 2 + 1]!);
+  }
   return [0, top, corner, top, ...right, ...left, -corner, top];
 }
 
@@ -115,8 +122,10 @@ export function edgeNormalsOf(points: readonly number[]): number[] {
     const next = (index + 1) % count;
     const dx = points[next * 2]! - points[index * 2]!;
     const dy = points[next * 2 + 1]! - points[index * 2 + 1]!;
-    const length = Math.hypot(dx, dy) || 1;
-    normals.push(dy / length, -dx / length);
+    const length = Math.hypot(dx, dy);
+    // A piece shrunk to a point faces nowhere (0, 0), never along its rounding noise.
+    if (length < 1e-9) normals.push(0, 0);
+    else normals.push(dy / length, -dx / length);
   }
   return normals;
 }

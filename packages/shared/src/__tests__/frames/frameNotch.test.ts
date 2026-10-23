@@ -24,7 +24,7 @@ const bake = (frame: TokenFrame, seed = 1) =>
 describe("the facing notch", () => {
   it("sits at the top centre of every shape at every weight, and nowhere else", () => {
     for (const shape of FRAME_SHAPES) {
-      for (const weight of Object.values(FRAME_WEIGHTS)) {
+      for (const weight of [...Object.values(FRAME_WEIGHTS), 0.34]) {
         const frame = { ...presetFrame("stone.castle", weight)!, shape };
         const plain = bake(frame);
         const gem = bake(notched(frame));
@@ -40,8 +40,8 @@ describe("the facing notch", () => {
             changed += 1;
             const tx = (x + 0.5) / scale - layout.extent;
             const ty = (y + 0.5) / scale - layout.extent;
-            expect(Math.abs(tx), `${shape} at ${weight}`).toBeLessThan(0.12);
-            expect(ty, `${shape} at ${weight}`).toBeLessThan(-0.12); // the upper part only
+            expect(Math.abs(tx), `${shape} at ${weight}`).toBeLessThan(0.13); // 0.62 × 1.18 / 2 of the gem, at 0.34
+            expect(ty, `${shape} at ${weight}`).toBeLessThan(-0.08); // the upper part only (a hexagon's top is lower: 0.433)
           }
         }
         expect(changed, `${shape} at ${weight}`).toBeGreaterThan(20);

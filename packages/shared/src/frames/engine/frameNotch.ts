@@ -43,7 +43,8 @@ export function notchPaints(
   const height = Math.max(MIN_GEM, layout.outer - layout.window);
   // The rim's tip sits on the frame's outer edge: the gem grows inward from it,
   // so it never reaches past the bitmap, over the picture's edge on a skinny frame.
-  const reach = 0.5 * height; // the ridge to the tip
+  // The gem, rim and all, runs tip to tail RIM × 1.9 × reach: as long as the band.
+  const reach = height / (RIM * 1.9); // the ridge to the tip
   const ridgeY = topAt(layout, layout.outer) + RIM * reach;
   const width = 0.62 * height;
   const ridge: [number, number] = [0, ridgeY];

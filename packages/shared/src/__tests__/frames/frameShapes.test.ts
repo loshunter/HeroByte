@@ -9,7 +9,12 @@
 
 import { describe, expect, it } from "vitest";
 import { bakeFrame, frameSeed, presetFrame, type FrameShape } from "../../index.js";
-import { shapeCorners, shapeOutline, type PolygonShape } from "../../frames/engine/shapes.js";
+import {
+  edgeNormalsOf,
+  shapeCorners,
+  shapeOutline,
+  type PolygonShape,
+} from "../../frames/engine/shapes.js";
 import { makeRibbon, ribbonPoint } from "../../frames/engine/shapeRibbon.js";
 import { layCourse, FRAME_FACET_BUDGET } from "../../frames/engine/generators/common.js";
 import { FRAME_GENERATORS } from "../../frames/engine/generators/index.js";
@@ -248,8 +253,13 @@ describe("a polygon frame baked", () => {
 });
 
 describe("polygon frames, after review round 1", () => {
-  const opaque = (shape: PolygonShape, id: string, weight: number) => {
-    const frame = { ...presetFrame(id, weight)!, shape };
+  const opaque = (
+    shape: PolygonShape,
+    id: string,
+    weight: number,
+    growth: "in" | "out" | "mid" = "in",
+  ) => {
+    const frame = { ...presetFrame(id, weight)!, shape, growth };
     const tier = 256;
     const { pixels, layout } = bakeFrame({ frame, accent: "#4f7cc4", seed: frameSeed("t"), tier });
     const scale = tier / (2 * layout.extent);
@@ -270,10 +280,15 @@ describe("polygon frames, after review round 1", () => {
   };
 
   it("covers the whole band of a heavy shield or squircle, corners included", () => {
-    for (const shape of ["shield", "squircle", "square", "hexagon"] as const) {
+    for (const shape of ["shield", "squircle", "square", "hexagon", "octagon"] as const) {
       for (const weight of [0.16, 0.28, 0.34]) {
-        for (const id of ["stone.castle", "plain.ring", "wood.oak"]) {
-          expect(opaque(shape, id, weight), `${id} on a ${shape} at ${weight}`).toBe(0);
+        for (const growth of ["in", "out", "mid"] as const) {
+          for (const id of ["stone.castle", "plain.ring", "wood.oak"]) {
+            expect(
+              opaque(shape, id, weight, growth),
+              `${id} on a ${shape} at ${weight} ${growth}`,
+            ).toBe(0);
+          }
         }
       }
     }
@@ -440,5 +455,51 @@ describe("polygon frames, after review round 1", () => {
       }
     }
     expect(changed).toBeGreaterThan(50);
+  });
+  it("lights a shield's edges as they face at every level: a shrunk side has no normal of its own", () => {
+    for (let level = 0.13; level < 0.37; level += 0.001) {
+      const normals = edgeNormalsOf(shapeOutline("shield", level));
+      const count = normals.length / 2;
+      for (const side of [1, count - 2]) {
+        // the straight sides, right then left: facing straight out, or shrunk to nothing (0, 0)
+        const [nx, ny] = [normals[side * 2]!, normals[side * 2 + 1]!];
+        const shrunk = nx === 0 && ny === 0;
+        expect(
+          shrunk || Math.abs(Math.abs(nx) - 1) < 1e-6,
+          `level ${level.toFixed(3)}, side ${side}: ${nx}, ${ny}`,
+        ).toBe(true);
+        if (!shrunk) expect(Math.sign(nx), `level ${level.toFixed(3)}`).toBe(side === 1 ? 1 : -1);
+      }
+    }
+  });
+
+  it("lays a short shifted course unshifted, inside its budget", () => {
+    const ribbon = makeRibbon("octagon", 0.4, 0.5);
+    for (const count of [3, 5, 8, 10, 12, 15]) {
+      const laid = layCourse(ribbon, count, 0.1, [0.5], 0.5, true);
+      expect(laid.length, `count ${count}`).toBeLessThanOrEqual(Math.max(count, 8));
+    }
+  });
+
+  it("ends steel's streaks at a corner", () => {
+    const ribbon = makeRibbon("square", 0.4, 0.5);
+    const facets = FRAME_GENERATORS.plain!({
+      length: ribbon.length,
+      courses: 1,
+      courseScale: () => 1,
+      params: resolveFrameParams("plain", { grain: 1 }),
+      rng: createSeededRng(1),
+      maxMotifs: 256,
+      bandPx: 200,
+      corners: ribbon.corners,
+    });
+    expect(facets.length).toBeGreaterThan(20);
+    for (const facet of facets.slice(1)) {
+      const us = facet.points.filter((_, index) => index % 2 === 0);
+      for (const corner of [...ribbon.corners, ribbon.corners[0]! + ribbon.length]) {
+        const across = Math.min(...us) < corner - 1e-6 && Math.max(...us) > corner + 1e-6;
+        expect(across, `a streak across ${corner}`).toBe(false);
+      }
+    }
   });
 });

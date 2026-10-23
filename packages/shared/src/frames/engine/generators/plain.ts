@@ -11,11 +11,11 @@
 import { createSeededRng } from "../../../rng.js";
 import type { Facet } from "../bandSpace.js";
 import { bandQuad } from "../bandSpace.js";
-import { draws, num, stroke, type FrameGenerator } from "./common.js";
+import { draws, num, sideOf, stroke, type FrameGenerator } from "./common.js";
 
 const GRAIN_SEED = 0x5eed;
 
-export const plain: FrameGenerator = ({ length, params, bandPx }) => {
+export const plain: FrameGenerator = ({ length, params, bandPx, corners }) => {
   // One polygon round the whole band (its two seam edges coincide and cancel),
   // so the flat top has no joints for the background to show through.
   const facets: Facet[] = [{ role: "top", points: bandQuad(0, length, 0, 1) }];
@@ -26,7 +26,10 @@ export const plain: FrameGenerator = ({ length, params, bandPx }) => {
     for (let index = 0; index < streaks; index += 1) {
       const [start, span, across, light] = draws(rng, 4);
       const u0 = start! * length;
-      const u1 = u0 + (0.6 + span! * 2.4);
+      let u1 = u0 + (0.6 + span! * 2.4);
+      // On a polygon a streak ends at its side's corner (its draws are taken all the same).
+      if (corners && corners.length > 0) u1 = Math.min(u1, sideOf(corners, length, u0)[1]);
+      if (u1 - u0 < 0.3) continue;
       const v = 0.18 + across! * 0.64;
       facets.push(
         ...stroke([u0, v, (u0 + u1) / 2, v, u1, v], 0.035, light! < 0.5 ? "bevel" : "side", 0.35),

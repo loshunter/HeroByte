@@ -106,6 +106,9 @@ describe("token frames — the server is the authority", () => {
     expect(refused({ ...presetFrame("plain.ring"), notch: { gem: "arrow", count: 2 } }).error).toBe(
       "set-token-frame: frame notch count must be 1",
     );
+    expect(refused({ ...presetFrame("plain.ring"), notch: { gem: "star" } }).error).toBe(
+      "set-token-frame: frame notch gem must be arrow",
+    );
     expect(
       refused({ bands: Array.from({ length: 7 }, () => ({ ...band, weight: 0.02 })) }).error,
     ).toBe("set-token-frame: frame has more than 6 bands");

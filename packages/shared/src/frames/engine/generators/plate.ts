@@ -106,6 +106,7 @@ export const plate: FrameGenerator = ({
         for (let ripple = 0; ripple < BEAD_RIPPLES; ripple += 1) {
           const a = v0 + ripple * step;
           const b = a + step;
+          // Over the joint itself: at a polygon's corner it follows the mitre, as a mitred weld does.
           const centre = joint + jitter(4 + ripple, 0.2 * half);
           facets.push({
             role: "bevel",

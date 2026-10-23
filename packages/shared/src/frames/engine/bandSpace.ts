@@ -4,7 +4,7 @@
 // Every band is generated flat, in BAND SPACE: `u` runs along the band, in
 // band heights measured at the band's middle radius, from 0 to `length`
 // (once round); `v` runs across it, 0 at the inner edge to 1 at the outer.
-// Generators never know the shape. The warp then bends that strip round the
+// Generators know only where a polygon's corners fall (to end motifs on them). The warp then bends that strip round the
 // circle — u becomes angle, v radius — so a rectangle comes out a wedge with
 // exactly the taper its radius demands, and long edges are cut into short
 // steps first so they bend into arcs instead of chords.
