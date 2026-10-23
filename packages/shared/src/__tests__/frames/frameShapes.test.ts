@@ -517,7 +517,7 @@ describe("polygon frames, after review round 3", () => {
       const spans = [9 + 3.6e-15, 9 + nudge, 9 + 3.6e-15 - nudge, 9];
       expect(shareOut(spans, 13), `nudged ${nudge}`).toEqual([4, 3, 3, 3]);
     }
-    const octagon = [...Array(8)].map((_, index) => 3.7279220613578567 - (index === 7 ? 5e-15 : 0));
+    const octagon = [...Array(8)].map((_, index) => 3.72792206135786 - (index === 7 ? 5e-15 : 0));
     expect(shareOut(octagon, 31)).toEqual([4, 4, 4, 4, 4, 4, 4, 3]);
   });
 
