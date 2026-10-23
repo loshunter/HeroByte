@@ -103,6 +103,13 @@ export function sanitizeTokenFrame(
   if (raw.finish !== undefined && raw.finish !== "none") {
     return { error: "frame finishes are not available" };
   }
+  if (raw.notch !== undefined) {
+    if (!isRecord(raw.notch)) return { error: "frame notch must be an object" };
+    if (raw.notch.gem !== "arrow") return { error: "frame notch gem must be arrow" };
+    if (raw.notch.count !== undefined && raw.notch.count !== 1) {
+      return { error: "frame notch count must be 1" };
+    }
+  }
   if (raw.growth !== undefined && !GROWTHS.includes(raw.growth as FrameGrowth)) {
     return { error: "frame growth must be in, out or mid" };
   }
@@ -146,6 +153,7 @@ export function sanitizeTokenFrame(
     ...(raw.growth !== undefined ? { growth: raw.growth as FrameGrowth } : {}),
     accent: (raw.accent as string | undefined) ?? "personal",
     bands,
+    ...(raw.notch !== undefined ? { notch: { gem: "arrow" as const } } : {}),
   };
   // Counted as a carry would store it (pinFrameSeeds), so a frame the wire
   // takes never outgrows the cap on its way to a file or a re-placed NPC.
@@ -220,6 +228,10 @@ export function coerceTokenFrame(raw: unknown): TokenFrame | undefined {
     ...(GROWTHS.includes(raw.growth as FrameGrowth) ? { growth: raw.growth as FrameGrowth } : {}),
     accent: isColor(raw.accent) ? raw.accent : "personal",
     bands,
+    // A newer build's gems or counts load as the one arrow; anything else, as no notch.
+    ...(isRecord(raw.notch) && raw.notch.gem === "arrow"
+      ? { notch: { gem: "arrow" as const } }
+      : {}),
   };
   // One the wire would refuse (six thin bands thickened past the cap) is no frame.
   return "frame" in sanitizeTokenFrame(frame) ? frame : undefined;

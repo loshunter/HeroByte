@@ -24,6 +24,8 @@ const DRAWN_ROLES = ["top", "bevel", "side", "outline", "crack", "shadow"] as co
 
 /** Whether any band's palette takes the frame's colour (the "Frame colour" row has an effect). */
 export function frameUsesAccent(frame: TokenFrame): boolean {
+  // The facing notch's gem is in the frame's colour.
+  if (frame.notch) return true;
   return frame.bands.some((band) => {
     const roles = framePaletteById(band.palette)?.roles;
     return roles !== undefined && DRAWN_ROLES.some((role) => roles[role] === "personal");
@@ -47,6 +49,7 @@ export function frameBakeKey(input: {
   return JSON.stringify([
     frame.shape ?? "circle",
     frame.growth ?? "in",
+    frame.notch ? "notch" : "",
     frameSizeScale(input.size),
     input.tier,
     frameUsesAccent(frame) ? input.accent : "",

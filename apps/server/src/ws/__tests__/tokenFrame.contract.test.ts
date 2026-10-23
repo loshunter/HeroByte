@@ -103,6 +103,9 @@ describe("token frames — the server is the authority", () => {
         "set-token-frame: frame shape must be one of circle, squircle, square, hexagon, octagon, shield",
     });
     expect(refused({ ...presetFrame("plain.ring"), shape: "hexagon" }).valid).toBe(true);
+    expect(refused({ ...presetFrame("plain.ring"), notch: { gem: "arrow", count: 2 } }).error).toBe(
+      "set-token-frame: frame notch count must be 1",
+    );
     expect(
       refused({ bands: Array.from({ length: 7 }, () => ({ ...band, weight: 0.02 })) }).error,
     ).toBe("set-token-frame: frame has more than 6 bands");

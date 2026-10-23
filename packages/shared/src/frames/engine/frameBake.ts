@@ -38,6 +38,7 @@ import { motifBudget } from "./generators/common.js";
 import { bandSeed } from "./frameSeeds.js";
 import { isPolygonShape, outlineLength, shapeOutline, type PolygonShape } from "./shapes.js";
 import { levelScale, makeRibbon, ribbonPoint, ribbonPolygon, shapeBand } from "./shapeRibbon.js";
+import { notchPaints } from "./frameNotch.js";
 import { createRaster, fillPolygon, rasterToRgba } from "./raster.js";
 import {
   mixRgb,
@@ -293,6 +294,9 @@ export function framePaints(input: FrameBakeInput): { paints: Paint[]; layout: F
         edgePaint(edge, null, "shadow"),
       ),
     );
+  }
+  if (input.frame.notch && palettes.length > 0) {
+    add(notchPaints(layout, input.accent, palettes[palettes.length - 1]!));
   }
   return { paints, layout };
 }

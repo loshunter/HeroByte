@@ -51,6 +51,13 @@ export interface FrameBand {
   seed?: number;
 }
 
+/** The facing notch (C5b): one arrow gem at the top. C5c's bezel may add gems and counts. */
+export interface FrameNotch {
+  gem: "arrow";
+  /** Only 1 until C5c. */
+  count?: 1;
+}
+
 export interface TokenFrame {
   /** The shipped preset this stack was picked from (the simple-mode knobs keep it). */
   preset?: string;
@@ -64,6 +71,8 @@ export interface TokenFrame {
   accent?: string;
   /** Slice C2's; only "none" (or absent) is accepted before then. */
   finish?: FrameFinish;
+  /** One arrow gem at the top of the frame, pointing up (tokens have no facing yet). */
+  notch?: FrameNotch;
 }
 
 /** A material: role colours plus how shiny it is. */
