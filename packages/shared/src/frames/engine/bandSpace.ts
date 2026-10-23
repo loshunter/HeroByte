@@ -4,10 +4,11 @@
 // Every band is generated flat, in BAND SPACE: `u` runs along the band, in
 // band heights measured at the band's middle radius, from 0 to `length`
 // (once round); `v` runs across it, 0 at the inner edge to 1 at the outer.
-// Generators know only where a polygon's corners fall (to end motifs on them). The warp then bends that strip round the
-// circle — u becomes angle, v radius — so a rectangle comes out a wedge with
-// exactly the taper its radius demands, and long edges are cut into short
-// steps first so they bend into arcs instead of chords.
+// Generators know only where a polygon's corners fall (to end motifs on
+// them). The warp then bends that strip round the circle — u becomes angle,
+// v radius — so a rectangle comes out a wedge with exactly the taper its
+// radius demands, and long edges are cut into short steps first so they bend
+// into arcs instead of chords. A polygon's warp is shapeRibbon.ts's.
 //
 // Token units throughout: the token box is 1 across, centred on 0, so its
 // edge sits at radius 0.5.
@@ -125,10 +126,17 @@ export function bandQuad(u0: number, u1: number, v0: number, v1: number): number
 /**
  * The slivers rule: a band so thick for its radius that a cell's inner edge
  * would fall under 0.6 of its outer edge is laid in two courses, and under
- * 0.36 in three (only near the 0.34 cap), so every course's inner edge stays
- * over half its outer and stones never come to a point.
+ * 0.36 in three (on a circle only near the 0.34 cap), so stones never come to
+ * a point. On a circle every course's inner edge stays over half its outer. A
+ * polygon's band is its outline scaled, so its straight sides taper too, by
+ * its outlines' lengths (coursesFor): a hexagon's heaviest grown-in frame,
+ * three courses, takes its innermost down to 0.45.
  */
 export function courseCount(ring: BandRing): number {
-  const ratio = ring.r0 / ring.r1;
+  return coursesFor(ring.r0 / ring.r1);
+}
+
+/** The slivers rule for a band whose inner edge is `ratio` of its outer. */
+export function coursesFor(ratio: number): number {
   return ratio < 0.36 ? 3 : ratio < 0.6 ? 2 : 1;
 }

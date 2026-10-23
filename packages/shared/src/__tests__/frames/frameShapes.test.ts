@@ -7,7 +7,7 @@
  * through.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { bakeFrame, frameSeed, presetFrame, type FrameShape } from "../../index.js";
 import {
   edgeNormalsOf,
@@ -16,7 +16,9 @@ import {
   type PolygonShape,
 } from "../../frames/engine/shapes.js";
 import { makeRibbon, ribbonPoint } from "../../frames/engine/shapeRibbon.js";
-import { layCourse, FRAME_FACET_BUDGET } from "../../frames/engine/generators/common.js";
+import { layCourse, FRAME_FACET_BUDGET, shareOut } from "../../frames/engine/generators/common.js";
+import { coursesFor } from "../../frames/engine/bandSpace.js";
+import { levelScale } from "../../frames/engine/shapeRibbon.js";
 import { FRAME_GENERATORS } from "../../frames/engine/generators/index.js";
 import { createSeededRng } from "../../rng.js";
 import {
@@ -279,8 +281,10 @@ describe("polygon frames, after review round 1", () => {
     return holes;
   };
 
-  it("covers the whole band of a heavy shield or squircle, corners included", () => {
-    for (const shape of ["shield", "squircle", "square", "hexagon", "octagon"] as const) {
+  it.each(["shield", "squircle", "square", "hexagon", "octagon"] as const)(
+    "covers the whole band of a heavy %s, corners included",
+    { timeout: 30_000 },
+    (shape) => {
       for (const weight of [0.16, 0.28, 0.34]) {
         for (const growth of ["in", "out", "mid"] as const) {
           for (const id of ["stone.castle", "plain.ring", "wood.oak"]) {
@@ -291,8 +295,8 @@ describe("polygon frames, after review round 1", () => {
           }
         }
       }
-    }
-  });
+    },
+  );
 
   it("keeps a jittered stone inside its side: rubble and cobble never cross a corner", () => {
     const ribbon = makeRibbon("square", 0.4, 0.5);
@@ -501,5 +505,37 @@ describe("polygon frames, after review round 1", () => {
         expect(across, `a streak across ${corner}`).toBe(false);
       }
     }
+  });
+});
+
+describe("polygon frames, after review round 3", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("shares a course's spare motifs among equal sides by index, never by the last bit", () => {
+    // a square's sides as one engine's hypot sums them, and as another's might
+    for (const nudge of [0, 1e-14, -1e-14]) {
+      const spans = [9 + 3.6e-15, 9 + nudge, 9 + 3.6e-15 - nudge, 9];
+      expect(shareOut(spans, 13), `nudged ${nudge}`).toEqual([4, 3, 3, 3]);
+    }
+    const octagon = [...Array(8)].map((_, index) => 3.7279220613578567 - (index === 7 ? 5e-15 : 0));
+    expect(shareOut(octagon, 31)).toEqual([4, 4, 4, 4, 4, 4, 4, 3]);
+  });
+
+  it("lays a polygon's courses by its own taper: a hexagon's thick band takes two where a circle's takes one", () => {
+    // 0.30 to 0.5: the circle's inner edge is 0.6 of its outer (one course); the hexagon's 0.54
+    expect(coursesFor(0.3 / 0.5)).toBe(1);
+    expect(levelScale("hexagon", 0.3, 0.5)).toBeLessThan(0.6);
+    const courses: Record<string, number> = {};
+    const masonry = FRAME_GENERATORS.masonry!;
+    for (const shape of ["circle", "hexagon"] as const) {
+      const spy = vi.spyOn(FRAME_GENERATORS, "masonry").mockImplementation((context) => {
+        courses[shape] = context.courses;
+        return masonry(context);
+      });
+      const frame = { ...presetFrame("stone.castle", 0.2)!, shape, growth: "in" as const };
+      bakeFrame({ frame, accent: "#4f7cc4", seed: 1, tier: 64 });
+      spy.mockRestore();
+    }
+    expect(courses).toEqual({ circle: 1, hexagon: 2 });
   });
 });

@@ -17,6 +17,7 @@ import type { FramePalette, FrameRole, TokenFrame } from "../types.js";
 import {
   bandLength,
   courseCount,
+  coursesFor,
   layoutFrame,
   warpPoint,
   warpPolygon,
@@ -130,10 +131,10 @@ function ringWarp(ring: BandRing, shape: FrameLayout["shape"]): RingWarp {
     };
   }
   const ribbon = makeRibbon(shape, ring.r0, ring.r1);
-  // The circle's rows: a polygon's straight sides do not taper. Its corner
-  // pieces taper more than a circle's stones (an inner edge down to about a
-  // third of the outer on a heavy shield), but stay trapezoids, not points.
-  const courses = courseCount(ring);
+  // Its own rows: the band is its outline scaled, so a straight side tapers
+  // as the outlines' lengths do (a hexagon's more than a circle's). Corner
+  // pieces taper more still, but stay trapezoids, not points.
+  const courses = coursesFor(levelScale(shape, ring.r0, ring.r1));
   return {
     length: ribbon.length,
     courses,

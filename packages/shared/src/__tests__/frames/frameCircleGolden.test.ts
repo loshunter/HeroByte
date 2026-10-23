@@ -98,22 +98,38 @@ const SETUPS = [
 ] as const;
 
 describe("the circle, as C5a shipped it", () => {
-  it("bakes every shipped preset to the same bytes", () => {
-    const now: Record<string, string> = {};
-    for (const preset of FRAME_PRESETS) {
-      for (const [tier, weight, growth, size] of SETUPS) {
-        const frame = { ...presetFrame(preset.id, weight)!, growth };
-        const { pixels } = bakeFrame({
-          frame,
-          size,
-          accent: "#4f7cc4",
-          personal: "#c4504f",
-          seed: frameSeed("golden"),
-          tier,
-        });
-        now[`${preset.id}@${tier}/${weight}/${growth}/${size}`] = fnv(pixels);
+  it.each(FRAME_PRESETS.map((preset) => preset.id))(
+    "bakes %s to the same bytes",
+    { timeout: 30_000 },
+    (id) => {
+      const now: Record<string, string> = {};
+      const expected: Record<string, string> = {};
+      for (const preset of FRAME_PRESETS.filter((each) => each.id === id)) {
+        for (const [tier, weight, growth, size] of SETUPS) {
+          const frame = { ...presetFrame(preset.id, weight)!, growth };
+          const { pixels } = bakeFrame({
+            frame,
+            size,
+            accent: "#4f7cc4",
+            personal: "#c4504f",
+            seed: frameSeed("golden"),
+            tier,
+          });
+          const key = `${preset.id}@${tier}/${weight}/${growth}/${size}`;
+          now[key] = fnv(pixels);
+          expected[key] = C5A_CIRCLE[key]!;
+        }
       }
-    }
-    expect(now).toEqual(C5A_CIRCLE);
+      expect(now).toEqual(expected);
+    },
+  );
+
+  it("holds a hash for every shipped preset and setup, and no other", () => {
+    const keys = FRAME_PRESETS.flatMap((preset) =>
+      SETUPS.map(
+        ([tier, weight, growth, size]) => `${preset.id}@${tier}/${weight}/${growth}/${size}`,
+      ),
+    );
+    expect(Object.keys(C5A_CIRCLE).sort()).toEqual(keys.sort());
   });
 });

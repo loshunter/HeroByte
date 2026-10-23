@@ -142,9 +142,11 @@ export function layCourse(
       (index + 1 < corners.length ? corners[index + 1]! : corners[0]! + length) - corner,
   );
   // A shifted course lays each side with a half motif at both ends (one more
-  // piece a side), so it takes one fewer whole share a side: the course keeps
-  // its budget either way (motifBudget).
-  // Too few motifs for two halves a side: the course is laid unshifted (the budget holds).
+  // piece a side), so it takes one fewer whole share a side, and a course too
+  // short for two halves a side is laid unshifted. Every side still takes one
+  // piece, so a course of fewer motifs than corners passes motifBudget's
+  // share (an octagon of six riveted bands lays 8 a course against 6): its
+  // facets are bounded by the corners, not by the budget.
   const halves = shift && count >= 2 * corners.length;
   const shares = shareOut(spans, Math.max(corners.length, halves ? count - corners.length : count));
   let used = 0;
@@ -165,10 +167,13 @@ export function layCourse(
 }
 
 /** `total` shares among sides by length, at least one each (largest remainder): they sum to `total`. */
-function shareOut(spans: readonly number[], total: number): number[] {
+export function shareOut(spans: readonly number[], total: number): number[] {
   const length = spans.reduce((sum, span) => sum + span, 0);
   const extra = Math.max(0, total - spans.length);
-  const exact = spans.map((span) => (extra * span) / length);
+  // Rounded to a millionth first: a regular shape's sides are equal, and which
+  // one takes a spare share must not turn on a browser's last bit of hypot or
+  // cos (two clients would lay different frames). Equal sides tie, by index.
+  const exact = spans.map((span) => Math.round(((extra * span) / length) * 1e6) / 1e6);
   const shares = exact.map((value) => 1 + Math.floor(value));
   let left = total - shares.reduce((sum, share) => sum + share, 0);
   const order = exact
