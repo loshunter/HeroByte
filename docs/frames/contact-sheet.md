@@ -25,3 +25,10 @@ Rows, top to bottom (accent #4f7cc4 where a preset takes the player's colour):
 15. `plain.ring`: the colour window's darkest violet (#390076)
 16. `plain.ring`: a dark navy (#14254a)
 17. `plain.ring`: a dark maroon (#4a0f1c)
+18. `stone.castle`: Castle stone on a squircle
+19. `stone.castle`: Castle stone on a square
+20. `stone.castle`: Castle stone on a hexagon
+21. `stone.castle`: Castle stone on a octagon
+22. `stone.castle`: Castle stone on a shield
+23. `metal.welded`: Welded steel, hexagon, facing notch
+24. `plain.ring`: Plain ring, circle, facing notch

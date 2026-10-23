@@ -105,7 +105,15 @@ writeFileSync(CATALOG_FILE, formatted);
 
 // --- The contact sheet ------------------------------------------------------
 
-const { bakeFrame, resolveFrameParams, withFrameWeight, FRAME_WEIGHTS } = await load("index.ts");
+const {
+  bakeFrame,
+  insideOutline,
+  isPolygonShape,
+  resolveFrameParams,
+  shapeOutline,
+  withFrameWeight,
+  FRAME_WEIGHTS,
+} = await load("index.ts");
 // From the catalog just built, never presetFrame: the engine loaded the shipped
 // catalog before it was written (catalogSource imports it), so a new preset
 // would be missing and an edited one drawn as it was.
@@ -136,21 +144,39 @@ const DARK_ROWS = [
   ["plain.ring", "#14254a", "a dark navy"],
   ["plain.ring", "#4a0f1c", "a dark maroon"],
 ];
+// C5b: one material on every other shape, and the facing notch.
+const SHAPE_ROWS = ["squircle", "square", "hexagon", "octagon", "shield"].map((shape) => [
+  "stone.castle",
+  DEMO_ACCENT,
+  `Castle stone on a ${shape}`,
+  { shape },
+]);
+const NOTCH_ROWS = [
+  [
+    "metal.welded",
+    DEMO_ACCENT,
+    "Welded steel, hexagon, facing notch",
+    { shape: "hexagon", notch: { gem: "arrow" } },
+  ],
+  ["plain.ring", DEMO_ACCENT, "Plain ring, circle, facing notch", { notch: { gem: "arrow" } }],
+];
 const rows = [
   ...catalog.presets.map((preset) => [preset.id, DEMO_ACCENT, preset.name]),
   ...DARK_ROWS,
+  ...SHAPE_ROWS,
+  ...NOTCH_ROWS,
 ];
 const width = CELL * WEIGHTS.length * BACKGROUNDS.length;
 const height = CELL * rows.length;
 const image = new Uint8Array(width * height * 4);
 const started = performance.now();
 
-rows.forEach(([presetId, accent], row) => {
+rows.forEach(([presetId, accent, , extra], row) => {
   BACKGROUNDS.forEach(([, background], bgIndex) => {
     WEIGHTS.forEach(([, weight], weightIndex) => {
       const left = (bgIndex * WEIGHTS.length + weightIndex) * CELL;
       const top = row * CELL;
-      const frame = sheetFrame(presetId, weight);
+      const frame = { ...sheetFrame(presetId, weight), ...extra };
       const baked = bakeFrame({
         frame,
         accent,
@@ -158,8 +184,11 @@ rows.forEach(([presetId, accent], row) => {
         tier: TIER,
         palettes: catalog.palettes,
       });
-      // The picture stand-in: a muted disc filling the window, as a token's art would.
-      const { window, extent } = baked.layout;
+      // The picture stand-in: a muted fill of the window, as a token's art would.
+      const { window, extent, shape } = baked.layout;
+      const windowOutline = isPolygonShape(shape) ? shapeOutline(shape, window) : null;
+      const inWindow = (tx, ty) =>
+        windowOutline ? insideOutline(windowOutline, tx, ty) : Math.hypot(tx, ty) < window;
       for (let y = 0; y < CELL; y += 1) {
         for (let x = 0; x < CELL; x += 1) {
           const at = ((top + y) * width + left + x) * 4;
@@ -168,7 +197,7 @@ rows.forEach(([presetId, accent], row) => {
           const fy = y - PAD;
           const tx = ((fx + 0.5) / TIER) * 2 * extent - extent;
           const ty = ((fy + 0.5) / TIER) * 2 * extent - extent;
-          if (Math.hypot(tx, ty) < window) [r, g, b] = [0x5a, 0x63, 0x70];
+          if (inWindow(tx, ty)) [r, g, b] = [0x5a, 0x63, 0x70];
           if (fx >= 0 && fy >= 0 && fx < TIER && fy < TIER) {
             const src = (fy * TIER + fx) * 4;
             const alpha = baked.pixels[src + 3] / 255;
