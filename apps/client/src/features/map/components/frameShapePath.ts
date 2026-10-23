@@ -97,11 +97,16 @@ export function drawInShape(
   context.clip();
   // The window stays upright while the picture turns with the token: its
   // colour fills only the corners a turned picture leaves open (the window
-  // less the picture's square), so a transparent picture shows the map
-  // through it, as a circle frame's does.
-  if (color) {
+  // less the picture's square, a pixel in so the picture's edge covers the
+  // colour's), so a transparent picture shows the map through it, as a circle
+  // frame's does. Unturned, or turned with a stretched frame, there are none.
+  const pose = framePose(node.scaleX(), node.scaleY(), node.rotation());
+  if (color && pose.rotation === 0 && node.rotation() % 90 !== 0) {
+    const ratio =
+      (context as { canvas?: { getPixelRatio?: () => number } }).canvas?.getPixelRatio?.() ?? 1;
+    const inset = 1 / (Math.abs(node.getAbsoluteScale?.().x ?? 1) * ratio || 1);
     traceLocal(context, node, shape, size, 0.5);
-    context.rect(0, 0, node.width(), node.height());
+    context.rect(inset, inset, node.width() - 2 * inset, node.height() - 2 * inset);
     context.fillStyle = color;
     context.fill("evenodd");
   }

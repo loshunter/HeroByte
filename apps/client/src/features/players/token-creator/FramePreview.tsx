@@ -2,7 +2,7 @@
 // FRAME PREVIEW — a frame on the token, on a floor (C5a)
 // ============================================================================
 // One small canvas: a floor (the dark map, the light map, fog), the token's
-// picture or colour clipped round, and its frame over it, baked by the same
+// picture or colour clipped to the frame's shape, and its frame over it, baked by the same
 // worker and cache the map uses (so a preview is also a warm cache for the
 // map). Sized so even a frame grown out to its limit fits.
 
@@ -115,7 +115,9 @@ export function FramePreview({
     const centre = edge / 2;
     context.save();
     context.beginPath();
-    if (frame && isPolygonShape(frame.shape)) traceShape(context, frame.shape, centre, token);
+    // The shape of the bitmap on show (the old frame's until a changed one's bake is in).
+    const shown = drawing?.layout.shape ?? frame?.shape;
+    if (frame && isPolygonShape(shown)) traceShape(context, shown, centre, token);
     else if (frame) context.arc(centre, centre, token / 2, 0, Math.PI * 2);
     // Frameless, the map's own rounded square: corners of an eighth of a cell whatever the size.
     else

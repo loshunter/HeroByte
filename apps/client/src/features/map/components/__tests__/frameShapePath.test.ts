@@ -39,8 +39,9 @@ function recorder() {
   };
 }
 /** A token node at (100, 80): its box 60 px, offset to its centre, turned and scaled. */
-function node(rotation = 0, scaleX = 1, scaleY = 1) {
+function node(rotation = 0, scaleX = 1, scaleY = 1, zoom = 1) {
   return {
+    getAbsoluteScale: () => ({ x: scaleX * zoom, y: scaleY * zoom }),
     x: () => 100,
     y: () => 80,
     rotation: () => rotation,
@@ -75,6 +76,15 @@ describe("a polygon frame's hit area", () => {
     // the right corner of the grown-out hexagon, past the token box
     expect(insideOutline(points, ...local(n, 0.6 * SIZE, 0))).toBe(true);
     // the box's top-right corner: inside the token box, outside the hexagon
+    expect(insideOutline(points, ...local(n, 0.49 * SIZE, -0.49 * SIZE))).toBe(false);
+  });
+
+  it("takes the shape itself on a grown-in frame: the box's dead corners miss", () => {
+    const inward = { ...out, growth: "in" as const };
+    const n = node();
+    const { points, context } = recorder();
+    hitShape(context as unknown as Konva.Context, n, "hexagon", SIZE, layoutFrame(inward).outer);
+    expect(insideOutline(points, ...local(n, 0.45 * SIZE, 0))).toBe(true); // inside the right corner
     expect(insideOutline(points, ...local(n, 0.49 * SIZE, -0.49 * SIZE))).toBe(false);
   });
 
@@ -136,6 +146,8 @@ describe("a polygon frame's picture", () => {
       "#ff0000",
     );
     expect(calls).toEqual(["save", "clip", "rect", "fill:evenodd", "drawImage", "restore"]);
+    // a device pixel inside the picture's edge, which covers the colour's own edge
+    expect(rects[0]).toEqual([1, 1, SIZE - 2, SIZE - 2]);
     // even-odd: the window less the picture's square
     const [rx, ry, rw, rh] = rects[0]!;
     const filled = (x: number, y: number) =>
@@ -144,26 +156,33 @@ describe("a polygon frame's picture", () => {
     expect(filled(SIZE / 2, SIZE / 2)).toBe(false); // the picture itself: a transparent one shows the map
   });
 
-  it("paints no colour round an unturned picture: the window and the picture are one square", () => {
-    const { points, rects, context } = recorder();
+  it("paints no colour round an unturned picture, nor one turned with a stretched frame", () => {
+    for (const n of [node(0), node(90), node(30, 2, 1)]) {
+      const { calls, context } = recorder();
+      drawInShape(
+        context as unknown as Konva.Context,
+        n,
+        "square",
+        SIZE,
+        {} as CanvasImageSource,
+        "#ff0000",
+      );
+      expect(calls, `turned ${n.rotation()}`).toEqual(["save", "clip", "drawImage", "restore"]);
+    }
+  });
+
+  it("pulls the colour a device pixel in at any zoom", () => {
+    const { rects, context } = recorder();
+    const ratio = { ...context, canvas: { getPixelRatio: () => 2 } };
     drawInShape(
-      context as unknown as Konva.Context,
-      node(0),
+      ratio as unknown as Konva.Context,
+      node(45, 1, 1, 2),
       "square",
       SIZE,
       {} as CanvasImageSource,
       "#ff0000",
     );
-    const [rx, ry, rw, rh] = rects[0]!;
-    for (const [x, y] of [
-      [5, 5],
-      [30, 30],
-      [55, 2],
-    ] as const) {
-      expect(
-        insideOutline(points, x, y) !== (x >= rx! && x <= rx! + rw! && y >= ry! && y <= ry! + rh!),
-      ).toBe(false);
-    }
+    expect(rects[0]).toEqual([0.25, 0.25, SIZE - 0.5, SIZE - 0.5]);
   });
 
   it("is its colour filling the shape when it has no picture", () => {

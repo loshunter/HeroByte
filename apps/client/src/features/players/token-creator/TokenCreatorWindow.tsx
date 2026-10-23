@@ -142,7 +142,7 @@ export function TokenCreatorWindow({
 
   // The map draws a token 3/4 of a cell times its size, with corners of 1/8 of a
   // cell whatever its size: the corner, as a share of the side, shrinks with size.
-  // A framed token is round on the map (C5a), so its picture is framed in a circle.
+  // A framed token takes its frame's shape on the map: a circle here (a polygon's is its clip, C5b).
   const corner = (frame ? draft : null)
     ? 0.5
     : 1 / (6 * (PROP_SIZE_MULTIPLIERS[tokenSize ?? "medium"] ?? 1));

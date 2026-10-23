@@ -1,9 +1,9 @@
 // ============================================================================
 // TOKEN FRAME OVERLAY — a framed token's ring and selection outline (C5a)
 // ============================================================================
-// Drawn over the token's own node (the picture, or its colour, clipped to a
-// circle by TokenSprite): the baked frame bitmap, and the outline on the
-// frame's outer circle in place of the token box's square. It follows the
+// Drawn over the token's own node (the picture, or its colour, clipped to the
+// frame's shape by TokenSprite): the baked frame bitmap, and the outline on the
+// frame's outer edge in place of the token box's square. It follows the
 // node's position and scale through drags, glides and the transform handles,
 // but NOT its rotation: the frame is lit by the table's one light, and a
 // turned token must not turn its light with it. Two exceptions keep the frame
