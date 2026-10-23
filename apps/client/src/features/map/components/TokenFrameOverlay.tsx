@@ -41,8 +41,9 @@ export function frameOutset(frame: TokenFrame | undefined, size: TokenSize | und
   if (!frame) return 0;
   const layout = layoutFrame(frame, size);
   if (!isPolygonShape(layout.shape)) return layout.outset;
-  // A hexagon's corners and the shield's point reach past their level.
-  const reach = Math.max(...shapeOutline(layout.shape, layout.outer).map(Math.abs));
+  // How far up or down it reaches (its users, the nameplate and the padlock, are below and above).
+  const ys = shapeOutline(layout.shape, layout.outer).filter((_, index) => index % 2 === 1);
+  const reach = Math.max(...ys.map(Math.abs));
   return Math.max(0, reach - 0.5);
 }
 /** The keyline is this much wider than the colour band (SelectionRing's ratio). */

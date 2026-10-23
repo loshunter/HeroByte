@@ -22,8 +22,9 @@ export const PREVIEW_FLOORS = {
 } as const;
 export type PreviewFloor = keyof typeof PREVIEW_FLOORS;
 
-/** A frame's bitmap reaches 0.75 of the token's edge from its centre at most (a grown-out hexagon's corner). */
-const MAX_EXTENT = 0.75;
+/** A frame's bitmap reaches 0.7 of the token's edge from its centre at most; a polygon's 0.74 (a grown-out hexagon's corner). */
+const MAX_EXTENT = 0.7;
+const MAX_POLYGON_EXTENT = 0.74;
 
 export interface FramePreviewProps {
   frame: TokenFrame | null;
@@ -76,7 +77,8 @@ export function FramePreview({
   active = true,
 }: FramePreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const token = edge / (2 * MAX_EXTENT);
+  const token =
+    edge / (2 * (frame && isPolygonShape(frame.shape) ? MAX_POLYGON_EXTENT : MAX_EXTENT));
   const drawing = useFrameBitmap(
     frame && active ? { frame, tokenId, color, size, tokenPx: token, zoom: 1 } : null,
   );

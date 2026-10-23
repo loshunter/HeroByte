@@ -29,6 +29,8 @@ interface PictureTabProps {
   corner: number;
   /** A polygon frame's shape as a CSS clip-path (C5b): the picture framed in that shape. */
   clip?: string;
+  /** The same shape as SVG polygon points, outlined over the crop. */
+  clipPoints?: string;
   /** Whether this tab is the one showing (an error is brought into view only then). */
   shown?: boolean;
 }
@@ -37,7 +39,7 @@ interface PictureTabProps {
 const small = { fontSize: "10px", padding: "6px 10px" } as const;
 const label = { color: "var(--jrpg-gold)" } as const;
 
-export function PictureTab({ creator, corner, clip, shown = true }: PictureTabProps) {
+export function PictureTab({ creator, corner, clip, clipPoints, shown = true }: PictureTabProps) {
   const { picture, crop, setCrop, backdrop, setBackdrop, autoColor, phase } = creator;
   const fileRef = useRef<HTMLInputElement>(null);
   // A failure is said at the foot of the tab, where the sticky Accept bar covers
@@ -82,6 +84,7 @@ export function PictureTab({ creator, corner, clip, shown = true }: PictureTabPr
         fill={fill}
         corner={corner}
         clip={clip}
+        clipPoints={clipPoints}
       />
 
       {picture && (

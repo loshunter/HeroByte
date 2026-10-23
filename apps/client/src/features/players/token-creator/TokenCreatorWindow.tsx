@@ -26,7 +26,7 @@ import type { TokenFrameControl } from "./frameControl";
 import { useTokenCreator, type TokenCreatorDeps } from "./useTokenCreator";
 import { resolveBackdrop } from "./backdrop";
 import { acceptLabels } from "./acceptLabels";
-import { shapeClipPath } from "./shapeClip";
+import { shapeClipPath, shapePolygonPoints } from "./shapeClip";
 
 /** Open creators, oldest first: a paste goes to the last one opened. */
 const openCreators: symbol[] = [];
@@ -241,6 +241,7 @@ export function TokenCreatorWindow({
               creator={creator}
               corner={corner}
               clip={frame && draft ? shapeClipPath(draft.shape) : undefined}
+              clipPoints={frame && draft ? shapePolygonPoints(draft.shape) : undefined}
               shown={shown === "picture"}
             />
           </div>

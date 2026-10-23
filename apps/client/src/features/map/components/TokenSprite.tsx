@@ -4,7 +4,7 @@
 // The token's one draggable node (its picture, or a fill of its colour) with
 // the glide, the pop-in and the selection glow. Split out of TokensLayer.tsx,
 // which sits on the structure baseline, when tokens gained frames (C5a): a
-// framed token is drawn as a circle with TokenFrameOverlay over it.
+// framed token is drawn in its frame's shape with TokenFrameOverlay over it.
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Rect, Image as KonvaImage } from "react-konva";
@@ -91,8 +91,8 @@ export const TokenSprite = memo(function TokenSprite({
   const size = gridSize * 0.75 * sizeMultiplier;
   const halfSize = size / 2;
 
-  // A framed token (C5a) is a circle: its picture or colour clipped round, the
-  // baked frame over it, and the outline and glow on the frame's outer circle.
+  // A framed token (C5a) takes its frame's shape: its picture or colour clipped
+  // to it, the baked frame over it, the outline and glow on the frame's outer edge.
   const frameDrawing = useFrameBitmap(
     data.frame
       ? {
@@ -271,7 +271,8 @@ export const TokenSprite = memo(function TokenSprite({
   const loaded = data.imageUrl && status === "loaded" && image ? image : undefined;
   // A polygon frame's node draws itself in the shape (a group's clip would clip its hit area too).
   const sceneFunc = shape
-    ? (context: Konva.Context, node: Konva.Shape) => drawInShape(context, node, shape, size, loaded)
+    ? (context: Konva.Context, node: Konva.Shape) =>
+        drawInShape(context, node, shape, size, loaded, data.color)
     : undefined;
   return (
     <>

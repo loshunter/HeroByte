@@ -31,6 +31,8 @@ interface CropStageProps {
   corner: number;
   /** A polygon frame's shape as a CSS clip-path (C5b), in place of the rounded corners. */
   clip?: string;
+  /** The same shape as SVG polygon points over a 100 by 100 box, outlined in gold. */
+  clipPoints?: string;
 }
 
 const NUDGE = 0.02;
@@ -43,7 +45,15 @@ const CHECKER = "repeating-conic-gradient(#3a3646 0% 25%, #24212d 0% 50%) 50% / 
 type Point = { x: number; y: number };
 
 /** The window around it takes drops (TokenCreatorWindow); the square shows the hint. */
-export function CropStage({ picture, crop, onCrop, fill, corner, clip }: CropStageProps) {
+export function CropStage({
+  picture,
+  crop,
+  onCrop,
+  fill,
+  corner,
+  clip,
+  clipPoints,
+}: CropStageProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const sizeRef = useRef<Size | null>(null);
@@ -188,16 +198,28 @@ export function CropStage({ picture, crop, onCrop, fill, corner, clip }: CropSta
         margin: "0 auto",
         overflow: "hidden",
         borderRadius: clip ? 0 : `${corner * 100}%`,
-        clipPath: clip,
         border: "2px solid var(--jrpg-border-gold)",
-        background: fill.kind === "none" ? CHECKER : cssBackground(fill),
         touchAction: "none",
         cursor: picture ? "grab" : "default",
       }}
     >
-      {picture && placed ? (
-        <img src={picture.displaySrc} alt="" draggable={false} style={imageStyle} />
-      ) : (
+      {/* The picture's window: a polygon frame's shape clips this layer only, so the
+          square's border and focus ring stay whole (C5b). */}
+      <div
+        data-testid="token-creator-crop-window"
+        style={{
+          position: "absolute",
+          inset: 0,
+          clipPath: clip,
+          background: fill.kind === "none" ? CHECKER : cssBackground(fill),
+        }}
+      >
+        {picture && placed && (
+          <img src={picture.displaySrc} alt="" draggable={false} style={imageStyle} />
+        )}
+      </div>
+      {clip && <ShapeOutline points={clipPoints!} />}
+      {picture && placed ? null : (
         <p
           className="jrpg-text-small"
           style={{
@@ -216,5 +238,31 @@ export function CropStage({ picture, crop, onCrop, fill, corner, clip }: CropSta
         </p>
       )}
     </div>
+  );
+}
+
+/** The frame's shape outlined over the crop, where the picture's window ends. */
+function ShapeOutline({ points }: { points: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+      }}
+    >
+      <polygon
+        points={points}
+        fill="none"
+        stroke="var(--jrpg-border-gold)"
+        strokeWidth={2}
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
   );
 }

@@ -402,13 +402,15 @@ describe("the Frame tab's shapes and notch (C5b)", () => {
     expect(sanitizeTokenFrame(frame)).toHaveProperty("frame");
   });
 
-  it("takes the notch off again, and offers the frame colour for the gem", () => {
+  it("takes the notch off again, and offers the gem's colour on a material with its own", () => {
     const { value, onApply } = control();
     open(value);
     press("Castle stone");
     expect(screen.queryByRole("group", { name: "Frame colour" })).toBeNull();
     press("Facing notch");
-    expect(screen.getByRole("group", { name: "Frame colour" })).toBeInTheDocument(); // the gem's
+    expect(screen.getByRole("group", { name: "Notch colour" })).toBeInTheDocument(); // the gem's alone
+    expect(screen.getByText("This material has its own colours.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Notch: your colour" })).toBeInTheDocument();
     press("Facing notch");
     press("Use this frame");
     expect(sent(onApply)).not.toHaveProperty("notch");
@@ -421,10 +423,16 @@ describe("the Frame tab's shapes and notch (C5b)", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Picture" }));
     await pickFile();
     const crop = screen.getByTestId("token-creator-crop");
-    expect(crop.style.clipPath).toMatch(/^polygon\(50\.00% 0\.00%, /);
+    // the window is clipped, the square (its border and focus ring) is not
+    expect(screen.getByTestId("token-creator-crop-window").style.clipPath).toMatch(
+      /^polygon\(50\.00% 0\.00%, /,
+    );
+    expect(crop.style.clipPath).toBe("");
+    expect(crop.querySelector("svg polygon")).not.toBeNull(); // the shape outlined in gold
     fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
     press("Circle");
     fireEvent.click(screen.getByRole("tab", { name: "Picture" }));
-    expect(screen.getByTestId("token-creator-crop").style.clipPath).toBe("");
+    expect(screen.getByTestId("token-creator-crop-window").style.clipPath).toBe("");
+    expect(screen.getByTestId("token-creator-crop").querySelector("svg polygon")).toBeNull();
   });
 });

@@ -36,7 +36,8 @@ vi.mock("react-konva", () => ({
   Line: mock("line"),
   Text: mock("text"),
 }));
-vi.mock("use-image", () => ({ default: () => [undefined, "loading"] }));
+let imageState: [unknown, string] = [undefined, "loading"];
+vi.mock("use-image", () => ({ default: () => imageState }));
 const requests: (FrameBitmapRequest | null)[] = [];
 const BITMAP = { width: 256, height: 256 };
 vi.mock("../../../render/frame/useFrameBitmap", () => ({
@@ -158,6 +159,36 @@ describe("a polygon frame on the map (C5b)", () => {
     expect(outline.closed).toBe(true);
     expect((outline.points as number[]).length).toBe(14); // a hexagon's seven points from the top
     expect(all("circle").some((circle) => circle.stroke === "#447DF7")).toBe(false);
+  });
+
+  it("draws a picture in the shape too, by its own node", () => {
+    imageState = [{ width: 10, height: 10 }, "loaded"];
+    try {
+      const hexagon = { ...presetFrame("plain.ring")!, shape: "hexagon" as const };
+      render(
+        <TokensLayer
+          {...props({ ...token(hexagon), data: { ...token(hexagon).data, imageUrl: "/a.png" } })}
+        />,
+      );
+      const picture = all("image").find((image) => image.name === "token:t1")!;
+      expect(typeof picture.sceneFunc).toBe("function");
+      expect(typeof picture.hitFunc).toBe("function");
+    } finally {
+      imageState = [undefined, "loading"];
+    }
+  });
+
+  it("lifts the nameplate below a grown-out shield's point, by how far it reaches down", () => {
+    const shield = {
+      ...presetFrame("stone.castle", 0.24)!,
+      shape: "shield" as const,
+      growth: "out" as const,
+    };
+    const circle = { ...shield, shape: "circle" as const };
+    expect(frameOutset(shield, "medium")).toBeGreaterThan(frameOutset(circle, "medium"));
+    const hexagon = { ...shield, shape: "hexagon" as const };
+    // a flat-topped hexagon's top is its apothem out: 0.433 + 0.15, past the box by 0.083
+    expect(frameOutset(hexagon, "medium")).toBeCloseTo(0.5 * Math.cos(Math.PI / 6) + 0.15 - 0.5, 6);
   });
 
   it("keeps a circle frame drawn as before: round, no clip group, no hit function", () => {

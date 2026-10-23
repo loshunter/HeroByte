@@ -75,6 +75,8 @@ export function FrameTab({ control, active = true, pending, draft, onDraft }: Fr
   const ids = { weight: useId(), glow: useId() };
   const weight = draft ? frameWeight(draft) : FRAME_WEIGHTS.regular;
   const glowBand = draft?.bands.find((band) => band.glow);
+  // A material with its own colours wearing the notch: the colour is the gem's alone.
+  const gemOnly = Boolean(draft?.notch) && !frameUsesAccent({ ...draft!, notch: undefined });
 
   const choosePreset = (id: string) => {
     const next = presetFrame(id, weight);
@@ -129,6 +131,11 @@ export function FrameTab({ control, active = true, pending, draft, onDraft }: Fr
         ))}
       </div>
 
+      {draft && (
+        <span className="jrpg-text-small" style={label}>
+          Shape
+        </span>
+      )}
       {draft && (
         <div style={row} role="group" aria-label="Shape">
           {FRAME_SHAPES.map((shape) => (
@@ -242,24 +249,24 @@ export function FrameTab({ control, active = true, pending, draft, onDraft }: Fr
             Facing notch
           </JRPGButton>
 
-          {!frameUsesAccent(draft) && (
+          {!frameUsesAccent({ ...draft, notch: undefined }) && (
             <span className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
               This material has its own colours.
             </span>
           )}
           {frameUsesAccent(draft) && (
-            <div style={row} role="group" aria-label="Frame colour">
+            <div style={row} role="group" aria-label={gemOnly ? "Notch colour" : "Frame colour"}>
               <JRPGButton
                 onClick={() => edit((frame) => ({ ...frame, accent: "personal" }))}
                 aria-pressed={(draft.accent ?? "personal") === "personal"}
                 variant={(draft.accent ?? "personal") === "personal" ? "primary" : "default"}
                 style={small}
               >
-                Your colour
+                {gemOnly ? "Notch: your colour" : "Your colour"}
               </JRPGButton>
               <input
                 type="color"
-                aria-label="Custom frame colour"
+                aria-label={gemOnly ? "Custom notch colour" : "Custom frame colour"}
                 value={pickerColor(draft.accent, control.color)}
                 onChange={(event) =>
                   edit((frame) => ({ ...frame, accent: event.target.value.toLowerCase() }))

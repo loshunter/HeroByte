@@ -85,6 +85,7 @@ export function drawInShape(
   shape: PolygonShape,
   size: number,
   image?: CanvasImageSource,
+  color?: string,
 ): void {
   if (!image) {
     traceLocal(context, node, shape, size, 0.5);
@@ -93,6 +94,12 @@ export function drawInShape(
   }
   context.save();
   traceLocal(context, node, shape, size, 0.5);
+  // The window stays upright while the picture turns with the token: its
+  // colour fills the corners a turned square picture leaves open.
+  if (color) {
+    context.fillStyle = color;
+    context.fill();
+  }
   context.clip();
   context.drawImage(image, 0, 0, node.width(), node.height());
   context.restore();

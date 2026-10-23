@@ -23,6 +23,8 @@ function recorder() {
       lineTo: (x: number, y: number) => points.push(x, y),
       closePath: () => {},
       fillStrokeShape: () => calls.push("fill"),
+      fill: () => calls.push("fillPath"),
+      fillStyle: "",
       save: () => calls.push("save"),
       clip: () => calls.push("clip"),
       drawImage: () => calls.push("drawImage"),
@@ -79,6 +81,14 @@ describe("a polygon frame's hit area", () => {
     expect(insideOutline(points, ...local(n, 0, -0.6 * SIZE))).toBe(false);
   });
 
+  it("is never mirrored: a flipped shield's point stays at the bottom", () => {
+    const n = node(0, 1, -1);
+    const { points, context } = recorder();
+    hitShape(context as unknown as Konva.Context, n, "shield", SIZE, 0.5);
+    expect(insideOutline(points, ...local(n, 0.3 * SIZE, -0.45 * SIZE))).toBe(true); // the top corner
+    expect(insideOutline(points, ...local(n, 0.3 * SIZE, 0.45 * SIZE))).toBe(false); // beside the point
+  });
+
   it("follows a stretched token, as the frame does", () => {
     const n = node(0, 2, 1);
     const { points, context } = recorder();
@@ -106,6 +116,19 @@ describe("a polygon frame's picture", () => {
     expect(Math.max(...xs)).toBeCloseTo(60);
     expect(Math.min(...ys)).toBeCloseTo(0);
     expect(Math.max(...ys)).toBeCloseTo(60);
+  });
+
+  it("fills its window with the token's colour under a turned picture", () => {
+    const { calls, context } = recorder();
+    drawInShape(
+      context as unknown as Konva.Context,
+      node(45),
+      "square",
+      SIZE,
+      {} as CanvasImageSource,
+      "#ff0000",
+    );
+    expect(calls).toEqual(["save", "fillPath", "clip", "drawImage", "restore"]);
   });
 
   it("is its colour filling the shape when it has no picture", () => {

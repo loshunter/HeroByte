@@ -201,7 +201,7 @@ describe("the Frame tab's previews of a picture not yet saved", () => {
     calls.length = 0;
     fireEvent.click(screen.getByRole("tab", { name: "Frame" }));
     const card = calls.filter((call) => call.canvas === "Preview at card size on the dark map");
-    const token = 88 / (2 * 0.75); // the token in an 88 px preview (room for a grown-out hexagon)
+    const token = 88 / (2 * 0.7); // the token in an 88 px preview (a circle frame's room)
     expect(card.find((call) => call.name === "translate")?.args[0]).toBeCloseTo(44 - token / 2);
     expect(card.some((call) => call.name === "rotate" && call.args[0] === Math.PI / 2)).toBe(true);
   });
