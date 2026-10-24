@@ -11,7 +11,6 @@
 
 import type Konva from "konva";
 import { shapeOutline, type PolygonShape } from "@herobyte/shared";
-import { framePose } from "./TokenFrameOverlay";
 
 /** The outline at `level` (0.5: the token box) for a token `size` map pixels across, centred on 0. */
 export function outlinePoints(shape: PolygonShape, level: number, size: number): number[] {
@@ -32,6 +31,16 @@ function trace(
     else context.lineTo(x, y);
   }
   context.closePath();
+}
+
+// Here, not in TokenFrameOverlay: this module must load without react-konva
+// (Node 18 cannot require() konva's ES module, so its tests fail to load).
+/** The overlay's scale and turn for a token's: unflipped, and upright unless stretched. */
+export function framePose(scaleX: number, scaleY: number, rotation: number) {
+  const x = Math.abs(scaleX);
+  const y = Math.abs(scaleY);
+  const stretched = Math.abs(x - y) > 1e-3 * Math.max(x, y, 1);
+  return { scaleX: x, scaleY: y, rotation: stretched ? rotation : 0 };
 }
 
 const RADIANS = Math.PI / 180;

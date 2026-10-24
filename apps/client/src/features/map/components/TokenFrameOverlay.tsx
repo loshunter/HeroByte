@@ -23,18 +23,13 @@ import {
   type TokenSize,
 } from "@herobyte/shared";
 import type { FrameDrawing } from "../../render/frame/useFrameBitmap";
+import { framePose } from "./frameShapePath";
+
+export { framePose };
 
 const FOLLOWED =
   "xChange.tokenFrame yChange.tokenFrame scaleXChange.tokenFrame scaleYChange.tokenFrame " +
   "rotationChange.tokenFrame";
-
-/** The overlay's scale and turn for a token's: unflipped, and upright unless stretched. */
-export function framePose(scaleX: number, scaleY: number, rotation: number) {
-  const x = Math.abs(scaleX);
-  const y = Math.abs(scaleY);
-  const stretched = Math.abs(x - y) > 1e-3 * Math.max(x, y, 1);
-  return { scaleX: x, scaleY: y, rotation: stretched ? rotation : 0 };
-}
 
 /** How far a frame reaches past the token box, as a share of its edge (0 growing in). */
 export function frameOutset(frame: TokenFrame | undefined, size: TokenSize | undefined): number {
